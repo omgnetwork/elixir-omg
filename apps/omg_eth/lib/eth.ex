@@ -48,37 +48,65 @@ defmodule OMG.Eth do
   end
 
   @spec get_root_deployment_height(binary() | nil, optional_addr_t()) ::
-          {:ok, integer()} | Ethereumex.HttpClient.error()
+          {:ok, pos_integer()} | {:error, :configuration} | Ethereumex.HttpClient.error()
   def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    txhash = txhash || from_hex(Application.fetch_env!(:omg_eth, :txhash_contract))
-
-    # the back&forth is just the dumb but natural way to go about Ethereumex/Eth APIs conventions for encoding
-    hex_contract = to_hex(contract)
-
-    case txhash |> to_hex() |> Ethereumex.HttpClient.eth_get_transaction_receipt() do
-      {:ok, %{"contractAddress" => ^hex_contract, "blockNumber" => height}} ->
+    try do
+      with contract <- contract || Application.fetch_env!(:omg_eth, :contract_addr),
+           txhash <- txhash || Application.fetch_env!(:omg_eth, :txhash_contract),
+           {true, :validation} <- {is_binary(contract) && is_binary(txhash), :validation},
+           contract <- from_hex(contract),
+           txhash <- from_hex(txhash),
+           hex_contract <- to_hex(contract),
+           {{:ok, %{"contractAddress" => ^hex_contract, "blockNumber" => height}}, :match} <-
+             {txhash |> to_hex() |> Ethereumex.HttpClient.eth_get_transaction_receipt(), :match} do
         {:ok, int_from_hex(height)}
+      else
+        {false, :validation} ->
+          _ = Logger.error("The setting for contract address and txhash is not valid.")
+          {:error, :configuration}
 
-      other ->
-        other
+        {response, :match} ->
+          _ = Logger.error("The client responded with a contractAddress #{inspect(response)} that does not match ours.")
+          {:error, :configuration}
+
+        {:error, error} ->
+          _ = Logger.error("The client responded with an error #{inspect(error)}.")
+          {:error, :bad_response}
+      end
+    rescue
+      ArgumentError ->
+        _ = Logger.error("The setting for contract address and txhash is not an valid.")
+        {:error, :configuration}
     end
   end
 
   @spec contract_ready() ::
-          :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
+          :ok | {:error, :configuration | :root_chain_authority_is_nil}
   def contract_ready() do
-    contract = from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-
     try do
-      {:ok, addr} = call_contract(contract, "operator()", [], [:address])
+      with contract <- Application.fetch_env!(:omg_eth, :contract_addr),
+           {contract, :validation} when is_binary(contract) <- {contract, :validation},
+           contract <- from_hex(contract),
+           {:ok, address} <- call_contract(contract, "operator()", [], [:address]),
+           {false, :root_chain_authority_is_nil} <- {<<0::256>> === address, :root_chain_authority_is_nil} do
+        :ok
+      else
+        {true, :root_chain_authority_is_nil} ->
+          _ = Logger.error("Root chain authority is set to nil (<<0::256>>).")
+          {:error, :root_chain_authority_is_nil}
 
-      case addr != <<0::256>> do
-        true -> :ok
-        false -> {:error, :root_chain_authority_is_nil}
+        {_, :validation} ->
+          _ = Logger.error("The setting for contract address is not valid.")
+          {:error, :configuration}
+
+        {:error, error} ->
+          _ = Logger.error("The client responded with an error #{inspect(error)}.")
+          {:error, :bad_response}
       end
     rescue
-      _ -> {:error, :root_chain_contract_not_available}
+      ArgumentError ->
+        _ = Logger.error("The setting for contract address is not valid.")
+        {:error, :configuration}
     end
   end
 

@@ -42,21 +42,19 @@ defmodule OMG.ChildChain.BlockQueue do
     use OMG.Utils.LoggerExt
     alias OMG.Eth
 
-    def start_link(_args) do
-      GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+    def start_link(args) do
+      GenServer.start_link(__MODULE__, args, name: __MODULE__)
     end
 
-    def init(:ok) do
-      {:ok, %{}, {:continue, :setup}}
+    def init(args) do
+      {:ok, args, {:continue, :setup}}
     end
 
-    def handle_continue(:setup, %{}) do
+    def handle_continue(:setup, %{contract_deployment_height: contract_deployment_height}) do
       _ = Logger.info("Starting #{__MODULE__} service.")
       :ok = Eth.node_ready()
-      :ok = Eth.RootChain.contract_ready()
       {:ok, parent_height} = Eth.get_ethereum_height()
       {:ok, mined_num} = Eth.RootChain.get_mined_child_block()
-      {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
       {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
       {:ok, stored_child_top_num} = OMG.DB.get_single_value(:child_top_block_number)
       {:ok, finality_threshold} = Application.fetch_env(:omg_child_chain, :submission_finality_margin)
@@ -64,7 +62,9 @@ defmodule OMG.ChildChain.BlockQueue do
       _ =
         Logger.info(
           "Starting BlockQueue at " <>
-            "parent_height: #{inspect(parent_height)}, parent_start: #{inspect(parent_start)}, " <>
+            "parent_height: #{inspect(parent_height)}, contract deployment height: #{
+              inspect(contract_deployment_height)
+            }, " <>
             "mined_child_block: #{inspect(mined_num)}, stored_child_top_block: #{inspect(stored_child_top_num)}"
         )
 
@@ -83,7 +83,7 @@ defmodule OMG.ChildChain.BlockQueue do
                  top_mined_hash: top_mined_hash,
                  parent_height: parent_height,
                  child_block_interval: child_block_interval,
-                 chain_start_parent_height: parent_start,
+                 chain_start_parent_height: contract_deployment_height,
                  minimal_enqueue_block_gap: Application.fetch_env!(:omg_child_chain, :child_block_minimal_enqueue_gap),
                  finality_threshold: finality_threshold,
                  last_enqueued_block_at_height: parent_height

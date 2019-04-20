@@ -42,18 +42,17 @@ defmodule OMG.Watcher.BlockGetter do
     GenServer.call(__MODULE__, :get_events)
   end
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init(_opts) do
-    {:ok, %{}, {:continue, :setup}}
+  def init(args) do
+    {:ok, args, {:continue, :setup}}
   end
 
-  def handle_continue(:setup, %{}) do
-    {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
+  def handle_continue(:setup, %{contract_deployment_height: contract_deployment_height}) do
     {:ok, last_synced_height} = OMG.DB.get_single_value(:last_block_getter_eth_height)
-    synced_height = max(deployment_height, last_synced_height)
+    synced_height = max(contract_deployment_height, last_synced_height)
 
     {current_block_height, state_at_block_beginning} = State.get_status()
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()

@@ -63,10 +63,10 @@ defmodule OMG.EthereumEventListener do
         synced_height_update_key: update_key,
         service_name: service_name,
         get_events_callback: get_events_callback,
-        process_events_callback: process_events_callback
+        process_events_callback: process_events_callback,
+        contract_deployment_height: contract_deployment_height
       }) do
     _ = Logger.info("Starting EthereumEventListener for #{service_name}.")
-    {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
     {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
     # we don't need to ever look at earlier than contract deployment
     last_event_block_height = max(last_event_block_height, contract_deployment_height)
