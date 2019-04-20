@@ -42,6 +42,9 @@ defmodule OMG.Alert.Alarm do
     - the contract either isn't deployed at the address set in the configuration, or
     - is faulty
   """
+  def contract_height(node, reporter),
+    do: {:contract_height, %{node: node, reporter: reporter}}
+
   def contract_deployment_issue(node, reporter),
     do: {:contract_deployment_issue, %{node: node, reporter: reporter}}
 
@@ -87,5 +90,9 @@ defmodule OMG.Alert.Alarm do
 
   defp make_alarm({:contract_deployment_issue, node, reporter}) do
     contract_deployment_issue(node, reporter)
+  end
+
+  defp make_alarm({:contract_height, node, reporter}) do
+    contract_height(node, reporter)
   end
 end
