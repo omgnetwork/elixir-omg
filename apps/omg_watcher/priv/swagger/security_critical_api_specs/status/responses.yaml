@@ -1,0 +1,6 @@
+StatusResponse:
+  description: Returns the status of the watcher
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/StatusResponseSchema'

@@ -1,0 +1,32 @@
+AllBlocksBodySchema:
+  description: The block number of the latest block in the list to be returned. Optional - if not specified, latest block will be the current
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          from_blknum:
+            type: integer
+            format: int64
+          limit:
+            type: integer
+            format: int32
+            default: 200
+        example:
+          from_blknum: 68290000
+          limit: 100
+
+GetBlockBodySchema:
+  description: Hash of the Plasma block
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          id:
+            type: string
+            format: binary
+        example:
+          id: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
