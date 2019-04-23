@@ -76,7 +76,7 @@ defmodule OMG.DB do
   def init, do: driver().init()
 
   @doc """
-  Puts all zeroes and other init values to a generically initialized `OMG-DB`
+  Puts all zeroes and other init values to a generically initialized `OMG.DB`
   """
   def initiation_multiupdate, do: driver().initiation_multiupdate
   def initiation_multiupdate(server), do: driver().initiation_multiupdate(server)
