@@ -19,6 +19,7 @@ defmodule OMG.ChildChain.Supervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
   alias OMG.Alert.Alarm
+  alias OMG.PlasmaDeploymentHeight
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -29,31 +30,41 @@ defmodule OMG.ChildChain.Supervisor do
     DeferredConfig.populate(:omg_eth)
 
     monitor_children = [
-      {OMG.ChildChain.BlockQueue.Server, []},
+      {OMG.ChildChain.BlockQueue.Server,
+       [
+         %{
+           is_contract_ready: &PlasmaDeploymentHeight.contract_ready?/0,
+           contract_deployment_height: &PlasmaDeploymentHeight.contract_deployment_height/0
+         }
+       ]},
       {OMG.RootChainCoordinator, coordinator_setup()},
       OMG.EthereumEventListener.prepare_child(
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
-        process_events_callback: &OMG.State.deposit/1
+        process_events_callback: &OMG.State.deposit/1,
+        contract_deployment_height: &PlasmaDeploymentHeight.contract_deployment_height/0
       ),
       OMG.EthereumEventListener.prepare_child(
         service_name: :in_flight_exit,
         synced_height_update_key: :last_in_flight_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-        process_events_callback: &exit_and_ignore_validities/1
+        process_events_callback: &exit_and_ignore_validities/1,
+        contract_deployment_height: &PlasmaDeploymentHeight.contract_deployment_height/0
       ),
       OMG.EthereumEventListener.prepare_child(
         service_name: :piggyback,
         synced_height_update_key: :last_piggyback_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
-        process_events_callback: &exit_and_ignore_validities/1
+        process_events_callback: &exit_and_ignore_validities/1,
+        contract_deployment_height: &PlasmaDeploymentHeight.contract_deployment_height/0
       ),
       OMG.EthereumEventListener.prepare_child(
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
-        process_events_callback: &exit_and_ignore_validities/1
+        process_events_callback: &exit_and_ignore_validities/1,
+        contract_deployment_height: &PlasmaDeploymentHeight.contract_deployment_height/0
       )
     ]
 

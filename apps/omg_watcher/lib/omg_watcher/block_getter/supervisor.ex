@@ -19,6 +19,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
+  alias OMG.PlasmaDeploymentHeight
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -32,7 +33,11 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
       {OMG.State, []},
       %{
         id: OMG.Watcher.BlockGetter,
-        start: {OMG.Watcher.BlockGetter, :start_link, [[]]},
+        start:
+          {OMG.Watcher.BlockGetter, :start_link,
+           [
+             %{contract_deployment_height: &PlasmaDeploymentHeight.contract_deployment_height/0}
+           ]},
         restart: :transient
       }
     ]

@@ -25,7 +25,7 @@ defmodule OMG.Alert.AlarmHandler do
   end
 
   # subscribing to alarms of type
-  def alarm_types, do: [:ethereum_client_connection, :boot_in_progress]
+  def alarm_types, do: [:ethereum_client_connection, :boot_in_progress, :contract_height, :contract_deployment_issue]
 
   def init(_args) do
     {:ok, %{alarms: []}}

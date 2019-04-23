@@ -44,6 +44,16 @@ defmodule OMG.PlasmaDeploymentHeight do
             height: nil,
             contract_ready: false
 
+  @spec contract_deployment_height :: {:ok, pos_integer()} | :error
+  def contract_deployment_height do
+    GenServer.call(__MODULE__, :contract_deployment_height)
+  end
+
+  @spec contract_ready? :: boolean()
+  def contract_ready? do
+    GenServer.call(__MODULE__, :is_contract_ready)
+  end
+
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
@@ -58,11 +68,10 @@ defmodule OMG.PlasmaDeploymentHeight do
     {height, is_valid_height, availability, is_available} = validate(height, contract_ready)
     raised_height = not is_valid_height
     raised_contract_availability = not is_available
-    # if is_valid_height, do: _ = alarm_module.clear({:contract_height, Node.self(), __MODULE__})
-    # if is_available, do: _ = alarm_module.clear({:contract_deployment_issue, Node.self(), __MODULE__})
-    raise_clear(state.alarm_module, :contract_height, state.raised_height, is_valid_height)
-    raise_clear(state.alarm_module, :contract_deployment_issue, state.raised_contract_deployment, is_available)
+    _ = raise_clear(state.alarm_module, :contract_height, state.raised_height, is_valid_height)
+    _ = raise_clear(state.alarm_module, :contract_deployment_issue, state.raised_contract_deployment, is_available)
     {:ok, tref} = :timer.send_after(state.interval, :health_check)
+
     {:ok,
      %{
        state
@@ -82,14 +91,14 @@ defmodule OMG.PlasmaDeploymentHeight do
   def handle_info(:health_check, state) do
     {height, contract_ready} = check()
     {height, is_valid_height, availability, is_available} = validate(height, contract_ready)
-    IO.inspect state
-    IO.inspect {height, is_valid_height, availability, is_available}
+    # IO.inspect(state)
+    # IO.inspect({height, is_valid_height, availability, is_available})
     # if is_valid_height, do: _ = state.alarm_module.clear({:contract_height, Node.self(), __MODULE__})
     # if is_available, do: _ = state.alarm_module.clear({:contract_deployment_issue, Node.self(), __MODULE__})
     raised_height = not is_valid_height
     raised_contract_availability = not is_available
-    raise_clear(state.alarm_module, :contract_height, state.raised_height, is_valid_height)
-    raise_clear(state.alarm_module, :contract_deployment_issue, state.raised_contract_deployment, is_available)
+    _ = raise_clear(state.alarm_module, :contract_height, state.raised_height, is_valid_height)
+    _ = raise_clear(state.alarm_module, :contract_deployment_issue, state.raised_contract_deployment, is_available)
     {:ok, tref} = :timer.send_after(state.interval, :health_check)
 
     {:noreply,
@@ -101,6 +110,20 @@ defmodule OMG.PlasmaDeploymentHeight do
          raised_contract_deployment: raised_contract_availability,
          tref: tref
      }}
+  end
+
+  def handle_call(:contract_deployment_height, _from, state) do
+    case state.height do
+      {:ok, number} when is_number(number) -> {:reply, state.height, state}
+      _ -> {:reply, :error, state}
+    end
+  end
+
+  def handle_call(:is_contract_ready, _from, state) do
+    case state.contract_ready do
+      true -> {:reply, true, state}
+      _ -> {:reply, false, state}
+    end
   end
 
   def handle_cast(:clear_contract_deployment_issue, state), do: {:noreply, %{state | raised_contract_deployment: false}}
@@ -146,22 +169,23 @@ defmodule OMG.PlasmaDeploymentHeight do
   end
 
   @spec check ::
-          {{:ok, pos_integer() | any()}
-           | {:ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}}}
+          {{:ok, pos_integer()} | {:error, :configuration} | Ethereumex.HttpClient.error(),
+           :ok | {:error, :root_chain_contract_not_available} | {:error, :root_chain_authority_is_nil}}
   defp check do
-    height = do_height_check()
-    availability = do_contract_availability_check()
-    {height, availability}
+    height = &eth().get_root_deployment_height/0
+    contract_availability = &eth().contract_ready/0
+    {do_check(height), do_check(contract_availability)}
   end
 
-  defp do_height_check, do: eth().get_root_deployment_height()
-
-  defp do_contract_availability_check, do: eth().contract_ready
+  defp do_check(fun, message), do: fun.()
 
   # negating validation because we translate them into alarm states
   defp validate(height, availability) do
-    {height, is_number(height), availability, availability == :ok}
+    {height, is_ok_tuple(height), availability, availability == :ok}
   end
+
+  defp is_ok_tuple({:ok, height}) when is_number(height), do: true
+  defp is_ok_tuple(_), do: false
 
   defp eth, do: Application.get_env(:omg, :eth_integration_module, Eth)
 
@@ -172,6 +196,10 @@ defmodule OMG.PlasmaDeploymentHeight do
     end
   end
 
+  # 1. already raised with unhealthy response - no need to do anything
+  # 2. not raised with unhealth response - need to raise
+  # 3. raised with healthy response - need to clear
+  # 4. not raised with healthy response - no need to do anything
   @spec raise_clear(module(), :contract_deployment_issue | :contract_height, boolean(), boolean()) ::
           :ok | :duplicate
   defp raise_clear(_alarm_module, _type, true, false), do: :ok
@@ -179,8 +207,8 @@ defmodule OMG.PlasmaDeploymentHeight do
   defp raise_clear(alarm_module, type, false, false),
     do: alarm_module.set({type, Node.self(), __MODULE__})
 
-  defp raise_clear(alarm_module, type, true, _),
+  defp raise_clear(alarm_module, type, true, true),
     do: alarm_module.clear({type, Node.self(), __MODULE__})
 
-  defp raise_clear(_alarm_module, _type, false, _), do: :ok
+  defp raise_clear(_alarm_module, _type, false, true), do: :ok
 end
