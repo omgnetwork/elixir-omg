@@ -63,7 +63,8 @@ defmodule OMG.Crypto do
   end
 
   @doc """
-  Recovers public key of signer from binary-encoded signature.
+  Recovers public key of signer from binary-encoded signature and chain id.
+  Chain id parameter can be ignored when signature was created without it.
   """
   @spec recover_public(<<_::256>>, sig_t(), chain_id_t()) :: {:ok, <<_::512>>} | {:error, :signature_corrupt}
   def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>, chain_id) do

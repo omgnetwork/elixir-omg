@@ -7,7 +7,7 @@ config :omg,
   ethereum_events_check_interval_ms: 500,
   coordinator_eth_height_check_interval_ms: 6_000
 
-config :omg, :eip712Domain,
+config :omg, :eip_712_domain,
   name: "OMG Network",
   version: "1",
   chain_id: 4,

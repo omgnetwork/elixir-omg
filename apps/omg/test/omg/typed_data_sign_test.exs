@@ -13,7 +13,14 @@
 # limitations under the License.
 
 defmodule OMG.TypedDataSignTest do
-  @moduledoc false
+  @moduledoc """
+  Idea behind testing functionality like this (which produces random byte-strings) is 4-tiered test suite.
+  * tier 1: acknowledged third party (Metamask) signatures we can verify (recover address from)
+  * tier 2: final structural hash on prepared transaction that gives the same signatures as above
+  * tier 3: intermediate results of hashing (domain separator, structural hashes of inputs & outputs)
+  * tier 4: end-to-end test of generating signatures in elixir code and verifying them in solidity library (comming
+            soon, TODO: ref :pr: here)
+  """
 
   use ExUnitFixtures
   use ExUnit.Case, async: true
@@ -35,25 +42,26 @@ defmodule OMG.TypedDataSignTest do
                            |> Base.decode16!(case: :mixed)
                          )
 
-  deffixture hardcoded_randoms() do
+  setup_all do
     null_addr = <<0::160>>
     owner = "2258a5279850f6fb78888a7e45ea2a5eb1b3c436" |> Base.decode16!(case: :lower)
     token = "0123456789abcdef000000000000000000000000" |> Base.decode16!(case: :lower)
 
-    %{
-      inputs: [
-        {1, 0, 0},
-        {1000, 2, 3},
-        {101_000, 1337, 3}
-      ],
-      outputs: [
-        {owner, null_addr, 100},
-        {token, null_addr, 111},
-        {owner, token, 1337},
-        {null_addr, null_addr, 0}
-      ],
-      metadata: "853a8d8af99c93405a791b97d57e819e538b06ffaa32ad70da2582500bc18d43" |> Base.decode16!(case: :lower)
-    }
+    {:ok,
+     %{
+       inputs: [
+         {1, 0, 0},
+         {1000, 2, 3},
+         {101_000, 1337, 3}
+       ],
+       outputs: [
+         {owner, null_addr, 100},
+         {token, null_addr, 111},
+         {owner, token, 1337},
+         {null_addr, null_addr, 0}
+       ],
+       metadata: "853a8d8af99c93405a791b97d57e819e538b06ffaa32ad70da2582500bc18d43" |> Base.decode16!(case: :lower)
+     }}
   end
 
   describe "Compliance with contract code" do
@@ -111,8 +119,7 @@ defmodule OMG.TypedDataSignTest do
                TypedDataSign.hash_input(Utxo.position(101_000, 1337, 3)) |> Base.encode16(case: :lower)
     end
 
-    @tag fixtures: [:hardcoded_randoms]
-    test "Output is hashed properly", %{hardcoded_randoms: %{outputs: [output1, output2, output3, output4]}} do
+    test "Output is hashed properly", %{outputs: [output1, output2, output3, output4]} do
       to_output = fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end
 
       assert "2d7e855c4ed0b5442749af2f2e1654a1d005d7f33c74db997112aa746362331a" ==
@@ -128,8 +135,7 @@ defmodule OMG.TypedDataSignTest do
                TypedDataSign.hash_output(to_output.(output4)) |> Base.encode16(case: :lower)
     end
 
-    @tag fixtures: [:hardcoded_randoms]
-    test "Metadata is hashed properly", %{hardcoded_randoms: %{metadata: metadata}} do
+    test "Metadata is hashed properly", %{metadata: metadata} do
       empty = <<0::256>>
 
       assert "290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563" ==
@@ -139,9 +145,7 @@ defmodule OMG.TypedDataSignTest do
                Crypto.hash(metadata) |> Base.encode16(case: :lower)
     end
 
-    @tag fixtures: [:hardcoded_randoms]
-    test "Transaction is hashed correctly",
-         %{hardcoded_randoms: %{inputs: inputs, outputs: outputs, metadata: metadata}} do
+    test "Transaction is hashed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
       assert "cd7d70602e84b8a52123727394b8fdba87380cc03a91c8ab1c0baa7dde7c3558" ==
                TypedDataSign.hash_transaction(Transaction.new([], [])) |> Base.encode16(case: :lower)
 
@@ -154,9 +158,7 @@ defmodule OMG.TypedDataSignTest do
                |> Base.encode16(case: :lower)
     end
 
-    @tag fixtures: [:hardcoded_randoms]
-    test "Structured hash is computed correctly",
-         %{hardcoded_randoms: %{inputs: inputs, outputs: outputs, metadata: metadata}} do
+    test "Structured hash is computed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
       assert "0aa26a80d09f12d1f03b8bd0dcfd66fb5776554b326a56d21cfdfdc25254a9c4" ==
                TypedDataSign.hash_struct(Transaction.new([], []), @test_domain_separator) |> Base.encode16(case: :lower)
 
@@ -184,8 +186,7 @@ defmodule OMG.TypedDataSignTest do
       assert {:ok, true} == Crypto.verify(raw_tx, signature, @signer, @chain_id, @test_domain_separator)
     end
 
-    @tag fixtures: [:hardcoded_randoms]
-    test "test #1", %{hardcoded_randoms: %{inputs: inputs, outputs: outputs}} do
+    test "test #1", %{inputs: inputs, outputs: outputs} do
       signature =
         "467270afdecbe4fc9301d3dca63685dda7459530fae431e7b54e4b0899e5640577e703110423b20b9f2321b721e6eda4427820c1390fa778432ece5f206546da1c"
         |> Base.decode16!(case: :lower)
@@ -195,8 +196,7 @@ defmodule OMG.TypedDataSignTest do
       assert {:ok, true} == Crypto.verify(raw_tx, signature, @signer, @chain_id, @test_domain_separator)
     end
 
-    @tag fixtures: [:hardcoded_randoms]
-    test "test #2", %{hardcoded_randoms: %{inputs: inputs, outputs: outputs, metadata: metadata}} do
+    test "test #2", %{inputs: inputs, outputs: outputs, metadata: metadata} do
       signature =
         "f4a9fa3c09bbef23fc26f4a1a871b6f5f04a51b9d73a07096ffb8c08880d23112bcfc7748673121708d60a8efbeb15362582d8dd9c21d336c1be47763edd5ed11c"
         |> Base.decode16!(case: :lower)

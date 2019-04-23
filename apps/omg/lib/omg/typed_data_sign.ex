@@ -14,7 +14,8 @@
 
 defmodule OMG.TypedDataSign do
   @moduledoc """
-  Verifies typed structured data signatures (see: http://eips.ethereum.org/EIPS/eip-712)
+  Facilitates veryfing typed structured data (see: http://eips.ethereum.org/EIPS/eip-712) by producing a `hash_struct`
+  for structured transaction data. These `struct_txhash`es are later used as digest to sign and recover signatures.
   """
 
   alias OMG.Crypto
@@ -36,15 +37,21 @@ defmodule OMG.TypedDataSign do
   @input_type_hash Crypto.hash(@input_encoded_type)
   @output_type_hash Crypto.hash(@output_encoded_type)
 
+  # Precomputed value of `Utxo.position(0, 0, 0) |> hash_input()`.
   @empty_input_hash "1a5933eb0b3223b0500fbbe7039cab9badc006adda6cf3d337751412fd7a4b61" |> Base.decode16!(case: :lower)
+
+  # Precomputed value of `%{owner: @zero_address, currency: @zero_address, amount: 0} |> hash_output()`
   @empty_output_hash "853a8d8af99c93405a791b97d57e819e538b06ffaa32ad70da2582500bc18d43" |> Base.decode16!(case: :lower)
+
+  # Prefix and version byte motivated by http://eips.ethereum.org/EIPS/eip-191
+  @eip_191_prefix <<0x19, 0x01>>
 
   @doc """
   Computes a hash of encoded transaction as defined in EIP-712
   """
   @spec hash_struct(Transaction.t(), Crypto.domain_separator_t()) :: Crypto.hash_t()
   def hash_struct(raw_tx, domain_separator \\ nil) do
-    Crypto.hash(<<0x19, 0x01>> <> (domain_separator || @domain_separator) <> hash_transaction(raw_tx))
+    Crypto.hash(@eip_191_prefix <> (domain_separator || @domain_separator) <> hash_transaction(raw_tx))
   end
 
   @spec hash_input(Utxo.Position.t()) :: Crypto.hash_t()

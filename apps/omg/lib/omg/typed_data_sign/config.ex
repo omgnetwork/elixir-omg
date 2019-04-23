@@ -44,7 +44,6 @@ defmodule OMG.TypedDataSign.Config do
     |> Crypto.hash()
   end
 
-
   @doc """
   Computes default domain separator based on values from configuration.
   This value is taken to structured hash computation when no domain separator is passed.
@@ -57,7 +56,7 @@ defmodule OMG.TypedDataSign.Config do
       chain_id: chain_id,
       verifying_contract: contract_addr_hex,
       salt: salt_hex
-    ] = Application.fetch_env!(:omg, :eip712Domain)
+    ] = Application.fetch_env!(:omg, :eip_712_domain)
 
     <<contract_addr::binary-size(20)>> = decode16!(contract_addr_hex)
     <<salt::binary-size(32)>> = decode16!(salt_hex)
