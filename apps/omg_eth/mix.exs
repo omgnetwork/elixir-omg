@@ -32,7 +32,7 @@ defmodule OMG.Eth.MixProject do
 
   defp deps do
     [
-      {:ex_abi, "~> 0.2.0"},
+      {:ex_abi, "~> 0.2.1"},
       {:ethereumex, "~> 0.5.2"},
       {:deferred_config, "~> 0.1.1"},
       {

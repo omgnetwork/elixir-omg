@@ -13,8 +13,6 @@
 # limitations under the License.
 
 defmodule OMG.TypedDataSign.Config do
-  @dialyzer {:nowarn_function, domain_separator: 5}
-  @dialyzer {:no_return, compute_domain_separator_from_config: 0}
   @moduledoc """
   Separates computation of EIP-172 domain separator to allow precompute domain separator in TypedDataSign module's
   attribute, so it doesn't need to compute every time structure data is hashed.
