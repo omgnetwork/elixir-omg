@@ -48,8 +48,14 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   """
   def submit(conn, params) do
     with {:ok, tx} <- expect(params, "transaction", :hex) do
+      Appsignal.increment_counter("transaction.succeed", 1)
+
       API.Transaction.submit(tx)
       |> api_response(conn, :submission)
+    else
+      err ->
+        Appsignal.increment_counter("transaction.failed", 1)
+        err
     end
   end
 
