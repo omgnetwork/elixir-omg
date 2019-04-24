@@ -48,6 +48,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   def new_exits(exits) do
+    Appsignal.increment_counter("exit.started", length exits)
     GenServer.call(__MODULE__, {:new_exits, exits})
   end
 
@@ -57,6 +58,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   def new_in_flight_exits(in_flight_exit_started_events) do
+    Appsignal.increment_counter("in_flight_exit.started", length in_flight_exit_started_events)
     GenServer.call(__MODULE__, {:new_in_flight_exits, in_flight_exit_started_events})
   end
 
@@ -66,6 +68,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   def finalize_exits(finalizations) do
+    Appsignal.increment_counter("exit.finalize", length finalizations)
     GenServer.call(__MODULE__, {:finalize_exits, finalizations})
   end
 
@@ -75,6 +78,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   def piggyback_exits(piggybacks) do
+    Appsignal.increment_counter("in_flight_exit.piggyback", length piggybacks)
     GenServer.call(__MODULE__, {:piggyback_exits, piggybacks})
   end
 
@@ -84,6 +88,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   def challenge_exits(challenges) do
+    Appsignal.increment_counter("exit.challenge", length challenges)
     GenServer.call(__MODULE__, {:challenge_exits, challenges})
   end
 
@@ -94,6 +99,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   def new_ife_challenges(challenges) do
+    Appsignal.increment_counter("in_flight_exit.piggyback", length challenges)
     GenServer.call(__MODULE__, {:new_ife_challenges, challenges})
   end
 
@@ -103,6 +109,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   def respond_to_in_flight_exits_challenges(responds) do
+    Appsignal.increment_counter("in_flight_exit.respond_to_challeges", length responds)
     GenServer.call(__MODULE__, {:respond_to_in_flight_exits_challenges, responds})
   end
 
@@ -113,6 +120,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   def challenge_piggybacks(challenges) do
+    Appsignal.increment_counter("in_flight_exit.challenge_piggyback", length challenges)
     GenServer.call(__MODULE__, {:challenge_piggybacks, challenges})
   end
 
@@ -122,6 +130,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   def finalize_in_flight_exits(finalizations) do
+    Appsignal.increment_counter("in_flight_exit.finalize", length finalizations)
     GenServer.call(__MODULE__, {:finalize_in_flight_exits, finalizations})
   end
 
