@@ -21,8 +21,6 @@ defmodule OMG.Crypto do
   `OMG.DevCrypto` in `test/support`
   """
   alias OMG.Signature
-  alias OMG.State.Transaction
-  alias OMG.TypedDataSign
 
   @type sig_t() :: <<_::520>>
   @type pub_key_t() :: <<_::512>>
@@ -36,21 +34,6 @@ defmodule OMG.Crypto do
   Produces a cryptographic digest of a message.
   """
   def hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
-
-  @doc """
-  Verifies if signature was created by private key corresponding to `address` and structured data
-  used to sign was derived from `domain_separator` and `raw_tx`
-  NOTE: Used only in tests
-  """
-  @spec verify(Transaction.t(), sig_t(), address_t(), chain_id_t(), domain_separator_t()) :: {:ok, boolean}
-  def verify(%Transaction{} = raw_tx, signature, address, chain_id, domain_separator \\ nil) do
-    {:ok, recovered_address} =
-      raw_tx
-      |> TypedDataSign.hash_struct(domain_separator)
-      |> recover_address(signature, chain_id)
-
-    {:ok, address == recovered_address}
-  end
 
   @doc """
   Recovers address of signer from binary-encoded signature.

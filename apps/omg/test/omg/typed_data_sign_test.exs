@@ -183,7 +183,11 @@ defmodule OMG.TypedDataSignTest do
 
       raw_tx = Transaction.new([], [])
 
-      assert {:ok, true} == Crypto.verify(raw_tx, signature, @signer, @chain_id, @test_domain_separator)
+      assert true ==
+               raw_tx
+               |> TypedDataSign.hash_struct(@test_domain_separator)
+               |> Crypto.recover_address(signature)
+               |> (&match?({:ok, @signer}, &1)).()
     end
 
     test "test #1", %{inputs: inputs, outputs: outputs} do
@@ -193,7 +197,11 @@ defmodule OMG.TypedDataSignTest do
 
       raw_tx = Transaction.new(inputs, outputs)
 
-      assert {:ok, true} == Crypto.verify(raw_tx, signature, @signer, @chain_id, @test_domain_separator)
+      assert true ==
+               raw_tx
+               |> TypedDataSign.hash_struct(@test_domain_separator)
+               |> Crypto.recover_address(signature)
+               |> (&match?({:ok, @signer}, &1)).()
     end
 
     test "test #2", %{inputs: inputs, outputs: outputs, metadata: metadata} do
@@ -203,7 +211,11 @@ defmodule OMG.TypedDataSignTest do
 
       raw_tx = Transaction.new(inputs, outputs, metadata)
 
-      assert {:ok, true} == Crypto.verify(raw_tx, signature, @signer, @chain_id, @test_domain_separator)
+      assert true ==
+               raw_tx
+               |> TypedDataSign.hash_struct(@test_domain_separator)
+               |> Crypto.recover_address(signature)
+               |> (&match?({:ok, @signer}, &1)).()
     end
   end
 end

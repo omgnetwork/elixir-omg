@@ -57,6 +57,7 @@ defmodule OMG.CryptoTest do
 
   test "sign, verify" do
     alias OMG.State.Transaction
+    alias OMG.TypedDataSign
     {:ok, priv} = DevCrypto.generate_private_key()
     {:ok, pub} = DevCrypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)
@@ -64,8 +65,18 @@ defmodule OMG.CryptoTest do
     raw_tx = Transaction.new([{1000, 1, 0}], [])
     signature = DevCrypto.signature(raw_tx, priv)
     assert byte_size(signature) == 65
-    assert {:ok, true} == Crypto.verify(raw_tx, signature, address, nil)
-    assert {:ok, false} == Crypto.verify(Transaction.new([{1000, 0, 1}], []), signature, address, nil)
+
+    assert true ==
+             raw_tx
+             |> TypedDataSign.hash_struct()
+             |> Crypto.recover_address(signature)
+             |> (&match?({:ok, ^address}, &1)).()
+
+    assert false ==
+             Transaction.new([{1000, 0, 1}], [])
+             |> TypedDataSign.hash_struct()
+             |> Crypto.recover_address(signature)
+             |> (&match?({:ok, ^address}, &1)).()
   end
 
   test "checking decode_address function for diffrent agruments" do
