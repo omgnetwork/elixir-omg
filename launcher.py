@@ -22,7 +22,7 @@ class ChildchainLauncher:
         self.chain_data_present = False
         self.git_commit_hash = git_commit_hash
         self.ethereum_network = ethereum_network
-        self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN']
+        self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN', 'GÖRLI']
         self.contracts = {}
         self.contracts['RINKEBY'] = RINKEBY_CONTRACT
         self.contract_exchanger_url = contract_exchanger_url
