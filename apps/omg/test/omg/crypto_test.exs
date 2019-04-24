@@ -57,7 +57,7 @@ defmodule OMG.CryptoTest do
 
   test "sign, verify" do
     alias OMG.State.Transaction
-    alias OMG.TypedDataSign
+    alias OMG.TypedDataHash
     {:ok, priv} = DevCrypto.generate_private_key()
     {:ok, pub} = DevCrypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)
@@ -68,13 +68,13 @@ defmodule OMG.CryptoTest do
 
     assert true ==
              raw_tx
-             |> TypedDataSign.hash_struct()
+             |> TypedDataHash.hash_struct()
              |> Crypto.recover_address(signature)
              |> (&match?({:ok, ^address}, &1)).()
 
     assert false ==
              Transaction.new([{1000, 0, 1}], [])
-             |> TypedDataSign.hash_struct()
+             |> TypedDataHash.hash_struct()
              |> Crypto.recover_address(signature)
              |> (&match?({:ok, ^address}, &1)).()
   end

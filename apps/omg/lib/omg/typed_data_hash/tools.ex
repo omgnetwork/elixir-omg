@@ -12,20 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.TypedDataSign do
+defmodule OMG.TypedDataHash.Tools do
   @moduledoc """
-  Facilitates veryfing typed structured data (see: http://eips.ethereum.org/EIPS/eip-712) by producing a `hash_struct`
-  for structured transaction data. These `struct_txhash`es are later used as digest to sign and recover signatures.
+  Implements EIP-712 structural hashing primitives for Transaction type.
+  See also: http://eips.ethereum.org/EIPS/eip-712
   """
 
   alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.Utxo
 
-  require Transaction
   require Utxo
 
-  @domain_separator __MODULE__.Config.compute_domain_separator_from_config()
+  @domain_encoded_type "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
+  @domain_type_hash Crypto.hash(@domain_encoded_type)
+
   @transaction_encoded_type "Transaction(" <>
                               "Input input0,Input input1,Input input2,Input input3," <>
                               "Output output0,Output output1,Output output2,Output output3," <>
@@ -37,21 +38,56 @@ defmodule OMG.TypedDataSign do
   @input_type_hash Crypto.hash(@input_encoded_type)
   @output_type_hash Crypto.hash(@output_encoded_type)
 
-  # Precomputed value of `Utxo.position(0, 0, 0) |> hash_input()`.
-  @empty_input_hash "1a5933eb0b3223b0500fbbe7039cab9badc006adda6cf3d337751412fd7a4b61" |> Base.decode16!(case: :lower)
-
-  # Precomputed value of `%{owner: @zero_address, currency: @zero_address, amount: 0} |> hash_output()`
-  @empty_output_hash "853a8d8af99c93405a791b97d57e819e538b06ffaa32ad70da2582500bc18d43" |> Base.decode16!(case: :lower)
-
-  # Prefix and version byte motivated by http://eips.ethereum.org/EIPS/eip-191
-  @eip_191_prefix <<0x19, 0x01>>
-
   @doc """
-  Computes a hash of encoded transaction as defined in EIP-712
+  Computes Domain Separator `hashStruct(eip712Domain)`,
+  @see: http://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator
   """
-  @spec hash_struct(Transaction.t(), Crypto.domain_separator_t()) :: Crypto.hash_t()
-  def hash_struct(raw_tx, domain_separator \\ nil) do
-    Crypto.hash(@eip_191_prefix <> (domain_separator || @domain_separator) <> hash_transaction(raw_tx))
+  @spec domain_separator(binary(), binary(), Crypto.chain_id_t(), Crypto.address_t(), Crypto.hash_t()) ::
+          Crypto.hash_t()
+  def domain_separator(name, version, chain_id, verifying_contract, salt) do
+    [
+      @domain_type_hash,
+      Crypto.hash(name),
+      Crypto.hash(version),
+      ABI.TypeEncoder.encode_raw([chain_id], [{:uint, 256}]),
+      ABI.TypeEncoder.encode_raw([verifying_contract], [:address]),
+      ABI.TypeEncoder.encode_raw([salt], [{:bytes, 32}])
+    ]
+    |> Enum.join()
+    |> Crypto.hash()
+  end
+
+  @spec hash_transaction(
+          list(Utxo.Position.t()),
+          list(Transaction.output()),
+          Transaction.metadata(),
+          Crypto.hash_t(),
+          Crypto.hash_t()
+        ) :: Crypto.hash_t()
+  def hash_transaction(inputs, outputs, metadata, empty_input_hash, empty_output_hash) do
+    require Transaction
+
+    input_hashes =
+      inputs
+      |> Stream.map(&hash_input/1)
+      |> Stream.concat(Stream.cycle([empty_input_hash]))
+      |> Enum.take(Transaction.max_inputs())
+
+    output_hashes =
+      outputs
+      |> Stream.map(&hash_output/1)
+      |> Stream.concat(Stream.cycle([empty_output_hash]))
+      |> Enum.take(Transaction.max_outputs())
+
+    [
+      @transaction_type_hash,
+      input_hashes,
+      output_hashes,
+      metadata || <<0::256>>
+    ]
+    |> List.flatten()
+    |> Enum.join()
+    |> Crypto.hash()
   end
 
   @spec hash_input(Utxo.Position.t()) :: Crypto.hash_t()
@@ -74,31 +110,6 @@ defmodule OMG.TypedDataSign do
       ABI.TypeEncoder.encode_raw([currency], [:address]),
       ABI.TypeEncoder.encode_raw([amount], [{:uint, 256}])
     ]
-    |> Enum.join()
-    |> Crypto.hash()
-  end
-
-  @spec hash_transaction(Transaction.t()) :: Crypto.hash_t()
-  def hash_transaction(raw_tx) do
-    input_hashes =
-      Transaction.get_inputs(raw_tx)
-      |> Stream.map(&hash_input/1)
-      |> Stream.concat(Stream.cycle([@empty_input_hash]))
-      |> Enum.take(Transaction.max_inputs())
-
-    output_hashes =
-      Transaction.get_outputs(raw_tx)
-      |> Stream.map(&hash_output/1)
-      |> Stream.concat(Stream.cycle([@empty_output_hash]))
-      |> Enum.take(Transaction.max_outputs())
-
-    [
-      @transaction_type_hash,
-      input_hashes,
-      output_hashes,
-      raw_tx.metadata || <<0::256>>
-    ]
-    |> List.flatten()
     |> Enum.join()
     |> Crypto.hash()
   end

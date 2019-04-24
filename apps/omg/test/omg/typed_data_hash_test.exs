@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.TypedDataSignTest do
+defmodule OMG.TypedDataHashTest do
   @moduledoc """
   Idea behind testing functionality like this (which produces random byte-strings) is 4-tiered test suite.
   * tier 1: acknowledged third party (Metamask) signatures we can verify (recover address from)
@@ -27,13 +27,15 @@ defmodule OMG.TypedDataSignTest do
 
   alias OMG.Crypto
   alias OMG.State.Transaction
-  alias OMG.TypedDataSign
+  alias OMG.TypedDataHash
+  alias OMG.TypedDataHash.Tools
   alias OMG.Utxo
 
   require Utxo
+  require OMG.TypedDataHash.Tools
 
   @chain_id 4
-  @test_domain_separator TypedDataSign.Config.domain_separator(
+  @test_domain_separator Tools.domain_separator(
                            "OMG Network",
                            "1",
                            @chain_id,
@@ -110,29 +112,29 @@ defmodule OMG.TypedDataSignTest do
 
     test "Input is hashed properly" do
       assert "1a5933eb0b3223b0500fbbe7039cab9badc006adda6cf3d337751412fd7a4b61" ==
-               TypedDataSign.hash_input(Utxo.position(0, 0, 0)) |> Base.encode16(case: :lower)
+               Tools.hash_input(Utxo.position(0, 0, 0)) |> Base.encode16(case: :lower)
 
       assert "7377afcd24fdc685fd8c6ea2b5d15a74f2c898c3d5bcce3499f448a4d68db290" ==
-               TypedDataSign.hash_input(Utxo.position(1, 0, 0)) |> Base.encode16(case: :lower)
+               Tools.hash_input(Utxo.position(1, 0, 0)) |> Base.encode16(case: :lower)
 
       assert "c198a0ab9b12c3f225195cf0f7870c7ab12c316b33eb99771dfd0f3f7da455a5" ==
-               TypedDataSign.hash_input(Utxo.position(101_000, 1337, 3)) |> Base.encode16(case: :lower)
+               Tools.hash_input(Utxo.position(101_000, 1337, 3)) |> Base.encode16(case: :lower)
     end
 
     test "Output is hashed properly", %{outputs: [output1, output2, output3, output4]} do
       to_output = fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end
 
       assert "2d7e855c4ed0b5442749af2f2e1654a1d005d7f33c74db997112aa746362331a" ==
-               TypedDataSign.hash_output(to_output.(output1)) |> Base.encode16(case: :lower)
+               Tools.hash_output(to_output.(output1)) |> Base.encode16(case: :lower)
 
       assert "6ea3ef954bc4b17441b63a96a0014f033583456ac0187a8497959a390c83bb82" ==
-               TypedDataSign.hash_output(to_output.(output2)) |> Base.encode16(case: :lower)
+               Tools.hash_output(to_output.(output2)) |> Base.encode16(case: :lower)
 
       assert "3084addf822b16a011704753552a98545d33df967386e14f00ba3ab4faaaa80b" ==
-               TypedDataSign.hash_output(to_output.(output3)) |> Base.encode16(case: :lower)
+               Tools.hash_output(to_output.(output3)) |> Base.encode16(case: :lower)
 
       assert "853a8d8af99c93405a791b97d57e819e538b06ffaa32ad70da2582500bc18d43" ==
-               TypedDataSign.hash_output(to_output.(output4)) |> Base.encode16(case: :lower)
+               Tools.hash_output(to_output.(output4)) |> Base.encode16(case: :lower)
     end
 
     test "Metadata is hashed properly", %{metadata: metadata} do
@@ -147,27 +149,27 @@ defmodule OMG.TypedDataSignTest do
 
     test "Transaction is hashed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
       assert "cd7d70602e84b8a52123727394b8fdba87380cc03a91c8ab1c0baa7dde7c3558" ==
-               TypedDataSign.hash_transaction(Transaction.new([], [])) |> Base.encode16(case: :lower)
+               TypedDataHash.hash_transaction(Transaction.new([], [])) |> Base.encode16(case: :lower)
 
       assert "25ad23b53146d4462a31bfe7c44a67d8fa0fc3c9bb9366a39c1a26b4f20e3231" ==
-               TypedDataSign.hash_transaction(Transaction.new(inputs, outputs))
+               TypedDataHash.hash_transaction(Transaction.new(inputs, outputs))
                |> Base.encode16(case: :lower)
 
       assert "e2af729df6f59730dd7f39c9f60b6eb293b1ad128e059fe70fc146ce77d3c9b9" ==
-               TypedDataSign.hash_transaction(Transaction.new(inputs, outputs, metadata))
+               TypedDataHash.hash_transaction(Transaction.new(inputs, outputs, metadata))
                |> Base.encode16(case: :lower)
     end
 
     test "Structured hash is computed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
       assert "0aa26a80d09f12d1f03b8bd0dcfd66fb5776554b326a56d21cfdfdc25254a9c4" ==
-               TypedDataSign.hash_struct(Transaction.new([], []), @test_domain_separator) |> Base.encode16(case: :lower)
+               TypedDataHash.hash_struct(Transaction.new([], []), @test_domain_separator) |> Base.encode16(case: :lower)
 
       assert "71e72678fe793358b35855734a9987d4d377bb1f9b5d4b04b8f2554a34e51628" ==
-               TypedDataSign.hash_struct(Transaction.new(inputs, outputs), @test_domain_separator)
+               TypedDataHash.hash_struct(Transaction.new(inputs, outputs), @test_domain_separator)
                |> Base.encode16(case: :lower)
 
       assert "78ddf5f81d7e9271bc125ae6590a8aa27a630135c4f0ba094cd7fd7943a8a2f4" ==
-               TypedDataSign.hash_struct(Transaction.new(inputs, outputs, metadata), @test_domain_separator)
+               TypedDataHash.hash_struct(Transaction.new(inputs, outputs, metadata), @test_domain_separator)
                |> Base.encode16(case: :lower)
     end
   end
@@ -185,7 +187,7 @@ defmodule OMG.TypedDataSignTest do
 
       assert true ==
                raw_tx
-               |> TypedDataSign.hash_struct(@test_domain_separator)
+               |> TypedDataHash.hash_struct(@test_domain_separator)
                |> Crypto.recover_address(signature)
                |> (&match?({:ok, @signer}, &1)).()
     end
@@ -199,7 +201,7 @@ defmodule OMG.TypedDataSignTest do
 
       assert true ==
                raw_tx
-               |> TypedDataSign.hash_struct(@test_domain_separator)
+               |> TypedDataHash.hash_struct(@test_domain_separator)
                |> Crypto.recover_address(signature)
                |> (&match?({:ok, @signer}, &1)).()
     end
@@ -213,7 +215,7 @@ defmodule OMG.TypedDataSignTest do
 
       assert true ==
                raw_tx
-               |> TypedDataSign.hash_struct(@test_domain_separator)
+               |> TypedDataHash.hash_struct(@test_domain_separator)
                |> Crypto.recover_address(signature)
                |> (&match?({:ok, @signer}, &1)).()
     end

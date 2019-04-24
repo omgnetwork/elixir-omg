@@ -21,7 +21,7 @@ defmodule OMG.DevCrypto do
   alias OMG.Crypto
   alias OMG.SignatureHelper
   alias OMG.State.Transaction
-  alias OMG.TypedDataSign
+  alias OMG.TypedDataHash
 
   @doc """
   Generates private key. Internally uses OpenSSL RAND_bytes. May throw if there is not enough entropy.
@@ -71,7 +71,7 @@ defmodule OMG.DevCrypto do
 
   defp do_signature(%Transaction{} = tx, priv) do
     tx
-    |> TypedDataSign.hash_struct()
+    |> TypedDataHash.hash_struct()
     |> signature_digest(priv)
   end
 
