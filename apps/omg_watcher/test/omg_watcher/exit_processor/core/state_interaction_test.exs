@@ -182,6 +182,68 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     assert Utxo.position(1, 0, 0) in spends_to_get
   end
 
+  test "can work with State to exit utxos from in-flight transactions",
+       %{processor_empty: processor, state_empty: state, alice: alice} do
+    state =
+      state
+      |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+      |> TestHelper.do_deposit(alice, %{amount: 20, currency: @eth, blknum: 2})
+
+    # canonical
+    ife_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    {:ok, {tx_hash1, _, _}, state} = State.Core.exec(state, ife_exit_tx1, %{@eth => 0})
+    {:ok, _, state} = State.Core.form_block(1000, state)
+    ife_id1 = 1
+
+    # non-canonical
+    ife_exit_tx2 = TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{alice, 20}])
+    tx_hash2 = State.Transaction.raw_txhash(ife_exit_tx2)
+    ife_id2 = 2
+
+    {processor, _} =
+      processor
+      |> start_ife_from(ife_exit_tx1, status: {1, ife_id1})
+      |> start_ife_from(ife_exit_tx2, status: {1, ife_id2})
+      |> Core.new_piggybacks([%{tx_hash: tx_hash1, output_index: 4}, %{tx_hash: tx_hash2, output_index: 0}])
+
+    finalizations = [%{in_flight_exit_id: ife_id1, output_index: 4}, %{in_flight_exit_id: ife_id2, output_index: 0}]
+
+    ife_id1 = <<ife_id1::192>>
+    ife_id2 = <<ife_id2::192>>
+
+    {:ok, %{^ife_id1 => {_input_exits1, output_exits1}, ^ife_id2 => {input_exits2, _output_exits2}}} =
+      Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+
+    assert {:ok, {[{:delete, :utxo, {1000, 0, 0}}], {[{:utxo_position, 1000, 0, 0}], []}}, _} =
+             State.Core.exit_utxos(output_exits1, state)
+
+    assert {:ok, {[{:delete, :utxo, {2, 0, 0}}], {[{:utxo_position, 2, 0, 0}], []}}, _} =
+             State.Core.exit_utxos(input_exits2, state)
+  end
+
+  test "acts on invalidities reported when exiting utxos in State",
+       %{processor_empty: processor, state_empty: state, alice: alice} do
+    ife_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    tx_hash = State.Transaction.raw_txhash(ife_exit_tx)
+    ife_id = 1
+
+    {processor, _} =
+      processor
+      |> start_ife_from(ife_exit_tx, status: {1, ife_id})
+      |> Core.new_piggybacks([%{tx_hash: tx_hash, output_index: 4}])
+
+    finalizations = [%{in_flight_exit_id: ife_id, output_index: 4}]
+    ife_id = <<ife_id::192>>
+
+    {:ok, %{^ife_id => {_input_exits, output_exits}}} =
+      Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+
+    {:ok, {_, {[], [_] = invalidities}}, _} = State.Core.exit_utxos(output_exits, state)
+
+    assert {:ok, processor, [_]} = Core.finalize_in_flight_exits(processor, finalizations, %{ife_id => invalidities})
+    assert [_] = Core.get_active_in_flight_exits(processor)
+  end
+
   defp mock_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request, state) do
     %{request | utxo_exists_result: positions |> Enum.map(&State.Core.utxo_exists?(&1, state))}
   end

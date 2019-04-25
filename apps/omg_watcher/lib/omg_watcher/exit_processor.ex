@@ -290,8 +290,16 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:finalize_in_flight_exits, finalizations}, _from, state) do
     _ = if not Enum.empty?(finalizations), do: Logger.info("Recognized ife finalizations: #{inspect(finalizations)}")
-    {:ok, state, db_updates} = Core.finalize_in_flight_exits(state, finalizations)
-    {:reply, {:ok, db_updates}, state}
+
+    {:ok, exits} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state, finalizations)
+
+    # NOTE: it's not straightforward to track from utxo position returned when exiting utxo in State to ife id
+    # See issue #671 https://github.com/omisego/elixir-omg/issues/671
+    {invalidities, state_db_updates} = Enum.reduce(exits, {%{}, []}, &collect_invalidities_and_state_db_updates/2)
+
+    {:ok, state, db_updates} = Core.finalize_in_flight_exits(state, finalizations, invalidities)
+
+    {:reply, {:ok, state_db_updates ++ db_updates}, state}
   end
 
   def handle_call(:check_validity, _from, state) do
@@ -453,5 +461,25 @@ defmodule OMG.Watcher.ExitProcessor do
   defp do_get_spent_blknum(position) do
     {:ok, spend_blknum} = position |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum()
     spend_blknum
+  end
+
+  defp collect_invalidities_and_state_db_updates(
+         {ife_id, {input_exits, output_exits}},
+         {invalidities_by_ife_id, state_db_updates}
+       ) do
+    # we can't call `State.exit_utxos(input_exits ++ output_exits)`
+    # because the types of these enumerable items are distinct
+    {:ok, input_exits_state_updates, {_, input_invalidities}} = State.exit_utxos(input_exits)
+    {:ok, output_exits_state_updates, {_, output_invalidities}} = State.exit_utxos(output_exits)
+
+    exit_invalidities = input_invalidities ++ output_invalidities
+
+    _ =
+      if not Enum.empty?(exit_invalidities),
+        do: Logger.warn("Invalid in-flight exit finalization: #{inspect(exit_invalidities)}")
+
+    invalidities_by_ife_id = Map.put(invalidities_by_ife_id, ife_id, exit_invalidities)
+    state_db_updates = input_exits_state_updates ++ output_exits_state_updates ++ state_db_updates
+    {invalidities_by_ife_id, state_db_updates}
   end
 end

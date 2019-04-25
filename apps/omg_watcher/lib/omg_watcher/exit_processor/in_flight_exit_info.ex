@@ -336,6 +336,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     is_piggybacked?(ife, index) and !is_finalized?(ife, index)
   end
 
+  def activate(%__MODULE__{} = ife) do
+    %{ife | is_active: true}
+  end
+
   def is_canonical?(%__MODULE__{is_canonical: value}), do: value
 
   defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
