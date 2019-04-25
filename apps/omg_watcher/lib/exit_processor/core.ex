@@ -32,6 +32,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.TxAppendix
 
+  use OMG.API.LoggerExt
+
   @default_sla_margin 10
   @zero_address OMG.Eth.zero_address()
 
@@ -420,15 +422,26 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     2/ blocks where any output to any IFE was spent
     3/ blocks where the whole IFE transaction **might've** been included, to get piggyback availability and to get InvalidIFEChallenge's
 
+  This function filteres out all the spends that have not been found (`:not_found` in `spent_blknum_result`)
+  This might occur if a UTXO is exited while a SE finalizes. A block spending such UTXO will not exist.
+  Such situations should not arise, as of `v0.2` cross exiting SEs and IFEs are handled.
+  Nevertheless, `ExitProcessor` should not suffer
   """
   @spec determine_blocks_to_get(ExitProcessor.Request.t()) :: ExitProcessor.Request.t()
   def determine_blocks_to_get(
-        %ExitProcessor.Request{
-          spent_blknum_result: spent_blknum_result
-        } = request
+        %ExitProcessor.Request{spends_to_get: spends_to_get, spent_blknum_result: spent_blknum_result} = request
       ) do
     # TODO: consider Enum.uniq here
-    %{request | blknums_to_get: spent_blknum_result}
+    {not_founds, founds} =
+      Stream.zip(spends_to_get, spent_blknum_result)
+      |> Enum.split_with(fn {_utxo_pos, result} -> result == :not_found end)
+
+    {_, blknums_to_get} = Enum.unzip(founds)
+
+    warn? = !Enum.empty?(not_founds)
+    _ = if warn?, do: Logger.warn("UTXO doesn't exists but no spend registered (spent in exit?) #{inspect(not_founds)}")
+
+    %{request | blknums_to_get: blknums_to_get}
   end
 
   @doc """
