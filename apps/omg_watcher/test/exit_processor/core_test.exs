@@ -1119,16 +1119,24 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert Utxo.position(1, 0, 0) in spends_to_get
     end
 
-    test "by asking for the right blocks",
-         %{} do
-      # NOTE: for now test trivial, because we don't require any filtering yet
+    test "by asking for the right blocks when all are spent correctly" do
       assert %{blknums_to_get: [1000]} =
-               %ExitProcessor.Request{spent_blknum_result: [1000]} |> Core.determine_blocks_to_get()
+               %ExitProcessor.Request{spends_to_get: [@utxo_pos1], spent_blknum_result: [1000]}
+               |> Core.determine_blocks_to_get()
 
-      assert %{blknums_to_get: []} = %ExitProcessor.Request{spent_blknum_result: []} |> Core.determine_blocks_to_get()
+      assert %{blknums_to_get: []} =
+               %ExitProcessor.Request{spends_to_get: [], spent_blknum_result: []} |> Core.determine_blocks_to_get()
 
       assert %{blknums_to_get: [2000, 1000]} =
-               %ExitProcessor.Request{spent_blknum_result: [2000, 1000]} |> Core.determine_blocks_to_get()
+               %ExitProcessor.Request{spends_to_get: [@utxo_pos1, @utxo_pos2], spent_blknum_result: [2000, 1000]}
+               |> Core.determine_blocks_to_get()
+    end
+
+    @tag :capture_log
+    test "by asking for the right blocks if some spends are missing" do
+      assert %{blknums_to_get: [1000]} =
+               %ExitProcessor.Request{spends_to_get: [@utxo_pos1, @utxo_pos2], spent_blknum_result: [:not_found, 1000]}
+               |> Core.determine_blocks_to_get()
     end
 
     @tag fixtures: [:processor_filled]
