@@ -4,7 +4,7 @@ This `gh-pages` branch is intended specifically to contain GH Project's page.
 
 
 * Child chain API
-[Master](https://omisego.github.io/elixir-omg/docs-ui/?url=master/operator_api_swagger.json) | [0.1](https://omisego.github.io/elixir-omg/docs-ui/?url=0.1/operator_api_swagger.yaml)
+[Master](https://omisego.github.io/elixir-omg/docs-ui/?url=master/operator_api_swagger.json) | [0.1](https://omisego.github.io/elixir-omg/docs-ui/?url=0.1/operator_api_specs.yaml)
 
 * Watcher's Security-critical API
 [Master](https://omisego.github.io/elixir-omg/docs-ui/?url=master/watcher_api_swagger.json) | [0.1](https://omisego.github.io/elixir-omg/docs-ui/?url=0.1/security_critical_api_specs.yaml)
