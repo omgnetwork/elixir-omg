@@ -47,8 +47,8 @@ defmodule OMG.Eth.DevHelpers do
 
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
          {:ok, authority} <- create_and_fund_authority_addr(opts),
-         {:ok, [addr | _]} <- Ethereumex.HttpClient.eth_accounts(),
-         {:ok, txhash, contract_addr} <- Eth.Deployer.create_new(OMG.Eth.RootChain, root_path, from_hex(addr)),
+         {:ok, depoyer_addr} <- get_deployer_address(opts),
+         {:ok, txhash, contract_addr} <- Eth.Deployer.create_new(OMG.Eth.RootChain, root_path, depoyer_addr),
          {:ok, _} <-
            Eth.RootChain.init(exit_period_seconds, authority, contract_addr) |> Eth.DevHelpers.transact_sync!() do
       %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
@@ -135,6 +135,11 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   # private
+
+  defp get_deployer_address(opts) do
+    with {:ok, [addr | _]} <- Ethereumex.HttpClient.eth_accounts(),
+         do: {:ok, from_hex(Keyword.get(opts, :faucet, addr))}
+  end
 
   defp create_and_fund_authority_addr(opts) do
     with {:ok, authority} <- Ethereumex.HttpClient.request("personal_newAccount", [@passphrase], []),
