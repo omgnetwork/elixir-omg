@@ -31,7 +31,7 @@ defmodule OMG.Eth.DevHelpers do
   # NOTE: such timeout works only in dev setting; on mainnet one must track its transactions carefully
   @about_4_blocks_time 60_000
 
-  @passphrase "ThisIsATestnetPassphrase"
+  @passphrase System.get_env("SIGNER_PASSPHRASE")
 
   @doc """
   Prepares the developer's environment with respect to the root chain contract and its configuration within
