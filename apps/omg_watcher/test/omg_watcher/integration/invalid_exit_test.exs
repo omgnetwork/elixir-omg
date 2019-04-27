@@ -29,6 +29,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   import ExUnit.CaptureLog
 
   @moduletag :integration
+  @moduletag :watcher
   @moduletag timeout: 120_000
 
   @timeout 40_000

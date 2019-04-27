@@ -26,6 +26,7 @@ defmodule OMG.DBTest do
   alias OMG.DB
 
   @moduletag :wrappers
+  @moduletag :common
 
   test "handles object storage", %{db_dir: dir, db_pid: pid} do
     :ok =

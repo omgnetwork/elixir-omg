@@ -26,6 +26,7 @@ defmodule OMG.RootChainCoordinatorTest do
   alias OMG.Integration.DepositHelper
 
   @moduletag :integration
+  @moduletag :common
 
   @tag fixtures: [:alice, :db_initialized, :root_chain_contract_config]
   test "can do a simplest sync",

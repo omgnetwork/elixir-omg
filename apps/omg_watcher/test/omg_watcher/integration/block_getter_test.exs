@@ -40,6 +40,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   import ExUnit.CaptureLog
 
   @moduletag :integration
+  @moduletag :watcher
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
