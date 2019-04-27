@@ -122,19 +122,33 @@ jobs:
       #     keys:
       #       - v1-mix-cache-{{ checksum "mix.lock" }}
 
+      # - run:
+      #     name: Integration Tests & Coveralls
+      #     command: |
+      #       export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
+      #       export SHELL=/bin/bash
+      #       mix coveralls.post \
+      #         --umbrella \
+      #         --trace \
+      #         --include integration \
+      #         --include wrappers \
+      #         --sha $CIRCLE_SHA \
+      #         --branch $CIRCLE_BRANCH \
+      #         --message "$GIT_COMMIT_DESCRIPTION"
       - run:
-          name: Integration Tests & Coveralls
+          name: Integration Tests & Coveralls Part 1
           command: |
-            export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
+            # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
-            mix coveralls.post \
-              --umbrella \
-              --trace \
-              --include integration \
-              --include wrappers \
-              --sha $CIRCLE_SHA \
-              --branch $CIRCLE_BRANCH \
-              --message "$GIT_COMMIT_DESCRIPTION"
+            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
+              MIX_ENV=test mix coveralls.html --parallel --umbrella --include integration --include wrappers --trace
+            else
+              MIX_ENV=test mix coveralls.circle --parallel --umbrella --include integration --include wrappers --trace ||
+                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
+            fi
+      - store_artifacts:
+          path: cover/excoveralls.html
 
   dialyzer:
     docker:
@@ -231,6 +245,18 @@ jobs:
           name: Uploading watcher CI artifacts
           path: ./ci_artifact
 
+  coveralls_merge:
+    docker:
+      # Ensure .tool-versions matches
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          MIX_ENV: test
+
+    steps:
+      - run:
+          name: Tell coveralls.io build is done
+          command: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done"
+
   build_and_deploy_development:
     docker:
       - image: ubuntu:16.04
@@ -317,6 +343,9 @@ workflows:
   build-deploy:
     jobs:
       - build
+      - coveralls_merge:
+          requires:
+            - coveralls_and_integration_tests
       - coveralls_and_integration_tests:
           requires: [build]
       - lint:
