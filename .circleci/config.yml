@@ -72,7 +72,7 @@ jobs:
            at: .
       - run: MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, test --exclude test, credo, format --check-formatted --dry-run
 
-  coveralls_and_integration_tests_compile:
+  tests_compile_once:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
@@ -85,7 +85,7 @@ jobs:
            at: .
       - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force
       - save_cache:
-          key: v1-mix-cache-test-compile-{{ checksum "mix.lock" }}
+          key: v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
           paths: "_build"
 
   child_chain_coveralls_and_integration_tests:
@@ -111,7 +111,7 @@ jobs:
 
       - restore_cache:
           keys:
-            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}
+            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Compile
           command: mix compile
@@ -151,7 +151,7 @@ jobs:
 
       - restore_cache:
           keys:
-            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}
+            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Compile
           command: mix compile
@@ -191,7 +191,7 @@ jobs:
 
       - restore_cache:
           keys:
-            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}
+            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Compile
           command: mix compile
@@ -231,7 +231,7 @@ jobs:
 
       - restore_cache:
           keys:
-            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}
+            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Compile
           command: mix compile
@@ -428,20 +428,20 @@ workflows:
             - watcher_coveralls_and_integration_tests
             - common_coveralls_and_integration_tests
             - test
-      - coveralls_and_integration_tests_compile:
+      - tests_compile_once:
           requires: [build]
       - child_chain_coveralls_and_integration_tests:
           requires:
             - build
-            - coveralls_and_integration_tests_compile
+            - tests_compile_once
       - watcher_coveralls_and_integration_tests:
           requires:
             - build
-            - coveralls_and_integration_tests_compile
+            - tests_compile_once
       - common_coveralls_and_integration_tests:
           requires:
             - build
-            - coveralls_and_integration_tests_compile
+            - tests_compile_once
       - lint:
           requires: [build]
       - dialyzer:
@@ -449,7 +449,7 @@ workflows:
       - test:
           requires:
             - build
-            - coveralls_and_integration_tests_compile
+            - tests_compile_once
       - release:
           requires: [build]
           filters:
