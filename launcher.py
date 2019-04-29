@@ -11,7 +11,7 @@ import requests
 
 
 RINKEBY_CONTRACT = {}
-GÖRLI_CONTRACT = {}
+GORLI_CONTRACT = {}
 
 
 class ChildchainLauncher:
@@ -23,10 +23,10 @@ class ChildchainLauncher:
         self.chain_data_present = False
         self.git_commit_hash = git_commit_hash
         self.ethereum_network = ethereum_network
-        self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN', 'GÖRLI']
+        self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN', 'GORLI']
         self.contracts = {}
         self.contracts['RINKEBY'] = RINKEBY_CONTRACT
-        self.contracts['GÖRLI'] = GÖRLI_CONTRACT
+        self.contracts['GORLI'] = GORLI_CONTRACT
         self.contract_exchanger_url = contract_exchanger_url
         self.ethereum_rpc_url = ethereum_rpc_url
 
@@ -255,10 +255,10 @@ class WatcherLauncher:
             contract_exchanger_url: str, ethereum_rpc_url: str):
         self.git_commit_hash = git_commit_hash
         self.ethereum_network = ethereum_network
-        self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN', 'GÖRLI']
+        self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN', 'GORLI']
         self.contracts = {}
         self.contracts['RINKEBY'] = RINKEBY_CONTRACT
-        self.contracts['GÖRLI'] = GÖRLI_CONTRACT
+        self.contracts['GORLI'] = GORLI_CONTRACT
         self.watcher_additional_config = [
             'config :omg_db,',
             '  leveldb_path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])' # noqa E501
@@ -514,17 +514,17 @@ def get_environment_variables() -> dict:
             'RINKEBY_AUTHORITY_ADDRESS',
             '0xe5153ad259be60003909492b154bf4b7f1787f70'
         )
-    elif os.getenv('ETHEREUM_NETWORK') == 'GÖRLI':
-        GÖRLI_CONTRACT['contract_addr'] = os.environ.get(
-            'GÖRLI_CONTRACT_ADDRESS',
+    elif os.getenv('ETHEREUM_NETWORK') == 'GORLI':
+        GORLI_CONTRACT['contract_addr'] = os.environ.get(
+            'GORLI_CONTRACT_ADDRESS',
             '0x607ba3407d9aab7dec4dfe67993060b9949ad6e1'
         )
-        GÖRLI_CONTRACT['txhash_contract'] = os.environ.get(
-            'GÖRLI_TXHASH_CONTRACT',
+        GORLI_CONTRACT['txhash_contract'] = os.environ.get(
+            'GORLI_TXHASH_CONTRACT',
             '0x42f6c66e68e56d0fbee14c847b6f0dbfbab91e615854b3f2375299808074b357' # noqa E501
         )
-        GÖRLI_CONTRACT['authority_addr'] = os.environ.get(
-            'GÖRLI_AUTHORITY_ADDRESS',
+        GORLI_CONTRACT['authority_addr'] = os.environ.get(
+            'GORLI_AUTHORITY_ADDRESS',
             '0xb32deedcbe7949ce385bc46d566b70de1c060c03'
         )
     return {
