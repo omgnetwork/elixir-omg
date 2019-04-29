@@ -163,6 +163,7 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
   def handle_info(:sync, state), do: do_sync(state)
 
+  @decorate measure_start()
   defp do_producer(state) do
     with {:ok, _} <- Core.chain_ok(state) do
       new_state = run_block_download_task(state)

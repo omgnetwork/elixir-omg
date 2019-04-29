@@ -14,11 +14,12 @@
 
 defmodule OMG.Utils.Metrics do
   @moduledoc """
-  In option can discard some metrics trigger.
+  Wrapper around facilities used to trigger events to calculate performance metrics
+
+  Allows one to discard some metric triggers, based on their namespace:
   ## Example
 
-      config :metrics,
-        discard: [:State]
+      config :metrics, discard: [:State]
   """
 
   use Appsignal.Instrumentation.Decorators
@@ -38,10 +39,10 @@ defmodule OMG.Utils.Metrics do
   end
 
   def measure_event(body, context) do
-    namespace = context.module |> Module.split() |> List.last() |> String.to_existing_atom()
+    event_group = context.module |> Module.split() |> List.last() |> String.to_existing_atom()
 
-    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace)),
+    if Enum.find(@discard_namespace_metrics, &match?(^&1, event_group)),
       do: body,
-      else: Appsignal.Instrumentation.Decorators.transaction_event(namespace, body, context)
+      else: Appsignal.Instrumentation.Decorators.transaction_event(event_group, body, context)
   end
 end
