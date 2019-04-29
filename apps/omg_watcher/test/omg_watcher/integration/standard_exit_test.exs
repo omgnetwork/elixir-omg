@@ -34,6 +34,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   @endpoint OMG.Watcher.Web.Endpoint
 
   @moduletag :integration
+  @moduletag :watcher
   @moduletag timeout: 180_000
 
   @timeout 40_000

@@ -31,6 +31,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @moduletag :integration
+  @moduletag :watcher
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 180_000
 

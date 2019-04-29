@@ -24,7 +24,7 @@ defmodule OMG.EthereumClientMonitor do
   require Logger
   alias OMG.Eth
 
-  @default_interval 500
+  @default_interval Application.get_env(:omg, :client_monitor_interval_ms)
   @type t :: %__MODULE__{
           interval: pos_integer(),
           tref: reference() | nil,

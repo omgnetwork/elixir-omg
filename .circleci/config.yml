@@ -54,32 +54,6 @@ jobs:
             - docker-compose.yml
             - rel/
 
-  test:
-    docker:
-      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
-        environment:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
-      - image: circleci/postgres:9.6-alpine
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: omisego_dev
-          MIX_ENV: test
-    working_directory: ~/repo
-
-    steps:
-      - attach_workspace:
-           at: .
-
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
-
-      # - restore_cache:
-      #     keys:
-      #       - v1-mix-cache-{{ checksum "mix.lock" }}
-
-      - run: mix test
-
   lint:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
@@ -98,11 +72,28 @@ jobs:
            at: .
       - run: MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, test --exclude test, credo, format --check-formatted --dry-run
 
-  coveralls_and_integration_tests:
+  tests_compile_once:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+          MIX_ENV: test
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+      - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force
+      - save_cache:
+          key: v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+          paths: "_build"
+
+  child_chain_coveralls_and_integration_tests:
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+          MIX_ENV: test
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: postgres
@@ -118,55 +109,162 @@ jobs:
       - run: mix local.hex --force
       - run: mix local.rebar --force
 
-      # - restore_cache:
-      #     keys:
-      #       - v1-mix-cache-{{ checksum "mix.lock" }}
-
+      - restore_cache:
+          keys:
+            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
       - run:
-          name: Integration Tests & Coveralls
+          name: Compile
+          command: mix compile
+      - run:
+          name: Integration Tests & Coveralls Part Child Chain
           command: |
-            export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
+            # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
-            mix coveralls.post \
-              --umbrella \
-              --trace \
-              --include integration \
-              --include wrappers \
-              --sha $CIRCLE_SHA \
-              --branch $CIRCLE_BRANCH \
-              --message "$GIT_COMMIT_DESCRIPTION"
+            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
+              mix coveralls.html --parallel --umbrella --include child_chain --exclude watcher --exclude common --exclude test --trace
+            else
+              mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude common --exclude test --trace ||
+                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
+            fi
+
+  watcher_coveralls_and_integration_tests:
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+          MIX_ENV: test
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+          MIX_ENV: test
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+
+      - restore_cache:
+          keys:
+            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Integration Tests & Coveralls Part Watcher
+          command: |
+            # Don't submit coverage report for forks, but let the build succeed
+            export SHELL=/bin/bash
+            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
+              mix coveralls.html --parallel --umbrella --include watcher --exclude child_chain --exclude common --exclude test --trace
+            else
+              mix coveralls.circle --parallel --umbrella --include watcher --exclude child_chain --exclude common --exclude test --trace ||
+                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
+            fi
+
+  common_coveralls_and_integration_tests:
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+          MIX_ENV: test
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+          MIX_ENV: test
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+
+      - restore_cache:
+          keys:
+            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Integration Tests & Coveralls Part Common
+          command: |
+            # Don't submit coverage report for forks, but let the build succeed
+            export SHELL=/bin/bash
+            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
+              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude child_chain --exclude test --trace
+            else
+              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude child_chain --exclude test --trace ||
+                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
+            fi
+
+  test:
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+          MIX_ENV: test
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+          MIX_ENV: test
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+
+      - restore_cache:
+          keys:
+            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Test
+          command: |
+            # Don't submit coverage report for forks, but let the build succeed
+            export SHELL=/bin/bash
+            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
+              mix coveralls.html --parallel --umbrella --trace
+            else
+              mix coveralls.circle --parallel --umbrella --trace ||
+                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
+            fi
 
   dialyzer:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
-      - image: circleci/postgres:9.6-alpine
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: omisego_dev
-          MIX_ENV: test
-
     working_directory: ~/repo
 
     steps:
       - attach_workspace:
            at: .
-
       - run: mix local.hex --force
       - run: mix local.rebar --force
-
-      # - restore_cache:
-      #     keys:
-      #       - v1-mix-cache-{{ checksum "mix.lock" }}
-
       - restore_cache:
           keys:
             - v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
             - v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
             - v1-plt-cache-{{ ".tool-versions" }}
-
       - run:
           name: Unpack PLT cache
           command: |
@@ -174,26 +272,21 @@ jobs:
             cp plts/dialyxir*.plt _build/test/ || true
             mkdir -p ~/.mix
             cp plts/dialyxir*.plt ~/.mix/ || true
-
       - run: mix dialyzer --plt
-
       - run:
           name: Pack PLT cache
           command: |
             mkdir -p plts
             cp _build/test/dialyxir*.plt plts/
             cp ~/.mix/dialyxir*.plt plts/
-
       - save_cache:
           key: v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
           paths:
             - plts
-
       - save_cache:
           key: v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
           paths:
             - plts
-
       - save_cache:
           key: v1-plt-cache-{{ ".tool-versions" }}
           paths:
@@ -230,6 +323,18 @@ jobs:
       - store_artifacts:
           name: Uploading watcher CI artifacts
           path: ./ci_artifact
+
+  coveralls_merge:
+    docker:
+      # Ensure .tool-versions matches
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          MIX_ENV: test
+
+    steps:
+      - run:
+          name: Tell coveralls.io build is done
+          command: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done"
 
   build_and_deploy_development:
     docker:
@@ -317,14 +422,34 @@ workflows:
   build-deploy:
     jobs:
       - build
-      - coveralls_and_integration_tests:
+      - coveralls_merge:
+          requires:
+            - child_chain_coveralls_and_integration_tests
+            - watcher_coveralls_and_integration_tests
+            - common_coveralls_and_integration_tests
+            - test
+      - tests_compile_once:
           requires: [build]
+      - child_chain_coveralls_and_integration_tests:
+          requires:
+            - build
+            - tests_compile_once
+      - watcher_coveralls_and_integration_tests:
+          requires:
+            - build
+            - tests_compile_once
+      - common_coveralls_and_integration_tests:
+          requires:
+            - build
+            - tests_compile_once
       - lint:
           requires: [build]
       - dialyzer:
           requires: [build]
       - test:
-          requires: [build]
+          requires:
+            - build
+            - tests_compile_once
       - release:
           requires: [build]
           filters:
@@ -338,7 +463,9 @@ workflows:
             - dialyzer
             - test
             - release
-            - coveralls_and_integration_tests
+            - child_chain_coveralls_and_integration_tests
+            - watcher_coveralls_and_integration_tests
+            - common_coveralls_and_integration_tests
           filters:
             branches:
               only:
@@ -349,7 +476,9 @@ workflows:
             - lint
             - dialyzer
             - test
-            - coveralls_and_integration_tests
+            - child_chain_coveralls_and_integration_tests
+            - watcher_coveralls_and_integration_tests
+            - common_coveralls_and_integration_tests
           filters:
             branches:
               only:

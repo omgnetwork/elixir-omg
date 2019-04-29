@@ -21,6 +21,8 @@ defmodule OMG.CryptoTest do
 
   alias OMG.Crypto
   alias OMG.DevCrypto
+  alias OMG.State.Transaction
+  alias OMG.TypedDataHash
 
   test "sha3 library usage, address generation" do
     # test vectors below were generated using pyethereum's sha3 and privtoaddr
@@ -56,8 +58,6 @@ defmodule OMG.CryptoTest do
   end
 
   test "sign, verify" do
-    alias OMG.State.Transaction
-    alias OMG.TypedDataHash
     {:ok, priv} = DevCrypto.generate_private_key()
     {:ok, pub} = DevCrypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)

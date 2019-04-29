@@ -47,6 +47,8 @@ defmodule OMG.EthereumClientMonitorTest do
           id: :ethereum_client_connection
         }
       ])
+
+    Mock.clear_faulty_response()
   end
 
   test "that alarm gets raised if there's no ethereum client running and cleared when it's running" do
@@ -67,7 +69,7 @@ defmodule OMG.EthereumClientMonitorTest do
 
   test "that we don't overflow the message queue with timers when Eth client needs time to respond" do
     Mock.set_faulty_response()
-    Mock.set_long_response(4500)
+    Mock.set_long_response(500)
     pid = Process.whereis(EthereumClientMonitor)
     true = is_pid(pid)
 
@@ -97,7 +99,7 @@ defmodule OMG.EthereumClientMonitorTest do
         :ok
 
       _ ->
-        Process.sleep(100)
+        Process.sleep(10)
         pull_client_alarm(n - 1, match)
     end
   end
@@ -110,11 +112,13 @@ defmodule OMG.EthereumClientMonitorTest do
     def start_link, do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
     def get_ethereum_height, do: GenServer.call(__MODULE__, :get_ethereum_height)
     def set_faulty_response, do: GenServer.call(__MODULE__, :set_faulty_response)
+    def clear_faulty_response, do: GenServer.call(__MODULE__, :clear_faulty_response)
     def set_long_response(milliseconds), do: GenServer.call(__MODULE__, {:set_long_response, milliseconds})
     def clear_long_response, do: GenServer.call(__MODULE__, :clear_long_response)
     def set_ok_response, do: GenServer.call(__MODULE__, :set_ok_response)
 
     def init(_), do: {:ok, %{}}
+    def handle_call(:clear_faulty_response, _, state), do: {:reply, :ok, Map.delete(state, :error)}
     def handle_call(:set_faulty_response, _, _state), do: {:reply, :ok, %{error: true}}
     def handle_call(:set_ok_response, _, _state), do: {:reply, :ok, %{}}
 
@@ -123,7 +127,7 @@ defmodule OMG.EthereumClientMonitorTest do
       {:reply, {:ok, 1}, state}
     end
 
-    def handle_call(:get_ethereum_height, _, %{error: true} = state), do: {:reply, :error, Map.delete(state, :error)}
+    def handle_call(:get_ethereum_height, _, %{error: true} = state), do: {:reply, :error, state}
     def handle_call(:get_ethereum_height, _, state), do: {:reply, {:ok, 1}, state}
 
     def handle_call({:set_long_response, milliseconds}, _, state),
