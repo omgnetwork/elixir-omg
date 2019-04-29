@@ -33,15 +33,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Block
   alias OMG.Crypto
   alias OMG.State.Transaction
+  alias OMG.TypedDataHash
   alias OMG.Utxo
-  require Utxo
-  require Transaction
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.TxAppendix
+
+  require Utxo
+  require Transaction
 
   @default_sla_margin 10
   @zero_address OMG.Eth.zero_address()
@@ -1210,7 +1212,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   # Finds the exact signature which signed the particular transaction for the given owner address
   @spec find_sig(Transaction.Signed.t(), Crypto.address_t()) :: {:ok, Crypto.sig_t()} | nil
   defp find_sig(%Transaction.Signed{sigs: sigs, raw_tx: raw_tx}, owner) do
-    tx_hash = OMG.TypedDataHash.hash_struct(raw_tx)
+    tx_hash = TypedDataHash.hash_struct(raw_tx)
 
     Enum.find(sigs, fn sig ->
       {:ok, owner} == Crypto.recover_address(tx_hash, sig)

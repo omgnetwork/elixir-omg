@@ -38,7 +38,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
 
-  @tag fixtures: [:alice, :bob, :omg_child_chain, :token, :alice_deposits, :eth_node]
+  @tag fixtures: [:alice, :bob, :omg_child_chain, :token, :alice_deposits]
   test "deposit, spend, restart, exit etc works fine", %{
     alice: alice,
     bob: bob,

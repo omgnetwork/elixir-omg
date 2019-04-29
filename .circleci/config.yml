@@ -123,7 +123,7 @@ jobs:
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
               mix coveralls.html --parallel --umbrella --include child_chain --exclude watcher --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude common --trace ||
+              mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
