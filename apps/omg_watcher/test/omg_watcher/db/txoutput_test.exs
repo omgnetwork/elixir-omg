@@ -52,7 +52,7 @@ defmodule OMG.Watcher.DB.TxOutputTest do
     power_of_2 = fn n -> :lists.duplicate(n, 2) |> Enum.reduce(&(&1 * &2)) end
     assert 16 == power_of_2.(4)
 
-    big_amount = power_of_2.(260)
+    big_amount = power_of_2.(256) - 1
 
     DB.Transaction.update_with(%{
       transactions: [OMG.TestHelper.create_recovered([], @eth, [{alice, big_amount}])],
