@@ -258,7 +258,7 @@ class WatcherLauncher:
         self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN', 'GÖRLI']
         self.contracts = {}
         self.contracts['RINKEBY'] = RINKEBY_CONTRACT
-        self.contracts['GÖRLI'] = RINKEBY_CONTRACT
+        self.contracts['GÖRLI'] = GÖRLI_CONTRACT
         self.watcher_additional_config = [
             'config :omg_db,',
             '  leveldb_path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])' # noqa E501
