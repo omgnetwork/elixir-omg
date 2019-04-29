@@ -38,6 +38,11 @@ defmodule OMG.EthTest do
     assert is_integer(number)
   end
 
+  @tag fixtures: [:signtest]
+  test "signature test contract is deployed", %{signtest: addr} do
+    assert 20 = addr |> IO.inspect(label: "address:") |> byte_size()
+  end
+
   @tag fixtures: [:contract]
   test "get contract deployment height", %{contract: contract} do
     {:ok, number} = Eth.RootChain.get_root_deployment_height(contract.txhash_contract, contract.contract_addr)

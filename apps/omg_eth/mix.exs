@@ -65,7 +65,7 @@ defmodule OMG.Eth.MixProject do
     compilation_path = Path.join([mixfile_path, "../..", contracts_dir])
 
     contract_paths =
-      ["RootChain.sol", "MintableToken.sol"]
+      ["RootChain.sol", "MintableToken.sol", "SignatureTest.sol"]
       |> Enum.join(" ")
 
     output_path = Path.join([mixfile_path, "../..", "_build/contracts"])

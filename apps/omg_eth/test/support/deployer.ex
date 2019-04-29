@@ -45,4 +45,14 @@ defmodule OMG.Eth.Deployer do
     Eth.deploy_contract(from, bytecode, [], [], opts)
     |> Eth.DevHelpers.deploy_sync!()
   end
+
+  def create_new(OMG.Eth.Eip712, path_project_root, from, opts) do
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_contract_token)
+    opts = defaults |> Keyword.merge(opts)
+
+    bytecode = Eth.get_bytecode!(path_project_root, "SignatureTest")
+
+    Eth.deploy_contract(from, bytecode, [], [], opts)
+    |> Eth.DevHelpers.deploy_sync!()
+  end
 end
