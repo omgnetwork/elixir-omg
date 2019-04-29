@@ -514,7 +514,7 @@ def get_environment_variables() -> dict:
             'RINKEBY_AUTHORITY_ADDRESS',
             '0xe5153ad259be60003909492b154bf4b7f1787f70'
         )
-    elif os.getenv('ETHEREUM_NETWORK') == 'GORLI':
+    elif os.getenv('ETHEREUM_NETWORK') == 'GÖRLI':
         GÖRLI_CONTRACT['contract_addr'] = os.environ.get(
             'GÖRLI_CONTRACT_ADDRESS',
             '0x607ba3407d9aab7dec4dfe67993060b9949ad6e1'
