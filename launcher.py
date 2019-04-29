@@ -11,6 +11,7 @@ import requests
 
 
 RINKEBY_CONTRACT = {}
+GÖRLI_CONTRACT = {}
 
 
 class ChildchainLauncher:
@@ -25,6 +26,7 @@ class ChildchainLauncher:
         self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN', 'GÖRLI']
         self.contracts = {}
         self.contracts['RINKEBY'] = RINKEBY_CONTRACT
+        self.contracts['GÖRLI'] = GÖRLI_CONTRACT
         self.contract_exchanger_url = contract_exchanger_url
         self.ethereum_rpc_url = ethereum_rpc_url
 
