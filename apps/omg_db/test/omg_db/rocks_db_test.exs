@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DBTest do
+defmodule OMG.RocksDBTest do
   @moduledoc """
   A smoke test of the LevelDB support. The intention here is to **only** test minimally, that the pipes work.
 
@@ -21,14 +21,14 @@ defmodule OMG.DBTest do
   Note the excluded moduletag, this test requires an explicit `--include wrappers`
   """
   use ExUnitFixtures
-  use OMG.DB.LevelDBCase, async: false
+  use OMG.DB.RocksDBCase, async: false
 
   alias OMG.DB
 
   @moduletag :wrappers
   @moduletag :common
 
-  test "handles object storage", %{db_dir: dir, db_pid: pid} do
+  test "rocks db handles object storage", %{db_dir: dir, db_pid: pid} do
     :ok =
       DB.multi_update(
         [{:put, :block, %{hash: "xyz"}}, {:put, :block, %{hash: "vxyz"}}, {:put, :block, %{hash: "wvxyz"}}],
@@ -50,7 +50,7 @@ defmodule OMG.DBTest do
     checks.(pid)
   end
 
-  test "handles single value storage", %{db_dir: dir, db_pid: pid} do
+  test "rocks db handles single value storage", %{db_dir: dir, db_pid: pid} do
     :ok = DB.multi_update([{:put, :last_exit_finalizer_eth_height, 12}], pid)
 
     checks = fn pid ->

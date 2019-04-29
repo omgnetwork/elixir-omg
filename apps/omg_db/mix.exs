@@ -32,6 +32,7 @@ defmodule OMG.DB.MixProject do
     [
       {:appsignal, "~> 1.0"},
       # version caused by dependency in merkle_patricia_tree from blockchain
+      {:rocksdb, "~> 1.1"},
       {:exleveldb, "~> 0.11"},
       # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see
