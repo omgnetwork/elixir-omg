@@ -23,6 +23,7 @@ defmodule OMG.Eth.Deployer do
 
   @gas_contract_rootchain 6_180_000
   @gas_contract_token 1_590_893
+  @gas_contract_sigtest 1_590_893
 
   def create_new(contract, path_project_root, from, opts \\ [])
 
@@ -47,7 +48,7 @@ defmodule OMG.Eth.Deployer do
   end
 
   def create_new(OMG.Eth.Eip712, path_project_root, from, opts) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_contract_token)
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_contract_sigtest)
     opts = defaults |> Keyword.merge(opts)
 
     bytecode = Eth.get_bytecode!(path_project_root, "SignatureTest")

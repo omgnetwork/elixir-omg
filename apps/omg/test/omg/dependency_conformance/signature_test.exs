@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.SignatureTest do
+defmodule OMG.DependencyConformance.SignatureTest do
   @moduledoc """
-  Tests that elixir-generated signatures can be successfully verified by contract code.
-  NOTE: These are integration tests as they require Ethereum node running and contract deployment,
-  however it deployed contract once for all tests and then calls a function on it which should be
-  quick enough so we can afford it runs with unit tests.
+  Tests that EIP-712-compliant signatures generated `somehow` (via Elixir code as it happens) are treated the same
+  by both Elixir signature code and contract signature code.
   """
 
   alias OMG.DevCrypto
@@ -25,8 +23,10 @@ defmodule OMG.Eth.SignatureTest do
   alias OMG.State.Transaction
   alias OMG.TestHelper
 
-  use ExUnitFixtures
   use ExUnit.Case, async: false
+
+  @moduletag :integration
+  @moduletag :common
 
   @alice TestHelper.generate_entity()
   @bob TestHelper.generate_entity()
@@ -50,8 +50,7 @@ defmodule OMG.Eth.SignatureTest do
     tx = Transaction.new([], []) |> DevCrypto.sign([@alice.priv])
     sig = tx.sigs |> Enum.at(0)
 
-    assert true == verify(contract, tx, sig, @alice.addr)
-    assert false == verify(contract, tx, sig, @bob.addr)
+    assert true == verify(contract, tx, sig)
   end
 
   test "signature test", context do
@@ -65,10 +64,8 @@ defmodule OMG.Eth.SignatureTest do
 
     [alice_sig, bob_sig | _] = tx.sigs
 
-    assert true == verify(contract, tx, alice_sig, @alice.addr)
-    assert true == verify(contract, tx, bob_sig, @bob.addr)
-    assert false == verify(contract, tx, bob_sig, @alice.addr)
-    assert false == verify(contract, tx, alice_sig, @bob.addr)
+    verify(contract, tx, alice_sig)
+    verify(contract, tx, bob_sig)
   end
 
   test "signature test transaction with metadata", context do
@@ -85,21 +82,19 @@ defmodule OMG.Eth.SignatureTest do
 
     [alice_sig, bob_sig | _] = tx.sigs
 
-    assert true == verify(contract, tx, alice_sig, @alice.addr)
-    assert true == verify(contract, tx, bob_sig, @bob.addr)
-    assert false == verify(contract, tx, bob_sig, @alice.addr)
-    assert false == verify(contract, tx, alice_sig, @bob.addr)
+    verify(contract, tx, alice_sig)
+    verify(contract, tx, bob_sig)
   end
 
-  defp verify(contract, tx, signature, signer) do
-    {:ok, result} =
-      Eth.call_contract(
-        contract,
-        "verify(bytes,bytes,address)",
-        [Transaction.raw_txbytes(tx), signature, signer],
-        [:bool]
-      )
+  defp verify(contract, %Transaction.Signed{raw_tx: tx}, signature) do
+    {:ok, solidity_signer} =
+      Eth.call_contract(contract, "getSigner(bytes,bytes)", [Transaction.raw_txbytes(tx), signature], [:address])
 
-    result
+    {:ok, elixir_signer} =
+      tx
+      |> OMG.TypedDataHash.hash_struct()
+      |> OMG.Crypto.recover_address(signature)
+
+    assert solidity_signer == elixir_signer
   end
 end

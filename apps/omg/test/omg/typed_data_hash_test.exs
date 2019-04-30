@@ -19,7 +19,7 @@ defmodule OMG.TypedDataHashTest do
   * tier 2: final structural hash on prepared transaction that gives the same signatures as above
   * tier 3: intermediate results of hashing (domain separator, structural hashes of inputs & outputs)
   * tier 4: end-to-end test of generating signatures in elixir code and verifying them in solidity library (
-    done in https://github.com/omisego/elixir-omg/pull/656)
+    done in `OMG.DependencyConformance.SignatureTest`)
   """
 
   use ExUnitFixtures
