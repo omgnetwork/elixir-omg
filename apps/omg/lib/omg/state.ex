@@ -90,6 +90,7 @@ defmodule OMG.State do
     # Get utxos() is essential for the State and Blockgetter. And it takes a while. TODO - measure it!
     # Our approach is simply blocking the supervision boot tree
     # until we've processed history.
+    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_interval), self(), :send_metrics)
     {:ok, DB.utxos(), {:continue, :setup}}
   end
 
@@ -119,6 +120,13 @@ defmodule OMG.State do
       end
 
     {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+
+    {:noreply, state}
+  end
+
+  def handle_info(:send_metrics, state) do
+    _ = Core.Metrics.calculate(state)
+    |> Enum.map(fn {key, value} -> Appsignal.set_gauge(key, value) end)
 
     {:noreply, state}
   end
