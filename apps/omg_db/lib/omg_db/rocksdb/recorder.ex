@@ -18,9 +18,9 @@ defmodule OMG.DB.RocksDB.Recorder do
   """
   use GenServer
   @default_interval 5_000
-  @write :rocks_db_write
-  @read :rocks_db_read
-  @multiread :rocks_db_multiread
+  @write :rocksdb_write
+  @read :rocksdb_read
+  @multiread :rocksdb_multiread
   @keys [{@write, to_charlist(@write)}, {@read, to_charlist(@read)}, {@multiread, to_charlist(@multiread)}]
 
   @type t :: %__MODULE__{

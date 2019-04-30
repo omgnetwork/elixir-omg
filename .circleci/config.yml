@@ -24,6 +24,7 @@ jobs:
       - run:
           name: Get Dependencies
           command: |
+            export ERLANG_ROCKSDB_BUILDOPTS='-j 2'
             mix do deps.get, deps.compile
       # - save_cache:
       #     key: v1-mix-cache-{{ checksum "mix.lock" }}

@@ -63,7 +63,7 @@ defmodule OMG.RocksDBRecorderTest do
           :pass
 
         {:registered_name, _} ->
-          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :leveldb_multiread)
+          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :rocksdb_multiread)
           assert [rocksdb_multiread: 1] == result
       end
     end)

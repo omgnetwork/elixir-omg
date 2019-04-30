@@ -122,5 +122,4 @@ defmodule OMG.DB.RocksDB.Core do
         do_search(reference, iterator, [value | acc])
     end
   end
-
 end
