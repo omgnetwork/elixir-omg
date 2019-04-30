@@ -44,19 +44,6 @@ defmodule OMG.Eth.Librarian do
     bytecode_linked(path_project_root, "RootChain", [{"PriorityQueueFactory", lib_addr3_pqf}])
   end
 
-  #FIXME: remove!
-  def link_for!(OMG.Eth.Eip712, path_project_root, from) do
-    {:ok, _txhash, lib_addr3_ecr} =
-      Eth.get_bytecode!(path_project_root, "ECRecovery")
-      |> deploy(from, @gas_contract_libs)
-
-    {:ok, _txhash, lib_addr3_eip712} =
-      Eth.get_bytecode!(path_project_root, "Eip712StructHash")
-      |> deploy(from, @gas_contract_libs)
-
-    bytecode_linked(path_project_root, "SignatureTest", [{"ECRecovery", lib_addr3_ecr}, {"Eip712StructHash", lib_addr3_eip712}])
-  end
-
   defp deploy(bytecode, from, gas) do
     opts = @tx_defaults |> Keyword.put(:gas, gas)
 

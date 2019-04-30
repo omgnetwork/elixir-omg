@@ -29,16 +29,6 @@ defmodule OMG.Eth.Fixtures do
     :ok
   end
 
-  deffixture signtest(eth_node) do
-    :ok = eth_node
-
-    root_path = "../../"
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-    {:ok, _, signtest_addr} = Eth.Deployer.create_new(OMG.Eth.Eip712, root_path, from_hex(addr))
-
-    signtest_addr
-  end
-
   deffixture contract(eth_node) do
     :ok = eth_node
 
