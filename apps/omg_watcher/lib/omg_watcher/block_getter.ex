@@ -176,6 +176,7 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
+  @decorate measure_start()
   defp do_downloaded_block(response, state) do
     # 1/ process the block that arrived and consume
 
@@ -190,6 +191,7 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
+  @decorate measure_start()
   defp do_sync(state) do
     with %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
