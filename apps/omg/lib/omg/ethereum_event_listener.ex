@@ -108,13 +108,17 @@ defmodule OMG.EthereumEventListener do
     end
   end
 
-  defp sync_height({%Core{} = state, callbacks}, %SyncGuide{sync_height: sync_height} = sync_info) do
+  defp sync_height(
+         {%Core{service_name: service_name} = state, callbacks},
+         %SyncGuide{sync_height: sync_height} = sync_info
+       ) do
     {:ok, events, db_updates, height_to_check_in, new_state} =
       Core.get_events_range_for_download(state, sync_info)
       |> maybe_update_event_cache(callbacks.get_ethereum_events_callback)
       |> Core.get_events(sync_height)
 
     {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
+    :ok = Appsignal.increment_counter(service_name |> Atom.to_string(), length(events))
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
     :ok = RootChainCoordinator.check_in(height_to_check_in, state.service_name)
 

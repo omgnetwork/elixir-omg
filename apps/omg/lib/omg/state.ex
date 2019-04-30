@@ -125,8 +125,9 @@ defmodule OMG.State do
   end
 
   def handle_info(:send_metrics, state) do
-    _ = Core.Metrics.calculate(state)
-    |> Enum.map(fn {key, value} -> Appsignal.set_gauge(key, value) end)
+    _ =
+      Core.Metrics.calculate(state)
+      |> Enum.map(fn {key, value} -> Appsignal.set_gauge(key, value) end)
 
     {:noreply, state}
   end
