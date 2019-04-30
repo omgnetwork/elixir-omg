@@ -11,7 +11,7 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
   http: [port: {:system, "PORT", 7434, {String, :to_integer}}],
   url: [host: "localhost", port: 7434],
   debug_errors: true,
-  code_reloader: true,
+  code_reloader: false,
   check_origin: false,
   watchers: [],
   server: true
