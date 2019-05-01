@@ -18,13 +18,18 @@ defmodule OMG.Alert.Alarm do
   """
   alias OMG.Alert.AlarmHandler
 
+  @typedoc """
+  The raw alarm being used to `set` the Alarm
+  """
+  @type t() :: { :boot_in_progress, node(), module() } | { :ethereum_client_connection, node(), module() }
+
   def ethereum_client_connection_issue(node, reporter),
     do: {:ethereum_client_connection, %{node: node, reporter: reporter}}
 
   def boot_in_progress(node, reporter),
     do: {:boot_in_progress, %{node: node, reporter: reporter}}
 
-  @spec set({atom(), node(), module()}) :: :ok | :duplicate
+  @spec set(Alarm.t()) :: :ok | :duplicate
   def set(raw_alarm) do
     alarm = make_alarm(raw_alarm)
     do_raise(alarm)
