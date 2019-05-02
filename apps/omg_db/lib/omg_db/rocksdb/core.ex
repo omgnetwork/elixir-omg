@@ -98,13 +98,20 @@ defmodule OMG.DB.RocksDB.Core do
 
   defp decode_response(_type, db_response) do
     case db_response do
-      :not_found -> :not_found
-      {:ok, encoded} -> :erlang.binary_to_term(encoded)
+      :not_found ->
+        :not_found
+
+      {:ok, encoded} ->
+        :erlang.binary_to_term(encoded)
+
+      encoded ->
+        # iterator search returns raw values
+        :erlang.binary_to_term(encoded)
     end
   end
 
   defp do_filter_keys(reference, prefix) do
-    {:ok, iterator} = :rocksdb.iterator(reference, [])
+    {:ok, iterator} = :rocksdb.iterator(reference, prefix_same_as_start: true)
     search(reference, iterator, :rocksdb.iterator_move(iterator, {:seek, prefix}), [])
   end
 

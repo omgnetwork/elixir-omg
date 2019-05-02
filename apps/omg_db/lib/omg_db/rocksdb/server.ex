@@ -60,8 +60,9 @@ defmodule OMG.DB.RocksDB.Server do
       |> String.to_atom()
 
     {:ok, _recorder_pid} = Recorder.start_link(%Recorder{name: recorder_name, parent: self(), table: table})
+    setup = [create_if_missing: true, prefix_extractor: {:fixed_prefix_transform, 1}]
 
-    with {:ok, db_ref} <- :rocksdb.open(db_path, create_if_missing: false) do
+    with {:ok, db_ref} <- :rocksdb.open(db_path, setup) do
       {:ok, %__MODULE__{name: name, db_ref: db_ref}}
     else
       error ->
