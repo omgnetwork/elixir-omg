@@ -14,7 +14,7 @@
 
 defmodule OMG.RocksDBTest do
   @moduledoc """
-  A smoke test of the LevelDB support. The intention here is to **only** test minimally, that the pipes work.
+  A smoke test of the RocksDB support. The intention here is to **only** test minimally, that the pipes work.
 
   For more detailed persistence test look for `...PersistenceTest` tests throughout the apps.
 
@@ -64,9 +64,24 @@ defmodule OMG.RocksDBTest do
     checks.(pid)
   end
 
+  test "block hashes return the correct range", %{db_dir: _dir, db_pid: pid} do
+    :ok =
+      DB.multi_update(
+        [
+          {:put, :block, %{hash: "xyz", number: 1}},
+          {:put, :block, %{hash: "vxyz", number: 2}},
+          {:put, :block, %{hash: "wvxyz", number: 3}}
+        ],
+        pid
+      )
+
+    {:ok, ["xyz", "vxyz", "wvxyz"]} = OMG.DB.block_hashes([1, 2, 3], pid)
+  end
+
   test "if multi reading exit infos returns writen results", %{db_dir: _dir, db_pid: pid} do
     db_writes = create_write(:exit_info, pid)
     {:ok, exits} = DB.exit_infos(pid)
+    # what we wrote and what we read must be equal
     [] = exits -- db_writes
   end
 
@@ -91,18 +106,22 @@ defmodule OMG.RocksDBTest do
   test "if multi reading and writting does not pollute returned values", %{db_dir: _dir, db_pid: pid} do
     db_writes = create_write(:exit_info, pid)
     {:ok, exits} = DB.exit_infos(pid)
+    # what we wrote and what we read must be equal
     [] = exits -- db_writes
 
     db_writes = create_write(:utxo, pid)
     {:ok, utxos} = DB.utxos(pid)
+    # what we wrote and what we read must be equal
     [] = utxos -- db_writes
 
     db_writes = create_write(:in_flight_exit_info, pid)
     {:ok, in_flight_exits_infos} = DB.in_flight_exits_info(pid)
+    # what we wrote and what we read must be equal
     [] = in_flight_exits_infos -- db_writes
 
     db_writes = create_write(:competitor_info, pid)
     {:ok, competitors_info} = DB.competitors_info(pid)
+    # what we wrote and what we read must be equal
     [] = competitors_info -- db_writes
   end
 

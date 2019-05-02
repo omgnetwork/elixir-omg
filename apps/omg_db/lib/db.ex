@@ -78,67 +78,6 @@ defmodule OMG.DB do
   @doc """
   Puts all zeroes and other init values to a generically initialized `OMG.DB`
   """
-  def initiation_multiupdate, do: driver().initiation_multiupdate
-  def initiation_multiupdate(server), do: driver().initiation_multiupdate(server)
-
-  @callback start_link(term) :: GenServer.on_start()
-  @callback child_spec() :: Supervisor.child_spec()
-  @callback child_spec(term) :: Supervisor.child_spec()
-  @callback init(String.t()) :: :ok
-  @callback init() :: :ok
-  @callback initiation_multiupdate() :: :ok | {:error, any}
-
-  @callback multi_update(term()) :: :ok | {:error, any}
-  @callback blocks(block_to_fetch :: list()) :: {:ok, list(term)}
-  @callback utxos() :: {:ok, list(term)}
-  @callback exit_infos() :: {:ok, list(term)}
-  @callback in_flight_exits_info() :: {:ok, list(term)}
-  @callback competitors_info() :: {:ok, list(term)}
-  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}) :: {:ok, map} | {:error, atom}
-  @callback spent_blknum(utxo_pos_db_t()) :: {:ok, pos_integer} | {:error, atom}
-  @callback block_hashes(integer()) :: list()
-  @callback last_deposit_child_blknum() :: list()
-  @callback child_top_block_number() :: {:ok, non_neg_integer()}
-
-  # callbacks useful for injecting a specific server implementation
-  @callback initiation_multiupdate(GenServer.server()) :: :ok | {:error, any}
-  @callback multi_update(term(), GenServer.server()) :: :ok | {:error, any}
-  @callback blocks(block_to_fetch :: list(), GenServer.server()) :: {:ok, list()} | {:error, any}
-  @callback utxos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
-  @callback exit_infos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
-  @callback in_flight_exits_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
-  @callback competitors_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
-  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}, GenServer.server()) ::
-              {:ok, map} | {:error, atom}
-  @callback spent_blknum(utxo_pos_db_t(), GenServer.server()) :: {:ok, pos_integer} | {:error, atom}
-  @callback block_hashes(integer(), GenServer.server()) :: list()
-  @callback last_deposit_child_blknum(GenServer.server()) :: list()
-  @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()}
-  @optional_callbacks child_spec: 1,
-                      initiation_multiupdate: 1,
-                      multi_update: 2,
-                      blocks: 2,
-                      utxos: 1,
-                      exit_infos: 1,
-                      in_flight_exits_info: 1,
-                      competitors_info: 1,
-                      exit_info: 2,
-                      spent_blknum: 2,
-                      block_hashes: 2,
-                      last_deposit_child_blknum: 1,
-                      child_top_block_number: 1
-
-  def start_link(args), do: driver().start_link(args)
-
-  def child_spec, do: driver().child_spec()
-  def child_spec(args), do: driver().child_spec(args)
-
-  def init(path), do: driver().init(path)
-  def init, do: driver().init()
-
-  @doc """
-  Puts all zeroes and other init values to a generically initialized `OMG.DB`
-  """
   @decorate measure_event()
   def initiation_multiupdate, do: driver().initiation_multiupdate
   def initiation_multiupdate(server), do: driver().initiation_multiupdate(server)
@@ -216,8 +155,8 @@ defmodule OMG.DB do
 
   defp driver do
     case Application.get_env(:omg_db, :type) do
-      :leveldb -> OMG.DB.LevelDB
       :rocksdb -> OMG.DB.RocksDB
+      :leveldb -> OMG.DB.LevelDB
     end
   end
 end

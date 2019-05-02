@@ -17,7 +17,7 @@ defmodule OMG.DB.RocksDB.Server do
   Handles connection to leveldb
   """
 
-  # All complex operations on data written/read should go into OMG.DB.LevelDB.Core
+  # All complex operations on data written/read should go into OMG.DB.RocksDB.Core
 
   use GenServer
   alias OMG.DB.RocksDB.Core
@@ -47,6 +47,7 @@ defmodule OMG.DB.RocksDB.Server do
     GenServer.start_link(__MODULE__, args, name: name)
   end
 
+  # https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide#prefix-databases
   def init(db_path: db_path, name: name) do
     # needed so that terminate callback is called on normal close
     db_path = String.to_charlist(db_path)
@@ -60,7 +61,7 @@ defmodule OMG.DB.RocksDB.Server do
       |> String.to_atom()
 
     {:ok, _recorder_pid} = Recorder.start_link(%Recorder{name: recorder_name, parent: self(), table: table})
-    setup = [create_if_missing: true, prefix_extractor: {:fixed_prefix_transform, 1}]
+    setup = [{:create_if_missing, true}, {:prefix_extractor, {:fixed_prefix_transform, 1}}]
 
     with {:ok, db_ref} <- :rocksdb.open(db_path, setup) do
       {:ok, %__MODULE__{name: name, db_ref: db_ref}}
@@ -160,7 +161,7 @@ defmodule OMG.DB.RocksDB.Server do
   # write options
   # write_options() = [{sync, boolean()} | {disable_wal, boolean()} | {ignore_missing_column_families, boolean()} |
   # {no_slowdown, boolean()} | {low_pri, boolean()}]
-  @spec write(Exleveldb.write_actions(), t) :: :ok | {:error, any}
+  # @spec write(Exleveldb.write_actions(), t) :: :ok | {:error, any}
   defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_write(name)
     :rocksdb.write(db_ref, operations, [])

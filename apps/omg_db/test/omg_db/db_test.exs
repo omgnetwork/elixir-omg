@@ -64,9 +64,24 @@ defmodule OMG.DBTest do
     checks.(pid)
   end
 
+  test "block hashes return the correct range", %{db_dir: _dir, db_pid: pid} do
+    :ok =
+      DB.multi_update(
+        [
+          {:put, :block, %{hash: "xyz", number: 1}},
+          {:put, :block, %{hash: "vxyz", number: 2}},
+          {:put, :block, %{hash: "wvxyz", number: 3}}
+        ],
+        pid
+      )
+
+    {:ok, ["xyz", "vxyz", "wvxyz"]} = OMG.DB.block_hashes([1, 2, 3], pid)
+  end
+
   test "if multi reading exit infos returns writen results", %{db_dir: _dir, db_pid: pid} do
     db_writes = create_write(:exit_info, pid)
     {:ok, exits} = DB.exit_infos(pid)
+    # what we wrote and what we read must be equal
     [] = exits -- db_writes
   end
 
@@ -91,6 +106,7 @@ defmodule OMG.DBTest do
   test "if multi reading and writting does not pollute returned values", %{db_dir: _dir, db_pid: pid} do
     db_writes = create_write(:exit_info, pid)
     {:ok, exits} = DB.exit_infos(pid)
+    # what we wrote and what we read must be equal
     [] = exits -- db_writes
 
     db_writes = create_write(:utxo, pid)

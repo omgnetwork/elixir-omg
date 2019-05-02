@@ -176,6 +176,7 @@ defmodule OMG.DB.LevelDB.Server do
   end
 
   # Argument order flipping tools :(
+  @spec write(Exleveldb.write_actions(), t) :: :ok | {:error, any}
   defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_write(name)
     Exleveldb.write(db_ref, operations)
