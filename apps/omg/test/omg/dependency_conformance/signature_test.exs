@@ -50,7 +50,7 @@ defmodule OMG.DependencyConformance.SignatureTest do
     tx = Transaction.new([], []) |> DevCrypto.sign([@alice.priv])
     sig = tx.sigs |> Enum.at(0)
 
-    assert true == verify(contract, tx, sig)
+    verify(contract, tx, sig)
   end
 
   test "signature test", context do

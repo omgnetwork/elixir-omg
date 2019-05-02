@@ -41,7 +41,7 @@ defmodule OMG.Eth.MixProject do
         #       Rebase on `master`, if new changes are pushed there.
         #       Switch back to `master`, after the exit periods are properly parametrized on deployment
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "551-end2end-signature-test",
+        branch: "master",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,

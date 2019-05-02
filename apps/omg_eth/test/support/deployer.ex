@@ -28,30 +28,23 @@ defmodule OMG.Eth.Deployer do
   def create_new(contract, path_project_root, from, opts \\ [])
 
   def create_new(OMG.Eth.RootChain, path_project_root, from, opts) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_contract_rootchain)
-    opts = defaults |> Keyword.merge(opts)
-
-    rootchain_bytecode = Eth.Librarian.link_for!(OMG.Eth.RootChain, path_project_root, from)
-
-    Eth.deploy_contract(from, rootchain_bytecode, [], [], opts)
-    |> Eth.DevHelpers.deploy_sync!()
+    Eth.Librarian.link_for!(OMG.Eth.RootChain, path_project_root, from)
+    |> deploy_contract(from, @gas_contract_rootchain, opts)
   end
 
   def create_new(OMG.Eth.Token, path_project_root, from, opts) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_contract_token)
-    opts = defaults |> Keyword.merge(opts)
-
-    bytecode = Eth.get_bytecode!(path_project_root, "MintableToken")
-
-    Eth.deploy_contract(from, bytecode, [], [], opts)
-    |> Eth.DevHelpers.deploy_sync!()
+    Eth.get_bytecode!(path_project_root, "MintableToken")
+    |> deploy_contract(from, @gas_contract_token, opts)
   end
 
   def create_new(OMG.Eth.Eip712, path_project_root, from, opts) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_contract_sigtest)
-    opts = defaults |> Keyword.merge(opts)
+    Eth.get_bytecode!(path_project_root, "SignatureTest")
+    |> deploy_contract(from, @gas_contract_sigtest, opts)
+  end
 
-    bytecode = Eth.get_bytecode!(path_project_root, "SignatureTest")
+  defp deploy_contract(bytecode, from, gas_value, opts) do
+    defaults = @tx_defaults |> Keyword.put(:gas, gas_value)
+    opts = defaults |> Keyword.merge(opts)
 
     Eth.deploy_contract(from, bytecode, [], [], opts)
     |> Eth.DevHelpers.deploy_sync!()
