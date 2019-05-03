@@ -21,7 +21,7 @@ defmodule OMG.Alert.Alarm do
   @typedoc """
   The raw alarm being used to `set` the Alarm
   """
-  @type t() :: { :boot_in_progress, node(), module() } | { :ethereum_client_connection, node(), module() }
+  @type raw_t :: {:boot_in_progress, node(), module()} | {:ethereum_client_connection, node(), module()}
 
   def ethereum_client_connection_issue(node, reporter),
     do: {:ethereum_client_connection, %{node: node, reporter: reporter}}
@@ -29,7 +29,7 @@ defmodule OMG.Alert.Alarm do
   def boot_in_progress(node, reporter),
     do: {:boot_in_progress, %{node: node, reporter: reporter}}
 
-  @spec set(Alarm.t()) :: :ok | :duplicate
+  @spec set(raw_t()) :: :ok | :duplicate
   def set(raw_alarm) do
     alarm = make_alarm(raw_alarm)
     do_raise(alarm)
