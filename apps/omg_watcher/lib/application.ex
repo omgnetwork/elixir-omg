@@ -22,7 +22,8 @@ defmodule OMG.Watcher.Application do
     DeferredConfig.populate(:omg_rpc)
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-
+    cookie = System.get_env("ERL_W_COOKIE")
+    true = set_cookie(cookie)
     start_root_supervisor()
   end
 
@@ -54,6 +55,13 @@ defmodule OMG.Watcher.Application do
     Supervisor.start_link(children, opts)
   end
 
+  defp set_cookie(cookie) when is_binary(cookie) do
+    cookie
+    |> String.to_atom()
+    |> Node.set_cookie()
+  end
+
+  defp set_cookie(_), do: :ok == Logger.warn("Cookie not applied.")
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   def config_change(changed, _new, removed) do
