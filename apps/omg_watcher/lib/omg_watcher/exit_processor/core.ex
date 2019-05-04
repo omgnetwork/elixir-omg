@@ -158,83 +158,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       new_exits
       |> Enum.zip(exit_contract_statuses)
       |> Enum.map(fn {event, contract_status} ->
-        %{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos, output_tx: txbytes}} = event
-        Utxo.position(_, _, oindex) = utxo_pos_decoded = Utxo.Position.decode!(utxo_pos)
-        {:ok, raw_tx} = Transaction.decode(txbytes)
-        %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
-
-        {utxo_pos_decoded,
-         %ExitInfo{
-           amount: amount,
-           currency: currency,
-           owner: owner,
-           is_active: parse_contract_exit_status(contract_status),
-           eth_height: eth_height
-         }}
+        {ExitInfo.new_key(contract_status, event), ExitInfo.new(contract_status, event)}
       end)
 
-    db_updates =
-      new_exits_kv_pairs
-      |> Enum.map(&ExitInfo.make_db_update/1)
-
+    db_updates = new_exits_kv_pairs |> Enum.map(&ExitInfo.make_db_update/1)
     new_exits_map = Map.new(new_exits_kv_pairs)
 
     {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates}
-  end
-
-  defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount, _contract_position}), do: false
-  defp parse_contract_exit_status({_contract_owner, _contract_token, _contract_amount, _contract_position}), do: true
-
-  # TODO: syncing problem (look new exits)
-  @doc """
-   Add new in flight exits from Ethereum events into tracked state.
-  """
-  @spec new_in_flight_exits(t(), list(map()), list(map())) :: {t(), list()} | {:error, :unexpected_events}
-  def new_in_flight_exits(state, new_ifes_events, contract_statuses)
-
-  def new_in_flight_exits(_state, new_ifes_events, contract_statuses)
-      when length(new_ifes_events) != length(contract_statuses),
-      do: {:error, :unexpected_events}
-
-  def new_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, new_ifes_events, contract_statuses) do
-    new_ifes_kv_pairs =
-      new_ifes_events
-      |> Enum.zip(contract_statuses)
-      |> Enum.map(fn {%{eth_height: eth_height, call_data: %{in_flight_tx: tx_bytes, in_flight_tx_sigs: signatures}},
-                      {timestamp, contract_ife_id} = contract_status} ->
-        is_active = parse_contract_in_flight_exit_status(contract_status)
-        InFlightExitInfo.new(tx_bytes, signatures, <<contract_ife_id::192>>, timestamp, is_active, eth_height)
-      end)
-
-    db_updates =
-      new_ifes_kv_pairs
-      |> Enum.map(&InFlightExitInfo.make_db_update/1)
-
-    new_ifes = new_ifes_kv_pairs |> Map.new()
-
-    {%{state | in_flight_exits: Map.merge(ifes, new_ifes)}, db_updates}
-  end
-
-  defp parse_contract_in_flight_exit_status({timestamp, _contract_id}), do: timestamp != 0
-
-  @doc """
-    Add piggybacks from Ethereum events into tracked state.
-  """
-  @spec new_piggybacks(t(), [%{tx_hash: Transaction.tx_hash(), output_index: output_offset()}]) :: {t(), list()}
-  def new_piggybacks(%__MODULE__{} = state, piggybacks) when is_list(piggybacks) do
-    {updated_state, updated_pairs} = Enum.reduce(piggybacks, {state, %{}}, &process_piggyback/2)
-    {updated_state, Enum.map(updated_pairs, &InFlightExitInfo.make_db_update/1)}
-  end
-
-  defp process_piggyback(
-         %{tx_hash: tx_hash, output_index: output_index},
-         {%__MODULE__{in_flight_exits: ifes} = state, db_updates}
-       ) do
-    {:ok, ife} = Map.fetch(ifes, tx_hash)
-    {:ok, updated_ife} = InFlightExitInfo.piggyback(ife, output_index)
-
-    updated_state = %{state | in_flight_exits: Map.put(ifes, tx_hash, updated_ife)}
-    {updated_state, Map.put(db_updates, tx_hash, updated_ife)}
   end
 
   @doc """
@@ -294,41 +224,60 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp delete_positions(utxo_positions),
     do: utxo_positions |> Enum.map(&{:delete, :exit_info, Utxo.Position.to_db_key(&1)})
 
-  # TODO: simplify flow
-  # https://github.com/omisego/elixir-omg/pull/361#discussion_r247481397
+  # TODO: syncing problem (look new exits)
+  @doc """
+   Add new in flight exits from Ethereum events into tracked state.
+  """
+  @spec new_in_flight_exits(t(), list(map()), list(map())) :: {t(), list()} | {:error, :unexpected_events}
+  def new_in_flight_exits(state, new_ifes_events, contract_statuses)
+
+  def new_in_flight_exits(_state, new_ifes_events, contract_statuses)
+      when length(new_ifes_events) != length(contract_statuses),
+      do: {:error, :unexpected_events}
+
+  def new_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, new_ifes_events, contract_statuses) do
+    new_ifes =
+      new_ifes_events
+      |> Enum.zip(contract_statuses)
+      |> Enum.map(fn {event, contract_status} -> InFlightExitInfo.new_kv(event, contract_status) end)
+      |> Map.new()
+
+    updated_state = %{state | in_flight_exits: Map.merge(ifes, new_ifes)}
+    updated_ife_keys = new_ifes |> Enum.unzip() |> elem(0)
+
+    db_updates = ife_db_updates(updated_state, updated_ife_keys)
+
+    {updated_state, db_updates}
+  end
+
+  defp ife_db_updates(%__MODULE__{in_flight_exits: ifes}, updated_ife_keys) do
+    ifes
+    |> Map.take(updated_ife_keys)
+    |> Enum.map(&InFlightExitInfo.make_db_update/1)
+  end
+
+  @doc """
+    Add piggybacks from Ethereum events into tracked state.
+  """
+  @spec new_piggybacks(t(), [%{tx_hash: Transaction.tx_hash(), output_index: output_offset()}]) :: {t(), list()}
+  def new_piggybacks(%__MODULE__{} = state, piggyback_events) when is_list(piggyback_events) do
+    consume_events(state, piggyback_events, :output_index, &InFlightExitInfo.piggyback/2)
+  end
+
   @spec new_ife_challenges(t(), [map()]) :: {t(), list()}
-  def new_ife_challenges(%__MODULE__{in_flight_exits: ifes, competitors: competitors} = state, challenges_events) do
-    challenges =
-      challenges_events
-      |> Enum.map(fn %{
-                       call_data: %{
-                         competing_tx: competing_tx_bytes,
-                         competing_tx_input_index: competing_input_index,
-                         competing_tx_sig: signature
-                       }
-                     } ->
-        CompetitorInfo.new(competing_tx_bytes, competing_input_index, signature)
-      end)
+  def new_ife_challenges(%__MODULE__{} = state, challenges_events) do
+    {updated_state, ife_db_updates} =
+      consume_events(state, challenges_events, :competitor_position, &InFlightExitInfo.challenge/2)
 
-    new_competitors = challenges |> Map.new()
-    competitors_db_updates = challenges |> Enum.map(&CompetitorInfo.make_db_update/1)
+    {updated_state2, competitors_db_updates} = append_new_competitors(updated_state, challenges_events)
+    {updated_state2, competitors_db_updates ++ ife_db_updates}
+  end
 
-    updated_ifes =
-      challenges_events
-      |> Enum.map(fn %{tx_hash: tx_hash, competitor_position: position} ->
-        updated_ife = ifes |> Map.fetch!(tx_hash) |> InFlightExitInfo.challenge(position)
-        {tx_hash, updated_ife}
-      end)
+  defp append_new_competitors(%__MODULE__{competitors: competitors} = state, challenges_events) do
+    new_competitors = challenges_events |> Enum.map(&CompetitorInfo.new/1)
+    db_updates = new_competitors |> Enum.map(&CompetitorInfo.make_db_update/1)
 
-    ife_db_updates = updated_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
-
-    state = %{
-      state
-      | competitors: Map.merge(competitors, new_competitors),
-        in_flight_exits: Map.merge(ifes, Map.new(updated_ifes))
-    }
-
-    {state, competitors_db_updates ++ ife_db_updates}
+    {%{state | competitors: Map.merge(competitors, Map.new(new_competitors))}, db_updates}
   end
 
   @spec respond_to_in_flight_exits_challenges(t(), [map()]) :: {t(), list()}
@@ -337,38 +286,36 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {state, []}
   end
 
-  # TODO: simplify flow
-  # https://github.com/omisego/elixir-omg/pull/361#discussion_r247483185
   @spec challenge_piggybacks(t(), [map()]) :: {t(), list()}
-  def challenge_piggybacks(%__MODULE__{in_flight_exits: ifes} = state, challenges) do
-    ifes_to_update =
-      challenges
-      |> Enum.map(fn %{tx_hash: tx_hash} -> tx_hash end)
-      |> (&Map.take(ifes, &1)).()
-      # initializes all ifes as not updated
-      |> Enum.map(fn {key, value} -> {key, {value, false}} end)
-      |> Map.new()
+  def challenge_piggybacks(%__MODULE__{} = state, challenges) do
+    consume_events(state, challenges, :output_index, &InFlightExitInfo.challenge_piggyback/2)
+  end
 
-    updated_ifes =
-      challenges
-      |> Enum.reduce(ifes_to_update, fn %{tx_hash: tx_hash, output_index: output_index}, acc ->
-        with {ife, _} = Map.fetch!(acc, tx_hash),
-             updated_ife = InFlightExitInfo.challenge_piggyback(ife, output_index) do
-          # mark as updated
-          %{acc | tx_hash => {updated_ife, true}}
-        else
-          _ -> acc
-        end
-      end)
-      |> Enum.reduce([], fn
-        {tx_hash, {ife, true}}, acc -> [{tx_hash, ife} | acc]
-        _, acc -> acc
-      end)
-      |> Map.new()
+  # produces new state and some db_updates based on
+  #   - an enumerable of Ethereum events with tx_hash and some field
+  #   - name of that other field
+  #   - a function operating on a single IFE structure and that fields value
+  # Leverages the fact, that operating on various IFE-related events follows the same pattern
+  defp consume_events(%__MODULE__{} = state, events, event_field, ife_f) do
+    processing_f = process_reducing_events_f(event_field, ife_f)
+    {updated_state, updated_ife_keys} = Enum.reduce(events, {state, MapSet.new()}, processing_f)
+    db_updates = ife_db_updates(updated_state, updated_ife_keys)
+    {updated_state, db_updates}
+  end
 
-    db_updates = updated_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
+  # produces an `Enum.reduce`-able function that: grabs an IFE by tx_hash from the event, invokes a function on that
+  # using the value of a different field from the event, returning updated state and mapset of modified keys.
+  # Pseudocode:
+  # `event |> get IFE by tx_hash |> ife_f.(event[event_field])`
+  defp process_reducing_events_f(event_field, ife_f) do
+    fn event, {%__MODULE__{in_flight_exits: ifes} = state, updated_ife_keys} ->
+      tx_hash = event.tx_hash
+      event_field_value = event[event_field]
+      updated_ife = ifes |> Map.fetch!(tx_hash) |> ife_f.(event_field_value)
 
-    {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
+      updated_state = %{state | in_flight_exits: Map.put(ifes, tx_hash, updated_ife)}
+      {updated_state, MapSet.put(updated_ife_keys, tx_hash)}
+    end
   end
 
   @doc """
@@ -384,10 +331,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           | {:unknown_piggybacks, list()}
           | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def prepare_utxo_exits_for_in_flight_exit_finalizations(%__MODULE__{in_flight_exits: ifes}, finalizations) do
-    # convert ife_id from int (given by contract) to a binary
-    finalizations =
-      finalizations
-      |> Enum.map(fn %{in_flight_exit_id: id} = map -> Map.replace!(map, :in_flight_exit_id, <<id::192>>) end)
+    finalizations = finalizations |> Enum.map(&ife_id_to_binary/1)
 
     with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
          {:ok, []} <- known_piggybacks?(finalizations, ifes_by_id) do
@@ -398,6 +342,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       {:ok, exits_by_ife_id}
     end
   end
+
+  # converts from int, which is how the contract serves it
+  defp ife_id_to_binary(finalization),
+    do: Map.update!(finalization, :in_flight_exit_id, fn id -> <<id::192>> end)
 
   defp get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes) do
     finalizations_ids =

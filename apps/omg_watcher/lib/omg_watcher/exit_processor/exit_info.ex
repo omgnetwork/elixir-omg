@@ -20,10 +20,14 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   """
 
   alias OMG.Crypto
+  alias OMG.State.Transaction
   alias OMG.Utxo
+
   require Utxo
 
-  defstruct [:amount, :currency, :owner, :is_active, :eth_height]
+  @enforce_keys [:amount, :currency, :owner, :is_active, :eth_height]
+
+  defstruct @enforce_keys
 
   @type t :: %__MODULE__{
           amount: non_neg_integer(),
@@ -33,6 +37,27 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           is_active: boolean(),
           eth_height: pos_integer()
         }
+
+  @zero_address OMG.Eth.zero_address()
+
+  def new(contract_status, %{eth_height: eth_height, call_data: %{output_tx: txbytes}} = event) do
+    Utxo.position(_, _, oindex) = utxo_pos_for(event)
+    {:ok, raw_tx} = Transaction.decode(txbytes)
+    %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
+
+    do_new(contract_status, amount: amount, currency: currency, owner: owner, eth_height: eth_height)
+  end
+
+  def new_key(_contract_status, event),
+    do: utxo_pos_for(event)
+
+  defp utxo_pos_for(%{call_data: %{utxo_pos: utxo_pos_enc}} = _event),
+    do: Utxo.Position.decode!(utxo_pos_enc)
+
+  defp do_new(contract_status, fields) do
+    fields = Keyword.put_new(fields, :is_active, parse_contract_exit_status(contract_status))
+    struct!(__MODULE__, fields)
+  end
 
   def make_event_data(type, position, %__MODULE__{} = exit_info) do
     struct(type, exit_info |> Map.from_struct() |> Map.put(:utxo_pos, Utxo.Position.encode(position)))
@@ -81,4 +106,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
   end
+
+  defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount, _contract_position}), do: false
+  defp parse_contract_exit_status({_contract_owner, _contract_token, _contract_amount, _contract_position}), do: true
 end

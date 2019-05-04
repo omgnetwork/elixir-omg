@@ -36,6 +36,14 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   @max_number_of_inputs Enum.count(@inputs_index_range)
 
+  @enforce_keys [
+    :tx,
+    :timestamp,
+    :contract_id,
+    :eth_height,
+    :is_active
+  ]
+
   defstruct [
     :tx,
     :contract_tx_pos,
@@ -80,24 +88,37 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           is_active: boolean()
         }
 
-  def new(tx_bytes, tx_signatures, contract_id, timestamp, is_active, eth_height) do
-    with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
-      chopped_sigs = for <<chunk::size(65)-unit(8) <- tx_signatures>>, do: <<chunk::size(65)-unit(8)>>
+  def new_kv(
+        %{eth_height: eth_height, call_data: %{in_flight_tx: tx_bytes, in_flight_tx_sigs: signatures}},
+        {timestamp, contract_ife_id} = contract_status
+      ) do
+    do_new(tx_bytes, signatures, contract_status,
+      contract_id: <<contract_ife_id::192>>,
+      timestamp: timestamp,
+      eth_height: eth_height
+    )
+  end
 
-      tx = %Transaction.Signed{raw_tx: raw_tx, sigs: chopped_sigs}
+  defp do_new(tx_bytes, tx_signatures, contract_status, fields) do
+    with {:ok, tx} <- prepare_tx(tx_bytes, tx_signatures) do
+      fields =
+        fields
+        |> Keyword.put_new(:tx, tx)
+        |> Keyword.put_new(:is_active, parse_contract_in_flight_exit_status(contract_status))
 
-      {
-        Transaction.raw_txhash(raw_tx),
-        %__MODULE__{
-          tx: tx,
-          timestamp: timestamp,
-          contract_id: contract_id,
-          is_active: is_active,
-          eth_height: eth_height
-        }
-      }
+      {Transaction.raw_txhash(tx), struct!(__MODULE__, fields)}
     end
   end
+
+  defp prepare_tx(tx_bytes, tx_signatures) do
+    with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
+      chopped_sigs = for <<chunk::size(65)-unit(8) <- tx_signatures>>, do: <<chunk::size(65)-unit(8)>>
+      tx = %Transaction.Signed{raw_tx: raw_tx, sigs: chopped_sigs}
+      {:ok, tx}
+    end
+  end
+
+  defp parse_contract_in_flight_exit_status({timestamp, _contract_id}), do: timestamp != 0
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
   def make_db_update(
@@ -199,13 +220,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     %{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
-  @spec piggyback(t(), non_neg_integer()) :: {:ok, t()} | {:error, :non_existent_exit | :cannot_piggyback}
+  @spec piggyback(t(), non_neg_integer()) :: t() | {:error, :non_existent_exit | :cannot_piggyback}
   def piggyback(ife, index)
 
   def piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @exit_map_index_range do
     with exit <- Map.get(exit_map, index),
          {:ok, updated_exit} <- piggyback_exit(exit) do
-      {:ok, %{ife | exit_map: Map.put(exit_map, index, updated_exit)}}
+      %{ife | exit_map: Map.put(exit_map, index, updated_exit)}
     end
   end
 
@@ -281,7 +302,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]
   def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
 
-  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: {txpos, _}, exit_map: exit_map}) do
+  def get_piggybacked_outputs_positions(%__MODULE__{
+        tx_seen_in_blocks_at: {txpos, _},
+        exit_map: exit_map
+      }) do
     {_, blknum, txindex, _} = txpos
 
     @outputs_index_range

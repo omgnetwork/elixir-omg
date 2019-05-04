@@ -72,7 +72,10 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
     {tx_hash, struct!(__MODULE__, competitor_map)}
   end
 
-  def new(tx_bytes, competing_input_index, competing_input_signature) do
+  def new(%{call_data: %{competing_tx: tx_bytes, competing_tx_input_index: index, competing_tx_sig: sig}}),
+    do: do_new(tx_bytes, index, sig)
+
+  defp do_new(tx_bytes, competing_input_index, competing_input_signature) do
     with {:ok, %Transaction{} = raw_tx} <- Transaction.decode(tx_bytes) do
       {Transaction.raw_txhash(raw_tx),
        %__MODULE__{
