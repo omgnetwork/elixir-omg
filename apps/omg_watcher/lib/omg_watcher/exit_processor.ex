@@ -415,10 +415,13 @@ defmodule OMG.Watcher.ExitProcessor do
   defp get_ife_input_spending_blocks(%ExitProcessor.Request{ife_input_spends_to_get: positions} = request),
     do: %{request | ife_input_spending_blocks_result: do_get_spending_blocks(positions)}
 
-  defp do_get_spending_blocks(positions) do
-    blknums = positions |> Enum.map(&do_get_spent_blknum/1)
-    _ = Logger.debug("spends_to_get: #{inspect(positions)}, spent_blknum_result: #{inspect(blknums)}")
-    do_get_blocks(blknums)
+  defp do_get_spending_blocks(spent_positions_to_get) do
+    blknums = spent_positions_to_get |> Enum.map(&do_get_spent_blknum/1)
+    _ = Logger.debug("spends_to_get: #{inspect(spent_positions_to_get)}, spent_blknum_result: #{inspect(blknums)}")
+
+    blknums
+    |> Core.handle_spent_blknum_result(spent_positions_to_get)
+    |> do_get_blocks()
   end
 
   defp do_get_blocks(blknums) do
