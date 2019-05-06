@@ -21,7 +21,7 @@ defmodule OMG.Alert.Alarm do
   @typedoc """
   The raw alarm being used to `set` the Alarm
   """
-  @type raw_t :: {:boot_in_progress, node(), module()} | {:ethereum_client_connection, node(), module()}
+  @type raw_t :: {:boot_in_progress | :ethereum_client_connection, any(), any()}
 
   def ethereum_client_connection_issue(node, reporter),
     do: {:ethereum_client_connection, %{node: node, reporter: reporter}}
