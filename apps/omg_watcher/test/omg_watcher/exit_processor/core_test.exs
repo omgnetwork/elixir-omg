@@ -1405,6 +1405,23 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
   end
 
+  describe "handling of spent blknums result" do
+    test "asks for the right blocks when all are spent correctly" do
+      assert [1000] = Core.handle_spent_blknum_result([1000], [@utxo_pos1])
+      assert [] = Core.handle_spent_blknum_result([], [])
+      assert [2000, 1000] = Core.handle_spent_blknum_result([2000, 1000], [@utxo_pos2, @utxo_pos1])
+    end
+
+    test "asks for blocks just once" do
+      assert [1000] = Core.handle_spent_blknum_result([1000, 1000], [@utxo_pos2, @utxo_pos1])
+    end
+
+    @tag :capture_log
+    test "asks for the right blocks if some spends are missing" do
+      assert [1000] = Core.handle_spent_blknum_result([:not_found, 1000], [@utxo_pos2, @utxo_pos1])
+    end
+  end
+
   defp assert_proof_sound(proof_bytes) do
     # NOTE: checking of actual proof working up to the contract integration test
     assert is_binary(proof_bytes)

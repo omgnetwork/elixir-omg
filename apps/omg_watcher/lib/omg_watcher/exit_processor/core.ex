@@ -45,6 +45,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   require Utxo
   require Transaction
 
+  use OMG.Utils.LoggerExt
+
   @default_sla_margin 10
   @zero_address OMG.Eth.zero_address()
 
@@ -101,6 +103,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           | Transaction.decode_error()
           | :no_double_spend_on_particular_piggyback
           | :no_double_spend_on_particular_piggyback
+
+  @type spent_blknum_result_t() :: pos_integer | :not_found
 
   defmodule KnownTx do
     @moduledoc """
@@ -558,6 +562,24 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> :lists.usort()
 
     %{request | ife_input_spends_to_get: spends_to_get}
+  end
+
+  @doc """
+  Filters out all the spends that have not been found (`:not_found` instead of a block)
+  This might occur if a UTXO is exited by exit finalization. A block spending such UTXO will not exist.
+  """
+  @spec handle_spent_blknum_result(list(spent_blknum_result_t()), list(Utxo.Position.t())) :: list(pos_integer())
+  def handle_spent_blknum_result(spent_blknum_result, spent_positions_to_get) do
+    {not_founds, founds} =
+      Stream.zip(spent_positions_to_get, spent_blknum_result)
+      |> Enum.split_with(fn {_utxo_pos, result} -> result == :not_found end)
+
+    {_, blknums_to_get} = Enum.unzip(founds)
+
+    warn? = !Enum.empty?(not_founds)
+    _ = if warn?, do: Logger.warn("UTXO doesn't exists but no spend registered (spent in exit?) #{inspect(not_founds)}")
+
+    Enum.uniq(blknums_to_get)
   end
 
   @doc """
