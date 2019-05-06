@@ -31,10 +31,10 @@ defmodule OMG.State.Core.MetricsTest do
 
   test "calculate metrics from state", %{alice: alice, bob: bob, carol: carol} do
     utxos = %{
-      Utxo.position(2_835, 4076, 3) => %OMG.Utxo{amount: 700_000_000, currency: @eth, owner: alice},
-      Utxo.position(1_075, 2559, 0) => %OMG.Utxo{amount: 111_111_111, currency: @not_eth, owner: alice},
-      Utxo.position(8_149, 4854, 2) => %OMG.Utxo{amount: 77_000_000, currency: @eth, owner: bob},
-      Utxo.position(7_202, 4057, 3) => %OMG.Utxo{amount: 222_222_222, currency: @not_eth, owner: carol}
+      Utxo.position(2_000, 4076, 3) => %OMG.Utxo{amount: 700_000_000, currency: @eth, owner: alice},
+      Utxo.position(1_000, 2559, 0) => %OMG.Utxo{amount: 111_111_111, currency: @not_eth, owner: alice},
+      Utxo.position(8_000, 4854, 2) => %OMG.Utxo{amount: 77_000_000, currency: @eth, owner: bob},
+      Utxo.position(7_000, 4057, 3) => %OMG.Utxo{amount: 222_222_222, currency: @not_eth, owner: carol}
     }
 
     assert MapSet.new(Core.Metrics.calculate(%Core{utxos: utxos})) ==

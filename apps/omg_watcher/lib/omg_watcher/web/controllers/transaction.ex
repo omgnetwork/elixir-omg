@@ -47,27 +47,11 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Submits transaction to child chain
   """
   def submit(conn, params) do
-    elem =
-      with {:ok, tx} <- expect(params, "transaction", :hex) do
-        API.Transaction.submit(tx)
-        |> api_response(conn, :submission)
-      end
-
-    case elem do
-      {:error, {:validation_error, _, _}} ->
-        Appsignal.increment_counter("transaction.failed.validation", 1)
-
-      {:error, {error, _}} when is_atom(error) ->
-        Appsignal.increment_counter("transaction.fail." <> Atom.to_string(error), 1)
-
-      {:error, _} ->
-        Appsignal.increment_counter("transaction.fail.unidentified", 1)
-
-      _ ->
-        :ok
+    with {:ok, tx} <- expect(params, "transaction", :hex) do
+      API.Transaction.submit(tx)
+      |> api_response(conn, :submission)
     end
-
-    elem
+    |> increment_metrics_counter()
   end
 
   @doc """
@@ -79,5 +63,20 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
       API.Transaction.create(order)
       |> api_response(conn, :create)
     end
+  end
+
+  defp increment_metrics_counter(response) do
+    case response do
+      {:error, {:validation_error, _, _}} ->
+        Appsignal.increment_counter("transaction.failed.validation", 1)
+
+      %Plug.Conn{} ->
+        Appsignal.increment_counter("transaction.succeed", 1)
+
+      _ ->
+        Appsignal.increment_counter("transaction.fail.unidentified", 1)
+    end
+
+    response
   end
 end

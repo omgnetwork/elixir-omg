@@ -90,7 +90,7 @@ defmodule OMG.State do
     # Get utxos() is essential for the State and Blockgetter. And it takes a while. TODO - measure it!
     # Our approach is simply blocking the supervision boot tree
     # until we've processed history.
-    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_interval), self(), :send_metrics)
+    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
     {:ok, DB.utxos(), {:continue, :setup}}
   end
 
