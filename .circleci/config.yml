@@ -1,11 +1,11 @@
 version: 2.1
 
 executors:
-  child_chain-builder:
+  child_chain_builder:
     docker:
       - image: omisegoimages/elixir-omg-builder:v1.2
     working_directory: ~/src
-  watcher-builder:
+  builder_watcher:
     docker:
       - image: omisegoimages/elixir-omg-builder:v1.2
     working_directory: ~/src
@@ -21,15 +21,15 @@ executors:
       - image: omisegoimages/elixir-omg-deploy:stable
     working_directory: ~/src
 
-  child_chain-metal:
+  metal_child_chain:
     machine: true
     environment:
-      IMAGE_NAME: "omisego/child_chain"
+      CHILD_CHAIN_PROD_IMAGE_NAME: "omisego/child_chain"
 
-  watcher-metal:
+  metal_watcher:
     machine: true
     environment:
-      IMAGE_NAME: "omisego/watcher"
+      WATCHER_PROD_IMAGE_NAME: "omisego/watcher"
 
 jobs:
   build:
@@ -327,46 +327,30 @@ jobs:
 
       - run: mix dialyzer --format short --halt-exit-status
 
-  release:
-    docker:
-      # Ensure .tool-versions matches
-      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
-        environment:
-          MIX_ENV: dev
-    working_directory: ~/repo
-
-    steps:
-      - attach_workspace:
-           at: .
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
-      - run: MIX_ENV=prod mix release --name watcher --warnings-as-errors --env prod
-      - run: MIX_ENV=prod mix release --name child_chain --warnings-as-errors --env prod
-      - run: MIX_ENV=dev mix release --name watcher --warnings-as-errors --env dev
-      - run: MIX_ENV=dev mix release --name child_chain --warnings-as-errors --env dev
-      - run:
-          name: Collecting Watcher artifacts
-          command: |
-            mkdir -p ci_artifact
-            mv ./_build/prod/rel/watcher/releases/*/watcher.tar.gz ./ci_artifact/prod_watcher.tar.gz
-            mv ./_build/dev/rel/watcher/releases/*/watcher.tar.gz ./ci_artifact/dev_watcher.tar.gz
-            mv ./_build/prod/rel/child_chain/releases/*/child_chain.tar.gz ./ci_artifact/prod_child_chain.tar.gz
-            mv ./_build/dev/rel/child_chain/releases/*/child_chain.tar.gz ./ci_artifact/dev_child_chain.tar.gz
-          when: always
-      - store_artifacts:
-          name: Uploading watcher CI artifacts
-          path: ./ci_artifact
-
-  publish:
-    executor: metal
+  publish_child_chain:
+    executor: metal_child_chain
     steps:
       - checkout
-      - run: make docker IMAGE_NAME=$IMAGE_NAME
-      - run: make docker CHILD_CHAIN_IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME
-      - notify_slack_failure
-      - notify_slack
+      - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME
+      #- notify_slack_failure
+      #- notify_slack
 
-  deploy:
+  publish_watcher:
+    executor: metal_watcher
+    steps:
+      - checkout
+      - run: make docker-watcher WATCHER_PROD_IMAGE_NAME=$WATCHER_PROD_IMAGE_NAME
+      #- notify_slack_failure
+      #- notify_slack
+
+  deploy_watcher:
+    executor: deploy
+    steps:
+      - checkout
+      #- run: sh .circleci/ci_deploy.sh
+      #- notify_slack_failure
+      #- notify_slack_deploy
+  deploy_child_chain:
     executor: deploy
     steps:
       - checkout
@@ -497,19 +481,12 @@ workflows:
           requires:
             - build
             - tests_compile_once
-      - release:
-          requires: [build]
-          filters:
-            branches:
-              only:
-                - master
       - build_and_deploy_development:
           requires:
             - build
             - lint
             - dialyzer
             - test
-            - release
             - child_chain_coveralls_and_integration_tests
             - watcher_coveralls_and_integration_tests
             - common_coveralls_and_integration_tests
@@ -531,7 +508,14 @@ workflows:
               only:
                 - v0.1
       # Publish in case of master branch.
-      - publish:
+      - publish_child_chain:
+          requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
+          filters:
+            branches:
+              only:
+                - master
+                - 579-publish_release_docker
+      - publish_watcher:
           requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
           filters:
             branches:
@@ -539,8 +523,15 @@ workflows:
                 - master
                 - 579-publish_release_docker
       # Release deploy to development in case of master branch.
-      - deploy:
-          requires: [publish]
+      - deploy_child_chain:
+          requires: [publish_child_chain, publish_watcher]
+          filters:
+            branches:
+              only:
+                - master
+                - 579-publish_release_docker
+      - deploy_watcher:
+          requires: [publish_child_chain, publish_watcher]
           filters:
             branches:
               only:

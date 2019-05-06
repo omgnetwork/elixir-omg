@@ -1,7 +1,7 @@
 all: clean build-child_chain-prod build-watcher-prod
 
-WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
-CHILD_CHAIN_IMAGE_NAME      ?= "omisego/child_chain:latest"
+WATCHER_PROD_IMAGE_NAME      ?= "omisego/watcher:latest"
+CHILD_CHAIN_PROD_IMAGE_NAME      ?= "omisego/child_chain:latest"
 IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:v1.2"
 IMAGE_BUILD_DIR ?= $(PWD)
 
@@ -94,7 +94,7 @@ docker-child_chain-prod:
 		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
 		-u root \
 		--entrypoint /bin/sh \
-		$(CHILD_CHAIN_IMAGE_NAME) \
+		$(IMAGE_BUILDER) \
 		-c "cd /app && make build-child_chain-prod"
 
 docker-watcher-prod:
@@ -103,26 +103,26 @@ docker-watcher-prod:
 		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
 		-u root \
 		--entrypoint /bin/sh \
-		$(WATCHER_IMAGE_NAME) \
+		$(IMAGE_BUILDER) \
 		-c "cd /app && make build-watcher-prod"
 
-docker-child_chain-build:
+docker-child_chain-build-prod:
 	docker build -f Dockerfile.child_chain \
-		--build-arg release_version=$$(awk '/umbrella_version:/ { gsub(/[^0-9a-z\.\-]+/, "", $$2); print $$2 }' $(PWD)/mix.exs) \
-		--cache-from $(CHILD_CHAIN_IMAGE_NAME) \
-		-t $(CHILD_CHAIN_IMAGE_NAME) \
+		--build-arg release_version=$$(awk '/umbrella_version, do:/ { gsub(/[^0-9a-z\.\-]+/, "", $$2); print $$4 }' $(PWD)/mix.exs) \
+		--cache-from $(CHILD_CHAIN_PROD_IMAGE_NAME) \
+		-t $(CHILD_CHAIN_PROD_IMAGE_NAME) \
 		.
-docker-watcher-build:
+
+docker-watcher-build-prod:
 	docker build -f Dockerfile.watcher \
-		--build-arg release_version=$$(awk '/umbrella_version:/ { gsub(/[^0-9a-z\.\-]+/, "", $$2); print $$2 }' $(PWD)/mix.exs) \
-		--cache-from $(WATCHER_IMAGE_NAME) \
-		-t $(WATCHER_IMAGE_NAME) \
+		--build-arg release_version=$$(awk '/umbrella_version, do:/ { gsub(/[^0-9a-z\.\-]+/, "", $$2); print $$4 }' $(PWD)/mix.exs) \
+		--cache-from $(WATCHER_PROD_IMAGE_NAME) \
+		-t $(WATCHER_PROD_IMAGE_NAME) \
 		.
 
-docker: docker-child_chain-prod docker-child_chain-build docker-wacher-prod docker-watcher-build
+docker-watcher: docker-watcher-prod docker-watcher-build-prod
+docker-child_chain: docker-child_chain-prod docker-child_chain-build-prod
 
-docker-push: docker
-	docker push $(CHILD_CHAIN_IMAGE_NAME)
-	docker push $(WATCHER_IMAGE_NAME)
-
-.PHONY: docker docker-child_chain-prod docker-child_chain-build docker-watcher-prod docker-watcher-build docker-push
+docker-push-prod: docker
+	docker push $(CHILD_CHAIN_PROD_IMAGE_NAME)
+	docker push $(WATCHER_PROD_IMAGE_NAME)
