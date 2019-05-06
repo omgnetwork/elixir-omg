@@ -94,7 +94,7 @@ defmodule OMG.State do
     {:ok, utxos_query_result} = DB.utxos()
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, last_deposit_query_result} = DB.get_single_value(:last_deposit_child_blknum)
-    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_interval), self(), :send_metrics)
+    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
     {:ok, [utxos_query_result, height_query_result, last_deposit_query_result], {:continue, :setup}}
   end
 
