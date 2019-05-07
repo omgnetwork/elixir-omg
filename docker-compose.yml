@@ -54,6 +54,10 @@ services:
       - ETHEREUM_RPC_URL=http://docker.for.mac.localhost:8545
       - CHILD_CHAIN_URL=http://docker.for.mac.localhost:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS: 500
+      - COORDINATOR_ETH_HEIGHT_CHECK_INTERVAL_MS: 1000
+      - BLOCK_QUEUE_ETH_HEIGHT_CHECK_INTERVAL_MS: 1000
+      - ERL_CC_COOKIE: PLASMA
     restart: always
     ports:
       - "9656:9656"
@@ -79,6 +83,9 @@ services:
       - CHILD_CHAIN_URL=http://docker.for.mac.localhost:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5433/omisego_dev
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS: 500
+      - COORDINATOR_ETH_HEIGHT_CHECK_INTERVAL_MS: 1000
+      - ERL_W_COOKIE: PLASMA
     restart: always
     ports:
       - "7434:7434"
