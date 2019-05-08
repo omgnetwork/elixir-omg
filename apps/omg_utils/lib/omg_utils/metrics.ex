@@ -19,7 +19,7 @@ defmodule OMG.Utils.Metrics do
   Allows one to discard some metric triggers, based on their namespace:
   ## Example
 
-      config :metrics, discard: [:State]
+      config :omg_utils, discard_metrics: [:State]
   """
 
   use Appsignal.Instrumentation.Decorators
@@ -28,9 +28,11 @@ defmodule OMG.Utils.Metrics do
     measure_start: 0,
     measure_event: 0
 
-  @discard_namespace_metrics Application.get_env(:metrics, :discard, [])
+  @discard_namespace_metrics Application.get_env(:omg_utils, :discard_metrics, [])
 
   def measure_start(body, context) do
+    # NOTE: the namespace and event group naming convention here is tentative.
+    # It is possible we'll revert to standard coarser division into `web` and `background` namespaces Appsignal suggests
     namespace = context.module |> Module.split() |> List.last() |> String.to_existing_atom()
 
     if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace)),
