@@ -30,5 +30,21 @@ defmodule OMG.RPC.Web.Controller.Transaction do
       |> put_view(View.Transaction)
       |> render(:submit, result: details)
     end
+    |> increment_metrics_counter()
+  end
+
+  defp increment_metrics_counter(response) do
+    case response do
+      {:error, {:validation_error, _, _}} ->
+        Appsignal.increment_counter("transaction.failed.validation", 1)
+
+      %Plug.Conn{} ->
+        Appsignal.increment_counter("transaction.succeed", 1)
+
+      _ ->
+        Appsignal.increment_counter("transaction.fail.unidentified", 1)
+    end
+
+    response
   end
 end
