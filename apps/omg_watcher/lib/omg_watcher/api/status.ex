@@ -23,6 +23,8 @@ defmodule OMG.Watcher.API.Status do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
+  use OMG.Utils.Metrics
+
   @opaque t() :: %{
             last_validated_child_block_number: non_neg_integer(),
             last_mined_child_block_number: non_neg_integer(),
@@ -35,6 +37,7 @@ defmodule OMG.Watcher.API.Status do
   Returns status of the watcher. Status consists of last validated child block number,
   last mined child block number and it's timestamp, and a flag indicating if watcher is syncing with Ethereum.
   """
+  @decorate measure_event()
   @spec get_status() :: {:ok, t()} | {:error, atom}
   def get_status do
     with {:ok, last_mined_child_block_number} <- Eth.RootChain.get_mined_child_block(),

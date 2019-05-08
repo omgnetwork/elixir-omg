@@ -32,6 +32,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor.StandardExitChallenge
   alias OMG.Watcher.Recorder
 
+  use OMG.Utils.Metrics
   use OMG.Utils.LoggerExt
   require Utxo
 
@@ -45,6 +46,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new exits are tracked.
   Returns `db_updates`
   """
+  @decorate measure_event()
   def new_exits(exits) do
     GenServer.call(__MODULE__, {:new_exits, exits})
   end
@@ -53,6 +55,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new in flight exits are tracked.
   Returns `db_updates`
   """
+  @decorate measure_event()
   def new_in_flight_exits(in_flight_exit_started_events) do
     GenServer.call(__MODULE__, {:new_in_flight_exits, in_flight_exit_started_events})
   end
@@ -61,6 +64,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - finalized exits are untracked _if valid_ otherwise raises alert
   Returns `db_updates`
   """
+  @decorate measure_event()
   def finalize_exits(finalizations) do
     GenServer.call(__MODULE__, {:finalize_exits, finalizations})
   end
@@ -69,6 +73,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new piggybacks are tracked, if invalid raises an alert
   Returns `db_updates`
   """
+  @decorate measure_event()
   def piggyback_exits(piggybacks) do
     GenServer.call(__MODULE__, {:piggyback_exits, piggybacks})
   end
@@ -77,6 +82,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - challenged exits are untracked
   Returns `db_updates`
   """
+  @decorate measure_event()
   def challenge_exits(challenges) do
     GenServer.call(__MODULE__, {:challenge_exits, challenges})
   end
@@ -86,6 +92,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Competitors are stored for future use(i.e. to challenge an in flight exit).
   Returns `db_updates`
   """
+  @decorate measure_event()
   def new_ife_challenges(challenges) do
     GenServer.call(__MODULE__, {:new_ife_challenges, challenges})
   end
@@ -94,6 +101,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in state.
   Returns `db_updates`
   """
+  @decorate measure_event()
   def respond_to_in_flight_exits_challenges(responds) do
     GenServer.call(__MODULE__, {:respond_to_in_flight_exits_challenges, responds})
   end
@@ -103,6 +111,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Challenged piggybacks are forgotten.
   Returns `db_updates`
   """
+  @decorate measure_event()
   def challenge_piggybacks(challenges) do
     GenServer.call(__MODULE__, {:challenge_piggybacks, challenges})
   end
@@ -111,6 +120,7 @@ defmodule OMG.Watcher.ExitProcessor do
     Accepts events and processes them in state - finalized outputs are applied to the state.
     Returns `db_updates`
   """
+  @decorate measure_event()
   def finalize_in_flight_exits(finalizations) do
     GenServer.call(__MODULE__, {:finalize_in_flight_exits, finalizations})
   end
@@ -122,6 +132,7 @@ defmodule OMG.Watcher.ExitProcessor do
   This function may also update some internal caches to make subsequent calls not redo the work,
   but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
   """
+  @decorate measure_event()
   def check_validity do
     GenServer.call(__MODULE__, :check_validity)
   end
@@ -130,6 +141,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
   If given empty list of hashes, all IFEs are returned.
   """
+  @decorate measure_event()
   @spec get_active_in_flight_exits() :: {:ok, %{binary() => InFlightExitInfo.t()}}
   def get_active_in_flight_exits do
     GenServer.call(__MODULE__, :get_active_in_flight_exits)
@@ -139,6 +151,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns all information required to produce a transaction to the root chain contract to present a competitor for
   a non-canonical in-flight exit
   """
+  @decorate measure_event()
   @spec get_competitor_for_ife(binary()) :: {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found}
   def get_competitor_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
@@ -148,17 +161,20 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
   for a challenged in-flight exit
   """
+  @decorate measure_event()
   @spec prove_canonical_for_ife(binary()) :: {:ok, Core.prove_canonical_data_t()} | {:error, :canonical_not_found}
   def prove_canonical_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
 
+  @decorate measure_event()
   @spec get_input_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
           {:ok, Core.input_challenge_data()} | {:error, Core.piggyback_challenge_data_error()}
   def get_input_challenge_data(txbytes, input_index) do
     GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index})
   end
 
+  @decorate measure_event()
   @spec get_output_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
           {:ok, Core.output_challenge_data()} | {:error, Core.piggyback_challenge_data_error()}
   def get_output_challenge_data(txbytes, output_index) do
@@ -168,6 +184,7 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Returns challenge for an exit
   """
+  @decorate measure_event()
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, StandardExitChallenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
   def create_challenge(exiting_utxo_pos) do

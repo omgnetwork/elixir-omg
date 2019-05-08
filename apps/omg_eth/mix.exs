@@ -51,7 +51,8 @@ defmodule OMG.Eth.MixProject do
       # TEST ONLY
       {:exexec,
        git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},
-      {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false}
+      {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
+      {:omg_utils, in_umbrella: true}
     ]
   end
 

@@ -21,7 +21,7 @@ defmodule OMG.Watcher.API.Transaction do
   alias OMG.Watcher.DB
   alias OMG.Watcher.HttpRPC.Client
   alias OMG.Watcher.UtxoSelection
-
+  use OMG.Utils.Metrics
   require Utxo
 
   @default_transactions_limit 200
@@ -29,6 +29,7 @@ defmodule OMG.Watcher.API.Transaction do
   @doc """
   Retrieves a specific transaction by id
   """
+  @decorate measure_event()
   @spec get(binary()) :: {:ok, %DB.Transaction{}} | {:error, :transaction_not_found}
   def get(transaction_id) do
     if transaction = DB.Transaction.get(transaction_id),
@@ -43,6 +44,7 @@ defmodule OMG.Watcher.API.Transaction do
 
   Length of the list is limited by `limit` argument
   """
+  @decorate measure_event()
   @spec get_transactions(Keyword.t()) :: list(%DB.Transaction{})
   def get_transactions(constrains) do
     # TODO: implement pagination. Defend against fetching huge dataset.
@@ -62,6 +64,7 @@ defmodule OMG.Watcher.API.Transaction do
 
   Note: No validation for now, just passes given tx to the child chain. See: OMG-410
   """
+  @decorate measure_event()
   @spec submit(binary()) :: Client.response_t()
   def(submit(txbytes)) do
     url = Application.get_env(:omg_watcher, :child_chain_url)
@@ -72,6 +75,7 @@ defmodule OMG.Watcher.API.Transaction do
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   """
+  @decorate measure_event()
   @spec create(UtxoSelection.order_t()) :: UtxoSelection.advice_t()
   def create(order) do
     utxos = DB.TxOutput.get_sorted_grouped_utxos(order.owner)

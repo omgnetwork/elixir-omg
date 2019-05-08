@@ -20,7 +20,7 @@ defmodule OMG.Eth.RootChain do
   """
 
   alias OMG.Eth
-
+  use OMG.Utils.Metrics
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   @tx_defaults Eth.Defaults.tx_defaults()
@@ -385,6 +385,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns lists of deposits sorted by child chain block number
   """
+  @decorate measure_event()
   def get_deposits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
 
@@ -392,6 +393,7 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
   end
 
+  @decorate measure_event()
   @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) :: {:ok, [in_flight_exit_piggybacked_event]}
   def get_piggybacks(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
@@ -415,6 +417,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns standard exits from a range of blocks. Collects exits from Ethereum logs.
   """
+  @decorate measure_event()
   def get_standard_exits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "ExitStarted(address,uint192)"
@@ -439,6 +442,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns InFlightExit from a range of blocks.
   """
+  @decorate measure_event()
   def get_in_flight_exit_starts(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitStarted(address,bytes32)"
@@ -463,6 +467,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns finalizations of exits from a range of blocks from Ethereum logs.
   """
+  @decorate measure_event()
   def get_finalizations(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "ExitFinalized(uint192)"
@@ -474,6 +479,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns challenges of exits from a range of blocks from Ethereum logs.
   """
+  @decorate measure_event()
   def get_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "ExitChallenged(uint256)"
@@ -485,6 +491,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
     Returns challenges of in flight exits from a range of blocks from Ethereum logs.
   """
+  @decorate measure_event()
   def get_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "InFlightExitChallenged(address,bytes32,uint256)"
@@ -517,6 +524,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
     Returns responds to challenges of in flight exits from a range of blocks from Ethereum logs.
   """
+  @decorate measure_event()
   def get_responds_to_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "InFlightExitChallengeResponded(address,bytes32,uint256)"
@@ -528,6 +536,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
     Returns challenges of piggybacks from a range of block from Ethereum logs.
   """
+  @decorate measure_event()
   def get_piggybacks_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "InFlightExitOutputBlocked(address,bytes32,uint256)"
@@ -539,6 +548,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
     Returns finalizations of in flight exits from a range of blocks from Ethereum logs.
   """
+  @decorate measure_event()
   def get_in_flight_exit_finalizations(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "InFlightExitFinalized(uint192,uint8)"
