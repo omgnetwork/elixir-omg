@@ -18,8 +18,9 @@ defmodule OMG.DB.LevelDB.Server do
   """
 
   # All complex operations on data written/read should go into OMG.DB.LevelDB.Core
-
+  use OMG.Utils.Metrics
   use GenServer
+
   alias OMG.DB.LevelDB.Core
   alias OMG.DB.LevelDB.Recorder
   require Logger
@@ -86,6 +87,7 @@ defmodule OMG.DB.LevelDB.Server do
   def handle_call({:exit_info, utxo_pos}, _from, state), do: do_exit_info(utxo_pos, state)
   def handle_call({:spent_blknum, utxo_pos}, _from, state), do: do_spent_blknum(utxo_pos, state)
 
+  @decorate measure_event()
   defp do_multi_update(db_updates, state) do
     result =
       db_updates
@@ -95,6 +97,7 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
+  @decorate measure_event()
   defp do_blocks(blocks_to_fetch, state) do
     result =
       blocks_to_fetch
@@ -105,19 +108,18 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
-
   defp do_utxos(state) do
     result = get_all_by_type(:utxo, state)
     {:reply, result, state}
   end
 
-
+  @decorate measure_event()
   defp do_exit_infos(state) do
     result = get_all_by_type(:exit_info, state)
     {:reply, result, state}
   end
 
-
+  @decorate measure_event()
   defp do_block_hashes(block_numbers_to_fetch, state) do
     result =
       block_numbers_to_fetch
@@ -128,19 +130,19 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
-
+  @decorate measure_event()
   defp do_in_flight_exits_info(state) do
     result = get_all_by_type(:in_flight_exit_info, state)
     {:reply, result, state}
   end
 
-
+  @decorate measure_event()
   defp do_competitors_info(state) do
     result = get_all_by_type(:competitor_info, state)
     {:reply, result, state}
   end
 
-
+  @decorate measure_event()
   defp do_get_single_value(parameter, state) do
     result =
       parameter
@@ -151,7 +153,7 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
-
+  @decorate measure_event()
   defp do_exit_info(utxo_pos, state) do
     result =
       :exit_info
@@ -162,7 +164,7 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
-
+  @decorate measure_event()
   defp do_spent_blknum(utxo_pos, state) do
     result =
       :spend
@@ -171,11 +173,6 @@ defmodule OMG.DB.LevelDB.Server do
       |> Core.decode_value(:spend)
 
     {:reply, result, state}
-  end
-
-  # WARNING, terminate below will be called only if :trap_exit is set to true
-  def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
-    :ok = Exleveldb.close(db_ref)
   end
 
   # Argument order flipping tools :(
@@ -189,11 +186,13 @@ defmodule OMG.DB.LevelDB.Server do
     Exleveldb.get(db_ref, key)
   end
 
+  @decorate measure_event()
   defp get_all_by_type(type, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_multiread(name)
     do_get_all_by_type(type, db_ref)
   end
 
+  @decorate measure_event()
   defp do_get_all_by_type(type, db_ref) do
     db_ref
     |> Exleveldb.stream()
@@ -215,4 +214,9 @@ defmodule OMG.DB.LevelDB.Server do
   end
 
   defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
+
+  # WARNING, terminate below will be called only if :trap_exit is set to true
+  def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
+    :ok = Exleveldb.close(db_ref)
+  end
 end
