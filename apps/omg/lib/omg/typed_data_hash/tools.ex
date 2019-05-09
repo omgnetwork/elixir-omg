@@ -24,7 +24,7 @@ defmodule OMG.TypedDataHash.Tools do
 
   require Utxo
 
-  @domain_encoded_type "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
+  @domain_encoded_type "EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)"
   @domain_type_hash Crypto.hash(@domain_encoded_type)
 
   @transaction_encoded_type "Transaction(" <>
@@ -42,14 +42,13 @@ defmodule OMG.TypedDataHash.Tools do
   Computes Domain Separator `hashStruct(eip712Domain)`,
   @see: http://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator
   """
-  @spec domain_separator(binary(), binary(), Crypto.chain_id_t(), Crypto.address_t(), Crypto.hash_t()) ::
+  @spec domain_separator(binary(), binary(), Crypto.address_t(), Crypto.hash_t()) ::
           Crypto.hash_t()
-  def domain_separator(name, version, chain_id, verifying_contract, salt) do
+  def domain_separator(name, version, verifying_contract, salt) do
     [
       @domain_type_hash,
       Crypto.hash(name),
       Crypto.hash(version),
-      ABI.TypeEncoder.encode_raw([chain_id], [{:uint, 256}]),
       ABI.TypeEncoder.encode_raw([verifying_contract], [:address]),
       ABI.TypeEncoder.encode_raw([salt], [{:bytes, 32}])
     ]

@@ -27,6 +27,7 @@ defmodule OMG.Crypto do
   @type priv_key_t() :: <<_::256>> | <<>>
   @type address_t() :: <<_::160>>
   @type hash_t() :: <<_::256>>
+  #FIXME: remove type spec
   @type chain_id_t() :: pos_integer() | nil
   @type domain_separator_t() :: <<_::256>> | nil
 
