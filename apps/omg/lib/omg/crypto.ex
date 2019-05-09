@@ -27,8 +27,6 @@ defmodule OMG.Crypto do
   @type priv_key_t() :: <<_::256>> | <<>>
   @type address_t() :: <<_::160>>
   @type hash_t() :: <<_::256>>
-  #FIXME: remove type spec
-  @type chain_id_t() :: pos_integer() | nil
   @type domain_separator_t() :: <<_::256>> | nil
 
   @doc """
@@ -39,9 +37,9 @@ defmodule OMG.Crypto do
   @doc """
   Recovers address of signer from binary-encoded signature.
   """
-  @spec recover_address(hash_t(), sig_t(), chain_id_t()) :: {:ok, address_t()} | {:error, :signature_corrupt}
-  def recover_address(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>, chain_id \\ nil) do
-    with {:ok, pub} <- recover_public(digest, packed_signature, chain_id) do
+  @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt}
+  def recover_address(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
+    with {:ok, pub} <- recover_public(digest, packed_signature) do
       generate_address(pub)
     end
   end
@@ -50,11 +48,11 @@ defmodule OMG.Crypto do
   Recovers public key of signer from binary-encoded signature and chain id.
   Chain id parameter can be ignored when signature was created without it.
   """
-  @spec recover_public(<<_::256>>, sig_t(), chain_id_t()) :: {:ok, <<_::512>>} | {:error, :signature_corrupt}
-  def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>, chain_id) do
+  @spec recover_public(<<_::256>>, sig_t()) :: {:ok, <<_::512>>} | {:error, :signature_corrupt}
+  def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
 
-    with {:ok, _pub} = result <- Signature.recover_public(digest, v, r, s, chain_id) do
+    with {:ok, _pub} = result <- Signature.recover_public(digest, v, r, s) do
       result
     else
       {:error, "Recovery id invalid 0-3"} -> {:error, :signature_corrupt}
