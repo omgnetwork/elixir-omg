@@ -32,7 +32,7 @@ defmodule OMG.TypedDataHash.Tools do
                               "Output output0,Output output1,Output output2,Output output3," <>
                               "bytes32 metadata)"
   @input_encoded_type "Input(uint256 blknum,uint256 txindex,uint256 oindex)"
-  @output_encoded_type "Output(address owner,address token,uint256 amount)"
+  @output_encoded_type "Output(address owner,address currency,uint256 amount)"
 
   @transaction_type_hash Crypto.hash(@transaction_encoded_type <> @input_encoded_type <> @output_encoded_type)
   @input_type_hash Crypto.hash(@input_encoded_type)
