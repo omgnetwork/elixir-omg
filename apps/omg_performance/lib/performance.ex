@@ -50,7 +50,6 @@ defmodule OMG.Performance do
 
   alias OMG.Crypto
   alias OMG.Integration.DepositHelper
-  alias OMG.Status.Alert.Alarm
   alias OMG.TestHelper
   alias OMG.Utxo
 
@@ -82,14 +81,14 @@ defmodule OMG.Performance do
     defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
     opts = Map.merge(defaults, opts)
 
-    {:ok, started_apps} = setup_simple_perftest(opts)
+    {:ok, started_apps, simple_perftest_chain} = setup_simple_perftest(opts)
 
     spenders = create_spenders(nspenders)
     utxos = create_utxos_for_simple_perftest(spenders, ntx_to_send)
 
     run({ntx_to_send, utxos, opts, opts[:profile]})
 
-    cleanup_simple_perftest(started_apps)
+    cleanup_simple_perftest(started_apps, simple_perftest_chain)
   end
 
   @doc """
@@ -152,16 +151,28 @@ defmodule OMG.Performance do
 
     :ok = OMG.DB.init()
 
-    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_child_chain])
+    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney])
+    {:ok, simple_perftest_chain} = start_simple_perftest_chain(opts)
 
-    :ok = Application.stop(:omg)
-    :ok = Supervisor.terminate_child(OMG.ChildChain.Supervisor, OMG.ChildChain.Monitor)
-    Alarm.clear_all()
-    # select just necessary components to run the tests
+    {:ok, started_apps, simple_perftest_chain}
+  end
 
-    _ = OMG.Performance.BlockCreator.start_link(opts[:block_every_ms])
+  # Selects and starts just necessary components to run the tests.
+  # We don't want to start the entire `:omg_child_chain` supervision tree because
+  # we don't want to start services related to root chain tracking (the root chain contract doesn't exist).
+  # Instead, we start the artificial `BlockCreator`
+  defp start_simple_perftest_chain(opts) do
+    children = [
+      {OMG.InternalEventBus, []},
+      {OMG.State, []},
+      {OMG.ChildChain.FreshBlocks, []},
+      {OMG.ChildChain.FeeServer, []},
+      {OMG.RPC.Plugs.Health, []},
+      {OMG.RPC.Web.Endpoint, []},
+      {OMG.Performance.BlockCreator, opts[:block_every_ms]}
+    ]
 
-    {:ok, started_apps}
+    Supervisor.start_link(children, strategy: :one_for_one)
   end
 
   @spec setup_extended_perftest(map(), Crypto.address_t()) :: {:ok, list}
@@ -181,8 +192,9 @@ defmodule OMG.Performance do
     {:ok, started_apps}
   end
 
-  @spec cleanup_simple_perftest(list()) :: :ok
-  defp cleanup_simple_perftest(started_apps) do
+  @spec cleanup_simple_perftest(list(), pid) :: :ok
+  defp cleanup_simple_perftest(started_apps, simple_perftest_chain) do
+    :ok = Supervisor.stop(simple_perftest_chain)
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
 
     _ = Application.stop(:briefly)
