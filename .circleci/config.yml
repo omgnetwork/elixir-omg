@@ -332,31 +332,24 @@ jobs:
     steps:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME
-      #- notify_slack_failure
-      #- notify_slack
 
   publish_watcher:
     executor: metal_watcher
     steps:
       - checkout
       - run: make docker-watcher WATCHER_PROD_IMAGE_NAME=$WATCHER_PROD_IMAGE_NAME
-      #- notify_slack_failure
-      #- notify_slack
 
   deploy_watcher:
     executor: deploy
     steps:
       - checkout
       #- run: sh .circleci/ci_deploy.sh
-      #- notify_slack_failure
-      #- notify_slack_deploy
+
   deploy_child_chain:
     executor: deploy
     steps:
       - checkout
       #- run: sh .circleci/ci_deploy.sh
-      #- notify_slack_failure
-      #- notify_slack_deploy
 
   coveralls_merge:
     docker:
