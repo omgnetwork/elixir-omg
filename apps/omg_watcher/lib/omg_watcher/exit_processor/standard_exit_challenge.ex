@@ -41,7 +41,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
   `se_spending_blocks_to_get` are requested by the UTXO position they spend
   `se_creating_blocks_to_get` are requested by blknum
   """
-  @spec determine_standard_challenge_queries(ExitProcessor.Request.t(), Core.t()) :: ExitProcessor.Request.t()
+  @spec determine_standard_challenge_queries(ExitProcessor.Request.t(), Core.t()) ::
+          {:ok, ExitProcessor.Request.t()} | {:error, :exit_not_found}
   def determine_standard_challenge_queries(
         %ExitProcessor.Request{se_exiting_pos: Utxo.position(creating_blknum, _, _) = exiting_pos} = request,
         %Core{exits: exits} = state
@@ -50,11 +51,12 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
       spending_blocks_to_get = if get_ife_based_on_utxo(exiting_pos, state), do: [], else: [exiting_pos]
       creating_blocks_to_get = if Utxo.Position.is_deposit?(exiting_pos), do: [], else: [creating_blknum]
 
-      %ExitProcessor.Request{
-        request
-        | se_spending_blocks_to_get: spending_blocks_to_get,
-          se_creating_blocks_to_get: creating_blocks_to_get
-      }
+      {:ok,
+       %ExitProcessor.Request{
+         request
+         | se_spending_blocks_to_get: spending_blocks_to_get,
+           se_creating_blocks_to_get: creating_blocks_to_get
+       }}
     end
   end
 

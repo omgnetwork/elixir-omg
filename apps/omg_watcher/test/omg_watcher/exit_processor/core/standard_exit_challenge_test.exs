@@ -54,7 +54,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
       ife_tx = TestHelper.create_recovered([{@deposit_blknum1, 0, 0, alice}], @eth, [])
       processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice) |> start_ife_from(ife_tx)
 
-      assert %ExitProcessor.Request{se_creating_blocks_to_get: [], se_spending_blocks_to_get: []} =
+      assert {:ok, %ExitProcessor.Request{se_creating_blocks_to_get: [], se_spending_blocks_to_get: []}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
                |> Core.determine_standard_challenge_queries(processor)
     end
@@ -63,7 +63,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
          %{alice: alice, processor_empty: processor} do
       processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice)
 
-      assert %ExitProcessor.Request{se_creating_blocks_to_get: [], se_spending_blocks_to_get: [@utxo_pos_deposit]} =
+      assert {:ok,
+              %ExitProcessor.Request{se_creating_blocks_to_get: [], se_spending_blocks_to_get: [@utxo_pos_deposit]}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
                |> Core.determine_standard_challenge_queries(processor)
     end
@@ -73,7 +74,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
       ife_tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [])
       processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice) |> start_ife_from(ife_tx)
 
-      assert %ExitProcessor.Request{se_creating_blocks_to_get: [@blknum], se_spending_blocks_to_get: []} =
+      assert {:ok, %ExitProcessor.Request{se_creating_blocks_to_get: [@blknum], se_spending_blocks_to_get: []}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
                |> Core.determine_standard_challenge_queries(processor)
     end
@@ -82,7 +83,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
          %{alice: alice, processor_empty: processor} do
       processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice)
 
-      assert %ExitProcessor.Request{se_creating_blocks_to_get: [@blknum], se_spending_blocks_to_get: [@utxo_pos_tx]} =
+      assert {:ok,
+              %ExitProcessor.Request{se_creating_blocks_to_get: [@blknum], se_spending_blocks_to_get: [@utxo_pos_tx]}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
                |> Core.determine_standard_challenge_queries(processor)
     end
