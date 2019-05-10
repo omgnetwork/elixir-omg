@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.Case do
+defmodule OMG.DB.LevelDBCase do
   @moduledoc """
   Defines the useful common setup for all `...PersistenceTests`:
    - starts temporary file handler `:briefly`
@@ -21,6 +21,7 @@ defmodule OMG.DB.Case do
   """
 
   use ExUnit.CaseTemplate
+  alias OMG.DB.LevelDB.Server
 
   setup_all do
     {:ok, _} = Application.ensure_all_started(:briefly)
@@ -29,9 +30,10 @@ defmodule OMG.DB.Case do
 
   setup %{test: test_name} do
     {:ok, dir} = Briefly.create(directory: true)
-    :ok = OMG.DB.LevelDBServer.init_storage(dir)
+    :ok = Server.init_storage(dir)
     name = :"TestDB_#{test_name}"
-    {:ok, pid} = GenServer.start_link(OMG.DB.LevelDBServer, %{db_path: dir, name: name}, name: name)
+    {:ok, pid} = start_supervised(OMG.DB.child_spec(db_path: dir, name: name))
+
     {:ok, %{db_dir: dir, db_pid: pid, db_pid_name: name}}
   end
 end

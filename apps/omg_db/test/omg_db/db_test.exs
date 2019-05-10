@@ -21,7 +21,7 @@ defmodule OMG.DBTest do
   Note the excluded moduletag, this test requires an explicit `--include wrappers`
   """
   use ExUnitFixtures
-  use OMG.DB.Case, async: true
+  use OMG.DB.LevelDBCase, async: true
 
   alias OMG.DB
 
@@ -54,7 +54,7 @@ defmodule OMG.DBTest do
     :ok = DB.multi_update([{:put, :last_exit_finalizer_eth_height, 12}], pid)
 
     checks = fn pid ->
-      assert {:ok, 12} == DB.get_single_value(pid, :last_exit_finalizer_eth_height)
+      assert {:ok, 12} == DB.get_single_value(:last_exit_finalizer_eth_height, pid)
     end
 
     checks.(pid)
@@ -66,7 +66,7 @@ defmodule OMG.DBTest do
   defp restart(dir, pid) do
     :ok = GenServer.stop(pid)
     name = :"TestDB_#{make_ref() |> inspect()}"
-    {:ok, pid} = GenServer.start_link(OMG.DB.LevelDBServer, %{db_path: dir, name: name}, name: name)
+    {:ok, pid} = start_supervised(OMG.DB.child_spec(db_path: dir, name: name))
     pid
   end
 end

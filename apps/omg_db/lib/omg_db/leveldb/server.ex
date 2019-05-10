@@ -12,20 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.LevelDBServer do
+defmodule OMG.DB.LevelDB.Server do
   @moduledoc """
   Handles connection to leveldb
   """
 
-  # All complex operations on data written/read should go into OMG.DB.LevelDBCore
-
-  defstruct [:db_ref, :name]
+  # All complex operations on data written/read should go into OMG.DB.LevelDB.Core
   use OMG.Utils.Metrics
   use GenServer
-  alias OMG.DB.LevelDBCore
-  alias OMG.DB.Recorder
+
+  alias OMG.DB.LevelDB.Core
+  alias OMG.DB.LevelDB.Recorder
   require Logger
 
+  defstruct [:db_ref, :name]
+
+  @type t() :: %__MODULE__{
+          db_ref: Exleveldb.db_reference(),
+          name: GenServer.name()
+        }
   @doc """
   Initializes an empty LevelDB instance explicitly, so we can have control over it.
   NOTE: `init` here is to init the GenServer and that assumes that `init_storage` has already been called
@@ -38,11 +43,11 @@ defmodule OMG.DB.LevelDBServer do
          do: Exleveldb.close(db_ref)
   end
 
-  def start_link(name: name, db_path: db_path) do
-    GenServer.start_link(__MODULE__, %{db_path: db_path, name: name}, name: name)
+  def start_link([db_path: _db_path, name: name] = args) do
+    GenServer.start_link(__MODULE__, args, name: name)
   end
 
-  def init(%{db_path: db_path, name: name}) do
+  def init(db_path: db_path, name: name) do
     # needed so that terminate callback is called on normal close
     Process.flag(:trap_exit, true)
     table = create_stats_table(name)
@@ -86,7 +91,7 @@ defmodule OMG.DB.LevelDBServer do
   defp do_multi_update(db_updates, state) do
     result =
       db_updates
-      |> LevelDBCore.parse_multi_updates()
+      |> Core.parse_multi_updates()
       |> write(state)
 
     {:reply, result, state}
@@ -96,14 +101,13 @@ defmodule OMG.DB.LevelDBServer do
   defp do_blocks(blocks_to_fetch, state) do
     result =
       blocks_to_fetch
-      |> Enum.map(fn block -> LevelDBCore.key(:block, block) end)
+      |> Enum.map(fn block -> Core.key(:block, block) end)
       |> Enum.map(fn key -> get(key, state) end)
-      |> LevelDBCore.decode_values(:block)
+      |> Core.decode_values(:block)
 
     {:reply, result, state}
   end
 
-  @decorate measure_event()
   defp do_utxos(state) do
     result = get_all_by_type(:utxo, state)
     {:reply, result, state}
@@ -119,9 +123,9 @@ defmodule OMG.DB.LevelDBServer do
   defp do_block_hashes(block_numbers_to_fetch, state) do
     result =
       block_numbers_to_fetch
-      |> Enum.map(fn block_number -> LevelDBCore.key(:block_hash, block_number) end)
+      |> Enum.map(fn block_number -> Core.key(:block_hash, block_number) end)
       |> Enum.map(fn key -> get(key, state) end)
-      |> LevelDBCore.decode_values(:block_hash)
+      |> Core.decode_values(:block_hash)
 
     {:reply, result, state}
   end
@@ -142,9 +146,9 @@ defmodule OMG.DB.LevelDBServer do
   defp do_get_single_value(parameter, state) do
     result =
       parameter
-      |> LevelDBCore.key(nil)
+      |> Core.key(nil)
       |> get(state)
-      |> LevelDBCore.decode_value(parameter)
+      |> Core.decode_value(parameter)
 
     {:reply, result, state}
   end
@@ -153,9 +157,9 @@ defmodule OMG.DB.LevelDBServer do
   defp do_exit_info(utxo_pos, state) do
     result =
       :exit_info
-      |> LevelDBCore.key(utxo_pos)
+      |> Core.key(utxo_pos)
       |> get(state)
-      |> LevelDBCore.decode_value(:exit_info)
+      |> Core.decode_value(:exit_info)
 
     {:reply, result, state}
   end
@@ -164,26 +168,19 @@ defmodule OMG.DB.LevelDBServer do
   defp do_spent_blknum(utxo_pos, state) do
     result =
       :spend
-      |> LevelDBCore.key(utxo_pos)
+      |> Core.key(utxo_pos)
       |> get(state)
-      |> LevelDBCore.decode_value(:spend)
+      |> Core.decode_value(:spend)
 
     {:reply, result, state}
   end
 
-  # WARNING, terminate below will be called only if :trap_exit is set to true
-  def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
-    :ok = Exleveldb.close(db_ref)
-  end
-
   # Argument order flipping tools :(
-  @decorate measure_event()
   defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_write(name)
     Exleveldb.write(db_ref, operations)
   end
 
-  @decorate measure_event()
   defp get(key, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_read(name)
     Exleveldb.get(db_ref, key)
@@ -195,12 +192,13 @@ defmodule OMG.DB.LevelDBServer do
     do_get_all_by_type(type, db_ref)
   end
 
+  @decorate measure_event()
   defp do_get_all_by_type(type, db_ref) do
     db_ref
     |> Exleveldb.stream()
-    |> LevelDBCore.filter_keys(type)
+    |> Core.filter_keys(type)
     |> Enum.map(fn {_, value} -> {:ok, value} end)
-    |> LevelDBCore.decode_values(type)
+    |> Core.decode_values(type)
   end
 
   defp create_stats_table(name) do
@@ -216,4 +214,9 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
+
+  # WARNING, terminate below will be called only if :trap_exit is set to true
+  def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
+    :ok = Exleveldb.close(db_ref)
+  end
 end

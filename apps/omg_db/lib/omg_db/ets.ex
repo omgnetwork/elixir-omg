@@ -11,15 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-defmodule OMG.DB.Application do
-  @moduledoc false
-
-  use Application
-
-  def start(_type, _args) do
-    children = [OMG.DB.child_spec()]
-    opts = [strategy: :one_for_one, name: OMG.DB.Supervisor]
-    Supervisor.start_link(children, opts)
-  end
+defmodule OMG.DB.Ets do
+  # @behaviour OMG.DB
+  @moduledoc """
+  Alternative DB backend implementation.
+  """
 end

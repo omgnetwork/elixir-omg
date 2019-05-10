@@ -20,7 +20,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   """
 
   use ExUnitFixtures
-  use OMG.DB.Case, async: true
+  use OMG.DB.LevelDBCase, async: true
 
   alias OMG.DevCrypto
   alias OMG.State.Transaction
