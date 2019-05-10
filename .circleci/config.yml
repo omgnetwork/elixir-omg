@@ -1,11 +1,7 @@
 version: 2.1
 
 executors:
-  child_chain_builder:
-    docker:
-      - image: omisegoimages/elixir-omg-builder:v1.2
-    working_directory: ~/src
-  builder_watcher:
+  builder:
     docker:
       - image: omisegoimages/elixir-omg-builder:v1.2
     working_directory: ~/src
@@ -31,39 +27,20 @@ executors:
     environment:
       WATCHER_PROD_IMAGE_NAME: "omisego/watcher"
 
+commands:
+  setup_elixir-omg_workspace:
+    description: "Setup workspace"
+    steps:
+      - attach_workspace:
+          name: Attach workspace
+          at: .
 jobs:
   build:
-    docker:
-      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
-        environment:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
-      - image: circleci/postgres:9.6-alpine
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: omisego_dev
-    working_directory: ~/repo
+    executor: builder
     steps:
       - checkout
-      - setup_remote_docker
-      # - restore_cache:
-      #     keys:
-      #       - v1-mix-cache-{{ checksum "mix.lock" }}
-      - run:
-          name: Install Hex
-          command: |
-            mix do local.hex --force, local.rebar --force
-      - run:
-          name: Get Dependencies
-          command: |
-            export ERLANG_ROCKSDB_BUILDOPTS='-j 2'
-            mix do deps.get, deps.compile
-      # - save_cache:
-      #     key: v1-mix-cache-{{ checksum "mix.lock" }}
-      #     paths: "deps"
-      - run:
-          name: Compile
-          command: mix compile
+      - run: make deps-elixir-omg
+      - run: make build-test
       - persist_to_workspace:
           root: .
           paths:
@@ -88,21 +65,9 @@ jobs:
             - rel/
 
   lint:
-    docker:
-      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
-        environment:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
-      - image: circleci/postgres:9.6-alpine
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: omisego_dev
-          MIX_ENV: test
-    working_directory: ~/repo
-
+    executor: builder_pg
     steps:
-      - attach_workspace:
-           at: .
+      - setup_elixir-omg_workspace
       - run: MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, test --exclude test, credo, format --check-formatted --dry-run
 
   tests_compile_once:
