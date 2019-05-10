@@ -24,14 +24,6 @@ RUN set -xe \
 
 ## Application
 ##
-ARG solc
-
-RUN if [ ${solc} = "yes" ] ; then \
-       wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-static-linux &&\
-       chmod +x solc-static-linux &&\
-       mv solc-static-linux /bin/solc &&\
-       chmod 755 /bin/solc ; else echo "Not installing solc." \
-; fi
 
 RUN apk add --update --no-cache --virtual .child_chain-runtime \
         bash \
@@ -56,7 +48,7 @@ RUN set -xe \
 
 ARG release_version
 
-ADD _build/prod/rel/child_chain/releases/${release_version}/child_chain.tar.gz /app
+ADD $(_build/prod/rel/child_chain/releases/${release_version}/child_chain.tar.gz | sed 's/"//g') /app
 RUN chown -R "${uid}:${gid}" /app
 WORKDIR /app
 
