@@ -20,7 +20,7 @@ defmodule OMG.TypedDataHash.Config do
 
   alias OMG.TypedDataHash.Tools
 
-  # Address to be used for hashing without connection to Ethereum node.
+  # Needed for test only to have value of address when `:contract_address` is not set
   @fallback_ari_network_address "44de0ec539b8c4a4b530c78620fe8320167f2f74"
 
   @doc """
