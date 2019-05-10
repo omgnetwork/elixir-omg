@@ -48,7 +48,7 @@ RUN set -xe \
 
 ARG release_version
 
-ADD $(_build/prod/rel/child_chain/releases/${release_version}/child_chain.tar.gz | sed 's/"//g') /app
+ADD _build/prod/rel/child_chain/releases/${release_version}/child_chain.tar.gz /app
 RUN chown -R "${uid}:${gid}" /app
 WORKDIR /app
 
