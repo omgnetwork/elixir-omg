@@ -347,7 +347,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apt-get update && apt-get install -y lsb-release curl
+            apt-get update && apt-get install -y lsb-release curl cmake
             curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
       - run:
           name: Install gcloud SDK
@@ -389,7 +389,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apt-get update && apt-get install -y lsb-release curl
+            apt-get update && apt-get install -y lsb-release curl cmake
             curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
       - run:
           name: Install gcloud SDK
