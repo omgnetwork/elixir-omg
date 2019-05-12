@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RecorderTest do
+defmodule OMG.RocksDBRecorderTest do
   @moduledoc """
-  A smoke test of the LevelDB support but for counters.
+  A smoke test of the RocksDB support but for counters.
   """
   use ExUnitFixtures
-  use OMG.DB.LevelDBCase, async: false
+  use OMG.DB.RocksDBCase, async: false
   alias OMG.DB
 
   test "if multi update counter gets incremented", %{db_pid: db_pid} do
@@ -31,8 +31,8 @@ defmodule OMG.RecorderTest do
           :pass
 
         {:registered_name, _} ->
-          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :leveldb_write)
-          assert [leveldb_write: 1] == result
+          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :rocksdb_write)
+          assert [rocksdb_write: 1] == result
       end
     end)
   end
@@ -47,8 +47,8 @@ defmodule OMG.RecorderTest do
           :pass
 
         {:registered_name, _} ->
-          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :leveldb_read)
-          assert [leveldb_read: 1] == result
+          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :rocksdb_read)
+          assert [rocksdb_read: 1] == result
       end
     end)
   end
@@ -63,8 +63,8 @@ defmodule OMG.RecorderTest do
           :pass
 
         {:registered_name, _} ->
-          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :leveldb_multiread)
-          assert [leveldb_multiread: 1] == result
+          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :rocksdb_multiread)
+          assert [rocksdb_multiread: 1] == result
       end
     end)
   end

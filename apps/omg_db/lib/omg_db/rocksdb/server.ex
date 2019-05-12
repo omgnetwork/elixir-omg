@@ -12,23 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.LevelDB.Server do
+defmodule OMG.DB.RocksDB.Server do
   @moduledoc """
   Handles connection to leveldb
   """
 
-  # All complex operations on data written/read should go into OMG.DB.LevelDB.Core
-  use OMG.Utils.Metrics
-  use GenServer
+  # All complex operations on data written/read should go into OMG.DB.RocksDB.Core
 
-  alias OMG.DB.LevelDB.Core
-  alias OMG.DB.LevelDB.Recorder
+  use GenServer
+  alias OMG.DB.RocksDB.Core
+  alias OMG.DB.RocksDB.Recorder
   require Logger
 
   defstruct [:db_ref, :name]
 
   @type t() :: %__MODULE__{
-          db_ref: Exleveldb.db_reference(),
+          db_ref: :rocksdb.db_handle(),
           name: GenServer.name()
         }
   @doc """
@@ -36,19 +35,22 @@ defmodule OMG.DB.LevelDB.Server do
   NOTE: `init` here is to init the GenServer and that assumes that `init_storage` has already been called
   """
   @spec init_storage(binary) :: :ok | {:error, atom}
-  def init_storage(db_path) do
-    # open and close with the create flag set to true to initialize the LevelDB itself
-    with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: true),
-         true <- Exleveldb.is_empty?(db_ref) || {:error, :leveldb_not_empty},
-         do: Exleveldb.close(db_ref)
+  def init_storage(db_path), do: do_init_storage(String.to_charlist(db_path))
+
+  defp do_init_storage(db_path) do
+    with {:ok, db_ref} <- :rocksdb.open(db_path, create_if_missing: true),
+         true <- :rocksdb.is_empty(db_ref) || {:error, :rocksdb_not_empty},
+         do: :rocksdb.close(db_ref)
   end
 
   def start_link([db_path: _db_path, name: name] = args) do
     GenServer.start_link(__MODULE__, args, name: name)
   end
 
+  # https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide#prefix-databases
   def init(db_path: db_path, name: name) do
     # needed so that terminate callback is called on normal close
+    db_path = String.to_charlist(db_path)
     Process.flag(:trap_exit, true)
     table = create_stats_table(name)
 
@@ -59,8 +61,9 @@ defmodule OMG.DB.LevelDB.Server do
       |> String.to_atom()
 
     {:ok, _recorder_pid} = Recorder.start_link(%Recorder{name: recorder_name, parent: self(), table: table})
+    setup = [{:create_if_missing, true}, {:prefix_extractor, {:fixed_prefix_transform, 1}}]
 
-    with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: false) do
+    with {:ok, db_ref} <- :rocksdb.open(db_path, setup) do
       {:ok, %__MODULE__{name: name, db_ref: db_ref}}
     else
       error ->
@@ -69,26 +72,7 @@ defmodule OMG.DB.LevelDB.Server do
     end
   end
 
-  def handle_call({:multi_update, db_updates}, _from, state), do: do_multi_update(db_updates, state)
-  def handle_call({:blocks, blocks_to_fetch}, _from, state), do: do_blocks(blocks_to_fetch, state)
-  def handle_call(:utxos, _from, state), do: do_utxos(state)
-  def handle_call(:exit_infos, _from, state), do: do_exit_infos(state)
-
-  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state),
-    do: do_block_hashes(block_numbers_to_fetch, state)
-
-  def handle_call(:in_flight_exits_info, _from, state), do: do_in_flight_exits_info(state)
-  def handle_call(:competitors_info, _from, state), do: do_competitors_info(state)
-
-  def handle_call({:get_single_value, parameter}, _from, state)
-      when is_atom(parameter),
-      do: do_get_single_value(parameter, state)
-
-  def handle_call({:exit_info, utxo_pos}, _from, state), do: do_exit_info(utxo_pos, state)
-  def handle_call({:spent_blknum, utxo_pos}, _from, state), do: do_spent_blknum(utxo_pos, state)
-
-  @decorate measure_event()
-  defp do_multi_update(db_updates, state) do
+  def handle_call({:multi_update, db_updates}, _from, state) do
     result =
       db_updates
       |> Core.parse_multi_updates()
@@ -97,8 +81,7 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
-  @decorate measure_event()
-  defp do_blocks(blocks_to_fetch, state) do
+  def handle_call({:blocks, blocks_to_fetch}, _from, state) do
     result =
       blocks_to_fetch
       |> Enum.map(fn block -> Core.key(:block, block) end)
@@ -108,19 +91,17 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
-  defp do_utxos(state) do
+  def handle_call(:utxos, _from, state) do
     result = get_all_by_type(:utxo, state)
     {:reply, result, state}
   end
 
-  @decorate measure_event()
-  defp do_exit_infos(state) do
+  def handle_call(:exit_infos, _from, state) do
     result = get_all_by_type(:exit_info, state)
     {:reply, result, state}
   end
 
-  @decorate measure_event()
-  defp do_block_hashes(block_numbers_to_fetch, state) do
+  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state) do
     result =
       block_numbers_to_fetch
       |> Enum.map(fn block_number -> Core.key(:block_hash, block_number) end)
@@ -130,20 +111,18 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
-  @decorate measure_event()
-  defp do_in_flight_exits_info(state) do
+  def handle_call(:in_flight_exits_info, _from, state) do
     result = get_all_by_type(:in_flight_exit_info, state)
     {:reply, result, state}
   end
 
-  @decorate measure_event()
-  defp do_competitors_info(state) do
+  def handle_call(:competitors_info, _from, state) do
     result = get_all_by_type(:competitor_info, state)
     {:reply, result, state}
   end
 
-  @decorate measure_event()
-  defp do_get_single_value(parameter, state) do
+  def handle_call({:get_single_value, parameter}, _from, state)
+      when is_atom(parameter) do
     result =
       parameter
       |> Core.key(nil)
@@ -153,8 +132,7 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
-  @decorate measure_event()
-  defp do_exit_info(utxo_pos, state) do
+  def handle_call({:exit_info, utxo_pos}, _from, state) do
     result =
       :exit_info
       |> Core.key(utxo_pos)
@@ -164,8 +142,7 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
-  @decorate measure_event()
-  defp do_spent_blknum(utxo_pos, state) do
+  def handle_call({:spent_blknum, utxo_pos}, _from, state) do
     result =
       :spend
       |> Core.key(utxo_pos)
@@ -175,31 +152,41 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
-  # Argument order flipping tools :(
-  @spec write(Exleveldb.write_actions(), t) :: :ok | {:error, any}
-  defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
-    _ = Recorder.update_write(name)
-    Exleveldb.write(db_ref, operations)
+  # WARNING, terminate below will be called only if :trap_exit is set to true
+  def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
+    :ok = :rocksdb.close(db_ref)
   end
 
+  # Argument order flipping tools :(
+  # write options
+  # write_options() = [{sync, boolean()} | {disable_wal, boolean()} | {ignore_missing_column_families, boolean()} |
+  # {no_slowdown, boolean()} | {low_pri, boolean()}]
+  # @spec write(Exleveldb.write_actions(), t) :: :ok | {:error, any}
+  defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
+    _ = Recorder.update_write(name)
+    :rocksdb.write(db_ref, operations, [])
+  end
+
+  # get read options
+  # read_options() = [{verify_checksums, boolean()} | {fill_cache, boolean()} | {iterate_upper_bound, binary()} |
+  # {iterate_lower_bound, binary()} | {tailing, boolean()} | {total_order_seek, boolean()} |
+  # {prefix_same_as_start, boolean()} | {snapshot, snapshot_handle()}]
   @spec get(atom() | binary(), t) :: {:ok, binary()} | :not_found
   defp get(key, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_read(name)
-    Exleveldb.get(db_ref, key)
+    :rocksdb.get(db_ref, key, [])
   end
 
-  @decorate measure_event()
   defp get_all_by_type(type, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_multiread(name)
     do_get_all_by_type(type, db_ref)
   end
 
-  @decorate measure_event()
+  # iterator options
+  # same as read options
+  # this might be a use case for seek() https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes
   defp do_get_all_by_type(type, db_ref) do
-    db_ref
-    |> Exleveldb.stream()
-    |> Core.filter_keys(type)
-    |> Enum.map(fn {_, value} -> {:ok, value} end)
+    Core.filter_keys(db_ref, type)
     |> Core.decode_values(type)
   end
 
@@ -216,9 +203,4 @@ defmodule OMG.DB.LevelDB.Server do
   end
 
   defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
-
-  # WARNING, terminate below will be called only if :trap_exit is set to true
-  def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
-    :ok = Exleveldb.close(db_ref)
-  end
 end

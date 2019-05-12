@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DBTest do
+defmodule OMG.RocksDBTest do
   @moduledoc """
-  A smoke test of the LevelDB support. The intention here is to **only** test minimally, that the pipes work.
+  A smoke test of the RocksDB support. The intention here is to **only** test minimally, that the pipes work.
 
   For more detailed persistence test look for `...PersistenceTest` tests throughout the apps.
 
   Note the excluded moduletag, this test requires an explicit `--include wrappers`
   """
   use ExUnitFixtures
-  use OMG.DB.LevelDBCase, async: false
+  use OMG.DB.RocksDBCase, async: false
 
   alias OMG.DB
 
@@ -29,7 +29,7 @@ defmodule OMG.DBTest do
   @moduletag :common
   @writes 10
 
-  test "handles object storage", %{db_dir: dir, db_pid: pid} do
+  test "rocks db handles object storage", %{db_dir: dir, db_pid: pid} do
     :ok =
       DB.multi_update(
         [{:put, :block, %{hash: "xyz"}}, {:put, :block, %{hash: "vxyz"}}, {:put, :block, %{hash: "wvxyz"}}],
@@ -51,7 +51,7 @@ defmodule OMG.DBTest do
     checks.(pid)
   end
 
-  test "handles single value storage", %{db_dir: dir, db_pid: pid} do
+  test "rocks db handles single value storage", %{db_dir: dir, db_pid: pid} do
     :ok = DB.multi_update([{:put, :last_exit_finalizer_eth_height, 12}], pid)
 
     checks = fn pid ->
@@ -111,14 +111,17 @@ defmodule OMG.DBTest do
 
     db_writes = create_write(:utxo, pid)
     {:ok, utxos} = DB.utxos(pid)
+    # what we wrote and what we read must be equal
     [] = utxos -- db_writes
 
     db_writes = create_write(:in_flight_exit_info, pid)
     {:ok, in_flight_exits_infos} = DB.in_flight_exits_info(pid)
+    # what we wrote and what we read must be equal
     [] = in_flight_exits_infos -- db_writes
 
     db_writes = create_write(:competitor_info, pid)
     {:ok, competitors_info} = DB.competitors_info(pid)
+    # what we wrote and what we read must be equal
     [] = competitors_info -- db_writes
   end
 
