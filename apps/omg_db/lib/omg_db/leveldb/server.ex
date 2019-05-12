@@ -31,17 +31,6 @@ defmodule OMG.DB.LevelDB.Server do
           db_ref: Exleveldb.db_reference(),
           name: GenServer.name()
         }
-  @doc """
-  Initializes an empty LevelDB instance explicitly, so we can have control over it.
-  NOTE: `init` here is to init the GenServer and that assumes that `init_storage` has already been called
-  """
-  @spec init_storage(binary) :: :ok | {:error, atom}
-  def init_storage(db_path) do
-    # open and close with the create flag set to true to initialize the LevelDB itself
-    with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: true),
-         true <- Exleveldb.is_empty?(db_ref) || {:error, :leveldb_not_empty},
-         do: Exleveldb.close(db_ref)
-  end
 
   def start_link([db_path: _db_path, name: name] = args) do
     GenServer.start_link(__MODULE__, args, name: name)

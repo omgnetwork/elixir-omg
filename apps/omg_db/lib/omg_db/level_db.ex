@@ -55,6 +55,16 @@ defmodule OMG.DB.LevelDB do
       type: :worker
     }
   end
+  def initializer_child_spec(), do: initializer_child_spec(Application.fetch_env!(:omg_db, :leveldb_path))
+
+  def initializer_child_spec(args) do
+    module = OMG.DB.LevelDB.Init
+    %{
+      id: module,
+      start: {module, :start_link, [args]},
+      type: :worker
+    }
+  end
 
   def multi_update(db_updates, server_name \\ @server_name) do
     GenServer.call(server_name, {:multi_update, db_updates})
@@ -125,27 +135,28 @@ defmodule OMG.DB.LevelDB do
     |> multi_update(server_name)
   end
 
-  @doc """
-  Does all of the initialization of `OMG.DB` based on the configured path
-  """
-  def init, do: do_init(@server_name, Application.fetch_env!(:omg_db, :leveldb_path))
-  def init(path) when is_binary(path), do: do_init(@server_name, path)
-  def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :leveldb_path))
-  def init(server_name, path), do: do_init(server_name, path)
+  # @doc """
+  # Does all of the initialization of `OMG.DB` based on the configured path
+  # """
+  # def init, do: do_init(@server_name, Application.fetch_env!(:omg_db, :leveldb_path))
+  # def init(path) when is_binary(path), do: do_init(@server_name, path)
+  # def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :leveldb_path))
+  # def init(server_name, path), do: do_init(server_name, path)
 
-  defp do_init(server_name, path) do
-    :ok = File.mkdir_p(path)
+  # defp do_init(server_name, path) do
+  #   :ok = File.mkdir_p(path)
 
-    with :ok <- server_name.init_storage(path),
-         {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
-         :ok <- initiation_multiupdate(server_name) do
-      started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
+  #   with :ok <- server_name.init_storage(path),
+  #        {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
+  #        :ok <- initiation_multiupdate(server_name) do
+  #     started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
 
-      :ok
-    else
-      error ->
-        _ = Logger.error("Unable to init: #{inspect(error)}")
-        error
-    end
-  end
+  #     :ok
+  #   else
+  #     error ->
+  #       _ = Logger.error("Unable to init: #{inspect(error)}")
+  #       error
+  #   end
+  # end
+
 end

@@ -21,7 +21,7 @@ defmodule OMG.DB.LevelDBCase do
   """
 
   use ExUnit.CaseTemplate
-  alias OMG.DB.LevelDB.Server
+  #alias OMG.DB.LevelDB.Server
 
   setup_all do
     :ok = Application.put_env(:omg_db, :type, :leveldb, persistent: true)
@@ -31,7 +31,7 @@ defmodule OMG.DB.LevelDBCase do
 
   setup %{test: test_name} do
     {:ok, dir} = Briefly.create(directory: true)
-    :ok = Server.init_storage(dir)
+    #:ok = Server.init_storage(dir)
     name = :"TestDB_#{test_name}"
     {:ok, pid} = start_supervised(OMG.DB.child_spec(db_path: dir, name: name))
     {:ok, %{db_dir: dir, db_pid: pid, db_pid_name: name}}

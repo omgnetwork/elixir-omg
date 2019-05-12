@@ -149,8 +149,7 @@ defmodule OMG.Performance do
     Application.put_env(:omg_db, :leveldb_path, dbdir, persistent: true)
     _ = Logger.info("Perftest leveldb path: #{inspect(dbdir)}")
 
-    :ok = OMG.DB.init()
-
+    :ok = Application.start(:omg_db)
     started_apps = ensure_all_started([:omg_db, :cowboy, :hackney])
     {:ok, simple_perftest_chain} = start_simple_perftest_chain(opts)
 

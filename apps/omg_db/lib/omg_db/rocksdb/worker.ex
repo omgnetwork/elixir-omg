@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.RocksDB.Server do
+defmodule OMG.DB.RocksDB.Worker do
   @moduledoc """
   Handles connection to leveldb
   """
@@ -30,18 +30,6 @@ defmodule OMG.DB.RocksDB.Server do
           db_ref: :rocksdb.db_handle(),
           name: GenServer.name()
         }
-  @doc """
-  Initializes an empty LevelDB instance explicitly, so we can have control over it.
-  NOTE: `init` here is to init the GenServer and that assumes that `init_storage` has already been called
-  """
-  @spec init_storage(binary) :: :ok | {:error, atom}
-  def init_storage(db_path), do: do_init_storage(String.to_charlist(db_path))
-
-  defp do_init_storage(db_path) do
-    with {:ok, db_ref} <- :rocksdb.open(db_path, create_if_missing: true),
-         true <- :rocksdb.is_empty(db_ref) || {:error, :rocksdb_not_empty},
-         do: :rocksdb.close(db_ref)
-  end
 
   def start_link([db_path: _db_path, name: name] = args) do
     GenServer.start_link(__MODULE__, args, name: name)

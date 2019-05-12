@@ -23,10 +23,9 @@ defmodule OMG.DB do
   @callback start_link(term) :: GenServer.on_start()
   @callback child_spec() :: Supervisor.child_spec()
   @callback child_spec(term) :: Supervisor.child_spec()
-  @callback init(String.t()) :: :ok
-  @callback init() :: :ok
+  @callback initializer_child_spec() :: Supervisor.child_spec()
+  @callback initializer_child_spec(term) :: Supervisor.child_spec()
   @callback initiation_multiupdate() :: :ok | {:error, any}
-
   @callback multi_update(term()) :: :ok | {:error, any}
   @callback blocks(block_to_fetch :: list()) :: {:ok, list(term)}
   @callback utxos() :: {:ok, list(term)}
@@ -54,6 +53,7 @@ defmodule OMG.DB do
   @callback last_deposit_child_blknum(GenServer.server()) :: list()
   @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()}
   @optional_callbacks child_spec: 1,
+                      initializer_child_spec: 1,
                       initiation_multiupdate: 1,
                       multi_update: 2,
                       blocks: 2,
@@ -71,9 +71,8 @@ defmodule OMG.DB do
 
   def child_spec, do: driver().child_spec()
   def child_spec(args), do: driver().child_spec(args)
-
-  def init(path), do: driver().init(path)
-  def init, do: driver().init()
+  def initializer_child_spec, do: driver().initializer_child_spec()
+  def initializer_child_spec(args), do: driver().initializer_child_spec(args)
 
   @doc """
   Puts all zeroes and other init values to a generically initialized `OMG.DB`

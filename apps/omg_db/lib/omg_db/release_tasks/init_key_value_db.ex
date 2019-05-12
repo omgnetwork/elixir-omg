@@ -33,10 +33,10 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
     Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
   end
 
-  defp init_kv_db(path) do
-    case OMG.DB.init(path) do
-      {:error, term} -> CLI.error("Could not initialize the DB in #{path}. Reason #{inspect(term)}")
-      :ok -> CLI.info("The database at #{inspect(path)} has been created")
-    end
+  defp init_kv_db(_path) do
+    # case OMG.DB.init(path) do
+    #   {:error, term} -> CLI.error("Could not initialize the DB in #{path}. Reason #{inspect(term)}")
+    #   :ok -> CLI.info("The database at #{inspect(path)} has been created")
+    # end
   end
 end

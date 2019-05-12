@@ -29,29 +29,24 @@ defmodule OMG.DB.RocksDB do
 
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
-  def start_link(args) do
-    @server_name.start_link(args)
-  end
-
   def child_spec do
     db_path = Application.fetch_env!(:omg_db, :leveldb_path)
-    server_module = Application.fetch_env!(:omg_db, :r_server_module)
     server_name = Application.fetch_env!(:omg_db, :r_server_name)
-    args = [db_path: db_path, name: server_name]
 
-    %{
-      id: server_module,
-      start: {server_module, :start_link, [args]},
-      type: :worker
-    }
+    :poolboy.child_spec(server_name, poolboy_config(), db_path: db_path)
   end
 
-  def child_spec([db_path: _db_path, name: server_name] = args) do
-    server_module = Application.fetch_env!(:omg_db, :r_server_module)
+  def child_spec([db_path: db_path, name: server_name]) do
 
+    :poolboy.child_spec(server_name, poolboy_config(), db_path: db_path)
+  end
+  def initializer_child_spec(), do: initializer_child_spec(Application.fetch_env!(:omg_db, :leveldb_path))
+
+  def initializer_child_spec(args) do
+    module = OMG.DB.RocksDB.Init
     %{
-      id: server_name,
-      start: {server_module, :start_link, [args]},
+      id: module,
+      start: {module, :start_link, [args]},
       type: :worker
     }
   end
@@ -125,27 +120,36 @@ defmodule OMG.DB.RocksDB do
     |> multi_update(server_name)
   end
 
-  @doc """
-  Does all of the initialization of `OMG.DB` based on the configured path
-  """
-  def init, do: do_init(@server_name, Application.fetch_env!(:omg_db, :leveldb_path))
-  def init(path) when is_binary(path), do: do_init(@server_name, path)
-  def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :leveldb_path))
-  def init(server_name, path), do: do_init(server_name, path)
+  # @doc """
+  # Does all of the initialization of `OMG.DB` based on the configured path
+  # """
+  # def init, do: do_init(@server_name, Application.fetch_env!(:omg_db, :leveldb_path))
+  # def init(path) when is_binary(path), do: do_init(@server_name, path)
+  # def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :leveldb_path))
+  # def init(server_name, path), do: do_init(server_name, path)
 
-  defp do_init(server_name, path) do
-    :ok = File.mkdir_p(path)
+  # defp do_init(server_name, path) do
+  #   :ok = File.mkdir_p(path)
 
-    with :ok <- server_name.init_storage(path),
-         {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
-         :ok <- initiation_multiupdate(server_name) do
-      started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
+  #   with :ok <- server_name.init_storage(path),
+  #        {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
+  #        :ok <- initiation_multiupdate(server_name) do
+  #     started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
 
-      :ok
-    else
-      error ->
-        _ = Logger.error("Unable to init: #{inspect(error)}")
-        error
-    end
+  #     :ok
+  #   else
+  #     error ->
+  #       _ = Logger.error("Unable to init: #{inspect(error)}")
+  #       error
+  #   end
+  # end
+
+  defp poolboy_config do
+    [
+      {:name, {:local, :worker}},
+      {:worker_module, PoolboyApp.Worker},
+      {:size, 5},
+      {:max_overflow, 2}
+    ]
   end
 end
