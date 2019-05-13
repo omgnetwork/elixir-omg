@@ -34,13 +34,11 @@ defmodule OMG.TypedDataHashTest do
   require Utxo
   require OMG.TypedDataHash.Tools
 
-  @chain_id 4
   @test_domain_separator Tools.domain_separator(
                            "OMG Network",
                            "1",
-                           @chain_id,
-                           "1C56346CD2A2Bf3202F771f50d3D14a367B48070" |> Base.decode16!(case: :mixed),
-                           "f2d857f4a3edcb9b78b4d503bfe733db1e3f6cdc2b7971ee739626c97e86a558"
+                           "44de0ec539b8c4a4b530c78620fe8320167f2f74" |> Base.decode16!(case: :mixed),
+                           "fad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
                            |> Base.decode16!(case: :mixed)
                          )
 
@@ -103,7 +101,7 @@ defmodule OMG.TypedDataHashTest do
     end
 
     test "domain separator is computed correctly" do
-      expected = "d42a6f7e5730ebf9ab9a2802b60543ccf4a220a0f3a3e6b97f5226cfcf30b0f5"
+      expected = "b542beb7bafc6796b8439716a4e460a2634ac432216cebc524e54f8789e2924c"
 
       assert expected ==
                @test_domain_separator
@@ -124,16 +122,16 @@ defmodule OMG.TypedDataHashTest do
     test "Output is hashed properly", %{outputs: [output1, output2, output3, output4]} do
       to_output = fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end
 
-      assert "2d7e855c4ed0b5442749af2f2e1654a1d005d7f33c74db997112aa746362331a" ==
+      assert "96c33f4f5d36248f3885b7eef86aef0b5b22c78609d6a1e4e716db1854b3586f" ==
                Tools.hash_output(to_output.(output1)) |> Base.encode16(case: :lower)
 
-      assert "6ea3ef954bc4b17441b63a96a0014f033583456ac0187a8497959a390c83bb82" ==
+      assert "0a7e96daa5e6e390e3302ad0f3215abfc430b1f4fbd1b60793462e9db72dd2df" ==
                Tools.hash_output(to_output.(output2)) |> Base.encode16(case: :lower)
 
-      assert "3084addf822b16a011704753552a98545d33df967386e14f00ba3ab4faaaa80b" ==
+      assert "594795caf8154c6c4023c627b44831d7b7a55ffaa9a2acc7e938993d18ea32ae" ==
                Tools.hash_output(to_output.(output3)) |> Base.encode16(case: :lower)
 
-      assert "853a8d8af99c93405a791b97d57e819e538b06ffaa32ad70da2582500bc18d43" ==
+      assert "1171715d9d7d4d25b206621d80fd66c71beb59c1933fc3f2266ebc5607202fb8" ==
                Tools.hash_output(to_output.(output4)) |> Base.encode16(case: :lower)
     end
 
@@ -148,27 +146,27 @@ defmodule OMG.TypedDataHashTest do
     end
 
     test "Transaction is hashed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
-      assert "cd7d70602e84b8a52123727394b8fdba87380cc03a91c8ab1c0baa7dde7c3558" ==
+      assert "86b1c850f5221d40683097c9257dd13ee50964089ed3080ebd7ddc0a733adff3" ==
                TypedDataHash.hash_transaction(Transaction.new([], [])) |> Base.encode16(case: :lower)
 
-      assert "25ad23b53146d4462a31bfe7c44a67d8fa0fc3c9bb9366a39c1a26b4f20e3231" ==
+      assert "444ec233a0a80d7a40aff0bc53462543994aa088b2d0a3e635acc57176076ef8" ==
                TypedDataHash.hash_transaction(Transaction.new(inputs, outputs))
                |> Base.encode16(case: :lower)
 
-      assert "e2af729df6f59730dd7f39c9f60b6eb293b1ad128e059fe70fc146ce77d3c9b9" ==
+      assert "636491ffc56c65f51760e1149da96e1f1605815ba21efe4ffa4c9a18ce7a0560" ==
                TypedDataHash.hash_transaction(Transaction.new(inputs, outputs, metadata))
                |> Base.encode16(case: :lower)
     end
 
     test "Structured hash is computed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
-      assert "0aa26a80d09f12d1f03b8bd0dcfd66fb5776554b326a56d21cfdfdc25254a9c4" ==
+      assert "992ac0f45bff7d9fb74636623e5d8b111b49b818cadcf3a91c035735a84d154f" ==
                TypedDataHash.hash_struct(Transaction.new([], []), @test_domain_separator) |> Base.encode16(case: :lower)
 
-      assert "71e72678fe793358b35855734a9987d4d377bb1f9b5d4b04b8f2554a34e51628" ==
+      assert "b42dc40570279af9faa05e64d62f54db0fd2b768a4a69646efba068cf88eb7a2" ==
                TypedDataHash.hash_struct(Transaction.new(inputs, outputs), @test_domain_separator)
                |> Base.encode16(case: :lower)
 
-      assert "78ddf5f81d7e9271bc125ae6590a8aa27a630135c4f0ba094cd7fd7943a8a2f4" ==
+      assert "5f9adeaaba8d2fa17de40f45eb12136c7e7f26ea56567226274314d0a563e81d" ==
                TypedDataHash.hash_struct(Transaction.new(inputs, outputs, metadata), @test_domain_separator)
                |> Base.encode16(case: :lower)
     end
@@ -180,7 +178,7 @@ defmodule OMG.TypedDataHashTest do
 
     test "test #0" do
       signature =
-        "00f291813e96fc5dcb236d6893de26d5a1dd1297615a20dce36b7515d37f94e51a0bf2bb122ff558f20e502eee14fc7d48fba89dcb9f4f0980185ff4ae65b15f1c"
+        "55d95900e5bffef27e6225c6ff4cbe1d18cbc28281583a24402ceec80aa924db337f9f663a6a80ca153497cd328e2a0b49d896b66d640e785f59eb76a37cb9aa1b"
         |> Base.decode16!(case: :lower)
 
       raw_tx = Transaction.new([], [])
@@ -194,7 +192,7 @@ defmodule OMG.TypedDataHashTest do
 
     test "test #1", %{inputs: inputs, outputs: outputs} do
       signature =
-        "467270afdecbe4fc9301d3dca63685dda7459530fae431e7b54e4b0899e5640577e703110423b20b9f2321b721e6eda4427820c1390fa778432ece5f206546da1c"
+        "836c4c3726674a93e9d034a60152a64c7de0b55670bbed0c228647ca3797d5b043fea4325452eec47e644dd9124e46d7334b22997dbbbb3cf7b81f2a02a81ccd1c"
         |> Base.decode16!(case: :lower)
 
       raw_tx = Transaction.new(inputs, outputs)
@@ -208,7 +206,7 @@ defmodule OMG.TypedDataHashTest do
 
     test "test #2", %{inputs: inputs, outputs: outputs, metadata: metadata} do
       signature =
-        "f4a9fa3c09bbef23fc26f4a1a871b6f5f04a51b9d73a07096ffb8c08880d23112bcfc7748673121708d60a8efbeb15362582d8dd9c21d336c1be47763edd5ed11c"
+        "7b0c9abe27135205c82571b9e4fcbf0641ba9db05d4d8256db3b8f0680a3a55729058aabb15b0f9a101325d60ec1730ae6dd907efd86dcb98cad88616d64a92d1c"
         |> Base.decode16!(case: :lower)
 
       raw_tx = Transaction.new(inputs, outputs, metadata)

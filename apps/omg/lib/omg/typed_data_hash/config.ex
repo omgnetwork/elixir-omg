@@ -20,6 +20,9 @@ defmodule OMG.TypedDataHash.Config do
 
   alias OMG.TypedDataHash.Tools
 
+  # Needed for test only to have value of address when `:contract_address` is not set
+  @fallback_ari_network_address "44de0ec539b8c4a4b530c78620fe8320167f2f74"
+
   @doc """
   Computes default domain separator based on values from configuration.
   This value is taken to structured hash computation when no domain separator is passed.
@@ -29,15 +32,15 @@ defmodule OMG.TypedDataHash.Config do
     [
       name: name,
       version: version,
-      chain_id: chain_id,
-      verifying_contract: contract_addr_hex,
       salt: salt_hex
     ] = Application.fetch_env!(:omg, :eip_712_domain)
+
+    contract_addr_hex = Application.fetch_env!(:omg_eth, :contract_addr) || @fallback_ari_network_address
 
     <<contract_addr::binary-size(20)>> = decode16!(contract_addr_hex)
     <<salt::binary-size(32)>> = decode16!(salt_hex)
 
-    Tools.domain_separator(name, version, chain_id, contract_addr, salt)
+    Tools.domain_separator(name, version, contract_addr, salt)
   end
 
   defp decode16!("0x" <> data), do: decode16!(data)

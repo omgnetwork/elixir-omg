@@ -26,9 +26,6 @@ defmodule OMG.TypedDataHash do
 
   @zero_address <<0::160>>
 
-  # Precomputed hash of EIP-712 domain (aka `domain separator`) computed from configuration values
-  @domain_separator __MODULE__.Config.compute_domain_separator_from_config()
-
   # Precomputed hash of empty input for performance
   @empty_input_hash __MODULE__.Tools.hash_input(Utxo.position(0, 0, 0))
 
@@ -43,7 +40,8 @@ defmodule OMG.TypedDataHash do
   """
   @spec hash_struct(Transaction.t(), Crypto.domain_separator_t()) :: Crypto.hash_t()
   def hash_struct(raw_tx, domain_separator \\ nil) do
-    Crypto.hash(@eip_191_prefix <> (domain_separator || @domain_separator) <> hash_transaction(raw_tx))
+    domain_separator = domain_separator || __MODULE__.Config.compute_domain_separator_from_config()
+    Crypto.hash(@eip_191_prefix <> domain_separator <> hash_transaction(raw_tx))
   end
 
   @spec hash_transaction(Transaction.t()) :: Crypto.hash_t()
