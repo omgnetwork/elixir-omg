@@ -456,7 +456,7 @@ defmodule OMG.Eth.RootChain do
            Eth.get_call_data(
              from_hex(log["transactionHash"]),
              "startInFlightExit",
-             [:in_flight_tx, :inputs_txs, :input_includion_proofs, :in_flight_tx_sigs],
+             [:in_flight_tx, :inputs_txs, :input_inclusion_proofs, :in_flight_tx_sigs],
              [:bytes, :bytes, :bytes, :bytes]
            )
          )
@@ -624,7 +624,7 @@ defmodule OMG.Eth.RootChain do
 
   def decode_in_flight_exit_output_finalized(log) do
     non_indexed_keys = [:in_flight_exit_id, :output_index]
-    non_indexed_key_types = [{:uint, 192}, {:uint, 256}]
+    non_indexed_key_types = [{:uint, 192}, {:uint, 8}]
     indexed_keys = indexed_keys_types = []
 
     Eth.parse_events_with_indexed_fields(

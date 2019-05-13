@@ -56,9 +56,9 @@ defmodule OMG.State.Core do
           | [in_flight_exit()]
 
   @type in_flight_exit() :: %{in_flight_tx: binary()}
-  @type piggyback() :: %{txhash: Transaction.tx_hash(), output_index: non_neg_integer}
+  @type piggyback() :: %{tx_hash: Transaction.tx_hash(), output_index: non_neg_integer}
 
-  @type validities_t() :: {list(Utxo.Position.t()), list(Utxo.Position.t())}
+  @type validities_t() :: {list(Utxo.Position.t()), list(Utxo.Position.t() | piggyback())}
 
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
 
@@ -403,18 +403,19 @@ defmodule OMG.State.Core do
   end
 
   def exit_utxos([%{tx_hash: _} | _] = piggybacks, %Core{utxos: utxos} = state) do
-    piggybacks
-    |> Enum.map(fn %{tx_hash: tx_hash, output_index: oindex} ->
-      # oindex in contract is 0-7 where 4-7 are outputs
-      oindex = oindex - 4
+    {piggybacks_of_unknown_utxos, piggybacks_of_known_utxos} =
+      piggybacks
+      |> Enum.map(&find_utxo_matching_piggyback(&1, utxos))
+      |> Enum.split_with(fn {_, position} -> position == nil end)
 
-      utxos
-      |> Map.to_list()
-      |> Enum.find(&match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
-    end)
-    |> Enum.filter(&(&1 != nil))
-    |> Enum.map(fn {position, _} -> position end)
-    |> exit_utxos(state)
+    {:ok, {db_updates, {valid, invalid}}, state} =
+      piggybacks_of_known_utxos
+      |> Enum.map(fn {_, {position, _}} -> position end)
+      |> exit_utxos(state)
+
+    {unknown_piggybacks, _} = Enum.unzip(piggybacks_of_unknown_utxos)
+
+    {:ok, {db_updates, {valid, invalid ++ unknown_piggybacks}}, state}
   end
 
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
@@ -427,6 +428,15 @@ defmodule OMG.State.Core do
     new_state = %{state | utxos: Map.drop(utxos, valid)}
 
     {:ok, {db_updates, validities}, new_state}
+  end
+
+  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex} = piggyback, utxos) do
+    # oindex in contract is 0-7 where 4-7 are outputs
+    oindex = oindex - 4
+
+    position = Enum.find(utxos, &match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
+
+    {piggyback, position}
   end
 
   @doc """
