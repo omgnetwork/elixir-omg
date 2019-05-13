@@ -980,8 +980,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "fail when asked to produce proof for wrong txhash",
          %{invalid_piggyback_on_input: %{state: state, request: request}, unrelated_tx: comp} do
       comp_txbytes = Transaction.raw_txbytes(comp)
-      assert {:error, :unknown_ife} = Core.get_input_challenge_data(request, state, comp_txbytes, 0)
-      assert {:error, :unknown_ife} = Core.get_output_challenge_data(request, state, comp_txbytes, 0)
+      assert {:error, :ife_not_known_for_tx} = Core.get_input_challenge_data(request, state, comp_txbytes, 0)
+      assert {:error, :ife_not_known_for_tx} = Core.get_output_challenge_data(request, state, comp_txbytes, 0)
     end
 
     test "fail when asked to produce proof for wrong badly encoded tx",

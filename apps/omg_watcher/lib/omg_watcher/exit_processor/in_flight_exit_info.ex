@@ -303,11 +303,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
 
   def get_piggybacked_outputs_positions(%__MODULE__{
-        tx_seen_in_blocks_at: {txpos, _},
+        tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _},
         exit_map: exit_map
       }) do
-    {_, blknum, txindex, _} = txpos
-
     @outputs_index_range
     |> Enum.filter(&exit_map[&1].is_piggybacked)
     |> Enum.map(&Utxo.position(blknum, txindex, &1 - @max_number_of_inputs))
@@ -328,6 +326,27 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def is_output_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_inputs do
     is_piggybacked?(ife, index + @max_inputs)
   end
+
+  def indexed_piggybacks_by_ife(%__MODULE__{tx: tx} = ife, :input) do
+    indexed_piggybacked_inputs =
+      tx
+      |> Transaction.get_inputs()
+      |> Enum.with_index()
+      |> Enum.filter(fn {_input, index} -> is_input_piggybacked?(ife, index) end)
+
+    {ife, indexed_piggybacked_inputs}
+  end
+
+  def indexed_piggybacks_by_ife(%__MODULE__{} = ife, :output) do
+    indexed_piggybacked_outputs =
+      ife
+      |> get_piggybacked_outputs_positions()
+      |> Enum.map(&index_output_position/1)
+
+    {ife, indexed_piggybacked_outputs}
+  end
+
+  defp index_output_position(position), do: {position, Utxo.Position.oindex(position)}
 
   def piggybacked_inputs(ife) do
     @inputs_index_range
