@@ -4,7 +4,7 @@ use Mix.Config
 
 config :omg_db,
   # :leveldb, #:ets
-  type: :rocksdb,
+  type: :leveldb,
   # leveldb
   leveldb_path: Path.join([System.get_env("HOME"), ".omg/data"]),
   # leveldb
