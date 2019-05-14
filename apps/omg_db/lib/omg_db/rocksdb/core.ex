@@ -21,22 +21,22 @@ defmodule OMG.DB.RocksDB.Core do
 
   @single_value_parameter_names OMG.DB.single_value_parameter_names()
 
+  # if we keep the prefix byte size consistent across all keys, we're able to use
+  # prefix extractor to reduce the number of IO scans
+  # more https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes
   @keys_prefixes %{
-    block: "b",
-    block_hash: "bn",
-    utxo: "u",
-    exit_info: "e",
-    in_flight_exit_info: "ife",
-    competitor_info: "ci",
-    spend: "s"
+    block: "block",
+    block_hash: "hashb",
+    utxo: "utxoi",
+    exit_info: "exiti",
+    in_flight_exit_info: "infle",
+    competitor_info: "compi",
+    spend: "spend"
   }
 
   @key_types Map.keys(@keys_prefixes)
 
-  def parse_multi_updates(db_updates) do
-    db_updates
-    |> Enum.flat_map(&parse_multi_update/1)
-  end
+  def parse_multi_updates(db_updates), do: Enum.flat_map(db_updates, &parse_multi_update/1)
 
   @doc """
   Interprets the response from leveldb and returns a success-decorated result
@@ -55,9 +55,7 @@ defmodule OMG.DB.RocksDB.Core do
   """
   @spec decode_values(Enumerable.t(), atom) :: {:ok, list}
   def decode_values(encoded_enumerable, type) do
-    raw_decoded =
-      encoded_enumerable
-      |> Enum.map(fn encoded -> decode_response(type, encoded) end)
+    raw_decoded = Enum.map(encoded_enumerable, fn encoded -> decode_response(type, encoded) end)
 
     {:ok, raw_decoded}
   end
@@ -111,6 +109,7 @@ defmodule OMG.DB.RocksDB.Core do
   end
 
   defp do_filter_keys(reference, prefix) do
+    # https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes#use-readoptionsprefix_seek
     {:ok, iterator} = :rocksdb.iterator(reference, prefix_same_as_start: true)
     search(reference, iterator, :rocksdb.iterator_move(iterator, {:seek, prefix}), [])
   end

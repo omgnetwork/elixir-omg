@@ -20,6 +20,8 @@ defmodule OMG.DB.RocksDB.Server do
   # All complex operations on data written/read should go into OMG.DB.RocksDB.Core
 
   use GenServer
+  use OMG.Utils.Metrics
+
   alias OMG.DB.RocksDB.Core
   alias OMG.DB.RocksDB.Recorder
   require Logger
@@ -61,18 +63,40 @@ defmodule OMG.DB.RocksDB.Server do
       |> String.to_atom()
 
     {:ok, _recorder_pid} = Recorder.start_link(%Recorder{name: recorder_name, parent: self(), table: table})
-    setup = [{:create_if_missing, true}, {:prefix_extractor, {:fixed_prefix_transform, 1}}]
+    setup = [{:create_if_missing, false}, {:prefix_extractor, {:fixed_prefix_transform, 5}}]
 
     with {:ok, db_ref} <- :rocksdb.open(db_path, setup) do
       {:ok, %__MODULE__{name: name, db_ref: db_ref}}
     else
       error ->
-        _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
+        _ = Logger.error("It seems that database is not initialized. Check README.md")
         error
     end
   end
 
-  def handle_call({:multi_update, db_updates}, _from, state) do
+  def handle_call({:multi_update, db_updates}, _from, state), do: do_multi_update(db_updates, state)
+  def handle_call({:blocks, blocks_to_fetch}, _from, state), do: do_blocks(blocks_to_fetch, state)
+  def handle_call(:utxos, _from, state), do: do_utxos(state)
+  def handle_call(:exit_infos, _from, state), do: do_exit_infos(state)
+
+  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state),
+    do: do_block_hashes(block_numbers_to_fetch, state)
+
+  def handle_call(:in_flight_exits_info, _from, state), do: do_in_flight_exits_info(state)
+  def handle_call(:competitors_info, _from, state), do: do_competitors_info(state)
+
+  def handle_call({:get_single_value, parameter}, _from, state)
+      when is_atom(parameter),
+      do: do_get_single_value(parameter, state)
+
+  def handle_call({:exit_info, utxo_pos}, _from, state), do: do_exit_info(utxo_pos, state)
+  def handle_call({:spent_blknum, utxo_pos}, _from, state), do: do_spent_blknum(utxo_pos, state)
+
+  # WARNING, terminate below will be called only if :trap_exit is set to true
+  def terminate(_reason, %__MODULE__{db_ref: db_ref}), do: :ok = :rocksdb.close(db_ref)
+
+  @decorate measure_event()
+  defp do_multi_update(db_updates, state) do
     result =
       db_updates
       |> Core.parse_multi_updates()
@@ -81,7 +105,10 @@ defmodule OMG.DB.RocksDB.Server do
     {:reply, result, state}
   end
 
-  def handle_call({:blocks, blocks_to_fetch}, _from, state) do
+  @decorate measure_event()
+  defp do_blocks(blocks_to_fetch, state) do
+    # we could avoid the number of IO random searches by using an iterator
+    # that would traverse all keys from :block prefix. Whether that's faster we don't have the data yet.
     result =
       blocks_to_fetch
       |> Enum.map(fn block -> Core.key(:block, block) end)
@@ -91,17 +118,19 @@ defmodule OMG.DB.RocksDB.Server do
     {:reply, result, state}
   end
 
-  def handle_call(:utxos, _from, state) do
+  defp do_utxos(state) do
     result = get_all_by_type(:utxo, state)
     {:reply, result, state}
   end
 
-  def handle_call(:exit_infos, _from, state) do
+  @decorate measure_event()
+  defp do_exit_infos(state) do
     result = get_all_by_type(:exit_info, state)
     {:reply, result, state}
   end
 
-  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state) do
+  @decorate measure_event()
+  defp do_block_hashes(block_numbers_to_fetch, state) do
     result =
       block_numbers_to_fetch
       |> Enum.map(fn block_number -> Core.key(:block_hash, block_number) end)
@@ -111,18 +140,20 @@ defmodule OMG.DB.RocksDB.Server do
     {:reply, result, state}
   end
 
-  def handle_call(:in_flight_exits_info, _from, state) do
+  @decorate measure_event()
+  defp do_in_flight_exits_info(state) do
     result = get_all_by_type(:in_flight_exit_info, state)
     {:reply, result, state}
   end
 
-  def handle_call(:competitors_info, _from, state) do
+  @decorate measure_event()
+  defp do_competitors_info(state) do
     result = get_all_by_type(:competitor_info, state)
     {:reply, result, state}
   end
 
-  def handle_call({:get_single_value, parameter}, _from, state)
-      when is_atom(parameter) do
+  @decorate measure_event()
+  defp do_get_single_value(parameter, state) do
     result =
       parameter
       |> Core.key(nil)
@@ -132,7 +163,8 @@ defmodule OMG.DB.RocksDB.Server do
     {:reply, result, state}
   end
 
-  def handle_call({:exit_info, utxo_pos}, _from, state) do
+  @decorate measure_event()
+  defp do_exit_info(utxo_pos, state) do
     result =
       :exit_info
       |> Core.key(utxo_pos)
@@ -142,7 +174,8 @@ defmodule OMG.DB.RocksDB.Server do
     {:reply, result, state}
   end
 
-  def handle_call({:spent_blknum, utxo_pos}, _from, state) do
+  @decorate measure_event()
+  defp do_spent_blknum(utxo_pos, state) do
     result =
       :spend
       |> Core.key(utxo_pos)
@@ -152,10 +185,24 @@ defmodule OMG.DB.RocksDB.Server do
     {:reply, result, state}
   end
 
-  # WARNING, terminate below will be called only if :trap_exit is set to true
-  def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
-    :ok = :rocksdb.close(db_ref)
+  # iterator options
+  # same as read options
+  # this might be a use case for seek() https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes
+  defp do_get_all_by_type(type, db_ref), do: Core.decode_values(Core.filter_keys(db_ref, type), type)
+
+  defp create_stats_table(name) do
+    case :ets.whereis(name) do
+      :undefined ->
+        true = name == :ets.new(name, table_settings())
+
+        name
+
+      _ ->
+        name
+    end
   end
+
+  defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
 
   # Argument order flipping tools :(
   # write options
@@ -181,26 +228,4 @@ defmodule OMG.DB.RocksDB.Server do
     _ = Recorder.update_multiread(name)
     do_get_all_by_type(type, db_ref)
   end
-
-  # iterator options
-  # same as read options
-  # this might be a use case for seek() https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes
-  defp do_get_all_by_type(type, db_ref) do
-    Core.filter_keys(db_ref, type)
-    |> Core.decode_values(type)
-  end
-
-  defp create_stats_table(name) do
-    case :ets.whereis(name) do
-      :undefined ->
-        true = name == :ets.new(name, table_settings())
-
-        name
-
-      _ ->
-        name
-    end
-  end
-
-  defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
 end

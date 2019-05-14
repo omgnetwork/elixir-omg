@@ -120,7 +120,7 @@ defmodule OMG.Watcher.Fixtures do
     [] = DB.Block.get_all()
 
     on_exit(fn ->
-      Application.put_env(:omg_db, :leveldb_path, nil)
+      Application.put_env(:omg_db, :path, nil)
 
       (started_apps ++ started_watcher)
       |> Enum.reverse()
