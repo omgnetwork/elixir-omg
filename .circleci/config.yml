@@ -10,6 +10,10 @@ executors:
     docker:
       - image: omisegoimages/elixir-omg-builder:v1.3
       - image: postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
     working_directory: ~/src
 
   deploy:
