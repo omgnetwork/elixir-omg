@@ -3,12 +3,12 @@ version: 2.1
 executors:
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:v1.2
+      - image: omisegoimages/elixir-omg-builder:v1.3
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:v1.2
+      - image: omisegoimages/elixir-omg-builder:v1.3
       - image: postgres:9.6-alpine
     working_directory: ~/src
 
