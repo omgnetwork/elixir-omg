@@ -72,7 +72,7 @@ jobs:
     executor: builder_pg
     steps:
       - setup_elixir-omg_workspace
-      - run: MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, test --exclude test, credo, format --check-formatted --dry-run
+      - run: MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
 
   tests_compile_once:
     docker:
