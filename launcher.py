@@ -261,7 +261,7 @@ class WatcherLauncher:
         self.contracts['GORLI'] = GORLI_CONTRACT
         self.watcher_additional_config = [
             'config :omg_db,',
-            '  leveldb_path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])' # noqa E501
+            '  path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])' # noqa E501
         ]
         self.contract_exchanger_url = contract_exchanger_url
         self.ethereum_rpc_url = ethereum_rpc_url
