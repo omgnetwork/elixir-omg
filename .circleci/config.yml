@@ -40,7 +40,7 @@ jobs:
     steps:
       - checkout
       - run: make deps-elixir-omg
-      - run: make build-test
+      - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - persist_to_workspace:
           root: .
           paths:
