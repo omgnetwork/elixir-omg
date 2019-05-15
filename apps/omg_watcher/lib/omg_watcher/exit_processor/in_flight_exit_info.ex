@@ -231,18 +231,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  @spec challenge_piggyback(t(), integer()) :: {:ok, t()} | {:error, :non_existent_exit | :cannot_challenge}
-  def challenge_piggyback(ife, index)
-
   def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @exit_map_index_range do
-    with %{is_piggybacked: true, is_finalized: false} <- Map.get(exit_map, index) do
-      {:ok, %{ife | exit_map: Map.merge(exit_map, %{index => %{is_piggybacked: false, is_finalized: false}})}}
-    else
-      _ -> {:error, :cannot_challenge}
-    end
+    %{is_piggybacked: true, is_finalized: false} = Map.get(exit_map, index)
+    %{ife | exit_map: Map.replace!(exit_map, index, %{is_piggybacked: false, is_finalized: false})}
   end
-
-  def challenge_piggyback(%__MODULE__{}, _), do: {:error, :non_existent_exit}
 
   @spec respond_to_challenge(t(), Utxo.Position.t()) ::
           {:ok, t()} | {:error, :responded_with_too_young_tx | :cannot_respond}

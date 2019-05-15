@@ -360,15 +360,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert [%{piggybacked_inputs: []}, %{piggybacked_inputs: []}] = Core.get_active_in_flight_exits(processor)
   end
 
-  test "challenge piggybacks sanity checks", %{processor_filled: state, ife_tx_hashes: [tx_hash | _]} do
-    # cannot challenge piggyback of unknown ife
-    assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: 0, output_index: 0}])
-    # cannot challenge not piggybacked output
-    assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 0}])
-    # other sanity checks
-    assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 8}])
-  end
-
   test "detect invalid standard exit based on ife tx which spends same input",
        %{processor_empty: processor, alice: alice} do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])

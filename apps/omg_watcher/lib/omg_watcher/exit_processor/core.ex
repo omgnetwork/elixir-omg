@@ -352,8 +352,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     updated_ifes =
       challenges
       |> Enum.reduce(ifes_to_update, fn %{tx_hash: tx_hash, output_index: output_index}, acc ->
-        with {:ok, {ife, _}} <- Map.fetch(acc, tx_hash),
-             {:ok, updated_ife} <- InFlightExitInfo.challenge_piggyback(ife, output_index) do
+        with {ife, _} = Map.fetch!(acc, tx_hash),
+             updated_ife = InFlightExitInfo.challenge_piggyback(ife, output_index) do
           # mark as updated
           %{acc | tx_hash => {updated_ife, true}}
         else
@@ -441,26 +441,24 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp prepare_utxo_exits_for_finalization(
          %{in_flight_exit_id: ife_id, output_index: output},
-         {exits, ifes_by_id} = acc
+         {exits, ifes_by_id}
        ) do
     {tx_hash, ife} = Map.get(ifes_by_id, ife_id)
+    # a runtime sanity check - if this were false it would mean all piggybacks finalized so contract wouldn't allow that
+    true = InFlightExitInfo.is_active?(ife, output)
 
-    if InFlightExitInfo.is_active?(ife, output) do
-      {input_exits, output_exits} =
-        if output >= 4 do
-          {[], [%{tx_hash: tx_hash, output_index: output}]}
-        else
-          %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: tx}} = ife
-          input_exit = tx |> Transaction.get_inputs() |> Enum.at(output)
-          {[input_exit], []}
-        end
+    {input_exits, output_exits} =
+      if output >= 4 do
+        {[], [%{tx_hash: tx_hash, output_index: output}]}
+      else
+        %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: tx}} = ife
+        input_exit = tx |> Transaction.get_inputs() |> Enum.at(output)
+        {[input_exit], []}
+      end
 
-      {input_exits_acc, output_exits_acc} = Map.get(exits, ife_id, {[], []})
-      exits = Map.put(exits, ife_id, {input_exits ++ input_exits_acc, output_exits ++ output_exits_acc})
-      {exits, ifes_by_id}
-    else
-      acc
-    end
+    {input_exits_acc, output_exits_acc} = Map.get(exits, ife_id, {[], []})
+    exits = Map.put(exits, ife_id, {input_exits ++ input_exits_acc, output_exits ++ output_exits_acc})
+    {exits, ifes_by_id}
   end
 
   @doc """
