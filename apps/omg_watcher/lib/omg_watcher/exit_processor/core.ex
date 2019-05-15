@@ -941,8 +941,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Note: this change is not persisted later!
   """
   def find_ifes_in_blocks(
-        %ExitProcessor.Request{ife_input_spending_blocks_result: blocks},
-        %__MODULE__{in_flight_exits: ifes} = state
+        %__MODULE__{in_flight_exits: ifes} = state,
+        %ExitProcessor.Request{ife_input_spending_blocks_result: blocks}
       ) do
     updated_ifes =
       ifes
