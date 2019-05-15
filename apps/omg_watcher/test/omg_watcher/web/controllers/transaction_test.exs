@@ -49,6 +49,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       bob: bob
     } do
       {:ok, metadata} = OMG.DevCrypto.generate_private_key()
+
       [{blknum, txindex, txhash, _recovered_tx}] =
         blocks_inserter.([
           {1000,
