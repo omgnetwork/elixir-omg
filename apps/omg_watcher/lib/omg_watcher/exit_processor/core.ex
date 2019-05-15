@@ -31,16 +31,19 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
 
   alias OMG.Block
-  alias OMG.Crypto
   alias OMG.State.Transaction
-  alias OMG.TypedDataHash
   alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.ExitProcessor.StandardExitChallenge
+  alias OMG.Watcher.ExitProcessor.Tools.DoubleSpend
+  alias OMG.Watcher.ExitProcessor.Tools.KnownTx
   alias OMG.Watcher.ExitProcessor.TxAppendix
+
+  import OMG.Watcher.ExitProcessor.Tools
 
   require Utxo
   require Transaction
@@ -104,35 +107,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @type spent_blknum_result_t() :: pos_integer | :not_found
 
   @type pb_type_t() :: :input | :output
-
-  defmodule KnownTx do
-    @moduledoc """
-    Wrapps information about a particular signed transaction known from somewhere, optionally with its UTXO position
-
-    Private
-    """
-    defstruct [:signed_tx, :utxo_pos]
-
-    @type t() :: %__MODULE__{
-            signed_tx: Transaction.Signed.t(),
-            utxo_pos: Utxo.Position.t()
-          }
-  end
-
-  defmodule DoubleSpend do
-    @moduledoc """
-    Wraps information about a single double spend occuring between a verified transaction and a known transaction
-    """
-
-    defstruct [:index, :utxo_pos, :known_spent_index, :known_tx]
-
-    @type t() :: %__MODULE__{
-            index: non_neg_integer(),
-            utxo_pos: Utxo.Position.t(),
-            known_spent_index: non_neg_integer,
-            known_tx: KnownTx.t()
-          }
-  end
 
   @doc """
   Reads database-specific list of exits and turns them into current state
@@ -541,11 +515,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     %{request | utxos_to_check: do_determine_utxo_existence_to_get(state, blknum_now)}
   end
 
-  defp do_determine_utxo_existence_to_get(%__MODULE__{exits: exits, in_flight_exits: ifes}, blknum_now) do
-    standard_exits_pos =
-      exits
-      |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
-      |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
+  defp do_determine_utxo_existence_to_get(%__MODULE__{in_flight_exits: ifes} = state, blknum_now) do
+    standard_exits_pos = StandardExitChallenge.exiting_positions(state)
 
     active_ifes = ifes |> Map.values() |> Enum.filter(& &1.is_active)
     ife_inputs_pos = active_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
@@ -653,26 +624,20 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           utxos_to_check: utxos_to_check,
           utxo_exists_result: utxo_exists_result
         } = request,
-        %__MODULE__{exits: exits, sla_margin: sla_margin} = state
+        %__MODULE__{} = state
       )
       when is_integer(eth_height_now) do
     utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
 
-    invalid_exit_positions =
-      exits
-      |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
-      |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
-      |> only_utxos_checked_and_missing(utxo_exists?)
+    {invalid_exits, late_invalid_exits} = StandardExitChallenge.get_invalid(state, utxo_exists?, eth_height_now)
 
-    # get exits which are still invalid and after the SLA margin
-    late_invalid_exits =
-      exits
-      |> Map.take(invalid_exit_positions)
-      |> Enum.filter(fn {_, %ExitInfo{eth_height: eth_height}} -> eth_height + sla_margin <= eth_height_now end)
+    invalid_exit_events =
+      invalid_exits
+      |> Enum.map(fn {position, exit_info} -> ExitInfo.make_event_data(Event.InvalidExit, position, exit_info) end)
 
-    non_late_events =
-      invalid_exit_positions
-      |> Enum.map(fn position -> ExitInfo.make_event_data(Event.InvalidExit, position, exits[position]) end)
+    late_invalid_exits_events =
+      late_invalid_exits
+      |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
 
     ifes_with_competitors_events =
       get_ifes_with_competitors(request, state)
@@ -692,17 +657,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     available_piggybacks_events =
       get_ifes_to_piggyback(request, state)
       |> Enum.flat_map(&prepare_available_piggyback/1)
-
-    late_invalid_exits_events =
-      late_invalid_exits
-      |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
-
-    # get exits which are invalid because of being spent in IFEs
-    invalid_exit_events =
-      get_invalid_exits_based_on_ifes(state)
-      |> Enum.map(fn {position, exit_info} -> ExitInfo.make_event_data(Event.InvalidExit, position, exit_info) end)
-      |> Enum.concat(non_late_events)
-      |> Enum.uniq_by(fn %Event.InvalidExit{utxo_pos: utxo_pos} -> utxo_pos end)
 
     events =
       [
@@ -884,19 +838,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       known_txs = get_known_txs(blocks) ++ get_known_txs(state)
       produce_invalid_piggyback_proof(ife, known_txs, pb_index, pb_type)
     end
-  end
-
-  @spec get_invalid_exits_based_on_ifes(t()) :: list(%{Utxo.Position.t() => ExitInfo.t()})
-  defp get_invalid_exits_based_on_ifes(%__MODULE__{exits: exits} = state) do
-    exiting_utxo_positions =
-      state
-      |> TxAppendix.get_all()
-      |> Enum.flat_map(&Transaction.get_inputs/1)
-
-    exits
-    |> Enum.filter(fn {utxo_pos, _exit_info} ->
-      Enum.find(exiting_utxo_positions, &match?(^utxo_pos, &1))
-    end)
   end
 
   # Gets the list of open IFEs that have the competitors _somewhere_
@@ -1158,20 +1099,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
          do: hd(double_spends)
   end
 
-  # Intersects utxos, looking for duplicates. Gives full list of double-spends with indexes for
-  # a pair of transactions.
-  @spec double_spends_from_known_tx(list({Utxo.Position.t(), non_neg_integer()}), KnownTx.t()) ::
-          list(DoubleSpend.t())
-  defp double_spends_from_known_tx(inputs, %KnownTx{signed_tx: signed} = known_tx) when is_list(inputs) do
-    known_spent_inputs = signed |> Transaction.get_inputs() |> Enum.with_index()
-
-    # TODO: possibly ineffective if Transaction.max_inputs >> 4
-    for {left, left_index} <- inputs,
-        {right, right_index} <- known_spent_inputs,
-        left == right,
-        do: %DoubleSpend{index: left_index, utxo_pos: left, known_spent_index: right_index, known_tx: known_tx}
-  end
-
   defp txs_different(tx1, tx2), do: Transaction.raw_txhash(tx1) != Transaction.raw_txhash(tx2)
 
   defp get_known_txs(%__MODULE__{} = state) do
@@ -1195,17 +1122,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp get_known_txs([%Block{} | _] = blocks),
     do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
 
-  # based on an enumberable of `Utxo.Position` and a mapping that tells whether one exists it will pick
-  # only those that **were checked** and were missing
-  # (i.e. those not checked are assumed to be present)
-  defp only_utxos_checked_and_missing(utxo_positions, utxo_exists?) do
-    # the default value below is true, so that the assumption is that utxo not checked is **present**
-    # TODO: rather inefficient, but no as inefficient as the nested `filter` calls in searching for competitors
-    #       consider optimizing using `MapSet`
-
-    Enum.filter(utxo_positions, fn utxo_pos -> !Map.get(utxo_exists?, utxo_pos, true) end)
-  end
-
   defp is_among_known_txs?(raw_tx, known_txs) do
     Enum.find(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
       raw_tx == block_raw_tx
@@ -1221,27 +1137,5 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       nil -> {:error, :ife_not_known_for_tx}
       value -> {:ok, value}
     end
-  end
-
-  # Finds the exact signature which signed the particular transaction for the given owner address
-  @spec find_sig(Transaction.Signed.t(), Crypto.address_t()) :: {:ok, Crypto.sig_t()} | nil
-  defp find_sig(%Transaction.Signed{sigs: sigs, raw_tx: raw_tx}, owner) do
-    tx_hash = TypedDataHash.hash_struct(raw_tx)
-
-    Enum.find(sigs, fn sig ->
-      {:ok, owner} == Crypto.recover_address(tx_hash, sig)
-    end)
-    |> case do
-      nil -> nil
-      other -> {:ok, other}
-    end
-  end
-
-  def find_sig!(tx, owner) do
-    # at this point having a tx that wasn't actually signed is an error, hence pattern match
-    # if this returns nil it means somethings very wrong - the owner taken (effectively) from the contract
-    # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped
-    {:ok, sig} = find_sig(tx, owner)
-    sig
   end
 end
