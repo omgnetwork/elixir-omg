@@ -44,9 +44,10 @@ class ChildchainLauncher:
         if 'infura' not in self.ethereum_rpc_url:
             self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
             logging.info('Ethereum client is {}'.format(self.ethereum_client))
-        logging.info(
-            'Infura used for Ethereum connectivity. Skipping client check'
-        )
+        else:
+            logging.info(
+                'Infura used for Ethereum connectivity. Skipping client check'
+            )
         if self.chain_data_present is True:
             if self.ethereum_network not in self.public_networks:
                 if self.config_writer_dynamic() is True:
