@@ -30,7 +30,7 @@ This is the active scenario most of the time.
 Branches and environments:
 - `master` is automatically deployed to **development** environment
 - `v0.1` is automatically deployed to **staging-v0-1** environment
-  - changes to the release branch will be merged into master, as needed
+  - changes to the release branch will be merged into `master`, as needed
 - `v0.1` is manually deployed to **production-v0-1** environment
 
 Deploying new contracts in `master`:
@@ -68,15 +68,15 @@ When we're confident of the stability on **staging-v0-2** and ready to go to Pri
 
 Most importantly, we're confident about the contracts. A contract redeployment in this phase would have the most impact.
 
-This is a _feature freeze_ for the new network (`v0.2` branch). Try to minimize merging changes from `master` to any of the release branches.
+This is a _feature freeze_ for the new version (`v0.2` branch). Try to minimize merging changes from `master` to any of the release branches.
 
 Branches and environments:
 - `master` is automatically deployed to **development** environment
 - `v0.2` is automatically deployed to **staging-v0-2** environment
-  - changes to this release branch will be merged into master, as needed
+  - changes to this release branch will be merged into `master`, as needed
 - `v0.2` is manually deployed to **production-v0-2** environment
 - `v0.1` is automatically deployed to **staging-v0-1** environment
-  - changes to the release branch will be merged into master, as needed
+  - changes to the release branch will be merged into `master`, as needed
 - `v0.1` is manually deployed to **production-v0-1** environment
 
 Deploying new contracts to `master`:
@@ -95,4 +95,4 @@ We will have two production environments during the network upgrade, so that use
 Everything the same as Scenario 3 except - Deploying new contracts to `v0.2`
 - :stop_sign: _NOPE_
 
-Once this phase ends, we take down the older `production-v0-1` and `staging-v0-1` and return to Scenario 1. We may want to consider continuing to run a watcher for an old network a longer period of time.
+Once this phase ends, we take down the older `production-v0-1` and `staging-v0-1` and return to Scenario 1. We may want to consider continuing to run a watcher for an old version a longer period of time.
