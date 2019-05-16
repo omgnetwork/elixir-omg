@@ -56,6 +56,11 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     processor
   end
 
+  def piggyback_ife_from(%Core{} = processor, tx_hash, output_index) do
+    {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: output_index}])
+    processor
+  end
+
   def ife_event(tx, opts \\ []) do
     sigs = Keyword.get(opts, :sigs) || get_sigs(tx)
     eth_height = Keyword.get(opts, :eth_height, 2)

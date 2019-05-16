@@ -14,116 +14,118 @@
 
 defmodule OMG.DB do
   @moduledoc """
-  Our-types-aware port/adapter to a database backend.
-  Contains functions to access data stored in the database
+  DB API module provides an interface to all needed functions that need to be implemented by the
+  underlying database layer.
   """
-
-  ### Client (port)
-
-  require Logger
-
-  @server_name OMG.DB.LevelDBServer
-
-  @one_minute 60_000
-  @ten_minutes 10 * @one_minute
-
+  use OMG.Utils.Metrics
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
-  def multi_update(db_updates, server_name \\ @server_name) do
-    GenServer.call(server_name, {:multi_update, db_updates})
-  end
+  @callback start_link(term) :: GenServer.on_start()
+  @callback child_spec() :: Supervisor.child_spec()
+  @callback child_spec(term) :: Supervisor.child_spec()
+  @callback init(String.t()) :: :ok
+  @callback init() :: :ok
+  @callback initiation_multiupdate() :: :ok | {:error, any}
 
-  @spec blocks(block_to_fetch :: list(), atom) :: {:ok, list()} | {:error, any}
-  def blocks(blocks_to_fetch, server_name \\ @server_name)
+  @callback multi_update(term()) :: :ok | {:error, any}
+  @callback blocks(block_to_fetch :: list()) :: {:ok, list(term)}
+  @callback utxos() :: {:ok, list(term)}
+  @callback exit_infos() :: {:ok, list(term)}
+  @callback in_flight_exits_info() :: {:ok, list(term)}
+  @callback competitors_info() :: {:ok, list(term)}
+  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}) :: {:ok, map} | {:error, atom}
+  @callback spent_blknum(utxo_pos_db_t()) :: {:ok, pos_integer} | {:error, atom}
+  @callback block_hashes(integer()) :: list()
+  @callback last_deposit_child_blknum() :: list()
+  @callback child_top_block_number() :: {:ok, non_neg_integer()}
 
-  def blocks([], _server_name), do: {:ok, []}
+  # callbacks useful for injecting a specific server implementation
+  @callback initiation_multiupdate(GenServer.server()) :: :ok | {:error, any}
+  @callback multi_update(term(), GenServer.server()) :: :ok | {:error, any}
+  @callback blocks(block_to_fetch :: list(), GenServer.server()) :: {:ok, list()} | {:error, any}
+  @callback utxos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
+  @callback exit_infos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
+  @callback in_flight_exits_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
+  @callback competitors_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
+  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}, GenServer.server()) ::
+              {:ok, map} | {:error, atom}
+  @callback spent_blknum(utxo_pos_db_t(), GenServer.server()) :: {:ok, pos_integer} | {:error, atom}
+  @callback block_hashes(integer(), GenServer.server()) :: list()
+  @callback last_deposit_child_blknum(GenServer.server()) :: list()
+  @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()}
+  @optional_callbacks child_spec: 1,
+                      initiation_multiupdate: 1,
+                      multi_update: 2,
+                      blocks: 2,
+                      utxos: 1,
+                      exit_infos: 1,
+                      in_flight_exits_info: 1,
+                      competitors_info: 1,
+                      exit_info: 2,
+                      spent_blknum: 2,
+                      block_hashes: 2,
+                      last_deposit_child_blknum: 1,
+                      child_top_block_number: 1
 
-  def blocks(blocks_to_fetch, server_name) do
-    GenServer.call(server_name, {:blocks, blocks_to_fetch})
-  end
+  def start_link(args), do: driver().start_link(args)
 
-  def utxos(server_name \\ @server_name) do
-    _ = Logger.info("Reading UTXO set, this might take a while. Allowing #{inspect(@ten_minutes)} ms")
-    GenServer.call(server_name, :utxos, @ten_minutes)
-  end
+  def child_spec, do: driver().child_spec()
+  def child_spec(args), do: driver().child_spec(args)
 
-  def exit_infos(server_name \\ @server_name) do
-    _ = Logger.info("Reading exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
-    GenServer.call(server_name, :exit_infos, @one_minute)
-  end
-
-  def in_flight_exits_info(server_name \\ @server_name) do
-    _ = Logger.info("Reading in flight exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
-    GenServer.call(server_name, :in_flight_exits_info, @one_minute)
-  end
-
-  def competitors_info(server_name \\ @server_name) do
-    _ = Logger.info("Reading competitors' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
-    GenServer.call(server_name, :competitors_info, @one_minute)
-  end
-
-  @spec exit_info({pos_integer, non_neg_integer, non_neg_integer}, atom) :: {:ok, map} | {:error, atom}
-  def exit_info(utxo_pos, server_name \\ @server_name) do
-    GenServer.call(server_name, {:exit_info, utxo_pos})
-  end
-
-  @spec spent_blknum(utxo_pos_db_t(), atom) :: {:ok, pos_integer} | {:error, atom}
-  def spent_blknum(utxo_pos, server_name \\ @server_name) do
-    GenServer.call(server_name, {:spent_blknum, utxo_pos})
-  end
-
-  def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
-    GenServer.call(server_name, {:block_hashes, block_numbers_to_fetch})
-  end
-
-  def last_deposit_child_blknum(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_deposit_child_blknum)
-  end
-
-  def child_top_block_number(server_name \\ @server_name) do
-    GenServer.call(server_name, :child_top_block_number)
-  end
-
-  # Note: *_eth_height values below denote actual Ethereum height service has processed.
-  # It might differ from "latest" Ethereum block.
-
-  def get_single_value(server_name \\ @server_name, parameter_name) do
-    GenServer.call(server_name, {:get_single_value, parameter_name})
-  end
+  def init(path), do: driver().init(path)
+  def init, do: driver().init()
 
   @doc """
-  Puts all zeroes and other init values to a generically initialized `OMG-DB`
+  Puts all zeroes and other init values to a generically initialized `OMG.DB`
   """
-  def initiation_multiupdate(server_name \\ @server_name) do
-    # setting a number of markers to zeroes
-    single_value_parameter_names()
-    |> Enum.map(&{:put, &1, 0})
-    |> OMG.DB.multi_update(server_name)
-  end
+  @decorate measure_event()
+  def initiation_multiupdate, do: driver().initiation_multiupdate
+  def initiation_multiupdate(server), do: driver().initiation_multiupdate(server)
 
-  @doc """
-  Does all of the initialization of `OMG.DB` based on the configured path
-  """
-  def init, do: do_init(@server_name, Application.fetch_env!(:omg_db, :leveldb_path))
-  def init(path) when is_binary(path), do: do_init(@server_name, path)
-  def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :leveldb_path))
-  def init(server_name, path), do: do_init(server_name, path)
+  @decorate measure_event()
+  def multi_update(db_updates), do: driver().multi_update(db_updates)
+  def multi_update(db_updates, server), do: driver().multi_update(db_updates, server)
 
-  defp do_init(server_name, path) do
-    :ok = File.mkdir_p(path)
+  @decorate measure_event()
+  def blocks(blocks_to_fetch), do: driver().blocks(blocks_to_fetch)
+  def blocks(blocks_to_fetch, server), do: driver().blocks(blocks_to_fetch, server)
 
-    with :ok <- server_name.init_storage(path),
-         {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
-         :ok <- initiation_multiupdate(server_name) do
-      started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
+  @decorate measure_event()
+  def utxos, do: driver().utxos()
+  def utxos(server), do: driver().utxos(server)
 
-      :ok
-    else
-      error ->
-        _ = Logger.error("Unable to init: #{inspect(error)}")
-        error
-    end
-  end
+  @decorate measure_event()
+  def exit_infos, do: driver().exit_infos
+  def exit_infos(server), do: driver().exit_infos(server)
+
+  @decorate measure_event()
+  def in_flight_exits_info, do: driver().in_flight_exits_info()
+  def in_flight_exits_info(server), do: driver().in_flight_exits_info(server)
+
+  @decorate measure_event()
+  def competitors_info, do: driver().competitors_info
+  def competitors_info(server), do: driver().competitors_info(server)
+
+  @decorate measure_event()
+  def exit_info(utxo_pos), do: driver().exit_info(utxo_pos)
+
+  @decorate measure_event()
+  def spent_blknum(utxo_pos), do: driver().spent_blknum(utxo_pos)
+  def spent_blknum(utxo_pos, server), do: driver().spent_blknum(utxo_pos, server)
+
+  @decorate measure_event()
+  def block_hashes(block_numbers_to_fetch), do: driver().block_hashes(block_numbers_to_fetch)
+  def block_hashes(block_numbers_to_fetch, server), do: driver().block_hashes(block_numbers_to_fetch, server)
+
+  @decorate measure_event()
+  def last_deposit_child_blknum, do: driver().last_deposit_child_blknum()
+
+  @decorate measure_event()
+  def child_top_block_number, do: driver().child_top_block_number
+
+  @decorate measure_event()
+  def get_single_value(parameter_name), do: driver().get_single_value(parameter_name)
+  def get_single_value(parameter_name, server), do: driver().get_single_value(parameter_name, server)
 
   @doc """
   A list of all atoms that we use as single-values stored in the database (i.e. markers/flags of all kinds)
@@ -149,5 +151,12 @@ defmodule OMG.DB do
       :last_piggyback_challenges_processor_eth_height,
       :last_ife_exit_finalizer_eth_height
     ]
+  end
+
+  defp driver do
+    case Application.get_env(:omg_db, :type) do
+      :rocksdb -> OMG.DB.RocksDB
+      :leveldb -> OMG.DB.LevelDB
+    end
   end
 end

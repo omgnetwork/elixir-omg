@@ -31,6 +31,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   require OMG.Utxo
 
   @moduletag :integration
+  @moduletag :child_chain
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 120_000
 

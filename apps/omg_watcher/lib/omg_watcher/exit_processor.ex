@@ -32,6 +32,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor.StandardExitChallenge
   alias OMG.Watcher.Recorder
 
+  use OMG.Utils.Metrics
   use OMG.Utils.LoggerExt
   require Utxo
 
@@ -45,6 +46,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new exits are tracked.
   Returns `db_updates`
   """
+  @decorate measure_event()
   def new_exits(exits) do
     GenServer.call(__MODULE__, {:new_exits, exits})
   end
@@ -53,6 +55,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new in flight exits are tracked.
   Returns `db_updates`
   """
+  @decorate measure_event()
   def new_in_flight_exits(in_flight_exit_started_events) do
     GenServer.call(__MODULE__, {:new_in_flight_exits, in_flight_exit_started_events})
   end
@@ -61,6 +64,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - finalized exits are untracked _if valid_ otherwise raises alert
   Returns `db_updates`
   """
+  @decorate measure_event()
   def finalize_exits(finalizations) do
     GenServer.call(__MODULE__, {:finalize_exits, finalizations})
   end
@@ -69,6 +73,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new piggybacks are tracked, if invalid raises an alert
   Returns `db_updates`
   """
+  @decorate measure_event()
   def piggyback_exits(piggybacks) do
     GenServer.call(__MODULE__, {:piggyback_exits, piggybacks})
   end
@@ -77,6 +82,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - challenged exits are untracked
   Returns `db_updates`
   """
+  @decorate measure_event()
   def challenge_exits(challenges) do
     GenServer.call(__MODULE__, {:challenge_exits, challenges})
   end
@@ -86,6 +92,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Competitors are stored for future use(i.e. to challenge an in flight exit).
   Returns `db_updates`
   """
+  @decorate measure_event()
   def new_ife_challenges(challenges) do
     GenServer.call(__MODULE__, {:new_ife_challenges, challenges})
   end
@@ -94,6 +101,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in state.
   Returns `db_updates`
   """
+  @decorate measure_event()
   def respond_to_in_flight_exits_challenges(responds) do
     GenServer.call(__MODULE__, {:respond_to_in_flight_exits_challenges, responds})
   end
@@ -103,6 +111,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Challenged piggybacks are forgotten.
   Returns `db_updates`
   """
+  @decorate measure_event()
   def challenge_piggybacks(challenges) do
     GenServer.call(__MODULE__, {:challenge_piggybacks, challenges})
   end
@@ -111,6 +120,7 @@ defmodule OMG.Watcher.ExitProcessor do
     Accepts events and processes them in state - finalized outputs are applied to the state.
     Returns `db_updates`
   """
+  @decorate measure_event()
   def finalize_in_flight_exits(finalizations) do
     GenServer.call(__MODULE__, {:finalize_in_flight_exits, finalizations})
   end
@@ -122,6 +132,7 @@ defmodule OMG.Watcher.ExitProcessor do
   This function may also update some internal caches to make subsequent calls not redo the work,
   but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
   """
+  @decorate measure_event()
   def check_validity do
     GenServer.call(__MODULE__, :check_validity)
   end
@@ -130,6 +141,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
   If given empty list of hashes, all IFEs are returned.
   """
+  @decorate measure_event()
   @spec get_active_in_flight_exits() :: {:ok, %{binary() => InFlightExitInfo.t()}}
   def get_active_in_flight_exits do
     GenServer.call(__MODULE__, :get_active_in_flight_exits)
@@ -139,6 +151,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns all information required to produce a transaction to the root chain contract to present a competitor for
   a non-canonical in-flight exit
   """
+  @decorate measure_event()
   @spec get_competitor_for_ife(binary()) :: {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found}
   def get_competitor_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
@@ -148,17 +161,20 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
   for a challenged in-flight exit
   """
+  @decorate measure_event()
   @spec prove_canonical_for_ife(binary()) :: {:ok, Core.prove_canonical_data_t()} | {:error, :canonical_not_found}
   def prove_canonical_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
 
+  @decorate measure_event()
   @spec get_input_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
           {:ok, Core.input_challenge_data()} | {:error, Core.piggyback_challenge_data_error()}
   def get_input_challenge_data(txbytes, input_index) do
     GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index})
   end
 
+  @decorate measure_event()
   @spec get_output_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
           {:ok, Core.output_challenge_data()} | {:error, Core.piggyback_challenge_data_error()}
   def get_output_challenge_data(txbytes, output_index) do
@@ -168,6 +184,7 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Returns challenge for an exit
   """
+  @decorate measure_event()
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, StandardExitChallenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
   def create_challenge(exiting_utxo_pos) do
@@ -273,8 +290,16 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:finalize_in_flight_exits, finalizations}, _from, state) do
     _ = if not Enum.empty?(finalizations), do: Logger.info("Recognized ife finalizations: #{inspect(finalizations)}")
-    {:ok, state, db_updates} = Core.finalize_in_flight_exits(state, finalizations)
-    {:reply, {:ok, db_updates}, state}
+
+    {:ok, exits} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state, finalizations)
+
+    # NOTE: it's not straightforward to track from utxo position returned when exiting utxo in State to ife id
+    # See issue #671 https://github.com/omisego/elixir-omg/issues/671
+    {invalidities, state_db_updates} = Enum.reduce(exits, {%{}, []}, &collect_invalidities_and_state_db_updates/2)
+
+    {:ok, state, db_updates} = Core.finalize_in_flight_exits(state, finalizations, invalidities)
+
+    {:reply, {:ok, state_db_updates ++ db_updates}, state}
   end
 
   def handle_call(:check_validity, _from, state) do
@@ -415,10 +440,13 @@ defmodule OMG.Watcher.ExitProcessor do
   defp get_ife_input_spending_blocks(%ExitProcessor.Request{ife_input_spends_to_get: positions} = request),
     do: %{request | ife_input_spending_blocks_result: do_get_spending_blocks(positions)}
 
-  defp do_get_spending_blocks(positions) do
-    blknums = positions |> Enum.map(&do_get_spent_blknum/1)
-    _ = Logger.debug("spends_to_get: #{inspect(positions)}, spent_blknum_result: #{inspect(blknums)}")
-    do_get_blocks(blknums)
+  defp do_get_spending_blocks(spent_positions_to_get) do
+    blknums = spent_positions_to_get |> Enum.map(&do_get_spent_blknum/1)
+    _ = Logger.debug("spends_to_get: #{inspect(spent_positions_to_get)}, spent_blknum_result: #{inspect(blknums)}")
+
+    blknums
+    |> Core.handle_spent_blknum_result(spent_positions_to_get)
+    |> do_get_blocks()
   end
 
   defp do_get_blocks(blknums) do
@@ -433,5 +461,25 @@ defmodule OMG.Watcher.ExitProcessor do
   defp do_get_spent_blknum(position) do
     {:ok, spend_blknum} = position |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum()
     spend_blknum
+  end
+
+  defp collect_invalidities_and_state_db_updates(
+         {ife_id, {input_exits, output_exits}},
+         {invalidities_by_ife_id, state_db_updates}
+       ) do
+    # we can't call `State.exit_utxos(input_exits ++ output_exits)`
+    # because the types of these enumerable items are distinct
+    {:ok, input_exits_state_updates, {_, input_invalidities}} = State.exit_utxos(input_exits)
+    {:ok, output_exits_state_updates, {_, output_invalidities}} = State.exit_utxos(output_exits)
+
+    exit_invalidities = input_invalidities ++ output_invalidities
+
+    _ =
+      if not Enum.empty?(exit_invalidities),
+        do: Logger.warn("Invalid in-flight exit finalization: #{inspect(exit_invalidities)}")
+
+    invalidities_by_ife_id = Map.put(invalidities_by_ife_id, ife_id, exit_invalidities)
+    state_db_updates = input_exits_state_updates ++ output_exits_state_updates ++ state_db_updates
+    {invalidities_by_ife_id, state_db_updates}
   end
 end

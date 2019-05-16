@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.Case do
+defmodule OMG.DB.RocksDBCase do
   @moduledoc """
   Defines the useful common setup for all `...PersistenceTests`:
    - starts temporary file handler `:briefly`
@@ -21,17 +21,24 @@ defmodule OMG.DB.Case do
   """
 
   use ExUnit.CaseTemplate
+  alias OMG.DB.RocksDB.Server
 
   setup_all do
+    :ok = Application.put_env(:omg_db, :type, :rocksdb, persistent: true)
     {:ok, _} = Application.ensure_all_started(:briefly)
+
+    on_exit(fn ->
+      :ok = Application.put_env(:omg_db, :type, :leveldb, persistent: true)
+    end)
+
     :ok
   end
 
   setup %{test: test_name} do
     {:ok, dir} = Briefly.create(directory: true)
-    :ok = OMG.DB.LevelDBServer.init_storage(dir)
+    :ok = Server.init_storage(dir)
     name = :"TestDB_#{test_name}"
-    {:ok, pid} = GenServer.start_link(OMG.DB.LevelDBServer, %{db_path: dir, name: name}, name: name)
+    {:ok, pid} = start_supervised(OMG.DB.child_spec(db_path: dir, name: name))
     {:ok, %{db_dir: dir, db_pid: pid, db_pid_name: name}}
   end
 end

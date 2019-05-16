@@ -16,7 +16,7 @@ RUN groupadd --gid "${GID}" "${USER}" && \
       --shell /bin/bash \
       ${USER}
 
-ARG BUILD_PACKAGES="build-essential autoconf libtool libgmp3-dev libssl-dev wget gettext"
+ARG BUILD_PACKAGES="build-essential autoconf libtool libgmp3-dev libssl-dev wget gettext cmake"
 
 RUN apt-get update \
   && apt-get install -y software-properties-common \
@@ -51,7 +51,7 @@ USER elixir-user
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
-ENV HEX_HTTP_TIMEOUT=240 
+ENV HEX_HTTP_TIMEOUT=240
 
 WORKDIR /home/elixir-user/elixir-omg/
 
@@ -69,7 +69,7 @@ WORKDIR /home/elixir-user/elixir-omg/
 RUN mix do local.hex --force, local.rebar --force
 
 RUN mix deps.clean --all
-RUN mix deps.get 
+RUN mix deps.get
 
 RUN mix compile
 
@@ -77,7 +77,7 @@ USER root
 
 RUN deluser elixir-user sudo
 
-RUN apt-get purge -y 
+RUN apt-get purge -y
 
 USER elixir-user
 

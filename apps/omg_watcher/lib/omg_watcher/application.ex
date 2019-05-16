@@ -24,6 +24,14 @@ defmodule OMG.Watcher.Application do
     :ok = set_code_reloading()
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
+    _ =
+      :telemetry.attach(
+        "appsignal-ecto",
+        [:omg_watcher, :repo, :query],
+        &Appsignal.Ecto.handle_event/4,
+        nil
+      )
+
     start_root_supervisor()
   end
 

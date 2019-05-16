@@ -16,7 +16,9 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   alias OMG.Watcher.TestHelper
+
   @moduletag :integration
+  @moduletag :watcher
 
   @tag fixtures: [:watcher, :root_chain_contract_config]
   test "status endpoint returns expected response format" do

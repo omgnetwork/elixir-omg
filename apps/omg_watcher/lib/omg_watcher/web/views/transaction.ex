@@ -50,7 +50,7 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   defp render_transaction(transaction) do
     transaction
-    |> Map.take([:txindex, :txhash, :block, :inputs, :outputs, :txbytes])
+    |> Map.take([:txindex, :txhash, :block, :inputs, :outputs, :txbytes, :metadata])
     |> Map.update!(:inputs, &render_txoutputs/1)
     |> Map.update!(:outputs, &render_txoutputs/1)
   end

@@ -18,7 +18,7 @@ defmodule OMG.ChildChain.FreshBlocks do
   """
 
   use OMG.Utils.LoggerExt
-
+  use OMG.Utils.Metrics
   alias OMG.Block
   alias OMG.ChildChain.FreshBlocks.Core
   alias OMG.DB
@@ -28,6 +28,7 @@ defmodule OMG.ChildChain.FreshBlocks do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
+  @decorate measure_event()
   @spec get(block_hash :: binary) :: {:ok, Block.t()} | {:error, :not_found | any}
   def get(block_hash) do
     GenServer.call(__MODULE__, {:get, block_hash})
@@ -56,7 +57,10 @@ defmodule OMG.ChildChain.FreshBlocks do
     {:reply, result, state}
   end
 
-  def handle_cast({:push, %Block{number: block_number, hash: block_hash} = block}, state) do
+  def handle_cast({:push, block}, state), do: do_push(block, state)
+
+  @decorate measure_event()
+  defp do_push(%Block{number: block_number, hash: block_hash} = block, state) do
     {:ok, new_state} = Core.push(block, state)
     _ = Logger.debug("new block pushed, blknum '#{inspect(block_number)}', hash '#{inspect(block_hash)}'")
 

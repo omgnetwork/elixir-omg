@@ -17,7 +17,7 @@ defmodule OMG.State.PersistenceTest do
   Test focused on the persistence bits of `OMG.State.Core`
   """
   use ExUnitFixtures
-  use OMG.DB.Case, async: true
+  use OMG.DB.LevelDBCase, async: true
 
   alias OMG.Block
   alias OMG.State.Core
@@ -144,19 +144,13 @@ defmodule OMG.State.PersistenceTest do
 
   # mimics `&OMG.State.init/1`
   defp state_from(db_pid) do
-    {:ok, height_query_result} = OMG.DB.get_single_value(db_pid, :child_top_block_number)
-    {:ok, last_deposit_query_result} = OMG.DB.get_single_value(db_pid, :last_deposit_child_blknum)
+    {:ok, height_query_result} = OMG.DB.get_single_value(:child_top_block_number, db_pid)
+    {:ok, last_deposit_query_result} = OMG.DB.get_single_value(:last_deposit_child_blknum, db_pid)
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
 
     {:ok, state} =
       Core.extract_initial_state(utxos_query_result, height_query_result, last_deposit_query_result, @interval)
 
-    state
-  end
-
-  defp persist_common(state, db_updates, db_pid) do
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    assert state == state_from(db_pid)
     state
   end
 
@@ -177,6 +171,12 @@ defmodule OMG.State.PersistenceTest do
 
   defp exec(state, tx) do
     assert {:ok, _, state} = Core.exec(state, tx, :ignore)
+    state
+  end
+
+  defp persist_common(state, db_updates, db_pid) do
+    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
+    assert state == state_from(db_pid)
     state
   end
 end

@@ -31,6 +31,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @moduletag :integration
+  @moduletag :watcher
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 180_000
 
@@ -314,10 +315,35 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     Eth.DevHelpers.import_unlock_fund(bob)
 
-    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
 
-    %Transaction.Signed{raw_tx: raw_tx} =
-      tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+    %{"blknum" => blknum} = TestHelper.submit(tx |> Transaction.Signed.encode())
+    IntegrationTest.wait_for_block_fetch(blknum, @timeout)
+
+    _ = exit_in_flight_and_wait_for_ife(tx, alice)
+
+    assert %{"in_flight_exits" => [%{}]} = TestHelper.success?("/status.get")
+
+    _ = piggyback_and_process_exits(tx, 4 + 1, bob)
+
+    assert %{"in_flight_exits" => [], "byzantine_events" => []} = TestHelper.success?("/status.get")
+  end
+
+  @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
+  test "finalization of utxo not recognized in state leaves in-flight exit active",
+       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    Eth.DevHelpers.import_unlock_fund(bob)
+
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+
+    _ = exit_in_flight_and_wait_for_ife(tx, alice)
+    _ = piggyback_and_process_exits(tx, 4 + 1, bob)
+
+    assert %{"in_flight_exits" => [_], "byzantine_events" => [_]} = TestHelper.success?("/status.get")
+  end
+
+  defp exit_in_flight_and_wait_for_ife(tx, exiting_user) do
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
 
     get_in_flight_exit_response = tx |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
 
@@ -327,28 +353,28 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
         get_in_flight_exit_response["input_txs"],
         get_in_flight_exit_response["input_txs_inclusion_proofs"],
         get_in_flight_exit_response["in_flight_tx_sigs"],
-        alice.addr
+        exiting_user.addr
       )
       |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+  end
 
-    assert %{"in_flight_exits" => [%{}]} = TestHelper.success?("/status.get")
-
+  defp piggyback_and_process_exits(%Transaction.Signed{raw_tx: raw_tx}, output, output_owner) do
     raw_tx_bytes = raw_tx |> Transaction.raw_txbytes()
 
-    {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx_bytes, 4 + 1, bob.addr)
+    {:ok, _} =
+      OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx_bytes, output, output_owner.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds) * 1_000
     Process.sleep(2 * exit_period + 5_000)
 
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()
+      OMG.Eth.RootChain.process_exits(@eth, 0, 1, output_owner.addr) |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 10)
-
-    assert %{"in_flight_exits" => [], "byzantine_events" => []} = TestHelper.success?("/status.get")
   end
 end

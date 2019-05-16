@@ -12,38 +12,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.LevelDBServer do
+defmodule OMG.DB.RocksDB.Server do
   @moduledoc """
   Handles connection to leveldb
   """
 
-  # All complex operations on data written/read should go into OMG.DB.LevelDBCore
+  # All complex operations on data written/read should go into OMG.DB.RocksDB.Core
+
+  use GenServer
+  alias OMG.DB.RocksDB.Core
+  alias OMG.DB.RocksDB.Recorder
+  require Logger
 
   defstruct [:db_ref, :name]
 
-  use GenServer
-  alias OMG.DB.LevelDBCore
-  alias OMG.DB.Recorder
-  require Logger
-
+  @type t() :: %__MODULE__{
+          db_ref: :rocksdb.db_handle(),
+          name: GenServer.name()
+        }
   @doc """
   Initializes an empty LevelDB instance explicitly, so we can have control over it.
   NOTE: `init` here is to init the GenServer and that assumes that `init_storage` has already been called
   """
   @spec init_storage(binary) :: :ok | {:error, atom}
-  def init_storage(db_path) do
-    # open and close with the create flag set to true to initialize the LevelDB itself
-    with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: true),
-         true <- Exleveldb.is_empty?(db_ref) || {:error, :leveldb_not_empty},
-         do: Exleveldb.close(db_ref)
+  def init_storage(db_path), do: do_init_storage(String.to_charlist(db_path))
+
+  defp do_init_storage(db_path) do
+    with {:ok, db_ref} <- :rocksdb.open(db_path, create_if_missing: true),
+         true <- :rocksdb.is_empty(db_ref) || {:error, :rocksdb_not_empty},
+         do: :rocksdb.close(db_ref)
   end
 
-  def start_link(name: name, db_path: db_path) do
-    GenServer.start_link(__MODULE__, %{db_path: db_path, name: name}, name: name)
+  def start_link([db_path: _db_path, name: name] = args) do
+    GenServer.start_link(__MODULE__, args, name: name)
   end
 
-  def init(%{db_path: db_path, name: name}) do
+  # https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide#prefix-databases
+  def init(db_path: db_path, name: name) do
     # needed so that terminate callback is called on normal close
+    db_path = String.to_charlist(db_path)
     Process.flag(:trap_exit, true)
     table = create_stats_table(name)
 
@@ -54,8 +61,9 @@ defmodule OMG.DB.LevelDBServer do
       |> String.to_atom()
 
     {:ok, _recorder_pid} = Recorder.start_link(%Recorder{name: recorder_name, parent: self(), table: table})
+    setup = [{:create_if_missing, true}, {:prefix_extractor, {:fixed_prefix_transform, 1}}]
 
-    with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: false) do
+    with {:ok, db_ref} <- :rocksdb.open(db_path, setup) do
       {:ok, %__MODULE__{name: name, db_ref: db_ref}}
     else
       error ->
@@ -67,7 +75,7 @@ defmodule OMG.DB.LevelDBServer do
   def handle_call({:multi_update, db_updates}, _from, state) do
     result =
       db_updates
-      |> LevelDBCore.parse_multi_updates()
+      |> Core.parse_multi_updates()
       |> write(state)
 
     {:reply, result, state}
@@ -76,9 +84,9 @@ defmodule OMG.DB.LevelDBServer do
   def handle_call({:blocks, blocks_to_fetch}, _from, state) do
     result =
       blocks_to_fetch
-      |> Enum.map(fn block -> LevelDBCore.key(:block, block) end)
+      |> Enum.map(fn block -> Core.key(:block, block) end)
       |> Enum.map(fn key -> get(key, state) end)
-      |> LevelDBCore.decode_values(:block)
+      |> Core.decode_values(:block)
 
     {:reply, result, state}
   end
@@ -96,9 +104,9 @@ defmodule OMG.DB.LevelDBServer do
   def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state) do
     result =
       block_numbers_to_fetch
-      |> Enum.map(fn block_number -> LevelDBCore.key(:block_hash, block_number) end)
+      |> Enum.map(fn block_number -> Core.key(:block_hash, block_number) end)
       |> Enum.map(fn key -> get(key, state) end)
-      |> LevelDBCore.decode_values(:block_hash)
+      |> Core.decode_values(:block_hash)
 
     {:reply, result, state}
   end
@@ -117,9 +125,9 @@ defmodule OMG.DB.LevelDBServer do
       when is_atom(parameter) do
     result =
       parameter
-      |> LevelDBCore.key(nil)
+      |> Core.key(nil)
       |> get(state)
-      |> LevelDBCore.decode_value(parameter)
+      |> Core.decode_value(parameter)
 
     {:reply, result, state}
   end
@@ -127,9 +135,9 @@ defmodule OMG.DB.LevelDBServer do
   def handle_call({:exit_info, utxo_pos}, _from, state) do
     result =
       :exit_info
-      |> LevelDBCore.key(utxo_pos)
+      |> Core.key(utxo_pos)
       |> get(state)
-      |> LevelDBCore.decode_value(:exit_info)
+      |> Core.decode_value(:exit_info)
 
     {:reply, result, state}
   end
@@ -137,28 +145,36 @@ defmodule OMG.DB.LevelDBServer do
   def handle_call({:spent_blknum, utxo_pos}, _from, state) do
     result =
       :spend
-      |> LevelDBCore.key(utxo_pos)
+      |> Core.key(utxo_pos)
       |> get(state)
-      |> LevelDBCore.decode_value(:spend)
+      |> Core.decode_value(:spend)
 
     {:reply, result, state}
   end
 
   # WARNING, terminate below will be called only if :trap_exit is set to true
   def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
-    :ok = Exleveldb.close(db_ref)
+    :ok = :rocksdb.close(db_ref)
   end
 
   # Argument order flipping tools :(
-
+  # write options
+  # write_options() = [{sync, boolean()} | {disable_wal, boolean()} | {ignore_missing_column_families, boolean()} |
+  # {no_slowdown, boolean()} | {low_pri, boolean()}]
+  # @spec write(Exleveldb.write_actions(), t) :: :ok | {:error, any}
   defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_write(name)
-    Exleveldb.write(db_ref, operations)
+    :rocksdb.write(db_ref, operations, [])
   end
 
+  # get read options
+  # read_options() = [{verify_checksums, boolean()} | {fill_cache, boolean()} | {iterate_upper_bound, binary()} |
+  # {iterate_lower_bound, binary()} | {tailing, boolean()} | {total_order_seek, boolean()} |
+  # {prefix_same_as_start, boolean()} | {snapshot, snapshot_handle()}]
+  @spec get(atom() | binary(), t) :: {:ok, binary()} | :not_found
   defp get(key, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_read(name)
-    Exleveldb.get(db_ref, key)
+    :rocksdb.get(db_ref, key, [])
   end
 
   defp get_all_by_type(type, %__MODULE__{db_ref: db_ref, name: name}) do
@@ -166,12 +182,12 @@ defmodule OMG.DB.LevelDBServer do
     do_get_all_by_type(type, db_ref)
   end
 
+  # iterator options
+  # same as read options
+  # this might be a use case for seek() https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes
   defp do_get_all_by_type(type, db_ref) do
-    db_ref
-    |> Exleveldb.stream()
-    |> LevelDBCore.filter_keys(type)
-    |> Enum.map(fn {_, value} -> {:ok, value} end)
-    |> LevelDBCore.decode_values(type)
+    Core.filter_keys(db_ref, type)
+    |> Core.decode_values(type)
   end
 
   defp create_stats_table(name) do

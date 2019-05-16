@@ -30,6 +30,7 @@ defmodule OMG.EthTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @moduletag :wrappers
+  @moduletag :common
 
   @tag fixtures: [:eth_node]
   test "get_ethereum_height returns integer" do

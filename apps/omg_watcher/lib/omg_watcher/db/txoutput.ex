@@ -17,6 +17,7 @@ defmodule OMG.Watcher.DB.TxOutput do
   Ecto schema for transaction's output or input
   """
   use Ecto.Schema
+  use OMG.Utils.Metrics
 
   alias OMG.Block
   alias OMG.State.Transaction
@@ -58,6 +59,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     belongs_to(:exit, DB.EthEvent, foreign_key: :spending_exit, references: :hash, type: :binary)
   end
 
+  @decorate measure_event()
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
   def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
     if Utxo.Position.is_deposit?(decoded_utxo_pos) do
@@ -71,6 +73,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     end
   end
 
+  @decorate measure_event()
   defp compose_deposit_exit(decoded_utxo_pos) do
     with %{amount: amount, currency: currency, owner: owner} <- get_by_position(decoded_utxo_pos) do
       tx = Transaction.new([], [{owner, currency, amount}])
@@ -88,6 +91,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     end
   end
 
+  @decorate measure_event()
   defp compose_output_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
     # TODO: Make use of Block API's block.get when available
     sorted_tx_bytes =
@@ -112,13 +116,16 @@ defmodule OMG.Watcher.DB.TxOutput do
     }
   end
 
+  @decorate measure_event()
   def get_all, do: Repo.all(__MODULE__)
 
+  @decorate measure_event()
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
     Repo.get_by(__MODULE__, blknum: blknum, txindex: txindex, oindex: oindex)
   end
 
+  @decorate measure_event()
   def get_utxos(owner) do
     query =
       from(
@@ -131,6 +138,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     Repo.all(query)
   end
 
+  @decorate measure_event()
   @spec get_balance(OMG.Crypto.address_t()) :: list(balance())
   def get_balance(owner) do
     query =
@@ -149,6 +157,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
+  @decorate measure_event()
   @spec spend_utxos([map()]) :: :ok
   def spend_utxos(db_inputs) do
     db_inputs
@@ -160,6 +169,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
+  @decorate measure_event()
   @spec create_outputs(pos_integer(), integer(), binary(), Transaction.any_flavor_t()) :: [map()]
   def create_outputs(
         blknum,
@@ -194,6 +204,7 @@ defmodule OMG.Watcher.DB.TxOutput do
       }
     ]
 
+  @decorate measure_event()
   @spec create_inputs(Transaction.any_flavor_t(), binary()) :: [tuple()]
   def create_inputs(tx, spending_txhash) do
     tx
@@ -204,6 +215,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
+  @decorate measure_event()
   @spec get_sorted_grouped_utxos(OMG.Crypto.address_t()) :: %{OMG.Crypto.address_t() => list(%__MODULE__{})}
   def get_sorted_grouped_utxos(owner) do
     # TODO: use clever DB query to get following out of DB

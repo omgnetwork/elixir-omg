@@ -20,7 +20,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   """
 
   use ExUnitFixtures
-  use OMG.DB.Case, async: true
+  use OMG.DB.LevelDBCase, async: true
 
   alias OMG.DevCrypto
   alias OMG.State.Transaction
@@ -253,7 +253,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   end
 
   defp persist_finalize_ifes(processor, finalizations, db_pid) do
-    {:ok, processor, db_updates} = Core.finalize_in_flight_exits(processor, finalizations)
+    {:ok, processor, db_updates} = Core.finalize_in_flight_exits(processor, finalizations, %{})
     persist_common(processor, db_updates, db_pid)
   end
 end

@@ -18,7 +18,9 @@ defmodule OMG.ChildChain.MonitorTest do
   alias OMG.Alert.AlarmHandler
   alias OMG.ChildChain.Monitor
   use ExUnit.Case, async: true
+
   @moduletag :integration
+  @moduletag :child_chain
   @moduletag timeout: 120_000
 
   setup_all do
