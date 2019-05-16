@@ -25,6 +25,8 @@ Rationale:
 
 ### 1 - Single production deployment, ongoing development
 
+This is the active scenario most of the time.
+
 Branches and environments:
 - `master` is automatically deployed to **development** environment
 - `v0.1` is automatically deployed to **staging-v0-1** environment
@@ -64,7 +66,7 @@ Deploying new contracts in `v0.1`:
 
 When we're confident of the stability on **staging-v0-2** and ready to go to Private Alpha, create the `v0.2` branch from `master` for both `elixir-omg` and `plasma-contracts` repos.
 
-Most importantly, we're confident about the contracts. A contract redeployment in this phase would be the most complicated.
+Most importantly, we're confident about the contracts. A contract redeployment in this phase would have the most impact.
 
 This is a _feature freeze_ for the new network (`v0.2` branch). Try to minimize merging changes from `master` to any of the release branches.
 
