@@ -20,6 +20,7 @@ defmodule OMG.DB do
   use OMG.Utils.Metrics
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
+  @callback ping() :: boolean
   @callback start_link(term) :: GenServer.on_start()
   @callback child_spec() :: Supervisor.child_spec()
   @callback child_spec(term) :: Supervisor.child_spec()
@@ -66,6 +67,8 @@ defmodule OMG.DB do
                       block_hashes: 2,
                       last_deposit_child_blknum: 1,
                       child_top_block_number: 1
+
+  def ping, do: driver().ping()
 
   def start_link(args), do: driver().start_link(args)
 

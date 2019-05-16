@@ -277,28 +277,11 @@ defmodule OMG.State.Core do
       # enrich the event triggers with the ethereum height supplied
       |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
 
-    db_updates_new_utxos =
-      txs
-      |> Enum.with_index()
-      |> Enum.flat_map(fn {tx, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
-      |> Enum.map(&utxo_to_db_put/1)
+    db_updates_utxos = db_update_utxos(height, txs)
+    db_updates_block = {:put, :block, Block.to_db_value(block)}
+    db_updates_top_block_number = {:put, :child_top_block_number, height}
 
-    db_updates_spent_utxos =
-      txs
-      |> Enum.flat_map(&Transaction.get_inputs/1)
-      |> Enum.flat_map(fn utxo_pos ->
-        # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
-        db_key = Utxo.Position.to_db_key(utxo_pos)
-        [{:delete, :utxo, db_key}, {:put, :spend, {db_key, height}}]
-      end)
-
-    db_updates_block = [{:put, :block, Block.to_db_value(block)}]
-
-    db_updates_top_block_number = [{:put, :child_top_block_number, height}]
-
-    db_updates =
-      [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block, db_updates_top_block_number]
-      |> Enum.concat()
+    db_updates = [db_updates_block, db_updates_top_block_number | db_updates_utxos]
 
     new_state = %Core{
       state
@@ -454,5 +437,34 @@ defmodule OMG.State.Core do
   def get_status(%__MODULE__{height: height, tx_index: tx_index, pending_txs: pending}) do
     is_beginning = tx_index == 0 && Enum.empty?(pending)
     {height, is_beginning}
+  end
+
+  @spec db_update_utxos(non_neg_integer(), list(Transaction.Recovered.t())) :: term()
+  def db_update_utxos(height, txs) do
+    db_updates_new_utxos =
+      txs
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {tx, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
+      |> Enum.map(&utxo_to_db_put/1)
+
+    db_updates_spent_utxos =
+      txs
+      |> Enum.flat_map(&Transaction.get_inputs/1)
+      |> Enum.flat_map(fn utxo_pos ->
+        # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
+        db_key = Utxo.Position.to_db_key(utxo_pos)
+        [{:delete, :utxo, db_key}, {:put, :spend, {db_key, height}}]
+      end)
+
+    Enum.concat(db_updates_new_utxos, db_updates_spent_utxos)
+  end
+
+  @spec standard_exitable(list(term), Crypto.address_t()) :: list(term)
+  def standard_exitable(utxos_query_result, address) do
+    Stream.filter(utxos_query_result, fn {_, %{owner: owner}} -> owner == address end)
+    |> Stream.map(fn {{blknum, txindex, oindex}, utxo} ->
+      utxo |> Map.put(:blknum, blknum) |> Map.put(:txindex, txindex) |> Map.put(:oindex, oindex)
+    end)
+    |> Enum.to_list()
   end
 end

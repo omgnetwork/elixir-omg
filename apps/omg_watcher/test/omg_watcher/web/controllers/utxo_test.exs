@@ -17,7 +17,6 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
-  alias OMG.TestHelper
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher.DB
@@ -26,6 +25,162 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @eth_hex Encoding.to_hex(@eth)
+
+  describe "standard_exitable" do
+    @tag fixtures: [:initial_blocks, :carol, :db_initialized]
+    test "no utxos are returned for non-existing addresses", %{carol: carol} do
+      assert [] == TestHelper.get_exitable_utxos(carol.addr)
+    end
+
+    @tag fixtures: [:initial_blocks, :alice, :db_initialized]
+    test "utxo from initial blocks are available", %{alice: alice} do
+      alice_enc = alice.addr |> Encoding.to_hex()
+
+      assert [
+               %{
+                 "amount" => 1,
+                 "currency" => @eth_hex,
+                 "blknum" => 2000,
+                 "txindex" => 0,
+                 "oindex" => 1,
+                 "owner" => ^alice_enc
+               },
+               %{
+                 "amount" => 150,
+                 "currency" => @eth_hex,
+                 "blknum" => 3000,
+                 "txindex" => 0,
+                 "oindex" => 0,
+                 "owner" => ^alice_enc
+               },
+               %{
+                 "amount" => 50,
+                 "currency" => @eth_hex,
+                 "blknum" => 3000,
+                 "txindex" => 1,
+                 "oindex" => 1,
+                 "owner" => ^alice_enc
+               }
+             ] = TestHelper.get_exitable_utxos(alice.addr)
+    end
+
+    @tag fixtures: [:initial_blocks, :alice, :db_initialized]
+    test "encoded utxo positions are delivered", %{alice: alice} do
+      [%{"utxo_pos" => utxo_pos, "blknum" => blknum, "txindex" => txindex, "oindex" => oindex} | _] =
+        TestHelper.get_exitable_utxos(alice.addr)
+
+      assert Utxo.position(^blknum, ^txindex, ^oindex) = utxo_pos |> Utxo.Position.decode!()
+    end
+
+    @tag fixtures: [:initial_blocks, :bob, :carol, :db_initialized, :blocks_inserter]
+    test "spent utxos are moved to new owner", %{bob: bob, carol: carol, blocks_inserter: blocks_inserter} do
+      [] = TestHelper.get_exitable_utxos(carol.addr)
+      # bob spends his utxo to carol
+      blocks_inserter.([
+        {11_000, [OMG.TestHelper.create_recovered([{2000, 0, 0, bob}], @eth, [{bob, 49}, {carol, 50}])]}
+      ])
+
+      assert [
+               %{
+                 "amount" => 50,
+                 "blknum" => 11_000,
+                 "txindex" => 0,
+                 "oindex" => 1,
+                 "currency" => @eth_hex
+               }
+             ] = TestHelper.get_exitable_utxos(carol.addr)
+    end
+
+    @tag fixtures: [:initial_blocks, :db_initialized, :bob]
+    test "unspent deposits are a part of utxo set", %{bob: bob} do
+      bob_enc = bob.addr |> Encoding.to_hex()
+      deposited_utxo = bob.addr |> TestHelper.get_exitable_utxos() |> Enum.find(&(&1["blknum"] < 1000))
+
+      assert %{
+               "amount" => 100,
+               "currency" => @eth_hex,
+               "blknum" => 2,
+               "txindex" => 0,
+               "oindex" => 0,
+               "owner" => ^bob_enc
+             } = deposited_utxo
+    end
+
+    @tag fixtures: [:initial_blocks, :db_initialized, :alice]
+    test "spent deposits are not a part of utxo set", %{alice: alice} do
+      assert utxos = TestHelper.get_exitable_utxos(alice.addr)
+
+      assert [] = utxos |> Enum.filter(&(&1["blknum"] < 1000))
+    end
+
+    @tag fixtures: [:initial_blocks, :db_initialized, :blocks_inserter, :carol, :bob]
+    test "deposits are spent", %{carol: carol, bob: bob, blocks_inserter: blocks_inserter} do
+      assert [] = TestHelper.get_exitable_utxos(carol.addr)
+
+      assert utxos = TestHelper.get_exitable_utxos(bob.addr)
+
+      # bob has 1 unspent deposit
+      assert %{
+               "amount" => 100,
+               "currency" => @eth_hex,
+               "blknum" => blknum,
+               "txindex" => 0,
+               "oindex" => 0
+             } = utxos |> Enum.find(&(&1["blknum"] < 1000))
+
+      blocks_inserter.([{11_000, [OMG.TestHelper.create_recovered([{blknum, 0, 0, bob}], @eth, [{carol, 100}])]}])
+
+      utxos = TestHelper.get_exitable_utxos(bob.addr)
+
+      # bob has spent his deposit
+      assert [] == utxos |> Enum.filter(&(&1["blknum"] < 1000))
+
+      carol_enc = carol.addr |> Encoding.to_hex()
+
+      # carol has new utxo from above tx
+      assert [
+               %{
+                 "amount" => 100,
+                 "currency" => @eth_hex,
+                 "blknum" => 11_000,
+                 "txindex" => 0,
+                 "oindex" => 0,
+                 "owner" => ^carol_enc
+               }
+             ] = TestHelper.get_exitable_utxos(carol.addr)
+    end
+
+    @tag fixtures: [:blocks_inserter, :db_initialized, :alice]
+    test "outputs with value zero are not inserted into DB, the other has correct oindex", %{
+      alice: alice,
+      blocks_inserter: blocks_inserter
+    } do
+      blknum = 11_000
+
+      blocks_inserter.([
+        {blknum,
+         [
+           OMG.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 100}]),
+           OMG.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])
+         ]}
+      ])
+
+      [
+        %{
+          "amount" => 100,
+          "blknum" => ^blknum,
+          "txindex" => 0,
+          "oindex" => 1
+        },
+        %{
+          "amount" => 101,
+          "blknum" => ^blknum,
+          "txindex" => 1,
+          "oindex" => 0
+        }
+      ] = TestHelper.get_exitable_utxos(alice.addr) |> Enum.filter(&match?(%{"blknum" => ^blknum}, &1))
+    end
+  end
 
   @tag fixtures: [:initial_blocks, :carol]
   test "no utxos are returned for non-existing addresses", %{carol: carol} do

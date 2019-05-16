@@ -36,4 +36,12 @@ defmodule OMG.Watcher.API.Account do
   def get_utxos(address) do
     DB.TxOutput.get_utxos(address)
   end
+
+  @spec get_exitable_utxos(OMG.Crypto.address_t()) :: list(%DB.TxOutput{})
+  def get_exitable_utxos(address) do
+    {:ok, utxos} = OMG.DB.utxos()
+
+    utxos
+    |> OMG.State.Core.standard_exitable(address)
+  end
 end

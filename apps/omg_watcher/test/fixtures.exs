@@ -179,13 +179,24 @@ defmodule OMG.Watcher.Fixtures do
       %{owner: bob.addr, currency: @eth, amount: 100, blknum: 2}
     ])
 
+    if OMG.DB.ping() do
+      [
+        {1, [OMG.TestHelper.create_recovered([], @eth, [{alice, 333}])]},
+        {2, [OMG.TestHelper.create_recovered([], @eth, [{bob, 100}])]}
+      ]
+      |> Enum.map(&conditional_update_key_value_storage/1)
+    end
+
     :ok
   end
 
   deffixture blocks_inserter(phoenix_ecto_sandbox) do
     :ok = phoenix_ecto_sandbox
 
-    fn blocks -> blocks |> Enum.flat_map(&prepare_one_block/1) end
+    fn blocks ->
+      Enum.map(blocks, &conditional_update_key_value_storage/1)
+      blocks |> Enum.flat_map(&prepare_one_block/1)
+    end
   end
 
   deffixture test_server do
@@ -215,6 +226,13 @@ defmodule OMG.Watcher.Fixtures do
       fake_addr: fake_addr,
       server_id: server_id
     }
+  end
+
+  defp conditional_update_key_value_storage({blknum, recovered_txs}) do
+    if OMG.DB.ping() do
+      db_updates = OMG.State.Core.db_update_utxos(blknum, recovered_txs)
+      OMG.DB.multi_update(db_updates)
+    end
   end
 
   defp prepare_one_block({blknum, recovered_txs}) do
