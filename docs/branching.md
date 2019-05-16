@@ -93,4 +93,4 @@ We will have two production environments during the network upgrade, so that use
 Everything the same as Scenario 3 except - Deploying new contracts to `v0.2`
 - :stop_sign: _NOPE_
 
-Once this phase ends, we return to Scenario 1.
+Once this phase ends, we take down the older `production-v0-1` and `staging-v0-1` and return to Scenario 1. We may want to consider continuing to run a watcher for an old network a longer period of time.
