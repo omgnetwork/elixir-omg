@@ -359,13 +359,16 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call({:create_challenge, exiting_utxo_pos}, _from, state) do
+    request = %ExitProcessor.Request{se_exiting_pos: exiting_utxo_pos}
+
     response =
-      %ExitProcessor.Request{se_exiting_pos: exiting_utxo_pos}
-      |> Core.determine_standard_challenge_queries(state)
-      |> fill_request_with_standard_challenge_data()
-      |> Core.determine_exit_txbytes(state)
-      |> fill_request_with_standard_exit_id()
-      |> Core.create_challenge(state)
+      with {:ok, request_with_queries} <- Core.determine_standard_challenge_queries(request, state),
+           do:
+             request_with_queries
+             |> fill_request_with_standard_challenge_data()
+             |> Core.determine_exit_txbytes(state)
+             |> fill_request_with_standard_exit_id()
+             |> Core.create_challenge(state)
 
     {:reply, response, state}
   end
