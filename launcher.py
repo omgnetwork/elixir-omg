@@ -41,8 +41,12 @@ class ChildchainLauncher:
         )
         self.update_appsignal_deployment()
         self.check_chain_data_path()
-        self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
-        logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        if 'infura' not in self.ethereum_rpc_url:
+            self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
+            logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        logging.info(
+            'Infura used for Ethereum connectivity. Skipping client check'
+        )
         if self.chain_data_present is True:
             if self.ethereum_network not in self.public_networks:
                 if self.config_writer_dynamic() is True:
