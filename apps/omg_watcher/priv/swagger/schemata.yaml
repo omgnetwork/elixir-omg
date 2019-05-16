@@ -69,6 +69,9 @@ TransactionSchema:
   schema:
     type: object
     properties:
+      metadata:
+        type: string
+        format: binary
       txindex:
         type: integer
         format: int16
