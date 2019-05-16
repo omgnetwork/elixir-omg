@@ -1,33 +1,91 @@
-### Branching and deployments model
+# Branching and deployments model
 
 This document aims to discuss and document the relations between branches and deployments of `elixir-omg`, with respect to branches and deployments of `plasma-contracts`.
 
 It is a refinement of the [OIP4 branching model](https://github.com/omisego/OIP/blob/master/0004-ewallet-release-and-versioning.md), applicable to `elixir-omg` and `plasma-contracts` versioning.
 
-This takes `v0.1` and `v0.2` as an example of two versions, where one is deployed in `staging`/`Ari` and the other is the upcoming upgrade and is deployed in `development`.
-
 Rationale:
-- the history and the relations between the versions are readable and accountable,
+- the history and the relations between the versions are readable and simple to understand
 - we can predictably sync our respective watchers/run child chain servers against deployed contracts
-- we can move with `master`s quickly
+- we can move with the `master` branch quickly
 
-("->" means that the `mix.exs` holds the following branch)
 
-- `elixir-omg/v0.1` -> `plasma-contracts/v0.1`, that's understood, the `mix.lock` points to a specific frozen version, no changes expected there
-- `elixir-omg/master` -> `plasma-contracts/master`, mix lock points to the contracts ~deployed on `development`~ we want to CI-check with `elixir-omg`. So it might be newer than what contract is deployed on `development`
-- `elixir-omg/v0.2` -> `plasma-contracts/v0.2`. `elixir-omg/v0.2` will have a commit that fixes *the branch `plasma-contracts/v0.2` in `mix.exs`*.
-`elixir-omg/master` is going to be constantly merged into `elixir-omg/v0.2`, as long we keep merging features. However, *the `mix.lock` will always point to the contract commit currently deployed on `development`*.
+## Dependency Rules for elixir-omg
 
-When want to integrate to a newer contract, and `v0.2` isn't yet feature frozen in terms of the contract, we'll:
-- make a PR to `elixir-omg/master` bumping the contract version in `mix.lock` and (possibly) providing compatibility with any possible breaking changes.
-This will run CI checks on the new integration
-- PR is merged
-- this is the moment when `elixir-omg/master` might not sync to `development` anymore, if changes to contract were breaking!
-If they weren't breaking, we can end here, all should sync fine
-- if changes were breaking:
-- fast forward `plasma-contracts/v0.2` to the desired commit on `master`
-- merge the resulting bump of `mix.lock` contracts' version into `elixir-omg/v0.2`.
+### For mix.exs
+- `elixir-omg/master` will point to the `plasma-contracts/master`
+- A release branch in `elixir-omg` will point to the corresponding release branch in `plasma-contracts`. For example:
+  - `elixir-omg/v0.1` -> `plasma-contracts/v0.1`
 
-Also, if we want to upgrade contracts to be potentially promoted to `staging-v0.2`/`Ari-v0.2`, we should test on `development` first, so we'd like to reset `development` under such circumstances too (even if changes had been non-breaking above).
+### For mix.lock
+- Always points to a specific SHA that in the history of the `plasma-contracts` branch referenced in `mix.exs`
 
-When `plasma-contracts/v0.2` finally becomes the contract version which we will push to `staging-v0.2` (and `Ari-v0.2`), `plasma-contracts/master` starts putting on new contract-features and diverges from `plasma-contracts/v0.2`
+
+## Deployment Scenarios
+
+### 1 - Single production deployment, ongoing development
+
+Branches and environments:
+- `master` is automatically deployed to **development** environment
+- `v0.1` is automatically deployed to **staging-v0-1** environment
+  - changes to the release branch will be merged into master, as needed
+- `v0.1` is manually deployed to **production-v0-1** environment
+
+Deploying new contracts in `master`:
+- make a PR to `elixir-omg/master` bumping the contract version in `mix.lock`
+- CI checks on the new integration
+- merge the PR
+- redeploy contracts
+- redeploy child chain and watcher
+- NB – contract deployment is currently a manual process, so we may be in a state where `mix.lock` points to a newer SHA than deployed on **development**. _We will correct this disparity as quickly as possible. This may mean rolling back `mix.lock`, if needed._
+- TODO – Automate contract deployments in **development**
+
+Deploying new contracts in the release branch:
+- :stop_sign: - _NOPE_
+- We cannot deploy any `elixir-omg` code that is incompatible with the currently deployed contracts in **staging** and **production**
+
+
+### 2 - Production deployment, validating a new version for network upgrade
+
+Branches and environments:
+- `master` is automatically deployed to **development** environment
+- `master` is automatically deployed to **staging-v0-2** environment
+  - This assumes that during the process of validating a network upgrade, all work merged onto `master` will get deployed to for the upgrade.
+- `v0.1` is automatically deployed to **staging-v0-1** environment
+  - Keep this environment around for hotfixes
+- `v0.1` is manually deployed to **production-v0-1** environment
+
+Deploying new contracts in `master`:
+- Same as Scenario 1, with **development** and **staging-v0-2** environments
+
+Deploying new contracts in `v0.1`:
+- :stop_sign: _NOPE_
+
+### 3 - Production deployment, ready to deploy network upgrade to production, ongoing development
+
+When we're confident of the stability on **staging-v0-2** and ready to go to Private Alpha, create the `v0.2` branch from `master` for both `elixir-omg` and `plasma-contracts` repos.
+
+Branches and environments:
+- `master` is automatically deployed to **development** environment
+- `v0.2` is automatically deployed to **staging-v0-2** environment
+- `v0.2` is manually deployed to **production-v0-2** environment
+- `v0.1` is automatically deployed to **staging-v0-1** environment
+- `v0.1` is manually deployed to **production-v0-1** environment
+
+Deploying new contracts to `master`:
+- Same as Scenario 1
+
+Deploying new contracts to `v0.1`
+- :stop_sign: _NOPE_
+
+Deploying new contracts to `v0.2`
+- Manually deploy to **staging-v0-2** and **production-v0-2** environments, _if absolutely necessary_
+
+### 4 - Two production deployments, ongoing development
+
+We will have two production environments during the network upgrade, so that users have the opportunity to exit the old environment and deposit into the new environment.
+
+Everything the same as Scenario 3 except - Deploying new contracts to `v0.2`
+- :stop_sign: _NOPE_
+
+Once this phase ends, we return to Scenario 1.
