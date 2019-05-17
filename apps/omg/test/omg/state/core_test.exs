@@ -748,6 +748,11 @@ defmodule OMG.State.CoreTest do
     |> fail?(:utxo_not_found)
   end
 
+  @tag fixtures: [:alice]
+  test "no utxos that belong to address within the empty query result", %{alice: %{addr: alice}} do
+    assert [] == Core.standard_exitable_utxos([], alice)
+  end
+
   @tag fixtures: [:alice, :bob, :carol]
   test "getting user utxos from utxos_query_result", %{
     alice: %{addr: alice},
@@ -762,7 +767,7 @@ defmodule OMG.State.CoreTest do
       {{1000, 4, 0}, %{amount: 5, currency: @eth, owner: bob}}
     ]
 
-    assert [] == Core.standard_exitable(utxos_query_result, carol)
+    assert [] == Core.standard_exitable_utxos(utxos_query_result, carol)
 
     assert MapSet.equal?(
              MapSet.new([
@@ -770,7 +775,7 @@ defmodule OMG.State.CoreTest do
                %{blknum: 1000, txindex: 2, oindex: 0, owner: alice, currency: @not_eth, amount: 3},
                %{blknum: 1000, txindex: 3, oindex: 1, owner: alice, currency: @eth, amount: 4}
              ]),
-             MapSet.new(Core.standard_exitable(utxos_query_result, alice))
+             MapSet.new(Core.standard_exitable_utxos(utxos_query_result, alice))
            )
 
     assert Map.equal?(
@@ -778,7 +783,7 @@ defmodule OMG.State.CoreTest do
                %{blknum: 1000, txindex: 4, oindex: 0, owner: bob, currency: @eth, amount: 5},
                %{blknum: 2000, txindex: 1, oindex: 1, owner: bob, currency: @eth, amount: 2}
              ]),
-             MapSet.new(Core.standard_exitable(utxos_query_result, bob))
+             MapSet.new(Core.standard_exitable_utxos(utxos_query_result, bob))
            )
   end
 

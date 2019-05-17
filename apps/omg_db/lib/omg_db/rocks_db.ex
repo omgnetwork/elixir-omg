@@ -55,10 +55,6 @@ defmodule OMG.DB.RocksDB do
     }
   end
 
-  def ping(server_name \\ @server_name) do
-    GenServer.whereis(server_name) != nil
-  end
-
   def multi_update(db_updates, server_name \\ @server_name) do
     GenServer.call(server_name, {:multi_update, db_updates})
   end

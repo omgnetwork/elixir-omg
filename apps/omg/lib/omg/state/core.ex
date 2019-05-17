@@ -87,7 +87,7 @@ defmodule OMG.State.Core do
   Recovers the ledger's state from data delivered by the `OMG.DB`
   """
   @spec extract_initial_state(
-          utxos_query_result :: [utxos],
+          utxos_query_result :: [list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})],
           height_query_result :: non_neg_integer | :not_found,
           last_deposit_child_blknum_query_result :: non_neg_integer | :not_found,
           child_block_interval :: pos_integer
@@ -439,8 +439,9 @@ defmodule OMG.State.Core do
     {height, is_beginning}
   end
 
-  @spec db_update_utxos(non_neg_integer(), list(Transaction.Recovered.t())) :: term()
-  def db_update_utxos(height, txs) do
+  @spec db_update_utxos(non_neg_integer(), list(Transaction.Recovered.t())) ::
+          list({:put, :utxo, {Utxo.Position.db_t(), Utxo.t()}} | {:delet, :utxo, Utxo.Position.db_t()})
+  defp db_update_utxos(height, txs) do
     db_updates_new_utxos =
       txs
       |> Enum.with_index()
@@ -459,12 +460,16 @@ defmodule OMG.State.Core do
     Enum.concat(db_updates_new_utxos, db_updates_spent_utxos)
   end
 
-  @spec standard_exitable(list(term), Crypto.address_t()) :: list(term)
-  def standard_exitable(utxos_query_result, address) do
+  @doc """
+    Filter user utxos from db response.
+    It may take a while for a large response from db
+  """
+  @spec standard_exitable_utxos(list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()}), Crypto.address_t()) ::
+          list({Utxo.Position.db_t(), Utxo.t()})
+  def standard_exitable_utxos(utxos_query_result, address) do
     Stream.filter(utxos_query_result, fn {_, %{owner: owner}} -> owner == address end)
-    |> Stream.map(fn {{blknum, txindex, oindex}, utxo} ->
+    |> Enum.map(fn {{blknum, txindex, oindex}, utxo} ->
       utxo |> Map.put(:blknum, blknum) |> Map.put(:txindex, txindex) |> Map.put(:oindex, oindex)
     end)
-    |> Enum.to_list()
   end
 end
