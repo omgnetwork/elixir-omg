@@ -279,8 +279,13 @@ class WatcherLauncher:
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
         self.update_appsignal_deployment()
-        self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
-        logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        if 'infura' not in self.ethereum_rpc_url:
+            self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
+            logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        else:
+            logging.info(
+                'Infura used for Ethereum connectivity. Skipping client check'
+            )
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
