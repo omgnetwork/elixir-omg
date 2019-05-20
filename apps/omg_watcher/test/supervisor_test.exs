@@ -54,29 +54,34 @@ defmodule OMG.Watcher.SupervisorTest do
     assert %{sync_height: 1, root_chain_height: 10} = Core.get_synced_info(state, @pid[getter])
 
     # depositor advances
-    assert {:ok, state} = Core.check_in(state, @pid[:depositor], 10, :depositor)
+    assert {:ok, state} = Core.check_in(state, @pid[:depositor], 9, :depositor)
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:exit_processor])
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:in_flight_exit_processor])
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:convenience_deposit_processor])
 
+    # convenience depositor advances allowing to put blocks into Postgres via `BlockGetter`
+    assert %{sync_height: 1, root_chain_height: 10} = Core.get_synced_info(state, @pid[getter])
+    assert {:ok, state} = Core.check_in(state, @pid[:convenience_deposit_processor], 9, :convenience_deposit_processor)
+    assert %{sync_height: 10, root_chain_height: 10} = Core.get_synced_info(state, @pid[getter])
+
     # exit_processor advances
     assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:exit_challenger])
-    assert {:ok, state} = Core.check_in(state, @pid[:exit_processor], 10, :exit_processor)
+    assert {:ok, state} = Core.check_in(state, @pid[:exit_processor], 9, :exit_processor)
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:exit_challenger])
 
     # in flights advance
     assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:piggyback_processor])
     assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:competitor_processor])
-    assert {:ok, state} = Core.check_in(state, @pid[:in_flight_exit_processor], 10, :in_flight_exit_processor)
+    assert {:ok, state} = Core.check_in(state, @pid[:in_flight_exit_processor], 9, :in_flight_exit_processor)
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:piggyback_processor])
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:competitor_processor])
 
     assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:piggyback_challenges_processor])
-    assert {:ok, state} = Core.check_in(state, @pid[:piggyback_processor], 10, :piggyback_processor)
+    assert {:ok, state} = Core.check_in(state, @pid[:piggyback_processor], 9, :piggyback_processor)
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:piggyback_challenges_processor])
 
     assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:challenges_responds_processor])
-    assert {:ok, state} = Core.check_in(state, @pid[:competitor_processor], 10, :competitor_processor)
+    assert {:ok, state} = Core.check_in(state, @pid[:competitor_processor], 9, :competitor_processor)
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:challenges_responds_processor])
 
     # BlockGetter advances
@@ -90,10 +95,10 @@ defmodule OMG.Watcher.SupervisorTest do
 
     # root chain advances
     assert {:ok, state} = Core.update_root_chain_height(state, 100)
-    assert %{sync_height: 10, root_chain_height: 99} = Core.get_synced_info(state, @pid[:exit_finalizer])
-    assert %{sync_height: 10, root_chain_height: 99} = Core.get_synced_info(state, @pid[:convenience_exit_processor])
-    assert %{sync_height: 10, root_chain_height: 99} = Core.get_synced_info(state, @pid[:ife_exit_finalizer])
+    assert %{sync_height: 9, root_chain_height: 99} = Core.get_synced_info(state, @pid[:exit_finalizer])
+    assert %{sync_height: 9, root_chain_height: 99} = Core.get_synced_info(state, @pid[:convenience_exit_processor])
+    assert %{sync_height: 9, root_chain_height: 99} = Core.get_synced_info(state, @pid[:ife_exit_finalizer])
     assert %{sync_height: 99, root_chain_height: 99} = Core.get_synced_info(state, @pid[:depositor])
-    assert %{sync_height: 11, root_chain_height: 100} = Core.get_synced_info(state, @pid[getter])
+    assert %{sync_height: 10, root_chain_height: 100} = Core.get_synced_info(state, @pid[getter])
   end
 end
