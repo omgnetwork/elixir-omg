@@ -186,7 +186,8 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
 
   def handle_info(:sync, state) do
-    with %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
+    with {:ok, _} <- Core.chain_ok(state),
+         %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
 
       {time, {:ok, submissions}} = :timer.tc(fn -> Eth.RootChain.get_block_submitted_events(block_range) end)
@@ -217,6 +218,10 @@ defmodule OMG.Watcher.BlockGetter do
     else
       :nosync ->
         :ok = RootChainCoordinator.check_in(state.synced_height, __MODULE__)
+        {:noreply, state}
+
+      {:error, _} = error ->
+        _ = Logger.warn("Chain invalid when trying to sync, because of #{inspect(error)}, won't try again")
         {:noreply, state}
     end
   end
