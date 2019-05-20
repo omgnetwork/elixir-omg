@@ -41,13 +41,7 @@ class ChildchainLauncher:
         )
         self.update_appsignal_deployment()
         self.check_chain_data_path()
-        if 'infura' not in self.ethereum_rpc_url:
-            self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
-            logging.info('Ethereum client is {}'.format(self.ethereum_client))
-        else:
-            logging.info(
-                'Infura used for Ethereum connectivity. Skipping client check'
-            )
+        self.ethereum_client_version()
         if self.chain_data_present is True:
             if self.ethereum_network not in self.public_networks:
                 if self.config_writer_dynamic() is True:
@@ -71,6 +65,18 @@ class ChildchainLauncher:
                 sys.exit(1)
 
         logging.info('Launcher process complete')
+
+    def ethereum_client_version(self):
+        ''' Check the Ethereum client software version. Will skip this check
+        if using Infura as that API doesn't support the same RPC call.
+        '''
+        if 'infura' not in self.ethereum_rpc_url:
+            self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
+            logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        else:
+            logging.info(
+                'Infura used for Ethereum connectivity. Skipping client check'
+            )
 
     def update_appsignal_deployment(self):
         ''' Inform AppSignal of the new deployment
@@ -279,13 +285,7 @@ class WatcherLauncher:
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
         self.update_appsignal_deployment()
-        if 'infura' not in self.ethereum_rpc_url:
-            self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
-            logging.info('Ethereum client is {}'.format(self.ethereum_client))
-        else:
-            logging.info(
-                'Infura used for Ethereum connectivity. Skipping client check'
-            )
+        self.ethereum_client_version()
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
@@ -312,6 +312,18 @@ class WatcherLauncher:
             sys.exit(1)
 
         logging.info('Launcher process complete')
+
+    def ethereum_client_version(self):
+        ''' Check the Ethereum client software version. Will skip this check
+        if using Infura as that API doesn't support the same RPC call.
+        '''
+        if 'infura' not in self.ethereum_rpc_url:
+            self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
+            logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        else:
+            logging.info(
+                'Infura used for Ethereum connectivity. Skipping client check'
+            )
 
     def update_appsignal_deployment(self):
         ''' Inform AppSignal of the new deployment
