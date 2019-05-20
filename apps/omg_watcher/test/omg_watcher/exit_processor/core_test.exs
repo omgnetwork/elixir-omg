@@ -98,15 +98,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   defp invalid_piggyback_on_input(state, [tx | _], [ife_id | _], competing_tx) do
-    state = state |> start_ife_from(competing_tx) |> piggyback_ife_from(ife_id, 0)
-
     request = %ExitProcessor.Request{
       blknum_now: 4000,
       eth_height_now: 5,
       ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], 3000)]
     }
 
-    state = Core.find_ifes_in_blocks(request, state)
+    state = state |> start_ife_from(competing_tx) |> piggyback_ife_from(ife_id, 0) |> Core.find_ifes_in_blocks(request)
 
     %{
       state: state,
@@ -125,28 +123,23 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     # 2. transaction which spends that piggybacked output
     comp = TestHelper.create_recovered([{3000, 0, 0, alice}], [])
 
-    # 3. stuff happens in the contract; output #4 is a double-spend; #5 is OK
-    {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}, %{tx_hash: ife_id, output_index: 5}])
-
     tx_blknum = 3000
     comp_blknum = 4000
     block = Block.hashed_txs_at([tx], tx_blknum)
 
-    exit_processor_request = %ExitProcessor.Request{
+    request = %ExitProcessor.Request{
       blknum_now: 5000,
       eth_height_now: 5,
       blocks_result: [block],
-      ife_input_spending_blocks_result: [
-        block,
-        Block.hashed_txs_at([comp], comp_blknum)
-      ]
+      ife_input_spending_blocks_result: [block, Block.hashed_txs_at([comp], comp_blknum)]
     }
 
-    state = Core.find_ifes_in_blocks(exit_processor_request, state)
+    # 3. stuff happens in the contract; output #4 is a double-spend; #5 is OK
+    state = state |> piggyback_ife_from(ife_id, 4) |> piggyback_ife_from(ife_id, 5) |> Core.find_ifes_in_blocks(request)
 
     %{
       state: state,
-      request: exit_processor_request,
+      request: request,
       ife_good_pb_index: 5,
       ife_txbytes: txbytes(tx),
       ife_output_pos: Utxo.position(tx_blknum, 0, 0),
@@ -360,15 +353,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert [%{piggybacked_inputs: []}, %{piggybacked_inputs: []}] = Core.get_active_in_flight_exits(processor)
   end
 
-  test "challenge piggybacks sanity checks", %{processor_filled: state, ife_tx_hashes: [tx_hash | _]} do
-    # cannot challenge piggyback of unknown ife
-    assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: 0, output_index: 0}])
-    # cannot challenge not piggybacked output
-    assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 0}])
-    # other sanity checks
-    assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 8}])
-  end
-
   test "detect invalid standard exit based on ife tx which spends same input",
        %{processor_empty: processor, alice: alice} do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
@@ -538,8 +522,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = txbytes(tx)
       {comp_txbytes, comp_sig} = {txbytes(comp), sig(comp, 1)}
 
-      state = piggyback_ife_from(state, ife_id, 0)
-
       comp_blknum = 4000
 
       request = %ExitProcessor.Request{
@@ -548,7 +530,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
 
-      state = Core.find_ifes_in_blocks(request, state)
+      state = state |> piggyback_ife_from(ife_id, 0) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -573,19 +555,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [])
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
 
-      # 3. stuff happens in the contract
-      state = state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 4)
-
-      exit_processor_request = %ExitProcessor.Request{
+      request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
       }
 
-      state = Core.find_ifes_in_blocks(exit_processor_request, state)
+      # 3. stuff happens in the contract
+      state = state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 4) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
-               check_validity_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
 
       assert {:ok,
               %{
@@ -595,12 +575,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 spending_txbytes: ^comp_txbytes,
                 spending_input_index: 0,
                 spending_sig: ^comp_signature
-              }} = Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
+              }} = Core.get_output_challenge_data(request, state, txbytes, 0)
 
       assert_proof_sound(proof_bytes)
     end
 
-    test "detects double-spend of an output, found in a block",
+    test "detects and proves double-spend of an output, found in a block",
          %{alice: alice, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
       # this time, the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
       # 1. transaction which is, ife'd, output piggybacked, and included in a block
@@ -611,28 +591,20 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [])
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
 
-      # 3. stuff happens in the contract
-      state = piggyback_ife_from(state, ife_id, 4)
-
       comp_blknum = 4000
 
-      exit_processor_request = %ExitProcessor.Request{
+      request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        ife_input_spending_blocks_result: [
-          Block.hashed_txs_at([tx], tx_blknum)
-        ]
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)],
+        blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
 
-      state = Core.find_ifes_in_blocks(exit_processor_request, state)
-
-      exit_processor_request = %{
-        exit_processor_request
-        | blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
-      }
+      # 3. stuff happens in the contract
+      state = state |> piggyback_ife_from(ife_id, 4) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
-               check_validity_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
 
       assert {:ok,
               %{
@@ -642,38 +614,165 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 spending_txbytes: ^comp_txbytes,
                 spending_input_index: 0,
                 spending_sig: ^comp_signature
-              }} = Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
+              }} = Core.get_output_challenge_data(request, state, txbytes, 0)
 
       assert_proof_sound(proof_bytes)
     end
 
-    test "does not look into ife_input_spending_blocks_result when it should not",
-         %{processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
+    test "detects and proves double-spend of an output, found in a block, various output indices",
+         %{carol: carol, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
       txbytes = txbytes(tx)
       tx_blknum = 3000
 
-      state = piggyback_ife_from(state, ife_id, 4)
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 1, carol}], [])
+      {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
 
-      exit_processor_request = %ExitProcessor.Request{
+      comp_blknum = 4000
+
+      request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        ife_input_spending_blocks_result: [
-          Block.hashed_txs_at([tx], tx_blknum)
-        ]
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)],
+        blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
 
-      state = Core.find_ifes_in_blocks(exit_processor_request, state)
+      state = state |> piggyback_ife_from(ife_id, 5) |> Core.find_ifes_in_blocks(request)
 
-      exit_processor_request = %{
-        exit_processor_request
-        | blocks_result: [],
-          ife_input_spending_blocks_result: nil
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [1]}]} =
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      assert {:ok,
+              %{
+                in_flight_output_pos: Utxo.position(^tx_blknum, 0, 1),
+                in_flight_proof: proof_bytes,
+                in_flight_txbytes: ^txbytes,
+                spending_txbytes: ^comp_txbytes,
+                spending_input_index: 0,
+                spending_sig: ^comp_signature
+              }} = Core.get_output_challenge_data(request, state, txbytes, 1)
+
+      assert_proof_sound(proof_bytes)
+    end
+
+    test "detects and proves double-spend of an output, found in a block, various spending input indices",
+         %{alice: alice, carol: carol, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
+      txbytes = txbytes(tx)
+      tx_blknum = 3000
+
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}, {tx_blknum, 0, 1, carol}], [])
+      {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp, 1)}
+
+      comp_blknum = 4000
+
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)],
+        blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
 
-      assert {:ok, []} = check_validity_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+      state = state |> piggyback_ife_from(ife_id, 5) |> Core.find_ifes_in_blocks(request)
 
-      assert {:error, :no_double_spend_on_particular_piggyback} =
-               Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [1]}]} =
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      assert {:ok,
+              %{
+                in_flight_output_pos: Utxo.position(^tx_blknum, 0, 1),
+                in_flight_proof: proof_bytes,
+                in_flight_txbytes: ^txbytes,
+                spending_txbytes: ^comp_txbytes,
+                spending_input_index: 1,
+                spending_sig: ^comp_signature
+              }} = Core.get_output_challenge_data(request, state, txbytes, 1)
+
+      assert_proof_sound(proof_bytes)
+    end
+
+    test "proves and proves double-spend of an output, found in a block, for various inclusion positions",
+         %{alice: alice, bob: bob, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
+      other_tx = TestHelper.create_recovered([{10_000, 0, 0, bob}], [])
+      txbytes = txbytes(tx)
+      tx_blknum = 3000
+
+      comp = TestHelper.create_recovered([{tx_blknum, 1, 0, alice}], [])
+      {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
+
+      comp_blknum = 4000
+
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([other_tx, tx], tx_blknum)],
+        blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
+      }
+
+      state = state |> piggyback_ife_from(ife_id, 4) |> Core.find_ifes_in_blocks(request)
+
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      assert {:ok,
+              %{
+                in_flight_output_pos: Utxo.position(^tx_blknum, 1, 0),
+                in_flight_proof: proof_bytes,
+                in_flight_txbytes: ^txbytes,
+                spending_txbytes: ^comp_txbytes,
+                spending_input_index: 0,
+                spending_sig: ^comp_signature
+              }} = Core.get_output_challenge_data(request, state, txbytes, 0)
+
+      assert_proof_sound(proof_bytes)
+    end
+
+    test "detects no double-spend of an input, if a different input is being spent in block",
+         %{processor_filled: state, competing_tx: comp, ife_tx_hashes: [ife_id | _]} do
+      # NOTE: the piggybacked index is the second one, compared to the invalid piggyback situation
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([comp], 4000)]
+      }
+
+      state = state |> piggyback_ife_from(ife_id, 1) |> Core.find_ifes_in_blocks(request)
+
+      assert {:ok, []} = check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+    end
+
+    test "detects no double-spend of an output, if a different output is being spent in block",
+         %{alice: alice, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
+      # NOTE: the piggybacked index is the second one, compared to the invalid piggyback situation
+      tx_blknum = 3000
+
+      # 2. transaction which _doesn't_ spend that piggybacked output
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [])
+
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)],
+        blocks_result: [Block.hashed_txs_at([comp], 4000)]
+      }
+
+      state = state |> piggyback_ife_from(ife_id, 5) |> Core.find_ifes_in_blocks(request)
+
+      assert {:ok, []} = check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+    end
+
+    test "does not look into ife_input_spending_blocks_result when it should not",
+         %{processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], 3000)]
+      }
+
+      state = state |> piggyback_ife_from(ife_id, 4) |> Core.find_ifes_in_blocks(request)
+
+      # now zero out the prior result to make a sanity check of well-behaving wrt. to the database results
+      request = %{request | blocks_result: [], ife_input_spending_blocks_result: nil}
+      assert {:ok, []} = check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+      assert {:error, _} = Core.get_output_challenge_data(request, state, txbytes(tx), 0)
     end
 
     test "handles well situation when syncing is in progress",
@@ -713,7 +812,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert Utxo.position(1, 0, 0) in request.ife_input_spends_to_get
     end
 
-    test "detects multiple double-spends in single IFE",
+    test "detects multiple double-spends in single IFE, correctly as more piggybacks appear",
          %{alice: alice, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
       tx_blknum = 3000
       txbytes = txbytes(tx)
@@ -725,14 +824,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         )
 
       {comp_txbytes, alice_sig} = {txbytes(comp), sig(comp)}
-      state = state |> start_ife_from(comp)
-
-      state =
-        state
-        |> piggyback_ife_from(ife_id, 0)
-        |> piggyback_ife_from(ife_id, 1)
-        |> piggyback_ife_from(ife_id, 4)
-        |> piggyback_ife_from(ife_id, 5)
 
       request = %ExitProcessor.Request{
         blknum_now: 4000,
@@ -740,7 +831,26 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
       }
 
-      state = Core.find_ifes_in_blocks(request, state)
+      state = state |> start_ife_from(comp) |> Core.find_ifes_in_blocks(request)
+
+      assert {:ok, []} = check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      state = state |> piggyback_ife_from(ife_id, 0)
+
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      state = state |> piggyback_ife_from(ife_id, 1)
+
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: []}]} =
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      state = state |> piggyback_ife_from(ife_id, 4)
+
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: [0]}]} =
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      state = state |> piggyback_ife_from(ife_id, 5)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: [0, 1]}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -809,8 +919,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "fail when asked to produce proof for wrong txhash",
          %{invalid_piggyback_on_input: %{state: state, request: request}, unrelated_tx: comp} do
       comp_txbytes = Transaction.raw_txbytes(comp)
-      assert {:error, :unknown_ife} = Core.get_input_challenge_data(request, state, comp_txbytes, 0)
-      assert {:error, :unknown_ife} = Core.get_output_challenge_data(request, state, comp_txbytes, 0)
+      assert {:error, :ife_not_known_for_tx} = Core.get_input_challenge_data(request, state, comp_txbytes, 0)
+      assert {:error, :ife_not_known_for_tx} = Core.get_output_challenge_data(request, state, comp_txbytes, 0)
     end
 
     test "fail when asked to produce proof for wrong badly encoded tx",

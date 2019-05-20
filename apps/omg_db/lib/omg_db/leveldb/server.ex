@@ -108,6 +108,7 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
+  @decorate measure_event()
   defp do_utxos(state) do
     result = get_all_by_type(:utxo, state)
     {:reply, result, state}

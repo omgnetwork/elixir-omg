@@ -39,7 +39,7 @@ defmodule OMG.Watcher.Fixtures do
     |> IO.binwrite("""
       #{OMG.Eth.DevHelpers.create_conf_file(contract)}
 
-      config :omg_db, leveldb_path: "#{db_path}"
+      config :omg_db, path: "#{db_path}"
       # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level
       config :logger, level: :debug
       config :omg_child_chain, fee_specs_file_name: "#{fee_file}"
@@ -120,7 +120,7 @@ defmodule OMG.Watcher.Fixtures do
     [] = DB.Block.get_all()
 
     on_exit(fn ->
-      Application.put_env(:omg_db, :leveldb_path, nil)
+      Application.put_env(:omg_db, :path, nil)
 
       (started_apps ++ started_watcher)
       |> Enum.reverse()
