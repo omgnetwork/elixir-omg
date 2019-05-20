@@ -404,17 +404,19 @@ defmodule OMG.Watcher.ExitProcessor do
   # based on in-flight exiting transactions, updates the state with witnesses of those transactions' inclusions in block
   @spec update_with_ife_txs_from_blocks(Core.t()) :: Core.t()
   defp update_with_ife_txs_from_blocks(state) do
-    %ExitProcessor.Request{}
-    |> run_status_gets()
-    # To find if IFE was included, see first if its inputs were spent.
-    |> Core.determine_ife_input_utxos_existence_to_get(state)
-    |> get_ife_input_utxo_existence()
-    # Next, check by what transactions they were spent.
-    |> Core.determine_ife_spends_to_get(state)
-    |> get_ife_input_spending_blocks()
+    prepared_request =
+      %ExitProcessor.Request{}
+      |> run_status_gets()
+      # To find if IFE was included, see first if its inputs were spent.
+      |> Core.determine_ife_input_utxos_existence_to_get(state)
+      |> get_ife_input_utxo_existence()
+      # Next, check by what transactions they were spent.
+      |> Core.determine_ife_spends_to_get(state)
+      |> get_ife_input_spending_blocks()
+
     # Compare found txes with ife.tx.
     # If equal, persist information about position.
-    |> Core.find_ifes_in_blocks(state)
+    Core.find_ifes_in_blocks(state, prepared_request)
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do
