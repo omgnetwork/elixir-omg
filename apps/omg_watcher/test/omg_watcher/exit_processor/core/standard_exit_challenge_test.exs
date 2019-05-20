@@ -59,7 +59,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
                |> Core.determine_standard_challenge_queries(processor)
     end
 
-    test "asks for correct data: deposit utxo double spent not in IFE",
+    test "asks for correct data: deposit utxo double spent outside an IFE",
          %{alice: alice, processor_empty: processor} do
       processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice)
 
@@ -79,7 +79,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
                |> Core.determine_standard_challenge_queries(processor)
     end
 
-    test "asks for correct data: tx utxo double spent not in IFE",
+    test "asks for correct data: tx utxo double spent outside an IFE",
          %{alice: alice, processor_empty: processor} do
       processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice)
 
@@ -151,7 +151,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
                |> Core.create_challenge(processor)
     end
 
-    test "creates challenge: deposit utxo double spent not in IFE",
+    test "creates challenge: deposit utxo double spent outside an IFE",
          %{alice: alice, processor_empty: processor} do
       processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice)
 
@@ -179,7 +179,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
                |> Core.create_challenge(processor)
     end
 
-    test "creates challenge: tx utxo double spent not in IFE",
+    test "creates challenge: tx utxo double spent outside an IFE",
          %{alice: alice, processor_empty: processor} do
       processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice)
 
@@ -195,7 +195,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
                |> Core.create_challenge(processor)
     end
 
-    test "creates challenge: tx utxo double spent not in IFE, but there is an unrelated IFE open",
+    test "creates challenge: tx utxo double spent outside an IFE, but there is an unrelated IFE open",
          %{alice: alice, processor_empty: processor} do
       unrelated = TestHelper.create_recovered([{@blknum, 10, 0, alice}], @eth, [])
       processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice) |> start_ife_from(unrelated)

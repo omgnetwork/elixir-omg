@@ -106,7 +106,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @type spent_blknum_result_t() :: pos_integer | :not_found
 
-  @type pb_type_t() :: :input | :output
+  @type piggyback_type_t() :: :input | :output
+  @type piggyback_t() :: {piggyback_type_t(), non_neg_integer()}
 
   @doc """
   Reads database-specific list of exits and turns them into current state
@@ -677,14 +678,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   def get_input_challenge_data(request, state, txbytes, input_index) do
     case input_index in 0..(Transaction.max_inputs() - 1) do
-      true -> get_piggyback_challenge_data(request, state, txbytes, input_index, :input)
+      true -> get_piggyback_challenge_data(request, state, txbytes, {:input, input_index})
       false -> {:error, :piggybacked_index_out_of_range}
     end
   end
 
   def get_output_challenge_data(request, state, txbytes, output_index) do
     case output_index in 0..(Transaction.max_outputs() - 1) do
-      true -> get_piggyback_challenge_data(request, state, txbytes, output_index, :output)
+      true -> get_piggyback_challenge_data(request, state, txbytes, {:output, output_index})
       false -> {:error, :piggybacked_index_out_of_range}
     end
   end
@@ -693,12 +694,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defdelegate determine_exit_txbytes(request, state), to: ExitProcessor.StandardExitChallenge
   defdelegate create_challenge(request, state), to: ExitProcessor.StandardExitChallenge
 
-  @spec produce_invalid_piggyback_proof(InFlightExitInfo.t(), list(KnownTx.t()), non_neg_integer(), pb_type_t()) ::
+  @spec produce_invalid_piggyback_proof(InFlightExitInfo.t(), list(KnownTx.t()), piggyback_t()) ::
           {:ok, input_challenge_data() | output_challenge_data()} | {:error, :no_double_spend_on_particular_piggyback}
-  defp produce_invalid_piggyback_proof(ife, known_txs, pb_index, pb_type) do
+  defp produce_invalid_piggyback_proof(ife, known_txs, {pb_type, pb_index} = piggyback) do
     with {:ok, proof_materials} <- get_proofs_for_particular_ife(ife, pb_type, known_txs),
          {:ok, proof} <- get_proof_for_particular_piggyback(pb_index, proof_materials) do
-      {:ok, prepare_piggyback_challenge_response(ife, pb_type, pb_index, proof)}
+      {:ok, prepare_piggyback_challenge_response(ife, piggyback, proof)}
     end
   end
 
@@ -723,14 +724,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  @spec prepare_piggyback_challenge_response(
-          InFlightExitInfo.t(),
-          pb_type_t(),
-          non_neg_integer(),
-          DoubleSpend.t()
-        ) ::
+  @spec prepare_piggyback_challenge_response(InFlightExitInfo.t(), piggyback_t(), DoubleSpend.t()) ::
           input_challenge_data() | output_challenge_data()
-  defp prepare_piggyback_challenge_response(ife, :input, input_index, proof) do
+  defp prepare_piggyback_challenge_response(ife, {:input, input_index}, proof) do
     %{
       in_flight_txbytes: Transaction.raw_txbytes(ife.tx),
       in_flight_input_index: input_index,
@@ -740,7 +736,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     }
   end
 
-  defp prepare_piggyback_challenge_response(ife, :output, _output_index, proof) do
+  defp prepare_piggyback_challenge_response(ife, {:output, _output_index}, proof) do
     {_, inclusion_proof} = ife.tx_seen_in_blocks_at
 
     %{
@@ -797,8 +793,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.flat_map(fn {_type, materials} -> Map.keys(materials) end)
   end
 
-  @spec invalid_piggybacks_by_ife(list(KnownTx.t()), pb_type_t(), list(InFlightExitInfo.t())) ::
-          list({InFlightExitInfo.t(), pb_type_t(), %{non_neg_integer => DoubleSpend.t()}})
+  @spec invalid_piggybacks_by_ife(list(KnownTx.t()), piggyback_type_t(), list(InFlightExitInfo.t())) ::
+          list({InFlightExitInfo.t(), piggyback_type_t(), %{non_neg_integer => DoubleSpend.t()}})
   defp invalid_piggybacks_by_ife(known_txs, pb_type, ifes) do
     known_txs = :lists.usort(known_txs)
 
@@ -824,19 +820,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.group_by(& &1.index)
   end
 
-  @spec get_piggyback_challenge_data(
-          ExitProcessor.Request.t(),
-          __MODULE__.t(),
-          binary(),
-          non_neg_integer(),
-          pb_type_t()
-        ) ::
+  @spec get_piggyback_challenge_data(ExitProcessor.Request.t(), __MODULE__.t(), binary(), piggyback_t()) ::
           {:ok, input_challenge_data() | output_challenge_data()} | {:error, piggyback_challenge_data_error()}
-  defp get_piggyback_challenge_data(%ExitProcessor.Request{blocks_result: blocks}, state, txbytes, pb_index, pb_type) do
+  defp get_piggyback_challenge_data(%ExitProcessor.Request{blocks_result: blocks}, state, txbytes, piggyback) do
     with {:ok, tx} <- Transaction.decode(txbytes),
          {:ok, ife} <- get_ife(tx, state) do
       known_txs = get_known_txs(blocks) ++ get_known_txs(state)
-      produce_invalid_piggyback_proof(ife, known_txs, pb_index, pb_type)
+      produce_invalid_piggyback_proof(ife, known_txs, piggyback)
     end
   end
 
@@ -871,9 +861,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Stream.filter(&(not InFlightExitInfo.is_canonical?(&1)))
     |> Stream.map(fn %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: raw_tx}} -> raw_tx end)
     # TODO: expensive!
-    |> Stream.filter(fn raw_tx ->
-      is_among_known_txs?(raw_tx, known_txs)
-    end)
+    |> Stream.filter(&find_among_known_txs(known_txs, &1))
     |> Stream.map(&Transaction.raw_txbytes/1)
     |> Enum.uniq()
   end
@@ -890,9 +878,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Map.values()
     |> Stream.filter(fn %InFlightExitInfo{is_active: is_active} -> is_active end)
     # TODO: expensive!
-    |> Stream.filter(fn %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: raw_tx}} ->
-      !is_among_known_txs?(raw_tx, known_txs)
-    end)
+    |> Stream.filter(&(!find_among_known_txs(known_txs, &1.tx.raw_tx)))
     |> Enum.uniq_by(fn %InFlightExitInfo{tx: signed_tx} -> signed_tx end)
   end
 
@@ -1082,7 +1068,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp find_canonical(known_txs, raw_ife_tx) do
     known_txs
-    |> Enum.find(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} -> block_raw_tx == raw_ife_tx end)
+    |> find_among_known_txs(raw_ife_tx)
     |> case do
       nil -> {:error, :canonical_not_found}
       value -> {:ok, value}
@@ -1122,10 +1108,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp get_known_txs([%Block{} | _] = blocks),
     do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
 
-  defp is_among_known_txs?(raw_tx, known_txs) do
-    Enum.find(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
-      raw_tx == block_raw_tx
-    end)
+  defp find_among_known_txs(known_txs, raw_tx) do
+    known_txs
+    |> Enum.find(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} -> raw_tx == block_raw_tx end)
   end
 
   defp zero_address?(address) do
