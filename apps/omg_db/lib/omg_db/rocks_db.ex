@@ -34,9 +34,8 @@ defmodule OMG.DB.RocksDB do
   end
 
   def child_spec do
-    db_path = Application.fetch_env!(:omg_db, :leveldb_path)
-    server_module = Application.fetch_env!(:omg_db, :r_server_module)
-    server_name = Application.fetch_env!(:omg_db, :r_server_name)
+    db_path = Application.fetch_env!(:omg_db, :path)
+    [server_module: server_module, server_name: server_name] = Application.fetch_env!(:omg_db, :rocksdb)
     args = [db_path: db_path, name: server_name]
 
     %{
@@ -47,7 +46,7 @@ defmodule OMG.DB.RocksDB do
   end
 
   def child_spec([db_path: _db_path, name: server_name] = args) do
-    server_module = Application.fetch_env!(:omg_db, :r_server_module)
+    [server_module: server_module, server_name: _] = Application.fetch_env!(:omg_db, :rocksdb)
 
     %{
       id: server_name,
@@ -128,9 +127,9 @@ defmodule OMG.DB.RocksDB do
   @doc """
   Does all of the initialization of `OMG.DB` based on the configured path
   """
-  def init, do: do_init(@server_name, Application.fetch_env!(:omg_db, :leveldb_path))
+  def init, do: do_init(@server_name, Application.fetch_env!(:omg_db, :path))
   def init(path) when is_binary(path), do: do_init(@server_name, path)
-  def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :leveldb_path))
+  def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :path))
   def init(server_name, path), do: do_init(server_name, path)
 
   defp do_init(server_name, path) do

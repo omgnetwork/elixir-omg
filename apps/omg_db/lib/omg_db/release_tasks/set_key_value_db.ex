@@ -21,7 +21,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   @impl Provider
   def init(_args) do
     path = get_env("DB_PATH")
-    :ok = Application.put_env(:omg_db, :leveldb_path, path, persistent: true)
+    :ok = Application.put_env(:omg_db, :path, path, persistent: true)
   end
 
   defp get_env(key), do: validate(System.get_env(key))

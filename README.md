@@ -288,7 +288,7 @@ This setting is usually set by running the `Mix.Tasks.Xomg.Watcher.Start` with t
 
 ### `OMG.DB` configuration - `:omg_db` app
 
-* **`leveldb_path`** - path to the directory holding the LevelDB data store
+* **`path`** - path to the directory holding the LevelDB data store
 
 * **`server_module`** - the module to use when talking to the `OMG.DB`
 
