@@ -9,7 +9,7 @@ executors:
   builder_pg:
     docker:
       - image: omisegoimages/elixir-omg-builder:v1.3
-      - image: postgres:9.6-alpine
+      - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -43,8 +43,16 @@ jobs:
     executor: builder
     steps:
       - checkout
+      - restore_cache:
+          key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
+      - save_cache:
+          key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
+          paths:
+            - "deps/rocksdb"
+            - "_build/test/lib/rocksdb/"
+            - "_build/test/dev/rocksdb/"
       - persist_to_workspace:
           root: .
           paths:
@@ -70,6 +78,8 @@ jobs:
 
   lint:
     executor: builder_pg
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
     steps:
       - setup_elixir-omg_workspace
       - run: MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
