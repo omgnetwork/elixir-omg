@@ -41,6 +41,8 @@ commands:
 jobs:
   build:
     executor: builder
+    environment:
+      MIX_ENV: "test"
     steps:
       - checkout
       - restore_cache:
@@ -48,7 +50,7 @@ jobs:
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - save_cache:
-          key: v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+          key: v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
           paths: "_build"
       - save_cache:
           key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
@@ -57,19 +59,17 @@ jobs:
             - "_build/test/lib/rocksdb/"
             - "_build/test/dev/rocksdb/"
       - persist_to_workspace:
-          root: .
+          name: Persist workspace
+          root: ~/src
           paths:
             - .circleci
             - dialyzer.ignore-warnings
             - .formatter.exs
-            - .git
-            - .gitignore
             - _build
             - .credo.exs
             - apps
             - bin
             - config
-            - db/.gitkeep
             - deps
             - doc
             - mix.exs
@@ -83,34 +83,21 @@ jobs:
     executor: builder_pg
     environment:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
-      - run: MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
+      - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
 
   child_chain_coveralls_and_integration_tests:
-    docker:
-      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
-        environment:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
-          MIX_ENV: test
-      - image: circleci/postgres:9.6-alpine
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: omisego_dev
-          MIX_ENV: test
-    working_directory: ~/repo
-
+    executor: builder_pg
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
     steps:
-      - attach_workspace:
-           at: .
-
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
-
+      - setup_elixir-omg_workspace
       - restore_cache:
           keys:
-            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Compile
           command: mix compile
@@ -128,29 +115,15 @@ jobs:
             fi
 
   watcher_coveralls_and_integration_tests:
-    docker:
-      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
-        environment:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
-          MIX_ENV: test
-      - image: circleci/postgres:9.6-alpine
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: omisego_dev
-          MIX_ENV: test
-    working_directory: ~/repo
-
+    executor: builder_pg
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
     steps:
-      - attach_workspace:
-           at: .
-
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
-
+      - setup_elixir-omg_workspace
       - restore_cache:
           keys:
-            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Compile
           command: mix compile
@@ -168,29 +141,15 @@ jobs:
             fi
 
   common_coveralls_and_integration_tests:
-    docker:
-      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
-        environment:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
-          MIX_ENV: test
-      - image: circleci/postgres:9.6-alpine
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: omisego_dev
-          MIX_ENV: test
-    working_directory: ~/repo
-
+    executor: builder_pg
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
     steps:
-      - attach_workspace:
-           at: .
-
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
-
+      - setup_elixir-omg_workspace
       - restore_cache:
           keys:
-            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Compile
           command: mix compile
@@ -208,29 +167,15 @@ jobs:
             fi
 
   test:
-    docker:
-      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
-        environment:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
-          MIX_ENV: test
-      - image: circleci/postgres:9.6-alpine
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: omisego_dev
-          MIX_ENV: test
-    working_directory: ~/repo
-
+    executor: builder_pg
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
     steps:
-      - attach_workspace:
-           at: .
-
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
-
+      - setup_elixir-omg_workspace
       - restore_cache:
           keys:
-            - v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Compile
           command: mix compile

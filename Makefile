@@ -79,9 +79,6 @@ build-test: deps-elixir-omg
 
 test: test-elixir-omg
 
-test-elixir-omg-watcher: build-test
-	$(ENV_TEST) mix test
-
 .PHONY: test test-elixir-omg
 
 #
