@@ -17,6 +17,12 @@ defmodule OMG.Watcher.DB.Spend do
   Ecto schema to record transaction's utxo spend
   """
   use Ecto.Schema
+  use OMG.Utils.Metrics
+
+  alias OMG.State.Transaction
+  alias OMG.Utxo
+
+  require Utxo
 
   @primary_key false
   schema "spends" do
@@ -25,5 +31,22 @@ defmodule OMG.Watcher.DB.Spend do
     field(:oindex, :integer, primary_key: true)
     field(:spending_txhash, :binary)
     field(:spending_tx_oindex, :integer)
+  end
+
+  @decorate measure_event()
+  @spec create_spends(Transaction.any_flavor_t(), binary()) :: [map()]
+  def create_spends(tx, spending_txhash) do
+    tx
+    |> Transaction.get_inputs()
+    |> Enum.with_index()
+    |> Enum.map(fn {Utxo.position(blknum, txindex, oindex), index} ->
+      %{
+        blknum: blknum,
+        txindex: txindex,
+        oindex: oindex,
+        spending_txhash: spending_txhash,
+        spending_tx_oindex: index
+      }
+    end)
   end
 end

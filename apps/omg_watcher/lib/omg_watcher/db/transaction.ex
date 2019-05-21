@@ -131,7 +131,7 @@ defmodule OMG.Watcher.DB.Transaction do
         timestamp: timestamp,
         eth_height: eth_height
       }) do
-    [db_txs, db_outputs, db_inputs] =
+    [db_txs, db_outputs, db_spends] =
       transactions
       |> Stream.with_index()
       |> Enum.reduce([[], [], []], fn {tx, txindex}, acc -> process(tx, block_number, txindex, acc) end)
@@ -146,9 +146,7 @@ defmodule OMG.Watcher.DB.Transaction do
             {:ok, _} = DB.Repo.insert(current_block)
             _ = DB.Repo.insert_all_chunked(__MODULE__, db_txs)
             _ = DB.Repo.insert_all_chunked(DB.TxOutput, db_outputs)
-
-            # inputs are set as spent after outputs are inserted to support spending utxo from the same block
-            DB.TxOutput.spend_utxos(db_inputs)
+            _ = DB.Repo.insert_all_chunked(DB.Spend, db_spends)
           end
         ]
       )
@@ -169,14 +167,14 @@ defmodule OMG.Watcher.DB.Transaction do
          },
          block_number,
          txindex,
-         [tx_list, output_list, input_list]
+         [tx_list, output_list, spend_list]
        ) do
     tx_hash = Transaction.raw_txhash(tx)
 
     [
       [create(block_number, txindex, tx_hash, signed_tx_bytes, metadata) | tx_list],
       DB.TxOutput.create_outputs(block_number, txindex, tx_hash, tx) ++ output_list,
-      DB.TxOutput.create_inputs(tx, tx_hash) ++ input_list
+      DB.Spend.create_spends(tx, tx_hash) ++ spend_list
     ]
   end
 
