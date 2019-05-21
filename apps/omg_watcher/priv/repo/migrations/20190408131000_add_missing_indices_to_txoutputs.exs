@@ -3,7 +3,7 @@ defmodule OMG.Watcher.Repo.Migrations.AddMissingIndicesToTxOuputs do
 
   def change do
     create index(:txoutputs, [:creating_txhash, :spending_txhash])
-    create index(:txoutputs, [:creating_deposit])
+    create index(:txoutputs, [:creating_deposit], where: "creating_deposit IS NOT NULL")
     create index(:txoutputs, [:spending_txhash])
     create index(:txoutputs, [:spending_exit], where: "spending_exit IS NOT NULL")
     create index(:txoutputs, [:owner])
