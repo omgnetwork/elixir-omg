@@ -48,6 +48,9 @@ jobs:
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - save_cache:
+          key: v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+          paths: "_build"
+      - save_cache:
           key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
           paths:
             - "deps/rocksdb"
@@ -83,22 +86,6 @@ jobs:
     steps:
       - setup_elixir-omg_workspace
       - run: MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
-
-  tests_compile_once:
-    docker:
-      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
-        environment:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
-          MIX_ENV: test
-    working_directory: ~/repo
-
-    steps:
-      - attach_workspace:
-           at: .
-      - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force
-      - save_cache:
-          key: v1-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
-          paths: "_build"
 
   child_chain_coveralls_and_integration_tests:
     docker:
@@ -261,22 +248,16 @@ jobs:
             fi
 
   dialyzer:
-    docker:
-      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
-        environment:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
-    working_directory: ~/repo
-
+    executor: builder_pg
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
     steps:
-      - attach_workspace:
-           at: .
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
+      - setup_elixir-omg_workspace
       - restore_cache:
           keys:
-            - v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
-            - v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
-            - v1-plt-cache-{{ ".tool-versions" }}
+            - v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
+            - v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
+            - v2-plt-cache-{{ ".tool-versions" }}
       - run:
           name: Unpack PLT cache
           command: |
@@ -292,15 +273,15 @@ jobs:
             cp _build/test/dialyxir*.plt plts/
             cp ~/.mix/dialyxir*.plt plts/
       - save_cache:
-          key: v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
+          key: v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
           paths:
             - plts
       - save_cache:
-          key: v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
+          key: v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
           paths:
             - plts
       - save_cache:
-          key: v1-plt-cache-{{ ".tool-versions" }}
+          key: v2-plt-cache-{{ ".tool-versions" }}
           paths:
             - plts
 
@@ -431,20 +412,15 @@ workflows:
             - watcher_coveralls_and_integration_tests
             - common_coveralls_and_integration_tests
             - test
-      - tests_compile_once:
-          requires: [build]
       - child_chain_coveralls_and_integration_tests:
           requires:
             - build
-            - tests_compile_once
       - watcher_coveralls_and_integration_tests:
           requires:
             - build
-            - tests_compile_once
       - common_coveralls_and_integration_tests:
           requires:
             - build
-            - tests_compile_once
       - lint:
           requires: [build]
       - dialyzer:
@@ -452,7 +428,7 @@ workflows:
       - test:
           requires:
             - build
-            - tests_compile_once
+
       - build_and_deploy_development:
           requires:
             - build
