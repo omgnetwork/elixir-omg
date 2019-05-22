@@ -16,6 +16,16 @@ executors:
           POSTGRES_DB: omisego_dev
     working_directory: ~/src
 
+  builder_pg_geth:
+    docker:
+      - image: omisegoimages/elixir-omg-tester:stable
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+    working_directory: ~/src
+
   deploy:
     docker:
       - image: omisegoimages/elixir-omg-deploy:stable
@@ -89,7 +99,7 @@ jobs:
       - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
 
   child_chain_coveralls_and_integration_tests:
-    executor: builder_pg
+    executor: builder_pg_geth
     environment:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
@@ -115,7 +125,7 @@ jobs:
             fi
 
   watcher_coveralls_and_integration_tests:
-    executor: builder_pg
+    executor: builder_pg_geth
     environment:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
@@ -141,7 +151,7 @@ jobs:
             fi
 
   common_coveralls_and_integration_tests:
-    executor: builder_pg
+    executor: builder_pg_geth
     environment:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
