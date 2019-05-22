@@ -49,4 +49,26 @@ defmodule OMG.Watcher.DB.Spend do
       }
     end)
   end
+
+  @doc """
+  Using information about spent UTXOs updates particular TxOutput records marking them as spend
+  """
+  @spec mark_utxo_spend() :: :ok
+  def mark_utxo_spend do
+    _ =
+      Ecto.Adapters.SQL.query!(
+        OMG.Watcher.DB.Repo,
+        ~s(UPDATE txoutputs AS utxo
+      SET spending_txhash = s.spending_txhash,
+          spending_tx_oindex = s.spending_tx_oindex
+     FROM spends s
+    WHERE utxo.spending_txhash IS NULL
+      AND utxo.blknum = s.blknum
+      AND utxo.txindex = s.txindex
+      AND utxo.oindex = s.oindex),
+        []
+      )
+
+    :ok
+  end
 end

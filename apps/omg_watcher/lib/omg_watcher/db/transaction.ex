@@ -147,6 +147,9 @@ defmodule OMG.Watcher.DB.Transaction do
             _ = DB.Repo.insert_all_chunked(__MODULE__, db_txs)
             _ = DB.Repo.insert_all_chunked(DB.TxOutput, db_outputs)
             _ = DB.Repo.insert_all_chunked(DB.Spend, db_spends)
+
+            # TODO: during sync we can execute this after applying a batch of blocks
+            :ok = DB.Spend.mark_utxo_spend()
           end
         ]
       )
