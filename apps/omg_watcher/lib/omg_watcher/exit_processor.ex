@@ -28,7 +28,6 @@ defmodule OMG.Watcher.ExitProcessor do
   # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.StandardExitChallenge
   alias OMG.Watcher.Recorder
 
@@ -138,11 +137,10 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   @doc """
-  Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
-  If given empty list of hashes, all IFEs are returned.
+  Returns a map of requested in flight exits, keyed by transaction hash
   """
   @decorate measure_event()
-  @spec get_active_in_flight_exits() :: {:ok, %{binary() => InFlightExitInfo.t()}}
+  @spec get_active_in_flight_exits() :: {:ok, Core.in_flight_exits_response_t()}
   def get_active_in_flight_exits do
     GenServer.call(__MODULE__, :get_active_in_flight_exits)
   end

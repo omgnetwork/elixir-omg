@@ -42,10 +42,12 @@ defmodule OMG.RootChainCoordinator.Core do
   @type t() :: %__MODULE__{
           configs_services: configs_services,
           root_chain_height: non_neg_integer(),
-          services: map()
+          services: %{required(atom()) => Service.t()}
         }
 
   @type check_in_error_t :: {:error, :service_not_allowed}
+
+  @type ethereum_heights_result_t() :: %{atom() => non_neg_integer()}
 
   # RootChainCoordinator is also checking if queries to Ethereum client don't get huge
   @maximum_leap_forward 2_500
@@ -132,6 +134,17 @@ defmodule OMG.RootChainCoordinator.Core do
     else
       :nosync
     end
+  end
+
+  @doc """
+  Gets all the ethereum heights reported as synced to by the services (and the main root chain height acknowledged)
+  """
+  @spec get_ethereum_heights(t()) :: ethereum_heights_result_t()
+  def get_ethereum_heights(%__MODULE__{root_chain_height: root_chain_height, services: services}) do
+    base_result_map = %{root_chain_height: root_chain_height}
+
+    services
+    |> Enum.into(base_result_map, fn {name, %Service{synced_height: height}} -> {name, height} end)
   end
 
   defp finality_margin_for(config), do: Keyword.get(config, :finality_margin, 0)

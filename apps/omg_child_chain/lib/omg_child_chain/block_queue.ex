@@ -182,7 +182,7 @@ defmodule OMG.ChildChain.BlockQueue do
     end
 
     defp log_init_error(fields) do
-      config = Application.get_all_env(:omg_eth) |> Keyword.take([:contract_addr, :authority_addr, :txhash_contract])
+      config = Eth.Diagnostics.get_child_chain_config()
       fields = Keyword.update!(fields, :known_hashes, fn hashes -> Enum.map(hashes, &Eth.Encoding.to_hex/1) end)
       diagnostic = fields |> Enum.into(%{config: config})
 
@@ -196,19 +196,8 @@ defmodule OMG.ChildChain.BlockQueue do
     end
 
     defp log_eth_node_error do
-      eth_node_diagnostics = get_eth_node_diagnostics()
+      eth_node_diagnostics = Eth.Diagnostics.get_node_diagnostics()
       Logger.error("Ethereum operation failed, additional diagnostics: #{inspect(eth_node_diagnostics)}")
-    end
-
-    defp get_eth_node_diagnostics do
-      ["personal_listWallets", "admin_nodeInfo", "parity_enode"]
-      |> Enum.into(%{}, &get_eth_node_diagnostic/1)
-    end
-
-    defp get_eth_node_diagnostic(rpc_call_name) when is_binary(rpc_call_name) do
-      {rpc_call_name, Ethereumex.HttpClient.request(rpc_call_name, [], [])}
-    rescue
-      error -> {rpc_call_name, inspect(error)}
     end
   end
 end

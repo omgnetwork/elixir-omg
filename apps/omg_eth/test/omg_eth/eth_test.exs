@@ -33,9 +33,11 @@ defmodule OMG.EthTest do
   @moduletag :common
 
   @tag fixtures: [:eth_node]
-  test "get_ethereum_height returns integer" do
+  test "get_ethereum_height and get_block_timestamp_by_number return integers" do
     assert {:ok, number} = Eth.get_ethereum_height()
+    assert {:ok, timestamp} = Eth.get_block_timestamp_by_number(number)
     assert is_integer(number)
+    assert is_integer(timestamp)
   end
 
   @tag fixtures: [:contract]
