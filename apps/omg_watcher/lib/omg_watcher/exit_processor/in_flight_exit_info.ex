@@ -258,19 +258,14 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   end
 
   @spec respond_to_challenge(t(), Utxo.Position.t()) ::
-          {:ok, t()} | {:error, :responded_with_too_young_tx | :cannot_respond}
+          t() | {:error, :responded_with_too_young_tx | :cannot_respond}
   def respond_to_challenge(ife, tx_position)
-
-  def respond_to_challenge(%__MODULE__{oldest_competitor: nil, contract_tx_pos: nil} = ife, tx_position) do
-    decoded = Utxo.Position.decode!(tx_position)
-    {:ok, %{ife | oldest_competitor: decoded, is_canonical: true, contract_tx_pos: decoded}}
-  end
 
   def respond_to_challenge(%__MODULE__{oldest_competitor: current_oldest, contract_tx_pos: nil} = ife, tx_position) do
     decoded = Utxo.Position.decode!(tx_position)
 
-    if is_older?(decoded, current_oldest) do
-      {:ok, %{ife | oldest_competitor: decoded, is_canonical: true, contract_tx_pos: decoded}}
+    if is_nil(current_oldest) or is_older?(decoded, current_oldest) do
+      %{ife | oldest_competitor: decoded, is_canonical: true, contract_tx_pos: decoded}
     else
       {:error, :responded_with_too_young_tx}
     end
@@ -375,7 +370,50 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     %{ife | is_active: true}
   end
 
-  def is_canonical?(%__MODULE__{is_canonical: value}), do: value
+  @doc """
+  First, it determines if it is challenged at all - if it isn't returns false.
+  Decond, If the tx hasn't been seen at all then it will be false
+  If it is challenged (hence non-canonical) and seen it will figure out if the IFE tx has been seen in an older than
+  oldest competitor's position.
+  """
+  @spec is_invalidly_challenged?(t()) :: boolean()
+  def is_invalidly_challenged?(%__MODULE__{is_canonical: true}), do: false
+  def is_invalidly_challenged?(%__MODULE__{tx_seen_in_blocks_at: nil}), do: false
+
+  def is_invalidly_challenged?(%__MODULE__{
+        tx_seen_in_blocks_at: {Utxo.position(_, _, _) = seen_in_pos, _proof},
+        oldest_competitor: oldest_competitor_pos
+      }),
+      do: is_older?(seen_in_pos, oldest_competitor_pos)
+
+  @doc """
+  Checks if the competitor being seen at `competitor_pos` (`nil` if unseen) is viable to challenge with, considering the
+  current state of the IFE - that is, only if it is older than IFE tx's inclusion and other competitors
+  """
+  @spec is_viable_competitor?(t(), Utxo.Position.t() | nil) :: boolean()
+  def is_viable_competitor?(
+        %__MODULE__{tx_seen_in_blocks_at: nil, oldest_competitor: oldest_competitor_pos},
+        competitor_pos
+      ),
+      do: do_is_viable_competitor?(nil, oldest_competitor_pos, competitor_pos)
+
+  def is_viable_competitor?(
+        %__MODULE__{tx_seen_in_blocks_at: {seen_at_pos, _proof}, oldest_competitor: oldest_competitor_pos},
+        competitor_pos
+      ),
+      do: do_is_viable_competitor?(seen_at_pos, oldest_competitor_pos, competitor_pos)
+
+  # there's nothing with any position, so there's nothing older than competitor, so it's good to challenge with
+  defp do_is_viable_competitor?(nil, nil, _competitor_pos), do: true
+  # there's something with position and the competitor doesn't have any - not good to challenge with
+  defp do_is_viable_competitor?(_seen_at_pos, _oldest_pos, nil), do: false
+  # there already is a competitor reported in the contract, if the competitor is older then good to challenge with
+  defp do_is_viable_competitor?(nil, oldest_pos, competitor_pos), do: is_older?(competitor_pos, oldest_pos)
+  # this IFE tx has been already seen at some position, if the competitor is older then good to challenge with
+  defp do_is_viable_competitor?(seen_at_pos, nil, competitor_pos), do: is_older?(competitor_pos, seen_at_pos)
+  # the competitor must be older than anything else to be good to challenge with
+  defp do_is_viable_competitor?(seen_at_pos, oldest_pos, competitor_pos),
+    do: is_older?(competitor_pos, seen_at_pos) and is_older?(competitor_pos, oldest_pos)
 
   defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
