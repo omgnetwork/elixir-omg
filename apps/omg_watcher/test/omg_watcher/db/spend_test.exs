@@ -17,7 +17,7 @@ defmodule OMG.Watcher.DB.SpendTest do
   Currently, this test focuses on testing behaviors not testable via Controllers.TransactionTest.
 
   The reason is that we are treating the DB schema etc. as implementation detail. In case testing through controllers
-  becomes hard/slow or otherwise unreasnable, refactor these two kinds of tests appropriately
+  becomes hard/slow or otherwise unreasonable, refactor these two kinds of tests appropriately
   """
 
   use ExUnitFixtures
@@ -40,8 +40,8 @@ defmodule OMG.Watcher.DB.SpendTest do
     [Utxo.position(blknum, txindex, oindex)] = Transaction.get_inputs(tx)
 
     assert %DB.Spend{
-      spending_txhash: ^txhash,
-      spending_tx_oindex: 0
-    } = Enum.find(spends, &match?(%{blknum: ^blknum, txindex: ^txindex, oindex: ^oindex}, &1))
+             spending_txhash: ^txhash,
+             spending_tx_oindex: 0
+           } = Enum.find(spends, &match?(%{blknum: ^blknum, txindex: ^txindex, oindex: ^oindex}, &1))
   end
 end
