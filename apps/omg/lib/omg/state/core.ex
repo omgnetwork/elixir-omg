@@ -83,6 +83,16 @@ defmodule OMG.State.Core do
           | {:put, :last_deposit_child_blknum, pos_integer}
           | {:put, :block, Block.db_t()}
 
+  @type exitable_utxos :: %{
+          creating_txhash: Transaction.tx_hash(),
+          owner: Crypto.address_t(),
+          currency: Crypto.address_t(),
+          amount: non_neg_integer,
+          blknum: pos_integer,
+          txindex: non_neg_integer,
+          oindex: non_neg_integer
+        }
+
   @doc """
   Recovers the ledger's state from data delivered by the `OMG.DB`
   """
@@ -465,7 +475,7 @@ defmodule OMG.State.Core do
     It may take a while for a large response from db
   """
   @spec standard_exitable_utxos(list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()}), Crypto.address_t()) ::
-          list({Utxo.Position.db_t(), Utxo.t()})
+          list(exitable_utxos)
   def standard_exitable_utxos(utxos_query_result, address) do
     Stream.filter(utxos_query_result, fn {_, %{owner: owner}} -> owner == address end)
     |> Enum.map(fn {{blknum, txindex, oindex}, utxo} ->

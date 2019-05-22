@@ -89,49 +89,21 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   end
 
   describe "standard_exitable" do
-    @tag fixtures: [:initial_blocks, :carol]
+    @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :carol]
     test "no utxos are returned for non-existing addresses", %{carol: carol} do
       assert [] == TestHelper.get_exitable_utxos(carol.addr)
     end
 
-    @tag fixtures: [:initial_blocks, :alice]
-    test "utxo from initial blocks are available", %{alice: alice} do
-      alice_enc = alice.addr |> Encoding.to_hex()
+    @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :alice, :bob]
+    test "get_utxos and get_exitable_utxos have the same return format", %{alice: alice, bob: bob} do
+      DB.EthEvent.insert_deposits!([%{owner: alice.addr, currency: @eth, amount: 333, blknum: 1}])
 
-      assert [
-               %{
-                 "amount" => 1,
-                 "currency" => @eth_hex,
-                 "blknum" => 2000,
-                 "txindex" => 0,
-                 "oindex" => 1,
-                 "owner" => ^alice_enc
-               },
-               %{
-                 "amount" => 150,
-                 "currency" => @eth_hex,
-                 "blknum" => 3000,
-                 "txindex" => 0,
-                 "oindex" => 0,
-                 "owner" => ^alice_enc
-               },
-               %{
-                 "amount" => 50,
-                 "currency" => @eth_hex,
-                 "blknum" => 3000,
-                 "txindex" => 1,
-                 "oindex" => 1,
-                 "owner" => ^alice_enc
-               }
-             ] = TestHelper.get_exitable_utxos(alice.addr)
-    end
+      OMG.DB.multi_update([
+        {:put, :utxo, {{1, 0, 0}, %{amount: 333, creating_txhash: nil, currency: @eth, owner: alice.addr}}},
+        {:put, :utxo, {{2, 0, 0}, %{amount: 100, creating_txhash: nil, currency: @eth, owner: bob.addr}}}
+      ])
 
-    @tag fixtures: [:initial_blocks, :alice]
-    test "encoded utxo positions are delivered", %{alice: alice} do
-      [%{"utxo_pos" => utxo_pos, "blknum" => blknum, "txindex" => txindex, "oindex" => oindex} | _] =
-        TestHelper.get_exitable_utxos(alice.addr)
-
-      assert Utxo.position(^blknum, ^txindex, ^oindex) = utxo_pos |> Utxo.Position.decode!()
+      assert TestHelper.get_exitable_utxos(alice.addr) == TestHelper.get_utxos(alice.addr)
     end
   end
 

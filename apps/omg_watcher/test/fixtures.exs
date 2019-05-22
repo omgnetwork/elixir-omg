@@ -170,9 +170,8 @@ defmodule OMG.Watcher.Fixtures do
     |> blocks_inserter.()
   end
 
-  deffixture initial_deposits(alice, bob, phoenix_ecto_sandbox, db_initialized) do
+  deffixture initial_deposits(alice, bob, phoenix_ecto_sandbox) do
     :ok = phoenix_ecto_sandbox
-    :ok = db_initialized
 
     deposits = [
       %{owner: alice.addr, currency: @eth, amount: 333, blknum: 1},
@@ -181,17 +180,11 @@ defmodule OMG.Watcher.Fixtures do
 
     # Initial data depending tests can reuse
     DB.EthEvent.insert_deposits!(deposits)
-
-    {:ok, {_, db_updates}, _} =
-      OMG.State.Core.deposit(deposits, %OMG.State.Core{utxos: %{}, last_deposit_child_blknum: 0})
-
-    OMG.DB.multi_update(db_updates)
     :ok
   end
 
-  deffixture blocks_inserter(phoenix_ecto_sandbox, db_initialized) do
+  deffixture blocks_inserter(phoenix_ecto_sandbox) do
     :ok = phoenix_ecto_sandbox
-    :ok = db_initialized
 
     fn blocks -> blocks |> Enum.flat_map(&prepare_one_block/1) end
   end
@@ -234,11 +227,6 @@ defmodule OMG.Watcher.Fixtures do
         timestamp: 1_540_465_606,
         eth_height: 1
       })
-
-    {:ok, {_, _, db_updates}, _} =
-      OMG.State.Core.form_block(0, %OMG.State.Core{pending_txs: Enum.reverse(recovered_txs), height: blknum})
-
-    OMG.DB.multi_update(db_updates)
 
     recovered_txs
     |> Enum.with_index()

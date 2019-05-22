@@ -41,7 +41,6 @@ defmodule OMG.State.PersistenceTest do
        %{alice: alice, db_pid: db_pid, state_empty: state} do
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 2}], db_pid)
-    |> persist_standard_exitable_utxos([alice], db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -51,7 +50,6 @@ defmodule OMG.State.PersistenceTest do
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
     |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
     |> persist_form(db_pid)
-    |> persist_standard_exitable_utxos([alice], db_pid)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -62,7 +60,9 @@ defmodule OMG.State.PersistenceTest do
     |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
     |> exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{bob, 10}]))
     |> persist_form(db_pid)
-    |> persist_standard_exitable_utxos([alice, bob], db_pid)
+
+    persist_standard_exitable_utxos(alice, [], db_pid)
+    persist_standard_exitable_utxos(bob, [%{amount: 10, blknum: @blknum1}], db_pid)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -73,7 +73,6 @@ defmodule OMG.State.PersistenceTest do
     |> persist_deposit([%{owner: bob.addr, currency: @eth, amount: 20, blknum: 2}], db_pid)
     |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
     |> persist_form(db_pid)
-    |> persist_standard_exitable_utxos([alice, bob], db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -88,7 +87,6 @@ defmodule OMG.State.PersistenceTest do
     |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
     |> persist_form(db_pid)
     |> persist_exit_utxos(utxo_positions, db_pid)
-    |> persist_standard_exitable_utxos([alice], db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -105,7 +103,6 @@ defmodule OMG.State.PersistenceTest do
     |> persist_form(db_pid)
     |> persist_exit_utxos(utxo_pos_exits_in_flight, db_pid)
     |> persist_exit_utxos(utxo_pos_exits_piggyback, db_pid)
-    |> persist_standard_exitable_utxos([alice], db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -118,7 +115,6 @@ defmodule OMG.State.PersistenceTest do
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
     |> persist_exit_utxos(utxo_pos_exits_in_flight, db_pid)
-    |> persist_standard_exitable_utxos([alice], db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -128,7 +124,6 @@ defmodule OMG.State.PersistenceTest do
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
     |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]))
     |> persist_form(db_pid)
-    |> persist_standard_exitable_utxos([alice], db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -140,7 +135,6 @@ defmodule OMG.State.PersistenceTest do
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
     |> exec(tx)
     |> persist_form(db_pid)
-    |> persist_standard_exitable_utxos([alice], db_pid)
 
     assert {:ok, [hash]} = OMG.DB.block_hashes([@blknum1], db_pid)
 
@@ -183,32 +177,16 @@ defmodule OMG.State.PersistenceTest do
     state
   end
 
-  defp persist_standard_exitable_utxos(%Core{utxos: utxos} = state, addresses, db_pid) do
+  defp persist_standard_exitable_utxos(address, expected_utxos, db_pid) do
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
 
-    state_utxos =
-      utxos
-      |> Map.to_list()
-      |> Enum.map(fn {Utxo.position(blknum, txindex, oindex),
-                      %{amount: amount, creating_txhash: creating_txhash, owner: owner, currency: currency}} ->
-        %{
-          blknum: blknum,
-          txindex: txindex,
-          oindex: oindex,
-          amount: amount,
-          creating_txhash: creating_txhash,
-          owner: owner,
-          currency: currency
-        }
-      end)
+    address_utxos = Core.standard_exitable_utxos(utxos_query_result, address.addr)
+    assert length(expected_utxos) == length(address_utxos)
 
-    _ =
-      Enum.map(addresses, fn address ->
-        address_utxos = Core.standard_exitable_utxos(utxos_query_result, address.addr)
-        assert address_utxos == state_utxos |> Enum.filter(fn %{owner: owner} -> owner == address.addr end)
-      end)
-
-    state
+    Enum.zip(address_utxos, expected_utxos)
+    |> Enum.map(fn {utxo, expected_utxo} ->
+      assert Map.merge(utxo, expected_utxo) == utxo
+    end)
   end
 
   defp persist_common(state, db_updates, db_pid) do
