@@ -105,6 +105,21 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
 
       assert TestHelper.get_exitable_utxos(alice.addr) == TestHelper.get_utxos(alice.addr)
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "account.get_exitable_utxos handles improper type of parameter" do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "address",
+                   "validator" => ":hex"
+                 }
+               }
+             } == TestHelper.no_success?("account.get_exitable_utxos", %{"address" => 1_234_567_890})
+    end
   end
 
   @tag fixtures: [:initial_blocks, :carol]
@@ -242,7 +257,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
-  test "get.utxos handles improper type of parameter" do
+  test "account.get_utxos handles improper type of parameter" do
     assert %{
              "object" => "error",
              "code" => "operation:bad_request",

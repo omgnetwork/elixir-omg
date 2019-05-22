@@ -72,4 +72,13 @@ defmodule OMG.Watcher.Integration.TestHelper do
     # wait some more to ensure exit is processed
     Process.sleep(Application.fetch_env!(:omg, :ethereum_events_check_interval_ms) * 2)
   end
+
+  def process_exits(token, user) do
+    Process.sleep(Application.fetch_env!(:omg_eth, :exit_period_seconds) * 1_000)
+
+    {:ok, %{"blockNumber" => block_number}} =
+      OMG.Eth.RootChain.process_exits(token, 0, 1, user.addr) |> Eth.DevHelpers.transact_sync!()
+
+    Eth.DevHelpers.wait_for_root_chain_block(block_number + 2, 3_000)
+  end
 end
