@@ -1485,7 +1485,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       processor = processor |> Core.find_ifes_in_blocks(request)
       assert {:ok, []} = request |> check_validity_filtered(processor, only: [Event.InvalidIFEChallenge])
-      assert {:error, :canonical_not_found} = Core.prove_canonical_for_ife(processor, txbytes)
+      assert {:error, :no_viable_canonical_proof_found} = Core.prove_canonical_for_ife(processor, txbytes)
     end
   end
 

@@ -150,7 +150,8 @@ defmodule OMG.Watcher.ExitProcessor do
   a non-canonical in-flight exit
   """
   @decorate measure_event()
-  @spec get_competitor_for_ife(binary()) :: {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found}
+  @spec get_competitor_for_ife(binary()) ::
+          {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found} | {:error, :no_viable_competitor_found}
   def get_competitor_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
   end
@@ -160,7 +161,8 @@ defmodule OMG.Watcher.ExitProcessor do
   for a challenged in-flight exit
   """
   @decorate measure_event()
-  @spec prove_canonical_for_ife(binary()) :: {:ok, Core.prove_canonical_data_t()} | {:error, :canonical_not_found}
+  @spec prove_canonical_for_ife(binary()) ::
+          {:ok, Core.prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
   def prove_canonical_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end

@@ -979,7 +979,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Gets the root chain contract-required set of data to challenge a non-canonical ife
   """
   @spec get_competitor_for_ife(ExitProcessor.Request.t(), __MODULE__.t(), binary()) ::
-          {:ok, competitor_data_t()} | {:error, :competitor_not_found}
+          {:ok, competitor_data_t()} | {:error, :competitor_not_found} | {:error, :no_viable_competitor_found}
   def get_competitor_for_ife(
         %ExitProcessor.Request{blocks_result: blocks},
         %__MODULE__{} = state,
@@ -1001,11 +1001,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   contract but which is known to be canonical locally because included in one of the blocks
   """
   @spec prove_canonical_for_ife(t(), binary()) ::
-          {:ok, prove_canonical_data_t()} | {:error, :canonical_not_found}
+          {:ok, prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
   def prove_canonical_for_ife(%__MODULE__{} = state, ife_txbytes) do
     with {:ok, raw_ife_tx} <- Transaction.decode(ife_txbytes),
          {:ok, ife} <- get_ife(raw_ife_tx, state),
-         true <- InFlightExitInfo.is_invalidly_challenged?(ife) || {:error, :canonical_not_found},
+         true <- InFlightExitInfo.is_invalidly_challenged?(ife) || {:error, :no_viable_canonical_proof_found},
          do: {:ok, prepare_canonical_response(ife)}
   end
 
