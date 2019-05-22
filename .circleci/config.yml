@@ -34,12 +34,12 @@ executors:
   metal_child_chain:
     machine: true
     environment:
-      CHILD_CHAIN_PROD_IMAGE_NAME: "omisego/child_chain"
+      IMAGE_NAME: "omisego/child_chain"
 
   metal_watcher:
     machine: true
     environment:
-      WATCHER_PROD_IMAGE_NAME: "omisego/watcher"
+      IMAGE_NAME: "omisego/watcher"
 
 commands:
   setup_elixir-omg_workspace:
@@ -247,12 +247,14 @@ jobs:
     steps:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME
+      - run: sh .circleci/ci_publish.sh
 
   publish_watcher:
     executor: metal_watcher
     steps:
       - checkout
       - run: make docker-watcher WATCHER_PROD_IMAGE_NAME=$WATCHER_PROD_IMAGE_NAME
+      - run: sh .circleci/ci_publish.sh
 
   deploy_watcher:
     executor: deploy
