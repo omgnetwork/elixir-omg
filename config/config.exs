@@ -16,7 +16,7 @@ config :logger, level: :info
 config :logger, :console,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
   discard_threshold: 2000,
-  metadata: [:module, :function, :request_id]
+  metadata: [:module, :function, :request_id, :trace_id, :span_id]
 
 # Configs for AppSignal application monitoring
 config :appsignal, :config,

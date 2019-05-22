@@ -18,6 +18,7 @@ defmodule OMG.ChildChain.Application do
   See here (children) for the processes that compose into the Child Chain server.
   """
   use Application
+  use Spandex.Tracer, otp_app: :omg_child_chain  
 
   alias OMG.Alert.Alarm
 

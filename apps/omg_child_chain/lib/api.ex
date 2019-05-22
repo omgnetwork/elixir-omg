@@ -19,6 +19,7 @@ defmodule OMG.ChildChain do
   Should handle all the initial processing of requests like state-less validity, decoding/encoding
   (but not transport-specific encoding like hex).
   """
+  require Spandex
 
   alias OMG.Block
   alias OMG.ChildChain.FeeServer
@@ -36,6 +37,8 @@ defmodule OMG.ChildChain do
           {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
           | {:error, submit_error()}
   def submit(transaction) do
+    Tracer.start_span("transaction")
+    Tracer.update_span(service: :omg_child_chain, type: :transaction)
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
          {:ok, fees} <- FeeServer.transaction_fees(),
          fees = Fees.for_tx(recovered_tx, fees),
@@ -43,6 +46,7 @@ defmodule OMG.ChildChain do
       {:ok, %{txhash: tx_hash, blknum: blknum, txindex: tx_index}}
     end
     |> result_with_logging()
+    Tracer.finish_span()
   end
 
   @decorate measure_event()
