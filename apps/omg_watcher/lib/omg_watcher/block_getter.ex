@@ -86,11 +86,13 @@ defmodule OMG.Watcher.BlockGetter do
         maximum_number_of_pending_blocks: System.schedulers()
       )
 
-    :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
+    :ok = check_in_to_coordinator(synced_height)
     {:ok, _} = schedule_sync_height()
     {:ok, _} = schedule_producer()
 
     {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+
+    _ = Logger.info("Started #{inspect(__MODULE__)}, synced_height: #{inspect(synced_height)}")
 
     {:noreply, state}
   end
@@ -126,7 +128,7 @@ defmodule OMG.Watcher.BlockGetter do
       _ = Logger.debug("Synced height update: #{inspect(db_updates)}")
 
       :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_state)
-      :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
+      :ok = check_in_to_coordinator(synced_height)
 
       exit_processor_results = ExitProcessor.check_validity()
       state = Core.consider_exits(state, exit_processor_results)
@@ -218,13 +220,13 @@ defmodule OMG.Watcher.BlockGetter do
       Enum.each(blocks_to_apply, &GenServer.cast(__MODULE__, {:apply_block, &1}))
 
       :ok = OMG.DB.multi_update(db_updates)
-      :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
+      :ok = check_in_to_coordinator(synced_height)
       {:ok, _} = schedule_sync_height()
 
       {:noreply, state}
     else
       :nosync ->
-        :ok = RootChainCoordinator.check_in(state.synced_height, __MODULE__)
+        :ok = check_in_to_coordinator(state.synced_height)
         {:noreply, state}
 
       {:error, _} = error ->
@@ -269,5 +271,9 @@ defmodule OMG.Watcher.BlockGetter do
       block_timestamp,
       :os.system_time(:millisecond)
     )
+  end
+
+  defp check_in_to_coordinator(synced_height) do
+    RootChainCoordinator.check_in(synced_height, :block_getter)
   end
 end

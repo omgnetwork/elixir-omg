@@ -24,17 +24,17 @@ defmodule OMG.Watcher.CoordinatorSetup do
     %{
       depositor: [finality_margin: deposit_finality_margin],
       convenience_deposit_processor: [waits_for: [:depositor], finality_margin: deposit_finality_margin],
-      "Elixir.OMG.Watcher.BlockGetter": [
+      block_getter: [
         waits_for: [depositor: :no_margin, convenience_deposit_processor: :no_margin],
         finality_margin: 0
       ],
       exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
       convenience_exit_processor: [
-        waits_for: [:convenience_deposit_processor, :"Elixir.OMG.Watcher.BlockGetter"],
+        waits_for: [:convenience_deposit_processor, :block_getter],
         finality_margin: finality_margin
       ],
       exit_finalizer: [
-        waits_for: [:depositor, :"Elixir.OMG.Watcher.BlockGetter", :exit_processor],
+        waits_for: [:depositor, :block_getter, :exit_processor],
         finality_margin: finality_margin
       ],
       exit_challenger: [waits_for: :exit_processor, finality_margin: finality_margin],
@@ -44,7 +44,7 @@ defmodule OMG.Watcher.CoordinatorSetup do
       challenges_responds_processor: [waits_for: :competitor_processor, finality_margin: finality_margin],
       piggyback_challenges_processor: [waits_for: :piggyback_processor, finality_margin: finality_margin],
       ife_exit_finalizer: [
-        waits_for: [:depositor, :"Elixir.OMG.Watcher.BlockGetter", :in_flight_exit_processor, :piggyback_processor],
+        waits_for: [:depositor, :block_getter, :in_flight_exit_processor, :piggyback_processor],
         finality_margin: finality_margin
       ]
     }

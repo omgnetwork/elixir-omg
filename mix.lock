@@ -22,7 +22,7 @@
   "eleveldb": {:hex, :eleveldb, "2.2.20", "1fff63a5055bbf4bf821f797ef76065882b193f5e8095f95fcd9287187773b58", [:rebar3], [], "hexpm"},
   "erlex": {:hex, :erlex, "0.2.1", "cee02918660807cbba9a7229cae9b42d1c6143b768c781fa6cee1eaf03ad860b", [:mix], [], "hexpm"},
   "erlexec": {:hex, :erlexec, "1.9.5", "5ac0f70fb43c298a60b65a3e1bcad58714b0b1f6cd0a70b1e116ff42e65f954c", [:rebar3], [], "hexpm"},
-  "ethereumex": {:hex, :ethereumex, "0.5.3", "a1783a759692d9ca473e5f8afb5c2d8b6cfb1a89a6a8f779171d3a2840ada615", [:mix], [{:httpoison, "~> 1.4.0", [hex: :httpoison, repo: "hexpm", optional: false]}, {:jason, "~> 1.1", [hex: :jason, repo: "hexpm", optional: false]}, {:poolboy, "~> 1.5.1", [hex: :poolboy, repo: "hexpm", optional: false]}], "hexpm"},
+  "ethereumex": {:hex, :ethereumex, "0.5.4", "f4dc7f8dd6b141d2fd28c7c98e54c361ef2e7cc707b3147a216bf4857077033b", [:mix], [{:httpoison, "~> 1.4.0", [hex: :httpoison, repo: "hexpm", optional: false]}, {:jason, "~> 1.1", [hex: :jason, repo: "hexpm", optional: false]}, {:poolboy, "~> 1.5.1", [hex: :poolboy, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_abi": {:hex, :ex_abi, "0.2.1", "e8224ef22782b58d535bf3e29e73379af48df52cc9a941746980d14b32e793c2", [:mix], [{:exth_crypto, "~> 0.1.6", [hex: :exth_crypto, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_doc": {:hex, :ex_doc, "0.19.3", "3c7b0f02851f5fc13b040e8e925051452e41248f685e40250d7e40b07b9f8c10", [:mix], [{:earmark, "~> 1.2", [hex: :earmark, repo: "hexpm", optional: false]}, {:makeup_elixir, "~> 0.10", [hex: :makeup_elixir, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_rlp": {:hex, :ex_rlp, "0.5.2", "7f4ce7bd55e543c054ce6d49629b01e9833c3462e3d547952be89865f39f2c58", [:mix], [], "hexpm"},

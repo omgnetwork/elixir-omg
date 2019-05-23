@@ -90,6 +90,17 @@ defmodule OMG.RootChainCoordinator.CoreTest do
   end
 
   @tag fixtures: [:initial_state]
+  test "reports synced heights", %{initial_state: state} do
+    exiter_pid = :c.pid(0, 2, 0)
+
+    assert %{root_chain_height: 10} == Core.get_ethereum_heights(state)
+    assert {:ok, state} = Core.check_in(state, exiter_pid, 10, :exiter)
+    assert %{root_chain_height: 10, exiter: 10} == Core.get_ethereum_heights(state)
+    assert {:ok, state} = Core.update_root_chain_height(state, 11)
+    assert %{root_chain_height: 11, exiter: 10} == Core.get_ethereum_heights(state)
+  end
+
+  @tag fixtures: [:initial_state]
   test "prevents huge queries to Ethereum client", %{initial_state: state} do
     depositor_pid = :c.pid(0, 1, 0)
     exiter_pid = :c.pid(0, 2, 0)

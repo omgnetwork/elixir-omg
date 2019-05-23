@@ -109,6 +109,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @type piggyback_type_t() :: :input | :output
   @type piggyback_t() :: {piggyback_type_t(), non_neg_integer()}
 
+  @type in_flight_exit_response_t() :: %{
+          txhash: binary(),
+          txbytes: binary(),
+          eth_height: non_neg_integer(),
+          piggybacked_inputs: list(non_neg_integer()),
+          piggybacked_outputs: list(non_neg_integer())
+        }
+  @type in_flight_exits_response_t() :: %{binary() => in_flight_exit_response_t()}
+
   @doc """
   Reads database-specific list of exits and turns them into current state
   """

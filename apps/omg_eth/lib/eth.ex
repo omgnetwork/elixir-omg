@@ -91,6 +91,16 @@ defmodule OMG.Eth do
     end
   end
 
+  def get_block_timestamp_by_number(height) do
+    case Ethereumex.HttpClient.eth_get_block_by_number(to_hex(height), false) do
+      {:ok, %{"timestamp" => timestamp_hex}} ->
+        {:ok, int_from_hex(timestamp_hex)}
+
+      other ->
+        other
+    end
+  end
+
   @doc """
   Returns placeholder for non-existent Ethereum address
   """

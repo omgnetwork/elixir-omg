@@ -66,7 +66,7 @@ defmodule OMG.EthereumEventListener do
         get_events_callback: get_events_callback,
         process_events_callback: process_events_callback
       }) do
-    _ = Logger.info("Starting EthereumEventListener for #{service_name}.")
+    _ = Logger.info("Starting #{inspect(__MODULE__)} for #{service_name}.")
     {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
     {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
     # we don't need to ever look at earlier than contract deployment
@@ -88,6 +88,8 @@ defmodule OMG.EthereumEventListener do
       |> String.to_atom()
 
     {:ok, _} = Recorder.start_link(%Recorder{name: name, parent: self()})
+
+    _ = Logger.info("Started #{inspect(__MODULE__)} for #{service_name}, synced_height: #{inspect(height_to_check_in)}")
 
     {:noreply, {initial_state, callbacks_map}}
   end
