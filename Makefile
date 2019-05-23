@@ -27,8 +27,8 @@ deps-elixir-omg:
 clean: clean-elixir-omg
 
 clean-elixir-omg:
-	rm -rf _build/
-	rm -rf deps/
+	rm -rf _build/*
+	rm -rf deps/*
 
 
 .PHONY: clean clean-elixir-omg
@@ -92,7 +92,7 @@ docker-child_chain-prod:
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && make build-child_chain-prod"
+		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-child_chain-prod"
 
 docker-watcher-prod:
 	docker run --rm -it \
@@ -101,7 +101,7 @@ docker-watcher-prod:
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && make build-watcher-prod"
+		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-watcher-prod"
 
 docker-child_chain-build-prod:
 	docker build -f Dockerfile.child_chain \
@@ -123,3 +123,11 @@ docker-child_chain: docker-child_chain-prod docker-child_chain-build-prod
 docker-push-prod: docker
 	docker push $(CHILD_CHAIN_PROD_IMAGE_NAME)
 	docker push $(WATCHER_PROD_IMAGE_NAME)
+
+
+### UTILS
+OSFLAG := ''
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	OSFLAG = OSX
+endif
