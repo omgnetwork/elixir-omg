@@ -10,6 +10,8 @@ defmodule OMG.Umbrella.MixProject do
       deps: deps(),
       preferred_cli_env: [
         coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.html": :test,
         "coveralls.circle": :test,
         dialyzer: :test
       ],
