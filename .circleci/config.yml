@@ -247,14 +247,14 @@ jobs:
     steps:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME
-      #TODO - run: sh .circleci/ci_publish.sh
+      - run: sh .circleci/ci_publish.sh
 
   publish_watcher:
     executor: metal_watcher
     steps:
       - checkout
       - run: make docker-watcher WATCHER_PROD_IMAGE_NAME=$WATCHER_PROD_IMAGE_NAME
-      #TODO - run: sh .circleci/ci_publish.sh
+      - run: sh .circleci/ci_publish.sh
 
   deploy_watcher:
     executor: deploy
@@ -414,14 +414,14 @@ workflows:
                 - v0.1
       # Publish in case of master branch.
       - publish_child_chain:
-          requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
+          #requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
           filters:
             branches:
               only:
                 - master
                 - 579-publish_release_docker_p2
       - publish_watcher:
-          requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
+          #requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
           filters:
             branches:
               only:
