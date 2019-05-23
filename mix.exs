@@ -11,8 +11,8 @@ defmodule OMG.Umbrella.MixProject do
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.detail": :test,
-        "coveralls.post": :test,
         "coveralls.html": :test,
+        "coveralls.circle": :test,
         dialyzer: :test
       ],
       dialyzer: dialyzer(),
