@@ -1,0 +1,35 @@
+StatusSchema:
+  description: The object schema for a status
+  type: object
+  properties:
+    last_validated_child_block_number:
+      type: integer
+      format: int64
+    last_mined_child_block_timestamp:
+      type: integer
+      format: int64
+    last_mined_child_block_number:
+      type: integer
+      format: int64
+    eth_syncing:
+      type: boolean
+    byzantine_events:
+      type: array
+      items:
+        type: object
+    in_flight_txs:
+      type: array
+      items:
+        type: object
+    in_flight_exits:
+      type: array
+      items:
+        type: object
+  required:
+    - last_validated_child_block_number
+    - last_mined_child_block_timestamp
+    - last_mined_child_block_number
+    - eth_syncing
+    - byzantine_events
+    - in_flight_txs
+    - in_flight_exits

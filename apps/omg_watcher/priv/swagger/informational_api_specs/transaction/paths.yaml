@@ -1,0 +1,46 @@
+transaction.all:
+  post:
+    tags:
+      - Transaction
+    summary: Gets all transactions (can be limited with various filters).
+    description: >
+      Digests the details of the transaction, by listing the value of outputs, aggregated by currency.
+      Intended to be used when presenting the little details about multiple transactions.
+      For all details queries to `/transaction.get` should be made using the transaction's hash provided.
+    operationId: transactions_all
+    requestBody:
+      $ref: 'request_bodies.yaml#/GetTransactionsBody'
+    responses:
+      200:
+        $ref: 'responses.yaml#/GetTransactionsResponse'
+      500:
+        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+
+transaction.get:
+  post:
+    tags:
+      - Transaction
+    summary: Gets a transaction with the given id.
+    operationId: transaction_get
+    requestBody:
+      $ref: 'request_bodies.yaml#/GetTransactionBody'
+    responses:
+      200:
+        $ref: 'responses.yaml#/GetTransactionResponse'
+      500:
+        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+
+transaction.get_by_position:
+  post:
+    tags:
+      - Transaction
+    summary: Gets a transaction with the given position (block number, transaction index).
+    description: __Not implemented yet, proposed in OMG-364__
+    operationId: get_transaction_by_pos
+    requestBody:
+      $ref: 'request_bodies.yaml#/GetTransactionByPosBody'
+    responses:
+      200:
+        $ref: 'responses.yaml#/GetTransactionResponse'
+      500:
+        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'

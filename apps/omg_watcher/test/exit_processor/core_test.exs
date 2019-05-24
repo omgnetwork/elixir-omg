@@ -1119,16 +1119,24 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert Utxo.position(1, 0, 0) in spends_to_get
     end
 
-    test "by asking for the right blocks",
-         %{} do
-      # NOTE: for now test trivial, because we don't require any filtering yet
+    test "by asking for the right blocks when all are spent correctly" do
       assert %{blknums_to_get: [1000]} =
-               %ExitProcessor.Request{spent_blknum_result: [1000]} |> Core.determine_blocks_to_get()
+               %ExitProcessor.Request{spends_to_get: [@utxo_pos1], spent_blknum_result: [1000]}
+               |> Core.determine_blocks_to_get()
 
-      assert %{blknums_to_get: []} = %ExitProcessor.Request{spent_blknum_result: []} |> Core.determine_blocks_to_get()
+      assert %{blknums_to_get: []} =
+               %ExitProcessor.Request{spends_to_get: [], spent_blknum_result: []} |> Core.determine_blocks_to_get()
 
       assert %{blknums_to_get: [2000, 1000]} =
-               %ExitProcessor.Request{spent_blknum_result: [2000, 1000]} |> Core.determine_blocks_to_get()
+               %ExitProcessor.Request{spends_to_get: [@utxo_pos1, @utxo_pos2], spent_blknum_result: [2000, 1000]}
+               |> Core.determine_blocks_to_get()
+    end
+
+    @tag :capture_log
+    test "by asking for the right blocks if some spends are missing" do
+      assert %{blknums_to_get: [1000]} =
+               %ExitProcessor.Request{spends_to_get: [@utxo_pos1, @utxo_pos2], spent_blknum_result: [:not_found, 1000]}
+               |> Core.determine_blocks_to_get()
     end
 
     @tag fixtures: [:processor_filled]
@@ -1149,6 +1157,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:error, :ife_not_known_for_tx} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)
+    end
+
+    @tag fixtures: [:processor_empty]
+    test "for malformed input txbytes doesn't crash",
+         %{processor_empty: processor} do
+      assert {:error, :malformed_transaction} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.get_competitor_for_ife(processor, <<0>>)
     end
   end
 
@@ -1205,6 +1221,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:error, :canonical_not_found} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.prove_canonical_for_ife(txbytes)
+    end
+
+    test "for malformed input txbytes doesn't crash" do
+      assert {:error, :malformed_transaction} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.prove_canonical_for_ife(<<0>>)
     end
 
     @tag fixtures: [:processor_filled]

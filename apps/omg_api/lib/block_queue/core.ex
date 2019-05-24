@@ -456,7 +456,8 @@ defmodule OMG.API.BlockQueue.Core do
         :ok
 
       {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}} ->
-        _ = Logger.error("It seems that authority account is locked. Check README.md")
+        diagnostic = prepare_diagnostic(submission, newest_mined_blknum)
+        _ = Logger.error("It seems that authority account is locked: #{inspect(diagnostic)}. Check README.md")
         {:error, :account_locked}
 
       {:error, %{"code" => -32_000, "message" => "nonce too low"}} ->
@@ -469,8 +470,14 @@ defmodule OMG.API.BlockQueue.Core do
       # apparently the `nonce too low` error is related to the submission having been mined while it was prepared
       :ok
     else
-      _ = Logger.error("Submission #{inspect(submission)} unexpectedly failed with nonce too low")
+      diagnostic = prepare_diagnostic(submission, newest_mined_blknum)
+      _ = Logger.error("Submission unexpectedly failed with nonce too low: #{inspect(diagnostic)}")
       {:error, :nonce_too_low}
     end
+  end
+
+  defp prepare_diagnostic(submission, newest_mined_blknum) do
+    config = Application.get_all_env(:omg_eth) |> Keyword.take([:contract_addr, :authority_addr, :txhash_contract])
+    %{submission: submission, newest_mined_blknum: newest_mined_blknum, config: config}
   end
 end

@@ -24,6 +24,22 @@ defmodule OMG.Watcher.DB.TransactionTest do
 
   require Utxo
 
+  describe "get_by_filters/3" do
+    @tag fixtures: [:alice, :initial_blocks]
+    test "gets all transactions for an address", %{alice: alice} do
+      transactions = DB.Transaction.get_by_filters(alice.addr, nil, nil)
+
+      assert length(transactions) == 5
+    end
+
+    @tag fixtures: [:alice, :initial_blocks]
+    test "gets all transactions for an address with limit = 1", %{alice: alice} do
+      transactions = DB.Transaction.get_by_filters(alice.addr, nil, 1)
+
+      assert length(transactions) == 1
+    end
+  end
+
   @tag fixtures: [:initial_blocks]
   test "verifies all expected transaction were inserted", %{initial_blocks: initial_blocks} do
     initial_blocks

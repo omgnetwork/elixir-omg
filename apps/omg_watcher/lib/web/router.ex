@@ -17,11 +17,20 @@ defmodule OMG.Watcher.Web.Router do
 
   pipeline :api do
     plug(:accepts, ["json"])
-    plug(:enforce_json_content)
+  end
+
+  pipeline :enforce_json_content do
+    plug(:do_enforce_json_content)
   end
 
   scope "/", OMG.Watcher.Web do
     pipe_through([:api])
+
+    post("/status.get", Controller.Status, :get_status)
+  end
+
+  scope "/", OMG.Watcher.Web do
+    pipe_through([:api, :enforce_json_content])
 
     post("/account.get_balance", Controller.Account, :get_balance)
     post("/account.get_transactions", Controller.Transaction, :get_transactions)
@@ -38,13 +47,11 @@ defmodule OMG.Watcher.Web.Router do
     post("/utxo.get_exit_data", Controller.Utxo, :get_utxo_exit)
     post("/utxo.get_challenge_data", Controller.Challenge, :get_utxo_challenge)
 
-    post("/status.get", Controller.Status, :get_status)
-
     # NOTE: This *has to* be the last route, catching all unhandled paths
     match(:*, "/*path", Controller.Fallback, Route.NotFound)
   end
 
-  def enforce_json_content(conn, _opts) do
+  defp do_enforce_json_content(conn, _opts) do
     headers = conn |> get_req_header("content-type")
 
     if "application/json" in headers do

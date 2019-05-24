@@ -34,6 +34,8 @@ defmodule OMG.API.Application do
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_api)
+    cookie = System.get_env("ERL_CC_COOKIE")
+    true = set_cookie(cookie)
 
     children = [
       {OMG.API.State, []},
@@ -74,6 +76,14 @@ defmodule OMG.API.Application do
     :ok = :error_logger.add_report_handler(Sentry.Logger)
     Supervisor.start_link(children, opts)
   end
+
+  defp set_cookie(cookie) when is_binary(cookie) do
+    cookie
+    |> String.to_atom()
+    |> Node.set_cookie()
+  end
+
+  defp set_cookie(_), do: :ok == Logger.warn("Cookie not applied.")
 
   defp ignore_validities(exits) do
     {status, db_updates, _validities} = OMG.API.State.exit_utxos(exits)

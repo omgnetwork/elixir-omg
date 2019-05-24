@@ -1,0 +1,15 @@
+UtxoPositionBody:
+  description: Utxo position (encoded as single integer, the way contract represents them)
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          utxo_pos:
+            type: integer
+            format: int256
+        required:
+          - utxo_pos
+        example:
+          utxo_pos: 10000000010000000

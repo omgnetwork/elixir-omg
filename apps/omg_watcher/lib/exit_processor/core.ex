@@ -32,6 +32,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.TxAppendix
 
+  use OMG.API.LoggerExt
+
   @default_sla_margin 10
   @zero_address OMG.Eth.zero_address()
 
@@ -420,15 +422,26 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     2/ blocks where any output to any IFE was spent
     3/ blocks where the whole IFE transaction **might've** been included, to get piggyback availability and to get InvalidIFEChallenge's
 
+  This function filteres out all the spends that have not been found (`:not_found` in `spent_blknum_result`)
+  This might occur if a UTXO is exited while a SE finalizes. A block spending such UTXO will not exist.
+  Such situations should not arise, as of `v0.2` cross exiting SEs and IFEs are handled.
+  Nevertheless, `ExitProcessor` should not suffer
   """
   @spec determine_blocks_to_get(ExitProcessor.Request.t()) :: ExitProcessor.Request.t()
   def determine_blocks_to_get(
-        %ExitProcessor.Request{
-          spent_blknum_result: spent_blknum_result
-        } = request
+        %ExitProcessor.Request{spends_to_get: spends_to_get, spent_blknum_result: spent_blknum_result} = request
       ) do
     # TODO: consider Enum.uniq here
-    %{request | blknums_to_get: spent_blknum_result}
+    {not_founds, founds} =
+      Stream.zip(spends_to_get, spent_blknum_result)
+      |> Enum.split_with(fn {_utxo_pos, result} -> result == :not_found end)
+
+    {_, blknums_to_get} = Enum.unzip(founds)
+
+    warn? = !Enum.empty?(not_founds)
+    _ = if warn?, do: Logger.warn("UTXO doesn't exists but no spend registered (spent in exit?) #{inspect(not_founds)}")
+
+    %{request | blknums_to_get: blknums_to_get}
   end
 
   @doc """
@@ -614,7 +627,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)
 
     # find its competitor and use it to prepare the requested data
-    with {:ok, %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx}} <- get_ife(ife_txbytes, state),
+    with {:ok, raw_ife_tx} <- Transaction.decode(ife_txbytes),
+         {:ok, %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx}} <- get_ife(raw_ife_tx, state),
          {:ok, known_signed_tx} <- find_competitor(known_txs, signed_ife_tx),
          do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, blocks)}
   end
@@ -630,9 +644,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         ife_txbytes
       ) do
     known_txs = get_known_txs(blocks)
-    {:ok, raw_ife_tx} = Transaction.decode(ife_txbytes)
 
-    with {:ok, %KnownTx{utxo_pos: known_tx_utxo_pos}} <- find_canonical(known_txs, raw_ife_tx),
+    with {:ok, raw_ife_tx} <- Transaction.decode(ife_txbytes),
+         {:ok, %KnownTx{utxo_pos: known_tx_utxo_pos}} <- find_canonical(known_txs, raw_ife_tx),
          do: {:ok, prepare_canonical_response(ife_txbytes, known_tx_utxo_pos, blocks)}
   end
 
@@ -769,9 +783,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     address != @zero_address
   end
 
-  defp get_ife(txbytes, %__MODULE__{in_flight_exits: ifes}) do
-    {:ok, raw_ife_tx} = Transaction.decode(txbytes)
-
+  defp get_ife(raw_ife_tx, %__MODULE__{in_flight_exits: ifes}) do
     case ifes[Transaction.hash(raw_ife_tx)] do
       nil -> {:error, :ife_not_known_for_tx}
       value -> {:ok, value}
