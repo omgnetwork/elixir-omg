@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,13 +31,16 @@ defmodule OMG.Eth.DevGeth do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, homedir} = Briefly.create(directory: true)
 
-    geth_pid = launch("geth --dev --dev.period=1 --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
+    geth_pid = launch("geth --dev --dev.period=1 --rpc --rpcapi=personal,eth,web3,admin --datadir #{homedir} 2>&1")
+
     {:ok, :ready} = Eth.WaitFor.eth_rpc()
 
     on_exit = fn -> stop(geth_pid) end
 
     {:ok, on_exit}
   end
+
+  # PRIVATE
 
   defp stop(pid) do
     # NOTE: monitor is required to stop_and_wait, don't know why? `monitor: true` on run doesn't work
@@ -46,15 +49,8 @@ defmodule OMG.Eth.DevGeth do
     :ok
   end
 
-  # PRIVATE
-
-  defp log_geth_output(line) do
-    _ = Logger.debug(fn -> "geth: " <> line end)
-    line
-  end
-
   defp launch(cmd) do
-    _ = Logger.debug(fn -> "Starting geth" end)
+    _ = Logger.debug("Starting geth")
 
     {:ok, geth_proc, _ref, [{:stream, geth_out, _stream_server}]} =
       Exexec.run(cmd, stdout: :stream, kill_command: "pkill -9 geth")
@@ -62,10 +58,10 @@ defmodule OMG.Eth.DevGeth do
     wait_for_geth_start(geth_out)
 
     _ =
-      if Application.get_env(:omg_eth, :geth_logging_in_debug) do
+      if Application.get_env(:omg_eth, :node_logging_in_debug) do
         %Task{} =
           fn ->
-            geth_out |> Enum.each(&log_geth_output/1)
+            geth_out |> Enum.each(&OMG.Eth.DevNode.default_logger/1)
           end
           |> Task.async()
       end
@@ -73,34 +69,7 @@ defmodule OMG.Eth.DevGeth do
     geth_proc
   end
 
-  def wait_for_start(outstream, look_for, timeout) do
-    # Monitors the stdout coming out of a process for signal of successful startup
-    waiting_task_function = fn ->
-      outstream
-      |> Stream.map(&log_geth_output/1)
-      |> Stream.take_while(fn line -> not String.contains?(line, look_for) end)
-      |> Enum.to_list()
-    end
-
-    waiting_task_function
-    |> Task.async()
-    |> Task.await(timeout)
-
-    :ok
-  end
-
   defp wait_for_geth_start(geth_out) do
-    wait_for_start(geth_out, "IPC endpoint opened", 15_000)
-  end
-
-  def maybe_mine(false), do: :noop
-  def maybe_mine(true), do: mine_eth_dev_block()
-
-  def mine_eth_dev_block do
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-    txmap = %{from: addr, to: addr, value: "0x1"}
-    {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    # Dev geth is mining every second, that's why we need to wait longer than 1 s for receipt
-    {:ok, _receipt} = txhash |> Eth.Encoding.from_hex() |> Eth.WaitFor.eth_receipt(2_000)
+    OMG.Eth.DevNode.wait_for_start(geth_out, "IPC endpoint opened", 15_000)
   end
 end

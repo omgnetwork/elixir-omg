@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,4 @@
 
 ExUnit.configure(exclude: [integration: true])
 ExUnitFixtures.start()
-# loading all fixture files from the whole umbrella project
-ExUnitFixtures.load_fixture_files("../**/test/**/fixtures.exs")
 ExUnit.start()

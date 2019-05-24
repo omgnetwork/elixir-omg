@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,16 +13,22 @@
 # limitations under the License.
 
 # unfortunately something is wrong with the fixtures loading in `test_helper.exs` and the following needs to be done
-Code.require_file("#{__DIR__}/../../omg_api/test/integration/fixtures.exs")
+Code.require_file("#{__DIR__}/../../omg_child_chain/test/omg_child_chain/integration/fixtures.exs")
 
 defmodule OMG.Watcher.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
-  use OMG.API.Integration.Fixtures
-  use OMG.API.LoggerExt
-  alias OMG.Watcher.TestHelper
+  use OMG.ChildChain.Integration.Fixtures
+  use OMG.Utils.LoggerExt
+
+  alias Ecto.Adapters.SQL
+  alias OMG.Watcher
+  alias OMG.Watcher.DB
+  alias Watcher.TestHelper
+
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   deffixture child_chain(contract, fee_file) do
     config_file_path = Briefly.create!(extname: ".exs")
@@ -33,24 +39,16 @@ defmodule OMG.Watcher.Fixtures do
     |> IO.binwrite("""
       #{OMG.Eth.DevHelpers.create_conf_file(contract)}
 
-      config :omg_db,
-        leveldb_path: "#{db_path}"
+      config :omg_db, path: "#{db_path}"
+      # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level
       config :logger, level: :debug
-      config :omg_eth,
-        child_block_interval: #{Application.get_env(:omg_eth, :child_block_interval)}
-      config :omg_api,
-        fee_specs_file_path: "#{fee_file}",
-        rootchain_height_sync_interval_ms: #{Application.get_env(:omg_api, :rootchain_height_sync_interval_ms)},
-        ethereum_event_block_finality_margin: #{Application.get_env(:omg_api, :ethereum_event_block_finality_margin)},
-        ethereum_event_check_height_interval_ms: #{
-      Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms)
-    }
+      config :omg_child_chain, fee_specs_file_name: "#{fee_file}"
     """)
     |> File.close()
 
     {:ok, config} = File.read(config_file_path)
-    Logger.debug(fn -> IO.ANSI.format([:blue, :bright, config], true) end)
-    Logger.debug(fn -> "Starting db_init" end)
+    Logger.debug(IO.ANSI.format([:blue, :bright, config], true))
+    Logger.debug("Starting db_init")
 
     exexec_opts_for_mix = [
       stdout: :stream,
@@ -69,11 +67,9 @@ defmodule OMG.Watcher.Fixtures do
 
     db_out |> Enum.each(&log_output("db_init", &1))
 
-    child_chain_mix_cmd =
-      "mix run --no-start --no-halt --config #{config_file_path} -e " <>
-        "'{:ok, _} = Application.ensure_all_started(:omg_api)' " <> "2>&1"
+    child_chain_mix_cmd = " mix xomg.child_chain.start --config #{config_file_path} 2>&1"
 
-    Logger.debug(fn -> "Starting child_chain" end)
+    Logger.info("Starting child_chain")
 
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
       Exexec.run_link(child_chain_mix_cmd, exexec_opts_for_mix)
@@ -99,7 +95,7 @@ defmodule OMG.Watcher.Fixtures do
             :ok
 
           other ->
-            _ = Logger.warn(fn -> "Child chain stopped with an unexpected reason" end)
+            _ = Logger.warn("Child chain stopped with an unexpected reason")
             other
         end
 
@@ -111,18 +107,20 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   defp log_output(prefix, line) do
-    Logger.debug(fn -> "#{prefix}: " <> line end)
+    Logger.debug("#{prefix}: " <> line)
     line
   end
 
   deffixture watcher(db_initialized, root_chain_contract_config) do
     :ok = root_chain_contract_config
     :ok = db_initialized
+
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
+    [] = DB.Block.get_all()
 
     on_exit(fn ->
-      Application.put_env(:omg_db, :leveldb_path, nil)
+      Application.put_env(:omg_db, :path, nil)
 
       (started_apps ++ started_watcher)
       |> Enum.reverse()
@@ -130,24 +128,19 @@ defmodule OMG.Watcher.Fixtures do
     end)
   end
 
-  deffixture watcher_sandbox(watcher) do
-    :ok = watcher
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.DB.Repo, ownership_timeout: 90_000)
-    Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.DB.Repo, {:shared, self()})
-  end
-
   @doc "run only database in sandbox and endpoint to make request"
   deffixture phoenix_ecto_sandbox do
-    import Supervisor.Spec
-
     {:ok, pid} =
       Supervisor.start_link(
-        [supervisor(OMG.Watcher.DB.Repo, []), supervisor(OMG.Watcher.Web.Endpoint, [])],
+        [
+          %{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor},
+          %{id: Watcher.Web.Endpoint, start: {Watcher.Web.Endpoint, :start_link, []}, type: :supervisor}
+        ],
         strategy: :one_for_one,
-        name: OMG.Watcher.Supervisor
+        name: Watcher.Supervisor
       )
 
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.DB.Repo)
+    :ok = SQL.Sandbox.checkout(DB.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       TestHelper.wait_for_process(pid)
@@ -155,41 +148,87 @@ defmodule OMG.Watcher.Fixtures do
     end)
   end
 
-  deffixture initial_blocks(entities, phoenix_ecto_sandbox) do
-    alias OMG.Watcher.DB
-    eth = OMG.API.Crypto.zero_address()
-
-    %{alice: alice, bob: bob} = entities
-    :ok = phoenix_ecto_sandbox
-
-    prepare_f = fn {blknum, recovered_txs} ->
-      db_results = DB.Transaction.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
-      true = db_results |> Enum.all?(&(elem(&1, 0) == :ok))
-
-      recovered_txs
-      |> Enum.with_index()
-      |> Enum.map(fn {recovered_tx, txindex} -> {blknum, txindex, recovered_tx.signed_tx_hash, recovered_tx} end)
-    end
-
-    # Initial data depending tests can reuse
-    OMG.Watcher.DB.EthEvent.insert_deposits([
-      %{owner: alice.addr, currency: eth, amount: 333, blknum: 1},
-      %{owner: bob.addr, currency: eth, amount: 100, blknum: 2}
-    ])
+  deffixture initial_blocks(alice, bob, blocks_inserter, initial_deposits) do
+    :ok = initial_deposits
 
     [
       {1000,
        [
-         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{bob, 300}]),
-         OMG.API.TestHelper.create_recovered([{1000, 0, 0, bob}], eth, [{alice, 100}, {bob, 200}])
+         OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
+         OMG.TestHelper.create_recovered([{1000, 0, 0, bob}], @eth, [{alice, 100}, {bob, 200}])
        ]},
-      {2000, [OMG.API.TestHelper.create_recovered([{1000, 1, 0, alice}], eth, [{bob, 99}, {alice, 1}])]},
+      {2000,
+       [
+         OMG.TestHelper.create_recovered([{1000, 1, 0, alice}], @eth, [{bob, 99}, {alice, 1}], <<1337::256>>)
+       ]},
       {3000,
        [
-         OMG.API.TestHelper.create_recovered([], eth, [{alice, 150}]),
-         OMG.API.TestHelper.create_recovered([{1000, 1, 1, bob}], eth, [{bob, 150}, {alice, 50}])
+         OMG.TestHelper.create_recovered([], @eth, [{alice, 150}]),
+         OMG.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
        ]}
     ]
-    |> Enum.flat_map(prepare_f)
+    |> blocks_inserter.()
+  end
+
+  deffixture initial_deposits(alice, bob, phoenix_ecto_sandbox) do
+    :ok = phoenix_ecto_sandbox
+
+    # Initial data depending tests can reuse
+    DB.EthEvent.insert_deposits!([
+      %{owner: alice.addr, currency: @eth, amount: 333, blknum: 1},
+      %{owner: bob.addr, currency: @eth, amount: 100, blknum: 2}
+    ])
+
+    :ok
+  end
+
+  deffixture blocks_inserter(phoenix_ecto_sandbox) do
+    :ok = phoenix_ecto_sandbox
+
+    fn blocks -> blocks |> Enum.flat_map(&prepare_one_block/1) end
+  end
+
+  deffixture test_server do
+    alias FakeServer.Agents.EnvAgent
+    alias FakeServer.HTTP.Server
+
+    DeferredConfig.populate(:omg_rpc)
+    DeferredConfig.populate(:omg_watcher)
+    {:ok, server_id, port} = Server.run()
+    env = FakeServer.Env.new(port)
+
+    EnvAgent.save_env(server_id, env)
+
+    real_addr = Application.fetch_env!(:omg_watcher, :child_chain_url)
+    old_client_env = Application.fetch_env!(:omg_watcher, :child_chain_url)
+    fake_addr = "http://#{env.ip}:#{env.port}"
+
+    on_exit(fn ->
+      Application.put_env(:omg_watcher, :child_chain_url, old_client_env)
+
+      Server.stop(server_id)
+      EnvAgent.delete_env(server_id)
+    end)
+
+    %{
+      real_addr: real_addr,
+      fake_addr: fake_addr,
+      server_id: server_id
+    }
+  end
+
+  defp prepare_one_block({blknum, recovered_txs}) do
+    {:ok, _} =
+      DB.Transaction.update_with(%{
+        transactions: recovered_txs,
+        blknum: blknum,
+        blkhash: "##{blknum}",
+        timestamp: 1_540_465_606,
+        eth_height: 1
+      })
+
+    recovered_txs
+    |> Enum.with_index()
+    |> Enum.map(fn {recovered_tx, txindex} -> {blknum, txindex, recovered_tx.tx_hash, recovered_tx} end)
   end
 end

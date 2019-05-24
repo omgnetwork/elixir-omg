@@ -6,7 +6,7 @@ defmodule OMG.Eth.MixProject do
   def project do
     [
       app: :omg_eth,
-      version: "0.1.0",
+      version: OMG.Umbrella.MixProject.umbrella_version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -21,6 +21,7 @@ defmodule OMG.Eth.MixProject do
 
   def application do
     [
+      mod: {OMG.Eth.Application, []},
       extra_applications: [:logger]
     ]
   end
@@ -31,27 +32,47 @@ defmodule OMG.Eth.MixProject do
 
   defp deps do
     [
-      {:abi, git: "https://github.com/omisego/abi.git", branch: "encode_dynamic_types"},
-      {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "request_timeout2", override: true},
-      {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", runtime: true},
-      # TODO: we only need in :dev and :test here, but we need in :prod too in performance
-      #       then there's some unexpected behavior of mix that won't allow to mix these, see
-      #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
-      {:briefly, "~> 0.3"},
+      {:ex_abi, "~> 0.2.1"},
+      {:ethereumex, "~> 0.5.4"},
+      {:deferred_config, "~> 0.1.1"},
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "develop_3.7_py_solc_simple_indexed_events",
+        branch: "master",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
         only: [:dev, :test]
-      }
+      },
+      {:appsignal, "~> 1.0"},
+      # TEST ONLY
+      {:exexec,
+       git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},
+      {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
+      {:omg_utils, in_umbrella: true}
     ]
   end
 
   defp contracts_compile do
+    current_path = File.cwd!()
     mixfile_path = __DIR__
-    "cd #{mixfile_path}/../../ && py-solc-simple -i deps/plasma_contracts/contracts/ -o contracts/build/"
+    contracts_dir = "deps/plasma_contracts/contracts"
+
+    # NOTE: `solc` needs the relative paths to contracts (`contract_paths`) to be short, hence we need to `cd`
+    #       deeply into where the sources are (`compilation_path`)
+    compilation_path = Path.join([mixfile_path, "../..", contracts_dir])
+
+    contract_paths =
+      ["RootChain.sol", "MintableToken.sol", "SignatureTest.sol"]
+      |> Enum.join(" ")
+
+    output_path = Path.join([mixfile_path, "../..", "_build/contracts"])
+
+    [
+      "cd #{compilation_path}",
+      "solc #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{output_path}",
+      "cd #{current_path}"
+    ]
+    |> Enum.join(" && ")
   end
 end

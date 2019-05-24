@@ -1,0 +1,444 @@
+version: 2.1
+
+executors:
+  builder:
+    docker:
+      - image: omisegoimages/elixir-omg-builder:v1.3
+    working_directory: ~/src
+
+  builder_pg:
+    docker:
+      - image: omisegoimages/elixir-omg-builder:v1.3
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+    working_directory: ~/src
+
+  builder_pg_geth:
+    docker:
+      - image: omisegoimages/elixir-omg-tester:stable
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+    working_directory: ~/src
+
+  deploy:
+    docker:
+      - image: omisegoimages/elixir-omg-deploy:stable
+    working_directory: ~/src
+
+  metal_child_chain:
+    machine: true
+    environment:
+      IMAGE_NAME: "omisego/child_chain"
+
+  metal_watcher:
+    machine: true
+    environment:
+      IMAGE_NAME: "omisego/watcher"
+
+commands:
+  setup_elixir-omg_workspace:
+    description: "Setup workspace"
+    steps:
+      - attach_workspace:
+          name: Attach workspace
+          at: .
+jobs:
+  build:
+    executor: builder
+    environment:
+      MIX_ENV: "test"
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
+      - run: make deps-elixir-omg
+      - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
+      - save_cache:
+          key: v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+          paths: "_build"
+      - save_cache:
+          key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
+          paths:
+            - "deps/rocksdb"
+            - "_build/test/lib/rocksdb/"
+            - "_build/test/dev/rocksdb/"
+      - persist_to_workspace:
+          name: Persist workspace
+          root: ~/src
+          paths:
+            - .circleci
+            - dialyzer.ignore-warnings
+            - .formatter.exs
+            - _build
+            - .credo.exs
+            - apps
+            - bin
+            - config
+            - deps
+            - doc
+            - mix.exs
+            - mix.lock
+            - deploy_and_populate.sh
+            - launcher.py
+            - docker-compose.yml
+            - rel/
+
+  lint:
+    executor: builder_pg
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
+
+  child_chain_coveralls_and_integration_tests:
+    executor: builder_pg_geth
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Integration Tests & Coveralls Part Child Chain
+          command: |
+            # Don't submit coverage report for forks, but let the build succeed
+            export SHELL=/bin/bash
+            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
+              mix coveralls.html --parallel --umbrella --include child_chain --exclude watcher --exclude common --exclude test --trace
+            else
+              mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude common --exclude test --trace ||
+                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
+            fi
+
+  watcher_coveralls_and_integration_tests:
+    executor: builder_pg_geth
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Integration Tests & Coveralls Part Watcher
+          command: |
+            # Don't submit coverage report for forks, but let the build succeed
+            export SHELL=/bin/bash
+            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
+              mix coveralls.html --parallel --umbrella --include watcher --exclude child_chain --exclude common --exclude test --trace
+            else
+              mix coveralls.circle --parallel --umbrella --include watcher --exclude child_chain --exclude common --exclude test --trace ||
+                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
+            fi
+
+  common_coveralls_and_integration_tests:
+    executor: builder_pg_geth
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Integration Tests & Coveralls Part Common
+          command: |
+            # Don't submit coverage report for forks, but let the build succeed
+            export SHELL=/bin/bash
+            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
+              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude child_chain --exclude test --trace
+            else
+              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude child_chain --exclude test --trace ||
+                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
+            fi
+
+  test:
+    executor: builder_pg
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Test
+          command: |
+            # Don't submit coverage report for forks, but let the build succeed
+            export SHELL=/bin/bash
+            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
+              mix coveralls.html --parallel --umbrella --trace
+            else
+              mix coveralls.circle --parallel --umbrella --trace ||
+                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
+            fi
+
+  dialyzer:
+    executor: builder_pg
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
+            - v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
+            - v2-plt-cache-{{ ".tool-versions" }}
+      - run:
+          name: Unpack PLT cache
+          command: |
+            mkdir -p _build/test
+            cp plts/dialyxir*.plt _build/test/ || true
+            mkdir -p ~/.mix
+            cp plts/dialyxir*.plt ~/.mix/ || true
+      - run: mix dialyzer --plt
+      - run:
+          name: Pack PLT cache
+          command: |
+            mkdir -p plts
+            cp _build/test/dialyxir*.plt plts/
+            cp ~/.mix/dialyxir*.plt plts/
+      - save_cache:
+          key: v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
+          paths:
+            - plts
+      - save_cache:
+          key: v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
+          paths:
+            - plts
+      - save_cache:
+          key: v2-plt-cache-{{ ".tool-versions" }}
+          paths:
+            - plts
+
+      - run: mix dialyzer --format short --halt-exit-status
+
+  publish_child_chain:
+    executor: metal_child_chain
+    steps:
+      - checkout
+      - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME
+      #TODO - run: sh .circleci/ci_publish.sh
+
+  publish_watcher:
+    executor: metal_watcher
+    steps:
+      - checkout
+      - run: make docker-watcher WATCHER_PROD_IMAGE_NAME=$WATCHER_PROD_IMAGE_NAME
+      #TODO - run: sh .circleci/ci_publish.sh
+
+  deploy_watcher:
+    executor: deploy
+    steps:
+      - checkout
+      #- run: sh .circleci/ci_deploy.sh
+
+  deploy_child_chain:
+    executor: deploy
+    steps:
+      - checkout
+      #- run: sh .circleci/ci_deploy.sh
+
+  coveralls_merge:
+    docker:
+      # Ensure .tool-versions matches
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          MIX_ENV: test
+
+    steps:
+      - run:
+          name: Tell coveralls.io build is done
+          command: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done"
+
+  build_and_deploy_development:
+    docker:
+      - image: ubuntu:16.04
+    working_directory: ~/repo
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get install -y lsb-release curl cmake
+            curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
+      - run:
+          name: Install gcloud SDK
+          command: |
+            export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
+            echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+            apt-get update -y && apt-get install -y google-cloud-sdk kubectl
+      - run:
+          name: Initialise & authenticate gcloud SDK
+          command: |
+            echo "${GCP_KEY_FILE}" | base64 --decode >> /tmp/gcp_key.json
+            gcloud auth activate-service-account --key-file /tmp/gcp_key.json
+            gcloud config set project ${GCP_ACCOUNT_ID}
+            gcloud config set compute/zone ${GCP_ZONE}
+            gcloud container clusters get-credentials ${GCP_CLUSTER_DEVELOPMENT}
+      - run:
+          name: Build & Deploy Services
+          command: |
+            docker build -t elixir-omg .
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+            export DOCKER_IMAGE=jakebunce/elixir-omg:$CIRCLE_SHA1
+            docker tag elixir-omg $DOCKER_IMAGE
+            docker push jakebunce/elixir-omg:$CIRCLE_SHA1
+            kubectl set image statefulset childchain-samrong childchain=$DOCKER_IMAGE
+            while true; do if [ "$(kubectl get pods childchain-samrong-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
+            kubectl set image statefulset watcher-samrong watcher=$DOCKER_IMAGE
+
+  build_and_deploy_staging:
+    docker:
+      - image: ubuntu:16.04
+    working_directory: ~/repo
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get install -y lsb-release curl cmake
+            curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
+      - run:
+          name: Install gcloud SDK
+          command: |
+            export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
+            echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+            apt-get update -y && apt-get install -y google-cloud-sdk kubectl
+      - run:
+          name: Initialise & authenticate gcloud SDK
+          command: |
+            echo "${GCP_KEY_FILE}" | base64 --decode >> /tmp/gcp_key.json
+            gcloud auth activate-service-account --key-file /tmp/gcp_key.json
+            gcloud config set project ${GCP_ACCOUNT_ID}
+            gcloud config set compute/zone ${GCP_ZONE}
+            gcloud container clusters get-credentials ${GCP_CLUSTER_STAGING}
+      - run:
+          name: Build & Deploy Services
+          command: |
+            docker build -t elixir-omg .
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+            export DOCKER_IMAGE=jakebunce/elixir-omg:$CIRCLE_SHA1
+            docker tag elixir-omg $DOCKER_IMAGE
+            docker push jakebunce/elixir-omg:$CIRCLE_SHA1
+            kubectl set image statefulset childchain childchain=$DOCKER_IMAGE
+            while true; do if [ "$(kubectl get pods childchain-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
+            kubectl set image statefulset watcher watcher=$DOCKER_IMAGE
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build
+      - coveralls_merge:
+          requires:
+            - child_chain_coveralls_and_integration_tests
+            - watcher_coveralls_and_integration_tests
+            - common_coveralls_and_integration_tests
+            - test
+      - child_chain_coveralls_and_integration_tests:
+          requires:
+            - build
+      - watcher_coveralls_and_integration_tests:
+          requires:
+            - build
+      - common_coveralls_and_integration_tests:
+          requires:
+            - build
+      - lint:
+          requires: [build]
+      - dialyzer:
+          requires: [build]
+      - test:
+          requires:
+            - build
+
+      - build_and_deploy_development:
+          requires:
+            - build
+            - lint
+            - dialyzer
+            - test
+            - child_chain_coveralls_and_integration_tests
+            - watcher_coveralls_and_integration_tests
+            - common_coveralls_and_integration_tests
+          filters:
+            branches:
+              only:
+                - master
+      - build_and_deploy_staging:
+          requires:
+            - build
+            - lint
+            - dialyzer
+            - test
+            - child_chain_coveralls_and_integration_tests
+            - watcher_coveralls_and_integration_tests
+            - common_coveralls_and_integration_tests
+          filters:
+            branches:
+              only:
+                - v0.1
+      # Publish in case of master branch.
+      - publish_child_chain:
+          requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
+          filters:
+            branches:
+              only:
+                - master
+                - 579-publish_release_docker
+      - publish_watcher:
+          requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
+          filters:
+            branches:
+              only:
+                - master
+                - 579-publish_release_docker
+      # Release deploy to development in case of master branch.
+      - deploy_child_chain:
+          requires: [publish_child_chain, publish_watcher]
+          filters:
+            branches:
+              only:
+                - master
+                - 579-publish_release_docker
+      - deploy_watcher:
+          requires: [publish_child_chain, publish_watcher]
+          filters:
+            branches:
+              only:
+                - master
+                - 579-publish_release_docker

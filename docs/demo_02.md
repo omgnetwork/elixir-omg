@@ -15,134 +15,139 @@ Run a developer's Child chain server, Watcher and start IEx REPL with code and c
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OMG.{API, Eth}
-alias OMG.API.Crypto
-alias OMG.API.State.Transaction
-alias OMG.API.TestHelper
+alias OMG.Eth
+alias OMG.Crypto
+alias OMG.DevCrypto
+alias OMG.State.Transaction
+alias OMG.TestHelper
+alias OMG.Integration.DepositHelper
+alias OMG.Eth.Encoding
+
+DeferredConfig.populate(:omg_eth)
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
-eth = Crypto.zero_address()
-
-{:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
-{:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
-
-# sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, bob.addr)
-{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, alice.addr)
+eth = Eth.RootChain.eth_pseudo_address()
 
 {:ok, alice_enc} = Crypto.encode_address(alice.addr)
 {:ok, bob_enc} = Crypto.encode_address(bob.addr)
 
-# need to wait until it's mined
-{:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
+{:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
+{:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
 
+# sends deposit transactions _to Ethereum_
 # we need to uncover the height at which the deposit went through on the root chain
-# to do this, look in the logs inside the receipt printed just above
-deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
+bob_deposit_blknum = DepositHelper.deposit_to_child_chain(bob.addr, 10)
+alice_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
+
+child_chain_url = "localhost:9656"
+watcher_url = "localhost:7434"
 
 ### START DEMO HERE
 
 # we've got alice, bob prepared, also an honest child chain is running with a watcher connected
 # NOTE: if you stopped and started geth after setting up alice and bob you need to unlock their accounts
-#       e.g. in shell `geth attach http://localhost:8545` then `personal.unlockAccount(alice_enc, "", 0)`
+#       (see [this section in the README](../README.md#prepare-and-configure-the-root-chain-contract))
 
 # 1/ Demonstrate Watcher consuming honest transactions
 
 # create and prepare transaction for signing
 tx =
-  Transaction.new([{deposit_blknum, 0, 0}], eth, [{bob.addr, 7}, {alice.addr, 3}]) |>
-  Transaction.sign(alice.priv, <<>>) |>
+  Transaction.new([{alice_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
+  DevCrypto.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.encode16()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
-```
-
-```bash
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
-# use the hex-encoded tx bytes and `submit` JSONRPC method described in README.md for child chain server
-# in the following json use `tx` value in "transaction" field
-
-curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "jsonrpc": "2.0","id":0}'
+# use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
+%{"data" => %{"txhash" => tx1_hash}} =
+  ~c(echo '{"transaction": "#{tx}"}' | http POST #{child_chain_url}/transaction.submit) |>
+  :os.cmd() |>
+  Jason.decode!()
 
 # see the Watcher getting a 1-txs block
-```
-
-```elixir
 
 # 2/ Using the Watcher
 
-# grab the first transaction hash as returned by the Child chain server's API (response to `curl`'s request)
-tx1_hash =
+# we grabbed the first transaction hash as returned by the Child chain server's API (response to `http`'s request)
 
-"http GET 'localhost:4000/transaction/#{tx1_hash}'" |>
-to_charlist() |>
+~c(echo '{"id": "#{tx1_hash}"}' | http POST #{watcher_url}/transaction.get) |>
 :os.cmd() |>
-Poison.decode!()
+Jason.decode!()
 
-%{"data" => %{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]}} =
-  "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
-  to_charlist() |>
+%{"data" => [_bobs_deposit, %{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
+  ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/account.get_utxos) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # 3/ Exiting, challenging invalid exits
 
-exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
+exiting_utxopos = OMG.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
 
 %{"data" => composed_exit} =
-  "http GET 'localhost:4000/utxo/#{exiting_utxopos}/exit_data'" |>
-  to_charlist() |>
+  ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_exit_data) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 tx2 =
-  Transaction.new([{exiting_utxo_blknum, 0, 0}], eth, [{bob.addr, 7}]) |>
-  Transaction.sign(bob.priv, <<>>) |>
+  Transaction.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
+  DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.encode16()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
 # FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
+~c(echo '{"transaction": "#{tx2}"}' | http POST #{child_chain_url}/transaction.submit) |>
+:os.cmd() |>
+Jason.decode!()
 
 {:ok, txhash} =
   Eth.RootChain.start_exit(
     composed_exit["utxo_pos"],
-    Base.decode16!(composed_exit["txbytes"]),
-    Base.decode16!(composed_exit["proof"]),
-    Base.decode16!(composed_exit["sigs"]),
+    composed_exit["txbytes"] |> Encoding.from_hex(),
+    composed_exit["proof"] |> Encoding.from_hex(),
     bob.addr
   )
 Eth.WaitFor.eth_receipt(txhash)
 
 %{"data" => challenge} =
-  "http GET 'localhost:4000/utxo/#{exiting_utxopos}/challenge_data'" |>
+  ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_challenge_data) |>
   to_charlist() |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 {:ok, txhash} =
   OMG.Eth.RootChain.challenge_exit(
-    challenge["cutxopos"],
-    challenge["eutxoindex"],
-    Base.decode16!(challenge["txbytes"]),
-    Base.decode16!(challenge["proof"]),
-    Base.decode16!(challenge["sigs"]),
+    challenge["exit_id"],
+    challenge["txbytes"] |> Encoding.from_hex(),
+    challenge["input_index"],
+    challenge["sig"] |> Encoding.from_hex(),
     alice.addr
   )
-
-{:ok, _} = Eth.WaitFor.eth_receipt(txhash)
+{:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash)
 
 # 4/ let's introduce a delay into the process of getting child block contents from the child chain server
 
 # If we introduce a 5 second sleep, the Watcher will have a hard time getting a block (requests time out in 5 seconds).
 # Some attempts will pass, some will fail and with the withholding threshold set to 10 seconds, we'll have block withholding stop the Watcher and print out an error (and fire events for machines)
 
-# put `Process.sleep 5_000` in API module, around line 69
+# put `Process.sleep 5_000` in API module, around line 48
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
-r(OMG.API)
+r(OMG.ChildChain)
+
+# submit a transaction that will get mined in a new block
+tx3 =
+  Transaction.new([{bob_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
+  DevCrypto.sign([bob.priv, <<>>]) |>
+  Transaction.Signed.encode() |>
+  OMG.Utils.HttpRPC.Encoding.to_hex()
+
+%{"success" => true} =
+  ~c(echo '{"transaction": "#{tx3}"}' | http POST #{child_chain_url}/transaction.submit) |>
+  :os.cmd() |>
+  Jason.decode!()
 
 # see Watcher's console logs to see the struggle and final give-in. You can restart the Watcher many times
 
@@ -152,28 +157,32 @@ r(OMG.API)
 
 # let's break the Child chain now and say that duplicates every transaction submitted!
 
-# in order to do that, you need to duplicate the `|> add_pending_tx(recovered_tx)` in API.State.Core module,
-# around line 123
+# in order to do that, you need to duplicate the `|> add_pending_tx(recovered_tx)` in State.Core module,
+# around line 160
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
-r(OMG.API.State.Core)
+r(OMG.State.Core)
 
 # let's do a broken spend:
 
-# grab a utxo that bob can spend
-%{"data" => %{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]}} =
-  "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
+# grab an utxo that bob can spend
+%{"data" => [_bobs_deposit, %{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
+  ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/utxo.get) |>
   to_charlist() |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
-tx2 =
-  Transaction.new([{spend_blknum, 0, 0}], eth, [{bob.addr, 7}]) |>
-  Transaction.sign(bob.priv, <<>>) |>
+tx4 =
+  Transaction.new([{spend_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
+  DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.encode16()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
-# and send using curl as above. See the Watcher stop on an error
+# and send using httpie
+~c(echo '{"transaction": "#{tx4}"}' | http POST #{child_chain_url}/transaction.submit) |>
+:os.cmd() |>
+Jason.decode!()
 
+# See the Watcher stop on an error
 ```

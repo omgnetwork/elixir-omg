@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,5 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.Watcher do
-  @moduledoc false
+  @moduledoc """
+  Watcher is responsible for syncing and validating the child chain, and providing a secure interface to it.
+
+  For details see [here](README.md) and [here](docs/tesuji_blockchain_design.md)
+  """
 end

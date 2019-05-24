@@ -22,12 +22,8 @@ erl_crash.dump
 # Also ignore archive artifacts (built via "mix archive.build").
 *.ez
 
-contracts/build/
-
 # Dev sqllite db
 *ecto_simple.sqlite3*
-
-Makefile
 
 # Developers config file
 your_config_file.exs
@@ -44,5 +40,5 @@ env/
 # Elixirls data directory
 .elixir_ls
 
-
-apps/omg_watcher/priv/static/swagger.json
+#test files
+/apps/omg_child_chain/priv/omisego_operator_test_fees_file*

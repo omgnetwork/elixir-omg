@@ -24,28 +24,28 @@ cowlib 1.0.2            -> ISC
 credo 0.9.3             -> MIT
 db_connection 1.1.3     -> Apache 2.0
 decimal 1.5.0           -> Apache 2.0
+deferred_config 0.1.1   -> MIT
 dialyxir 0.5.1          -> Apache 2.0
 ecto 2.2.10             -> Apache 2.0
 eleveldb 2.2.20         -> Apache 2.0
 erlexec 1.7.5           -> BSD
-esqlite                 -> Apache 2
 ethereumex 0.3.2        -> MIT
 evm 0.1.14              -> MIT
-ex_rlp 0.2.1            -> MIT
+ex_rlp 0.5.2            -> MIT
 ex_unit_fixtures        -> MIT
 exexec 0.1.0            -> Apache 2.0
 exleveldb 0.11.1        -> Apache 2.0
 exth_crypto 0.1.4       -> MIT
+fake_server 1.5.0       -> Apache 2.0
 hackney 1.12.1          -> Apache 2
 hex_prefix 0.1.0        -> MIT
 httpoison 1.1.1         -> MIT
 idna 5.1.1              -> BSD
-jsonrpc2 1.0.3          -> Apache 2.0
 keccakf1600 2.0.0       -> MPL 2.0 (ok'd by legal, compliant with our Apache 2.0)
 libsecp256k1 0.1.4      -> MIT
 licensir 0.2.7          -> MIT
 merkle_patricia_tree 0.2.6-> MIT
-merkle_tree 1.3.0       -> MIT
+merkle_tree 1.5.0       -> MIT
 metrics 1.0.1           -> BSD
 mime 1.3.0              -> Apache 2
 mimerl 1.0.2            -> MIT
@@ -60,7 +60,6 @@ ranch 1.3.2             -> ISC
 poolboy 1.5.1           -> Apache 2.0
 sbroker                 -> Apache 2
 socket 0.3.13           -> WTFPL
-sqlitex                 -> MIT
 ssl_verify_fun 1.1.1    -> MIT
 unicode_util_compat 0.3.1-> Apache 2.0
 ```

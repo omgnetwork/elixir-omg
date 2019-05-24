@@ -7,12 +7,16 @@ use Mix.Config
 # watchers to your application. For example, we use it
 # with brunch.io to recompile .js and .css sources.
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
-  http: [port: 4000],
+  secret_key_base: "UIJuXFLCQAeodDwZmnMc54RnY5rUefwgPIPbJsYHf0ZJ57Lf3tpoj8WYqT7+Rfmt",
+  http: [port: {:system, "PORT", 7434, {String, :to_integer}}],
+  url: [host: "localhost", port: 7434],
   debug_errors: true,
-  code_reloader: true,
+  code_reloader: false,
   check_origin: false,
   watchers: [],
   server: true
+
+config :omg_watcher, environment: :dev
 
 # ## SSL Support
 #
@@ -26,7 +30,7 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
 #
 # The `http:` config above can be replaced with:
 #
-#     https: [port: 4000, keyfile: "priv/server.key", certfile: "priv/server.pem"],
+#     https: [port: 7434, keyfile: "priv/server.key", certfile: "priv/server.pem"],
 #
 # If desired, both `http:` and `https:` keys can be
 # configured to run both http and https servers on
@@ -41,17 +45,6 @@ config :phoenix, :stacktrace_depth, 20
 # Configure your database
 config :omg_watcher, OMG.Watcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
-  username: "omisego_dev",
-  password: "omisego_dev",
-  database: "omisego_dev",
-  hostname: "localhost",
-  pool_size: 10
-
-# TODO: these two are here to ensure swifter sync in `:dev` env, and are geared towards a 1-sec root chain block
-#       interval. They are taken to be equal to the `:test` env.
-#       Rethink properly the semantics of root chain coordinator
-config :omg_watcher,
-  block_getter_height_sync_interval_ms: 1_000
-
-config :omg_api,
-  rootchain_height_sync_interval_ms: 1_000
+  pool_size: 10,
+  # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
+  url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"}
