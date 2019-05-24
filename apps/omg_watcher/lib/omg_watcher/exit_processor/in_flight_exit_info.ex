@@ -261,7 +261,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           t() | {:error, :responded_with_too_young_tx | :cannot_respond}
   def respond_to_challenge(ife, tx_position)
 
-  def respond_to_challenge(%__MODULE__{oldest_competitor: current_oldest, contract_tx_pos: nil} = ife, tx_position) do
+  def respond_to_challenge(%__MODULE__{oldest_competitor: current_oldest} = ife, tx_position) do
     decoded = Utxo.Position.decode!(tx_position)
 
     if is_nil(current_oldest) or is_older?(decoded, current_oldest) do

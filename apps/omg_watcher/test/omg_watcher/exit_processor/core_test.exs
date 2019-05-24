@@ -1132,6 +1132,26 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:error, :no_viable_competitor_found} = request |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
+    test "handle two competitors, when both are non canonical and used to challenge",
+         %{alice: alice, processor_filled: processor, transactions: [tx1 | _]} do
+      comp1 = TestHelper.create_recovered([{1, 0, 0, alice}], [])
+      comp2 = TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 2}])
+      txbytes = txbytes(tx1)
+      request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+      processor = processor |> start_ife_from(comp1) |> start_ife_from(comp2)
+
+      # before any challenge
+      assert {:ok, [_, _, _]} = request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
+
+      assert {:ok, %{competing_tx_pos: Utxo.position(0, 0, 0)}} =
+               request |> Core.get_competitor_for_ife(processor, txbytes)
+
+      # after challenge - one event less + no need to challenge more
+      {processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx1, comp1)])
+      assert {:ok, [_, _]} = request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
+      assert {:error, :no_viable_competitor_found} = request |> Core.get_competitor_for_ife(processor, txbytes)
+    end
+
     test "don't show competitors, if IFE tx is included",
          %{processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
       txbytes = txbytes(tx1)
@@ -1484,6 +1504,43 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
 
       processor = processor |> Core.find_ifes_in_blocks(request)
+      assert {:ok, []} = request |> check_validity_filtered(processor, only: [Event.InvalidIFEChallenge])
+      assert {:error, :no_viable_canonical_proof_found} = Core.prove_canonical_for_ife(processor, txbytes)
+    end
+
+    test "when there are two transaction inclusions to respond with",
+         %{processor_filled: processor, transactions: [tx | _], competing_tx: comp} do
+      txbytes = Transaction.raw_txbytes(tx)
+      other_blknum = 3000
+      {processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx, comp)])
+
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        # NOTE: `tx` is included twice
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx, tx], other_blknum)]
+      }
+
+      processor = processor |> Core.find_ifes_in_blocks(request)
+
+      assert {:ok, [%Event.InvalidIFEChallenge{txbytes: ^txbytes}]} =
+               request |> check_validity_filtered(processor, only: [Event.InvalidIFEChallenge])
+
+      # older is returned but we'll respond with the younger first and then older
+      assert {:ok, %{in_flight_tx_pos: Utxo.position(^other_blknum, 0, 0)}} =
+               Core.prove_canonical_for_ife(processor, txbytes)
+
+      {processor, _} =
+        processor
+        |> Core.respond_to_in_flight_exits_challenges([ife_response(tx, Utxo.position(other_blknum, 1, 0))])
+
+      assert {:ok, []} = request |> check_validity_filtered(processor, only: [Event.InvalidIFEChallenge])
+      assert {:error, :no_viable_canonical_proof_found} = Core.prove_canonical_for_ife(processor, txbytes)
+
+      {processor, _} =
+        processor
+        |> Core.respond_to_in_flight_exits_challenges([ife_response(tx, Utxo.position(other_blknum, 0, 0))])
+
       assert {:ok, []} = request |> check_validity_filtered(processor, only: [Event.InvalidIFEChallenge])
       assert {:error, :no_viable_canonical_proof_found} = Core.prove_canonical_for_ife(processor, txbytes)
     end
