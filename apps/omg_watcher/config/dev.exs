@@ -7,13 +7,16 @@ use Mix.Config
 # watchers to your application. For example, we use it
 # with brunch.io to recompile .js and .css sources.
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
-  http: [port: 7434],
+  secret_key_base: "UIJuXFLCQAeodDwZmnMc54RnY5rUefwgPIPbJsYHf0ZJ57Lf3tpoj8WYqT7+Rfmt",
+  http: [port: {:system, "PORT", 7434, {String, :to_integer}}],
   url: [host: "localhost", port: 7434],
   debug_errors: true,
-  code_reloader: true,
+  code_reloader: false,
   check_origin: false,
   watchers: [],
   server: true
+
+config :omg_watcher, environment: :dev
 
 # ## SSL Support
 #
@@ -44,5 +47,4 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
   pool_size: 10,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
-  url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"},
-  loggers: [Appsignal.Ecto, Ecto.LogEntry]
+  url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"}

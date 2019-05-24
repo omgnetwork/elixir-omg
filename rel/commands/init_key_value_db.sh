@@ -1,0 +1,1 @@
+release_ctl eval --mfa "OMG.DB.ReleaseTasks.InitKeyValueDB.run/0" --argv -- "$@"

@@ -268,7 +268,7 @@ responses:
                 blknum: 123000
                 txindex: 111
                 oindex: 0
-                utxo_pos: 10000000010000000
+                utxo_pos: 123000001110000
                 owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                 currency: '0x0000000000000000000000000000000000000000'
                 amount: 10
@@ -366,23 +366,36 @@ responses:
               data:
                 type: object
                 properties:
+                  last_validated_child_block_timestamp:
+                    type: integer
+                    format: int64
                   last_validated_child_block_number:
                     type: integer
-                    format: int64                  
+                    format: int64
                   last_mined_child_block_timestamp:
                     type: integer
-                    format: int64                  
+                    format: int64
                   last_mined_child_block_number:
                     type: integer
-                    format: int64                  
+                    format: int64
+                  last_seen_eth_block_timestamp:
+                    type: integer
+                    format: int64
+                  last_seen_eth_block_number:
+                    type: integer
+                    format: int64
                   eth_syncing:
                     type: boolean
                   byzantine_events:
-                    type: array                  
+                    type: array
                   in_flight_txs:
-                    type: array                  
+                    type: array
                   in_flight_exits:
-                    type: array                  
+                    type: array
+                  contract_addr:
+                    type: string
+                  services_synced_heights:
+                    type: array
             example:
               data:
                 last_validated_child_block_number: 10000

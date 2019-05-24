@@ -18,15 +18,22 @@ defmodule OMG.Performance do
 
   # Usage
 
-  Always `cd apps/omg_performance` before running performance tests
+  See functions in this module for options available
 
   ## start_simple_perftest runs test with 5 transactions for each 3 senders and default options.
-    ```> mix run -e 'OMG.Performance.start_simple_perftest(5, 3)'```
+
+  ```
+  mix run --no-start -e 'OMG.Performance.start_simple_perftest(5, 3)'
+  ```
 
   ## start_extended_perftest runs test with 100 transactions for one specified account and default options.
-  ## extended test is run on testnet make sure you followed instruction in `README.md` and both `geth` and `omg_api` are running
-    ```> mix run -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'```
-  ## Parameters passed are:  1. number of transaction each sender will send, 2. list of senders (see: TestHelper.generate_entity()) and 3. `contract` address
+  ## extended test is run on testnet make sure you followed instruction in `README.md` and both `geth` and `omg_child_chain` are running
+
+  ```
+  mix run --no-start -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'
+  ```
+
+  ## Parameters passed are: 1. number of transaction each sender will send, 2. list of senders (see: TestHelper.generate_entity()) and 3. `contract` address
 
   # Note:
 
@@ -39,12 +46,12 @@ defmodule OMG.Performance do
   (github.com/erlang/otp and the JIRA it points you to).
   """
 
-  use OMG.API.LoggerExt
+  use OMG.Utils.LoggerExt
 
-  alias OMG.API.Crypto
-  alias OMG.API.Integration.DepositHelper
-  alias OMG.API.TestHelper
-  alias OMG.API.Utxo
+  alias OMG.Crypto
+  alias OMG.Integration.DepositHelper
+  alias OMG.TestHelper
+  alias OMG.Utxo
 
   require Utxo
 
@@ -74,14 +81,14 @@ defmodule OMG.Performance do
     defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
     opts = Map.merge(defaults, opts)
 
-    {:ok, started_apps, api_children_supervisor} = setup_simple_perftest(opts)
+    {:ok, started_apps, simple_perftest_chain} = setup_simple_perftest(opts)
 
     spenders = create_spenders(nspenders)
     utxos = create_utxos_for_simple_perftest(spenders, ntx_to_send)
 
     run({ntx_to_send, utxos, opts, opts[:profile]})
 
-    cleanup_simple_perftest(started_apps, api_children_supervisor)
+    cleanup_simple_perftest(started_apps, simple_perftest_chain)
   end
 
   @doc """
@@ -111,14 +118,9 @@ defmodule OMG.Performance do
         }."
       )
 
-    DeferredConfig.populate(:omg_rpc)
+    DeferredConfig.populate(:omg_watcher)
 
-    url =
-      Application.get_env(:omg_rpc, OMG.RPC.Client, "http://localhost:9656")
-      |> case do
-        nil -> nil
-        opts -> Keyword.get(opts, :child_chain_url)
-      end
+    url = Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
 
     defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
     opts = Map.merge(defaults, opts)
@@ -132,36 +134,45 @@ defmodule OMG.Performance do
     cleanup_extended_perftest(started_apps)
   end
 
+  # Hackney is http-client httpoison's dependency.
+  # We start omg_child_chain app that will will start omg_rpc
+  # (because of it's dependency when mix env == test).
+  # We don't need :omg application so we stop it and clear all alarms it raised
+  # (otherwise omg_rpc gets notified of alarms and halts requests).
+  # We also don't want all descendants of Monitoring process so we terminate it.
+
   @spec setup_simple_perftest(map()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
+    DeferredConfig.populate(:omg_watcher)
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
-    Application.put_env(:omg_db, :leveldb_path, dbdir, persistent: true)
+    Application.put_env(:omg_db, :path, dbdir, persistent: true)
     _ = Logger.info("Perftest leveldb path: #{inspect(dbdir)}")
 
     :ok = OMG.DB.init()
 
-    # hackney is http-client httpoison's dependency
     started_apps = ensure_all_started([:omg_db, :cowboy, :hackney])
+    {:ok, simple_perftest_chain} = start_simple_perftest_chain(opts)
 
-    # select just necessary components to run the tests
+    {:ok, started_apps, simple_perftest_chain}
+  end
+
+  # Selects and starts just necessary components to run the tests.
+  # We don't want to start the entire `:omg_child_chain` supervision tree because
+  # we don't want to start services related to root chain tracking (the root chain contract doesn't exist).
+  # Instead, we start the artificial `BlockCreator`
+  defp start_simple_perftest_chain(opts) do
     children = [
-      %{
-        id: Phoenix.PubSub.PG2,
-        start: {Phoenix.PubSub.PG2, :start_link, [:eventer, []]},
-        type: :supervisor
-      },
-      {OMG.API.State, []},
-      {OMG.API.FreshBlocks, []},
-      {OMG.API.FeeServer, []},
-      {OMG.RPC.Web.Endpoint, []}
+      {OMG.InternalEventBus, []},
+      {OMG.State, []},
+      {OMG.ChildChain.FreshBlocks, []},
+      {OMG.ChildChain.FeeServer, []},
+      {OMG.RPC.Plugs.Health, []},
+      {OMG.RPC.Web.Endpoint, []},
+      {OMG.Performance.BlockCreator, opts[:block_every_ms]}
     ]
 
-    {:ok, api_children_supervisor} = Supervisor.start_link(children, strategy: :one_for_one)
-
-    _ = OMG.Performance.BlockCreator.start_link(opts[:block_every_ms])
-
-    {:ok, started_apps, api_children_supervisor}
+    Supervisor.start_link(children, strategy: :one_for_one)
   end
 
   @spec setup_extended_perftest(map(), Crypto.address_t()) :: {:ok, list}
@@ -181,15 +192,14 @@ defmodule OMG.Performance do
     {:ok, started_apps}
   end
 
-  @spec cleanup_simple_perftest([], pid) :: :ok
-  defp cleanup_simple_perftest(started_apps, api_children_supervisor) do
-    :ok = Supervisor.stop(api_children_supervisor)
-
+  @spec cleanup_simple_perftest(list(), pid) :: :ok
+  defp cleanup_simple_perftest(started_apps, simple_perftest_chain) do
+    :ok = Supervisor.stop(simple_perftest_chain)
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
 
     _ = Application.stop(:briefly)
 
-    Application.put_env(:omg_db, :leveldb_path, nil)
+    Application.put_env(:omg_db, :path, nil)
     :ok
   end
 
@@ -226,7 +236,7 @@ defmodule OMG.Performance do
     spenders
     |> Enum.with_index(1)
     |> Enum.map(fn {spender, index} ->
-      {:ok, _} = OMG.API.State.deposit([%{owner: spender.addr, currency: @eth, amount: ntx_to_send, blknum: index}])
+      {:ok, _} = OMG.State.deposit([%{owner: spender.addr, currency: @eth, amount: ntx_to_send, blknum: index}])
 
       utxo_pos = Utxo.position(index, 0, 0) |> Utxo.Position.encode()
       %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send}

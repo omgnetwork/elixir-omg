@@ -26,6 +26,6 @@ defmodule Mix.Tasks.Xomg.ChildChain.Start do
   def run(args) do
     args
     |> generic_prepare_args()
-    |> generic_run(:omg_api)
+    |> generic_run([:omg_rpc, :omg_child_chain])
   end
 end

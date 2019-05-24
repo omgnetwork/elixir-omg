@@ -16,10 +16,8 @@ defmodule OMG.Watcher.TestHelper do
   @moduledoc """
   Module provides common testing functions used by App's tests.
   """
-
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
-  alias OMG.RPC.Web.Encoding
+  alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Utxo
 
   require Utxo
 
@@ -63,7 +61,7 @@ defmodule OMG.Watcher.TestHelper do
 
     response = request |> send_request
     assert response.status == expected_resp_status
-    Poison.decode!(response.resp_body)
+    Jason.decode!(response.resp_body)
   end
 
   defp send_request(req) do
@@ -72,15 +70,6 @@ defmodule OMG.Watcher.TestHelper do
   end
 
   def create_topic(main_topic, subtopic), do: main_topic <> ":" <> subtopic
-
-  def to_response_address(address) do
-    "0X" <> encoded =
-      address
-      |> OMG.API.Crypto.encode_address!()
-      |> String.upcase()
-
-    encoded
-  end
 
   @doc """
   Decodes specified keys in map from hex to binary
@@ -95,7 +84,7 @@ defmodule OMG.Watcher.TestHelper do
         value = data[key]
 
         with true <- is_binary(value),
-             {:ok, bin} <- OMG.RPC.Web.Encoding.from_hex(value) do
+             {:ok, bin} <- Encoding.from_hex(value) do
           {key, bin}
         else
           _ -> {key, value}
@@ -105,13 +94,25 @@ defmodule OMG.Watcher.TestHelper do
     |> (&Map.merge(data, &1)).()
   end
 
+  def get_balance(address, token) do
+    encoded_token = Encoding.to_hex(token)
+
+    address
+    |> get_balance()
+    |> Enum.find(%{"amount" => 0}, fn %{"currency" => currency} -> encoded_token == currency end)
+    |> Map.get("amount")
+  end
+
   def get_utxos(address) do
-    {:ok, address_encode} = Crypto.encode_address(address)
-    success?("/account.get_utxos", %{"address" => address_encode})
+    success?("/account.get_utxos", %{"address" => Encoding.to_hex(address)})
+  end
+
+  def get_balance(address) do
+    success?("/account.get_balance", %{"address" => Encoding.to_hex(address)})
   end
 
   def get_exit_data(blknum, txindex, oindex) do
-    utxo_pos = Utxo.Position.encode({:utxo_position, blknum, txindex, oindex})
+    utxo_pos = Utxo.Position.encode(Utxo.position(blknum, txindex, oindex))
 
     data = success?("utxo.get_exit_data", %{utxo_pos: utxo_pos})
 

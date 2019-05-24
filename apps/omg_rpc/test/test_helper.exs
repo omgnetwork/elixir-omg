@@ -14,8 +14,7 @@
 
 ExUnit.configure(exclude: [integration: true])
 ExUnitFixtures.start()
-# loading all fixture files from the whole umbrella project
-ExUnitFixtures.load_fixture_files("../**/test/**/fixtures.exs")
+ExUnitFixtures.load_fixture_files()
 ExUnit.start()
 
 {:ok, _} = Application.ensure_all_started(:cowboy)

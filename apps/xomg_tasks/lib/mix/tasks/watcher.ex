@@ -38,6 +38,6 @@ defmodule Mix.Tasks.Xomg.Watcher.Start do
   defp start_watcher(args) do
     args
     |> generic_prepare_args()
-    |> generic_run(:omg_watcher)
+    |> generic_run([:omg_watcher])
   end
 end

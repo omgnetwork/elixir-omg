@@ -1,7 +1,7 @@
 defmodule OMG.Umbrella.MixProject do
   use Mix.Project
 
-  def umbrella_version, do: "0.1.0"
+  def umbrella_version, do: "0.2.0"
 
   def project do
     [
@@ -11,8 +11,8 @@ defmodule OMG.Umbrella.MixProject do
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.detail": :test,
-        "coveralls.post": :test,
         "coveralls.html": :test,
+        "coveralls.circle": :test,
         dialyzer: :test
       ],
       dialyzer: dialyzer(),
@@ -25,6 +25,7 @@ defmodule OMG.Umbrella.MixProject do
 
   defp deps do
     [
+      {:distillery, "~> 2.0", runtime: false},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.10.6", only: [:test], runtime: false},
@@ -54,7 +55,25 @@ defmodule OMG.Umbrella.MixProject do
     [
       flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
       ignore_warnings: "dialyzer.ignore-warnings",
-      plt_add_apps: [:mix, :iex, :ex_unit, :ranch, :plug, :jason, :cowboy]
+      plt_add_apps: plt_apps()
     ]
   end
+
+  defp plt_apps,
+    do: [
+      :mix,
+      :iex,
+      :ex_unit,
+      :ranch,
+      :plug,
+      :jason,
+      :cowboy,
+      :vmstats,
+      :briefly,
+      :propcheck,
+      :proper,
+      :fake_server,
+      :exexec,
+      :distillery
+    ]
 end

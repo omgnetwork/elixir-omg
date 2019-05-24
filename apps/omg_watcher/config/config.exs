@@ -5,7 +5,11 @@
 # is restricted to this project.
 use Mix.Config
 
+# child chain url
+config :omg_watcher, child_chain_url: {:system, "CHILD_CHAIN_URL", "http://localhost:9656"}
+
 # General application configuration
+# see [here](README.md) for documentation
 config :omg_watcher,
   namespace: OMG.Watcher,
   ecto_repos: [OMG.Watcher.DB.Repo],
@@ -16,15 +20,15 @@ config :omg_watcher,
   maximum_number_of_unapplied_blocks: 50,
   exit_finality_margin: 12,
   block_getter_reorg_margin: 200,
-  convenience_api_mode: false,
-  enable_cors: true
+  convenience_api_mode: false
 
 # Configures the endpoint
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
-  secret_key_base: "grt5Ef/y/jpx7AfLmrlUS/nfYJUOq+2e+1xmU4nphTm2x8WB7nLFCJ91atbSBrv5",
-  render_errors: [view: OMG.Watcher.Web.View.ErrorView, accepts: ~w(json)],
+  secret_key_base: {:system, "SECRET_KEY_BASE"},
+  render_errors: [view: OMG.Watcher.Web.Views.Error, accepts: ~w(json)],
   pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2],
-  instrumenters: [Appsignal.Phoenix.Instrumenter]
+  instrumenters: [Appsignal.Phoenix.Instrumenter],
+  enable_cors: true
 
 config :omg_watcher, OMG.Watcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,

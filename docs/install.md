@@ -45,6 +45,9 @@ sudo apt-get update
 sudo apt-get -y install geth
 ```
 
+### Installing Parity
+[Parity]((https://www.parity.io/ethereum/)) is supported. To use it, download the binary and put it into your PATH.
+
 ## Install solc
 ```
 sudo apt-get install libssl-dev solc

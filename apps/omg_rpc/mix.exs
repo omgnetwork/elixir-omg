@@ -24,7 +24,7 @@ defmodule OMG.RPC.MixProject do
   def application do
     [
       mod: {OMG.RPC.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :sasl]
     ]
   end
 
@@ -41,8 +41,10 @@ defmodule OMG.RPC.MixProject do
       {:plug_cowboy, "~> 1.0"},
       {:deferred_config, "~> 0.1.1"},
       {:httpoison, "~> 1.4.0"},
-      {:appsignal, "~> 1.0"}
+      {:appsignal, "~> 1.0"},
       #
+      {:omg_status, in_umbrella: true},
+      {:omg_utils, in_umbrella: true}
     ]
   end
 end

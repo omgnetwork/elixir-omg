@@ -11,6 +11,7 @@ import requests
 
 
 RINKEBY_CONTRACT = {}
+GORLI_CONTRACT = {}
 
 
 class ChildchainLauncher:
@@ -22,9 +23,10 @@ class ChildchainLauncher:
         self.chain_data_present = False
         self.git_commit_hash = git_commit_hash
         self.ethereum_network = ethereum_network
-        self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN']
+        self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN', 'GORLI']
         self.contracts = {}
         self.contracts['RINKEBY'] = RINKEBY_CONTRACT
+        self.contracts['GORLI'] = GORLI_CONTRACT
         self.contract_exchanger_url = contract_exchanger_url
         self.ethereum_rpc_url = ethereum_rpc_url
 
@@ -37,9 +39,9 @@ class ChildchainLauncher:
         logging.info(
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
+        self.update_appsignal_deployment()
         self.check_chain_data_path()
-        self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
-        logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        self.ethereum_client_version()
         if self.chain_data_present is True:
             if self.ethereum_network not in self.public_networks:
                 if self.config_writer_dynamic() is True:
@@ -63,6 +65,31 @@ class ChildchainLauncher:
                 sys.exit(1)
 
         logging.info('Launcher process complete')
+
+    def ethereum_client_version(self):
+        ''' Check the Ethereum client software version. Will skip this check
+        if using Infura as that API doesn't support the same RPC call.
+        '''
+        if 'infura' not in self.ethereum_rpc_url:
+            self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
+            logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        else:
+            logging.info(
+                'Infura used for Ethereum connectivity. Skipping client check'
+            )
+
+    def update_appsignal_deployment(self):
+        ''' Inform AppSignal of the new deployment
+        '''
+        if not os.getenv('APPSIGNAL_DEPLOYMENT_URL'):
+            logging.warning('AppSignal deployment configuration not found')
+            return
+
+        post_body = {'revision': self.git_commit_hash, 'user': 'launcher.py'}
+        request = requests.post(
+            os.getenv('APPSIGNAL_DEPLOYMENT_URL'), data=json.dumps(post_body)
+        )
+        logging.info("AppSignal deployment set: {}".format(request.content))
 
     def get_contract_from_exchanger(self) -> dict:
         ''' Get the contract that has been deployed by a Childchain instance
@@ -239,12 +266,13 @@ class WatcherLauncher:
             contract_exchanger_url: str, ethereum_rpc_url: str):
         self.git_commit_hash = git_commit_hash
         self.ethereum_network = ethereum_network
-        self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN']
+        self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN', 'GORLI']
         self.contracts = {}
         self.contracts['RINKEBY'] = RINKEBY_CONTRACT
+        self.contracts['GORLI'] = GORLI_CONTRACT
         self.watcher_additional_config = [
             'config :omg_db,',
-            '  leveldb_path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])' # noqa E501
+            '  path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])' # noqa E501
         ]
         self.contract_exchanger_url = contract_exchanger_url
         self.ethereum_rpc_url = ethereum_rpc_url
@@ -256,8 +284,8 @@ class WatcherLauncher:
         logging.info(
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
-        self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
-        logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        self.update_appsignal_deployment()
+        self.ethereum_client_version()
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
@@ -277,7 +305,38 @@ class WatcherLauncher:
                 )
                 sys.exit(1)
 
+        if self.update_watcher_postgres_database() is False:
+            logging.critical(
+                'Could not update the Postgres database Exiting.'
+            )
+            sys.exit(1)
+
         logging.info('Launcher process complete')
+
+    def ethereum_client_version(self):
+        ''' Check the Ethereum client software version. Will skip this check
+        if using Infura as that API doesn't support the same RPC call.
+        '''
+        if 'infura' not in self.ethereum_rpc_url:
+            self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
+            logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        else:
+            logging.info(
+                'Infura used for Ethereum connectivity. Skipping client check'
+            )
+
+    def update_appsignal_deployment(self):
+        ''' Inform AppSignal of the new deployment
+        '''
+        if not os.getenv('APPSIGNAL_DEPLOYMENT_URL'):
+            logging.warning('AppSignal deployment configuration not found')
+            return
+
+        post_body = {'revision': self.git_commit_hash, 'user': 'launcher.py'}
+        request = requests.post(
+            os.getenv('APPSIGNAL_DEPLOYMENT_URL'), data=json.dumps(post_body)
+        )
+        logging.info("AppSignal deployment set: {}".format(request.content))
 
     def compile_application(self) -> bool:
         ''' Execute a mix compile
@@ -334,7 +393,7 @@ class WatcherLauncher:
         exchanger
         '''
         if self.ethereum_network in self.public_networks:
-            contract_data = self.contracts['RINKEBY']
+            contract_data = self.contracts[self.ethereum_network]
         else:
             contract_data = json.loads(
                 self.get_contract_from_exchanger().decode('utf-8')
@@ -384,7 +443,7 @@ class WatcherLauncher:
         '''
         os.chdir(os.path.expanduser('~') + '/elixir-omg')
         result = subprocess.run(
-            'mix ecto.reset --no-start',
+            "mix ecto.reset",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
@@ -394,6 +453,26 @@ class WatcherLauncher:
             return True
         logging.critical(
             'Could not initialise the database. Error: {}'.format(
+                result.stdout
+            )
+        )
+        return False
+
+    def update_watcher_postgres_database(self) -> bool:
+        ''' Updates the watcher postgres database with latest migration scripts
+        '''
+        os.chdir(os.path.expanduser('~') + '/elixir-omg')
+        result = subprocess.run(
+            "mix ecto.migrate",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            shell=True
+        )
+        if result.returncode == 0:
+            logging.info('Watcher Postgres - all migrations up')
+            return True
+        logging.critical(
+            'Could not migrate the database. Error: {}'.format(
                 result.stdout
             )
         )
@@ -444,18 +523,32 @@ def get_environment_variables() -> dict:
     ''' Get the environment variables required to start service
     '''
     repo = git.Repo(search_parent_directories=True)
-    RINKEBY_CONTRACT['contract_addr'] = os.environ.get(
-        'RINKEBY_CONTRACT_ADDRESS',
-        '0x98abd7229afac999fc7965bea7d94a3b5e7e0218'
-    )
-    RINKEBY_CONTRACT['txhash_contract'] = os.environ.get(
-        'RINKEBY_TXHASH_CONTRACT',
-        '0x84a86f06b97e4c2d694ba507e7fcd8cf78adc4fbd596b1d3626ec7ba8242450d'
-    )
-    RINKEBY_CONTRACT['authority_addr'] = os.environ.get(
-        'RINKEBY_AUTHORITY_ADDRESS',
-        '0xe5153ad259be60003909492b154bf4b7f1787f70'
-    )
+    if os.getenv('ETHEREUM_NETWORK') == 'RINKEBY':
+        RINKEBY_CONTRACT['contract_addr'] = os.environ.get(
+            'RINKEBY_CONTRACT_ADDRESS',
+            '0x98abd7229afac999fc7965bea7d94a3b5e7e0218'
+        )
+        RINKEBY_CONTRACT['txhash_contract'] = os.environ.get(
+            'RINKEBY_TXHASH_CONTRACT',
+            '0x84a86f06b97e4c2d694ba507e7fcd8cf78adc4fbd596b1d3626ec7ba8242450d' # noqa E501
+        )
+        RINKEBY_CONTRACT['authority_addr'] = os.environ.get(
+            'RINKEBY_AUTHORITY_ADDRESS',
+            '0xe5153ad259be60003909492b154bf4b7f1787f70'
+        )
+    elif os.getenv('ETHEREUM_NETWORK') == 'GORLI':
+        GORLI_CONTRACT['contract_addr'] = os.environ.get(
+            'GORLI_CONTRACT_ADDRESS',
+            '0x607ba3407d9aab7dec4dfe67993060b9949ad6e1'
+        )
+        GORLI_CONTRACT['txhash_contract'] = os.environ.get(
+            'GORLI_TXHASH_CONTRACT',
+            '0x42f6c66e68e56d0fbee14c847b6f0dbfbab91e615854b3f2375299808074b357' # noqa E501
+        )
+        GORLI_CONTRACT['authority_addr'] = os.environ.get(
+            'GORLI_AUTHORITY_ADDRESS',
+            '0xb32deedcbe7949ce385bc46d566b70de1c060c03'
+        )
     return {
         'elixir_service': os.getenv('ELIXIR_SERVICE'),
         'ethereum_network': os.getenv('ETHEREUM_NETWORK'),

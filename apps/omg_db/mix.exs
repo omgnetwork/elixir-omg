@@ -19,11 +19,6 @@ defmodule OMG.DB.MixProject do
 
   def application do
     [
-      env: [
-        leveldb_path: Path.join([System.get_env("HOME"), ".omg/data"]),
-        server_module: OMG.DB.LevelDBServer,
-        server_name: OMG.DB.LevelDBServer
-      ],
       extra_applications: [:logger],
       mod: {OMG.DB.Application, []}
     ]
@@ -35,14 +30,17 @@ defmodule OMG.DB.MixProject do
 
   defp deps do
     [
-      # version caused by dependency in merkle_patricia_tree from blockchain
+      {:appsignal, "~> 1.0"},
+      {:rocksdb,
+       git: "https://gitlab.com/InoMurko/erlang-rocksdb.git", ref: "235894f060f608827f039c7847ddaa8ed12aabc0"},
       {:exleveldb, "~> 0.11"},
       # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see
       #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
       #       OMG-373 (Elixir 1.8) should fix this
-      {:briefly, "~> 0.3"},
-      {:appsignal, "~> 1.0"}
+      # TEST ONLY
+      {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
+      {:omg_utils, in_umbrella: true}
     ]
   end
 end

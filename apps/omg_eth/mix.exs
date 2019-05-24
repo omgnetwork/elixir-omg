@@ -21,9 +21,7 @@ defmodule OMG.Eth.MixProject do
 
   def application do
     [
-      env: [
-        child_block_interval: 1000
-      ],
+      mod: {OMG.Eth.Application, []},
       extra_applications: [:logger]
     ]
   end
@@ -34,16 +32,11 @@ defmodule OMG.Eth.MixProject do
 
   defp deps do
     [
-      {:ex_abi, "~> 0.2.0"},
-      {:ethereumex, "~> 0.5.2"},
-      {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", runtime: true},
-      {:briefly, "~> 0.3", only: [:dev, :test]},
+      {:ex_abi, "~> 0.2.1"},
+      {:ethereumex, "~> 0.5.4"},
       {:deferred_config, "~> 0.1.1"},
       {
         :plasma_contracts,
-        # NOTE: this is a long-running patch-branch applied to `master` which hard-codes shorter exit periods.
-        #       Rebase on `master`, if new changes are pushed there.
-        #       Switch back to `master`, after the exit periods are properly parametrized on deployment
         git: "https://github.com/omisego/plasma-contracts",
         branch: "master",
         sparse: "contracts/",
@@ -51,7 +44,12 @@ defmodule OMG.Eth.MixProject do
         app: false,
         only: [:dev, :test]
       },
-      {:appsignal, "~> 1.0"}
+      {:appsignal, "~> 1.0"},
+      # TEST ONLY
+      {:exexec,
+       git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},
+      {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
+      {:omg_utils, in_umbrella: true}
     ]
   end
 
@@ -65,7 +63,7 @@ defmodule OMG.Eth.MixProject do
     compilation_path = Path.join([mixfile_path, "../..", contracts_dir])
 
     contract_paths =
-      ["RootChain.sol", "MintableToken.sol"]
+      ["RootChain.sol", "MintableToken.sol", "SignatureTest.sol"]
       |> Enum.join(" ")
 
     output_path = Path.join([mixfile_path, "../..", "_build/contracts"])
