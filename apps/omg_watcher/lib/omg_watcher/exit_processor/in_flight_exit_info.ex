@@ -372,7 +372,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   @doc """
   First, it determines if it is challenged at all - if it isn't returns false.
-  Decond, If the tx hasn't been seen at all then it will be false
+  Second, If the tx hasn't been seen at all then it will be false
   If it is challenged (hence non-canonical) and seen it will figure out if the IFE tx has been seen in an older than
   oldest competitor's position.
   """

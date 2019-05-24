@@ -420,14 +420,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{processor_filled: processor, transactions: [tx1, tx2]} do
       txbytes2 = txbytes(tx2)
 
-      exit_processor_request = %ExitProcessor.Request{
+      request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at([tx1], 3000)]
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1], 3000)]
       }
 
-      assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes2}]} =
-               exit_processor_request |> Core.check_validity(processor)
+      processor = processor |> Core.find_ifes_in_blocks(request)
+      assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes2}]} = request |> Core.check_validity(processor)
     end
 
     test "transaction without outputs and different input owners",
@@ -1427,41 +1427,38 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.raw_txbytes(tx1)
       other_blknum = 3000
 
-      exit_processor_request = %ExitProcessor.Request{
+      request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at(txs, other_blknum)],
         ife_input_spending_blocks_result: [Block.hashed_txs_at(txs, other_blknum)]
       }
 
-      challenged_processor = challenged_processor |> Core.find_ifes_in_blocks(exit_processor_request)
+      challenged_processor = challenged_processor |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidIFEChallenge{txbytes: ^txbytes}]} =
-               exit_processor_request |> Core.check_validity(challenged_processor)
+               request |> check_validity_filtered(challenged_processor, only: [Event.InvalidIFEChallenge])
 
       assert {:ok,
               %{
                 in_flight_txbytes: ^txbytes,
                 in_flight_tx_pos: Utxo.position(^other_blknum, 0, 0),
                 in_flight_proof: proof_bytes
-              }} =
-               exit_processor_request
-               |> Core.prove_canonical_for_ife(txbytes)
+              }} = Core.prove_canonical_for_ife(challenged_processor, txbytes)
 
       assert_proof_sound(proof_bytes)
     end
 
-    test "proving canonical for nonexistent tx doesn't crash", %{transactions: [tx | _]} do
+    test "proving canonical for nonexistent tx doesn't crash", %{processor_empty: processor, transactions: [tx | _]} do
       txbytes = Transaction.raw_txbytes(tx)
-
-      assert {:error, :canonical_not_found} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> Core.prove_canonical_for_ife(txbytes)
+      request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+      processor = processor |> Core.find_ifes_in_blocks(request)
+      assert {:error, :ife_not_known_for_tx} = Core.prove_canonical_for_ife(processor, txbytes)
     end
 
-    test "for malformed input txbytes doesn't crash" do
-      assert {:error, :malformed_transaction} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5} |> Core.prove_canonical_for_ife(<<0>>)
+    test "for malformed input txbytes doesn't crash", %{processor_empty: processor} do
+      request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+      processor = processor |> Core.find_ifes_in_blocks(request)
+      assert {:error, :malformed_transaction} = Core.prove_canonical_for_ife(processor, <<0>>)
     end
 
     test "none if ifes are fresh and canonical by default", %{processor_filled: processor} do
@@ -1472,31 +1469,23 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     test "none if challenge gets responded and ife canonical",
          %{processor_filled: processor, transactions: [tx | _] = txs, competing_tx: comp} do
-      {processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx, comp)])
       txbytes = Transaction.raw_txbytes(tx)
       other_blknum = 3000
-
-      request = %ExitProcessor.Request{
-        blknum_now: 5000,
-        eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at(txs, other_blknum)],
-        ife_input_spending_blocks_result: [Block.hashed_txs_at(txs, other_blknum)]
-      }
-
-      processor = processor |> Core.find_ifes_in_blocks(request)
-
-      # sanity check
-      assert {:ok, [%Event.InvalidIFEChallenge{}]} = request |> Core.check_validity(processor)
+      {processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx, comp)])
 
       {processor, _} =
         processor
         |> Core.respond_to_in_flight_exits_challenges([ife_response(tx, Utxo.position(other_blknum, 0, 0))])
 
-      assert {:ok, []} = request |> Core.check_validity(processor)
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at(txs, other_blknum)]
+      }
 
-      assert {:ok, %{}} =
-               request
-               |> Core.prove_canonical_for_ife(txbytes)
+      processor = processor |> Core.find_ifes_in_blocks(request)
+      assert {:ok, []} = request |> check_validity_filtered(processor, only: [Event.InvalidIFEChallenge])
+      assert {:error, :canonical_not_found} = Core.prove_canonical_for_ife(processor, txbytes)
     end
   end
 

@@ -318,22 +318,20 @@ defmodule OMG.Watcher.ExitProcessor do
     # TODO: run_status_gets and getting all non-existent UTXO positions imaginable can be optimized out heavily
     #       only the UTXO positions being inputs to `txbytes` must be looked at, but it becomes problematic as
     #       txbytes can be invalid so we'd need a with here...
+    new_state = update_with_ife_txs_from_blocks(state)
+
     competitor_result =
       %ExitProcessor.Request{}
-      |> fill_request_with_spending_data(state)
-      |> Core.get_competitor_for_ife(state, txbytes)
+      |> fill_request_with_spending_data(new_state)
+      |> Core.get_competitor_for_ife(new_state, txbytes)
 
-    {:reply, competitor_result, state}
+    {:reply, competitor_result, new_state}
   end
 
   def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
-    # TODO: same comment as above in get_competitor_for_ife
-    canonicity_result =
-      %ExitProcessor.Request{}
-      |> fill_request_with_spending_data(state)
-      |> Core.prove_canonical_for_ife(txbytes)
-
-    {:reply, canonicity_result, state}
+    new_state = update_with_ife_txs_from_blocks(state)
+    canonicity_result = Core.prove_canonical_for_ife(new_state, txbytes)
+    {:reply, canonicity_result, new_state}
   end
 
   def handle_call({:get_input_challenge_data, txbytes, input_index}, _from, state) do
