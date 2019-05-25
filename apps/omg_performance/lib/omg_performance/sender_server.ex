@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -196,7 +196,7 @@ defmodule OMG.Performance.SenderServer do
   #   Generates module's initial state
   @spec init_state(pos_integer(), map(), pos_integer()) :: __MODULE__.state()
   defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send) do
-    {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(utxo_pos)
+    Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode!(utxo_pos)
 
     %__MODULE__{
       seqnum: seqnum,

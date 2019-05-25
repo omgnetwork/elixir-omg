@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ defmodule OMG.ChildChain.FeeServer do
       case Application.get_env(:omg_child_chain, :ignore_fees) do
         true ->
           :ok = save_fees(:ignore, 0)
-          _ = Logger.info("fee specs from file is ignore")
+          _ = Logger.warn("Fee specs from file are ignored.")
 
         opt when is_nil(opt) or is_boolean(opt) ->
           :ok = update_fee_spec()
@@ -61,7 +61,7 @@ defmodule OMG.ChildChain.FeeServer do
   """
   @spec update_fee_spec() :: :ok
   def update_fee_spec do
-    path = Application.fetch_env!(:omg_child_chain, :fee_specs_file_path)
+    path = get_fees()
 
     :ok =
       with {:reload, changed_at} <- should_load_file(path),
@@ -76,12 +76,12 @@ defmodule OMG.ChildChain.FeeServer do
           :ok
 
         {:error, :enoent} ->
-          _ = Logger.error("The fee specification file #{inspect(path)} not found in #{System.get_env("PWD")}")
+          _ = Logger.error("The fee specification file #{inspect(path)} not found.")
 
           {:error, :fee_spec_not_found}
 
         error ->
-          _ = Logger.warn("Unable to update fees from file. Reason: #{inspect(error)}")
+          _ = Logger.error("Unable to update fees from file. Reason: #{inspect(error)}")
           error
       end
   end
@@ -126,4 +126,7 @@ defmodule OMG.ChildChain.FeeServer do
     true = :ets.insert(:fees_bucket, {:last_loaded, 0})
     :ok
   end
+
+  defp get_fees,
+    do: "#{:code.priv_dir(:omg_child_chain)}/#{Application.get_env(:omg_child_chain, :fee_specs_file_name)}"
 end

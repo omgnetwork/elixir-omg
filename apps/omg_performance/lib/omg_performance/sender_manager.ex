@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ defmodule OMG.Performance.SenderManager do
     initial_blknums =
       utxos
       |> Enum.map(fn %{utxo_pos: utxo_pos} ->
-        {:utxo_position, blknum, _txindex, _oindex} = Utxo.Position.decode(utxo_pos)
+        Utxo.position(blknum, _txindex, _oindex) = Utxo.Position.decode!(utxo_pos)
         blknum
       end)
 

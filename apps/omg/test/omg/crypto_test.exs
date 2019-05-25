@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ defmodule OMG.CryptoTest do
 
   alias OMG.Crypto
   alias OMG.DevCrypto
+  alias OMG.State.Transaction
+  alias OMG.TypedDataHash
 
   test "sha3 library usage, address generation" do
     # test vectors below were generated using pyethereum's sha3 and privtoaddr
@@ -60,10 +62,21 @@ defmodule OMG.CryptoTest do
     {:ok, pub} = DevCrypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)
 
-    signature = DevCrypto.signature("message", priv)
+    raw_tx = Transaction.new([{1000, 1, 0}], [])
+    signature = DevCrypto.signature(raw_tx, priv)
     assert byte_size(signature) == 65
-    assert {:ok, true} == Crypto.verify("message", signature, address)
-    assert {:ok, false} == Crypto.verify("message2", signature, address)
+
+    assert true ==
+             raw_tx
+             |> TypedDataHash.hash_struct()
+             |> Crypto.recover_address(signature)
+             |> (&match?({:ok, ^address}, &1)).()
+
+    assert false ==
+             Transaction.new([{1000, 0, 1}], [])
+             |> TypedDataHash.hash_struct()
+             |> Crypto.recover_address(signature)
+             |> (&match?({:ok, ^address}, &1)).()
   end
 
   test "checking decode_address function for diffrent agruments" do

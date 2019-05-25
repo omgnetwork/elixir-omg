@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
+
+  alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
   alias OMG.Watcher.DB
 
@@ -29,17 +31,30 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   @other_token_hex @other_token |> Encoding.to_hex()
 
   describe "getting transaction by id" do
+    @tag fixtures: [:initial_blocks]
+    test "verifies all inserted transactions available to get", %{initial_blocks: initial_blocks} do
+      initial_blocks
+      |> Enum.each(fn {blknum, txindex, txhash, _recovered_tx} ->
+        txhash_enc = Encoding.to_hex(txhash)
+
+        assert %{"block" => %{"blknum" => ^blknum}, "txhash" => ^txhash_enc, "txindex" => ^txindex} =
+                 TestHelper.success?("transaction.get", %{id: txhash_enc})
+      end)
+    end
+
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
     test "returns transaction in expected format", %{
       blocks_inserter: blocks_inserter,
       alice: alice,
       bob: bob
     } do
+      {:ok, metadata} = OMG.DevCrypto.generate_private_key()
+
       [{blknum, txindex, txhash, _recovered_tx}] =
         blocks_inserter.([
           {1000,
            [
-             Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+             Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}], metadata)
            ]}
         ])
 
@@ -48,6 +63,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       alice_addr = alice.addr |> Encoding.to_hex()
       txhash = txhash |> Encoding.to_hex()
       block_hash = block_hash |> Encoding.to_hex()
+      metadata = metadata |> Encoding.to_hex()
 
       assert %{
                "block" => %{
@@ -79,11 +95,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  }
                ],
                "txhash" => ^txhash,
-               "txbytes" => "0x" <> txbytes,
-               "txindex" => ^txindex
+               "txbytes" => txbytes,
+               "txindex" => ^txindex,
+               "metadata" => ^metadata
              } = TestHelper.success?("transaction.get", %{"id" => txhash})
 
-      assert {:ok, _} = Base.decode16(txbytes, case: :lower)
+      assert {:ok, _} = Encoding.from_hex(txbytes)
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]

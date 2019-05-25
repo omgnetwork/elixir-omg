@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -106,7 +106,7 @@ defmodule OMG.Block do
   @spec create_tx_proof(nonempty_list(binary()), non_neg_integer()) :: binary()
   defp create_tx_proof(hashed_txs, txindex),
     do:
-      MerkleTree.new(hashed_txs,
+      MerkleTree.build(hashed_txs,
         hash_function: &Crypto.hash/1,
         hash_leaves: false,
         height: @transaction_merkle_tree_height,
@@ -119,10 +119,10 @@ defmodule OMG.Block do
 
   defp merkle_hash(hashed_txs),
     do:
-      MerkleTree.new(hashed_txs,
+      MerkleTree.fast_root(hashed_txs,
         hash_function: &Crypto.hash/1,
         hash_leaves: false,
         height: @transaction_merkle_tree_height,
         default_data_block: @default_leaf
-      ).root.value
+      )
 end

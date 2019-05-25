@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   use OMG.Watcher.Web, :controller
 
-  alias OMG.Utxo.Position
+  alias OMG.Utxo
   alias OMG.Watcher.API
 
   def get_utxo_exit(conn, params) do
     with {:ok, utxo_pos} <- expect(params, "utxo_pos", :pos_integer),
-         utxo <- Position.decode(utxo_pos) do
+         {:ok, utxo} <- Utxo.Position.decode(utxo_pos) do
       utxo
       |> API.Utxo.compose_utxo_exit()
       |> api_response(conn, :utxo_exit)

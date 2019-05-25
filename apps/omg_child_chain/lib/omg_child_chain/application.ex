@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ defmodule OMG.ChildChain.Application do
   require Logger
 
   def start(_type, _args) do
+    _ = Logger.info("Starting #{inspect(__MODULE__)}")
     cookie = System.get_env("ERL_CC_COOKIE")
-    :ok = set_cookie(cookie)
-
+    true = set_cookie(cookie)
     :ok = Alarm.set(alarm())
     OMG.ChildChain.Supervisor.start_link()
   end
@@ -41,6 +41,6 @@ defmodule OMG.ChildChain.Application do
     |> Node.set_cookie()
   end
 
-  defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
+  defp set_cookie(_), do: :ok == Logger.warn("Cookie not applied.")
   defp alarm, do: {:boot_in_progress, Node.self(), __MODULE__}
 end

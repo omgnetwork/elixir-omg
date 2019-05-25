@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,16 @@
 defmodule OMG.Eth.Application do
   @moduledoc false
 
+  alias OMG.Eth
+
   use Application
+  use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_eth)
+
+    _ = Logger.info("Started #{inspect(__MODULE__)}, config used: #{inspect(Eth.Diagnostics.get_child_chain_config())}")
+
     {:ok, self()}
   end
 end

@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -140,23 +140,29 @@ defmodule OMG.TestHelper do
   def sign_recover!(%Transaction{} = tx, priv_keys),
     do: tx |> sign_encode(priv_keys) |> Transaction.Recovered.recover_from!()
 
-  defp get_private_keys(inputs) do
-    filler = List.duplicate(<<>>, 4 - length(inputs))
-
-    inputs
-    |> Enum.map(fn {_, _, _, owner} -> owner.priv end)
-    |> Enum.concat(filler)
-  end
-
-  @spec write_fee_file(%{Crypto.address_t() => non_neg_integer}) :: {:ok, binary}
+  @doc """
+  Always creates file in the priv/ folder of the application.
+  """
+  @spec write_fee_file(%{Crypto.address_t() => non_neg_integer}) :: {:ok, binary, binary}
   def write_fee_file(map) do
     {:ok, json} =
       map
       |> Enum.map(fn {"0x" <> _ = k, v} -> %{token: k, flat_fee: v} end)
       |> Jason.encode()
 
-    {:ok, path} = Briefly.create(prefix: "omisego_operator_test_fees_file")
-    :ok = File.write(path, json, [:write])
-    {:ok, path}
+    priv_dir = :code.priv_dir(:omg_child_chain)
+    file = "omisego_operator_test_fees_file-#{DateTime.to_unix(DateTime.utc_now())}"
+    full_path = "#{priv_dir}/#{file}"
+
+    :ok = File.write(full_path, json, [:write])
+    {:ok, full_path, file}
+  end
+
+  defp get_private_keys(inputs) do
+    filler = List.duplicate(<<>>, 4 - length(inputs))
+
+    inputs
+    |> Enum.map(fn {_, _, _, owner} -> owner.priv end)
+    |> Enum.concat(filler)
   end
 end

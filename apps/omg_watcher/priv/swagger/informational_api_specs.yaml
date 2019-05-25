@@ -526,6 +526,7 @@ responses:
                 $ref: 'schemata.yaml#/TransactionSchema'
             example:
               data:
+                metadata: '0x3c5cdfedf375d58afd98abe622232857c13c613e5429ac470b20a45283224aa6'
                 txindex: 5113
                 txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                 txbytes: '0x5df13a6bee20000...'

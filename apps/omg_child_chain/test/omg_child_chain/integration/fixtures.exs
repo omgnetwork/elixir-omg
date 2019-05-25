@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,15 +27,16 @@ defmodule OMG.ChildChain.Integration.Fixtures do
     # ensuring that the child chain handles the token (esp. fee-wise)
 
     enc_eth = Eth.Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
-    {:ok, path} = TestHelper.write_fee_file(%{enc_eth => 0, Eth.Encoding.to_hex(token) => 0})
-    default_path = Application.fetch_env!(:omg_child_chain, :fee_specs_file_path)
-    Application.put_env(:omg_child_chain, :fee_specs_file_path, path, persistent: true)
+    {:ok, path, file_name} = TestHelper.write_fee_file(%{enc_eth => 0, Eth.Encoding.to_hex(token) => 0})
+    default_file = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
+    Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name, persistent: true)
 
     on_exit(fn ->
-      Application.put_env(:omg_child_chain, :fee_specs_file_path, default_path)
+      :ok = File.rm(path)
+      Application.put_env(:omg_child_chain, :fee_specs_file_name, default_file)
     end)
 
-    path
+    file_name
   end
 
   deffixture omg_child_chain(root_chain_contract_config, fee_file, db_initialized) do

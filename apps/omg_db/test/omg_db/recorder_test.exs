@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ defmodule OMG.RecorderTest do
   A smoke test of the LevelDB support but for counters.
   """
   use ExUnitFixtures
-  use OMG.DB.Case, async: true
+  use OMG.DB.LevelDBCase, async: false
   alias OMG.DB
 
   test "if multi update counter gets incremented", %{db_pid: db_pid} do

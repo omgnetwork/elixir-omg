@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   import ExUnit.CaptureLog
 
   @moduletag :integration
+  @moduletag :watcher
   @moduletag timeout: 120_000
 
   @timeout 40_000

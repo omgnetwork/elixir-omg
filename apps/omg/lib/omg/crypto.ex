@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ defmodule OMG.Crypto do
   @type priv_key_t() :: <<_::256>> | <<>>
   @type address_t() :: <<_::160>>
   @type hash_t() :: <<_::256>>
+  @type domain_separator_t() :: <<_::256>> | nil
 
   @doc """
   Produces a cryptographic digest of a message.
@@ -34,19 +35,9 @@ defmodule OMG.Crypto do
   def hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
 
   @doc """
-  Verifies if private key corresponding to `address` was used to produce `signature` for
-  this `msg` binary.
-  """
-  @spec verify(binary, binary, address_t()) :: {:ok, boolean}
-  def verify(msg, signature, address) do
-    {:ok, recovered_address} = msg |> hash() |> recover_address(signature)
-    {:ok, address == recovered_address}
-  end
-
-  @doc """
   Recovers address of signer from binary-encoded signature.
   """
-  @spec recover_address(<<_::256>>, sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt}
+  @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt}
   def recover_address(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     with {:ok, pub} <- recover_public(digest, packed_signature) do
       generate_address(pub)
@@ -54,9 +45,10 @@ defmodule OMG.Crypto do
   end
 
   @doc """
-  Recovers public key of signer from binary-encoded signature.
+  Recovers public key of signer from binary-encoded signature and chain id.
+  Chain id parameter can be ignored when signature was created without it.
   """
-  @spec recover_public(<<_::256>>, <<_::520>>) :: {:ok, <<_::512>>} | {:error, :signature_corrupt}
+  @spec recover_public(<<_::256>>, sig_t()) :: {:ok, <<_::512>>} | {:error, :signature_corrupt}
   def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
 

@@ -15,7 +15,9 @@
 defmodule OMG.Status.Alert.AlarmTest do
   use ExUnit.Case, async: false
   alias OMG.Status.Alert.Alarm
+
   @moduletag :integration
+  @moduletag :common
   @moduletag timeout: 240_000
 
   setup do

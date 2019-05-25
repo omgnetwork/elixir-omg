@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
   require Utxo
 
-  import Ecto.Query, only: [from: 2, where: 2]
+  import Ecto.Query, only: [from: 2, where: 2, where: 3, select: 3, join: 5, distinct: 2]
 
   @type mined_block() :: %{
           transactions: [OMG.State.Transaction.Recovered.t()],
@@ -97,16 +97,14 @@ defmodule OMG.Watcher.DB.Transaction do
     )
   end
 
-  defp query_get_by_address(base, nil), do: base
+  defp query_get_by_address(query, nil), do: query
 
-  defp query_get_by_address(base, address) do
-    from(
-      tx in base,
-      distinct: true,
-      left_join: output in assoc(tx, :outputs),
-      left_join: input in assoc(tx, :inputs),
-      where: output.owner == ^address or input.owner == ^address
-    )
+  defp query_get_by_address(query, address) do
+    query
+    |> join(:inner, [t], o in DB.TxOutput, on: t.txhash == o.creating_txhash or t.txhash == o.spending_txhash)
+    |> where([t, o], o.owner == ^address)
+    |> select([t, o], t)
+    |> distinct(true)
   end
 
   defp query_get_by(query, constrains) when is_list(constrains), do: query |> where(^constrains)

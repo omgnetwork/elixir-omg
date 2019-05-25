@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     [%{"utxo_pos" => utxo_pos, "blknum" => blknum, "txindex" => txindex, "oindex" => oindex} | _] =
       TestHelper.get_utxos(alice.addr)
 
-    assert Utxo.position(^blknum, ^txindex, ^oindex) = utxo_pos |> Utxo.Position.decode()
+    assert Utxo.position(^blknum, ^txindex, ^oindex) = utxo_pos |> Utxo.Position.decode!()
   end
 
   @tag fixtures: [:initial_blocks, :bob, :carol]
@@ -243,5 +243,11 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                }
              }
            } == TestHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => "1200000120000"})
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "utxo.get_exit_data handles too low utxo position inputs" do
+    assert %{"object" => "error", "code" => "get_utxo_exit:encoded_utxo_position_too_low"} =
+             TestHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => 1000})
   end
 end

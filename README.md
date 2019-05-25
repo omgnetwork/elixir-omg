@@ -261,7 +261,7 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 
 * **`child_block_minimal_enqueue_gap`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
 
-* **`fee_specs_file_path`** - path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
+* **`fee_specs_file_name`** - path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
 
 * **`ignore_fees`** - boolean option allowing to turn off fee charging altogether
 
@@ -288,7 +288,7 @@ This setting is usually set by running the `Mix.Tasks.Xomg.Watcher.Start` with t
 
 ### `OMG.DB` configuration - `:omg_db` app
 
-* **`leveldb_path`** - path to the directory holding the LevelDB data store
+* **`path`** - path to the directory holding the LevelDB data store
 
 * **`server_module`** - the module to use when talking to the `OMG.DB`
 

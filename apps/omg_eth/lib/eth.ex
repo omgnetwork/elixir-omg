@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -85,6 +85,16 @@ defmodule OMG.Eth do
     case Ethereumex.HttpClient.eth_block_number() do
       {:ok, height_hex} ->
         {:ok, int_from_hex(height_hex)}
+
+      other ->
+        other
+    end
+  end
+
+  def get_block_timestamp_by_number(height) do
+    case Ethereumex.HttpClient.eth_get_block_by_number(to_hex(height), false) do
+      {:ok, %{"timestamp" => timestamp_hex}} ->
+        {:ok, int_from_hex(timestamp_hex)}
 
       other ->
         other

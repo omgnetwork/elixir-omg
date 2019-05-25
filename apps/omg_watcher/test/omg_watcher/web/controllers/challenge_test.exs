@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,5 +74,11 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
                }
              }
            } == TestHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => "1200000120000"})
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "utxo.get_exit_data handles too low utxo position inputs" do
+    assert %{"object" => "error", "code" => "get_utxo_challenge:encoded_utxo_position_too_low"} =
+             TestHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => 1000})
   end
 end

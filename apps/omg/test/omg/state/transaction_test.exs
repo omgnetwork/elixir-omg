@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -227,8 +227,8 @@ defmodule OMG.State.TransactionTest do
 
     @tag fixtures: [:alice, :bob]
     test "address in encoded transaction malformed", %{alice: alice, bob: bob} do
-      malformed_alice = %{addr: "0x0000000000000000000000000000000000000000"}
-      malformed_eth = "0x0000000000000000000000000000000000000000"
+      malformed_alice = %{addr: "0x00000000000000000"}
+      malformed_eth = "0x00000000000000000"
       malformed_signed1 = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], @eth, [{malformed_alice, 7}])
       malformed_signed2 = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], malformed_eth, [{alice, 7}])
 

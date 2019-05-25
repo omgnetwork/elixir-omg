@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -81,14 +81,14 @@ defmodule OMG.Performance do
     defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
     opts = Map.merge(defaults, opts)
 
-    {:ok, started_apps, api_children_supervisor} = setup_simple_perftest(opts)
+    {:ok, started_apps, simple_perftest_chain} = setup_simple_perftest(opts)
 
     spenders = create_spenders(nspenders)
     utxos = create_utxos_for_simple_perftest(spenders, ntx_to_send)
 
     run({ntx_to_send, utxos, opts, opts[:profile]})
 
-    cleanup_simple_perftest(started_apps, api_children_supervisor)
+    cleanup_simple_perftest(started_apps, simple_perftest_chain)
   end
 
   @doc """
@@ -118,9 +118,9 @@ defmodule OMG.Performance do
         }."
       )
 
-    DeferredConfig.populate(:omg_rpc)
+    DeferredConfig.populate(:omg_watcher)
 
-    url = Application.get_env(:omg_rpc, :child_chain_url, "http://localhost:9656")
+    url = Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
 
     defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
     opts = Map.merge(defaults, opts)
@@ -134,34 +134,45 @@ defmodule OMG.Performance do
     cleanup_extended_perftest(started_apps)
   end
 
+  # Hackney is http-client httpoison's dependency.
+  # We start omg_child_chain app that will will start omg_rpc
+  # (because of it's dependency when mix env == test).
+  # We don't need :omg application so we stop it and clear all alarms it raised
+  # (otherwise omg_rpc gets notified of alarms and halts requests).
+  # We also don't want all descendants of Monitoring process so we terminate it.
+
   @spec setup_simple_perftest(map()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
     DeferredConfig.populate(:omg_watcher)
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
-    Application.put_env(:omg_db, :leveldb_path, dbdir, persistent: true)
+    Application.put_env(:omg_db, :path, dbdir, persistent: true)
     _ = Logger.info("Perftest leveldb path: #{inspect(dbdir)}")
 
     :ok = OMG.DB.init()
 
-    # hackney is http-client httpoison's dependency
     started_apps = ensure_all_started([:omg_db, :cowboy, :hackney])
+    {:ok, simple_perftest_chain} = start_simple_perftest_chain(opts)
 
-    # select just necessary components to run the tests
+    {:ok, started_apps, simple_perftest_chain}
+  end
+
+  # Selects and starts just necessary components to run the tests.
+  # We don't want to start the entire `:omg_child_chain` supervision tree because
+  # we don't want to start services related to root chain tracking (the root chain contract doesn't exist).
+  # Instead, we start the artificial `BlockCreator`
+  defp start_simple_perftest_chain(opts) do
     children = [
       {OMG.InternalEventBus, []},
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, []},
+      {OMG.RPC.Plugs.Health, []},
       {OMG.RPC.Web.Endpoint, []},
-      {OMG.RPC.Plugs.Health, []}
+      {OMG.Performance.BlockCreator, opts[:block_every_ms]}
     ]
 
-    {:ok, api_children_supervisor} = Supervisor.start_link(children, strategy: :one_for_one)
-
-    _ = OMG.Performance.BlockCreator.start_link(opts[:block_every_ms])
-
-    {:ok, started_apps, api_children_supervisor}
+    Supervisor.start_link(children, strategy: :one_for_one)
   end
 
   @spec setup_extended_perftest(map(), Crypto.address_t()) :: {:ok, list}
@@ -181,15 +192,14 @@ defmodule OMG.Performance do
     {:ok, started_apps}
   end
 
-  @spec cleanup_simple_perftest([], pid) :: :ok
-  defp cleanup_simple_perftest(started_apps, api_children_supervisor) do
-    :ok = Supervisor.stop(api_children_supervisor)
-
+  @spec cleanup_simple_perftest(list(), pid) :: :ok
+  defp cleanup_simple_perftest(started_apps, simple_perftest_chain) do
+    :ok = Supervisor.stop(simple_perftest_chain)
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
 
     _ = Application.stop(:briefly)
 
-    Application.put_env(:omg_db, :leveldb_path, nil)
+    Application.put_env(:omg_db, :path, nil)
     :ok
   end
 

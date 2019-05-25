@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,9 +20,17 @@ defmodule OMG.Watcher.Application do
   def start(_type, _args) do
     DeferredConfig.populate(:omg_watcher)
     cookie = System.get_env("ERL_W_COOKIE")
-    :ok = set_cookie(cookie)
-
+    true = set_cookie(cookie)
+    :ok = set_code_reloading()
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
+
+    _ =
+      :telemetry.attach(
+        "appsignal-ecto",
+        [:omg_watcher, :repo, :query],
+        &Appsignal.Ecto.handle_event/4,
+        nil
+      )
 
     start_root_supervisor()
   end
@@ -61,5 +69,14 @@ defmodule OMG.Watcher.Application do
     |> Node.set_cookie()
   end
 
-  defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
+  defp set_cookie(_), do: :ok == Logger.warn("Cookie not applied.")
+
+  defp set_code_reloading do
+    if Code.ensure_loaded?(IEx) and IEx.started?() do
+      :ok
+    else
+      old = Application.get_env(:omg_watcher, OMG.Watcher.Web.Endpoint)
+      Application.put_env(:omg_watcher, OMG.Watcher.Web.Endpoint, Keyword.put(old, :code_reloader, false))
+    end
+  end
 end

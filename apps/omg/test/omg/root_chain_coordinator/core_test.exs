@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -87,6 +87,17 @@ defmodule OMG.RootChainCoordinator.CoreTest do
     assert {:ok, state} = Core.update_root_chain_height(state, 14)
     assert %{sync_height: 14} = Core.get_synced_info(state, depositor_pid)
     assert %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
+  end
+
+  @tag fixtures: [:initial_state]
+  test "reports synced heights", %{initial_state: state} do
+    exiter_pid = :c.pid(0, 2, 0)
+
+    assert %{root_chain_height: 10} == Core.get_ethereum_heights(state)
+    assert {:ok, state} = Core.check_in(state, exiter_pid, 10, :exiter)
+    assert %{root_chain_height: 10, exiter: 10} == Core.get_ethereum_heights(state)
+    assert {:ok, state} = Core.update_root_chain_height(state, 11)
+    assert %{root_chain_height: 11, exiter: 10} == Core.get_ethereum_heights(state)
   end
 
   @tag fixtures: [:initial_state]

@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -518,9 +518,11 @@ defmodule OMG.State.CoreTest do
   test "exits utxos given in various forms", %{alice: alice, state_alice_deposit: state} do
     # this test checks whether all ways of calling `exit_utxos/1` work on par
     # this is _very important_ to support all clients of that functions, whose inputs come in different flavors
+    %Transaction.Recovered{tx_hash: tx_hash} = tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}]), :ignore)
+      |> Core.exec(tx, :ignore)
       |> success?
 
     utxo_pos_exits = [Utxo.position(@blknum1, 0, 0), Utxo.position(@blknum1, 0, 1)]
@@ -541,6 +543,9 @@ defmodule OMG.State.CoreTest do
              utxo_pos_exits
              |> Enum.map(&Utxo.Position.encode/1)
              |> Core.exit_utxos(state)
+
+    piggybacks = [%{tx_hash: tx_hash, output_index: 4}, %{tx_hash: tx_hash, output_index: 5}]
+    assert exit_utxos_response_reference == Core.exit_utxos(piggybacks, state)
   end
 
   @tag fixtures: [:alice, :state_alice_deposit]
@@ -622,6 +627,13 @@ defmodule OMG.State.CoreTest do
     utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
 
     assert {:ok, {[], {[], [^utxo_pos_exit_1]}}, ^state} = Core.exit_utxos([utxo_pos_exit_1], state)
+  end
+
+  @tag fixtures: [:state_empty]
+  test "notifies about invalid in-flight exit", %{state_empty: state} do
+    piggyback = %{tx_hash: 1, output_index: 5}
+
+    assert {:ok, {[], {[], [^piggyback]}}, ^state} = Core.exit_utxos([piggyback], state)
   end
 
   @tag fixtures: [:alice, :state_empty]

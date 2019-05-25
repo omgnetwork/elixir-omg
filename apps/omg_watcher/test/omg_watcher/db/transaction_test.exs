@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,18 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.DB.TransactionTest do
+  @moduledoc """
+  Currently, this test focuses on testing behaviors not testable via Controllers.TransactionTest.
+
+  The reason is that we are treating the DB schema etc. as implementation detail. In case testing through controllers
+  becomes hard/slow or otherwise unreasnable, refactor these two kinds of tests appropriately
+  """
+
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
   use Plug.Test
 
-  alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.DB
 
@@ -26,22 +32,8 @@ defmodule OMG.Watcher.DB.TransactionTest do
   import ExUnit.CaptureLog
 
   @tag fixtures: [:initial_blocks]
-  test "verifies all expected transaction were inserted", %{initial_blocks: initial_blocks} do
-    initial_blocks
-    |> Enum.each(fn {blknum, txindex, txhash, recovered_tx} ->
-      %Transaction.Recovered{signed_tx: %Transaction.Signed{signed_tx_bytes: txbytes}} = recovered_tx
-
-      assert %DB.Transaction{
-               txhash: ^txhash,
-               blknum: ^blknum,
-               txindex: ^txindex,
-               txbytes: ^txbytes
-             } = DB.Transaction.get(txhash)
-    end)
-  end
-
-  @tag fixtures: [:initial_blocks]
   test "gets all transactions from a block", %{initial_blocks: initial_blocks} do
+    # this test is here to ensure that calls coming from places other than `transaction` controllers are covered
     [tx0, tx1] = DB.Transaction.get_by_blknum(3000)
 
     tx_hashes =
@@ -52,19 +44,6 @@ defmodule OMG.Watcher.DB.TransactionTest do
     assert tx_hashes == [tx0, tx1] |> Enum.map(& &1.txhash)
 
     assert [] == DB.Transaction.get_by_blknum(5000)
-  end
-
-  @tag fixtures: [:alice, :blocks_inserter]
-  test "transaction metadata is persisted in database", %{alice: alice, blocks_inserter: blocks_inserter} do
-    eth = OMG.Eth.RootChain.eth_pseudo_address()
-    metadata = <<1::256>>
-
-    [
-      {1000, [OMG.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{alice, 300}], metadata)]}
-    ]
-    |> blocks_inserter.()
-
-    assert metadata == DB.Transaction.get_by_position(1000, 0).metadata
   end
 
   @tag fixtures: [:initial_blocks]
