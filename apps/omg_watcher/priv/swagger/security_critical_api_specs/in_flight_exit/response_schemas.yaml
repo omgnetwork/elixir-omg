@@ -1,0 +1,79 @@
+GetInFlightExitDataResponseSchema:
+  allOf:
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/InFlightExitDataSchema'
+    example:
+      data:
+        in_flight_tx: '0xf3170101c0940000...'
+        input_txs: '0xa3470101c0940000...'
+        input_txs_inclusion_proofs : '0xcedb8b31d1e4...'
+        in_flight_tx_sigs : '0x6bfb9b2dbe32...'
+
+GetCompetitorResponseSchema:
+  allOf:
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/CompetitorSchema'
+    example:
+      data:
+        in_flight_txbytes: '0xf3170101c0940000...'
+        in_flight_input_index: 1
+        competing_txbytes: '0x5df13a6bee20000...'
+        competing_input_index: 1
+        competing_sig: '0xa3470101c0940000...'
+        competing_tx_pos: 26000003920000
+        competing_proof: '0xcedb8b31d1e4...'
+
+ProveCanonicalResponseSchema:
+  allOf:
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/ProveCanonicalSchema'
+    example:
+      data:
+        in_flight_txbytes: '0xf3170101c0940000...'
+        in_flight_tx_pos: 26000003920000
+        in_flight_proof: '0xcedb8b31d1e4...'
+
+InputChallengeDataResponseSchema:
+  allOf:
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/InputChallengeDataSchema'
+    example:
+      data:
+        in_flight_txbytes: '0xf3170101c0940000...'
+        in_flight_input_index: 1
+        spending_txbytes: '0x5df13a6bee20000...'
+        spending_input_index: 1
+        spending_sig: '0xa3470101c0940000...'
+
+OutputChallengeDataResponseSchema:
+  allOf:
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/OutputChallengeDataSchema'
+    example:
+      data:
+        in_flight_txbytes: '0xf3170101c0940000...'
+        in_flight_output_pos: 21000634002
+        in_flight_proof: '0xcedb8b31d1e4...'
+        spending_txbytes: '0x5df13a6bee20000...'
+        spending_input_index: 1
+        spending_sig: '0xa3470101c0940000...'

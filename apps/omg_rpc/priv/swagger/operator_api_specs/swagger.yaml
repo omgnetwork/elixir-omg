@@ -1,0 +1,28 @@
+openapi: 3.0.0
+info:
+  version: '1.0.0'
+  title: Child chain API
+  description: >
+    This is the documentation for child chain API.
+
+    Error codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
+  contact:
+    name: OmiseGO
+    email: omisego@omisego.co
+  license:
+    name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
+    url: 'https://omisego.network/'
+
+tags:
+  - name: ChildChain
+    description: Plasma operator API.
+
+servers:
+  - url: 'https://ari.omg.network/'
+  - url: 'http://localhost:9656/'
+
+paths:
+  /transaction.submit:
+    $ref: 'transaction/paths.yaml#/transaction.submit'
+  /block.get:
+    $ref: 'block/paths.yaml#/block.get'

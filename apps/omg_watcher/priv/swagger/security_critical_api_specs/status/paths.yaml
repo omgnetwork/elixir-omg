@@ -1,0 +1,15 @@
+status.get:
+  post:
+    tags:
+      - Status
+    summary: Returns information about the current state of the child chain and the watcher.
+    description: >
+      The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity.
+      The user must call the `/status.get` endpoint periodically to check. Any situation that requires the user
+      to either exit or challenge an invalid exit will be included in the `byzantine_events` field.
+    operationId: status_get
+    responses:
+      200:
+        $ref: 'responses.yaml#/StatusResponse'
+      500:
+        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'

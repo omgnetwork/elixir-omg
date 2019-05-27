@@ -1,0 +1,20 @@
+GetUtxosResponse:
+  description: Utxos successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/UtxosResponseSchema'
+
+GetUtxoChallengeResponse:
+  description: Utxo challenge successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/GetUtxoChallengeResponseSchema'
+
+GetUtxoExitResponse:
+  description: Utxo challenge successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/GetUtxoExitResponseSchema'

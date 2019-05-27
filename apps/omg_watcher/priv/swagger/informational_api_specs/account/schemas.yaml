@@ -1,0 +1,57 @@
+AccountBalanceSchema:
+  type: object
+  properties:
+    currency:
+      type: string
+      format: binary
+    amount:
+      type: integer
+      format: int256
+
+AccountUtxoSchema:
+  type: object
+  properties:
+    blknum:
+      type: integer
+      format: int64
+    txindex:
+      type: integer
+      format: int16
+    oindex:
+      type: integer
+      format: int8
+    utxo_pos:
+      type: integer
+      format: int256
+    owner:
+      type: string
+      format: binary
+    currency:
+      type: string
+      format: binary
+    amount:
+      type: integer
+      format: int256
+
+AccountTransactionSchema:
+  type: object
+  properties:
+    block:
+      $ref: '../block/schemas.yaml#/BlockSchema'
+    txindex:
+      type: integer
+      format: int16
+    txhash:
+      type: string
+      format: binary
+    results:
+      type: array
+      items:
+        type: object
+        properties:
+          currency:
+            type: string
+            format: binary
+          value:
+            type: integer
+            format: int256

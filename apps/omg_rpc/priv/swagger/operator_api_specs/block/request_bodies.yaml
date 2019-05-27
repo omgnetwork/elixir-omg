@@ -1,0 +1,15 @@
+GetBlockBodySchema:
+  description: HEX-encoded hash of the block
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          hash:
+            type: string
+            format: binary
+        required:
+          - hash
+        example:
+          hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
