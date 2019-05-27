@@ -24,11 +24,12 @@ RUN set -xe \
 
 ## Application
 ##
-
+#leveldb and rocksdb need libstdc++
 RUN apk add --update --no-cache --virtual .child_chain-runtime \
         bash \
         libressl \
         libressl-dev \
+        libstdc++ \
         lksctp-tools
 
 COPY rootfs /
