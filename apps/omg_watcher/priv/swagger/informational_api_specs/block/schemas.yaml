@@ -1,0 +1,15 @@
+BlockSchema:
+  type: object
+  properties:
+    timestamp:
+      type: integer
+      format: int64
+    hash:
+      type: string
+      format: binary
+    eth_height:
+      type: integer
+      format: int64
+    blknum:
+      type: integer
+      format: int64

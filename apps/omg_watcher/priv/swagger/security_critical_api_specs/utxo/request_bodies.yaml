@@ -1,4 +1,4 @@
-AddressBodySchema:
+GetUtxosBody:
   description: HEX-encoded address of the account
   required: true
   content:
@@ -9,12 +9,12 @@ AddressBodySchema:
           address:
             type: string
             format: binary
-          required:
-            - address
+        required:
+          - address
         example:
           address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
 
-UtxoPosBodySchema:
+UtxoPositionBody:
   description: Utxo position (encoded as single integer, the way contract represents them)
   required: true
   content:
@@ -25,19 +25,7 @@ UtxoPosBodySchema:
           utxo_pos:
             type: integer
             format: int256
+        required:
+          - utxo_pos
         example:
           utxo_pos: 10000000010000000
-
-TransactionBodySchema:
-  description: Signed transaction RLP-encoded to bytes and HEX-encoded to string
-  required: true
-  content:
-    application/json:
-      schema:
-        type: object
-        properties:
-          transaction:
-            type: string
-            format: binary  
-        example:
-          transaction: '0xf8d083015ba98080808080940000...'       

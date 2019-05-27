@@ -1,0 +1,28 @@
+GetUtxoChallengeSchema:
+  type: object
+  properties:
+    input_index:
+      type: integer
+      format: int8
+    utxo_pos:
+      type: integer
+      format: int256
+    sig:
+      type: string
+      format: binary
+    txbytes:
+      type: string
+      format: binary
+
+GetUtxoExitSchema:
+  type: object
+  properties:
+    utxo_pos:
+      type: integer
+      format: int256
+    txbytes:
+      type: string
+      format: binary
+    proof:
+      type: string
+      format: binary
