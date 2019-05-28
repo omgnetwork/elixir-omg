@@ -37,7 +37,7 @@
   "idna": {:hex, :idna, "6.0.0", "689c46cbcdf3524c44d5f3dde8001f364cd7608a99556d8fbd8239a5798d4c10", [:rebar3], [{:unicode_util_compat, "0.4.1", [hex: :unicode_util_compat, repo: "hexpm", optional: false]}], "hexpm"},
   "jason": {:hex, :jason, "1.1.2", "b03dedea67a99223a2eaf9f1264ce37154564de899fd3d8b9a21b1a6fd64afe7", [:mix], [{:decimal, "~> 1.0", [hex: :decimal, repo: "hexpm", optional: true]}], "hexpm"},
   "keccakf1600": {:hex, :keccakf1600_orig, "2.0.0", "0a7217ddb3ee8220d449bbf7575ec39d4e967099f220a91e3dfca4dbaef91963", [:rebar3], [], "hexpm"},
-  "libsecp256k1": {:git, "https://github.com/masonforest/libsecp256k1.git", "986bc948e76ac388f32cbe60185ae2a135064dde", [ref: "986bc948e76ac388f32cbe60185ae2a135064dde"]},
+  "libsecp256k1": {:git, "https://github.com/InoMurko/libsecp256k1.git", "83d4c91b7b5ad79fdd3c020be8c57ff6e2212780", [ref: "83d4c91b7b5ad79fdd3c020be8c57ff6e2212780"]},
   "libsecp256k1_source": {:git, "https://github.com/bitcoin-core/secp256k1.git", "d33352151699bd7598b868369dace092f7855740", [ref: "d33352151699bd7598b868369dace092f7855740"]},
   "licensir": {:hex, :licensir, "0.2.7", "ad902c337560ccd70de843e5b208c1db08ba2f879ee01c9389023b779131f30a", [:mix], [], "hexpm"},
   "makeup": {:hex, :makeup, "0.8.0", "9cf32aea71c7fe0a4b2e9246c2c4978f9070257e5c9ce6d4a28ec450a839b55f", [:mix], [{:nimble_parsec, "~> 0.5.0", [hex: :nimble_parsec, repo: "hexpm", optional: false]}], "hexpm"},

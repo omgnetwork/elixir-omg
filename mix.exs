@@ -36,9 +36,10 @@ defmodule OMG.Umbrella.MixProject do
       },
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:appsignal, "~> 1.9"},
-
       {:libsecp256k1,
-       git: "https://github.com/masonforest/libsecp256k1.git", ref: "986bc948e76ac388f32cbe60185ae2a135064dde", override: true},
+       git: "https://github.com/InoMurko/libsecp256k1.git",
+       ref: "83d4c91b7b5ad79fdd3c020be8c57ff6e2212780",
+       override: true}
     ]
   end
 
