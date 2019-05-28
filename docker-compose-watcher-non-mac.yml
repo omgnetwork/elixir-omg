@@ -1,0 +1,45 @@
+version: "2.1"
+services:
+  watcher_db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: omisego_dev
+      POSTGRES_PASSWORD: omisego_dev
+      POSTGRES_DB: omisego_dev
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: pg_isready -U omisego_dev
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  elixir-omg:
+    build: .
+    image: elixir-omg:dockercompose
+
+  watcher:
+    image: elixir-omg:dockercompose
+    entrypoint: /bin/bash -c "./launcher.py && mix ecto.reset --no-start && elixir --erl '-sname watcher' -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs "
+    environment:
+      - MIX_ENV=dev
+      - ELIXIR_SERVICE=WATCHER
+      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<your_api_key>
+      - CHILD_CHAIN_URL=http://ari.omg.network
+      - ETHEREUM_NETWORK=RINKEBY
+      - RINKEBY_CONTRACT_ADDRESS=0x44de0ec539b8c4a4b530c78620fe8320167f2f74
+      - RINKEBY_TXHASH_CONTRACT=0x3259a7533fb46486e362cc6f33ff1dbf422af96177ef34cafd3348e5d01e6083
+      - RINKEBY_AUTHORITY_ADDRESS=0xeac4eedfb51c682f6eb2082093ee81791dfa9bc7
+      - DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost:5433/omisego_dev
+    restart: always
+    ports:
+      - "7434:7434"
+    healthcheck:
+      test: curl localhost:7434
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    depends_on:
+      watcher_db:
+        condition: service_healthy
