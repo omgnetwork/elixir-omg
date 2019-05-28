@@ -1,7 +1,7 @@
 all: clean build-child_chain-prod build-watcher-prod
 
-WATCHER_PROD_IMAGE_NAME      ?= "omisego/watcher:latest"
-CHILD_CHAIN_PROD_IMAGE_NAME      ?= "omisego/child_chain:latest"
+WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
+CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:v1.3"
 IMAGE_BUILD_DIR ?= $(PWD)
 
@@ -27,8 +27,8 @@ deps-elixir-omg:
 clean: clean-elixir-omg
 
 clean-elixir-omg:
-	rm -rf _build/
-	rm -rf deps/
+	rm -rf _build/*
+	rm -rf deps/*
 
 
 .PHONY: clean clean-elixir-omg
@@ -92,7 +92,7 @@ docker-child_chain-prod:
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && make build-child_chain-prod"
+		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-child_chain-prod"
 
 docker-watcher-prod:
 	docker run --rm -it \
@@ -101,25 +101,33 @@ docker-watcher-prod:
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && make build-watcher-prod"
+		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-watcher-prod"
 
 docker-child_chain-build-prod:
 	docker build -f Dockerfile.child_chain \
 		--build-arg release_version=$$(awk '/umbrella_version, do: "/ { gsub(/"/, ""); print $$4 }' $(PWD)/mix.exs) \
-		--cache-from $(CHILD_CHAIN_PROD_IMAGE_NAME) \
-		-t $(CHILD_CHAIN_PROD_IMAGE_NAME) \
+		--cache-from $(CHILD_CHAIN_IMAGE_NAME) \
+		-t $(CHILD_CHAIN_IMAGE_NAME) \
 		.
 
 docker-watcher-build-prod:
 	docker build -f Dockerfile.watcher \
 		--build-arg release_version=$$(awk '/umbrella_version, do: "/ { gsub(/"/, ""); print $$4 }' $(PWD)/mix.exs) \
-		--cache-from $(WATCHER_PROD_IMAGE_NAME) \
-		-t $(WATCHER_PROD_IMAGE_NAME) \
+		--cache-from $(WATCHER_IMAGE_NAME) \
+		-t $(WATCHER_IMAGE_NAME) \
 		.
 
 docker-watcher: docker-watcher-prod docker-watcher-build-prod
 docker-child_chain: docker-child_chain-prod docker-child_chain-build-prod
 
-docker-push-prod: docker
-	docker push $(CHILD_CHAIN_PROD_IMAGE_NAME)
-	docker push $(WATCHER_PROD_IMAGE_NAME)
+docker-push: docker
+	docker push $(CHILD_CHAIN_IMAGE_NAME)
+	docker push $(WATCHER_IMAGE_NAME)
+
+
+### UTILS
+OSFLAG := ''
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	OSFLAG = OSX
+endif
