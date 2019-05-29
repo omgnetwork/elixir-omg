@@ -35,6 +35,7 @@ RUN apk add --update --no-cache --virtual .watcher-runtime \
 
 #libsecp256k1
 RUN apk add --no-cache gmp-dev
+
 COPY rootfs /
 
 # USER directive is not being used here since privileges are dropped via

@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
-  @moduledoc """
-  Gets the DB path from environment and perstists it to configuration.
-  """
+defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
+  @moduledoc false
   use Mix.Releases.Config.Provider
 
+  @doc """
+  Gets the environment setting for the ethereum client location.
+  """
   @impl Provider
   def init(_args) do
-    case get_env("DB_PATH") do
-      path when is_binary(path) -> :ok = Application.put_env(:omg_db, :path, path, persistent: true)
-      _ -> :ok = Application.put_env(:omg_db, :path, System.user_home!(), persistent: true)
+    case get_env("ETHEREUM_RPC_URL") do
+      url when is_binary(url) -> Application.put_env(:ethereumex, :url, url, persistent: true)
+      _ -> Application.put_env(:ethereumex, :url, "http://localhost:8545", persistent: true)
     end
 
     :ok

@@ -16,7 +16,7 @@ ENV_PROD        ?= env MIX_ENV=prod
 deps: deps-elixir-omg
 
 deps-elixir-omg:
-	mix deps.get
+	HEX_HTTP_TIMEOUT=120 mix deps.get
 
 .PHONY: deps deps-elixir-omg
 
