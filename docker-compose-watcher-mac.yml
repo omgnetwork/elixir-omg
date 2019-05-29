@@ -21,20 +21,21 @@ services:
 
   watcher:
     image: elixir-omg:dockercompose
-    entrypoint: /bin/bash -c "./launcher.py && mix ecto.reset --no-start && elixir --erl '-sname watcher' -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs "
+    entrypoint: /bin/bash -c "./launcher.py && elixir --erl '-sname watcher' -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs "
     environment:
       - MIX_ENV=dev
       - ELIXIR_SERVICE=WATCHER
       - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<your_api_key>
-      - CHILD_CHAIN_URL=http://ari.omg.network
+      - CHILD_CHAIN_URL=http://samrong.omg.network
       - ETHEREUM_NETWORK=RINKEBY
-      - RINKEBY_CONTRACT_ADDRESS=0x44de0ec539b8c4a4b530c78620fe8320167f2f74
-      - RINKEBY_TXHASH_CONTRACT=0x3259a7533fb46486e362cc6f33ff1dbf422af96177ef34cafd3348e5d01e6083
-      - RINKEBY_AUTHORITY_ADDRESS=0xeac4eedfb51c682f6eb2082093ee81791dfa9bc7
+      - RINKEBY_CONTRACT_ADDRESS=0x740ecec4c0ee99c285945de8b44e9f5bfb71eea7
+      - RINKEBY_TXHASH_CONTRACT=0x29f8cd44b4b94a148f779105f0e09e06f762b411ebef6c499281b74d45818c1c
+      - RINKEBY_AUTHORITY_ADDRESS=0x41863dafbdf8cfc2a33fc38c0b525b6343d857b3
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5433/omisego_dev
     restart: always
     ports:
       - "7434:7434"
+    network_mode: "host"
     healthcheck:
       test: curl docker.for.mac.localhost:7434
       interval: 5s
