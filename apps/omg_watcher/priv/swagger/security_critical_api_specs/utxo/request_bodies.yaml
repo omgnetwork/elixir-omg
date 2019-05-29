@@ -1,4 +1,4 @@
-UtxoPositionBody:
+UtxoPositionBodySchema:
   description: Utxo position (encoded as single integer, the way contract represents them)
   required: true
   content:

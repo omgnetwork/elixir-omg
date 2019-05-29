@@ -9,7 +9,7 @@ transaction.submit:
       so is much safer. However, if the Watcher is not available this version exists.
     operationId: submit
     requestBody:
-      $ref: 'request_bodies.yaml#/TransactionSubmitBody'
+      $ref: 'request_bodies.yaml#/TransactionSubmitBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/TransactionSubmitResponse'

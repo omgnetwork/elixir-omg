@@ -1,4 +1,4 @@
-TransactionSubmitBody:
+TransactionSubmitBodySchema:
   description: Signed transaction RLP-encoded to bytes and HEX-encoded to string
   required: true
   content:

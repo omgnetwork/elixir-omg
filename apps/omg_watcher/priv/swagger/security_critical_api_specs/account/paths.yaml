@@ -9,7 +9,7 @@ account.get_exitable_utxos:
       This version is provided in case the Informational API is not available.
     operationId: account_get_exitable_utxos
     requestBody:
-      $ref: 'request_bodies.yaml#/AccountUtxoBody'
+      $ref: 'request_bodies.yaml#/AddressBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/AccountUtxoResponse'

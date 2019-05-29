@@ -34,7 +34,7 @@ account.get_transactions:
     summary: Gets a list of transactions for given account address.
     operationId: account_get_transactions
     requestBody:
-      $ref: '../transaction/request_bodies.yaml#/GetAllTransactionsBody'
+      $ref: '../transaction/request_bodies.yaml#/GetAllTransactionsBodySchema'
     responses:
       200:
         $ref: '../transaction/responses.yaml#/GetAllTransactionsResponse'

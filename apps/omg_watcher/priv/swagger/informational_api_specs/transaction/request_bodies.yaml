@@ -1,4 +1,4 @@
-GetAllTransactionsBody:
+GetAllTransactionsBodySchema:
   description: Account address, block number and other criteria
   content:
     application/json:
@@ -24,7 +24,7 @@ GetAllTransactionsBody:
           blknum: 68290000
           limit: 100
 
-CreateTransactionsBody:
+CreateTransactionsBodySchema:
   description: The description of transaction to be crafted.
   required: true
   content:
@@ -83,7 +83,7 @@ CreateTransactionsBody:
             currency: '0x0000000000000000000000000000000000000000'
           metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
 
-GetTransactionBody:
+GetTransactionBodySchema:
   description: Id (hash) of the transaction
   required: true
   content:
@@ -99,7 +99,7 @@ GetTransactionBody:
         example:
           id: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
 
-GetTransactionByPosBody:
+GetTransactionByPosBodySchema:
   description: Position of the transaction
   required: true
   content:

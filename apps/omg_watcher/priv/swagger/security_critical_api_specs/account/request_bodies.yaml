@@ -1,4 +1,4 @@
-AccountUtxoBody:
+AddressBodySchema:
   description: HEX-encoded address of the account
   required: true
   content:

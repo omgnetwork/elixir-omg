@@ -1,21 +1,3 @@
-utxo.get_utxos:
-  post:
-    tags:
-      - UTXO
-    summary: Gets all utxos belonging to the given address.
-    description: >
-      Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit.
-      Normally an application should use the Informational API's [Account - Get Utxos](http://TODO) instead.
-      This version is provided in case the Informational API is not available.
-    operationId: utxo_get_utxos
-    requestBody:
-      $ref: 'request_bodies.yaml#/GetUtxosBody'
-    responses:
-      200:
-        $ref: 'responses.yaml#/GetUtxosResponse'
-      500:
-        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
-
 utxo.get_challenge_data:
   post:
     tags:
@@ -24,7 +6,7 @@ utxo.get_challenge_data:
     description: Gets challenge data for a given utxo exit.
     operationId: utxo_get_challenge_data
     requestBody:
-      $ref: 'request_bodies.yaml#/UtxoPositionBody'
+      $ref: 'request_bodies.yaml#/UtxoPositionBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/GetUtxoChallengeResponse'
@@ -39,7 +21,7 @@ utxo.get_exit_data:
     description: Gets exit data for a given utxo.
     operationId: utxo_get_exit_data
     requestBody:
-      $ref: 'request_bodies.yaml#/UtxoPositionBody'
+      $ref: 'request_bodies.yaml#/UtxoPositionBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/GetUtxoExitResponse'
