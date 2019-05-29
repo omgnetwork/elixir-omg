@@ -29,7 +29,7 @@ defmodule OMG.DB do
 
   @callback multi_update(term()) :: :ok | {:error, any}
   @callback blocks(block_to_fetch :: list()) :: {:ok, list(term)}
-  @callback utxos() :: {:ok, list(term)}
+  @callback utxos() :: {:ok, list({utxo_pos_db_t, term})}
   @callback exit_infos() :: {:ok, list(term)}
   @callback in_flight_exits_info() :: {:ok, list(term)}
   @callback competitors_info() :: {:ok, list(term)}
@@ -43,7 +43,7 @@ defmodule OMG.DB do
   @callback initiation_multiupdate(GenServer.server()) :: :ok | {:error, any}
   @callback multi_update(term(), GenServer.server()) :: :ok | {:error, any}
   @callback blocks(block_to_fetch :: list(), GenServer.server()) :: {:ok, list()} | {:error, any}
-  @callback utxos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
+  @callback utxos(GenServer.server()) :: {:ok, list({utxo_pos_db_t, term})} | {:error, any}
   @callback exit_infos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback in_flight_exits_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback competitors_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}

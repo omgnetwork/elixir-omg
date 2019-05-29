@@ -107,6 +107,10 @@ defmodule OMG.Watcher.TestHelper do
     success?("/account.get_utxos", %{"address" => Encoding.to_hex(address)})
   end
 
+  def get_exitable_utxos(address) do
+    success?("/account.get_exitable_utxos", %{"address" => Encoding.to_hex(address)})
+  end
+
   def get_balance(address) do
     success?("/account.get_balance", %{"address" => Encoding.to_hex(address)})
   end
