@@ -1,4 +1,4 @@
-# Copyright 2018-2019 OmiseGO Pte Ltd
+# Copyright 2019-2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   @impl Provider
   def init(_args) do
     path = get_env("DB_PATH")
-    :ok = Application.put_env(:omg_db, :leveldb_path, path, persistent: true)
+    :ok = Application.put_env(:omg_db, :path, path, persistent: true)
   end
 
   defp get_env(key), do: validate(System.get_env(key))

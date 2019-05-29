@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,6 +28,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo
+
+  import OMG.Watcher.ExitProcessor.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @zero_address OMG.Eth.zero_address()
@@ -97,22 +99,18 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     |> persist_finalize_exits({[], [@utxo_pos1, @utxo_pos2]}, db_pid)
   end
 
-  test "persist challenges and challenge responses",
+  test "persist challenges",
        %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
     |> persist_new_exits(exit_events, statuses, db_pid)
     |> persist_challenge_exits([@utxo_pos1], db_pid)
-    # NOTE: this might break when respond_to_in_flight_exits_challenges is actually implemented, it works because noop
-    |> persist_respond_to_in_flight_exits_challenges([@utxo_pos1], db_pid)
   end
 
-  test "persist multiple challenges and challenge responses",
+  test "persist multiple challenges",
        %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
     |> persist_new_exits(exit_events, statuses, db_pid)
     |> persist_challenge_exits([@utxo_pos2, @utxo_pos1], db_pid)
-    # NOTE: this might break when respond_to_in_flight_exits_challenges is actually implemented, it works because noop
-    |> persist_respond_to_in_flight_exits_challenges([@utxo_pos2, @utxo_pos1], db_pid)
   end
 
   test "persist started ifes regardless of status",
@@ -154,6 +152,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     |> persist_new_ife_challenges([challenge], db_pid)
     |> persist_challenge_piggybacks(piggybacks2, db_pid)
     |> persist_challenge_piggybacks(piggybacks1, db_pid)
+    |> persist_respond_to_in_flight_exits_challenges([ife_response(tx, @utxo_pos1)], db_pid)
   end
 
   test "persist ife finalizations",

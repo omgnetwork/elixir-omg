@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -108,6 +108,7 @@ defmodule OMG.DB.LevelDB.Server do
     {:reply, result, state}
   end
 
+  @decorate measure_event()
   defp do_utxos(state) do
     result = get_all_by_type(:utxo, state)
     {:reply, result, state}

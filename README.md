@@ -27,7 +27,9 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
                * [geth](#geth)
                * [parity](#parity)
             * [Specifying the fees required](#specifying-the-fees-required)
-            * [Funding the operator address](#funding-the-operator-address)
+            * [Managing the operator address](#managing-the-operator-address)
+               * [Nonces restriction](#nonces-restriction)
+               * [Funding the operator address](#funding-the-operator-address)
       * [Watcher](#watcher)
          * [Using the watcher](#using-the-watcher)
          * [Endpoints](#endpoints)
@@ -167,7 +169,27 @@ In particular, note that the required fee must be paid in one token in its entir
 
 The fees are configured in the config entries for `omg_child_chain` see [config secion](#mix-configuration-parameters).
 
-#### Funding the operator address
+#### Managing the operator address
+
+(a.k.a `authority address`)
+
+The Ethereum address which the operator uses to submit blocks to the root chain is a special address which must be managed accordingly to ensure liveness and security.
+
+##### Nonces restriction
+
+The [reorg protection mechanism](docs/tesuji_blockchain_design.md#reorgs) enforces there to be a strict relation between the `submitBlock` transactions and block numbers.
+Child block number `1000` uses Ethereum nonce `1`, child block number `2000` uses Ethereum nonce `2`, **always**.
+This provides a simple mechanism to avoid submitted blocks getting reordered in the root chain.
+
+This restriction is respected by the child chain server (`OMG.ChildChain.BlockQueue`), whereby the Ethereum nonce is simply derived from the child block number.
+
+As a consequence, the operator address must never send any other transactions, if it intends to continue submitting blocks.
+(Workarounds to this limitation are available, if there's such requirement.)
+
+**NOTE** Ethereum nonce `0` is necessary to call the `RootChain.init` function, which must be called by the operator address.
+This means that the operator address must be a fresh address for every child chain brought to life.
+
+##### Funding the operator address
 
 The address that is running the child chain server and submitting blocks needs to be funded with Ether.
 At the current stage this is designed as a manual process, i.e. we assume that every **gas reserve checkpoint interval**, someone will ensure that **gas reserve** worth of Ether is available for transactions.
@@ -288,7 +310,7 @@ This setting is usually set by running the `Mix.Tasks.Xomg.Watcher.Start` with t
 
 ### `OMG.DB` configuration - `:omg_db` app
 
-* **`leveldb_path`** - path to the directory holding the LevelDB data store
+* **`path`** - path to the directory holding the LevelDB data store
 
 * **`server_module`** - the module to use when talking to the `OMG.DB`
 

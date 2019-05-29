@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,6 +70,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
       eth_height: eth_height
     }
   end
+
+  def ife_response(tx, position),
+    do: %{tx_hash: Transaction.raw_txhash(tx), challenge_position: Utxo.Position.encode(position)}
 
   defp get_sigs(%{signed_tx: %{sigs: sigs}}), do: sigs
 end

@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ defmodule OMG.ChildChain.BlockQueue do
 
       {:ok, known_hashes} = OMG.DB.block_hashes(range)
       {:ok, {top_mined_hash, _}} = Eth.RootChain.get_child_chain(mined_num)
-      _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}")
+      _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Eth.Encoding.to_hex(top_mined_hash))}")
 
       {:ok, state} =
         with {:ok, _state} = result <-
@@ -93,8 +93,11 @@ defmodule OMG.ChildChain.BlockQueue do
         else
           {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
             _ =
-              Logger.error(
-                "The child chain might have not been wiped clean when starting a child chain from scratch. Check README.MD and follow the setting up child chain."
+              log_init_error(
+                known_hashes: known_hashes,
+                parent_height: parent_height,
+                mined_num: mined_num,
+                stored_child_top_num: stored_child_top_num
               )
 
             error
@@ -167,7 +170,34 @@ defmodule OMG.ChildChain.BlockQueue do
       submit_result = OMG.Eth.RootChain.submit_block(hash, nonce, gas_price)
       {:ok, newest_mined_blknum} = Eth.RootChain.get_mined_child_block()
 
-      :ok = Core.process_submit_result(submission, submit_result, newest_mined_blknum)
+      final_result = Core.process_submit_result(submission, submit_result, newest_mined_blknum)
+
+      _ =
+        case final_result do
+          {:error, _} -> log_eth_node_error()
+          _ -> :ok
+        end
+
+      :ok = final_result
+    end
+
+    defp log_init_error(fields) do
+      config = Eth.Diagnostics.get_child_chain_config()
+      fields = Keyword.update!(fields, :known_hashes, fn hashes -> Enum.map(hashes, &Eth.Encoding.to_hex/1) end)
+      diagnostic = fields |> Enum.into(%{config: config})
+
+      _ =
+        Logger.error(
+          "The child chain might have not been wiped clean when starting a child chain from scratch: " <>
+            "#{inspect(diagnostic)}. Check README.MD and follow the setting up child chain."
+        )
+
+      log_eth_node_error()
+    end
+
+    defp log_eth_node_error do
+      eth_node_diagnostics = Eth.Diagnostics.get_node_diagnostics()
+      Logger.error("Ethereum operation failed, additional diagnostics: #{inspect(eth_node_diagnostics)}")
     end
   end
 end

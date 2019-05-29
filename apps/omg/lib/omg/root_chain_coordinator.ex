@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,6 +64,15 @@ defmodule OMG.RootChainCoordinator do
     GenServer.call(__MODULE__, :get_sync_info)
   end
 
+  @doc """
+  Gets all the current synced height for all the services checked in
+  """
+  @decorate measure_event()
+  @spec get_ethereum_heights() :: {:ok, Core.ethereum_heights_result_t()}
+  def get_ethereum_heights do
+    GenServer.call(__MODULE__, :get_ethereum_heights)
+  end
+
   def init(configs_services) do
     {:ok, configs_services, {:continue, :setup}}
   end
@@ -93,6 +102,10 @@ defmodule OMG.RootChainCoordinator do
 
   def handle_call(:get_sync_info, {pid, _}, state) do
     {:reply, Core.get_synced_info(state, pid), state}
+  end
+
+  def handle_call(:get_ethereum_heights, _from, state) do
+    {:reply, {:ok, Core.get_ethereum_heights(state)}, state}
   end
 
   def handle_info(:update_root_chain_height, state) do

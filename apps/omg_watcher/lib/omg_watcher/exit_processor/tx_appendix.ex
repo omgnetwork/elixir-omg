@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ defmodule OMG.Watcher.ExitProcessor.TxAppendix do
   def get_all(%ExitProcessor.Core{in_flight_exits: ifes, competitors: competitors}) do
     ifes
     |> Map.values()
-    |> Enum.concat(Map.values(competitors))
-    |> Enum.map(&Map.get(&1, :tx))
+    |> Stream.concat(Map.values(competitors))
+    |> Stream.map(&Map.get(&1, :tx))
   end
 end

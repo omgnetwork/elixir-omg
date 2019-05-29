@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,12 +28,23 @@ defmodule OMG.Watcher.API.Account do
   end
 
   @doc """
-  Returns all utxos owner by `address`
-
-  TODO: For now uses Postgres data, but should be adapted to OMG.DB (in security-critical only mode)
+  Gets all utxos belonging to the given address.
   """
   @spec get_utxos(OMG.Crypto.address_t()) :: list(%DB.TxOutput{})
   def get_utxos(address) do
     DB.TxOutput.get_utxos(address)
+  end
+
+  @doc """
+  Gets all utxos belonging to the given address.
+  Slow operation, compatible with security-critical.
+  """
+  @spec get_exitable_utxos(OMG.Crypto.address_t()) :: list(OMG.State.Core.exitable_utxos())
+  def get_exitable_utxos(address) do
+    # OMG.DB.utxos() takes a while.
+    {:ok, utxos} = OMG.DB.utxos()
+
+    utxos
+    |> OMG.State.Core.standard_exitable_utxos(address)
   end
 end

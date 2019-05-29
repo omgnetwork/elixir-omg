@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -746,6 +746,45 @@ defmodule OMG.State.CoreTest do
     state
     |> Core.exec(create_recovered([{@blknum1, 1, 0, alice}], @eth, [{bob, 6}, {alice, 4}]), :ignore)
     |> fail?(:utxo_not_found)
+  end
+
+  @tag fixtures: [:alice]
+  test "no utxos that belong to address within the empty query result", %{alice: %{addr: alice}} do
+    assert [] == Core.standard_exitable_utxos([], alice)
+  end
+
+  @tag fixtures: [:alice, :bob, :carol]
+  test "getting user utxos from utxos_query_result", %{
+    alice: %{addr: alice},
+    bob: bob,
+    carol: carol
+  } do
+    utxos_query_result = [
+      {{1000, 0, 0}, %{amount: 1, currency: @eth, owner: alice}},
+      {{2000, 1, 1}, %{amount: 2, currency: @eth, owner: bob}},
+      {{1000, 2, 0}, %{amount: 3, currency: @not_eth, owner: alice}},
+      {{1000, 3, 1}, %{amount: 4, currency: @eth, owner: alice}},
+      {{1000, 4, 0}, %{amount: 5, currency: @eth, owner: bob}}
+    ]
+
+    assert [] == Core.standard_exitable_utxos(utxos_query_result, carol)
+
+    assert MapSet.equal?(
+             MapSet.new([
+               %{blknum: 1000, txindex: 0, oindex: 0, owner: alice, currency: @eth, amount: 1},
+               %{blknum: 1000, txindex: 2, oindex: 0, owner: alice, currency: @not_eth, amount: 3},
+               %{blknum: 1000, txindex: 3, oindex: 1, owner: alice, currency: @eth, amount: 4}
+             ]),
+             MapSet.new(Core.standard_exitable_utxos(utxos_query_result, alice))
+           )
+
+    assert Map.equal?(
+             MapSet.new([
+               %{blknum: 1000, txindex: 4, oindex: 0, owner: bob, currency: @eth, amount: 5},
+               %{blknum: 2000, txindex: 1, oindex: 1, owner: bob, currency: @eth, amount: 2}
+             ]),
+             MapSet.new(Core.standard_exitable_utxos(utxos_query_result, bob))
+           )
   end
 
   defp success?(result) do

@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -146,7 +146,7 @@ defmodule OMG.Performance do
     DeferredConfig.populate(:omg_watcher)
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
-    Application.put_env(:omg_db, :leveldb_path, dbdir, persistent: true)
+    Application.put_env(:omg_db, :path, dbdir, persistent: true)
     _ = Logger.info("Perftest leveldb path: #{inspect(dbdir)}")
 
     :ok = OMG.DB.init()
@@ -199,7 +199,7 @@ defmodule OMG.Performance do
 
     _ = Application.stop(:briefly)
 
-    Application.put_env(:omg_db, :leveldb_path, nil)
+    Application.put_env(:omg_db, :path, nil)
     :ok
   end
 

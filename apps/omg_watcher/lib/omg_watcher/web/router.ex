@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ defmodule OMG.Watcher.Web.Router do
     post("/account.get_balance", Controller.Account, :get_balance)
     post("/account.get_transactions", Controller.Transaction, :get_transactions)
     post("/account.get_utxos", Controller.Account, :get_utxos)
+    post("/account.get_exitable_utxos", Controller.Account, :get_exitable_utxos)
 
     post("/in_flight_exit.get_data", Controller.InFlightExit, :get_in_flight_exit)
     post("/in_flight_exit.get_competitor", Controller.InFlightExit, :get_competitor)

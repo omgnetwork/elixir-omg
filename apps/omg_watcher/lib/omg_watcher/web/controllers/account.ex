@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,6 +36,14 @@ defmodule OMG.Watcher.Web.Controller.Account do
     with {:ok, address} <- expect(params, "address", :address) do
       address
       |> API.Account.get_utxos()
+      |> api_response(conn, :utxos)
+    end
+  end
+
+  def get_exitable_utxos(conn, params) do
+    with {:ok, address} <- expect(params, "address", :address) do
+      address
+      |> API.Account.get_exitable_utxos()
       |> api_response(conn, :utxos)
     end
   end

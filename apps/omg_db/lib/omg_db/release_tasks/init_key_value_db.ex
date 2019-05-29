@@ -1,4 +1,4 @@
-# Copyright 2018-2019 OmiseGO Pte Ltd
+# Copyright 2019-2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
   alias OMG.Utils.CLI
 
   def run do
-    path = Application.get_env(:omg_db, :leveldb_path)
+    path = Application.get_env(:omg_db, :path)
     _ = process(path)
     :ok
   end

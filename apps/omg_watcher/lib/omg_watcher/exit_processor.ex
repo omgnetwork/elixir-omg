@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ defmodule OMG.Watcher.ExitProcessor do
   # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.StandardExitChallenge
   alias OMG.Watcher.Recorder
 
@@ -138,11 +137,10 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   @doc """
-  Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
-  If given empty list of hashes, all IFEs are returned.
+  Returns a map of requested in flight exits, keyed by transaction hash
   """
   @decorate measure_event()
-  @spec get_active_in_flight_exits() :: {:ok, %{binary() => InFlightExitInfo.t()}}
+  @spec get_active_in_flight_exits() :: {:ok, Core.in_flight_exits_response_t()}
   def get_active_in_flight_exits do
     GenServer.call(__MODULE__, :get_active_in_flight_exits)
   end
@@ -152,7 +150,8 @@ defmodule OMG.Watcher.ExitProcessor do
   a non-canonical in-flight exit
   """
   @decorate measure_event()
-  @spec get_competitor_for_ife(binary()) :: {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found}
+  @spec get_competitor_for_ife(binary()) ::
+          {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found} | {:error, :no_viable_competitor_found}
   def get_competitor_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
   end
@@ -162,7 +161,8 @@ defmodule OMG.Watcher.ExitProcessor do
   for a challenged in-flight exit
   """
   @decorate measure_event()
-  @spec prove_canonical_for_ife(binary()) :: {:ok, Core.prove_canonical_data_t()} | {:error, :canonical_not_found}
+  @spec prove_canonical_for_ife(binary()) ::
+          {:ok, Core.prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
   def prove_canonical_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
@@ -320,22 +320,20 @@ defmodule OMG.Watcher.ExitProcessor do
     # TODO: run_status_gets and getting all non-existent UTXO positions imaginable can be optimized out heavily
     #       only the UTXO positions being inputs to `txbytes` must be looked at, but it becomes problematic as
     #       txbytes can be invalid so we'd need a with here...
+    new_state = update_with_ife_txs_from_blocks(state)
+
     competitor_result =
       %ExitProcessor.Request{}
-      |> fill_request_with_spending_data(state)
-      |> Core.get_competitor_for_ife(state, txbytes)
+      |> fill_request_with_spending_data(new_state)
+      |> Core.get_competitor_for_ife(new_state, txbytes)
 
-    {:reply, competitor_result, state}
+    {:reply, competitor_result, new_state}
   end
 
   def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
-    # TODO: same comment as above in get_competitor_for_ife
-    canonicity_result =
-      %ExitProcessor.Request{}
-      |> fill_request_with_spending_data(state)
-      |> Core.prove_canonical_for_ife(txbytes)
-
-    {:reply, canonicity_result, state}
+    new_state = update_with_ife_txs_from_blocks(state)
+    canonicity_result = Core.prove_canonical_for_ife(new_state, txbytes)
+    {:reply, canonicity_result, new_state}
   end
 
   def handle_call({:get_input_challenge_data, txbytes, input_index}, _from, state) do
@@ -359,13 +357,16 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call({:create_challenge, exiting_utxo_pos}, _from, state) do
+    request = %ExitProcessor.Request{se_exiting_pos: exiting_utxo_pos}
+
     response =
-      %ExitProcessor.Request{se_exiting_pos: exiting_utxo_pos}
-      |> Core.determine_standard_challenge_queries(state)
-      |> fill_request_with_standard_challenge_data()
-      |> Core.determine_exit_txbytes(state)
-      |> fill_request_with_standard_exit_id()
-      |> Core.create_challenge(state)
+      with {:ok, request_with_queries} <- Core.determine_standard_challenge_queries(request, state),
+           do:
+             request_with_queries
+             |> fill_request_with_standard_challenge_data()
+             |> Core.determine_exit_txbytes(state)
+             |> fill_request_with_standard_exit_id()
+             |> Core.create_challenge(state)
 
     {:reply, response, state}
   end
@@ -401,17 +402,19 @@ defmodule OMG.Watcher.ExitProcessor do
   # based on in-flight exiting transactions, updates the state with witnesses of those transactions' inclusions in block
   @spec update_with_ife_txs_from_blocks(Core.t()) :: Core.t()
   defp update_with_ife_txs_from_blocks(state) do
-    %ExitProcessor.Request{}
-    |> run_status_gets()
-    # To find if IFE was included, see first if its inputs were spent.
-    |> Core.determine_ife_input_utxos_existence_to_get(state)
-    |> get_ife_input_utxo_existence()
-    # Next, check by what transactions they were spent.
-    |> Core.determine_ife_spends_to_get(state)
-    |> get_ife_input_spending_blocks()
+    prepared_request =
+      %ExitProcessor.Request{}
+      |> run_status_gets()
+      # To find if IFE was included, see first if its inputs were spent.
+      |> Core.determine_ife_input_utxos_existence_to_get(state)
+      |> get_ife_input_utxo_existence()
+      # Next, check by what transactions they were spent.
+      |> Core.determine_ife_spends_to_get(state)
+      |> get_ife_input_spending_blocks()
+
     # Compare found txes with ife.tx.
     # If equal, persist information about position.
-    |> Core.find_ifes_in_blocks(state)
+    Core.find_ifes_in_blocks(state, prepared_request)
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do

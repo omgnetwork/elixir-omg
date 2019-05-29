@@ -1,0 +1,54 @@
+openapi: 3.0.0
+info:
+  version: '1.0.0'
+  title: Watcher security-critical API
+  description: >
+    API specification of the Watcher's security-critical Service
+
+    Error codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
+  contact:
+    name: OmiseGO
+    email: omisego@omisego.co
+  license:
+    name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
+    url: 'https://omisego.network/'
+
+tags:
+  - name: Status
+    description: Status of the child chain.
+    externalDocs:
+      description: "Byzantine events description"
+      url: "https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events"
+  - name: UTXO
+    description: UTXO related API.
+  - name: Transaction
+    description: Transaction related API.
+  - name: InFlightExit
+    description: InFlightExit related API.
+
+servers:
+  - url: https://watcher.ari.omg.network/
+  - url: http://localhost:7434/
+
+
+paths:
+  /status.get:
+    $ref: 'status/paths.yaml#/status.get'
+  /utxo.get_utxos:
+    $ref: 'utxo/paths.yaml#/utxo.get_utxos'
+  /utxo.get_challenge_data:
+    $ref: 'utxo/paths.yaml#/utxo.get_challenge_data'
+  /utxo.get_exit_data:
+    $ref: 'utxo/paths.yaml#/utxo.get_exit_data'
+  /transaction.submit:
+    $ref: 'transaction/paths.yaml#/transaction.submit'
+  /in_flight_exit.get_data:
+    $ref: 'in_flight_exit/paths.yaml#/in_flight_exit.get_data'
+  /in_flight_exit.get_competitor:
+    $ref: 'in_flight_exit/paths.yaml#/in_flight_exit.get_competitor'
+  /in_flight_exit.prove_canonical:
+    $ref: 'in_flight_exit/paths.yaml#/in_flight_exit.prove_canonical'
+  /in_flight_exit.get_input_challenge_data:
+    $ref: 'in_flight_exit/paths.yaml#/in_flight_exit.get_input_challenge_data'
+  /in_flight_exit.get_output_challenge_data:
+    $ref: 'in_flight_exit/paths.yaml#/in_flight_exit.get_output_challenge_data'
