@@ -32,26 +32,3 @@ AccountUtxoSchema:
     amount:
       type: integer
       format: int256
-
-AccountTransactionSchema:
-  type: object
-  properties:
-    block:
-      $ref: '../block/schemas.yaml#/BlockSchema'
-    txindex:
-      type: integer
-      format: int16
-    txhash:
-      type: string
-      format: binary
-    results:
-      type: array
-      items:
-        type: object
-        properties:
-          currency:
-            type: string
-            format: binary
-          value:
-            type: integer
-            format: int256
