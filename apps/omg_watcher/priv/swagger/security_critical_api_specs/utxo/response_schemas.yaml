@@ -29,8 +29,8 @@ GetUtxoChallengeResponseSchema:
         $ref: 'schemas.yaml#/GetUtxoChallengeSchema'
     example:
       data:
+        exit_id: 1717611893014159315373779059565546411346446754
         input_index: 0
-        utxo_pos: 3000000000000
         sig: '0x6bfb9b2dbe32...'
         txbytes: '0x3eb6ae5b06f3...'
 
@@ -45,6 +45,7 @@ GetUtxoExitResponseSchema:
         $ref: 'schemas.yaml#/GetUtxoExitSchema'
     example:
       data:
+        proof: '0xcedb8b31d1e4...'
+        sigs: '0xcc52d1d9ffe7...'
+        txbytes: '0x3eb6ae5b06f3...'
         utxo_pos: 10000000010000000
-        txbytes: '0x3eb6ae5b06f3'
-        proof: '0xcedb8b31d1e4'

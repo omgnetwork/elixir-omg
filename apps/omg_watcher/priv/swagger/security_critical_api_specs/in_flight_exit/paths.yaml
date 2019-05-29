@@ -48,7 +48,7 @@ in_flight_exit.get_input_challenge_data:
     tags:
       - InFlightExit
     summary: Gets the data to challenge an invalid input piggybacked on an in-flight exit.
-    description: Coming soon
+    description: To respond to invalid piggybacked input in non-canonical in-flight transaction provides data needed to challenge it, e.g. transaction that spent this input and signature.
     operationId: in_flight_exit_get_input_challenge_data
     requestBody:
       $ref: 'request_bodies.yaml#/InFlightExitInputChallengeDataBody'
@@ -63,7 +63,7 @@ in_flight_exit.get_output_challenge_data:
     tags:
       - InFlightExit
     summary: Gets the data to challenge an invalid output piggybacked on an in-flight exit.
-    description: Coming soon
+    description: To respond to invalid piggybacked output in canonical in-flight transaction provides data needed to challenge it, e.g. in-flight transaction inclusion proof, transaction that spent this output and signature. 
     operationId: in_flight_exit_get_output_challenge_data
     requestBody:
       $ref: 'request_bodies.yaml#/InFlightExitOutputChallengeDataBody'

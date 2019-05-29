@@ -1,12 +1,12 @@
 GetUtxoChallengeSchema:
   type: object
   properties:
+    exit_id:
+      type: integer
+      format: int192
     input_index:
       type: integer
       format: int8
-    utxo_pos:
-      type: integer
-      format: int256
     sig:
       type: string
       format: binary
@@ -24,5 +24,8 @@ GetUtxoExitSchema:
       type: string
       format: binary
     proof:
+      type: string
+      format: binary
+    sigs:
       type: string
       format: binary
