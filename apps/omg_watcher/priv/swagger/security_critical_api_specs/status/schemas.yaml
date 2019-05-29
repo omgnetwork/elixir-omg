@@ -2,6 +2,9 @@ StatusSchema:
   description: The object schema for a status
   type: object
   properties:
+    last_validated_child_block_timestamp:
+      type: integer
+      format: int64
     last_validated_child_block_number:
       type: integer
       format: int64
@@ -11,6 +14,15 @@ StatusSchema:
     last_mined_child_block_number:
       type: integer
       format: int64
+    last_seen_eth_block_timestamp:
+      type: integer
+      format: int64
+    last_seen_eth_block_number:
+      type: integer
+      format: int64
+    contract_addr:
+      type: string
+      format: binary
     eth_syncing:
       type: boolean
     byzantine_events:
@@ -19,10 +31,24 @@ StatusSchema:
       type: array
     in_flight_exits:
       type: array
+    services_synced_heights:
+      type: array
+      items:
+        type: object
+        properties:
+          service:
+            type: string
+          height:
+            type: integer
+            format: int256
   required:
+    - last_validated_child_block_timestamp
     - last_validated_child_block_number
     - last_mined_child_block_timestamp
     - last_mined_child_block_number
+    - last_seen_eth_block_timestamp
+    - last_seen_eth_block_number
+    - contract_addr
     - eth_syncing
     - byzantine_events
     - in_flight_txs
