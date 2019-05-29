@@ -17,6 +17,7 @@ GetAllTransactionsResponseSchema:
           blknum: 68290000
         txindex: 0
         txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+        metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
         results:
         -
           currency: '0x0000000000000000000000000000000000000000'
@@ -80,6 +81,7 @@ GetTransactionResponseSchema:
       data:
         txindex: 5113
         txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+        metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
         txbytes: '0x5df13a6bee20000...'
         block:
           timestamp: 1540365586

@@ -9,7 +9,7 @@ transaction.all:
       For all details queries to `/transaction.get` should be made using the transaction's hash provided.
     operationId: transactions_all
     requestBody:
-      $ref: 'request_bodies.yaml#/GetAllTransactionsBody'
+      $ref: 'request_bodies.yaml#/GetAllTransactionsBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/GetAllTransactionsResponse'
@@ -26,7 +26,7 @@ transaction.create:
         If also provided with receiver's address, creates and encodes a transaction.
       operationId: createTransaction
       requestBody:
-        $ref: 'request_bodies.yaml#/CreateTransactionsBody'
+        $ref: 'request_bodies.yaml#/CreateTransactionsBodySchema'
       responses:
         200:
           $ref: 'responses.yaml#/CreateTransactionResponse'
@@ -40,7 +40,7 @@ transaction.get:
     summary: Gets a transaction with the given id.
     operationId: transaction_get
     requestBody:
-      $ref: 'request_bodies.yaml#/GetTransactionBody'
+      $ref: 'request_bodies.yaml#/GetTransactionBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/GetTransactionResponse'
@@ -55,7 +55,7 @@ transaction.get_by_position:
     description: __Not implemented yet, proposed in OMG-364__
     operationId: get_transaction_by_pos
     requestBody:
-      $ref: 'request_bodies.yaml#/GetTransactionByPosBody'
+      $ref: 'request_bodies.yaml#/GetTransactionByPosBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/GetTransactionResponse'

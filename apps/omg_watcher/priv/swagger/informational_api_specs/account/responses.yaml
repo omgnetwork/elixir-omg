@@ -11,10 +11,3 @@ AccountUtxoResponse:
     application/json:
       schema:
         $ref: 'response_schemas.yaml#/AccountUtxoResponseSchema'
-
-TransactionsResponse:
-  description: Transactions succcessful response
-  content:
-    application/json:
-      schema:
-        $ref: 'response_schemas.yaml#/TransactionsResponseSchema'

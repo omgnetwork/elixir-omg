@@ -34,6 +34,9 @@ TransactionItemSchema:
     txhash:
       type: string
       format: binary
+    metadata:
+      type: string
+      format: binary
     results:
       type: array
       items:
@@ -53,6 +56,9 @@ TransactionSchema:
       type: integer
       format: int16
     txhash:
+      type: string
+      format: binary
+    metadata:
       type: string
       format: binary
     txbytes:
