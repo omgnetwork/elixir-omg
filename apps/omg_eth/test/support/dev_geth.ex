@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ defmodule OMG.Eth.DevGeth do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, homedir} = Briefly.create(directory: true)
 
-    geth_pid = launch("geth --dev --dev.period=1 --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
+    geth_pid = launch("geth --dev --dev.period=1 --rpc --rpcapi=personal,eth,web3,admin --datadir #{homedir} 2>&1")
 
     {:ok, :ready} = Eth.WaitFor.eth_rpc()
 

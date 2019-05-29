@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @moduletag :integration
+  @moduletag :watcher
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 180_000
 
@@ -59,18 +60,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> Transaction.Signed.encode()
     )
 
-    in_flight_exit_submit = tx_submit1 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
-
-    # IFE tx 1
-    {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.in_flight_exit(
-        in_flight_exit_submit["in_flight_tx"],
-        in_flight_exit_submit["input_txs"],
-        in_flight_exit_submit["input_txs_inclusion_proofs"],
-        in_flight_exit_submit["in_flight_tx_sigs"],
-        alice.addr
-      )
-      |> Eth.DevHelpers.transact_sync!()
+    {:ok, %{"status" => "0x1"}} = exit_in_flight(tx_submit1, alice)
 
     txbytes1 = Transaction.raw_txbytes(tx_submit1)
     {:ok, ife_id} = OMG.Eth.RootChain.get_in_flight_exit_id(txbytes1)
@@ -115,7 +105,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert %{
              "byzantine_events" => [
                %{"event" => "invalid_piggyback"},
-               %{"event" => "non_canonical_ife"},
+               # only a single non_canonical event, since on of the IFE tx is included!
                %{"event" => "non_canonical_ife"},
                # only piggyback_available for tx2 is present, tx1 is included in block and does not spawn that event
                %{"event" => "piggyback_available"}
@@ -168,13 +158,81 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   end
 
   @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
-  test "in-flight exit competitor is detected by watcher",
+  test "in-flight exit competitor is detected by watcher and proven with position immediately",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
-    # Bob, we need you (Bob's going to send some Ethereum transactions)
-    Eth.DevHelpers.import_unlock_fund(bob)
-
     # tx1 is submitted then in-flight-exited
     # tx2 is in-flight-exited
+    tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
+    tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
+
+    assert %{
+             "blknum" => blknum,
+             "txindex" => 0,
+             "txhash" => <<_::256>>
+           } = TestHelper.submit(tx1 |> Transaction.Signed.encode())
+
+    IntegrationTest.wait_for_block_fetch(blknum, @timeout)
+
+    raw_tx2_bytes = tx2 |> Transaction.raw_txbytes()
+
+    {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(tx1, alice)
+    {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(tx2, alice)
+    # sanity check in-flight exit has started on root chain, wait for finality
+    assert {:ok, [_, _]} = OMG.Eth.RootChain.get_in_flight_exit_starts(0, ife_eth_height)
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    Eth.DevHelpers.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
+
+    ###
+    # EVENTS DETECTION
+    ###
+
+    # existence of competitors detected by checking if `non_canonical_ife` events exists
+    # Also, there should be piggybacks on input/output available
+    assert %{
+             "byzantine_events" => [
+               # only a single non_canonical event, since on of the IFE tx is included!
+               %{"event" => "non_canonical_ife"},
+               %{"event" => "piggyback_available"}
+             ]
+           } = TestHelper.success?("/status.get")
+
+    # Check if IFE is recognized as IFE by watcher (kept separate from the above for readability)
+    assert %{"in_flight_exits" => [%{}, %{}]} = TestHelper.success?("/status.get")
+
+    ###
+    # CANONICITY GAME
+    ###
+
+    assert %{"competing_tx_pos" => id, "competing_proof" => proof} =
+             get_competitor_response = TestHelper.get_in_flight_exit_competitors(raw_tx2_bytes)
+
+    assert id > 0
+    assert proof != ""
+
+    {:ok, %{"status" => "0x1", "blockNumber" => challenge_eth_height}} =
+      OMG.Eth.RootChain.challenge_in_flight_exit_not_canonical(
+        get_competitor_response["in_flight_txbytes"],
+        get_competitor_response["in_flight_input_index"],
+        get_competitor_response["competing_txbytes"],
+        get_competitor_response["competing_input_index"],
+        get_competitor_response["competing_tx_pos"],
+        get_competitor_response["competing_proof"],
+        get_competitor_response["competing_sig"],
+        alice.addr
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    Eth.DevHelpers.wait_for_root_chain_block(challenge_eth_height + exit_finality_margin + 1)
+
+    # vanishing of `non_canonical_ife` event
+    assert %{"byzantine_events" => [%{"event" => "piggyback_available"}]} = TestHelper.success?("/status.get")
+  end
+
+  @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
+  test "invalid in-flight exit challenge is detected by watcher, because it contains no position",
+       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    # tx1 is submitted then in-flight-exited
+    # tx2 is in-flight-exited, it will be _invalidly_ used to challenge tx1!
     tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
 
@@ -189,117 +247,53 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     raw_tx1_bytes = tx1 |> Transaction.raw_txbytes()
     raw_tx2_bytes = tx2 |> Transaction.raw_txbytes()
 
-    get_in_flight_exit_response1 = tx1 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
-    get_in_flight_exit_response2 = tx2 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
-
-    {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.in_flight_exit(
-        get_in_flight_exit_response1["in_flight_tx"],
-        get_in_flight_exit_response1["input_txs"],
-        get_in_flight_exit_response1["input_txs_inclusion_proofs"],
-        get_in_flight_exit_response1["in_flight_tx_sigs"],
-        alice.addr
-      )
-      |> Eth.DevHelpers.transact_sync!()
-
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.in_flight_exit(
-        get_in_flight_exit_response2["in_flight_tx"],
-        get_in_flight_exit_response2["input_txs"],
-        get_in_flight_exit_response2["input_txs_inclusion_proofs"],
-        get_in_flight_exit_response2["in_flight_tx_sigs"],
-        alice.addr
-      )
-      |> Eth.DevHelpers.transact_sync!()
-
-    # check in-flight exit has started on root chain, wait for finalization
-    raw_tx1_hash = Transaction.raw_txhash(tx1)
-    raw_tx2_hash = Transaction.raw_txhash(tx2)
-    alice_address = alice.addr
-
-    assert {:ok,
-            [
-              %{initiator: ^alice_address, tx_hash: ^raw_tx1_hash},
-              %{initiator: ^alice_address, tx_hash: ^raw_tx2_hash}
-            ]} = OMG.Eth.RootChain.get_in_flight_exit_starts(0, eth_height)
-
+    {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(tx1, alice)
+    {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(tx2, alice)
+    # sanity check in-flight exit has started on root chain, wait for finality
+    assert {:ok, [_, _]} = OMG.Eth.RootChain.get_in_flight_exit_starts(0, ife_eth_height)
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+    Eth.DevHelpers.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
 
-    ###
-    # EVENTS DETECTION
-    ###
-
-    # existence of competitors detected by checking if `non_canonical_ife` events exists
-    # Also, there should be piggybacks on input/output available
-    assert %{
-             "byzantine_events" => [
-               %{"event" => "non_canonical_ife"},
-               %{"event" => "non_canonical_ife"},
-               %{"event" => "piggyback_available"}
-             ]
-           } = TestHelper.success?("/status.get")
-
-    # Check if IFE is recognized as IFE by watcher (kept separate from the above for readability)
-    assert %{"in_flight_exits" => [%{}, %{}]} = TestHelper.success?("/status.get")
-
-    ###
-    # PIGGYBACK GAME
-    ###
-
-    # Do the piggybacks
-    {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx2_bytes, 0, alice.addr)
-      |> Eth.DevHelpers.transact_sync!()
-
-    {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx2_bytes, 4 + 0, bob.addr)
-      |> Eth.DevHelpers.transact_sync!()
+    # EVENTS DETECTION (tested in the other test, skipping)
+    # Check if IFE is recognized (tested in the other test, skipping)
 
     ###
     # CANONICITY GAME
     ###
 
-    # to challenge canonicity, get chain inclusion proof
-    assert %{"competing_tx_pos" => 0, "competing_proof" => ""} =
-             get_competitor_response = TestHelper.get_in_flight_exit_competitors(raw_tx1_bytes)
+    # we're unable to get the invalid challenge using `in_flight_exit.get_competitor`!
+    # ...so we need to stich it together from some pieces we have:
+    %{sigs: [competing_sig | _]} = tx2
 
-    # we'll be using the above response to integrate, but we need to test whether the included tx2, if used to challenge
-    # would give us the opportunity to get the inclusion info (since `get_competitor_response` doesn't include that)
-    assert %{"competing_tx_pos" => id, "competing_proof" => proof} =
-             TestHelper.get_in_flight_exit_competitors(raw_tx2_bytes)
-
-    assert id > 0
-    assert proof != ""
-
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+    {:ok, %{"status" => "0x1", "blockNumber" => challenge_eth_height}} =
       OMG.Eth.RootChain.challenge_in_flight_exit_not_canonical(
-        get_competitor_response["in_flight_txbytes"],
-        get_competitor_response["in_flight_input_index"],
-        get_competitor_response["competing_txbytes"],
-        get_competitor_response["competing_input_index"],
-        get_competitor_response["competing_tx_pos"],
-        get_competitor_response["competing_proof"],
-        get_competitor_response["competing_sig"],
+        raw_tx1_bytes,
+        0,
+        raw_tx2_bytes,
+        0,
+        0,
+        "",
+        competing_sig,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+    Eth.DevHelpers.wait_for_root_chain_block(challenge_eth_height + exit_finality_margin + 1)
 
-    # existence of `non_canonical_ife` and `invalid_ife_challenge` events
+    # existence of `invalid_ife_challenge` event
     assert %{
              "byzantine_events" => [
-               %{"event" => "invalid_piggyback"},
+               # this is the tx2's non-canonical-ife which we leave as is
                %{"event" => "non_canonical_ife"},
-               %{"event" => "invalid_ife_challenge"}
+               %{"event" => "invalid_ife_challenge"},
+               %{"event" => "piggyback_available"}
              ]
            } = TestHelper.success?("/status.get")
 
     # now included IFE transaction tx1 is challenged and non-canonical, let's respond
     get_prove_canonical_response = TestHelper.get_prove_canonical(raw_tx1_bytes)
 
-    {:ok, %{"status" => "0x1"}} =
+    {:ok, %{"status" => "0x1", "blockNumber" => response_eth_height}} =
       OMG.Eth.RootChain.respond_to_non_canonical_challenge(
         get_prove_canonical_response["in_flight_txbytes"],
         get_prove_canonical_response["in_flight_tx_pos"],
@@ -307,6 +301,12 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
+
+    Eth.DevHelpers.wait_for_root_chain_block(response_eth_height + exit_finality_margin + 1)
+
+    # dissapearing of `invalid_ife_challenge` event
+    assert %{"byzantine_events" => [%{"event" => "non_canonical_ife"}, %{"event" => "piggyback_available"}]} =
+             TestHelper.success?("/status.get")
   end
 
   @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
@@ -314,41 +314,67 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     Eth.DevHelpers.import_unlock_fund(bob)
 
-    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
 
-    %Transaction.Signed{raw_tx: raw_tx} =
-      tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+    %{"blknum" => blknum} = TestHelper.submit(tx |> Transaction.Signed.encode())
+    IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
-    get_in_flight_exit_response = tx |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
-
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.in_flight_exit(
-        get_in_flight_exit_response["in_flight_tx"],
-        get_in_flight_exit_response["input_txs"],
-        get_in_flight_exit_response["input_txs_inclusion_proofs"],
-        get_in_flight_exit_response["in_flight_tx_sigs"],
-        alice.addr
-      )
-      |> Eth.DevHelpers.transact_sync!()
-
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+    _ = exit_in_flight_and_wait_for_ife(tx, alice)
 
     assert %{"in_flight_exits" => [%{}]} = TestHelper.success?("/status.get")
 
+    _ = piggyback_and_process_exits(tx, 4 + 1, bob)
+
+    assert %{"in_flight_exits" => [], "byzantine_events" => []} = TestHelper.success?("/status.get")
+  end
+
+  @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
+  test "finalization of utxo not recognized in state leaves in-flight exit active",
+       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    Eth.DevHelpers.import_unlock_fund(bob)
+
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+
+    _ = exit_in_flight_and_wait_for_ife(tx, alice)
+    _ = piggyback_and_process_exits(tx, 4 + 1, bob)
+
+    assert %{"in_flight_exits" => [_], "byzantine_events" => [_]} = TestHelper.success?("/status.get")
+  end
+
+  defp exit_in_flight(tx, exiting_user) do
+    get_in_flight_exit_response = tx |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
+
+    OMG.Eth.RootChain.in_flight_exit(
+      get_in_flight_exit_response["in_flight_tx"],
+      get_in_flight_exit_response["input_txs"],
+      get_in_flight_exit_response["input_txs_inclusion_proofs"],
+      get_in_flight_exit_response["in_flight_tx_sigs"],
+      exiting_user.addr
+    )
+    |> Eth.DevHelpers.transact_sync!()
+  end
+
+  defp exit_in_flight_and_wait_for_ife(tx, exiting_user) do
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} = exit_in_flight(tx, exiting_user)
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+  end
+
+  defp piggyback_and_process_exits(%Transaction.Signed{raw_tx: raw_tx}, output, output_owner) do
     raw_tx_bytes = raw_tx |> Transaction.raw_txbytes()
 
-    {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx_bytes, 4 + 1, bob.addr)
+    {:ok, _} =
+      OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx_bytes, output, output_owner.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds) * 1_000
     Process.sleep(2 * exit_period + 5_000)
 
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()
+      OMG.Eth.RootChain.process_exits(@eth, 0, 1, output_owner.addr) |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 10)
-
-    assert %{"in_flight_exits" => [], "byzantine_events" => []} = TestHelper.success?("/status.get")
   end
 end

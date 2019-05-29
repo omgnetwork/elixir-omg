@@ -1,0 +1,14 @@
+BlockSchema:
+  type: object
+  properties:
+    transactions:
+      type: array
+      items:
+        type: string
+        format: binary
+    hash:
+      type: string
+      format: binary
+    blknum:
+      type: integer
+      format: int64

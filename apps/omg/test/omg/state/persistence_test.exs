@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ defmodule OMG.State.PersistenceTest do
   Test focused on the persistence bits of `OMG.State.Core`
   """
   use ExUnitFixtures
-  use OMG.DB.Case, async: true
+  use OMG.DB.LevelDBCase, async: true
 
   alias OMG.Block
   alias OMG.State.Core
@@ -60,6 +60,9 @@ defmodule OMG.State.PersistenceTest do
     |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
     |> exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{bob, 10}]))
     |> persist_form(db_pid)
+
+    persist_standard_exitable_utxos(alice, [], db_pid)
+    persist_standard_exitable_utxos(bob, [%{amount: 10, blknum: @blknum1}], db_pid)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -144,19 +147,13 @@ defmodule OMG.State.PersistenceTest do
 
   # mimics `&OMG.State.init/1`
   defp state_from(db_pid) do
-    {:ok, height_query_result} = OMG.DB.get_single_value(db_pid, :child_top_block_number)
-    {:ok, last_deposit_query_result} = OMG.DB.get_single_value(db_pid, :last_deposit_child_blknum)
+    {:ok, height_query_result} = OMG.DB.get_single_value(:child_top_block_number, db_pid)
+    {:ok, last_deposit_query_result} = OMG.DB.get_single_value(:last_deposit_child_blknum, db_pid)
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
 
     {:ok, state} =
       Core.extract_initial_state(utxos_query_result, height_query_result, last_deposit_query_result, @interval)
 
-    state
-  end
-
-  defp persist_common(state, db_updates, db_pid) do
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    assert state == state_from(db_pid)
     state
   end
 
@@ -177,6 +174,24 @@ defmodule OMG.State.PersistenceTest do
 
   defp exec(state, tx) do
     assert {:ok, _, state} = Core.exec(state, tx, :ignore)
+    state
+  end
+
+  defp persist_standard_exitable_utxos(address, expected_utxos, db_pid) do
+    {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
+
+    address_utxos = Core.standard_exitable_utxos(utxos_query_result, address.addr)
+    assert length(expected_utxos) == length(address_utxos)
+
+    Enum.zip(address_utxos, expected_utxos)
+    |> Enum.map(fn {utxo, expected_utxo} ->
+      assert Map.merge(utxo, expected_utxo) == utxo
+    end)
+  end
+
+  defp persist_common(state, db_updates, db_pid) do
+    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
+    assert state == state_from(db_pid)
     state
   end
 end

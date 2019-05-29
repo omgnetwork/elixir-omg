@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,11 +30,14 @@ defmodule OMG.EthTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @moduletag :wrappers
+  @moduletag :common
 
   @tag fixtures: [:eth_node]
-  test "get_ethereum_height returns integer" do
+  test "get_ethereum_height and get_block_timestamp_by_number return integers" do
     assert {:ok, number} = Eth.get_ethereum_height()
+    assert {:ok, timestamp} = Eth.get_block_timestamp_by_number(number)
     assert is_integer(number)
+    assert is_integer(timestamp)
   end
 
   @tag fixtures: [:contract]

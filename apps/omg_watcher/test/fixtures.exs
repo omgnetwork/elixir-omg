@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ defmodule OMG.Watcher.Fixtures do
     |> IO.binwrite("""
       #{OMG.Eth.DevHelpers.create_conf_file(contract)}
 
-      config :omg_db, leveldb_path: "#{db_path}"
+      config :omg_db, path: "#{db_path}"
       # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level
       config :logger, level: :debug
       config :omg_child_chain, fee_specs_file_name: "#{fee_file}"
@@ -112,15 +112,15 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture watcher(db_initialized, root_chain_contract_config) do
-    :ok = root_chain_contract_config
     :ok = db_initialized
+    :ok = root_chain_contract_config
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
     [] = DB.Block.get_all()
 
     on_exit(fn ->
-      Application.put_env(:omg_db, :leveldb_path, nil)
+      Application.put_env(:omg_db, :path, nil)
 
       (started_apps ++ started_watcher)
       |> Enum.reverse()
@@ -173,12 +173,13 @@ defmodule OMG.Watcher.Fixtures do
   deffixture initial_deposits(alice, bob, phoenix_ecto_sandbox) do
     :ok = phoenix_ecto_sandbox
 
-    # Initial data depending tests can reuse
-    DB.EthEvent.insert_deposits!([
+    deposits = [
       %{owner: alice.addr, currency: @eth, amount: 333, blknum: 1},
       %{owner: bob.addr, currency: @eth, amount: 100, blknum: 2}
-    ])
+    ]
 
+    # Initial data depending tests can reuse
+    DB.EthEvent.insert_deposits!(deposits)
     :ok
   end
 

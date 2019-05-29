@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ defmodule OMG.State.Transaction.Signed do
 
   alias OMG.Crypto
   alias OMG.State.Transaction
+  alias OMG.TypedDataHash
 
   @signature_length 65
   @empty_signature <<0::size(520)>>
@@ -61,7 +62,7 @@ defmodule OMG.State.Transaction.Signed do
   """
   @spec get_spenders(t()) :: {:ok, list(Crypto.address_t())} | {:error, atom}
   def get_spenders(%Transaction.Signed{raw_tx: raw_tx, sigs: sigs}) do
-    hash_without_sigs = Transaction.raw_txhash(raw_tx)
+    hash_without_sigs = TypedDataHash.hash_struct(raw_tx)
 
     with {:ok, reversed_spenders} <- get_reversed_spenders(hash_without_sigs, sigs),
          do: {:ok, Enum.reverse(reversed_spenders)}

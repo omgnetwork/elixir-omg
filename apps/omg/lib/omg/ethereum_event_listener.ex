@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,9 @@ defmodule OMG.EthereumEventListener do
   alias OMG.Recorder
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
+
+  use GenServer
+  use OMG.Utils.Metrics
   use OMG.Utils.LoggerExt
 
   @type config() :: %{
@@ -53,8 +56,6 @@ defmodule OMG.EthereumEventListener do
 
   ### Server
 
-  use GenServer
-
   def init(init) do
     {:ok, init, {:continue, :setup}}
   end
@@ -65,7 +66,7 @@ defmodule OMG.EthereumEventListener do
         get_events_callback: get_events_callback,
         process_events_callback: process_events_callback
       }) do
-    _ = Logger.info("Starting EthereumEventListener for #{service_name}.")
+    _ = Logger.info("Starting #{inspect(__MODULE__)} for #{service_name}.")
     {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
     {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
     # we don't need to ever look at earlier than contract deployment
@@ -88,10 +89,14 @@ defmodule OMG.EthereumEventListener do
 
     {:ok, _} = Recorder.start_link(%Recorder{name: name, parent: self()})
 
+    _ = Logger.info("Started #{inspect(__MODULE__)} for #{service_name}, synced_height: #{inspect(height_to_check_in)}")
+
     {:noreply, {initial_state, callbacks_map}}
   end
 
-  def handle_info(:sync, {%Core{} = core, _callbacks} = state) do
+  def handle_info(:sync, state), do: do_sync(state)
+  @decorate measure_start()
+  defp do_sync({%Core{} = core, _callbacks} = state) do
     case RootChainCoordinator.get_sync_info() do
       :nosync ->
         :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(core), core.service_name)

@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,14 +18,19 @@ defmodule OMG.Alert.Alarm do
   """
   alias OMG.Alert.AlarmHandler
 
+  @typedoc """
+  The raw alarm being used to `set` the Alarm
+  """
+  @type raw_t :: {:boot_in_progress | :ethereum_client_connection, node(), module()}
+
   def ethereum_client_connection_issue(node, reporter),
     do: {:ethereum_client_connection, %{node: node, reporter: reporter}}
 
   def boot_in_progress(node, reporter),
     do: {:boot_in_progress, %{node: node, reporter: reporter}}
 
-  @spec set({atom(), node(), module()}) :: :ok | :duplicate
-  def set(raw_alarm) do
+  @spec set(raw_t()) :: :ok | :duplicate
+  def set(raw_alarm = {_, node, reporter}) when is_atom(node) and is_atom(reporter) do
     alarm = make_alarm(raw_alarm)
     do_raise(alarm)
   end

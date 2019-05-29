@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,5 +75,14 @@ defmodule OMG.Utxo.Position do
     txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
     oindex = rem(encoded, @transaction_offset)
     {blknum, txindex, oindex}
+  end
+
+  @doc """
+  Based on the contract parameters determines whether UTXO position provided was created by a deposit
+  """
+  @spec is_deposit?(__MODULE__.t()) :: boolean()
+  def is_deposit?(Utxo.position(blknum, _, _)) do
+    {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
+    rem(blknum, interval) != 0
   end
 end

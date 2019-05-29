@@ -1,0 +1,121 @@
+GetAllTransactionsBodySchema:
+  description: Account address, block number and other criteria
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          address:
+            type: string
+            format: binary
+          blknum:
+            type: integer
+            format: int64
+          metadata:
+            type: string
+            format: binary
+          limit:
+            type: integer
+            format: int32
+            default: 200
+        example:
+          address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+          metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+          blknum: 68290000
+          limit: 100
+
+CreateTransactionsBodySchema:
+  description: The description of transaction to be crafted.
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          owner:
+            type: string
+            format: binary
+          payments:
+            type: array
+            items: 
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  format: int256
+                currency:
+                  type: string
+                  format: binary
+                owner:
+                  type: string
+                  format: binary
+              required:
+                - amount
+                - currency
+          fee:
+            type: object
+            properties:
+              amount:
+                type: integer
+                format: int256
+              currency:
+                type: string
+                format: binary
+            required:
+              - amount
+              - currency
+          metadata:
+            type: string
+            format: binary
+        required:
+          - owner
+          - payments
+          - fee
+        example:
+          owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+          payments:
+            -
+              amount: 100
+              currency: '0x0000000000000000000000000000000000000000'
+              owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
+          fee:
+            amount: 5
+            currency: '0x0000000000000000000000000000000000000000'
+          metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+
+GetTransactionBodySchema:
+  description: Id (hash) of the transaction
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          id:
+            type: string
+            format: binary
+        required:
+          - id
+        example:
+          id: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+
+GetTransactionByPosBodySchema:
+  description: Position of the transaction
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          blknum:
+            type: string
+            format: binary
+          txindex:
+            type: integer
+            format: int16
+        required:
+          - blknum
+          - txindex
+        example:
+          blknum: 68290000
+          txindex: 100

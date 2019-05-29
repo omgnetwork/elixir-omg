@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,9 +56,9 @@ defmodule OMG.State.Core do
           | [in_flight_exit()]
 
   @type in_flight_exit() :: %{in_flight_tx: binary()}
-  @type piggyback() :: %{txhash: Transaction.tx_hash(), output_index: non_neg_integer}
+  @type piggyback() :: %{tx_hash: Transaction.tx_hash(), output_index: non_neg_integer}
 
-  @type validities_t() :: {list(Utxo.Position.t()), list(Utxo.Position.t())}
+  @type validities_t() :: {list(Utxo.Position.t()), list(Utxo.Position.t() | piggyback())}
 
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
 
@@ -83,11 +83,21 @@ defmodule OMG.State.Core do
           | {:put, :last_deposit_child_blknum, pos_integer}
           | {:put, :block, Block.db_t()}
 
+  @type exitable_utxos :: %{
+          creating_txhash: Transaction.tx_hash(),
+          owner: Crypto.address_t(),
+          currency: Crypto.address_t(),
+          amount: non_neg_integer,
+          blknum: pos_integer,
+          txindex: non_neg_integer,
+          oindex: non_neg_integer
+        }
+
   @doc """
   Recovers the ledger's state from data delivered by the `OMG.DB`
   """
   @spec extract_initial_state(
-          utxos_query_result :: [utxos],
+          utxos_query_result :: [list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})],
           height_query_result :: non_neg_integer | :not_found,
           last_deposit_child_blknum_query_result :: non_neg_integer | :not_found,
           child_block_interval :: pos_integer
@@ -277,28 +287,11 @@ defmodule OMG.State.Core do
       # enrich the event triggers with the ethereum height supplied
       |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
 
-    db_updates_new_utxos =
-      txs
-      |> Enum.with_index()
-      |> Enum.flat_map(fn {tx, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
-      |> Enum.map(&utxo_to_db_put/1)
+    db_updates_utxos = db_update_utxos(height, txs)
+    db_updates_block = {:put, :block, Block.to_db_value(block)}
+    db_updates_top_block_number = {:put, :child_top_block_number, height}
 
-    db_updates_spent_utxos =
-      txs
-      |> Enum.flat_map(&Transaction.get_inputs/1)
-      |> Enum.flat_map(fn utxo_pos ->
-        # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
-        db_key = Utxo.Position.to_db_key(utxo_pos)
-        [{:delete, :utxo, db_key}, {:put, :spend, {db_key, height}}]
-      end)
-
-    db_updates_block = [{:put, :block, Block.to_db_value(block)}]
-
-    db_updates_top_block_number = [{:put, :child_top_block_number, height}]
-
-    db_updates =
-      [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block, db_updates_top_block_number]
-      |> Enum.concat()
+    db_updates = [db_updates_block, db_updates_top_block_number | db_updates_utxos]
 
     new_state = %Core{
       state
@@ -403,18 +396,19 @@ defmodule OMG.State.Core do
   end
 
   def exit_utxos([%{tx_hash: _} | _] = piggybacks, %Core{utxos: utxos} = state) do
-    piggybacks
-    |> Enum.map(fn %{tx_hash: tx_hash, output_index: oindex} ->
-      # oindex in contract is 0-7 where 4-7 are outputs
-      oindex = oindex - 4
+    {piggybacks_of_unknown_utxos, piggybacks_of_known_utxos} =
+      piggybacks
+      |> Enum.map(&find_utxo_matching_piggyback(&1, utxos))
+      |> Enum.split_with(fn {_, position} -> position == nil end)
 
-      utxos
-      |> Map.to_list()
-      |> Enum.find(&match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
-    end)
-    |> Enum.filter(&(&1 != nil))
-    |> Enum.map(fn {position, _} -> position end)
-    |> exit_utxos(state)
+    {:ok, {db_updates, {valid, invalid}}, state} =
+      piggybacks_of_known_utxos
+      |> Enum.map(fn {_, {position, _}} -> position end)
+      |> exit_utxos(state)
+
+    {unknown_piggybacks, _} = Enum.unzip(piggybacks_of_unknown_utxos)
+
+    {:ok, {db_updates, {valid, invalid ++ unknown_piggybacks}}, state}
   end
 
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
@@ -427,6 +421,15 @@ defmodule OMG.State.Core do
     new_state = %{state | utxos: Map.drop(utxos, valid)}
 
     {:ok, {db_updates, validities}, new_state}
+  end
+
+  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex} = piggyback, utxos) do
+    # oindex in contract is 0-7 where 4-7 are outputs
+    oindex = oindex - 4
+
+    position = Enum.find(utxos, &match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
+
+    {piggyback, position}
   end
 
   @doc """
@@ -444,5 +447,39 @@ defmodule OMG.State.Core do
   def get_status(%__MODULE__{height: height, tx_index: tx_index, pending_txs: pending}) do
     is_beginning = tx_index == 0 && Enum.empty?(pending)
     {height, is_beginning}
+  end
+
+  @spec db_update_utxos(non_neg_integer(), list(Transaction.Recovered.t())) ::
+          list({:put, :utxo, {Utxo.Position.db_t(), Utxo.t()}} | {:delet, :utxo, Utxo.Position.db_t()})
+  defp db_update_utxos(height, txs) do
+    db_updates_new_utxos =
+      txs
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {tx, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
+      |> Enum.map(&utxo_to_db_put/1)
+
+    db_updates_spent_utxos =
+      txs
+      |> Enum.flat_map(&Transaction.get_inputs/1)
+      |> Enum.flat_map(fn utxo_pos ->
+        # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
+        db_key = Utxo.Position.to_db_key(utxo_pos)
+        [{:delete, :utxo, db_key}, {:put, :spend, {db_key, height}}]
+      end)
+
+    Enum.concat(db_updates_new_utxos, db_updates_spent_utxos)
+  end
+
+  @doc """
+    Filter user utxos from db response.
+    It may take a while for a large response from db
+  """
+  @spec standard_exitable_utxos(list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()}), Crypto.address_t()) ::
+          list(exitable_utxos)
+  def standard_exitable_utxos(utxos_query_result, address) do
+    Stream.filter(utxos_query_result, fn {_, %{owner: owner}} -> owner == address end)
+    |> Enum.map(fn {{blknum, txindex, oindex}, utxo} ->
+      utxo |> Map.put(:blknum, blknum) |> Map.put(:txindex, txindex) |> Map.put(:oindex, oindex)
+    end)
   end
 end

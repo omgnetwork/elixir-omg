@@ -1,0 +1,95 @@
+InFlightExitDataSchema:
+  description: The object schema for an in flight exit
+  properties:
+    in_flight_tx:
+      type: string
+      format: binary
+    input_txs:
+      type: string
+      format: binary
+    input_txs_inclusion_proofs:
+      type: string
+      format: binary
+    in_flight_tx_sigs:
+      type: string
+      format: binary
+
+CompetitorSchema:
+  description: The object schema for a competitor
+  properties:
+    in_flight_txbytes:
+      type: string
+      format: binary
+    in_flight_input_index:
+      type: integer
+      format: int8
+    competing_txbytes:
+      type: string
+      format: binary
+    competing_input_index:
+      type: integer
+      format: int8
+    competing_sig:
+      type: string
+      format: binary
+    competing_tx_pos:
+      type: integer
+      format: int256
+    competing_proof:
+      type: string
+      format: binary
+
+ProveCanonicalSchema:
+  description: The object schema for a canonical proof
+  properties:
+    in_flight_txbytes:
+      type: string
+      format: binary
+    in_flight_tx_pos:
+      type: integer
+      format: int256
+    in_flight_proof:
+      type: string
+      format: binary
+
+
+InputChallengeDataSchema:
+  description: The object schema for an input challenge data
+  properties:
+    in_flight_txbytes:
+      type: string
+      format: binary
+    in_flight_input_index:
+      type: integer
+      format: int8
+    spending_txbytes:
+      type: string
+      format: binary
+    spending_input_index:
+      type: integer
+      format: int8
+    spending_sig:
+      type: string
+      format: binary
+
+OutputChallengeDataSchema:
+  description: The object schema for an output challenge data
+  properties:
+    in_flight_txbytes:
+      type: string
+      format: binary
+    in_flight_output_pos:
+      type: integer
+      format: int256
+    in_flight_proof:
+      type: string
+      format: binary
+    spending_txbytes:
+      type: string
+      format: binary
+    spending_input_index:
+      type: integer
+      format: int8
+    spending_sig:
+      type: string
+      format: binary

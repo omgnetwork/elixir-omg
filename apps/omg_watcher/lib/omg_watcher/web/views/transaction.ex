@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   defp render_transaction(transaction) do
     transaction
-    |> Map.take([:txindex, :txhash, :block, :inputs, :outputs, :txbytes])
+    |> Map.take([:txindex, :txhash, :block, :inputs, :outputs, :txbytes, :metadata])
     |> Map.update!(:inputs, &render_txoutputs/1)
     |> Map.update!(:outputs, &render_txoutputs/1)
   end

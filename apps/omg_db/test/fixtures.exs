@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,17 +19,16 @@ defmodule OMG.DB.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   deffixture db_initialized do
+    :ok = Application.put_env(:omg_db, :type, :leveldb, persistent: true)
     {:ok, briefly} = Application.ensure_all_started(:briefly)
     db_path = Briefly.create!(directory: true)
-
-    Application.put_env(:omg_db, :leveldb_path, db_path, persistent: true)
+    Application.put_env(:omg_db, :path, db_path, persistent: true)
 
     :ok = OMG.DB.init()
-
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
 
     on_exit(fn ->
-      Application.put_env(:omg_db, :leveldb_path, nil)
+      Application.put_env(:omg_db, :path, nil)
 
       (briefly ++ started_apps)
       |> Enum.reverse()

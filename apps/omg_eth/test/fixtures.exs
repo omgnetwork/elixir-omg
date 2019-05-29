@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,9 +61,9 @@ defmodule OMG.Eth.Fixtures do
     {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
     on_exit(fn ->
-      Application.put_env(:omg_eth, :contract_addr, "0x0")
-      Application.put_env(:omg_eth, :authority_addr, "0x0")
-      Application.put_env(:omg_eth, :txhash_contract, "0x0")
+      Application.put_env(:omg_eth, :contract_addr, nil)
+      Application.put_env(:omg_eth, :authority_addr, nil)
+      Application.put_env(:omg_eth, :txhash_contract, nil)
 
       started_apps
       |> Enum.reverse()

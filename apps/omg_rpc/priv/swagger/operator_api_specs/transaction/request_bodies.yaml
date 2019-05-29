@@ -1,0 +1,15 @@
+TransactionSubmitBodySchema:
+  description: Signed transaction RLP-encoded to bytes and HEX-encoded to string
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          transaction:
+            type: string
+            format: binary
+        required:
+          - transaction
+        example:
+          transaction: '0xf8d083015ba98080808080940000...'

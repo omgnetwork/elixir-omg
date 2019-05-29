@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   use GenServer
   use OMG.Utils.LoggerExt
+  use OMG.Utils.Metrics
 
   def get_events do
     GenServer.call(__MODULE__, :get_events)
@@ -85,11 +86,13 @@ defmodule OMG.Watcher.BlockGetter do
         maximum_number_of_pending_blocks: System.schedulers()
       )
 
-    :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
+    :ok = check_in_to_coordinator(synced_height)
     {:ok, _} = schedule_sync_height()
     {:ok, _} = schedule_producer()
 
     {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+
+    _ = Logger.info("Started #{inspect(__MODULE__)}, synced_height: #{inspect(synced_height)}")
 
     {:noreply, state}
   end
@@ -98,6 +101,7 @@ defmodule OMG.Watcher.BlockGetter do
     {:reply, Core.chain_ok(state), state}
   end
 
+  @decorate measure_start()
   def handle_cast(
         {:apply_block,
          %BlockApplication{
@@ -124,7 +128,7 @@ defmodule OMG.Watcher.BlockGetter do
       _ = Logger.debug("Synced height update: #{inspect(db_updates)}")
 
       :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_state)
-      :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
+      :ok = check_in_to_coordinator(synced_height)
 
       exit_processor_results = ExitProcessor.check_validity()
       state = Core.consider_exits(state, exit_processor_results)
@@ -156,7 +160,13 @@ defmodule OMG.Watcher.BlockGetter do
         ) :: {:noreply, Core.t()} | {:stop, :normal, Core.t()}
   def handle_info(msg, state)
 
-  def handle_info(:producer, state) do
+  def handle_info(:producer, state), do: do_producer(state)
+  def handle_info({_ref, {:downloaded_block, response}}, state), do: do_downloaded_block(response, state)
+  def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
+  def handle_info(:sync, state), do: do_sync(state)
+
+  @decorate measure_start()
+  defp do_producer(state) do
     with {:ok, _} <- Core.chain_ok(state) do
       new_state = run_block_download_task(state)
       {:ok, _} = schedule_producer()
@@ -168,7 +178,8 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  def handle_info({_ref, {:downloaded_block, response}}, state) do
+  @decorate measure_start()
+  defp do_downloaded_block(response, state) do
     # 1/ process the block that arrived and consume
 
     with {:ok, state} <- Core.handle_downloaded_block(state, response) do
@@ -182,10 +193,10 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
-
-  def handle_info(:sync, state) do
-    with %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
+  @decorate measure_start()
+  defp do_sync(state) do
+    with {:ok, _} <- Core.chain_ok(state),
+         %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
 
       {time, {:ok, submissions}} = :timer.tc(fn -> Eth.RootChain.get_block_submitted_events(block_range) end)
@@ -209,13 +220,17 @@ defmodule OMG.Watcher.BlockGetter do
       Enum.each(blocks_to_apply, &GenServer.cast(__MODULE__, {:apply_block, &1}))
 
       :ok = OMG.DB.multi_update(db_updates)
-      :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
+      :ok = check_in_to_coordinator(synced_height)
       {:ok, _} = schedule_sync_height()
 
       {:noreply, state}
     else
       :nosync ->
-        :ok = RootChainCoordinator.check_in(state.synced_height, __MODULE__)
+        :ok = check_in_to_coordinator(state.synced_height)
+        {:noreply, state}
+
+      {:error, _} = error ->
+        _ = Logger.warn("Chain invalid when trying to sync, because of #{inspect(error)}, won't try again")
         {:noreply, state}
     end
   end
@@ -256,5 +271,9 @@ defmodule OMG.Watcher.BlockGetter do
       block_timestamp,
       :os.system_time(:millisecond)
     )
+  end
+
+  defp check_in_to_coordinator(synced_height) do
+    RootChainCoordinator.check_in(synced_height, :block_getter)
   end
 end

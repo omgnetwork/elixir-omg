@@ -5,4 +5,4 @@ config :ethereumex,
   http_options: [recv_timeout: :infinity]
 
 config :omg_eth,
-  exit_period_seconds: 30
+  exit_period_seconds: 22

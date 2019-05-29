@@ -160,7 +160,7 @@ You need to use a **different** location of the `OMG.DB` for the Watcher, so in 
 
 ```elixir
 config :omg_db,
-  leveldb_path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])
+  path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])
 ```
 
 #### Initialize the Watcher's databases

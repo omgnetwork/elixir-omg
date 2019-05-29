@@ -16,7 +16,7 @@ RUN groupadd --gid "${GID}" "${USER}" && \
       --shell /bin/bash \
       ${USER}
 
-ARG BUILD_PACKAGES="build-essential autoconf libtool libgmp3-dev libssl-dev wget gettext"
+ARG BUILD_PACKAGES="build-essential autoconf libtool libgmp3-dev libssl-dev wget gettext cmake"
 
 RUN apt-get update \
   && apt-get install -y software-properties-common \
@@ -43,16 +43,6 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 RUN usermod -aG sudo elixir-user
 
-COPY . /home/elixir-user/elixir-omg/
-
-RUN chown -R elixir-user:elixir-user /home/elixir-user
-
-USER elixir-user
-
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
-ENV HEX_HTTP_TIMEOUT=240 
-
 WORKDIR /home/elixir-user/elixir-omg/
 
 RUN wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-static-linux \
@@ -64,12 +54,20 @@ RUN sudo -H pip3 install --upgrade pip \
   && sudo -H -n ln -s /usr/bin/python3 python \
   && sudo -H -n pip3 install requests gitpython retry
 
-WORKDIR /home/elixir-user/elixir-omg/
+COPY . /home/elixir-user/elixir-omg/
+
+RUN chown -R elixir-user:elixir-user /home/elixir-user
+
+USER elixir-user
+
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+ENV HEX_HTTP_TIMEOUT=240
 
 RUN mix do local.hex --force, local.rebar --force
 
 RUN mix deps.clean --all
-RUN mix deps.get 
+RUN mix deps.get
 
 RUN mix compile
 
@@ -77,7 +75,7 @@ USER root
 
 RUN deluser elixir-user sudo
 
-RUN apt-get purge -y 
+RUN apt-get purge -y
 
 USER elixir-user
 

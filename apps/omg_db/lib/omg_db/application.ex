@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,14 +18,7 @@ defmodule OMG.DB.Application do
   use Application
 
   def start(_type, _args) do
-    db_path = Application.fetch_env!(:omg_db, :leveldb_path)
-    server_module = Application.fetch_env!(:omg_db, :server_module)
-    server_name = Application.fetch_env!(:omg_db, :server_name)
-
-    children = [
-      {server_module, name: server_name, db_path: db_path}
-    ]
-
+    children = [OMG.DB.child_spec()]
     opts = [strategy: :one_for_one, name: OMG.DB.Supervisor]
     Supervisor.start_link(children, opts)
   end

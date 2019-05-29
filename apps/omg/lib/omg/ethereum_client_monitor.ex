@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ defmodule OMG.EthereumClientMonitor do
   require Logger
   alias OMG.Eth
 
-  @default_interval 500
+  @default_interval Application.get_env(:omg, :client_monitor_interval_ms)
   @type t :: %__MODULE__{
           interval: pos_integer(),
           tref: reference() | nil,

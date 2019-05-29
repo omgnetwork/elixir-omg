@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ defmodule OMG.DB.ApplicationTest do
   use ExUnit.Case, async: false
 
   @moduletag :wrappers
+  @moduletag :common
+
   @tag fixtures: [:db_initialized]
   test "starts and stops app, inits", %{db_initialized: db_result} do
     assert :ok = db_result

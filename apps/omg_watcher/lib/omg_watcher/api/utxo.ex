@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,10 +21,13 @@ defmodule OMG.Watcher.API.Utxo do
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
 
+  use OMG.Utils.Metrics
+
   @doc """
   Returns exit data for an utxo
   TODO: For now uses Postgres data, but should be adapted to OMG.DB (in security-critical only mode)
   """
+  @decorate measure_event()
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, DB.TxOutput.exit_t()} | {:error, :utxo_not_found}
   def compose_utxo_exit(utxo) do
     DB.TxOutput.compose_utxo_exit(utxo)
@@ -33,6 +36,7 @@ defmodule OMG.Watcher.API.Utxo do
   @doc """
   Returns a proof that utxo was spent
   """
+  @decorate measure_event()
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, ExitProcessor.StandardExitChallenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
   def create_challenge(utxo) do
