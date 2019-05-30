@@ -93,9 +93,15 @@ defmodule OMG.Watcher.BlockGetter.Core do
             non_neg_integer => PotentialWithholding.t()
           },
           config: Config.t(),
-          events: list(any()),
-          chain_status: :ok | :error
+          events: block_getter_events_t(),
+          chain_status: chain_status_t()
         }
+
+  @type block_getter_event_t() :: Event.InvalidBlock.t() | Event.BlockWithholding.t()
+  @type block_getter_events_t() :: list(block_getter_event_t())
+  @type chain_status_t() :: :ok | :error
+
+  @type chain_ok_response_t() :: {chain_status_t(), block_getter_events_t()}
 
   @type block_error() ::
           :incorrect_hash
@@ -179,6 +185,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
       1. `chain_status` which is based on BlockGetter events and ExitProcessor events
       2. BlockGetter events
   """
+  @spec chain_ok(t()) :: chain_ok_response_t()
   def chain_ok(%__MODULE__{chain_status: chain_status, events: events}), do: {chain_status, events}
 
   @doc """
