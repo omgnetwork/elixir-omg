@@ -72,8 +72,15 @@ defmodule OMG.DB do
   def child_spec, do: driver().child_spec()
   def child_spec(args), do: driver().child_spec(args)
 
-  def init(path), do: driver().init(path)
-  def init, do: driver().init()
+  def init(path) do
+    DeferredConfig.populate(:omg_db)
+    driver().init(path)
+  end
+
+  def init do
+    DeferredConfig.populate(:omg_db)
+    driver().init()
+  end
 
   @doc """
   Puts all zeroes and other init values to a generically initialized `OMG.DB`
