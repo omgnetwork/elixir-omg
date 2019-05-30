@@ -1,4 +1,4 @@
-InFlightExitTxBytesBody:
+InFlightExitTxBytesBodySchema:
   description: In-flight transaction bytes body
   required: true
   content:
@@ -14,7 +14,7 @@ InFlightExitTxBytesBody:
         example:
           txbytes: '0xf3170101c0940000...'
 
-InFlightExitInputChallengeDataBody:
+InFlightExitInputChallengeDataBodySchema:
   description: In-flight transaction bytes and invalid input index
   required: true
   content:
@@ -35,7 +35,7 @@ InFlightExitInputChallengeDataBody:
           txbytes: '0xf3170101c0940000...'
           input_index: 1
 
-InFlightExitOutputChallengeDataBody:
+InFlightExitOutputChallengeDataBodySchema:
   description: In-flight transaction bytes and invalid output index
   required: true
   content:

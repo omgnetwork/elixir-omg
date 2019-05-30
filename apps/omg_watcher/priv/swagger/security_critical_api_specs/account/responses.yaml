@@ -1,0 +1,6 @@
+AccountUtxoResponse:
+  description: Account utxos succcessful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/AccountUtxoResponseSchema'

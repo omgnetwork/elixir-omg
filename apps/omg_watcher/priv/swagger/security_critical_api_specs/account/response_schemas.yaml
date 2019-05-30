@@ -1,21 +1,3 @@
-AccountBalanceResponseSchema:
-  allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
-  - type: object
-    properties:
-      data:
-        type: array
-        items:
-          $ref: 'schemas.yaml#/AccountBalanceSchema'
-    example:
-      data:
-        -
-          currency: '0xbfdf85743ef16cfb1f8d4dd1dfc74c51dc496434'
-          amount: 20
-        -
-          currency: '0x0000000000000000000000000000000000000000'
-          amount: 1000000000
-
 AccountUtxoResponseSchema:
   allOf:
   - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'

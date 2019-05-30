@@ -26,6 +26,7 @@ account.get_utxos:
       500:
         $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
 
+# This is served by transaction's controller, referencing there for definitions
 account.get_transactions:
   post:
     tags:
@@ -33,9 +34,9 @@ account.get_transactions:
     summary: Gets a list of transactions for given account address.
     operationId: account_get_transactions
     requestBody:
-      $ref: 'request_bodies.yaml#/TransactionsBodySchema'
+      $ref: '../transaction/request_bodies.yaml#/GetAllTransactionsBodySchema'
     responses:
       200:
-        $ref: 'responses.yaml#/TransactionsResponse'
+        $ref: '../transaction/responses.yaml#/GetAllTransactionsResponse'
       500:
         $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'

@@ -1,13 +1,3 @@
-AccountBalanceSchema:
-  type: object
-  properties:
-    currency:
-      type: string
-      format: binary
-    amount:
-      type: integer
-      format: int256
-
 AccountUtxoSchema:
   type: object
   properties:
