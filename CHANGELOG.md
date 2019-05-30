@@ -11,28 +11,6 @@
 - Watcher startup succeeds with errors for fresh deployments [\#691](https://github.com/omisego/elixir-omg/issues/691)
 - get\_challenge\_data raise error [\#673](https://github.com/omisego/elixir-omg/issues/673)
 
-**Closed issues:**
-
-- Samrong transactions can't be decoded [\#740](https://github.com/omisego/elixir-omg/issues/740)
-- Body-less request requires content-type header [\#738](https://github.com/omisego/elixir-omg/issues/738)
-- Make sure v0.2 API is updated in swagger docs [\#727](https://github.com/omisego/elixir-omg/issues/727)
-- Port \#604 from `v0.1` to master [\#726](https://github.com/omisego/elixir-omg/issues/726)
-- Find Transaction by Metadata hash [\#722](https://github.com/omisego/elixir-omg/issues/722)
-- Transaction metadata should not be \_required\_ to be 32 bytes in length [\#688](https://github.com/omisego/elixir-omg/issues/688)
-- Watcher /transaction.get should return metadata [\#687](https://github.com/omisego/elixir-omg/issues/687)
-- Change signing typedData Ouput to use 'currency' instead of 'token' [\#677](https://github.com/omisego/elixir-omg/issues/677)
-- Operator API docs are broken [\#676](https://github.com/omisego/elixir-omg/issues/676)
-- Authority account unlocked on geth. Childchain reports locked [\#662](https://github.com/omisego/elixir-omg/issues/662)
-- Path is a directory but has no mix.exs [\#659](https://github.com/omisego/elixir-omg/issues/659)
-- Prepare EIP-712 metamask signing demo on development env [\#655](https://github.com/omisego/elixir-omg/issues/655)
-- Watcher allows for spending in-flight exited utxos [\#630](https://github.com/omisego/elixir-omg/issues/630)
-- Add support for LevelDB replacement [\#628](https://github.com/omisego/elixir-omg/issues/628)
-- Verification of network parameters during startup [\#621](https://github.com/omisego/elixir-omg/issues/621)
-- Heavily test exits on staging [\#615](https://github.com/omisego/elixir-omg/issues/615)
-- Producing and verifying transaction.submit attestations [\#610](https://github.com/omisego/elixir-omg/issues/610)
-- Builds on master result in high CPU use for the Watcher [\#572](https://github.com/omisego/elixir-omg/issues/572)
-- Performance metrics [\#550](https://github.com/omisego/elixir-omg/issues/550)
-
 **Merged pull requests:**
 
 - feature: swap DB type via env [\#748](https://github.com/omisego/elixir-omg/pull/748) ([InoMurko](https://github.com/InoMurko))
@@ -77,30 +55,9 @@
 ## [v0.1.5](https://github.com/omisego/elixir-omg/tree/v0.1.5) (2019-05-07)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.4...v0.1.5)
 
-**Implemented enhancements:**
-
-- Fix /transaction.all slow responses [\#596](https://github.com/omisego/elixir-omg/pull/596) ([T-Dnzt](https://github.com/T-Dnzt))
-
 **Fixed bugs:**
 
 - Fix /transaction.all slow responses [\#596](https://github.com/omisego/elixir-omg/pull/596) ([T-Dnzt](https://github.com/T-Dnzt))
-
-**Closed issues:**
-
-- Multiple fee\_specs.json conflict [\#660](https://github.com/omisego/elixir-omg/issues/660)
-- Support chain\_id parameter in contract code [\#633](https://github.com/omisego/elixir-omg/issues/633)
-- Fix dialyzer wrong derived type from dependency [\#632](https://github.com/omisego/elixir-omg/issues/632)
-- Fix performance issues with producing merkle proofs in `merkle\_tree` v1.5.0 [\#626](https://github.com/omisego/elixir-omg/issues/626)
-- /status.get requires a `Content-Type` header while not requiring a body [\#601](https://github.com/omisego/elixir-omg/issues/601)
-- Endpoints with utxo positions as inputs don't tolerate badly encoded inputs [\#594](https://github.com/omisego/elixir-omg/issues/594)
-- Endpoints taking in encoded txbytes might crash the ExitProcessor [\#591](https://github.com/omisego/elixir-omg/issues/591)
-- Fix/Research slow /transaction.all endpoint [\#589](https://github.com/omisego/elixir-omg/issues/589)
-- EIP-712 signing support [\#551](https://github.com/omisego/elixir-omg/issues/551)
-- can't challenge an invalid exit from deposit UTXO [\#511](https://github.com/omisego/elixir-omg/issues/511)
-- Fix the annoying non-failing error messages in integration tests [\#492](https://github.com/omisego/elixir-omg/issues/492)
-- Using {:system, "DATABASE\_URL"} for your :url configuration is deprecated. [\#479](https://github.com/omisego/elixir-omg/issues/479)
-- Elixir 1.8 Exceptions in test [\#401](https://github.com/omisego/elixir-omg/issues/401)
-- personal\_unlockAccount JSON Request encoding breaks Parity compatibility  [\#270](https://github.com/omisego/elixir-omg/issues/270)
 
 **Merged pull requests:**
 
@@ -145,16 +102,6 @@
 ## [v0.1.4](https://github.com/omisego/elixir-omg/tree/v0.1.4) (2019-04-08)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.3...v0.1.4)
 
-**Closed issues:**
-
-- Error handling for missing signature [\#568](https://github.com/omisego/elixir-omg/issues/568)
-- Clean up configuration [\#560](https://github.com/omisego/elixir-omg/issues/560)
-- Move omg\_rpc supervision tree from omg\_api to omg\_rpc [\#557](https://github.com/omisego/elixir-omg/issues/557)
-- Better separation of concerns between child chain and watcher [\#556](https://github.com/omisego/elixir-omg/issues/556)
-- MacOS Mojave setup instruction \(w/o docker\) [\#535](https://github.com/omisego/elixir-omg/issues/535)
-- Deposit to child chain not working [\#528](https://github.com/omisego/elixir-omg/issues/528)
-- Config override issue with omg\_watcher [\#451](https://github.com/omisego/elixir-omg/issues/451)
-
 **Merged pull requests:**
 
 - removed --no-start [\#588](https://github.com/omisego/elixir-omg/pull/588) ([kendricktan](https://github.com/kendricktan))
@@ -194,14 +141,6 @@
 ## [v0.1.3](https://github.com/omisego/elixir-omg/tree/v0.1.3) (2019-03-22)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.2...v0.1.3)
 
-**Closed issues:**
-
-- Can't find sources for jakebunce/contractexchanger [\#496](https://github.com/omisego/elixir-omg/issues/496)
-- Piggybacked outputs are reported as available when calling status.get endpoint in Watcher [\#495](https://github.com/omisego/elixir-omg/issues/495)
-- Deploying Rootchain contract to local geth in dev mode fails with “exceeds block gas limit” error [\#493](https://github.com/omisego/elixir-omg/issues/493)
-- Fix child chain servers gas price selection mechanism [\#436](https://github.com/omisego/elixir-omg/issues/436)
-- Integration tests failure on Mac OS [\#187](https://github.com/omisego/elixir-omg/issues/187)
-
 **Merged pull requests:**
 
 - docs: set targetgaslimit when starting dev geth [\#532](https://github.com/omisego/elixir-omg/pull/532) ([pgebal](https://github.com/pgebal))
@@ -238,14 +177,6 @@
 ## [v0.1.2](https://github.com/omisego/elixir-omg/tree/v0.1.2) (2019-03-07)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.1...v0.1.2)
 
-**Closed issues:**
-
-- status.get breaks if geth is syncing [\#458](https://github.com/omisego/elixir-omg/issues/458)
-- Protocol.UndefinedError - enumerating sth in transaction.submit? [\#457](https://github.com/omisego/elixir-omg/issues/457)
-- Writes of deposits/exits to WatcherDB not idempotent [\#454](https://github.com/omisego/elixir-omg/issues/454)
-- Watcher does not run in MIX\_ENV=prod mode [\#449](https://github.com/omisego/elixir-omg/issues/449)
-- Setry causing exception during error handling [\#437](https://github.com/omisego/elixir-omg/issues/437)
-
 **Merged pull requests:**
 
 - fix: omg watcher and api should have status as a umbrella dependency [\#490](https://github.com/omisego/elixir-omg/pull/490) ([InoMurko](https://github.com/InoMurko))
@@ -276,14 +207,6 @@
 ## [v0.1.1](https://github.com/omisego/elixir-omg/tree/v0.1.1) (2019-02-21)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.0...v0.1.1)
 
-**Closed issues:**
-
-- Exiting utxos show up in the `get\_utxos` result [\#432](https://github.com/omisego/elixir-omg/issues/432)
-- Watcher sees unchallenged\_exit exits  [\#430](https://github.com/omisego/elixir-omg/issues/430)
-- invalid json requests grill the http-rpc APIs [\#416](https://github.com/omisego/elixir-omg/issues/416)
-- Watcher isn't Watching so no UTXO data is returned [\#414](https://github.com/omisego/elixir-omg/issues/414)
-- Exception on Watcher startup [\#393](https://github.com/omisego/elixir-omg/issues/393)
-
 **Merged pull requests:**
 
 - fix: Check data\_watcher path for chain data [\#455](https://github.com/omisego/elixir-omg/pull/455) ([jbunce](https://github.com/jbunce))
@@ -303,19 +226,6 @@
 
 ## [v0.1.0](https://github.com/omisego/elixir-omg/tree/v0.1.0) (2019-02-11)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.0.1...v0.1.0)
-
-**Closed issues:**
-
-- New Challenger cannot challenge invalid exits from deposits [\#358](https://github.com/omisego/elixir-omg/issues/358)
-- `:unchallenged\_exits` are unchallengable [\#357](https://github.com/omisego/elixir-omg/issues/357)
-- Endpoints of the child chain server start too early [\#356](https://github.com/omisego/elixir-omg/issues/356)
-- \[elixir-omg\] Watcher fails with unchallenged\_exit [\#347](https://github.com/omisego/elixir-omg/issues/347)
-- Cannot create an authority address [\#332](https://github.com/omisego/elixir-omg/issues/332)
-- Watcher does not apply blocks [\#284](https://github.com/omisego/elixir-omg/issues/284)
-- Watcher API responses redefinition [\#266](https://github.com/omisego/elixir-omg/issues/266)
-- Arbitrary Data Transaction Field [\#192](https://github.com/omisego/elixir-omg/issues/192)
-- Watcher returns 500 Internal Server Error from /utxos if given an invalid address [\#188](https://github.com/omisego/elixir-omg/issues/188)
-- Problem with Browser interaction with Childchain and Watcher due to CORS issue [\#156](https://github.com/omisego/elixir-omg/issues/156)
 
 **Merged pull requests:**
 
