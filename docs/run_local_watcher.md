@@ -5,6 +5,7 @@ The `docker-compose` tooling in the root of `elixir-omg` allows users to run the
 ### Requirements
 
 - Docker
+- `docker-compose` - known to work with `docker-compose version 1.24.0, build 0aa59064`, version `1.17` has had problems
 - Ethereum connectivity: local Ethereum node or Infura
 
 ### Startup
