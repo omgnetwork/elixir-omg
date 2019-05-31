@@ -8,6 +8,8 @@ ARG UID=1000
 ARG GID=1000
 ARG HOME=/home/$USER
 
+Can I edit this file directly via web interface?
+
 RUN groupadd --gid "${GID}" "${USER}" && \
     useradd \
       --uid ${UID} \
