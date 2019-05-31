@@ -38,6 +38,14 @@ defmodule OMG.Utxo do
     end
   end
 
+  defmacro is_position(blknum, txindex, oindex) do
+    quote do
+      is_integer(unquote(blknum)) and unquote(blknum) >= 0 and
+        is_integer(unquote(txindex)) and unquote(txindex) >= 0 and
+        is_integer(unquote(oindex)) and unquote(oindex) >= 0
+    end
+  end
+
   defmacrop is_nil_or_binary(binary) do
     quote do
       is_binary(unquote(binary)) or is_nil(unquote(binary))

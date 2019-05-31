@@ -25,55 +25,59 @@ defmodule OMG.Utxo.Position do
   alias OMG.Utxo
   require Utxo
 
+  import Utxo, only: [is_position: 3]
+
   @type t() :: {
           :utxo_position,
           # blknum
-          pos_integer,
+          non_neg_integer,
           # txindex
           non_neg_integer,
           # oindex
           non_neg_integer
         }
 
-  @type db_t() :: {pos_integer, non_neg_integer, non_neg_integer}
+  @type db_t() :: {non_neg_integer, non_neg_integer, non_neg_integer}
 
-  @spec encode(t()) :: pos_integer()
-  def encode(Utxo.position(blknum, txindex, oindex)),
-    do: blknum * @block_offset + txindex * @transaction_offset + oindex
+  @spec encode(t()) :: non_neg_integer()
+  def encode(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
+    do: abs(trunc(blknum * @block_offset + txindex * @transaction_offset + oindex))
 
-  @spec decode!(pos_integer()) :: t()
+  @spec decode!(number()) :: t()
   def decode!(encoded) do
     {:ok, decoded} = decode(encoded)
     decoded
   end
 
-  @spec decode(pos_integer()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
-  def decode(encoded) when encoded >= @block_offset do
+  @spec decode(number()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
+  def decode(encoded) when is_integer(encoded) and encoded >= @block_offset do
     {blknum, txindex, oindex} = get_position(encoded)
     {:ok, Utxo.position(blknum, txindex, oindex)}
   end
 
   def decode(encoded) when is_number(encoded), do: {:error, :encoded_utxo_position_too_low}
 
-  @spec non_zero?(t()) :: boolean()
+  @spec non_zero?(t() | {:utxo_position, non_neg_integer, non_neg_integer, non_neg_integer}) :: boolean()
   def non_zero?(Utxo.position(0, 0, 0)), do: false
-  def non_zero?(Utxo.position(_, _, _)), do: true
+  def non_zero?(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex), do: true
 
   @spec to_db_key(t()) :: db_t()
-  def to_db_key(Utxo.position(blknum, txindex, oindex)), do: {blknum, txindex, oindex}
+  def to_db_key(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
+    do: {blknum, txindex, oindex}
 
   @spec from_db_key(db_t()) :: t()
-  def from_db_key({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
+  def from_db_key({blknum, txindex, oindex}) when is_position(blknum, txindex, oindex),
+    do: Utxo.position(blknum, txindex, oindex)
 
   def blknum(Utxo.position(blknum, _, _)), do: blknum
   def txindex(Utxo.position(_, txindex, _)), do: txindex
   def oindex(Utxo.position(_, _, oindex)), do: oindex
 
-  @spec get_position(pos_integer()) :: {pos_integer, non_neg_integer, non_neg_integer}
-  defp get_position(encoded) do
+  @spec get_position(pos_integer()) :: {non_neg_integer, non_neg_integer, non_neg_integer}
+  defp get_position(encoded) when is_integer(encoded) and encoded > 0 do
     blknum = div(encoded, @block_offset)
     txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
-    oindex = rem(encoded, @transaction_offset)
+    oindex = encoded |> rem(@transaction_offset) |> trunc() |> abs()
     {blknum, txindex, oindex}
   end
 
@@ -81,7 +85,7 @@ defmodule OMG.Utxo.Position do
   Based on the contract parameters determines whether UTXO position provided was created by a deposit
   """
   @spec is_deposit?(__MODULE__.t()) :: boolean()
-  def is_deposit?(Utxo.position(blknum, _, _)) do
+  def is_deposit?(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex) do
     {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
     rem(blknum, interval) != 0
   end
