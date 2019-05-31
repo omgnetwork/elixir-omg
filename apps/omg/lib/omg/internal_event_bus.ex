@@ -66,7 +66,7 @@ defmodule OMG.InternalEventBus do
   Same as `broadcast/1`, but performed on the local node
   """
   def direct_local_broadcast(topic, {event, payload}) when is_atom(event) do
-    PubSub.node_name(__MODULE__)
-    |> PubSub.direct_broadcast(__MODULE__, topic, {:internal_event_bus, event, payload})
+    node_name = PubSub.node_name(__MODULE__)
+    PubSub.direct_broadcast(node_name, __MODULE__, topic, {:internal_event_bus, event, payload})
   end
 end
