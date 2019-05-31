@@ -443,7 +443,7 @@ class WatcherLauncher:
         '''
         os.chdir(os.path.expanduser('~') + '/elixir-omg')
         result = subprocess.run(
-            "mix ecto.reset",
+            "mix ecto.reset --no-start",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
