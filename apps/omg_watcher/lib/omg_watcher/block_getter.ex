@@ -72,6 +72,10 @@ defmodule OMG.Watcher.BlockGetter do
     maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
     maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
+    # TODO rethink posible solutions see issue #724
+    # if we do not wait here, `ExitProcessor.check_validity()` may timeouts,
+    # which causes State and BlockGetter to reboot, fetches entire UTXO set again, and then timeout...
+    _ = :sys.get_status(ExitProcessor, 10 * 60_000)
     exit_processor_initial_results = ExitProcessor.check_validity()
 
     {:ok, state} =
@@ -238,6 +242,7 @@ defmodule OMG.Watcher.BlockGetter do
       :nosync ->
         :ok = check_in_to_coordinator(state.synced_height)
         :ok = update_status(state)
+        {:ok, _} = schedule_sync_height()
         {:noreply, state}
 
       {:error, _} = error ->
