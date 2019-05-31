@@ -1,0 +1,29 @@
+utxo.get_challenge_data:
+  post:
+    tags:
+      - UTXO
+    summary: Gets challenge data for a given utxo exit.
+    description: Gets challenge data for a given utxo exit.
+    operationId: utxo_get_challenge_data
+    requestBody:
+      $ref: 'request_bodies.yaml#/UtxoPositionBodySchema'
+    responses:
+      200:
+        $ref: 'responses.yaml#/GetUtxoChallengeResponse'
+      500:
+        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+
+utxo.get_exit_data:
+  post:
+    tags:
+      - UTXO
+    summary: Gets exit data for a given utxo.
+    description: Gets exit data for a given utxo.
+    operationId: utxo_get_exit_data
+    requestBody:
+      $ref: 'request_bodies.yaml#/UtxoPositionBodySchema'
+    responses:
+      200:
+        $ref: 'responses.yaml#/GetUtxoExitResponse'
+      500:
+        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'

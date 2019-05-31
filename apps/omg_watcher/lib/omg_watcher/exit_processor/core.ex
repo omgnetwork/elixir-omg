@@ -280,9 +280,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @spec respond_to_in_flight_exits_challenges(t(), [map()]) :: {t(), list()}
-  def respond_to_in_flight_exits_challenges(%__MODULE__{in_flight_exits: _ifes} = state, _responds_events) do
-    # TODO: implement and test (in InFlightExitInfo callback is already written)
-    {state, []}
+  def respond_to_in_flight_exits_challenges(%__MODULE__{} = state, responds_events) do
+    consume_events(state, responds_events, :challenge_position, &InFlightExitInfo.respond_to_challenge/2)
   end
 
   @spec challenge_piggybacks(t(), [map()]) :: {t(), list()}
@@ -490,7 +489,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @doc """
-  Only for the active output piggybacks for in-flight exits, based on the current tracked state.
+  Only for the active in-flight exits, based on the current tracked state.
   Only for IFEs which transactions where included into the chain and whose outputs were potentially spent.
 
   Compare with determine_utxo_existence_to_get/2.
@@ -501,16 +500,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         %__MODULE__{in_flight_exits: ifes}
       )
       when is_integer(blknum_now) do
-    piggybacked_output_utxos =
+    ife_input_positions =
       ifes
       |> Map.values()
+      |> Enum.filter(&(&1.tx_seen_in_blocks_at == nil))
       |> Enum.filter(& &1.is_active)
-      |> Enum.filter(&(InFlightExitInfo.piggybacked_outputs(&1) != []))
       |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
       |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
       |> :lists.usort()
 
-    %{request | ife_input_utxos_to_check: piggybacked_output_utxos}
+    %{request | ife_input_utxos_to_check: ife_input_positions}
   end
 
   @doc """
@@ -547,7 +546,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   To proceed with validation/proof building, this function must ask for blocks that satisfy following criteria:
     1/ blocks where any input to any IFE was spent
     2/ blocks where any output to any IFE was spent
-    3/ blocks where the whole IFE transaction **might've** been included, to get piggyback availability and to get InvalidIFEChallenge's
   """
   @spec determine_spends_to_get(ExitProcessor.Request.t(), __MODULE__.t()) :: ExitProcessor.Request.t()
   def determine_spends_to_get(
@@ -650,7 +648,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
 
     ifes_with_competitors_events =
-      get_ifes_with_competitors(request, state)
+      get_ife_txs_with_competitors(request, state)
       |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
 
     invalid_piggybacks = get_invalid_piggybacks_events(request, state)
@@ -661,11 +659,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     has_no_late_invalid_exits = Enum.empty?(late_invalid_exits) and Enum.empty?(late_invalid_piggybacks)
 
     invalid_ife_challenges_events =
-      get_invalid_ife_challenges(request, state)
+      get_invalid_ife_challenges(state)
       |> Enum.map(fn txbytes -> %Event.InvalidIFEChallenge{txbytes: txbytes} end)
 
     available_piggybacks_events =
-      get_ifes_to_piggyback(request, state)
+      get_ifes_to_piggyback(state)
       |> Enum.flat_map(&prepare_available_piggyback/1)
 
     events =
@@ -703,7 +701,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defdelegate determine_exit_txbytes(request, state), to: ExitProcessor.StandardExitChallenge
   defdelegate create_challenge(request, state), to: ExitProcessor.StandardExitChallenge
 
-  @spec produce_invalid_piggyback_proof(InFlightExitInfo.t(), list(KnownTx.t()), piggyback_t()) ::
+  @spec produce_invalid_piggyback_proof(InFlightExitInfo.t(), Enumerable.t(), piggyback_t()) ::
           {:ok, input_challenge_data() | output_challenge_data()} | {:error, :no_double_spend_on_particular_piggyback}
   defp produce_invalid_piggyback_proof(ife, known_txs, {pb_type, pb_index} = piggyback) do
     with {:ok, proof_materials} <- get_proofs_for_particular_ife(ife, pb_type, known_txs),
@@ -764,7 +762,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
          %ExitProcessor.Request{blocks_result: blocks},
          %__MODULE__{in_flight_exits: ifes} = state
        ) do
-    known_txs = get_known_txs(state) ++ get_known_txs(blocks)
+    known_txs = known_txs_blocks_appendix(blocks, state)
 
     ifes
     |> Map.values()
@@ -802,11 +800,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.flat_map(fn {_type, materials} -> Map.keys(materials) end)
   end
 
-  @spec invalid_piggybacks_by_ife(list(KnownTx.t()), piggyback_type_t(), list(InFlightExitInfo.t())) ::
+  @spec invalid_piggybacks_by_ife(Enumerable.t(), piggyback_type_t(), list(InFlightExitInfo.t())) ::
           list({InFlightExitInfo.t(), piggyback_type_t(), %{non_neg_integer => DoubleSpend.t()}})
   defp invalid_piggybacks_by_ife(known_txs, pb_type, ifes) do
-    known_txs = :lists.usort(known_txs)
-
     # getting invalid piggybacks on inputs
     ifes
     |> Enum.map(&InFlightExitInfo.indexed_piggybacks_by_ife(&1, pb_type))
@@ -824,8 +820,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp all_double_spends_by_index(indexed_utxo_positions, known_txs, ife) do
     # Will find all spenders of provided indexed inputs.
     known_txs
-    |> Enum.filter(&txs_different(ife.tx, &1.signed_tx))
-    |> Enum.flat_map(&double_spends_from_known_tx(indexed_utxo_positions, &1))
+    |> Stream.filter(&txs_different(ife.tx, &1.signed_tx))
+    |> Stream.flat_map(&double_spends_from_known_tx(indexed_utxo_positions, &1))
     |> Enum.group_by(& &1.index)
   end
 
@@ -834,60 +830,51 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp get_piggyback_challenge_data(%ExitProcessor.Request{blocks_result: blocks}, state, txbytes, piggyback) do
     with {:ok, tx} <- Transaction.decode(txbytes),
          {:ok, ife} <- get_ife(tx, state) do
-      known_txs = get_known_txs(blocks) ++ get_known_txs(state)
+      known_txs = known_txs_blocks_appendix(blocks, state)
       produce_invalid_piggyback_proof(ife, known_txs, piggyback)
     end
   end
 
+  # returns the known transactions in the proper order - first ones from blocks sorted from oldest then ones
+  # from outside of blocks (TxAppendix)
+  defp known_txs_blocks_appendix(blocks, %__MODULE__{} = state),
+    do: Stream.concat(get_known_txs(blocks), get_known_txs(state))
+
   # Gets the list of open IFEs that have the competitors _somewhere_
-  @spec get_ifes_with_competitors(ExitProcessor.Request.t(), __MODULE__.t()) :: list(binary())
-  defp get_ifes_with_competitors(
+  @spec get_ife_txs_with_competitors(ExitProcessor.Request.t(), __MODULE__.t()) :: list(binary())
+  defp get_ife_txs_with_competitors(
          %ExitProcessor.Request{blocks_result: blocks},
          %__MODULE__{in_flight_exits: ifes} = state
        ) do
-    known_txs = get_known_txs(blocks) ++ get_known_txs(state)
+    known_txs = known_txs_blocks_appendix(blocks, state)
 
     ifes
     |> Map.values()
-    |> Stream.filter(&InFlightExitInfo.is_canonical?/1)
-    |> Stream.map(fn %InFlightExitInfo{tx: tx} -> tx end)
     # TODO: expensive!
-    |> Stream.filter(fn tx -> known_txs |> Enum.find(&competitor_for(tx, &1)) end)
-    |> Stream.map(&Transaction.raw_txbytes/1)
+    |> Stream.map(fn ife -> {ife, Enum.find_value(known_txs, &competitor_for(ife.tx, &1))} end)
+    |> Stream.filter(fn {_ife, double_spend} -> !is_nil(double_spend) end)
+    |> Stream.filter(fn {ife, %DoubleSpend{known_tx: %KnownTx{utxo_pos: utxo_pos}}} ->
+      InFlightExitInfo.is_viable_competitor?(ife, utxo_pos)
+    end)
+    |> Stream.map(fn {ife, _double_spend} -> Transaction.raw_txbytes(ife.tx) end)
     |> Enum.uniq()
   end
 
   # Gets the list of open IFEs that have the competitors _somewhere_
-  @spec get_invalid_ife_challenges(ExitProcessor.Request.t(), __MODULE__.t()) :: list(binary())
-  defp get_invalid_ife_challenges(
-         %ExitProcessor.Request{blocks_result: blocks},
-         %__MODULE__{in_flight_exits: ifes}
-       ) do
-    known_txs = get_known_txs(blocks)
-
+  @spec get_invalid_ife_challenges(t()) :: list(binary())
+  defp get_invalid_ife_challenges(%__MODULE__{in_flight_exits: ifes}) do
     ifes
     |> Map.values()
-    |> Stream.filter(&(not InFlightExitInfo.is_canonical?(&1)))
-    |> Stream.map(fn %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: raw_tx}} -> raw_tx end)
-    # TODO: expensive!
-    |> Stream.filter(&find_among_known_txs(known_txs, &1))
-    |> Stream.map(&Transaction.raw_txbytes/1)
+    |> Stream.filter(&InFlightExitInfo.is_invalidly_challenged?/1)
+    |> Stream.map(&Transaction.raw_txbytes(&1.tx))
     |> Enum.uniq()
   end
 
-  @spec get_ifes_to_piggyback(ExitProcessor.Request.t(), __MODULE__.t()) ::
-          list(InFlightExitInfo.t())
-  defp get_ifes_to_piggyback(
-         %ExitProcessor.Request{blocks_result: blocks},
-         %__MODULE__{in_flight_exits: ifes}
-       ) do
-    known_txs = get_known_txs(blocks)
-
+  @spec get_ifes_to_piggyback(t()) :: list(InFlightExitInfo.t())
+  defp get_ifes_to_piggyback(%__MODULE__{in_flight_exits: ifes}) do
     ifes
     |> Map.values()
-    |> Stream.filter(fn %InFlightExitInfo{is_active: is_active} -> is_active end)
-    # TODO: expensive!
-    |> Stream.filter(&(!find_among_known_txs(known_txs, &1.tx.raw_tx)))
+    |> Stream.filter(fn %InFlightExitInfo{is_active: is_active, tx_seen_in_blocks_at: seen} -> is_active && !seen end)
     |> Enum.uniq_by(fn %InFlightExitInfo{tx: signed_tx} -> signed_tx end)
   end
 
@@ -982,6 +969,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     blocks
     |> Enum.filter(&(&1 != :not_found))
+    |> sort_blocks()
     |> Enum.reduce_while(nil, search_in_block)
   end
 
@@ -994,36 +982,33 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Gets the root chain contract-required set of data to challenge a non-canonical ife
   """
   @spec get_competitor_for_ife(ExitProcessor.Request.t(), __MODULE__.t(), binary()) ::
-          {:ok, competitor_data_t()} | {:error, :competitor_not_found}
+          {:ok, competitor_data_t()} | {:error, :competitor_not_found} | {:error, :no_viable_competitor_found}
   def get_competitor_for_ife(
         %ExitProcessor.Request{blocks_result: blocks},
         %__MODULE__{} = state,
         ife_txbytes
       ) do
-    known_txs = get_known_txs(blocks) ++ get_known_txs(state)
-
+    known_txs = known_txs_blocks_appendix(blocks, state)
     # find its competitor and use it to prepare the requested data
     with {:ok, ife_tx} <- Transaction.decode(ife_txbytes),
-         {:ok, %InFlightExitInfo{tx: signed_ife_tx}} <- get_ife(ife_tx, state),
-         {:ok, double_spend} <- find_competitor(known_txs, signed_ife_tx),
-         do: {:ok, prepare_competitor_response(double_spend, signed_ife_tx, blocks)}
+         {:ok, ife} <- get_ife(ife_tx, state),
+         {:ok, double_spend} <- find_competitor(known_txs, ife.tx),
+         %DoubleSpend{known_tx: %KnownTx{utxo_pos: utxo_pos}} = double_spend,
+         true <- InFlightExitInfo.is_viable_competitor?(ife, utxo_pos) || {:error, :no_viable_competitor_found},
+         do: {:ok, prepare_competitor_response(double_spend, ife.tx, blocks)}
   end
 
   @doc """
   Gets the root chain contract-required set of data to challenge an ife appearing as non-canonical in the root chain
   contract but which is known to be canonical locally because included in one of the blocks
   """
-  @spec prove_canonical_for_ife(ExitProcessor.Request.t(), binary()) ::
-          {:ok, prove_canonical_data_t()} | {:error, :canonical_not_found}
-  def prove_canonical_for_ife(
-        %ExitProcessor.Request{blocks_result: blocks},
-        ife_txbytes
-      ) do
-    known_txs = get_known_txs(blocks)
-
+  @spec prove_canonical_for_ife(t(), binary()) ::
+          {:ok, prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
+  def prove_canonical_for_ife(%__MODULE__{} = state, ife_txbytes) do
     with {:ok, raw_ife_tx} <- Transaction.decode(ife_txbytes),
-         {:ok, %KnownTx{utxo_pos: known_tx_utxo_pos}} <- find_canonical(known_txs, raw_ife_tx),
-         do: {:ok, prepare_canonical_response(ife_txbytes, known_tx_utxo_pos, blocks)}
+         {:ok, ife} <- get_ife(raw_ife_tx, state),
+         true <- InFlightExitInfo.is_invalidly_challenged?(ife) || {:error, :no_viable_canonical_proof_found},
+         do: {:ok, prepare_canonical_response(ife)}
   end
 
   defp prepare_competitor_response(
@@ -1050,13 +1035,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     }
   end
 
-  defp prepare_canonical_response(ife_txbytes, known_tx_utxo_pos, blocks) do
-    %{
-      in_flight_txbytes: ife_txbytes,
-      in_flight_tx_pos: known_tx_utxo_pos,
-      in_flight_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
-    }
-  end
+  defp prepare_canonical_response(%InFlightExitInfo{tx: tx, tx_seen_in_blocks_at: {pos, proof}}),
+    do: %{in_flight_txbytes: Transaction.raw_txbytes(tx), in_flight_tx_pos: pos, in_flight_proof: proof}
 
   defp maybe_calculate_proof(nil, _), do: <<>>
 
@@ -1075,15 +1055,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp find_canonical(known_txs, raw_ife_tx) do
-    known_txs
-    |> find_among_known_txs(raw_ife_tx)
-    |> case do
-      nil -> {:error, :canonical_not_found}
-      value -> {:ok, value}
-    end
-  end
-
   # Tells whether a single transaction is a competitor for another single transactions, by returning nil or the
   # `DoubleSpend` information package if the `known_tx` is in fact a competitor
   # Returns single result, even if there are multiple double-spends!
@@ -1098,29 +1069,23 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp get_known_txs(%__MODULE__{} = state) do
     TxAppendix.get_all(state)
-    |> Enum.map(fn signed -> %KnownTx{signed_tx: signed} end)
+    |> Stream.map(fn signed -> %KnownTx{signed_tx: signed} end)
   end
 
   defp get_known_txs(%Block{transactions: txs, number: blknum}) do
     txs
-    |> Enum.map(fn tx_bytes ->
+    |> Stream.map(fn tx_bytes ->
       {:ok, signed} = Transaction.Signed.decode(tx_bytes)
       signed
     end)
-    |> Enum.with_index()
-    |> Enum.map(fn {signed, txindex} -> %KnownTx{signed_tx: signed, utxo_pos: Utxo.position(blknum, txindex, 0)} end)
+    |> Stream.with_index()
+    |> Stream.map(fn {signed, txindex} -> %KnownTx{signed_tx: signed, utxo_pos: Utxo.position(blknum, txindex, 0)} end)
   end
 
-  defp get_known_txs([]), do: []
+  defp get_known_txs(blocks) when is_list(blocks), do: blocks |> sort_blocks() |> Stream.flat_map(&get_known_txs/1)
 
   # we're sorting the blocks by their blknum here, because we wan't oldest (best) competitors first always
-  defp get_known_txs([%Block{} | _] = blocks),
-    do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
-
-  defp find_among_known_txs(known_txs, raw_tx) do
-    known_txs
-    |> Enum.find(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} -> raw_tx == block_raw_tx end)
-  end
+  defp sort_blocks(blocks), do: blocks |> Enum.sort_by(fn %Block{number: number} -> number end)
 
   defp zero_address?(address) do
     address != @zero_address

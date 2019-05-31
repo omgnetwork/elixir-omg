@@ -34,12 +34,12 @@ executors:
   metal_child_chain:
     machine: true
     environment:
-      IMAGE_NAME: "omisego/child_chain"
+      CHILD_CHAIN_IMAGE_NAME: "omisego/child_chain"
 
   metal_watcher:
     machine: true
     environment:
-      IMAGE_NAME: "omisego/watcher"
+      WATCHER_IMAGE_NAME: "omisego/watcher"
 
 commands:
   setup_elixir-omg_workspace:
@@ -247,26 +247,26 @@ jobs:
     steps:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME
-      #TODO - run: sh .circleci/ci_publish.sh
+      - run: IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher:
     executor: metal_watcher
     steps:
       - checkout
-      - run: make docker-watcher WATCHER_PROD_IMAGE_NAME=$WATCHER_PROD_IMAGE_NAME
-      #TODO - run: sh .circleci/ci_publish.sh
+      - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
+      - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
   deploy_watcher:
     executor: deploy
     steps:
       - checkout
-      #- run: sh .circleci/ci_deploy.sh
+      #TODO - run: sh .circleci/ci_deploy.sh
 
   deploy_child_chain:
     executor: deploy
     steps:
       - checkout
-      #- run: sh .circleci/ci_deploy.sh
+      #TODO - run: sh .circleci/ci_deploy.sh
 
   coveralls_merge:
     docker:
@@ -419,14 +419,14 @@ workflows:
             branches:
               only:
                 - master
-                - 579-publish_release_docker
+                - 579-publish_release_docker_p3
       - publish_watcher:
           requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
           filters:
             branches:
               only:
                 - master
-                - 579-publish_release_docker
+                - 579-publish_release_docker_p3
       # Release deploy to development in case of master branch.
       - deploy_child_chain:
           requires: [publish_child_chain, publish_watcher]
@@ -434,11 +434,11 @@ workflows:
             branches:
               only:
                 - master
-                - 579-publish_release_docker
+                - 579-publish_release_docker_p3
       - deploy_watcher:
           requires: [publish_child_chain, publish_watcher]
           filters:
             branches:
               only:
                 - master
-                - 579-publish_release_docker
+                - 579-publish_release_docker_p3

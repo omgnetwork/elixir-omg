@@ -112,8 +112,8 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture watcher(db_initialized, root_chain_contract_config) do
-    :ok = root_chain_contract_config
     :ok = db_initialized
+    :ok = root_chain_contract_config
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
@@ -173,12 +173,13 @@ defmodule OMG.Watcher.Fixtures do
   deffixture initial_deposits(alice, bob, phoenix_ecto_sandbox) do
     :ok = phoenix_ecto_sandbox
 
-    # Initial data depending tests can reuse
-    DB.EthEvent.insert_deposits!([
+    deposits = [
       %{owner: alice.addr, currency: @eth, amount: 333, blknum: 1},
       %{owner: bob.addr, currency: @eth, amount: 100, blknum: 2}
-    ])
+    ]
 
+    # Initial data depending tests can reuse
+    DB.EthEvent.insert_deposits!(deposits)
     :ok
   end
 

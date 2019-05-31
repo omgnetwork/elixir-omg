@@ -27,7 +27,9 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
                * [geth](#geth)
                * [parity](#parity)
             * [Specifying the fees required](#specifying-the-fees-required)
-            * [Funding the operator address](#funding-the-operator-address)
+            * [Managing the operator address](#managing-the-operator-address)
+               * [Nonces restriction](#nonces-restriction)
+               * [Funding the operator address](#funding-the-operator-address)
       * [Watcher](#watcher)
          * [Using the watcher](#using-the-watcher)
          * [Endpoints](#endpoints)
@@ -68,6 +70,8 @@ However, if you are brave and want to test being a Tesuji Plasma chain operator,
 This is the recommended method of starting the blockchain services, with the auxiliary services automatically provisioned through Docker.
 Before attempting the start up please ensure that you are not running any services that are listening on the following TCP ports: 9656, 7434, 5000, 8545, 5432, 5433.
 All commands should be run from the root of the repo.
+
+**NOTE** known to work with `docker-compose version 1.24.0, build 0aa59064`, version `1.17` has had problems
 
 ### Mac
 `docker-compose up`
@@ -167,7 +171,27 @@ In particular, note that the required fee must be paid in one token in its entir
 
 The fees are configured in the config entries for `omg_child_chain` see [config secion](#mix-configuration-parameters).
 
-#### Funding the operator address
+#### Managing the operator address
+
+(a.k.a `authority address`)
+
+The Ethereum address which the operator uses to submit blocks to the root chain is a special address which must be managed accordingly to ensure liveness and security.
+
+##### Nonces restriction
+
+The [reorg protection mechanism](docs/tesuji_blockchain_design.md#reorgs) enforces there to be a strict relation between the `submitBlock` transactions and block numbers.
+Child block number `1000` uses Ethereum nonce `1`, child block number `2000` uses Ethereum nonce `2`, **always**.
+This provides a simple mechanism to avoid submitted blocks getting reordered in the root chain.
+
+This restriction is respected by the child chain server (`OMG.ChildChain.BlockQueue`), whereby the Ethereum nonce is simply derived from the child block number.
+
+As a consequence, the operator address must never send any other transactions, if it intends to continue submitting blocks.
+(Workarounds to this limitation are available, if there's such requirement.)
+
+**NOTE** Ethereum nonce `0` is necessary to call the `RootChain.init` function, which must be called by the operator address.
+This means that the operator address must be a fresh address for every child chain brought to life.
+
+##### Funding the operator address
 
 The address that is running the child chain server and submitting blocks needs to be funded with Ether.
 At the current stage this is designed as a manual process, i.e. we assume that every **gas reserve checkpoint interval**, someone will ensure that **gas reserve** worth of Ether is available for transactions.

@@ -1,0 +1,13 @@
+block.get:
+  post:
+    tags:
+      - ChildChain
+    summary: This endpoint retrieves a specific block from child chain by its hash which was published on root chain.
+    operationId: block_get
+    requestBody:
+      $ref: 'request_bodies.yaml#/GetBlockBodySchema'
+    responses:
+      200:
+        $ref: 'responses.yaml#/BlockResponse'
+      500:
+        $ref: '../../shared/responses.yaml#/InternalServerError'
