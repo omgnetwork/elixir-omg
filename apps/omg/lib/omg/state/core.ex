@@ -22,8 +22,12 @@ defmodule OMG.State.Core do
 
   defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0]
 
-  alias OMG.{Block, Crypto, Fees, Utxo}
-  alias OMG.State.{Core, Transaction}
+  alias OMG.Block
+  alias OMG.Crypto
+  alias OMG.Fees
+  alias OMG.State.Core
+  alias OMG.State.Transaction
+  alias OMG.Utxo
 
   use OMG.Utils.LoggerExt
   require Utxo
@@ -276,7 +280,7 @@ defmodule OMG.State.Core do
   def form_block(child_block_interval, eth_height \\ nil, %Core{pending_txs: reverse_txs, height: height} = state) do
     txs = Enum.reverse(reverse_txs)
 
-    block = txs |> Block.hashed_txs_at(height)
+    block = Block.hashed_txs_at(txs, height)
 
     event_triggers =
       txs
