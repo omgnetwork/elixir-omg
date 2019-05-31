@@ -502,8 +502,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     ife_input_positions =
       ifes
       |> Map.values()
-      |> Enum.filter(&(&1.tx_seen_in_blocks_at == nil))
-      |> Enum.filter(& &1.is_active)
+      |> Enum.filter(&InFlightExitInfo.should_be_seeked_in_blocks?/1)
       |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
       |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
       |> :lists.usort()
@@ -930,7 +929,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     new_ifes =
       ifes
-      |> Enum.filter(fn {_, ife} -> ife.tx_seen_in_blocks_at == nil end)
+      |> Enum.filter(fn {_, ife} -> InFlightExitInfo.should_be_seeked_in_blocks?(ife) end)
       |> Enum.map(fn {hash, ife} ->
         {hash, ife, KnownTx.find_tx_in_blocks(hash, positions_by_tx_hash, blocks_by_blknum)}
       end)
