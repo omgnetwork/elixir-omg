@@ -17,9 +17,9 @@ defmodule OMG.Fees do
   Transaction's fee validation functions
   """
 
-  alias OMG.{Crypto, Utxo}
+  alias OMG.Crypto
   alias OMG.State.Transaction
-  alias Poison
+  alias OMG.Utxo
 
   require Utxo
 

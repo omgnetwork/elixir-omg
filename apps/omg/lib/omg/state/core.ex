@@ -22,8 +22,12 @@ defmodule OMG.State.Core do
 
   defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0]
 
-  alias OMG.{Block, Crypto, Fees, Utxo}
-  alias OMG.State.{Core, Transaction}
+  alias OMG.Block
+  alias OMG.Crypto
+  alias OMG.Fees
+  alias OMG.State.Core
+  alias OMG.State.Transaction
+  alias OMG.Utxo
 
   use OMG.Utils.LoggerExt
   require Utxo
