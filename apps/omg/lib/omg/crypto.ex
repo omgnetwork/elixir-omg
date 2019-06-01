@@ -37,7 +37,7 @@ defmodule OMG.Crypto do
   @doc """
   Recovers address of signer from binary-encoded signature.
   """
-  @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt}
+  @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt | binary}
   def recover_address(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     with {:ok, pub} <- recover_public(digest, packed_signature) do
       generate_address(pub)
@@ -48,7 +48,7 @@ defmodule OMG.Crypto do
   Recovers public key of signer from binary-encoded signature and chain id.
   Chain id parameter can be ignored when signature was created without it.
   """
-  @spec recover_public(<<_::256>>, sig_t()) :: {:ok, <<_::512>>} | {:error, :signature_corrupt}
+  @spec recover_public(<<_::256>>, sig_t) :: {:ok, <<_::512>>} | {:error, :signature_corrupt | binary}
   def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
 
@@ -72,7 +72,7 @@ defmodule OMG.Crypto do
   @doc """
   Turns hex representation of an address to a binary
   """
-  @spec decode_address(String.t() | binary) :: {:ok, address_t} | {:error, :bad_address_encoding}
+  @spec decode_address(String.t()) :: {:ok, address_t} | {:error, :bad_address_encoding}
   def decode_address("0x" <> address) when byte_size(address) == 40, do: Base.decode16(address, case: :lower)
   def decode_address(raw) when byte_size(raw) == 20, do: {:ok, raw}
   def decode_address(_), do: {:error, :bad_address_encoding}
@@ -80,7 +80,7 @@ defmodule OMG.Crypto do
   @doc """
   Returns hex representation of binary address
   """
-  @spec encode_address(binary) :: {:ok, String.t()} | {:error, :invalid_address}
+  @spec encode_address(any) :: {:ok, String.t()} | {:error, :invalid_address}
   def encode_address(address) when byte_size(address) == 20, do: {:ok, "0x" <> Base.encode16(address, case: :lower)}
   def encode_address(_), do: {:error, :invalid_address}
 
