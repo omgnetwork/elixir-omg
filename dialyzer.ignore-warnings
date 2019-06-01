@@ -1,3 +1,24 @@
 apps/omg_performance/
 apps/omg/test
 apps/omg_eth/test
+
+# TODO
+apps/omg_eth/
+apps/omg_watcher/
+apps/omg_utils/
+apps/omg_child_chain/
+apps/omg_db/
+apps/omg/lib/omg/block.ex
+apps/omg/lib/omg/fees.ex
+apps/omg/lib/omg/ethereum_client_monitor.ex
+apps/omg/lib/omg/ethereum_client_listener.ex
+apps/omg/lib/omg/ethereum_client_listener/
+apps/omg/lib/omg/ethereum_event_listener.ex
+apps/omg/lib/omg/ethereum_event_listener/
+apps/omg/lib/omg/root_chain_coordinator.ex
+apps/omg/lib/omg/root_chain_coordinator/
+apps/omg/lib/omg/signature.ex
+apps/omg/lib/omg/state.ex
+apps/omg/lib/omg/state/
+apps/omg/lib/omg/typed_data_hash.ex
+apps/omg/lib/omg/typed_data_hash/
