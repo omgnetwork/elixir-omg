@@ -9,6 +9,7 @@ apps/omg_utils/
 apps/omg_child_chain/
 apps/omg_db/
 apps/omg/lib/omg/block.ex
+apps/omg/lib/omg/crypto.ex
 apps/omg/lib/omg/fees.ex
 apps/omg/lib/omg/ethereum_client_monitor.ex
 apps/omg/lib/omg/ethereum_client_listener.ex
