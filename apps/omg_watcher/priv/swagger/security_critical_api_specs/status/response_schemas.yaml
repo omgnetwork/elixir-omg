@@ -1,7 +1,7 @@
 StatusResponseSchema:
   description: The response schema for a status
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -54,7 +54,7 @@ StatusResponseSchema:
           height: 4427029
         -
           service: "competitor_processor"
-          height: 4427029  
+          height: 4427029
         -
           service: "convenience_deposit_processor"
           height: 4427031
@@ -66,7 +66,7 @@ StatusResponseSchema:
           height: 4427031
         -
           service: "exit_challenger"
-          height: 4427029  
+          height: 4427029
         -
           service: "exit_finalizer"
           height: 4427029
@@ -78,7 +78,7 @@ StatusResponseSchema:
           height: 4427029
         -
           service: "in_flight_exit_processor"
-          height: 4427029  
+          height: 4427029
         -
           service: "piggyback_challenges_processor"
           height: 4427029

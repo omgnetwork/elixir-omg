@@ -122,7 +122,7 @@ The general idea of the apps responsibilities is:
     - see `apps/omg_child_chain/lib/omg_child_chain/application.ex` for a rundown of children processes involved
   - `omg_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
   - `omg_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
-  - `omg_rpc` - an HTTP-RPC server being the gateway to `omg_child_chain`
+  - `omg_child_chain_rpc` - an HTTP-RPC server being the gateway to `omg_child_chain`
   - `omg_performance` - performance tester for the child chain server
   - `omg_watcher` - the [Watcher](#watcher)
 
@@ -130,7 +130,7 @@ See [application architecture](docs/architecture.md) for more details.
 
 ## Child chain server
 
-`:omg_child_chain` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_rpc`.
+`:omg_child_chain` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_child_chain_rpc`.
 
 For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
 
@@ -140,7 +140,7 @@ The child chain server is listening on port `9656` by default.
 
 #### HTTP-RPC
 
-HTTP-RPC requests are served up on the port specified in `omg_rpc`'s `config` (`:omg_rpc, OMG.RPC.Web.Endpoint, http: [port: ...]`).
+HTTP-RPC requests are served up on the port specified in `omg_child_chain_rpc`'s `config` (`:omg_child_chain_rpc, OMG.RPC.Web.Endpoint, http: [port: ...]`).
 The available RPC calls are defined by `omg_child_chain` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`.
 All requests shall be POST with parameters provided in the request body in JSON object.
 Object's properties names correspond to the names of parameters. Binary values shall be hex-encoded strings.

@@ -193,7 +193,7 @@ defmodule OMG.Watcher.Fixtures do
     alias FakeServer.Agents.EnvAgent
     alias FakeServer.HTTP.Server
 
-    DeferredConfig.populate(:omg_rpc)
+    DeferredConfig.populate(:omg_child_chain_rpc)
     DeferredConfig.populate(:omg_watcher)
     {:ok, server_id, port} = Server.run()
     env = FakeServer.Env.new(port)

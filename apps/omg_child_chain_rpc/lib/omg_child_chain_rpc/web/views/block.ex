@@ -12,20 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.ChildChain.Start do
+defmodule OMG.ChildChainRPC.Web.View.Block do
   @moduledoc """
-    Contains mix.task to run the child chain server
+  The Block view for rendering json
   """
+  alias OMG.Utils.HttpRPC.Response
 
-  use Mix.Task
-
-  import XomgTasks.Utils
-
-  @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
-
-  def run(args) do
-    args
-    |> generic_prepare_args()
-    |> generic_run([:omg_child_chain_rpc, :omg_child_chain])
+  def render("block.json", %{block: block}) do
+    block
+    |> Response.sanitize()
+    |> Response.serialize()
   end
 end

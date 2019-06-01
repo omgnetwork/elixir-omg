@@ -12,20 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.ChildChain.Start do
-  @moduledoc """
-    Contains mix.task to run the child chain server
-  """
+defmodule OMG.ChildChainRPC.Web.Router do
+  use OMG.ChildChainRPC.Web, :router
 
-  use Mix.Task
+  pipeline :api do
+    plug(:accepts, ["json"])
+    plug(OMG.ChildChainRPC.Plugs.Health)
+  end
 
-  import XomgTasks.Utils
+  scope "/", OMG.ChildChainRPC.Web do
+    pipe_through(:api)
 
-  @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
+    post("/block.get", Controller.Block, :get_block)
+    post("/transaction.submit", Controller.Transaction, :submit)
 
-  def run(args) do
-    args
-    |> generic_prepare_args()
-    |> generic_run([:omg_child_chain_rpc, :omg_child_chain])
+    # NOTE: This *has to* be the last route, catching all unhandled paths
+    match(:*, "/*path", Controller.Fallback, Route.NotFound)
   end
 end

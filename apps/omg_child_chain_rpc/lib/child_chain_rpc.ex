@@ -12,20 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.ChildChain.Start do
+defmodule OMG.ChildChainRPC do
   @moduledoc """
-    Contains mix.task to run the child chain server
+  A device to expose child chain server's or watcher's API as HTTP-RPC, by means of Phoenix
   """
-
-  use Mix.Task
-
-  import XomgTasks.Utils
-
-  @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
-
-  def run(args) do
-    args
-    |> generic_prepare_args()
-    |> generic_run([:omg_child_chain_rpc, :omg_child_chain])
-  end
 end
