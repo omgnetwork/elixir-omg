@@ -31,10 +31,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher
+  alias OMG.WatcherRPC.Web.Channel
   alias Watcher.Event
   alias Watcher.Integration.TestHelper, as: IntegrationTest
   alias Watcher.TestHelper
-  alias Watcher.Web.Channel
 
   require Utxo
   import ExUnit.CaptureLog
@@ -45,7 +45,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  @endpoint OMG.Watcher.Web.Endpoint
+  @endpoint OMG.WatcherRPC.Web.Endpoint
 
   @tag timeout: 100_000
   @tag fixtures: [:watcher, :child_chain, :alice, :bob, :alice_deposits, :token]
@@ -66,7 +66,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # start spending and exiting to see if watcher integrates all the pieces
     {:ok, _, _socket} =
       subscribe_and_join(
-        socket(OMG.Watcher.Web.Socket),
+        socket(OMG.WatcherRPC.Web.Socket),
         Channel.Transfer,
         TestHelper.create_topic("transfer", alice_address)
       )

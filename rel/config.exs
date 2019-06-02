@@ -31,6 +31,7 @@ release :watcher do
     applications: [
       :runtime_tools,
       omg_watcher: :permanent,
+      omg_watcher_rpc: :permanent,
       omg: :permanent,
       omg_status: :permanent,
       omg_db: :permanent,

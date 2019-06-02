@@ -22,7 +22,9 @@ defmodule OMG.Watcher.TestHelper do
   require Utxo
 
   import ExUnit.Assertions
-  use Plug.Test
+  use Phoenix.ConnTest
+
+  @endpoint OMG.WatcherRPC.Web.Endpoint
 
   def wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do
     ref = Process.monitor(pid)
@@ -55,18 +57,10 @@ defmodule OMG.Watcher.TestHelper do
   end
 
   def rpc_call(path, body \\ nil, expected_resp_status \\ 200) do
-    request =
-      conn(:post, path, body)
-      |> put_req_header("content-type", "application/json")
+    response = post(put_req_header(build_conn(), "content-type", "application/json"), path, body)
 
-    response = request |> send_request
     assert response.status == expected_resp_status
     Jason.decode!(response.resp_body)
-  end
-
-  defp send_request(req) do
-    req
-    |> OMG.Watcher.Web.Endpoint.call([])
   end
 
   def create_topic(main_topic, subtopic), do: main_topic <> ":" <> subtopic
