@@ -27,15 +27,14 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.Web.Channel
 
   require Utxo
-
-  @endpoint OMG.Watcher.Web.Endpoint
 
   @moduletag :integration
   @moduletag :watcher
   @moduletag timeout: 180_000
+
+  @endpoint OMG.WatcherRPC.Web.Endpoint
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -49,8 +48,8 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
 
     {:ok, _, _socket} =
       subscribe_and_join(
-        socket(OMG.Watcher.Web.Socket),
-        Channel.Exit,
+        socket(OMG.WatcherRPC.Web.Socket),
+        OMG.WatcherRPC.Web.Channel.Exit,
         TestHelper.create_topic("exit", encoded_alice_address)
       )
 

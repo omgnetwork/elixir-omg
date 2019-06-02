@@ -26,11 +26,18 @@ defmodule OMG.InternalEventBus do
 
   Message: {:internal_event_bus, :enqueue_block, OMG.Block.t()}
 
+  #### `preprocess_emit_events`
+
+  Decoupling API from Watcher core - Enrich data before broadcast
+
+  Message: {;internal_event, :preprocess_emit_events, list()}
+
   #### `emit_events`
 
   Is being broadcast to all nodes whenever an event trigger, that should be turned into a push event in `Eventer` occurs
 
   Message: {;internal_event, :emit_events, list()}
+
   """
   alias Phoenix.PubSub
 

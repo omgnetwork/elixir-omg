@@ -1,21 +1,5 @@
 use Mix.Config
 
-# For development, we disable any cache and enable
-# debugging and code reloading.
-#
-# The watchers configuration can be used to run external
-# watchers to your application. For example, we use it
-# with brunch.io to recompile .js and .css sources.
-config :omg_watcher, OMG.Watcher.Web.Endpoint,
-  secret_key_base: "UIJuXFLCQAeodDwZmnMc54RnY5rUefwgPIPbJsYHf0ZJ57Lf3tpoj8WYqT7+Rfmt",
-  http: [port: {:system, "PORT", 7434, {String, :to_integer}}],
-  url: [host: "localhost", port: 7434],
-  debug_errors: true,
-  code_reloader: false,
-  check_origin: false,
-  watchers: [],
-  server: true
-
 config :omg_watcher, environment: :dev
 
 # ## SSL Support

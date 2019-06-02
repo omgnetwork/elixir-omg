@@ -44,7 +44,6 @@ defmodule OMG.Watcher.API.Account do
     # OMG.DB.utxos() takes a while.
     {:ok, utxos} = OMG.DB.utxos()
 
-    utxos
-    |> OMG.State.Core.standard_exitable_utxos(address)
+    OMG.State.Core.standard_exitable_utxos(utxos, address)
   end
 end
