@@ -28,7 +28,7 @@ defmodule OMG.Umbrella.MixProject do
       {:distillery, "~> 2.0", runtime: false},
       {:dialyxir, "~> 1.0.0-rc.6", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.10.6", only: [:test], runtime: false},
+      {:excoveralls, "~> 0.11.1", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
         :ex_unit_fixtures,

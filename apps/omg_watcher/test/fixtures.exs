@@ -119,7 +119,7 @@ defmodule OMG.Watcher.Fixtures do
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
     {:ok, started_watcher_api} = Application.ensure_all_started(:omg_watcher_rpc)
 
-    [] = DB.Block.get_all()
+    [] = DB.Repo.all(DB.Block)
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)

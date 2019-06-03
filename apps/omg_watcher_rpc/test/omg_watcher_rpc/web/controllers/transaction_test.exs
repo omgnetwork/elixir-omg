@@ -58,7 +58,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
            ]}
         ])
 
-      %DB.Block{timestamp: timestamp, eth_height: eth_height, hash: block_hash} = DB.Block.get(blknum)
+      %DB.Block{timestamp: timestamp, eth_height: eth_height, hash: block_hash} = get_block(blknum)
       bob_addr = bob.addr |> Encoding.to_hex()
       alice_addr = alice.addr |> Encoding.to_hex()
       txhash = txhash |> Encoding.to_hex()
@@ -167,7 +167,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     test "returns multiple transactions in expected format", %{initial_blocks: initial_blocks} do
       {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> Enum.reverse() |> hd()
 
-      %DB.Block{timestamp: timestamp, eth_height: eth_height, hash: block_hash} = DB.Block.get(blknum)
+      %DB.Block{timestamp: timestamp, eth_height: eth_height, hash: block_hash} = get_block(blknum)
       txhash = txhash |> Encoding.to_hex()
       block_hash = block_hash |> Encoding.to_hex()
 
@@ -1098,6 +1098,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
   end
+
+  defp get_block(blknum), do: DB.Repo.get(DB.Block, blknum)
 
   defp from_hex!(hex) do
     {:ok, result} = Encoding.from_hex(hex)
