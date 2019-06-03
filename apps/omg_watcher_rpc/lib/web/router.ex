@@ -17,7 +17,6 @@ defmodule OMG.WatcherRPC.Web.Router do
 
   pipeline :api do
     plug(:accepts, ["json"])
-    plug(:enforce_json_content)
   end
 
   scope "/", OMG.WatcherRPC.Web do
@@ -46,22 +45,5 @@ defmodule OMG.WatcherRPC.Web.Router do
 
     # NOTE: This *has to* be the last route, catching all unhandled paths
     match(:*, "/*path", Controller.Fallback, Route.NotFound)
-  end
-
-  def enforce_json_content(conn, _opts) do
-    headers = conn |> get_req_header("content-type")
-
-    if "application/json" in headers do
-      conn
-    else
-      conn
-      |> json(
-        OMG.Utils.HttpRPC.Error.serialize(
-          "operation:invalid_content",
-          "Content type of application/json header is required for all requests."
-        )
-      )
-      |> halt()
-    end
   end
 end
