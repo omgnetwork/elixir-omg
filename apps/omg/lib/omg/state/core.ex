@@ -204,14 +204,21 @@ defmodule OMG.State.Core do
   defp get_input_utxos(utxos, inputs) do
     inputs
     |> Enum.reduce_while({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
+    |> reverse()
   end
 
   defp get_utxos(utxos, position, {:ok, acc}) do
     case Map.get(utxos, position) do
-      nil -> {:halt, {:error, :utxo_not_found}}
-      found -> {:cont, {:ok, acc ++ [found]}}
+      nil ->
+        {:halt, {:error, :utxo_not_found}}
+
+      found ->
+        {:cont, {:ok, [found | acc]}}
     end
   end
+
+  defp reverse({:ok, input_utxos}), do: {:ok, Enum.reverse(input_utxos)}
+  defp reverse(result), do: result
 
   defp get_amounts_by_currency(utxos) do
     utxos

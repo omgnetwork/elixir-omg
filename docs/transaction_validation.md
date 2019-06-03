@@ -4,7 +4,7 @@ NOTE:
 * input = utxo
 
 This document presents current way of stateless and stateful validation of
-`OMG.ChildChain.submit(encoded_signed_tx)` method.
+`OMG.ChildChain.submit(encoded_signed_tx)` function.
 
 #### Stateless validation
 
