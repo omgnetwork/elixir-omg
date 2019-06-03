@@ -22,9 +22,9 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   use Plug.Test
 
   alias OMG.Block
+  alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
   alias OMG.Integration.DepositHelper
-  alias OMG.RPC.Web.TestHelper
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo

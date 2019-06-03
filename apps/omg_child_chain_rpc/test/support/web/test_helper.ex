@@ -12,20 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.ChildChain.Start do
+defmodule OMG.ChildChainRPC.Web.TestHelper do
   @moduledoc """
-    Contains mix.task to run the child chain server
+  Provides common testing functions used by App's tests.
   """
 
-  use Mix.Task
+  import ExUnit.Assertions
+  use Plug.Test
 
-  import XomgTasks.Utils
+  def rpc_call(method, path, params_or_body \\ nil) do
+    request =
+      conn(method, path, params_or_body)
+      |> put_req_header("content-type", "application/json")
 
-  @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
+    response = request |> send_request
 
-  def run(args) do
-    args
-    |> generic_prepare_args()
-    |> generic_run([:omg_child_chain_rpc, :omg_child_chain])
+    assert response.status == 200
+
+    Jason.decode!(response.resp_body)
+  end
+
+  defp send_request(req) do
+    req
+    |> OMG.ChildChainRPC.Web.Endpoint.call([])
   end
 end

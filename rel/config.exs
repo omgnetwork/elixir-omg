@@ -62,11 +62,11 @@ release :child_chain do
     applications: [
       :runtime_tools,
       omg_child_chain: :permanent,
+      omg_child_chain_rpc: :permanent,
       omg: :permanent,
       omg_status: :permanent,
       omg_db: :permanent,
-      omg_eth: :permanent,
-      omg_rpc: :permanent
+      omg_eth: :permanent
     ]
   )
 

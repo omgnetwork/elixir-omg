@@ -1,6 +1,6 @@
 GetAllTransactionsResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseListResponseSchema'
+  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseListResponseSchema'
   - type: object
     properties:
       data:
@@ -25,7 +25,7 @@ GetAllTransactionsResponseSchema:
 
 CreateTransactionResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -37,7 +37,7 @@ CreateTransactionResponseSchema:
         transactions:
           -
             inputs:
-              - 
+              -
                 blknum: 123000
                 txindex: 111
                 oindex: 0
@@ -45,7 +45,7 @@ CreateTransactionResponseSchema:
                 owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                 currency: '0x0000000000000000000000000000000000000000'
                 amount: 50
-              - 
+              -
                 blknum: 277000
                 txindex: 2340
                 oindex: 3
@@ -71,7 +71,7 @@ CreateTransactionResponseSchema:
 
 GetTransactionResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:

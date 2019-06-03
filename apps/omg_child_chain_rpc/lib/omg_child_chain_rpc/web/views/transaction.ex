@@ -12,20 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.ChildChain.Start do
+defmodule OMG.ChildChainRPC.Web.View.Transaction do
   @moduledoc """
-    Contains mix.task to run the child chain server
+  The Transaction submission view for rendering json
   """
 
-  use Mix.Task
+  alias OMG.Utils.HttpRPC.Response
 
-  import XomgTasks.Utils
-
-  @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
-
-  def run(args) do
-    args
-    |> generic_prepare_args()
-    |> generic_run([:omg_child_chain_rpc, :omg_child_chain])
+  def render("submit.json", %{result: result}) do
+    result
+    |> Response.sanitize()
+    |> Response.serialize()
   end
 end

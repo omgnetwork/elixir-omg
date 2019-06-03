@@ -12,20 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.ChildChain.Start do
-  @moduledoc """
-    Contains mix.task to run the child chain server
-  """
+defmodule OMG.ChildChainRPC.Web.Controller.FallbackTest do
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
 
-  use Mix.Task
+  alias OMG.ChildChainRPC.Web.TestHelper
 
-  import XomgTasks.Utils
-
-  @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
-
-  def run(args) do
-    args
-    |> generic_prepare_args()
-    |> generic_run([:omg_child_chain_rpc, :omg_child_chain])
+  @tag fixtures: [:phoenix_sandbox]
+  test "returns error for non existing method" do
+    assert %{
+             "success" => false,
+             "data" => %{
+               "object" => "error",
+               "code" => "operation:not_found",
+               "description" => "Operation cannot be found. Check request URL."
+             }
+           } = TestHelper.rpc_call(:post, "no_such.endpoint", %{})
   end
 end

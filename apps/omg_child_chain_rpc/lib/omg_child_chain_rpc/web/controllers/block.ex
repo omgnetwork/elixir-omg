@@ -12,20 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.ChildChain.Start do
+defmodule OMG.ChildChainRPC.Web.Controller.Block do
   @moduledoc """
-    Contains mix.task to run the child chain server
+  Provides endpoint action to retrieve block details of published Plasma block.
   """
 
-  use Mix.Task
+  use OMG.ChildChainRPC.Web, :controller
 
-  import XomgTasks.Utils
+  alias OMG.ChildChainRPC.Web.View
 
-  @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
+  @api_module Application.fetch_env!(:omg_child_chain_rpc, :child_chain_api_module)
 
-  def run(args) do
-    args
-    |> generic_prepare_args()
-    |> generic_run([:omg_child_chain_rpc, :omg_child_chain])
+  def get_block(conn, params) do
+    with {:ok, hash} <- expect(params, "hash", :hash),
+         {:ok, block} <- apply(@api_module, :get_block, [hash]) do
+      conn
+      |> put_view(View.Block)
+      |> render(:block, block: block)
+    end
   end
 end

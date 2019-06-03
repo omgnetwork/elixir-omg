@@ -14,7 +14,7 @@ transaction.all:
       200:
         $ref: 'responses.yaml#/GetAllTransactionsResponse'
       500:
-        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
 
 transaction.create:
     post:
@@ -31,7 +31,7 @@ transaction.create:
         200:
           $ref: 'responses.yaml#/CreateTransactionResponse'
         500:
-          $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+          $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
 
 transaction.get:
   post:
@@ -45,7 +45,7 @@ transaction.get:
       200:
         $ref: 'responses.yaml#/GetTransactionResponse'
       500:
-        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
 
 transaction.get_by_position:
   post:
@@ -60,4 +60,4 @@ transaction.get_by_position:
       200:
         $ref: 'responses.yaml#/GetTransactionResponse'
       500:
-        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
