@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Eventer do
+defmodule OMG.WatcherRPC.BroadcastEvent do
   @moduledoc """
   Imperative shell for handling events, which are exposed to the client of the Watcher application.
   All handling of event triggers that are processed, transformed into events and pushed to Phoenix Channels
@@ -36,8 +36,8 @@ defmodule OMG.WatcherRPC.Eventer do
   use GenServer
 
   def init(:ok) do
-    # `link: true` because we want the `Eventer` to restart and resubscribe, if the bus crashes
-    :ok = OMG.InternalEventBus.subscribe("broadcast_events", link: true)
+    # `link: true` because we want the `BroadcastEvent` to restart and resubscribe, if the bus crashes
+    :ok = OMG.InternalEventBus.subscribe("broadcast_event", link: true)
 
     {:ok, nil}
   end

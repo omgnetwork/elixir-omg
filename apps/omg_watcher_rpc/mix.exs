@@ -42,14 +42,8 @@ defmodule OMG.WatcherRPC.Mixfile do
       {:appsignal, "~> 1.0"},
       # UMBRELLA
 
-      {:omg_status, in_umbrella: true},
       {:omg_utils, in_umbrella: true},
       {:omg_watcher, in_umbrella: true}
-
-      # TEST ONLY
-      # here only to leverage common test helpers and code
-      # {:fake_server, "~> 1.5", only: [:dev, :test], runtime: false},
-      # {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false}
     ]
   end
 

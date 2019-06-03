@@ -563,7 +563,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   defp all_tx_executions_ok?(tx_execution_results) do
-    case Enum.find(tx_execution_results, &(!match?({:ok, {_, _, _}}, &1))) do
+    Enum.find(tx_execution_results, &(!match?({:ok, {_, _, _}}, &1)))
+    |> case do
       nil -> true
       other -> other
     end
