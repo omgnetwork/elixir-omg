@@ -19,7 +19,6 @@ defmodule OMG.Watcher.ExitProcessor do
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
-  # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Block
   alias OMG.DB
   alias OMG.Eth
@@ -27,6 +26,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.Eventer.Core
+  # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.StandardExitChallenge

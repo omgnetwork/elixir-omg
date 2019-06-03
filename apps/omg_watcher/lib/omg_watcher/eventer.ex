@@ -45,8 +45,14 @@ defmodule OMG.Watcher.Eventer do
 
   def handle_info({:internal_event_bus, :preprocess_emit_events, event_triggers}, nil) do
     :ok =
-      OMG.InternalEventBus.broadcast("broadcast_events", {:emit_events, Core.pair_events_with_topics(event_triggers)})
+      event_triggers
+      |> Core.pair_events_with_topics()
+      |> do_broadcast()
 
     {:noreply, nil}
+  end
+
+  defp do_broadcast(event_triggers) do
+    OMG.InternalEventBus.broadcast("broadcast_event", {:emit_events, event_triggers})
   end
 end

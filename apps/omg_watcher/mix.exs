@@ -32,11 +32,9 @@ defmodule OMG.Watcher.Mixfile do
 
   defp deps do
     [
-      # {:phoenix_ecto, "~> 4.0"},
       {:postgrex, "~> 0.14"},
       {:ecto_sql, "~> 3.1"},
       {:deferred_config, "~> 0.1.1"},
-      # {:cors_plug, "~> 2.0"},
       {:appsignal, "~> 1.0"},
       # UMBRELLA
       {:omg, in_umbrella: true},

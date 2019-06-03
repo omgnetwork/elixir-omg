@@ -44,7 +44,7 @@ defmodule OMG.Watcher.DB.EthEvent do
   """
   @spec insert_deposits!([OMG.State.Core.deposit()]) :: :ok
   def insert_deposits!(deposits) do
-    Enum.each(deposits, &insert_deposit!/1)
+    deposits |> Enum.each(&insert_deposit!/1)
   end
 
   @spec insert_deposit!(OMG.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
