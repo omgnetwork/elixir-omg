@@ -37,7 +37,7 @@ defmodule OMG.Crypto do
   @doc """
   Recovers address of signer from binary-encoded signature.
   """
-  @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt | binary}
+  @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt | atom}
   def recover_address(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     with {:ok, pub} <- recover_public(digest, packed_signature) do
       generate_address(pub)
@@ -48,7 +48,7 @@ defmodule OMG.Crypto do
   Recovers public key of signer from binary-encoded signature and chain id.
   Chain id parameter can be ignored when signature was created without it.
   """
-  @spec recover_public(<<_::256>>, sig_t) :: {:ok, <<_::512>>} | {:error, :signature_corrupt | binary}
+  @spec recover_public(<<_::256>>, sig_t) :: {:ok, <<_::512>>} | {:error, :signature_corrupt | atom}
   def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
 
