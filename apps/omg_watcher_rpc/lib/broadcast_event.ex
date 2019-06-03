@@ -14,13 +14,7 @@
 
 defmodule OMG.WatcherRPC.BroadcastEvent do
   @moduledoc """
-  Imperative shell for handling events, which are exposed to the client of the Watcher application.
-  All handling of event triggers that are processed, transformed into events and pushed to Phoenix Channels
-  for their respective topics is intended to be done here.
-
-  The event triggers (which get later translated into specific events/topics etc.) arrive here via `OMG.InternalEventBus`
-
-  See `OMG.EventerAPI` for the API to the GenServer
+  All handling of event triggers that are already processed, transformed into events and pushed to Phoenix Channels.
   """
 
   alias OMG.Utils.HttpRPC.Response
