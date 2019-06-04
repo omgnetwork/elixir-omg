@@ -15,18 +15,15 @@
 defmodule OMG.Watcher.Eventer do
   @moduledoc """
   Imperative shell for handling events, which are exposed to the client of the Watcher application.
-  All handling of event triggers that are processed, transformed into events and pushed to Phoenix Channels
-  for their respective topics is intended to be done here.
+  All handling of event triggers that are processed, transformed into events and pushed to the internal EventBus where they get consumed by Phoenix Eventer module.
 
   The event triggers (which get later translated into specific events/topics etc.) arrive here via `OMG.InternalEventBus`
 
   See `OMG.EventerAPI` for the API to the GenServer
   """
 
-  alias OMG.Utils.HttpRPC.Response
   alias OMG.Watcher.Eventer.Core
   alias OMG.Watcher.Recorder
-  alias OMG.Watcher.Web.Endpoint
   ### Client
 
   def start_link(_args) do
@@ -46,18 +43,16 @@ defmodule OMG.Watcher.Eventer do
     {:ok, nil}
   end
 
-  def handle_info({:internal_event_bus, :emit_events, event_triggers}, nil) do
-    event_triggers
-    |> Core.pair_events_with_topics()
-    |> Enum.each(fn {topic, event_name, event} ->
-      :ok =
-        Endpoint.broadcast!(
-          topic,
-          event_name,
-          event |> Response.sanitize()
-        )
-    end)
+  def handle_info({:internal_event_bus, :preprocess_emit_events, event_triggers}, nil) do
+    :ok =
+      event_triggers
+      |> Core.pair_events_with_topics()
+      |> do_broadcast()
 
     {:noreply, nil}
+  end
+
+  defp do_broadcast(event_triggers) do
+    OMG.InternalEventBus.broadcast("broadcast_event", {:emit_events, event_triggers})
   end
 end

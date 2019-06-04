@@ -143,7 +143,7 @@ defmodule OMG.State do
   def handle_call({:deposits, deposits}, _from, state) do
     {:ok, {event_triggers, db_updates}, new_state} = Core.deposit(deposits, state)
 
-    :ok = OMG.InternalEventBus.broadcast("events", {:emit_events, event_triggers})
+    :ok = OMG.InternalEventBus.broadcast("events", {:preprocess_emit_events, event_triggers})
 
     {:reply, {:ok, db_updates}, new_state}
   end
@@ -217,7 +217,7 @@ defmodule OMG.State do
   end
 
   defp publish_block_to_event_bus(block, event_triggers) do
-    :ok = OMG.InternalEventBus.broadcast("events", {:emit_events, event_triggers})
+    :ok = OMG.InternalEventBus.broadcast("events", {:preprocess_emit_events, event_triggers})
     :ok = OMG.InternalEventBus.direct_local_broadcast("blocks", {:enqueue_block, block})
   end
 end
