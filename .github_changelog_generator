@@ -1,4 +1,4 @@
-issues=false
+issues=true
 issues-wo-labels=false
 unreleased=false
 since-tag=v0.0.1
