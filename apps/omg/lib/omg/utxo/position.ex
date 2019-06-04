@@ -77,7 +77,7 @@ defmodule OMG.Utxo.Position do
   defp get_position(encoded) when is_integer(encoded) and encoded > 0 do
     blknum = div(encoded, @block_offset)
     txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
-    oindex = rem(encoded, @transaction_offset) |> trunc() |> abs()
+    oindex = rem(encoded, @transaction_offset)
     {blknum, txindex, oindex}
   end
 
