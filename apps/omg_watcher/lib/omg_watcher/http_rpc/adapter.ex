@@ -46,7 +46,7 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
          %{"success" => true, "data" => data} <- response do
       {
         :ok,
-        data |> convert_keys_to_atoms()
+        convert_keys_to_atoms(data)
       }
     else
       %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
@@ -61,9 +61,7 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
 
   defp convert_keys_to_atoms(data) when is_map(data) do
     data
-    |> Stream.map(fn {k, v} ->
-      {String.to_existing_atom(k), v}
-    end)
+    |> Stream.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
     |> Map.new()
   end
 end

@@ -28,9 +28,6 @@ defmodule OMG.Watcher.DB.Block do
     field(:timestamp, :integer)
   end
 
-  def get(blknum), do: DB.Repo.get(__MODULE__, blknum)
-  def get_all, do: DB.Repo.all(__MODULE__)
-
   def get_max_blknum do
     DB.Repo.aggregate(__MODULE__, :max, :blknum)
   end

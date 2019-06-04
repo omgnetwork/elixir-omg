@@ -23,12 +23,6 @@ config :omg_watcher,
   convenience_api_mode: false
 
 # Configures the endpoint
-config :omg_watcher, OMG.Watcher.Web.Endpoint,
-  secret_key_base: {:system, "SECRET_KEY_BASE"},
-  render_errors: [view: OMG.Watcher.Web.Views.Error, accepts: ~w(json)],
-  pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2],
-  instrumenters: [Appsignal.Phoenix.Instrumenter],
-  enable_cors: true
 
 config :omg_watcher, OMG.Watcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,

@@ -35,9 +35,6 @@ defmodule OMG.Watcher.DB.EthEvent do
     has_one(:exited_utxo, DB.TxOutput, foreign_key: :spending_exit)
   end
 
-  def get(hash), do: DB.Repo.get(__MODULE__, hash)
-  def get_all, do: DB.Repo.all(__MODULE__)
-
   @doc """
   Inserts deposits based on a list of event maps (if not already inserted before)
   """
@@ -49,7 +46,7 @@ defmodule OMG.Watcher.DB.EthEvent do
   @spec insert_deposit!(OMG.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   defp insert_deposit!(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
     {:ok, _} =
-      if existing_deposit = get(deposit_key(blknum)) != nil,
+      if existing_deposit = DB.Repo.get(__MODULE__, deposit_key(blknum)) != nil,
         do: {:ok, existing_deposit},
         else:
           %__MODULE__{
@@ -113,4 +110,6 @@ defmodule OMG.Watcher.DB.EthEvent do
 
   defp deposit_key(blknum), do: generate_unique_key(Utxo.position(blknum, 0, 0), :deposit)
   defp exit_key(position), do: generate_unique_key(position, :exit)
+
+  defp get(hash), do: DB.Repo.get(__MODULE__, hash)
 end

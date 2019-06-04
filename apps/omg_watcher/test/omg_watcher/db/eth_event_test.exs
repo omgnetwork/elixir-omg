@@ -30,7 +30,7 @@ defmodule OMG.Watcher.DB.EthEventTest do
     expected_hash = DB.EthEvent.generate_unique_key(Utxo.position(1, 0, 0), :deposit)
     DB.EthEvent.insert_deposits!([%{blknum: 1, owner: owner, currency: @eth, amount: 1}])
 
-    [event] = DB.EthEvent.get_all()
+    [event] = DB.Repo.all(DB.EthEvent)
     assert %DB.EthEvent{blknum: 1, txindex: 0, event_type: :deposit, hash: ^expected_hash} = event
 
     utxo = DB.TxOutput.get_by_position(Utxo.position(1, 0, 0))
@@ -57,15 +57,15 @@ defmodule OMG.Watcher.DB.EthEventTest do
 
     hash1 = DB.EthEvent.generate_unique_key(Utxo.position(1, 0, 0), :deposit)
 
-    assert %DB.EthEvent{blknum: 1, txindex: 0, event_type: :deposit, hash: ^hash1} = DB.EthEvent.get(hash1)
+    assert %DB.EthEvent{blknum: 1, txindex: 0, event_type: :deposit, hash: ^hash1} = DB.Repo.get(DB.EthEvent, hash1)
 
     hash2 = DB.EthEvent.generate_unique_key(Utxo.position(1000, 0, 0), :deposit)
 
-    assert %DB.EthEvent{blknum: 1000, txindex: 0, event_type: :deposit, hash: ^hash2} = DB.EthEvent.get(hash2)
+    assert %DB.EthEvent{blknum: 1000, txindex: 0, event_type: :deposit, hash: ^hash2} = DB.Repo.get(DB.EthEvent, hash2)
 
     hash3 = DB.EthEvent.generate_unique_key(Utxo.position(2013, 0, 0), :deposit)
 
-    assert %DB.EthEvent{blknum: 2013, txindex: 0, event_type: :deposit, hash: ^hash3} = DB.EthEvent.get(hash3)
+    assert %DB.EthEvent{blknum: 2013, txindex: 0, event_type: :deposit, hash: ^hash3} = DB.Repo.get(DB.EthEvent, hash3)
 
     assert [hash1, hash2, hash3] == DB.TxOutput.get_utxos(alice.addr) |> Enum.map(& &1.creating_deposit)
   end
@@ -82,10 +82,10 @@ defmodule OMG.Watcher.DB.EthEventTest do
     :ok = DB.EthEvent.insert_exits!(to_insert)
 
     assert %DB.EthEvent{blknum: 2, txindex: 0, event_type: :exit, hash: ^bobs_deposit_exit_hash} =
-             DB.EthEvent.get(bobs_deposit_exit_hash)
+             DB.Repo.get(DB.EthEvent, bobs_deposit_exit_hash)
 
     assert %DB.EthEvent{blknum: 3000, txindex: 1, event_type: :exit, hash: ^alices_utxo_exit_hash} =
-             DB.EthEvent.get(alices_utxo_exit_hash)
+             DB.Repo.get(DB.EthEvent, alices_utxo_exit_hash)
 
     assert %DB.TxOutput{amount: 100, spending_tx_oindex: nil, spending_exit: ^bobs_deposit_exit_hash} =
              DB.TxOutput.get_by_position(bobs_deposit_pos)

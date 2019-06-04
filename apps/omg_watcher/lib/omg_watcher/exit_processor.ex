@@ -25,6 +25,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
+  alias OMG.Watcher.Eventer.Core
   # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -253,7 +254,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
     {new_state, event_triggers, db_updates} = Core.finalize_exits(state, validities)
 
-    :ok = OMG.InternalEventBus.broadcast("events", {:emit_events, event_triggers})
+    :ok = OMG.InternalEventBus.broadcast("events", {:preprocess_emit_events, event_triggers})
 
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end

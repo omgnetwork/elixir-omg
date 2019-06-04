@@ -87,15 +87,16 @@ defmodule OMG.State do
   Start processing state using the database entries
   """
   def init(:ok) do
-    # Get utxos() is essential for the State and Blockgetter. And it takes a while. TODO - measure it!
+    # Get data essential for the State and Blockgetter. And it takes a while. TODO - measure it!
     # Our approach is simply blocking the supervision boot tree
     # until we've processed history.
-    {:ok, DB.utxos(), {:continue, :setup}}
-  end
-
-  def handle_continue(:setup, {:ok, utxos_query_result}) do
+    {:ok, utxos_query_result} = DB.utxos()
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, last_deposit_query_result} = DB.get_single_value(:last_deposit_child_blknum)
+    {:ok, [utxos_query_result, height_query_result, last_deposit_query_result], {:continue, :setup}}
+  end
+
+  def handle_continue(:setup, [utxos_query_result, height_query_result, last_deposit_query_result]) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     {:ok, state} =
@@ -142,7 +143,7 @@ defmodule OMG.State do
   def handle_call({:deposits, deposits}, _from, state) do
     {:ok, {event_triggers, db_updates}, new_state} = Core.deposit(deposits, state)
 
-    :ok = OMG.InternalEventBus.broadcast("events", {:emit_events, event_triggers})
+    :ok = OMG.InternalEventBus.broadcast("events", {:preprocess_emit_events, event_triggers})
 
     {:reply, {:ok, db_updates}, new_state}
   end
@@ -216,7 +217,7 @@ defmodule OMG.State do
   end
 
   defp publish_block_to_event_bus(block, event_triggers) do
-    :ok = OMG.InternalEventBus.broadcast("events", {:emit_events, event_triggers})
+    :ok = OMG.InternalEventBus.broadcast("events", {:preprocess_emit_events, event_triggers})
     :ok = OMG.InternalEventBus.direct_local_broadcast("blocks", {:enqueue_block, block})
   end
 end
