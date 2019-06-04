@@ -168,18 +168,19 @@ defmodule OMG.State.Core do
     tx_hash = Transaction.raw_txhash(tx)
     outputs = Transaction.get_outputs(tx)
 
-    with :ok <- validate_block_size(state),
-         {:ok, input_amounts_by_currency} <- correct_inputs?(state, tx),
-         output_amounts_by_currency = get_amounts_by_currency(outputs),
-         :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
-         :ok <- transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
-      {:ok, {tx_hash, height, tx_index},
-       state
-       |> apply_spend(tx)
-       |> add_pending_tx(tx)}
-    else
-      {:error, _reason} = error -> {error, state}
-    end
+    # with :ok <- validate_block_size(state),
+    #      {:ok, input_amounts_by_currency} <- correct_inputs?(state, tx),
+    #      output_amounts_by_currency = get_amounts_by_currency(outputs),
+    #      :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
+    #      :ok <- transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
+    #   {:ok, {tx_hash, height, tx_index},
+    #    state
+    #    |> apply_spend(tx)
+    #    |> add_pending_tx(tx)}
+    # else
+    #   {:error, _reason} = error -> {error, state}
+    # end
+    #Stateful validation
   end
 
   defp correct_inputs?(%Core{utxos: utxos} = state, tx) do
@@ -201,6 +202,7 @@ defmodule OMG.State.Core do
     if no_utxo_from_future_block, do: :ok, else: {:error, :input_utxo_ahead_of_state}
   end
 
+  @spec get_input_utxos(utxos(), list(OMG.Utxo.Position.t())) :: {:ok, list(OMG.Utxo.t())} | {:error, :utxo_not_found}
   defp get_input_utxos(utxos, inputs) do
     inputs
     |> Enum.reduce_while({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
@@ -220,6 +222,7 @@ defmodule OMG.State.Core do
   defp reverse({:ok, input_utxos}), do: {:ok, Enum.reverse(input_utxos)}
   defp reverse(result), do: result
 
+  @spec get_amounts_by_currency(list(OMG.Utxo)) :: map()
   defp get_amounts_by_currency(utxos) do
     utxos
     |> Enum.group_by(fn %{currency: currency} -> currency end, fn %{amount: amount} -> amount end)
@@ -227,6 +230,7 @@ defmodule OMG.State.Core do
     |> Map.new()
   end
 
+  @spec amounts_add_up?(map(), map()) :: :ok | {:error, :amounts_do_not_add_up}
   defp amounts_add_up?(input_amounts, output_amounts) do
     for {output_currency, output_amount} <- Map.to_list(output_amounts) do
       input_amount = Map.get(input_amounts, output_currency, 0)
