@@ -87,15 +87,16 @@ defmodule OMG.State do
   Start processing state using the database entries
   """
   def init(:ok) do
-    # Get utxos() is essential for the State and Blockgetter. And it takes a while. TODO - measure it!
+    # Get data essential for the State and Blockgetter. And it takes a while. TODO - measure it!
     # Our approach is simply blocking the supervision boot tree
     # until we've processed history.
-    {:ok, DB.utxos(), {:continue, :setup}}
-  end
-
-  def handle_continue(:setup, {:ok, utxos_query_result}) do
+    {:ok, utxos_query_result} = DB.utxos()
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, last_deposit_query_result} = DB.get_single_value(:last_deposit_child_blknum)
+    {:ok, [utxos_query_result, height_query_result, last_deposit_query_result], {:continue, :setup}}
+  end
+
+  def handle_continue(:setup, [utxos_query_result, height_query_result, last_deposit_query_result]) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     {:ok, state} =
