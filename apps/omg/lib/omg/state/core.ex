@@ -168,19 +168,23 @@ defmodule OMG.State.Core do
     tx_hash = Transaction.raw_txhash(tx)
     outputs = Transaction.get_outputs(tx)
 
-    # with :ok <- validate_block_size(state),
-    #      {:ok, input_amounts_by_currency} <- correct_inputs?(state, tx),
-    #      output_amounts_by_currency = get_amounts_by_currency(outputs),
-    #      :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
-    #      :ok <- transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
-    #   {:ok, {tx_hash, height, tx_index},
-    #    state
-    #    |> apply_spend(tx)
-    #    |> add_pending_tx(tx)}
-    # else
-    #   {:error, _reason} = error -> {error, state}
-    # end
-    #Stateful validation
+    with :ok <- validate_block_size(state),
+         {:ok, input_amounts_by_currency} <- correct_inputs?(state, tx),
+         output_amounts_by_currency = get_amounts_by_currency(outputs),
+         :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
+         :ok <- transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
+      {:ok, {tx_hash, height, tx_index},
+       state
+       |> apply_spend(tx)
+       |> add_pending_tx(tx)}
+    else
+      {:error, _reason} = error -> {error, state}
+    end
+
+    # Stateful validation
+    # [
+    #   &validate_block_size/1
+    # ]
   end
 
   defp correct_inputs?(%Core{utxos: utxos} = state, tx) do

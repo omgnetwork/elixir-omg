@@ -41,7 +41,25 @@ defmodule OMG.EthereumEventListener.Core do
   @type event :: %{eth_height: non_neg_integer()}
 
   @type t() :: %__MODULE__{
-          synced_height_update_key: atom(),
+          synced_height_update_key:
+            :last_deposit_child_blknum
+
+            | :last_block_getter_eth_height
+            | :last_depositor_eth_height
+            | :last_convenience_deposit_processor_eth_height
+            | :last_exiter_eth_height
+            | :last_piggyback_exit_eth_height
+            | :last_in_flight_exit_eth_height
+            | :last_exit_processor_eth_height
+            | :last_convenience_exit_processor_eth_height
+            | :last_exit_finalizer_eth_height
+            | :last_exit_challenger_eth_height
+            | :last_in_flight_exit_processor_eth_height
+            | :last_piggyback_processor_eth_height
+            | :last_competitor_processor_eth_height
+            | :last_challenges_responds_processor_eth_height
+            | :last_piggyback_challenges_processor_eth_height
+            | :last_ife_exit_finalizer_eth_height,
           service_name: atom(),
           cached: %{
             data: list(event),
@@ -55,7 +73,7 @@ defmodule OMG.EthereumEventListener.Core do
 
   def init(update_key, service_name, last_synced_ethereum_height, request_max_size) when request_max_size > 0 do
     initial_state = %__MODULE__{
-      synced_height_update_key: update_key,
+      synced_height_update_key: :last_exit_challenger_eth_height,
       synced_height: last_synced_ethereum_height,
       service_name: service_name,
       cached: %{
@@ -125,7 +143,7 @@ defmodule OMG.EthereumEventListener.Core do
   """
   @spec get_events(t(), non_neg_integer) :: {:ok, list(event), list(), non_neg_integer, t()}
   def get_events(
-        %__MODULE__{synced_height_update_key: update_key, cached: %{data: data}} = state,
+        %__MODULE__{synced_height_update_key: :last_exit_challenger_eth_height = update_key, cached: %{data: data}} = state,
         new_sync_height
       ) do
     {events, new_data} = Enum.split_while(data, fn %{eth_height: height} -> height <= new_sync_height end)
