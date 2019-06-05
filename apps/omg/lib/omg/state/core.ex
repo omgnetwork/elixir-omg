@@ -180,11 +180,6 @@ defmodule OMG.State.Core do
     else
       {:error, _reason} = error -> {error, state}
     end
-
-    # Stateful validation
-    # [
-    #   &validate_block_size/1
-    # ]
   end
 
   defp correct_inputs?(%Core{utxos: utxos} = state, tx) do
