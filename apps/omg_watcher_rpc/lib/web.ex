@@ -59,11 +59,9 @@ defmodule OMG.WatcherRPC.Web do
           |> String.replace("Controller", "View")
           |> String.to_existing_atom()
 
-        serialized = OMG.Utils.HttpRPC.Response.sanitize(data)
-
         conn
         |> put_view(view_module)
-        |> render(template, response: serialized)
+        |> render(template, response: data)
       end
     end
   end

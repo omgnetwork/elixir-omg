@@ -26,9 +26,10 @@ defmodule OMG.WatcherRPC.Web.Validator.Constrains do
   def parse(params) do
     constrains = [
       address: [:address, :optional],
-      limit: [:pos_integer, :optional],
       blknum: [:pos_integer, :optional],
-      metadata: [:hash, :optional]
+      metadata: [:hash, :optional],
+      limit: [:pos_integer, :optional],
+      page: [:pos_integer, :optional]
     ]
 
     constrains
