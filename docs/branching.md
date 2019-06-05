@@ -48,27 +48,30 @@ Deploying new contracts in the release branch:
 
 ### 2 - Production deployment, validating a new version for network upgrade
 
+This is a _feature freeze_ for the new version (`v0.2` branch). Try to minimize merging changes from `master` to any of the release branches.
+
 Branches and environments:
 - `master` is automatically deployed to **development** environment
-- `master` is automatically deployed to **staging-v0-2** environment
+- `v0.2` is automatically deployed to **staging-v0-2** environment
   - This assumes that during the process of validating a network upgrade, all work merged onto `master` will get deployed to for the upgrade.
 - `v0.1` is automatically deployed to **staging-v0-1** environment
   - Keep this environment around for hotfixes
 - `v0.1` is manually deployed to **production-v0-1** environment
 
 Deploying new contracts in `master`:
-- Same as Scenario 1, with **development** and **staging-v0-2** environments
+- Same as Scenario 1
 
 Deploying new contracts in `v0.1`:
 - :stop_sign: _NOPE_
+
+Deploying new contracts to `v0.2`
+- Manually deploy to **staging-v0-2**
 
 ### 3 - Production deployment, ready to deploy network upgrade to production, ongoing development
 
 When we're confident of the stability on **staging-v0-2** and ready to go to Private Alpha, create the `v0.2` branch from `master` for both `elixir-omg` and `plasma-contracts` repos.
 
 Most importantly, we're confident about the contracts. A contract redeployment in this phase would have the most impact.
-
-This is a _feature freeze_ for the new version (`v0.2` branch). Try to minimize merging changes from `master` to any of the release branches.
 
 Branches and environments:
 - `master` is automatically deployed to **development** environment
