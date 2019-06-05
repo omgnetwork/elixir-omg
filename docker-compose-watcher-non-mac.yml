@@ -15,16 +15,10 @@ services:
       timeout: 3s
       retries: 5
 
-  elixir-omg:
-    build: .
-    image: elixir-omg:dockercompose
-
   watcher:
-    image: elixir-omg:dockercompose
-    entrypoint: /bin/bash -c "./launcher.py && elixir --erl '-sname watcher' -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs "
+    image: omisego/watcher:latest
+    command: "full_local"
     environment:
-      - MIX_ENV=dev
-      - ELIXIR_SERVICE=WATCHER
       - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<your_api_key>
       - CHILD_CHAIN_URL=http://samrong.omg.network
       - ETHEREUM_NETWORK=RINKEBY
@@ -32,6 +26,7 @@ services:
       - RINKEBY_TXHASH_CONTRACT=0x29f8cd44b4b94a148f779105f0e09e06f762b411ebef6c499281b74d45818c1c
       - RINKEBY_AUTHORITY_ADDRESS=0x41863dafbdf8cfc2a33fc38c0b525b6343d857b3
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost:5433/omisego_dev
+      - NODE_HOST=127.0.0.1
     restart: always
     ports:
       - "7434:7434"

@@ -117,12 +117,14 @@ defmodule OMG.Watcher.Fixtures do
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
-    [] = DB.Block.get_all()
+    {:ok, started_watcher_api} = Application.ensure_all_started(:omg_watcher_rpc)
+
+    [] = DB.Repo.all(DB.Block)
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
 
-      (started_apps ++ started_watcher)
+      (started_apps ++ started_watcher ++ started_watcher_api)
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
@@ -134,7 +136,7 @@ defmodule OMG.Watcher.Fixtures do
       Supervisor.start_link(
         [
           %{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor},
-          %{id: Watcher.Web.Endpoint, start: {Watcher.Web.Endpoint, :start_link, []}, type: :supervisor}
+          %{id: OMG.WatcherRPC.Web.Endpoint, start: {OMG.WatcherRPC.Web.Endpoint, :start_link, []}, type: :supervisor}
         ],
         strategy: :one_for_one,
         name: Watcher.Supervisor
@@ -193,7 +195,7 @@ defmodule OMG.Watcher.Fixtures do
     alias FakeServer.Agents.EnvAgent
     alias FakeServer.HTTP.Server
 
-    DeferredConfig.populate(:omg_rpc)
+    DeferredConfig.populate(:omg_child_chain_rpc)
     DeferredConfig.populate(:omg_watcher)
     {:ok, server_id, port} = Server.run()
     env = FakeServer.Env.new(port)

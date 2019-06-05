@@ -40,7 +40,7 @@ defmodule OMG.ChildChain.MixProject do
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
       {:omg_utils, in_umbrella: true},
-      {:omg_rpc, in_umbrella: true, only: [:test]}
+      {:omg_child_chain_rpc, in_umbrella: true, only: [:test]}
     ]
   end
 end

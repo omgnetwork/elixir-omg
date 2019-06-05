@@ -30,6 +30,15 @@ importas -iu default_cookie default_cookie
 importas -D $default_cookie ERLANG_COOKIE ERLANG_COOKIE
 s6-env ERLANG_COOKIE=$ERLANG_COOKIE
 
+## NODE_DNS
+##
+## Used in clustering; by default wallet is configured to discover nodes via
+## DNS. Registering nodes to the cluster is a responsibility of cluster tools
+## e.g. Kubernetes.
+##
+importas -D localhost NODE_DNS NODE_DNS
+s6-env NODE_DNS=$NODE_DNS
+
 ## HOME
 ##
 ## Home is required to be set since some tools use it to create e.g. cache.
@@ -47,18 +56,18 @@ s6-env REPLACE_OS_VARS=yes
 
 ## Known commands
 ##
+
 ifelse { test $1 == "init_key_value_db" } { /app/bin/watcher $@ }
 ifelse { test $1 == "init_postgresql_db" } { /app/bin/watcher $@ }
+ifelse { test $1 == "full_local" } {
+  /bin/bash -c "/app/bin/watcher init_postgresql_db && /app/bin/watcher init_key_value_db && /app/bin/watcher foreground"
+}
 
 ifelse { test $1 == "foreground" } {
-  importas -D true SERVE_ENDPOINTS SERVE_ENDPOINTS
-  s6-env SERVE_ENDPOINTS=$SERVE_ENDPOINTS
   /app/bin/watcher $@
 }
 
 ifelse { test $1 == "console" } {
-  importas -D false SERVE_ENDPOINTS SERVE_ENDPOINTS
-  s6-env SERVE_ENDPOINTS=$SERVE_ENDPOINTS
   /app/bin/watcher $@
 }
 

@@ -31,6 +31,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
+  alias OMG.Watcher.BlockGetter.Status
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.Recorder
@@ -39,13 +40,15 @@ defmodule OMG.Watcher.BlockGetter do
   use OMG.Utils.LoggerExt
   use OMG.Utils.Metrics
 
-  def get_events do
-    GenServer.call(__MODULE__, :get_events)
-  end
-
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
+
+  @doc """
+  Retrieves the freshest information about `OMG.Watcher.BlockGetter`'s status, as stored by the slave process `Status`
+  """
+  @spec get_events() :: {:ok, Core.chain_ok_response_t()}
+  def get_events, do: __MODULE__.Status.get_events()
 
   def init(_opts) do
     {:ok, %{}, {:continue, :setup}}
@@ -69,6 +72,10 @@ defmodule OMG.Watcher.BlockGetter do
     maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
     maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
+    # TODO rethink posible solutions see issue #724
+    # if we do not wait here, `ExitProcessor.check_validity()` may timeouts,
+    # which causes State and BlockGetter to reboot, fetches entire UTXO set again, and then timeout...
+    _ = :sys.get_status(ExitProcessor, 10 * 60_000)
     exit_processor_initial_results = ExitProcessor.check_validity()
 
     {:ok, state} =
@@ -90,15 +97,14 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, _} = schedule_sync_height()
     {:ok, _} = schedule_producer()
 
+    {:ok, _} = __MODULE__.Status.start_link()
+    :ok = update_status(state)
+
     {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
     _ = Logger.info("Started #{inspect(__MODULE__)}, synced_height: #{inspect(synced_height)}")
 
     {:noreply, state}
-  end
-
-  def handle_call(:get_events, _from, state) do
-    {:reply, Core.chain_ok(state), state}
   end
 
   @decorate measure_start()
@@ -133,6 +139,8 @@ defmodule OMG.Watcher.BlockGetter do
       exit_processor_results = ExitProcessor.check_validity()
       state = Core.consider_exits(state, exit_processor_results)
 
+      :ok = update_status(state)
+
       _ =
         Logger.info(
           "Applied block: \##{inspect(blknum)}, from eth height: #{inspect(eth_height)} " <>
@@ -142,10 +150,12 @@ defmodule OMG.Watcher.BlockGetter do
       {:noreply, state}
     else
       {{:error, _} = error, new_state} ->
+        :ok = update_status(new_state)
         _ = Logger.error("Invalid block #{inspect(blknum)}, because of #{inspect(error)}")
         {:noreply, new_state}
 
       {:error, _} = error ->
+        :ok = update_status(state)
         _ = Logger.warn("Chain already invalid before applying block #{inspect(blknum)} because of #{inspect(error)}")
         {:noreply, state}
     end
@@ -170,9 +180,11 @@ defmodule OMG.Watcher.BlockGetter do
     with {:ok, _} <- Core.chain_ok(state) do
       new_state = run_block_download_task(state)
       {:ok, _} = schedule_producer()
+      :ok = update_status(new_state)
       {:noreply, new_state}
     else
       {:error, _} = error ->
+        :ok = update_status(state)
         _ = Logger.warn("Chain invalid when trying to download blocks, because of #{inspect(error)}, won't try again")
         {:noreply, state}
     end
@@ -184,11 +196,12 @@ defmodule OMG.Watcher.BlockGetter do
 
     with {:ok, state} <- Core.handle_downloaded_block(state, response) do
       state = run_block_download_task(state)
+      :ok = update_status(state)
       {:noreply, state}
     else
       {{:error, _} = error, state} ->
+        :ok = update_status(state)
         _ = Logger.error("Error while handling downloaded block because of #{inspect(error)}")
-
         {:noreply, state}
     end
   end
@@ -222,14 +235,18 @@ defmodule OMG.Watcher.BlockGetter do
       :ok = OMG.DB.multi_update(db_updates)
       :ok = check_in_to_coordinator(synced_height)
       {:ok, _} = schedule_sync_height()
+      :ok = update_status(state)
 
       {:noreply, state}
     else
       :nosync ->
         :ok = check_in_to_coordinator(state.synced_height)
+        :ok = update_status(state)
+        {:ok, _} = schedule_sync_height()
         {:noreply, state}
 
       {:error, _} = error ->
+        :ok = update_status(state)
         _ = Logger.warn("Chain invalid when trying to sync, because of #{inspect(error)}, won't try again")
         {:noreply, state}
     end
@@ -273,7 +290,7 @@ defmodule OMG.Watcher.BlockGetter do
     )
   end
 
-  defp check_in_to_coordinator(synced_height) do
-    RootChainCoordinator.check_in(synced_height, :block_getter)
-  end
+  defp check_in_to_coordinator(synced_height), do: RootChainCoordinator.check_in(synced_height, :block_getter)
+
+  defp update_status(%Core{} = state), do: Status.update(Core.chain_ok(state))
 end

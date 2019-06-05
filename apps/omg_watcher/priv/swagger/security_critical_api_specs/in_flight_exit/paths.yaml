@@ -11,7 +11,7 @@ in_flight_exit.get_data:
       200:
         $ref: 'responses.yaml#/GetInFlightExitDataResponse'
       500:
-        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
 
 in_flight_exit.get_competitor:
   post:
@@ -26,7 +26,7 @@ in_flight_exit.get_competitor:
       200:
         $ref: 'responses.yaml#/GetCompetitorResponse'
       500:
-        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
 
 in_flight_exit.prove_canonical:
   post:
@@ -41,7 +41,7 @@ in_flight_exit.prove_canonical:
       200:
         $ref: 'responses.yaml#/ProveCanonicalResponse'
       500:
-        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
 
 in_flight_exit.get_input_challenge_data:
   post:
@@ -56,14 +56,14 @@ in_flight_exit.get_input_challenge_data:
       200:
         $ref: 'responses.yaml#/InputChallengeDataResponse'
       500:
-        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
 
 in_flight_exit.get_output_challenge_data:
   post:
     tags:
       - InFlightExit
     summary: Gets the data to challenge an invalid output piggybacked on an in-flight exit.
-    description: To respond to invalid piggybacked output in canonical in-flight transaction provides data needed to challenge it, e.g. in-flight transaction inclusion proof, transaction that spent this output and signature. 
+    description: To respond to invalid piggybacked output in canonical in-flight transaction provides data needed to challenge it, e.g. in-flight transaction inclusion proof, transaction that spent this output and signature.
     operationId: in_flight_exit_get_output_challenge_data
     requestBody:
       $ref: 'request_bodies.yaml#/InFlightExitOutputChallengeDataBodySchema'
@@ -71,4 +71,4 @@ in_flight_exit.get_output_challenge_data:
       200:
         $ref: 'responses.yaml#/OutputChallengeDataResponse'
       500:
-        $ref: '../../../../../omg_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'

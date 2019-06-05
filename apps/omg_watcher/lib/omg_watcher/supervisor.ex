@@ -70,13 +70,7 @@ defmodule OMG.Watcher.Supervisor do
         type: :supervisor
       },
       # Start workers
-      {Watcher.Eventer, []},
-      # Start the endpoint when the application starts
-      %{
-        id: Watcher.Web.Endpoint,
-        start: {Watcher.Web.Endpoint, :start_link, []},
-        type: :supervisor
-      }
+      {Watcher.Eventer, []}
     ]
 
     opts = [strategy: :one_for_one]

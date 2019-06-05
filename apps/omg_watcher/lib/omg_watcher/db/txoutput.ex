@@ -117,9 +117,6 @@ defmodule OMG.Watcher.DB.TxOutput do
   end
 
   @decorate measure_event()
-  def get_all, do: Repo.all(__MODULE__)
-
-  @decorate measure_event()
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
     Repo.get_by(__MODULE__, blknum: blknum, txindex: txindex, oindex: oindex)

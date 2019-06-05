@@ -25,7 +25,7 @@ defmodule OMG.Watcher.DB.BlockTest do
              %DB.Block{blknum: 1000, eth_height: 1, hash: "#1000"},
              %DB.Block{blknum: 2000, eth_height: 1, hash: "#2000"},
              %DB.Block{blknum: 3000, eth_height: 1, hash: "#3000"}
-           ] = DB.Block.get_all()
+           ] = DB.Repo.all(DB.Block)
   end
 
   @tag fixtures: [:initial_blocks]

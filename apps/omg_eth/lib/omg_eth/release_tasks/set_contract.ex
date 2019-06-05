@@ -25,7 +25,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   """
   @impl Provider
   def init(_args) do
-    case get_env("NETWORK") do
+    case get_env("ETHEREUM_NETWORK") do
       "RINKEBY" = network -> :ok = apply_settings(network)
       _ -> exit("Rinkeby or not implemented. There's no contracts that the release could point to.")
     end
