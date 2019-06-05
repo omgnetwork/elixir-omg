@@ -74,25 +74,27 @@ defmodule OMG.Watcher.DB.Transaction do
   """
   @spec get_by_filters(Keyword.t()) :: list(%__MODULE__{})
   def get_by_filters(constrains) do
-    allowed_constrains = [:limit, :address, :blknum, :txindex, :metadata]
+    allowed_constrains = [:address, :blknum, :txindex, :metadata, :limit, :offset]
 
     constrains = filter_constrains(constrains, allowed_constrains)
 
     # we need to handle complex constrains with dedicated modifier function
     {limit, constrains} = Keyword.pop(constrains, :limit)
+    {offset, constrains} = Keyword.pop(constrains, :offset)
     {address, constrains} = Keyword.pop(constrains, :address)
 
-    query_get_last(limit)
+    query_get_last(limit, offset)
     |> query_get_by_address(address)
     |> query_get_by(constrains)
     |> DB.Repo.all()
   end
 
-  defp query_get_last(limit) do
+  defp query_get_last(limit, offset) do
     from(
       __MODULE__,
       order_by: [desc: :blknum, desc: :txindex],
       limit: ^limit,
+      offset: ^offset,
       preload: [:block, :outputs]
     )
   end
