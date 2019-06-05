@@ -26,7 +26,7 @@ defmodule OMG.Umbrella.MixProject do
   defp deps do
     [
       {:distillery, "~> 2.0", runtime: false},
-      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0.0-rc.6", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.11.1", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
@@ -57,7 +57,7 @@ defmodule OMG.Umbrella.MixProject do
 
   defp dialyzer do
     [
-      flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
+      flags: [:specdiffs, :error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
       ignore_warnings: "dialyzer.ignore-warnings",
       plt_add_apps: plt_apps()
     ]

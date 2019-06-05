@@ -13,6 +13,11 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Controller.EnforceContentPlugTest do
+  @moduledoc """
+  This test module tested header enforcing which we decided to remove in #759. Instead of removing it, it was reversed
+  to show no header is required. We can remove this test as it basically shows HTTP protocol behavior.
+  """
+
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
@@ -20,7 +25,7 @@ defmodule OMG.WatcherRPC.Web.Controller.EnforceContentPlugTest do
   alias OMG.Utils.HttpRPC.Encoding
 
   @tag fixtures: [:phoenix_ecto_sandbox]
-  test "Request missing expected content type header is rejected" do
+  test "Content type header is no longer required" do
     no_account = Encoding.to_hex(<<0::160>>)
     post = conn(:post, "account.get_balance", %{"address" => no_account})
     response = OMG.WatcherRPC.Web.Endpoint.call(post, [])
@@ -28,12 +33,8 @@ defmodule OMG.WatcherRPC.Web.Controller.EnforceContentPlugTest do
     assert response.status == 200
 
     assert %{
-             "data" => %{
-               "code" => "operation:invalid_content",
-               "description" => "Content type of application/json header is required for all requests.",
-               "object" => "error"
-             },
-             "success" => false,
+             "data" => [],
+             "success" => true,
              "version" => "1.0"
            } == Jason.decode!(response.resp_body)
   end
