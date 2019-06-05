@@ -29,6 +29,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   @other_token <<127::160>>
   @eth_hex OMG.Eth.zero_address() |> Encoding.to_hex()
   @other_token_hex @other_token |> Encoding.to_hex()
+  @default_limit 200
+  @default_data_paging %{"limit" => 200, "page" => 1}
 
   describe "getting transaction by id" do
     @tag fixtures: [:initial_blocks]
@@ -189,7 +191,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  "txindex" => ^txindex
                }
                | _
-             ] = TestHelper.success?("transaction.all")
+             ] = transaction_all_result()
 
       assert is_integer(value)
     end
@@ -209,9 +211,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       ])
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}, %{"block" => %{"blknum" => 2000}, "txindex" => 0}] =
-               TestHelper.success?("transaction.all", %{"blknum" => 2000})
+               transaction_all_result(%{"blknum" => 2000})
 
-      assert [] = TestHelper.success?("transaction.all", %{"blknum" => 3000})
+      assert [] = transaction_all_result(%{"blknum" => 3000})
     end
 
     @tag fixtures: [:blocks_inserter, :alice, :bob]
@@ -232,7 +234,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       address = bob.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}] =
-               TestHelper.success?("transaction.all", %{"address" => address, "blknum" => 2000})
+               transaction_all_result(%{"address" => address, "blknum" => 2000})
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -250,8 +252,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       address = alice.addr |> Encoding.to_hex()
 
-      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("transaction.all", %{"address" => address})
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob, :carol]
@@ -274,9 +275,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       carol_addr = carol.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 2}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("transaction.all", %{"address" => alice_addr})
+               transaction_all_result(%{"address" => alice_addr})
 
-      assert [] = TestHelper.success?("transaction.all", %{"address" => carol_addr})
+      assert [] = transaction_all_result(%{"address" => carol_addr})
     end
 
     @tag fixtures: [:blocks_inserter, :alice, :bob]
@@ -294,8 +295,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       address = alice.addr |> Encoding.to_hex()
 
-      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("transaction.all", %{"address" => address})
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :alice]
@@ -312,8 +312,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       address = alice.addr |> Encoding.to_hex()
 
-      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("transaction.all", %{"address" => address})
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :alice]
@@ -330,8 +329,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       address = alice.addr |> Encoding.to_hex()
 
-      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("transaction.all", %{"address" => address})
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -349,8 +347,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       address = alice.addr |> Encoding.to_hex()
 
-      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("transaction.all", %{"address" => address})
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
 
     @tag fixtures: [:alice, :blocks_inserter]
@@ -396,11 +393,11 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  "txhash" => ^expected_txhash,
                  "txindex" => ^txindex
                }
-             ] = TestHelper.success?("transaction.all", %{"metadata" => expected_metadata})
+             ] = transaction_all_result(%{"metadata" => expected_metadata})
     end
   end
 
-  describe "getting transactions with limit on number of transactions" do
+  describe "getting transactions with pagination" do
     @tag fixtures: [:alice, :bob, :initial_deposits, :blocks_inserter]
     test "returns only limited list of transactions", %{
       blocks_inserter: blocks_inserter,
@@ -421,11 +418,13 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       address = alice.addr |> Encoding.to_hex()
 
-      assert [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 1}] =
-               TestHelper.success?("transaction.all", %{limit: 2})
+      assert {
+               [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 1}],
+               @default_data_paging
+             } = transaction_all_with_paging(%{limit: 2})
 
-      assert [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("transaction.all", %{address: address, limit: 2})
+      assert {[%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}],
+              @default_data_paging} = transaction_all_with_paging(%{address: address, limit: 2})
     end
 
     @tag fixtures: [:alice, :bob, :blocks_inserter]
@@ -446,8 +445,27 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      assert [_, _, _] = TestHelper.success?("transaction.all")
+      assert {[_, _, _], @default_data_paging} = transaction_all_with_paging()
     end
+  end
+
+  defp transaction_all_with_paging(body \\ nil) do
+    %{
+      "version" => "1.0",
+      "success" => true,
+      "data" => data,
+      "data_paging" => paging
+    } = TestHelper.rpc_call("transaction.all", body, 200)
+
+    {data, @default_data_paging}
+  end
+
+  defp transaction_all_result(body \\ nil) do
+    {result, paging} = transaction_all_with_paging(body)
+
+    assert @default_data_paging == paging
+
+    result
   end
 
   describe "submitting transaction to child chain" do
