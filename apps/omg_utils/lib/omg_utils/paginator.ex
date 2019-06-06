@@ -33,7 +33,7 @@ defmodule OMG.Utils.Paginator do
   @doc """
   Creates new paginator from query constrains like [limit: 200, page: 1], none of keys is required.
   """
-  @spec from_constrains(Keyword.t(), integer()) :: t()
+  @spec from_constrains(Keyword.t(), integer()) :: %__MODULE__{:data => [], :data_paging => map()}
   def from_constrains(constrains, max_limit) when is_integer(max_limit) do
     data_paging =
       constrains
@@ -42,9 +42,10 @@ defmodule OMG.Utils.Paginator do
       |> Keyword.update(:limit, max_limit, &min(&1, max_limit))
       |> Map.new()
 
-    %__MODULE__{data_paging: data_paging}
+    %__MODULE__{data: [], data_paging: data_paging}
   end
 
+  @dialyzer {:nowarn_function, set_data: 2}
   @spec set_data(list(), t()) :: t()
   def set_data(data, paginator) when is_list(data), do: %__MODULE__{paginator | data: data}
 end
