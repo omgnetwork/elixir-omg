@@ -20,7 +20,6 @@ defmodule OMG.ChildChainRPC.Web.View.Block do
 
   def render("block.json", %{block: block}) do
     block
-    |> Response.sanitize()
     |> Response.serialize()
   end
 end

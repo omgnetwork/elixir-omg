@@ -21,7 +21,6 @@ defmodule OMG.ChildChainRPC.Web.View.Transaction do
 
   def render("submit.json", %{result: result}) do
     result
-    |> Response.sanitize()
     |> Response.serialize()
   end
 end
