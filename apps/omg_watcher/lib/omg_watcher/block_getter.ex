@@ -125,13 +125,13 @@ defmodule OMG.Watcher.BlockGetter do
         |> Core.ensure_block_imported_once(state)
         |> Enum.each(&DB.Transaction.update_with/1)
 
+      exit_processor_results = ExitProcessor.check_validity()
+
       {state, synced_height, db_updates} =
         state
         |> run_block_download_task()
+        |> Core.consider_exits(exit_processor_results)
         |> Core.apply_block(to_apply)
-
-      exit_processor_results = ExitProcessor.check_validity()
-      state = Core.consider_exits(state, exit_processor_results)
 
       _ = Logger.debug("Synced height update: #{inspect(db_updates)}")
 
