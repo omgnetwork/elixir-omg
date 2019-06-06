@@ -18,8 +18,6 @@ defmodule OMG.State.Core do
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
 
-  @maximum_block_size 65_536
-
   defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0]
 
   alias OMG.Block
@@ -27,6 +25,7 @@ defmodule OMG.State.Core do
   alias OMG.Fees
   alias OMG.State.Core
   alias OMG.State.Transaction
+  alias OMG.State.Transaction.Validator
   alias OMG.Utxo
 
   use OMG.Utils.LoggerExt
@@ -118,8 +117,7 @@ defmodule OMG.State.Core do
     height = height_query_result + child_block_interval
 
     utxos =
-      utxos_query_result
-      |> Enum.into(%{}, fn {db_position, db_utxo} ->
+      Enum.into(utxos_query_result, %{}, fn {db_position, db_utxo} ->
         {Utxo.Position.from_db_key(db_position), Utxo.from_db_value(db_utxo)}
       end)
 
@@ -168,11 +166,11 @@ defmodule OMG.State.Core do
     tx_hash = Transaction.raw_txhash(tx)
     outputs = Transaction.get_outputs(tx)
 
-    with :ok <- validate_block_size(state),
-         {:ok, input_amounts_by_currency} <- correct_inputs?(state, tx),
-         output_amounts_by_currency = get_amounts_by_currency(outputs),
-         :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
-         :ok <- transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
+    with :ok <- Validator.validate_block_size(state),
+         {:ok, input_amounts_by_currency} <- Validator.correct_inputs?(state, tx),
+         output_amounts_by_currency = Validator.get_amounts_by_currency(outputs),
+         :ok <- Validator.amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
+         :ok <- Validator.transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
       {:ok, {tx_hash, height, tx_index},
        state
        |> apply_spend(tx)
@@ -182,97 +180,18 @@ defmodule OMG.State.Core do
     end
   end
 
-  defp correct_inputs?(%Core{utxos: utxos} = state, tx) do
-    inputs = Transaction.get_inputs(tx)
-
-    with :ok <- inputs_not_from_future_block?(state, inputs),
-         {:ok, input_utxos} <- get_input_utxos(utxos, inputs),
-         input_utxos_owners <- Enum.map(input_utxos, fn %{owner: owner} -> owner end),
-         :ok <- Transaction.Recovered.all_spenders_authorized(tx, input_utxos_owners) do
-      {:ok, get_amounts_by_currency(input_utxos)}
-    end
+  @doc """
+    Filter user utxos from db response.
+    It may take a while for a large response from db
+  """
+  @spec standard_exitable_utxos(list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()}), Crypto.address_t()) ::
+          list(exitable_utxos)
+  def standard_exitable_utxos(utxos_query_result, address) do
+    Stream.filter(utxos_query_result, fn {_, %{owner: owner}} -> owner == address end)
+    |> Enum.map(fn {{blknum, txindex, oindex}, utxo} ->
+      utxo |> Map.put(:blknum, blknum) |> Map.put(:txindex, txindex) |> Map.put(:oindex, oindex)
+    end)
   end
-
-  defp inputs_not_from_future_block?(%__MODULE__{height: blknum}, inputs) do
-    no_utxo_from_future_block =
-      inputs
-      |> Enum.all?(fn Utxo.position(input_blknum, _, _) -> blknum >= input_blknum end)
-
-    if no_utxo_from_future_block, do: :ok, else: {:error, :input_utxo_ahead_of_state}
-  end
-
-  defp get_input_utxos(utxos, inputs) do
-    inputs
-    |> Enum.reduce_while({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
-    |> reverse()
-  end
-
-  defp get_utxos(utxos, position, {:ok, acc}) do
-    case Map.get(utxos, position) do
-      nil -> {:halt, {:error, :utxo_not_found}}
-      found -> {:cont, {:ok, [found | acc]}}
-    end
-  end
-
-  @spec reverse({:ok, any()} | {:error, :utxo_not_found}) :: {:ok, list(any())} | {:error, :utxo_not_found}
-  defp reverse({:ok, input_utxos}), do: {:ok, Enum.reverse(input_utxos)}
-  defp reverse({:error, :utxo_not_found} = result), do: result
-
-  defp get_amounts_by_currency(utxos) do
-    utxos
-    |> Enum.group_by(fn %{currency: currency} -> currency end, fn %{amount: amount} -> amount end)
-    |> Enum.map(fn {currency, amounts} -> {currency, Enum.sum(amounts)} end)
-    |> Map.new()
-  end
-
-  defp amounts_add_up?(input_amounts, output_amounts) do
-    for {output_currency, output_amount} <- Map.to_list(output_amounts) do
-      input_amount = Map.get(input_amounts, output_currency, 0)
-      input_amount >= output_amount
-    end
-    |> Enum.all?()
-    |> if(do: :ok, else: {:error, :amounts_do_not_add_up})
-  end
-
-  def transaction_covers_fee?(input_amounts, output_amounts, fees) do
-    Fees.covered?(input_amounts, output_amounts, fees)
-    |> if(do: :ok, else: {:error, :fees_not_covered})
-  end
-
-  defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, %Transaction.Recovered{} = new_tx) do
-    %Core{
-      state
-      | tx_index: tx_index + 1,
-        pending_txs: [new_tx | pending_txs]
-    }
-  end
-
-  defp apply_spend(%Core{height: height, tx_index: tx_index, utxos: utxos} = state, tx) do
-    new_utxos_map = tx |> non_zero_utxos_from(height, tx_index) |> Map.new()
-
-    inputs = Transaction.get_inputs(tx)
-    utxos = Map.drop(utxos, inputs)
-    %Core{state | utxos: Map.merge(utxos, new_utxos_map)}
-  end
-
-  defp non_zero_utxos_from(tx, height, tx_index) do
-    tx
-    |> utxos_from(height, tx_index)
-    |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
-  end
-
-  defp utxos_from(tx, height, tx_index) do
-    hash = Transaction.raw_txhash(tx)
-    outputs = Transaction.get_outputs(tx)
-
-    for {%{owner: owner, currency: currency, amount: amount}, oindex} <- Enum.with_index(outputs) do
-      {Utxo.position(height, tx_index, oindex),
-       %Utxo{owner: owner, currency: currency, amount: amount, creating_txhash: hash}}
-    end
-  end
-
-  defp is_non_zero_amount?(%{amount: 0}), do: false
-  defp is_non_zero_amount?(%{amount: _}), do: true
 
   @doc """
    - Generates block and calculates it's root hash for submission
@@ -343,38 +262,6 @@ defmodule OMG.State.Core do
     {:ok, {event_triggers, db_updates}, new_state}
   end
 
-  defp utxo_to_db_put({utxo_pos, utxo}),
-    do: {:put, :utxo, {Utxo.Position.to_db_key(utxo_pos), Utxo.to_db_value(utxo)}}
-
-  defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
-    {Utxo.position(blknum, 0, 0), %Utxo{amount: amount, currency: cur, owner: owner}}
-  end
-
-  defp get_last_deposit_child_blknum(deposits, current_height) do
-    if Enum.empty?(deposits) do
-      current_height
-    else
-      deposits
-      |> Enum.max_by(& &1.blknum)
-      |> Map.get(:blknum)
-    end
-  end
-
-  defp last_deposit_child_blknum_db_update(deposits, last_deposit_child_blknum) do
-    if Enum.empty?(deposits) do
-      []
-    else
-      [{:put, :last_deposit_child_blknum, last_deposit_child_blknum}]
-    end
-  end
-
-  defp validate_block_size(%__MODULE__{tx_index: number_of_transactions_in_block}) do
-    case number_of_transactions_in_block == @maximum_block_size do
-      true -> {:error, :too_many_transactions_in_block}
-      false -> :ok
-    end
-  end
-
   @doc """
   Spends exited utxos. Accepts both a list of utxo positions (decoded) or full exit info from an event.
 
@@ -432,15 +319,6 @@ defmodule OMG.State.Core do
     {:ok, {db_updates, validities}, new_state}
   end
 
-  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex} = piggyback, utxos) do
-    # oindex in contract is 0-7 where 4-7 are outputs
-    oindex = oindex - 4
-
-    position = Enum.find(utxos, &match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
-
-    {piggyback, position}
-  end
-
   @doc """
   Checks if utxo exists
   """
@@ -479,16 +357,67 @@ defmodule OMG.State.Core do
     Enum.concat(db_updates_new_utxos, db_updates_spent_utxos)
   end
 
-  @doc """
-    Filter user utxos from db response.
-    It may take a while for a large response from db
-  """
-  @spec standard_exitable_utxos(list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()}), Crypto.address_t()) ::
-          list(exitable_utxos)
-  def standard_exitable_utxos(utxos_query_result, address) do
-    Stream.filter(utxos_query_result, fn {_, %{owner: owner}} -> owner == address end)
-    |> Enum.map(fn {{blknum, txindex, oindex}, utxo} ->
-      utxo |> Map.put(:blknum, blknum) |> Map.put(:txindex, txindex) |> Map.put(:oindex, oindex)
-    end)
+  defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, %Transaction.Recovered{} = new_tx) do
+    %Core{
+      state
+      | tx_index: tx_index + 1,
+        pending_txs: [new_tx | pending_txs]
+    }
+  end
+
+  defp apply_spend(%Core{height: height, tx_index: tx_index, utxos: utxos} = state, tx) do
+    new_utxos_map = tx |> non_zero_utxos_from(height, tx_index) |> Map.new()
+
+    inputs = Transaction.get_inputs(tx)
+    utxos = Map.drop(utxos, inputs)
+    %Core{state | utxos: Map.merge(utxos, new_utxos_map)}
+  end
+
+  defp non_zero_utxos_from(tx, height, tx_index) do
+    tx
+    |> utxos_from(height, tx_index)
+    |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
+  end
+
+  defp utxos_from(tx, height, tx_index) do
+    hash = Transaction.raw_txhash(tx)
+    outputs = Transaction.get_outputs(tx)
+
+    for {%{owner: owner, currency: currency, amount: amount}, oindex} <- Enum.with_index(outputs) do
+      {Utxo.position(height, tx_index, oindex),
+       %Utxo{owner: owner, currency: currency, amount: amount, creating_txhash: hash}}
+    end
+  end
+
+  defp is_non_zero_amount?(%{amount: 0}), do: false
+  defp is_non_zero_amount?(%{amount: _}), do: true
+
+  defp utxo_to_db_put({utxo_pos, utxo}),
+    do: {:put, :utxo, {Utxo.Position.to_db_key(utxo_pos), Utxo.to_db_value(utxo)}}
+
+  defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
+    {Utxo.position(blknum, 0, 0), %Utxo{amount: amount, currency: cur, owner: owner}}
+  end
+
+  defp get_last_deposit_child_blknum([] = _deposits, current_height), do: current_height
+
+  defp get_last_deposit_child_blknum(deposits, _current_height),
+    do:
+      deposits
+      |> Enum.max_by(& &1.blknum)
+      |> Map.get(:blknum)
+
+  defp last_deposit_child_blknum_db_update([] = deposits, _last_deposit_child_blknum), do: deposits
+
+  defp last_deposit_child_blknum_db_update(_deposits, last_deposit_child_blknum),
+    do: [{:put, :last_deposit_child_blknum, last_deposit_child_blknum}]
+
+  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex} = piggyback, utxos) do
+    # oindex in contract is 0-7 where 4-7 are outputs
+    oindex = oindex - 4
+
+    position = Enum.find(utxos, &match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
+
+    {piggyback, position}
   end
 end
