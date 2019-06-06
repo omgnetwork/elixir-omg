@@ -31,28 +31,11 @@ defmodule OMG.Utils.Paginator do
             }
 
   @doc """
-
+  Creates new paginator from query constrains like [limit: 200, page: 1], none of keys is required.
   """
-  @spec from_constrains(Keyword.t(), pos_integer) :: {t(), Keyword.t()}
-  def from_constrains(opts, max_limit) when max_limit > 0 do
-    paginator = new(opts, max_limit)
-
-    {
-      paginator,
-      opts
-      |> Keyword.drop([:page])
-      |> Keyword.put(:limit, paginator.data_paging.limit)
-      |> Keyword.put_new(:offset, offset(paginator))
-    }
-  end
-
-  @spec set_data(list(), t()) :: t()
-  def set_data(data, paginator) when is_list(data), do: %__MODULE__{paginator | data: data}
-
-  @spec new(Keyword.t(), any) :: t()
-  defp new(constrains, max_limit) do
-    %{page: _, limit: _} =
-      data_paging =
+  @spec from_constrains(Keyword.t(), integer()) :: t()
+  def from_constrains(constrains, max_limit) when is_integer(max_limit) do
+    data_paging =
       constrains
       |> Keyword.take([:page, :limit])
       |> Keyword.put_new(:page, @first_page)
@@ -62,6 +45,6 @@ defmodule OMG.Utils.Paginator do
     %__MODULE__{data_paging: data_paging}
   end
 
-  @spec offset(t()) :: non_neg_integer()
-  defp offset(%__MODULE__{data_paging: %{limit: limit, page: page}}), do: (page - 1) * limit
+  @spec set_data(list(), t()) :: t()
+  def set_data(data, paginator) when is_list(data), do: %__MODULE__{paginator | data: data}
 end

@@ -29,7 +29,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   @other_token <<127::160>>
   @eth_hex OMG.Eth.zero_address() |> Encoding.to_hex()
   @other_token_hex @other_token |> Encoding.to_hex()
-  @default_limit 200
   @default_data_paging %{"limit" => 200, "page" => 1}
 
   describe "getting transaction by id" do
@@ -490,7 +489,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  defp transaction_all_with_paging(body \\ nil) do
+  defp transaction_all_with_paging(body) do
     %{
       "version" => "1.0",
       "success" => true,

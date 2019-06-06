@@ -20,6 +20,7 @@ defmodule OMG.Watcher.DB.Transaction do
   use OMG.Utils.LoggerExt
 
   alias OMG.State.Transaction
+  alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.Watcher.DB
 
@@ -72,24 +73,25 @@ defmodule OMG.Watcher.DB.Transaction do
   Returns transactions possibly filtered by constrains
   * constrains - accepts keyword in the form of [schema_field: value]
   """
-  @spec get_by_filters(Keyword.t()) :: list(%__MODULE__{})
-  def get_by_filters(constrains) do
-    allowed_constrains = [:address, :blknum, :txindex, :metadata, :limit, :offset]
+  @spec get_by_filters(Keyword.t(), Paginator.t()) :: Paginator.t()
+  def get_by_filters(constrains, paginator) do
+    allowed_constrains = [:address, :blknum, :txindex, :metadata]
 
     constrains = filter_constrains(constrains, allowed_constrains)
 
     # we need to handle complex constrains with dedicated modifier function
-    {limit, constrains} = Keyword.pop(constrains, :limit)
-    {offset, constrains} = Keyword.pop(constrains, :offset)
     {address, constrains} = Keyword.pop(constrains, :address)
 
-    query_get_last(limit, offset)
+    query_get_last(paginator.data_paging)
     |> query_get_by_address(address)
     |> query_get_by(constrains)
     |> DB.Repo.all()
+    |> Paginator.set_data(paginator)
   end
 
-  defp query_get_last(limit, offset) do
+  defp query_get_last(%{limit: limit, page: page}) do
+    offset = (page - 1) * limit
+
     from(
       __MODULE__,
       order_by: [desc: :blknum, desc: :txindex],
