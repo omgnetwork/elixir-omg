@@ -81,20 +81,20 @@ defmodule OMG.State.Core do
         }
 
   @type db_update ::
-          {:put, :utxo, {Utxo.Position.db_t(), map}}
+          {:put, :utxo, {Utxo.Position.db_t(), map()}}
           | {:delete, :utxo, Utxo.Position.db_t()}
-          | {:put, :child_top_block_number, pos_integer}
-          | {:put, :last_deposit_child_blknum, pos_integer}
+          | {:put, :child_top_block_number, pos_integer()}
+          | {:put, :last_deposit_child_blknum, pos_integer()}
           | {:put, :block, Block.db_t()}
 
   @type exitable_utxos :: %{
           creating_txhash: Transaction.tx_hash(),
           owner: Crypto.address_t(),
           currency: Crypto.address_t(),
-          amount: non_neg_integer,
-          blknum: pos_integer,
-          txindex: non_neg_integer,
-          oindex: non_neg_integer
+          amount: non_neg_integer(),
+          blknum: pos_integer(),
+          txindex: non_neg_integer(),
+          oindex: non_neg_integer()
         }
 
   @doc """
@@ -102,9 +102,9 @@ defmodule OMG.State.Core do
   """
   @spec extract_initial_state(
           utxos_query_result :: [list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})],
-          height_query_result :: non_neg_integer | :not_found,
-          last_deposit_child_blknum_query_result :: non_neg_integer | :not_found,
-          child_block_interval :: pos_integer
+          height_query_result :: non_neg_integer() | :not_found,
+          last_deposit_child_blknum_query_result :: non_neg_integer() | :not_found,
+          child_block_interval :: pos_integer()
         ) :: {:ok, t()} | {:error, :last_deposit_not_found | :top_block_number_not_found}
   def extract_initial_state(
         utxos_query_result,
@@ -204,14 +204,19 @@ defmodule OMG.State.Core do
   defp get_input_utxos(utxos, inputs) do
     inputs
     |> Enum.reduce_while({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
+    |> reverse()
   end
 
   defp get_utxos(utxos, position, {:ok, acc}) do
     case Map.get(utxos, position) do
       nil -> {:halt, {:error, :utxo_not_found}}
-      found -> {:cont, {:ok, acc ++ [found]}}
+      found -> {:cont, {:ok, [found | acc]}}
     end
   end
+
+  @spec reverse({:ok, any()} | {:error, :utxo_not_found}) :: {:ok, list(any())} | {:error, :utxo_not_found}
+  defp reverse({:ok, input_utxos}), do: {:ok, Enum.reverse(input_utxos)}
+  defp reverse({:error, :utxo_not_found} = result), do: result
 
   defp get_amounts_by_currency(utxos) do
     utxos

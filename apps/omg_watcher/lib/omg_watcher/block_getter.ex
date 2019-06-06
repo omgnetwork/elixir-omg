@@ -119,17 +119,17 @@ defmodule OMG.Watcher.BlockGetter do
       ) do
     with {:ok, _} <- Core.chain_ok(state),
          tx_exec_results = for(tx <- transactions, do: OMG.State.exec(tx, :ignore)),
-         {:ok, state} <- Core.validate_executions(tx_exec_results, to_apply, state) do
+         {:ok, state2} <- Core.validate_executions(tx_exec_results, to_apply, state) do
       _ =
         to_apply
-        |> Core.ensure_block_imported_once(state)
+        |> Core.ensure_block_imported_once(state2)
         |> Enum.each(&DB.Transaction.update_with/1)
 
-      state = run_block_download_task(state)
+      state3 = run_block_download_task(state2)
 
       {:ok, db_updates_from_state} = OMG.State.close_block(eth_height)
 
-      {state, synced_height, db_updates} = Core.apply_block(state, to_apply)
+      {state4, synced_height, db_updates} = Core.apply_block(state3, to_apply)
 
       _ = Logger.debug("Synced height update: #{inspect(db_updates)}")
 
@@ -137,9 +137,9 @@ defmodule OMG.Watcher.BlockGetter do
       :ok = check_in_to_coordinator(synced_height)
 
       exit_processor_results = ExitProcessor.check_validity()
-      state = Core.consider_exits(state, exit_processor_results)
+      state5 = Core.consider_exits(state4, exit_processor_results)
 
-      :ok = update_status(state)
+      :ok = update_status(state5)
 
       _ =
         Logger.info(
@@ -147,7 +147,7 @@ defmodule OMG.Watcher.BlockGetter do
             "with #{inspect(length(transactions))} txs"
         )
 
-      {:noreply, state}
+      {:noreply, state5}
     else
       {{:error, _} = error, new_state} ->
         :ok = update_status(new_state)
@@ -156,6 +156,7 @@ defmodule OMG.Watcher.BlockGetter do
 
       {:error, _} = error ->
         :ok = update_status(state)
+        # TODO Alarm
         _ = Logger.warn("Chain already invalid before applying block #{inspect(blknum)} because of #{inspect(error)}")
         {:noreply, state}
     end

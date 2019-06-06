@@ -139,9 +139,13 @@ defmodule OMG.DB do
   """
   def single_value_parameter_names do
     [
+      # child chain - used at block forming
       :child_top_block_number,
+      # watcher and child chain
       :last_deposit_child_blknum,
+      # watcher
       :last_block_getter_eth_height,
+      # watcher and child chain
       :last_depositor_eth_height,
       :last_convenience_deposit_processor_eth_height,
       :last_exiter_eth_height,
