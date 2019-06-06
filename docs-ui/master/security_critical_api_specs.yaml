@@ -21,6 +21,8 @@ tags:
       description: Byzantine events description
       url: >-
         https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events
+  - name: Account
+    description: Account related API.
   - name: UTXO
     description: UTXO related API.
   - name: Transaction
@@ -108,6 +110,14 @@ paths:
                             type: array
                           services_synced_heights:
                             type: array
+                            items:
+                              type: object
+                              properties:
+                                service:
+                                  type: string
+                                height:
+                                  type: integer
+                                  format: int256
                         required:
                           - last_validated_child_block_timestamp
                           - last_validated_child_block_number
@@ -223,18 +233,18 @@ paths:
                         description: Something went wrong on the server
                         messages:
                           error_key: error_reason
-  /utxo.get_utxos:
+  /account.get_exitable_utxos:
     post:
       tags:
-        - UTXO
+        - Account
       summary: Gets all utxos belonging to the given address.
       description: >
-        Note that this is a performance intensive call and should only be used
+        **Note:** this is a performance intensive call and should only be used
         if the chain is byzantine and the user needs to retrieve utxo
         information to be able to exit. Normally an application should use the
         Informational API's [Account - Get Utxos](http://TODO) instead. This
         version is provided in case the Informational API is not available.
-      operationId: utxo_get_utxos
+      operationId: account_get_exitable_utxos
       requestBody:
         description: HEX-encoded address of the account
         required: true
@@ -252,31 +262,12 @@ paths:
                 address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
       responses:
         '200':
-          description: Utxos successful response
+          description: Account utxos succcessful response
           content:
             application/json:
               schema:
-                description: The response schema for a list of utxos
                 allOf:
-                  - description: The response schema for a successful list operation
-                    type: object
-                    properties:
-                      version:
-                        type: string
-                      success:
-                        type: boolean
-                      data:
-                        type: array
-                        items:
-                          type: object
-                    required:
-                      - version
-                      - success
-                      - data
-                    example:
-                      version: '1.0'
-                      success: true
-                      data: []
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -310,7 +301,7 @@ paths:
                         - blknum: 123000
                           txindex: 111
                           oindex: 0
-                          utxo_pos: 10000000010000000
+                          utxo_pos: 123000001110000
                           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                           currency: '0x0000000000000000000000000000000000000000'
                           amount: 10
@@ -353,12 +344,12 @@ paths:
                       data:
                         type: object
                         properties:
+                          exit_id:
+                            type: integer
+                            format: int192
                           input_index:
                             type: integer
                             format: int8
-                          utxo_pos:
-                            type: integer
-                            format: int256
                           sig:
                             type: string
                             format: binary
@@ -367,8 +358,8 @@ paths:
                             format: binary
                     example:
                       data:
+                        exit_id: 1.7176118930141594e+45
                         input_index: 0
-                        utxo_pos: 3000000000000
                         sig: 0x6bfb9b2dbe32...
                         txbytes: 0x3eb6ae5b06f3...
         '500': *ref_1
@@ -403,11 +394,15 @@ paths:
                           proof:
                             type: string
                             format: binary
+                          sigs:
+                            type: string
+                            format: binary
                     example:
                       data:
+                        proof: 0xcedb8b31d1e4...
+                        sigs: 0xcc52d1d9ffe7...
+                        txbytes: 0x3eb6ae5b06f3...
                         utxo_pos: 10000000010000000
-                        txbytes: '0x3eb6ae5b06f3'
-                        proof: '0xcedb8b31d1e4'
         '500': *ref_1
   /transaction.submit:
     post:
@@ -621,7 +616,10 @@ paths:
       summary: >-
         Gets the data to challenge an invalid input piggybacked on an in-flight
         exit.
-      description: Coming soon
+      description: >-
+        To respond to invalid piggybacked input in non-canonical in-flight
+        transaction provides data needed to challenge it, e.g. transaction that
+        spent this input and signature.
       operationId: in_flight_exit_get_input_challenge_data
       requestBody:
         description: In-flight transaction bytes and invalid input index
@@ -687,7 +685,11 @@ paths:
       summary: >-
         Gets the data to challenge an invalid output piggybacked on an in-flight
         exit.
-      description: Coming soon
+      description: >-
+        To respond to invalid piggybacked output in canonical in-flight
+        transaction provides data needed to challenge it, e.g. in-flight
+        transaction inclusion proof, transaction that spent this output and
+        signature.
       operationId: in_flight_exit_get_output_challenge_data
       requestBody:
         description: In-flight transaction bytes and invalid output index

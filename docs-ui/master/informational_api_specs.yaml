@@ -184,100 +184,7 @@ paths:
         - Account
       summary: Gets a list of transactions for given account address.
       operationId: account_get_transactions
-      requestBody:
-        description: Account address and optional limit
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                address:
-                  type: string
-                  format: binary
-                limit:
-                  type: integer
-                  format: int32
-                  default: 200
-              required:
-                - address
-              example:
-                address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
-                limit: 100
-      responses:
-        '200':
-          description: Transactions succcessful response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - *ref_0
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            block: &ref_3
-                              type: object
-                              properties:
-                                timestamp:
-                                  type: integer
-                                  format: int64
-                                hash:
-                                  type: string
-                                  format: binary
-                                eth_height:
-                                  type: integer
-                                  format: int64
-                                blknum:
-                                  type: integer
-                                  format: int64
-                            txindex:
-                              type: integer
-                              format: int16
-                            txhash:
-                              type: string
-                              format: binary
-                            results:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  currency:
-                                    type: string
-                                    format: binary
-                                  value:
-                                    type: integer
-                                    format: int256
-                    example:
-                      data:
-                        - block:
-                            timestamp: 1540365586
-                            hash: >-
-                              0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec
-                            eth_height: 97424
-                            blknum: 68290000
-                          txindex: 0
-                          txhash: >-
-                            0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
-                          results:
-                            - currency: '0x0000000000000000000000000000000000000000'
-                              value: 20000000
-        '500': *ref_2
-  /transaction.all:
-    post:
-      tags:
-        - Transaction
-      summary: Gets all transactions (can be limited with various filters).
-      description: >
-        Digests the details of the transaction, by listing the value of outputs,
-        aggregated by currency. Intended to be used when presenting the little
-        details about multiple transactions. For all details queries to
-        `/transaction.get` should be made using the transaction's hash provided.
-      operationId: transactions_all
-      requestBody:
+      requestBody: &ref_3
         description: 'Account address, block number and other criteria'
         content:
           application/json:
@@ -293,6 +200,10 @@ paths:
                 metadata:
                   type: string
                   format: binary
+                page:
+                  type: integer
+                  format: int32
+                  default: 1
                 limit:
                   type: integer
                   format: int32
@@ -303,8 +214,9 @@ paths:
                   0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
                 blknum: 68290000
                 limit: 100
+                page: 2
       responses:
-        '200':
+        '200': &ref_4
           description: Transactions succcessful response
           content:
             application/json:
@@ -336,11 +248,28 @@ paths:
                         items:
                           type: object
                           properties:
-                            block: *ref_3
+                            block: &ref_5
+                              type: object
+                              properties:
+                                timestamp:
+                                  type: integer
+                                  format: int64
+                                hash:
+                                  type: string
+                                  format: binary
+                                eth_height:
+                                  type: integer
+                                  format: int64
+                                blknum:
+                                  type: integer
+                                  format: int64
                             txindex:
                               type: integer
                               format: int16
                             txhash:
+                              type: string
+                              format: binary
+                            metadata:
                               type: string
                               format: binary
                             results:
@@ -354,6 +283,17 @@ paths:
                                   value:
                                     type: integer
                                     format: int256
+                      data_paging:
+                        type: object
+                        properties:
+                          page:
+                            type: integer
+                            format: int32
+                            default: 1
+                          limit:
+                            type: integer
+                            format: int32
+                            default: 200
                     example:
                       data:
                         - block:
@@ -365,9 +305,29 @@ paths:
                           txindex: 0
                           txhash: >-
                             0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
+                          metadata: >-
+                            0x00000000000000000000000000000000000000000000000000000048656c6c6f
                           results:
                             - currency: '0x0000000000000000000000000000000000000000'
                               value: 20000000
+                      data_paging:
+                        page: 1
+                        limit: 200
+        '500': *ref_2
+  /transaction.all:
+    post:
+      tags:
+        - Transaction
+      summary: Gets all transactions (can be limited with various filters).
+      description: >
+        Digests the details of the transaction, by listing the value of outputs,
+        aggregated by currency. Intended to be used when presenting the little
+        details about multiple transactions. For all details queries to
+        `/transaction.get` should be made using the transaction's hash provided.
+      operationId: transactions_all
+      requestBody: *ref_3
+      responses:
+        '200': *ref_4
         '500': *ref_2
   /transaction.create:
     post:
@@ -465,7 +425,7 @@ paths:
                                 inputs:
                                   type: array
                                   items:
-                                    - &ref_4
+                                    - &ref_6
                                       type: object
                                       properties:
                                         blknum:
@@ -592,21 +552,26 @@ paths:
                           txhash:
                             type: string
                             format: binary
+                          metadata:
+                            type: string
+                            format: binary
                           txbytes:
                             type: string
                             format: binary
-                          block: *ref_3
+                          block: *ref_5
                           inputs:
                             type: array
-                            items: *ref_4
+                            items: *ref_6
                           outputs:
                             type: array
-                            items: *ref_4
+                            items: *ref_6
                     example:
                       data:
                         txindex: 5113
                         txhash: >-
                           0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
+                        metadata: >-
+                          0x00000000000000000000000000000000000000000000000000000048656c6c6f
                         txbytes: 0x5df13a6bee20000...
                         block:
                           timestamp: 1540365586
