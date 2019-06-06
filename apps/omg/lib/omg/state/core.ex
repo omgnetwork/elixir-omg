@@ -186,7 +186,7 @@ defmodule OMG.State.Core do
     inputs = Transaction.get_inputs(tx)
 
     with :ok <- inputs_not_from_future_block?(state, inputs),
-         {:ok, input_utxos} <- get_input_utxos(utxos, inputs),
+         {:ok, [%Utxo{} | _] = input_utxos} <- get_input_utxos(utxos, inputs),
          input_utxos_owners <- Enum.map(input_utxos, fn %{owner: owner} -> owner end),
          :ok <- Transaction.Recovered.all_spenders_authorized(tx, input_utxos_owners) do
       {:ok, get_amounts_by_currency(input_utxos)}
@@ -201,28 +201,33 @@ defmodule OMG.State.Core do
     if no_utxo_from_future_block, do: :ok, else: {:error, :input_utxo_ahead_of_state}
   end
 
-  @spec get_input_utxos(utxos(), list(OMG.Utxo.Position.t())) :: {:ok, list(OMG.Utxo.t())} | {:error, :utxo_not_found}
+  @spec get_input_utxos(utxos(), list(Utxo.Position.t())) :: {:ok, list(Utxo.t())}
   defp get_input_utxos(utxos, inputs) do
     inputs
     |> Enum.reduce_while({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
     |> reverse()
   end
 
-  defp get_utxos(utxos, position, {:ok, acc}) do
+  @spec get_utxos(utxos(), Utxo.Position.t(), {:ok, [] | list(Utxo.t())}) ::
+          {:halt, {:error, :utxo_not_found}} | {:cont, {:ok, list(Utxo.t())}}
+  defp get_utxos(utxos, Utxo.position(_, _, _) = position, {:ok, acc}) do
     case Map.get(utxos, position) do
       nil ->
         {:halt, {:error, :utxo_not_found}}
 
-      found ->
+      %Utxo{} = found ->
         {:cont, {:ok, [found | acc]}}
     end
   end
 
+  @spec reverse({:ok, any()}) :: {:ok, list(Utxo.t())}
   defp reverse({:ok, input_utxos}), do: {:ok, Enum.reverse(input_utxos)}
-  defp reverse(result), do: result
+  defp reverse({:error, :utxo_not_found} = result), do: result
 
-  @spec get_amounts_by_currency(list(OMG.Utxo)) :: map()
-  defp get_amounts_by_currency(utxos) do
+  @spec get_amounts_by_currency(nonempty_list(OMG.Utxo.t()) | nonempty_list(Transaction.output()) | []) :: map()
+  defp get_amounts_by_currency([]), do: %{}
+
+  defp get_amounts_by_currency([_h | _t] = utxos) when is_list(utxos) do
     utxos
     |> Enum.group_by(fn %{currency: currency} -> currency end, fn %{amount: amount} -> amount end)
     |> Enum.map(fn {currency, amounts} -> {currency, Enum.sum(amounts)} end)

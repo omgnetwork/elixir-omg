@@ -230,7 +230,7 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns all inputs, never returns zero inputs
   """
-  @spec get_inputs(any_flavor_t()) :: list(input())
+  @spec get_inputs(any_flavor_t()) :: list(Utxo.Position.t())
   def get_inputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_inputs(signed_tx)
   def get_inputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_inputs(raw_tx)
 
@@ -243,7 +243,6 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns all outputs, never returns zero outputs
   """
-  @spec get_outputs(any_flavor_t()) :: list(output())
   def get_outputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_outputs(signed_tx)
   def get_outputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_outputs(raw_tx)
 
