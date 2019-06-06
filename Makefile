@@ -82,6 +82,14 @@ test: test-elixir-omg
 .PHONY: test test-elixir-omg
 
 #
+# Documentation
+#
+changelog:
+	github_changelog_generator -u omisego -p elixir-omg
+
+.PHONY: changelog
+
+#
 # Docker
 #
 
