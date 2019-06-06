@@ -19,6 +19,11 @@ defmodule OMG.Utils.Paginator do
   @default_limit 200
   @first_page 1
 
+  @type t() :: %__MODULE__{
+          data: list(),
+          data_paging: %{limit: pos_integer(), page: pos_integer()}
+        }
+
   defstruct data: [],
             data_paging: %{
               limit: @default_limit,
@@ -28,13 +33,35 @@ defmodule OMG.Utils.Paginator do
   @doc """
 
   """
-  @spec from_constrains(Keyword.t(), pos_integer) :: {%__MODULE__{}, Keyword.t()}
-  def from_constrains(opts, max_limit) do
+  @spec from_constrains(Keyword.t(), pos_integer) :: {t(), Keyword.t()}
+  def from_constrains(opts, max_limit) when max_limit > 0 do
+    paginator = new(opts, max_limit)
+
     {
-      %__MODULE__{},
-      opts |>  Keyword.update(:limit, max_limit, &min(&1, max_limit))
+      paginator,
+      opts
+      |> Keyword.drop([:page])
+      |> Keyword.put(:limit, paginator.data_paging.limit)
+      |> Keyword.put_new(:offset, offset(paginator))
     }
   end
 
-  def set_data(data, paginator), do: %__MODULE__{paginator | data: data}
+  @spec set_data(list(), t()) :: t()
+  def set_data(data, paginator) when is_list(data), do: %__MODULE__{paginator | data: data}
+
+  @spec new(Keyword.t(), any) :: t()
+  defp new(constrains, max_limit) do
+    %{page: _, limit: _} =
+      data_paging =
+      constrains
+      |> Keyword.take([:page, :limit])
+      |> Keyword.put_new(:page, @first_page)
+      |> Keyword.update(:limit, max_limit, &min(&1, max_limit))
+      |> Map.new()
+
+    %__MODULE__{data_paging: data_paging}
+  end
+
+  @spec offset(t()) :: non_neg_integer()
+  defp offset(%__MODULE__{data_paging: %{limit: limit, page: page}}), do: (page - 1) * limit
 end

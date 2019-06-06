@@ -397,9 +397,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "getting transactions with pagination" do
+  describe "transactions pagination" do
     @tag fixtures: [:alice, :bob, :initial_deposits, :blocks_inserter]
-    test "returns only limited list of transactions", %{
+    test "returns list of transactions limited by address", %{
       blocks_inserter: blocks_inserter,
       alice: alice,
       bob: bob
@@ -416,19 +416,51 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = alice.addr |> Encoding.to_hex()
+      alice_addr = alice.addr |> Encoding.to_hex()
 
       assert {
                [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 1}],
-               @default_data_paging
+               %{"limit" => 2, "page" => 1}
              } = transaction_all_with_paging(%{limit: 2})
 
       assert {[%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}],
-              @default_data_paging} = transaction_all_with_paging(%{address: address, limit: 2})
+              %{"limit" => 2, "page" => 1}} = transaction_all_with_paging(%{address: alice_addr, limit: 2})
+
+      bob_addr = bob.addr |> Encoding.to_hex()
+
+      assert {[%{"block" => %{"blknum" => 1000}, "txindex" => 0}], %{"limit" => 2, "page" => 2}} =
+               transaction_all_with_paging(%{address: bob_addr, limit: 2, page: 2})
     end
 
-    @tag fixtures: [:alice, :bob, :blocks_inserter]
-    test "limiting all transactions without address filter", %{
+    @tag fixtures: [:initial_blocks]
+    test "returns list of transactions limited by block number" do
+      assert {[%{"block" => %{"blknum" => 1000}, "txindex" => 1}], %{"limit" => 1, "page" => 1}} =
+               transaction_all_with_paging(%{blknum: 1000, limit: 1, page: 1})
+
+      assert {[%{"block" => %{"blknum" => 1000}, "txindex" => 0}], %{"limit" => 1, "page" => 2}} =
+               transaction_all_with_paging(%{blknum: 1000, limit: 1, page: 2})
+
+      assert {[], %{"limit" => 1, "page" => 3}} = transaction_all_with_paging(%{blknum: 1000, limit: 1, page: 3})
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "limiting all transactions without address filter" do
+      assert {[
+                %{"block" => %{"blknum" => 3000}, "txindex" => 1} = tx1,
+                %{"block" => %{"blknum" => 3000}, "txindex" => 0} = tx2
+              ], %{"limit" => 2, "page" => 1}} = transaction_all_with_paging(%{limit: 2})
+
+      assert {[^tx1, ^tx2], %{"limit" => 2, "page" => 1}} = transaction_all_with_paging(%{limit: 2, page: 1})
+
+      assert {[%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 1}],
+              %{"limit" => 2, "page" => 2}} = transaction_all_with_paging(%{limit: 2, page: 2})
+
+      assert {[%{"block" => %{"blknum" => 1000}, "txindex" => 0}], %{"limit" => 2, "page" => 3}} =
+               transaction_all_with_paging(%{limit: 2, page: 3})
+    end
+
+    @tag fixtures: [:alice, :bob, :initial_deposits, :blocks_inserter]
+    test "pagination is unstable - client libs needs to remove duplicates", %{
       blocks_inserter: blocks_inserter,
       alice: alice,
       bob: bob
@@ -437,15 +469,24 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
         {1000,
          [
            Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 3}]),
-           Test.create_recovered([{1_000, 0, 0, bob}], @eth, [{alice, 2}])
-         ]},
-        {2000,
-         [
-           Test.create_recovered([{1_000, 1, 0, alice}], @eth, [{bob, 1}])
+           Test.create_recovered([{1_000, 0, 0, bob}], @eth, [{bob, 2}])
          ]}
       ])
 
-      assert {[_, _, _], @default_data_paging} = transaction_all_with_paging()
+      assert {[
+                %{"block" => %{"blknum" => 1000}, "txindex" => 1} = tx1,
+                %{"block" => %{"blknum" => 1000}, "txindex" => 0} = tx2
+              ], %{"limit" => 2, "page" => 1}} = transaction_all_with_paging(%{limit: 2})
+
+      blocks_inserter.([
+        {2000,
+         [
+           Test.create_recovered([{5, 0, 0, alice}], @eth, [{bob, 10}]),
+           Test.create_recovered([{1_002, 0, 0, bob}], @eth, [{alice, 5}])
+         ]}
+      ])
+
+      assert {[tx1, tx2], %{"limit" => 2, "page" => 2}} = transaction_all_with_paging(%{limit: 2, page: 2})
     end
   end
 
@@ -457,7 +498,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       "data_paging" => paging
     } = TestHelper.rpc_call("transaction.all", body, 200)
 
-    {data, @default_data_paging}
+    {data, paging}
   end
 
   defp transaction_all_result(body \\ nil) do
