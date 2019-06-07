@@ -21,6 +21,8 @@ defmodule OMG.DB.Application do
     DeferredConfig.populate(:omg_db)
     children = [OMG.DB.child_spec()]
     opts = [strategy: :one_for_one, name: OMG.DB.Supervisor]
+    {:ok, _} = Logger.add_backend(Sentry.LoggerBackend)
+
     Supervisor.start_link(children, opts)
   end
 end
