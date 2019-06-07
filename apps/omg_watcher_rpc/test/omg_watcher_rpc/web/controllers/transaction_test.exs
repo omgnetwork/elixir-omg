@@ -477,6 +477,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                 %{"block" => %{"blknum" => 1000}, "txindex" => 0} = tx2
               ], %{"limit" => 2, "page" => 1}} = transaction_all_with_paging(%{limit: 2})
 
+      # After 2 txs were requested 2 more was added, so then asking for the next page, the same
+      # already seen transaction will be returned. This test shows the limitation of current implementation.
       blocks_inserter.([
         {2000,
          [
@@ -485,7 +487,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      assert {[tx1, tx2], %{"limit" => 2, "page" => 2}} = transaction_all_with_paging(%{limit: 2, page: 2})
+      assert {[^tx1, ^tx2], %{"limit" => 2, "page" => 2}} = transaction_all_with_paging(%{limit: 2, page: 2})
     end
   end
 
