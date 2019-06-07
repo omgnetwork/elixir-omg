@@ -107,55 +107,71 @@ defmodule OMG.Watcher.BlockGetter do
     {:noreply, state}
   end
 
-  @decorate measure_start()
-  def handle_cast(
-        {:apply_block,
-         %BlockApplication{
-           transactions: transactions,
-           number: blknum,
-           eth_height: eth_height
-         } = to_apply},
-        state
-      ) do
-    with {:ok, _} <- Core.chain_ok(state),
-         tx_exec_results = for(tx <- transactions, do: OMG.State.exec(tx, :ignore)),
-         {:ok, state} <- Core.validate_executions(tx_exec_results, to_apply, state) do
-      _ =
-        to_apply
+  def handle_continue({:execute_transactions, block_application}, state) do
+    tx_exec_results = for(tx <- block_application.transactions, do: OMG.State.exec(tx, :ignore))
+
+    case Core.validate_executions(tx_exec_results, block_application, state) do
+      {:ok, state} ->
+        block_application
         |> Core.ensure_block_imported_once(state)
         |> Enum.each(&DB.Transaction.update_with/1)
 
-      exit_processor_results = ExitProcessor.check_validity()
+        {:noreply, state, {:continue, {:run_block_download_task, block_application}}}
 
-      {state, synced_height, db_updates} =
-        state
-        |> run_block_download_task()
-        |> Core.consider_exits(exit_processor_results)
-        |> Core.apply_block(to_apply)
-
-      _ = Logger.debug("Synced height update: #{inspect(db_updates)}")
-
-      {:ok, db_updates_from_state} = OMG.State.close_block(eth_height)
-      :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_state)
-      :ok = check_in_to_coordinator(synced_height)
-      :ok = update_status(state)
-
-      _ =
-        Logger.info(
-          "Applied block: \##{inspect(blknum)}, from eth height: #{inspect(eth_height)} " <>
-            "with #{inspect(length(transactions))} txs"
-        )
-
-      {:noreply, state}
-    else
       {{:error, _} = error, new_state} ->
         :ok = update_status(new_state)
-        _ = Logger.error("Invalid block #{inspect(blknum)}, because of #{inspect(error)}")
+        _ = Logger.error("Invalid block #{inspect(block_application.number)}, because of #{inspect(error)}")
         {:noreply, new_state}
+    end
+  end
 
-      {:error, _} = error ->
+  def handle_continue({:run_block_download_task, block_application}, state),
+    do: {:noreply, run_block_download_task(state), {:continue, {:close_and_apply_block, block_application}}}
+
+  def handle_continue({:close_and_apply_block, block_application}, state) do
+    {:ok, db_updates_from_state} = OMG.State.close_block(block_application.eth_height)
+
+    {state, synced_height, db_updates} = Core.apply_block(state, block_application)
+
+    _ = Logger.debug("Synced height update: #{inspect(db_updates)}")
+
+    :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_state)
+    :ok = check_in_to_coordinator(synced_height)
+
+    _ =
+      Logger.info(
+        "Applied block: \##{inspect(block_application.number)}, from eth height: #{
+          inspect(block_application.eth_height)
+        } " <>
+          "with #{inspect(length(block_application.transactions))} txs"
+      )
+
+    {:noreply, state, {:continue, :check_validity}}
+  end
+
+  def handle_continue(:check_validity, state) do
+    exit_processor_results = ExitProcessor.check_validity()
+    state = Core.consider_exits(state, exit_processor_results)
+    :ok = update_status(state)
+    {:noreply, state}
+  end
+
+  @decorate measure_start()
+  def handle_cast({:apply_block, %BlockApplication{} = block_application}, state) do
+    case Core.chain_ok(state) do
+      {:ok, _} ->
+        {:noreply, state, {:continue, {:execute_transactions, block_application}}}
+
+      error ->
         :ok = update_status(state)
-        _ = Logger.warn("Chain already invalid before applying block #{inspect(blknum)} because of #{inspect(error)}")
+
+        _ =
+          Logger.warn(
+            "Chain already invalid before applying block #{inspect(block_application.number)} because of #{
+              inspect(error)
+            }"
+          )
+
         {:noreply, state}
     end
   end
