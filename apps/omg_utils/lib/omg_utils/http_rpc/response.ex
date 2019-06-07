@@ -14,19 +14,22 @@
 defmodule OMG.Utils.HttpRPC.Response do
   @moduledoc """
   Serializes the response into expected result/data format.
-
-  TODO: Intentionally we want to have single Phx app exposing both APIs, until then please keep this file similar
-  to the corresponding Watcher's one to make merge simpler.
   """
   alias OMG.Utils.HttpRPC.Encoding
   @type response_t :: %{version: binary(), success: boolean(), data: map()}
+
+  def serialize_page(data, data_paging) do
+    data
+    |> serialize()
+    |> Map.put(:data_paging, data_paging)
+  end
 
   @doc """
   Append result of operation to the response data forming standard api response structure
   """
   @spec serialize(any()) :: response_t()
   def serialize(%{object: :error} = error), do: to_response(error, :error)
-  def serialize(data), do: to_response(data, :success)
+  def serialize(data), do: data |> sanitize() |> to_response(:success)
 
   @doc """
   Removes or encodes fields in response that cannot be serialized to api response.

@@ -14,6 +14,10 @@ GetAllTransactionsBodySchema:
           metadata:
             type: string
             format: binary
+          page:
+            type: integer
+            format: int32
+            default: 1            
           limit:
             type: integer
             format: int32
@@ -23,6 +27,7 @@ GetAllTransactionsBodySchema:
           metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
           blknum: 68290000
           limit: 100
+          page: 2
 
 CreateTransactionsBodySchema:
   description: The description of transaction to be crafted.

@@ -25,6 +25,7 @@ defmodule OMG.Watcher.DB.TransactionTest do
   use OMG.Fixtures
   use Plug.Test
 
+  alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.Watcher.DB
 
@@ -49,7 +50,7 @@ defmodule OMG.Watcher.DB.TransactionTest do
   @tag fixtures: [:initial_blocks]
   test "passing constrains out of allowed takes no effect and print a warning" do
     assert capture_log([level: :warn], fn ->
-             [_tx] = DB.Transaction.get_by_filters(blknum: 2000, nothing: "there's no such thing")
-           end) =~ "Constrain on :nothing does not exist in schema and was dropped from the query"
+             DB.Transaction.get_by_filters([blknum: 2000, nothing: "there's no such thing"], %Paginator{})
+           end) =~ "Constraint on :nothing does not exist in schema and was dropped from the query"
   end
 end

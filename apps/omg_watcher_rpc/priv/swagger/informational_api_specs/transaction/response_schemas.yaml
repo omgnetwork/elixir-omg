@@ -7,6 +7,17 @@ GetAllTransactionsResponseSchema:
         type: array
         items:
           $ref: 'schemas.yaml#/TransactionItemSchema'
+      data_paging:
+        type: object
+        properties:
+          page:
+            type: integer
+            format: int32
+            default: 1            
+          limit:
+            type: integer
+            format: int32
+            default: 200
     example:
       data:
       -
@@ -22,6 +33,9 @@ GetAllTransactionsResponseSchema:
         -
           currency: '0x0000000000000000000000000000000000000000'
           value: 20000000
+      data_paging:
+        page: 1
+        limit: 200
 
 CreateTransactionResponseSchema:
   allOf:

@@ -17,6 +17,7 @@ defmodule OMG.Watcher.API.Transaction do
   Module provides API for transactions
   """
 
+  alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.HttpRPC.Client
@@ -46,13 +47,12 @@ defmodule OMG.Watcher.API.Transaction do
   """
   @decorate measure_event()
   @spec get_transactions(Keyword.t()) :: list(%DB.Transaction{})
-  def get_transactions(constrains) do
-    # TODO: implement pagination. Defend against fetching huge dataset.
-    constrains =
-      constrains
-      |> Keyword.update(:limit, @default_transactions_limit, &min(&1, @default_transactions_limit))
+  def get_transactions(constraints) do
+    paginator = Paginator.from_constraints(constraints, @default_transactions_limit)
 
-    DB.Transaction.get_by_filters(constrains)
+    constraints
+    |> Keyword.drop([:limit, :page])
+    |> DB.Transaction.get_by_filters(paginator)
   end
 
   @doc """
