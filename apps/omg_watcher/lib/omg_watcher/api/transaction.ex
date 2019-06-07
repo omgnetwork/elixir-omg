@@ -47,10 +47,10 @@ defmodule OMG.Watcher.API.Transaction do
   """
   @decorate measure_event()
   @spec get_transactions(Keyword.t()) :: list(%DB.Transaction{})
-  def get_transactions(constrains) do
-    paginator = Paginator.from_constrains(constrains, @default_transactions_limit)
+  def get_transactions(constraints) do
+    paginator = Paginator.from_constraints(constraints, @default_transactions_limit)
 
-    constrains
+    constraints
     |> Keyword.drop([:limit, :page])
     |> DB.Transaction.get_by_filters(paginator)
   end

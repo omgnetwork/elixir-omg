@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Validator.Constrains do
+defmodule OMG.WatcherRPC.Web.Validator.Constraints do
   @moduledoc """
   Validates `/transaction.all` query parameters
   """
@@ -20,11 +20,11 @@ defmodule OMG.WatcherRPC.Web.Validator.Constrains do
   import OMG.Utils.HttpRPC.Validator.Base
 
   @doc """
-  Validates possible query constrains, stops on first error.
+  Validates possible query constraints, stops on first error.
   """
   @spec parse(%{binary() => any()}) :: {:ok, Keyword.t()} | {:error, any()}
   def parse(params) do
-    constrains = [
+    constraints = [
       address: [:address, :optional],
       blknum: [:pos_integer, :optional],
       metadata: [:hash, :optional],
@@ -32,10 +32,10 @@ defmodule OMG.WatcherRPC.Web.Validator.Constrains do
       page: [:pos_integer, :optional]
     ]
 
-    constrains
-    |> Enum.reduce_while({:ok, []}, fn {constrain, validators}, {:ok, list} ->
-      with {:ok, value} when not is_nil(value) <- expect(params, Atom.to_string(constrain), validators) do
-        {:cont, {:ok, [{constrain, value} | list]}}
+    constraints
+    |> Enum.reduce_while({:ok, []}, fn {constraint, validators}, {:ok, list} ->
+      with {:ok, value} when not is_nil(value) <- expect(params, Atom.to_string(constraint), validators) do
+        {:cont, {:ok, [{constraint, value} | list]}}
       else
         {:ok, nil} -> {:cont, {:ok, list}}
         error -> {:halt, error}

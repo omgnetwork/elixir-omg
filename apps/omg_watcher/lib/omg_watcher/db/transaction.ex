@@ -70,21 +70,21 @@ defmodule OMG.Watcher.DB.Transaction do
   end
 
   @doc """
-  Returns transactions possibly filtered by constrains
-  * constrains - accepts keyword in the form of [schema_field: value]
+  Returns transactions possibly filtered by constraints
+  * constraints - accepts keyword in the form of [schema_field: value]
   """
   @spec get_by_filters(Keyword.t(), Paginator.t()) :: Paginator.t()
-  def get_by_filters(constrains, paginator) do
-    allowed_constrains = [:address, :blknum, :txindex, :metadata]
+  def get_by_filters(constraints, paginator) do
+    allowed_constraints = [:address, :blknum, :txindex, :metadata]
 
-    constrains = filter_constrains(constrains, allowed_constrains)
+    constraints = filter_constraints(constraints, allowed_constraints)
 
-    # we need to handle complex constrains with dedicated modifier function
-    {address, constrains} = Keyword.pop(constrains, :address)
+    # we need to handle complex constraints with dedicated modifier function
+    {address, constraints} = Keyword.pop(constraints, :address)
 
     query_get_last(paginator.data_paging)
     |> query_get_by_address(address)
-    |> query_get_by(constrains)
+    |> query_get_by(constraints)
     |> DB.Repo.all()
     |> Paginator.set_data(paginator)
   end
@@ -111,7 +111,7 @@ defmodule OMG.Watcher.DB.Transaction do
     |> distinct(true)
   end
 
-  defp query_get_by(query, constrains) when is_list(constrains), do: query |> where(^constrains)
+  defp query_get_by(query, constraints) when is_list(constraints), do: query |> where(^constraints)
 
   def get_by_blknum(blknum) do
     __MODULE__
@@ -202,16 +202,16 @@ defmodule OMG.Watcher.DB.Transaction do
     }
   end
 
-  defp filter_constrains(constrains, allowed_constrains) do
-    case Keyword.drop(constrains, allowed_constrains) do
+  defp filter_constraints(constraints, allowed_constraints) do
+    case Keyword.drop(constraints, allowed_constraints) do
       [{out_of_schema, _} | _] ->
         _ =
-          Logger.warn("Constrain on #{inspect(out_of_schema)} does not exist in schema and was dropped from the query")
+          Logger.warn("Constraint on #{inspect(out_of_schema)} does not exist in schema and was dropped from the query")
 
-        constrains |> Keyword.take(allowed_constrains)
+        constraints |> Keyword.take(allowed_constraints)
 
       [] ->
-        constrains
+        constraints
     end
   end
 end

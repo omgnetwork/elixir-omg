@@ -51,6 +51,6 @@ defmodule OMG.Watcher.DB.TransactionTest do
   test "passing constrains out of allowed takes no effect and print a warning" do
     assert capture_log([level: :warn], fn ->
              DB.Transaction.get_by_filters([blknum: 2000, nothing: "there's no such thing"], %Paginator{})
-           end) =~ "Constrain on :nothing does not exist in schema and was dropped from the query"
+           end) =~ "Constraint on :nothing does not exist in schema and was dropped from the query"
   end
 end
