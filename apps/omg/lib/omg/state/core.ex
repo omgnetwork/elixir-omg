@@ -65,12 +65,6 @@ defmodule OMG.State.Core do
 
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
 
-  @type exec_error ::
-          :unauthorized_spent
-          | :amounts_do_not_add_up
-          | :invalid_current_block_number
-          | :utxo_not_found
-
   @type deposit_event :: %{deposit: %{amount: non_neg_integer, owner: Crypto.address_t()}}
   @type tx_event :: %{
           tx: Transaction.Recovered.t(),
@@ -157,26 +151,19 @@ defmodule OMG.State.Core do
   """
   @spec exec(state :: t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
-          | {{:error, exec_error}, t()}
-  def exec(
-        %Core{height: height, tx_index: tx_index} = state,
-        %Transaction.Recovered{} = tx,
-        fees
-      ) do
+          | {{:error, Validator.exec_error()}, t()}
+  def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
     tx_hash = Transaction.raw_txhash(tx)
-    outputs = Transaction.get_outputs(tx)
 
-    with :ok <- Validator.validate_block_size(state),
-         {:ok, input_amounts_by_currency} <- Validator.correct_inputs?(state, tx),
-         output_amounts_by_currency = Validator.get_amounts_by_currency(outputs),
-         :ok <- Validator.amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
-         :ok <- Validator.transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
-      {:ok, {tx_hash, height, tx_index},
-       state
-       |> apply_spend(tx)
-       |> add_pending_tx(tx)}
-    else
-      {:error, _reason} = error -> {error, state}
+    case Validator.can_apply_spend(state, tx, fees) do
+      true ->
+        {:ok, {tx_hash, state.height, state.tx_index},
+         state
+         |> apply_spend(tx)
+         |> add_pending_tx(tx)}
+
+      {{:error, _reason}, _state} = error ->
+        error
     end
   end
 

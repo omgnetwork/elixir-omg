@@ -38,7 +38,6 @@ defmodule OMG.Watcher.API.Account do
   @doc """
   Gets all utxos belonging to the given address.
   Slow operation, compatible with security-critical.
-  TODO:  what's the actuall problem here? Storage model?
   """
   @spec get_exitable_utxos(OMG.Crypto.address_t()) :: list(OMG.State.Core.exitable_utxos())
   def get_exitable_utxos(address) do

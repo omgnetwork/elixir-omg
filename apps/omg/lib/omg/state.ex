@@ -24,13 +24,14 @@ defmodule OMG.State do
   alias OMG.Recorder
   alias OMG.State.Core
   alias OMG.State.Transaction
+  alias OMG.State.Transaction.Validator
   alias OMG.Utxo
 
   use GenServer
   use OMG.Utils.Metrics
   use OMG.Utils.LoggerExt
 
-  @type exec_error :: Core.exec_error()
+  @type exec_error :: Validator.exec_error()
 
   ### Client
 

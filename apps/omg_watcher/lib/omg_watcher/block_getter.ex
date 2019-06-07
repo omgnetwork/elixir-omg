@@ -107,7 +107,7 @@ defmodule OMG.Watcher.BlockGetter do
     {:noreply, state}
   end
 
-  def handle_continue({:execute_transactions, block_application}, state) do
+  def handle_continue({:apply_block_step, :execute_transactions, block_application}, state) do
     tx_exec_results = for(tx <- block_application.transactions, do: OMG.State.exec(tx, :ignore))
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
@@ -116,7 +116,7 @@ defmodule OMG.Watcher.BlockGetter do
         |> Core.ensure_block_imported_once(state)
         |> Enum.each(&DB.Transaction.update_with/1)
 
-        {:noreply, state, {:continue, {:run_block_download_task, block_application}}}
+        {:noreply, state, {:continue, {:apply_block_step, :run_block_download_task, block_application}}}
 
       {{:error, _} = error, new_state} ->
         :ok = update_status(new_state)
@@ -125,10 +125,12 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  def handle_continue({:run_block_download_task, block_application}, state),
-    do: {:noreply, run_block_download_task(state), {:continue, {:close_and_apply_block, block_application}}}
+  def handle_continue({:apply_block_step, :run_block_download_task, block_application}, state),
+    do:
+      {:noreply, run_block_download_task(state),
+       {:continue, {:apply_block_step, :close_and_apply_block, block_application}}}
 
-  def handle_continue({:close_and_apply_block, block_application}, state) do
+  def handle_continue({:apply_block_step, :close_and_apply_block, block_application}, state) do
     {:ok, db_updates_from_state} = OMG.State.close_block(block_application.eth_height)
 
     {state, synced_height, db_updates} = Core.apply_block(state, block_application)
@@ -146,10 +148,10 @@ defmodule OMG.Watcher.BlockGetter do
           "with #{inspect(length(block_application.transactions))} txs"
       )
 
-    {:noreply, state, {:continue, :check_validity}}
+    {:noreply, state, {:continue, {:apply_block_step, :check_validity}}}
   end
 
-  def handle_continue(:check_validity, state) do
+  def handle_continue({:apply_block_step, :check_validity}, state) do
     exit_processor_results = ExitProcessor.check_validity()
     state = Core.consider_exits(state, exit_processor_results)
     :ok = update_status(state)
@@ -160,7 +162,7 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_cast({:apply_block, %BlockApplication{} = block_application}, state) do
     case Core.chain_ok(state) do
       {:ok, _} ->
-        {:noreply, state, {:continue, {:execute_transactions, block_application}}}
+        {:noreply, state, {:continue, {:apply_block_step, :execute_transactions, block_application}}}
 
       error ->
         :ok = update_status(state)

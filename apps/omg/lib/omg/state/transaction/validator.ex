@@ -14,7 +14,7 @@
 
 defmodule OMG.State.Transaction.Validator do
   @moduledoc """
-  Provides functions for transaction validation of transaction processing in OMG.State.Core.
+  Provides functions for stateful transaction validation for transaction processing in OMG.State.Core.
 
   """
 
@@ -25,14 +25,38 @@ defmodule OMG.State.Transaction.Validator do
   alias OMG.Utxo
   require Utxo
 
-  def validate_block_size(%Core{tx_index: number_of_transactions_in_block}) do
+  @type exec_error ::
+          :amounts_do_not_add_up
+          | :fees_not_covered
+          | :input_utxo_ahead_of_state
+          | :too_many_transactions_in_block
+          | :unauthorized_spent
+          | :utxo_not_found
+
+  @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
+          true | {{:error, exec_error()}, Core.t()}
+  def can_apply_spend(state, %Transaction.Recovered{} = tx, fees) do
+    outputs = Transaction.get_outputs(tx)
+
+    with :ok <- validate_block_size(state),
+         {:ok, input_amounts_by_currency} <- correct_inputs?(state, tx),
+         output_amounts_by_currency = get_amounts_by_currency(outputs),
+         :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
+         :ok <- transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
+      true
+    else
+      {:error, _reason} = error -> {error, state}
+    end
+  end
+
+  defp validate_block_size(%Core{tx_index: number_of_transactions_in_block}) do
     case number_of_transactions_in_block == @maximum_block_size do
       true -> {:error, :too_many_transactions_in_block}
       false -> :ok
     end
   end
 
-  def correct_inputs?(%Core{utxos: utxos} = state, tx) do
+  defp correct_inputs?(%Core{utxos: utxos} = state, tx) do
     inputs = Transaction.get_inputs(tx)
 
     with :ok <- inputs_not_from_future_block?(state, inputs),
@@ -43,14 +67,14 @@ defmodule OMG.State.Transaction.Validator do
     end
   end
 
-  def get_amounts_by_currency(utxos) do
+  defp get_amounts_by_currency(utxos) do
     utxos
     |> Enum.group_by(fn %{currency: currency} -> currency end, fn %{amount: amount} -> amount end)
     |> Enum.map(fn {currency, amounts} -> {currency, Enum.sum(amounts)} end)
     |> Map.new()
   end
 
-  def amounts_add_up?(input_amounts, output_amounts) do
+  defp amounts_add_up?(input_amounts, output_amounts) do
     for {output_currency, output_amount} <- Map.to_list(output_amounts) do
       input_amount = Map.get(input_amounts, output_currency, 0)
       input_amount >= output_amount
@@ -59,7 +83,7 @@ defmodule OMG.State.Transaction.Validator do
     |> if(do: :ok, else: {:error, :amounts_do_not_add_up})
   end
 
-  def transaction_covers_fee?(input_amounts, output_amounts, fees) do
+  defp transaction_covers_fee?(input_amounts, output_amounts, fees) do
     Fees.covered?(input_amounts, output_amounts, fees)
     |> if(do: :ok, else: {:error, :fees_not_covered})
   end
