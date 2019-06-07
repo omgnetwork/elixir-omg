@@ -32,12 +32,10 @@ defmodule OMG.WatcherRPC.Web.Validator.Constraints do
       page: [:pos_integer, :optional]
     ]
 
-    constraints
-    |> Enum.reduce_while({:ok, []}, fn {constraint, validators}, {:ok, list} ->
-      with {:ok, value} when not is_nil(value) <- expect(params, Atom.to_string(constraint), validators) do
-        {:cont, {:ok, [{constraint, value} | list]}}
-      else
+    Enum.reduce_while(constraints, {:ok, []}, fn {constraint, validators}, {:ok, list} ->
+      case expect(params, Atom.to_string(constraint), validators) do
         {:ok, nil} -> {:cont, {:ok, list}}
+        {:ok, value} -> {:cont, {:ok, [{constraint, value} | list]}}
         error -> {:halt, error}
       end
     end)
