@@ -45,7 +45,6 @@ defmodule OMG.Utils.Paginator do
     %__MODULE__{data: [], data_paging: data_paging}
   end
 
-  @dialyzer {:nowarn_function, set_data: 2}
   @spec set_data(list(), t()) :: t()
   def set_data(data, paginator) when is_list(data), do: %__MODULE__{paginator | data: data}
 end
