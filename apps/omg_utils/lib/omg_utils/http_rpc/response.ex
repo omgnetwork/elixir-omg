@@ -69,7 +69,7 @@ defmodule OMG.Utils.HttpRPC.Response do
 
   defp to_response(data, result),
     do: %{
-      version: "1.0",
+      version: "0.2",
       success: result == :success,
       data: data
     }
