@@ -24,7 +24,7 @@ defmodule OMG.Application do
 
   def start(_type, _args) do
     :ok = AlarmHandler.install()
-    {:ok, _} = Logger.add_backend(Sentry.LoggerBackend)
+    {_, _} = Logger.add_backend(Sentry.LoggerBackend)
     OMG.Supervisor.start_link()
   end
 end

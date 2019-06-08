@@ -50,7 +50,7 @@ defmodule OMG.WatcherRPC.Application do
       name: OMG.WatcherRPC.RootSupervisor
     ]
 
-    {:ok, _} = Logger.add_backend(Sentry.LoggerBackend)
+    {_, _} = Logger.add_backend(Sentry.LoggerBackend)
 
     Supervisor.start_link(children, opts)
   end

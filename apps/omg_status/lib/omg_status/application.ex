@@ -31,7 +31,7 @@ defmodule OMG.Status.Application do
         []
       end
 
-  {:ok, _} = Logger.add_backend(Sentry.LoggerBackend)
+  {_, _} = Logger.add_backend(Sentry.LoggerBackend)
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
   end
