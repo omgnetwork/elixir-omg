@@ -20,6 +20,7 @@ defmodule OMG.Application do
 
   use Application
   alias OMG.Alert.AlarmHandler
+  require Logger
 
   def start(_type, _args) do
     :ok = AlarmHandler.install()
