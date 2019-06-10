@@ -1,7 +1,4 @@
-# 1. Installation via Vagrant
-Refer to https://github.com/omisego/xomg-vagrant.
-
-# 2. Full installation
+# Full Installation
 
 **NOTE**: Currently the child chain server and watcher are bundled within a single umbrella app.
 
@@ -10,15 +7,34 @@ Only **Linux** platforms are supported now. These instructions have been tested 
 ## Prerequisites
 * **Erlang OTP** `>=20` (check with `elixir --version`)
 * **Elixir** `>=1.6` (check with `elixir --version`)
-* **solc** `>=0.4.24` (check with `solc --version`)
+* **solc** `~>0.4` (check with `solc --version`)
 
 ### Optional prerequisites
 * **`httpie`** - to run HTTP requests from `docs/demoxx.md` demos
 
 ## Install prerequisite packages
+
 ```
 sudo apt-get update
-sudo apt-get -y install build-essential autoconf libtool libgmp3-dev libssl-dev wget git
+sudo apt-get -y install \
+  autoconf \
+  build-essential \
+  cmake \
+  git \
+  libgmp3-dev \
+  libsecp256k1-dev \
+  libssl-dev \
+  libtool \
+  wget
+```
+
+## Install PostgreSQL
+
+```
+sudo apt-get install postgresql postgresql-contrib
+sudo -u postgres createuser omisego_dev
+sudo -u postgres psql -c "alter user omisego_dev with encrypted password 'omisego_dev'"
+sudo -u postgres psql -c "alter user omisego_dev CREATEDB"
 ```
 
 ## Install Erlang
@@ -36,7 +52,6 @@ sudo apt-get install -y esl-erlang
 sudo apt-get -y install elixir
 ```
 
-
 ## Install Geth
 ```
 sudo apt-get install -y software-properties-common
@@ -45,12 +60,23 @@ sudo apt-get update
 sudo apt-get -y install geth
 ```
 
-### Installing Parity
-[Parity]((https://www.parity.io/ethereum/)) is supported. To use it, download the binary and put it into your PATH.
+## Installing Parity
+Parity is supported. To use it, download the [lastest stable
+binary](https://www.parity.io/ethereum/#download) and put it into your PATH.
+
+```
+wget https://releases.parity.io/ethereum/v2.4.6/x86_64-unknown-linux-gnu/parity
+chmod +x parity
+sudo mv parity /usr/bin/
+```
 
 ## Install solc
 ```
 sudo apt-get install libssl-dev solc
+wget https://github.com/ethereum/solidity/releases/download/v0.4.26/solidity-ubuntu-trusty.zip
+unzip solidity-ubuntu-trusty.zip
+sudo install solc /usr/local/bin
+rm solc lllc solidity-ubuntu-trusty.zip
 ```
 
 ## Install hex and rebar
@@ -67,6 +93,7 @@ git clone https://github.com/omisego/elixir-omg
 ```
 cd elixir-omg
 mix deps.get
+mix deps.compile
 ```
 
 ## Check this works!
