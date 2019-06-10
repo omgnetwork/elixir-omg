@@ -4,7 +4,7 @@ NOTE:
 * input = utxo
 
 This document presents current way of stateless and stateful validation of
-`OMG.ChildChain.submit(encoded_signed_tx)` method.
+`OMG.ChildChain.submit(encoded_signed_tx)` function.
 
 #### Stateless validation
 
@@ -25,7 +25,7 @@ This document presents current way of stateless and stateful validation of
 
 1. Validating block size
     * if the number of transactions in block exceeds limit then `{:error, :too_many_transactions_in_block}`
-2. Checking correction of input positions
+2. Checking correctness of input positions
     * if the input is from the future block then `{:error, :input_utxo_ahead_of_state}`
     * if the input does not exists then `{:error, :utxo_not_found}`
     * if the owner of input does not match with spender then `{:error, :unauthorized_spent}`
