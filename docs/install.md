@@ -7,7 +7,7 @@ Only **Linux** platforms are supported now. These instructions have been tested 
 ## Prerequisites
 * **Erlang OTP** `>=20` (check with `elixir --version`)
 * **Elixir** `>=1.6` (check with `elixir --version`)
-* **solc** `~>0.4.24` (check with `solc --version`)
+* **solc** `~>0.4` (check with `solc --version`)
 
 ### Optional prerequisites
 * **`httpie`** - to run HTTP requests from `docs/demoxx.md` demos
