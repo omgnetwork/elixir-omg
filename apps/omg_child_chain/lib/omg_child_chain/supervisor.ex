@@ -58,7 +58,7 @@ defmodule OMG.ChildChain.Supervisor do
     ]
 
     children = [
-      {OMG.InternalEventBus, []},
+      #{OMG.InternalEventBus, []},
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, []},

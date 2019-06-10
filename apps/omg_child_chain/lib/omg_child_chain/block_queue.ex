@@ -42,7 +42,7 @@ defmodule OMG.ChildChain.BlockQueue do
     use OMG.Utils.LoggerExt
     use OMG.Utils.Metrics
     alias OMG.Eth
-
+    alias OMG.EthereumClientMonitor
     def start_link(_args) do
       GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
     end
@@ -52,10 +52,11 @@ defmodule OMG.ChildChain.BlockQueue do
     end
 
     def handle_continue(:setup, %{}) do
+      :ok = OMG.InternalEventBus.subscribe("ethereum_block_height_change", link: true)
       _ = Logger.info("Starting #{__MODULE__} service.")
       :ok = Eth.node_ready()
       :ok = Eth.RootChain.contract_ready()
-      {:ok, parent_height} = Eth.get_ethereum_height()
+      parent_height = EthereumClientMonitor.get_ethereum_height()
       {:ok, mined_num} = Eth.RootChain.get_mined_child_block()
       {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
       {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
@@ -123,14 +124,13 @@ defmodule OMG.ChildChain.BlockQueue do
     and status of State to decide what to do
     """
     def handle_info(:check_ethereum_status, %Core{} = state) do
-      {:ok, height} = Eth.get_ethereum_height()
       {:ok, mined_blknum} = Eth.RootChain.get_mined_child_block()
       {_, is_empty_block} = OMG.State.get_status()
 
-      _ = Logger.debug("Ethereum at \#'#{inspect(height)}', mined child at \#'#{inspect(mined_blknum)}'")
+      _ = Logger.debug("Ethereum at \#'#{inspect(state.ethereum_height)}', mined child at \#'#{inspect(mined_blknum)}'")
 
       state1 =
-        with {:do_form_block, state1} <- Core.set_ethereum_status(state, height, mined_blknum, is_empty_block) do
+        with {:do_form_block, state1} <- Core.set_ethereum_status(state, state.ethereum_height, mined_blknum, is_empty_block) do
           :ok = OMG.State.form_block()
           state1
         else
@@ -145,13 +145,17 @@ defmodule OMG.ChildChain.BlockQueue do
           {:internal_event_bus, :enqueue_block, %Block{number: block_number, hash: block_hash} = block},
           %Core{} = state
         ) do
-      {:ok, parent_height} = Eth.get_ethereum_height()
-      state1 = Core.enqueue_block(state, block_hash, block_number, parent_height)
+      state1 = Core.enqueue_block(state, block_hash, block_number, state.ethereum_height)
       _ = Logger.info("Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'")
 
       FreshBlocks.push(block)
       submit_blocks(state1)
       {:noreply, %Core{} = state1}
+    end
+
+    def handle_info({:internal_event_bus, :ethereum_block_height_change, ethereum_height}, %Core{} = state
+        ) do
+      {:noreply, %Core{state | ethereum_height: ethereum_height}}
     end
 
     # private (server)

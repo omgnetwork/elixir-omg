@@ -110,6 +110,7 @@ defmodule OMG.RootChainCoordinator.Core do
     end
   end
 
+  # TODO - explain what this does and why
   def get_synced_info(
         %__MODULE__{root_chain_height: root_chain_height, configs_services: configs, services: services} = state,
         service_name

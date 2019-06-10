@@ -69,7 +69,8 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     chain_start_parent_height: nil,
     minimal_enqueue_block_gap: 1,
     finality_threshold: 12,
-    gas_price_adj_params: %GasPriceAdjustment{}
+    gas_price_adj_params: %GasPriceAdjustment{},
+    ethereum_height: :error
   ]
 
   @type t() :: %__MODULE__{
@@ -95,7 +96,8 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           # depth of max reorg we take into account
           finality_threshold: pos_integer(),
           # the gas price adjustment strategy parameters
-          gas_price_adj_params: GasPriceAdjustment.t()
+          gas_price_adj_params: GasPriceAdjustment.t(),
+          ethereum_height: integer() | :error
         }
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}

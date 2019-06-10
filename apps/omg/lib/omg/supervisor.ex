@@ -26,6 +26,7 @@ defmodule OMG.Supervisor do
 
   def init(:ok) do
     children = [
+      {OMG.InternalEventBus, []},
       {OMG.EthereumClientMonitor, [Alarm]}
     ]
 

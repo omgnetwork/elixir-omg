@@ -29,9 +29,14 @@ defmodule OMG.EthereumClientMonitor do
           interval: pos_integer(),
           tref: reference() | nil,
           alarm_module: module(),
-          raised: boolean()
+          raised: boolean(),
+          ethereum_height: integer | :error
         }
-  defstruct interval: @default_interval, tref: nil, alarm_module: nil, raised: true
+  defstruct interval: @default_interval, tref: nil, alarm_module: nil, raised: true, ethereum_height: :error
+
+  def get_ethereum_height do
+    GenServer.call(__MODULE__, :ethereum_height)
+  end
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -40,9 +45,10 @@ defmodule OMG.EthereumClientMonitor do
   def init([alarm_module]) do
     _ = Logger.info("Starting Ethereum client monitor.")
     install()
-    state = %__MODULE__{alarm_module: alarm_module}
+    ethereum_height = check()
+    state = %__MODULE__{alarm_module: alarm_module, ethereum_height: ethereum_height}
     _ = alarm_module.set({:ethereum_client_connection, Node.self(), __MODULE__})
-    _ = raise_clear(alarm_module, state.raised, check())
+    _ = raise_clear(alarm_module, state.raised, ethereum_height)
     {:ok, tref} = :timer.send_after(state.interval, :health_check)
     {:ok, %{state | tref: tref}}
   end
@@ -52,10 +58,25 @@ defmodule OMG.EthereumClientMonitor do
     {:ok, %{}}
   end
 
+  def handle_call(:ethereum_height, _from, state) do
+    {:reply, state.ethereum_height, state}
+  end
+
   def handle_info(:health_check, state) do
-    _ = raise_clear(state.alarm_module, state.raised, check())
+    ethereum_height = check()
+    _ = raise_clear(state.alarm_module, state.raised, ethereum_height)
     {:ok, tref} = :timer.send_after(state.interval, :health_check)
-    {:noreply, %{state | tref: tref}}
+
+    :ok =
+      case state.ethereum_height do
+        ^ethereum_height ->
+          OMG.InternalEventBus.direct_local_broadcast("ethereum_block_height_change", {:ethereum_block_height_change, ethereum_height})
+
+        _ ->
+          :ok
+      end
+
+    {:noreply, %{state | tref: tref, ethereum_height: ethereum_height}}
   end
 
   def handle_cast(:clear_alarm, state) do

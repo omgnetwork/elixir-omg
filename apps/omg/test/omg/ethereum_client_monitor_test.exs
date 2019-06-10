@@ -26,7 +26,7 @@ defmodule OMG.EthereumClientMonitorTest do
     Mock.start_link()
     Application.put_env(:omg_child_chain, :eth_integration_module, Mock)
     {:ok, _} = EthereumClientMonitor.start_link([Alarm])
-
+    {:ok, _} = Phoenix.PubSub.PG2.start_link([name: OMG.InternalEventBus])
     on_exit(fn ->
       Application.put_env(:omg_child_chain, :eth_integration_module, nil)
     end)
