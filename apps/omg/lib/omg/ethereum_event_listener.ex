@@ -21,9 +21,10 @@ defmodule OMG.EthereumEventListener do
   alias OMG.Recorder
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
+  alias OMG.Utils.Metrics
 
   use GenServer
-  use OMG.Utils.Metrics
+  use Metrics
   use OMG.Utils.LoggerExt
 
   @type config() :: %{
@@ -120,7 +121,7 @@ defmodule OMG.EthereumEventListener do
       |> Core.get_events(sync_height)
 
     {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
-    :ok = Appsignal.increment_counter(service_name |> Atom.to_string(), length(events))
+    Metrics.increment(service_name |> Atom.to_string(), length(events))
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
     :ok = RootChainCoordinator.check_in(height_to_check_in, state.service_name)
 

@@ -20,6 +20,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.Transaction do
   use OMG.ChildChainRPC.Web, :controller
 
   alias OMG.ChildChainRPC.Web.View
+  alias OMG.Utils.Metrics
 
   @api_module Application.fetch_env!(:omg_child_chain_rpc, :child_chain_api_module)
 
@@ -36,13 +37,13 @@ defmodule OMG.ChildChainRPC.Web.Controller.Transaction do
   defp increment_metrics_counter(response) do
     case response do
       {:error, {:validation_error, _, _}} ->
-        Appsignal.increment_counter("transaction.failed.validation", 1)
+        Metrics.increment("transaction.failed.validation", 1)
 
       %Plug.Conn{} ->
-        Appsignal.increment_counter("transaction.succeed", 1)
+        Metrics.increment("transaction.succeed", 1)
 
       _ ->
-        Appsignal.increment_counter("transaction.fail.unidentified", 1)
+        Metrics.increment("transaction.fail.unidentified", 1)
     end
 
     response
