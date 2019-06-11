@@ -24,6 +24,8 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.Utils.LoggerExt
 
   alias Ecto.Adapters.SQL
+  alias FakeServer.Agents.EnvAgent
+  alias FakeServer.HTTP.Server
   alias OMG.Watcher
   alias OMG.Watcher.DB
   alias Watcher.TestHelper
@@ -192,9 +194,6 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture test_server do
-    alias FakeServer.Agents.EnvAgent
-    alias FakeServer.HTTP.Server
-
     DeferredConfig.populate(:omg_child_chain_rpc)
     DeferredConfig.populate(:omg_watcher)
     {:ok, server_id, port} = Server.run()

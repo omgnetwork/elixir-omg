@@ -49,6 +49,7 @@ defmodule OMG.Eth.MixProject do
       {:exexec,
        git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
+      {:websockex, "~> 0.4.2"},
       {:omg_utils, in_umbrella: true}
     ]
   end

@@ -47,12 +47,4 @@ defmodule OMG.Eth.Token do
 
     Eth.contract_transact(from, token, "approve(address,uint256)", [spender, amount], opts)
   end
-
-  #########
-  # reads #
-  #########
-
-  def balance_of(owner, token) do
-    Eth.call_contract(token, "balanceOf(address)", [owner], [{:uint, 256}])
-  end
 end

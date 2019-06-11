@@ -14,15 +14,19 @@
 
 defmodule OMG.EthereumClientMonitor do
   @moduledoc """
-  This module periodically checks Geth (every second or less) and raises an alarm
-  when it can't reach the client and clears the alarm when the client connection is established again.
+  Process serves as a health check to Ethereum client node by maintaining a newHead subscription over websocket connection
+  in order to reduce the number of RPC calls. The websocket connection is linked with this process and when it dies,
+  we raise an alarm and periodically re-check the connection in order to clear the alarm.
 
-  The module implements a genserver that repeatedly checks the health of the ethereum client and it also implements
-  alarm handler callbacks. When the genserver raises an alarm, we get a callback and get notified - and we update our state (raised = true).
+  When the process is started we immediately make an RPC call to retrieve the height, we proceed to open a subscription towards the client.
+  If the client connection drops, we get notified (`def handle_info({:EXIT, _from, _}...`) and raise an alarm and proceed with periodical health checks.
+  A health check makes an RPC call and checks for correct response (is_number) - if that succeeds, there's a high probability websocket connection subscription will work as well.
   """
   use GenServer
   require Logger
   alias OMG.Eth
+  alias OMG.Eth.Encoding
+  alias OMG.Eth.SubscriptionWorker
 
   @default_interval Application.get_env(:omg, :client_monitor_interval_ms)
   @type t :: %__MODULE__{
@@ -30,9 +34,15 @@ defmodule OMG.EthereumClientMonitor do
           tref: reference() | nil,
           alarm_module: module(),
           raised: boolean(),
-          ethereum_height: integer | :error
+          ethereum_height: integer | :error,
+          ws_url: binary() | nil
         }
-  defstruct interval: @default_interval, tref: nil, alarm_module: nil, raised: true, ethereum_height: :error
+  defstruct interval: @default_interval,
+            tref: nil,
+            alarm_module: nil,
+            raised: true,
+            ethereum_height: :error,
+            ws_url: nil
 
   def get_ethereum_height do
     GenServer.call(__MODULE__, :ethereum_height)
@@ -42,41 +52,86 @@ defmodule OMG.EthereumClientMonitor do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init([alarm_module]) do
+  def init([_ | _] = opts) do
+    alarm_module = Keyword.get(opts, :alarm_module)
+    _ = Process.flag(:trap_exit, true)
     _ = Logger.info("Starting Ethereum client monitor.")
-    install()
+    install_alarm_handler()
     ethereum_height = check()
-    state = %__MODULE__{alarm_module: alarm_module, ethereum_height: ethereum_height}
+
+    state = %__MODULE__{
+      alarm_module: alarm_module,
+      ethereum_height: ethereum_height,
+      ws_url: Keyword.get(opts, :ws_url)
+    }
+
     _ = alarm_module.set({:ethereum_client_connection, Node.self(), __MODULE__})
     _ = raise_clear(alarm_module, state.raised, ethereum_height)
-    {:ok, tref} = :timer.send_after(state.interval, :health_check)
-    {:ok, %{state | tref: tref}}
+
+    {:ok, state, {:continue, :ws_connect}}
   end
 
-  # gen_event
+  # gen_event init
   def init(_args) do
     {:ok, %{}}
   end
 
+  def handle_continue(:ws_connect, state) do
+    params =
+      case state.ws_url do
+        nil -> [listen_to: "newHeads"]
+        ws_url -> [listen_to: "newHeads", ws_url: ws_url]
+      end
+
+    _ = SubscriptionWorker.start_link(params)
+    _ = raise_clear(state.alarm_module, state.raised, state.ethereum_height)
+    {:noreply, state}
+  rescue
+    _ ->
+      {:ok, tref} = :timer.send_after(state.interval, :health_check)
+      _ = raise_clear(state.alarm_module, state.raised, :error)
+      {:noreply, %{state | tref: tref}}
+  end
+
   def handle_call(:ethereum_height, _from, state) do
-    {:reply, state.ethereum_height, state}
+    {:reply, {:ok, state.ethereum_height}, state}
+  end
+
+  def handle_info({:EXIT, _from, _}, state) do
+    # subscription died so we need to raise an alarm and start manual checks
+
+    _ = state.alarm_module.set({:ethereum_client_connection, Node.self(), __MODULE__})
+    {:ok, tref} = :timer.send_after(state.interval, :health_check)
+    {:noreply, %{state | tref: tref}}
   end
 
   def handle_info(:health_check, state) do
     ethereum_height = check()
-    _ = raise_clear(state.alarm_module, state.raised, ethereum_height)
-    {:ok, tref} = :timer.send_after(state.interval, :health_check)
 
-    :ok =
-      case state.ethereum_height do
-        ^ethereum_height ->
-          OMG.InternalEventBus.direct_local_broadcast("ethereum_block_height_change", {:ethereum_block_height_change, ethereum_height})
+    case is_number(ethereum_height) do
+      true ->
+        # we got a good response this time, restart the subscription and backoff
+        # with manuall pulling
 
-        _ ->
-          :ok
-      end
+        #
+        {:noreply, %{state | ethereum_height: ethereum_height}, {:continue, :ws_connect}}
 
-    {:noreply, %{state | tref: tref, ethereum_height: ethereum_height}}
+      false ->
+        {:ok, tref} = :timer.send_after(state.interval, :health_check)
+        {:noreply, %{state | tref: tref, ethereum_height: ethereum_height}}
+    end
+  end
+
+  def handle_cast({:event_received, "newHeads", decoded}, state) do
+    value = decoded["params"]["result"]["number"]
+
+    case is_binary(value) do
+      true ->
+        {:noreply, %{state | ethereum_height: Encoding.int_from_hex(value)}}
+
+      false ->
+        {:noreply, state}
+    end
   end
 
   def handle_cast(:clear_alarm, state) do
@@ -117,7 +172,7 @@ defmodule OMG.EthereumClientMonitor do
     {:ok, rootchain_height} = eth().get_ethereum_height()
     rootchain_height
   rescue
-    _ -> :error
+    _check_error -> :error
   end
 
   # if an alarm is raised, we don't have to raise it again.
@@ -136,7 +191,7 @@ defmodule OMG.EthereumClientMonitor do
 
   defp eth, do: Application.get_env(:omg_child_chain, :eth_integration_module, Eth)
 
-  defp install do
+  defp install_alarm_handler do
     case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
       true -> :ok
       _ -> :alarm_handler.add_alarm_handler(__MODULE__)

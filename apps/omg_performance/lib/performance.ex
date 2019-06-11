@@ -163,7 +163,7 @@ defmodule OMG.Performance do
   # Instead, we start the artificial `BlockCreator`
   defp start_simple_perftest_chain(opts) do
     children = [
-      #{OMG.InternalEventBus, []},
+      {OMG.InternalEventBus, []},
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, []},

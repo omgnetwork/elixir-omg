@@ -327,13 +327,10 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, next - interval}
   end
 
-  def authority(contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "operator()", [], [:address])
-  end
-
   @doc """
   Returns exit for a specific utxo. Calls contract method.
+
+  #TODO - can exits accept a list of exits? Look at ExitProcessor.handle_call({:new_exits, new_exits})
   """
   def get_standard_exit(exit_id, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -347,6 +344,7 @@ defmodule OMG.Eth.RootChain do
 
   @doc """
   Returns in flight exit for a specific id. Calls contract method.
+  #TODO - can exits accept a list of in_flight_exit_id? Look at ExitProcessor.handle_call({:new_in_flight_exits, events})
   """
   def get_in_flight_exit(in_flight_exit_id, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -422,21 +420,23 @@ defmodule OMG.Eth.RootChain do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "ExitStarted(address,uint192)"
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do:
-           {:ok,
-            Enum.map(logs, fn log ->
-              decode_exit_started(log)
-              |> Map.put(
-                :call_data,
-                Eth.get_call_data(
-                  from_hex(log["transactionHash"]),
-                  "startStandardExit",
-                  [:utxo_pos, :output_tx, :output_tx_inclusion_proof],
-                  [:uint192, :bytes, :bytes]
-                )
-              )
-            end)}
+    case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
+      {:ok, logs} ->
+        exits =
+          Enum.map(logs, fn log ->
+            decode_exit_started = decode_exit_started(log)
+            args = [:utxo_pos, :output_tx, :output_tx_inclusion_proof]
+            types = [:uint192, :bytes, :bytes]
+            hash = from_hex(log["transactionHash"])
+            transaction_hash = Eth.get_call_data(hash, "startStandardExit", args, types)
+            Map.put(decode_exit_started, :call_data, transaction_hash)
+          end)
+
+        {:ok, exits}
+
+      other ->
+        other
+    end
   end
 
   @doc """
@@ -447,20 +447,23 @@ defmodule OMG.Eth.RootChain do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitStarted(address,bytes32)"
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract) do
-      {:ok,
-       Enum.map(logs, fn log ->
-         Map.put(
-           decode_in_flight_exit(log),
-           :call_data,
-           Eth.get_call_data(
-             from_hex(log["transactionHash"]),
-             "startInFlightExit",
-             [:in_flight_tx, :inputs_txs, :input_inclusion_proofs, :in_flight_tx_sigs],
-             [:bytes, :bytes, :bytes, :bytes]
-           )
-         )
-       end)}
+    case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
+      {:ok, logs} ->
+        args = [:in_flight_tx, :inputs_txs, :input_inclusion_proofs, :in_flight_tx_sigs]
+        types = [:bytes, :bytes, :bytes, :bytes]
+
+        result =
+          Enum.map(logs, fn log ->
+            transaction_hash = from_hex(log["transactionHash"])
+            start_in_flight_exit = Eth.get_call_data(transaction_hash, "startInFlightExit", args, types)
+            decode_in_flight_exit = decode_in_flight_exit(log)
+            Map.put(decode_in_flight_exit, :call_data, start_in_flight_exit)
+          end)
+
+        {:ok, result}
+
+      other ->
+        other
     end
   end
 
@@ -496,29 +499,34 @@ defmodule OMG.Eth.RootChain do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "InFlightExitChallenged(address,bytes32,uint256)"
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do:
-           {:ok,
-            Enum.map(logs, fn log ->
-              decode_in_flight_exit_challenged(log)
-              |> Map.put(
-                :call_data,
-                Eth.get_call_data(
-                  from_hex(log["transactionHash"]),
-                  "challengeInFlightExitNotCanonical",
-                  [
-                    :in_flight_tx,
-                    :in_flight_input_index,
-                    :competing_tx,
-                    :competing_tx_input_index,
-                    :competing_tx_pos,
-                    :competing_tx_inclusion_proof,
-                    :competing_tx_sig
-                  ],
-                  [:bytes, :uint8, :bytes, :uint8, :uint256, :bytes, :bytes]
-                )
-              )
-            end)}
+    case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
+      {:ok, logs} ->
+        challenges =
+          Enum.map(logs, fn log ->
+            decode_in_flight_exit_challenged = decode_in_flight_exit_challenged(log)
+
+            args = [
+              :in_flight_tx,
+              :in_flight_input_index,
+              :competing_tx,
+              :competing_tx_input_index,
+              :competing_tx_pos,
+              :competing_tx_inclusion_proof,
+              :competing_tx_sig
+            ]
+
+            types = [:bytes, :uint8, :bytes, :uint8, :uint256, :bytes, :bytes]
+            hash = from_hex(log["transactionHash"])
+            call_data = Eth.get_call_data(hash, "challengeInFlightExitNotCanonical", args, types)
+
+            Map.put(decode_in_flight_exit_challenged, :call_data, call_data)
+          end)
+
+        {:ok, challenges}
+
+      other ->
+        other
+    end
   end
 
   @doc """
@@ -555,6 +563,93 @@ defmodule OMG.Eth.RootChain do
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_in_flight_exit_output_finalized/1)}
+  end
+
+  def decode_in_flight_exit_challenge_responded(log) do
+    non_indexed_keys = [:challenger, :tx_hash, :challenge_position]
+    non_indexed_key_types = [:address, {:bytes, 32}, {:uint, 256}]
+    indexed_keys = indexed_keys_types = []
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  ########################
+  # MISC #
+  ########################
+
+  @spec contract_ready(optional_addr_t()) ::
+          :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
+  def contract_ready(contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+
+    try do
+      {:ok, addr} = authority(contract)
+
+      case addr do
+        <<0::256>> -> {:error, :root_chain_authority_is_nil}
+        _ -> :ok
+      end
+    rescue
+      _ -> {:error, :root_chain_contract_not_available}
+    end
+  end
+
+  @spec get_root_deployment_height(binary() | nil, optional_addr_t()) ::
+          {:ok, integer()} | Ethereumex.HttpClient.error()
+  def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    txhash = txhash || from_hex(Application.fetch_env!(:omg_eth, :txhash_contract))
+
+    # the back&forth is just the dumb but natural way to go about Ethereumex/Eth APIs conventions for encoding
+    hex_contract = to_hex(contract)
+
+    case txhash |> to_hex() |> Ethereumex.HttpClient.eth_get_transaction_receipt() do
+      {:ok, %{"contractAddress" => ^hex_contract, "blockNumber" => height}} ->
+        {:ok, int_from_hex(height)}
+
+      {:ok, _} ->
+        # TODO this should be an alarm
+        {:error, :wrong_contract_address}
+
+      other ->
+        other
+    end
+  end
+
+  def deposit_blknum_from_receipt(%{"logs" => logs}) do
+    topic =
+      @deposit_created_event_signature
+      |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+      |> to_hex()
+
+    [%{blknum: deposit_blknum}] =
+      logs
+      |> Enum.filter(&(topic in &1["topics"]))
+      |> Enum.map(&decode_deposit/1)
+
+    deposit_blknum
+  end
+
+  defp authority(contract) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    Eth.call_contract(contract, "operator()", [], [:address])
+  end
+
+  defp decode_piggyback_challenged(log) do
+    non_indexed_keys = [:tx_hash, :output_index]
+    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
+    indexed_keys = [:challenger]
+    indexed_keys_types = [:address]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
   end
 
   defp decode_deposit(log) do
@@ -656,87 +751,5 @@ defmodule OMG.Eth.RootChain do
       {non_indexed_keys, non_indexed_key_types},
       {indexed_keys, indexed_keys_types}
     )
-  end
-
-  def decode_in_flight_exit_challenge_responded(log) do
-    non_indexed_keys = [:challenger, :tx_hash, :challenge_position]
-    non_indexed_key_types = [:address, {:bytes, 32}, {:uint, 256}]
-    indexed_keys = indexed_keys_types = []
-
-    Eth.parse_events_with_indexed_fields(
-      log,
-      {non_indexed_keys, non_indexed_key_types},
-      {indexed_keys, indexed_keys_types}
-    )
-  end
-
-  defp decode_piggyback_challenged(log) do
-    non_indexed_keys = [:tx_hash, :output_index]
-    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
-    indexed_keys = [:challenger]
-    indexed_keys_types = [:address]
-
-    Eth.parse_events_with_indexed_fields(
-      log,
-      {non_indexed_keys, non_indexed_key_types},
-      {indexed_keys, indexed_keys_types}
-    )
-  end
-
-  ########################
-  # MISC #
-  ########################
-
-  @spec contract_ready(optional_addr_t()) ::
-          :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
-  def contract_ready(contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-
-    try do
-      {:ok, addr} = authority(contract)
-
-      case addr != <<0::256>> do
-        true -> :ok
-        false -> {:error, :root_chain_authority_is_nil}
-      end
-    rescue
-      _ -> {:error, :root_chain_contract_not_available}
-    end
-  end
-
-  @spec get_root_deployment_height(binary() | nil, optional_addr_t()) ::
-          {:ok, integer()} | Ethereumex.HttpClient.error()
-  def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    txhash = txhash || from_hex(Application.fetch_env!(:omg_eth, :txhash_contract))
-
-    # the back&forth is just the dumb but natural way to go about Ethereumex/Eth APIs conventions for encoding
-    hex_contract = to_hex(contract)
-
-    case txhash |> to_hex() |> Ethereumex.HttpClient.eth_get_transaction_receipt() do
-      {:ok, %{"contractAddress" => ^hex_contract, "blockNumber" => height}} ->
-        {:ok, int_from_hex(height)}
-
-      {:ok, _} ->
-        # TODO this should be an alarm
-        {:error, :wrong_contract_address}
-
-      other ->
-        other
-    end
-  end
-
-  def deposit_blknum_from_receipt(%{"logs" => logs}) do
-    topic =
-      @deposit_created_event_signature
-      |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
-      |> to_hex()
-
-    [%{blknum: deposit_blknum}] =
-      logs
-      |> Enum.filter(&(topic in &1["topics"]))
-      |> Enum.map(&decode_deposit/1)
-
-    deposit_blknum
   end
 end

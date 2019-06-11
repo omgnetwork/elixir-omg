@@ -419,7 +419,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do
-    {:ok, eth_height_now} = Eth.get_ethereum_height()
+    {:ok, eth_height_now} = OMG.EthereumClientMonitor.get_ethereum_height()
     {blknum_now, _} = State.get_status()
 
     _ = Logger.debug("eth_height_now: #{inspect(eth_height_now)}, blknum_now: #{inspect(blknum_now)}")
