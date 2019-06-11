@@ -32,7 +32,6 @@ defmodule OMG.ChildChainRPC.Application do
       {OMG.ChildChainRPC.Web.Endpoint, []}
     ]
 
-
     Supervisor.start_link(children, opts)
   end
 

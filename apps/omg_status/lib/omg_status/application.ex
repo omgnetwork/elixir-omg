@@ -31,7 +31,6 @@ defmodule OMG.Status.Application do
         []
       end
 
-
     Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
   end
 

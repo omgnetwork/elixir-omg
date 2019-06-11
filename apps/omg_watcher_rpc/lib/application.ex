@@ -50,7 +50,6 @@ defmodule OMG.WatcherRPC.Application do
       name: OMG.WatcherRPC.RootSupervisor
     ]
 
-
     Supervisor.start_link(children, opts)
   end
 
