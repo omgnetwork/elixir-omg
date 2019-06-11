@@ -32,7 +32,6 @@ defmodule OMG.ChildChainRPC.Application do
       {OMG.ChildChainRPC.Web.Endpoint, []}
     ]
 
-    {_, _} = Logger.add_backend(Sentry.LoggerBackend)
 
     Supervisor.start_link(children, opts)
   end

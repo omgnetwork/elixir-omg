@@ -44,7 +44,6 @@ defmodule OMG.Watcher.Application do
       name: OMG.Watcher.RootSupervisor
     ]
 
-    {_, _} = Logger.add_backend(Sentry.LoggerBackend)
     Supervisor.start_link(children, opts)
   end
 

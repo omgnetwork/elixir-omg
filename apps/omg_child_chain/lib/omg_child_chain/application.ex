@@ -28,7 +28,6 @@ defmodule OMG.ChildChain.Application do
     cookie = System.get_env("ERL_CC_COOKIE")
     true = set_cookie(cookie)
     :ok = Alarm.set(alarm())
-    {_, _} = Logger.add_backend(Sentry.LoggerBackend)
 
     OMG.ChildChain.Supervisor.start_link()
   end
