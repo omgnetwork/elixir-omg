@@ -18,6 +18,9 @@ config :logger, :console,
   discard_threshold: 2000,
   metadata: [:module, :function, :request_id]
 
+config :logger,
+  backends: [Sentry.LoggerBackend, :console]
+
 config :sentry,
   dsn: {:system, "SENTRY_DSN"},
   environment_name: Mix.env(),

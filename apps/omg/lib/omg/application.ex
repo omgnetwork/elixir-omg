@@ -20,11 +20,9 @@ defmodule OMG.Application do
 
   use Application
   alias OMG.Alert.AlarmHandler
-  require Logger
 
   def start(_type, _args) do
     :ok = AlarmHandler.install()
-    {:ok, _} = Logger.add_backend(Sentry.LoggerBackend)
     OMG.Supervisor.start_link()
   end
 end
