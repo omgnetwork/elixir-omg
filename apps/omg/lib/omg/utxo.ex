@@ -26,7 +26,7 @@ defmodule OMG.Utxo do
           creating_txhash: Transaction.tx_hash(),
           owner: Crypto.address_t(),
           currency: Crypto.address_t(),
-          amount: non_neg_integer
+          amount: non_neg_integer()
         }
 
   @doc """

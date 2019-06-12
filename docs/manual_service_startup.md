@@ -1,5 +1,12 @@
 # Manual steps to start the services
-This process is intended for users who wish to start services manually, perhaps as part of a non-Docker deployment on a Linux host.
+
+This process is intended for users who wish to start services manually, perhaps
+as part of a non-Docker deployment on a Linux host.
+
+## Installation
+
+First, install all dependecies using the the [installation
+instructions](install.md).
 
 ## Setup
 The setup process for the Child chain server and for the Watcher is similar.
@@ -138,15 +145,6 @@ mix xomg.child_chain.start --config ~/config.exs
 ### Setting up a Watcher (a developer environment)
 
 This assumes that you've got a developer environment Child chain server set up and running on the default `localhost:9656`, see above.
-
-#### Configure the PostgreSQL server with:
-
-```bash
-sudo -u postgres createuser omisego_dev
-sudo -u postgres psql
-alter user omisego_dev with encrypted password 'omisego_dev';
-ALTER USER omisego_dev CREATEDB;
-```
 
 #### Configure the Watcher
 
