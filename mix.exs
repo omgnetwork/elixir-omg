@@ -27,14 +27,14 @@ defmodule OMG.Umbrella.MixProject do
     [
       {:distillery, "~> 2.0", runtime: false},
       {:dialyxir, "~> 1.0.0-rc.6", only: [:dev, :test], runtime: false},
-      {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.0.5", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.11.1", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
         :ex_unit_fixtures,
         git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
       },
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
       {:appsignal, "~> 1.9"},
       {:sentry, "~>7.0"},
       {:libsecp256k1,
@@ -61,6 +61,7 @@ defmodule OMG.Umbrella.MixProject do
     [
       flags: [:specdiffs, :error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
       ignore_warnings: "dialyzer.ignore-warnings",
+      list_unused_filters: true,
       plt_add_apps: plt_apps()
     ]
   end

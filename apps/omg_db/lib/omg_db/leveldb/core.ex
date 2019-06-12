@@ -24,10 +24,15 @@ defmodule OMG.DB.LevelDB.Core do
   @keys_prefixes %{
     block: "b",
     block_hash: "bn",
+    # watcher and child chain
     utxo: "u",
+    # watcher and child chain
     exit_info: "e",
+    # watcher only
     in_flight_exit_info: "ife",
+    # watcher only
     competitor_info: "ci",
+    # watcher only
     spend: "s"
   }
 
