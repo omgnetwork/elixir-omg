@@ -322,6 +322,7 @@ jobs:
       - run:
           name: Functional Tests
           command: |
+            apt-get update && apt-get install python3-requests -y
             python3 .circleci/test_runner.py
 
   build_and_deploy_staging:
