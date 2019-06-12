@@ -82,6 +82,6 @@ defmodule OMG.Umbrella.MixProject do
       :proper,
       :ranch,
       :sentry,
-      :vmstats,
+      :vmstats
     ]
 end
