@@ -67,19 +67,20 @@ defmodule OMG.Umbrella.MixProject do
 
   defp plt_apps,
     do: [
-      :mix,
-      :iex,
-      :ex_unit,
-      :ranch,
-      :plug,
-      :jason,
-      :cowboy,
-      :vmstats,
       :briefly,
+      :cowboy,
+      :distillery,
+      :ex_unit,
+      :exexec,
+      :fake_server,
+      :iex,
+      :jason,
+      :mix,
+      :plug,
       :propcheck,
       :proper,
-      :fake_server,
-      :exexec,
-      :distillery
+      :ranch,
+      :sentry,
+      :vmstats,
     ]
 end

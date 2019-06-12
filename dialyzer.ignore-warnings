@@ -4,9 +4,7 @@ apps/omg_eth/test
 
 
 # TODO
-
-Unknown function 'Elixir.Sentry':capture_exception/2
-Unknown function 'Elixir.Sentry.Plug':build_request_interface_data/2
+Expression produces a value of type 'error' | 'excluded' | 'ignored' | 'unsampled' | {'ok',binary() | pid() | #{'__struct__':='Elixir.Task', 'owner':='nil' | pid(), 'pid':='nil' | pid(), 'ref':='nil' | reference()}}, but this value is unmatched
 The success typing for 'Elixir.Jason.Encoder.OMG.Watcher.DB.Transaction':'__impl__'/1 implies that the function might also return 'Elixir.Jason.Encoder' | 'Elixir.Jason.Encoder.OMG.Watcher.DB.Transaction' but the specification return is 'Elixir.OMG.Watcher.DB.Transaction'
 The success typing for 'Elixir.OMG.ChildChain.BlockQueue.Core':first_to_mined/1 implies that the function might also return float() but the specification return is pos_integer()
 The success typing for 'Elixir.OMG.Crypto':decode_address/1 implies that the function might also return 'error' but the specification return is {'error','bad_address_encoding'} | {'ok',<<_:160>>}
