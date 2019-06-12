@@ -14,7 +14,7 @@
 
 defmodule OMG.State.Core.Metrics do
   @moduledoc """
-  Counting business metrics sent to appsignal
+  Counting business metrics sent to DataDog
   """
 
   alias OMG.Eth.Encoding
