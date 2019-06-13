@@ -22,10 +22,10 @@ defmodule OMG.RootChainCoordinatorTest do
   use OMG.DB.Fixtures
   use OMG.Eth.Fixtures
 
-  alias OMG.Eth
-  alias OMG.Integration.DepositHelper
   alias OMG.Alert.Alarm
   alias OMG.Alert.AlarmHandler
+  alias OMG.Eth
+  alias OMG.Integration.DepositHelper
 
   @moduletag :integration
   @moduletag :common

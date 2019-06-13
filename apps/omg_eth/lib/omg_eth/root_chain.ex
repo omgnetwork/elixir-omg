@@ -227,6 +227,26 @@ defmodule OMG.Eth.RootChain do
   end
 
   # USED ONLY IN TEST
+  def respond_to_non_canonical_challenge(
+        in_flight_tx,
+        in_flight_tx_pos,
+        in_flight_tx_inclusion_proof,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
+    opts = defaults |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
+
+    args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
+
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
+  # USED ONLY IN TEST
   def pond_to_non_canonical_challenge(
         in_flight_tx,
         in_flight_tx_pos,
