@@ -32,7 +32,7 @@ defmodule OMG.EthereumClientMonitorTest do
 
   setup do
     Application.put_env(:omg_child_chain, :eth_integration_module, Mock)
-    Mock.start_link()
+    {:ok, _} = Mock.start_link()
     {:ok, {server_ref, websocket_url}} = ServerMock.start(self())
     {:ok, ethereum_client_monitor} = EthereumClientMonitor.start_link(alarm_module: Alarm, ws_url: websocket_url)
     Alarm.clear_all()
@@ -239,7 +239,7 @@ defmodule OMG.EthereumClientMonitorTest do
       :ok
     end
 
-    def websocket_handle({:text, body}, req, state) do
+    def websocket_handle({:text, _body}, req, state) do
       response = Jason.encode!(%{"params" => %{"result" => %{"number" => "0x77be11", "hash" => "0x1234"}}})
       {:reply, {:text, response}, req, state}
     end

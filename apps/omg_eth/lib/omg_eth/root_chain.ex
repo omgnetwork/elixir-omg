@@ -67,6 +67,7 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
+  # USED ONLY IN TEST
   def start_exit(utxo_pos, tx_bytes, proof, from, contract \\ nil, opts \\ []) do
     defaults =
       @tx_defaults
@@ -86,6 +87,7 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
+  # USED ONLY IN TEST
   def piggyback_in_flight_exit(in_flight_tx, output_index, from, contract \\ nil, opts \\ []) do
     defaults =
       @tx_defaults
@@ -97,6 +99,7 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes,uint8)", [in_flight_tx, output_index], opts)
   end
 
+  # USED ONLY IN TEST
   def deposit(tx_bytes, value, from, contract \\ nil, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit)
 
@@ -109,6 +112,7 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, "deposit(bytes)", [tx_bytes], opts)
   end
 
+  # USED ONLY IN TEST
   def deposit_from(tx, from, contract \\ nil, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit_from)
     opts = defaults |> Keyword.merge(opts)
@@ -117,6 +121,7 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, "depositFrom(bytes)", [tx], opts)
   end
 
+  # USED ONLY IN TEST
   def add_token(token, contract \\ nil, opts \\ []) do
     opts = @tx_defaults |> Keyword.put(:gas, @gas_add_token) |> Keyword.merge(opts)
 
@@ -126,6 +131,7 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
   end
 
+  # USED ONLY IN TEST
   def challenge_exit(exit_id, challenge_tx, input_index, challenge_tx_sig, from, contract \\ nil, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
     opts = defaults |> Keyword.merge(opts)
@@ -136,6 +142,7 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
+  # USED ONLY IN TEST
   def init(exit_period, from \\ nil, contract \\ nil, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_init)
     opts = defaults |> Keyword.merge(opts)
@@ -146,6 +153,7 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, "init(uint256)", [exit_period], opts)
   end
 
+  # USED ONLY IN TEST
   def in_flight_exit(
         in_flight_tx,
         input_txs,
@@ -168,6 +176,7 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
+  # USED ONLY IN TEST
   def process_exits(
         token,
         top_exit_id,
@@ -184,6 +193,7 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
+  # USED ONLY IN TEST
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   def challenge_in_flight_exit_not_canonical(
         in_flight_txbytes,
@@ -216,7 +226,8 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
-  def respond_to_non_canonical_challenge(
+  # USED ONLY IN TEST
+  def pond_to_non_canonical_challenge(
         in_flight_tx,
         in_flight_tx_pos,
         in_flight_tx_inclusion_proof,
@@ -235,6 +246,7 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
+  # USED ONLY IN TEST
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   def challenge_in_flight_exit_input_spent(
         in_flight_txbytes,
@@ -263,6 +275,7 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
+  # USED ONLY IN TEST
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   def challenge_in_flight_exit_output_spent(
         in_flight_txbytes,
@@ -371,6 +384,7 @@ defmodule OMG.Eth.RootChain do
     Eth.call_contract(contract, "blocks(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
   end
 
+  # USED ONLY IN TEST
   def has_token(token, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     Eth.call_contract(contract, "hasToken(address)", [token], [:bool])
@@ -412,6 +426,7 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &Eth.parse_event(&1, {signature, [:blknum]}))}
   end
 
+  # USED ONLY IN TEST
   @doc """
   Returns standard exits from a range of blocks. Collects exits from Ethereum logs.
   """
@@ -439,6 +454,7 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
+  # USED ONLY IN TEST
   @doc """
   Returns InFlightExit from a range of blocks.
   """
@@ -467,6 +483,7 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
+  # NOT USED
   @doc """
   Returns finalizations of exits from a range of blocks from Ethereum logs.
   """
@@ -479,6 +496,7 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_finalized/1)}
   end
 
+  # NOT USED
   @doc """
   Returns challenges of exits from a range of blocks from Ethereum logs.
   """
@@ -491,6 +509,7 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_challenged/1)}
   end
 
+  # NOT USED
   @doc """
     Returns challenges of in flight exits from a range of blocks from Ethereum logs.
   """
@@ -529,6 +548,7 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
+  # NOT USED
   @doc """
     Returns responds to challenges of in flight exits from a range of blocks from Ethereum logs.
   """
@@ -541,6 +561,7 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_in_flight_exit_challenge_responded/1)}
   end
 
+  # NOT USED
   @doc """
     Returns challenges of piggybacks from a range of block from Ethereum logs.
   """
@@ -553,6 +574,7 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_piggyback_challenged/1)}
   end
 
+  # NOT USED
   @doc """
     Returns finalizations of in flight exits from a range of blocks from Ethereum logs.
   """
@@ -565,6 +587,7 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_in_flight_exit_output_finalized/1)}
   end
 
+  # NOT USED
   def decode_in_flight_exit_challenge_responded(log) do
     non_indexed_keys = [:challenger, :tx_hash, :challenge_position]
     non_indexed_key_types = [:address, {:bytes, 32}, {:uint, 256}]
@@ -598,6 +621,7 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
+  # TODO - missing description + could this be moved to a statefull process?
   @spec get_root_deployment_height(binary() | nil, optional_addr_t()) ::
           {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
@@ -620,6 +644,7 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
+  # USED ONLY IN TEST
   def deposit_blknum_from_receipt(%{"logs" => logs}) do
     topic =
       @deposit_created_event_signature
