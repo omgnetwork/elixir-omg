@@ -14,7 +14,8 @@ config :omg_child_chain_rpc,
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
   secret_key_base: {:system, "SECRET_KEY_BASE"},
   render_errors: [view: OMG.ChildChainRPC.Web.Views.Error, accepts: ~w(json)],
-  instrumenters: [Appsignal.Phoenix.Instrumenter]
+  instrumenters: [Appsignal.Phoenix.Instrumenter],
+  enable_cors: true
 
 # Use Poison for JSON parsing in Phoenix
 config :phoenix,
