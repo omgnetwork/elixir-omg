@@ -25,15 +25,25 @@ defmodule OMG.ChildChainRPC.Web.TestHelper do
       conn(method, path, params_or_body)
       |> put_req_header("content-type", "application/json")
 
-    response = request |> send_request
+    response = send_request(request)
 
     assert response.status == 200
+    # CORS check
+    assert ["*"] == get_resp_header(response, "access-control-allow-origin")
 
+    required_headers = [
+      "access-control-allow-origin",
+      "access-control-expose-headers",
+      "access-control-allow-credentials"
+    ]
+
+    for header <- required_headers do
+      assert header in Keyword.keys(response.resp_headers)
+    end
+
+    # CORS check
     Jason.decode!(response.resp_body)
   end
 
-  defp send_request(req) do
-    req
-    |> OMG.ChildChainRPC.Web.Endpoint.call([])
-  end
+  defp send_request(req), do: OMG.ChildChainRPC.Web.Endpoint.call(req, [])
 end
