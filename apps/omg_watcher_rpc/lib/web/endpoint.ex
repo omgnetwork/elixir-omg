@@ -15,6 +15,7 @@
 defmodule OMG.WatcherRPC.Web.Endpoint do
   use Phoenix.Endpoint, otp_app: :omg_watcher_rpc
   use Appsignal.Phoenix
+  use Sentry.Phoenix.Endpoint
 
   # NOTE: one connects to `ws://host:port/socket/websocket` here (the transport is appended)
   socket("/socket", OMG.WatcherRPC.Web.Socket, websocket: true)

@@ -36,6 +36,7 @@ defmodule OMG.Umbrella.MixProject do
       },
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
       {:appsignal, "~> 1.9"},
+      {:sentry, "~>7.0"},
       {:libsecp256k1,
        git: "https://github.com/InoMurko/libsecp256k1.git",
        ref: "83d4c91b7b5ad79fdd3c020be8c57ff6e2212780",
@@ -51,7 +52,8 @@ defmodule OMG.Umbrella.MixProject do
       "coveralls.detail": ["coveralls.detail --no-start"],
       "coveralls.post": ["coveralls.post --no-start"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run apps/omg_watcher/priv/repo/seeds.exs"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"]
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      "sentry.recompile": ["deps.compile sentry --force"]
     ]
   end
 
@@ -66,19 +68,20 @@ defmodule OMG.Umbrella.MixProject do
 
   defp plt_apps,
     do: [
-      :mix,
-      :iex,
-      :ex_unit,
-      :ranch,
-      :plug,
-      :jason,
-      :cowboy,
-      :vmstats,
       :briefly,
+      :cowboy,
+      :distillery,
+      :ex_unit,
+      :exexec,
+      :fake_server,
+      :iex,
+      :jason,
+      :mix,
+      :plug,
       :propcheck,
       :proper,
-      :fake_server,
-      :exexec,
-      :distillery
+      :ranch,
+      :sentry,
+      :vmstats
     ]
 end

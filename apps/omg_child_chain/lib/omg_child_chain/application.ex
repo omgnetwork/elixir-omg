@@ -28,6 +28,7 @@ defmodule OMG.ChildChain.Application do
     cookie = System.get_env("ERL_CC_COOKIE")
     true = set_cookie(cookie)
     :ok = Alarm.set(alarm())
+
     OMG.ChildChain.Supervisor.start_link()
   end
 
