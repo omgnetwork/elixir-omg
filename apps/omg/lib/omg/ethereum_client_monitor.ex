@@ -21,6 +21,8 @@ defmodule OMG.EthereumClientMonitor do
   When the process is started we immediately make an RPC call to retrieve the height, we proceed to open a subscription towards the client.
   If the client connection drops, we get notified (`def handle_info({:EXIT, _from, _}...`) and raise an alarm and proceed with periodical health checks.
   A health check makes an RPC call and checks for correct response (is_number) - if that succeeds, there's a high probability websocket connection subscription will work as well.
+
+  The implementation assumes ws subscription to the Ethereum client continues to work indefinitely. We'll see how that works in practice.
   """
   use GenServer
   require Logger
@@ -54,7 +56,7 @@ defmodule OMG.EthereumClientMonitor do
 
   def init([_ | _] = opts) do
     alarm_module = Keyword.get(opts, :alarm_module)
-    _ = Process.flag(:trap_exit, true)
+    false = Process.flag(:trap_exit, true)
     _ = Logger.info("Starting Ethereum client monitor.")
     install_alarm_handler()
     ethereum_height = check()
@@ -67,7 +69,6 @@ defmodule OMG.EthereumClientMonitor do
 
     _ = alarm_module.set({:ethereum_client_connection, Node.self(), __MODULE__})
     _ = raise_clear(alarm_module, state.raised, ethereum_height)
-
     {:ok, state, {:continue, :ws_connect}}
   end
 
@@ -77,6 +78,8 @@ defmodule OMG.EthereumClientMonitor do
   end
 
   def handle_continue(:ws_connect, state) do
+    _ = Logger.debug("Ethereum client monitor starting a WS newHeads subscription.")
+
     params =
       case state.ws_url do
         nil -> [listen_to: "newHeads"]
@@ -88,6 +91,7 @@ defmodule OMG.EthereumClientMonitor do
     {:noreply, state}
   rescue
     _ ->
+      _ = Logger.debug("Ethereum client monitor failed at WS newHeads subscription. Health check in #{state.interval}")
       {:ok, tref} = :timer.send_after(state.interval, :health_check)
       _ = raise_clear(state.alarm_module, state.raised, :error)
       {:noreply, %{state | tref: tref}}
@@ -101,6 +105,7 @@ defmodule OMG.EthereumClientMonitor do
     # subscription died so we need to raise an alarm and start manual checks
 
     _ = state.alarm_module.set({:ethereum_client_connection, Node.self(), __MODULE__})
+    _ = :timer.cancel(state.tref)
     {:ok, tref} = :timer.send_after(state.interval, :health_check)
     {:noreply, %{state | tref: tref}}
   end
@@ -112,11 +117,11 @@ defmodule OMG.EthereumClientMonitor do
       true ->
         # we got a good response this time, restart the subscription and backoff
         # with manuall pulling
-
-        #
+        _ = Logger.debug("Ethereum client monitor made a succesful RPC call. Proceding with WS subscription.")
         {:noreply, %{state | ethereum_height: ethereum_height}, {:continue, :ws_connect}}
 
       false ->
+        _ = Logger.debug("Ethereum client monitor made a failed attempt RPC call. Retry in #{state.interval}.")
         {:ok, tref} = :timer.send_after(state.interval, :health_check)
         {:noreply, %{state | tref: tref, ethereum_height: ethereum_height}}
     end
@@ -127,7 +132,9 @@ defmodule OMG.EthereumClientMonitor do
 
     case is_binary(value) do
       true ->
-        {:noreply, %{state | ethereum_height: Encoding.int_from_hex(value)}}
+        ethereum_height = Encoding.int_from_hex(value)
+        _ = Logger.info("Ethereum client monitor got a newHeads event for new Ethereum height #{ethereum_height}.")
+        {:noreply, %{state | ethereum_height: ethereum_height}}
 
       false ->
         {:noreply, state}

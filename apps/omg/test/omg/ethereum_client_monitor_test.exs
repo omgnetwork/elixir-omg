@@ -24,6 +24,7 @@ defmodule OMG.EthereumClientMonitorTest do
 
   setup_all do
     :ok = AlarmHandler.install()
+    {:ok, _} = Mock.start_link()
 
     on_exit(fn ->
       Application.put_env(:omg_child_chain, :eth_integration_module, nil)
@@ -31,17 +32,15 @@ defmodule OMG.EthereumClientMonitorTest do
   end
 
   setup do
-    Application.put_env(:omg_child_chain, :eth_integration_module, Mock)
-    {:ok, _} = Mock.start_link()
+    _ = Application.put_env(:omg_child_chain, :eth_integration_module, Mock)
+
     {:ok, {server_ref, websocket_url}} = ServerMock.start(self())
     {:ok, ethereum_client_monitor} = EthereumClientMonitor.start_link(alarm_module: Alarm, ws_url: websocket_url)
     Alarm.clear_all()
 
     on_exit(fn ->
-      # Mock.stop()
       ServerMock.shutdown(server_ref)
       true = Process.exit(ethereum_client_monitor, :kill)
-      Application.put_env(:omg_child_chain, :eth_integration_module, nil)
     end)
 
     %{server_ref: server_ref, websocket_url: websocket_url}
@@ -51,6 +50,7 @@ defmodule OMG.EthereumClientMonitorTest do
     server_ref: server_ref,
     websocket_url: _websocket_url
   } do
+    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
     ServerMock.shutdown(server_ref)
     true = is_pid(Process.whereis(EthereumClientMonitor))
 
@@ -62,7 +62,7 @@ defmodule OMG.EthereumClientMonitorTest do
         }
       ])
 
-    Mock.clear_faulty_response()
+    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
   end
 
   test "that alarm gets raised if there's no ethereum client running and cleared when it's running", %{
@@ -75,6 +75,7 @@ defmodule OMG.EthereumClientMonitorTest do
     ### That (eventually) raises an alarm.
     ### We continue by re-starting the mocked RPC server and websocket server and check if the alarm
     ## was removed.
+    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
     ServerMock.shutdown(server_ref)
 
     true = is_pid(Process.whereis(EthereumClientMonitor))
@@ -87,7 +88,7 @@ defmodule OMG.EthereumClientMonitorTest do
         }
       ])
 
-    _ = Mock.set_ok_response()
+    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
     {:ok, {_server_ref, ^websocket_url}} = ServerMock.start(self(), websocket_url)
     :ok = pull_client_alarm(400, [])
   end
@@ -103,12 +104,10 @@ defmodule OMG.EthereumClientMonitorTest do
     ### We make sure that our timer doesn't bomb the process's mailbox if requests take too long.
     ### We continue by re-starting the mocked RPC server and websocket server and check if the alarm
     ## was removed.
+    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
     ServerMock.shutdown(server_ref)
-
     Mock.set_faulty_response()
-
-    Mock.set_long_response(5500)
-
+    Mock.set_long_response(4500)
     pid = Process.whereis(EthereumClientMonitor)
     true = is_pid(pid)
 
@@ -121,14 +120,11 @@ defmodule OMG.EthereumClientMonitorTest do
       ])
 
     {:message_queue_len, 0} = Process.info(pid, :message_queue_len)
-    _ = Mock.clear_long_response()
-    _ = Mock.set_ok_response()
+    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
     {:ok, {_server_ref, ^websocket_url}} = ServerMock.start(self(), websocket_url)
     :ok = pull_client_alarm(400, [])
-    Mock.clear_long_response()
   rescue
     reason ->
-      _ = Mock.clear_long_response()
       raise("message_queue_not_empty #{inspect(reason)}")
   end
 
@@ -140,7 +136,7 @@ defmodule OMG.EthereumClientMonitorTest do
         :ok
 
       _ ->
-        Process.sleep(10)
+        Process.sleep(100)
         pull_client_alarm(n - 1, match)
     end
   end
@@ -157,16 +153,14 @@ defmodule OMG.EthereumClientMonitorTest do
     end
 
     def set_faulty_response, do: GenServer.call(__MODULE__, :set_faulty_response)
-    def clear_faulty_response, do: GenServer.call(__MODULE__, :clear_faulty_response)
+
     def set_long_response(milliseconds), do: GenServer.call(__MODULE__, {:set_long_response, milliseconds})
-    def clear_long_response, do: GenServer.call(__MODULE__, :clear_long_response)
-    def set_ok_response, do: GenServer.call(__MODULE__, :set_ok_response)
+
     def stop, do: GenServer.stop(__MODULE__, :normal)
 
     def init(_), do: {:ok, %{}}
-    def handle_call(:clear_faulty_response, _, state), do: {:reply, :ok, Map.delete(state, :error)}
+
     def handle_call(:set_faulty_response, _, _state), do: {:reply, :ok, %{error: true}}
-    def handle_call(:set_ok_response, _, _state), do: {:reply, :ok, %{}}
 
     def handle_call(:get_ethereum_height, _, %{long_response: miliseconds} = state) do
       _ = Process.sleep(miliseconds)
@@ -178,8 +172,6 @@ defmodule OMG.EthereumClientMonitorTest do
 
     def handle_call({:set_long_response, milliseconds}, _, state),
       do: {:reply, :ok, Map.merge(%{long_response: milliseconds}, state)}
-
-    def handle_call(:clear_long_response, _, state), do: {:reply, :ok, Map.delete(state, :long_response)}
   end
 
   defmodule WebSockex.ServerMock do
@@ -194,7 +186,7 @@ defmodule OMG.EthereumClientMonitorTest do
 
     def start(pid) when is_pid(pid) do
       ref = make_ref()
-      port = Enum.random(50_000..63_000)
+      port = Enum.random(60_000..63_000)
 
       url = "ws://localhost:#{port}/ws"
 
