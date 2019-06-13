@@ -132,14 +132,29 @@ defmodule OMG.Watcher.Fixtures do
     end)
   end
 
-  @doc "run only database in sandbox and endpoint to make request"
-  deffixture phoenix_ecto_sandbox do
+  deffixture web_endpoint do
     {:ok, pid} =
       Supervisor.start_link(
         [
-          %{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor},
           %{id: OMG.WatcherRPC.Web.Endpoint, start: {OMG.WatcherRPC.Web.Endpoint, :start_link, []}, type: :supervisor}
         ],
+        strategy: :one_for_one,
+        name: Watcher.Endpoint
+      )
+
+    on_exit(fn ->
+      TestHelper.wait_for_process(pid)
+      :ok
+    end)
+  end
+
+  @doc "run only database in sandbox and endpoint to make request"
+  deffixture phoenix_ecto_sandbox(web_endpoint) do
+    :ok = web_endpoint
+
+    {:ok, pid} =
+      Supervisor.start_link(
+        [%{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor}],
         strategy: :one_for_one,
         name: Watcher.Supervisor
       )

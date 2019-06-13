@@ -24,13 +24,9 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "getting in-flight exits" do
-    @tag fixtures: [:initial_blocks, :bob, :alice]
-    test "returns properly formatted in-flight exit data", %{initial_blocks: initial_blocks, bob: bob, alice: alice} do
-      test_in_flight_exit_data = fn inputs ->
-        positions = Enum.map(inputs, fn {blknum, txindex, _, _} -> {blknum, txindex} end)
-
-        expected_input_txs = get_input_txs(initial_blocks, positions)
-
+    @tag fixtures: [:web_endpoint, :db_initialized, :bob, :alice]
+    test "returns properly formatted in-flight exit data", %{bob: bob, alice: alice} do
+      test_in_flight_exit_data = fn inputs, expected_input_txs ->
         in_flight_txbytes =
           inputs
           |> OMG.TestHelper.create_encoded(@eth, [{bob, 100}])
@@ -62,20 +58,35 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
         assert input_txs == expected_input_txs
       end
 
-      test_in_flight_exit_data.([{3000, 1, 0, alice}])
-      test_in_flight_exit_data.([{3000, 1, 0, alice}, {2000, 0, 1, alice}])
+      OMG.DB.multi_update(
+        [
+          [
+            OMG.TestHelper.create_encoded([{1, 0, 0, alice}], @eth, [{bob, 300}]),
+            OMG.TestHelper.create_encoded([{1000, 0, 0, bob}], @eth, [{alice, 100}, {bob, 200}])
+          ],
+          [OMG.TestHelper.create_encoded([{1000, 1, 0, alice}], @eth, [{bob, 99}, {alice, 1}], <<1322::256>>)],
+          [
+            OMG.TestHelper.create_encoded([], @eth, [{alice, 150}]),
+            OMG.TestHelper.create_encoded([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
+          ]
+        ]
+        |> Enum.with_index(1)
+        |> Enum.map(fn {transactions, index} ->
+          {:put, :block, %{hash: <<index>>, number: index * 1000, transactions: transactions}}
+        end)
+      )
+
+      test_in_flight_exit_data.([{3000, 1, 0, alice}], [
+        OMG.State.Transaction.new([{1000, 1, 1}], [{bob.addr, @eth, 150}, {alice.addr, @eth, 50}])
+      ])
+
+      test_in_flight_exit_data.([{3000, 1, 0, alice}, {2000, 0, 1, alice}], [
+        OMG.State.Transaction.new([{1000, 1, 1}], [{bob.addr, @eth, 150}, {alice.addr, @eth, 50}]),
+        OMG.State.Transaction.new([{1000, 1, 0}], [{bob.addr, @eth, 99}, {alice.addr, @eth, 1}], <<1322::256>>)
+      ])
     end
 
-    # gets the input transactions, as expected from the endpoint - based on the position and initial_blocks fixture
-    defp get_input_txs(initial_blocks, positions) do
-      initial_blocks
-      |> Enum.filter(fn {blknum, txindex, _, _} -> {blknum, txindex} in positions end)
-      # reversing, because the inputs are reversed in the IFtx below, and we need that order, not by position!
-      |> Enum.reverse()
-      |> Enum.map(fn {_, _, _, %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}} -> raw_tx end)
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox, :bob]
+    @tag fixtures: [:web_endpoint, :db_initialized, :bob]
     test "behaves well if input is not found", %{bob: bob} do
       in_flight_txbytes =
         [{3000, 1, 0, bob}]
@@ -88,13 +99,13 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
              } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
+    @tag fixtures: [:web_endpoint]
     test "behaves well if input malformed" do
       assert %{"code" => "get_in_flight_exit:malformed_transaction"} =
                TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x00"})
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
+    @tag fixtures: [:web_endpoint]
     test "responds with error for malformed in-flight transaction bytes" do
       assert %{
                "code" => "operation:bad_request",
