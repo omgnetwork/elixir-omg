@@ -58,7 +58,20 @@ defmodule OMG.Watcher.TestHelper do
 
   def rpc_call(path, body \\ nil, expected_resp_status \\ 200) do
     response = post(put_req_header(build_conn(), "content-type", "application/json"), path, body)
+    # CORS check
+    assert ["*"] == get_resp_header(response, "access-control-allow-origin")
 
+    required_headers = [
+      "access-control-allow-origin",
+      "access-control-expose-headers",
+      "access-control-allow-credentials"
+    ]
+
+    for header <- required_headers do
+      assert header in Keyword.keys(response.resp_headers)
+    end
+
+    # CORS check
     assert response.status == expected_resp_status
     Jason.decode!(response.resp_body)
   end
