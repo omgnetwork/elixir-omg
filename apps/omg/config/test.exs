@@ -6,3 +6,5 @@ config :omg,
   coordinator_eth_height_check_interval_ms: 100,
   client_monitor_interval_ms: 50,
   environment: :test
+
+config :omg, OMG.Utils.Tracer, env: "test"
