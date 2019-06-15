@@ -50,7 +50,7 @@ defmodule OMG.Eth.DevHelpers do
          {:ok, deployer_addr} <- get_deployer_address(opts),
          {:ok, txhash, contract_addr} <- Eth.Deployer.create_new(OMG.Eth.RootChain, root_path, deployer_addr),
          {:ok, _} <-
-           Eth.RootChain.init(exit_period_seconds, authority, contract_addr) |> Eth.DevHelpers.transact_sync!() do
+           Eth.RootChainHelper.init(exit_period_seconds, authority, contract_addr) |> Eth.DevHelpers.transact_sync!() do
       %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
     else
       {:error, :econnrefused} = error ->

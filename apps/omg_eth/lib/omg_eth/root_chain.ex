@@ -23,30 +23,10 @@ defmodule OMG.Eth.RootChain do
   use OMG.Utils.Metrics
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
-  @tx_defaults Eth.Defaults.tx_defaults()
-
   @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
-  @challenge_ife_func_signature "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)"
-  @challenge_ife_input_spent "challengeInFlightExitInputSpent(bytes,uint8,bytes,uint8,bytes)"
-  @challenge_ife_output_spent "challengeInFlightExitOutputSpent(bytes,uint256,bytes,bytes,uint8,bytes)"
 
   @type optional_addr_t() :: <<_::160>> | nil
-
-  @gas_add_token 500_000
-  @gas_start_exit 1_000_000
-  @gas_challenge_exit 300_000
-  @gas_deposit 180_000
-  @gas_deposit_from 250_000
-  @gas_init 1_000_000
-  # NOTE: only good enough for "small" IFEs. E.g. IFE tx with 4 inputs costs ~2_500_000
-  @gas_start_in_flight_exit 2_000_000
-  @gas_challenge_in_flight_exit_not_canonical 1_000_000
-  @gas_respond_to_non_canonical_challenge 1_000_000
-  @standard_exit_bond 31_415_926_535
-  @piggyback_bond 31_415_926_535
-
   @type in_flight_exit_piggybacked_event() :: %{owner: <<_::160>>, tx_hash: <<_::256>>, output_index: non_neg_integer}
-
   @spec submit_block(binary, pos_integer, pos_integer, optional_addr_t(), optional_addr_t()) ::
           {:error, binary() | atom() | map()}
           | {:ok, binary()}
@@ -65,265 +45,6 @@ defmodule OMG.Eth.RootChain do
       value: 0,
       gas: 100_000
     )
-  end
-
-  # USED ONLY IN TEST
-  def start_exit(utxo_pos, tx_bytes, proof, from, contract \\ nil, opts \\ []) do
-    defaults =
-      @tx_defaults
-      |> Keyword.put(:gas, @gas_start_exit)
-      |> Keyword.put(:value, @standard_exit_bond)
-
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-
-    Eth.contract_transact(
-      from,
-      contract,
-      "startStandardExit(uint192,bytes,bytes)",
-      [utxo_pos, tx_bytes, proof],
-      opts
-    )
-  end
-
-  # USED ONLY IN TEST
-  def piggyback_in_flight_exit(in_flight_tx, output_index, from, contract \\ nil, opts \\ []) do
-    defaults =
-      @tx_defaults
-      |> Keyword.put(:gas, 1_000_000)
-      |> Keyword.put(:value, @piggyback_bond)
-
-    opts = defaults |> Keyword.merge(opts)
-    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes,uint8)", [in_flight_tx, output_index], opts)
-  end
-
-  # USED ONLY IN TEST
-  def deposit(tx_bytes, value, from, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit)
-
-    opts =
-      defaults
-      |> Keyword.merge(opts)
-      |> Keyword.put(:value, value)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.contract_transact(from, contract, "deposit(bytes)", [tx_bytes], opts)
-  end
-
-  # USED ONLY IN TEST
-  def deposit_from(tx, from, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit_from)
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.contract_transact(from, contract, "depositFrom(bytes)", [tx], opts)
-  end
-
-  # USED ONLY IN TEST
-  def add_token(token, contract \\ nil, opts \\ []) do
-    opts = @tx_defaults |> Keyword.put(:gas, @gas_add_token) |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
-
-    Eth.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
-  end
-
-  # USED ONLY IN TEST
-  def challenge_exit(exit_id, challenge_tx, input_index, challenge_tx_sig, from, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "challengeStandardExit(uint192,bytes,uint8,bytes)"
-    args = [exit_id, challenge_tx, input_index, challenge_tx_sig]
-    Eth.contract_transact(from, contract, signature, args, opts)
-  end
-
-  # USED ONLY IN TEST
-  def init(exit_period, from \\ nil, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_init)
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
-
-    Eth.contract_transact(from, contract, "init(uint256)", [exit_period], opts)
-  end
-
-  # USED ONLY IN TEST
-  def in_flight_exit(
-        in_flight_tx,
-        input_txs,
-        input_txs_inclusion_proofs,
-        in_flight_tx_sigs,
-        from,
-        contract \\ nil,
-        opts \\ []
-      ) do
-    defaults =
-      @tx_defaults
-      |> Keyword.put(:value, @standard_exit_bond)
-      |> Keyword.put(:gas, @gas_start_in_flight_exit)
-
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
-    args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
-    Eth.contract_transact(from, contract, signature, args, opts)
-  end
-
-  # USED ONLY IN TEST
-  def process_exits(
-        token,
-        top_exit_id,
-        exits_to_process,
-        from,
-        contract \\ nil,
-        opts \\ []
-      ) do
-    opts = @tx_defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "processExits(address,uint192,uint256)"
-    args = [token, top_exit_id, exits_to_process]
-    Eth.contract_transact(from, contract, signature, args, opts)
-  end
-
-  # USED ONLY IN TEST
-  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  def challenge_in_flight_exit_not_canonical(
-        in_flight_txbytes,
-        in_flight_input_index,
-        competing_txbytes,
-        competing_input_index,
-        competing_tx_pos,
-        competing_proof,
-        competing_sig,
-        from,
-        contract \\ nil,
-        opts \\ []
-      ) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_in_flight_exit_not_canonical)
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = @challenge_ife_func_signature
-
-    args = [
-      in_flight_txbytes,
-      in_flight_input_index,
-      competing_txbytes,
-      competing_input_index,
-      competing_tx_pos,
-      competing_proof,
-      competing_sig
-    ]
-
-    Eth.contract_transact(from, contract, signature, args, opts)
-  end
-
-  # USED ONLY IN TEST
-  def respond_to_non_canonical_challenge(
-        in_flight_tx,
-        in_flight_tx_pos,
-        in_flight_tx_inclusion_proof,
-        from,
-        contract \\ nil,
-        opts \\ []
-      ) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
-
-    args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
-
-    Eth.contract_transact(from, contract, signature, args, opts)
-  end
-
-  # USED ONLY IN TEST
-  def pond_to_non_canonical_challenge(
-        in_flight_tx,
-        in_flight_tx_pos,
-        in_flight_tx_inclusion_proof,
-        from,
-        contract \\ nil,
-        opts \\ []
-      ) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
-
-    args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
-
-    Eth.contract_transact(from, contract, signature, args, opts)
-  end
-
-  # USED ONLY IN TEST
-  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  def challenge_in_flight_exit_input_spent(
-        in_flight_txbytes,
-        in_flight_input_index,
-        spending_txbytes,
-        spending_tx_input_index,
-        spending_tx_sig,
-        from,
-        contract \\ nil,
-        opts \\ []
-      ) do
-    defaults = @tx_defaults
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = @challenge_ife_input_spent
-
-    args = [
-      in_flight_txbytes,
-      in_flight_input_index,
-      spending_txbytes,
-      spending_tx_input_index,
-      spending_tx_sig
-    ]
-
-    Eth.contract_transact(from, contract, signature, args, opts)
-  end
-
-  # USED ONLY IN TEST
-  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
-  def challenge_in_flight_exit_output_spent(
-        in_flight_txbytes,
-        in_flight_output_pos,
-        in_flight_tx_inclusion_proof,
-        spending_txbytes,
-        spending_tx_input_index,
-        spending_tx_sig,
-        from,
-        contract \\ nil,
-        opts \\ []
-      ) do
-    defaults = @tx_defaults
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = @challenge_ife_output_spent
-
-    args = [
-      in_flight_txbytes,
-      in_flight_output_pos,
-      in_flight_tx_inclusion_proof,
-      spending_txbytes,
-      spending_tx_input_index,
-      spending_tx_sig
-    ]
-
-    Eth.contract_transact(from, contract, signature, args, opts)
   end
 
   ########################
@@ -404,12 +125,6 @@ defmodule OMG.Eth.RootChain do
     Eth.call_contract(contract, "blocks(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
   end
 
-  # USED ONLY IN TEST
-  def has_token(token, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "hasToken(address)", [token], [:bool])
-  end
-
   ########################
   # EVENTS #
   ########################
@@ -444,63 +159,6 @@ defmodule OMG.Eth.RootChain do
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &Eth.parse_event(&1, {signature, [:blknum]}))}
-  end
-
-  # USED ONLY IN TEST
-  @doc """
-  Returns standard exits from a range of blocks. Collects exits from Ethereum logs.
-  """
-  @decorate measure_event()
-  def get_standard_exits(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "ExitStarted(address,uint192)"
-
-    case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
-      {:ok, logs} ->
-        exits =
-          Enum.map(logs, fn log ->
-            decode_exit_started = decode_exit_started(log)
-            args = [:utxo_pos, :output_tx, :output_tx_inclusion_proof]
-            types = [:uint192, :bytes, :bytes]
-            hash = from_hex(log["transactionHash"])
-            transaction_hash = Eth.get_call_data(hash, "startStandardExit", args, types)
-            Map.put(decode_exit_started, :call_data, transaction_hash)
-          end)
-
-        {:ok, exits}
-
-      other ->
-        other
-    end
-  end
-
-  # USED ONLY IN TEST
-  @doc """
-  Returns InFlightExit from a range of blocks.
-  """
-  @decorate measure_event()
-  def get_in_flight_exit_starts(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "InFlightExitStarted(address,bytes32)"
-
-    case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
-      {:ok, logs} ->
-        args = [:in_flight_tx, :inputs_txs, :input_inclusion_proofs, :in_flight_tx_sigs]
-        types = [:bytes, :bytes, :bytes, :bytes]
-
-        result =
-          Enum.map(logs, fn log ->
-            transaction_hash = from_hex(log["transactionHash"])
-            start_in_flight_exit = Eth.get_call_data(transaction_hash, "startInFlightExit", args, types)
-            decode_in_flight_exit = decode_in_flight_exit(log)
-            Map.put(decode_in_flight_exit, :call_data, start_in_flight_exit)
-          end)
-
-        {:ok, result}
-
-      other ->
-        other
-    end
   end
 
   # NOT USED
@@ -664,57 +322,64 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
-  # USED ONLY IN TEST
-  def deposit_blknum_from_receipt(%{"logs" => logs}) do
-    topic =
-      @deposit_created_event_signature
-      |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
-      |> to_hex()
-
-    [%{blknum: deposit_blknum}] =
-      logs
-      |> Enum.filter(&(topic in &1["topics"]))
-      |> Enum.map(&decode_deposit/1)
-
-    deposit_blknum
-  end
-
-  defp authority(contract) do
+  @doc """
+  Returns standard exits from a range of blocks. Collects exits from Ethereum logs.
+  """
+  def get_standard_exits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "operator()", [], [:address])
+    signature = "ExitStarted(address,uint192)"
+
+    case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
+      {:ok, logs} ->
+        exits =
+          Enum.map(logs, fn log ->
+            decode_exit_started = decode_exit_started(log)
+            args = [:utxo_pos, :output_tx, :output_tx_inclusion_proof]
+            types = [:uint192, :bytes, :bytes]
+            hash = from_hex(log["transactionHash"])
+            transaction_hash = Eth.get_call_data(hash, "startStandardExit", args, types)
+            Map.put(decode_exit_started, :call_data, transaction_hash)
+          end)
+
+        {:ok, exits}
+
+      other ->
+        other
+    end
   end
 
-  defp decode_piggyback_challenged(log) do
-    non_indexed_keys = [:tx_hash, :output_index]
-    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
-    indexed_keys = [:challenger]
-    indexed_keys_types = [:address]
+  @doc """
+  Returns InFlightExit from a range of blocks.
+  """
+  def get_in_flight_exit_starts(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    signature = "InFlightExitStarted(address,bytes32)"
 
-    Eth.parse_events_with_indexed_fields(
-      log,
-      {non_indexed_keys, non_indexed_key_types},
-      {indexed_keys, indexed_keys_types}
-    )
+    case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
+      {:ok, logs} ->
+        args = [:in_flight_tx, :inputs_txs, :input_inclusion_proofs, :in_flight_tx_sigs]
+        types = [:bytes, :bytes, :bytes, :bytes]
+
+        result =
+          Enum.map(logs, fn log ->
+            transaction_hash = from_hex(log["transactionHash"])
+            start_in_flight_exit = Eth.get_call_data(transaction_hash, "startInFlightExit", args, types)
+            decode_in_flight_exit = decode_in_flight_exit(log)
+            Map.put(decode_in_flight_exit, :call_data, start_in_flight_exit)
+          end)
+
+        {:ok, result}
+
+      other ->
+        other
+    end
   end
 
-  defp decode_deposit(log) do
+  def decode_deposit(log) do
     non_indexed_keys = [:amount]
     non_indexed_key_types = [{:uint, 256}]
     indexed_keys = [:owner, :blknum, :currency]
     indexed_keys_types = [:address, {:uint, 256}, :address]
-
-    Eth.parse_events_with_indexed_fields(
-      log,
-      {non_indexed_keys, non_indexed_key_types},
-      {indexed_keys, indexed_keys_types}
-    )
-  end
-
-  defp decode_piggybacked(log) do
-    non_indexed_keys = [:tx_hash, :output_index]
-    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
-    indexed_keys = [:owner]
-    indexed_keys_types = [:address]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -740,6 +405,37 @@ defmodule OMG.Eth.RootChain do
     non_indexed_keys = [:tx_hash]
     non_indexed_key_types = [{:bytes, 32}]
     indexed_keys = [:initiator]
+    indexed_keys_types = [:address]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp authority(contract) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    Eth.call_contract(contract, "operator()", [], [:address])
+  end
+
+  defp decode_piggyback_challenged(log) do
+    non_indexed_keys = [:tx_hash, :output_index]
+    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
+    indexed_keys = [:challenger]
+    indexed_keys_types = [:address]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp decode_piggybacked(log) do
+    non_indexed_keys = [:tx_hash, :output_index]
+    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
+    indexed_keys = [:owner]
     indexed_keys_types = [:address]
 
     Eth.parse_events_with_indexed_fields(

@@ -96,7 +96,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     } = TestHelper.get_exit_data(block_nr, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-      Eth.RootChain.start_exit(
+      Eth.RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,
@@ -123,7 +123,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     } = TestHelper.get_exit_data(token_deposit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-      Eth.RootChain.start_exit(
+      Eth.RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,
@@ -208,7 +208,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     } = TestHelper.get_exit_data(exit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChain.start_exit(
+      Eth.RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,

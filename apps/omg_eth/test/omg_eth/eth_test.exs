@@ -53,8 +53,8 @@ defmodule OMG.EthTest do
 
   @tag fixtures: [:contract]
   test "single binary argument call returning bool", %{contract: contract} do
-    assert {:ok, true} = Eth.RootChain.has_token(@eth, contract.contract_addr)
-    assert {:ok, false} = Eth.RootChain.has_token(<<1::160>>, contract.contract_addr)
+    assert {:ok, true} = Eth.RootChainHelper.has_token(@eth, contract.contract_addr)
+    assert {:ok, false} = Eth.RootChainHelper.has_token(<<1::160>>, contract.contract_addr)
   end
 
   @tag fixtures: [:contract]
@@ -86,7 +86,7 @@ defmodule OMG.EthTest do
       |> ExRLP.encode()
 
     {:ok, _} =
-      Eth.RootChain.deposit(tx, 1, contract.authority_addr, contract.contract_addr)
+      Eth.RootChainHelper.deposit(tx, 1, contract.authority_addr, contract.contract_addr)
       |> Eth.DevHelpers.transact_sync!()
 
     {:ok, height} = Eth.get_ethereum_height()
