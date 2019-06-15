@@ -53,7 +53,6 @@ defmodule OMG.ChildChain.BlockQueue do
     end
 
     def handle_continue(:setup, %{}) do
-      :ok = OMG.InternalEventBus.subscribe("ethereum_block_height_change", link: true)
       _ = Logger.info("Starting #{__MODULE__} service.")
       :ok = Eth.node_ready()
       :ok = Eth.RootChain.contract_ready()
@@ -142,23 +141,20 @@ defmodule OMG.ChildChain.BlockQueue do
         end
 
       submit_blocks(state1)
-      {:noreply, %Core{state1 | ethereum_height: ethereum_height}}
+      {:noreply, state1}
     end
 
     def handle_info(
           {:internal_event_bus, :enqueue_block, %Block{number: block_number, hash: block_hash} = block},
           %Core{} = state
         ) do
-      state1 = Core.enqueue_block(state, block_hash, block_number, state.ethereum_height)
+      {:ok, parent_height} = EthereumClientMonitor.get_ethereum_height()
+      state1 = Core.enqueue_block(state, block_hash, block_number, parent_height)
       _ = Logger.info("Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'")
 
       FreshBlocks.push(block)
       submit_blocks(state1)
       {:noreply, %Core{} = state1}
-    end
-
-    def handle_info({:internal_event_bus, :ethereum_block_height_change, ethereum_height}, %Core{} = state) do
-      {:noreply, %Core{state | ethereum_height: ethereum_height}}
     end
 
     # private (server)
