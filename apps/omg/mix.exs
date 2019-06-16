@@ -20,7 +20,7 @@ defmodule OMG.MixProject do
   def application do
     [
       mod: {OMG.Application, []},
-      extra_applications: [:logger, :appsignal]
+      extra_applications: [:logger, :appsignal, :sentry]
     ]
   end
 
