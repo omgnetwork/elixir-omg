@@ -1,0 +1,21 @@
+version: "3.4"
+services:
+  postgres:
+    image: postgres:9.6.9-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: omisego_dev
+      POSTGRES_PASSWORD: omisego_dev
+      POSTGRES_DB: omisego_dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "omisego_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  elixir-omg:
+    build: .
+    image: elixir-omg:dockercompose
+    depends_on:
+      - postgres
+    links:
+      - postgres
