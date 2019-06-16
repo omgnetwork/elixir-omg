@@ -1,4 +1,4 @@
-version: "2.1"
+version: "3.4"
 services:
   geth:
     image: ethereum/client-go:v1.8.21
@@ -7,21 +7,6 @@ services:
      - "8545:8545"
     healthcheck:
       test: curl docker.for.mac.localhost:8545
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
-  watcher_db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_USER: omisego_dev
-      POSTGRES_PASSWORD: omisego_dev
-      POSTGRES_DB: omisego_dev
-    ports:
-      - "5433:5432"
-    healthcheck:
-      test: pg_isready -U omisego_dev
       interval: 5s
       timeout: 3s
       retries: 5
