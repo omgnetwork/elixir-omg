@@ -318,7 +318,7 @@ jobs:
             kubectl set image statefulset childchain-samrong childchain=$DOCKER_IMAGE
             while true; do if [ "$(kubectl get pods childchain-samrong-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
             kubectl set image statefulset watcher-samrong watcher=$DOCKER_IMAGE
-            while true; do if [ "$(kubectl get pods watcher-samrong-0 | grep 1/1)" ]; then break; fi; done
+            while true; do if [ "$(curl ${WATCHER_DEVELOPMENT}" ]; then break; fi; done
       - run:
           name: Functional Tests
           command: |
