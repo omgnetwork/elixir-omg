@@ -7,3 +7,9 @@ config :omg_db,
   path: Path.join([System.get_env("HOME"), ".omg/data"]),
   leveldb: [server_module: OMG.DB.LevelDB.Server, server_name: OMG.DB.LevelDB.Server],
   rocksdb: [server_module: OMG.DB.RocksDB.Server, server_name: OMG.DB.RocksDB.Server]
+
+config :omg_db, OMG.Utils.Tracer,
+  service: :omg_db,
+  adapter: SpandexDatadog.Adapter,
+  disabled?: false,
+  env: Atom.to_string(Mix.env())

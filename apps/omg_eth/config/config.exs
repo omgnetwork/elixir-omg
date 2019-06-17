@@ -20,4 +20,10 @@ config :omg_eth,
   ethereum_client_warning_time_ms: ethereum_client_timeout_ms / 4,
   ws_url: System.get_env("ETHEREUM_WS_RPC_URL") || "ws://localhost:8546/ws"
 
+config :omg_eth, OMG.Utils.Tracer,
+  service: :omg_eth,
+  adapter: SpandexDatadog.Adapter,
+  disabled?: false,
+  env: Atom.to_string(Mix.env())
+
 import_config "#{Mix.env()}.exs"

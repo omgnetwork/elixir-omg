@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Tracer do
+defmodule OMG.Utils.Tracer do
   @moduledoc """
   Trace requests and reports information to Datadog via Spandex
   """

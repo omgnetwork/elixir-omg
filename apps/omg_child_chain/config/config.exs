@@ -9,4 +9,10 @@ config :omg_child_chain,
   fee_specs_file_name: "fee_specs.json",
   ignore_fees: false
 
+config :omg_child_chain, OMG.Utils.Tracer,
+  service: :omg_child_chain,
+  adapter: SpandexDatadog.Adapter,
+  disabled?: false,
+  env: Atom.to_string(Mix.env())
+
 import_config "#{Mix.env()}.exs"
