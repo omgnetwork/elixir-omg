@@ -75,7 +75,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
         Metrics.increment("transaction.succeed", 1)
 
       _ ->
-        Metrics.increment("transaction.fail.unidentified", 1)
+        Metrics.increment("transaction.failed.unidentified", 1)
     end
 
     response
