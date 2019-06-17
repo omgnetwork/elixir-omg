@@ -16,15 +16,17 @@ defmodule OMG.EthereumClientMonitorTest do
   @moduledoc false
 
   use ExUnit.Case, async: false
-  alias __MODULE__.Mock
-  alias __MODULE__.WebSockex.ServerMock
+
+  alias __MODULE__.EthereumClientMock
+  alias __MODULE__.WebSockexMockTestSocket
+  alias __MODULE__.WebSockexServerMock
   alias OMG.Alert.Alarm
   alias OMG.Alert.AlarmHandler
   alias OMG.EthereumClientMonitor
 
   setup_all do
     :ok = AlarmHandler.install()
-    {:ok, _} = Mock.start_link()
+    {:ok, _} = EthereumClientMock.start_link()
 
     on_exit(fn ->
       Application.put_env(:omg_child_chain, :eth_integration_module, nil)
@@ -32,14 +34,14 @@ defmodule OMG.EthereumClientMonitorTest do
   end
 
   setup do
-    _ = Application.put_env(:omg_child_chain, :eth_integration_module, Mock)
-
-    {:ok, {server_ref, websocket_url}} = ServerMock.start(self())
+    _ = Application.put_env(:omg_child_chain, :eth_integration_module, EthereumClientMock)
+    {:ok, {server_ref, websocket_url}} = WebSockexServerMock.start(self())
     {:ok, ethereum_client_monitor} = EthereumClientMonitor.start_link(alarm_module: Alarm, ws_url: websocket_url)
     Alarm.clear_all()
 
     on_exit(fn ->
-      ServerMock.shutdown(server_ref)
+      :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
+      WebSockexServerMock.shutdown(server_ref)
       true = Process.exit(ethereum_client_monitor, :kill)
     end)
 
@@ -50,8 +52,7 @@ defmodule OMG.EthereumClientMonitorTest do
     server_ref: server_ref,
     websocket_url: _websocket_url
   } do
-    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
-    ServerMock.shutdown(server_ref)
+    WebSockexServerMock.shutdown(server_ref)
     true = is_pid(Process.whereis(EthereumClientMonitor))
 
     :ok =
@@ -61,8 +62,6 @@ defmodule OMG.EthereumClientMonitorTest do
           id: :ethereum_client_connection
         }
       ])
-
-    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
   end
 
   test "that alarm gets raised if there's no ethereum client running and cleared when it's running", %{
@@ -75,8 +74,8 @@ defmodule OMG.EthereumClientMonitorTest do
     ### That (eventually) raises an alarm.
     ### We continue by re-starting the mocked RPC server and websocket server and check if the alarm
     ## was removed.
-    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
-    ServerMock.shutdown(server_ref)
+
+    WebSockexServerMock.shutdown(server_ref)
 
     true = is_pid(Process.whereis(EthereumClientMonitor))
 
@@ -88,8 +87,9 @@ defmodule OMG.EthereumClientMonitorTest do
         }
       ])
 
-    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
-    {:ok, {_server_ref, ^websocket_url}} = ServerMock.start(self(), websocket_url)
+    :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
+
+    {:ok, {_server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
     :ok = pull_client_alarm(400, [])
   end
 
@@ -104,10 +104,10 @@ defmodule OMG.EthereumClientMonitorTest do
     ### We make sure that our timer doesn't bomb the process's mailbox if requests take too long.
     ### We continue by re-starting the mocked RPC server and websocket server and check if the alarm
     ## was removed.
-    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
-    ServerMock.shutdown(server_ref)
-    Mock.set_faulty_response()
-    Mock.set_long_response(4500)
+
+    WebSockexServerMock.shutdown(server_ref)
+    EthereumClientMock.set_faulty_response()
+    EthereumClientMock.set_long_response(4500)
     pid = Process.whereis(EthereumClientMonitor)
     true = is_pid(pid)
 
@@ -120,8 +120,8 @@ defmodule OMG.EthereumClientMonitorTest do
       ])
 
     {:message_queue_len, 0} = Process.info(pid, :message_queue_len)
-    :sys.replace_state(Process.whereis(Mock), fn _ -> %{} end)
-    {:ok, {_server_ref, ^websocket_url}} = ServerMock.start(self(), websocket_url)
+    :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
+    {:ok, {_server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
     :ok = pull_client_alarm(400, [])
   rescue
     reason ->
@@ -141,7 +141,7 @@ defmodule OMG.EthereumClientMonitorTest do
     end
   end
 
-  defmodule Mock do
+  defmodule EthereumClientMock do
     @moduledoc """
     Mocking the ETH module integration point.
     """
@@ -174,7 +174,7 @@ defmodule OMG.EthereumClientMonitorTest do
       do: {:reply, :ok, Map.merge(%{long_response: milliseconds}, state)}
   end
 
-  defmodule WebSockex.ServerMock do
+  defmodule WebSockexServerMock do
     use Plug.Router
 
     plug(:match)
@@ -200,7 +200,6 @@ defmodule OMG.EthereumClientMonitorTest do
       ref = make_ref()
 
       opts = [dispatch: dispatch(), port: String.to_integer(port), ref: ref]
-
       {:ok, _} = Plug.Adapters.Cowboy.http(__MODULE__, [], opts)
       {:ok, {ref, websocket_url}}
     end
@@ -210,11 +209,11 @@ defmodule OMG.EthereumClientMonitorTest do
     end
 
     defp dispatch do
-      [{:_, [{"/ws", WebSockex.MockTestSocket, []}]}]
+      [{:_, [{"/ws", WebSockexMockTestSocket, []}]}]
     end
   end
 
-  defmodule WebSockex.MockTestSocket do
+  defmodule WebSockexMockTestSocket do
     @behaviour :cowboy_websocket_handler
 
     def init(_, _req, _) do

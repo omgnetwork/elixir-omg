@@ -29,11 +29,7 @@ defmodule OMG.Eth.SubscriptionWorker do
   """
   @spec start_link(Keyword.t()) :: {:ok, pid()} | no_return()
   def start_link(opts) do
-    ws_url =
-      case Keyword.get(opts, :ws_url) do
-        nil -> Application.get_env(:omg_eth, :ws_url)
-        ws_url -> ws_url
-      end
+    ws_url = Keyword.get(opts, :ws_url, Application.get_env(:omg_eth, :ws_url))
 
     {:ok, pid} = WebSockex.start_link(ws_url, __MODULE__, opts, opts)
     spawn(fn -> listen(pid, opts) end)
@@ -46,7 +42,7 @@ defmodule OMG.Eth.SubscriptionWorker do
       id: @subscription_id,
       method: "eth_subscribe",
       params: [
-        Keyword.get(opts, :listen_to)
+        Keyword.fetch!(opts, :listen_to)
       ]
     }
 
@@ -68,11 +64,12 @@ defmodule OMG.Eth.SubscriptionWorker do
   def handle_frame({:text, msg}, state) do
     {:ok, decoded} = Jason.decode(msg)
     {:links, links} = Process.info(self(), :links)
+    listen_to = Keyword.fetch!(state, :listen_to)
 
     _ =
       Enum.each(links, fn
         link when is_pid(link) ->
-          :ok = GenServer.cast(link, {:event_received, Keyword.get(state, :listen_to), decoded})
+          :ok = GenServer.cast(link, {:event_received, listen_to, decoded})
 
         _ ->
           :skip

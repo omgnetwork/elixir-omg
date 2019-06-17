@@ -73,7 +73,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   ]
 
   @type t() :: %__MODULE__{
-          blocks: %{pos_integer() => %BlockSubmission{}} | map(),
+          blocks: %{pos_integer() => %BlockSubmission{}},
           # last mined block num
           mined_child_block_num: BlockQueue.plasma_block_num(),
           # newest formed block num
@@ -95,14 +95,16 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           # depth of max reorg we take into account
           finality_threshold: pos_integer(),
           # the gas price adjustment strategy parameters
-          gas_price_adj_params: GasPriceAdjustment.t()
+          gas_price_adj_params: GasPriceAdjustment.t(),
+          last_parent_height: non_neg_integer()
         }
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
   def new, do: {:ok, %__MODULE__{blocks: Map.new()}}
 
-  @spec new(keyword) :: {:ok, Core.t()} | {:error, :mined_hash_not_found_in_db} | {:error, :contract_ahead_of_db}
+  @spec new(keyword) ::
+          {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
   def new(
         mined_child_block_num: mined_child_block_num,
         known_hashes: known_hashes,
