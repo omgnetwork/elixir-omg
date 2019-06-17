@@ -42,7 +42,7 @@ defmodule OMG.ChildChain.BlockQueue do
     use OMG.Utils.LoggerExt
     use OMG.Utils.Metrics
     alias OMG.Eth
-    alias OMG.EthereumClientMonitor
+    alias OMG.EthereumHeight
 
     def start_link(_args) do
       GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -56,7 +56,7 @@ defmodule OMG.ChildChain.BlockQueue do
       _ = Logger.info("Starting #{__MODULE__} service.")
       :ok = Eth.node_ready()
       :ok = Eth.RootChain.contract_ready()
-      {:ok, parent_height} = EthereumClientMonitor.get_ethereum_height()
+      {:ok, parent_height} = EthereumHeight.get()
       {:ok, mined_num} = Eth.RootChain.get_mined_child_block()
       {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
       {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
@@ -124,7 +124,7 @@ defmodule OMG.ChildChain.BlockQueue do
     and status of State to decide what to do
     """
     def handle_info(:check_ethereum_status, %Core{} = state) do
-      {:ok, ethereum_height} = EthereumClientMonitor.get_ethereum_height()
+      {:ok, ethereum_height} = EthereumHeight.get()
       {:ok, mined_blknum} = Eth.RootChain.get_mined_child_block()
       {_, is_empty_block} = OMG.State.get_status()
 
@@ -148,7 +148,7 @@ defmodule OMG.ChildChain.BlockQueue do
           {:internal_event_bus, :enqueue_block, %Block{number: block_number, hash: block_hash} = block},
           %Core{} = state
         ) do
-      {:ok, parent_height} = EthereumClientMonitor.get_ethereum_height()
+      {:ok, parent_height} = EthereumHeight.get()
       state1 = Core.enqueue_block(state, block_hash, block_number, parent_height)
       _ = Logger.info("Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'")
 

@@ -46,10 +46,6 @@ defmodule OMG.EthereumClientMonitor do
             ethereum_height: :error,
             ws_url: nil
 
-  def get_ethereum_height do
-    GenServer.call(__MODULE__, :ethereum_height)
-  end
-
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
@@ -97,13 +93,8 @@ defmodule OMG.EthereumClientMonitor do
       {:noreply, %{state | tref: tref}}
   end
 
-  def handle_call(:ethereum_height, _from, state) do
-    {:reply, {:ok, state.ethereum_height}, state}
-  end
-
-  def handle_info({:EXIT, _from, _}, state) do
+  def handle_info({:EXIT, _from, _reason}, state) do
     # subscription died so we need to raise an alarm and start manual checks
-
     _ = state.alarm_module.set({:ethereum_client_connection, Node.self(), __MODULE__})
     _ = :timer.cancel(state.tref)
     {:ok, tref} = :timer.send_after(state.interval, :health_check)
@@ -127,8 +118,9 @@ defmodule OMG.EthereumClientMonitor do
     end
   end
 
-  def handle_cast({:event_received, "newHeads", decoded}, state) do
-    value = decoded["params"]["result"]["number"]
+  # def handle_cast({:event_received, "newHeads", decoded}, state) do
+  def handle_info({:internal_event_bus, :newHeads, new_heads}, state) do
+    value = new_heads["params"]["result"]["number"]
 
     case is_binary(value) do
       true ->

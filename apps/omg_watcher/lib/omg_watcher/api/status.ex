@@ -50,7 +50,7 @@ defmodule OMG.Watcher.API.Status do
   @decorate measure_event()
   @spec get_status() :: {:ok, t()}
   def get_status do
-    {:ok, eth_block_number} = OMG.EthereumClientMonitor.get_ethereum_height()
+    {:ok, eth_block_number} = OMG.EthereumHeight.get()
     {:ok, eth_block_timestamp} = Eth.get_block_timestamp_by_number(eth_block_number)
     eth_syncing = Eth.syncing?()
 

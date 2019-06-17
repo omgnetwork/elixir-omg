@@ -16,7 +16,7 @@ defmodule OMG.RootChainCoordinator do
   Synchronizes services on root chain height, see `OMG.RootChainCoordinator.Core`
   """
 
-  alias OMG.EthereumClientMonitor
+  alias OMG.EthereumHeight
   alias OMG.Recorder
   alias OMG.RootChainCoordinator.Core
 
@@ -79,7 +79,7 @@ defmodule OMG.RootChainCoordinator do
 
   def handle_continue(:setup, configs_services) do
     _ = Logger.info("Starting #{__MODULE__} service.")
-    {:ok, rootchain_height} = EthereumClientMonitor.get_ethereum_height()
+    {:ok, rootchain_height} = EthereumHeight.get()
     height_check_interval = Application.fetch_env!(:omg, :coordinator_eth_height_check_interval_ms)
     {:ok, _} = schedule_get_ethereum_height(height_check_interval)
     state = Core.init(configs_services, rootchain_height)
@@ -109,7 +109,7 @@ defmodule OMG.RootChainCoordinator do
   end
 
   def handle_info(:update_root_chain_height, state) do
-    {:ok, root_chain_height} = OMG.EthereumClientMonitor.get_ethereum_height()
+    {:ok, root_chain_height} = OMG.EthereumHeight.get()
     {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
     {:noreply, state}
   end

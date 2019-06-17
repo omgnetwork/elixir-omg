@@ -41,7 +41,9 @@ defmodule OMG.RootChainCoordinatorTest do
     {:ok, _} =
       Supervisor.start_link(
         [
+          {OMG.InternalEventBus, []},
           {OMG.EthereumClientMonitor, [alarm_module: Alarm]},
+          {OMG.EthereumHeight, []},
           {OMG.RootChainCoordinator, coordinator_setup},
           OMG.EthereumEventListener.prepare_child(
             service_name: :test,

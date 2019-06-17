@@ -63,18 +63,8 @@ defmodule OMG.Eth.SubscriptionWorker do
   @impl true
   def handle_frame({:text, msg}, state) do
     {:ok, decoded} = Jason.decode(msg)
-    {:links, links} = Process.info(self(), :links)
     listen_to = Keyword.fetch!(state, :listen_to)
-
-    _ =
-      Enum.each(links, fn
-        link when is_pid(link) ->
-          :ok = GenServer.cast(link, {:event_received, listen_to, decoded})
-
-        _ ->
-          :skip
-      end)
-
+    :ok = OMG.InternalEventBus.broadcast(listen_to, {String.to_atom(listen_to), decoded})
     {:ok, state}
   end
 end

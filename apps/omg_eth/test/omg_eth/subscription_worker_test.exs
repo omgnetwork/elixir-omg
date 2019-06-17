@@ -22,6 +22,17 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
 
   @moduletag :wrappers
   @moduletag :common
+  setup_all(_) do
+    {:ok, _} =
+      Supervisor.start_link(
+        [
+          {Phoenix.PubSub.PG2, [name: OMG.InternalEventBus]}
+        ],
+        strategy: :one_for_one
+      )
+
+    :ok
+  end
 
   @tag fixtures: [:eth_node]
   test "that worker can subscribe to different events and receive events" do
@@ -32,9 +43,11 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
       fn listen ->
         params = [listen_to: listen]
         _ = SubscriptionWorker.start_link(params)
+        :ok = OMG.InternalEventBus.subscribe(listen, link: true)
+        event = String.to_atom(listen)
 
         receive do
-          {:"$gen_cast", {:event_received, ^listen, _}} ->
+          {:internal_event_bus, ^event, _message} ->
             assert true
         end
       end
@@ -50,9 +63,11 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
       fn listen ->
         params = [listen_to: listen, ws_url: websocket_url]
         _ = SubscriptionWorker.start_link(params)
+        :ok = OMG.InternalEventBus.subscribe(listen, link: true)
+        event = String.to_atom(listen)
 
         receive do
-          {:"$gen_cast", {:event_received, ^listen, _}} ->
+          {:internal_event_bus, ^event, _message} ->
             assert true
         end
       end
