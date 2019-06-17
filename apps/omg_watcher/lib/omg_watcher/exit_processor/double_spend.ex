@@ -59,7 +59,7 @@ defmodule OMG.Watcher.ExitProcessor.DoubleSpend do
   """
   @spec all_double_spends_by_index(
           list({Utxo.Position.t(), non_neg_integer}),
-          Enumerable.t(),
+          map(),
           Transaction.any_flavor_t()
         ) :: %{non_neg_integer => t()}
   def all_double_spends_by_index(indexed_utxo_positions, known_txs_by_input, tx) do
