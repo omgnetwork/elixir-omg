@@ -370,6 +370,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     %{ife | is_active: true}
   end
 
+  def should_be_seeked_in_blocks?(%__MODULE__{} = ife),
+    do: ife.is_active && ife.tx_seen_in_blocks_at == nil
+
   @doc """
   First, it determines if it is challenged at all - if it isn't returns false.
   Second, If the tx hasn't been seen at all then it will be false

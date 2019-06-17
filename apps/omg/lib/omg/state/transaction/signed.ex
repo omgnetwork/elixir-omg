@@ -58,6 +58,15 @@ defmodule OMG.State.Transaction.Signed do
   end
 
   @doc """
+  See `decode/1`
+  """
+  @spec decode!(tx_bytes()) :: t()
+  def decode!(signed_tx_bytes) do
+    {:ok, decoded} = decode(signed_tx_bytes)
+    decoded
+  end
+
+  @doc """
   Recovers the spenders for non-empty signatures, in the order they appear in transaction's signatures
   """
   @spec get_spenders(t()) :: {:ok, list(Crypto.address_t())} | {:error, atom}
