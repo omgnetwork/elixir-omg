@@ -22,7 +22,7 @@ defmodule OMG.Utils.Metrics do
       config :omg_utils, discard_metrics: [:State]
   """
 
-  use Appsignal.Instrumentation.Decorators
+  use Spandex.Decorators
 
   use Decorator.Define,
     measure_start: 0,
@@ -37,7 +37,7 @@ defmodule OMG.Utils.Metrics do
 
     if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace)),
       do: body,
-      else: Appsignal.Instrumentation.Decorators.transaction(namespace, body, context)
+      else: Spandex.Decorators.trace(body, context)
   end
 
   def measure_event(body, context) do
@@ -45,6 +45,6 @@ defmodule OMG.Utils.Metrics do
 
     if Enum.find(@discard_namespace_metrics, &match?(^&1, event_group)),
       do: body,
-      else: Appsignal.Instrumentation.Decorators.transaction_event(event_group, body, context)
+      else: Spandex.Decorators.span(body, context)
   end
 end
