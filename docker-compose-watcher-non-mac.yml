@@ -22,5 +22,5 @@ services:
       timeout: 3s
       retries: 5
     depends_on:
-      watcher_db:
+      postgres:
         condition: service_healthy
