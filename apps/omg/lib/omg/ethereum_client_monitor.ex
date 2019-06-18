@@ -82,7 +82,7 @@ defmodule OMG.EthereumClientMonitor do
         ws_url -> [listen_to: "newHeads", ws_url: ws_url]
       end
 
-    _ = SubscriptionWorker.start_link(params)
+    _ = SubscriptionWorker.start_link([{:event_bus, OMG.InternalEventBus} | params])
     _ = raise_clear(state.alarm_module, state.raised, state.ethereum_height)
     {:noreply, state}
   rescue

@@ -1,5 +1,0 @@
-Application.ensure_all_started(:sasl)
-alias OMG.Alert.AlarmHandler
-:ok = AlarmHandler.install()
-OMG.Eth.DevGeth.start()
-OMG.Supervisor.start_link()

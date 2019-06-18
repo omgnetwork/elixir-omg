@@ -31,7 +31,7 @@ defmodule OMG.Eth.SubscriptionWorker do
   def start_link(opts) do
     ws_url = Keyword.get(opts, :ws_url, Application.get_env(:omg_eth, :ws_url))
 
-    {:ok, pid} = WebSockex.start_link(ws_url, __MODULE__, opts, opts)
+    {:ok, pid} = WebSockex.start_link(ws_url, __MODULE__, opts, [])
     spawn(fn -> listen(pid, opts) end)
     {:ok, pid}
   end
@@ -64,7 +64,8 @@ defmodule OMG.Eth.SubscriptionWorker do
   def handle_frame({:text, msg}, state) do
     {:ok, decoded} = Jason.decode(msg)
     listen_to = Keyword.fetch!(state, :listen_to)
-    :ok = OMG.InternalEventBus.broadcast(listen_to, {String.to_atom(listen_to), decoded})
+    event_bus = Keyword.fetch!(state, :event_bus)
+    :ok = apply(event_bus, :broadcast, [listen_to, {String.to_atom(listen_to), decoded}])
     {:ok, state}
   end
 end

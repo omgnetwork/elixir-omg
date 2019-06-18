@@ -42,7 +42,7 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
       listen_to,
       fn listen ->
         params = [listen_to: listen]
-        _ = SubscriptionWorker.start_link(params)
+        _ = SubscriptionWorker.start_link([{:event_bus, OMG.InternalEventBus} | params])
         :ok = OMG.InternalEventBus.subscribe(listen, link: true)
         event = String.to_atom(listen)
 
@@ -62,7 +62,7 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
       listen_to,
       fn listen ->
         params = [listen_to: listen, ws_url: websocket_url]
-        _ = SubscriptionWorker.start_link(params)
+        _ = SubscriptionWorker.start_link([{:event_bus, OMG.InternalEventBus} | params])
         :ok = OMG.InternalEventBus.subscribe(listen, link: true)
         event = String.to_atom(listen)
 
