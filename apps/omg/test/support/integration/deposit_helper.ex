@@ -28,7 +28,7 @@ defmodule OMG.Integration.DepositHelper do
     {:ok, receipt} =
       Transaction.new([], [{to, @eth, value}])
       |> Transaction.raw_txbytes()
-      |> Eth.RootChain.deposit(value, to)
+      |> Eth.RootChainHelper.deposit(value, to)
       |> Eth.DevHelpers.transact_sync!()
 
     process_deposit(receipt)
@@ -42,7 +42,7 @@ defmodule OMG.Integration.DepositHelper do
     {:ok, receipt} =
       Transaction.new([], [{to, token_addr, value}])
       |> Transaction.raw_txbytes()
-      |> Eth.RootChain.deposit_from(to)
+      |> Eth.RootChainHelper.deposit_from(to)
       |> Eth.DevHelpers.transact_sync!()
 
     process_deposit(receipt)
@@ -52,7 +52,7 @@ defmodule OMG.Integration.DepositHelper do
     deposit_eth_height
     |> wait_deposit_recognized()
 
-    Eth.RootChain.deposit_blknum_from_receipt(receipt)
+    Eth.RootChainHelper.deposit_blknum_from_receipt(receipt)
   end
 
   defp wait_deposit_recognized(deposit_eth_height) do

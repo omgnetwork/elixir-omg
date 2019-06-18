@@ -14,9 +14,12 @@
 
 defmodule OMG.ChildChain.MonitorTest do
   @moduledoc false
+
+  alias __MODULE__.EthereumClientMock
   alias OMG.Alert.Alarm
   alias OMG.Alert.AlarmHandler
   alias OMG.ChildChain.Monitor
+
   use ExUnit.Case, async: true
 
   @moduletag :integration
@@ -33,7 +36,7 @@ defmodule OMG.ChildChain.MonitorTest do
     on_exit(fn ->
       Process.exit(Process.whereis(Monitor), :kill)
 
-      case Process.whereis(__MODULE__.Mock) do
+      case Process.whereis(EthereumClientMock) do
         nil ->
           :ok
 
@@ -49,7 +52,7 @@ defmodule OMG.ChildChain.MonitorTest do
 
   @tag :capture_log
   test "if a tuple spec child gets started" do
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [{__MODULE__.Mock, []}]])
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, [{EthereumClientMock, []}]])
     _ = Process.unlink(monitor_pid)
     {:links, links} = Process.info(monitor_pid, :links)
 
@@ -59,11 +62,11 @@ defmodule OMG.ChildChain.MonitorTest do
         registered_name
       end)
 
-    assert Enum.member?(names, __MODULE__.Mock)
+    assert Enum.member?(names, EthereumClientMock)
   end
 
   test "if a map spec child gets started" do
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [__MODULE__.Mock.prepare_child()]])
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, [EthereumClientMock.prepare_child()]])
     Process.unlink(monitor_pid)
     {:links, links} = Process.info(monitor_pid, :links)
 
@@ -73,19 +76,19 @@ defmodule OMG.ChildChain.MonitorTest do
         registered_name
       end)
 
-    assert Enum.member?(names, __MODULE__.Mock)
+    assert Enum.member?(names, EthereumClientMock)
   end
 
   @tag :capture_log
   test "if a map spec child gets restarted after exit" do
-    child = __MODULE__.Mock.prepare_child()
+    child = EthereumClientMock.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
     handle_killing_and_monitoring(monitor_pid)
   end
 
   @tag :capture_log
   test "if a tuple spec child gets restarted after exit" do
-    child = {__MODULE__.Mock, []}
+    child = {EthereumClientMock, []}
     {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
     handle_killing_and_monitoring(monitor_pid)
   end
@@ -104,12 +107,12 @@ defmodule OMG.ChildChain.MonitorTest do
         registered_name
       end)
 
-    assert Enum.member?(names, __MODULE__.Mock)
+    assert Enum.member?(names, EthereumClientMock)
     # process is started and is monitored, lets log the pid
-    old_pid = Process.whereis(__MODULE__.Mock)
+    old_pid = Process.whereis(EthereumClientMock)
     Process.unlink(old_pid)
     # exit the pid by sending a shutdown command
-    spawn(fn -> __MODULE__.Mock.terminate(:kill) end)
+    spawn(fn -> EthereumClientMock.terminate(:kill) end)
 
     assert pull_links_and_find_process(monitor_pid, old_pid, 10_000)
   end
@@ -125,7 +128,7 @@ defmodule OMG.ChildChain.MonitorTest do
         registered_name
       end)
 
-    case {Enum.member?(names, __MODULE__.Mock), old_pid == Process.whereis(__MODULE__.Mock)} do
+    case {Enum.member?(names, EthereumClientMock), old_pid == Process.whereis(EthereumClientMock)} do
       {true, false} ->
         true
 
@@ -135,7 +138,7 @@ defmodule OMG.ChildChain.MonitorTest do
     end
   end
 
-  defmodule Mock do
+  defmodule EthereumClientMock do
     @moduledoc """
     Mocking the ETH module integration point.
     """

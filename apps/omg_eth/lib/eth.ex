@@ -28,7 +28,7 @@ defmodule OMG.Eth do
   however they must be encoded/decoded when entering/leaving the `Ethereumex` realm
   """
 
-  import OMG.Eth.Encoding
+  import OMG.Eth.Encoding, only: [from_hex: 1, to_hex: 1, int_from_hex: 1]
 
   require Logger
 

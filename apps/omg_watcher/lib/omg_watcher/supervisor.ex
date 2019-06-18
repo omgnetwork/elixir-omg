@@ -54,7 +54,6 @@ defmodule OMG.Watcher.Supervisor do
     # https://github.com/omisego/elixir-omg/pull/562
     top_children =
       [
-        {OMG.InternalEventBus, []},
         %{
           id: Watcher.DB.Repo,
           start: {Watcher.DB.Repo, :start_link, []},
