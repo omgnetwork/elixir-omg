@@ -1,7 +1,7 @@
-version: "3.4"
+version: "2.1"
 services:
   postgres:
-    image: postgres:9.6.9-alpine
+    image: postgres
     restart: always
     ports:
       - "5433:5432"
@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: omisego_dev
       POSTGRES_DB: omisego_dev
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-U", "omisego_dev"]
+      test: pg_isready -U omisego_dev
       interval: 5s
       timeout: 3s
       retries: 5
@@ -18,6 +18,7 @@ services:
     build: .
     image: elixir-omg:dockercompose
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     links:
       - postgres
