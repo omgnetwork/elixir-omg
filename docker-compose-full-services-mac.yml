@@ -25,8 +25,7 @@ services:
       timeout: 3s
       retries: 5
     depends_on:
-      geth:
-        condition: service_healthy
+      - geth
 
   childchain:
     image: elixir-omg:dockercompose
@@ -48,10 +47,8 @@ services:
       timeout: 3s
       retries: 7
     depends_on:
-      geth:
-        condition: service_healthy
-      contractexchanger:
-        condition: service_healthy
+      - geth
+      - contractexchanger
 
   watcher:
     image: elixir-omg:dockercompose
@@ -73,5 +70,4 @@ services:
       timeout: 3s
       retries: 5
     depends_on:
-      childchain:
-        condition: service_healthy
+      - childchain
