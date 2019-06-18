@@ -22,7 +22,7 @@ defmodule OMG.Utils.Metrics do
       config :omg_utils, discard_metrics: [:State]
   """
 
-  use Spandex.Decorators
+  alias OMG.Utils.Tracer
 
   use Decorator.Define,
     measure_start: 0,
@@ -33,18 +33,57 @@ defmodule OMG.Utils.Metrics do
   def measure_start(body, context) do
     # NOTE: the namespace and event group naming convention here is tentative.
     # It is possible we'll revert to standard coarser division into `web` and `background` namespaces Appsignal suggests
-    namespace = context.module |> Module.split() |> List.last() |> String.to_existing_atom()
+    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace(context))) do
+      body
+    else
+      trace_name = trace_name(context)
 
-    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace)),
-      do: body,
-      else: Spandex.Decorators.trace(body, context)
+      quote do
+        _ = unquote(Tracer).start_trace(unquote(trace_name))
+        Logger.metadata(span_id: unquote(Tracer).current_span_id())
+        result = unquote(body)
+        _ = unquote(Tracer).finish_trace()
+
+        result
+      end
+    end
   end
 
   def measure_event(body, context) do
-    event_group = context.module |> Module.split() |> List.last() |> String.to_existing_atom()
+    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace(context))) do
+      body
+    else
+      trace_name = trace_name(context)
 
-    if Enum.find(@discard_namespace_metrics, &match?(^&1, event_group)),
-      do: body,
-      else: Spandex.Decorators.span(body, context)
+      quote do
+        _ =
+          unquote(Tracer).start_span(
+            unquote(trace_name),
+            [{:resource, unquote(trace_name)}]
+          )
+
+        Logger.metadata(span_id: unquote(Tracer).current_span_id())
+        result = unquote(body)
+        _ = unquote(Tracer).finish_span()
+
+        result
+      end
+    end
+  end
+
+  defp trace_name(%{module: module, name: function, arity: arity}) do
+    module =
+      module
+      |> Atom.to_string()
+      |> String.trim_leading("Elixir.")
+
+    "#{module}.#{function}/#{arity}"
+  end
+
+  defp namespace(%{module: module}) do
+    module
+    |> Module.split()
+    |> List.last()
+    |> String.to_existing_atom()
   end
 end

@@ -38,7 +38,4 @@ config :appsignal, :config,
   env: Mix.env(),
   active: true
 
-config :spandex, :decorators,
-  tracer: OMG.Utils.Tracer
-
 import_config "#{Mix.env()}.exs"
