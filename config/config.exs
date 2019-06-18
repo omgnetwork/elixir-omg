@@ -23,15 +23,17 @@ config :logger,
 
 config :sentry,
   dsn: {:system, "SENTRY_DSN"},
-  environment_name: {:system, "APP_ENV"},
   enable_source_code_context: true,
+  environment_name: {:system, "APP_ENV"},
   root_source_code_path: File.cwd!(),
-  tags: %{
-    mix_env: Mix.env(),
-    application: Mix.Project.config()[:app]
-  },
+  included_environments: [:dev, :prod, System.get_env("APP_ENV")],
   server_name: elem(:inet.gethostname(), 1),
-  included_environments: [:prod, :dev]
+  tags: %{
+    application: Mix.Project.config()[:app],
+    eth_network: System.get_env("ETHEREUM_NETWORK"),
+    eth_node: System.get_env("ETH_NODE"),
+    mix_env: Mix.env(),
+  }
 
 # Configs for AppSignal application monitoring
 config :appsignal, :config,
