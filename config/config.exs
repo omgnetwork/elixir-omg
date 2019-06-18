@@ -23,11 +23,11 @@ config :logger,
 
 config :sentry,
   dsn: {:system, "SENTRY_DSN"},
-  environment_name: Mix.env(),
+  environment_name: {:system, "APP_ENV"},
   enable_source_code_context: true,
   root_source_code_path: File.cwd!(),
   tags: %{
-    env: Mix.env(),
+    mix_env: Mix.env(),
     application: Mix.Project.config()[:app]
   },
   server_name: elem(:inet.gethostname(), 1),
