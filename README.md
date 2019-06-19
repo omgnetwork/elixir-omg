@@ -74,10 +74,16 @@ All commands should be run from the root of the repo.
 **NOTE** known to work with `docker-compose version 1.24.0, build 0aa59064`, version `1.17` has had problems
 
 ### Mac
-`docker-compose up`
+
+```sh
+docker-compose -f docker-compose.yml -f docker-compose-full-services-mac.yml up`
+```
 
 ### Linux
-`docker-compose -f docker-compose.yml -f docker-compose-non-mac.yml up`
+
+```sh
+docker-compose -f docker-compose.yml -f docker-compose-full-services-non-mac.yml up`
+```
 
 ### Get the deployed contract details
 
