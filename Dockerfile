@@ -70,7 +70,6 @@ RUN mix deps.clean --all
 RUN mix deps.get
 
 RUN mix compile
-RUN mix sentry.recompile
 
 USER root
 
