@@ -52,8 +52,7 @@ defmodule OMG.Umbrella.MixProject do
       "coveralls.detail": ["coveralls.detail --no-start"],
       "coveralls.post": ["coveralls.post --no-start"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run apps/omg_watcher/priv/repo/seeds.exs"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
-      "sentry.recompile": ["deps.compile sentry --force"]
+      "ecto.reset": ["ecto.drop", "ecto.setup"]
     ]
   end
 
