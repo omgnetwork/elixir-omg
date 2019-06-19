@@ -362,6 +362,14 @@ mix deps.compile plasma_contracts
 
 # Testing & development
 
+You can setup the docker environment to run testing and development tasks:
+
+```sh
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --entrypoint bash elixir-omg
+```
+
+Once the shell has loaded, you can continue and run additional tasks.
+
 Quick test (no integration tests):
 ```bash
 mix test
