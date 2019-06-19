@@ -104,7 +104,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     raw_txbytes = Transaction.raw_txbytes(raw_tx2)
 
     assert {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-             Eth.RootChain.start_exit(
+             Eth.RootChainHelper.start_exit(
                encoded_utxo_pos,
                raw_txbytes,
                proof,
@@ -139,7 +139,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChain.in_flight_exit(
+      Eth.RootChainHelper.in_flight_exit(
         in_flight_tx |> Transaction.raw_txbytes(),
         get_input_txs([tx, tx]),
         proof <> proof,
@@ -168,7 +168,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     deposit_tx = OMG.TestHelper.create_signed([], @eth, [{alice, 10}])
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChain.in_flight_exit(
+      Eth.RootChainHelper.in_flight_exit(
         in_flight_tx2_rawbytes,
         get_input_txs([deposit_tx]),
         Block.inclusion_proof([Transaction.Signed.encode(deposit_tx)], 0),
@@ -181,7 +181,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     # piggyback only to the first transaction's output & wait for finalization
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChain.piggyback_in_flight_exit(in_flight_tx2_rawbytes, 4, alice.addr)
+      Eth.RootChainHelper.piggyback_in_flight_exit(in_flight_tx2_rawbytes, 4, alice.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)

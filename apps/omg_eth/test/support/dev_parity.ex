@@ -32,7 +32,11 @@ defmodule OMG.Eth.DevParity do
     {:ok, homedir} = Briefly.create(directory: true)
 
     parity_pid =
-      launch("parity --chain dev --geth --jsonrpc-apis personal,eth,web3,parity_accounts --base-path #{homedir} 2>&1")
+      launch(
+        "parity --chain dev --geth --jsonrpc-apis personal,eth,web3,parity_accounts --ws-origins all --ws-apis eth,web3 --base-path #{
+          homedir
+        } 2>&1"
+      )
 
     {:ok, :ready} = Eth.WaitFor.eth_rpc()
     {:ok, dev_period} = OMG.Eth.DevMiningHelper.start()

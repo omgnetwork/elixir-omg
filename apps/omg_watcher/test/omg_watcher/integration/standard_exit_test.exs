@@ -66,7 +66,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
     } = TestHelper.get_exit_data(tx_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1"}} =
-      Eth.RootChain.start_exit(
+      Eth.RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,
@@ -78,7 +78,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
     Process.sleep(2 * exit_period + 5_000)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()
+      OMG.Eth.RootChainHelper.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
 

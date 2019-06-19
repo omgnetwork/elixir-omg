@@ -19,16 +19,22 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
   alias OMG.ChildChainRPC.Web.TestHelper
   @alarm_1 {:boot_in_progress, %{node: Node.self(), reporter: __MODULE__}}
   @alarm_2 {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
+
   describe "testing for boot_in_progress alarm" do
     @tag fixtures: [:phoenix_sandbox]
     test "if block.get endpoint rejects request because alarms are raised" do
+      :ok = :alarm_handler.clear_alarm(@alarm_2)
       :ok = :alarm_handler.set_alarm(@alarm_1)
 
-      assert %{
-               "data" => %{
-                 "code" => "operation:service_unavailable"
-               }
-             } = TestHelper.rpc_call(:post, "/block.get", %{})
+      pull_client_alarm(
+        300,
+        %{
+          "data" => %{
+            "code" => "operation:service_unavailable"
+          }
+        },
+        fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
+      )
 
       :ok = :alarm_handler.clear_alarm(@alarm_1)
     end
@@ -36,6 +42,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
     @tag fixtures: [:phoenix_sandbox]
     test "if block.get endpoint rejects the request because of bad params when alarm is cleared" do
       :ok = :alarm_handler.clear_alarm(@alarm_1)
+      :ok = :alarm_handler.clear_alarm(@alarm_2)
       missing_param = %{}
 
       assert catch_error(
@@ -52,18 +59,24 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
     @tag fixtures: [:phoenix_sandbox]
     test "if block.get endpoint rejects request because alarms are raised" do
       :ok = :alarm_handler.set_alarm(@alarm_2)
+      :ok = :alarm_handler.clear_alarm(@alarm_1)
 
-      assert %{
-               "data" => %{
-                 "code" => "operation:service_unavailable"
-               }
-             } = TestHelper.rpc_call(:post, "/block.get", %{})
+      pull_client_alarm(
+        300,
+        %{
+          "data" => %{
+            "code" => "operation:service_unavailable"
+          }
+        },
+        fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
+      )
 
       :ok = :alarm_handler.clear_alarm(@alarm_2)
     end
 
     @tag fixtures: [:phoenix_sandbox]
     test "if block.get endpoint rejects the request because of bad params when alarm is cleared" do
+      :ok = :alarm_handler.clear_alarm(@alarm_1)
       :ok = :alarm_handler.clear_alarm(@alarm_2)
       missing_param = %{}
 
@@ -74,6 +87,19 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
                  }
                } = TestHelper.rpc_call(:post, "/block.get", missing_param)
              )
+    end
+  end
+
+  defp pull_client_alarm(0, _, _), do: :cant_match
+
+  defp pull_client_alarm(n, match, fnn) do
+    case fnn.() do
+      ^match ->
+        :ok
+
+      _ ->
+        Process.sleep(10)
+        pull_client_alarm(n - 1, match, fnn)
     end
   end
 end

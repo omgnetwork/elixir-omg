@@ -102,7 +102,7 @@ tx2 =
 Jason.decode!()
 
 {:ok, txhash} =
-  Eth.RootChain.start_exit(
+  Eth. RootChainHelper.start_exit(
     composed_exit["utxo_pos"],
     composed_exit["txbytes"] |> Encoding.from_hex(),
     composed_exit["proof"] |> Encoding.from_hex(),
@@ -117,7 +117,7 @@ Eth.WaitFor.eth_receipt(txhash)
   Jason.decode!()
 
 {:ok, txhash} =
-  OMG.Eth.RootChain.challenge_exit(
+  OMG.Eth.RootChainHelper.challenge_exit(
     challenge["exit_id"],
     challenge["txbytes"] |> Encoding.from_hex(),
     challenge["input_index"],
