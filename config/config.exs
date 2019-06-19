@@ -29,7 +29,7 @@ config :sentry,
   included_environments: [:dev, :prod, System.get_env("APP_ENV")],
   server_name: elem(:inet.gethostname(), 1),
   tags: %{
-    application: Mix.Project.config()[:app],
+    application: System.get_env("ELIXIR_SERVICE"),
     eth_network: System.get_env("ETHEREUM_NETWORK"),
     eth_node: System.get_env("ETH_NODE")
   }
