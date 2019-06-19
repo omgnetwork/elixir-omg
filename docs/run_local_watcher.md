@@ -14,7 +14,7 @@ The `docker-compose` tooling in the root of `elixir-omg` allows users to run the
 
 2) From the root of the `elixir-omg` execute:
 
-- `docker-compose -f docker-compose-watcher-mac.yml up` (Mac)
-- `docker-compose -f docker-compose-watcher-non-mac.yml up` (Linux/Windows)
+- `docker-compose -f docker-compose.yml -f docker-compose-watcher-mac.yml up` (Mac)
+- `docker-compose -f docker-compose.yml -f docker-compose-watcher-non-mac.yml up` (Linux/Windows)
 
 Modify the other environment variables for connecting to other networks.
