@@ -22,9 +22,9 @@ config :logger,
   backends: [Sentry.LoggerBackend, :console]
 
 config :sentry,
-  dsn: {:system, "SENTRY_DSN"},
+  dsn: System.get_env("SENTRY_DSN"),
   enable_source_code_context: true,
-  environment_name: {:system, "APP_ENV"},
+  environment_name: System.get_env("APP_ENV"),
   root_source_code_path: File.cwd!(),
   included_environments: [:dev, :prod, System.get_env("APP_ENV")],
   server_name: elem(:inet.gethostname(), 1),
