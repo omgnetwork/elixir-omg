@@ -3,22 +3,23 @@ services:
   watcher:
     image: omisego/watcher:latest
     command: "full_local"
+    build:
+      context: ./
+      dockerfile: Dockerfile.watcher
     environment:
-      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<your_api_key>
-      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/<your_api_key>
+      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
+      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/${INFURA_API_KEY}
       - CHILD_CHAIN_URL=http://samrong.omg.network
       - ETHEREUM_NETWORK=RINKEBY
       - RINKEBY_CONTRACT_ADDRESS=0x740ecec4c0ee99c285945de8b44e9f5bfb71eea7
       - RINKEBY_TXHASH_CONTRACT=0x29f8cd44b4b94a148f779105f0e09e06f762b411ebef6c499281b74d45818c1c
       - RINKEBY_AUTHORITY_ADDRESS=0x41863dafbdf8cfc2a33fc38c0b525b6343d857b3
-      - DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost:5433/omisego_dev
+      - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - NODE_HOST=127.0.0.1
-    restart: always
     ports:
       - "7434:7434"
-    network_mode: "host"
     healthcheck:
-      test: curl localhost:7434
+      test: curl watcher:7434
       interval: 5s
       timeout: 3s
       retries: 5

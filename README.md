@@ -69,21 +69,30 @@ However, if you are brave and want to test being a Tesuji Plasma chain operator,
 
 ## Service start up using Docker Compose
 This is the recommended method of starting the blockchain services, with the auxiliary services automatically provisioned through Docker.
+
 Before attempting the start up please ensure that you are not running any services that are listening on the following TCP ports: 9656, 7434, 5000, 8545, 5432, 5433.
 All commands should be run from the root of the repo.
 
 **NOTE** known to work with `docker-compose version 1.24.0, build 0aa59064`, version `1.17` has had problems
 
-### Mac
+To bring the entire system up:
 
 ```sh
-docker-compose -f docker-compose.yml -f docker-compose-full-services-mac.yml up`
+docker-compose up
 ```
 
-### Linux
+To bring only specific services up (eg: the childchain service):
 
 ```sh
-docker-compose -f docker-compose.yml -f docker-compose-full-services-non-mac.yml up`
+docker-compose up childchain
+```
+
+_(Note: This will also bring up any services childchain depends on.)_
+
+To override and run specific Watcher code use:
+
+```sh
+docker-compose -f docker-compose.yml -f docker-compose-watcher.yml up
 ```
 
 ### Get the deployed contract details
