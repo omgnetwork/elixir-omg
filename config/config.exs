@@ -31,8 +31,7 @@ config :sentry,
   tags: %{
     application: Mix.Project.config()[:app],
     eth_network: System.get_env("ETHEREUM_NETWORK"),
-    eth_node: System.get_env("ETH_NODE"),
-    mix_env: Mix.env(),
+    eth_node: System.get_env("ETH_NODE")
   }
 
 # Configs for AppSignal application monitoring
