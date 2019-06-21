@@ -6,7 +6,7 @@ use Mix.Config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we use it
 # with brunch.io to recompile .js and .css sources.
-config :omg_watcher, OMG.WatcherRPC.Web.Endpoint,
+config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
   secret_key_base: "UIJuXFLCQAeodDwZmnMc54RnY5rUefwgPIPbJsYHf0ZJ57Lf3tpoj8WYqT7+Rfmt",
   http: [port: {:system, "PORT", 7434, {String, :to_integer}}],
   url: [host: "localhost", port: 7434],
@@ -16,7 +16,7 @@ config :omg_watcher, OMG.WatcherRPC.Web.Endpoint,
   watchers: [],
   server: true
 
-config :omg_watcher, environment: :dev
+config :omg_watcher_rpc, environment: :dev
 
 # ## SSL Support
 #
