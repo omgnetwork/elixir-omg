@@ -18,7 +18,7 @@ tags:
   - name: ChildChain
     description: Plasma operator API.
 servers:
-  - url: 'https://ari.omg.network/'
+  - url: 'https://samrong.omg.network/'
   - url: 'http://localhost:9656/'
 paths:
   /transaction.submit:
