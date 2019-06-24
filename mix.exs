@@ -1,7 +1,7 @@
 defmodule OMG.Umbrella.MixProject do
   use Mix.Project
 
-  def umbrella_version, do: "0.1.5"
+  def umbrella_version, do: "0.1.6"
 
   def project do
     [
