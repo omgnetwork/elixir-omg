@@ -2,7 +2,7 @@ version: "2.1"
 services:
   geth:
     image: ethereum/client-go:v1.8.21
-    entrypoint: /bin/sh -c "apk add curl && geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545"
+    entrypoint: /bin/sh -c "apk add curl && geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 --ws --wsorigins='*'"
     ports:
      - "8545:8545"
     network_mode: "host"
