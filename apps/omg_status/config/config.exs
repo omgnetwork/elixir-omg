@@ -6,7 +6,6 @@ config :omg_status,
 config :omg_status, OMG.Utils.Tracer,
   service: :omg_status,
   adapter: SpandexDatadog.Adapter,
-  disabled?: false,
   env: Atom.to_string(Mix.env())
 
 config :vmstats,

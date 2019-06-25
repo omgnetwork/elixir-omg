@@ -16,7 +16,6 @@ config :omg, :eip_712_domain,
 config :omg, OMG.Utils.Tracer,
   service: :omg,
   adapter: SpandexDatadog.Adapter,
-  disabled?: false,
   env: Atom.to_string(Mix.env())
 
 import_config "#{Mix.env()}.exs"

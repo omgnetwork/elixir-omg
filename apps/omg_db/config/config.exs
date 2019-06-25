@@ -11,5 +11,4 @@ config :omg_db,
 config :omg_db, OMG.Utils.Tracer,
   service: :omg_db,
   adapter: SpandexDatadog.Adapter,
-  disabled?: false,
   env: Atom.to_string(Mix.env())

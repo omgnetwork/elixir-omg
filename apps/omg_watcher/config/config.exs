@@ -33,7 +33,6 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
 config :omg_watcher, OMG.Utils.Tracer,
   service: :omg_watcher,
   adapter: SpandexDatadog.Adapter,
-  disabled?: false,
   env: Atom.to_string(Mix.env())
 
 # Import environment specific config. This must remain at the bottom

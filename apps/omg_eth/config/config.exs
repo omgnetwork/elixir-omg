@@ -23,7 +23,6 @@ config :omg_eth,
 config :omg_eth, OMG.Utils.Tracer,
   service: :omg_eth,
   adapter: SpandexDatadog.Adapter,
-  disabled?: false,
   env: Atom.to_string(Mix.env())
 
 import_config "#{Mix.env()}.exs"
