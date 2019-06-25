@@ -31,6 +31,7 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
                * [Nonces restriction](#nonces-restriction)
                * [Funding the operator address](#funding-the-operator-address)
       * [Watcher](#watcher)
+         * [Modes of the watcher](#modes-of-the-watcher)
          * [Using the watcher](#using-the-watcher)
          * [Endpoints](#endpoints)
          * [Ethereum private key management](#ethereum-private-key-management-1)
@@ -244,6 +245,26 @@ It exposes the information it gathers via an HTTP-RPC interface (driven by Phoen
 It provides a secure proxy to the child chain server's API and to Ethereum, ensuring that sensitive requests are only sent to a valid chain.
 
 For more on the responsibilities and design of the Watcher see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
+
+### Modes of the watcher
+
+The watcher can be run in one of two modes:
+  - **security-critical only**
+    - intended to provide light-weight Watcher just to ensure security of funds deposited into the child chain
+    - this mode will store all of the data required for security-critical operations (exiting, challenging, etc.)
+    - it will not store data required for current and performant interacting with the child chain (spending, receiving tokens, etc.)
+    - it will not expose some endpoints related to current and performant interacting with the child chain (`account.get_utxos`, `transaction.*`, etc.)
+    - it will only require the `OMG.DB` key-value store database
+    - this mode will prune all security-related data not necessary anymore for security reasons (from `OMG.DB`)
+    - some requests to the API might be slow but must always work (called rarely in unhappy paths only, like mass exits)
+  - **security-critical and informational API**
+    - intended to provide convenient and performant API to the child chain data, on top of the security-related one
+    - this mode will provide/store everything the **security-critical** mode does
+    - this mode will store easily accessible register of all transactions _for a subset of addresses_ (currently, all addresses)
+    - this mode will leverage the Postgres-based `WatcherDB` database
+
+**TODO** the distinction between two modes isn't fully implemented yet.
+Use the **security-critical and informational API** always for now.
 
 ### Using the watcher
 
