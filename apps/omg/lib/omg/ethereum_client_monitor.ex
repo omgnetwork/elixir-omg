@@ -77,17 +77,15 @@ defmodule OMG.EthereumClientMonitor do
     _ = Logger.debug("Ethereum client monitor starting a WS newHeads subscription.")
 
     params =
-      case state.ws_url do
-        nil -> [listen_to: "newHeads"]
-        ws_url -> [listen_to: "newHeads", ws_url: ws_url]
-      end
+      [listen_to: "newHeads", ws_url: state.ws_url]
+      |> Keyword.delete(:ws_url, nil)
 
     _ = SubscriptionWorker.start_link([{:event_bus, OMG.InternalEventBus} | params])
     _ = raise_clear(state.alarm_module, state.raised, state.ethereum_height)
     {:noreply, state}
   rescue
     _ ->
-      _ = Logger.debug("Ethereum client monitor failed at WS newHeads subscription. Health check in #{state.interval}")
+      _ = Logger.warn("Ethereum client monitor failed at WS newHeads subscription. Health check in #{state.interval}")
       {:ok, tref} = :timer.send_after(state.interval, :health_check)
       _ = raise_clear(state.alarm_module, state.raised, :error)
       {:noreply, %{state | tref: tref}}
