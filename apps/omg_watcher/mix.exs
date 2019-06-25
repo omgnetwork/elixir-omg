@@ -36,9 +36,6 @@ defmodule OMG.Watcher.Mixfile do
       {:ecto_sql, "~> 3.1"},
       {:deferred_config, "~> 0.1.1"},
       {:appsignal, "~> 1.0"},
-      {:spandex, "~> 2.4"},
-      {:spandex_datadog, "~> 0.4"},
-      {:decorator, "~> 1.2"},
       # UMBRELLA
       {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},

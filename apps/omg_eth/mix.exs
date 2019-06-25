@@ -45,9 +45,6 @@ defmodule OMG.Eth.MixProject do
         only: [:dev, :test]
       },
       {:appsignal, "~> 1.0"},
-      {:spandex, "~> 2.4"},
-      {:spandex_datadog, "~> 0.4"},
-      {:decorator, "~> 1.2"},
       # TEST ONLY
       {:exexec,
        git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},

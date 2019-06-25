@@ -34,9 +34,6 @@ defmodule OMG.MixProject do
       {:merkle_tree, "~> 1.6"},
       {:deferred_config, "~> 0.1.1"},
       {:appsignal, "~> 1.0"},
-      {:spandex, "~> 2.4"},
-      {:spandex_datadog, "~> 0.4"},
-      {:decorator, "~> 1.2"},
       {:phoenix_pubsub, "~> 1.0"},
       # UMBRELLA
       {:omg_db, in_umbrella: true},
