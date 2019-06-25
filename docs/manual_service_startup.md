@@ -44,13 +44,13 @@ A developer instance of `geth` runs Ethereum locally and prefunds an account.
 However, when `geth` terminates, the state of the Ethereum network is lost.
 
 ```bash
-geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0 --ws --wsorigins='*'
+geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --ws --wsorigins='*'
 ```
 
 ##### Persistent developer `geth` instance
 Alternatively, a persistent developer instance that does not lose state can be started with the following command:
 ```bash
-geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0 --ws --wsorigins='*' --datadir ~/.geth
+geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --ws --wsorigins='*' --datadir ~/.geth
 ```
 
 #### Connecting to a non-dev chain
@@ -58,7 +58,7 @@ geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web
 Another alternative might be running the whole setup on some official testnet, ex. `rinkeby`.
 
 ```bash
-geth --rinkeby --rpc --rpcapi personal,web3,eth,net  --rpcaddr 127.0.0.1 --ws --wsorigins='*'
+geth --rinkeby --rpc --rpcapi personal,web3,eth,net --ws --wsorigins='*'
 ```
 
 **NOTE** Contrary to working with developer instance, operator's account must be manually funded with testnet Ether.
