@@ -493,7 +493,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
   defp transaction_all_with_paging(body) do
     %{
-      "version" => "1.0",
       "success" => true,
       "data" => data,
       "data_paging" => paging
