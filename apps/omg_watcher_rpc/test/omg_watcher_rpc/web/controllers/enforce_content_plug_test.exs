@@ -31,11 +31,6 @@ defmodule OMG.WatcherRPC.Web.Controller.EnforceContentPlugTest do
     response = OMG.WatcherRPC.Web.Endpoint.call(post, [])
 
     assert response.status == 200
-
-    assert %{
-             "data" => [],
-             "success" => true,
-             "version" => "1.0"
-           } == Jason.decode!(response.resp_body)
+    assert %{"success" => true} = Jason.decode!(response.resp_body)
   end
 end

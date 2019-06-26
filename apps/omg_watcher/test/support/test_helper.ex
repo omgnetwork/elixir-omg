@@ -25,6 +25,7 @@ defmodule OMG.Watcher.TestHelper do
   use Phoenix.ConnTest
 
   @endpoint OMG.WatcherRPC.Web.Endpoint
+  @api_version "0.2"
 
   def wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do
     ref = Process.monitor(pid)
@@ -40,19 +41,19 @@ defmodule OMG.Watcher.TestHelper do
 
   def success?(path, body \\ nil) do
     response_body = rpc_call(path, body, 200)
-    %{"version" => "1.0", "success" => true, "data" => data} = response_body
+    %{"version" => @api_version, "success" => true, "data" => data} = response_body
     data
   end
 
   def no_success?(path, body \\ nil) do
     response_body = rpc_call(path, body, 200)
-    %{"version" => "1.0", "success" => false, "data" => data} = response_body
+    %{"version" => @api_version, "success" => false, "data" => data} = response_body
     data
   end
 
   def server_error?(path, body \\ nil) do
     response_body = rpc_call(path, body, 500)
-    %{"version" => "1.0", "success" => false, "data" => data} = response_body
+    %{"version" => @api_version, "success" => false, "data" => data} = response_body
     data
   end
 
