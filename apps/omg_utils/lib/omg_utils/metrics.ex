@@ -33,41 +33,45 @@ defmodule OMG.Utils.Metrics do
   def measure_start(body, context) do
     # NOTE: the namespace and event group naming convention here is tentative.
     # It is possible we'll revert to standard coarser division into `web` and `background` namespaces Appsignal suggests
-    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace(context))) do
-      body
-    else
-      trace_name = trace_name(context)
-
-      quote do
-        _ = unquote(Tracer).start_trace(unquote(trace_name))
-        Logger.metadata(span_id: unquote(Tracer).current_span_id())
-        result = unquote(body)
-        _ = unquote(Tracer).finish_trace()
-
-        result
-      end
-    end
+    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace(context))),
+      do: body,
+      else: start_trace(body, context)
   end
 
   def measure_event(body, context) do
-    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace(context))) do
-      body
-    else
-      trace_name = trace_name(context)
+    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace(context))),
+      do: body,
+      else: start_span(body, context)
+  end
 
-      quote do
-        _ =
-          unquote(Tracer).start_span(
-            unquote(trace_name),
-            [{:resource, unquote(trace_name)}]
-          )
+  defp start_trace(body, context) do
+    trace_name = trace_name(context)
 
-        Logger.metadata(span_id: unquote(Tracer).current_span_id())
-        result = unquote(body)
-        _ = unquote(Tracer).finish_span()
+    quote do
+      _ = unquote(Tracer).start_trace(unquote(trace_name))
+      Logger.metadata(span_id: unquote(Tracer).current_span_id())
+      result = unquote(body)
+      _ = unquote(Tracer).finish_trace()
 
-        result
-      end
+      result
+    end
+  end
+
+  defp start_span(body, context) do
+    trace_name = trace_name(context)
+
+    quote do
+      _ =
+        unquote(Tracer).start_span(
+          unquote(trace_name),
+          [{:resource, unquote(trace_name)}]
+        )
+
+      Logger.metadata(span_id: unquote(Tracer).current_span_id())
+      result = unquote(body)
+      _ = unquote(Tracer).finish_span()
+
+      result
     end
   end
 
