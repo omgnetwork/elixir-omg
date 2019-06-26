@@ -46,7 +46,7 @@ defmodule OMG.Watcher.API.Transaction do
   Length of the list is limited by `limit` argument
   """
   @decorate measure_event()
-  @spec get_transactions(Keyword.t()) :: list(%DB.Transaction{})
+  @spec get_transactions(Keyword.t()) :: Paginator.t()
   def get_transactions(constraints) do
     paginator = Paginator.from_constraints(constraints, @default_transactions_limit)
 
