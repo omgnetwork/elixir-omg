@@ -27,7 +27,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @other_token <<127::160>>
-  @eth_hex OMG.Eth.zero_address() |> Encoding.to_hex()
+  @eth_hex @eth |> Encoding.to_hex()
   @other_token_hex @other_token |> Encoding.to_hex()
   @default_data_paging %{"limit" => 200, "page" => 1}
 
@@ -509,7 +509,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     result
   end
 
-  describe "submitting transaction to child chain" do
+  describe "submitting binary-encoded transaction" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "handles incorrectly encoded parameter" do
       hex_without_0x = "5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21"
@@ -536,6 +536,103 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "description" => nil,
                "object" => "error"
              } == TestHelper.no_success?("transaction.submit", %{"transaction" => Encoding.to_hex(signed_bytes)})
+    end
+  end
+
+  describe "submitting structural transaction" do
+    deffixture typed_data_request(alice, bob) do
+      contract_addr = :crypto.exor(alice.addr, bob.addr) |> Encoding.to_hex()
+
+      alice_addr = Encoding.to_hex(alice.addr)
+      bob_addr = Encoding.to_hex(bob.addr)
+
+      Application.put_env(:omg_eth, :contract_addr, contract_addr)
+
+      on_exit(fn ->
+        Application.put_env(:omg_eth, :contract_addr, nil)
+      end)
+
+      %{
+        # these values should match configuration :omg, :eip_712_domain
+        "domain" => %{
+          "name" => "OMG Network",
+          "version" => "1",
+          "salt" => "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83",
+          "verifying_contract" => contract_addr
+        },
+        "message" => %{
+          "input0" => %{"blknum" => 1000, "txindex" => 0, "oindex" => 1},
+          "input1" => %{"blknum" => 3001, "txindex" => 0, "oindex" => 0},
+          "input2" => %{"blknum" => 0, "txindex" => 0, "oindex" => 0},
+          "input3" => %{"blknum" => 0, "txindex" => 0, "oindex" => 0},
+          "output0" => %{"owner" => alice_addr, "currency" => @eth_hex, "amount" => 10},
+          "output1" => %{"owner" => alice_addr, "currency" => @other_token_hex, "amount" => 300},
+          "output2" => %{"owner" => bob_addr, "currency" => @other_token_hex, "amount" => 100},
+          "output3" => %{"owner" => @eth_hex, "currency" => @eth_hex, "amount" => 0},
+          "metadata" => Encoding.to_hex(<<0::256>>)
+        },
+        "signatures" => List.duplicate(<<0::520>>, 2) |> Enum.map(&Encoding.to_hex/1)
+      }
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :typed_data_request]
+    test "ensures all required fields are passed", %{typed_data_request: typed_data_request} do
+      req_without_domain = Map.drop(typed_data_request, ["domain"])
+
+      assert %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "object" => "error",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "domain",
+                   "validator" => ":missing"
+                 }
+               }
+             } == TestHelper.no_success?("transaction.submit_typed", req_without_domain)
+
+      req_without_message = Map.drop(typed_data_request, ["message"])
+
+      assert %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "object" => "error",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "message",
+                   "validator" => ":missing"
+                 }
+               }
+             } == TestHelper.no_success?("transaction.submit_typed", req_without_message)
+
+      req_without_sigs = Map.drop(typed_data_request, ["signatures"])
+
+      assert %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "object" => "error",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "signatures",
+                   "validator" => ":missing"
+                 }
+               }
+             } == TestHelper.no_success?("transaction.submit_typed", req_without_sigs)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :typed_data_request]
+    test "input & sigs count should match", %{typed_data_request: typed_data_request} do
+      request_body =
+        typed_data_request
+        |> Map.update!("signatures", fn sigs -> Enum.take(sigs, 1) end)
+
+      assert %{
+               "code" => "submit_typed:input_sigs_correspondence",
+               "description" =>
+                 "Signatures should correspond to inputs owner. When all inputs has the same owner, " <>
+                   "signatures should be duplicated.",
+               "object" => "error"
+             } == TestHelper.no_success?("transaction.submit_typed", request_body)
     end
   end
 

@@ -31,5 +31,6 @@ transaction:not_found | Transaction doesn't exist for provided search criteria
 transaction.create:insufficient_funds | Account balance is too low to satisfy the payment.
 transaction.create:too_many_outputs | Total number of payments + change + fees exceed maximum allowed outputs in transaction. We need to reserve one output per payment and one output per change for each currency used in the transaction.
 transaction.create:empty_transaction | Requested payment resulted in empty transaction that transfers no funds.
+submit_typed:input_sigs_correspondence | Signatures should correspond to inputs owner. When all inputs has the same owner, signatures should be duplicated.
 
 Refer to `...web/controllers/fallback.ex` family of files for a comprehensive list of error codes and descriptions.
