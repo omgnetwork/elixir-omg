@@ -17,6 +17,7 @@ defmodule OMG.Watcher.API.Transaction do
   Module provides API for transactions
   """
 
+  alias OMG.State.Transaction
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.Watcher.DB
@@ -66,9 +67,11 @@ defmodule OMG.Watcher.API.Transaction do
   """
   @decorate measure_event()
   @spec submit(binary()) :: Client.response_t()
-  def(submit(txbytes)) do
-    url = Application.get_env(:omg_watcher, :child_chain_url)
-    Client.submit(txbytes, url)
+  def submit(txbytes) do
+    with {:ok, %Transaction.Recovered{}} <- Transaction.Recovered.recover_from(txbytes) do
+      url = Application.get_env(:omg_watcher, :child_chain_url)
+      Client.submit(txbytes, url)
+    end
   end
 
   @doc """
