@@ -32,6 +32,7 @@ defmodule OMG.Crypto do
   @doc """
   Produces a cryptographic digest of a message.
   """
+  @spec hash(binary) :: hash_t()
   def hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
 
   @doc """
