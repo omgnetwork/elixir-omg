@@ -90,6 +90,46 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     test "list, negative" do
       assert {:error, {:validation_error, "list", :list}} == expect(%{"list" => "[42]"}, "list", :list)
     end
+
+    test "map, positive" do
+      map = %{"a" => 0, "b" => 1}
+      assert {:ok, map} == expect(%{"map" => map}, "map", :map)
+    end
+
+    test "map, negative" do
+      assert {:error, {:validation_error, "map", :map}} == expect(%{"map" => [42]}, "map", :map)
+    end
+
+    test "map, missing" do
+      assert {:error, {:validation_error, "map", :map}} == expect(%{}, "map", :map)
+    end
+  end
+
+  describe "list and map preprocessing" do
+    test "mapping list elements" do
+      assert {:ok, [2, 4, 6]} == expect(%{"list" => [1, 2, 3]}, "list", list: &(&1 * 2))
+    end
+
+    test "validating list elements" do
+      is_even = fn
+        elt when rem(elt, 2) == 0 -> {:ok, elt}
+        _ -> {:error, :odd_number}
+      end
+
+      assert {:ok, [2, 4, 6]} ==
+               expect(
+                 %{"all_even" => [2, 4, 6]},
+                 "all_even",
+                 list: is_even
+               )
+
+      assert {:error, {:validation_error, "all_even", :odd_number}} ==
+               expect(
+                 %{"all_even" => [2, 3, 6]},
+                 "all_even",
+                 list: is_even
+               )
+    end
   end
 
   describe "Preprocessors:" do

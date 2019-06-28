@@ -119,16 +119,41 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   def greater({val, []}, _b) when not is_integer(val), do: {val, [:integer]}
   def greater({val, []}, bound), do: {val, greater: bound}
 
-  @spec list({any(), list()}) :: {any(), list()}
-  def list({_, [_ | _]} = err), do: err
-  def list({val, []}) when is_list(val), do: {val, []}
-  def list({val, _}), do: {val, [:list]}
+  @spec list({any(), list()}, function() | nil) :: {any(), list()}
+  def list(tuple, fun \\ nil)
+  def list({_, [_ | _]} = err, _), do: err
+  def list({val, []}, nil) when is_list(val), do: {val, []}
+  def list({val, []}, mapper) when is_list(val), do: list_processor(val, mapper)
+  def list({val, _}, _), do: {val, [:list]}
+
+  @spec map({any(), list()}) :: {any(), list()}
+  def map({_, [_ | _]} = err), do: err
+  def map({val, []}) when is_map(val), do: {val, []}
+  def map({val, _}), do: {val, [:map]}
+
+  defp list_processor(val, mapper) do
+    list_reducer = fn
+      {:error, map_err}, _acc -> {:halt, map_err}
+      {:ok, elt}, acc -> {:cont, [elt | acc]}
+      elt, acc -> {:cont, [elt | acc]}
+    end
+
+    val
+    |> Enum.reduce_while([], fn elt, acc -> mapper.(elt) |> list_reducer.(acc) end)
+    |> case do
+      list when is_list(list) ->
+        {Enum.reverse(list), []}
+
+      err ->
+        {val, [err]}
+    end
+  end
 
   # provides initial value to the validators reducer, see: `expect`
   defp get(map, key), do: {Map.get(map, key, :missing), []}
 
   defp validate(validator, acc) when is_atom(validator), do: Kernel.apply(__MODULE__, validator, [acc])
-  defp validate({validator, arg}, acc), do: Kernel.apply(__MODULE__, validator, [acc, arg])
+  defp validate({validator, args}, acc), do: Kernel.apply(__MODULE__, validator, [acc, args])
 
   defp replace_aliases(validators) do
     validators
