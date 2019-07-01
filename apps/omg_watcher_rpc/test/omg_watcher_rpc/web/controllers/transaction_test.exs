@@ -1119,7 +1119,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "object" => "error",
                "code" => "operation:bad_request",
                "description" => "Parameters required by this operation are missing or incorrect.",
-               "messages" => %{"validation_error" => %{"parameter" => "amount", "validator" => ":integer"}}
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "payments",
+                   "validator" => "{:validation_error, \"amount\", :integer}"
+                 }
+               }
              } ==
                TestHelper.no_success?(
                  "transaction.create",
@@ -1228,8 +1233,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "description" => "Parameters required by this operation are missing or incorrect.",
                "messages" => %{
                  "validation_error" => %{
-                   "parameter" => "amount",
-                   "validator" => "{:greater, -1}"
+                   "parameter" => "fee",
+                   "validator" => "{:validation_error, \"amount\", {:greater, -1}}"
                  }
                }
              } ==
@@ -1252,7 +1257,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "messages" => %{
                  "validation_error" => %{
                    "parameter" => "fee",
-                   "validator" => ":missing"
+                   "validator" => ":map"
                  }
                }
              } ==

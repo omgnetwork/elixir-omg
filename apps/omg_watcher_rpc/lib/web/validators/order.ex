@@ -27,9 +27,9 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   def parse(params) do
     with {:ok, owner} <- expect(params, "owner", :address),
          {:ok, metadata} <- expect(params, "metadata", [:hash, :optional]),
-         {:ok, raw_payments} <- expect(params, "payments", :list),
-         {:ok, fee} <- parse_fee(Map.get(params, "fee")),
-         {:ok, payments} <- parse_payments(raw_payments) do
+         {:ok, fee} <- expect(params, "fee", map: &parse_fee/1),
+         {:ok, payments} <- expect(params, "payments", list: &parse_payment/1),
+         {:ok, payments} <- fills_in_outputs?(payments) do
       {:ok,
        %{
          owner: owner,
@@ -40,23 +40,13 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
     end
   end
 
-  defp parse_payments(raw_payments) do
+  defp fills_in_outputs?(payments) do
     alias OMG.State.Transaction
     require Transaction
 
-    payments =
-      Enum.reduce_while(raw_payments, [], fn raw_payment, acc ->
-        case parse_payment(raw_payment) do
-          {:ok, payment} -> {:cont, acc ++ [payment]}
-          error -> {:halt, error}
-        end
-      end)
-
-    case payments do
-      {:error, _} = validation_error -> validation_error
-      payments when length(payments) <= Transaction.max_outputs() -> {:ok, payments}
-      _ -> error("payments", {:too_many_payments, Transaction.max_outputs()})
-    end
+    if length(payments) <= Transaction.max_outputs(),
+    do: {:ok, payments},
+    else: error("payments", {:too_many_payments, Transaction.max_outputs()})
   end
 
   defp parse_payment(raw_payment) do
@@ -71,6 +61,4 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
          {:ok, amount} <- expect(map, "amount", :non_neg_integer),
          do: {:ok, %{currency: currency, amount: amount}}
   end
-
-  defp parse_fee(_), do: error("fee", :missing)
 end
