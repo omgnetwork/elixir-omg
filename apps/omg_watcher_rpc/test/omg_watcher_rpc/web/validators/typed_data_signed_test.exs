@@ -65,9 +65,9 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
   end
 
   test "parses transaction from message data" do
-    message = get_message()
+    params = %{"message" => get_message()}
 
-    tx = TypedDataSigned.parse_transaction(message)
+    assert {:ok, tx} = TypedDataSigned.parse_transaction(params)
 
     assert [Utxo.position(1000, 0, 1), Utxo.position(3001, 0, 0)] == Transaction.get_inputs(tx)
 
@@ -82,21 +82,10 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
 
   test "parses transaction with metadata from message data" do
     metadata = (@alice.addr <> @bob.addr) |> OMG.Crypto.hash()
-    message = %{get_message() | "metadata" => Encoding.to_hex(metadata)}
+    params = %{"message" => %{get_message() | "metadata" => Encoding.to_hex(metadata)}}
 
-    tx = TypedDataSigned.parse_transaction(message)
-
+    assert {:ok, tx} = TypedDataSigned.parse_transaction(params)
     assert tx.metadata == metadata
-  end
-
-  test "parses signatures" do
-    sigs = [<<0::520>>, <<127::520>>]
-    too_short_hex = "0x0123456789"
-
-    assert {:ok, sigs} == sigs |> Enum.map(&Encoding.to_hex/1) |> TypedDataSigned.parse_signatures()
-
-    invalid_sigs = [too_short_hex | sigs |> Enum.map(&Encoding.to_hex/1)]
-    assert {:error, {:validation_error, "signature", {:length, 65}}} == TypedDataSigned.parse_signatures(invalid_sigs)
   end
 
   test "parses eip712 domain" do
@@ -107,34 +96,9 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
     correct_domain = @eip_domain
     incorrect_domain = %{@eip_domain | name: "Z0nk"}
 
-    assert :ok == TypedDataSigned.ensure_network_match(correct_domain, @eip_domain)
+    assert TypedDataSigned.ensure_network_match(correct_domain, @eip_domain)
 
     assert {:error, {:validation_error, "domain", :domain_separator_mismatch}} ==
              TypedDataSigned.ensure_network_match(incorrect_domain, @eip_domain)
-  end
-
-  test "parses request body" do
-    require Transaction
-
-    sigs = [<<0::520>>, <<127::520>>]
-
-    body = %{
-      "domain" => get_domain("OMG Network"),
-      "message" => get_message(),
-      "signatures" => sigs |> Enum.map(&Encoding.to_hex/1)
-    }
-
-    assert {:ok,
-            %Transaction.Signed{
-              raw_tx: %Transaction{
-                inputs: inputs,
-                outputs: outputs,
-                metadata: nil
-              },
-              sigs: ^sigs
-            }} = TypedDataSigned.parse(body)
-
-    assert Enum.count(inputs) == Transaction.max_inputs()
-    assert Enum.count(outputs) == Transaction.max_outputs()
   end
 end

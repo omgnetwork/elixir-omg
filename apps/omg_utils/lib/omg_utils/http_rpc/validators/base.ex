@@ -27,6 +27,7 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   @aliases %{
     address: [:hex, length: 20],
     hash: [:hex, length: 32],
+    signature: [:hex, length: 65],
     pos_integer: [:integer, greater: 0],
     non_neg_integer: [:integer, greater: -1]
   }
@@ -134,8 +135,8 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   def map({val, []}, parser) when is_map(val),
     do:
       (case parser.(val) do
-         {:ok, map} -> {map, []}
          {:error, err} -> {val, [err]}
+         {:ok, map} -> {map, []}
        end)
 
   def map({val, _}, _), do: {val, [:map]}

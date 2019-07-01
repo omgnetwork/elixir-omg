@@ -56,6 +56,16 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   end
 
   @doc """
+  Thin-client version of `/transaction.submit` that accepts json encoded transaction
+  """
+  def submit_typed(conn, params) do
+    with {:ok, signed_tx} <- Validator.TypedDataSigned.parse(params) do
+      API.Transaction.submit_typed(signed_tx)
+      |> api_response(conn, :submission)
+    end
+  end
+
+  @doc """
   Given token, amount and spender, finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   """

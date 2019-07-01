@@ -66,12 +66,23 @@ defmodule OMG.Watcher.API.Transaction do
   Note: No validation for now, just passes given tx to the child chain. See: OMG-410
   """
   @decorate measure_event()
-  @spec submit(binary()) :: Client.response_t()
+  @spec submit(binary()) :: Client.response_t() | {:error, atom()}
   def submit(txbytes) do
     with {:ok, %Transaction.Recovered{}} <- Transaction.Recovered.recover_from(txbytes) do
       url = Application.get_env(:omg_watcher, :child_chain_url)
       Client.submit(txbytes, url)
     end
+  end
+
+  @doc """
+  Passes signed transaction to the child chain only if it's secure. Conditions from `submit` have to be met.
+  """
+  @decorate measure_event()
+  @spec submit_typed(Transaction.Signed.t()) :: Client.response_t() | {:error, atom()}
+  def submit_typed(%Transaction.Signed{} = signed_tx) do
+    signed_tx
+    |> Transaction.Signed.encode()
+    |> submit()
   end
 
   @doc """

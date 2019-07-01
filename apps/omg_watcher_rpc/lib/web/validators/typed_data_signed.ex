@@ -20,53 +20,101 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   alias OMG.State.Transaction
   import OMG.Utils.HttpRPC.Validator.Base
 
-  @signature_length 65
+  @empty_metadata <<0::256>>
 
   @doc """
-  Parses and validates request body
+  Parses and validates request body for /transaction.submit_typed`
   """
-  @spec parse(map()) :: {:ok, Transaction.Signed} | {:error, any()}
+  @spec parse(map()) :: {:ok, Transaction.Signed.t()} | {:error, any()}
   def parse(params) do
-    with :ok <- params |> Map.get("domain") |> parse_domain(),
-         {:ok, sigs} <- expect(params, "signatures", :list),
-         {:ok, sigs} <- parse_signatures(sigs),
-         :ok <- params |> Map.get("message") |> parse_transaction(),
-         do: :nothing
-
-    :implement_me
-  end
-
-  def parse_transaction(message) when is_map(message) do
-    :implement_me
-  end
-
-  # TODO: make expect(:map) or ensure_type(:map | :list | :nonempty_list) ...
-  ## or ensure(params, key, type, parse_function)
-  # defp parse_transaction(_), do: error("message", :missing)
-
-  def parse_domain(map) when is_map(map) do
-    :implement_me
-  end
-
-  @spec ensure_network_match(map(), map()) :: :ok | {:error, any()}
-  def ensure_network_match(domain_from_params, network_domain \\ nil) do
-    :implement_me
-  end
-
-  # TODO: defp parse_domain(_), do: error("domain", :missing)
-
-  def parse_signatures(sigs) when is_list(sigs) do
-    sigs
-    |> Enum.map(&signature_or_error/1)
-    |> Enum.split_with(&is_binary/1)
-    |> case do
-      {valid_sigs, []} -> {:ok, valid_sigs}
-      {_, [err | _]} -> err
+    with {:ok, domain} <- expect(params, "domain", map: &parse_domain/1),
+         :ok <- ensure_network_match(domain),
+         {:ok, sigs} <- expect(params, "signatures", list: &to_signature/1),
+         {:ok, raw_tx} <- parse_transaction(params) do
+      {:ok, %Transaction.Signed{raw_tx: raw_tx, sigs: sigs}}
     end
   end
 
-  defp signature_or_error(sig) do
-    with {:ok, sig} <- expect(%{"signature" => sig}, "signature", [:hex, length: @signature_length]),
-         do: sig
+  @spec parse_transaction(map()) :: {:ok, %Transaction{}} | {:error, any}
+  def parse_transaction(params) do
+    with {:ok, msg} <- expect(params, "message", :map),
+         inputs when is_list(inputs) <- parse_inputs(msg),
+         outputs when is_list(outputs) <- parse_outputs(msg),
+         {:ok, metadata} <- expect(msg, "metadata", :hash) do
+      metadata = if metadata == @empty_metadata, do: nil, else: metadata
+
+      {:ok, Transaction.new(inputs, outputs, metadata)}
+    end
+  end
+
+  @spec parse_domain(map()) :: {:ok, map()} | {:error, any}
+  def parse_domain(map) when is_map(map) do
+    with name = Map.get(map, "name"),
+         version = Map.get(map, "version"),
+         {:ok, salt} <- expect(map, "salt", :hash),
+         {:ok, contract} <- expect(map, "verifying_contract", :address),
+         do: {:ok, %{name: name, version: version, salt: salt, verifying_contract: contract}}
+  end
+
+  @spec ensure_network_match(map(), map() | nil) :: :ok | {:error, any()}
+  def ensure_network_match(domain_from_params, network_domain \\ nil) do
+    domain_separator = fn %{name: name, version: version, salt: salt, verifying_contract: contract} ->
+      OMG.TypedDataHash.Tools.domain_separator(name, version, contract, salt)
+    end
+
+    network_domain =
+      case network_domain do
+        nil -> OMG.TypedDataHash.Config.compute_domain_separator_from_config()
+        params when is_map(params) -> domain_separator.(params)
+      end
+
+    if network_domain == domain_separator.(domain_from_params),
+      do: :ok,
+      else: error("domain", :domain_separator_mismatch)
+  end
+
+  @spec to_signature(binary()) :: {:ok, <<_::520>>} | {:error, any()}
+  defp to_signature(sig_str), do: expect(%{"signature" => sig_str}, "signature", :signature)
+
+  @spec parse_input(map()) :: {:ok, {integer(), integer(), integer()}} | {:error, any()}
+  defp parse_input(input) do
+    with {:ok, blknum} <- expect(input, "blknum", :integer),
+         {:ok, txindex} <- expect(input, "txindex", :integer),
+         {:ok, oindex} <- expect(input, "oindex", :integer),
+         do: {:ok, {blknum, txindex, oindex}}
+  end
+
+  @spec parse_inputs(map()) :: [{integer(), integer(), integer()}] | {:error, any()}
+  defp parse_inputs(message) do
+    require Transaction
+
+    0..(Transaction.max_inputs() - 1)
+    |> Enum.map(fn i -> expect(message, "input#{i}", map: &parse_input/1) end)
+    |> unzip_list_or_first_error()
+  end
+
+  @spec parse_output(map()) :: {:ok, {OMG.Crypto.address_t(), OMG.Crypto.address_t(), integer()}} | {:error, any()}
+  defp parse_output(output) do
+    with {:ok, owner} <- expect(output, "owner", :address),
+         {:ok, currency} <- expect(output, "currency", :address),
+         {:ok, amount} <- expect(output, "amount", :integer),
+         do: {:ok, {owner, currency, amount}}
+  end
+
+  @spec parse_outputs(map()) :: [{OMG.Crypto.address_t(), OMG.Crypto.address_t(), integer()}] | {:error, any()}
+  defp parse_outputs(message) do
+    require Transaction
+
+    0..(Transaction.max_outputs() - 1)
+    |> Enum.map(fn i -> expect(message, "output#{i}", map: &parse_output/1) end)
+    |> unzip_list_or_first_error()
+  end
+
+  @spec unzip_list_or_first_error([{:ok, any()} | {:error, any()}]) :: list() | {:error, any()}
+  defp unzip_list_or_first_error(result_list) do
+    with nil <- result_list |> Enum.find(&(:error == Kernel.elem(&1, 0))),
+         do:
+           result_list
+           |> Enum.map(fn {:ok, elt} -> elt end)
   end
 end
