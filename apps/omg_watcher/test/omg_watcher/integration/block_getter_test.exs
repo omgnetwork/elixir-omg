@@ -47,6 +47,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @endpoint OMG.WatcherRPC.Web.Endpoint
 
+  @zero_address_hex Eth.zero_address() |> Eth.Encoding.to_hex()
+
   @tag timeout: 100_000
   @tag fixtures: [:watcher, :child_chain, :alice, :bob, :alice_deposits, :token]
   test "get the blocks from child chain after sending a transaction and start exit", %{
@@ -230,5 +232,88 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     # we should still be able to challenge this "unchallenged exit" - just smoke testing the endpoint, details elsewhere
     TestHelper.get_exit_challenge(exit_blknum, 0, 0)
+  end
+
+  @tag :this
+  # NOTE: deposits are not per se required here, but it is a handy way to get an imported account ready
+  @tag fixtures: [:watcher, :child_chain, :alice, :alice_deposits]
+  test "sign transaction using typed data and signTypedData EthRPC call", %{alice: alice} do
+    {:ok, alice_enc} = Crypto.encode_address(alice.addr)
+    zero_int_hex = "0x0"
+    zero_input = %{blknum: zero_int_hex, txindex: zero_int_hex, oindex: zero_int_hex}
+    zero_output = %{owner: @zero_address_hex, currency: @zero_address_hex, amount: zero_int_hex}
+    zero_32_bytes_hex = "0x0000000000000000000000000000000000000000000000000000000000000000"
+
+    domainSpec = [
+      %{name: "name", type: "string"},
+      %{name: "version", type: "string"},
+      %{name: "verifyingContract", type: "address"},
+      %{name: "salt", type: "bytes32"},
+      %{name: "chainId", type: "uint256"}
+    ]
+
+    txSpec = [
+      %{name: "input0", type: "Input"},
+      %{name: "input1", type: "Input"},
+      %{name: "input2", type: "Input"},
+      %{name: "input3", type: "Input"},
+      %{name: "output0", type: "Output"},
+      %{name: "output1", type: "Output"},
+      %{name: "output2", type: "Output"},
+      %{name: "output3", type: "Output"},
+      %{name: "metadata", type: "bytes32"}
+    ]
+
+    inputSpec = [
+      %{name: "blknum", type: "uint256"},
+      %{name: "txindex", type: "uint256"},
+      %{name: "oindex", type: "uint256"}
+    ]
+
+    outputSpec = [
+      %{name: "owner", type: "address"},
+      %{name: "currency", type: "address"},
+      %{name: "amount", type: "uint256"}
+    ]
+
+    domainData = %{
+      name: "OMG Network",
+      version: "1",
+      # FIXME: don't hardcode this (for now taken from /home/user/sources/elixir-omg/apps/omg/lib/omg/typed_data_hash/config.ex)
+      verifyingContract: "0x7c276dcaab99bd16163c1bcce671cad6a1ec0945",
+      salt: "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
+      # FIXME: adding this is necessary for parity, see typed_data_hash/tools.ex
+      chainId: "0x1"
+    }
+
+    test_typed_data = %{
+      types: %{
+        EIP712Domain: domainSpec,
+        Transaction: txSpec,
+        Input: inputSpec,
+        Output: outputSpec
+      },
+      domain: domainData,
+      primaryType: "Transaction",
+      message: %{
+        input0: zero_input,
+        input1: zero_input,
+        input2: zero_input,
+        input3: zero_input,
+        output0: zero_output,
+        output1: zero_output,
+        output2: zero_output,
+        output3: zero_output,
+        metadata: zero_32_bytes_hex
+      }
+    }
+
+    pass = "ThisIsATestnetPassphrase"
+    {:ok, sig_enc} = Ethereumex.HttpClient.request("personal_signTypedData", [test_typed_data, alice_enc, pass], [])
+    sig = Eth.Encoding.from_hex(sig_enc)
+
+    assert %OMG.State.Transaction.Signed{sigs: [^sig]} =
+             OMG.State.Transaction.new([], [])
+             |> OMG.DevCrypto.sign([alice.priv])
   end
 end

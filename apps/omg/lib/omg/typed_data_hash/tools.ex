@@ -24,7 +24,8 @@ defmodule OMG.TypedDataHash.Tools do
 
   require Utxo
 
-  @domain_encoded_type "EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)"
+  # FIXME: chainId added here, see below
+  @domain_encoded_type "EIP712Domain(string name,string version,address verifyingContract,bytes32 salt,uint256 chainId)"
   @domain_type_hash Crypto.hash(@domain_encoded_type)
 
   @transaction_encoded_type "Transaction(" <>
@@ -50,7 +51,10 @@ defmodule OMG.TypedDataHash.Tools do
       Crypto.hash(name),
       Crypto.hash(version),
       ABI.TypeEncoder.encode_raw([verifying_contract], [:address]),
-      ABI.TypeEncoder.encode_raw([salt], [{:bytes, 32}])
+      ABI.TypeEncoder.encode_raw([salt], [{:bytes, 32}]),
+      # FIXME: chainID added, while we don't want it here. Without chainId, parity wouldn't sign for us
+      #        c.f. https://github.com/paritytech/parity-ethereum/issues/10832
+      ABI.TypeEncoder.encode_raw([1], [{:uint, 256}])
     ]
     |> Enum.join()
     |> Crypto.hash()

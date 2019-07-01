@@ -31,11 +31,14 @@ defmodule OMG.Eth.DevParity do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, homedir} = Briefly.create(directory: true)
 
+    #  --jsonrpc-experimental is to have the personal_signTypedData of EIP712
     parity_pid =
       launch(
-        "parity --chain dev --geth --jsonrpc-apis personal,eth,web3,parity_accounts --ws-origins all --ws-apis eth,web3 --base-path #{
-          homedir
-        } 2>&1"
+        "parity --chain dev --geth " <>
+          "--jsonrpc-apis personal,eth,web3,parity_accounts --jsonrpc-experimental " <>
+          "--ws-hosts=all --ws-interface=all --ws-origins all --ws-apis eth,web3 " <>
+          "--base-path #{homedir} " <>
+          "2>&1"
       )
 
     {:ok, :ready} = Eth.WaitFor.eth_rpc()
