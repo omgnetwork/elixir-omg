@@ -179,6 +179,7 @@ defmodule OMG.Performance.SenderManager do
     stats = analyze(state)
     :ok = File.write(destfile, Jason.encode!(stats))
     _ = Logger.info("Performance statistics written to file: #{inspect(destfile)}")
+    _ = Logger.info("Performance statistics: #{inspect(stats)}")
     :ok
   end
 end
