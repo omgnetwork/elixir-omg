@@ -14,7 +14,7 @@ Trusted chain used by the Plasma construction to secure funds in the child chain
 
 #### Purpose
 
-Blockchain of transactions for our application. Continually submits block hashes to the root chain, as required by the Plasma construction. Described in the [Tesuji design docs](tesuji_blockchain_design.md).
+Blockchain of transactions for our application. Continually submits block hashes to the root chain, as required by the Plasma construction. Described in the [Tesuji design](tesuji_blockchain_design.md) and the [More Viable Plasma] documentation.
 
 ## Client Services
 
@@ -73,6 +73,10 @@ Native wrappers to the Watcher and Informational API Service for supported langu
 
 - Support all events and API calls of the Watcher
 - Support all events and API calls of the API Service
+
+#### Current implementations
+
+- [omg-js-lib](https://github.com/omisego/omg-js)
 
 
 ### Application Layer
