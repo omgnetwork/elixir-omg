@@ -20,6 +20,7 @@ defmodule OMG.Watcher.DB.Transaction do
   use OMG.Utils.LoggerExt
 
   alias OMG.State.Transaction
+  alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.Watcher.DB
 
@@ -69,30 +70,33 @@ defmodule OMG.Watcher.DB.Transaction do
   end
 
   @doc """
-  Returns transactions possibly filtered by constrains
-  * constrains - accepts keyword in the form of [schema_field: value]
+  Returns transactions possibly filtered by constraints
+  * constraints - accepts keyword in the form of [schema_field: value]
   """
-  @spec get_by_filters(Keyword.t()) :: list(%__MODULE__{})
-  def get_by_filters(constrains) do
-    allowed_constrains = [:limit, :address, :blknum, :txindex, :metadata]
+  @spec get_by_filters(Keyword.t(), Paginator.t()) :: Paginator.t()
+  def get_by_filters(constraints, paginator) do
+    allowed_constraints = [:address, :blknum, :txindex, :metadata]
 
-    constrains = filter_constrains(constrains, allowed_constrains)
+    constraints = filter_constraints(constraints, allowed_constraints)
 
-    # we need to handle complex constrains with dedicated modifier function
-    {limit, constrains} = Keyword.pop(constrains, :limit)
-    {address, constrains} = Keyword.pop(constrains, :address)
+    # we need to handle complex constraints with dedicated modifier function
+    {address, constraints} = Keyword.pop(constraints, :address)
 
-    query_get_last(limit)
+    query_get_last(paginator.data_paging)
     |> query_get_by_address(address)
-    |> query_get_by(constrains)
+    |> query_get_by(constraints)
     |> DB.Repo.all()
+    |> Paginator.set_data(paginator)
   end
 
-  defp query_get_last(limit) do
+  defp query_get_last(%{limit: limit, page: page}) do
+    offset = (page - 1) * limit
+
     from(
       __MODULE__,
       order_by: [desc: :blknum, desc: :txindex],
       limit: ^limit,
+      offset: ^offset,
       preload: [:block, :outputs]
     )
   end
@@ -107,7 +111,7 @@ defmodule OMG.Watcher.DB.Transaction do
     |> distinct(true)
   end
 
-  defp query_get_by(query, constrains) when is_list(constrains), do: query |> where(^constrains)
+  defp query_get_by(query, constraints) when is_list(constraints), do: query |> where(^constraints)
 
   def get_by_blknum(blknum) do
     __MODULE__
@@ -198,16 +202,16 @@ defmodule OMG.Watcher.DB.Transaction do
     }
   end
 
-  defp filter_constrains(constrains, allowed_constrains) do
-    case Keyword.drop(constrains, allowed_constrains) do
+  defp filter_constraints(constraints, allowed_constraints) do
+    case Keyword.drop(constraints, allowed_constraints) do
       [{out_of_schema, _} | _] ->
         _ =
-          Logger.warn("Constrain on #{inspect(out_of_schema)} does not exist in schema and was dropped from the query")
+          Logger.warn("Constraint on #{inspect(out_of_schema)} does not exist in schema and was dropped from the query")
 
-        constrains |> Keyword.take(allowed_constrains)
+        constraints |> Keyword.take(allowed_constraints)
 
       [] ->
-        constrains
+        constraints
     end
   end
 end

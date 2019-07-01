@@ -1,5 +1,12 @@
 # Manual steps to start the services
-This process is intended for users who wish to start services manually, perhaps as part of a non-Docker deployment on a Linux host.
+
+This process is intended for users who wish to start services manually, perhaps
+as part of a non-Docker deployment on a Linux host.
+
+## Installation
+
+First, install all dependecies using the the [installation
+instructions](install.md).
 
 ## Setup
 The setup process for the Child chain server and for the Watcher is similar.
@@ -37,13 +44,13 @@ A developer instance of `geth` runs Ethereum locally and prefunds an account.
 However, when `geth` terminates, the state of the Ethereum network is lost.
 
 ```bash
-geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0
+geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --ws --wsorigins='*'
 ```
 
 ##### Persistent developer `geth` instance
 Alternatively, a persistent developer instance that does not lose state can be started with the following command:
 ```bash
-geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0 --datadir ~/.geth
+geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --ws --wsorigins='*' --datadir ~/.geth
 ```
 
 #### Connecting to a non-dev chain
@@ -51,7 +58,7 @@ geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web
 Another alternative might be running the whole setup on some official testnet, ex. `rinkeby`.
 
 ```bash
-geth --rinkeby --rpc --rpcapi personal,web3,eth,net  --rpcaddr 127.0.0.1
+geth --rinkeby --rpc --rpcapi personal,web3,eth,net --ws --wsorigins='*'
 ```
 
 **NOTE** Contrary to working with developer instance, operator's account must be manually funded with testnet Ether.
@@ -138,15 +145,6 @@ mix xomg.child_chain.start --config ~/config.exs
 ### Setting up a Watcher (a developer environment)
 
 This assumes that you've got a developer environment Child chain server set up and running on the default `localhost:9656`, see above.
-
-#### Configure the PostgreSQL server with:
-
-```bash
-sudo -u postgres createuser omisego_dev
-sudo -u postgres psql
-alter user omisego_dev with encrypted password 'omisego_dev';
-ALTER USER omisego_dev CREATEDB;
-```
 
 #### Configure the Watcher
 

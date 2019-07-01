@@ -24,12 +24,16 @@ RUN set -xe \
 
 ## Application
 ##
-
+#leveldb and rocksdb need libstdc++
 RUN apk add --update --no-cache --virtual .child_chain-runtime \
         bash \
         libressl \
         libressl-dev \
+        libstdc++ \
         lksctp-tools
+
+#libsecp256k1
+RUN apk add --no-cache gmp-dev
 
 COPY rootfs /
 
@@ -62,6 +66,6 @@ EXPOSE $PORT
 # in inet_dist_listen_min and inet_dist_listen_max.
 #EXPOSE 4369 6900 6901 6902 6903 6904 6905 6906 6907 6908 6909
 
-ENTRYPOINT ["/init", "/entrypoint"]
+ENTRYPOINT ["/init", "/child_chain_entrypoint"]
 
 CMD ["foreground"]

@@ -22,7 +22,10 @@ defmodule OMG.Watcher.TestHelper do
   require Utxo
 
   import ExUnit.Assertions
-  use Plug.Test
+  use Phoenix.ConnTest
+
+  @endpoint OMG.WatcherRPC.Web.Endpoint
+  @api_version "0.2"
 
   def wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do
     ref = Process.monitor(pid)
@@ -38,35 +41,40 @@ defmodule OMG.Watcher.TestHelper do
 
   def success?(path, body \\ nil) do
     response_body = rpc_call(path, body, 200)
-    %{"version" => "1.0", "success" => true, "data" => data} = response_body
+    %{"version" => @api_version, "success" => true, "data" => data} = response_body
     data
   end
 
   def no_success?(path, body \\ nil) do
     response_body = rpc_call(path, body, 200)
-    %{"version" => "1.0", "success" => false, "data" => data} = response_body
+    %{"version" => @api_version, "success" => false, "data" => data} = response_body
     data
   end
 
   def server_error?(path, body \\ nil) do
     response_body = rpc_call(path, body, 500)
-    %{"version" => "1.0", "success" => false, "data" => data} = response_body
+    %{"version" => @api_version, "success" => false, "data" => data} = response_body
     data
   end
 
   def rpc_call(path, body \\ nil, expected_resp_status \\ 200) do
-    request =
-      conn(:post, path, body)
-      |> put_req_header("content-type", "application/json")
+    response = post(put_req_header(build_conn(), "content-type", "application/json"), path, body)
+    # CORS check
+    assert ["*"] == get_resp_header(response, "access-control-allow-origin")
 
-    response = request |> send_request
+    required_headers = [
+      "access-control-allow-origin",
+      "access-control-expose-headers",
+      "access-control-allow-credentials"
+    ]
+
+    for header <- required_headers do
+      assert header in Keyword.keys(response.resp_headers)
+    end
+
+    # CORS check
     assert response.status == expected_resp_status
     Jason.decode!(response.resp_body)
-  end
-
-  defp send_request(req) do
-    req
-    |> OMG.Watcher.Web.Endpoint.call([])
   end
 
   def create_topic(main_topic, subtopic), do: main_topic <> ":" <> subtopic
@@ -105,6 +113,10 @@ defmodule OMG.Watcher.TestHelper do
 
   def get_utxos(address) do
     success?("/account.get_utxos", %{"address" => Encoding.to_hex(address)})
+  end
+
+  def get_exitable_utxos(address) do
+    success?("/account.get_exitable_utxos", %{"address" => Encoding.to_hex(address)})
   end
 
   def get_balance(address) do

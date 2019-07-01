@@ -29,7 +29,7 @@ defmodule OMG.DB do
 
   @callback multi_update(term()) :: :ok | {:error, any}
   @callback blocks(block_to_fetch :: list()) :: {:ok, list(term)}
-  @callback utxos() :: {:ok, list(term)}
+  @callback utxos() :: {:ok, list({utxo_pos_db_t, term})}
   @callback exit_infos() :: {:ok, list(term)}
   @callback in_flight_exits_info() :: {:ok, list(term)}
   @callback competitors_info() :: {:ok, list(term)}
@@ -43,7 +43,7 @@ defmodule OMG.DB do
   @callback initiation_multiupdate(GenServer.server()) :: :ok | {:error, any}
   @callback multi_update(term(), GenServer.server()) :: :ok | {:error, any}
   @callback blocks(block_to_fetch :: list(), GenServer.server()) :: {:ok, list()} | {:error, any}
-  @callback utxos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
+  @callback utxos(GenServer.server()) :: {:ok, list({utxo_pos_db_t, term})} | {:error, any}
   @callback exit_infos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback in_flight_exits_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback competitors_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
@@ -72,8 +72,15 @@ defmodule OMG.DB do
   def child_spec, do: driver().child_spec()
   def child_spec(args), do: driver().child_spec(args)
 
-  def init(path), do: driver().init(path)
-  def init, do: driver().init()
+  def init(path) do
+    DeferredConfig.populate(:omg_db)
+    driver().init(path)
+  end
+
+  def init do
+    DeferredConfig.populate(:omg_db)
+    driver().init()
+  end
 
   @doc """
   Puts all zeroes and other init values to a generically initialized `OMG.DB`
@@ -132,9 +139,13 @@ defmodule OMG.DB do
   """
   def single_value_parameter_names do
     [
+      # child chain - used at block forming
       :child_top_block_number,
+      # watcher and child chain
       :last_deposit_child_blknum,
+      # watcher
       :last_block_getter_eth_height,
+      # watcher and child chain
       :last_depositor_eth_height,
       :last_convenience_deposit_processor_eth_height,
       :last_exiter_eth_height,

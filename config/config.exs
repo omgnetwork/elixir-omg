@@ -18,6 +18,20 @@ config :logger, :console,
   discard_threshold: 2000,
   metadata: [:module, :function, :request_id]
 
+config :logger,
+  backends: [Sentry.LoggerBackend, :console]
+
+config :sentry,
+  dsn: System.get_env("SENTRY_DSN"),
+  environment_name: System.get_env("APP_ENV"),
+  included_environments: [:dev, :prod, System.get_env("APP_ENV")],
+  server_name: elem(:inet.gethostname(), 1),
+  tags: %{
+    application: System.get_env("ELIXIR_SERVICE"),
+    eth_network: System.get_env("ETHEREUM_NETWORK"),
+    eth_node: System.get_env("ETH_NODE")
+  }
+
 # Configs for AppSignal application monitoring
 config :appsignal, :config,
   name: "OmiseGO Plasma MoreVP Implementation",

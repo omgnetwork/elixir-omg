@@ -45,9 +45,9 @@ defmodule OMG.Eth.Fixtures do
     {:ok, _, token_addr} = Eth.Deployer.create_new(OMG.Eth.Token, root_path, from_hex(addr))
 
     # ensuring that the root chain contract handles token_addr
-    {:ok, false} = Eth.RootChain.has_token(token_addr)
-    {:ok, _} = token_addr |> Eth.RootChain.add_token() |> Eth.DevHelpers.transact_sync!()
-    {:ok, true} = Eth.RootChain.has_token(token_addr)
+    {:ok, false} = Eth.RootChainHelper.has_token(token_addr)
+    {:ok, _} = token_addr |> Eth.RootChainHelper.add_token() |> Eth.DevHelpers.transact_sync!()
+    {:ok, true} = Eth.RootChainHelper.has_token(token_addr)
 
     token_addr
   end

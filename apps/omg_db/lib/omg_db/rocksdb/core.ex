@@ -25,12 +25,19 @@ defmodule OMG.DB.RocksDB.Core do
   # prefix extractor to reduce the number of IO scans
   # more https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes
   @keys_prefixes %{
+    # watcher (Exit Processor) and child chain (Fresh Blocks)
     block: "block",
+    # watcher (Exit Processor) and child chain (Block Queue)
     block_hash: "hashb",
+    # watcher and child chain
     utxo: "utxoi",
+    # watcher and child chain
     exit_info: "exiti",
+    # watcher only
     in_flight_exit_info: "infle",
+    # watcher only
     competitor_info: "compi",
+    # watcher only
     spend: "spend"
   }
 

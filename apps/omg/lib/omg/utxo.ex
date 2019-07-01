@@ -26,7 +26,7 @@ defmodule OMG.Utxo do
           creating_txhash: Transaction.tx_hash(),
           owner: Crypto.address_t(),
           currency: Crypto.address_t(),
-          amount: non_neg_integer
+          amount: non_neg_integer()
         }
 
   @doc """
@@ -35,6 +35,14 @@ defmodule OMG.Utxo do
   defmacro position(blknum, txindex, oindex) do
     quote do
       {:utxo_position, unquote(blknum), unquote(txindex), unquote(oindex)}
+    end
+  end
+
+  defmacro is_position(blknum, txindex, oindex) do
+    quote do
+      is_integer(unquote(blknum)) and unquote(blknum) >= 0 and
+        is_integer(unquote(txindex)) and unquote(txindex) >= 0 and
+        is_integer(unquote(oindex)) and unquote(oindex) >= 0
     end
   end
 

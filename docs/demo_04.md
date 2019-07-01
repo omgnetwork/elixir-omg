@@ -68,7 +68,7 @@ in_flight_tx_bytes =
 
 # call root chain function that initiates in-flight exit
 {:ok, txhash} =
-  OMG.Eth.RootChain.in_flight_exit(
+  OMG.Eth.RootChainHelper.in_flight_exit(
     get_in_flight_exit_response["in_flight_tx"] |> Encoding.from_hex(),
     get_in_flight_exit_response["input_txs"] |> Encoding.from_hex(),
     get_in_flight_exit_response["input_txs_inclusion_proofs"] |> Encoding.from_hex(),

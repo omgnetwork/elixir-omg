@@ -76,7 +76,7 @@ defmodule OMG.Performance do
         "PerfTest number of spenders: #{inspect(nspenders)}, number of tx to send per spender: #{inspect(ntx_to_send)}."
       )
 
-    DeferredConfig.populate(:omg_rpc)
+    DeferredConfig.populate(:omg_child_chain_rpc)
 
     defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
     opts = Map.merge(defaults, opts)
@@ -135,10 +135,10 @@ defmodule OMG.Performance do
   end
 
   # Hackney is http-client httpoison's dependency.
-  # We start omg_child_chain app that will will start omg_rpc
+  # We start omg_child_chain app that will will start omg_child_chain_rpc
   # (because of it's dependency when mix env == test).
   # We don't need :omg application so we stop it and clear all alarms it raised
-  # (otherwise omg_rpc gets notified of alarms and halts requests).
+  # (otherwise omg_child_chain_rpc gets notified of alarms and halts requests).
   # We also don't want all descendants of Monitoring process so we terminate it.
 
   @spec setup_simple_perftest(map()) :: {:ok, list, pid}
@@ -167,8 +167,8 @@ defmodule OMG.Performance do
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, []},
-      {OMG.RPC.Plugs.Health, []},
-      {OMG.RPC.Web.Endpoint, []},
+      {OMG.ChildChainRPC.Plugs.Health, []},
+      {OMG.ChildChainRPC.Web.Endpoint, []},
       {OMG.Performance.BlockCreator, opts[:block_every_ms]}
     ]
 

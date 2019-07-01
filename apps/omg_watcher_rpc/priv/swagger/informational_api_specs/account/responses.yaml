@@ -1,0 +1,13 @@
+AccountBalanceResponse:
+  description: Account balance successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/AccountBalanceResponseSchema'
+
+AccountUtxoResponse:
+  description: Account utxos succcessful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/AccountUtxoResponseSchema'

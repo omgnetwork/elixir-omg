@@ -20,7 +20,7 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 - for `OMG.Eth` look in `apps/omg_eth`
 - for `OMG.DB` look in `apps/omg_db`
 - for `OMG.Performance` look in `apps/omg_performance`
-- for `OMG.RPC` look in `apps/omg_rpc`
+- for `OMG.ChildChainRPC` look in `apps/omg_child_chain_rpc`
 
 **NOTE 2** The hexagonal shape hints towards component being a wrapper (port/adapter) to something external, versus rectangular shape being an internal component.
 
@@ -95,7 +95,7 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 
 ### `OMG.RPC`
 
-- exposes `OMG.ChildChain` (as configured by `:omg_rpc, :child_chain_api_module` setting) via a `phoenix`-driven HTTP-RPC interface
+- exposes `OMG.ChildChain` (as configured by `:omg_child_chain_rpc, :child_chain_api_module` setting) via a `phoenix`-driven HTTP-RPC interface
 
 ### `OMG.Performance`
 

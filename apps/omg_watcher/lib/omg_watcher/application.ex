@@ -21,16 +21,7 @@ defmodule OMG.Watcher.Application do
     DeferredConfig.populate(:omg_watcher)
     cookie = System.get_env("ERL_W_COOKIE")
     true = set_cookie(cookie)
-    :ok = set_code_reloading()
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-
-    _ =
-      :telemetry.attach(
-        "appsignal-ecto",
-        [:omg_watcher, :repo, :query],
-        &Appsignal.Ecto.handle_event/4,
-        nil
-      )
 
     start_root_supervisor()
   end
@@ -56,13 +47,6 @@ defmodule OMG.Watcher.Application do
     Supervisor.start_link(children, opts)
   end
 
-  # Tell Phoenix to update the endpoint configuration
-  # whenever the application is updated.
-  def config_change(changed, _new, removed) do
-    OMG.Watcher.Web.Endpoint.config_change(changed, removed)
-    :ok
-  end
-
   defp set_cookie(cookie) when is_binary(cookie) do
     cookie
     |> String.to_atom()
@@ -70,13 +54,4 @@ defmodule OMG.Watcher.Application do
   end
 
   defp set_cookie(_), do: :ok == Logger.warn("Cookie not applied.")
-
-  defp set_code_reloading do
-    if Code.ensure_loaded?(IEx) and IEx.started?() do
-      :ok
-    else
-      old = Application.get_env(:omg_watcher, OMG.Watcher.Web.Endpoint)
-      Application.put_env(:omg_watcher, OMG.Watcher.Web.Endpoint, Keyword.put(old, :code_reloader, false))
-    end
-  end
 end

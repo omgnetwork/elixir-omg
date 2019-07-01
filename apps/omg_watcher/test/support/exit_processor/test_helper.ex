@@ -71,5 +71,8 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     }
   end
 
+  def ife_response(tx, position),
+    do: %{tx_hash: Transaction.raw_txhash(tx), challenge_position: Utxo.Position.encode(position)}
+
   defp get_sigs(%{signed_tx: %{sigs: sigs}}), do: sigs
 end

@@ -20,13 +20,13 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
 
   @impl Provider
   def init(_args) do
-    path = get_env("DB_PATH")
-    :ok = Application.put_env(:omg_db, :path, path, persistent: true)
+    case get_env("DB_PATH") do
+      path when is_binary(path) -> :ok = Application.put_env(:omg_db, :path, path, persistent: true)
+      _ -> :ok = Application.put_env(:omg_db, :path, System.user_home!(), persistent: true)
+    end
+
+    :ok
   end
 
-  defp get_env(key), do: validate(System.get_env(key))
-
-  defp validate(value) when is_binary(value), do: value
-
-  defp validate(nil), do: exit("Set DB_PATH environment variable.")
+  defp get_env(key), do: System.get_env(key)
 end

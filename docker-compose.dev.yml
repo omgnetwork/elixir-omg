@@ -1,0 +1,7 @@
+version: "2.1"
+services:
+  elixir-omg:
+    environment:
+      DATABASE_URL: postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
+    volumes:
+      - .:/home/elixir-user/elixir-omg

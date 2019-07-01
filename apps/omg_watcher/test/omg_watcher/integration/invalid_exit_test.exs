@@ -52,14 +52,14 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       TestHelper.get_exit_data(first_tx_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1"}} =
-      Eth.RootChain.start_exit(tx_utxo_pos, txbytes, proof, alice.addr)
+      Eth.RootChainHelper.start_exit(tx_utxo_pos, txbytes, proof, alice.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     %{"txbytes" => txbytes, "proof" => proof, "utxo_pos" => deposit_utxo_pos} =
       TestHelper.get_exit_data(deposit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1"}} =
-      Eth.RootChain.start_exit(deposit_utxo_pos, txbytes, proof, alice.addr)
+      Eth.RootChainHelper.start_exit(deposit_utxo_pos, txbytes, proof, alice.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name, %Event.InvalidExit{}.name], @timeout)
@@ -69,7 +69,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     assert {:ok, {alice.addr, @eth, 10, tx_utxo_pos}} == Eth.RootChain.get_standard_exit(challenge["exit_id"])
 
     assert {:ok, %{"status" => "0x1"}} =
-             OMG.Eth.RootChain.challenge_exit(
+             OMG.Eth.RootChainHelper.challenge_exit(
                challenge["exit_id"],
                challenge["txbytes"],
                challenge["input_index"],
@@ -87,7 +87,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
              Eth.RootChain.get_standard_exit(challenge_exit_deposit["exit_id"])
 
     assert {:ok, %{"status" => "0x1"}} =
-             OMG.Eth.RootChain.challenge_exit(
+             OMG.Eth.RootChainHelper.challenge_exit(
                challenge_exit_deposit["exit_id"],
                challenge_exit_deposit["txbytes"],
                challenge_exit_deposit["input_index"],
@@ -127,7 +127,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     } = TestHelper.get_exit_data(exit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
-      Eth.RootChain.start_exit(
+      Eth.RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,
@@ -172,7 +172,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     } = TestHelper.get_exit_data(deposit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
-      Eth.RootChain.start_exit(
+      Eth.RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,

@@ -26,16 +26,21 @@ defmodule OMG.Umbrella.MixProject do
   defp deps do
     [
       {:distillery, "~> 2.0", runtime: false},
-      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false},
-      {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.10.6", only: [:test], runtime: false},
+      {:dialyxir, "~> 1.0.0-rc.6", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.0.5", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.11.1", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
         :ex_unit_fixtures,
         git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
       },
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
-      {:appsignal, "~> 1.9"}
+      {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
+      {:appsignal, "~> 1.9"},
+      {:sentry, "~> 7.0"},
+      {:libsecp256k1,
+       git: "https://github.com/InoMurko/libsecp256k1.git",
+       ref: "83d4c91b7b5ad79fdd3c020be8c57ff6e2212780",
+       override: true}
     ]
   end
 
@@ -53,27 +58,29 @@ defmodule OMG.Umbrella.MixProject do
 
   defp dialyzer do
     [
-      flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
+      flags: [:specdiffs, :error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
       ignore_warnings: "dialyzer.ignore-warnings",
+      list_unused_filters: true,
       plt_add_apps: plt_apps()
     ]
   end
 
   defp plt_apps,
     do: [
-      :mix,
-      :iex,
-      :ex_unit,
-      :ranch,
-      :plug,
-      :jason,
-      :cowboy,
-      :vmstats,
       :briefly,
+      :cowboy,
+      :distillery,
+      :ex_unit,
+      :exexec,
+      :fake_server,
+      :iex,
+      :jason,
+      :mix,
+      :plug,
       :propcheck,
       :proper,
-      :fake_server,
-      :exexec,
-      :distillery
+      :ranch,
+      :sentry,
+      :vmstats
     ]
 end

@@ -31,6 +31,7 @@ release :watcher do
     applications: [
       :runtime_tools,
       omg_watcher: :permanent,
+      omg_watcher_rpc: :permanent,
       omg: :permanent,
       omg_status: :permanent,
       omg_db: :permanent,
@@ -41,6 +42,7 @@ release :watcher do
   set(
     config_providers: [
       {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.Eth.ReleaseTasks.SetEthereumClient, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
     ]
   )
@@ -61,17 +63,18 @@ release :child_chain do
     applications: [
       :runtime_tools,
       omg_child_chain: :permanent,
+      omg_child_chain_rpc: :permanent,
       omg: :permanent,
       omg_status: :permanent,
       omg_db: :permanent,
-      omg_eth: :permanent,
-      omg_rpc: :permanent
+      omg_eth: :permanent
     ]
   )
 
   set(
     config_providers: [
       {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.Eth.ReleaseTasks.SetEthereumClient, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
     ]
   )

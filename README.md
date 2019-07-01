@@ -27,8 +27,11 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
                * [geth](#geth)
                * [parity](#parity)
             * [Specifying the fees required](#specifying-the-fees-required)
-            * [Funding the operator address](#funding-the-operator-address)
+            * [Managing the operator address](#managing-the-operator-address)
+               * [Nonces restriction](#nonces-restriction)
+               * [Funding the operator address](#funding-the-operator-address)
       * [Watcher](#watcher)
+         * [Modes of the watcher](#modes-of-the-watcher)
          * [Using the watcher](#using-the-watcher)
          * [Endpoints](#endpoints)
          * [Ethereum private key management](#ethereum-private-key-management-1)
@@ -69,11 +72,19 @@ This is the recommended method of starting the blockchain services, with the aux
 Before attempting the start up please ensure that you are not running any services that are listening on the following TCP ports: 9656, 7434, 5000, 8545, 5432, 5433.
 All commands should be run from the root of the repo.
 
+**NOTE** known to work with `docker-compose version 1.24.0, build 0aa59064`, version `1.17` has had problems
+
 ### Mac
-`docker-compose up`
+
+```sh
+docker-compose -f docker-compose.yml -f docker-compose-full-services-mac.yml up`
+```
 
 ### Linux
-`docker-compose -f docker-compose.yml -f docker-compose-non-mac.yml up`
+
+```sh
+docker-compose -f docker-compose.yml -f docker-compose-full-services-non-mac.yml up`
+```
 
 ### Get the deployed contract details
 
@@ -118,7 +129,7 @@ The general idea of the apps responsibilities is:
     - see `apps/omg_child_chain/lib/omg_child_chain/application.ex` for a rundown of children processes involved
   - `omg_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
   - `omg_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
-  - `omg_rpc` - an HTTP-RPC server being the gateway to `omg_child_chain`
+  - `omg_child_chain_rpc` - an HTTP-RPC server being the gateway to `omg_child_chain`
   - `omg_performance` - performance tester for the child chain server
   - `omg_watcher` - the [Watcher](#watcher)
 
@@ -126,7 +137,7 @@ See [application architecture](docs/architecture.md) for more details.
 
 ## Child chain server
 
-`:omg_child_chain` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_rpc`.
+`:omg_child_chain` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_child_chain_rpc`.
 
 For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
 
@@ -136,7 +147,7 @@ The child chain server is listening on port `9656` by default.
 
 #### HTTP-RPC
 
-HTTP-RPC requests are served up on the port specified in `omg_rpc`'s `config` (`:omg_rpc, OMG.RPC.Web.Endpoint, http: [port: ...]`).
+HTTP-RPC requests are served up on the port specified in `omg_child_chain_rpc`'s `config` (`:omg_child_chain_rpc, OMG.RPC.Web.Endpoint, http: [port: ...]`).
 The available RPC calls are defined by `omg_child_chain` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`.
 All requests shall be POST with parameters provided in the request body in JSON object.
 Object's properties names correspond to the names of parameters. Binary values shall be hex-encoded strings.
@@ -167,7 +178,27 @@ In particular, note that the required fee must be paid in one token in its entir
 
 The fees are configured in the config entries for `omg_child_chain` see [config secion](#mix-configuration-parameters).
 
-#### Funding the operator address
+#### Managing the operator address
+
+(a.k.a `authority address`)
+
+The Ethereum address which the operator uses to submit blocks to the root chain is a special address which must be managed accordingly to ensure liveness and security.
+
+##### Nonces restriction
+
+The [reorg protection mechanism](docs/tesuji_blockchain_design.md#reorgs) enforces there to be a strict relation between the `submitBlock` transactions and block numbers.
+Child block number `1000` uses Ethereum nonce `1`, child block number `2000` uses Ethereum nonce `2`, **always**.
+This provides a simple mechanism to avoid submitted blocks getting reordered in the root chain.
+
+This restriction is respected by the child chain server (`OMG.ChildChain.BlockQueue`), whereby the Ethereum nonce is simply derived from the child block number.
+
+As a consequence, the operator address must never send any other transactions, if it intends to continue submitting blocks.
+(Workarounds to this limitation are available, if there's such requirement.)
+
+**NOTE** Ethereum nonce `0` is necessary to call the `RootChain.init` function, which must be called by the operator address.
+This means that the operator address must be a fresh address for every child chain brought to life.
+
+##### Funding the operator address
 
 The address that is running the child chain server and submitting blocks needs to be funded with Ether.
 At the current stage this is designed as a manual process, i.e. we assume that every **gas reserve checkpoint interval**, someone will ensure that **gas reserve** worth of Ether is available for transactions.
@@ -214,6 +245,26 @@ It exposes the information it gathers via an HTTP-RPC interface (driven by Phoen
 It provides a secure proxy to the child chain server's API and to Ethereum, ensuring that sensitive requests are only sent to a valid chain.
 
 For more on the responsibilities and design of the Watcher see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
+
+### Modes of the watcher
+
+The watcher can be run in one of two modes:
+  - **security-critical only**
+    - intended to provide light-weight Watcher just to ensure security of funds deposited into the child chain
+    - this mode will store all of the data required for security-critical operations (exiting, challenging, etc.)
+    - it will not store data required for current and performant interacting with the child chain (spending, receiving tokens, etc.)
+    - it will not expose some endpoints related to current and performant interacting with the child chain (`account.get_utxos`, `transaction.*`, etc.)
+    - it will only require the `OMG.DB` key-value store database
+    - this mode will prune all security-related data not necessary anymore for security reasons (from `OMG.DB`)
+    - some requests to the API might be slow but must always work (called rarely in unhappy paths only, like mass exits)
+  - **security-critical and informational API**
+    - intended to provide convenient and performant API to the child chain data, on top of the security-related one
+    - this mode will provide/store everything the **security-critical** mode does
+    - this mode will store easily accessible register of all transactions _for a subset of addresses_ (currently, all addresses)
+    - this mode will leverage the Postgres-based `WatcherDB` database
+
+**TODO** the distinction between two modes isn't fully implemented yet.
+Use the **security-critical and informational API** always for now.
 
 ### Using the watcher
 
@@ -337,6 +388,14 @@ mix deps.compile plasma_contracts
 ```
 
 # Testing & development
+
+You can setup the docker environment to run testing and development tasks:
+
+```sh
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --entrypoint bash elixir-omg
+```
+
+Once the shell has loaded, you can continue and run additional tasks.
 
 Quick test (no integration tests):
 ```bash

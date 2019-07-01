@@ -1,0 +1,31 @@
+BlocksAllResponseSchema:
+  allOf:
+  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: array
+        items:
+          $ref: 'schemas.yaml#/BlockSchema'
+    example:
+      data:
+      -
+        timestamp: 1540365586
+        hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+        eth_height: 97424
+        blknum: 68290000
+
+BlockResponseSchema:
+  allOf:
+  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/BlockSchema'
+    example:
+      data:
+        timestamp: 1540365586
+        hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+        eth_height: 97424
+        blknum: 68290000

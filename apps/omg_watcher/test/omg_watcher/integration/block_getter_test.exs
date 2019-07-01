@@ -31,10 +31,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher
+  alias OMG.WatcherRPC.Web.Channel
   alias Watcher.Event
   alias Watcher.Integration.TestHelper, as: IntegrationTest
   alias Watcher.TestHelper
-  alias Watcher.Web.Channel
 
   require Utxo
   import ExUnit.CaptureLog
@@ -45,8 +45,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  @endpoint OMG.Watcher.Web.Endpoint
+  @endpoint OMG.WatcherRPC.Web.Endpoint
 
+  @tag timeout: 100_000
   @tag fixtures: [:watcher, :child_chain, :alice, :bob, :alice_deposits, :token]
   test "get the blocks from child chain after sending a transaction and start exit", %{
     alice: %{addr: alice_addr} = alice,
@@ -65,7 +66,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # start spending and exiting to see if watcher integrates all the pieces
     {:ok, _, _socket} =
       subscribe_and_join(
-        socket(OMG.Watcher.Web.Socket),
+        socket(OMG.WatcherRPC.Web.Socket),
         Channel.Transfer,
         TestHelper.create_topic("transfer", alice_address)
       )
@@ -82,6 +83,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
              %{"blknum" => ^block_nr}
            ] = TestHelper.get_utxos(alice.addr)
 
+    assert TestHelper.get_utxos(alice.addr) == TestHelper.get_exitable_utxos(alice.addr)
+
     # only checking integration of the events here, contents of events tested elsewhere
     assert_push("address_received", %{})
     assert_push("address_spent", %{})
@@ -93,7 +96,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     } = TestHelper.get_exit_data(block_nr, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-      Eth.RootChain.start_exit(
+      Eth.RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,
@@ -109,8 +112,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert {:ok, {alice_addr, @eth, 7, utxo_pos}} == Eth.RootChain.get_standard_exit(exit_id)
 
     # Here we're waiting for child chain and watcher to process the exits
-    deposit_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin)
-    Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + deposit_finality_margin + 1 + 1)
+    IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
     assert [%{"blknum" => ^token_deposit_blknum}] = TestHelper.get_utxos(alice.addr)
     # finally alice exits her token deposit
@@ -121,7 +123,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     } = TestHelper.get_exit_data(token_deposit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-      Eth.RootChain.start_exit(
+      Eth.RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,
@@ -130,7 +132,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       |> Eth.DevHelpers.transact_sync!()
 
     IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
+    IntegrationTest.process_exits(token, alice)
+    IntegrationTest.process_exits(@eth, alice)
 
+    assert TestHelper.get_utxos(alice.addr) == TestHelper.get_exitable_utxos(alice.addr)
     assert [] == TestHelper.get_utxos(alice.addr)
   end
 
@@ -203,7 +208,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     } = TestHelper.get_exit_data(exit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChain.start_exit(
+      Eth.RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,

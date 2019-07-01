@@ -1,0 +1,31 @@
+GetUtxoChallengeResponseSchema:
+  description: The response schema for utxo challenge data
+  allOf:
+  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/GetUtxoChallengeSchema'
+    example:
+      data:
+        exit_id: 1717611893014159315373779059565546411346446754
+        input_index: 0
+        sig: '0x6bfb9b2dbe32...'
+        txbytes: '0x3eb6ae5b06f3...'
+
+GetUtxoExitResponseSchema:
+  description: The response schema for utxo exit data
+  allOf:
+  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/GetUtxoExitSchema'
+    example:
+      data:
+        proof: '0xcedb8b31d1e4...'
+        sigs: '0xcc52d1d9ffe7...'
+        txbytes: '0x3eb6ae5b06f3...'
+        utxo_pos: 10000000010000000

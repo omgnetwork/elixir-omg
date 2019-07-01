@@ -21,37 +21,8 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   alias OMG.State.Transaction
   alias OMG.TypedDataHash
   alias OMG.Utxo
-
-  require Utxo
-
-  defmodule KnownTx do
-    @moduledoc """
-    Wrapps information about a particular signed transaction known from somewhere, optionally with its UTXO position
-
-    Private
-    """
-    defstruct [:signed_tx, :utxo_pos]
-
-    @type t() :: %__MODULE__{
-            signed_tx: Transaction.Signed.t(),
-            utxo_pos: Utxo.Position.t() | nil
-          }
-  end
-
-  defmodule DoubleSpend do
-    @moduledoc """
-    Wraps information about a single double spend occuring between a verified transaction and a known transaction
-    """
-
-    defstruct [:index, :utxo_pos, :known_spent_index, :known_tx]
-
-    @type t() :: %__MODULE__{
-            index: non_neg_integer(),
-            utxo_pos: Utxo.Position.t(),
-            known_spent_index: non_neg_integer,
-            known_tx: KnownTx.t()
-          }
-  end
+  alias OMG.Watcher.ExitProcessor.DoubleSpend
+  alias OMG.Watcher.ExitProcessor.KnownTx
 
   # Intersects utxos, looking for duplicates. Gives full list of double-spends with indexes for
   # a pair of transactions.
@@ -60,7 +31,7 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   def double_spends_from_known_tx(inputs, %KnownTx{signed_tx: signed} = known_tx) when is_list(inputs) do
     known_spent_inputs = signed |> Transaction.get_inputs() |> Enum.with_index()
 
-    # TODO: possibly ineffective if Transaction.max_inputs >> 4
+    # NOTE: possibly ineffective if Transaction.max_inputs >> 4, BUT we're calling it seldom so no biggie
     for {left, left_index} <- inputs,
         {right, right_index} <- known_spent_inputs,
         left == right,
@@ -105,4 +76,6 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
     {:ok, sig} = find_sig(tx, owner)
     sig
   end
+
+  def txs_different(tx1, tx2), do: Transaction.raw_txhash(tx1) != Transaction.raw_txhash(tx2)
 end

@@ -25,6 +25,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
+  alias OMG.Watcher.Eventer.Core
   # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -150,7 +151,8 @@ defmodule OMG.Watcher.ExitProcessor do
   a non-canonical in-flight exit
   """
   @decorate measure_event()
-  @spec get_competitor_for_ife(binary()) :: {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found}
+  @spec get_competitor_for_ife(binary()) ::
+          {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found} | {:error, :no_viable_competitor_found}
   def get_competitor_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
   end
@@ -160,7 +162,8 @@ defmodule OMG.Watcher.ExitProcessor do
   for a challenged in-flight exit
   """
   @decorate measure_event()
-  @spec prove_canonical_for_ife(binary()) :: {:ok, Core.prove_canonical_data_t()} | {:error, :canonical_not_found}
+  @spec prove_canonical_for_ife(binary()) ::
+          {:ok, Core.prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
   def prove_canonical_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
@@ -251,7 +254,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
     {new_state, event_triggers, db_updates} = Core.finalize_exits(state, validities)
 
-    :ok = OMG.InternalEventBus.broadcast("events", {:emit_events, event_triggers})
+    :ok = OMG.InternalEventBus.broadcast("events", {:preprocess_emit_events, event_triggers})
 
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
@@ -318,22 +321,20 @@ defmodule OMG.Watcher.ExitProcessor do
     # TODO: run_status_gets and getting all non-existent UTXO positions imaginable can be optimized out heavily
     #       only the UTXO positions being inputs to `txbytes` must be looked at, but it becomes problematic as
     #       txbytes can be invalid so we'd need a with here...
+    new_state = update_with_ife_txs_from_blocks(state)
+
     competitor_result =
       %ExitProcessor.Request{}
-      |> fill_request_with_spending_data(state)
-      |> Core.get_competitor_for_ife(state, txbytes)
+      |> fill_request_with_spending_data(new_state)
+      |> Core.get_competitor_for_ife(new_state, txbytes)
 
-    {:reply, competitor_result, state}
+    {:reply, competitor_result, new_state}
   end
 
   def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
-    # TODO: same comment as above in get_competitor_for_ife
-    canonicity_result =
-      %ExitProcessor.Request{}
-      |> fill_request_with_spending_data(state)
-      |> Core.prove_canonical_for_ife(txbytes)
-
-    {:reply, canonicity_result, state}
+    new_state = update_with_ife_txs_from_blocks(state)
+    canonicity_result = Core.prove_canonical_for_ife(new_state, txbytes)
+    {:reply, canonicity_result, new_state}
   end
 
   def handle_call({:get_input_challenge_data, txbytes, input_index}, _from, state) do
@@ -418,7 +419,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do
-    {:ok, eth_height_now} = Eth.get_ethereum_height()
+    {:ok, eth_height_now} = OMG.EthereumHeight.get()
     {blknum_now, _} = State.get_status()
 
     _ = Logger.debug("eth_height_now: #{inspect(eth_height_now)}, blknum_now: #{inspect(blknum_now)}")

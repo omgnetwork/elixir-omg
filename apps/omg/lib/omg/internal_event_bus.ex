@@ -26,11 +26,18 @@ defmodule OMG.InternalEventBus do
 
   Message: {:internal_event_bus, :enqueue_block, OMG.Block.t()}
 
+  #### `preprocess_emit_events`
+
+  Decoupling API from Watcher core - Enrich data before broadcast
+
+  Message: {:internal_event, :preprocess_emit_events, list()}
+
   #### `emit_events`
 
   Is being broadcast to all nodes whenever an event trigger, that should be turned into a push event in `Eventer` occurs
 
-  Message: {;internal_event, :emit_events, list()}
+  Message: {:internal_event, :emit_events, list()}
+
   """
   alias Phoenix.PubSub
 
@@ -66,7 +73,7 @@ defmodule OMG.InternalEventBus do
   Same as `broadcast/1`, but performed on the local node
   """
   def direct_local_broadcast(topic, {event, payload}) when is_atom(event) do
-    PubSub.node_name(__MODULE__)
-    |> PubSub.direct_broadcast(__MODULE__, topic, {:internal_event_bus, event, payload})
+    node_name = PubSub.node_name(__MODULE__)
+    PubSub.direct_broadcast(node_name, __MODULE__, topic, {:internal_event_bus, event, payload})
   end
 end
