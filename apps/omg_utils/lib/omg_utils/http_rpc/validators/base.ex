@@ -120,16 +120,25 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   def greater({val, []}, bound), do: {val, greater: bound}
 
   @spec list({any(), list()}, function() | nil) :: {any(), list()}
-  def list(tuple, fun \\ nil)
+  def list(tuple, mapper \\ nil)
   def list({_, [_ | _]} = err, _), do: err
   def list({val, []}, nil) when is_list(val), do: {val, []}
   def list({val, []}, mapper) when is_list(val), do: list_processor(val, mapper)
   def list({val, _}, _), do: {val, [:list]}
 
-  @spec map({any(), list()}) :: {any(), list()}
-  def map({_, [_ | _]} = err), do: err
-  def map({val, []}) when is_map(val), do: {val, []}
-  def map({val, _}), do: {val, [:map]}
+  @spec map({any(), list()}, function() | nil) :: {any(), list()}
+  def map(tuple, parser \\ nil)
+  def map({_, [_ | _]} = err, _), do: err
+  def map({val, []}, nil) when is_map(val), do: {val, []}
+
+  def map({val, []}, parser) when is_map(val),
+    do:
+      (case parser.(val) do
+         {:ok, map} -> {map, []}
+         {:error, err} -> {val, [err]}
+       end)
+
+  def map({val, _}, _), do: {val, [:map]}
 
   defp list_processor(val, mapper) do
     list_reducer = fn

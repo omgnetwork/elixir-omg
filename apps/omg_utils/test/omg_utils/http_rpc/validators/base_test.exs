@@ -105,7 +105,7 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     end
   end
 
-  describe "list and map preprocessing" do
+  describe "list and map preprocessing:" do
     test "mapping list elements" do
       assert {:ok, [2, 4, 6]} == expect(%{"list" => [1, 2, 3]}, "list", list: &(&1 * 2))
     end
@@ -128,6 +128,28 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
                  %{"all_even" => [2, 3, 6]},
                  "all_even",
                  list: is_even
+               )
+    end
+
+    test "parsing map" do
+      parser = fn map ->
+        with {:ok, currency} <- expect(map, "currency", :address),
+             {:ok, amount} <- expect(map, "amount", :non_neg_integer),
+             do: {:ok, %{currency: currency, amount: amount}}
+      end
+
+      assert {:ok, %{currency: @bin_value, amount: 100}} =
+               expect(
+                 %{"fee" => %{"currency" => "0xB3256026863EB6aE5B06fA396AB09069784ea8eA", "amount" => 100}},
+                 "fee",
+                 map: parser
+               )
+
+      assert {:error, {:validation_error, "fee", {:validation_error, "currency", :hex}}} =
+               expect(
+                 %{"fee" => %{"currency" => "not-an-address", "amount" => 100}},
+                 "fee",
+                 map: parser
                )
     end
   end
