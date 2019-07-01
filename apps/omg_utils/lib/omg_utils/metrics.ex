@@ -22,6 +22,7 @@ defmodule OMG.Utils.Metrics do
       config :omg_utils, discard_metrics: [:State]
   """
 
+  use Statix
   use Appsignal.Instrumentation.Decorators
 
   use Decorator.Define,

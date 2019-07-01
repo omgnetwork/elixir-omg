@@ -6,7 +6,8 @@ config :omg,
   deposit_finality_margin: 10,
   ethereum_events_check_interval_ms: 500,
   coordinator_eth_height_check_interval_ms: 6_000,
-  client_monitor_interval_ms: 4500
+  client_monitor_interval_ms: 4500,
+  metrics_collection_interval: 60_000
 
 config :omg, :eip_712_domain,
   name: "OMG Network",
