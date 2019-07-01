@@ -145,7 +145,7 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
                  map: parser
                )
 
-      assert {:error, {:validation_error, "fee", {:validation_error, "currency", :hex}}} =
+      assert {:error, {:validation_error, "fee.currency", :hex}} =
                expect(
                  %{"fee" => %{"currency" => "not-an-address", "amount" => 100}},
                  "fee",

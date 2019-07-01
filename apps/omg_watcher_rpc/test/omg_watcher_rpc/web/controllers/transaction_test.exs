@@ -571,7 +571,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
           "output3" => %{"owner" => @eth_hex, "currency" => @eth_hex, "amount" => 0},
           "metadata" => Encoding.to_hex(<<0::256>>)
         },
-        "signatures" => List.duplicate(<<0::520>>, 2) |> Enum.map(&Encoding.to_hex/1)
+        "signatures" => List.duplicate(<<127::520>>, 2) |> Enum.map(&Encoding.to_hex/1)
       }
     end
 
@@ -586,7 +586,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "messages" => %{
                  "validation_error" => %{
                    "parameter" => "domain",
-                   "validator" => ":missing"
+                   "validator" => ":map"
                  }
                }
              } == TestHelper.no_success?("transaction.submit_typed", req_without_domain)
@@ -600,7 +600,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "messages" => %{
                  "validation_error" => %{
                    "parameter" => "message",
-                   "validator" => ":missing"
+                   "validator" => ":map"
                  }
                }
              } == TestHelper.no_success?("transaction.submit_typed", req_without_message)
@@ -614,7 +614,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "messages" => %{
                  "validation_error" => %{
                    "parameter" => "signatures",
-                   "validator" => ":missing"
+                   "validator" => ":list"
                  }
                }
              } == TestHelper.no_success?("transaction.submit_typed", req_without_sigs)
@@ -622,17 +622,30 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox, :typed_data_request]
     test "input & sigs count should match", %{typed_data_request: typed_data_request} do
-      request_body =
+      # Providing 2 non-zero inputs & 1 signature
+      too_little_sigs =
         typed_data_request
         |> Map.update!("signatures", fn sigs -> Enum.take(sigs, 1) end)
 
       assert %{
-               "code" => "submit_typed:input_sigs_correspondence",
+               "code" => "submit_typed:missing_signature",
                "description" =>
-                 "Signatures should correspond to inputs owner. When all inputs has the same owner, " <>
+                 "Signatures should correspond to inputs owner. When all non-empty inputs has the same owner, " <>
                    "signatures should be duplicated.",
                "object" => "error"
-             } == TestHelper.no_success?("transaction.submit_typed", request_body)
+             } == TestHelper.no_success?("transaction.submit_typed", too_little_sigs)
+
+      # Providing 2 non-zero inputs & 4 signatures
+      too_many_sigs =
+        typed_data_request
+        |> Map.update!("signatures", fn sigs -> sigs ++ sigs end)
+
+      assert %{
+               "code" => "submit_typed:superfluous_signature",
+               "description" =>
+                 "Number of non-empty inputs should match signatures count. Remove redundant signatures.",
+               "object" => "error"
+             } == TestHelper.no_success?("transaction.submit_typed", too_many_sigs)
     end
   end
 
@@ -1121,8 +1134,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "description" => "Parameters required by this operation are missing or incorrect.",
                "messages" => %{
                  "validation_error" => %{
-                   "parameter" => "payments",
-                   "validator" => "{:validation_error, \"amount\", :integer}"
+                   "parameter" => "payments.amount",
+                   "validator" => ":integer"
                  }
                }
              } ==
@@ -1233,8 +1246,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "description" => "Parameters required by this operation are missing or incorrect.",
                "messages" => %{
                  "validation_error" => %{
-                   "parameter" => "fee",
-                   "validator" => "{:validation_error, \"amount\", {:greater, -1}}"
+                   "parameter" => "fee.amount",
+                   "validator" => "{:greater, -1}"
                  }
                }
              } ==

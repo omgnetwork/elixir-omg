@@ -45,8 +45,8 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
     require Transaction
 
     if length(payments) <= Transaction.max_outputs(),
-    do: {:ok, payments},
-    else: error("payments", {:too_many_payments, Transaction.max_outputs()})
+      do: {:ok, payments},
+      else: error("payments", {:too_many_payments, Transaction.max_outputs()})
   end
 
   defp parse_payment(raw_payment) do

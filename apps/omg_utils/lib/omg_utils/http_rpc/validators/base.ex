@@ -71,6 +71,9 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   Creates custom validation error
   """
   @spec error(binary(), any()) :: validation_error_t()
+  def error(parent_name, {:validation_error, child_name, reason}),
+    do: error(parent_name<>"."<>child_name, reason)
+
   def error(param_name, reason) when is_binary(param_name),
     do: {:error, {:validation_error, param_name, reason}}
 
