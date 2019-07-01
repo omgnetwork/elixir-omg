@@ -35,30 +35,12 @@ The watcher first and foremost plays a critical security role in the system. The
   - Proxy API to the child chain API (whatever it may be - PoA server or a P2P PoS network) and the root chain, that ensures that these two are never talked to if the chain is invalid or in unknown state. Only proxy calls that require the chain is operational.
   - Storage of data critical to access of the funds - UTXO positions, `txbytes` or any other kinds of proofs
 
-#### Requirements
+#### Specifications
+
+- [Current API](https://developer.omisego.co/elixir-omg/docs-ui/?url=0.2/security_critical_api_specs.yaml)
 
 - Events
-  - Should exit due to fault
-    - Double spend
-    - Invalid exit started
-    - Transaction spent
-    - Out of nowhere transaction created
-    - Block withholding?
-    - ...
-  - Standard exit started
-  - Standard exit challenged
-  - In-flight exit started
-  - In-flight exit challenged
-  - Successful exit
-  - Transaction in block
-  - New deposit
-  - New transaction
-  - New block
-- API
-  - Submit transaction
-  - Get start exit data
-  - Get challenge exit data
-  - ...
+  - [Byzantine Events](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events)
 
 ### Informational API Service
 
@@ -72,27 +54,9 @@ Non-critical convenience API proxy and provide data about the chain.
 - Storage of informational data about the chain
 - Support direct client requests (web browser, mobile, etc.)
 
-#### Requirements
+#### Specifications
 
-- Events
-  - ...
-- API
-  - Informational
-    - Getting all blocks
-    - Getting a block and its transactions
-    - Getting all transactions (paginated, per address, per list of addresses)
-    - Get specific transaction (by id)
-    - Getting UTXOs (paginated, per address, per list of addresses?)
-    - Get balance by address
-    - Get specific transaction (by correlation field)
-  - Child Chain
-    - Build transaction
-    - Submit signed transaction
-  - Root chain
-    - Start exit
-    - Challenge exit
-- UTXO management?
-
+- [Current API](https://developer.omisego.co/elixir-omg/docs-ui/?url=0.2/informational_api_specs.yaml)
 
 ### Integration libraries
 
