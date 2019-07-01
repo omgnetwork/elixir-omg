@@ -24,7 +24,7 @@ defmodule Status.Metric.Recorder do
     key
     |> List.flatten()
     |> to_string()
-    |> Metrics.increment(value, tags: [inspect(%{node: to_string(Node.self())})])
+    |> Metrics.set(value, tags: [inspect(%{node: to_string(Node.self())})])
   end
 
   def collect(:gauge, key, value) do
@@ -38,7 +38,7 @@ defmodule Status.Metric.Recorder do
     key
     |> List.flatten()
     |> to_string()
-    |> Metrics.gauge(value, tags: [inspect(%{node: to_string(Node.self())})])
+    |> Metrics.timing(value, tags: [inspect(%{node: to_string(Node.self())})])
   end
 
   @doc """
