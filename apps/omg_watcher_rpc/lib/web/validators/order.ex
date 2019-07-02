@@ -17,13 +17,14 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   Validates `/transaction.create` request body.
   """
 
+  alias OMG.Utils.HttpRPC.Validator.Base
   alias OMG.Watcher.UtxoSelection
   import OMG.Utils.HttpRPC.Validator.Base
 
   @doc """
   Parses and validates request body
   """
-  @spec parse(map()) :: {:ok, UtxoSelection.order_t()} | {:error, any()}
+  @spec parse(map()) :: {:ok, UtxoSelection.order_t()} | Base.validation_error_t()
   def parse(params) do
     with {:ok, owner} <- expect(params, "owner", :address),
          {:ok, metadata} <- expect(params, "metadata", [:hash, :optional]),

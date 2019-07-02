@@ -18,7 +18,15 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   """
 
   alias OMG.State.Transaction
+  alias OMG.Utils.HttpRPC.Validator.Base
   import OMG.Utils.HttpRPC.Validator.Base
+
+  @type eip712_domain_t() :: %{
+          name: binary(),
+          version: binary(),
+          salt: OMG.Crypto.hash_t(),
+          verifyingContract: OMG.Crypto.address_t()
+        }
 
   @empty_metadata <<0::256>>
 
@@ -35,7 +43,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
     end
   end
 
-  @spec parse_transaction(map()) :: {:ok, %Transaction{}} | {:error, any}
+  @spec parse_transaction(map()) :: {:ok, Transaction.t()} | {:error, any}
   def parse_transaction(params) do
     with {:ok, msg} <- expect(params, "message", :map),
          inputs when is_list(inputs) <- parse_inputs(msg),
@@ -47,7 +55,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
     end
   end
 
-  @spec parse_domain(map()) :: {:ok, map()} | {:error, any}
+  @spec parse_domain(map()) :: {:ok, eip712_domain_t()} | Base.validation_error_t()
   def parse_domain(map) when is_map(map) do
     with name = Map.get(map, "name"),
          version = Map.get(map, "version"),
@@ -56,7 +64,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
          do: {:ok, %{name: name, version: version, salt: salt, verifyingContract: contract}}
   end
 
-  @spec ensure_network_match(map(), map() | nil) :: :ok | {:error, any()}
+  @spec ensure_network_match(eip712_domain_t(), eip712_domain_t() | nil) :: :ok | Base.validation_error_t()
   def ensure_network_match(domain_from_params, network_domain \\ nil) do
     domain_separator = fn %{name: name, version: version, salt: salt, verifyingContract: contract} ->
       OMG.TypedDataHash.Tools.domain_separator(name, version, contract, salt)
@@ -73,10 +81,10 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
       else: error("domain", :domain_separator_mismatch)
   end
 
-  @spec to_signature(binary()) :: {:ok, <<_::520>>} | {:error, any()}
+  @spec to_signature(binary()) :: {:ok, <<_::520>>} | Base.validation_error_t()
   defp to_signature(sig_str), do: expect(%{"signature" => sig_str}, "signature", :signature)
 
-  @spec parse_input(map()) :: {:ok, {integer(), integer(), integer()}} | {:error, any()}
+  @spec parse_input(map()) :: {:ok, {integer(), integer(), integer()}} | Base.validation_error_t()
   defp parse_input(input) do
     with {:ok, blknum} <- expect(input, "blknum", :non_neg_integer),
          {:ok, txindex} <- expect(input, "txindex", :non_neg_integer),
@@ -93,7 +101,8 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
     |> unzip_list_or_first_error()
   end
 
-  @spec parse_output(map()) :: {:ok, {OMG.Crypto.address_t(), OMG.Crypto.address_t(), integer()}} | {:error, any()}
+  @spec parse_output(map()) ::
+          {:ok, {OMG.Crypto.address_t(), OMG.Crypto.address_t(), integer()}} | Base.validation_error_t()
   defp parse_output(output) do
     with {:ok, owner} <- expect(output, "owner", :address),
          {:ok, currency} <- expect(output, "currency", :address),
