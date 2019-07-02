@@ -78,9 +78,9 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
 
   @spec parse_input(map()) :: {:ok, {integer(), integer(), integer()}} | {:error, any()}
   defp parse_input(input) do
-    with {:ok, blknum} <- expect(input, "blknum", :integer),
-         {:ok, txindex} <- expect(input, "txindex", :integer),
-         {:ok, oindex} <- expect(input, "oindex", :integer),
+    with {:ok, blknum} <- expect(input, "blknum", :non_neg_integer),
+         {:ok, txindex} <- expect(input, "txindex", :non_neg_integer),
+         {:ok, oindex} <- expect(input, "oindex", :non_neg_integer),
          do: {:ok, {blknum, txindex, oindex}}
   end
 
@@ -97,7 +97,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   defp parse_output(output) do
     with {:ok, owner} <- expect(output, "owner", :address),
          {:ok, currency} <- expect(output, "currency", :address),
-         {:ok, amount} <- expect(output, "amount", :integer),
+         {:ok, amount} <- expect(output, "amount", :non_neg_integer),
          do: {:ok, {owner, currency, amount}}
   end
 
