@@ -558,7 +558,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
           "name" => "OMG Network",
           "version" => "1",
           "salt" => "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83",
-          "verifying_contract" => contract_addr
+          "verifyingContract" => contract_addr
         },
         "message" => %{
           "input0" => %{"blknum" => 1000, "txindex" => 0, "oindex" => 1},

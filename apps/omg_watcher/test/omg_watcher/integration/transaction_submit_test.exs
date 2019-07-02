@@ -124,7 +124,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
     domain_data = %{
       "name" => "OMG Network",
       "version" => "1",
-      "verifying_contract" => contract_addr,
+      "verifyingContract" => contract_addr,
       "salt" => "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
     }
 
@@ -161,6 +161,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
       typed_data
       |> Map.put_new("signatures", [Encoding.to_hex(signature)])
 
+    IO.inspect(typed_data_signed, label: "\nTyped data signed:")
     assert %{
              "blknum" => tx_blknum,
              "txindex" => tx_index

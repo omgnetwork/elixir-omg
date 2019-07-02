@@ -52,13 +52,13 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
     with name = Map.get(map, "name"),
          version = Map.get(map, "version"),
          {:ok, salt} <- expect(map, "salt", :hash),
-         {:ok, contract} <- expect(map, "verifying_contract", :address),
-         do: {:ok, %{name: name, version: version, salt: salt, verifying_contract: contract}}
+         {:ok, contract} <- expect(map, "verifyingContract", :address),
+         do: {:ok, %{name: name, version: version, salt: salt, verifyingContract: contract}}
   end
 
   @spec ensure_network_match(map(), map() | nil) :: :ok | {:error, any()}
   def ensure_network_match(domain_from_params, network_domain \\ nil) do
-    domain_separator = fn %{name: name, version: version, salt: salt, verifying_contract: contract} ->
+    domain_separator = fn %{name: name, version: version, salt: salt, verifyingContract: contract} ->
       OMG.TypedDataHash.Tools.domain_separator(name, version, contract, salt)
     end
 

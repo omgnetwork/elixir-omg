@@ -35,7 +35,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
     name: "OMG Network",
     version: "1",
     salt: <<0::256>>,
-    verifying_contract: @ari_network_address
+    verifyingContract: @ari_network_address
   }
 
   defp get_message do
@@ -60,7 +60,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
       "name" => network,
       "version" => "1",
       "salt" => Encoding.to_hex(<<0::256>>),
-      "verifying_contract" => @ari_network_address |> Encoding.to_hex()
+      "verifyingContract" => @ari_network_address |> Encoding.to_hex()
     }
   end
 
