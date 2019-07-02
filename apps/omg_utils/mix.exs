@@ -27,7 +27,6 @@ defmodule Utils.MixProject do
 
   defp deps do
     [
-      {:appsignal, "~> 1.9"},
       {:spandex, "~> 2.4"},
       {:spandex_datadog, "~> 0.4"},
       {:decorator, "~> 1.2"}

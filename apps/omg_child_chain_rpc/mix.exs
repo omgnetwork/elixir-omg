@@ -41,7 +41,6 @@ defmodule OMG.ChildChainRPC.MixProject do
       {:plug_cowboy, "~> 1.0"},
       {:deferred_config, "~> 0.1.1"},
       {:httpoison, "~> 1.4.0"},
-      {:appsignal, "~> 1.0"},
       {:cors_plug, "~> 2.0"},
       #
       {:omg_status, in_umbrella: true},

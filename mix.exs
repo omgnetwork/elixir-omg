@@ -36,7 +36,6 @@ defmodule OMG.Umbrella.MixProject do
       },
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
       {:statix, "~> 1.1"},
-      {:appsignal, "~> 1.9"},
       {:sentry, "~> 7.0"},
       {:spandex, "~> 2.4"},
       {:spandex_datadog, "~> 0.4"},
