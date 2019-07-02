@@ -18,26 +18,27 @@ defmodule Status.Metric.Recorder do
   """
   @behaviour :vmstats_sink
   @type vm_stat :: {:vmstats_sup, :start_link, [any(), ...]}
+  alias OMG.Utils.Metrics
 
   def collect(:counter, key, value) do
     key
     |> List.flatten()
     |> to_string()
-    |> Appsignal.increment_counter(value, %{node: to_string(Node.self())})
+    |> Metrics.set(value, tags: [inspect(%{node: to_string(Node.self())})])
   end
 
   def collect(:gauge, key, value) do
     key
     |> List.flatten()
     |> to_string()
-    |> Appsignal.set_gauge(value, %{node: to_string(Node.self())})
+    |> Metrics.gauge(value, tags: [inspect(%{node: to_string(Node.self())})])
   end
 
   def collect(:timing, key, value) do
     key
     |> List.flatten()
     |> to_string()
-    |> Appsignal.set_gauge(value, %{node: to_string(Node.self())})
+    |> Metrics.timing(value, tags: [inspect(%{node: to_string(Node.self())})])
   end
 
   @doc """

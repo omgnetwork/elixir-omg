@@ -263,8 +263,8 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns the hash of the raw transaction involved, i.e. without the signatures
   """
-  @spec raw_txhash(any_flavor_t()) :: binary
-  def raw_txhash(%__MODULE__.Recovered{signed_tx: signed_tx}), do: raw_txhash(signed_tx)
+  @spec raw_txhash(any_flavor_t()) :: tx_hash()
+  def raw_txhash(%__MODULE__.Recovered{tx_hash: hash}), do: hash
   def raw_txhash(%__MODULE__.Signed{raw_tx: raw_tx}), do: raw_txhash(raw_tx)
   def raw_txhash(%__MODULE__{} = raw_tx), do: hash(raw_tx)
 

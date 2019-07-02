@@ -23,7 +23,7 @@ defmodule OMG.Watcher.Recorder do
           parent: pid(),
           key: charlist() | nil,
           interval: pos_integer(),
-          reporter: (... -> atom()),
+          reporter: (... -> Statix.on_send()),
           tref: reference() | nil,
           node: String.t() | nil
         }
@@ -31,7 +31,7 @@ defmodule OMG.Watcher.Recorder do
             parent: nil,
             key: nil,
             interval: @default_interval,
-            reporter: &Appsignal.set_gauge/3,
+            reporter: &OMG.Utils.Metrics.gauge/3,
             tref: nil,
             node: nil
 
@@ -54,7 +54,11 @@ defmodule OMG.Watcher.Recorder do
 
   def handle_info(:gather, state) do
     # invoke the reporter function and pass the key and value (invoke the fn)
-    _ = state.reporter.(state.key, Process.info(state.parent, :message_queue_len) |> elem(1), %{node: state.node})
+    _ =
+      state.reporter.(state.key, Process.info(state.parent, :message_queue_len) |> elem(1),
+        tags: [inspect(%{node: state.node})]
+      )
+
     {:noreply, state}
   end
 

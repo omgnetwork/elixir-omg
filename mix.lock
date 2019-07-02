@@ -67,6 +67,7 @@
   "spandex": {:hex, :spandex, "2.4.1", "f847dd2b7f95155a58c6f08b27aa236ed9a1e89bac62731227ae0e7397f6770a", [:mix], [{:decorator, "~> 1.2", [hex: :decorator, repo: "hexpm", optional: true]}, {:optimal, "~> 0.3.3", [hex: :optimal, repo: "hexpm", optional: false]}, {:plug, ">= 1.0.0", [hex: :plug, repo: "hexpm", optional: false]}], "hexpm"},
   "spandex_datadog": {:hex, :spandex_datadog, "0.4.0", "75113a73e843123074886a2e31994af07d6e0632749a8d97e9ca6157b120c287", [:mix], [{:msgpax, "~> 2.2.1", [hex: :msgpax, repo: "hexpm", optional: false]}, {:spandex, "~> 2.3", [hex: :spandex, repo: "hexpm", optional: false]}], "hexpm"},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.4", "f0eafff810d2041e93f915ef59899c923f4568f4585904d010387ed74988e77b", [:make, :mix, :rebar3], [], "hexpm"},
+  "statix": {:hex, :statix, "1.1.0", "af9a4586c5cd58f879e0595f06a4790878715de5b8f75f6346693aaa38da2424", [:mix], [], "hexpm"},
   "telemetry": {:hex, :telemetry, "0.4.0", "8339bee3fa8b91cb84d14c2935f8ecf399ccd87301ad6da6b71c09553834b2ab", [:rebar3], [], "hexpm"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.4.1", "d869e4c68901dd9531385bb0c8c40444ebf624e60b6962d95952775cac5e90cd", [:rebar3], [], "hexpm"},
   "vmstats": {:hex, :vmstats, "2.3.1", "fa719deb51c53672955cbf0e131cfe85be51732c700d2b58232157ac0478bf4a", [:rebar3], [], "hexpm"},

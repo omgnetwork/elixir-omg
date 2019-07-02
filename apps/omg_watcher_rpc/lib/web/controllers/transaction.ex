@@ -19,6 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
 
   use OMG.WatcherRPC.Web, :controller
 
+  alias OMG.Utils.Metrics
   alias OMG.Watcher.API
   alias OMG.WatcherRPC.Web.Validator
 
@@ -51,6 +52,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
       API.Transaction.submit(tx)
       |> api_response(conn, :submission)
     end
+    |> increment_metrics_counter()
   end
 
   @doc """
@@ -62,5 +64,20 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
       API.Transaction.create(order)
       |> api_response(conn, :create)
     end
+  end
+
+  defp increment_metrics_counter(response) do
+    case response do
+      {:error, {:validation_error, _, _}} ->
+        Metrics.increment("transaction.failed.validation", 1)
+
+      %Plug.Conn{} ->
+        Metrics.increment("transaction.succeed", 1)
+
+      _ ->
+        Metrics.increment("transaction.failed.unidentified", 1)
+    end
+
+    response
   end
 end

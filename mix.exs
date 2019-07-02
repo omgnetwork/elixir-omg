@@ -35,6 +35,7 @@ defmodule OMG.Umbrella.MixProject do
         git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
       },
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
+      {:statix, "~> 1.1"},
       {:appsignal, "~> 1.9"},
       {:sentry, "~> 7.0"},
       {:spandex, "~> 2.4"},
@@ -84,6 +85,7 @@ defmodule OMG.Umbrella.MixProject do
       :proper,
       :ranch,
       :sentry,
-      :vmstats
+      :vmstats,
+      :statix
     ]
 end

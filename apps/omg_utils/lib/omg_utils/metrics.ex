@@ -23,6 +23,7 @@ defmodule OMG.Utils.Metrics do
   """
 
   alias OMG.Utils.Tracer
+  use Statix
 
   use Decorator.Define,
     measure_start: 0,
