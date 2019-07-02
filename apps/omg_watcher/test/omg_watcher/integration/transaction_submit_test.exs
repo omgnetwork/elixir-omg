@@ -161,7 +161,6 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
       typed_data
       |> Map.put_new("signatures", [Encoding.to_hex(signature)])
 
-    IO.inspect(typed_data_signed, label: "\nTyped data signed:")
     assert %{
              "blknum" => tx_blknum,
              "txindex" => tx_index

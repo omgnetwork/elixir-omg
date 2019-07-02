@@ -47,6 +47,21 @@ transaction.get:
       500:
         $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
 
+transaction.submit_typed:
+  post:
+    tags:
+      - Transaction
+    summary: Sends EIP-712 formatted transaction to Child chain.
+    description: Request to this method is the same as to Web3 `eth_signTypedData` with additional `signatures` array. The `/transaction.create` `typed_data` field can be used to prepare transaction. The same conditions are met as with security-critical `/transaction.submit`
+    operationId: submit_typed
+    requestBody:
+      $ref: 'request_bodies.yaml#/TransactionSubmitTypedBodySchema'
+    responses:
+      200:
+        $ref: '../../security_critical_api_specs/transaction/responses.yaml#/TransactionSubmitResponse'
+      500:
+        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+
 transaction.get_by_position:
   post:
     tags:
