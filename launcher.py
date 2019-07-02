@@ -39,7 +39,6 @@ class ChildchainLauncher:
         logging.info(
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
-        self.update_appsignal_deployment()
         self.check_chain_data_path()
         self.ethereum_client_version()
         if self.chain_data_present is True:
@@ -77,19 +76,6 @@ class ChildchainLauncher:
             logging.info(
                 'Infura used for Ethereum connectivity. Skipping client check'
             )
-
-    def update_appsignal_deployment(self):
-        ''' Inform AppSignal of the new deployment
-        '''
-        if not os.getenv('APPSIGNAL_DEPLOYMENT_URL'):
-            logging.warning('AppSignal deployment configuration not found')
-            return
-
-        post_body = {'revision': self.git_commit_hash, 'user': 'launcher.py'}
-        request = requests.post(
-            os.getenv('APPSIGNAL_DEPLOYMENT_URL'), data=json.dumps(post_body)
-        )
-        logging.info("AppSignal deployment set: {}".format(request.content))
 
     def get_contract_from_exchanger(self) -> dict:
         ''' Get the contract that has been deployed by a Childchain instance
@@ -284,7 +270,6 @@ class WatcherLauncher:
         logging.info(
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
-        self.update_appsignal_deployment()
         self.ethereum_client_version()
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
@@ -324,19 +309,6 @@ class WatcherLauncher:
             logging.info(
                 'Infura used for Ethereum connectivity. Skipping client check'
             )
-
-    def update_appsignal_deployment(self):
-        ''' Inform AppSignal of the new deployment
-        '''
-        if not os.getenv('APPSIGNAL_DEPLOYMENT_URL'):
-            logging.warning('AppSignal deployment configuration not found')
-            return
-
-        post_body = {'revision': self.git_commit_hash, 'user': 'launcher.py'}
-        request = requests.post(
-            os.getenv('APPSIGNAL_DEPLOYMENT_URL'), data=json.dumps(post_body)
-        )
-        logging.info("AppSignal deployment set: {}".format(request.content))
 
     def compile_application(self) -> bool:
         ''' Execute a mix compile
