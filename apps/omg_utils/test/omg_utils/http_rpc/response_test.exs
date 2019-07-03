@@ -95,6 +95,54 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
              )
   end
 
+  test "skiping sanitize for specified keys" do
+    # simplified EIP-712 structures serialization where
+    # `types` should be skip entirely
+    # `domain` sanitized partially
+    # `message` fully sanitized
+
+    address = <<124, 39, 109, 202, 171, 153, 189, 22, 22, 60, 27, 204, 230, 113, 202, 214, 161, 236, 9, 69>>
+    address_hex = "0x7c276dcaab99bd16163c1bcce671cad6a1ec0945"
+    zero20_hex = "0x" <> String.duplicate("00", 20)
+
+    domain_spec = [
+      %{name: "name", type: "string"},
+      %{name: "verifyingContract", type: "address"},
+      %{name: "chainId", type: "uint256"}
+    ]
+    domain_data = %{
+      name: {:skip_hex_encode, "OMG Network"},
+      verifyingContract: address,
+      chainId: 32
+    }
+    message = %{
+      input0: %{owner: address, currency: <<0::160>>, amount: 111}
+    }
+
+    typed_data = %{
+      types: %{Eip712Domain: domain_spec},
+      primaryType: "Transaction",
+      domain: domain_data,
+      message: message,
+
+      # spicifies key to skip during sanitize
+      skip_hex_encode: [:types, :primaryType]
+    }
+
+    response = Response.sanitize(typed_data)
+    assert %{
+      domain: %{name: "OMG Network", verifyingContract: ^address_hex, chainId: 32},
+      message: %{
+        input0: %{owner: ^address_hex, currency: ^zero20_hex, amount: 111}
+      },
+      primaryType: "Transaction",
+      types: %{Eip712Domain: ^domain_spec}
+    } = response
+
+    # meta-key is removed from sanitized response
+    assert response |> Map.get(:skip_hex_encode) |> is_nil()
+  end
+
   test "decode16: decodes only specified fields" do
     expected_map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
 
