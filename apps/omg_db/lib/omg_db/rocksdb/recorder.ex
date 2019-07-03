@@ -21,14 +21,13 @@ defmodule OMG.DB.RocksDB.Recorder do
   @write :rocksdb_write
   @read :rocksdb_read
   @multiread :rocksdb_multiread
-  @keys [{@write, to_charlist(@write)}, {@read, to_charlist(@read)}, {@multiread, to_charlist(@multiread)}]
+  @keys [@write, @read, @multiread]
 
   @type t :: %__MODULE__{
           name: atom(),
           parent: pid(),
           key: charlist() | nil,
           interval: pos_integer(),
-          reporter: (... -> Statix.on_send()),
           tref: reference() | nil,
           node: String.t() | nil,
           table: atom()
@@ -37,7 +36,6 @@ defmodule OMG.DB.RocksDB.Recorder do
             parent: nil,
             key: nil,
             interval: @default_interval,
-            reporter: &OMG.Utils.Metrics.gauge/3,
             tref: nil,
             node: nil,
             table: nil
@@ -76,22 +74,16 @@ defmodule OMG.DB.RocksDB.Recorder do
   end
 
   def handle_info(:gather, state) do
-    # invoke the reporter function and pass the key and value (invoke the fn)
-    _ =
-      state.reporter.(state.key, Process.info(state.parent, :message_queue_len) |> elem(1),
-        tags: [inspect(%{node: state.node})]
-      )
-
-    _ =
-      Enum.each(@keys, fn {table_key, key} ->
+    measurements =
+      Enum.reduce(@keys, %{}, fn table_key, acc ->
         case :ets.take(state.table, table_key) do
-          [{^table_key, value}] ->
-            _ = state.reporter.(key, value, tags: [inspect(%{node: state.node})])
-
-          _ ->
-            :ok
+          [{key, value}] -> Map.put(acc, key, value)
+          _ -> acc
         end
       end)
+      |> Map.put(:message_queue_len, Process.info(state.parent, :message_queue_len) |> elem(1))
+
+    :telemetry.execute(OMG.Utils.Metrics.to_event_name(state.name), measurements, %{node: state.node})
 
     {:noreply, state}
   end

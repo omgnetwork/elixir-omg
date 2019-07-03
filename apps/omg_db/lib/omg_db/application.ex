@@ -16,10 +16,53 @@ defmodule OMG.DB.Application do
   @moduledoc false
 
   use Application
+  import Telemetry.Metrics
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_db)
-    children = [OMG.DB.child_spec()]
+
+    children = [
+      {TelemetryMetricsStatsd,
+       [
+         metrics: [
+           last_value("DB.recorder.message_queue_len",
+             event_name: "Elixir.OMG.DB.LevelDB.Server.Recorder",
+             tags: [:node]
+           ),
+           last_value("DB.recorder.message_queue_len",
+             event_name: "Elixir.OMG.DB.RocksDB.Server.Recorder",
+             tags: [:node]
+           ),
+           last_value("DB.Recorder.message_queue_len.leveldb_write.value",
+             event_name: "Elixir.OMG.DB.LevelDB.Server.Recorder",
+             tags: [:node]
+           ),
+           last_value("DB.Recorder.message_queue_len.leveldb_read",
+             event_name: "Elixir.OMG.DB.LevelDB.Server.Recorder",
+             tags: [:node]
+           ),
+           last_value("DB.Recorder.message_queue_len.leveldb_multiread",
+             event_name: "Elixir.OMG.DB.LevelDB.Server.Recorder",
+             tags: [:node]
+           ),
+           last_value("DB.Recorder.message_queue_len.rocksdb_write",
+             event_name: "Elixir.OMG.DB.RocksDB.Server.Recorder",
+             tags: [:node]
+           ),
+           last_value("DB.Recorder.message_queue_len.rocksdb_read",
+             event_name: "Elixir.OMG.DB.RocksDB.Server.Recorder",
+             tags: [:node]
+           ),
+           last_value("DB.Recorder.message_queue_len.rocksdb_multiread",
+             event_name: "Elixir.OMG.DB.RocksDB.Server.Recorder",
+             tags: [:node]
+           )
+         ],
+         formatter: :datadog
+       ]},
+      OMG.DB.child_spec()
+    ]
+
     opts = [strategy: :one_for_one, name: OMG.DB.Supervisor]
 
     Supervisor.start_link(children, opts)
