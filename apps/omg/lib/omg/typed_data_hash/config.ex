@@ -24,23 +24,26 @@ defmodule OMG.TypedDataHash.Config do
   @fallback_ari_network_address "44de0ec539b8c4a4b530c78620fe8320167f2f74"
 
   @doc """
+  Returns EIP-712 domain based on values from configuration in a format `signTypedData` expects.
+  """
+  @spec domain_separator_from_config() :: Tools.eip712_domain_t()
+  def domain_separator_from_config do
+    contract_addr = Application.fetch_env!(:omg_eth, :contract_addr) || @fallback_ari_network_address
+
+    Application.fetch_env!(:omg, :eip_712_domain)
+    |> Map.new()
+    |> Map.put_new(:verifyingContract, decode16!(contract_addr))
+    |> Map.update!(:salt, &decode16!/1)
+  end
+
+  @doc """
   Computes default domain separator based on values from configuration.
   This value is taken to structured hash computation when no domain separator is passed.
   """
   @spec compute_domain_separator_from_config() :: OMG.Crypto.hash_t()
   def compute_domain_separator_from_config do
-    [
-      name: name,
-      version: version,
-      salt: salt_hex
-    ] = Application.fetch_env!(:omg, :eip_712_domain)
-
-    contract_addr_hex = Application.fetch_env!(:omg_eth, :contract_addr) || @fallback_ari_network_address
-
-    <<contract_addr::binary-size(20)>> = decode16!(contract_addr_hex)
-    <<salt::binary-size(32)>> = decode16!(salt_hex)
-
-    Tools.domain_separator(name, version, contract_addr, salt)
+    domain_separator_from_config()
+    |> Tools.domain_separator()
   end
 
   defp decode16!("0x" <> data), do: decode16!(data)

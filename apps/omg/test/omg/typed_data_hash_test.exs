@@ -34,13 +34,15 @@ defmodule OMG.TypedDataHashTest do
   require Utxo
   require OMG.TypedDataHash.Tools
 
-  @test_domain_separator Tools.domain_separator(
-                           "OMG Network",
-                           "1",
-                           "44de0ec539b8c4a4b530c78620fe8320167f2f74" |> Base.decode16!(case: :mixed),
-                           "fad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
-                           |> Base.decode16!(case: :mixed)
-                         )
+  @test_domain_separator Tools.domain_separator(%{
+                           name: "OMG Network",
+                           version: "1",
+                           verifyingContract:
+                             "44de0ec539b8c4a4b530c78620fe8320167f2f74" |> Base.decode16!(case: :mixed),
+                           salt:
+                             "fad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
+                             |> Base.decode16!(case: :mixed)
+                         })
 
   setup_all do
     null_addr = <<0::160>>
