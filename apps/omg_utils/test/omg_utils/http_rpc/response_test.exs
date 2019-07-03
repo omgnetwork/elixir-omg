@@ -110,11 +110,13 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
       %{name: "verifyingContract", type: "address"},
       %{name: "chainId", type: "uint256"}
     ]
+
     domain_data = %{
       name: {:skip_hex_encode, "OMG Network"},
       verifyingContract: address,
       chainId: 32
     }
+
     message = %{
       input0: %{owner: address, currency: <<0::160>>, amount: 111}
     }
@@ -126,18 +128,19 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
       message: message,
 
       # spicifies key to skip during sanitize
-      skip_hex_encode: [:types, :primaryType]
+      skip_hex_encode: [:types, :primaryType, :non_existing]
     }
 
     response = Response.sanitize(typed_data)
+
     assert %{
-      domain: %{name: "OMG Network", verifyingContract: ^address_hex, chainId: 32},
-      message: %{
-        input0: %{owner: ^address_hex, currency: ^zero20_hex, amount: 111}
-      },
-      primaryType: "Transaction",
-      types: %{Eip712Domain: ^domain_spec}
-    } = response
+             domain: %{name: "OMG Network", verifyingContract: ^address_hex, chainId: 32},
+             message: %{
+               input0: %{owner: ^address_hex, currency: ^zero20_hex, amount: 111}
+             },
+             primaryType: "Transaction",
+             types: %{Eip712Domain: ^domain_spec}
+           } = response
 
     # meta-key is removed from sanitized response
     assert response |> Map.get(:skip_hex_encode) |> is_nil()

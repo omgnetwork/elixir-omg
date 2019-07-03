@@ -62,6 +62,7 @@ defmodule OMG.Utils.HttpRPC.Response do
         {_, %{__struct__: Ecto.Association.NotLoaded}} -> false
         _ -> true
       end)
+      |> Map.new()
     else
       map_or_struct
     end
@@ -69,8 +70,16 @@ defmodule OMG.Utils.HttpRPC.Response do
 
   # Allows to skip sanitize on specifies keys provided in list in key :skip_hex_encode
   defp sanitize_map(map) do
+    {skip_keys, map} = Map.pop(map, :skip_hex_encode, [])
+    skip_keys = MapSet.new(skip_keys)
+
     map
-    |> Enum.map(fn {k, v} -> {k, sanitize(v)} end)
+    |> Enum.map(fn {k, v} ->
+      case MapSet.member?(skip_keys, k) do
+        true -> {k, v}
+        false -> {k, sanitize(v)}
+      end
+    end)
     |> Map.new()
   end
 
