@@ -10,7 +10,7 @@ config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
   secret_key_base: {:system, "SECRET_KEY_BASE"},
   render_errors: [view: OMG.WatcherRPC.Web.Views.Error, accepts: ~w(json)],
   pubsub: [name: OMG.WatcherRPC.PubSub, adapter: Phoenix.PubSub.PG2],
-  instrumenters: [Appsignal.Phoenix.Instrumenter],
+  # instrumenters: [Appsignal.Phoenix.Instrumenter],
   enable_cors: true
 
 import_config "#{Mix.env()}.exs"

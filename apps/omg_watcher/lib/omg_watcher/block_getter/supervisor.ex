@@ -19,6 +19,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
+  import Telemetry.Metrics
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -29,6 +30,18 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
     # If Block Getter fails, it starts from the last checkpoint while State might have had executed some transactions
     # such a situation will cause error when trying to execute already executed transaction
     children = [
+      {TelemetryMetricsStatsd,
+       [
+         metrics: [
+           last_value("watcher.unique_users.value", event_name: "Elixir.OMG.State.unique_users"),
+           last_value("watcher.balance.value", event_name: "Elixir.OMG.State.balance", tags: [:coin]),
+           last_value("watche.block_getter.message_queue_len",
+             event_name: "OMG.Watcher.BlockGetter.Recorder",
+             tags: [:node]
+           )
+         ],
+         formatter: :datadog
+       ]},
       {OMG.State, []},
       %{
         id: OMG.Watcher.BlockGetter,

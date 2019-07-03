@@ -18,12 +18,12 @@ defmodule OMG.Watcher.Recorder do
   """
   use GenServer
   @default_interval 5_000
+
   @type t :: %__MODULE__{
           name: atom(),
           parent: pid(),
           key: charlist() | nil,
           interval: pos_integer(),
-          reporter: (... -> Statix.on_send()),
           tref: reference() | nil,
           node: String.t() | nil
         }
@@ -31,7 +31,6 @@ defmodule OMG.Watcher.Recorder do
             parent: nil,
             key: nil,
             interval: @default_interval,
-            reporter: &OMG.Utils.Metrics.gauge/3,
             tref: nil,
             node: nil
 
@@ -53,11 +52,11 @@ defmodule OMG.Watcher.Recorder do
   end
 
   def handle_info(:gather, state) do
-    # invoke the reporter function and pass the key and value (invoke the fn)
-    _ =
-      state.reporter.(state.key, Process.info(state.parent, :message_queue_len) |> elem(1),
-        tags: [inspect(%{node: state.node})]
-      )
+    :telemetry.execute(
+      OMG.Utils.Metrics.to_event_name(state.name),
+      %{message_queue_len: Process.info(state.parent, :message_queue_len) |> elem(1)},
+      %{node: state.node}
+    )
 
     {:noreply, state}
   end

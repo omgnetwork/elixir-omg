@@ -16,19 +16,14 @@ defmodule OMG.WatcherRPC.Application do
   @moduledoc false
   use Application
   use OMG.Utils.LoggerExt
+  import Telemetry.Metrics
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_watcher_rpc)
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
-    _ =
-      :telemetry.attach(
-        "appsignal-ecto",
-        [:omg_watcher_rpc, :repo, :query],
-        &Appsignal.Ecto.handle_event/4,
-        nil
-      )
+    # TODO telemetry attach from [:omg_watcher_rpc, :repo, :query] to dadadog
 
     start_root_supervisor()
   end
@@ -36,6 +31,11 @@ defmodule OMG.WatcherRPC.Application do
   def start_root_supervisor do
     # root supervisor must stop whenever any of its children supervisors goes down (children carry the load of restarts)
     children = [
+      {TelemetryMetricsStatsd,
+       [
+         metrics: [counter("watcher.transaction.counter", event_name: "transaction", tags: [:valid])],
+         formatter: :datadog
+       ]},
       %{
         id: OMG.WatcherRPC.Web.Endpoint,
         start: {OMG.WatcherRPC.Web.Endpoint, :start_link, []},

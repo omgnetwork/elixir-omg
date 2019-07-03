@@ -33,13 +33,44 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   def init(:ok) do
     children = [
-      {Monitor, [Alarm, monitor_children()]}
+      {Monitor, [Alarm, metric_children() ++ monitor_children()]}
     ]
 
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     Supervisor.init(children, opts)
+  end
+
+  defp metric_children do
+    import Telemetry.Metrics
+
+    [
+      {TelemetryMetricsStatsd,
+       [
+         metrics: [
+           counter("watcher.deposits.length", event_name: "depositor.events"),
+           counter("watcher.exits.length", event_name: "exit_processor.events"),
+           counter("watcher.exits.finalized.length", event_name: "exit_finalizer.events"),
+           counter("watcher.exits.challenged.length", event_name: "exit_challenger.events"),
+           counter("watcher.exits.in_flights.length", event_name: "in_flight_exit_processor.events"),
+           counter("watcher.exits.piggybacks.length", event_name: "piggyback_processor.events"),
+           counter("watcher.exits.competitors.length", event_name: "competitor_processor.events"),
+           counter("watcher.exits.challenged.length", event_name: "challenges_responds_processor.events"),
+           counter("watcher.exits.piggybacks.challenged.length", event_name: "piggyback_challenges_processor.events"),
+           counter("watcher.exits.in_flights.finalized.length", event_name: "ife_exit_finalizer.events"),
+           last_value("watche.exit_processor.message_queue_len",
+             event_name: "Elixir.OMG.Watcher.ExitProcessor.Recorder",
+             tags: [:node]
+           ),
+           last_value("watche.eventer.message_queue_len",
+             event_name: "Elixir.OMG.Watcher.Eventer.Recorder",
+             tags: [:node]
+           )
+         ],
+         formatter: :datadog
+       ]}
+    ]
   end
 
   defp monitor_children do
