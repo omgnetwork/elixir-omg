@@ -281,7 +281,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       version: "1",
       # FIXME: don't hardcode this (for now taken from /home/user/sources/elixir-omg/apps/omg/lib/omg/typed_data_hash/config.ex)
       verifyingContract: "0x7c276dcaab99bd16163c1bcce671cad6a1ec0945",
-      salt: "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
+      salt: "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83",
       # FIXME: adding this is necessary for parity, see typed_data_hash/tools.ex
       chainId: "0x1"
     }
