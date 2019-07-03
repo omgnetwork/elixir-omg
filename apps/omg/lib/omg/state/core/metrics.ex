@@ -22,8 +22,8 @@ defmodule OMG.State.Core.Metrics do
 
   def calculate(%Core{utxos: utxos}) do
     [
-      {"unique_users", unique_users(utxos)}
-      | Enum.map(balance(utxos), fn {currency, amount} -> {"balance_" <> Encoding.to_hex(currency), amount} end)
+      {:unique_users, unique_users(utxos)}
+      | Enum.map(balance(utxos), fn {currency, amount} -> {:balance, amount, %{coin: Encoding.to_hex(currency)}} end)
     ]
   end
 

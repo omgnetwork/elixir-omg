@@ -129,7 +129,13 @@ defmodule OMG.State do
   def handle_info(:send_metrics, state) do
     _ =
       Core.Metrics.calculate(state)
-      |> Enum.map(fn {key, value} -> OMG.Utils.Metrics.gauge(key, value) end)
+      |> Enum.map(fn
+        {key, value} ->
+          :telemetry.execute(OMG.Utils.Metrics.to_event_name(__MODULE__, [key]), %{value: value})
+
+        {key, value, metadata} ->
+          :telemetry.execute(OMG.Utils.Metrics.to_event_name(__MODULE__, [key]), %{value: value}, metadata)
+      end)
 
     {:noreply, state}
   end

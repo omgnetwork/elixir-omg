@@ -22,9 +22,6 @@ defmodule OMG.Utils.Metrics do
       config :omg_utils, discard_metrics: [:State]
   """
 
-  use Statix
-  use Appsignal.Instrumentation.Decorators
-
   use Decorator.Define,
     measure_start: 0,
     measure_event: 0
@@ -38,7 +35,8 @@ defmodule OMG.Utils.Metrics do
 
     if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace)),
       do: body,
-      else: Appsignal.Instrumentation.Decorators.transaction(namespace, body, context)
+      # TODO use spandex
+      else: body
   end
 
   def measure_event(body, context) do
@@ -46,6 +44,18 @@ defmodule OMG.Utils.Metrics do
 
     if Enum.find(@discard_namespace_metrics, &match?(^&1, event_group)),
       do: body,
-      else: Appsignal.Instrumentation.Decorators.transaction_event(event_group, body, context)
+      # TODO use spandex
+      else: body
+  end
+
+  def to_event_name(name, rest_key \\ [])
+
+  def to_event_name(atom, rest_key) when is_atom(atom) do
+    to_string(atom) |> to_event_name(rest_key)
+  end
+
+  def to_event_name(name, rest_key) when is_binary(name) do
+    segments = String.split(name, ".")
+    Enum.map(segments, &String.to_atom/1) ++ rest_key
   end
 end

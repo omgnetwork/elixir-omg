@@ -23,7 +23,6 @@ defmodule OMG.Application do
 
   def start(_type, _args) do
     :ok = AlarmHandler.install()
-    if !Process.whereis(OMG.Utils.Metrics), do: :ok = OMG.Utils.Metrics.connect()
     OMG.Supervisor.start_link()
   end
 end

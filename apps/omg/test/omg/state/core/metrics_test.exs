@@ -39,9 +39,9 @@ defmodule OMG.State.Core.MetricsTest do
 
     assert MapSet.new(Core.Metrics.calculate(%Core{utxos: utxos})) ==
              MapSet.new([
-               {"unique_users", 3},
-               {"balance_" <> Encoding.to_hex(@eth), 777_000_000},
-               {"balance_" <> Encoding.to_hex(@not_eth), 333_333_333}
+               {:unique_users, 3},
+               {:balance, 777_000_000, %{coin: Encoding.to_hex(@eth)}},
+               {:balance, 333_333_333, %{coin: Encoding.to_hex(@not_eth)}}
              ])
   end
 end
