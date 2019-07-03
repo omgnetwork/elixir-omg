@@ -24,10 +24,19 @@ defmodule OMG.Status.Mixfile do
     [
       mod: {OMG.Status.Application, []},
       start_phases: [{:install_alarm_handler, []}],
-      extra_applications: [:appsignal, :logger, :sasl, :os_mon],
+      extra_applications: [:logger, :sasl, :os_mon, :statix, :telemetry],
       included_applications: [:vmstats]
     ]
   end
 
-  defp deps, do: [{:vmstats, "~> 2.3", runtime: false}]
+  defp deps,
+    do: [
+      {:telemetry, "~> 0.4.0"},
+      {:sentry, "~> 7.0"},
+      {:statix, "~> 1.1"},
+      {:spandex, "~> 2.4"},
+      {:spandex_datadog, "~> 0.4"},
+      {:decorator, "~> 1.2"},
+      {:vmstats, "~> 2.3", runtime: false}
+    ]
 end

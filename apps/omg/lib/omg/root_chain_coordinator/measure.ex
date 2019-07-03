@@ -12,18 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Application do
+defmodule OMG.RootChainCoordinator.Measure do
   @moduledoc """
-  The application here is the Child chain server and its API.
-  See here (children) for the processes that compose into the Child Chain server.
+  Counting business metrics sent to DataDog
   """
 
-  use Application
-  alias OMG.Alert.AlarmHandler
+  import OMG.Status.Metric.Event, only: [name: 2]
+  alias OMG.Status.Metric.Datadog
 
-  def start(_type, _args) do
-    :ok = AlarmHandler.install()
+  def handle_event([:process, OMG.RootChainCoordinator], _, state, _config) do
+    value =
+      self()
+      |> Process.info(:message_queue_len)
+      |> elem(1)
 
-    OMG.Supervisor.start_link()
+    :ok = Datadog.gauge(name(state.service_name, :message_queue_len), value)
   end
 end

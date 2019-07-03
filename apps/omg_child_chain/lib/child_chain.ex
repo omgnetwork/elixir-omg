@@ -27,7 +27,7 @@ defmodule OMG.ChildChain do
   alias OMG.State
   alias OMG.State.Transaction
   use OMG.Utils.LoggerExt
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
 
   @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error()
 

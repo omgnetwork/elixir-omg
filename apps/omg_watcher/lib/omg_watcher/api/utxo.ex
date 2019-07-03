@@ -20,7 +20,7 @@ defmodule OMG.Watcher.API.Utxo do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.UtxoExit.Core
 
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
   require Utxo
   import Utxo, only: [is_deposit: 1]
 

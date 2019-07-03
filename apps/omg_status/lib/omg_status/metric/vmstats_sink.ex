@@ -11,19 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-defmodule OMG.Application do
+defmodule OMG.Status.Metric.VmstatsSink do
   @moduledoc """
-  The application here is the Child chain server and its API.
-  See here (children) for the processes that compose into the Child Chain server.
+  Interface implementation.
   """
+  alias OMG.Status.Metric.Datadog
+  @behaviour :vmstats_sink
 
-  use Application
-  alias OMG.Alert.AlarmHandler
+  def collect(:counter, key, value), do: :ok = Datadog.set(key, value)
 
-  def start(_type, _args) do
-    :ok = AlarmHandler.install()
+  def collect(:gauge, key, value), do: :ok = Datadog.gauge(key, value)
 
-    OMG.Supervisor.start_link()
-  end
+  def collect(:timing, key, value), do: :ok = Datadog.timing(key, value)
 end

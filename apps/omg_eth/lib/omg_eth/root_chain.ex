@@ -20,7 +20,7 @@ defmodule OMG.Eth.RootChain do
   """
 
   alias OMG.Eth
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"

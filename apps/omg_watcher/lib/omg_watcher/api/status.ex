@@ -24,7 +24,7 @@ defmodule OMG.Watcher.API.Status do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
 
   @opaque t() :: %{
             last_validated_child_block_number: non_neg_integer(),

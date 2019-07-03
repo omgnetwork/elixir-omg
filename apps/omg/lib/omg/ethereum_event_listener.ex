@@ -18,13 +18,11 @@ defmodule OMG.EthereumEventListener do
   """
 
   alias OMG.EthereumEventListener.Core
-  alias OMG.Recorder
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
-  alias OMG.Utils.Metrics
 
   use GenServer
-  use Metrics
+  use OMG.Status.Metric.Measure
   use OMG.Utils.LoggerExt
 
   @type config() :: %{
@@ -81,21 +79,20 @@ defmodule OMG.EthereumEventListener do
 
     {:ok, _} = schedule_get_events()
     :ok = RootChainCoordinator.check_in(height_to_check_in, service_name)
-
-    name =
-      service_name
-      |> Atom.to_string()
-      |> Kernel.<>(".Recorder")
-      |> String.to_atom()
-
-    {:ok, _} = Recorder.start_link(%Recorder{name: name, parent: self()})
+    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
 
     _ = Logger.info("Started #{inspect(__MODULE__)} for #{service_name}, synced_height: #{inspect(height_to_check_in)}")
 
     {:noreply, {initial_state, callbacks_map}}
   end
 
+  def handle_info(:send_metrics, {core, _callbacks} = state) do
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, core)
+    {:noreply, state}
+  end
+
   def handle_info(:sync, state), do: do_sync(state)
+
   @decorate measure_start()
   defp do_sync({%Core{} = core, _callbacks} = state) do
     case RootChainCoordinator.get_sync_info() do
@@ -112,7 +109,7 @@ defmodule OMG.EthereumEventListener do
   end
 
   defp sync_height(
-         {%Core{service_name: service_name} = state, callbacks},
+         {%Core{} = state, callbacks},
          %SyncGuide{sync_height: sync_height} = sync_info
        ) do
     {:ok, events, db_updates, height_to_check_in, new_state} =
@@ -121,7 +118,6 @@ defmodule OMG.EthereumEventListener do
       |> Core.get_events(sync_height)
 
     {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
-    Metrics.increment(service_name |> Atom.to_string(), length(events))
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
     :ok = RootChainCoordinator.check_in(height_to_check_in, state.service_name)
 

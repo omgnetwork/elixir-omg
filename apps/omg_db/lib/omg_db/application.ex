@@ -19,9 +19,24 @@ defmodule OMG.DB.Application do
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_db)
-    children = [OMG.DB.child_spec()]
+
+    children = [
+      OMG.DB.child_spec()
+    ]
+
     opts = [strategy: :one_for_one, name: OMG.DB.Supervisor]
 
     Supervisor.start_link(children, opts)
+  end
+
+  def start_phase(:attach_telemetry, :normal, _phase_args) do
+    handlers = [["measure-db", OMG.DB.Measure.supported_events(), &OMG.DB.Measure.handle_event/4, nil]]
+
+    Enum.each(handlers, fn handler ->
+      case apply(:telemetry, :attach_many, handler) do
+        :ok -> :ok
+        {:error, :already_exists} -> :ok
+      end
+    end)
   end
 end

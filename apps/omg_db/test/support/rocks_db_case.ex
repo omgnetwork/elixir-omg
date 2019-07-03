@@ -38,7 +38,7 @@ defmodule OMG.DB.RocksDBCase do
     {:ok, dir} = Briefly.create(directory: true)
     :ok = Server.init_storage(dir)
     name = :"TestDB_#{test_name}"
-    {:ok, pid} = start_supervised(OMG.DB.child_spec(db_path: dir, name: name))
+    {:ok, pid} = start_supervised(OMG.DB.child_spec(db_path: dir, name: name), restart: :temporary)
     {:ok, %{db_dir: dir, db_pid: pid, db_pid_name: name}}
   end
 end

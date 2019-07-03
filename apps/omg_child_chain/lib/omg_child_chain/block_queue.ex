@@ -23,7 +23,6 @@ defmodule OMG.ChildChain.BlockQueue do
   alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
   alias OMG.ChildChain.FreshBlocks
-  alias OMG.Recorder
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
@@ -40,7 +39,7 @@ defmodule OMG.ChildChain.BlockQueue do
 
     use GenServer
     use OMG.Utils.LoggerExt
-    use OMG.Utils.Metrics
+    use OMG.Status.Metric.Measure
     alias OMG.Eth
     alias OMG.Eth.Encoding
     alias OMG.EthereumHeight
@@ -114,10 +113,20 @@ defmodule OMG.ChildChain.BlockQueue do
       # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
       :ok = OMG.InternalEventBus.subscribe("blocks", link: true)
 
-      {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+      {:ok, _} =
+        :timer.send_interval(
+          Application.fetch_env!(:omg_child_chain, :metrics_collection_interval),
+          self(),
+          :send_metrics
+        )
 
-      _ = Logger.info("Started BlockQueue")
+      _ = Logger.info("Started #{inspect(__MODULE__)}")
       {:noreply, %Core{} = state}
+    end
+
+    def handle_info(:send_metrics, state) do
+      :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+      {:noreply, state}
     end
 
     @doc """

@@ -17,12 +17,11 @@ defmodule OMG.RootChainCoordinator do
   """
 
   alias OMG.EthereumHeight
-  alias OMG.Recorder
   alias OMG.RootChainCoordinator.Core
 
   use GenServer
   use OMG.Utils.LoggerExt
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
 
   defmodule SyncGuide do
     @moduledoc """
@@ -88,8 +87,26 @@ defmodule OMG.RootChainCoordinator do
     |> Map.keys()
     |> request_sync()
 
-    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
 
+    _ = Logger.info("Started #{inspect(__MODULE__)}")
+
+    {:noreply, state}
+  end
+
+  def handle_info(:send_metrics, state) do
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+    {:noreply, state}
+  end
+
+  def handle_info(:update_root_chain_height, state) do
+    {:ok, root_chain_height} = OMG.EthereumHeight.get()
+    {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
+    {:noreply, state}
+  end
+
+  def handle_info({:DOWN, _ref, :process, pid, _}, state) do
+    {:ok, state} = Core.check_out(state, pid)
     {:noreply, state}
   end
 
@@ -106,17 +123,6 @@ defmodule OMG.RootChainCoordinator do
 
   def handle_call(:get_ethereum_heights, _from, state) do
     {:reply, {:ok, Core.get_ethereum_heights(state)}, state}
-  end
-
-  def handle_info(:update_root_chain_height, state) do
-    {:ok, root_chain_height} = OMG.EthereumHeight.get()
-    {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
-    {:noreply, state}
-  end
-
-  def handle_info({:DOWN, _ref, :process, pid, _}, state) do
-    {:ok, state} = Core.check_out(state, pid)
-    {:noreply, state}
   end
 
   defp schedule_get_ethereum_height(interval) do

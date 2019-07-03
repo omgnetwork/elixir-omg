@@ -12,31 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Core.Metrics do
+defmodule OMG.Watcher.Eventer.Measure do
   @moduledoc """
   Counting business metrics sent to DataDog
   """
 
-  alias OMG.Eth.Encoding
-  alias OMG.State.Core
+  import OMG.Status.Metric.Event, only: [name: 1]
+  alias OMG.Status.Metric.Datadog
 
-  def calculate(%Core{utxos: utxos}) do
-    [
-      {"unique_users", unique_users(utxos)}
-      | Enum.map(balance(utxos), fn {currency, amount} -> {"balance_" <> Encoding.to_hex(currency), amount} end)
-    ]
-  end
+  @supported_events [[:process, OMG.Watcher.Eventer]]
+  def supported_events, do: @supported_events
 
-  defp unique_users(utxos) do
-    utxos
-    |> Enum.map(fn {_, %OMG.Utxo{owner: owner}} -> owner end)
-    |> Enum.uniq()
-    |> Enum.count()
-  end
+  def handle_event([:process, OMG.Watcher.Eventer], _state, _metadata, _config) do
+    value =
+      self()
+      |> Process.info(:message_queue_len)
+      |> elem(1)
 
-  defp balance(utxos) do
-    Enum.reduce(utxos, %{}, fn {_, %{currency: currency, amount: amount}}, acc ->
-      Map.update(acc, currency, amount, &(&1 + amount))
-    end)
+    :ok = Datadog.gauge(name(:eventer_message_queue_len), value)
   end
 end

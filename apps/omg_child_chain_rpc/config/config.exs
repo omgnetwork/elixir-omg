@@ -13,7 +13,7 @@ config :omg_child_chain_rpc,
 # Configures the endpoint
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
   render_errors: [view: OMG.ChildChainRPC.Web.Views.Error, accepts: ~w(json)],
-  instrumenters: [Appsignal.Phoenix.Instrumenter],
+  instrumenters: [SpandexPhoenix.Instrumenter],
   enable_cors: true
 
 # Use Poison for JSON parsing in Phoenix

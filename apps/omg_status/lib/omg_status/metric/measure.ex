@@ -12,30 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Utils.Metrics do
+defmodule OMG.Status.Metric.Measure do
   @moduledoc """
   Wrapper around facilities used to trigger events to calculate performance metrics
 
   Allows one to discard some metric triggers, based on their namespace:
   ## Example
 
-      config :omg_utils, discard_metrics: [:State]
+      config :omg_status, discard_metrics: [:State]
   """
-
-  # we want to override Statix in :test
-  # because we don't want to send metrics in unittests
-  case Application.get_env(:omg_utils, :environment) do
-    :test -> use OMG.Utils.Statix
-    _ -> use Statix, runtime_config: true
-  end
-
-  alias OMG.Utils.Tracer
 
   use Decorator.Define,
     measure_start: 0,
     measure_event: 0
 
-  @discard_namespace_metrics Application.get_env(:omg_utils, :discard_metrics, [])
+  alias OMG.Status.Metric.Tracer
+
+  @discard_namespace_metrics Application.get_env(:omg_status, :discard_metrics, [])
 
   def measure_start(body, context) do
     # NOTE: the namespace and event group naming convention here is tentative.
@@ -51,6 +44,7 @@ defmodule OMG.Utils.Metrics do
       else: start_span(body, context)
   end
 
+  ### macros implementation reference https://github.com/spandex-project/spandex/blob/master/lib/decorators.ex
   defp start_trace(body, context) do
     trace_name = trace_name(context)
 

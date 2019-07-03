@@ -138,6 +138,7 @@ defmodule OMG.EthereumEventListener.Core do
 
     height_to_check_in = get_height_to_check_in(new_state)
     db_update = [{:put, update_key, height_to_check_in}]
+    :ok = :telemetry.execute([:process, __MODULE__], %{events: events}, state)
     {:ok, events, db_update, height_to_check_in, new_state}
   end
 end

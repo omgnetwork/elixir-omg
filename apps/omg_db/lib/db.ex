@@ -17,7 +17,7 @@ defmodule OMG.DB do
   DB API module provides an interface to all needed functions that need to be implemented by the
   underlying database layer.
   """
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
   @callback start_link(term) :: GenServer.on_start()

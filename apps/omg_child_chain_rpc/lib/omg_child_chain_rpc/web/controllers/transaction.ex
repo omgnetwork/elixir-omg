@@ -20,7 +20,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.Transaction do
   use OMG.ChildChainRPC.Web, :controller
 
   alias OMG.ChildChainRPC.Web.View
-  alias OMG.Utils.Metrics
 
   @api_module Application.fetch_env!(:omg_child_chain_rpc, :child_chain_api_module)
 
@@ -35,15 +34,11 @@ defmodule OMG.ChildChainRPC.Web.Controller.Transaction do
   end
 
   defp increment_metrics_counter(response) do
+    # this should go away with spandex
     case response do
-      {:error, {:validation_error, _, _}} ->
-        Metrics.increment("transaction.failed.validation", 1)
-
-      %Plug.Conn{} ->
-        Metrics.increment("transaction.succeed", 1)
-
-      _ ->
-        Metrics.increment("transaction.failed.unidentified", 1)
+      {:error, {:validation_error, _, _}} -> :telemetry.execute([:transaction], %{counter: 1}, %{valid: :failed})
+      %Plug.Conn{} -> :telemetry.execute([:transaction], %{counter: 1}, %{valid: :succeed})
+      _ -> :telemetry.execute([:transaction], %{counter: 1}, %{valid: :"failed.unidentified"})
     end
 
     response

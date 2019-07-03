@@ -11,16 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.VmstatsSink do
+
+defmodule OMG.Status.Metric.Datadog do
   @moduledoc """
-  Interface implementation.
+  Wrapper around facilities used to trigger events to calculate performance metrics
+
+  Allows one to discard some metric triggers, based on their namespace:
+  ## Example
+
+      config :omg_utils, discard_metrics: [:State]
   """
-  alias OMG.Utils.Metrics
-  @behaviour :vmstats_sink
 
-  def collect(:counter, key, value), do: Metrics.set(key, value)
-
-  def collect(:gauge, key, value), do: Metrics.gauge(key, value)
-
-  def collect(:timing, key, value), do: Metrics.timing(key, value)
+  # we want to override Statix in :test
+  # because we don't want to send metrics in unittests
+  case Application.get_env(:omg_status, :environment) do
+    :test -> use OMG.Status.Metric.Statix
+    _ -> use Statix, runtime_config: true
+  end
 end

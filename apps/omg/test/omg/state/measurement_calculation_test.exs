@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Core.MetricsTest do
+defmodule OMG.State.MeasurementCalculationTest do
   @moduledoc """
-  Tests functional behaviors of `OMG.State.Core.Metrics`.
+  Testing functional behaviors.
   """
   use ExUnitFixtures
   use ExUnit.Case, async: true
@@ -37,11 +37,11 @@ defmodule OMG.State.Core.MetricsTest do
       Utxo.position(7_000, 4057, 3) => %OMG.Utxo{amount: 222_222_222, currency: @not_eth, owner: carol}
     }
 
-    assert MapSet.new(Core.Metrics.calculate(%Core{utxos: utxos})) ==
+    assert MapSet.new(OMG.State.MeasurementCalculation.calculate(%Core{utxos: utxos})) ==
              MapSet.new([
-               {"unique_users", 3},
-               {"balance_" <> Encoding.to_hex(@eth), 777_000_000},
-               {"balance_" <> Encoding.to_hex(@not_eth), 333_333_333}
+               {:unique_users, 3},
+               {:balance, 777_000_000, "currency:#{Encoding.to_hex(@eth)}"},
+               {:balance, 333_333_333, "currency:#{Encoding.to_hex(@not_eth)}"}
              ])
   end
 end

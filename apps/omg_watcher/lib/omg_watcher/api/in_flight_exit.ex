@@ -22,7 +22,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   alias OMG.Watcher.API
   alias OMG.Watcher.ExitProcessor
 
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
   require Utxo
 
   @type in_flight_exit() :: %{

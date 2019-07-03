@@ -14,9 +14,4 @@ config :omg, :eip_712_domain,
   version: "1",
   salt: "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
 
-config :omg, OMG.Utils.Tracer,
-  service: :omg,
-  adapter: SpandexDatadog.Adapter,
-  env: {:system, "APP_ENV"}
-
 import_config "#{Mix.env()}.exs"

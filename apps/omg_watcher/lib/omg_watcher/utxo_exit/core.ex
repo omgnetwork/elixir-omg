@@ -21,7 +21,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.DB
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
   require Utxo
 
   @decorate measure_event()

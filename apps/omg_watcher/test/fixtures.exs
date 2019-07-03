@@ -133,6 +133,16 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture web_endpoint do
+    Application.ensure_all_started(:spandex_ecto)
+    Application.ensure_all_started(:telemetry)
+
+    :telemetry.attach(
+      "spandex-query-tracer",
+      [:omg, :watcher, :db, :repo, :query],
+      &SpandexEcto.TelemetryAdapter.handle_event/4,
+      nil
+    )
+
     {:ok, pid} =
       Supervisor.start_link(
         [

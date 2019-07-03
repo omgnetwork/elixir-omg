@@ -37,13 +37,22 @@ config :statix,
   port: {:system, "DD_PORT", 8125, {String, :to_integer}}
 
 config :vmstats,
-  sink: OMG.VmstatsSink,
-  interval: 3000
+  sink: OMG.OMG.Status.Metric.VmstatsSink,
+  interval: 15_000,
+  base_key: 'vmstats',
+  key_separator: '$.',
+  sched_time: true,
+  memory_metrics: [
+    total: :total,
+    processes_used: :procs_used,
+    atom_used: :atom_used,
+    binary: :binary,
+    ets: :ets
+  ]
 
-# Configs for AppSignal application monitoring
-config :appsignal, :config,
-  name: "OmiseGO Plasma MoreVP Implementation",
-  env: Mix.env(),
-  active: true
+config :spandex_phoenix, tracer: OMG.Status.Metric.Tracer
+config :spandex_ecto, SpandexEcto.EctoLogger,
+  service: :ecto,
+  tracer: OMG.Status.Metric.Tracer
 
 import_config "#{Mix.env()}.exs"

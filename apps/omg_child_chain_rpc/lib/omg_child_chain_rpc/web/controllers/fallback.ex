@@ -16,8 +16,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.Fallback do
   @moduledoc """
   The fallback handler.
 
-  TODO: Intentionally we want to have single Phx app exposing both APIs, until then please keep this file similar
-  to the corresponding Watcher's one to make merge simpler.
   """
 
   use Phoenix.Controller

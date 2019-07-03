@@ -36,6 +36,25 @@ defmodule OMG.ChildChain.Application do
     :ok = Alarm.clear(alarm())
   end
 
+  def start_phase(:attach_telemetry, :normal, _phase_args) do
+    handlers = [
+      [
+        "measure-ethereum-event-listener",
+        OMG.EthereumEventListener.Measure.supported_events(),
+        &OMG.EthereumEventListener.Measure.handle_event/4,
+        nil
+      ],
+      ["measure-state", OMG.State.Measure.supported_events(), &OMG.State.Measure.handle_event/4, nil]
+    ]
+
+    Enum.each(handlers, fn handler ->
+      case apply(:telemetry, :attach_many, handler) do
+        :ok -> :ok
+        {:error, :already_exists} -> :ok
+      end
+    end)
+  end
+
   defp set_cookie(cookie) when is_binary(cookie) do
     cookie
     |> String.to_atom()

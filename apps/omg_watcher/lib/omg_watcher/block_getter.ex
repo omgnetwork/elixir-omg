@@ -34,11 +34,10 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.BlockGetter.Status
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.Recorder
 
   use GenServer
   use OMG.Utils.LoggerExt
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -100,7 +99,8 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, _} = __MODULE__.Status.start_link()
     :ok = update_status(state)
 
-    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+    {:ok, _} =
+      :timer.send_interval(Application.fetch_env!(:omg_watcher, :metrics_collection_interval), self(), :send_metrics)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}, synced_height: #{inspect(synced_height)}")
 
@@ -191,6 +191,11 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info({_ref, {:downloaded_block, response}}, state), do: do_downloaded_block(response, state)
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
   def handle_info(:sync, state), do: do_sync(state)
+
+  def handle_info(:send_metrics, state) do
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+    {:noreply, state}
+  end
 
   @decorate measure_start()
   defp do_producer(state) do

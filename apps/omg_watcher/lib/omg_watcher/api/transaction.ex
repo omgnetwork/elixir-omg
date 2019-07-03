@@ -23,7 +23,7 @@ defmodule OMG.Watcher.API.Transaction do
   alias OMG.Watcher.DB
   alias OMG.Watcher.HttpRPC.Client
   alias OMG.Watcher.UtxoSelection
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
   require Utxo
 
   @default_transactions_limit 200

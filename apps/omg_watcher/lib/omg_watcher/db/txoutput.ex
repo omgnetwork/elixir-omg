@@ -17,7 +17,7 @@ defmodule OMG.Watcher.DB.TxOutput do
   Ecto schema for transaction's output or input
   """
   use Ecto.Schema
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
 
   alias OMG.State.Transaction
   alias OMG.Utxo

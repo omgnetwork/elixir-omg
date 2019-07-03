@@ -17,24 +17,35 @@ defmodule OMG.Status.Application do
   Top level application module.
   """
   use Application
+  #  alias Status.Metric.Recorder
   alias OMG.Status.Alert.AlarmHandler
-  alias Status.Metric.Recorder
+  alias OMG.Status.Metric.Datadog
 
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
-    children =
-      if is_enabled?() do
-        _ = Application.put_env(:vmstats, :sink, Status.Metric.Recorder)
-        [Recorder.prepare_child()]
-      else
-        []
-      end
+    :ok = DeferredConfig.populate(:statix)
+    :ok = DeferredConfig.populate(:omg_status)
 
-    # TODO remove when running full releases (covered with config providers)
+    if is_enabled?() do
+      _ = Application.put_env(:vmstats, :sink, Status.Metric.Recorder)
+    end
+
+    spandex = [
+      {SpandexDatadog.ApiServer,
+       [
+         host: System.get_env("DATADOG_HOST") || "localhost",
+         port: System.get_env("DATADOG_PORT") || 8126,
+         batch_size: System.get_env("SPANDEX_BATCH_SIZE") || 10,
+         sync_threshold: System.get_env("SPANDEX_SYNC_THRESHOLD") || 100,
+         http: HTTPoison
+       ]}
+    ]
+
+    # TODO remove when running full releases (it'll be covered with config providers)
     :ok = configure_sentry()
-
-    Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
+    :ok = Datadog.connect()
+    Supervisor.start_link(spandex, strategy: :one_for_one, name: Status.Supervisor)
   end
 
   def start_phase(:install_alarm_handler, _start_type, _phase_args) do

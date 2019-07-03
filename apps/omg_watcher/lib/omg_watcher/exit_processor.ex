@@ -30,9 +30,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.StandardExit
-  alias OMG.Watcher.Recorder
-
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
   use OMG.Utils.LoggerExt
   require Utxo
 
@@ -209,7 +207,8 @@ defmodule OMG.Watcher.ExitProcessor do
 
     processor = Core.init(db_exits, db_ifes, db_competitors, sla_margin)
 
-    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+    {:ok, _} =
+      :timer.send_interval(Application.fetch_env!(:omg_watcher, :metrics_collection_interval), self(), :send_metrics)
 
     _ = Logger.info("Initializing with: #{inspect(processor)}")
     processor
@@ -374,6 +373,11 @@ defmodule OMG.Watcher.ExitProcessor do
              |> Core.create_challenge(state)
 
     {:reply, response, state}
+  end
+
+  def handle_info(:send_metrics, state) do
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+    {:noreply, state}
   end
 
   defp fill_request_with_standard_challenge_data(

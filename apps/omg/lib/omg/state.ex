@@ -21,14 +21,13 @@ defmodule OMG.State do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Fees
-  alias OMG.Recorder
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
   alias OMG.Utxo
 
   use GenServer
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
   use OMG.Utils.LoggerExt
 
   @type exec_error :: Validator.exec_error()
@@ -94,7 +93,6 @@ defmodule OMG.State do
     {:ok, utxos_query_result} = DB.utxos()
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, last_deposit_query_result} = DB.get_single_value(:last_deposit_child_blknum)
-    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
     {:ok, [utxos_query_result, height_query_result, last_deposit_query_result], {:continue, :setup}}
   end
 
@@ -109,7 +107,15 @@ defmodule OMG.State do
                last_deposit_query_result,
                child_block_interval
              ) do
-        _ = Logger.info("Started State, height: #{height_query_result}, deposit height: #{last_deposit_query_result}")
+        _ =
+          Logger.info(
+            "Started #{inspect(__MODULE__)}, height: #{height_query_result}, deposit height: #{
+              last_deposit_query_result
+            }"
+          )
+
+        {:ok, _} =
+          :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
 
         result
       else
@@ -121,16 +127,11 @@ defmodule OMG.State do
           other
       end
 
-    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
-
     {:noreply, state}
   end
 
   def handle_info(:send_metrics, state) do
-    _ =
-      Core.Metrics.calculate(state)
-      |> Enum.map(fn {key, value} -> OMG.Utils.Metrics.gauge(key, value) end)
-
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
     {:noreply, state}
   end
 

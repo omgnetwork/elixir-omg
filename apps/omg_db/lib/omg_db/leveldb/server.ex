@@ -18,11 +18,10 @@ defmodule OMG.DB.LevelDB.Server do
   """
 
   # All complex operations on data written/read should go into OMG.DB.LevelDB.Core
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
   use GenServer
 
   alias OMG.DB.LevelDB.Core
-  alias OMG.DB.LevelDB.Recorder
   require Logger
 
   defstruct [:db_ref, :name]
@@ -50,23 +49,25 @@ defmodule OMG.DB.LevelDB.Server do
   def init(db_path: db_path, name: name) do
     # needed so that terminate callback is called on normal close
     Process.flag(:trap_exit, true)
-    table = create_stats_table(name)
-
-    recorder_name =
-      name
-      |> Atom.to_string()
-      |> Kernel.<>(".Recorder")
-      |> String.to_atom()
-
-    {:ok, _recorder_pid} = Recorder.start_link(%Recorder{name: recorder_name, parent: self(), table: table})
+    ^name = create_stats_table(name)
 
     with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: false) do
+      {:ok, _} =
+        :timer.send_interval(Application.fetch_env!(:omg_db, :metrics_collection_interval), self(), :send_metrics)
+
+      _ = Logger.info("Started #{inspect(__MODULE__)}")
+
       {:ok, %__MODULE__{name: name, db_ref: db_ref}}
     else
       error ->
         _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
         error
     end
+  end
+
+  def handle_info(:send_metrics, state) do
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+    {:noreply, state}
   end
 
   def handle_call({:multi_update, db_updates}, _from, state), do: do_multi_update(db_updates, state)
@@ -178,20 +179,20 @@ defmodule OMG.DB.LevelDB.Server do
 
   # Argument order flipping tools :(
   @spec write(Exleveldb.write_actions(), t) :: :ok | {:error, any}
-  defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
-    _ = Recorder.update_write(name)
+  defp write(operations, %__MODULE__{db_ref: db_ref} = state) do
+    :ok = :telemetry.execute([:update_write, __MODULE__], %{}, state)
     Exleveldb.write(db_ref, operations)
   end
 
   @spec get(atom() | binary(), t) :: {:ok, binary()} | :not_found
-  defp get(key, %__MODULE__{db_ref: db_ref, name: name}) do
-    _ = Recorder.update_read(name)
+  defp get(key, %__MODULE__{db_ref: db_ref} = state) do
+    :ok = :telemetry.execute([:update_read, __MODULE__], %{}, state)
     Exleveldb.get(db_ref, key)
   end
 
   @decorate measure_event()
-  defp get_all_by_type(type, %__MODULE__{db_ref: db_ref, name: name}) do
-    _ = Recorder.update_multiread(name)
+  defp get_all_by_type(type, %__MODULE__{db_ref: db_ref} = state) do
+    :ok = :telemetry.execute([:update_multiread, __MODULE__], %{}, state)
     do_get_all_by_type(type, db_ref)
   end
 
@@ -219,7 +220,5 @@ defmodule OMG.DB.LevelDB.Server do
   defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
 
   # WARNING, terminate below will be called only if :trap_exit is set to true
-  def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
-    :ok = Exleveldb.close(db_ref)
-  end
+  def terminate(_reason, %__MODULE__{db_ref: db_ref}), do: :ok = Exleveldb.close(db_ref)
 end

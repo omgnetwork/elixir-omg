@@ -18,7 +18,7 @@ defmodule OMG.ChildChain.FreshBlocks do
   """
 
   use OMG.Utils.LoggerExt
-  use OMG.Utils.Metrics
+  use OMG.Status.Metric.Measure
   alias OMG.Block
   alias OMG.ChildChain.FreshBlocks.Core
   alias OMG.DB
