@@ -49,8 +49,7 @@ defmodule OMG.Utils.HttpRPC.Response do
     map_or_struct
     |> to_map()
     |> do_filter()
-    |> Enum.map(fn {k, v} -> {k, sanitize(v)} end)
-    |> Map.new()
+    |> sanitize_map()
   end
 
   def sanitize(bin) when is_binary(bin), do: Encoding.to_hex(bin)
@@ -66,6 +65,13 @@ defmodule OMG.Utils.HttpRPC.Response do
     else
       map_or_struct
     end
+  end
+
+  # Allows to skip sanitize on specifies keys provided in list in key :skip_hex_encode
+  defp sanitize_map(map) do
+    map
+    |> Enum.map(fn {k, v} -> {k, sanitize(v)} end)
+    |> Map.new()
   end
 
   defp to_map(struct), do: Map.drop(struct, [:__struct__, :__meta__])
