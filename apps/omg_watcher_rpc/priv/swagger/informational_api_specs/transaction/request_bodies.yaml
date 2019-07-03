@@ -110,148 +110,61 @@ TransactionSubmitTypedBodySchema:
   content:
     application/json:
       schema:
-        type: object
-        properties:
-          types:
-            type: object
-            properties:
-              EIP712Domain:
-                type: array
-              additionalProperties:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    name:
-                      type: string
-                    type:
-                      type: string
-                  required:
-                    - name
-                    - type
-          primaryType:
-            type: string
-          domain:
-            type: object
-            properties:
-              name:
-                type: string
-              salt:
+        allOf:
+        - $ref: 'schemas.yaml#/Eip712SignRequestSchema'
+        - type: object
+          properties:
+            signatures:
+              type: array
+              items:
                 type: string
                 format: binary
-              verifyingContract:
-                type: string
-                format: binary
-              version:
-                type: string
-            required:
-              - name
-              - salt
-              - verifyingContract
-              - version
-          message:
-            type: object
-            properties:
-              input0:
-                type: object
-                properties:
-                  blknum:
-                    type: integer
-                    format: int64
-                  txindex:
-                    type: integer
-                    format: int16
-                  oindex:
-                    type: integer
-                    format: int8
-              input1:
-                type: object
-              input2:
-                type: object
-              input3:
-                type: object
+          required:
+            - domain
+            - message
+            - signatures
+          example:
+            domain:
+              name: 'OMG Network'
+              salt: '0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83'
+              verifyingContract: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
+              version: '1'
+            message:
+              input0: 
+                blknum: 1
+                txindex: 0
+                oindex: 0
+              input1: 
+                blknum: 1000
+                txindex: 1
+                oindex: 1
+              input2: 
+                blknum: 0
+                txindex: 0
+                oindex: 0
+              input3: 
+                blknum: 0
+                txindex: 0
+                oindex: 0
               output0:
-                type: object
-                properties:
-                  owner:
-                    type: string
-                    format: binary
-                  currency:
-                    type: string
-                    format: binary
-                  amount:
-                    type: integer
-                    format: int256
+                owner: '0x0527a37aa7081efcf405bd7c8fe36b01e91df27d'
+                currency: '0x0000000000000000000000000000000000000000'
+                amount: 100
               output1:
-                type: object
+                owner: '0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837'
+                currency: '0x0000000000000000000000000000000000000000'
+                amount: 10
               output2:
-                type: object
+                owner: '0x0000000000000000000000000000000000000000'
+                currency: '0x0000000000000000000000000000000000000000'
+                amount: 0
               output3:
-                type: object
-              metadata:
-                type: string
-                format: binary
-            required:
-              - input0
-              - input1
-              - input2
-              - input3
-              - output0
-              - output1
-              - output2
-              - output3
-              - metadata
-          signatures:
-            type: array
-            items:
-              type: string
-              format: binary
-        required:
-          - domain
-          - message
-          - signatures
-        example:
-          domain:
-            name: 'OMG Network'
-            salt: '0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83'
-            verifyingContract: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
-            version: '1'
-          message:
-            input0: 
-              blknum: 1
-              txindex: 0
-              oindex: 0
-            input1: 
-              blknum: 1000
-              txindex: 1
-              oindex: 1
-            input2: 
-              blknum: 0
-              txindex: 0
-              oindex: 0
-            input3: 
-              blknum: 0
-              txindex: 0
-              oindex: 0
-            output0:
-              owner: '0x0527a37aa7081efcf405bd7c8fe36b01e91df27d'
-              currency: '0x0000000000000000000000000000000000000000'
-              amount: 100
-            output1:
-              owner: '0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837'
-              currency: '0x0000000000000000000000000000000000000000'
-              amount: 10
-            output2:
-              owner: '0x0000000000000000000000000000000000000000'
-              currency: '0x0000000000000000000000000000000000000000'
-              amount: 0
-            output3:
-              owner: '0x0000000000000000000000000000000000000000'
-              currency: '0x0000000000000000000000000000000000000000'
-              amount: 0
-            metadata: '0x0000000000000000000000000000000000000000000000000000000000000000'
-          signatures: 
-            - '0x6bfb9b2dbe32...'
+                owner: '0x0000000000000000000000000000000000000000'
+                currency: '0x0000000000000000000000000000000000000000'
+                amount: 0
+              metadata: '0x0000000000000000000000000000000000000000000000000000000000000000'
+            signatures: 
+              - '0x6bfb9b2dbe32...'
 
 GetTransactionByPosBodySchema:
   description: Position of the transaction

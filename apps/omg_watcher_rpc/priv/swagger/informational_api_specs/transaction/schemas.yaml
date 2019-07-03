@@ -75,6 +75,111 @@ TransactionSchema:
       items:
         $ref: '#/TransactionOutputSchema'
 
+Eip712DomainSchema:
+  type: object
+  properties: 
+    name:
+      type: string
+    salt:
+      type: string
+      format: binary
+    verifyingContract:
+      type: string
+      format: binary
+    version:
+      type: string
+  required:
+    - name
+    - salt
+    - verifyingContract
+    - version
+
+Eip712MsgInputSchema:
+  type: object
+  properties:
+    blknum:
+      type: integer
+      format: int64
+    txindex:
+      type: integer
+      format: int16
+    oindex:
+      type: integer
+      format: int8
+
+Eip712MsgOutputSchema:
+  type: object
+  properties:
+    owner:
+      type: string
+      format: binary
+    currency:
+      type: string
+      format: binary
+    amount:
+      type: integer
+      format: int256
+
+Eip712MsgTransactionSchema:
+  type: object
+  properties:
+    input0:
+      $ref: '#/Eip712MsgInputSchema'
+    input1:
+      $ref: '#/Eip712MsgInputSchema'
+    input2:
+      $ref: '#/Eip712MsgInputSchema'
+    input3:
+      $ref: '#/Eip712MsgInputSchema'
+    output0:
+      $ref: '#/Eip712MsgOutputSchema'
+    output1:
+      $ref: '#/Eip712MsgOutputSchema'
+    output2:
+      $ref: '#/Eip712MsgOutputSchema'
+    output3:
+      $ref: '#/Eip712MsgOutputSchema'
+    metadata:
+      type: string
+      format: binary
+  required:
+    - input0
+    - input1
+    - input2
+    - input3
+    - output0
+    - output1
+    - output2
+    - output3
+    - metadata
+
+Eip712SignRequestSchema:
+  type: object
+  properties: 
+    types:
+      type: object
+      properties:
+        EIP712Domain:
+          type: array
+        additionalProperties:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              type:
+                type: string
+            required:
+              - name
+              - type
+    primaryType:
+      type: string
+    domain:
+      $ref: '#/Eip712DomainSchema'
+    message:
+      $ref: '#/Eip712MsgTransactionSchema'
+
 CreateTransactionSchema:
   type: object
   properties:
