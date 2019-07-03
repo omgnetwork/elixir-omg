@@ -18,20 +18,61 @@ defmodule OMG.Status.Application do
   """
   use Application
   alias OMG.Status.Alert.AlarmHandler
-  alias Status.Metric.Recorder
 
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
+    import Telemetry.Metrics
 
     children =
       if is_enabled?() do
-        _ = Application.put_env(:vmstats, :sink, Status.Metric.Recorder)
-        [Recorder.prepare_child()]
+        [
+          {Storage, %{}},
+          {TelemetryMetricsStatsd,
+           [
+             metrics: [
+               last_value("vm.memory.total"),
+               last_value("vm.memory.processes"),
+               last_value("vm.memory.processes_used"),
+               last_value("vm.memory.atom_used"),
+               last_value("vm.memory.binary"),
+               last_value("vm.memory.ets"),
+               last_value("vm.memory.system"),
+               last_value("vm.memory.total"),
+               last_value("vm.process.count"),
+               last_value("vm.process.limit"),
+               last_value("vm.port.count"),
+               last_value("vm.port.limit"),
+               last_value("vm.atom_count"),
+               last_value("vm.modules"),
+               last_value("vm.run_queue"),
+               last_value("vm.messages_in_queues"),
+               counter("vm.io.bytes_in"),
+               counter("vm.io.bytes_out"),
+               counter("vm.gc.count"),
+               counter("vm.gc.words_reclaimed"),
+               counter("vm.reductions"),
+               summary("vm.scheduler_wall_time", tags: [:scheduler_id]),
+               summary("vm.scheduler_wall_time.total", tags: [:scheduler_id])
+             ],
+             formatter: :datadog
+           ]}
+        ]
       else
         []
       end
 
-    Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
+    supervisor_result = Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
+
+    if is_enabled?() do
+      :telemetry_poller.start_link(
+        measurements: [
+          :memory,
+          {Status.Metric.Measurements, :all, []}
+        ]
+      )
+    end
+
+    supervisor_result
   end
 
   def start_phase(:install_alarm_handler, _start_type, _phase_args) do
