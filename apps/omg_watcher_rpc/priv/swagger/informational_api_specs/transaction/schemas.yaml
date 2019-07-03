@@ -161,6 +161,13 @@ Eip712SignRequestSchema:
       properties:
         EIP712Domain:
           type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              type:
+                type: string
         additionalProperties:
           type: array
           items:
@@ -223,4 +230,9 @@ CreateTransactionSchema:
             format: binary 
           txbytes:
             type: string
+            format: binary
+          sign_hash:
+            type: string
             format: binary 
+          typed_data:
+            $ref: '#/Eip712SignRequestSchema'
