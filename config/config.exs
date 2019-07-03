@@ -32,10 +32,4 @@ config :sentry,
     eth_node: System.get_env("ETH_NODE")
   }
 
-# Configs for AppSignal application monitoring
-config :appsignal, :config,
-  name: "OmiseGO Plasma MoreVP Implementation",
-  env: Mix.env(),
-  active: true
-
 import_config "#{Mix.env()}.exs"

@@ -35,8 +35,8 @@ defmodule OMG.Umbrella.MixProject do
         git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
       },
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
-      {:statix, "~> 1.1"},
-      {:appsignal, "~> 1.9"},
+      {:telemetry_poller, "~> 0.4.0"},
+      {:telemetry_metrics_statsd, "~> 0.2.0"},
       {:sentry, "~> 7.0"},
       {:libsecp256k1,
        git: "https://github.com/InoMurko/libsecp256k1.git",
@@ -82,7 +82,6 @@ defmodule OMG.Umbrella.MixProject do
       :proper,
       :ranch,
       :sentry,
-      :vmstats,
       :statix
     ]
 end
