@@ -19,6 +19,7 @@ defmodule OMG.ChildChainRPC.Application do
 
   use Application
   require Logger
+  import Telemetry.Metrics
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_child_chain_rpc)
@@ -28,6 +29,11 @@ defmodule OMG.ChildChainRPC.Application do
     opts = [strategy: :one_for_one, name: OMG.ChildChainRPC.Supervisor]
 
     children = [
+      {TelemetryMetricsStatsd,
+       [
+         metrics: [counter("child_chain.transaction.counter", event_name: "transaction", tags: [:valid])],
+         formatter: :datadog
+       ]},
       {OMG.ChildChainRPC.Plugs.Health, []},
       {OMG.ChildChainRPC.Web.Endpoint, []}
     ]

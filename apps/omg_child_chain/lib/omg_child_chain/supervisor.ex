@@ -25,8 +25,23 @@ defmodule OMG.ChildChain.Supervisor do
   end
 
   def init(:ok) do
+    import Telemetry.Metrics
     DeferredConfig.populate(:omg_child_chain)
     DeferredConfig.populate(:omg_eth)
+
+    metrics_child =
+      {TelemetryMetricsStatsd,
+       [
+         metrics: [
+           counter("child_chain.deposits.length", event_name: "depositor.events"),
+           counter("chld_chain.exits.in_flights.length", event_name: "in_flight_exit.events"),
+           counter("child_chain.exits.piggybacks.length", event_name: "piggyback.events"),
+           counter("child_chain.exits.length", event_name: "exiter.events"),
+           last_value("child_chain.unique_users.value", event_name: "Elixir.OMG.State.unique_users"),
+           last_value("child_chain.balance.value", event_name: "Elixir.OMG.State.balance", tags: [:coin])
+         ],
+         formatter: :datadog
+       ]}
 
     monitor_children = [
       {OMG.ChildChain.BlockQueue.Server, []},
@@ -58,6 +73,7 @@ defmodule OMG.ChildChain.Supervisor do
     ]
 
     children = [
+      metrics_child,
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, []},
