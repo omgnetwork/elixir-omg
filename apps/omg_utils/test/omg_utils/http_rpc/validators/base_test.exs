@@ -140,7 +140,7 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
 
       assert {:ok, %{currency: @bin_value, amount: 100}} =
                expect(
-                 %{"fee" => %{"currency" => "0xB3256026863EB6aE5B06fA396AB09069784ea8eA", "amount" => 100}},
+                 %{"fee" => %{"currency" => @params["hex_2"], "amount" => 100}},
                  "fee",
                  map: parser
                )
@@ -151,6 +151,17 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
                  "fee",
                  map: parser
                )
+    end
+
+    test "unwrapping results list" do
+      list = 0..9 |> Enum.to_list()
+
+      ok_list = list |> Enum.map(&{:ok, &1})
+      assert list == all_success_or_error(ok_list)
+
+      error = {:error, "bad news"}
+      list_with_err = [error | ok_list] |> Enum.shuffle()
+      assert error == all_success_or_error(list_with_err)
     end
   end
 

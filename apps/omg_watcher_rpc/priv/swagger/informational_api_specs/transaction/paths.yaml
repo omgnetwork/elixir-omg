@@ -52,7 +52,10 @@ transaction.submit_typed:
     tags:
       - Transaction
     summary: Sends EIP-712 formatted transaction to Child chain.
-    description: Request to this method is the same as to Web3 `eth_signTypedData` with additional `signatures` array. The `/transaction.create` `typed_data` field can be used to prepare transaction. The same conditions are met as with security-critical `/transaction.submit`
+    description: >
+        Request to this method is the same as to Web3 `eth_signTypedData` with additional `signatures` array. 
+        The `/transaction.create` `typed_data` field can be used to prepare transaction. The same conditions 
+        are met as with security-critical `/transaction.submit`
     operationId: submit_typed
     requestBody:
       $ref: 'request_bodies.yaml#/TransactionSubmitTypedBodySchema'

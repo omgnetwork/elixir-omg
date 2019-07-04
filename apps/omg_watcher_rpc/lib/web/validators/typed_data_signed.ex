@@ -98,7 +98,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
 
     0..(Transaction.max_inputs() - 1)
     |> Enum.map(fn i -> expect(message, "input#{i}", map: &parse_input/1) end)
-    |> unzip_list_or_first_error()
+    |> all_success_or_error()
   end
 
   @spec parse_output(map()) ::
@@ -116,14 +116,6 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
 
     0..(Transaction.max_outputs() - 1)
     |> Enum.map(fn i -> expect(message, "output#{i}", map: &parse_output/1) end)
-    |> unzip_list_or_first_error()
-  end
-
-  @spec unzip_list_or_first_error([{:ok, any()} | {:error, any()}]) :: list() | {:error, any()}
-  defp unzip_list_or_first_error(result_list) do
-    with nil <- result_list |> Enum.find(&(:error == Kernel.elem(&1, 0))),
-         do:
-           result_list
-           |> Enum.map(fn {:ok, elt} -> elt end)
+    |> all_success_or_error()
   end
 end

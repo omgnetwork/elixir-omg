@@ -78,6 +78,17 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
     do: {:error, {:validation_error, param_name, reason}}
 
   @doc """
+  Unwraps elements from the results list: `[{:ok, elt} | {:error, any()}]` or returns the first error
+  """
+  @spec all_success_or_error([{:ok, any()} | {:error, any()}]) :: list() | {:error, any()}
+  def all_success_or_error(result_list) do
+    with nil <- result_list |> Enum.find(&(:error == Kernel.elem(&1, 0))),
+         do:
+           result_list
+           |> Enum.map(fn {:ok, elt} -> elt end)
+  end
+
+  @doc """
   `integer` function is an example of basic validator used by the engine.
   Validators are passed to the `expect` function in `opts` parameter as a keyword list.
   Each validator expects a tuple, where first element is value of specified `key` in `map`

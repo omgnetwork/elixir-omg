@@ -546,6 +546,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       alice_addr = Encoding.to_hex(alice.addr)
       bob_addr = Encoding.to_hex(bob.addr)
 
+      # we need contract address to be set for `TypedDataHash` computation, contract does not need to be deployed
       Application.put_env(:omg_eth, :contract_addr, contract_addr)
 
       on_exit(fn ->
