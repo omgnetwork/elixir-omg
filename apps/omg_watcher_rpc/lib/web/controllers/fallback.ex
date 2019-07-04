@@ -56,6 +56,16 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
     empty_transaction: %{
       code: "transaction.create:empty_transaction",
       description: "Requested payment transfers no funds."
+    },
+    missing_signature: %{
+      code: "submit_typed:missing_signature",
+      description:
+        "Signatures should correspond to inputs owner. When all non-empty inputs has the same owner, " <>
+          "signatures should be duplicated."
+    },
+    superfluous_signature: %{
+      code: "submit_typed:superfluous_signature",
+      description: "Number of non-empty inputs should match signatures count. Remove redundant signatures."
     }
   }
 
