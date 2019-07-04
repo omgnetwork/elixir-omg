@@ -81,7 +81,6 @@ defmodule OMG.Umbrella.MixProject do
       :propcheck,
       :proper,
       :ranch,
-      :sentry,
-      :statix
+      :sentry
     ]
 end

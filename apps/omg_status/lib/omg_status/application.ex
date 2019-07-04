@@ -63,14 +63,15 @@ defmodule OMG.Status.Application do
 
     supervisor_result = Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
 
-    if is_enabled?() do
-      :telemetry_poller.start_link(
-        measurements: [
-          :memory,
-          {Status.Metric.Measurements, :all, []}
-        ]
-      )
-    end
+    _ =
+      if is_enabled?() do
+        :telemetry_poller.start_link(
+          measurements: [
+            :memory,
+            {Status.Metric.Measurements, :all, []}
+          ]
+        )
+      end
 
     supervisor_result
   end
