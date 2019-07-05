@@ -234,7 +234,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     TestHelper.get_exit_challenge(exit_blknum, 0, 0)
   end
 
-  @tag :this
+  @tag skip: true
   # NOTE: deposits are not per se required here, but it is a handy way to get an imported account ready
   @tag fixtures: [:watcher, :child_chain, :alice, :alice_deposits]
   test "sign transaction using typed data and signTypedData EthRPC call", %{alice: alice} do
@@ -244,7 +244,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     zero_output = %{owner: @zero_address_hex, currency: @zero_address_hex, amount: zero_int_hex}
     zero_32_bytes_hex = "0x0000000000000000000000000000000000000000000000000000000000000000"
 
-    domainSpec = [
+    domain_spec = [
       %{name: "name", type: "string"},
       %{name: "version", type: "string"},
       %{name: "verifyingContract", type: "address"},
@@ -252,7 +252,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       %{name: "chainId", type: "uint256"}
     ]
 
-    txSpec = [
+    tx_spec = [
       %{name: "input0", type: "Input"},
       %{name: "input1", type: "Input"},
       %{name: "input2", type: "Input"},
@@ -264,36 +264,36 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       %{name: "metadata", type: "bytes32"}
     ]
 
-    inputSpec = [
+    input_spec = [
       %{name: "blknum", type: "uint256"},
       %{name: "txindex", type: "uint256"},
       %{name: "oindex", type: "uint256"}
     ]
 
-    outputSpec = [
+    output_spec = [
       %{name: "owner", type: "address"},
       %{name: "currency", type: "address"},
       %{name: "amount", type: "uint256"}
     ]
 
-    domainData = %{
+    domain_data = %{
       name: "OMG Network",
       version: "1",
-      # FIXME: don't hardcode this (for now taken from /home/user/sources/elixir-omg/apps/omg/lib/omg/typed_data_hash/config.ex)
+      # NOTE: don't hardcode this (for now taken from /home/user/sources/elixir-omg/apps/omg/lib/omg/typed_data_hash/config.ex)
       verifyingContract: "0x7c276dcaab99bd16163c1bcce671cad6a1ec0945",
       salt: "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83",
-      # FIXME: adding this is necessary for parity, see typed_data_hash/tools.ex
+      # NOTE: adding this is necessary for parity
       chainId: "0x1"
     }
 
     test_typed_data = %{
       types: %{
-        EIP712Domain: domainSpec,
-        Transaction: txSpec,
-        Input: inputSpec,
-        Output: outputSpec
+        EIP712Domain: domain_spec,
+        Transaction: tx_spec,
+        Input: input_spec,
+        Output: output_spec
       },
-      domain: domainData,
+      domain: domain_data,
       primaryType: "Transaction",
       message: %{
         input0: zero_input,
