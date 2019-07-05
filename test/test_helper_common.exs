@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.start()
-ExUnitFixtures.load_fixture_files()
-ExUnit.start()
+# some common lines from test/test_helper.exs files for the umbrella subapps go here
+
+# FIXME: meh remove this

@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [wrappers: true])
+ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
 ExUnitFixtures.load_fixture_files()
 ExUnit.start()

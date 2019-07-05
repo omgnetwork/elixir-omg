@@ -1,3 +1,4 @@
 use Mix.Config
 
-config :logger, level: :warn
+# FIXME: revert to warn
+config :logger, level: :error

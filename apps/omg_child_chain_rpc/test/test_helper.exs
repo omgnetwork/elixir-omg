@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true])
+# FIXME: consider drying this list into somewhere in the top-level mix file as generic classes of tests to exclude
+ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
 ExUnitFixtures.start()
 ExUnitFixtures.load_fixture_files()
 ExUnit.start()

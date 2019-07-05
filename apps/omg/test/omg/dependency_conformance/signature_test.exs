@@ -37,7 +37,8 @@ defmodule OMG.DependencyConformance.SignatureTest do
     DeferredConfig.populate(:omg_eth)
     {:ok, exit_fn} = Eth.DevNode.start()
 
-    root_path = "../../"
+    # FIXME: common approach to paths
+    root_path = ""
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     {:ok, _, signtest_addr} = Eth.Deployer.create_new(OMG.Eth.Eip712, root_path, Eth.Encoding.from_hex(addr))
 
