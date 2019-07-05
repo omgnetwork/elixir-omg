@@ -20,6 +20,7 @@ defmodule OMG.TypedDataHash.Tools do
 
   alias OMG.Crypto
   alias OMG.State.Transaction
+  alias OMG.TypedDataHash.Types
   alias OMG.Utxo
 
   require Utxo
@@ -31,15 +32,12 @@ defmodule OMG.TypedDataHash.Tools do
           verifyingContract: OMG.Crypto.address_t()
         }
 
-  @domain_encoded_type "EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)"
+  @domain_encoded_type Types.encode_type(:EIP712Domain)
   @domain_type_hash Crypto.hash(@domain_encoded_type)
 
-  @transaction_encoded_type "Transaction(" <>
-                              "Input input0,Input input1,Input input2,Input input3," <>
-                              "Output output0,Output output1,Output output2,Output output3," <>
-                              "bytes32 metadata)"
-  @input_encoded_type "Input(uint256 blknum,uint256 txindex,uint256 oindex)"
-  @output_encoded_type "Output(address owner,address currency,uint256 amount)"
+  @transaction_encoded_type Types.encode_type(:Transaction)
+  @input_encoded_type Types.encode_type(:Input)
+  @output_encoded_type Types.encode_type(:Output)
 
   @transaction_type_hash Crypto.hash(@transaction_encoded_type <> @input_encoded_type <> @output_encoded_type)
   @input_type_hash Crypto.hash(@input_encoded_type)

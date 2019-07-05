@@ -18,39 +18,49 @@ defmodule OMG.TypedDataHash.Types do
   See: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification-of-the-eth_signtypeddata-json-rpc
   """
 
-  import OMG.TypedDataHash.SpecHelper
+  @make_spec &%{name: &1, type: &2}
 
   @eip_712_domain_spec [
-    spec("name", "string"),
-    spec("version", "string"),
-    spec("verifyingContract", "address"),
-    spec("salt", "bytes32")
+    @make_spec.("name", "string"),
+    @make_spec.("version", "string"),
+    @make_spec.("verifyingContract", "address"),
+    @make_spec.("salt", "bytes32")
   ]
 
-  @tx_spec Enum.map(0..3, fn i -> spec("input#{i}", "Input") end) ++
-             Enum.map(0..3, fn i -> spec("output#{i}", "Output") end) ++
-             [spec("metadata", "bytes32")]
+  @tx_spec Enum.map(0..3, fn i -> @make_spec.("input#{i}", "Input") end) ++
+             Enum.map(0..3, fn i -> @make_spec.("output#{i}", "Output") end) ++
+             [@make_spec.("metadata", "bytes32")]
 
   @input_spec [
-    spec("blknum", "uint256"),
-    spec("txindex", "uint256"),
-    spec("oindex", "uint256")
+    @make_spec.("blknum", "uint256"),
+    @make_spec.("txindex", "uint256"),
+    @make_spec.("oindex", "uint256")
   ]
 
   @output_spec [
-    spec("owner", "address"),
-    spec("currency", "address"),
-    spec("amount", "uint256")
+    @make_spec.("owner", "address"),
+    @make_spec.("currency", "address"),
+    @make_spec.("amount", "uint256")
   ]
+
+  @types %{
+    EIP712Domain: @eip_712_domain_spec,
+    Transaction: @tx_spec,
+    Input: @input_spec,
+    Output: @output_spec
+  }
 
   def eip712_types_specification,
     do: [
-      types: %{
-        EIP712Domain: @eip_712_domain_spec,
-        Transaction: @tx_spec,
-        Input: @input_spec,
-        Output: @output_spec
-      },
+      types: @types,
       primaryType: "Transaction"
     ]
+
+  def encode_type(type_name) when is_atom(type_name) do
+    "#{type_name}(#{
+      @types[type_name]
+      |> Enum.map(fn %{name: name, type: type} -> "#{type} #{name}" end)
+      |> Enum.join(",")
+    })"
+  end
 end
