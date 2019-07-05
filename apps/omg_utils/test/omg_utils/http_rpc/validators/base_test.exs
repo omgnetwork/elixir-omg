@@ -90,6 +90,79 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     test "list, negative" do
       assert {:error, {:validation_error, "list", :list}} == expect(%{"list" => "[42]"}, "list", :list)
     end
+
+    test "map, positive" do
+      map = %{"a" => 0, "b" => 1}
+      assert {:ok, map} == expect(%{"map" => map}, "map", :map)
+    end
+
+    test "map, negative" do
+      assert {:error, {:validation_error, "map", :map}} == expect(%{"map" => [42]}, "map", :map)
+    end
+
+    test "map, missing" do
+      assert {:error, {:validation_error, "map", :map}} == expect(%{}, "map", :map)
+    end
+  end
+
+  describe "list and map preprocessing:" do
+    test "mapping list elements" do
+      assert {:ok, [2, 4, 6]} == expect(%{"list" => [1, 2, 3]}, "list", list: &(&1 * 2))
+    end
+
+    test "validating list elements" do
+      is_even = fn
+        elt when rem(elt, 2) == 0 -> {:ok, elt}
+        _ -> {:error, :odd_number}
+      end
+
+      assert {:ok, [2, 4, 6]} ==
+               expect(
+                 %{"all_even" => [2, 4, 6]},
+                 "all_even",
+                 list: is_even
+               )
+
+      assert {:error, {:validation_error, "all_even", :odd_number}} ==
+               expect(
+                 %{"all_even" => [2, 3, 6]},
+                 "all_even",
+                 list: is_even
+               )
+    end
+
+    test "parsing map" do
+      parser = fn map ->
+        with {:ok, currency} <- expect(map, "currency", :address),
+             {:ok, amount} <- expect(map, "amount", :non_neg_integer),
+             do: {:ok, %{currency: currency, amount: amount}}
+      end
+
+      assert {:ok, %{currency: @bin_value, amount: 100}} =
+               expect(
+                 %{"fee" => %{"currency" => @params["hex_2"], "amount" => 100}},
+                 "fee",
+                 map: parser
+               )
+
+      assert {:error, {:validation_error, "fee.currency", :hex}} =
+               expect(
+                 %{"fee" => %{"currency" => "not-an-address", "amount" => 100}},
+                 "fee",
+                 map: parser
+               )
+    end
+
+    test "unwrapping results list" do
+      list = 0..9 |> Enum.to_list()
+
+      ok_list = list |> Enum.map(&{:ok, &1})
+      assert list == all_success_or_error(ok_list)
+
+      error = {:error, "bad news"}
+      list_with_err = [error | ok_list] |> Enum.shuffle()
+      assert error == all_success_or_error(list_with_err)
+    end
   end
 
   describe "Preprocessors:" do

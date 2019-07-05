@@ -17,6 +17,7 @@ defmodule OMG.Watcher.API.Transaction do
   Module provides API for transactions
   """
 
+  alias OMG.State.Transaction
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.Watcher.DB
@@ -61,14 +62,15 @@ defmodule OMG.Watcher.API.Transaction do
   * all operator blocks have been verified,
   * transaction doesn't spend funds not yet mined
   * etc...
-
-  Note: No validation for now, just passes given tx to the child chain. See: OMG-410
   """
   @decorate measure_event()
-  @spec submit(binary()) :: Client.response_t()
-  def(submit(txbytes)) do
+  @spec submit(Transaction.Signed.t()) :: Client.response_t() | {:error, atom()}
+  def submit(%Transaction.Signed{} = signed_tx) do
     url = Application.get_env(:omg_watcher, :child_chain_url)
-    Client.submit(txbytes, url)
+
+    signed_tx
+    |> Transaction.Signed.encode()
+    |> Client.submit(url)
   end
 
   @doc """

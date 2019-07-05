@@ -19,6 +19,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
 
   use OMG.WatcherRPC.Web, :controller
 
+  alias OMG.State.Transaction
+  alias OMG.Utils.Metrics
   alias OMG.Watcher.API
   alias OMG.WatcherRPC.Web.Validator
 
@@ -47,10 +49,24 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   Submits transaction to child chain
   """
   def submit(conn, params) do
-    with {:ok, tx} <- expect(params, "transaction", :hex) do
-      API.Transaction.submit(tx)
-      |> api_response(conn, :submission)
+    with {:ok, txbytes} <- expect(params, "transaction", :hex) do
+      submit_tx(txbytes, conn)
     end
+    |> increment_metrics_counter()
+  end
+
+  @doc """
+  Thin-client version of `/transaction.submit` that accepts json encoded transaction
+  """
+  def submit_typed(conn, params) do
+    with {:ok, signed_tx} <- Validator.TypedDataSigned.parse(params) do
+      # it's tempting to skip the unnecessary encoding-decoding part, but it gain broader
+      # validation and communicates with API layer with known structures than bytes
+      signed_tx
+      |> Transaction.Signed.encode()
+      |> submit_tx(conn)
+    end
+    |> increment_metrics_counter()
   end
 
   @doc """
@@ -62,5 +78,28 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
       API.Transaction.create(order)
       |> api_response(conn, :create)
     end
+  end
+
+  # Provides extra validation (recover_from) and passes transaction to API layer
+  defp submit_tx(txbytes, conn) do
+    with {:ok, %Transaction.Recovered{signed_tx: signed_tx}} <- Transaction.Recovered.recover_from(txbytes) do
+      API.Transaction.submit(signed_tx)
+      |> api_response(conn, :submission)
+    end
+  end
+
+  defp increment_metrics_counter(response) do
+    case response do
+      {:error, {:validation_error, _, _}} ->
+        Metrics.increment("transaction.failed.validation", 1)
+
+      %Plug.Conn{} ->
+        Metrics.increment("transaction.succeed", 1)
+
+      _ ->
+        Metrics.increment("transaction.failed.unidentified", 1)
+    end
+
+    response
   end
 end

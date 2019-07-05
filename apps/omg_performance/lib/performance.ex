@@ -151,7 +151,7 @@ defmodule OMG.Performance do
 
     :ok = OMG.DB.init()
 
-    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney])
+    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_child_chain_rpc, :omg_status])
     {:ok, simple_perftest_chain} = start_simple_perftest_chain(opts)
 
     {:ok, started_apps, simple_perftest_chain}
@@ -167,8 +167,6 @@ defmodule OMG.Performance do
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, []},
-      {OMG.ChildChainRPC.Plugs.Health, []},
-      {OMG.ChildChainRPC.Web.Endpoint, []},
       {OMG.Performance.BlockCreator, opts[:block_every_ms]}
     ]
 

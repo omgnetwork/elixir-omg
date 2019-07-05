@@ -105,9 +105,9 @@ mix run --no-start -e 'OMG.Performance.start_simple_perftest(8_000, 32, %{block_
 
 ```
 [
- {"txs": 65536, "tps": 3976.22, "span_ms": 16482, "blknum": 1000}, 
- { "txs": 65536, "tps": 4397.21, "span_ms": 14904, "blknum": 2000}, 
- { "txs": 65536, "tps": 4263.89, "span_ms": 15370, "blknum": 3000}, 
+ {"txs": 65536, "tps": 3976.22, "span_ms": 16482, "blknum": 1000},
+ { "txs": 65536, "tps": 4397.21, "span_ms": 14904, "blknum": 2000},
+ { "txs": 65536, "tps": 4263.89, "span_ms": 15370, "blknum": 3000},
  { "txs": 59392, "tps": 5942.17, "span_ms": 9995, "blknum": 4000}
 ]
 ```
@@ -115,4 +115,37 @@ mix run --no-start -e 'OMG.Performance.start_simple_perftest(8_000, 32, %{block_
 and
 ```
 2019-02-11 17:16:23.392 [info] ... ⋅Calculations for forming block number 2000 done in 832 ms⋅
+```
+
+## `53dc46f80eca374c64983aacd37bd6851ec794f4`, 2019-06-28
+
+(perf drop introduced as documented in [#731](https://github.com/omisego/elixir-omg/issues/731))
+
+Command as above
+
+```
+[
+  %{blknum: 1000, span_ms: 18449, tps: 3042.12, txs: 56124},
+  %{blknum: 2000, span_ms: 13970, tps: 3151.68, txs: 44029},
+  %{blknum: 3000, span_ms: 15340, tps: 3124.71, txs: 47933},
+  %{blknum: 4000, span_ms: 14598, tps: 3235.58, txs: 47233},
+  %{blknum: 5000, span_ms: 15039, tps: 3247.56, txs: 48840},
+  %{blknum: 6000, span_ms: 1199, tps: 9875.73, txs: 11841}
+]
+```
+
+## `f3828a0f0a658b32a48a74649561ac2c452f7277`, 2019-06-28
+
+(fixed the perf drop)
+
+Command as above
+
+```
+[
+  %{blknum: 1000, span_ms: 16699, tps: 3888.86, txs: 64940},
+  %{blknum: 2000, span_ms: 14753, tps: 4007.32, txs: 59120},
+  %{blknum: 3000, span_ms: 15225, tps: 3950.08, txs: 60140},
+  %{blknum: 4000, span_ms: 11507, tps: 5205.79, txs: 59903},
+  %{blknum: 5000, span_ms: 4059, tps: 2931.02, txs: 11897}
+]
 ```

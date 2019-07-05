@@ -38,6 +38,8 @@ paths:
     $ref: 'transaction/paths.yaml#/transaction.create'
   /transaction.get:
     $ref: 'transaction/paths.yaml#/transaction.get'
+  /transaction.submit_typed:
+    $ref: 'transaction/paths.yaml#/transaction.submit_typed'
   # Coming soon?
   # /transaction.get_by_position:
   #   $ref: 'transaction/paths.yaml#/transaction.get_by_position'

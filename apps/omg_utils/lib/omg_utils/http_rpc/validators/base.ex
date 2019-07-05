@@ -27,6 +27,7 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   @aliases %{
     address: [:hex, length: 20],
     hash: [:hex, length: 32],
+    signature: [:hex, length: 65],
     pos_integer: [:integer, greater: 0],
     non_neg_integer: [:integer, greater: -1]
   }
@@ -70,8 +71,22 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   Creates custom validation error
   """
   @spec error(binary(), any()) :: validation_error_t()
+  def error(parent_name, {:validation_error, child_name, reason}),
+    do: error(parent_name <> "." <> child_name, reason)
+
   def error(param_name, reason) when is_binary(param_name),
     do: {:error, {:validation_error, param_name, reason}}
+
+  @doc """
+  Unwraps elements from the results list: `[{:ok, elt} | {:error, any()}]` or returns the first error
+  """
+  @spec all_success_or_error([{:ok, any()} | {:error, any()}]) :: list() | {:error, any()}
+  def all_success_or_error(result_list) do
+    with nil <- result_list |> Enum.find(&(:error == Kernel.elem(&1, 0))),
+         do:
+           result_list
+           |> Enum.map(fn {:ok, elt} -> elt end)
+  end
 
   @doc """
   `integer` function is an example of basic validator used by the engine.
@@ -119,16 +134,50 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   def greater({val, []}, _b) when not is_integer(val), do: {val, [:integer]}
   def greater({val, []}, bound), do: {val, greater: bound}
 
-  @spec list({any(), list()}) :: {any(), list()}
-  def list({_, [_ | _]} = err), do: err
-  def list({val, []}) when is_list(val), do: {val, []}
-  def list({val, _}), do: {val, [:list]}
+  @spec list({any(), list()}, function() | nil) :: {any(), list()}
+  def list(tuple, mapper \\ nil)
+  def list({_, [_ | _]} = err, _), do: err
+  def list({val, []}, nil) when is_list(val), do: {val, []}
+  def list({val, []}, mapper) when is_list(val), do: list_processor(val, mapper)
+  def list({val, _}, _), do: {val, [:list]}
+
+  @spec map({any(), list()}, function() | nil) :: {any(), list()}
+  def map(tuple, parser \\ nil)
+  def map({_, [_ | _]} = err, _), do: err
+  def map({val, []}, nil) when is_map(val), do: {val, []}
+
+  def map({val, []}, parser) when is_map(val),
+    do:
+      (case parser.(val) do
+         {:error, err} -> {val, [err]}
+         {:ok, map} -> {map, []}
+       end)
+
+  def map({val, _}, _), do: {val, [:map]}
+
+  defp list_processor(val, mapper) do
+    list_reducer = fn
+      {:error, map_err}, _acc -> {:halt, map_err}
+      {:ok, elt}, acc -> {:cont, [elt | acc]}
+      elt, acc -> {:cont, [elt | acc]}
+    end
+
+    val
+    |> Enum.reduce_while([], fn elt, acc -> mapper.(elt) |> list_reducer.(acc) end)
+    |> case do
+      list when is_list(list) ->
+        {Enum.reverse(list), []}
+
+      err ->
+        {val, [err]}
+    end
+  end
 
   # provides initial value to the validators reducer, see: `expect`
   defp get(map, key), do: {Map.get(map, key, :missing), []}
 
   defp validate(validator, acc) when is_atom(validator), do: Kernel.apply(__MODULE__, validator, [acc])
-  defp validate({validator, arg}, acc), do: Kernel.apply(__MODULE__, validator, [acc, arg])
+  defp validate({validator, args}, acc), do: Kernel.apply(__MODULE__, validator, [acc, args])
 
   defp replace_aliases(validators) do
     validators

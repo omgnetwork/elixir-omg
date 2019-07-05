@@ -18,3 +18,4 @@ ExUnitFixtures.load_fixture_files()
 ExUnit.start()
 
 {:ok, _} = Application.ensure_all_started(:cowboy)
+if !Process.whereis(OMG.Utils.Metrics), do: :ok = OMG.Utils.Metrics.connect()
