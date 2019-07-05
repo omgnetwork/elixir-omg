@@ -65,6 +65,7 @@ defmodule OMG.Umbrella.MixProject do
       "coveralls.html": ["coveralls.html --no-start"],
       "coveralls.detail": ["coveralls.detail --no-start"],
       "coveralls.post": ["coveralls.post --no-start"],
+      "coveralls.circle": ["coveralls.circle --no-start"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run apps/omg_watcher/priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"]
     ]
