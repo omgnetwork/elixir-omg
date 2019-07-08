@@ -151,10 +151,6 @@ defmodule OMG.Watcher.Fixtures do
   @doc "run only database in sandbox and endpoint to make request"
   deffixture phoenix_ecto_sandbox(web_endpoint) do
     :ok = web_endpoint
-    
-    # necessary for `mix test_all` task, but not sure why did it work without for the original `mix test`
-    # FIXME: double check if can't be removed
-    {:ok, _} = Application.ensure_all_started(:ecto_sql)
 
     {:ok, pid} =
       Supervisor.start_link(
