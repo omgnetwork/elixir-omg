@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: Mix.Project.config[:excluded_test_tags])
+ExUnit.configure(exclude: Mix.Project.config()[:excluded_test_tags])
 Application.ensure_all_started(:propcheck)
 ExUnitFixtures.start()
 # loading all fixture files from the whole umbrella project
