@@ -1,4 +1,5 @@
 defmodule OMG.Umbrella.MixProject do
+  # FIXME: lint is disabled in circle ci configuration - revert
   use Mix.Project
 
   def umbrella_version, do: "0.2.0"

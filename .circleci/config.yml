@@ -96,7 +96,7 @@ jobs:
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
-      - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
+      - run: echo disabled
 
   child_chain_coveralls_and_integration_tests:
     executor: builder_pg_geth
