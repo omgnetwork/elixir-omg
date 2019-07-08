@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile.watcher
     environment:
       - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<your_api_key>
-      - ETHEREUM_WS_RPC_URL=wss://mainnet.infura.io/ws/v3/<your_api_key>
+      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/<your_api_key>
       - CHILD_CHAIN_URL=http://samrong.omg.network
       - ETHEREUM_NETWORK=RINKEBY
       - RINKEBY_CONTRACT_ADDRESS=0x740ecec4c0ee99c285945de8b44e9f5bfb71eea7
