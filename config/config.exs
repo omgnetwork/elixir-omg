@@ -19,7 +19,7 @@ config :logger, :console,
   metadata: [:module, :function, :request_id]
 
 config :logger,
-  backends: [Sentry.LoggerBackend, :console]
+  backends: [:console]
 
 config :sentry,
   dsn: System.get_env("SENTRY_DSN"),
