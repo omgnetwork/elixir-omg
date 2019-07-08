@@ -12,6 +12,9 @@ config :omg_watcher,
   block_getter_loops_interval_ms: 50,
   # NOTE: must be here - one of our integration tests actually fakes block withholding to test something
   maximum_block_withholding_time_ms: 1_000,
-  exit_finality_margin: 1
+  exit_finality_margin: 1,
+  # an entry to fix a common reference path to the root directory of the umbrella project
+  # this is useful because `mix test` and `mix coveralls --umbrella` have different views on the root dir when testing
+  umbrella_root_dir: Path.join(__DIR__, "../../..")
 
 config :omg_watcher, environment: :test

@@ -31,16 +31,13 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    # FIXME: how to make work in both cases?
-    # %{} = Eth.DevHelpers.prepare_env!(root_path: "../../")
-    %{} = Eth.DevHelpers.prepare_env!(root_path: "")
+    %{} = Eth.DevHelpers.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
   end
 
   deffixture token(root_chain_contract_config) do
     :ok = root_chain_contract_config
 
-    # FIXME: common approach to paths
-    root_path = ""
+    root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
     DeferredConfig.populate(:omg_eth)
