@@ -24,8 +24,7 @@ defmodule OMG.Umbrella.MixProject do
       test_paths: test_paths(),
       aliases: aliases(),
       # Docs
-      source_url: "https://github.com/omisego/elixir-omg",
-      excluded_test_tags: [integration: true, property: true, wrappers: true]
+      source_url: "https://github.com/omisego/elixir-omg"
     ]
   end
 

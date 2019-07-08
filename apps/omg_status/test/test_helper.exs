@@ -13,5 +13,5 @@
 # limitations under the License.
 
 Application.ensure_all_started(:omg_status)
-ExUnit.configure(exclude: Mix.Project.config()[:excluded_test_tags])
+ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
 ExUnit.start()
