@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
+ExUnit.configure(exclude: Mix.Project.config[:excluded_test_tags])
 ExUnitFixtures.start()
 ExUnitFixtures.load_fixture_files()
 ExUnit.start()

@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# FIXME: consider drying this list into somewhere in the top-level mix file as generic classes of tests to exclude
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
+ExUnit.configure(exclude: Mix.Project.config[:excluded_test_tags])
 ExUnitFixtures.start()
 ExUnitFixtures.load_fixture_files()
 ExUnit.start()
