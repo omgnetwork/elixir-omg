@@ -27,7 +27,7 @@
   "ex_doc": {:hex, :ex_doc, "0.20.2", "1bd0dfb0304bade58beb77f20f21ee3558cc3c753743ae0ddbb0fd7ba2912331", [:mix], [{:earmark, "~> 1.3", [hex: :earmark, repo: "hexpm", optional: false]}, {:makeup_elixir, "~> 0.10", [hex: :makeup_elixir, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_rlp": {:hex, :ex_rlp, "0.5.2", "7f4ce7bd55e543c054ce6d49629b01e9833c3462e3d547952be89865f39f2c58", [:mix], [], "hexpm"},
   "ex_unit_fixtures": {:git, "https://github.com/omisego/ex_unit_fixtures.git", "4a099c621dc70e0d65cb9619b38192e31ec5f504", [branch: "feature/require_files_not_load"]},
-  "excoveralls": {:git, "https://github.com/xadhoom/excoveralls.git", "52c6c8e5d7fe9abb814e5e3e546c863b9b2b41b7", [ref: "52c6c8e5d7fe9abb814e5e3e546c863b9b2b41b7"]},
+  "excoveralls": {:git, "https://github.com/omisego/excoveralls.git", "23b97648ff5ed7b19d75364233bbf3e5fcb407ad", [ref: "23b97648ff5ed7b19d75364233bbf3e5fcb407ad"]},
   "exexec": {:git, "https://github.com/pthomalla/exexec.git", "213658a4ccb96d7a84ffddc642b2596c86acc5d0", [branch: "add_streams"]},
   "exjsx": {:hex, :exjsx, "4.0.0", "60548841e0212df401e38e63c0078ec57b33e7ea49b032c796ccad8cde794b5c", [:mix], [{:jsx, "~> 2.8.0", [hex: :jsx, repo: "hexpm", optional: false]}], "hexpm"},
   "exleveldb": {:hex, :exleveldb, "0.14.0", "8e9353bbce38482d6971d254c6b98ceb50f3f179c94732b5d17db1be426fca18", [:mix], [{:eleveldb, "~> 2.2.20", [hex: :eleveldb, repo: "hexpm", optional: false]}], "hexpm"},
