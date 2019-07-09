@@ -699,7 +699,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    ],
                    "metadata" => ^metadata,
                    "fee" => %{"amount" => ^fee, "currency" => @eth_hex},
-                   "txbytes" => "0x" <> _txbytes
+                   "txbytes" => "0x" <> _txbytes,
+                   "sign_hash" => "0x" <> _hash
                  }
                ]
              } =
@@ -729,7 +730,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "inputs" => verbose_inputs,
                    "outputs" => verbose_outputs,
                    "metadata" => verbose_metadata,
-                   "txbytes" => tx_hex
+                   "txbytes" => tx_hex,
+                   "sign_hash" => sign_hash_hex
                  }
                ]
              } =
@@ -751,6 +753,49 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
         )
 
       assert tx_hex == verbose_tx |> Transaction.raw_txbytes() |> Encoding.to_hex()
+      assert sign_hash_hex == verbose_tx |> OMG.TypedDataHash.hash_struct() |> Encoding.to_hex()
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos]
+    test "returns typed data in the form of request of typedDataSign", %{alice: alice, bob: bob} do
+      alias OMG.State.Transaction
+
+      metadata_hex = Encoding.to_hex(<<123::256>>)
+
+      assert %{
+               "result" => "complete",
+               "transactions" => [
+                 %{
+                   "typed_data" => %{
+                     "primaryType" => "Transaction",
+                     "types" => %{
+                       "EIP712Domain" => [%{"name" => "name"} | _],
+                       "Transaction" => [_ | _],
+                       "Input" => [_ | _],
+                       "Output" => [_ | _]
+                     },
+                     "domain" => %{
+                       "name" => "OMG Network",
+                       "verifyingContract" => "0x" <> _contract
+                     },
+                     "message" => %{
+                       "input0" => %{"blknum" => _, "txindex" => _, "oindex" => _},
+                       "output0" => %{"owner" => "0x" <> _, "currency" => @eth_hex, "amount" => _},
+                       "metadata" => ^metadata_hex
+                     }
+                   }
+                 }
+               ]
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [%{"amount" => 100, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}],
+                   "fee" => %{"amount" => 5, "currency" => @eth_hex},
+                   "metadata" => metadata_hex
+                 }
+               )
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]

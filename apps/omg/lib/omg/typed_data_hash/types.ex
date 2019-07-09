@@ -18,6 +18,13 @@ defmodule OMG.TypedDataHash.Types do
   See: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification-of-the-eth_signtypeddata-json-rpc
   """
 
+  @type typedDataSignRequest_t() :: %{
+          types: map(),
+          primaryType: binary(),
+          domain: map(),
+          message: map()
+        }
+
   @make_spec &%{name: &1, type: &2}
 
   @eip_712_domain_spec [
@@ -27,9 +34,11 @@ defmodule OMG.TypedDataHash.Types do
     @make_spec.("salt", "bytes32")
   ]
 
-  @tx_spec Enum.map(0..3, fn i -> @make_spec.("input#{i}", "Input") end) ++
-             Enum.map(0..3, fn i -> @make_spec.("output#{i}", "Output") end) ++
+  @tx_spec Enum.concat([
+             Enum.map(0..3, fn i -> @make_spec.("input" <> Integer.to_string(i), "Input") end),
+             Enum.map(0..3, fn i -> @make_spec.("output" <> Integer.to_string(i), "Output") end),
              [@make_spec.("metadata", "bytes32")]
+           ])
 
   @input_spec [
     @make_spec.("blknum", "uint256"),
@@ -51,10 +60,10 @@ defmodule OMG.TypedDataHash.Types do
   }
 
   def eip712_types_specification,
-    do: [
+    do: %{
       types: @types,
       primaryType: "Transaction"
-    ]
+    }
 
   def encode_type(type_name) when is_atom(type_name) do
     "#{type_name}(#{
