@@ -31,6 +31,14 @@ defmodule OMG.Status.Application do
         []
       end
 
+    # if there's no SENTRY_DSN (local Watcher for example)
+    # don't attach Sentry as backend logger to report issues to
+    _ =
+      case System.get_env("SENTRY_DSN") do
+        nil -> :ok
+        _ -> {:ok, _} = Logger.add_backend(Sentry.LoggerBackend)
+      end
+
     Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
   end
 

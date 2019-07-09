@@ -25,5 +25,5 @@ defmodule Utils.MixProject do
   defp elixirc_paths(:prod), do: ["lib"]
   defp elixirc_paths(_), do: ["lib", "test/support"]
 
-  defp deps, do: [{:appsignal, "~> 1.9"}]
+  defp deps, do: [{:statix, "~> 1.1"}, {:appsignal, "~> 1.9"}]
 end
