@@ -62,7 +62,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   def ensure_network_match(domain_from_params, network_domain \\ nil) do
     network_domain =
       case network_domain do
-        nil -> OMG.TypedDataHash.Config.compute_domain_separator_from_config()
+        nil -> OMG.TypedDataHash.Config.domain_separator_from_config()
         params when is_map(params) -> Tools.domain_separator(params)
       end
 

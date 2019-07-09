@@ -26,8 +26,8 @@ defmodule OMG.TypedDataHash.Config do
   @doc """
   Returns EIP-712 domain based on values from configuration in a format `signTypedData` expects.
   """
-  @spec domain_separator_from_config() :: Tools.eip712_domain_t()
-  def domain_separator_from_config do
+  @spec domain_data_from_config() :: Tools.eip712_domain_t()
+  def domain_data_from_config do
     contract_addr = Application.fetch_env!(:omg_eth, :contract_addr) || @fallback_ari_network_address
 
     Application.fetch_env!(:omg, :eip_712_domain)
@@ -40,9 +40,9 @@ defmodule OMG.TypedDataHash.Config do
   Computes default domain separator based on values from configuration.
   This value is taken to structured hash computation when no domain separator is passed.
   """
-  @spec compute_domain_separator_from_config() :: OMG.Crypto.hash_t()
-  def compute_domain_separator_from_config do
-    domain_separator_from_config()
+  @spec domain_separator_from_config() :: OMG.Crypto.hash_t()
+  def domain_separator_from_config do
+    domain_data_from_config()
     |> Tools.domain_separator()
   end
 
