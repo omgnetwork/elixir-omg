@@ -51,6 +51,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
         [{alice, 5}, {bob, 15}]
       )
 
+    # To create in-flight exit watcher need have available utxo in his state,
+    # otherwise the watcher state indicates that there is no need to do in_flight_exit.
     in_flight_tx =
       OMG.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 5}])
       |> Transaction.Signed.encode()
@@ -159,7 +161,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
   test "in-flight exit competitor is detected by watcher and proven with position immediately",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
-    :timer.sleep(3_000)
     # tx1 is submitted then in-flight-exited
     # tx2 is in-flight-exited
     tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])

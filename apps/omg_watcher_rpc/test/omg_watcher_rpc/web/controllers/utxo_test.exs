@@ -27,8 +27,8 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
   @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
   test "get_exit_data should return error when there is no txs in specfic block" do
     assert %{
-             "code" => "get_utxo_exit:no_deposit_for_given_blknum",
-             "description" => nil,
+             "code" => "exit:invalid",
+             "description" => "Utxo was spent or does not exist.",
              "object" => "error"
            } ==
              TestHelper.no_success?("utxo.get_exit_data", %{

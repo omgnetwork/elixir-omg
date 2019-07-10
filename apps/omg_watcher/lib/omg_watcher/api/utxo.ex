@@ -17,8 +17,8 @@ defmodule OMG.Watcher.API.Utxo do
   Module provides API for utxos
   """
   alias OMG.Utxo
-  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.API.Core
+  alias OMG.Watcher.ExitProcessor
 
   use OMG.Utils.Metrics
   require Utxo

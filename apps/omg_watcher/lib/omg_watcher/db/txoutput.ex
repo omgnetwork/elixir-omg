@@ -62,7 +62,7 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   @decorate measure_event()
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
-  def compose_utxo_exit(decoded_utxo_pos) when is_deposit(decoded_utxo_pos),
+  def compose_utxo_exit(Utxo.position(_, _, _) = decoded_utxo_pos) when is_deposit(decoded_utxo_pos),
     do: get_by_position(decoded_utxo_pos) |> API.Core.compose_deposit_exit(decoded_utxo_pos)
 
   def compose_utxo_exit(Utxo.position(blknum, _, _) = decoded_utxo_pos),

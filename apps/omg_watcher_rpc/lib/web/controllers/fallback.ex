@@ -66,6 +66,10 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
     superfluous_signature: %{
       code: "submit_typed:superfluous_signature",
       description: "Number of non-empty inputs should match signatures count. Remove redundant signatures."
+    },
+    no_deposit_for_given_blknum: %{
+      code: "exit:invalid",
+      description: "Utxo was spent or does not exist."
     }
   }
 
