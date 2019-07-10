@@ -16,6 +16,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
+  use OMG.Watcher.Fixtures
 
   alias OMG.Utxo
   alias OMG.Watcher.DB
