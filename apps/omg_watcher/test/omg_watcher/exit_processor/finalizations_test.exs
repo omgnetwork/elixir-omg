@@ -31,9 +31,15 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
   @utxo_pos1 Utxo.position(2_000, 0, 0)
   @exit_id 1
 
-  # FIXME: empty ife finazliation
-  test "can process empty finalizations", %{processor_filled: filled} do
-    assert {^filled, [], []} = Core.finalize_exits(filled, {[], []})
+  describe "sanity checks" do
+    test "can process empty finalizations", %{processor_empty: empty, processor_filled: filled} do
+      assert {^empty, [], []} = Core.finalize_exits(empty, {[], []})
+      assert {^filled, [], []} = Core.finalize_exits(filled, {[], []})
+      assert {:ok, %{}} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(empty, [])
+      assert {:ok, %{}} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(filled, [])
+      assert {:ok, ^empty, []} = Core.finalize_in_flight_exits(empty, [], %{})
+      assert {:ok, ^filled, []} = Core.finalize_in_flight_exits(filled, [], %{})
+    end
   end
 
   describe "determining utxos that are exited by finalization" do

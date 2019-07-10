@@ -54,9 +54,10 @@ defmodule OMG.Watcher.ExitProcessor.Case do
 
     processor_filled =
       transactions
-      |> Enum.zip([2, 4])
-      |> Enum.reduce(processor_empty, fn {tx, eth_height}, processor ->
-        processor |> start_ife_from(tx, eth_height: eth_height)
+      |> Enum.zip([1, 4])
+      |> Enum.reduce(processor_empty, fn {tx, idx}, processor ->
+        # use the idx as both two distinct ethereum heights and two distinct exit_ids arriving from the root chain
+        processor |> start_ife_from(tx, eth_height: idx, status: {1, idx})
       end)
 
     {:ok,

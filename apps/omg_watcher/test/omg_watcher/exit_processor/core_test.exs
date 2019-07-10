@@ -55,7 +55,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {:error, :unexpected_events} = processor |> Core.new_exits([], [:anything])
     end
 
-    # FIXME: extend "empty handlers" to all behaviors/events
     test "can process empty new exits, empty in flight exits",
          %{processor_empty: empty, processor_filled: filled} do
       assert {^empty, []} = Core.new_exits(empty, [], [])
@@ -94,7 +93,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %{
                  txbytes: Transaction.raw_txbytes(tx1),
                  txhash: Transaction.raw_txhash(tx1),
-                 eth_height: 2,
+                 eth_height: 1,
                  piggybacked_inputs: [],
                  piggybacked_outputs: []
                },

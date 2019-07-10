@@ -36,6 +36,15 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
   @late_blknum 10_000
   @exit_id 1
 
+  describe "sanity checks" do
+    test "can process empty challenges and responses", %{processor_empty: empty, processor_filled: filled} do
+      {^empty, []} = Core.new_ife_challenges(empty, [])
+      {^filled, []} = Core.new_ife_challenges(filled, [])
+      {^empty, []} = Core.respond_to_in_flight_exits_challenges(empty, [])
+      {^filled, []} = Core.respond_to_in_flight_exits_challenges(filled, [])
+    end
+  end
+
   describe "finds competitors and allows canonicity challenges" do
     test "none if input never spent elsewhere",
          %{processor_filled: processor} do

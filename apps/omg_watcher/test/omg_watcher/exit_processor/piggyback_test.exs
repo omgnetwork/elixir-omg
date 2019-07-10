@@ -32,14 +32,21 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
   @exit_id 1
 
-  test "piggybacking sanity checks", %{processor_filled: state, ife_tx_hashes: [ife_id | _]} do
-    assert {^state, []} = Core.new_piggybacks(state, [])
-    catch_error(Core.new_piggybacks(state, [%{tx_hash: 0, output_index: 0}]))
-    catch_error(Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 8}]))
+  describe "sanity checks" do
+    test "throwing when unknown piggyback events arrive", %{processor_filled: state, ife_tx_hashes: [ife_id | _]} do
+      catch_error(Core.new_piggybacks(state, [%{tx_hash: 0, output_index: 0}]))
+      catch_error(Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 8}]))
+      # cannot piggyback twice the same output
+      {updated_state, [_]} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
+      catch_error(Core.new_piggybacks(updated_state, [%{tx_hash: ife_id, output_index: 0}]))
+    end
 
-    # cannot piggyback twice the same output
-    {updated_state, [_]} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
-    catch_error(Core.new_piggybacks(updated_state, [%{tx_hash: ife_id, output_index: 0}]))
+    test "can process empty piggybacks and challenges", %{processor_empty: empty, processor_filled: filled} do
+      {^empty, []} = Core.new_piggybacks(empty, [])
+      {^filled, []} = Core.new_piggybacks(filled, [])
+      {^empty, []} = Core.challenge_piggybacks(empty, [])
+      {^filled, []} = Core.challenge_piggybacks(filled, [])
+    end
   end
 
   test "forgets challenged piggybacks",
@@ -201,20 +208,33 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
   describe "evaluates correctness of new piggybacks" do
     test "no event if input double-spent but not piggybacked",
-         %{processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
-      txbytes = txbytes(tx1)
-      {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
+         %{processor_filled: processor, competing_tx: comp} do
       processor = processor |> start_ife_from(comp)
 
-      # no invalid piggyback events are generated
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> check_validity_filtered(processor, only: [Event.InvalidPiggyback])
     end
 
-    # FIXME: write new test
     test "no event if output spent but not piggybacked",
-         %{} do
+         %{alice: alice, processor_filled: processor, transactions: [tx | _]} do
+      tx_blknum = 3000
+
+      # 2. transaction which spends that piggybacked output
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [])
+
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
+      }
+
+      # 3. stuff happens in the contract, but NO PIGGYBACK!
+      processor = processor |> start_ife_from(comp) |> Core.find_ifes_in_blocks(request)
+
+      assert {:ok, []} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> check_validity_filtered(processor, only: [Event.InvalidPiggyback])
     end
 
     test "detects double-spend of an input, found in IFE",
