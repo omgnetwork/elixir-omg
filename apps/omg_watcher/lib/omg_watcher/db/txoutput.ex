@@ -19,15 +19,16 @@ defmodule OMG.Watcher.DB.TxOutput do
   use Ecto.Schema
   use OMG.Utils.Metrics
 
-  alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.Utxo
+  alias OMG.Watcher.API
   alias OMG.Watcher.DB
   alias OMG.Watcher.DB.Repo
 
   require Utxo
 
   import Ecto.Query, only: [from: 2, where: 2]
+  import Utxo, only: [is_deposit: 1]
 
   @type balance() :: %{
           currency: binary(),
@@ -61,60 +62,12 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   @decorate measure_event()
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
-  def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
-    if Utxo.Position.is_deposit?(decoded_utxo_pos) do
-      compose_deposit_exit(decoded_utxo_pos)
-    else
-      txs = DB.Transaction.get_by_blknum(blknum)
+  def compose_utxo_exit(decoded_utxo_pos) when is_deposit(decoded_utxo_pos),
+    do: get_by_position(decoded_utxo_pos) |> API.Core.compose_deposit_exit(decoded_utxo_pos)
 
-      if txs |> Enum.any?(&match?(%{txindex: ^txindex}, &1)),
-        do: {:ok, compose_output_exit(txs, decoded_utxo_pos)},
-        else: {:error, :utxo_not_found}
-    end
-  end
-
-  @decorate measure_event()
-  defp compose_deposit_exit(decoded_utxo_pos) do
-    with %{amount: amount, currency: currency, owner: owner} <- get_by_position(decoded_utxo_pos) do
-      tx = Transaction.new([], [{owner, currency, amount}])
-
-      txs = [%Transaction.Signed{raw_tx: tx, sigs: []} |> Transaction.Signed.encode()]
-
-      {:ok,
-       %{
-         utxo_pos: decoded_utxo_pos |> Utxo.Position.encode(),
-         txbytes: tx |> Transaction.raw_txbytes(),
-         proof: Block.inclusion_proof(txs, 0)
-       }}
-    else
-      _ -> {:error, :no_deposit_for_given_blknum}
-    end
-  end
-
-  @decorate measure_event()
-  defp compose_output_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
+  def compose_utxo_exit(Utxo.position(blknum, _, _) = decoded_utxo_pos),
     # TODO: Make use of Block API's block.get when available
-    sorted_tx_bytes =
-      txs
-      |> Enum.sort_by(& &1.txindex)
-      |> Enum.map(& &1.txbytes)
-
-    signed_tx = Enum.at(sorted_tx_bytes, txindex)
-
-    {:ok, %Transaction.Signed{sigs: sigs} = tx} = Transaction.Signed.decode(signed_tx)
-
-    proof = sorted_tx_bytes |> Block.inclusion_proof(txindex)
-
-    utxo_pos = decoded_utxo_pos |> Utxo.Position.encode()
-    sigs = Enum.join(sigs)
-
-    %{
-      utxo_pos: utxo_pos,
-      txbytes: Transaction.raw_txbytes(tx),
-      proof: proof,
-      sigs: sigs
-    }
-  end
+    do: DB.Transaction.get_by_blknum(blknum) |> API.Core.compose_output_exit(decoded_utxo_pos)
 
   @decorate measure_event()
   @spec get_by_position(Utxo.Position.t()) :: map() | nil

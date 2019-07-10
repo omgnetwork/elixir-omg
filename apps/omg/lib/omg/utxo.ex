@@ -38,13 +38,19 @@ defmodule OMG.Utxo do
     end
   end
 
-  defmacro is_position(blknum, txindex, oindex) do
-    quote do
-      is_integer(unquote(blknum)) and unquote(blknum) >= 0 and
-        is_integer(unquote(txindex)) and unquote(txindex) >= 0 and
-        is_integer(unquote(oindex)) and unquote(oindex) >= 0
-    end
-  end
+  defguard is_position(blknum, txindex, oindex)
+           when is_integer(blknum) and blknum >= 0 and
+                  is_integer(txindex) and txindex >= 0 and
+                  is_integer(oindex) and oindex >= 0
+
+  @interval elem(OMG.Eth.RootChain.get_child_block_interval(), 1)
+  @doc """
+  Based on the contract parameters determines whether UTXO position provided was created by a deposit
+  """
+  defguard is_deposit(position)
+           when is_tuple(position) and tuple_size(position) == 4 and
+                  is_position(elem(position, 1), elem(position, 2), elem(position, 3)) and
+                  rem(elem(position, 1), @interval) != 0
 
   defmacrop is_nil_or_binary(binary) do
     quote do
