@@ -13,9 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.ChildChainRPC.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
+
+  alias OMG.ChildChainRPC.Plugs.Health
+  alias OMG.ChildChainRPC.Web.Endpoint
 
   use Application
   require Logger
@@ -28,9 +29,11 @@ defmodule OMG.ChildChainRPC.Application do
     opts = [strategy: :one_for_one, name: OMG.ChildChainRPC.Supervisor]
 
     children = [
-      {OMG.ChildChainRPC.Plugs.Health, []},
-      {OMG.ChildChainRPC.Web.Endpoint, []}
+      {Health, []},
+      {Endpoint, []}
     ]
+
+    _ = Logger.warn("Is Sentry for OMG.ChildChainRPC.Web.Endpoint enabled: #{System.get_env("SENTRY_DSN") != nil}")
 
     Supervisor.start_link(children, opts)
   end

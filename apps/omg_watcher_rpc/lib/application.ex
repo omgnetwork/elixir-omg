@@ -17,6 +17,9 @@ defmodule OMG.WatcherRPC.Application do
   use Application
   use OMG.Utils.LoggerExt
 
+  alias OMG.WatcherRPC.BroadcastEvent
+  alias OMG.WatcherRPC.Web.Endpoint
+
   def start(_type, _args) do
     DeferredConfig.populate(:omg_watcher_rpc)
 
@@ -37,11 +40,11 @@ defmodule OMG.WatcherRPC.Application do
     # root supervisor must stop whenever any of its children supervisors goes down (children carry the load of restarts)
     children = [
       %{
-        id: OMG.WatcherRPC.Web.Endpoint,
-        start: {OMG.WatcherRPC.Web.Endpoint, :start_link, []},
+        id: Endpoint,
+        start: {Endpoint, :start_link, []},
         type: :supervisor
       },
-      {OMG.WatcherRPC.BroadcastEvent, []}
+      {BroadcastEvent, []}
     ]
 
     opts = [
@@ -49,6 +52,8 @@ defmodule OMG.WatcherRPC.Application do
       # whenever any of supervisor's children goes down, so it does
       name: OMG.WatcherRPC.RootSupervisor
     ]
+
+    _ = Logger.info("Is Sentry for OMG.WatcherRPC.Web.Endpoint enabled: #{System.get_env("SENTRY_DSN") != nil}")
 
     Supervisor.start_link(children, opts)
   end

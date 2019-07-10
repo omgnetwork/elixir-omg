@@ -123,7 +123,7 @@ defmodule OMG.EthereumClientMonitor do
     case is_binary(value) do
       true ->
         ethereum_height = Encoding.int_from_hex(value)
-        _ = Logger.info("Ethereum client monitor got a newHeads event for new Ethereum height #{ethereum_height}.")
+        _ = Logger.debug("Ethereum client monitor got a newHeads event for new Ethereum height #{ethereum_height}.")
         {:noreply, %{state | ethereum_height: ethereum_height}}
 
       false ->

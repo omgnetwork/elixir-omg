@@ -15,7 +15,38 @@
 defmodule OMG.ChildChainRPC.Web.Endpoint do
   use Phoenix.Endpoint, otp_app: :omg_child_chain_rpc
   use Appsignal.Phoenix
-  use Sentry.Phoenix.Endpoint
+
+  ### we manually override call using https://github.com/getsentry/sentry-elixir/blob/master/lib/sentry/phoenix_endpoint.ex
+  ### because we don't want to decide if we want to use Sentry or not at compile time
+  def call(conn, opts) do
+    super(conn, opts)
+  catch
+    kind, %Phoenix.Router.NoRouteError{} ->
+      :erlang.raise(kind, %Phoenix.Router.NoRouteError{}, __STACKTRACE__)
+
+    kind, reason ->
+      stacktrace = __STACKTRACE__
+
+      _ =
+        case System.get_env("SENTRY_DSN") do
+          nil ->
+            :ok
+
+          _ ->
+            request = Sentry.Plug.build_request_interface_data(conn, [])
+            exception = Exception.normalize(kind, reason, stacktrace)
+
+            Sentry.capture_exception(
+              exception,
+              stacktrace: stacktrace,
+              request: request,
+              event_source: :endpoint,
+              error_type: kind
+            )
+        end
+
+      :erlang.raise(kind, reason, stacktrace)
+  end
 
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)
