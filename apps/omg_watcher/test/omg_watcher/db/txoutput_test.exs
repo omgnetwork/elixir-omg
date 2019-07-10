@@ -23,6 +23,30 @@ defmodule OMG.Watcher.DB.TxOutputTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+
+  @tag fixtures: [:initial_blocks]
+  test "compose_utxo_exit should return proper proof format" do
+    {:ok,
+     %{
+       utxo_pos: _utxo_pos,
+       txbytes: _txbytes,
+       proof: proof,
+       sigs: _sigs
+     }} = DB.TxOutput.compose_utxo_exit(Utxo.position(3000, 0, 1))
+
+    assert <<_proof::bytes-size(512)>> = proof
+  end
+
+  @tag fixtures: [:initial_blocks]
+  test "compose_utxo_exit should return error when there is no txs in specfic block" do
+    {:error, :no_deposit_for_given_blknum} = DB.TxOutput.compose_utxo_exit(Utxo.position(1001, 1, 0))
+  end
+
+  @tag fixtures: [:initial_blocks]
+  test "compose_utxo_exit should return error when there is no tx in specfic block" do
+    {:error, :utxo_not_found} = DB.TxOutput.compose_utxo_exit(Utxo.position(2000, 1, 0))
+  end
+
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "transaction output schema handles big numbers properly", %{alice: alice} do
     power_of_2 = fn n -> :lists.duplicate(n, 2) |> Enum.reduce(&(&1 * &2)) end
