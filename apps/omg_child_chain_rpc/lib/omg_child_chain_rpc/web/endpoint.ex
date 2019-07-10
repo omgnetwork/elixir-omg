@@ -14,7 +14,6 @@
 
 defmodule OMG.ChildChainRPC.Web.Endpoint do
   use Phoenix.Endpoint, otp_app: :omg_child_chain_rpc
-  use Appsignal.Phoenix
 
   ### we manually override call using https://github.com/getsentry/sentry-elixir/blob/master/lib/sentry/phoenix_endpoint.ex
   ### because we don't want to decide if we want to use Sentry or not at compile time
