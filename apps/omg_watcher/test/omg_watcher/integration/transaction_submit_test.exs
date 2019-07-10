@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
 
   alias OMG.DevCrypto
   alias OMG.Eth
-  alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Eth.Encoding
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
@@ -54,108 +54,27 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
     # 10 = 5 to Bob + 2 fee + 3 rest to Alice
     fee = 2
     alice_to_bob = 5
-    alice_rest = 3
 
-    assert %{
-             "result" => "complete",
-             "transactions" => [
-               %{
-                 "inputs" => [
-                   %{
-                     "blknum" => blknum,
-                     "txindex" => txindex,
-                     "oindex" => oindex
-                   }
-                 ],
-                 "fee" => %{"amount" => ^fee, "currency" => @eth_hex}
-                 # "sign_hash" => sign_hash,
-                 # "typed_data" => typed_data
-               }
-             ]
-           } =
-             TestHelper.success?(
-               "transaction.create",
-               %{
-                 "owner" => alice_addr,
-                 "payments" => [%{"amount" => alice_to_bob, "currency" => @eth_hex, "owner" => bob_addr}],
-                 "fee" => %{"amount" => fee, "currency" => @eth_hex}
-               }
-             )
-
-    # =================================================================
-    # TODO" => Receive following data from new - tx.create and remove this
-    zero_input = %{"blknum" => 0, "txindex" => 0, "oindex" => 0}
-    zero_output = %{"owner" => @eth_hex, "currency" => @eth_hex, "amount" => 0}
-    zero_32_bytes = "0x0000000000000000000000000000000000000000000000000000000000000000"
-
-    domain_spec = [
-      %{"name" => "name", "type" => "string"},
-      %{"name" => "version", "type" => "string"},
-      %{"name" => "verifyingContract", "type" => "address"},
-      %{"name" => "salt", "type" => "bytes32"}
-    ]
-
-    tx_spec = [
-      %{"name" => "input0", "type" => "Input"},
-      %{"name" => "input1", "type" => "Input"},
-      %{"name" => "input2", "type" => "Input"},
-      %{"name" => "input3", "type" => "Input"},
-      %{"name" => "output0", "type" => "Output"},
-      %{"name" => "output1", "type" => "Output"},
-      %{"name" => "output2", "type" => "Output"},
-      %{"name" => "output3", "type" => "Output"},
-      %{"name" => "metadata", "type" => "bytes32"}
-    ]
-
-    input_spec = [
-      %{"name" => "blknum", "type" => "uint256"},
-      %{"name" => "txindex", "type" => "uint256"},
-      %{"name" => "oindex", "type" => "uint256"}
-    ]
-
-    output_spec = [
-      %{"name" => "owner", "type" => "address"},
-      %{"name" => "currency", "type" => "address"},
-      %{"name" => "amount", "type" => "uint256"}
-    ]
-
-    contract_addr = Eth.Diagnostics.get_child_chain_config()[:contract_addr]
-
-    domain_data = %{
-      "name" => "OMG Network",
-      "version" => "1",
-      "verifyingContract" => contract_addr,
-      "salt" => "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
+    order = %{
+      "owner" => alice_addr,
+      "payments" => [%{"amount" => alice_to_bob, "currency" => @eth_hex, "owner" => bob_addr}],
+      "fee" => %{"amount" => fee, "currency" => @eth_hex}
     }
 
-    typed_data = %{
-      "types" => %{
-        "EIP712Domain" => domain_spec,
-        "Transaction" => tx_spec,
-        "Input" => input_spec,
-        "Output" => output_spec
-      },
-      "domain" => domain_data,
-      "primaryType" => "Transaction",
-      "message" => %{
-        "input0" => %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex},
-        "input1" => zero_input,
-        "input2" => zero_input,
-        "input3" => zero_input,
-        "output0" => %{"owner" => bob_addr, "currency" => @eth_hex, "amount" => alice_to_bob},
-        "output1" => %{"owner" => alice_addr, "currency" => @eth_hex, "amount" => alice_rest},
-        "output2" => zero_output,
-        "output3" => zero_output,
-        "metadata" => zero_32_bytes
-      }
-    }
+    %{
+      "result" => "complete",
+      "transactions" => [
+        %{
+          "sign_hash" => sign_hash,
+          "typed_data" => typed_data
+        }
+      ]
+    } = TestHelper.success?("transaction.create", order)
 
-    {:ok, tx} = OMG.WatcherRPC.Web.Validator.TypedDataSigned.parse_transaction(typed_data)
-
-    sign_hash = OMG.TypedDataHash.hash_struct(tx)
-    # =================================================================
-
-    signature = DevCrypto.signature_digest(sign_hash, alice.priv)
+    signature =
+      sign_hash
+      |> Eth.Encoding.from_hex()
+      |> DevCrypto.signature_digest(alice.priv)
 
     typed_data_signed =
       typed_data
