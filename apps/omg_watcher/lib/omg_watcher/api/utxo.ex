@@ -17,8 +17,8 @@ defmodule OMG.Watcher.API.Utxo do
   Module provides API for utxos
   """
   alias OMG.Utxo
-  alias OMG.Watcher.API.Core
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.UtxoExit.Core
 
   use OMG.Utils.Metrics
   require Utxo
@@ -43,14 +43,15 @@ defmodule OMG.Watcher.API.Utxo do
 
   @decorate measure_event()
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
-  def compose_utxo_exit(decoded_utxo_pos) when is_deposit(decoded_utxo_pos) do
-    OMG.DB.utxos() |> Core.get_deposit_utxo(decoded_utxo_pos) |> Core.compose_deposit_exit(decoded_utxo_pos)
+  def compose_utxo_exit(utxo_pos) when is_deposit(utxo_pos) do
+    OMG.DB.utxos() |> Core.get_deposit_utxo(utxo_pos) |> Core.compose_deposit_exit(utxo_pos)
   end
 
-  def compose_utxo_exit(Utxo.position(blknum, _, _) = decoded_utxo_pos) do
+  @decorate measure_event()
+  def compose_utxo_exit(Utxo.position(blknum, _, _) = utxo_pos) do
     with {:ok, blk_hashes} <- OMG.DB.block_hashes([blknum]),
          {:ok, [%{transactions: transactions}]} <- OMG.DB.blocks(blk_hashes) do
-      Core.compose_output_exit(transactions, decoded_utxo_pos)
+      Core.compose_output_exit(transactions, utxo_pos)
     else
       _error -> {:error, :utxo_not_found}
     end

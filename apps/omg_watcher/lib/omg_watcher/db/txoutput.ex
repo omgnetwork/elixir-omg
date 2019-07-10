@@ -21,9 +21,9 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.API
   alias OMG.Watcher.DB
   alias OMG.Watcher.DB.Repo
+  alias OMG.Watcher.UtxoExit.Core
 
   require Utxo
 
@@ -63,11 +63,11 @@ defmodule OMG.Watcher.DB.TxOutput do
   @decorate measure_event()
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
   def compose_utxo_exit(Utxo.position(_, _, _) = decoded_utxo_pos) when is_deposit(decoded_utxo_pos),
-    do: get_by_position(decoded_utxo_pos) |> API.Core.compose_deposit_exit(decoded_utxo_pos)
+    do: get_by_position(decoded_utxo_pos) |> Core.compose_deposit_exit(decoded_utxo_pos)
 
   def compose_utxo_exit(Utxo.position(blknum, _, _) = decoded_utxo_pos),
     # TODO: Make use of Block API's block.get when available
-    do: DB.Transaction.get_by_blknum(blknum) |> API.Core.compose_output_exit(decoded_utxo_pos)
+    do: DB.Transaction.get_by_blknum(blknum) |> Core.compose_output_exit(decoded_utxo_pos)
 
   @decorate measure_event()
   @spec get_by_position(Utxo.Position.t()) :: map() | nil

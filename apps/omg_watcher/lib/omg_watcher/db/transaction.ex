@@ -113,6 +113,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
   defp query_get_by(query, constraints) when is_list(constraints), do: query |> where(^constraints)
 
+  @spec get_by_blknum(pos_integer) :: list(%__MODULE__{})
   def get_by_blknum(blknum) do
     __MODULE__
     |> query_get_by(blknum: blknum)

@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.CoreTest do
+defmodule OMG.Watcher.UtxoExit.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
   use OMG.Fixtures
 
-  alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
-  alias OMG.Watcher.API.Core
+  alias OMG.Watcher.UtxoExit.Core
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -54,8 +53,7 @@ defmodule OMG.Watcher.API.CoreTest do
   @tag fixtures: [:alice]
   test "compose output exit", %{alice: alice} do
     tx_encode = fn number ->
-      TestHelper.create_signed([{1_000, number, 0, alice}], @eth, [{alice, 10}])
-      |> Transaction.Signed.encode()
+      TestHelper.create_encoded([{1_000, number, 0, alice}], @eth, [{alice, 10}])
     end
 
     tx_exit = tx_encode.(30)
@@ -86,18 +84,22 @@ defmodule OMG.Watcher.API.CoreTest do
     assert {:error, :utxo_not_found} == Core.compose_output_exit([], Utxo.position(1_000, 1, 2))
   end
 
-  test "return utxo when in blknum in utxos map" do
-    assert 7 ==
+  @tag fixtures: [:alice]
+  test "return utxo when in blknum in utxos map", %{alice: %{addr: alice_addr}} do
+    assert %{amount: 7, currency: @eth, owner: alice_addr} ==
              Core.get_deposit_utxo(
-               {:ok, Map.new(Enum.map(1..20, fn a -> {{a, 0, 0}, a} end))},
+               {:ok,
+                Map.new(Enum.map(1..20, fn a -> {{a, 0, 0}, %{amount: a, currency: @eth, owner: alice_addr}} end))},
                Utxo.position(7, 0, 0)
              )
   end
 
-  test "return nil when in blknum not in utxos map" do
+  @tag fixtures: [:alice]
+  test "return nil when in blknum not in utxos map", %{alice: alice} do
     assert nil ==
              Core.get_deposit_utxo(
-               {:ok, Map.new(Enum.map(1..20, fn a -> {{a, 0, 0}, a} end))},
+               {:ok,
+                Map.new(Enum.map(1..20, fn a -> {{a, 0, 0}, %{amount: a, currency: @eth, owner: alice.addr}} end))},
                Utxo.position(42, 0, 0)
              )
   end
