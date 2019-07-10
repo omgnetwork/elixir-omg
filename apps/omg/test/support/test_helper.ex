@@ -76,9 +76,9 @@ defmodule OMG.TestHelper do
   by allowing to provider private keys of utxo owners along with the inputs
   """
   @spec create_recovered(
-          list({pos_integer, pos_integer, 0 | 1, map}),
+          list({pos_integer, non_neg_integer, 0 | 1, map}),
           Transaction.currency(),
-          list({Crypto.address_t(), pos_integer}),
+          list({map, pos_integer}),
           Transaction.metadata()
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, currency, outputs, metadata \\ nil) do
@@ -86,8 +86,8 @@ defmodule OMG.TestHelper do
   end
 
   @spec create_recovered(
-          list({pos_integer, pos_integer, 0 | 1, map}),
-          list({Crypto.address_t(), Transaction.currency(), pos_integer})
+          list({pos_integer, non_neg_integer, 0 | 1, map}),
+          list({map, Transaction.currency(), pos_integer})
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, outputs), do: create_encoded(inputs, outputs) |> Transaction.Recovered.recover_from!()
 
@@ -103,9 +103,9 @@ defmodule OMG.TestHelper do
   convenience function around Transaction.new to create signed transactions (see create_recovered)
   """
   @spec create_signed(
-          list({pos_integer, pos_integer, 0 | 1, map}),
+          list({pos_integer, non_neg_integer, 0 | 1, map}),
           Transaction.currency(),
-          list({Crypto.address_t(), pos_integer}),
+          list({map, pos_integer}),
           Transaction.metadata()
         ) :: Transaction.Signed.t()
   def create_signed(inputs, currency, outputs, metadata \\ nil) do
@@ -121,8 +121,8 @@ defmodule OMG.TestHelper do
   end
 
   @spec create_signed(
-          list({pos_integer, pos_integer, 0 | 1, map}),
-          list({Crypto.address_t(), Transaction.currency(), pos_integer})
+          list({pos_integer, non_neg_integer, 0 | 1, map}),
+          list({map, Transaction.currency(), pos_integer})
         ) :: Transaction.Signed.t()
   def create_signed(inputs, outputs) do
     raw_tx =

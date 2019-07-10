@@ -36,7 +36,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
-  alias OMG.Watcher.ExitProcessor.DoubleSpend
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.KnownTx
@@ -65,48 +64,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @type check_validity_result_t :: {:ok | {:error, :unchallenged_exit}, list(Event.byzantine_t())}
 
-  @type competitor_data_t :: %{
-          in_flight_txbytes: binary(),
-          in_flight_input_index: non_neg_integer(),
-          competing_txbytes: binary(),
-          competing_input_index: non_neg_integer(),
-          competing_sig: binary(),
-          competing_tx_pos: Utxo.Position.t(),
-          competing_proof: binary()
-        }
-
-  @type prove_canonical_data_t :: %{
-          in_flight_txbytes: binary(),
-          in_flight_tx_pos: Utxo.Position.t(),
-          in_flight_proof: binary()
-        }
-
-  @type input_challenge_data :: %{
-          in_flight_txbytes: Transaction.tx_bytes(),
-          in_flight_input_index: 0..3,
-          spending_txbytes: Transaction.tx_bytes(),
-          spending_input_index: 0..3,
-          spending_sig: <<_::520>>
-        }
-
-  @type output_challenge_data :: %{
-          in_flight_txbytes: Transaction.tx_bytes(),
-          in_flight_output_pos: pos_integer(),
-          in_flight_input_index: 4..7,
-          spending_txbytes: Transaction.tx_bytes(),
-          spending_input_index: 0..3,
-          spending_sig: <<_::520>>
-        }
-
-  @type piggyback_challenge_data_error() ::
-          :ife_not_known_for_tx
-          | Transaction.decode_error()
-          | :no_double_spend_on_particular_piggyback
-
   @type spent_blknum_result_t() :: pos_integer | :not_found
-
-  @type piggyback_type_t() :: :input | :output
-  @type piggyback_t() :: {piggyback_type_t(), non_neg_integer()}
 
   @type in_flight_exit_response_t() :: %{
           txhash: binary(),
@@ -164,46 +122,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates}
   end
 
-  @doc """
-  Finalize exits based on Ethereum events, removing from tracked state if valid.
-
-  Invalid finalizing exits should continue being tracked as `is_active`, to continue emitting events.
-  This includes non-`is_active` exits that finalize invalid, which are turned to be `is_active` now.
-  """
-  @spec finalize_exits(t(), validities :: {list(Utxo.Position.t()), list(Utxo.Position.t())}) :: {t(), list(), list()}
-  def finalize_exits(%__MODULE__{exits: exits} = state, {valid_finalizations, invalid}) do
-    # handling valid finalizations
-    exit_event_triggers =
-      valid_finalizations
-      |> Enum.map(fn utxo_pos ->
-        %ExitInfo{owner: owner, currency: currency, amount: amount} = exits[utxo_pos]
-
-        %{exit_finalized: %{owner: owner, currency: currency, amount: amount, utxo_pos: utxo_pos}}
-      end)
-
-    state_without_valid_ones = %{state | exits: Map.drop(exits, valid_finalizations)}
-    db_updates = delete_positions(valid_finalizations)
-
-    # invalid ones - activating, in case they were inactive, to keep being invalid forever
-    {new_state, activating_db_updates} = activate_on_invalid_finalization(state_without_valid_ones, invalid)
-
-    {new_state, exit_event_triggers, db_updates ++ activating_db_updates}
-  end
-
-  defp activate_on_invalid_finalization(%__MODULE__{exits: exits} = state, invalid_finalizations) do
-    exits_to_activate =
-      exits
-      |> Map.take(invalid_finalizations)
-      |> Enum.map(fn {k, v} -> {k, Map.update!(v, :is_active, fn _ -> true end)} end)
-      |> Map.new()
-
-    activating_db_updates =
-      exits_to_activate
-      |> Enum.map(&ExitInfo.make_db_update/1)
-
-    state = %{state | exits: Map.merge(exits, exits_to_activate)}
-    {state, activating_db_updates}
-  end
+  defdelegate finalize_exits(state, validities), to: ExitProcessor.Finalizations
+  defdelegate prepare_utxo_exits_for_in_flight_exit_finalizations(state, finalizations), to: ExitProcessor.Finalizations
+  defdelegate finalize_in_flight_exits(state, finalizations, validities), to: ExitProcessor.Finalizations
 
   @spec challenge_exits(t(), list(map)) :: {t(), list}
   def challenge_exits(%__MODULE__{exits: exits} = state, challenges) do
@@ -316,178 +237,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @doc """
-  Returns a tuple of {:ok, map in-flight exit id => {finalized input exits, finalized output exits}}.
-  finalized input exits and finalized output exits structures both fit into `OMG.State.exit_utxos/1`.
-
-  When there are invalid finalizations, returns one of the following:
-    - {:unknown_piggybacks, list of piggybacks that exit processor state is not aware of}
-    - {:unknown_in_flight_exit, set of in-flight exit ids that exit processor is not aware of}
-  """
-  @spec prepare_utxo_exits_for_in_flight_exit_finalizations(t(), [map()]) ::
-          {:ok, map()}
-          | {:unknown_piggybacks, list()}
-          | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
-  def prepare_utxo_exits_for_in_flight_exit_finalizations(%__MODULE__{in_flight_exits: ifes}, finalizations) do
-    finalizations = finalizations |> Enum.map(&ife_id_to_binary/1)
-
-    with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
-         {:ok, []} <- known_piggybacks?(finalizations, ifes_by_id) do
-      {exits_by_ife_id, _} =
-        finalizations
-        |> Enum.reduce({%{}, ifes_by_id}, &prepare_utxo_exits_for_finalization/2)
-
-      {:ok, exits_by_ife_id}
-    end
-  end
-
-  # converts from int, which is how the contract serves it
-  defp ife_id_to_binary(finalization),
-    do: Map.update!(finalization, :in_flight_exit_id, fn id -> <<id::192>> end)
-
-  defp get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes) do
-    finalizations_ids =
-      finalizations
-      |> Enum.map(fn %{in_flight_exit_id: id} -> id end)
-      |> MapSet.new()
-
-    by_contract_id =
-      ifes
-      |> Enum.map(fn {tx_hash, %InFlightExitInfo{contract_id: id} = ife} -> {id, {tx_hash, ife}} end)
-      |> Map.new()
-
-    known_ifes =
-      by_contract_id
-      |> Map.keys()
-      |> MapSet.new()
-
-    unknown_ifes = MapSet.difference(finalizations_ids, known_ifes)
-
-    if Enum.empty?(unknown_ifes) do
-      {:ok, by_contract_id}
-    else
-      {:unknown_in_flight_exit, unknown_ifes}
-    end
-  end
-
-  defp known_piggybacks?(finalizations, ifes_by_id) do
-    not_piggybacked =
-      finalizations
-      |> Enum.filter(fn %{in_flight_exit_id: ife_id, output_index: output} ->
-        {_, ife} = Map.get(ifes_by_id, ife_id)
-        not InFlightExitInfo.is_piggybacked?(ife, output)
-      end)
-
-    if Enum.empty?(not_piggybacked) do
-      {:ok, []}
-    else
-      {:unknown_piggybacks, not_piggybacked}
-    end
-  end
-
-  defp prepare_utxo_exits_for_finalization(
-         %{in_flight_exit_id: ife_id, output_index: output},
-         {exits, ifes_by_id}
-       ) do
-    {tx_hash, ife} = Map.get(ifes_by_id, ife_id)
-    # a runtime sanity check - if this were false it would mean all piggybacks finalized so contract wouldn't allow that
-    true = InFlightExitInfo.is_active?(ife, output)
-
-    {input_exits, output_exits} =
-      if output >= 4 do
-        {[], [%{tx_hash: tx_hash, output_index: output}]}
-      else
-        %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: tx}} = ife
-        input_exit = tx |> Transaction.get_inputs() |> Enum.at(output)
-        {[input_exit], []}
-      end
-
-    {input_exits_acc, output_exits_acc} = Map.get(exits, ife_id, {[], []})
-    exits = Map.put(exits, ife_id, {input_exits ++ input_exits_acc, output_exits ++ output_exits_acc})
-    {exits, ifes_by_id}
-  end
-
-  @doc """
-  Finalizes in-flight exits.
-
-  Returns a tuple of {:ok, updated state, database updates}.
-  When there are invalid finalizations, returns one of the following:
-    - {:unknown_piggybacks, list of piggybacks that exit processor state is not aware of}
-    - {:unknown_in_flight_exit, set of in-flight exit ids that exit processor is not aware of}
-  """
-  @spec finalize_in_flight_exits(t(), [map()], map()) ::
-          {:ok, t(), list()}
-          | {:unknown_piggybacks, list()}
-          | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
-  def finalize_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, finalizations, invalidities_by_ife_id) do
-    # convert ife_id from int (given by contract) to a binary
-    finalizations =
-      finalizations
-      |> Enum.map(fn %{in_flight_exit_id: id} = map -> Map.replace!(map, :in_flight_exit_id, <<id::192>>) end)
-
-    with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
-         {:ok, []} <- known_piggybacks?(finalizations, ifes_by_id) do
-      {ifes_by_id, updated_ifes} =
-        finalizations
-        |> Enum.reduce({ifes_by_id, MapSet.new()}, &finalize_single_exit/2)
-        |> activate_on_invalid_utxo_exits(invalidities_by_ife_id)
-
-      db_updates =
-        Map.new(ifes_by_id)
-        |> Map.take(updated_ifes)
-        |> Enum.map(fn {_, value} -> value end)
-        |> Enum.map(&InFlightExitInfo.make_db_update/1)
-
-      ifes =
-        ifes_by_id
-        |> Enum.map(fn {_, value} -> value end)
-        |> Map.new()
-
-      {:ok, %{state | in_flight_exits: ifes}, db_updates}
-    end
-  end
-
-  defp finalize_single_exit(
-         %{in_flight_exit_id: ife_id, output_index: output},
-         {ifes_by_id, updated_ifes}
-       ) do
-    {tx_hash, ife} = Map.get(ifes_by_id, ife_id)
-
-    if InFlightExitInfo.is_active?(ife, output) do
-      {:ok, finalized_ife} = InFlightExitInfo.finalize(ife, output)
-      ifes_by_id = Map.put(ifes_by_id, ife_id, {tx_hash, finalized_ife})
-      updated_ifes = MapSet.put(updated_ifes, ife_id)
-
-      {ifes_by_id, updated_ifes}
-    else
-      {ifes_by_id, updated_ifes}
-    end
-  end
-
-  defp activate_on_invalid_utxo_exits({ifes_by_id, updated_ifes}, invalidities_by_ife_id) do
-    ifes_to_activate =
-      invalidities_by_ife_id
-      |> Enum.filter(fn {_ife_id, invalidities} -> not Enum.empty?(invalidities) end)
-      |> Enum.map(fn {ife_id, _invalidities} -> ife_id end)
-      |> MapSet.new()
-
-    ifes_by_id = Enum.map(ifes_by_id, &activate_in_flight_exit(&1, ifes_to_activate))
-
-    updated_ifes = MapSet.to_list(ifes_to_activate) ++ MapSet.to_list(updated_ifes)
-    updated_ifes = MapSet.new(updated_ifes)
-
-    {ifes_by_id, updated_ifes}
-  end
-
-  defp activate_in_flight_exit({ife_id, {tx_hash, ife}}, ifes_to_activate) do
-    if MapSet.member?(ifes_to_activate, ife_id) do
-      activated_ife = InFlightExitInfo.activate(ife)
-      {ife_id, {tx_hash, activated_ife}}
-    else
-      {ife_id, {tx_hash, ife}}
-    end
-  end
-
-  @doc """
   Only for the active in-flight exits, based on the current tracked state.
   Only for IFEs which transactions where included into the chain and whose outputs were potentially spent.
 
@@ -498,7 +247,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         %ExitProcessor.Request{blknum_now: blknum_now} = request,
         %__MODULE__{in_flight_exits: ifes}
       )
-      when is_integer(blknum_now) do
+      when not is_nil(blknum_now) do
     ife_input_positions =
       ifes
       |> Map.values()
@@ -518,7 +267,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         %ExitProcessor.Request{blknum_now: blknum_now} = request,
         %__MODULE__{} = state
       )
-      when is_integer(blknum_now) do
+      when not is_nil(blknum_now) do
     %{request | utxos_to_check: do_determine_utxo_existence_to_get(state, blknum_now)}
   end
 
@@ -633,7 +382,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         },
         %__MODULE__{} = state
       )
-      when is_integer(eth_height_now) do
+      when not is_nil(eth_height_now) do
     utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
 
     {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, eth_height_now)
@@ -648,20 +397,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
 
-    ifes_with_competitors_events =
-      get_ife_txs_with_competitors(state, known_txs_by_input)
-      |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
+    ifes_with_competitors_events = ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input)
+    invalid_ife_challenges_events = ExitProcessor.Canonicity.get_invalid_ife_challenges(state)
 
-    invalid_piggybacks = get_invalid_piggybacks_events(state, known_txs_by_input)
+    invalid_piggybacks = ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input)
 
     # TODO: late piggybacks are critical, to be implemented in OMG-408
     late_invalid_piggybacks = []
 
     has_no_late_invalid_exits = Enum.empty?(late_invalid_exits) and Enum.empty?(late_invalid_piggybacks)
-
-    invalid_ife_challenges_events =
-      get_invalid_ife_challenges(state)
-      |> Enum.map(fn txbytes -> %Event.InvalidIFEChallenge{txbytes: txbytes} end)
 
     available_piggybacks_events =
       get_ifes_to_piggyback(state)
@@ -684,173 +428,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {chain_validity, events}
   end
 
-  def get_input_challenge_data(request, state, txbytes, input_index) do
-    case input_index in 0..(Transaction.max_inputs() - 1) do
-      true -> get_piggyback_challenge_data(request, state, txbytes, {:input, input_index})
-      false -> {:error, :piggybacked_index_out_of_range}
-    end
-  end
+  defdelegate get_competitor_for_ife(request, state, ife_txbytes), to: ExitProcessor.Canonicity
+  defdelegate prove_canonical_for_ife(state, ife_txbytes), to: ExitProcessor.Canonicity
 
-  def get_output_challenge_data(request, state, txbytes, output_index) do
-    case output_index in 0..(Transaction.max_outputs() - 1) do
-      true -> get_piggyback_challenge_data(request, state, txbytes, {:output, output_index})
-      false -> {:error, :piggybacked_index_out_of_range}
-    end
-  end
+  defdelegate get_input_challenge_data(request, state, txbytes, input_index), to: ExitProcessor.Piggyback
+  defdelegate get_output_challenge_data(request, state, txbytes, output_index), to: ExitProcessor.Piggyback
 
   defdelegate determine_standard_challenge_queries(request, state), to: ExitProcessor.StandardExit
   defdelegate determine_exit_txbytes(request, state), to: ExitProcessor.StandardExit
   defdelegate create_challenge(request, state), to: ExitProcessor.StandardExit
-
-  @spec produce_invalid_piggyback_proof(InFlightExitInfo.t(), KnownTx.known_txs_by_input_t(), piggyback_t()) ::
-          {:ok, input_challenge_data() | output_challenge_data()} | {:error, :no_double_spend_on_particular_piggyback}
-  defp produce_invalid_piggyback_proof(ife, known_txs_by_input, {pb_type, pb_index} = piggyback) do
-    with {:ok, proof_materials} <- get_proofs_for_particular_ife(ife, pb_type, known_txs_by_input),
-         {:ok, proof} <- get_proof_for_particular_piggyback(pb_index, proof_materials) do
-      {:ok, prepare_piggyback_challenge_response(ife, piggyback, proof)}
-    end
-  end
-
-  # gets all proof materials for all possibly invalid piggybacks for a single ife, for a determined type (input/output)
-  defp get_proofs_for_particular_ife(ife, pb_type, known_txs_by_input) do
-    invalid_piggybacks_by_ife(known_txs_by_input, pb_type, [ife])
-    |> case do
-      [] -> {:error, :no_double_spend_on_particular_piggyback}
-      # ife and pb_type are pinned here for a runtime sanity check - we got what we explicitly asked for
-      [{^ife, ^pb_type, proof_materials}] -> {:ok, proof_materials}
-    end
-  end
-
-  # gets any proof of a particular invalid piggyback, after we have figured the exact piggyback index affected
-  defp get_proof_for_particular_piggyback(pb_index, proof_materials) do
-    proof_materials
-    |> Map.get(pb_index)
-    |> case do
-      nil -> {:error, :no_double_spend_on_particular_piggyback}
-      # any challenging tx will do, taking the very first
-      [proof | _] -> {:ok, proof}
-    end
-  end
-
-  @spec prepare_piggyback_challenge_response(InFlightExitInfo.t(), piggyback_t(), DoubleSpend.t()) ::
-          input_challenge_data() | output_challenge_data()
-  defp prepare_piggyback_challenge_response(ife, {:input, input_index}, proof) do
-    %{
-      in_flight_txbytes: Transaction.raw_txbytes(ife.tx),
-      in_flight_input_index: input_index,
-      spending_txbytes: Transaction.raw_txbytes(proof.known_tx.signed_tx),
-      spending_input_index: proof.known_spent_index,
-      spending_sig: Enum.at(proof.known_tx.signed_tx.sigs, proof.known_spent_index)
-    }
-  end
-
-  defp prepare_piggyback_challenge_response(ife, {:output, _output_index}, proof) do
-    {_, inclusion_proof} = ife.tx_seen_in_blocks_at
-
-    %{
-      in_flight_txbytes: Transaction.raw_txbytes(ife.tx),
-      in_flight_output_pos: proof.utxo_pos,
-      in_flight_proof: inclusion_proof,
-      spending_txbytes: Transaction.raw_txbytes(proof.known_tx.signed_tx),
-      spending_input_index: proof.known_spent_index,
-      spending_sig: Enum.at(proof.known_tx.signed_tx.sigs, proof.known_spent_index)
-    }
-  end
-
-  # respec
-  @spec get_invalid_piggybacks_events(__MODULE__.t(), KnownTx.known_txs_by_input_t()) ::
-          list(Event.InvalidPiggyback.t())
-  defp get_invalid_piggybacks_events(%__MODULE__{in_flight_exits: ifes}, known_txs_by_input) do
-    ifes
-    |> Map.values()
-    |> all_invalid_piggybacks_by_ife(known_txs_by_input)
-    |> group_by_txbytes()
-    |> materials_to_events()
-  end
-
-  defp all_invalid_piggybacks_by_ife(ifes_values, known_txs_by_input) do
-    [:input, :output]
-    |> Enum.flat_map(fn pb_type -> invalid_piggybacks_by_ife(known_txs_by_input, pb_type, ifes_values) end)
-  end
-
-  # we need to produce only one event per IFE, with both piggybacks on inputs and outputs
-  defp group_by_txbytes(invalid_piggybacks) do
-    invalid_piggybacks
-    |> Enum.map(fn {ife, type, materials} -> {Transaction.raw_txbytes(ife.tx), type, materials} end)
-    |> Enum.group_by(&elem(&1, 0), fn {_, type, materials} -> {type, materials} end)
-  end
-
-  defp materials_to_events(invalid_piggybacks_by_txbytes) do
-    invalid_piggybacks_by_txbytes
-    |> Enum.map(fn {txbytes, type_materials_pairs} ->
-      %Event.InvalidPiggyback{
-        txbytes: txbytes,
-        inputs: invalid_piggyback_indices(type_materials_pairs, :input),
-        outputs: invalid_piggyback_indices(type_materials_pairs, :output)
-      }
-    end)
-  end
-
-  defp invalid_piggyback_indices(type_materials_pairs, pb_type) do
-    # here we need to additionally group the materials found by type input/output
-    # then we gut just the list of indices to present to the user in the event
-    type_materials_pairs
-    |> Enum.filter(fn {type, _materials} -> type == pb_type end)
-    |> Enum.flat_map(fn {_type, materials} -> Map.keys(materials) end)
-  end
-
-  @spec invalid_piggybacks_by_ife(KnownTx.known_txs_by_input_t(), piggyback_type_t(), list(InFlightExitInfo.t())) ::
-          list({InFlightExitInfo.t(), piggyback_type_t(), %{non_neg_integer => DoubleSpend.t()}})
-  defp invalid_piggybacks_by_ife(known_txs_by_input, pb_type, ifes) do
-    # getting invalid piggybacks on inputs
-    ifes
-    |> Enum.map(&InFlightExitInfo.indexed_piggybacks_by_ife(&1, pb_type))
-    |> Enum.filter(&ife_has_something?/1)
-    |> Enum.map(fn {ife, indexed_piggybacked_utxo_positions} ->
-      proof_materials =
-        DoubleSpend.all_double_spends_by_index(indexed_piggybacked_utxo_positions, known_txs_by_input, ife.tx)
-
-      {ife, pb_type, proof_materials}
-    end)
-    |> Enum.filter(&ife_has_something?/1)
-  end
-
-  defp ife_has_something?({_ife, finds_for_ife}), do: !Enum.empty?(finds_for_ife)
-  defp ife_has_something?({_ife, _, finds_for_ife}), do: !Enum.empty?(finds_for_ife)
-
-  @spec get_piggyback_challenge_data(ExitProcessor.Request.t(), __MODULE__.t(), binary(), piggyback_t()) ::
-          {:ok, input_challenge_data() | output_challenge_data()} | {:error, piggyback_challenge_data_error()}
-  defp get_piggyback_challenge_data(%ExitProcessor.Request{blocks_result: blocks}, state, txbytes, piggyback) do
-    with {:ok, tx} <- Transaction.decode(txbytes),
-         {:ok, ife} <- get_ife(tx, state) do
-      known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
-      produce_invalid_piggyback_proof(ife, known_txs_by_input, piggyback)
-    end
-  end
-
-  # Gets the list of open IFEs that have the competitors _somewhere_
-  @spec get_ife_txs_with_competitors(__MODULE__.t(), KnownTx.known_txs_by_input_t()) :: list(binary())
-  defp get_ife_txs_with_competitors(%__MODULE__{in_flight_exits: ifes}, known_txs_by_input) do
-    ifes
-    |> Map.values()
-    |> Stream.map(fn ife -> {ife, DoubleSpend.find_competitor(known_txs_by_input, ife.tx)} end)
-    |> Stream.filter(fn {_ife, maybe_competitor} -> !is_nil(maybe_competitor) end)
-    |> Stream.filter(fn {ife, %DoubleSpend{known_tx: %KnownTx{utxo_pos: utxo_pos}}} ->
-      InFlightExitInfo.is_viable_competitor?(ife, utxo_pos)
-    end)
-    |> Stream.map(fn {ife, _double_spend} -> Transaction.raw_txbytes(ife.tx) end)
-    |> Enum.uniq()
-  end
-
-  # Gets the list of open IFEs that have the competitors _somewhere_
-  @spec get_invalid_ife_challenges(t()) :: list(binary())
-  defp get_invalid_ife_challenges(%__MODULE__{in_flight_exits: ifes}) do
-    ifes
-    |> Map.values()
-    |> Stream.filter(&InFlightExitInfo.is_invalidly_challenged?/1)
-    |> Stream.map(&Transaction.raw_txbytes(&1.tx))
-    |> Enum.uniq()
-  end
 
   @spec get_ifes_to_piggyback(t()) :: list(InFlightExitInfo.t())
   defp get_ifes_to_piggyback(%__MODULE__{in_flight_exits: ifes}) do
@@ -942,91 +528,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     %{state | in_flight_exits: new_ifes}
   end
 
-  @doc """
-  Gets the root chain contract-required set of data to challenge a non-canonical ife
-  """
-  @spec get_competitor_for_ife(ExitProcessor.Request.t(), __MODULE__.t(), binary()) ::
-          {:ok, competitor_data_t()} | {:error, :competitor_not_found} | {:error, :no_viable_competitor_found}
-  def get_competitor_for_ife(
-        %ExitProcessor.Request{blocks_result: blocks},
-        %__MODULE__{} = state,
-        ife_txbytes
-      ) do
-    known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
-    # find its competitor and use it to prepare the requested data
-    with {:ok, ife_tx} <- Transaction.decode(ife_txbytes),
-         {:ok, ife} <- get_ife(ife_tx, state),
-         {:ok, double_spend} <- get_competitor(known_txs_by_input, ife.tx),
-         %DoubleSpend{known_tx: %KnownTx{utxo_pos: utxo_pos}} = double_spend,
-         true <- InFlightExitInfo.is_viable_competitor?(ife, utxo_pos) || {:error, :no_viable_competitor_found},
-         do: {:ok, prepare_competitor_response(double_spend, ife.tx, blocks)}
-  end
-
-  @doc """
-  Gets the root chain contract-required set of data to challenge an ife appearing as non-canonical in the root chain
-  contract but which is known to be canonical locally because included in one of the blocks
-  """
-  @spec prove_canonical_for_ife(t(), binary()) ::
-          {:ok, prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
-  def prove_canonical_for_ife(%__MODULE__{} = state, ife_txbytes) do
-    with {:ok, raw_ife_tx} <- Transaction.decode(ife_txbytes),
-         {:ok, ife} <- get_ife(raw_ife_tx, state),
-         true <- InFlightExitInfo.is_invalidly_challenged?(ife) || {:error, :no_viable_canonical_proof_found},
-         do: {:ok, prepare_canonical_response(ife)}
-  end
-
-  defp prepare_competitor_response(
-         %DoubleSpend{
-           index: in_flight_input_index,
-           known_spent_index: competing_input_index,
-           known_tx: %KnownTx{signed_tx: known_signed_tx, utxo_pos: known_tx_utxo_pos}
-         },
-         signed_ife_tx,
-         blocks
-       ) do
-    {:ok, input_owners} = Transaction.Signed.get_spenders(signed_ife_tx)
-
-    owner = Enum.at(input_owners, in_flight_input_index)
-
-    %{
-      in_flight_txbytes: signed_ife_tx |> Transaction.raw_txbytes(),
-      in_flight_input_index: in_flight_input_index,
-      competing_txbytes: known_signed_tx |> Transaction.raw_txbytes(),
-      competing_input_index: competing_input_index,
-      competing_sig: find_sig!(known_signed_tx, owner),
-      competing_tx_pos: known_tx_utxo_pos || Utxo.position(0, 0, 0),
-      competing_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
-    }
-  end
-
-  defp prepare_canonical_response(%InFlightExitInfo{tx: tx, tx_seen_in_blocks_at: {pos, proof}}),
-    do: %{in_flight_txbytes: Transaction.raw_txbytes(tx), in_flight_tx_pos: pos, in_flight_proof: proof}
-
-  defp maybe_calculate_proof(nil, _), do: <<>>
-
-  defp maybe_calculate_proof(Utxo.position(blknum, txindex, _), blocks) do
-    blocks
-    |> Enum.find(fn %Block{number: number} -> blknum == number end)
-    |> Block.inclusion_proof(txindex)
-  end
-
-  defp get_competitor(known_txs_by_input, signed_ife_tx) do
-    known_txs_by_input
-    |> DoubleSpend.find_competitor(signed_ife_tx)
-    |> case do
-      nil -> {:error, :competitor_not_found}
-      value -> {:ok, value}
-    end
-  end
-
   defp zero_address?(address) do
     address != @zero_address
-  end
-
-  defp get_ife(ife_tx, %__MODULE__{in_flight_exits: ifes}) do
-    case ifes[Transaction.raw_txhash(ife_tx)] do
-      nil -> {:error, :ife_not_known_for_tx}
-      value -> {:ok, value}
-    end
   end
 end

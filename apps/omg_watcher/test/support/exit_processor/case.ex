@@ -13,6 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.ExitProcessor.Case do
+  @moduledoc """
+  `ExUnit` test case for a shared setup used in `ExitProcessor.Core` logic tests
+  """
   use ExUnit.CaseTemplate
 
   alias OMG.Block

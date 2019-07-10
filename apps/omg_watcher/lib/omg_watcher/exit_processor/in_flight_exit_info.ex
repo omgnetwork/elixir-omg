@@ -237,7 +237,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   defp piggyback_exit(_), do: {:error, :cannot_piggyback}
 
-  @spec challenge(t(), non_neg_integer()) :: {:ok, t()} | {:error, :competitor_too_young}
+  @spec challenge(t(), non_neg_integer()) :: t() | {:error, :competitor_too_young}
   def challenge(ife, competitor_position)
 
   def challenge(%__MODULE__{oldest_competitor: nil} = ife, competitor_position),

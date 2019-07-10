@@ -78,4 +78,11 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   end
 
   def txs_different(tx1, tx2), do: Transaction.raw_txhash(tx1) != Transaction.raw_txhash(tx2)
+
+  def get_ife(ife_tx, ifes) do
+    case ifes[Transaction.raw_txhash(ife_tx)] do
+      nil -> {:error, :ife_not_known_for_tx}
+      value -> {:ok, value}
+    end
+  end
 end
