@@ -10,11 +10,10 @@ The `docker-compose` tooling in the root of `elixir-omg` allows users to run the
 
 ### Startup
 
-1) Configure the environment variable `ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<your_api_key>` with the RPC connection information
+1) Add an ENV variable `INFURA_API_KEY` to your environment or override the ETHEREUM_RPC_URL completely in the `docker-compose-watcher.yml` file with the RPC connection information.
 
 2) From the root of the `elixir-omg` execute:
 
-- `docker-compose -f docker-compose.yml -f docker-compose-watcher-mac.yml up watcher postgres` (Mac)
-- `docker-compose -f docker-compose.yml -f docker-compose-watcher-non-mac.yml up watcher postgres` (Linux/Windows)
+- `docker-compose -f docker-compose-watcher.yml up`
 
 Modify the other environment variables for connecting to other networks.

@@ -42,3 +42,7 @@ env/
 
 #test files
 /apps/omg_child_chain/priv/omisego_operator_test_fees_file*
+
+# VS Code config file
+.vscode/
+
