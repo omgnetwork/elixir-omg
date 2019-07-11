@@ -170,7 +170,7 @@ defmodule OMG.Performance.SenderManager do
   end
 
   defp txs_per_second(txs_count, interval_ms) when interval_ms == 0, do: txs_count
-  defp txs_per_second(txs_count, interval_ms), do: Float.round(txs_count * 1000 / interval_ms, 2)
+  defp txs_per_second(txs_count, interval_ms), do: Kernel.round(txs_count * 1000 / interval_ms)
 
   # handle termination
   defp write_stats(%{destdir: destdir} = state) do

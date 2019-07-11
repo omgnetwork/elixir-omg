@@ -5,7 +5,7 @@
 Command:
 
 ```
-mix run --no-start -e 'OMG.Performance.setup_and_run(8_000, 32, %{block_every_ms: 15_000})'
+mix run --no-start -e 'OMG.Performance.start_simple_perftest(8_000, 32, %{block_every_ms: 15_000})'
 ```
 
 Performance statistics:
@@ -37,7 +37,7 @@ run on
 Command as above + observer:
 
 ```
-mix run --no-start -e ':observer.start(); OMG.Performance.setup_and_run(8_000, 32, %{block_every_ms: 15_000})'
+mix run --no-start -e ':observer.start(); OMG.Performance.start_simple_perftest(8_000, 32, %{block_every_ms: 15_000})'
 ```
 
 Observer tells us that peak memory usage (total) is ~600MB, oscillating around ~400MB most of the time.
@@ -47,16 +47,16 @@ Observer tells us that peak memory usage (total) is ~600MB, oscillating around ~
 Command as above:
 
 ```
-mix run --no-start -e 'OMG.Performance.setup_and_run(8_000, 32, %{block_every_ms: 15_000})'
+mix run --no-start -e 'OMG.Performance.start_simple_perftest(8_000, 32, %{block_every_ms: 15_000})'
 ```
 
 ```
 [
-   {"blknum":1000, "span_ms":16378, "tps":3937.23, "txs":64484},
-   {"blknum":2000, "span_ms":15115, "tps":4019.91, "txs":60761},
-   {"blknum":3000, "span_ms":14915, "tps":4040.03, "txs":60257},
-   {"blknum":4000, "span_ms":14726, "tps":4110.42, "txs":60530},
-   {"blknum":5000, "span_ms":1865,  "tps":5344.77, "txs":9968}
+   {"blknum":1000, "span_ms":16378, "tps":3937, "txs":64484},
+   {"blknum":2000, "span_ms":15115, "tps":4020, "txs":60761},
+   {"blknum":3000, "span_ms":14915, "tps":4040, "txs":60257},
+   {"blknum":4000, "span_ms":14726, "tps":4110, "txs":60530},
+   {"blknum":5000, "span_ms":1865,  "tps":5345, "txs":9968}
 ]
 ```
 
@@ -78,12 +78,12 @@ mix run --no-start -e 'OMG.Performance.start_simple_perftest(8_000, 32, %{block_
 
 ```
 [
-   {"blknum":1000, "span_ms":16488, "tps":3157.27, "txs":52057},
-   {"blknum":2000, "span_ms":15219, "tps":2973.52, "txs":45254},
-   {"blknum":3000, "span_ms":14964, "tps":2789.49, "txs":41742},
-   {"blknum":4000, "span_ms":14740, "tps":2847.01, "txs":41965},
-   {"blknum":5000, "span_ms":14889, "tps":3005.04, "txs":44742},
-   {"blknum":6000, "span_ms":7210, "tps":4194.17, "txs":30240}
+   {"blknum":1000, "span_ms":16488, "tps":3157, "txs":52057},
+   {"blknum":2000, "span_ms":15219, "tps":2974, "txs":45254},
+   {"blknum":3000, "span_ms":14964, "tps":2789, "txs":41742},
+   {"blknum":4000, "span_ms":14740, "tps":2847, "txs":41965},
+   {"blknum":5000, "span_ms":14889, "tps":3005, "txs":44742},
+   {"blknum":6000, "span_ms":7210, "tps":4194, "txs":30240}
 ]
 ```
 
@@ -105,10 +105,10 @@ mix run --no-start -e 'OMG.Performance.start_simple_perftest(8_000, 32, %{block_
 
 ```
 [
- {"txs": 65536, "tps": 3976.22, "span_ms": 16482, "blknum": 1000},
- { "txs": 65536, "tps": 4397.21, "span_ms": 14904, "blknum": 2000},
- { "txs": 65536, "tps": 4263.89, "span_ms": 15370, "blknum": 3000},
- { "txs": 59392, "tps": 5942.17, "span_ms": 9995, "blknum": 4000}
+ {"txs": 65536, "tps": 3976, "span_ms": 16482, "blknum": 1000},
+ { "txs": 65536, "tps": 4397, "span_ms": 14904, "blknum": 2000},
+ { "txs": 65536, "tps": 4264, "span_ms": 15370, "blknum": 3000},
+ { "txs": 59392, "tps": 5942, "span_ms": 9995, "blknum": 4000}
 ]
 ```
 
@@ -125,12 +125,12 @@ Command as above
 
 ```
 [
-  %{blknum: 1000, span_ms: 18449, tps: 3042.12, txs: 56124},
-  %{blknum: 2000, span_ms: 13970, tps: 3151.68, txs: 44029},
-  %{blknum: 3000, span_ms: 15340, tps: 3124.71, txs: 47933},
-  %{blknum: 4000, span_ms: 14598, tps: 3235.58, txs: 47233},
-  %{blknum: 5000, span_ms: 15039, tps: 3247.56, txs: 48840},
-  %{blknum: 6000, span_ms: 1199, tps: 9875.73, txs: 11841}
+  %{blknum: 1000, span_ms: 18449, tps: 3042, txs: 56124},
+  %{blknum: 2000, span_ms: 13970, tps: 3152, txs: 44029},
+  %{blknum: 3000, span_ms: 15340, tps: 3125, txs: 47933},
+  %{blknum: 4000, span_ms: 14598, tps: 3236, txs: 47233},
+  %{blknum: 5000, span_ms: 15039, tps: 3248, txs: 48840},
+  %{blknum: 6000, span_ms: 1199, tps: 9876, txs: 11841}
 ]
 ```
 
@@ -142,10 +142,10 @@ Command as above
 
 ```
 [
-  %{blknum: 1000, span_ms: 16699, tps: 3888.86, txs: 64940},
-  %{blknum: 2000, span_ms: 14753, tps: 4007.32, txs: 59120},
-  %{blknum: 3000, span_ms: 15225, tps: 3950.08, txs: 60140},
-  %{blknum: 4000, span_ms: 11507, tps: 5205.79, txs: 59903},
-  %{blknum: 5000, span_ms: 4059, tps: 2931.02, txs: 11897}
+  %{blknum: 1000, span_ms: 16699, tps: 3889, txs: 64940},
+  %{blknum: 2000, span_ms: 14753, tps: 4007, txs: 59120},
+  %{blknum: 3000, span_ms: 15225, tps: 3950, txs: 60140},
+  %{blknum: 4000, span_ms: 11507, tps: 5206, txs: 59903},
+  %{blknum: 5000, span_ms: 4059, tps: 2931, txs: 11897}
 ]
 ```
