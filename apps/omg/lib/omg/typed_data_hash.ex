@@ -40,7 +40,7 @@ defmodule OMG.TypedDataHash do
   """
   @spec hash_struct(Transaction.t(), Crypto.domain_separator_t()) :: Crypto.hash_t()
   def hash_struct(raw_tx, domain_separator \\ nil) do
-    domain_separator = domain_separator || __MODULE__.Config.compute_domain_separator_from_config()
+    domain_separator = domain_separator || __MODULE__.Config.domain_separator_from_config()
     Crypto.hash(@eip_191_prefix <> domain_separator <> hash_transaction(raw_tx))
   end
 

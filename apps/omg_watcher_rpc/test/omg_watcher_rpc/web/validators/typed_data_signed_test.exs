@@ -104,7 +104,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
     assert {:ok, @eip_domain} == "OMG Network" |> get_domain() |> TypedDataSigned.parse_domain()
   end
 
-  test "ensures network domain match" do
+  test "ensures network domains match" do
     correct_domain = @eip_domain
     incorrect_domain = %{@eip_domain | name: "Z0nk"}
 

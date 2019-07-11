@@ -34,13 +34,15 @@ defmodule OMG.TypedDataHashTest do
   require Utxo
   require OMG.TypedDataHash.Tools
 
-  @test_domain_separator Tools.domain_separator(
-                           "OMG Network",
-                           "1",
-                           "44de0ec539b8c4a4b530c78620fe8320167f2f74" |> Base.decode16!(case: :mixed),
-                           "fad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
-                           |> Base.decode16!(case: :mixed)
-                         )
+  @test_domain_separator Tools.domain_separator(%{
+                           name: "OMG Network",
+                           version: "1",
+                           verifyingContract:
+                             "44de0ec539b8c4a4b530c78620fe8320167f2f74" |> Base.decode16!(case: :mixed),
+                           salt:
+                             "fad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
+                             |> Base.decode16!(case: :mixed)
+                         })
 
   setup_all do
     null_addr = <<0::160>>
@@ -216,6 +218,25 @@ defmodule OMG.TypedDataHashTest do
                |> TypedDataHash.hash_struct(@test_domain_separator)
                |> Crypto.recover_address(signature)
                |> (&match?({:ok, @signer}, &1)).()
+    end
+  end
+
+  describe "Eip-712 types" do
+    test "align with encodeType format" do
+      assert "EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)" ==
+               TypedDataHash.Types.encode_type(:EIP712Domain)
+
+      assert "Transaction(" <>
+               "Input input0,Input input1,Input input2,Input input3," <>
+               "Output output0,Output output1,Output output2,Output output3," <>
+               "bytes32 metadata)" ==
+               TypedDataHash.Types.encode_type(:Transaction)
+
+      assert "Input(uint256 blknum,uint256 txindex,uint256 oindex)" ==
+               TypedDataHash.Types.encode_type(:Input)
+
+      assert "Output(address owner,address currency,uint256 amount)" ==
+               TypedDataHash.Types.encode_type(:Output)
     end
   end
 end

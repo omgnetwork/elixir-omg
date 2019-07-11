@@ -83,12 +83,12 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
     json(conn, response)
   end
 
-  def call(conn, {:error, reason}), do: respond(conn, error_info(conn, reason))
-
-  def call(conn, {:error, reason, data}) do
+  def call(conn, {:error, {reason, data}}) do
     error = error_info(conn, reason)
     respond(conn, Map.put(error, :messages, data))
   end
+
+  def call(conn, {:error, reason}), do: respond(conn, error_info(conn, reason))
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
 

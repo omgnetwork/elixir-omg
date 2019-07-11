@@ -76,6 +76,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   def create(conn, params) do
     with {:ok, order} <- Validator.Order.parse(params) do
       API.Transaction.create(order)
+      |> API.Transaction.include_typed_data()
       |> api_response(conn, :create)
     end
   end

@@ -18,15 +18,9 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   """
 
   alias OMG.State.Transaction
+  alias OMG.TypedDataHash.Tools
   alias OMG.Utils.HttpRPC.Validator.Base
   import OMG.Utils.HttpRPC.Validator.Base
-
-  @type eip712_domain_t() :: %{
-          name: binary(),
-          version: binary(),
-          salt: OMG.Crypto.hash_t(),
-          verifyingContract: OMG.Crypto.address_t()
-        }
 
   @empty_metadata <<0::256>>
 
@@ -55,7 +49,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
     end
   end
 
-  @spec parse_domain(map()) :: {:ok, eip712_domain_t()} | Base.validation_error_t()
+  @spec parse_domain(map()) :: {:ok, Tools.eip712_domain_t()} | Base.validation_error_t()
   def parse_domain(map) when is_map(map) do
     with name = Map.get(map, "name"),
          version = Map.get(map, "version"),
@@ -64,19 +58,15 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
          do: {:ok, %{name: name, version: version, salt: salt, verifyingContract: contract}}
   end
 
-  @spec ensure_network_match(eip712_domain_t(), eip712_domain_t() | nil) :: :ok | Base.validation_error_t()
+  @spec ensure_network_match(Tools.eip712_domain_t(), Tools.eip712_domain_t() | nil) :: :ok | Base.validation_error_t()
   def ensure_network_match(domain_from_params, network_domain \\ nil) do
-    domain_separator = fn %{name: name, version: version, salt: salt, verifyingContract: contract} ->
-      OMG.TypedDataHash.Tools.domain_separator(name, version, contract, salt)
-    end
-
     network_domain =
       case network_domain do
-        nil -> OMG.TypedDataHash.Config.compute_domain_separator_from_config()
-        params when is_map(params) -> domain_separator.(params)
+        nil -> OMG.TypedDataHash.Config.domain_separator_from_config()
+        params when is_map(params) -> Tools.domain_separator(params)
       end
 
-    if network_domain == domain_separator.(domain_from_params),
+    if network_domain == Tools.domain_separator(domain_from_params),
       do: :ok,
       else: error("domain", :domain_separator_mismatch)
   end

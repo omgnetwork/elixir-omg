@@ -17,7 +17,9 @@ defmodule OMG.Watcher.UtxoSelection do
   Provides Utxos selection and merging algorithms.
   """
 
-  alias OMG.{Crypto, State.Transaction}
+  alias OMG.Crypto
+  alias OMG.State.Transaction
+  alias OMG.TypedDataHash
   alias OMG.Watcher.DB
 
   require Transaction
@@ -45,7 +47,9 @@ defmodule OMG.Watcher.UtxoSelection do
           outputs: nonempty_list(payment_t()),
           fee: fee_t(),
           txbytes: Transaction.tx_bytes() | nil,
-          metadata: Transaction.metadata()
+          metadata: Transaction.metadata(),
+          sign_hash: Crypto.hash_t() | nil,
+          typed_data: TypedDataHash.Types.typedDataSignRequest_t()
         }
 
   @type advice_t() ::
@@ -54,7 +58,7 @@ defmodule OMG.Watcher.UtxoSelection do
              result: :complete | :intermediate,
              transactions: nonempty_list(transaction_t())
            }}
-          | {:error, :insufficient_funds, list(map())}
+          | {:error, {:insufficient_funds, list(map())}}
           | {:error, :too_many_outputs}
           | {:error, :empty_transaction}
 
@@ -127,7 +131,7 @@ defmodule OMG.Watcher.UtxoSelection do
 
     if Enum.empty?(missing_funds),
       do: {:ok, utxo_selection |> Enum.map(fn {token, {_, utxos}} -> {token, utxos} end)},
-      else: {:error, :insufficient_funds, missing_funds}
+      else: {:error, {:insufficient_funds, missing_funds}}
   end
 
   defp create_transaction(utxos_per_token, %{owner: owner, payments: payments, metadata: metadata, fee: fee}) do
@@ -156,13 +160,16 @@ defmodule OMG.Watcher.UtxoSelection do
         {:error, :empty_transaction}
 
       true ->
+        raw_tx = create_raw_transaction(inputs, outputs, metadata)
+
         {:ok,
          %{
            inputs: inputs,
            outputs: outputs,
            fee: fee,
            metadata: metadata,
-           txbytes: create_txbytes(inputs, outputs, metadata)
+           txbytes: create_txbytes(raw_tx),
+           sign_hash: compute_sign_hash(raw_tx)
          }}
     end
   end
@@ -189,7 +196,7 @@ defmodule OMG.Watcher.UtxoSelection do
     |> Enum.map(fn {:ok, tx} -> tx end)
   end
 
-  defp create_txbytes(inputs, outputs, metadata) do
+  defp create_raw_transaction(inputs, outputs, metadata) do
     if Enum.any?(outputs, &(&1.owner == nil)),
       do: nil,
       else:
@@ -198,7 +205,16 @@ defmodule OMG.Watcher.UtxoSelection do
           outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
           metadata
         )
-        |> Transaction.raw_txbytes()
+  end
+
+  defp create_txbytes(tx) do
+    with tx when not is_nil(tx) <- tx,
+         do: Transaction.raw_txbytes(tx)
+  end
+
+  defp compute_sign_hash(tx) do
+    with tx when not is_nil(tx) <- tx,
+         do: TypedDataHash.hash_struct(tx)
   end
 
   defp respond({:ok, transaction}, result), do: {:ok, %{result: result, transactions: [transaction]}}

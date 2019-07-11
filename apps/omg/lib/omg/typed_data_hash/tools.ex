@@ -20,19 +20,24 @@ defmodule OMG.TypedDataHash.Tools do
 
   alias OMG.Crypto
   alias OMG.State.Transaction
+  alias OMG.TypedDataHash.Types
   alias OMG.Utxo
 
   require Utxo
 
-  @domain_encoded_type "EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)"
+  @type eip712_domain_t() :: %{
+          name: binary(),
+          version: binary(),
+          salt: OMG.Crypto.hash_t(),
+          verifyingContract: OMG.Crypto.address_t()
+        }
+
+  @domain_encoded_type Types.encode_type(:EIP712Domain)
   @domain_type_hash Crypto.hash(@domain_encoded_type)
 
-  @transaction_encoded_type "Transaction(" <>
-                              "Input input0,Input input1,Input input2,Input input3," <>
-                              "Output output0,Output output1,Output output2,Output output3," <>
-                              "bytes32 metadata)"
-  @input_encoded_type "Input(uint256 blknum,uint256 txindex,uint256 oindex)"
-  @output_encoded_type "Output(address owner,address currency,uint256 amount)"
+  @transaction_encoded_type Types.encode_type(:Transaction)
+  @input_encoded_type Types.encode_type(:Input)
+  @output_encoded_type Types.encode_type(:Output)
 
   @transaction_type_hash Crypto.hash(@transaction_encoded_type <> @input_encoded_type <> @output_encoded_type)
   @input_type_hash Crypto.hash(@input_encoded_type)
@@ -42,11 +47,18 @@ defmodule OMG.TypedDataHash.Tools do
   Computes Domain Separator `hashStruct(eip712Domain)`,
   @see: http://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator
   """
-  @spec domain_separator(binary(), binary(), Crypto.address_t(), Crypto.hash_t()) ::
-          Crypto.hash_t()
-  def domain_separator(name, version, verifying_contract, salt) do
+  @spec domain_separator(eip712_domain_t(), Crypto.hash_t()) :: Crypto.hash_t()
+  def domain_separator(
+        %{
+          name: name,
+          version: version,
+          verifyingContract: verifying_contract,
+          salt: salt
+        },
+        domain_type_hash \\ @domain_type_hash
+      ) do
     [
-      @domain_type_hash,
+      domain_type_hash,
       Crypto.hash(name),
       Crypto.hash(version),
       ABI.TypeEncoder.encode_raw([verifying_contract], [:address]),

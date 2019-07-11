@@ -43,6 +43,7 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
     transactions =
       advice.transactions
       |> Enum.map(fn tx -> Map.update!(tx, :inputs, &render_txoutputs/1) end)
+      |> Enum.map(&skip_hex_encoding/1)
 
     advice
     |> Map.put(:transactions, transactions)
@@ -79,5 +80,14 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
   defp render_txoutputs(inputs) do
     inputs
     |> Enum.map(&to_utxo/1)
+  end
+
+  defp skip_hex_encoding(%{typed_data: typed_data} = tx) do
+    typed_data_esc =
+      typed_data
+      |> Kernel.put_in([:skip_hex_encode], [:types, :primaryType])
+      |> Kernel.put_in([:domain, :skip_hex_encode], [:name, :version])
+
+    %{tx | typed_data: typed_data_esc}
   end
 end
