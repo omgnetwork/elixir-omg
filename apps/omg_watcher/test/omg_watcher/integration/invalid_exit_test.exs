@@ -40,11 +40,14 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}
   } do
-    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => first_tx_blknum} = TestHelper.submit(tx)
+    %{"txbytes" => deposit_txbytes, "proof" => deposit_proof, "utxo_pos" => deposit_utxo_pos} =
+      TestHelper.get_exit_data(deposit_blknum, 0, 0)
 
-    tx = OMG.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => second_tx_blknum} = TestHelper.submit(tx)
+    %{"blknum" => first_tx_blknum} =
+      OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}]) |> TestHelper.submit()
+
+    %{"blknum" => second_tx_blknum} =
+      OMG.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 10}]) |> TestHelper.submit()
 
     IntegrationTest.wait_for_block_fetch(second_tx_blknum, @timeout)
 
@@ -55,11 +58,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       Eth.RootChainHelper.start_exit(tx_utxo_pos, txbytes, proof, alice.addr)
       |> Eth.DevHelpers.transact_sync!()
 
-    %{"txbytes" => txbytes, "proof" => proof, "utxo_pos" => deposit_utxo_pos} =
-      TestHelper.get_exit_data(deposit_blknum, 0, 0)
-
     {:ok, %{"status" => "0x1"}} =
-      Eth.RootChainHelper.start_exit(deposit_utxo_pos, txbytes, proof, alice.addr)
+      Eth.RootChainHelper.start_exit(deposit_utxo_pos, deposit_txbytes, deposit_proof, alice.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name, %Event.InvalidExit{}.name], @timeout)

@@ -19,7 +19,7 @@ defmodule OMG.Watcher.API.InFlightExit do
 
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.DB
+  alias OMG.Watcher.API
   alias OMG.Watcher.ExitProcessor
 
   use OMG.Utils.Metrics
@@ -102,11 +102,8 @@ defmodule OMG.Watcher.API.InFlightExit do
       tx
       |> Transaction.get_inputs()
       |> Enum.map(fn
-        Utxo.position(0, 0, 0) ->
-          {<<>>, <<>>}
-
         utxo_pos ->
-          with {:ok, %{proof: proof, txbytes: txbytes}} <- DB.TxOutput.compose_utxo_exit(utxo_pos),
+          with {:ok, %{proof: proof, txbytes: txbytes}} <- API.Utxo.compose_utxo_exit(utxo_pos),
                do: {proof, txbytes}
       end)
 

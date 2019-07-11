@@ -51,6 +51,13 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
         [{alice, 5}, {bob, 15}]
       )
 
+    # To create in-flight exit watcher need have available utxo in his state,
+    # otherwise the watcher state indicates that there is no need to do in_flight_exit.
+    in_flight_tx =
+      OMG.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 5}])
+      |> Transaction.Signed.encode()
+      |> TestHelper.get_in_flight_exit()
+
     # Submit tx 1
     %{"blknum" => blknum} = TestHelper.submit(tx_submit1 |> Transaction.Signed.encode())
 
@@ -80,12 +87,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     # sanity check
     {:ok, {_, _, exitmap, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
     assert exitmap != 0
-
-    in_flight_tx =
-      OMG.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 5}])
-      |> Transaction.Signed.encode()
-      |> TestHelper.get_in_flight_exit()
-
     # IFE tx 3
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChainHelper.in_flight_exit(
@@ -165,6 +166,9 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
 
+    ife1 = tx1 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
+    ife2 = tx2 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
+
     assert %{
              "blknum" => blknum,
              "txindex" => 0,
@@ -175,10 +179,11 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     raw_tx2_bytes = tx2 |> Transaction.raw_txbytes()
 
-    {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(tx1, alice)
-    {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(tx2, alice)
+    {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
+    {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
     # sanity check in-flight exit has started on root chain, wait for finality
     assert {:ok, [_, _]} = OMG.Eth.RootChain.get_in_flight_exit_starts(0, ife_eth_height)
+
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     Eth.DevHelpers.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
 
@@ -236,6 +241,9 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
 
+    ife1 = tx1 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
+    ife2 = tx2 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
+
     assert %{
              "blknum" => blknum,
              "txindex" => 0,
@@ -247,8 +255,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     raw_tx1_bytes = tx1 |> Transaction.raw_txbytes()
     raw_tx2_bytes = tx2 |> Transaction.raw_txbytes()
 
-    {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(tx1, alice)
-    {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(tx2, alice)
+    {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
+    {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
     # sanity check in-flight exit has started on root chain, wait for finality
     assert {:ok, [_, _]} = OMG.Eth.RootChain.get_in_flight_exit_starts(0, ife_eth_height)
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
@@ -315,11 +323,12 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     Eth.DevHelpers.import_unlock_fund(bob)
 
     tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+    ife1 = tx |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
 
     %{"blknum" => blknum} = TestHelper.submit(tx |> Transaction.Signed.encode())
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
-    _ = exit_in_flight_and_wait_for_ife(tx, alice)
+    _ = exit_in_flight_and_wait_for_ife(ife1, alice)
 
     assert %{"in_flight_exits" => [%{}]} = TestHelper.success?("/status.get")
 
@@ -341,9 +350,12 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert %{"in_flight_exits" => [_], "byzantine_events" => [_]} = TestHelper.success?("/status.get")
   end
 
-  defp exit_in_flight(tx, exiting_user) do
+  defp exit_in_flight(%Transaction.Signed{} = tx, exiting_user) do
     get_in_flight_exit_response = tx |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
+    exit_in_flight(get_in_flight_exit_response, exiting_user)
+  end
 
+  defp exit_in_flight(get_in_flight_exit_response, exiting_user) do
     OMG.Eth.RootChainHelper.in_flight_exit(
       get_in_flight_exit_response["in_flight_tx"],
       get_in_flight_exit_response["input_txs"],
