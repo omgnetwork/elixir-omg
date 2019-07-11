@@ -81,18 +81,18 @@ To bring the entire system up:
 docker-compose up
 ```
 
-To bring only specific services up (eg: the childchain service):
+To bring only specific services up (eg: the childchain service, geth, etc...):
 
 ```sh
-docker-compose up childchain
+docker-compose up childchain geth ...
 ```
 
 _(Note: This will also bring up any services childchain depends on.)_
 
-To override and run specific Watcher code use:
+To run a Watcher only, first make sure you sent an ENV variable called with `INFURA_API_KEY` with your api key and then run:
 
 ```sh
-docker-compose -f docker-compose.yml -f docker-compose-watcher.yml up
+docker-compose -f docker-compose-watcher.yml up
 ```
 
 ### Get the deployed contract details

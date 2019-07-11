@@ -1,11 +1,23 @@
 version: "2.1"
 services:
+  postgres:
+    image: postgres:9.6.13-alpine
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: omisego_dev
+      POSTGRES_PASSWORD: omisego_dev
+      POSTGRES_DB: omisego_dev
+    healthcheck:
+      test: pg_isready -U omisego_dev
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   watcher:
     image: omisego/watcher:latest
     command: "full_local"
-    build:
-      context: ./
-      dockerfile: Dockerfile.watcher
     environment:
       - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
       - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/${INFURA_API_KEY}
