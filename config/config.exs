@@ -32,6 +32,14 @@ config :sentry,
     eth_node: System.get_env("ETH_NODE")
   }
 
+config :statix,
+  host: System.get_env("STATSD_HOST") || "localhost",
+  port: String.to_integer(System.get_env("STATSD_PORT") || "8125")
+
+config :vmstats,
+  sink: OMG.VmstatsSink,
+  interval: 3000
+
 # Configs for AppSignal application monitoring
 config :appsignal, :config,
   name: "OmiseGO Plasma MoreVP Implementation",

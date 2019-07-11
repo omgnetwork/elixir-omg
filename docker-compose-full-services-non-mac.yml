@@ -1,0 +1,79 @@
+version: "2.1"
+services:
+  geth:
+    image: ethereum/client-go:v1.8.21
+    entrypoint: /bin/sh -c "apk add curl && geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 --ws --wsorigins='*'"
+    ports:
+     - "8545:8545"
+    network_mode: "host"
+    healthcheck:
+      test: curl localhost:8545
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  contractexchanger:
+    image: jakebunce/contractexchanger:v0.0.2
+    ports:
+      - "5000:5000"
+    network_mode: "host"
+    healthcheck:
+      test: curl localhost:5000
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    depends_on:
+      geth:
+        condition: service_healthy
+
+  childchain:
+    image: elixir-omg:dockercompose
+    entrypoint: /bin/bash -c "./launcher.py && elixir --erl '-sname childchain' -S mix xomg.child_chain.start --config ~/config.exs"
+    environment:
+      - MIX_ENV=dev
+      - EXIT_PERIOD_SECONDS=86400
+      - ELIXIR_SERVICE=CHILDCHAIN
+      - CONTRACT_EXCHANGER_URL=http://localhost:5000
+      - ETHEREUM_RPC_URL=http://localhost:8545
+      - CHILD_CHAIN_URL=http://localhost:9656
+      - ETHEREUM_NETWORK=LOCALCHAIN
+      - STATSD_HOST=0.0.0.0
+      - STATSD_PORT=8125
+    restart: always
+    ports:
+      - "9656:9656"
+    network_mode: "host"
+    healthcheck:
+      test: curl localhost:9656
+      interval: 7s
+      timeout: 3s
+      retries: 15
+    depends_on:
+      geth:
+        condition: service_healthy
+      contractexchanger:
+        condition: service_healthy
+
+  watcher:
+    image: elixir-omg:dockercompose
+    entrypoint: /bin/bash -c "./launcher.py && elixir --erl '-sname watcher' -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs"
+    environment:
+      - MIX_ENV=dev
+      - ELIXIR_SERVICE=WATCHER
+      - CONTRACT_EXCHANGER_URL=http://localhost:5000
+      - ETHEREUM_RPC_URL=http://localhost:8545
+      - CHILD_CHAIN_URL=http://localhost:9656
+      - ETHEREUM_NETWORK=LOCALCHAIN
+      - DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost:5433/omisego_dev
+    restart: always
+    ports:
+      - "7434:7434"
+    network_mode: "host"
+    healthcheck:
+      test: curl localhost:7434
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    depends_on:
+      childchain:
+        condition: service_healthy
