@@ -27,6 +27,7 @@ defmodule OMG.Watcher.API.Transaction do
   require Utxo
 
   @default_transactions_limit 200
+  @empty_metadata <<0::256>>
 
   @doc """
   Retrieves a specific transaction by id
@@ -96,13 +97,11 @@ defmodule OMG.Watcher.API.Transaction do
   defp add_type_specs(%{inputs: inputs, outputs: outputs, metadata: metadata}) do
     alias OMG.TypedDataHash
 
-    empty_metadata = <<0::256>>
-
     message =
       [
         create_inputs(inputs),
         create_outputs(outputs),
-        [metadata: metadata || empty_metadata]
+        [metadata: metadata || @empty_metadata]
       ]
       |> Enum.concat()
       |> Map.new()
