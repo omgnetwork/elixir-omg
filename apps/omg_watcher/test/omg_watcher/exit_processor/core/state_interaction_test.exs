@@ -33,7 +33,6 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   @early_blknum 1_000
   @late_blknum 10_000
-
   @utxo_pos1 Utxo.position(2, 0, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
@@ -54,32 +53,6 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_position}]} =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
-             |> mock_utxo_exists(state)
-             |> Core.check_validity(processor)
-  end
-
-  test "can work with State to determine invalid exits entered too late",
-       %{processor_empty: processor, state_empty: state, alice: alice} do
-    exiting_position = Utxo.Position.encode(@utxo_pos1)
-    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
-
-    assert {{:error, :unchallenged_exit},
-            [%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}]} =
-             %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
-             |> mock_utxo_exists(state)
-             |> Core.check_validity(processor)
-  end
-
-  test "invalid exits that have been witnessed already inactive don't excite events",
-       %{processor_empty: processor, state_empty: state, alice: alice} do
-    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1, inactive: true)
-
-    assert {:ok, []} =
-             %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
              |> Core.check_validity(processor)

@@ -17,6 +17,8 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
   Common utilities to manipulate the `ExitProcessor`
   """
 
+  import ExUnit.Assertions
+
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.Core
@@ -62,7 +64,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
   end
 
   def ife_event(tx, opts \\ []) do
-    sigs = Keyword.get(opts, :sigs) || get_sigs(tx)
+    sigs = Keyword.get(opts, :sigs) || sigs(tx)
     eth_height = Keyword.get(opts, :eth_height, 2)
 
     %{
@@ -74,5 +76,65 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
   def ife_response(tx, position),
     do: %{tx_hash: Transaction.raw_txhash(tx), challenge_position: Utxo.Position.encode(position)}
 
-  defp get_sigs(%{signed_tx: %{sigs: sigs}}), do: sigs
+  def ife_challenge(tx, comp, opts \\ []) do
+    competitor_position = Keyword.get(opts, :competitor_position)
+
+    competitor_position =
+      if competitor_position, do: Utxo.Position.encode(competitor_position), else: not_included_competitor_pos()
+
+    %{
+      tx_hash: Transaction.raw_txhash(tx),
+      competitor_position: competitor_position,
+      call_data: %{
+        competing_tx: txbytes(comp),
+        competing_tx_input_index: Keyword.get(opts, :competing_tx_input_index, 0),
+        competing_tx_sig: Keyword.get(opts, :competing_tx_sig, sig(comp))
+      }
+    }
+  end
+
+  def txbytes(tx), do: Transaction.raw_txbytes(tx)
+  def sigs(tx), do: tx.signed_tx.sigs
+  def sig(tx, idx \\ 0), do: tx |> sigs() |> Enum.at(idx)
+
+  def assert_proof_sound(proof_bytes) do
+    # NOTE: checking of actual proof working up to the contract integration test
+    assert is_binary(proof_bytes)
+    # hash size * merkle tree depth
+    assert byte_size(proof_bytes) == 32 * 16
+  end
+
+  def assert_events(events, expected_events) do
+    assert MapSet.new(events) == MapSet.new(expected_events)
+  end
+
+  def check_validity_filtered(request, processor, opts) do
+    exclude_events = Keyword.get(opts, :exclude, [])
+    only_events = Keyword.get(opts, :only, [])
+
+    {result, events} = Core.check_validity(request, processor)
+
+    any? = fn filtering_events, event ->
+      Enum.any?(filtering_events, fn filtering_event -> event.__struct__ == filtering_event end)
+    end
+
+    filtered_events =
+      events
+      |> Enum.filter(fn event ->
+        Enum.empty?(exclude_events) or not any?.(exclude_events, event)
+      end)
+      |> Enum.filter(fn event ->
+        Enum.empty?(only_events) or any?.(only_events, event)
+      end)
+
+    {result, filtered_events}
+  end
+
+  defp not_included_competitor_pos do
+    <<long::256>> =
+      List.duplicate(<<255::8>>, 32)
+      |> Enum.reduce(fn val, acc -> val <> acc end)
+
+    long
+  end
 end

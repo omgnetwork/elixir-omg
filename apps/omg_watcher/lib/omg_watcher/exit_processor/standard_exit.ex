@@ -12,22 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
+defmodule OMG.Watcher.ExitProcessor.StandardExit do
   @moduledoc """
   Part of Core to handle SE challenges & invalid exit detection.
 
   Treat as private helper submodule of `OMG.Watcher.ExitProcessor.Core`, test and call via that
   """
 
-  # struct Represents a challenge to a standard exit
-  defstruct [:exit_id, :txbytes, :input_index, :sig]
+  defmodule Challenge do
+    @moduledoc """
+    Represents a challenge to a standard exit as returned by the `ExitProcessor`
+    """
+    defstruct [:exit_id, :txbytes, :input_index, :sig]
 
-  @type t() :: %__MODULE__{
-          exit_id: non_neg_integer(),
-          txbytes: String.t(),
-          input_index: non_neg_integer(),
-          sig: String.t()
-        }
+    @type t() :: %__MODULE__{
+            exit_id: non_neg_integer(),
+            txbytes: String.t(),
+            input_index: non_neg_integer(),
+            sig: String.t()
+          }
+  end
 
   alias OMG.Block
   alias OMG.State.Transaction
@@ -132,7 +136,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
   Creates the final challenge response, if possible
   """
   @spec create_challenge(ExitProcessor.Request.t(), Core.t()) ::
-          {:ok, __MODULE__.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
+          {:ok, Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
   def create_challenge(
         %ExitProcessor.Request{
           se_exiting_pos: exiting_pos,
@@ -149,7 +153,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
         get_double_spend_for_standard_exit(spending_tx_or_block, exiting_pos)
 
       {:ok,
-       %__MODULE__{
+       %Challenge{
          exit_id: exit_id,
          input_index: input_index,
          txbytes: challenging_signed |> Transaction.raw_txbytes(),

@@ -29,7 +29,7 @@ defmodule OMG.Watcher.ExitProcessor do
   # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.StandardExitChallenge
+  alias OMG.Watcher.ExitProcessor.StandardExit
   alias OMG.Watcher.Recorder
 
   use OMG.Utils.Metrics
@@ -187,7 +187,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   @spec create_challenge(Utxo.Position.t()) ::
-          {:ok, StandardExitChallenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
+          {:ok, StandardExit.Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
   def create_challenge(exiting_utxo_pos) do
     GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
   end

@@ -40,7 +40,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.KnownTx
-  alias OMG.Watcher.ExitProcessor.StandardExitChallenge
+  alias OMG.Watcher.ExitProcessor.StandardExit
 
   import OMG.Watcher.ExitProcessor.Tools
 
@@ -523,7 +523,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp do_determine_utxo_existence_to_get(%__MODULE__{in_flight_exits: ifes} = state, blknum_now) do
-    standard_exits_pos = StandardExitChallenge.exiting_positions(state)
+    standard_exits_pos = StandardExit.exiting_positions(state)
 
     active_ifes = ifes |> Map.values() |> Enum.filter(& &1.is_active)
     ife_inputs_pos = active_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
@@ -636,7 +636,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       when is_integer(eth_height_now) do
     utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
 
-    {invalid_exits, late_invalid_exits} = StandardExitChallenge.get_invalid(state, utxo_exists?, eth_height_now)
+    {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, eth_height_now)
 
     invalid_exit_events =
       invalid_exits
@@ -698,9 +698,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defdelegate determine_standard_challenge_queries(request, state), to: ExitProcessor.StandardExitChallenge
-  defdelegate determine_exit_txbytes(request, state), to: ExitProcessor.StandardExitChallenge
-  defdelegate create_challenge(request, state), to: ExitProcessor.StandardExitChallenge
+  defdelegate determine_standard_challenge_queries(request, state), to: ExitProcessor.StandardExit
+  defdelegate determine_exit_txbytes(request, state), to: ExitProcessor.StandardExit
+  defdelegate create_challenge(request, state), to: ExitProcessor.StandardExit
 
   @spec produce_invalid_piggyback_proof(InFlightExitInfo.t(), KnownTx.known_txs_by_input_t(), piggyback_t()) ::
           {:ok, input_challenge_data() | output_challenge_data()} | {:error, :no_double_spend_on_particular_piggyback}
