@@ -81,6 +81,11 @@ defmodule OMG.Watcher.API.Transaction do
   @decorate measure_event()
   @spec create(UtxoSelection.order_t()) :: UtxoSelection.advice_t()
   def create(order) do
+    # NOTE: ALD: this works on a fixed structure of UTXOs and a particular form of a payment order
+    # Not sure how would this translate to different kinds of transactions it could build (DEX deposits?)
+    # Probably it doesn't need to support anything different than the most recent kind of Payment TX in the system
+    #
+    # tl;dr - just make the result conform with tx's updated structure/eip712/encoding etc.
     utxos = DB.TxOutput.get_sorted_grouped_utxos(order.owner)
     UtxoSelection.create_advice(utxos, order)
   end

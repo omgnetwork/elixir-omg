@@ -19,6 +19,56 @@ defmodule OMG.Watcher.ExitProcessor do
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
+  # NOTE: ALD: doing ALD here might have a couple of facets:
+  #
+  # # Multiple exit game handling
+  #
+  # One can say, the current `ExitProcessor` handles a single ExitGame, which is at the same time baked into the
+  # `v0.2` contract. ALD means that we would have a multidue of such ExitGames. From this PoV, the `NewExitProcessor`
+  # would be more about coordinating functioning of separate `ExitGames` and managing them and what is implemented in `v0.2`
+  # would become `PaymentV1ExitGame` or similar.
+  #
+  # In this context the `NewExitProcessor` could dispatch ethereum events to
+  #
+  # # Double spend detection & response
+  #
+  # This is the core businness of ExitProcessor's logic. With the exit-game-related events and access to `State` and `OMG.DB`
+  # it will work to find double spends, notify and allow to respond
+  #
+  # Currently, one can decompose this into the following steps
+  # 1/ pre-detection - figure out which UTXOs that should be present in `State` are missing, using `State.utxo_exists?`
+  #    in ALD one might need to make that call more generic, to not work on `utxo_pos` but different input pointers too
+  # 2/ data-fetch - figure out where double-spending tx might lie in the blockchain and fetch data (blocks).
+  #    this leverages the mapping `utxo_pos`=>`blknum_where_that_was_spent`, called `spends` in `OMG.DB`.
+  #    in ALD - similar comment to `State.utxo_exists?`
+  # 3/ detection - find double-spends in this subset of data
+  #    Generalizing the input pointer is probably the only thing here, as it effectively will generalize the double spend detection.
+  #
+  # The other thing that might require careful approach is that the currently baked in input pointer (`utxo_pos`) holds
+  # information about outputs age for free, so we don't have to fetch it. See `Transaction.get_inputs` and comments there
+  #
+  # # Byzantine events/responses API stability
+  #
+  # some loose notes from Slack to start off with:
+  #
+  # I'm also wondering right now, how will ALD impact this structure and the structure of Watcher's API in general -
+  # - mainly, should the abstractness be reflected in the API or not... I think ideally we should opt for an approach
+  # here that would make the API stable, which it won't be if we keep fixed notions of the event-respond steps pairs.
+  #
+  # Taking into account the breadth of the abstractness ALD promises, I'm afraid for API stability we'd need to have an
+  # "always correct" flow of:
+  # - `byzantine_event` entry appears ====>
+  # - take some fixed fields from it like `event_type`, `event_id`
+  # - use them in a `generic_response.get` endpoint query, which would be instead of things like `in_flight_exit.get_some_specific_challenge`
+  # - that would in turn not only return the data pieces, but should also prepare a final Eth transaction, ready to be signed by the challenger
+  #
+  # Then the Watcher's client is completely agnostic of the underlying protocol. But that is like a ton of work and complexity
+  #
+  # and there's a problem that this time, changes in the contract implementation would be coupled with the endpoints
+  # behavior :disappointed:. So current approach has also its benefits, it just punts a lot of responsibility on the
+  # client. But if the set of exit types and their responses is a notion more stable than the `RootChain.sol` API then
+  # maybe it's better. :thinking_face:
+
   alias OMG.Block
   alias OMG.DB
   alias OMG.Eth

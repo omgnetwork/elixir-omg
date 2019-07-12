@@ -230,6 +230,16 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns all inputs, never returns zero inputs
   """
+  # NOTE: ALD: this is used throughout significant portions of the code, which leads to the following problem:
+  #
+  # Right now, we have a specific input pointer baked in (`utxo_pos`) and `get_inputs/1` returns the list of these.
+  # This list is then good enough for all purposes - both spending in `OMG.State.exec` and things like double-spend
+  # detection in `OMG.Watcher.ExitProcessor`.
+  #
+  # If under ALD, the transaction per se will hold `output_id`s, it might be usable in `OMG.State.exec` (which, presumably,
+  # will be able to use the `output_id` by holding on to a mapping from `output_id` to something), but in `OMG.Watcher.ExitProcessor`
+  # one might be missing the _age_ of the utxo for some use cases. One example of such case is when we check if a missing utxo
+  # could have been created at all yet. TODO: still needs investigation
   @spec get_inputs(any_flavor_t()) :: list(input())
   def get_inputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_inputs(signed_tx)
   def get_inputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_inputs(raw_tx)

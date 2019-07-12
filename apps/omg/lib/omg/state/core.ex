@@ -255,6 +255,9 @@ defmodule OMG.State.Core do
   NOTE: It is done like this to accommodate different clients of this function as they can either be
   bare `EthereumEventListener` or `ExitProcessor`. Hence different forms it can get the exiting utxos delivered
   """
+  # NOTE: ALD: this might either complicate or simplify with ALD. Interface could use some revisiting here
+  # a general remark is that currently any kind of invocation basically coerces the arguments into some set of
+  # utxo_pos to exit in the end. In ALD, this could potentially be a more generic set of `input_pointers`
   @spec exit_utxos(exiting_utxos :: exiting_utxos_t(), state :: t()) ::
           {:ok, {[db_update], validities_t()}, new_state :: t()}
   def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
