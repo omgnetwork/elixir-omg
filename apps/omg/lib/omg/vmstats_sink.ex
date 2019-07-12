@@ -1,5 +1,4 @@
 defmodule OMG.VmstatsSink do
-
   @behaviour :vmstats_sink
 
   def collect(:counter, key, value) do
