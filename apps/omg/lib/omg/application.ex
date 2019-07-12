@@ -22,6 +22,7 @@ defmodule OMG.Application do
   alias OMG.Alert.AlarmHandler
 
   def start(_type, _args) do
+    DeferredConfig.populate(:statix)
     :ok = AlarmHandler.install()
     if !Process.whereis(OMG.Utils.Metrics), do: :ok = OMG.Utils.Metrics.connect()
     OMG.Supervisor.start_link()
