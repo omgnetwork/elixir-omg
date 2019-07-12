@@ -41,7 +41,7 @@ defmodule OMG.DependencyConformance.SignatureTest do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     {:ok, _, signtest_addr} = Eth.Deployer.create_new(OMG.Eth.Eip712, root_path, Eth.Encoding.from_hex(addr))
 
-    :ok = Application.put_env(:omg_eth, :contract_addr, Base.encode16(signtest_addr))
+    :ok = Application.put_env(:omg_eth, :contract_addr, Eth.Encoding.to_hex(signtest_addr))
 
     on_exit(exit_fn)
     [contract: signtest_addr]

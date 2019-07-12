@@ -129,8 +129,7 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   def create_account_from_secret(:parity, secret, passphrase) when byte_size(secret) == 64 do
-    secret = secret |> Base.decode16!(case: :upper) |> Base.encode16(case: :lower)
-    secret = "0x" <> secret
+    secret = secret |> Base.decode16!(case: :upper) |> Eth.Encoding.to_hex()
     {:ok, _} = Ethereumex.HttpClient.request("parity_newAccountFromSecret", [secret, passphrase], [])
   end
 

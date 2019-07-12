@@ -151,7 +151,7 @@ defmodule OMG.ChildChain.BlockQueue do
         ) do
       {:ok, parent_height} = EthereumHeight.get()
       state1 = Core.enqueue_block(state, block_hash, block_number, parent_height)
-      _ = Logger.info("Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'")
+      _ = Logger.info("Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Encoding.to_hex(block_hash))}'")
 
       FreshBlocks.push(block)
       submit_blocks(state1)

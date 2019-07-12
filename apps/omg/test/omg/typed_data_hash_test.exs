@@ -46,8 +46,8 @@ defmodule OMG.TypedDataHashTest do
 
   setup_all do
     null_addr = <<0::160>>
-    owner = "2258a5279850f6fb78888a7e45ea2a5eb1b3c436" |> Base.decode16!(case: :lower)
-    token = "0123456789abcdef000000000000000000000000" |> Base.decode16!(case: :lower)
+    owner = "2258a5279850f6fb78888a7e45ea2a5eb1b3c436" |> Base.decode16!(case: :mixed)
+    token = "0123456789abcdef000000000000000000000000" |> Base.decode16!(case: :mixed)
 
     {:ok,
      %{
@@ -62,7 +62,7 @@ defmodule OMG.TypedDataHashTest do
          {owner, token, 1337},
          {null_addr, null_addr, 0}
        ],
-       metadata: "853a8d8af99c93405a791b97d57e819e538b06ffaa32ad70da2582500bc18d43" |> Base.decode16!(case: :lower)
+       metadata: "853a8d8af99c93405a791b97d57e819e538b06ffaa32ad70da2582500bc18d43" |> Base.decode16!(case: :mixed)
      }}
   end
 

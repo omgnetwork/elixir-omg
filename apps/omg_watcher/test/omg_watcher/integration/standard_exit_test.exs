@@ -47,7 +47,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
       subscribe_and_join(
         socket(OMG.WatcherRPC.Web.Socket),
         OMG.WatcherRPC.Web.Channel.Exit,
-        TestHelper.create_topic("exit", Encoding.to_hex(alice.addr))
+        TestHelper.create_topic("exit", Eth.Encoding.to_hex(alice.addr))
       )
 
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
