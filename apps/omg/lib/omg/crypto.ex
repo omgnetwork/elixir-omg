@@ -70,21 +70,6 @@ defmodule OMG.Crypto do
     {:ok, address}
   end
 
-  @doc """
-  Turns hex representation of an address to a binary
-  """
-  @spec decode_address(String.t()) :: {:ok, address_t} | {:error, :bad_address_encoding}
-  def decode_address("0x" <> address) when byte_size(address) == 40, do: Base.decode16(address, case: :lower)
-  def decode_address(raw) when byte_size(raw) == 20, do: {:ok, raw}
-  def decode_address(_), do: {:error, :bad_address_encoding}
-
-  @doc """
-  Returns hex representation of binary address
-  """
-  @spec encode_address(any) :: {:ok, String.t()} | {:error, :invalid_address}
-  def encode_address(address) when byte_size(address) == 20, do: {:ok, "0x" <> Base.encode16(address, case: :lower)}
-  def encode_address(_), do: {:error, :invalid_address}
-
   # private
 
   # Unpack 65-bytes binary signature into {v,r,s} tuple.

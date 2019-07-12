@@ -17,7 +17,6 @@ defmodule OMG.Eth.WaitFor do
   Generic wait_for_* utils, styled after web3 counterparts
   """
 
-  alias OMG.Eth
   alias OMG.Eth.Encoding
 
   def eth_rpc do

@@ -17,7 +17,6 @@ defmodule OMG.Fees do
   Transaction's fee validation functions
   """
 
-  alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -114,7 +113,7 @@ defmodule OMG.Fees do
   defp parse_fee_spec(%{"flat_fee" => fee, "token" => token}) do
     # defensive code against user input
     with {:ok, fee} <- validate_fee(fee),
-         {:ok, addr} <- Crypto.decode_address(token) do
+         {:ok, addr} <- decode_address(token) do
       %{token: addr, flat_fee: fee}
     end
   end
@@ -148,5 +147,17 @@ defmodule OMG.Fees do
     end)
 
     {:error, errors}
+  end
+
+  defp decode_address("0x" <> data), do: decode_address(data)
+
+  defp decode_address(data) do
+    case Base.decode16(data, case: :mixed) do
+      {:ok, address} when byte_size(address) == 20 ->
+        {:ok, address}
+
+      _ ->
+        {:error, :bad_address_encoding}
+    end
   end
 end

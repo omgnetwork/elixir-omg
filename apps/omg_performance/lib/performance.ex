@@ -184,8 +184,7 @@ defmodule OMG.Performance do
     Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)
     Application.put_env(:ethereumex, :url, opts[:geth])
 
-    {:ok, contract_addr_enc} = Crypto.encode_address(contract_addr)
-    Application.put_env(:omg_eth, :contract_addr, contract_addr_enc)
+    Application.put_env(:omg_eth, :contract_addr, OMG.Eth.Encoding.to_hex(contract_addr))
 
     {:ok, started_apps}
   end
