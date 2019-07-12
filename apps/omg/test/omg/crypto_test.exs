@@ -79,6 +79,7 @@ defmodule OMG.CryptoTest do
              |> (&match?({:ok, ^address}, &1)).()
   end
 
+  # FIXME: remove this?
   test "checking decode_address function for diffrent agruments" do
     assert {:error, :bad_address_encoding} = Crypto.decode_address("0x0123456789abCdeF")
     assert {:error, :bad_address_encoding} = Crypto.decode_address("this is not HEX")

@@ -19,7 +19,7 @@ defmodule OMG.Eth.Defaults do
   Don't ever use this for `OMG.Eth.RootChain.submit_block/5` or any other production related code.
   """
 
-  import OMG.Eth.Encoding
+  alias OMG.Eth.Encoding
 
   # safe, reasonable amount, equal to the testnet block gas limit
   @lots_of_gas 5_712_388
@@ -27,6 +27,6 @@ defmodule OMG.Eth.Defaults do
 
   def tx_defaults do
     [value: 0, gasPrice: @gas_price, gas: @lots_of_gas]
-    |> Enum.map(fn {k, v} -> {k, to_hex(v)} end)
+    |> Enum.map(fn {k, v} -> {k, Encoding.to_hex(v)} end)
   end
 end

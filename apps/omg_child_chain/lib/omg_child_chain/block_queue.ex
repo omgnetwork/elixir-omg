@@ -42,6 +42,7 @@ defmodule OMG.ChildChain.BlockQueue do
     use OMG.Utils.LoggerExt
     use OMG.Utils.Metrics
     alias OMG.Eth
+    alias OMG.Eth.Encoding
     alias OMG.EthereumHeight
 
     def start_link(_args) do
@@ -75,7 +76,7 @@ defmodule OMG.ChildChain.BlockQueue do
 
       {:ok, known_hashes} = OMG.DB.block_hashes(range)
       {:ok, {top_mined_hash, _}} = Eth.RootChain.get_child_chain(mined_num)
-      _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Eth.Encoding.to_hex(top_mined_hash))}")
+      _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Encoding.to_hex(top_mined_hash))}")
 
       {:ok, state} =
         with {:ok, _state} = result <-
@@ -186,7 +187,7 @@ defmodule OMG.ChildChain.BlockQueue do
 
     defp log_init_error(fields) do
       config = Eth.Diagnostics.get_child_chain_config()
-      fields = Keyword.update!(fields, :known_hashes, fn hashes -> Enum.map(hashes, &Eth.Encoding.to_hex/1) end)
+      fields = Keyword.update!(fields, :known_hashes, fn hashes -> Enum.map(hashes, &Encoding.to_hex/1) end)
       diagnostic = fields |> Enum.into(%{config: config})
 
       _ =

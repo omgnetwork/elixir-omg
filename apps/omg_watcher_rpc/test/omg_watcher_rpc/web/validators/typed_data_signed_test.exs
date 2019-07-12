@@ -30,6 +30,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
   @token_hex Encoding.to_hex(@other_token)
   @alice TestHelper.generate_entity()
   @bob TestHelper.generate_entity()
+  # FIXME: don't decode16
   @ari_network_address "44DE0EC539B8C4A4B530C78620FE8320167F2F74" |> Base.decode16!()
   @eip_domain %{
     name: "OMG Network",

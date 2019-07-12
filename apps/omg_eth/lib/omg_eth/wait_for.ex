@@ -18,8 +18,7 @@ defmodule OMG.Eth.WaitFor do
   """
 
   alias OMG.Eth
-
-  import Eth.Encoding
+  alias OMG.Eth.Encoding
 
   def eth_rpc do
     f = fn ->
@@ -43,7 +42,7 @@ defmodule OMG.Eth.WaitFor do
   def eth_receipt(txhash, timeout \\ 15_000) do
     f = fn ->
       txhash
-      |> to_hex()
+      |> Encoding.to_hex()
       |> Ethereumex.HttpClient.eth_get_transaction_receipt()
       |> case do
         {:ok, receipt} when receipt != nil -> {:ok, receipt}

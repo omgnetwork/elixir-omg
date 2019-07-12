@@ -18,8 +18,7 @@ defmodule OMG.Eth.Librarian do
   """
 
   alias OMG.Eth
-
-  import Eth.Encoding
+  alias OMG.Eth.Encoding
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
@@ -62,7 +61,7 @@ defmodule OMG.Eth.Librarian do
 
     libs_arg =
       libs
-      |> Enum.map(fn {lib_name, lib_addr} -> "#{lib_name}.sol:#{lib_name}:#{to_hex(lib_addr)}" end)
+      |> Enum.map(fn {lib_name, lib_addr} -> "#{lib_name}.sol:#{lib_name}:#{Encoding.to_hex(lib_addr)}" end)
       |> Enum.join(" ")
 
     [] =

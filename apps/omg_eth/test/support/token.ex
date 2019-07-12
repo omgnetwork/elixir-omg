@@ -18,8 +18,7 @@ defmodule OMG.Eth.Token do
   """
 
   alias OMG.Eth
-
-  import Eth.Encoding
+  alias OMG.Eth.Encoding
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
@@ -33,7 +32,7 @@ defmodule OMG.Eth.Token do
     opts = @tx_defaults |> Keyword.put(:gas, @gas_token_ops) |> Keyword.merge(opts)
 
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
-    Eth.contract_transact(from_hex(from), token, "mint(address,uint256)", [owner, amount], opts)
+    Eth.contract_transact(Encoding.from_hex(from), token, "mint(address,uint256)", [owner, amount], opts)
   end
 
   def transfer(from, owner, amount, token, opts \\ []) do

@@ -17,6 +17,9 @@ defmodule OMG.Eth.DevMiningHelper do
   Sends small tx every second, causing Ethereum node in `--dev` mode to create new blocks.
   Basically helps to simulate behavior of `geth --dev --dev.period 1`. Useful with parity.
   """
+
+  alias OMG.Eth.Encoding
+
   @devperiod_ms 1000
 
   use GenServer
@@ -41,7 +44,7 @@ defmodule OMG.Eth.DevMiningHelper do
   end
 
   defp mine(addr, passphrase) do
-    %{from: addr, to: addr, value: OMG.Eth.Encoding.to_hex(1)}
+    %{from: addr, to: addr, value: Encoding.to_hex(1)}
     |> OMG.Eth.send_transaction(passphrase: passphrase)
     |> OMG.Eth.DevHelpers.transact_sync!()
   end
@@ -55,7 +58,7 @@ defmodule OMG.Eth.DevMiningHelper do
 
     {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
 
-    %{from: faucet, to: addr, value: OMG.Eth.Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
+    %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
     |> OMG.Eth.send_transaction(passphrase: "")
     |> OMG.Eth.DevHelpers.transact_sync!()
 
