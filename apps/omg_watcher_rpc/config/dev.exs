@@ -7,7 +7,6 @@ use Mix.Config
 # watchers to your application. For example, we use it
 # with brunch.io to recompile .js and .css sources.
 config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
-  secret_key_base: "UIJuXFLCQAeodDwZmnMc54RnY5rUefwgPIPbJsYHf0ZJ57Lf3tpoj8WYqT7+Rfmt",
   http: [port: {:system, "PORT", 7434, {String, :to_integer}}],
   url: [host: "localhost", port: 7434],
   debug_errors: true,
