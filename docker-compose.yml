@@ -49,7 +49,9 @@ services:
         condition: service_healthy
 
   childchain:
-    image: elixir-omg:dockercompose
+    build: .
+    volumes:
+      - .:/home/elixir-user/elixir-omg
     entrypoint: /bin/bash -c "./launcher.py && elixir --erl '-sname childchain' -S mix xomg.child_chain.start --config ~/config.exs"
     environment:
       - MIX_ENV=dev
