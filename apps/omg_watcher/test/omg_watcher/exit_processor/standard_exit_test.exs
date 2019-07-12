@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
+defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
   @moduledoc """
-  Test of the logic of exit processor, in the area of producing challenges to standard exits
+  Test of the logic of exit processor, in the area of standard exits
   """
 
-  use ExUnit.Case, async: true
+  use OMG.Watcher.ExitProcessor.Case, async: true
 
   alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
+  alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
 
@@ -32,12 +33,17 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  @deposit_blknum1 1
+  @deposit_blknum 1
   @deposit_blknum2 2
-  @blknum 1_000
+  @early_blknum 1_000
+  @blknum @early_blknum
+  @late_blknum 10_000
+  @blknum2 @late_blknum - 1_000
 
   @utxo_pos_tx Utxo.position(@blknum, 0, 0)
-  @utxo_pos_deposit Utxo.position(@deposit_blknum1, 0, 0)
+  @utxo_pos_tx2 Utxo.position(@blknum2, 0, 1)
+  @utxo_pos_deposit Utxo.position(@deposit_blknum, 0, 0)
+  @utxo_pos_deposit2 Utxo.position(@deposit_blknum2, 0, 0)
 
   @deposit_input2 {@deposit_blknum2, 0, 0}
 
@@ -51,7 +57,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
   describe "Core.determine_standard_challenge_queries" do
     test "asks for correct data: deposit utxo double spent in IFE",
          %{alice: alice, processor_empty: processor} do
-      ife_tx = TestHelper.create_recovered([{@deposit_blknum1, 0, 0, alice}], @eth, [])
+      ife_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [])
       processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice) |> start_ife_from(ife_tx)
 
       assert {:ok, %ExitProcessor.Request{se_creating_blocks_to_get: [], se_spending_blocks_to_get: []}} =
@@ -142,7 +148,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
   describe "Core.create_challenge" do
     test "creates challenge: deposit utxo double spent in IFE",
          %{alice: alice, processor_empty: processor} do
-      ife_tx = TestHelper.create_recovered([{@deposit_blknum1, 0, 0, alice}], @eth, [])
+      ife_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [])
       {txbytes, alice_sig} = get_bytes_sig(ife_tx)
       processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice) |> start_ife_from(ife_tx)
 
@@ -333,6 +339,145 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
                  se_exit_id_result: @exit_id
                }
                |> Core.create_challenge(processor)
+    end
+  end
+
+  describe "Core.check_validity" do
+    test "detect invalid standard exit based on utxo missing in main ledger",
+         %{processor_empty: processor, alice: alice} do
+      exiting_pos = @utxo_pos_tx
+      exiting_pos_enc = Utxo.Position.encode(exiting_pos)
+      standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+
+      request = %ExitProcessor.Request{
+        eth_height_now: 5,
+        blknum_now: @late_blknum,
+        utxos_to_check: [exiting_pos],
+        utxo_exists_result: [false]
+      }
+
+      # before the exit starts
+      assert {:ok, []} = request |> Core.check_validity(processor)
+      # after
+      processor = processor |> start_se_from(standard_exit_tx, exiting_pos)
+      assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_pos_enc}]} = request |> Core.check_validity(processor)
+    end
+
+    test "detect old invalid standard exit", %{processor_empty: processor, alice: alice} do
+      exiting_pos = @utxo_pos_tx
+      standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+
+      request = %ExitProcessor.Request{
+        eth_height_now: 50,
+        blknum_now: @late_blknum,
+        utxos_to_check: [exiting_pos],
+        utxo_exists_result: [false]
+      }
+
+      processor = processor |> start_se_from(standard_exit_tx, exiting_pos)
+
+      assert {{:error, :unchallenged_exit}, [%Event.UnchallengedExit{}, %Event.InvalidExit{}]} =
+               request |> Core.check_validity(processor)
+    end
+
+    test "invalid exits that have been witnessed already inactive don't excite events",
+         %{processor_empty: processor, alice: alice} do
+      exiting_pos = @utxo_pos_tx
+      standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+
+      request = %ExitProcessor.Request{
+        eth_height_now: 13,
+        blknum_now: @late_blknum,
+        utxos_to_check: [exiting_pos],
+        utxo_exists_result: [false]
+      }
+
+      processor = processor |> start_se_from(standard_exit_tx, exiting_pos, inactive: true)
+      assert {:ok, []} = request |> Core.check_validity(processor)
+    end
+
+    test "exits of utxos that couldn't have been seen created yet never excite querying the ledger",
+         %{processor_empty: processor, alice: alice} do
+      exiting_pos = @utxo_pos_tx2
+      standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 1}, {alice, 1}])
+
+      processor = processor |> start_se_from(standard_exit_tx, exiting_pos)
+
+      assert %ExitProcessor.Request{utxos_to_check: []} =
+               %ExitProcessor.Request{eth_height_now: 13, blknum_now: @early_blknum}
+               |> Core.determine_utxo_existence_to_get(processor)
+    end
+
+    test "detect invalid standard exit based on ife tx which spends same input",
+         %{processor_empty: processor, alice: alice} do
+      standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+      tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], [])
+      exiting_pos = @utxo_pos_tx
+      exiting_pos_enc = Utxo.Position.encode(exiting_pos)
+      processor = processor |> start_se_from(standard_exit_tx, exiting_pos) |> start_ife_from(tx)
+
+      assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_pos_enc}]} =
+               %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+               |> check_validity_filtered(processor, only: [Event.InvalidExit])
+    end
+
+    test "ifes and standard exits don't interfere",
+         %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
+      standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+      processor = processor |> start_se_from(standard_exit_tx, @utxo_pos_tx) |> start_ife_from(tx)
+
+      assert %{utxos_to_check: [_, Utxo.position(1, 2, 1), @utxo_pos_tx]} =
+               exit_processor_request =
+               %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+               |> Core.determine_utxo_existence_to_get(processor)
+
+      # here it's crucial that the missing utxo related to the ife isn't interpeted as a standard invalid exit
+      # that missing utxo isn't enough for any IFE-related event too
+      assert {:ok, [%Event.InvalidExit{}]} =
+               exit_processor_request
+               |> struct!(utxo_exists_result: [false, false, false])
+               |> check_validity_filtered(processor, only: [Event.InvalidExit])
+    end
+  end
+
+  describe "challenge events" do
+    test "can challenge exits, which are then forgotten completely",
+         %{processor_empty: processor, alice: alice} do
+      standard_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+      standard_exit_tx2 = TestHelper.create_recovered([{@blknum2, 0, 1, alice}], @eth, [{alice, 10}, {alice, 10}])
+
+      processor =
+        processor
+        |> start_se_from(standard_exit_tx1, @utxo_pos_deposit2)
+        |> start_se_from(standard_exit_tx2, @utxo_pos_tx2)
+
+      # sanity
+      assert %ExitProcessor.Request{utxos_to_check: [_, _]} =
+               Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
+
+      {processor, _} =
+        processor
+        |> Core.challenge_exits([@utxo_pos_deposit2, @utxo_pos_tx2] |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)}))
+
+      assert %ExitProcessor.Request{utxos_to_check: []} =
+               Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
+    end
+
+    test "can process challenged exits", %{processor_empty: processor, alice: alice} do
+      # see the contract and `Eth.RootChain.get_standard_exit/1` for some explanation why like this
+      # this is what an exit looks like after a challenge
+      zero_status = {0, 0, 0, 0}
+      standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+      processor = processor |> start_se_from(standard_exit_tx, @utxo_pos_deposit2, status: zero_status)
+
+      # sanity
+      assert %ExitProcessor.Request{utxos_to_check: [_]} =
+               Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
+
+      {processor, _} = processor |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos_deposit2)}])
+
+      assert %ExitProcessor.Request{utxos_to_check: []} =
+               Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
     end
   end
 

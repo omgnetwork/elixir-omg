@@ -29,7 +29,7 @@ defmodule OMG.Watcher.ExitProcessor do
   # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.StandardExitChallenge
+  alias OMG.Watcher.ExitProcessor.StandardExit
   alias OMG.Watcher.Recorder
 
   use OMG.Utils.Metrics
@@ -152,7 +152,9 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   @spec get_competitor_for_ife(binary()) ::
-          {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found} | {:error, :no_viable_competitor_found}
+          {:ok, ExitProcessor.Canonicity.competitor_data_t()}
+          | {:error, :competitor_not_found}
+          | {:error, :no_viable_competitor_found}
   def get_competitor_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
   end
@@ -163,21 +165,23 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   @spec prove_canonical_for_ife(binary()) ::
-          {:ok, Core.prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
+          {:ok, ExitProcessor.Canonicity.prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
   def prove_canonical_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
 
   @decorate measure_event()
   @spec get_input_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
-          {:ok, Core.input_challenge_data()} | {:error, Core.piggyback_challenge_data_error()}
+          {:ok, ExitProcessor.Piggyback.input_challenge_data()}
+          | {:error, ExitProcessor.Piggyback.piggyback_challenge_data_error()}
   def get_input_challenge_data(txbytes, input_index) do
     GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index})
   end
 
   @decorate measure_event()
   @spec get_output_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
-          {:ok, Core.output_challenge_data()} | {:error, Core.piggyback_challenge_data_error()}
+          {:ok, ExitProcessor.Piggyback.output_challenge_data()}
+          | {:error, ExitProcessor.Piggyback.piggyback_challenge_data_error()}
   def get_output_challenge_data(txbytes, output_index) do
     GenServer.call(__MODULE__, {:get_output_challenge_data, txbytes, output_index})
   end
@@ -187,7 +191,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @decorate measure_event()
   @spec create_challenge(Utxo.Position.t()) ::
-          {:ok, StandardExitChallenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
+          {:ok, StandardExit.Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
   def create_challenge(exiting_utxo_pos) do
     GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
   end
@@ -418,7 +422,7 @@ defmodule OMG.Watcher.ExitProcessor do
     Core.find_ifes_in_blocks(state, prepared_request)
   end
 
-  defp run_status_gets(%ExitProcessor.Request{} = request) do
+  defp run_status_gets(%ExitProcessor.Request{eth_height_now: nil, blknum_now: nil} = request) do
     {:ok, eth_height_now} = OMG.EthereumHeight.get()
     {blknum_now, _} = State.get_status()
 

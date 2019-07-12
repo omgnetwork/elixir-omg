@@ -29,6 +29,8 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.UnchallengedExit.t()
           | OMG.Watcher.Event.NonCanonicalIFE.t()
           | OMG.Watcher.Event.InvalidIFEChallenge.t()
+          | OMG.Watcher.Event.PiggybackAvailable.t()
+          | OMG.Watcher.Event.InvalidPiggyback.t()
 
   @type t :: OMG.Watcher.Event.AddressReceived.t() | OMG.Watcher.Event.ExitFinalized.t() | byzantine_t()
 

@@ -36,7 +36,7 @@ defmodule OMG.Watcher.API.Utxo do
   """
   @decorate measure_event()
   @spec create_challenge(Utxo.Position.t()) ::
-          {:ok, ExitProcessor.StandardExitChallenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
+          {:ok, ExitProcessor.StandardExit.Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
   def create_challenge(utxo) do
     ExitProcessor.create_challenge(utxo)
   end

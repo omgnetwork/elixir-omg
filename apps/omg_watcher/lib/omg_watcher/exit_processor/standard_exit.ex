@@ -12,22 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
+defmodule OMG.Watcher.ExitProcessor.StandardExit do
   @moduledoc """
   Part of Core to handle SE challenges & invalid exit detection.
 
   Treat as private helper submodule of `OMG.Watcher.ExitProcessor.Core`, test and call via that
   """
 
-  # struct Represents a challenge to a standard exit
-  defstruct [:exit_id, :txbytes, :input_index, :sig]
+  defmodule Challenge do
+    @moduledoc """
+    Represents a challenge to a standard exit as returned by the `ExitProcessor`
+    """
+    defstruct [:exit_id, :txbytes, :input_index, :sig]
 
-  @type t() :: %__MODULE__{
-          exit_id: non_neg_integer(),
-          txbytes: String.t(),
-          input_index: non_neg_integer(),
-          sig: String.t()
-        }
+    alias OMG.Crypto
+    alias OMG.State.Transaction
+
+    @type t() :: %__MODULE__{
+            exit_id: pos_integer(),
+            txbytes: Transaction.tx_bytes(),
+            input_index: non_neg_integer(),
+            sig: Crypto.sig_t()
+          }
+  end
 
   alias OMG.Block
   alias OMG.State.Transaction
@@ -87,7 +94,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
         %ExitProcessor.Request{se_exiting_pos: Utxo.position(creating_blknum, _, _) = exiting_pos} = request,
         %Core{exits: exits} = state
       ) do
-    with %ExitInfo{} = _exit_info <- Map.get(exits, exiting_pos, {:error, :exit_not_found}) do
+    with {:ok, _exit_info} <- get_exit(exits, exiting_pos) do
       spending_blocks_to_get = if get_ife_based_on_utxo(exiting_pos, state), do: [], else: [exiting_pos]
       creating_blocks_to_get = if Utxo.Position.is_deposit?(exiting_pos), do: [], else: [creating_blknum]
 
@@ -110,7 +117,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
         %ExitProcessor.Request{se_exiting_pos: exiting_pos, se_creating_blocks_result: creating_blocks_result} =
           request,
         %Core{exits: exits}
-      ) do
+      )
+      when not is_nil(exiting_pos) do
     exit_id_to_get_by_txbytes =
       if Utxo.Position.is_deposit?(exiting_pos) do
         %ExitInfo{owner: owner, currency: currency, amount: amount} = exits[exiting_pos]
@@ -132,7 +140,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
   Creates the final challenge response, if possible
   """
   @spec create_challenge(ExitProcessor.Request.t(), Core.t()) ::
-          {:ok, __MODULE__.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
+          {:ok, Challenge.t()} | {:error, :utxo_not_spent}
   def create_challenge(
         %ExitProcessor.Request{
           se_exiting_pos: exiting_pos,
@@ -140,7 +148,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
           se_exit_id_result: exit_id
         },
         %Core{exits: exits} = state
-      ) do
+      )
+      when not is_nil(exiting_pos) and not is_nil(exit_id) do
     %ExitInfo{owner: owner} = exits[exiting_pos]
     ife_result = get_ife_based_on_utxo(exiting_pos, state)
 
@@ -149,7 +158,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
         get_double_spend_for_standard_exit(spending_tx_or_block, exiting_pos)
 
       {:ok,
-       %__MODULE__{
+       %Challenge{
          exit_id: exit_id,
          input_index: input_index,
          txbytes: challenging_signed |> Transaction.raw_txbytes(),
@@ -205,5 +214,12 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
     TxAppendix.get_all(state)
     |> Enum.map(fn signed -> %KnownTx{signed_tx: signed} end)
     |> KnownTx.group_txs_by_input()
+  end
+
+  defp get_exit(exits, exiting_pos) do
+    case Map.get(exits, exiting_pos) do
+      nil -> {:error, :exit_not_found}
+      other -> {:ok, other}
+    end
   end
 end
