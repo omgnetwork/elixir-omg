@@ -11,22 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-defmodule OMG.Application do
+defmodule OMG.Utils.Statix do
   @moduledoc """
-  The application here is the Child chain server and its API.
-  See here (children) for the processes that compose into the Child Chain server.
+  Useful for overwritting Statix behaviour.
   """
+  defmacro __using__(_opts) do
+    quote location: :keep do
+      @behaviour Statix
+      def connect, do: :ok
 
-  use Application
-  alias OMG.Alert.AlarmHandler
-  alias OMG.Utils.Metrics
+      def increment(_), do: :ok
+      def increment(_, _, options \\ []), do: :ok
 
-  def start(_type, _args) do
-    DeferredConfig.populate(:statix)
-    :ok = AlarmHandler.install()
-    :ok = Metrics.connect()
+      def decrement(_, val \\ 1, options \\ []), do: :ok
 
-    OMG.Supervisor.start_link()
+      def gauge(_, val, options \\ []), do: :ok
+
+      def histogram(_, val, options \\ []), do: :ok
+
+      def timing(_, val, options \\ []), do: :ok
+
+      def measure(key, options \\ [], fun), do: :ok
+
+      def set(key, val, options \\ []), do: :ok
+    end
   end
 end

@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 defmodule OMG.VmstatsSink do
+  @moduledoc """
+  Interface implementation.
+  """
+  alias OMG.Utils.Metrics
   @behaviour :vmstats_sink
 
-  def collect(:counter, key, value) do
-    OMG.Utils.Metrics.set(key, value)
-  end
+  def collect(:counter, key, value), do: Metrics.set(key, value)
 
-  def collect(:gauge, key, value) do
-    OMG.Utils.Metrics.gauge(key, value)
-  end
+  def collect(:gauge, key, value), do: Metrics.gauge(key, value)
 
-  def collect(:timing, key, value) do
-    OMG.Utils.Metrics.timing(key, value)
-  end
+  def collect(:timing, key, value), do: Metrics.timing(key, value)
 end

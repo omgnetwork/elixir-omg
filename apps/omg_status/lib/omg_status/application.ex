@@ -31,19 +31,24 @@ defmodule OMG.Status.Application do
         []
       end
 
-    # if there's no SENTRY_DSN (local Watcher for example)
-    # don't attach Sentry as backend logger to report issues to
-    _ =
-      case System.get_env("SENTRY_DSN") do
-        nil -> :ok
-        _ -> {:ok, _} = Logger.add_backend(Sentry.LoggerBackend)
-      end
+    # TODO remove when running full releases (covered with config providers)
+    :ok = configure_sentry()
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
   end
 
   def start_phase(:install_alarm_handler, _start_type, _phase_args) do
     :ok = AlarmHandler.install()
+  end
+
+  defp configure_sentry do
+    app_env = System.get_env("APP_ENV")
+    sentry_dsn = System.get_env("SENTRY_DSN")
+
+    case {is_binary(app_env), is_binary(sentry_dsn)} do
+      {true, true} -> Application.put_env(:sentry, :included_environments, [app_env], persistent: true)
+      _ -> Application.put_env(:sentry, :included_environments, [], persistent: true)
+    end
   end
 
   @spec is_enabled?() :: boolean() | nil
