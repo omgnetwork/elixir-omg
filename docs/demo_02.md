@@ -166,7 +166,7 @@ r(OMG.State.Core)
 
 # grab an utxo that bob can spend
 %{"data" => [_bobs_deposit, %{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
-  ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/utxo.get) |>
+  ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/account.get_utxos) |>
   to_charlist() |>
   :os.cmd() |>
   Jason.decode!()
