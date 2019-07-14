@@ -12,7 +12,6 @@ Run a developer's Child chain server and start IEx REPL with code and config loa
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
 alias OMG.Eth
-alias OMG.Crypto
 alias OMG.DevCrypto
 alias OMG.State.Transaction
 alias OMG.TestHelper
