@@ -18,7 +18,6 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   use OMG.Fixtures
   use OMG.Watcher.Fixtures
 
-  alias OMG.Crypto
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher.DB
@@ -60,8 +59,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   end
 
   defp body_for(%{addr: address}) do
-    {:ok, address_encode} = Crypto.encode_address(address)
-    %{"address" => address_encode}
+    %{"address" => Encoding.to_hex(address)}
   end
 
   @tag fixtures: [:initial_blocks, :alice]
@@ -69,9 +67,9 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
     alice: alice
   } do
     # refer to `/transaction.all` tests for more thorough cases, this is the same
-    {:ok, address} = Crypto.encode_address(alice.addr)
+    alice_addr = Encoding.to_hex(alice.addr)
 
-    assert [_] = TestHelper.success?("account.get_transactions", %{"address" => address, "limit" => 1})
+    assert [_] = TestHelper.success?("account.get_transactions", %{"address" => alice_addr, "limit" => 1})
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]

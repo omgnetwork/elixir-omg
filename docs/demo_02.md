@@ -16,7 +16,6 @@ Run a developer's Child chain server, Watcher and start IEx REPL with code and c
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
 alias OMG.Eth
-alias OMG.Crypto
 alias OMG.DevCrypto
 alias OMG.State.Transaction
 alias OMG.TestHelper
@@ -29,8 +28,7 @@ alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Eth.RootChain.eth_pseudo_address()
 
-{:ok, alice_enc} = Crypto.encode_address(alice.addr)
-{:ok, bob_enc} = Crypto.encode_address(bob.addr)
+bob_enc = Encoding.to_hex(bob.addr)
 
 {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
 {:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
@@ -142,7 +140,7 @@ tx3 =
   Transaction.new([{bob_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.Utils.HttpRPC.Encoding.to_hex()
+  Encoding.to_hex()
 
 %{"success" => true} =
   ~c(echo '{"transaction": "#{tx3}"}' | http POST #{child_chain_url}/transaction.submit) |>
@@ -168,7 +166,7 @@ r(OMG.State.Core)
 
 # grab an utxo that bob can spend
 %{"data" => [_bobs_deposit, %{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
-  ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/utxo.get) |>
+  ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/account.get_utxos) |>
   to_charlist() |>
   :os.cmd() |>
   Jason.decode!()
@@ -177,7 +175,7 @@ tx4 =
   Transaction.new([{spend_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.Utils.HttpRPC.Encoding.to_hex()
+  Encoding.to_hex()
 
 # and send using httpie
 ~c(echo '{"transaction": "#{tx4}"}' | http POST #{child_chain_url}/transaction.submit) |>

@@ -17,8 +17,8 @@ defmodule OMG.Watcher.Eventer.Core do
   Functional core of eventer
   """
 
-  alias OMG.Crypto
   alias OMG.State.Transaction
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher.Event
 
@@ -95,13 +95,11 @@ defmodule OMG.Watcher.Eventer.Core do
   end
 
   defp create_transfer_subtopic(address) do
-    {:ok, encoded_address} = Crypto.encode_address(address)
-    create_subtopic(@transfer_topic, encoded_address)
+    create_subtopic(@transfer_topic, Encoding.to_hex(address))
   end
 
   defp create_exit_subtopic(address) do
-    {:ok, encoded_address} = Crypto.encode_address(address)
-    create_subtopic(@exit_topic, encoded_address)
+    create_subtopic(@exit_topic, Encoding.to_hex(address))
   end
 
   defp create_subtopic(main_topic, subtopic), do: main_topic <> ":" <> subtopic

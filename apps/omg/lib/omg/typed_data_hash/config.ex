@@ -18,10 +18,11 @@ defmodule OMG.TypedDataHash.Config do
   attribute, so it doesn't need to compute every time structure data is hashed.
   """
 
+  alias OMG.Eth.Encoding
   alias OMG.TypedDataHash.Tools
 
   # Needed for test only to have value of address when `:contract_address` is not set
-  @fallback_ari_network_address "44de0ec539b8c4a4b530c78620fe8320167f2f74"
+  @fallback_ari_network_address "0x44de0ec539b8c4a4b530c78620fe8320167f2f74"
 
   @doc """
   Returns EIP-712 domain based on values from configuration in a format `signTypedData` expects.
@@ -32,8 +33,8 @@ defmodule OMG.TypedDataHash.Config do
 
     Application.fetch_env!(:omg, :eip_712_domain)
     |> Map.new()
-    |> Map.put_new(:verifyingContract, decode16!(contract_addr))
-    |> Map.update!(:salt, &decode16!/1)
+    |> Map.put_new(:verifyingContract, Encoding.from_hex(contract_addr))
+    |> Map.update!(:salt, &Encoding.from_hex/1)
   end
 
   @doc """
@@ -45,7 +46,4 @@ defmodule OMG.TypedDataHash.Config do
     domain_data_from_config()
     |> Tools.domain_separator()
   end
-
-  defp decode16!("0x" <> data), do: decode16!(data)
-  defp decode16!(data), do: Base.decode16!(data, case: :mixed)
 end

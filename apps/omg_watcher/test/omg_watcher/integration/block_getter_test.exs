@@ -26,7 +26,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.Crypto
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
@@ -55,9 +54,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
-    {:ok, alice_address} = Crypto.encode_address(alice.addr)
-
-    token_addr = token |> Encoding.to_hex()
+    token_addr = Encoding.to_hex(token)
 
     # utxo from deposit should be available
     assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =
@@ -68,7 +65,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       subscribe_and_join(
         socket(OMG.WatcherRPC.Web.Socket),
         Channel.Transfer,
-        TestHelper.create_topic("transfer", alice_address)
+        TestHelper.create_topic("transfer", Encoding.to_hex(alice.addr))
       )
 
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])

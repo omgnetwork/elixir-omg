@@ -25,13 +25,11 @@ Run `iex -S mix run --no-start --config ~/config.exs` and inside REPL do:
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
 alias OMG.Eth
-alias OMG.Crypto
-alias OMG.DevCrypto
 alias OMG.TestHelper
 
 DeferredConfig.populate(:omg_eth)
 
-{:ok, contract_addr} = Application.fetch_env!(:omg_eth, :contract_addr) |> Crypto.decode_address()
+contract_addr = Application.fetch_env!(:omg_eth, :contract_addr) |> Eth.Encoding.from_hex()
 
 # defaults
 opts = [initial_funds: trunc(:math.pow(10, 18)) * 1]

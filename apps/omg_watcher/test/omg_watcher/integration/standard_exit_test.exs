@@ -20,7 +20,6 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.Crypto
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
@@ -44,13 +43,11 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}
   } do
-    {:ok, encoded_alice_address} = Crypto.encode_address(alice.addr)
-
     {:ok, _, _socket} =
       subscribe_and_join(
         socket(OMG.WatcherRPC.Web.Socket),
         OMG.WatcherRPC.Web.Channel.Exit,
-        TestHelper.create_topic("exit", encoded_alice_address)
+        TestHelper.create_topic("exit", Eth.Encoding.to_hex(alice.addr))
       )
 
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
