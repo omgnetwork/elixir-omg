@@ -7,3 +7,22 @@ services:
       DATABASE_URL: postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
     volumes:
       - .:/home/elixir-user/elixir-omg
+  datadog:
+    image: datadog/agent:latest
+    restart: always
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_DOGSTATSD_TAGS=["env:localdevelopment"]
+      - DD_LOG_LEVEL=debug
+      - DOCKER_CONTENT_TRUST=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc/mounts:/host/proc/mounts:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+    ports:
+      - "80:80"
+      - "2003-2004:2003-2004"
+      - "2023-2024:2023-2024"
+      - "8125:8125/udp"
+      - "8126:8126"

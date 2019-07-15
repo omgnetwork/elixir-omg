@@ -22,7 +22,13 @@ defmodule OMG.Utils.Metrics do
       config :omg_utils, discard_metrics: [:State]
   """
 
-  use Statix
+  # we want to override Statix in :test
+  # because we don't want to send metrics in unittests
+  case Application.get_env(:omg_utils, :environment) do
+    :test -> use OMG.Utils.Statix
+    _ -> use Statix, runtime_config: true
+  end
+
   use Appsignal.Instrumentation.Decorators
 
   use Decorator.Define,
