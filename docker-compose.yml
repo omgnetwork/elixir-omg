@@ -60,6 +60,7 @@ services:
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
+      - ERL_CC_COOKIE=develop
     restart: always
     ports:
       - "9656:9656"
@@ -88,6 +89,7 @@ services:
       - CHILD_CHAIN_URL=http://childchain:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
+      - ERL_W_COOKIE=develop
     restart: always
     ports:
       - "7434:7434"

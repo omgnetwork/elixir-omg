@@ -23,7 +23,7 @@ defmodule OMG.Application do
   alias OMG.Utils.Metrics
 
   def start(_type, _args) do
-    DeferredConfig.populate(:statix)
+    :ok = DeferredConfig.populate(:statix)
     :ok = AlarmHandler.install()
     :ok = Metrics.connect()
 
