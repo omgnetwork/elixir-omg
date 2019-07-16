@@ -15,8 +15,10 @@
 defmodule OMG.ChildChain.FeeServer do
   @moduledoc """
   Maintains current fee rates and tokens in which fees may be paid.
-  Updates fees information from external source.
-  Provides function to validate transaction's fee.
+  Periodically updates fees information from external source (file in omg_child_chain/priv config :omg_child_chain,
+  :fee_specs_file_name) until switched off with config :omg_child_chain, :ignore_fees.
+
+  Fee's file parsing and rules of transaction's fee validation are in `OMG.Fees`
   """
 
   alias OMG.Fees
@@ -63,27 +65,26 @@ defmodule OMG.ChildChain.FeeServer do
   def update_fee_spec do
     path = get_fees()
 
-    :ok =
-      with {:reload, changed_at} <- should_load_file(path),
-           {:ok, content} <- File.read(path),
-           {:ok, specs} <- Fees.parse_file_content(content) do
-        :ok = save_fees(specs, changed_at)
-        _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
+    with {:reload, changed_at} <- should_load_file(path),
+         {:ok, content} <- File.read(path),
+         {:ok, specs} <- Fees.parse_file_content(content) do
+      :ok = save_fees(specs, changed_at)
+      _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
 
+      :ok
+    else
+      {:file_unchanged, _last_change_at} ->
         :ok
-      else
-        {:file_unchanged, _last_change_at} ->
-          :ok
 
-        {:error, :enoent} ->
-          _ = Logger.error("The fee specification file #{inspect(path)} not found.")
+      {:error, :enoent} ->
+        _ = Logger.error("The fee specification file #{inspect(path)} not found.")
 
-          {:error, :fee_spec_not_found}
+        {:error, :fee_spec_not_found}
 
-        error ->
-          _ = Logger.error("Unable to update fees from file. Reason: #{inspect(error)}")
-          error
-      end
+      error ->
+        _ = Logger.error("Unable to update fees from file. Reason: #{inspect(error)}")
+        error
+    end
   end
 
   defp save_fees(fee_specs, loaded_at) do
