@@ -26,27 +26,30 @@ defmodule OMG.ChildChain.FeeServer do
   use GenServer
   use OMG.Utils.LoggerExt
 
-  @file_changed_check_interval_ms 10_000
+  @file_check_default_interval_ms 10_000
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   def init(args) do
     :ok = ensure_ets_init()
 
-    _ =
+    args =
       case Application.get_env(:omg_child_chain, :ignore_fees) do
         true ->
           :ok = save_fees(:ignore, 0)
           _ = Logger.warn("Fee specs from file are ignored.")
+          args
 
         opt when is_nil(opt) or is_boolean(opt) ->
           :ok = update_fee_spec()
-          {:ok, _} = :timer.apply_interval(@file_changed_check_interval_ms, __MODULE__, :update_fee_spec, [])
+          interval = Keyword.get(args, :interval_ms, @file_check_default_interval_ms)
+          {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_spec)
+          Keyword.put(args, :tref, tref)
       end
 
-    _ = Logger.info("Started FeeServer")
+    _ = Logger.info("Started #{inspect(__MODULE__)}")
     {:ok, args}
   end
 
@@ -58,11 +61,15 @@ defmodule OMG.ChildChain.FeeServer do
     {:ok, load_fees()}
   end
 
-  @doc """
-   Reads fee specification file if needed and updates :ets state with current fees information
-  """
+  def handle_info(:update_fee_spec, state) do
+    _ = update_fee_spec()
+
+    {:noreply, state}
+  end
+
+  # Reads fee specification file if needed and updates :ets state with current fees information
   @spec update_fee_spec() :: :ok
-  def update_fee_spec do
+  defp update_fee_spec do
     path = get_fees()
 
     with {:reload, changed_at} <- should_load_file(path),
