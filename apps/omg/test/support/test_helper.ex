@@ -164,6 +164,23 @@ defmodule OMG.TestHelper do
     {:ok, full_path, file}
   end
 
+  def call_while(caller, matcher, time \\ 5_000, step \\ 10) do
+    tail_recursion = fn
+      time, _ when time <= 0 ->
+        :timeout
+
+      time, fun ->
+        if matcher.(caller.()) do
+          :ok
+        else
+          Process.sleep(step)
+          fun.(time - step, fun)
+        end
+    end
+
+    tail_recursion.(time, tail_recursion)
+  end
+
   defp get_private_keys(inputs) do
     filler = List.duplicate(<<>>, 4 - length(inputs))
 

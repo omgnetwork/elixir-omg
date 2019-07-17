@@ -24,9 +24,21 @@ defmodule OMG.EthereumClientMonitorTest do
   alias OMG.Alert.AlarmHandler
   alias OMG.EthereumClientMonitor
 
+  import OMG.TestHelper, only: [call_while: 2]
+
+  @moduletag :capture_log
+
   setup_all do
+    _ = Application.put_env(:omg_child_chain, :eth_integration_module, EthereumClientMock)
     :ok = AlarmHandler.install()
     {:ok, _} = EthereumClientMock.start_link()
+
+    # OMG.EthereumClientMonitor use OMG.InternalEventBus
+    {:ok, _} =
+      Supervisor.start_link(
+        [{Phoenix.PubSub.PG2, [name: OMG.InternalEventBus]}],
+        strategy: :one_for_one
+      )
 
     on_exit(fn ->
       Application.put_env(:omg_child_chain, :eth_integration_module, nil)
@@ -34,7 +46,6 @@ defmodule OMG.EthereumClientMonitorTest do
   end
 
   setup do
-    _ = Application.put_env(:omg_child_chain, :eth_integration_module, EthereumClientMock)
     {:ok, {server_ref, websocket_url}} = WebSockexServerMock.start(self())
     {:ok, ethereum_client_monitor} = EthereumClientMonitor.start_link(alarm_module: Alarm, ws_url: websocket_url)
     Alarm.clear_all()
@@ -55,13 +66,13 @@ defmodule OMG.EthereumClientMonitorTest do
     WebSockexServerMock.shutdown(server_ref)
     true = is_pid(Process.whereis(EthereumClientMonitor))
 
+    node = Node.self()
+
     :ok =
-      pull_client_alarm(400, [
-        %{
-          details: %{node: Node.self(), reporter: EthereumClientMonitor},
-          id: :ethereum_client_connection
-        }
-      ])
+      call_while(
+        &Alarm.all/0,
+        &match?([%{details: %{node: ^node, reporter: EthereumClientMonitor}, id: :ethereum_client_connection}], &1)
+      )
   end
 
   test "that alarm gets raised if there's no ethereum client running and cleared when it's running", %{
@@ -78,19 +89,18 @@ defmodule OMG.EthereumClientMonitorTest do
     WebSockexServerMock.shutdown(server_ref)
 
     true = is_pid(Process.whereis(EthereumClientMonitor))
+    node = Node.self()
 
     :ok =
-      pull_client_alarm(300, [
-        %{
-          details: %{node: Node.self(), reporter: EthereumClientMonitor},
-          id: :ethereum_client_connection
-        }
-      ])
+      call_while(
+        &Alarm.all/0,
+        &match?([%{details: %{node: ^node, reporter: EthereumClientMonitor}, id: :ethereum_client_connection}], &1)
+      )
 
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
 
     {:ok, {_server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
-    :ok = pull_client_alarm(400, [])
+    :ok = call_while(&Alarm.all/0, &match?([], &1))
   end
 
   test "that we don't overflow the message queue with timers when Eth client needs time to respond", %{
@@ -111,34 +121,21 @@ defmodule OMG.EthereumClientMonitorTest do
     pid = Process.whereis(EthereumClientMonitor)
     true = is_pid(pid)
 
-    _ =
-      pull_client_alarm(100, [
-        %{
-          details: %{node: Node.self(), reporter: EthereumClientMonitor},
-          id: :ethereum_client_connection
-        }
-      ])
+    node = Node.self()
+
+    :ok =
+      call_while(
+        &Alarm.all/0,
+        &match?([%{details: %{node: ^node, reporter: EthereumClientMonitor}, id: :ethereum_client_connection}], &1)
+      )
 
     {:message_queue_len, 0} = Process.info(pid, :message_queue_len)
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
     {:ok, {_server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
-    :ok = pull_client_alarm(400, [])
+    :ok = call_while(&Alarm.all/0, &match?([], &1))
   rescue
     reason ->
       raise("message_queue_not_empty #{inspect(reason)}")
-  end
-
-  defp pull_client_alarm(0, _), do: {:cant_match, Alarm.all()}
-
-  defp pull_client_alarm(n, match) do
-    case Alarm.all() do
-      ^match ->
-        :ok
-
-      _ ->
-        Process.sleep(100)
-        pull_client_alarm(n - 1, match)
-    end
   end
 
   defmodule EthereumClientMock do
@@ -148,9 +145,7 @@ defmodule OMG.EthereumClientMonitorTest do
     use GenServer
     def start_link, do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
-    def get_ethereum_height do
-      GenServer.call(__MODULE__, :get_ethereum_height)
-    end
+    def get_ethereum_height, do: GenServer.call(__MODULE__, :get_ethereum_height)
 
     def set_faulty_response, do: GenServer.call(__MODULE__, :set_faulty_response)
 
@@ -185,15 +180,8 @@ defmodule OMG.EthereumClientMonitorTest do
     end
 
     def start(pid) when is_pid(pid) do
-      ref = make_ref()
       port = Enum.random(60_000..63_000)
-
-      url = "ws://localhost:#{port}/ws"
-
-      opts = [dispatch: dispatch(), port: port, ref: ref]
-
-      {:ok, _} = Plug.Adapters.Cowboy.http(__MODULE__, [], opts)
-      {:ok, {ref, url}}
+      start(pid, "ws://localhost:#{port}/ws")
     end
 
     def start(pid, "ws://localhost:" <> <<port::bytes-size(5)>> <> "/ws" = websocket_url) when is_pid(pid) do

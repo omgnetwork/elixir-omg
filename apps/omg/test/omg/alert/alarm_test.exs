@@ -16,6 +16,7 @@ defmodule OMG.Alert.AlarmTest do
   use ExUnit.Case, async: false
   alias OMG.Alert.Alarm
   alias OMG.Alert.AlarmHandler
+  @moduletag :capture_log
 
   setup_all do
     :ok = AlarmHandler.install()
