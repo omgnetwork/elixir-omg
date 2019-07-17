@@ -21,6 +21,7 @@ defmodule OMG.ChildChain.FeeServer do
   Fee's file parsing and rules of transaction's fee validation are in `OMG.Fees`
   """
 
+  alias OMG.Alert.Alarm
   alias OMG.Fees
 
   use GenServer
@@ -66,7 +67,11 @@ defmodule OMG.ChildChain.FeeServer do
       if Application.get_env(:omg_child_chain, :ignore_fees) do
         _ = Logger.warn("Fee specs from file are ignored. Updates takes no effect.")
       else
-        update_fee_spec()
+        alarm = {:invalid_fee_file, Node.self(), __MODULE__}
+        _ = Alarm.set(alarm)
+
+        with :ok <- update_fee_spec(),
+             do: _ = Alarm.clear(alarm)
       end
 
     {:noreply, state}

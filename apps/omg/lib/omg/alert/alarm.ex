@@ -21,13 +21,19 @@ defmodule OMG.Alert.Alarm do
   @typedoc """
   The raw alarm being used to `set` the Alarm
   """
-  @type raw_t :: {:boot_in_progress | :ethereum_client_connection, node(), module()}
+  @type raw_t ::
+          {:boot_in_progress
+           | :ethereum_client_connection
+           | :invalid_fee_file, node(), module()}
 
   def ethereum_client_connection_issue(node, reporter),
     do: {:ethereum_client_connection, %{node: node, reporter: reporter}}
 
   def boot_in_progress(node, reporter),
     do: {:boot_in_progress, %{node: node, reporter: reporter}}
+
+  def invalid_fee_file(node, reporter),
+    do: {:invalid_fee_file, %{node: node, reporter: reporter}}
 
   @spec set(raw_t()) :: :ok | :duplicate
   def set(raw_alarm = {_, node, reporter}) when is_atom(node) and is_atom(reporter) do
@@ -67,5 +73,9 @@ defmodule OMG.Alert.Alarm do
 
   defp make_alarm({:boot_in_progress, node, reporter}) do
     boot_in_progress(node, reporter)
+  end
+
+  defp make_alarm({:invalid_fee_file, node, reporter}) do
+    invalid_fee_file(node, reporter)
   end
 end
