@@ -51,7 +51,7 @@ defmodule OMG.EthereumHeight do
     case is_binary(value) do
       true ->
         ethereum_height = Encoding.int_from_hex(value)
-        _ = Logger.info("#{__MODULE__} got a newHeads event for new Ethereum height #{ethereum_height}.")
+        _ = Logger.debug("#{__MODULE__} got a newHeads event for new Ethereum height #{ethereum_height}.")
         {:noreply, ethereum_height}
 
       false ->
