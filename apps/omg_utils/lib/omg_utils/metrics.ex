@@ -29,7 +29,7 @@ defmodule OMG.Utils.Metrics do
     _ -> use Statix, runtime_config: true
   end
 
-  use Appsignal.Instrumentation.Decorators
+  alias OMG.Utils.Tracer
 
   use Decorator.Define,
     measure_start: 0,
@@ -40,18 +40,61 @@ defmodule OMG.Utils.Metrics do
   def measure_start(body, context) do
     # NOTE: the namespace and event group naming convention here is tentative.
     # It is possible we'll revert to standard coarser division into `web` and `background` namespaces Appsignal suggests
-    namespace = context.module |> Module.split() |> List.last() |> String.to_existing_atom()
-
-    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace)),
+    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace(context))),
       do: body,
-      else: Appsignal.Instrumentation.Decorators.transaction(namespace, body, context)
+      else: start_trace(body, context)
   end
 
   def measure_event(body, context) do
-    event_group = context.module |> Module.split() |> List.last() |> String.to_existing_atom()
-
-    if Enum.find(@discard_namespace_metrics, &match?(^&1, event_group)),
+    if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace(context))),
       do: body,
-      else: Appsignal.Instrumentation.Decorators.transaction_event(event_group, body, context)
+      else: start_span(body, context)
+  end
+
+  defp start_trace(body, context) do
+    trace_name = trace_name(context)
+
+    quote do
+      _ = unquote(Tracer).start_trace(unquote(trace_name))
+      Logger.metadata(span_id: unquote(Tracer).current_span_id())
+      result = unquote(body)
+      _ = unquote(Tracer).finish_trace()
+
+      result
+    end
+  end
+
+  defp start_span(body, context) do
+    trace_name = trace_name(context)
+
+    quote do
+      _ =
+        unquote(Tracer).start_span(
+          unquote(trace_name),
+          [{:resource, unquote(trace_name)}]
+        )
+
+      Logger.metadata(span_id: unquote(Tracer).current_span_id())
+      result = unquote(body)
+      _ = unquote(Tracer).finish_span()
+
+      result
+    end
+  end
+
+  defp trace_name(%{module: module, name: function, arity: arity}) do
+    module =
+      module
+      |> Atom.to_string()
+      |> String.trim_leading("Elixir.")
+
+    "#{module}.#{function}/#{arity}"
+  end
+
+  defp namespace(%{module: module}) do
+    module
+    |> Module.split()
+    |> List.last()
+    |> String.to_existing_atom()
   end
 end

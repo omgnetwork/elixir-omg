@@ -141,7 +141,8 @@ defmodule OMG.Eth.RootChain do
   end
 
   @decorate measure_event()
-  @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) :: {:ok, [in_flight_exit_piggybacked_event]}
+  @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) ::
+          {:ok, [in_flight_exit_piggybacked_event]}
   def get_piggybacks(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitPiggybacked(address,bytes32,uint8)"

@@ -28,7 +28,15 @@ defmodule OMG.Supervisor do
     children = [
       {OMG.InternalEventBus, []},
       {OMG.EthereumClientMonitor, [alarm_module: Alarm]},
-      {OMG.EthereumHeight, []}
+      {OMG.EthereumHeight, []},
+      {SpandexDatadog.ApiServer,
+       [
+         host: System.get_env("DATADOG_HOST") || "localhost",
+         port: System.get_env("DATADOG_PORT") || 8126,
+         batch_size: System.get_env("SPANDEX_BATCH_SIZE") || 10,
+         sync_threshold: System.get_env("SPANDEX_SYNC_THRESHOLD") || 100,
+         http: HTTPoison
+       ]}
     ]
 
     opts = [strategy: :one_for_one]
