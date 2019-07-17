@@ -26,15 +26,20 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
       :ok = :alarm_handler.clear_alarm(@alarm_2)
       :ok = :alarm_handler.set_alarm(@alarm_1)
 
-      pull_client_alarm(
-        300,
-        %{
-          "data" => %{
-            "code" => "operation:service_unavailable"
-          }
-        },
-        fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
-      )
+      :ok =
+        pull_client_alarm(
+          300,
+          %{
+            "data" => %{
+              "code" => "operation:service_unavailable",
+              "description" => "The server is not ready to handle the request.",
+              "object" => "error"
+            },
+            "success" => false,
+            "version" => "0.2"
+          },
+          fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
+        )
 
       :ok = :alarm_handler.clear_alarm(@alarm_1)
     end
@@ -61,15 +66,20 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
       :ok = :alarm_handler.set_alarm(@alarm_2)
       :ok = :alarm_handler.clear_alarm(@alarm_1)
 
-      pull_client_alarm(
-        300,
-        %{
-          "data" => %{
-            "code" => "operation:service_unavailable"
-          }
-        },
-        fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
-      )
+      :ok =
+        pull_client_alarm(
+          300,
+          %{
+            "data" => %{
+              "code" => "operation:service_unavailable",
+              "description" => "The server is not ready to handle the request.",
+              "object" => "error"
+            },
+            "success" => false,
+            "version" => "0.2"
+          },
+          fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
+        )
 
       :ok = :alarm_handler.clear_alarm(@alarm_2)
     end
