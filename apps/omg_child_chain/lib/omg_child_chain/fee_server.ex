@@ -62,7 +62,12 @@ defmodule OMG.ChildChain.FeeServer do
   end
 
   def handle_info(:update_fee_spec, state) do
-    _ = update_fee_spec()
+    _ =
+      if Application.get_env(:omg_child_chain, :ignore_fees) do
+        _ = Logger.warn("Fee specs from file are ignored. Updates takes no effect.")
+      else
+        update_fee_spec()
+      end
 
     {:noreply, state}
   end
@@ -77,7 +82,6 @@ defmodule OMG.ChildChain.FeeServer do
          {:ok, specs} <- Fees.parse_file_content(content) do
       :ok = save_fees(specs, changed_at)
       _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
-
       :ok
     else
       {:file_unchanged, _last_change_at} ->
