@@ -15,36 +15,42 @@
 defmodule OMG.ChildChain.FeeServer do
   @moduledoc """
   Maintains current fee rates and tokens in which fees may be paid.
-  Updates fees information from external source.
-  Provides function to validate transaction's fee.
+  Periodically updates fees information from external source (file in omg_child_chain/priv config :omg_child_chain,
+  :fee_specs_file_name) until switched off with config :omg_child_chain, :ignore_fees.
+
+  Fee's file parsing and rules of transaction's fee validation are in `OMG.Fees`
   """
 
+  alias OMG.Alert.Alarm
   alias OMG.Fees
 
   use GenServer
   use OMG.Utils.LoggerExt
 
-  @file_changed_check_interval_ms 10_000
+  @file_check_default_interval_ms 10_000
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   def init(args) do
     :ok = ensure_ets_init()
 
-    _ =
+    args =
       case Application.get_env(:omg_child_chain, :ignore_fees) do
         true ->
           :ok = save_fees(:ignore, 0)
           _ = Logger.warn("Fee specs from file are ignored.")
+          args
 
         opt when is_nil(opt) or is_boolean(opt) ->
           :ok = update_fee_spec()
-          {:ok, _} = :timer.apply_interval(@file_changed_check_interval_ms, __MODULE__, :update_fee_spec, [])
+          interval = Keyword.get(args, :interval_ms, @file_check_default_interval_ms)
+          {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_spec)
+          Keyword.put(args, :tref, tref)
       end
 
-    _ = Logger.info("Started FeeServer")
+    _ = Logger.info("Started #{inspect(__MODULE__)}")
     {:ok, args}
   end
 
@@ -56,34 +62,44 @@ defmodule OMG.ChildChain.FeeServer do
     {:ok, load_fees()}
   end
 
-  @doc """
-   Reads fee specification file if needed and updates :ets state with current fees information
-  """
-  @spec update_fee_spec() :: :ok
-  def update_fee_spec do
+  def handle_info(:update_fee_spec, state) do
+    _ =
+      if Application.get_env(:omg_child_chain, :ignore_fees) do
+        _ = Logger.warn("Fee specs from file are ignored. Updates takes no effect.")
+      else
+        alarm = {:invalid_fee_file, Node.self(), __MODULE__}
+
+        case update_fee_spec() do
+          :ok ->
+            Alarm.clear(alarm)
+
+          _ ->
+            Alarm.set(alarm)
+        end
+      end
+
+    {:noreply, state}
+  end
+
+  # Reads fee specification file if needed and updates :ets state with current fees information
+  @spec update_fee_spec() :: :ok | {:error, atom() | [{:error, atom()}, ...]}
+  defp update_fee_spec do
     path = get_fees()
 
-    :ok =
-      with {:reload, changed_at} <- should_load_file(path),
-           {:ok, content} <- File.read(path),
-           {:ok, specs} <- Fees.parse_file_content(content) do
-        :ok = save_fees(specs, changed_at)
-        _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
-
+    with {:reload, changed_at} <- should_load_file(path),
+         {:ok, content} <- File.read(path),
+         {:ok, specs} <- Fees.parse_file_content(content) do
+      :ok = save_fees(specs, changed_at)
+      _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
+      :ok
+    else
+      {:file_unchanged, _last_change_at} ->
         :ok
-      else
-        {:file_unchanged, _last_change_at} ->
-          :ok
 
-        {:error, :enoent} ->
-          _ = Logger.error("The fee specification file #{inspect(path)} not found.")
-
-          {:error, :fee_spec_not_found}
-
-        error ->
-          _ = Logger.error("Unable to update fees from file. Reason: #{inspect(error)}")
-          error
-      end
+      error ->
+        _ = Logger.error("Unable to update fees from file. Reason: #{inspect(error)}")
+        error
+    end
   end
 
   defp save_fees(fee_specs, loaded_at) do
