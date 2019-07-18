@@ -24,7 +24,7 @@ defmodule OMG.EthereumClientMonitorTest do
   alias OMG.Alert.AlarmHandler
   alias OMG.EthereumClientMonitor
 
-  import OMG.TestHelper, only: [call_while: 2]
+  import OMG.TestHelper, only: [call_until: 2]
 
   @moduletag :capture_log
 
@@ -68,8 +68,8 @@ defmodule OMG.EthereumClientMonitorTest do
 
     node = Node.self()
 
-    :ok =
-      call_while(
+    {:ok, _} =
+      call_until(
         &Alarm.all/0,
         &match?([%{details: %{node: ^node, reporter: EthereumClientMonitor}, id: :ethereum_client_connection}], &1)
       )
@@ -91,8 +91,8 @@ defmodule OMG.EthereumClientMonitorTest do
     true = is_pid(Process.whereis(EthereumClientMonitor))
     node = Node.self()
 
-    :ok =
-      call_while(
+    {:ok, _} =
+      call_until(
         &Alarm.all/0,
         &match?([%{details: %{node: ^node, reporter: EthereumClientMonitor}, id: :ethereum_client_connection}], &1)
       )
@@ -100,7 +100,7 @@ defmodule OMG.EthereumClientMonitorTest do
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
 
     {:ok, {_server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
-    :ok = call_while(&Alarm.all/0, &match?([], &1))
+    {:ok, _} = call_until(&Alarm.all/0, &match?([], &1))
   end
 
   test "that we don't overflow the message queue with timers when Eth client needs time to respond", %{
@@ -123,8 +123,8 @@ defmodule OMG.EthereumClientMonitorTest do
 
     node = Node.self()
 
-    :ok =
-      call_while(
+    {:ok, _} =
+      call_until(
         &Alarm.all/0,
         &match?([%{details: %{node: ^node, reporter: EthereumClientMonitor}, id: :ethereum_client_connection}], &1)
       )
@@ -132,7 +132,7 @@ defmodule OMG.EthereumClientMonitorTest do
     {:message_queue_len, 0} = Process.info(pid, :message_queue_len)
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
     {:ok, {_server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
-    :ok = call_while(&Alarm.all/0, &match?([], &1))
+    {:ok, _} = call_until(&Alarm.all/0, &match?([], &1))
   rescue
     reason ->
       raise("message_queue_not_empty #{inspect(reason)}")

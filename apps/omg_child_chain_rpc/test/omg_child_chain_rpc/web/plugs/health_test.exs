@@ -17,7 +17,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
   use ExUnit.Case, async: true
 
   alias OMG.ChildChainRPC.Web.TestHelper
-  import OMG.TestHelper, only: [call_while: 2]
+  import OMG.TestHelper, only: [call_until: 2]
   @moduletag :capture_log
 
   @alarm_1 {:boot_in_progress, %{node: Node.self(), reporter: __MODULE__}}

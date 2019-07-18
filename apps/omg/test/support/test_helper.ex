@@ -164,21 +164,21 @@ defmodule OMG.TestHelper do
     {:ok, full_path, file}
   end
 
-  def call_while(caller, matcher, time \\ 5_000, step \\ 10) do
-    tail_recursion = fn
-      time, _ when time <= 0 ->
-        :timeout
+  def call_until(caller, matcher, time \\ 5_000, step \\ 10)
 
-      time, fun ->
-        if matcher.(caller.()) do
-          :ok
-        else
-          Process.sleep(step)
-          fun.(time - step, fun)
-        end
+  def call_until(_caller, _matcher, time, _step) when time <= 0 do
+    {:error, :timeout}
+  end
+
+  def call_until(caller, matcher, time, step) do
+    response = caller.()
+
+    if matcher.(response) do
+      {:ok, response}
+    else
+      Process.sleep(step)
+      call_until(caller, matcher, time - step, step)
     end
-
-    tail_recursion.(time, tail_recursion)
   end
 
   defp get_private_keys(inputs) do
