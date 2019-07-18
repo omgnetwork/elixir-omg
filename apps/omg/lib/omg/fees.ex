@@ -70,7 +70,9 @@ defmodule OMG.Fees do
         |> Enum.map(&parse_fee_spec/1)
         |> Enum.reduce({[], %{}, 1}, &spec_reducer/2)
 
-      {Enum.reverse(errors), token_fee_map}
+      errors
+      |> Enum.reverse()
+      |> (&{&1, token_fee_map}).()
       |> handle_parser_output()
     end
   end

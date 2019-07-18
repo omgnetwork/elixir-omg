@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.Integration.FeeServer do
-  @moduledoc """
-  Tests a simple happy path of all the pieces working together
-  """
+defmodule OMG.ChildChain.Integration.FeeServerTest do
+  @moduledoc false
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
@@ -33,6 +31,16 @@ defmodule OMG.ChildChain.Integration.FeeServer do
   @fees %{@eth_hex => 0}
 
   setup do
+    :ok = OMG.Alert.AlarmHandler.install()
+    OMG.Alert.Alarm.clear_all()
+
+    # make sure :ets managed to clear up before we start another
+    Stream.repeatedly(fn ->
+      Process.sleep(25)
+      :undefined == :ets.info(:fees_bucket)
+    end)
+    |> Enum.take_while(fn b -> not b end)
+
     ignore_option = Application.fetch_env!(:omg_child_chain, :ignore_fees)
     old_file_name = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
 
@@ -43,9 +51,6 @@ defmodule OMG.ChildChain.Integration.FeeServer do
       File.rm(file_path)
       Application.put_env(:omg_child_chain, :ignore_fees, ignore_option)
       Application.put_env(:omg_child_chain, :fee_specs_file_name, old_file_name)
-
-      # without waiting tests interfere on :ets
-      Process.sleep(500)
     end)
 
     %{fee_file: file_name}

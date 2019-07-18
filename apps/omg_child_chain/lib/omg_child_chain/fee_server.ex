@@ -96,11 +96,6 @@ defmodule OMG.ChildChain.FeeServer do
       {:file_unchanged, _last_change_at} ->
         :ok
 
-      {:error, :enoent} ->
-        _ = Logger.error("The fee specification file #{inspect(path)} not found.")
-
-        {:error, :fee_spec_not_found}
-
       error ->
         _ = Logger.error("Unable to update fees from file. Reason: #{inspect(error)}")
         error
