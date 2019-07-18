@@ -33,8 +33,8 @@ config :sentry,
   }
 
 config :statix,
-  host: {:system, "STATSD_HOST", "localhost"},
-  port: {:system, "STATSD_PORT", 8125, {String, :to_integer}}
+  host: {:system, "DD_HOSTNAME", "localhost"},
+  port: {:system, "DD_PORT", 8125, {String, :to_integer}}
 
 config :vmstats,
   sink: OMG.VmstatsSink,
