@@ -36,15 +36,10 @@ defmodule OMG.Alert.Alarm do
     do: {:invalid_fee_file, %{node: node, reporter: reporter}}
 
   @spec set(raw_t()) :: :ok | :duplicate
-  def set(raw_alarm = {_, node, reporter}) when is_atom(node) and is_atom(reporter) do
-    alarm = make_alarm(raw_alarm)
-    do_raise(alarm)
-  end
+  def set(raw_alarm), do: raw_alarm |> make_alarm() |> do_raise()
 
-  def clear(raw_alarm) do
-    make_alarm(raw_alarm)
-    |> :alarm_handler.clear_alarm()
-  end
+  @spec clear(raw_t()) :: :ok | :not_raised
+  def clear(raw_alarm), do: raw_alarm |> make_alarm() |> do_clear()
 
   def clear_all do
     all_raw()
@@ -62,20 +57,30 @@ defmodule OMG.Alert.Alarm do
       else: :alarm_handler.set_alarm(alarm)
   end
 
+  defp do_clear(alarm) do
+    if Enum.member?(all_raw(), alarm),
+      do: :alarm_handler.clear_alarm(alarm),
+      else: :not_raised
+  end
+
   defp format_alarm({id, details}), do: %{id: id, details: details}
   defp format_alarm(alarm), do: %{id: alarm}
 
   defp all_raw, do: :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
 
-  defp make_alarm({:ethereum_client_connection, node, reporter}) do
+  @spec make_alarm(raw_t()) :: {atom(), %{node: node(), reporter: module()}}
+  defp make_alarm(raw_alarm = {_, node, reporter}) when is_atom(node) and is_atom(reporter),
+    do: make_alarm_for(raw_alarm)
+
+  defp make_alarm_for({:ethereum_client_connection, node, reporter}) do
     ethereum_client_connection_issue(node, reporter)
   end
 
-  defp make_alarm({:boot_in_progress, node, reporter}) do
+  defp make_alarm_for({:boot_in_progress, node, reporter}) do
     boot_in_progress(node, reporter)
   end
 
-  defp make_alarm({:invalid_fee_file, node, reporter}) do
+  defp make_alarm_for({:invalid_fee_file, node, reporter}) do
     invalid_fee_file(node, reporter)
   end
 end

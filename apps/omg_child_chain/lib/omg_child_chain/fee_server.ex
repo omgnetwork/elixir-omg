@@ -68,17 +68,21 @@ defmodule OMG.ChildChain.FeeServer do
         _ = Logger.warn("Fee specs from file are ignored. Updates takes no effect.")
       else
         alarm = {:invalid_fee_file, Node.self(), __MODULE__}
-        _ = Alarm.set(alarm)
 
-        with :ok <- update_fee_spec(),
-             do: _ = Alarm.clear(alarm)
+        case update_fee_spec() do
+          :ok ->
+            Alarm.clear(alarm)
+
+          _ ->
+            Alarm.set(alarm)
+        end
       end
 
     {:noreply, state}
   end
 
   # Reads fee specification file if needed and updates :ets state with current fees information
-  @spec update_fee_spec() :: :ok
+  @spec update_fee_spec() :: :ok | {:error, atom() | [{:error, atom()}, ...]}
   defp update_fee_spec do
     path = get_fees()
 
