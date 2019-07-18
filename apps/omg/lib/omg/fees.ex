@@ -64,15 +64,17 @@ defmodule OMG.Fees do
   """
   @spec parse_file_content(binary()) :: {:ok, fee_t()} | {:error, list({:error, atom()})}
   def parse_file_content(file_content) do
-    {:ok, json} = Jason.decode(file_content)
+    with {:ok, json} <- Jason.decode(file_content) do
+      {errors, token_fee_map, _} =
+        json
+        |> Enum.map(&parse_fee_spec/1)
+        |> Enum.reduce({[], %{}, 1}, &spec_reducer/2)
 
-    {errors, token_fee_map, _} =
-      json
-      |> Enum.map(&parse_fee_spec/1)
-      |> Enum.reduce({[], %{}, 1}, &spec_reducer/2)
-
-    {Enum.reverse(errors), token_fee_map}
-    |> handle_parser_output()
+      errors
+      |> Enum.reverse()
+      |> (&{&1, token_fee_map}).()
+      |> handle_parser_output()
+    end
   end
 
   defp is_merge_transaction?(recovered_tx) do
