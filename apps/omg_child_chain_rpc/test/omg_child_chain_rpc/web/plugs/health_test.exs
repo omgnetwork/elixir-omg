@@ -35,8 +35,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
               "description" => "The server is not ready to handle the request.",
               "object" => "error"
             },
-            "success" => false,
-            "version" => "0.2"
+            "success" => false
           },
           fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
         )
@@ -75,8 +74,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
               "description" => "The server is not ready to handle the request.",
               "object" => "error"
             },
-            "success" => false,
-            "version" => "0.2"
+            "success" => false
           },
           fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
         )
@@ -103,7 +101,10 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
   defp pull_client_alarm(0, _, _), do: :cant_match
 
   defp pull_client_alarm(n, match, fnn) do
-    case fnn.() do
+    endpoint_call_result = fnn.()
+    match = Map.put_new(match, "version", Map.get(endpoint_call_result, "version"))
+
+    case endpoint_call_result do
       ^match ->
         :ok
 
