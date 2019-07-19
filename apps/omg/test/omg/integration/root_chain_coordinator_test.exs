@@ -29,7 +29,6 @@ defmodule OMG.RootChainCoordinatorTest do
 
   @moduletag :integration
   @moduletag :common
-  @moduletag :capture_log
 
   @tag fixtures: [:alice, :db_initialized, :root_chain_contract_config]
   test "can do a simplest sync",
