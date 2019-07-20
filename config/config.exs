@@ -33,7 +33,7 @@ config :sentry,
   }
 
 config :statix,
-  host: {:system, "DD_HOSTNAME", "localhost"},
+  host: {:system, "DD_HOSTNAME", "datadog"},
   port: {:system, "DD_PORT", 8125, {String, :to_integer}}
 
 config :vmstats,

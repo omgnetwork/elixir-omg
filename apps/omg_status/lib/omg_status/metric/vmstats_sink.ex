@@ -16,7 +16,18 @@ defmodule OMG.Status.Metric.VmstatsSink do
   Interface implementation.
   """
   alias OMG.Status.Metric.Datadog
+  @type vm_stat :: {:vmstats_sup, :start_link, [any(), ...]}
   @behaviour :vmstats_sink
+
+  @doc """
+  Returns child_specs for the given metric setup, to be included e.g. in Supervisor's children.
+  """
+  @spec prepare_child() :: %{id: :vmstats_sup, start: vm_stat()}
+  def prepare_child do
+    %{id: :vmstats_sup, start: {:vmstats_sup, :start_link, [__MODULE__, base_key()]}}
+  end
+
+  defp base_key, do: Application.get_env(:vmstats, :base_key)
 
   def collect(:counter, key, value), do: :ok = Datadog.set(key, value)
 

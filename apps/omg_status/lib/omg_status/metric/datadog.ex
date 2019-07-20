@@ -14,12 +14,8 @@
 
 defmodule OMG.Status.Metric.Datadog do
   @moduledoc """
-  Wrapper around facilities used to trigger events to calculate performance metrics
+  Datadog connection wrapper
 
-  Allows one to discard some metric triggers, based on their namespace:
-  ## Example
-
-      config :omg_utils, discard_metrics: [:State]
   """
 
   # we want to override Statix in :test
