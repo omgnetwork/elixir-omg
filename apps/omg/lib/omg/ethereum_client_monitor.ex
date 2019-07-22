@@ -63,7 +63,6 @@ defmodule OMG.EthereumClientMonitor do
       ws_url: Keyword.get(opts, :ws_url)
     }
 
-    _ = alarm_module.set({:ethereum_client_connection, Node.self(), __MODULE__})
     _ = raise_clear(alarm_module, state.raised, ethereum_height)
     {:ok, state, {:continue, :ws_connect}}
   end

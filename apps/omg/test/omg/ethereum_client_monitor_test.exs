@@ -24,9 +24,19 @@ defmodule OMG.EthereumClientMonitorTest do
   alias OMG.Alert.AlarmHandler
   alias OMG.EthereumClientMonitor
 
+  @moduletag :capture_log
+
   setup_all do
+    _ = Application.put_env(:omg_child_chain, :eth_integration_module, EthereumClientMock)
     :ok = AlarmHandler.install()
     {:ok, _} = EthereumClientMock.start_link()
+
+    # OMG.EthereumClientMonitor use OMG.InternalEventBus
+    {:ok, _} =
+      Supervisor.start_link(
+        [{Phoenix.PubSub.PG2, [name: OMG.InternalEventBus]}],
+        strategy: :one_for_one
+      )
 
     on_exit(fn ->
       Application.put_env(:omg_child_chain, :eth_integration_module, nil)
@@ -34,7 +44,6 @@ defmodule OMG.EthereumClientMonitorTest do
   end
 
   setup do
-    _ = Application.put_env(:omg_child_chain, :eth_integration_module, EthereumClientMock)
     {:ok, {server_ref, websocket_url}} = WebSockexServerMock.start(self())
     {:ok, ethereum_client_monitor} = EthereumClientMonitor.start_link(alarm_module: Alarm, ws_url: websocket_url)
     Alarm.clear_all()
@@ -148,9 +157,7 @@ defmodule OMG.EthereumClientMonitorTest do
     use GenServer
     def start_link, do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
-    def get_ethereum_height do
-      GenServer.call(__MODULE__, :get_ethereum_height)
-    end
+    def get_ethereum_height, do: GenServer.call(__MODULE__, :get_ethereum_height)
 
     def set_faulty_response, do: GenServer.call(__MODULE__, :set_faulty_response)
 
@@ -185,15 +192,8 @@ defmodule OMG.EthereumClientMonitorTest do
     end
 
     def start(pid) when is_pid(pid) do
-      ref = make_ref()
       port = Enum.random(60_000..63_000)
-
-      url = "ws://localhost:#{port}/ws"
-
-      opts = [dispatch: dispatch(), port: port, ref: ref]
-
-      {:ok, _} = Plug.Adapters.Cowboy.http(__MODULE__, [], opts)
-      {:ok, {ref, url}}
+      start(pid, "ws://localhost:#{port}/ws")
     end
 
     def start(pid, "ws://localhost:" <> <<port::bytes-size(5)>> <> "/ws" = websocket_url) when is_pid(pid) do
