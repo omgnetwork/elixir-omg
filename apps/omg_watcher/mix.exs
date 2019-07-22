@@ -13,7 +13,6 @@ defmodule OMG.Watcher.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
-      aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls]
     ]
@@ -48,12 +47,6 @@ defmodule OMG.Watcher.Mixfile do
       {:fake_server, "~> 1.5", only: [:dev, :test], runtime: false},
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
       {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false}
-    ]
-  end
-
-  defp aliases do
-    [
-      test: ["ecto.create --quiet", "ecto.migrate", "test"]
     ]
   end
 end
