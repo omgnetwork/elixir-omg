@@ -17,9 +17,6 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
   use ExUnit.Case, async: true
 
   alias OMG.ChildChainRPC.Web.TestHelper
-  import OMG.TestHelper, only: [call_until: 2]
-  @moduletag :capture_log
-
   @alarm_1 {:boot_in_progress, %{node: Node.self(), reporter: __MODULE__}}
   @alarm_2 {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
 
@@ -53,13 +50,16 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
       missing_param = %{}
 
       assert catch_error(
-               %{"data" => %{"code" => "operation:service_unavailable"}} =
-                 TestHelper.rpc_call(:post, "/block.get", missing_param)
+               %{
+                 "data" => %{
+                   "code" => "operation:service_unavailable"
+                 }
+               } = TestHelper.rpc_call(:post, "/block.get", missing_param)
              )
     end
   end
 
-  describe "testing for ethereum_client_connection alarm" do
+  describe "testing for ethereum_client_connection alarm " do
     @tag fixtures: [:phoenix_sandbox]
     test "if block.get endpoint rejects request because alarms are raised" do
       :ok = :alarm_handler.set_alarm(@alarm_2)
@@ -86,12 +86,14 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
     test "if block.get endpoint rejects the request because of bad params when alarm is cleared" do
       :ok = :alarm_handler.clear_alarm(@alarm_1)
       :ok = :alarm_handler.clear_alarm(@alarm_2)
-
       missing_param = %{}
 
       assert catch_error(
-               %{"data" => %{"code" => "operation:service_unavailable"}} =
-                 TestHelper.rpc_call(:post, "/block.get", missing_param)
+               %{
+                 "data" => %{
+                   "code" => "operation:service_unavailable"
+                 }
+               } = TestHelper.rpc_call(:post, "/block.get", missing_param)
              )
     end
   end

@@ -43,16 +43,8 @@ defmodule OMG.Status.Alert.AlarmTest do
   end
 
   test "memsup alarms" do
-    # check if memsup is running
-    assert is_pid(GenServer.whereis(:memsup))
-    # sets memory check limit to 100%
-    # waits for next check so all previous alarm are cleared
-    # sets memory check limit to 1%
-    # see if memsup alarm was raised after next check
-    :memsup.set_sysmem_high_watermark(1)
-    Process.sleep(:memsup.get_check_interval() + 1000)
-    :memsup.set_sysmem_high_watermark(0.01)
-    Process.sleep(:memsup.get_check_interval() + 1000)
+    # memsup set alarm
+    :alarm_handler.set_alarm({:system_memory_high_watermark, []})
 
     assert Enum.any?(Alarm.all(), &(elem(&1, 0) == :system_memory_high_watermark))
   end

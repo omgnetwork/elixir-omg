@@ -24,8 +24,6 @@ defmodule OMG.EthereumClientMonitorTest do
   alias OMG.Alert.AlarmHandler
   alias OMG.EthereumClientMonitor
 
-  import OMG.TestHelper, only: [call_until: 2]
-
   @moduletag :capture_log
 
   setup_all do
@@ -66,13 +64,13 @@ defmodule OMG.EthereumClientMonitorTest do
     WebSockexServerMock.shutdown(server_ref)
     true = is_pid(Process.whereis(EthereumClientMonitor))
 
-    node = Node.self()
-
-    {:ok, _} =
-      call_until(
-        &Alarm.all/0,
-        &match?([%{details: %{node: ^node, reporter: EthereumClientMonitor}, id: :ethereum_client_connection}], &1)
-      )
+    :ok =
+      pull_client_alarm(400, [
+        %{
+          details: %{node: Node.self(), reporter: EthereumClientMonitor},
+          id: :ethereum_client_connection
+        }
+      ])
   end
 
   test "that alarm gets raised if there's no ethereum client running and cleared when it's running", %{
@@ -89,18 +87,19 @@ defmodule OMG.EthereumClientMonitorTest do
     WebSockexServerMock.shutdown(server_ref)
 
     true = is_pid(Process.whereis(EthereumClientMonitor))
-    node = Node.self()
 
-    {:ok, _} =
-      call_until(
-        &Alarm.all/0,
-        &match?([%{details: %{node: ^node, reporter: EthereumClientMonitor}, id: :ethereum_client_connection}], &1)
-      )
+    :ok =
+      pull_client_alarm(300, [
+        %{
+          details: %{node: Node.self(), reporter: EthereumClientMonitor},
+          id: :ethereum_client_connection
+        }
+      ])
 
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
 
     {:ok, {_server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
-    {:ok, _} = call_until(&Alarm.all/0, &match?([], &1))
+    :ok = pull_client_alarm(400, [])
   end
 
   test "that we don't overflow the message queue with timers when Eth client needs time to respond", %{
@@ -121,21 +120,34 @@ defmodule OMG.EthereumClientMonitorTest do
     pid = Process.whereis(EthereumClientMonitor)
     true = is_pid(pid)
 
-    node = Node.self()
-
-    {:ok, _} =
-      call_until(
-        &Alarm.all/0,
-        &match?([%{details: %{node: ^node, reporter: EthereumClientMonitor}, id: :ethereum_client_connection}], &1)
-      )
+    _ =
+      pull_client_alarm(100, [
+        %{
+          details: %{node: Node.self(), reporter: EthereumClientMonitor},
+          id: :ethereum_client_connection
+        }
+      ])
 
     {:message_queue_len, 0} = Process.info(pid, :message_queue_len)
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
     {:ok, {_server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
-    {:ok, _} = call_until(&Alarm.all/0, &match?([], &1))
+    :ok = pull_client_alarm(400, [])
   rescue
     reason ->
       raise("message_queue_not_empty #{inspect(reason)}")
+  end
+
+  defp pull_client_alarm(0, _), do: {:cant_match, Alarm.all()}
+
+  defp pull_client_alarm(n, match) do
+    case Alarm.all() do
+      ^match ->
+        :ok
+
+      _ ->
+        Process.sleep(100)
+        pull_client_alarm(n - 1, match)
+    end
   end
 
   defmodule EthereumClientMock do
