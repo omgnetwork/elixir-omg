@@ -26,15 +26,19 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
       :ok = :alarm_handler.clear_alarm(@alarm_2)
       :ok = :alarm_handler.set_alarm(@alarm_1)
 
-      pull_client_alarm(
-        300,
-        %{
-          "data" => %{
-            "code" => "operation:service_unavailable"
-          }
-        },
-        fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
-      )
+      :ok =
+        pull_client_alarm(
+          300,
+          %{
+            "data" => %{
+              "code" => "operation:service_unavailable",
+              "description" => "The server is not ready to handle the request.",
+              "object" => "error"
+            },
+            "success" => false
+          },
+          fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
+        )
 
       :ok = :alarm_handler.clear_alarm(@alarm_1)
     end
@@ -61,15 +65,19 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
       :ok = :alarm_handler.set_alarm(@alarm_2)
       :ok = :alarm_handler.clear_alarm(@alarm_1)
 
-      pull_client_alarm(
-        300,
-        %{
-          "data" => %{
-            "code" => "operation:service_unavailable"
-          }
-        },
-        fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
-      )
+      :ok =
+        pull_client_alarm(
+          300,
+          %{
+            "data" => %{
+              "code" => "operation:service_unavailable",
+              "description" => "The server is not ready to handle the request.",
+              "object" => "error"
+            },
+            "success" => false
+          },
+          fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
+        )
 
       :ok = :alarm_handler.clear_alarm(@alarm_2)
     end
@@ -93,7 +101,10 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
   defp pull_client_alarm(0, _, _), do: :cant_match
 
   defp pull_client_alarm(n, match, fnn) do
-    case fnn.() do
+    endpoint_call_result = fnn.()
+    match = Map.put_new(match, "version", Map.get(endpoint_call_result, "version"))
+
+    case endpoint_call_result do
       ^match ->
         :ok
 
