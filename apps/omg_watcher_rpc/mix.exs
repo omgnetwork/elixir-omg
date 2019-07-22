@@ -13,7 +13,6 @@ defmodule OMG.WatcherRPC.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
-      aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls]
     ]
@@ -41,12 +40,6 @@ defmodule OMG.WatcherRPC.Mixfile do
 
       {:omg_utils, in_umbrella: true},
       {:omg_watcher, in_umbrella: true}
-    ]
-  end
-
-  defp aliases do
-    [
-      test: ["ecto.create --quiet", "ecto.migrate", "test"]
     ]
   end
 end
