@@ -16,6 +16,7 @@ defmodule OMG.Watcher.TestHelper do
   @moduledoc """
   Module provides common testing functions used by App's tests.
   """
+  alias ExUnit.CaptureLog
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
 
@@ -194,5 +195,29 @@ defmodule OMG.Watcher.TestHelper do
       "spending_input_index",
       "spending_sig"
     ])
+  end
+
+  def capture_log(function, max_waiting \\ 2_000) do
+    CaptureLog.capture_log(fn ->
+      logs = CaptureLog.capture_log(fn -> function.() end)
+
+      case logs do
+        "" -> wait_for_log(max_waiting)
+        logs -> logs
+      end
+    end)
+  end
+
+  defp wait_for_log(max_waiting) when is_number(max_waiting) do
+    steps = :erlang.ceil(max_waiting / 10)
+
+    Enum.reduce_while(1..steps, nil, fn _, _ ->
+      logs = CaptureLog.capture_log(fn -> Process.sleep(10) end)
+
+      case logs do
+        "" -> {:cont, ""}
+        logs -> {:halt, logs}
+      end
+    end)
   end
 end
