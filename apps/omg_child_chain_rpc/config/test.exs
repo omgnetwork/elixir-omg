@@ -6,4 +6,11 @@ config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
   http: [port: 9656],
   server: true
 
+config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
+  service: :omg_child_chain_rpc,
+  adapter: SpandexDatadog.Adapter,
+  disabled?: true,
+  env: "test",
+  type: :web
+
 config :omg_child_chain_rpc, environment: :test

@@ -12,23 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Web.Controller.Transaction do
+defmodule OMG.Watcher.Tracer do
   @moduledoc """
-  Provides endpoint action to submit transaction to the Child Chain.
+  Trace Ecto requests and reports information to Datadog via Spandex
   """
 
-  use OMG.ChildChainRPC.Web, :controller
-
-  alias OMG.ChildChainRPC.Web.View
-
-  @api_module Application.fetch_env!(:omg_child_chain_rpc, :child_chain_api_module)
-
-  def submit(conn, params) do
-    with {:ok, txbytes} <- expect(params, "transaction", :hex),
-         {:ok, details} <- apply(@api_module, :submit, [txbytes]) do
-      conn
-      |> put_view(View.Transaction)
-      |> render(:submit, result: details)
-    end
-  end
+  use Spandex.Tracer, otp_app: :omg_watcher
 end

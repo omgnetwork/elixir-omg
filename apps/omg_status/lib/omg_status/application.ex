@@ -24,28 +24,18 @@ defmodule OMG.Status.Application do
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
+    :ok = DeferredConfig.populate(:spandex_datadog)
     :ok = DeferredConfig.populate(:statix)
     :ok = DeferredConfig.populate(:omg_status)
 
     children =
       if is_enabled?() do
-        _ = Application.put_env(:vmstats, :sink, OMG.Status.Metric.VmstatsSink)
         [VmstatsSink.prepare_child()]
       else
         []
       end
 
-    spandex = [
-      {SpandexDatadog.ApiServer,
-       [
-         host: System.get_env("DD_HOSTNAME") || "datadog",
-         port: System.get_env("DD_PORT") || 8126,
-         batch_size: System.get_env("SPANDEX_BATCH_SIZE") || 10,
-         sync_threshold: System.get_env("SPANDEX_SYNC_THRESHOLD") || 100,
-         http: HTTPoison,
-         verbose?: false
-       ]}
-    ]
+    spandex = [{SpandexDatadog.ApiServer, spandex_datadog_options()}]
 
     # TODO remove when running full releases (it'll be covered with config providers)
     :ok = configure_sentry()
@@ -76,5 +66,26 @@ defmodule OMG.Status.Application do
       {_, "false"} -> false
       _ -> nil
     end
+  end
+
+  defp spandex_datadog_options do
+    env = System.get_env()
+    config = Application.get_all_env(:spandex_datadog)
+    config_host = env["DD_HOSTNAME"] || config[:host]
+    config_port = env["DD_TRACING_PORT"] || config[:port]
+    config_batch_size = env["TRACING_BATCH_SIZE"] || config[:batch_size]
+    config_sync_threshold = env["TRACING_SYNC_THRESHOLD"] || config[:sync_threshold]
+    config_http = env["TRACING_HTTP"] || config[:http]
+    spandex_datadog_options(config_host, config_port, config_batch_size, config_sync_threshold, config_http)
+  end
+
+  defp spandex_datadog_options(config_host, config_port, config_batch_size, config_sync_threshold, config_http) do
+    [
+      host: config_host || "localhost",
+      port: config_port || 8126,
+      batch_size: config_batch_size || 10,
+      sync_threshold: config_sync_threshold || 100,
+      http: config_http || HTTPoison
+    ]
   end
 end

@@ -37,7 +37,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   use GenServer
   use OMG.Utils.LoggerExt
-  use OMG.Status.Metric.Measure
+  use Spandex.Decorators
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -158,7 +158,6 @@ defmodule OMG.Watcher.BlockGetter do
     {:noreply, state}
   end
 
-  @decorate measure_start()
   def handle_cast({:apply_block, %BlockApplication{} = block_application}, state) do
     case Core.chain_ok(state) do
       {:ok, _} ->
@@ -197,7 +196,6 @@ defmodule OMG.Watcher.BlockGetter do
     {:noreply, state}
   end
 
-  @decorate measure_start()
   defp do_producer(state) do
     with {:ok, _} <- Core.chain_ok(state) do
       new_state = run_block_download_task(state)
@@ -212,7 +210,6 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  @decorate measure_start()
   defp do_downloaded_block(response, state) do
     # 1/ process the block that arrived and consume
 
@@ -228,7 +225,6 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  @decorate measure_start()
   defp do_sync(state) do
     with {:ok, _} <- Core.chain_ok(state),
          %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
@@ -236,7 +232,7 @@ defmodule OMG.Watcher.BlockGetter do
 
       {time, {:ok, submissions}} = :timer.tc(fn -> Eth.RootChain.get_block_submitted_events(block_range) end)
       time = round(time / 1000)
-
+      # TODO remove logging like that?
       _ =
         if time > Application.fetch_env!(:omg_eth, :ethereum_client_warning_time_ms),
           do:

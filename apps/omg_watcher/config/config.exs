@@ -31,6 +31,17 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   timeout: 60_000,
   connect_timeout: 60_000
 
-# Import environment specific config. This must remain at the bottom
-# of this file so it overrides the configuration defined above.
+config :omg_watcher, OMG.Watcher.Tracer,
+  service: :ecto,
+  adapter: SpandexDatadog.Adapter,
+  disabled?: {:system, "METRICS", false},
+  env: {:system, "APP_ENV"},
+  type: :db
+
+config :spandex_ecto, SpandexEcto.EctoLogger,
+  service: :ecto,
+  adapter: SpandexDatadog.Adapter,
+  tracer: OMG.Watcher.Tracer,
+  otp_app: :omg_watcher
+
 import_config "#{Mix.env()}.exs"

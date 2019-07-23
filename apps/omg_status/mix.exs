@@ -34,7 +34,6 @@ defmodule OMG.Status.Mixfile do
       {:telemetry, "~> 0.4.0"},
       {:sentry, "~> 7.0"},
       {:statix, "~> 1.1"},
-      {:spandex, "~> 2.4"},
       {:spandex_datadog, "~> 0.4"},
       {:decorator, "~> 1.2"},
       {:vmstats, "~> 2.3", runtime: false}

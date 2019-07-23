@@ -17,4 +17,11 @@ config :omg_watcher,
   # this is useful because `mix test` and `mix coveralls --umbrella` have different views on the root dir when testing
   umbrella_root_dir: Path.join(__DIR__, "../../..")
 
+config :omg_watcher, OMG.Watcher.Tracer,
+  service: :ecto,
+  adapter: SpandexDatadog.Adapter,
+  disabled?: true,
+  env: "test",
+  type: :db
+
 config :omg_watcher, environment: :test

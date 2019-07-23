@@ -22,7 +22,7 @@ defmodule OMG.EthereumEventListener do
   alias OMG.RootChainCoordinator.SyncGuide
 
   use GenServer
-  use OMG.Status.Metric.Measure
+  use Spandex.Decorators
   use OMG.Utils.LoggerExt
 
   @type config() :: %{
@@ -91,10 +91,10 @@ defmodule OMG.EthereumEventListener do
     {:noreply, state}
   end
 
-  def handle_info(:sync, state), do: do_sync(state)
+  @decorate trace(service: :ethereum_event_listener, type: :backend)
+  def handle_info(:sync, {%Core{} = core, _callbacks} = state) do
+    :ok = :telemetry.execute([:trace, __MODULE__], %{}, core)
 
-  @decorate measure_start()
-  defp do_sync({%Core{} = core, _callbacks} = state) do
     case RootChainCoordinator.get_sync_info() do
       :nosync ->
         :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(core), core.service_name)
@@ -108,26 +108,28 @@ defmodule OMG.EthereumEventListener do
     end
   end
 
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "sync_height/2")
   defp sync_height(
-         {%Core{} = state, callbacks},
+         {%Core{} = core, callbacks},
          %SyncGuide{sync_height: sync_height} = sync_info
        ) do
     {:ok, events, db_updates, height_to_check_in, new_state} =
-      Core.get_events_range_for_download(state, sync_info)
+      Core.get_events_range_for_download(core, sync_info)
       |> maybe_update_event_cache(callbacks.get_ethereum_events_callback)
       |> Core.get_events(sync_height)
 
     {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
-    :ok = RootChainCoordinator.check_in(height_to_check_in, state.service_name)
+    :ok = RootChainCoordinator.check_in(height_to_check_in, core.service_name)
 
     {new_state, callbacks}
   end
 
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "maybe_update_event_cache/2")
   defp maybe_update_event_cache({:get_events, {from, to}, state_with_cache}, get_ethereum_events_callback) do
     {time, {:ok, new_events}} = :timer.tc(fn -> get_ethereum_events_callback.(from, to) end)
     time = round(time / 1000)
-
+    # TODO can we deprecate these logs?
     _ =
       if time > Application.fetch_env!(:omg_eth, :ethereum_client_warning_time_ms),
         do: Logger.warn("Query to Ethereum client took long: #{inspect(time)} ms")
@@ -135,6 +137,7 @@ defmodule OMG.EthereumEventListener do
     Core.add_new_events(state_with_cache, new_events)
   end
 
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "maybe_update_event_cache/2")
   defp maybe_update_event_cache({:dont_fetch_events, state}, _callback), do: state
 
   defp schedule_get_events do

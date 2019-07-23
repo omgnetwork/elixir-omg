@@ -16,7 +16,7 @@ config :logger, level: :info
 config :logger, :console,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
   discard_threshold: 2000,
-  metadata: [:module, :function, :request_id]
+  metadata: [:module, :function, :request_id, :trace_id, :span_id]
 
 config :logger,
   backends: [:console]
@@ -31,28 +31,5 @@ config :sentry,
     eth_network: System.get_env("ETHEREUM_NETWORK"),
     eth_node: System.get_env("ETH_NODE")
   }
-
-config :statix,
-  host: {:system, "DD_HOSTNAME", "datadog"},
-  port: {:system, "DD_PORT", 8125, {String, :to_integer}}
-
-config :vmstats,
-  sink: OMG.OMG.Status.Metric.VmstatsSink,
-  interval: 15_000,
-  base_key: 'vmstats',
-  key_separator: '$.',
-  sched_time: true,
-  memory_metrics: [
-    total: :total,
-    processes_used: :procs_used,
-    atom_used: :atom_used,
-    binary: :binary,
-    ets: :ets
-  ]
-
-config :spandex_phoenix, tracer: OMG.Status.Metric.Tracer
-config :spandex_ecto, SpandexEcto.EctoLogger,
-  service: :ecto,
-  tracer: OMG.Status.Metric.Tracer
 
 import_config "#{Mix.env()}.exs"

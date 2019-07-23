@@ -51,7 +51,6 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
     with {:ok, txbytes} <- expect(params, "transaction", :hex) do
       submit_tx(txbytes, conn)
     end
-    |> increment_metrics_counter()
   end
 
   @doc """
@@ -65,7 +64,6 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
       |> Transaction.Signed.encode()
       |> submit_tx(conn)
     end
-    |> increment_metrics_counter()
   end
 
   @doc """
@@ -86,15 +84,5 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
       API.Transaction.submit(signed_tx)
       |> api_response(conn, :submission)
     end
-  end
-
-  defp increment_metrics_counter(response) do
-    case response do
-      {:error, {:validation_error, _, _}} -> :telemetry.execute([:transaction], %{counter: 1}, %{valid: :failed})
-      %Plug.Conn{} -> :telemetry.execute([:transaction], %{counter: 1}, %{valid: :succeed})
-      _ -> :telemetry.execute([:transaction], %{counter: 1}, %{valid: :"failed.unidentified"})
-    end
-
-    response
   end
 end

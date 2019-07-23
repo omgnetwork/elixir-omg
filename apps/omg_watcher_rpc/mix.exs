@@ -36,6 +36,7 @@ defmodule OMG.WatcherRPC.Mixfile do
       {:deferred_config, "~> 0.1.1"},
       {:cors_plug, "~> 2.0"},
       {:spandex_phoenix, "~> 0.4.1"},
+      {:spandex_datadog, "~> 0.4"},
       {:telemetry, "~> 0.4.0"},
       # UMBRELLA
 

@@ -39,7 +39,7 @@ defmodule OMG.ChildChain.BlockQueue do
 
     use GenServer
     use OMG.Utils.LoggerExt
-    use OMG.Status.Metric.Measure
+    use Spandex.Decorators
     alias OMG.Eth
     alias OMG.Eth.Encoding
     alias OMG.EthereumHeight
@@ -176,7 +176,6 @@ defmodule OMG.ChildChain.BlockQueue do
       |> Enum.each(&submit/1)
     end
 
-    @decorate measure_start()
     defp submit(%Core.BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price} = submission) do
       _ = Logger.debug("Submitting: #{inspect(submission)}")
 

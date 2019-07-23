@@ -18,6 +18,7 @@ defmodule OMG.DB.LevelDB.Core do
   """
 
   # adapter - testable, if we really really want to
+  use Spandex.Decorators
 
   @single_value_parameter_names OMG.DB.single_value_parameter_names()
 
