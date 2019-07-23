@@ -66,8 +66,10 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       assert {:ok, default_fees} == FeeServer.transaction_fees()
 
       # corrupt file, refresh, check fees did not change
-      overwrite_fee_file(file_name, "[not a json]")
-      assert refresh_fees() =~ ~r/\[error\].*Unable to update fees/
+      assert capture_log(fn ->
+               overwrite_fee_file(file_name, "[not a json]")
+               refresh_fees()
+             end) =~ ~r/\[error\].*Unable to update fees/
 
       assert {:ok, default_fees} == FeeServer.transaction_fees()
       assert server_alive?()
@@ -136,9 +138,24 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     pid = GenServer.whereis(TestFeeServer)
 
     capture_log(fn ->
-      Process.send(pid, :update_fee_spec, [])
-      # handle_info is async - we need to wait it executes to get message logged
-      Process.sleep(100)
+      logs = capture_log(fn -> Process.send(pid, :update_fee_spec, []) end)
+
+      case logs do
+        "" -> wait_for_log()
+        logs -> logs
+      end
+    end)
+  end
+
+  defp wait_for_log do
+    # wait maximal 1s for logs
+    Enum.reduce_while(1..100, nil, fn _, _ ->
+      logs = capture_log(fn -> Process.sleep(10) end)
+
+      case logs do
+        "" -> {:cont, ""}
+        logs -> {:halt, logs}
+      end
     end)
   end
 
