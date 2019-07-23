@@ -29,7 +29,6 @@ defmodule OMG.Performance.MixProject do
 
   defp deps do
     [
-      {:appsignal, "~> 1.0"},
       {:deferred_config, "~> 0.1.1"},
       # TEST ONLY
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},

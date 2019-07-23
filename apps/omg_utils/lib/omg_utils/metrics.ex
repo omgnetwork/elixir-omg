@@ -39,7 +39,6 @@ defmodule OMG.Utils.Metrics do
 
   def measure_start(body, context) do
     # NOTE: the namespace and event group naming convention here is tentative.
-    # It is possible we'll revert to standard coarser division into `web` and `background` namespaces Appsignal suggests
     if Enum.find(@discard_namespace_metrics, &match?(^&1, namespace(context))),
       do: body,
       else: start_trace(body, context)

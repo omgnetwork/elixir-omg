@@ -44,7 +44,6 @@ defmodule OMG.Eth.MixProject do
         app: false,
         only: [:dev, :test]
       },
-      {:appsignal, "~> 1.0"},
       # TEST ONLY
       {:exexec,
        git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},

@@ -40,10 +40,4 @@ config :vmstats,
   sink: OMG.VmstatsSink,
   interval: 3000
 
-# Configs for AppSignal application monitoring
-config :appsignal, :config,
-  name: "OmiseGO Plasma MoreVP Implementation",
-  env: Mix.env(),
-  active: true
-
 import_config "#{Mix.env()}.exs"

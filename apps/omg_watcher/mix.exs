@@ -35,7 +35,6 @@ defmodule OMG.Watcher.Mixfile do
       {:postgrex, "~> 0.14"},
       {:ecto_sql, "~> 3.1"},
       {:deferred_config, "~> 0.1.1"},
-      {:appsignal, "~> 1.0"},
       # UMBRELLA
       {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},
