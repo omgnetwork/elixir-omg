@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true])
-Application.ensure_all_started(:propcheck)
-ExUnitFixtures.load_fixture_files("../**/test/**/**/fixtures.exs")
 ExUnitFixtures.start()
+ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
+Application.ensure_all_started(:propcheck)
+umbrella_root_dir = Application.fetch_env!(:omg, :umbrella_root_dir)
+ExUnitFixtures.load_fixture_files(Path.join(umbrella_root_dir, "apps/*/test/**/fixtures.exs"))
 ExUnit.start()
