@@ -197,22 +197,22 @@ defmodule OMG.Watcher.TestHelper do
     ])
   end
 
-  def capture_log(function, max_waiting \\ 2_000) do
+  def capture_log(function, max_waiting_ms \\ 2_000) do
     CaptureLog.capture_log(fn ->
       logs = CaptureLog.capture_log(fn -> function.() end)
 
       case logs do
-        "" -> wait_for_log(max_waiting)
+        "" -> wait_for_log(max_waiting_ms)
         logs -> logs
       end
     end)
   end
 
-  defp wait_for_log(max_waiting) when is_number(max_waiting) do
-    steps = :erlang.ceil(max_waiting / 10)
+  defp wait_for_log(max_waiting_ms, sleep_time_ms \\ 20) do
+    steps = :erlang.ceil(max_waiting_ms / sleep_time_ms)
 
     Enum.reduce_while(1..steps, nil, fn _, _ ->
-      logs = CaptureLog.capture_log(fn -> Process.sleep(10) end)
+      logs = CaptureLog.capture_log(fn -> Process.sleep(sleep_time_ms) end)
 
       case logs do
         "" -> {:cont, ""}
