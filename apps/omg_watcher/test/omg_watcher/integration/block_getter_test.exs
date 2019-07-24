@@ -36,7 +36,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias Watcher.TestHelper
 
   require Utxo
-  import ExUnit.CaptureLog
 
   @moduletag :integration
   @moduletag :watcher
@@ -148,10 +147,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       different_hash
     )
 
-    {:ok, _txhash} = Eth.RootChain.submit_block(different_hash, 1, 20_000_000_000)
-
     # checking if both machines and humans learn about the byzantine condition
-    assert capture_log(fn ->
+    assert TestHelper.capture_log(fn ->
+             {:ok, _txhash} = Eth.RootChain.submit_block(different_hash, 1, 20_000_000_000)
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
            end) =~ inspect({:error, :incorrect_hash})
   end
@@ -172,10 +170,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     )
 
     invalid_block_hash = block_with_incorrect_transaction.hash
-    {:ok, _txhash} = Eth.RootChain.submit_block(invalid_block_hash, 1, 20_000_000_000)
 
     # checking if both machines and humans learn about the byzantine condition
-    assert capture_log(fn ->
+    assert TestHelper.capture_log(fn ->
+             {:ok, _txhash} = Eth.RootChain.submit_block(invalid_block_hash, 1, 20_000_000_000)
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
            end) =~ inspect(:tx_execution)
   end
@@ -217,11 +215,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
 
-    # Here we're manually submitting invalid block to the root chain
-    {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
-
     # checking if both machines and humans learn about the byzantine condition
-    assert capture_log(fn ->
+    assert TestHelper.capture_log(fn ->
+             # Here we're manually submitting invalid block to the root chain
+             {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
              IntegrationTest.wait_for_byzantine_events([%Event.UnchallengedExit{}.name], @timeout)
            end) =~ inspect(:unchallenged_exit)
 
