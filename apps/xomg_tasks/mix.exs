@@ -9,7 +9,7 @@ defmodule OMG.XomgTasks.MixProject do
   def project do
     [
       app: :xomg_tasks,
-      version: OMG.Umbrella.MixProject.umbrella_version(),
+      version: "0.2.0",
       build_path: "../../_build",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",

@@ -4,7 +4,7 @@ defmodule OMG.Watcher.Mixfile do
   def project do
     [
       app: :omg_watcher,
-      version: OMG.Umbrella.MixProject.umbrella_version(),
+      version: "0.2.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -48,7 +48,8 @@ defmodule OMG.Watcher.Mixfile do
       # here only to leverage common test helpers and code
       {:fake_server, "~> 1.5", only: [:dev, :test], runtime: false},
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
-      {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false}
+      {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false},
+      {:phoenix, "~> 1.3", runtime: false}
     ]
   end
 end

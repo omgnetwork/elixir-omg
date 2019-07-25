@@ -4,7 +4,7 @@ defmodule OMG.Status.Mixfile do
   def project do
     [
       app: :omg_status,
-      version: OMG.Umbrella.MixProject.umbrella_version(),
+      version: "0.2.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
