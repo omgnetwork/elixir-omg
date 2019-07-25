@@ -9,7 +9,7 @@ defmodule OMG.XomgTasks.MixProject do
   def project do
     [
       app: :xomg_tasks,
-      version: "0.2.0",
+      version: "#{String.trim(File.read!("../../VERSION"))}",
       build_path: "../../_build",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",

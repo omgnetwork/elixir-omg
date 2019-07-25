@@ -4,7 +4,7 @@ defmodule OMG.Watcher.Mixfile do
   def project do
     [
       app: :omg_watcher,
-      version: "0.2.0",
+      version: "#{String.trim(File.read!("../../VERSION"))}",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
