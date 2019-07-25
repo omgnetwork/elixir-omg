@@ -37,6 +37,13 @@ defmodule OMG.Watcher.Mixfile do
       {:deferred_config, "~> 0.1.1"},
       {:telemetry, "~> 0.4.0"},
       {:spandex_ecto, "~> 0.6.0"},
+      # there's no apparent reason why libsecp256k1, spandex and distillery need to be included as dependencies
+      # to this umbrella application apart from mix ecto.gen.migration not working, so here they are, copied from
+      # the parent (main) mix.exs
+      {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
+      {:spandex, "~> 2.4",
+       git: "https://github.com/omisego/spandex.git", branch: "fix_dialyzer_in_macro", override: true},
+      {:distillery, "~> 2.0", runtime: false},
       # UMBRELLA
       {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},
