@@ -14,7 +14,7 @@
 
 defmodule OMG.Eth.ReleaseTasks.SetContract do
   @moduledoc false
-  use Mix.Releases.Config.Provider
+  use Distillery.Releases.Config.Provider
 
   @doc """
   The contract values can currently come either from ENV variables for deployments in

@@ -14,7 +14,7 @@
 
 defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   @moduledoc false
-  use Mix.Releases.Config.Provider
+  use Distillery.Releases.Config.Provider
 
   @doc """
   Gets the environment setting for the ethereum client location.

@@ -14,7 +14,7 @@
 
 defmodule OMG.Status.ReleaseTasks.SetSentry do
   @moduledoc false
-  use Mix.Releases.Config.Provider
+  use Distillery.Releases.Config.Provider
   alias OMG.Utils.CLI
 
   @impl Provider
