@@ -18,23 +18,29 @@ defmodule OMG.Status.Application do
   """
   use Application
   alias OMG.Status.Alert.AlarmHandler
-  alias Status.Metric.Recorder
+  alias OMG.Status.Metric.Datadog
+  alias OMG.Status.Metric.VmstatsSink
 
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
+    :ok = DeferredConfig.populate(:spandex_datadog)
+    :ok = DeferredConfig.populate(:statix)
+    :ok = DeferredConfig.populate(:omg_status)
+
     children =
       if is_enabled?() do
-        _ = Application.put_env(:vmstats, :sink, Status.Metric.Recorder)
-        [Recorder.prepare_child()]
+        [VmstatsSink.prepare_child()]
       else
         []
       end
 
-    # TODO remove when running full releases (covered with config providers)
-    :ok = configure_sentry()
+    spandex = [{SpandexDatadog.ApiServer, spandex_datadog_options()}]
 
-    Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
+    # TODO remove when running full releases (it'll be covered with config providers)
+    :ok = configure_sentry()
+    :ok = Datadog.connect()
+    Supervisor.start_link(spandex ++ children, strategy: :one_for_one, name: Status.Supervisor)
   end
 
   def start_phase(:install_alarm_handler, _start_type, _phase_args) do
@@ -60,5 +66,26 @@ defmodule OMG.Status.Application do
       {_, "false"} -> false
       _ -> nil
     end
+  end
+
+  defp spandex_datadog_options do
+    env = System.get_env()
+    config = Application.get_all_env(:spandex_datadog)
+    config_host = env["DD_HOSTNAME"] || config[:host]
+    config_port = env["DD_TRACING_PORT"] || config[:port]
+    config_batch_size = env["TRACING_BATCH_SIZE"] || config[:batch_size]
+    config_sync_threshold = env["TRACING_SYNC_THRESHOLD"] || config[:sync_threshold]
+    config_http = env["TRACING_HTTP"] || config[:http]
+    spandex_datadog_options(config_host, config_port, config_batch_size, config_sync_threshold, config_http)
+  end
+
+  defp spandex_datadog_options(config_host, config_port, config_batch_size, config_sync_threshold, config_http) do
+    [
+      host: config_host || "localhost",
+      port: config_port || 8126,
+      batch_size: config_batch_size || 10,
+      sync_threshold: config_sync_threshold || 100,
+      http: config_http || HTTPoison
+    ]
   end
 end

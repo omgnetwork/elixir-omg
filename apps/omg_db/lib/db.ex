@@ -17,7 +17,7 @@ defmodule OMG.DB do
   DB API module provides an interface to all needed functions that need to be implemented by the
   underlying database layer.
   """
-  use OMG.Utils.Metrics
+  use Spandex.Decorators
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
   @callback start_link(term) :: GenServer.on_start()
@@ -85,52 +85,41 @@ defmodule OMG.DB do
   @doc """
   Puts all zeroes and other init values to a generically initialized `OMG.DB`
   """
-  @decorate measure_event()
+
   def initiation_multiupdate, do: driver().initiation_multiupdate
   def initiation_multiupdate(server), do: driver().initiation_multiupdate(server)
 
-  @decorate measure_event()
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "multi_update/1")
   def multi_update(db_updates), do: driver().multi_update(db_updates)
   def multi_update(db_updates, server), do: driver().multi_update(db_updates, server)
 
-  @decorate measure_event()
   def blocks(blocks_to_fetch), do: driver().blocks(blocks_to_fetch)
   def blocks(blocks_to_fetch, server), do: driver().blocks(blocks_to_fetch, server)
 
-  @decorate measure_event()
   def utxos, do: driver().utxos()
   def utxos(server), do: driver().utxos(server)
 
-  @decorate measure_event()
   def exit_infos, do: driver().exit_infos
   def exit_infos(server), do: driver().exit_infos(server)
 
-  @decorate measure_event()
   def in_flight_exits_info, do: driver().in_flight_exits_info()
   def in_flight_exits_info(server), do: driver().in_flight_exits_info(server)
 
-  @decorate measure_event()
   def competitors_info, do: driver().competitors_info
   def competitors_info(server), do: driver().competitors_info(server)
 
-  @decorate measure_event()
   def exit_info(utxo_pos), do: driver().exit_info(utxo_pos)
 
-  @decorate measure_event()
   def spent_blknum(utxo_pos), do: driver().spent_blknum(utxo_pos)
   def spent_blknum(utxo_pos, server), do: driver().spent_blknum(utxo_pos, server)
 
-  @decorate measure_event()
   def block_hashes(block_numbers_to_fetch), do: driver().block_hashes(block_numbers_to_fetch)
   def block_hashes(block_numbers_to_fetch, server), do: driver().block_hashes(block_numbers_to_fetch, server)
 
-  @decorate measure_event()
   def last_deposit_child_blknum, do: driver().last_deposit_child_blknum()
 
-  @decorate measure_event()
   def child_top_block_number, do: driver().child_top_block_number
 
-  @decorate measure_event()
   def get_single_value(parameter_name), do: driver().get_single_value(parameter_name)
   def get_single_value(parameter_name, server), do: driver().get_single_value(parameter_name, server)
 

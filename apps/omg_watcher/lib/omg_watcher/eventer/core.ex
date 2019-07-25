@@ -24,9 +24,15 @@ defmodule OMG.Watcher.Eventer.Core do
 
   require OMG.Utxo
 
+  defstruct []
+
+  @type t() :: %__MODULE__{}
+
   @transfer_topic "transfer"
   @exit_topic "exit"
   @zero_address OMG.Eth.zero_address()
+
+  def init, do: %__MODULE__{}
 
   @spec pair_events_with_topics(any() | Event.t()) :: list({String.t(), String.t(), Event.t()})
   def pair_events_with_topics(event_triggers) do

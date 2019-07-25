@@ -11,35 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-defmodule Status.Metric.Recorder do
+defmodule OMG.Status.Metric.VmstatsSink do
   @moduledoc """
-  A GenServer template for metrics recording.
+  Interface implementation.
   """
-  @behaviour :vmstats_sink
+  alias OMG.Status.Metric.Datadog
   @type vm_stat :: {:vmstats_sup, :start_link, [any(), ...]}
-  alias OMG.Utils.Metrics
-
-  def collect(:counter, key, value) do
-    key
-    |> List.flatten()
-    |> to_string()
-    |> Metrics.set(value, tags: [inspect(%{node: to_string(Node.self())})])
-  end
-
-  def collect(:gauge, key, value) do
-    key
-    |> List.flatten()
-    |> to_string()
-    |> Metrics.gauge(value, tags: [inspect(%{node: to_string(Node.self())})])
-  end
-
-  def collect(:timing, key, value) do
-    key
-    |> List.flatten()
-    |> to_string()
-    |> Metrics.timing(value, tags: [inspect(%{node: to_string(Node.self())})])
-  end
+  @behaviour :vmstats_sink
 
   @doc """
   Returns child_specs for the given metric setup, to be included e.g. in Supervisor's children.
@@ -50,4 +28,10 @@ defmodule Status.Metric.Recorder do
   end
 
   defp base_key, do: Application.get_env(:vmstats, :base_key)
+
+  def collect(:counter, key, value), do: :ok = Datadog.set(key, value)
+
+  def collect(:gauge, key, value), do: :ok = Datadog.gauge(key, value)
+
+  def collect(:timing, key, value), do: :ok = Datadog.timing(key, value)
 end

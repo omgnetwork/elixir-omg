@@ -23,7 +23,8 @@ defmodule OMG.Watcher.Eventer do
   """
 
   alias OMG.Watcher.Eventer.Core
-  alias OMG.Watcher.Recorder
+
+  require Logger
   ### Client
 
   def start_link(_args) do
@@ -35,21 +36,28 @@ defmodule OMG.Watcher.Eventer do
   use GenServer
 
   def init(:ok) do
-    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
-
     # `link: true` because we want the `Eventer` to restart and resubscribe, if the bus crashes
     :ok = OMG.InternalEventBus.subscribe("events", link: true)
 
-    {:ok, nil}
+    {:ok, _} =
+      :timer.send_interval(Application.fetch_env!(:omg_watcher, :metrics_collection_interval), self(), :send_metrics)
+
+    _ = Logger.info("Started #{inspect(__MODULE__)}")
+    {:ok, Core.init()}
   end
 
-  def handle_info({:internal_event_bus, :preprocess_emit_events, event_triggers}, nil) do
+  def handle_info({:internal_event_bus, :preprocess_emit_events, event_triggers}, state) do
     :ok =
       event_triggers
       |> Core.pair_events_with_topics()
       |> do_broadcast()
 
-    {:noreply, nil}
+    {:noreply, state}
+  end
+
+  def handle_info(:send_metrics, state) do
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+    {:noreply, state}
   end
 
   defp do_broadcast(event_triggers) do

@@ -11,29 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.Utils.Statix do
+
+defmodule OMG.Watcher.BlockGetter.Measure do
   @moduledoc """
-  Useful for overwritting Statix behaviour.
+  Counting business metrics sent to Datadog
   """
-  defmacro __using__(_opts) do
-    quote location: :keep do
-      @behaviour Statix
-      def connect, do: :ok
 
-      def increment(_), do: :ok
-      def increment(_, _, options \\ []), do: :ok
+  import OMG.Status.Metric.Event, only: [name: 1]
+  alias OMG.Status.Metric.Datadog
 
-      def decrement(_, val \\ 1, options \\ []), do: :ok
+  @supported_events [[:process, OMG.Watcher.BlockGetter]]
+  def supported_events, do: @supported_events
 
-      def gauge(_, val, options \\ []), do: :ok
+  def handle_event([:process, OMG.Watcher.BlockGetter], _, _state, _config) do
+    value =
+      self()
+      |> Process.info(:message_queue_len)
+      |> elem(1)
 
-      def histogram(_, val, options \\ []), do: :ok
-
-      def timing(_, val, options \\ []), do: :ok
-
-      def measure(key, options \\ [], fun), do: :ok
-
-      def set(key, val, options \\ []), do: :ok
-    end
+    :ok = Datadog.gauge(name(:block_getter_message_queue_len), value)
   end
 end

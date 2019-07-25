@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Utils.Tracer do
+defmodule OMG.Status.Metric.Datadog do
   @moduledoc """
-  Trace requests and reports information to Datadog via Spandex
+  Datadog connection wrapper
   """
 
-  use Spandex.Tracer, otp_app: :omg
+  # we want to override Statix in :test
+  # because we don't want to send metrics in unittests
+  case Application.get_env(:omg_status, :environment) do
+    :test -> use OMG.Status.Metric.Statix
+    _ -> use Statix, runtime_config: true
+  end
 end

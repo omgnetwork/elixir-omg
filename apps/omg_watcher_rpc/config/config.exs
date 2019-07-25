@@ -9,7 +9,16 @@ use Mix.Config
 config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
   render_errors: [view: OMG.WatcherRPC.Web.Views.Error, accepts: ~w(json)],
   pubsub: [name: OMG.WatcherRPC.PubSub, adapter: Phoenix.PubSub.PG2],
-  instrumenters: [Appsignal.Phoenix.Instrumenter],
+  instrumenters: [SpandexPhoenix.Instrumenter],
   enable_cors: true
+
+config :omg_watcher_rpc, OMG.WatcherRPC.Tracer,
+  service: :web,
+  adapter: SpandexDatadog.Adapter,
+  disabled?: {:system, "METRICS", false},
+  env: {:system, "APP_ENV"},
+  type: :web
+
+config :spandex_phoenix, tracer: OMG.WatcherRPC.Tracer
 
 import_config "#{Mix.env()}.exs"

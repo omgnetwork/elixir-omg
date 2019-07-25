@@ -24,8 +24,6 @@ defmodule OMG.Watcher.API.Status do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
-  use OMG.Utils.Metrics
-
   @opaque t() :: %{
             last_validated_child_block_number: non_neg_integer(),
             last_validated_child_block_timestamp: non_neg_integer(),
@@ -47,7 +45,6 @@ defmodule OMG.Watcher.API.Status do
   This function calls into a number of services (internal and external), collects the results. If any of the underlying
   services are unavailable, it will crash
   """
-  @decorate measure_event()
   @spec get_status() :: {:ok, t()}
   def get_status do
     {:ok, eth_block_number} = OMG.EthereumHeight.get()

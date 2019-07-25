@@ -19,7 +19,8 @@ defmodule OMG.DB.MixProject do
 
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger, :telemetry],
+      start_phases: [{:attach_telemetry, []}],
       mod: {OMG.DB.Application, []}
     ]
   end
@@ -30,7 +31,6 @@ defmodule OMG.DB.MixProject do
 
   defp deps do
     [
-      {:appsignal, "~> 1.0"},
       {:rocksdb, "~> 1.2"},
       {:exleveldb, "~> 0.11"},
       # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
@@ -39,7 +39,9 @@ defmodule OMG.DB.MixProject do
       #       OMG-373 (Elixir 1.8) should fix this
       # TEST ONLY
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
-      {:omg_utils, in_umbrella: true}
+      {:telemetry, "~> 0.4.0"},
+      {:omg_utils, in_umbrella: true},
+      {:omg_status, in_umbrella: true}
     ]
   end
 end

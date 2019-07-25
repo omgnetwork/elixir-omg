@@ -27,6 +27,8 @@ defmodule OMG.EthereumEventListener.Core do
   """
   alias OMG.RootChainCoordinator.SyncGuide
 
+  use Spandex.Decorators
+
   defstruct synced_height_update_key: nil,
             service_name: nil,
             # what's being exchanged with `RootChainCoordinator` - the point in root chain until where it processed
@@ -81,6 +83,7 @@ defmodule OMG.EthereumEventListener.Core do
   @doc """
   Returns range Ethereum height to download
   """
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "get_events_range_for_download/2")
   @spec get_events_range_for_download(t(), SyncGuide.t()) ::
           {:dont_fetch_events, t()} | {:get_events, {non_neg_integer, non_neg_integer}, t()}
   def get_events_range_for_download(%__MODULE__{cached: %{events_upper_bound: upper}} = state, %SyncGuide{
@@ -89,6 +92,7 @@ defmodule OMG.EthereumEventListener.Core do
       when sync_height <= upper,
       do: {:dont_fetch_events, state}
 
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "get_events_range_for_download/2")
   def get_events_range_for_download(
         %__MODULE__{
           cached: %{request_max_size: request_max_size, events_upper_bound: old_upper_bound} = cached_data
@@ -112,6 +116,7 @@ defmodule OMG.EthereumEventListener.Core do
   @doc """
   Stores the freshly fetched ethereum events into a memory-cache
   """
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "add_new_events/2")
   @spec add_new_events(t(), list(event)) :: t()
   def add_new_events(
         %__MODULE__{cached: %{data: data} = cached_data} = state,
@@ -123,6 +128,7 @@ defmodule OMG.EthereumEventListener.Core do
   @doc """
   Pop some ethereum events stored in the memory-cache, up to a certain height
   """
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "get_events/2")
   @spec get_events(t(), non_neg_integer) :: {:ok, list(event), list(), non_neg_integer, t()}
   def get_events(
         %__MODULE__{synced_height_update_key: update_key, cached: %{data: data}} = state,

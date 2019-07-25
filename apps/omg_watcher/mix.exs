@@ -21,7 +21,8 @@ defmodule OMG.Watcher.Mixfile do
   def application do
     [
       mod: {OMG.Watcher.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      start_phases: [{:attach_telemetry, []}],
+      extra_applications: [:logger, :runtime_tools, :telemetry]
     ]
   end
 
@@ -34,7 +35,8 @@ defmodule OMG.Watcher.Mixfile do
       {:postgrex, "~> 0.14"},
       {:ecto_sql, "~> 3.1"},
       {:deferred_config, "~> 0.1.1"},
-      {:appsignal, "~> 1.0"},
+      {:telemetry, "~> 0.4.0"},
+      {:spandex_ecto, "~> 0.6.0"},
       # UMBRELLA
       {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},

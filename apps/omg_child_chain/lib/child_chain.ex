@@ -27,11 +27,9 @@ defmodule OMG.ChildChain do
   alias OMG.State
   alias OMG.State.Transaction
   use OMG.Utils.LoggerExt
-  use OMG.Utils.Metrics
 
   @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error()
 
-  @decorate measure_event()
   @spec submit(transaction :: binary) ::
           {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
           | {:error, submit_error()}
@@ -45,7 +43,6 @@ defmodule OMG.ChildChain do
     |> result_with_logging()
   end
 
-  @decorate measure_event()
   @spec get_block(hash :: binary) ::
           {:ok, %{hash: binary, transactions: list, blknum: integer}} | {:error, :not_found | :internal_error}
   def get_block(hash) do

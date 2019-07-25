@@ -21,14 +21,13 @@ defmodule OMG.State do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Fees
-  alias OMG.Recorder
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
   alias OMG.Utxo
 
   use GenServer
-  use OMG.Utils.Metrics
+
   use OMG.Utils.LoggerExt
 
   @type exec_error :: Validator.exec_error()
@@ -39,7 +38,6 @@ defmodule OMG.State do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @decorate measure_event()
   @spec exec(tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}}
           | {:error, exec_error()}
@@ -51,32 +49,27 @@ defmodule OMG.State do
     GenServer.cast(__MODULE__, :form_block)
   end
 
-  @decorate measure_event()
   @spec close_block(pos_integer) :: {:ok, list(Core.db_update())}
   def close_block(eth_height) do
     GenServer.call(__MODULE__, {:close_block, eth_height})
   end
 
-  @decorate measure_event()
   @spec deposit(deposits :: [Core.deposit()]) :: {:ok, list(Core.db_update())}
   def deposit(deposits) do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
-  @decorate measure_event()
   @spec exit_utxos(utxos :: Core.exiting_utxos_t()) ::
           {:ok, list(Core.db_update()), Core.validities_t()}
   def exit_utxos(utxos) do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
 
-  @decorate measure_event()
   @spec utxo_exists?(Utxo.Position.t()) :: boolean()
   def utxo_exists?(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
-  @decorate measure_event()
   @spec get_status :: {non_neg_integer(), boolean()}
   def get_status do
     GenServer.call(__MODULE__, :get_status)
@@ -94,7 +87,6 @@ defmodule OMG.State do
     {:ok, utxos_query_result} = DB.utxos()
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, last_deposit_query_result} = DB.get_single_value(:last_deposit_child_blknum)
-    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
     {:ok, [utxos_query_result, height_query_result, last_deposit_query_result], {:continue, :setup}}
   end
 
@@ -109,7 +101,15 @@ defmodule OMG.State do
                last_deposit_query_result,
                child_block_interval
              ) do
-        _ = Logger.info("Started State, height: #{height_query_result}, deposit height: #{last_deposit_query_result}")
+        _ =
+          Logger.info(
+            "Started #{inspect(__MODULE__)}, height: #{height_query_result}, deposit height: #{
+              last_deposit_query_result
+            }"
+          )
+
+        {:ok, _} =
+          :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
 
         result
       else
@@ -121,16 +121,11 @@ defmodule OMG.State do
           other
       end
 
-    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
-
     {:noreply, state}
   end
 
   def handle_info(:send_metrics, state) do
-    _ =
-      Core.Metrics.calculate(state)
-      |> Enum.map(fn {key, value} -> OMG.Utils.Metrics.gauge(key, value) end)
-
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
     {:noreply, state}
   end
 
@@ -206,7 +201,6 @@ defmodule OMG.State do
 
   Does its on persistence!
   """
-  @decorate measure_event()
   def handle_cast(:form_block, state) do
     _ = Logger.debug("Forming new block...")
     {:ok, {%Block{number: blknum} = block, event_triggers, db_updates}, new_state} = do_form_block(state)
@@ -220,7 +214,6 @@ defmodule OMG.State do
     {:noreply, new_state}
   end
 
-  @decorate measure_event()
   defp do_form_block(state, eth_height \\ nil) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
     Core.form_block(child_block_interval, eth_height, state)

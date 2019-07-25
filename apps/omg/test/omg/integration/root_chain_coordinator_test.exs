@@ -45,7 +45,6 @@ defmodule OMG.RootChainCoordinatorTest do
           {OMG.EthereumClientMonitor, [alarm_module: Alarm]},
           {OMG.EthereumHeight, []},
           {OMG.RootChainCoordinator, coordinator_setup},
-          {SpandexDatadog.ApiServer, [http: HTTPoison]},
           OMG.EthereumEventListener.prepare_child(
             service_name: :test,
             synced_height_update_key: :last_depositor_eth_height,

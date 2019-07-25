@@ -40,6 +40,7 @@ defmodule OMG.ChildChainRPC.Web do
       alias OMG.ChildChainRPC.Web.Router.Helpers, as: Routes
 
       action_fallback(OMG.ChildChainRPC.Web.Controller.Fallback)
+      use SpandexPhoenix
     end
   end
 

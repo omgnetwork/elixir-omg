@@ -7,6 +7,7 @@ config :omg_child_chain,
   block_queue_eth_height_check_interval_ms: 6_000,
   child_block_minimal_enqueue_gap: 1,
   fee_specs_file_name: "fee_specs.json",
-  ignore_fees: false
+  ignore_fees: false,
+  metrics_collection_interval: 60_000
 
 import_config "#{Mix.env()}.exs"

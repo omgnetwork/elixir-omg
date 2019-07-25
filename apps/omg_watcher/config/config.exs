@@ -20,7 +20,8 @@ config :omg_watcher,
   maximum_number_of_unapplied_blocks: 50,
   exit_finality_margin: 12,
   block_getter_reorg_margin: 200,
-  convenience_api_mode: false
+  convenience_api_mode: false,
+  metrics_collection_interval: 60_000
 
 # Configures the endpoint
 
@@ -30,6 +31,17 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   timeout: 60_000,
   connect_timeout: 60_000
 
-# Import environment specific config. This must remain at the bottom
-# of this file so it overrides the configuration defined above.
+config :omg_watcher, OMG.Watcher.Tracer,
+  service: :db,
+  adapter: SpandexDatadog.Adapter,
+  disabled?: {:system, "METRICS", false},
+  env: {:system, "APP_ENV"},
+  type: :db
+
+config :spandex_ecto, SpandexEcto.EctoLogger,
+  service: :ecto,
+  adapter: SpandexDatadog.Adapter,
+  tracer: OMG.Watcher.Tracer,
+  otp_app: :omg_watcher
+
 import_config "#{Mix.env()}.exs"

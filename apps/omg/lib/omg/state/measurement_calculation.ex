@@ -11,20 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-defmodule OMG.State.Core.Metrics do
+defmodule OMG.State.MeasurementCalculation do
   @moduledoc """
-  Counting business metrics sent to DataDog
+   Calculations based on OMG State that are sent to monitoring service.
   """
-
   alias OMG.Eth.Encoding
   alias OMG.State.Core
 
   def calculate(%Core{utxos: utxos}) do
-    [
-      {"unique_users", unique_users(utxos)}
-      | Enum.map(balance(utxos), fn {currency, amount} -> {"balance_" <> Encoding.to_hex(currency), amount} end)
-    ]
+    balance =
+      Enum.map(
+        balance(utxos),
+        fn {currency, amount} ->
+          {:balance, amount, "currency:#{Encoding.to_hex(currency)}"}
+        end
+      )
+
+    unique_users = {:unique_users, unique_users(utxos)}
+    List.flatten([unique_users, balance])
   end
 
   defp unique_users(utxos) do

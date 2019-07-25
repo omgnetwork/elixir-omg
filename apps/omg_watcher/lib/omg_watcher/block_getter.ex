@@ -34,11 +34,10 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.BlockGetter.Status
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.Recorder
 
   use GenServer
   use OMG.Utils.LoggerExt
-  use OMG.Utils.Metrics
+  use Spandex.Decorators
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -100,7 +99,8 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, _} = __MODULE__.Status.start_link()
     :ok = update_status(state)
 
-    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+    {:ok, _} =
+      :timer.send_interval(Application.fetch_env!(:omg_watcher, :metrics_collection_interval), self(), :send_metrics)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}, synced_height: #{inspect(synced_height)}")
 
@@ -158,7 +158,6 @@ defmodule OMG.Watcher.BlockGetter do
     {:noreply, state}
   end
 
-  @decorate measure_start()
   def handle_cast({:apply_block, %BlockApplication{} = block_application}, state) do
     case Core.chain_ok(state) do
       {:ok, _} ->
@@ -192,7 +191,11 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
   def handle_info(:sync, state), do: do_sync(state)
 
-  @decorate measure_start()
+  def handle_info(:send_metrics, state) do
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+    {:noreply, state}
+  end
+
   defp do_producer(state) do
     with {:ok, _} <- Core.chain_ok(state) do
       new_state = run_block_download_task(state)
@@ -207,7 +210,6 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  @decorate measure_start()
   defp do_downloaded_block(response, state) do
     # 1/ process the block that arrived and consume
 
@@ -223,24 +225,12 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  @decorate measure_start()
   defp do_sync(state) do
     with {:ok, _} <- Core.chain_ok(state),
          %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
 
-      {time, {:ok, submissions}} = :timer.tc(fn -> Eth.RootChain.get_block_submitted_events(block_range) end)
-      time = round(time / 1000)
-
-      _ =
-        if time > Application.fetch_env!(:omg_eth, :ethereum_client_warning_time_ms),
-          do:
-            Logger.warn(
-              "Query to Ethereum client took long: #{inspect(time)} ms " <>
-                "to get #{inspect(length(submissions))} events from range #{inspect(block_range)}"
-            )
-
-      _ = Logger.debug("Submitted #{length(submissions)} plasma blocks on Ethereum block range #{inspect(block_range)}")
+      {:ok, submissions} = get_block_submitted_events(block_range)
 
       {blocks_to_apply, synced_height, db_updates, state} =
         Core.get_blocks_to_apply(state, submissions, next_synced_height)
@@ -268,6 +258,9 @@ defmodule OMG.Watcher.BlockGetter do
         {:noreply, state}
     end
   end
+
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: :block_getter)
+  defp get_block_submitted_events(block_range), do: Eth.RootChain.get_block_submitted_events(block_range)
 
   defp run_block_download_task(state) do
     {:ok, next_child} = Eth.RootChain.get_next_child_block()

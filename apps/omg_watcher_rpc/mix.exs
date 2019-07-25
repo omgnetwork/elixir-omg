@@ -21,7 +21,7 @@ defmodule OMG.WatcherRPC.Mixfile do
   def application do
     [
       mod: {OMG.WatcherRPC.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :telemetry]
     ]
   end
 
@@ -35,7 +35,9 @@ defmodule OMG.WatcherRPC.Mixfile do
       {:plug_cowboy, "~> 1.0"},
       {:deferred_config, "~> 0.1.1"},
       {:cors_plug, "~> 2.0"},
-      {:appsignal, "~> 1.0"},
+      {:spandex_phoenix, "~> 0.4.1"},
+      {:spandex_datadog, "~> 0.4"},
+      {:telemetry, "~> 0.4.0"},
       # UMBRELLA
 
       {:omg_utils, in_umbrella: true},

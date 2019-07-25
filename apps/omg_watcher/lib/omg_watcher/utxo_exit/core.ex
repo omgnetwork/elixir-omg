@@ -21,10 +21,9 @@ defmodule OMG.Watcher.UtxoExit.Core do
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.DB
-  use OMG.Utils.Metrics
+
   require Utxo
 
-  @decorate measure_event()
   @spec compose_output_exit(list(%DB.Transaction{}) | list(Transaction.Signed.tx_bytes()), Utxo.Position.t()) ::
           {:error, :utxo_not_found}
           | {:ok,
@@ -43,7 +42,6 @@ defmodule OMG.Watcher.UtxoExit.Core do
     end
   end
 
-  @decorate measure_event()
   def compose_output_exit(sorted_tx_bytes, Utxo.position(_blknum, txindex, _) = utxo_pos) do
     if signed_tx = Enum.at(sorted_tx_bytes, txindex) do
       {:ok, %Transaction.Signed{sigs: sigs} = tx} = Transaction.Signed.decode(signed_tx)
@@ -60,7 +58,6 @@ defmodule OMG.Watcher.UtxoExit.Core do
     end
   end
 
-  @decorate measure_event()
   @spec get_deposit_utxo({:ok, list({OMG.DB.utxo_pos_db_t(), Transaction.output()})}, Utxo.Position.t()) ::
           nil | Transaction.output()
   def get_deposit_utxo({:ok, utxos}, Utxo.position(blknum, _, _)) do
@@ -70,7 +67,6 @@ defmodule OMG.Watcher.UtxoExit.Core do
     end
   end
 
-  @decorate measure_event()
   @spec compose_deposit_exit(Transaction.output() | any(), Utxo.Position.t()) ::
           {:error, :no_deposit_for_given_blknum}
           | {:ok,
@@ -91,6 +87,5 @@ defmodule OMG.Watcher.UtxoExit.Core do
      }}
   end
 
-  @decorate measure_event()
   def compose_deposit_exit(_, _), do: {:error, :no_deposit_for_given_blknum}
 end

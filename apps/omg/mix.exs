@@ -20,7 +20,7 @@ defmodule OMG.MixProject do
   def application do
     [
       mod: {OMG.Application, []},
-      extra_applications: [:logger, :appsignal, :sentry]
+      extra_applications: [:logger, :sentry, :telemetry]
     ]
   end
 
@@ -33,8 +33,8 @@ defmodule OMG.MixProject do
       {:ex_rlp, "~> 0.5.2"},
       {:merkle_tree, "~> 1.6"},
       {:deferred_config, "~> 0.1.1"},
-      {:appsignal, "~> 1.0"},
       {:phoenix_pubsub, "~> 1.0"},
+      {:telemetry, "~> 0.4.0"},
       # UMBRELLA
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},

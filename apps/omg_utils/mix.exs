@@ -12,7 +12,7 @@ defmodule Utils.MixProject do
       elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps(),
+      deps: [],
       test_coverage: [tool: ExCoveralls]
     ]
   end
@@ -24,14 +24,4 @@ defmodule Utils.MixProject do
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:prod), do: ["lib"]
   defp elixirc_paths(_), do: ["lib", "test/support"]
-
-  defp deps do
-    [
-      {:appsignal, "~> 1.9"},
-      {:statix, "~> 1.1"},
-      {:spandex, "~> 2.4"},
-      {:spandex_datadog, "~> 0.4"},
-      {:decorator, "~> 1.2"}
-    ]
-  end
 end

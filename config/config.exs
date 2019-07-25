@@ -16,7 +16,7 @@ config :logger, level: :info
 config :logger, :console,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
   discard_threshold: 2000,
-  metadata: [:module, :function, :request_id]
+  metadata: [:module, :function, :request_id, :trace_id, :span_id]
 
 config :logger,
   backends: [:console]
@@ -31,19 +31,5 @@ config :sentry,
     eth_network: System.get_env("ETHEREUM_NETWORK"),
     eth_node: System.get_env("ETH_NODE")
   }
-
-config :statix,
-  host: {:system, "DD_HOSTNAME", "localhost"},
-  port: {:system, "DD_PORT", 8125, {String, :to_integer}}
-
-config :vmstats,
-  sink: OMG.VmstatsSink,
-  interval: 3000
-
-# Configs for AppSignal application monitoring
-config :appsignal, :config,
-  name: "OmiseGO Plasma MoreVP Implementation",
-  env: Mix.env(),
-  active: true
 
 import_config "#{Mix.env()}.exs"

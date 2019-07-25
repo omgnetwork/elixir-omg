@@ -24,7 +24,7 @@ defmodule OMG.ChildChainRPC.MixProject do
   def application do
     [
       mod: {OMG.ChildChainRPC.Application, []},
-      extra_applications: [:logger, :runtime_tools, :sasl]
+      extra_applications: [:logger, :runtime_tools, :sasl, :telemetry]
     ]
   end
 
@@ -41,8 +41,10 @@ defmodule OMG.ChildChainRPC.MixProject do
       {:plug_cowboy, "~> 1.0"},
       {:deferred_config, "~> 0.1.1"},
       {:httpoison, "~> 1.4.0"},
-      {:appsignal, "~> 1.0"},
       {:cors_plug, "~> 2.0"},
+      {:spandex_phoenix, "~> 0.4.1"},
+      {:spandex_datadog, "~> 0.4"},
+      {:telemetry, "~> 0.4.0"},
       #
       {:omg_status, in_umbrella: true},
       {:omg_utils, in_umbrella: true}

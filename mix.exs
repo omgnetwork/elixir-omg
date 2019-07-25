@@ -50,16 +50,9 @@ defmodule OMG.Umbrella.MixProject do
         git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
       },
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
-      {:statix, "~> 1.1"},
-      {:appsignal, "~> 1.9"},
-      {:sentry, "~> 7.0"},
-      {:spandex, "~> 2.4"},
-      {:spandex_datadog, "~> 0.4"},
-      {:decorator, "~> 1.2"},
-      {:libsecp256k1,
-       git: "https://github.com/InoMurko/libsecp256k1.git",
-       ref: "83d4c91b7b5ad79fdd3c020be8c57ff6e2212780",
-       override: true}
+      {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
+      {:spandex, "~> 2.4",
+       git: "https://github.com/omisego/spandex.git", branch: "fix_dialyzer_in_macro", override: true}
     ]
   end
 
@@ -101,7 +94,6 @@ defmodule OMG.Umbrella.MixProject do
       :proper,
       :ranch,
       :sentry,
-      :vmstats,
-      :statix
+      :vmstats
     ]
 end

@@ -17,12 +17,11 @@ defmodule OMG.RootChainCoordinator do
   """
 
   alias OMG.EthereumHeight
-  alias OMG.Recorder
   alias OMG.RootChainCoordinator.Core
 
   use GenServer
   use OMG.Utils.LoggerExt
-  use OMG.Utils.Metrics
+  use Spandex.Decorators
 
   defmodule SyncGuide do
     @moduledoc """
@@ -49,7 +48,7 @@ defmodule OMG.RootChainCoordinator do
   Notifies that calling service with name `service_name` is synced up to height `synced_height`.
   `synced_height` is the height that the service is synced when calling this function.
   """
-  @decorate measure_event()
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "check_in/2")
   @spec check_in(non_neg_integer(), atom()) :: :ok
   def check_in(synced_height, service_name) do
     GenServer.call(__MODULE__, {:check_in, synced_height, service_name})
@@ -58,7 +57,7 @@ defmodule OMG.RootChainCoordinator do
   @doc """
   Gets Ethereum height that services can synchronize up to.
   """
-  @decorate measure_event()
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "get_sync_info/0")
   @spec get_sync_info() :: SyncGuide.t() | :nosync
   def get_sync_info do
     GenServer.call(__MODULE__, :get_sync_info)
@@ -67,7 +66,6 @@ defmodule OMG.RootChainCoordinator do
   @doc """
   Gets all the current synced height for all the services checked in
   """
-  @decorate measure_event()
   @spec get_ethereum_heights() :: {:ok, Core.ethereum_heights_result_t()}
   def get_ethereum_heights do
     GenServer.call(__MODULE__, :get_ethereum_heights)
@@ -88,8 +86,26 @@ defmodule OMG.RootChainCoordinator do
     |> Map.keys()
     |> request_sync()
 
-    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
 
+    _ = Logger.info("Started #{inspect(__MODULE__)}")
+
+    {:noreply, state}
+  end
+
+  def handle_info(:send_metrics, state) do
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+    {:noreply, state}
+  end
+
+  def handle_info(:update_root_chain_height, state) do
+    {:ok, root_chain_height} = OMG.EthereumHeight.get()
+    {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
+    {:noreply, state}
+  end
+
+  def handle_info({:DOWN, _ref, :process, pid, _}, state) do
+    {:ok, state} = Core.check_out(state, pid)
     {:noreply, state}
   end
 
@@ -106,17 +122,6 @@ defmodule OMG.RootChainCoordinator do
 
   def handle_call(:get_ethereum_heights, _from, state) do
     {:reply, {:ok, Core.get_ethereum_heights(state)}, state}
-  end
-
-  def handle_info(:update_root_chain_height, state) do
-    {:ok, root_chain_height} = OMG.EthereumHeight.get()
-    {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
-    {:noreply, state}
-  end
-
-  def handle_info({:DOWN, _ref, :process, pid, _}, state) do
-    {:ok, state} = Core.check_out(state, pid)
-    {:noreply, state}
   end
 
   defp schedule_get_ethereum_height(interval) do

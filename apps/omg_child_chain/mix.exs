@@ -19,8 +19,8 @@ defmodule OMG.ChildChain.MixProject do
 
   def application do
     [
-      extra_applications: [:logger, :appsignal],
-      start_phases: [{:boot_done, []}],
+      extra_applications: [:logger, :telemetry],
+      start_phases: [{:boot_done, []}, {:attach_telemetry, []}],
       mod: {OMG.ChildChain.Application, []}
     ]
   end
@@ -33,7 +33,7 @@ defmodule OMG.ChildChain.MixProject do
     [
       {:ex_rlp, "~> 0.5.2"},
       {:deferred_config, "~> 0.1.1"},
-      {:appsignal, "~> 1.0"},
+      {:telemetry, "~> 0.4.0"},
       #
       {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},

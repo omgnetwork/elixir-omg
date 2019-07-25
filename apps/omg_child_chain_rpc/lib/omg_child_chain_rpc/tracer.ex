@@ -12,18 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Application do
+defmodule OMG.ChildChainRPC.Tracer do
   @moduledoc """
-  The application here is the Child chain server and its API.
-  See here (children) for the processes that compose into the Child Chain server.
+  Trace Phoenix requests and reports information to Datadog via Spandex
   """
 
-  use Application
-  alias OMG.Alert.AlarmHandler
-
-  def start(_type, _args) do
-    :ok = AlarmHandler.install()
-
-    OMG.Supervisor.start_link()
-  end
+  use Spandex.Tracer, otp_app: :omg_child_chain_rpc
 end
