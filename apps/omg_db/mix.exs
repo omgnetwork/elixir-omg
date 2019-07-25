@@ -31,7 +31,7 @@ defmodule OMG.DB.MixProject do
 
   defp deps do
     [
-      # {:rocksdb, "~> 1.2"},
+      {:rocksdb, "~> 1.2"},
       {:exleveldb, "~> 0.11"},
       # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see

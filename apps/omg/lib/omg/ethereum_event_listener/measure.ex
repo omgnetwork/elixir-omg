@@ -46,5 +46,4 @@ defmodule OMG.EthereumEventListener.Measure do
   def handle_event([:trace, _], %{}, state, _config) do
     Tracer.update_top_span(service: state.service_name, tags: [])
   end
-
 end
