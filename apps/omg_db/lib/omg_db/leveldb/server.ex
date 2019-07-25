@@ -18,7 +18,6 @@ defmodule OMG.DB.LevelDB.Server do
   """
 
   # All complex operations on data written/read should go into OMG.DB.LevelDB.Core
-  use Spandex.Decorators
   use GenServer
 
   alias OMG.DB.LevelDB.Core

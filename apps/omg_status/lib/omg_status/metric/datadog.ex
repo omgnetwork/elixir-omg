@@ -15,7 +15,6 @@
 defmodule OMG.Status.Metric.Datadog do
   @moduledoc """
   Datadog connection wrapper
-
   """
 
   # we want to override Statix in :test

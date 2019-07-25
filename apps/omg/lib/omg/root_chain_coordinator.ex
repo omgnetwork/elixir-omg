@@ -66,7 +66,6 @@ defmodule OMG.RootChainCoordinator do
   @doc """
   Gets all the current synced height for all the services checked in
   """
-
   @spec get_ethereum_heights() :: {:ok, Core.ethereum_heights_result_t()}
   def get_ethereum_heights do
     GenServer.call(__MODULE__, :get_ethereum_heights)

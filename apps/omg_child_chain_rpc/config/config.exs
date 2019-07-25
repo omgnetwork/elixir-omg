@@ -23,7 +23,7 @@ config :phoenix,
   persistent: true
 
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
-  service: :omg_child_chain_rpc,
+  service: :web,
   adapter: SpandexDatadog.Adapter,
   disabled?: {:system, "METRICS", false},
   env: {:system, "APP_ENV"},

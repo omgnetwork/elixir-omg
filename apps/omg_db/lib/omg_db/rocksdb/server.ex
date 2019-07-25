@@ -20,7 +20,6 @@ if Code.ensure_loaded?(:rocksdb) do
     # All complex operations on data written/read should go into OMG.DB.RocksDB.Core
 
     use GenServer
-    use Spandex.Decorators
 
     alias OMG.DB.RocksDB.Core
     require Logger

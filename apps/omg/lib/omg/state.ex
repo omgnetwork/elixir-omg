@@ -27,7 +27,7 @@ defmodule OMG.State do
   alias OMG.Utxo
 
   use GenServer
-  use Spandex.Decorators
+
   use OMG.Utils.LoggerExt
 
   @type exec_error :: Validator.exec_error()
@@ -201,7 +201,6 @@ defmodule OMG.State do
 
   Does its on persistence!
   """
-
   def handle_cast(:form_block, state) do
     _ = Logger.debug("Forming new block...")
     {:ok, {%Block{number: blknum} = block, event_triggers, db_updates}, new_state} = do_form_block(state)

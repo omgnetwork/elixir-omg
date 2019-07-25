@@ -18,7 +18,7 @@ defmodule OMG.ChildChain.FreshBlocks do
   """
 
   use OMG.Utils.LoggerExt
-  use Spandex.Decorators
+
   alias OMG.Block
   alias OMG.ChildChain.FreshBlocks.Core
   alias OMG.DB

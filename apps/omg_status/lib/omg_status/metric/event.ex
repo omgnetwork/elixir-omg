@@ -14,21 +14,21 @@
 
 defmodule OMG.Status.Metric.Event do
   @services [
-    :depositor,
-    :in_flight_exit,
-    :piggyback,
-    :exiter,
-    :convenience_deposit_processor,
-    :exit_processor,
-    :convenience_exit_processor,
-    :exit_finalizer,
-    :exit_challenger,
-    :in_flight_exit_processor,
-    :piggyback_processor,
-    :competitor_processor,
     :challenges_responds_processor,
+    :competitor_processor,
+    :convenience_deposit_processor,
+    :convenience_exit_processor,
+    :depositor,
+    :exit_challenger,
+    :exit_finalizer,
+    :exit_processor,
+    :exiter,
+    :ife_exit_finalizer,
+    :in_flight_exit,
+    :in_flight_exit_processor,
+    :piggyback,
     :piggyback_challenges_processor,
-    :ife_exit_finalizer
+    :piggyback_processor
   ]
   @moduledoc """
     A centralised repository of all emitted event types with description.

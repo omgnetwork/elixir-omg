@@ -127,13 +127,7 @@ defmodule OMG.EthereumEventListener do
 
   @decorate span(service: :ethereum_event_listener, type: :backend, name: "maybe_update_event_cache/2")
   defp maybe_update_event_cache({:get_events, {from, to}, state_with_cache}, get_ethereum_events_callback) do
-    {time, {:ok, new_events}} = :timer.tc(fn -> get_ethereum_events_callback.(from, to) end)
-    time = round(time / 1000)
-    # TODO can we deprecate these logs?
-    _ =
-      if time > Application.fetch_env!(:omg_eth, :ethereum_client_warning_time_ms),
-        do: Logger.warn("Query to Ethereum client took long: #{inspect(time)} ms")
-
+    {:ok, new_events} = get_ethereum_events_callback.(from, to)
     Core.add_new_events(state_with_cache, new_events)
   end
 

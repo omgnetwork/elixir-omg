@@ -17,7 +17,6 @@ defmodule OMG.Watcher.DB.TxOutput do
   Ecto schema for transaction's output or input
   """
   use Ecto.Schema
-  use Spandex.Decorators
 
   alias OMG.State.Transaction
   alias OMG.Utxo

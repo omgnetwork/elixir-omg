@@ -24,8 +24,6 @@ defmodule OMG.Watcher.API.Status do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
-  use Spandex.Decorators
-
   @opaque t() :: %{
             last_validated_child_block_number: non_neg_integer(),
             last_validated_child_block_timestamp: non_neg_integer(),

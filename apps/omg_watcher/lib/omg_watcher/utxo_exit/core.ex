@@ -21,7 +21,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.DB
-  use Spandex.Decorators
+
   require Utxo
 
   @spec compose_output_exit(list(%DB.Transaction{}) | list(Transaction.Signed.tx_bytes()), Utxo.Position.t()) ::

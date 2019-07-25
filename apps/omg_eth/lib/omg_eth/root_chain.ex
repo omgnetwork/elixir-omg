@@ -20,7 +20,6 @@ defmodule OMG.Eth.RootChain do
   """
 
   alias OMG.Eth
-  use Spandex.Decorators
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
@@ -160,7 +159,6 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &Eth.parse_event(&1, {signature, [:blknum]}))}
   end
 
-  # NOT USED
   @doc """
   Returns finalizations of exits from a range of blocks from Ethereum logs.
   """
@@ -172,9 +170,9 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_finalized/1)}
   end
 
-  # NOT USED
   @doc """
   Returns challenges of exits from a range of blocks from Ethereum logs.
+  Used as a callback function in EthereumEventListener.
   """
   def get_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -184,9 +182,9 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_challenged/1)}
   end
 
-  # NOT USED
   @doc """
-    Returns challenges of in flight exits from a range of blocks from Ethereum logs.
+  Returns challenges of in flight exits from a range of blocks from Ethereum logs.
+  Used as a callback function in EthereumEventListener.
   """
   def get_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -222,9 +220,9 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
-  # NOT USED
   @doc """
-    Returns responds to challenges of in flight exits from a range of blocks from Ethereum logs.
+  Returns responds to challenges of in flight exits from a range of blocks from Ethereum logs.
+  Used as a callback function in EthereumEventListener.
   """
   def get_responds_to_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -234,9 +232,9 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_in_flight_exit_challenge_responded/1)}
   end
 
-  # NOT USED
   @doc """
-    Returns challenges of piggybacks from a range of block from Ethereum logs.
+  Returns challenges of piggybacks from a range of block from Ethereum logs.
+  Used as a callback function in EthereumEventListener.
   """
   def get_piggybacks_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -246,9 +244,9 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_piggyback_challenged/1)}
   end
 
-  # NOT USED
   @doc """
-    Returns finalizations of in flight exits from a range of blocks from Ethereum logs.
+  Returns finalizations of in flight exits from a range of blocks from Ethereum logs.
+  Used as a callback function in EthereumEventListener.
   """
   def get_in_flight_exit_finalizations(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))

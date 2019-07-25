@@ -20,7 +20,6 @@ defmodule OMG.Watcher.API.Utxo do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.UtxoExit.Core
 
-  use Spandex.Decorators
   require Utxo
   import Utxo, only: [is_deposit: 1]
 
@@ -34,7 +33,6 @@ defmodule OMG.Watcher.API.Utxo do
   @doc """
   Returns a proof that utxo was spent
   """
-
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, ExitProcessor.StandardExit.Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
   def create_challenge(utxo) do

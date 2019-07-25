@@ -32,7 +32,7 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   connect_timeout: 60_000
 
 config :omg_watcher, OMG.Watcher.Tracer,
-  service: :ecto,
+  service: :db,
   adapter: SpandexDatadog.Adapter,
   disabled?: {:system, "METRICS", false},
   env: {:system, "APP_ENV"},

@@ -14,7 +14,7 @@
 
 defmodule OMG.EthereumEventListener.Measure do
   @moduledoc """
-  Counting business metrics sent to DataDog
+  Counting business metrics sent to Datadog
   """
 
   import OMG.Status.Metric.Event, only: [name: 2]
@@ -44,26 +44,7 @@ defmodule OMG.EthereumEventListener.Measure do
   end
 
   def handle_event([:trace, _], %{}, state, _config) do
-    # TODO change to compiler flags once we're running releases
-    is_child_chain =
-      Enum.any?(Application.started_applications(), fn
-        {:omg_child_chain, _, _} -> true
-        {_, _version, _desc} -> false
-      end)
-
-    if is_child_chain do
-      service = service(:child_chain, state.service_name)
-      Tracer.update_top_span(service: service, tags: [])
-    else
-      service = service(:watcher, state.service_name)
-      Tracer.update_top_span(service: service, tags: [])
-    end
+    Tracer.update_top_span(service: state.service_name, tags: [])
   end
 
-  defp service(app, service_name) do
-    :erlang.binary_to_atom(
-      <<:erlang.atom_to_binary(app, :utf8)::binary, "_", :erlang.atom_to_binary(service_name, :utf8)::binary>>,
-      :utf8
-    )
-  end
 end

@@ -39,7 +39,7 @@ defmodule OMG.ChildChain.BlockQueue do
 
     use GenServer
     use OMG.Utils.LoggerExt
-    use Spandex.Decorators
+
     alias OMG.Eth
     alias OMG.Eth.Encoding
     alias OMG.EthereumHeight

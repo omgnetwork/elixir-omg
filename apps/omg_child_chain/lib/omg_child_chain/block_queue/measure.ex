@@ -14,7 +14,7 @@
 
 defmodule OMG.ChildChain.BlockQueue.Measure do
   @moduledoc """
-  Counting business metrics sent to DataDog
+  Counting business metrics sent to Datadog
   """
   alias OMG.Status.Metric.Datadog
   import OMG.Status.Metric.Event, only: [name: 2]

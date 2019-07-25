@@ -14,7 +14,7 @@
 
 defmodule OMG.State.Measure do
   @moduledoc """
-  Counting business metrics sent to DataDog
+  Counting business metrics sent to Datadog
   """
 
   import OMG.Status.Metric.Event, only: [name: 1]

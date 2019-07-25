@@ -230,18 +230,7 @@ defmodule OMG.Watcher.BlockGetter do
          %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
 
-      {time, {:ok, submissions}} = :timer.tc(fn -> Eth.RootChain.get_block_submitted_events(block_range) end)
-      time = round(time / 1000)
-      # TODO remove logging like that?
-      _ =
-        if time > Application.fetch_env!(:omg_eth, :ethereum_client_warning_time_ms),
-          do:
-            Logger.warn(
-              "Query to Ethereum client took long: #{inspect(time)} ms " <>
-                "to get #{inspect(length(submissions))} events from range #{inspect(block_range)}"
-            )
-
-      _ = Logger.debug("Submitted #{length(submissions)} plasma blocks on Ethereum block range #{inspect(block_range)}")
+      {:ok, submissions} = get_block_submitted_events(block_range)
 
       {blocks_to_apply, synced_height, db_updates, state} =
         Core.get_blocks_to_apply(state, submissions, next_synced_height)
@@ -269,6 +258,9 @@ defmodule OMG.Watcher.BlockGetter do
         {:noreply, state}
     end
   end
+
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: :block_getter)
+  defp get_block_submitted_events(block_range), do: Eth.RootChain.get_block_submitted_events(block_range)
 
   defp run_block_download_task(state) do
     {:ok, next_child} = Eth.RootChain.get_next_child_block()

@@ -13,7 +13,7 @@ config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
   enable_cors: true
 
 config :omg_watcher_rpc, OMG.WatcherRPC.Tracer,
-  service: :omg_watcher_rpc,
+  service: :web,
   adapter: SpandexDatadog.Adapter,
   disabled?: {:system, "METRICS", false},
   env: {:system, "APP_ENV"},

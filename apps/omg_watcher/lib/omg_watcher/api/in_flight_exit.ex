@@ -22,7 +22,6 @@ defmodule OMG.Watcher.API.InFlightExit do
   alias OMG.Watcher.API
   alias OMG.Watcher.ExitProcessor
 
-  use Spandex.Decorators
   require Utxo
 
   @type in_flight_exit() :: %{

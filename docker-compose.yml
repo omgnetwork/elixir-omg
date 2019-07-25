@@ -61,7 +61,7 @@ services:
       - CHILD_CHAIN_URL=http://childchain:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ERL_CC_COOKIE=develop
-      - APP_ENV=dev-childchain-ino7
+      - APP_ENV=local_development_child_chain
       - DD_HOSTNAME=datadog
     restart: always
     ports:
@@ -92,7 +92,7 @@ services:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - ERL_W_COOKIE=develop
-      - APP_ENV=dev-watcher-ino7
+      - APP_ENV=local_development_watcher
       - DD_HOSTNAME=datadog
     restart: always
     ports:

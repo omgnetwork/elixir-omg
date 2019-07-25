@@ -30,7 +30,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.StandardExit
-  use Spandex.Decorators
+
   use OMG.Utils.LoggerExt
   require Utxo
 
