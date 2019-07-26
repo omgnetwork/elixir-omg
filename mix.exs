@@ -1,8 +1,6 @@
 defmodule OMG.Umbrella.MixProject do
   use Mix.Project
 
-  def umbrella_version, do: "#{String.trim(File.read!("VERSION"))}"
-
   def project do
     [
       # name the ap for the sake of `mix coveralls --umbrella`
