@@ -42,12 +42,12 @@ defmodule OMG.DB.Measure do
       |> Process.info(:message_queue_len)
       |> elem(1)
 
-    :ok = Datadog.gauge(name(:db_message_queue_len), value, tags: ["service_name:#{service_name}"])
+    _ = Datadog.gauge(name(:db_message_queue_len), value, tags: ["service_name:#{service_name}"])
 
     Enum.each(@keys, fn table_key ->
       case :ets.take(state.name, table_key) do
         [{key, value}] ->
-          :ok = Datadog.gauge(name(key), value)
+          _ = Datadog.gauge(name(key), value)
 
         _ ->
           # handling the case where the entry doesn't exist yet

@@ -27,7 +27,7 @@ defmodule OMG.Status.Metric.Datadog do
   use GenServer
   require Logger
 
-  def start(), do: GenServer.start(__MODULE__, [], [])
+  def start, do: GenServer.start(__MODULE__, [], [])
 
   def init(_opts) do
     _ = Logger.info("Starting #{inspect(__MODULE__)} and connecting to Datadog.")
@@ -37,7 +37,7 @@ defmodule OMG.Status.Metric.Datadog do
   end
 
   def handle_info({:EXIT, port, reason}, %Statix.Conn{sock: __MODULE__} = state) do
-    Logger.error("Port in #{inspect(__MODULE__)} #{inspect(port)} exited with reason #{reason}")
+    _ = Logger.error("Port in #{inspect(__MODULE__)} #{inspect(port)} exited with reason #{reason}")
     {:stop, :normal, state}
   end
 end

@@ -17,8 +17,8 @@ defmodule OMG.Status.Application do
   Top level application module.
   """
   use Application
-  alias OMG.Status.Alert.AlarmHandler
   alias OMG.Status.Alert.Alarm
+  alias OMG.Status.Alert.AlarmHandler
   alias OMG.Status.Metric.Datadog
   alias OMG.Status.Metric.VmstatsSink
 
@@ -32,7 +32,8 @@ defmodule OMG.Status.Application do
 
     children =
       if datadog do
-        []
+        # spandex datadog api server is able to flush when disabled?: true
+        [{SpandexDatadog.ApiServer, spandex_datadog_options()}]
       else
         [
           {OMG.Status.Metric.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
@@ -60,7 +61,7 @@ defmodule OMG.Status.Application do
     end
   end
 
-  @spec is_disabled?() :: boolean() | nil
+  @spec is_disabled?() :: boolean()
   defp is_disabled?() do
     case System.get_env("DD_DISABLED") do
       "false" -> false

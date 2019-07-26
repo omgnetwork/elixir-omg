@@ -35,7 +35,7 @@ defmodule OMG.Status.Metric.Statix do
 
       def set(key, val, options \\ []), do: :ok
 
-      def current_conn(), do: %Statix.Conn{sock: __MODULE__}
+      def current_conn, do: %Statix.Conn{sock: __MODULE__}
     end
   end
 end

@@ -28,8 +28,8 @@ defmodule OMG.State.Measure do
 
   def handle_event([:process, OMG.State], _, %Core{} = state, _config) do
     Enum.each(MeasurementCalculation.calculate(state), fn
-      {key, value} -> :ok = Datadog.gauge(name(key), value)
-      {key, value, metadata} -> :ok = Datadog.gauge(name(key), value, tags: [metadata])
+      {key, value} -> _ = Datadog.gauge(name(key), value)
+      {key, value, metadata} -> _ = Datadog.gauge(name(key), value, tags: [metadata])
     end)
   end
 end

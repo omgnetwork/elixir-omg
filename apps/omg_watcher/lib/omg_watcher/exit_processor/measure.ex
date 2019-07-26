@@ -26,6 +26,6 @@ defmodule OMG.Watcher.ExitProcessor.Measure do
       |> Process.info(:message_queue_len)
       |> elem(1)
 
-    :ok = Datadog.gauge(name(:watcher_exit_processor_message_queue_len), value)
+    _ = Datadog.gauge(name(:watcher_exit_processor_message_queue_len), value)
   end
 end

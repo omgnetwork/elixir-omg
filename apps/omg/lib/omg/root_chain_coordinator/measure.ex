@@ -26,6 +26,6 @@ defmodule OMG.RootChainCoordinator.Measure do
       |> Process.info(:message_queue_len)
       |> elem(1)
 
-    :ok = Datadog.gauge(name(state.service_name, :message_queue_len), value)
+    _ = Datadog.gauge(name(state.service_name, :message_queue_len), value)
   end
 end
