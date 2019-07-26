@@ -113,14 +113,14 @@ docker-watcher-prod:
 
 docker-child_chain-build-prod:
 	docker build -f Dockerfile.child_chain \
-		--build-arg release_version=$$(awk '/umbrella_version, do: "/ { gsub(/"/, ""); print $$4 }' $(PWD)/mix.exs) \
+		--build-arg release_version=$$(cat $(PWD)/VERSION) \
 		--cache-from $(CHILD_CHAIN_IMAGE_NAME) \
 		-t $(CHILD_CHAIN_IMAGE_NAME) \
 		.
 
 docker-watcher-build-prod:
 	docker build -f Dockerfile.watcher \
-		--build-arg release_version=$$(awk '/umbrella_version, do: "/ { gsub(/"/, ""); print $$4 }' $(PWD)/mix.exs) \
+		--build-arg release_version=$$(cat $(PWD)/VERSION) \
 		--cache-from $(WATCHER_IMAGE_NAME) \
 		-t $(WATCHER_IMAGE_NAME) \
 		.
