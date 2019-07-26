@@ -57,16 +57,16 @@ check-dialyzer:
 
 
 build-child_chain-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, release --name child_chain --verbose
+	$(ENV_PROD) mix do compile, distillery.release --name child_chain --verbose
 
 build-child_chain-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, release dev --name child_chain --verbose
+	$(ENV_DEV) mix do compile, distillery.release dev --name child_chain --verbose
 
 build-watcher-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, release --name watcher --verbose
+	$(ENV_PROD) mix do compile, distillery.release --name watcher --verbose
 
 build-watcher-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, release dev --name watcher --verbose
+	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --verbose
 
 build-test: deps-elixir-omg
 	$(ENV_TEST) mix compile

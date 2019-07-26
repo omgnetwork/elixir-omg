@@ -16,7 +16,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   @moduledoc """
   Gets the DB path from environment and perstists it to configuration.
   """
-  use Mix.Releases.Config.Provider
+  use Distillery.Releases.Config.Provider
 
   @impl Provider
   def init(_args) do

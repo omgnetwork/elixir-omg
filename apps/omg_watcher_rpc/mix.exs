@@ -4,7 +4,7 @@ defmodule OMG.WatcherRPC.Mixfile do
   def project do
     [
       app: :omg_watcher_rpc,
-      version: OMG.Umbrella.MixProject.umbrella_version(),
+      version: "#{String.trim(File.read!("../../VERSION"))}",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
