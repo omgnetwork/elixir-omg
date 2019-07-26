@@ -60,7 +60,7 @@ defmodule OMG.EthereumClientMonitor do
     state = %__MODULE__{
       alarm_module: alarm_module,
       ethereum_height: ethereum_height,
-      ws_url: Keyword.get(opts, :ws_url)
+      ws_url: Keyword.get(opts, :ws_url, Application.get_env(:omg, :ws_url))
     }
 
     _ = raise_clear(alarm_module, state.raised, ethereum_height)
