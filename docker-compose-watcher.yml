@@ -28,6 +28,8 @@ services:
       - RINKEBY_AUTHORITY_ADDRESS=0x41863dafbdf8cfc2a33fc38c0b525b6343d857b3
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - NODE_HOST=127.0.0.1
+      - DD_DISABLED=true
+      - APP_ENV=localwatcher
     ports:
       - "7434:7434"
     healthcheck:

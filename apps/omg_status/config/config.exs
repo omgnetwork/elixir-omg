@@ -1,12 +1,12 @@
 use Mix.Config
 
 config :omg_status,
-  metrics: {:system, "METRICS", true}
+  client_monitor_interval_ms: 10_000
 
 config :omg_status, OMG.Status.Metric.Tracer,
   service: :omg_status,
   adapter: SpandexDatadog.Adapter,
-  disabled?: {:system, "METRICS", false},
+  disabled?: {:system, "DD_DISABLED", false, {String, :to_existing_atom}},
   env: {:system, "APP_ENV"},
   type: :backend
 

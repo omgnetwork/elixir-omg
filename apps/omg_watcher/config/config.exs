@@ -34,7 +34,7 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
 config :omg_watcher, OMG.Watcher.Tracer,
   service: :db,
   adapter: SpandexDatadog.Adapter,
-  disabled?: {:system, "METRICS", false},
+  disabled?: {:system, "DD_DISABLED", false, {String, :to_existing_atom}},
   env: {:system, "APP_ENV"},
   type: :db
 
