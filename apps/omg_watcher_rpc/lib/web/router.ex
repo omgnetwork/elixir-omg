@@ -43,6 +43,7 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/utxo.get_challenge_data", Controller.Challenge, :get_utxo_challenge)
 
     post("/status.get", Controller.Status, :get_status)
+    post("/alarm.get", Controller.Alarm, :get_alarms)
 
     # NOTE: This *has to* be the last route, catching all unhandled paths
     match(:*, "/*path", Controller.Fallback, Route.NotFound)
