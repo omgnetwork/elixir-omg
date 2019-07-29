@@ -95,6 +95,19 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
              )
   end
 
+  test "sanitize alarm types" do
+    system_alarm = {:system_memory_high_watermark, []}
+    system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
+    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
+
+    assert %{disk_almost_full: "/dev/null"} == Response.sanitize(system_disk_alarm)
+
+    assert %{ethereum_client_connection: %{node: Node.self(), reporter: __MODULE__}} ==
+             Response.sanitize(app_alarm)
+
+    assert %{system_memory_high_watermark: []} == Response.sanitize(system_alarm)
+  end
+
   test "skiping sanitize for specified keys" do
     # simplified EIP-712 structures serialization where
     # `types` should be skip entirely

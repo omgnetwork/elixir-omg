@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.API.AlarmTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias OMG.Watcher.API.Alarm
 
