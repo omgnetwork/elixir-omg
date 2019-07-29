@@ -37,6 +37,7 @@ Indicates that an invalid exit is occurring. It should be challenged.
 ```
 
 Indicates that an invalid exit is dangerously close to finalization and hasn't been challenged. User should exit.
+See docs on [`unchallenged_exit` condition](../exit_validation.md#unchallenged-exit-condition) for more details.
 
 
 #### `invalid_block`
@@ -84,7 +85,6 @@ The ChildChain is withholding a block whose hash has been published on the root 
 ```
 
 An in-flight exit of a non-canonical transaction has been started. It should be challenged.
-<aside class="warning"> Not Implemented Yet.</aside>
 
 Event details:
 
@@ -105,7 +105,6 @@ txbytes | Hex encoded string | The in-flight transaction that the event relates 
 ```
 
 A canonical in-flight exit has been challenged. The challenge should be responded to.
-<aside class="warning"> Not Implemented Yet.</aside>
 
 Event details:
 
@@ -160,7 +159,6 @@ available_inputs | Object array | The inputs (index and address) available to be
 ```
 
 An invalid piggyback is in process. Should be challenged.
-<aside class="warning"> Not Implemented Yet.</aside>
 
 Event details:
 

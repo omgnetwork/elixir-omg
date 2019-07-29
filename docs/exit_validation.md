@@ -4,15 +4,14 @@ This document describes the exit validation (processing) done by the Watcher in 
 **NOTE** not all of this is implemented yet.
 
 NOTE:
-* `exit_finality_margin` margin exit processor (in Ethereum blocks)
-* `SLA` Service Level Agreement
-* `sla_margin` margin of service level agreement validation (in Ethereum blocks). This is a number of blocks prior to finalization, indicating a period of time that can affect the validity of an exit.
+* `exit_finality_margin` - margin of the exit processor (in Ethereum blocks) - how many blocks to wait for finality of exit-related events
+* `SLA` - Service Level Agreement - how fast will the child chain recognize exits and block spending of exiting utxos
+* `sla_margin` - margin of service level agreement validation (in Ethereum blocks).
+This is a number of blocks prior to `scheduled finalization time`, indicating a period of time when a child chain still might include a transaction invalidating a valid exit.
 
 ## Notes on the Child Chain Server
 
-This document focuses on the Watcher.
-
-For completeness we give a quick run-down of the rules followed by the Child Chain Server, in terms of processing exits sent on the root chain contract.
+This document focuses on the Watcher, but for completeness we give a quick run-down of the rules followed by the Child Chain Server, in terms of processing exits sent on the root chain contract.
 
 1. The Child Chain operator's objective is to pro-actively minimize the risk of chain becoming invalid.
 The Child Chain will become invalid if any invalid exit gets finalized.
@@ -51,6 +50,8 @@ This is acceptable as long as the delay doesn't exceed `scheduled finalization t
 
 Conditions 3 and 4 can be represented jointly, by **continuous** (every child block) validation of the exits.
 If any exit is invalid and its finalization is near, then actions listed under 3 and 4 should take place.
+Let's call this joint representation of 3 and 4 `unchallenged_exit`.
+More on this in the [`unchallenged_exit` condition](#unchallenged-exit-condition) section.
 
 All that takes as an assumption that:
   - the user's funds must be safe even if the user only syncs and validates the chain periodically (but not less frequently than required)
@@ -78,6 +79,35 @@ Causes an `:invalid_finalization` event.
 This prevents spurious event raising during syncing.
 6. Checking the validation of exits is user responsibility by calling `/status.get` endpoint.
 
+### `unchallenged_exit` condition
+
+This section treats this particular condition in-depth and explains the rationale.
+
+To reiterate, `unchallenged_exit` is raised and reported in the `byzantine_events` in `/status.get`'s response, whenever there is _any_ exit, which is invalid and old.
+"Old" means that its respective challenge required is approaching deadline, but can also be seen that it just has been unchallenged for an unreasonable amount of time.
+
+The action to take, when such condition is detected is to _exit all utxos_ held on the child chain.
+The rationale is that we suspect that the chain is imminent to become invalid, because some funds that shouldn't be exiting are being allowed to exit.
+We do not wait until it's "too late" and report _post factum_ - if we did, our mass exit could end up having too low a priority.
+
+Another thing to explain here is that the Watcher will **stop getting new child chain blocks** whenever it finds itself in an `unchallenged_exit` condition.
+This stopping behavior is similar to as when an `invalid_block` condition is detected.
+The reason for this is to:
+ - prevent the user from accepting a possibly botched state of the system (e.g. accepting funds that won't be exitable)
+ - make the byzantine report loud and make the warning logged more visible
+ - prevent a possible corruption of the internal state (this is more of an implementation detail, but worth to keep in mind), which could result if the exit finalized.
+
+In short, if at any point when watcher realizes it's in the "unsafe world" it stops processing blocks.
+
+An important thing to remember though, is that challenges keep on processing.
+In particular, the root cause of the `unchallenged_exit` condition, **might be gone** at one point, because the invalid exit got challenged.
+**In particular, it won't show up in the `byzantine_events` list, when queried from `/status.get`!**.
+However, by design, the Watcher won't resume getting new blocks without a manual restart; the process of "coming back to validity" is not supported.
+This behavior is driven by the notion that if things go this bad, it's game over, so yanking the watcher back into "safe world" automatically hasn't been considered,
+for simplicity's sake and to avoid resuming when one shouldn't by error.
+
+From the protocol point of view, the first moment `unchallenged_exit` is spotted, the user should have commenced their mass exit.
+This is another way to put why resuming syncing is not currently supported.
 
 ### Things considered
 1. We don't want to have any type of exit-related flags in `OMG.State`'s utxos
