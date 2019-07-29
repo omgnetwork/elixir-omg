@@ -27,12 +27,11 @@ defmodule OMG.State.Transaction.Signed do
   @empty_signature <<0::size(520)>>
   @type tx_bytes() :: binary()
 
-  defstruct [:raw_tx, :sigs, :signed_tx_bytes]
+  defstruct [:raw_tx, :sigs]
 
   @type t() :: %__MODULE__{
           raw_tx: Transaction.t(),
-          sigs: [Crypto.sig_t()],
-          signed_tx_bytes: tx_bytes() | nil
+          sigs: [Crypto.sig_t()]
         }
 
   @doc """
@@ -54,7 +53,7 @@ defmodule OMG.State.Transaction.Signed do
   @spec decode(tx_bytes()) :: {:ok, t()} | {:error, atom}
   def decode(signed_tx_bytes) do
     with {:ok, raw_tx_rlp_decoded_chunks} <- try_exrlp_decode(signed_tx_bytes),
-         do: reconstruct(raw_tx_rlp_decoded_chunks, signed_tx_bytes)
+         do: reconstruct(raw_tx_rlp_decoded_chunks)
   end
 
   @doc """
@@ -97,23 +96,18 @@ defmodule OMG.State.Transaction.Signed do
     _ -> {:error, :malformed_transaction_rlp}
   end
 
-  defp reconstruct([sigs | raw_tx_rlp_decoded_chunks], signed_tx_bytes) do
+  defp reconstruct([sigs | raw_tx_rlp_decoded_chunks]) do
     with true <- is_list(sigs),
          true <- Enum.all?(sigs, &signature_length?/1),
          {:ok, raw_tx} <- Transaction.reconstruct(raw_tx_rlp_decoded_chunks) do
-      {:ok,
-       %__MODULE__{
-         raw_tx: raw_tx,
-         sigs: sigs,
-         signed_tx_bytes: signed_tx_bytes
-       }}
+      {:ok, %__MODULE__{raw_tx: raw_tx, sigs: sigs}}
     else
       false -> {:error, :malformed_signatures}
       err -> err
     end
   end
 
-  defp reconstruct(_, _), do: {:error, :malformed_transaction}
+  defp reconstruct(_), do: {:error, :malformed_transaction}
 
   defp signature_length?(sig) when byte_size(sig) == @signature_length, do: true
   defp signature_length?(_sig), do: false

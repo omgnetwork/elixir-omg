@@ -166,11 +166,8 @@ defmodule OMG.Watcher.DB.Transaction do
   @spec process(Transaction.Recovered.t(), pos_integer(), integer(), list()) :: [list()]
   defp process(
          %Transaction.Recovered{
-           signed_tx:
-             %Transaction.Signed{
-               signed_tx_bytes: signed_tx_bytes,
-               raw_tx: %Transaction{metadata: metadata}
-             } = tx
+           signed_tx: %Transaction.Signed{raw_tx: %Transaction{metadata: metadata}} = tx,
+           signed_tx_bytes: signed_tx_bytes
          },
          block_number,
          txindex,
