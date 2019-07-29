@@ -54,6 +54,8 @@ defmodule OMG.Utils.HttpRPC.Response do
 
   def sanitize(bin) when is_binary(bin), do: Encoding.to_hex(bin)
   def sanitize({:skip_hex_encode, bin}), do: bin
+  def sanitize({{key, value}, _}), do: Map.put_new(%{}, key, value)
+  def sanitize({key, value}), do: Map.put_new(%{}, key, value)
   def sanitize(value), do: value
 
   defp do_filter(map_or_struct) do
