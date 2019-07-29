@@ -18,6 +18,11 @@ defmodule OMG.Status.Alert.Alarm do
   """
   alias OMG.Status.Alert.AlarmHandler
 
+  @typedoc """
+  The raw alarm being used to `set` the Alarm
+  """
+  @type raw_t :: {atom(), list()} | {{atom(), binary()}, list} | {atom(), %{node: Node.t(), reporter: module()}}
+
   def clear_all do
     all_raw()
     |> Enum.each(&:alarm_handler.clear_alarm(&1))
