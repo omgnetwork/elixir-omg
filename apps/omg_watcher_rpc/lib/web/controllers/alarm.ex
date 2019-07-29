@@ -12,23 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Status.Alert.Alarm do
+defmodule OMG.WatcherRPC.Web.Controller.Alarm do
   @moduledoc """
-  Interface for raising and clearing alarms.
+  Module provides operation related to the child chain raised alarms that might point to
+  faulty childchain node.
   """
-  alias OMG.Status.Alert.AlarmHandler
 
-  @typedoc """
-  The raw alarm being used to `set` the Alarm
-  """
-  @type raw_t :: {atom(), list()} | {{atom(), binary()}, list} | {atom(), %{node: Node.t(), reporter: module()}}
+  use OMG.WatcherRPC.Web, :controller
 
-  def clear_all do
-    all_raw()
-    |> Enum.each(&:alarm_handler.clear_alarm(&1))
+  alias OMG.Watcher.API
+
+  def get_alarms(conn, _params) do
+    {:ok, alarms} = API.Alarm.get_alarms()
+    api_response(alarms, conn, :alarm)
   end
-
-  def all, do: all_raw()
-
-  defp all_raw, do: :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
 end

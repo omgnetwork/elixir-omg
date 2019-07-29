@@ -12,23 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Status.Alert.Alarm do
+defmodule OMG.Watcher.API.Alarm do
   @moduledoc """
-  Interface for raising and clearing alarms.
+  Watcher alarm API
   """
-  alias OMG.Status.Alert.AlarmHandler
 
-  @typedoc """
-  The raw alarm being used to `set` the Alarm
-  """
-  @type raw_t :: {atom(), list()} | {{atom(), binary()}, list} | {atom(), %{node: Node.t(), reporter: module()}}
+  alias OMG.Status.Alert.Alarm
 
-  def clear_all do
-    all_raw()
-    |> Enum.each(&:alarm_handler.clear_alarm(&1))
-  end
-
-  def all, do: all_raw()
-
-  defp all_raw, do: :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
+  @spec get_alarms() :: {:ok, Alarm.raw_t()}
+  def get_alarms, do: {:ok, Alarm.all()}
 end

@@ -12,23 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Status.Alert.Alarm do
-  @moduledoc """
-  Interface for raising and clearing alarms.
-  """
-  alias OMG.Status.Alert.AlarmHandler
+defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
 
-  @typedoc """
-  The raw alarm being used to `set` the Alarm
-  """
-  @type raw_t :: {atom(), list()} | {{atom(), binary()}, list} | {atom(), %{node: Node.t(), reporter: module()}}
+  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
+  alias OMG.Watcher.TestHelper
 
-  def clear_all do
-    all_raw()
-    |> Enum.each(&:alarm_handler.clear_alarm(&1))
+  ### a very basic test of empty alarms should be sufficient, alarms encoding is
+  ### covered in OMG.Utils.HttpRPC.ResponseTest
+  @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
+  test "if the controller returns the correct result when there's no alarms raised" do
+    assert [] == TestHelper.success?("alarm.get")
   end
-
-  def all, do: all_raw()
-
-  defp all_raw, do: :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
 end

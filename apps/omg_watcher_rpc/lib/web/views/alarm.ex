@@ -12,23 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Status.Alert.Alarm do
+defmodule OMG.WatcherRPC.Web.View.Alarm do
   @moduledoc """
-  Interface for raising and clearing alarms.
+  The status view for rendering json
   """
-  alias OMG.Status.Alert.AlarmHandler
 
-  @typedoc """
-  The raw alarm being used to `set` the Alarm
-  """
-  @type raw_t :: {atom(), list()} | {{atom(), binary()}, list} | {atom(), %{node: Node.t(), reporter: module()}}
+  use OMG.WatcherRPC.Web, :view
+  alias OMG.Utils.HttpRPC.Response
 
-  def clear_all do
-    all_raw()
-    |> Enum.each(&:alarm_handler.clear_alarm(&1))
+  def render("alarm.json", %{response: alarms}) do
+    Response.serialize(alarms)
   end
-
-  def all, do: all_raw()
-
-  defp all_raw, do: :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
 end
