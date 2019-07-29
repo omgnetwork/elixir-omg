@@ -42,7 +42,7 @@ defmodule OMG.EthereumClientMonitor do
   defstruct interval: @default_interval,
             tref: nil,
             alarm_module: nil,
-            raised: true,
+            raised: false,
             ethereum_height: :error,
             ws_url: nil
 
@@ -60,7 +60,7 @@ defmodule OMG.EthereumClientMonitor do
     state = %__MODULE__{
       alarm_module: alarm_module,
       ethereum_height: ethereum_height,
-      ws_url: Keyword.get(opts, :ws_url, Application.get_env(:omg, :ws_url))
+      ws_url: Keyword.get(opts, :ws_url)
     }
 
     _ = raise_clear(alarm_module, state.raised, ethereum_height)
@@ -75,9 +75,7 @@ defmodule OMG.EthereumClientMonitor do
   def handle_continue(:ws_connect, state) do
     _ = Logger.debug("Ethereum client monitor starting a WS newHeads subscription.")
 
-    params =
-      [listen_to: "newHeads", ws_url: state.ws_url]
-      |> Keyword.delete(:ws_url, nil)
+    params = [listen_to: "newHeads", ws_url: state.ws_url]
 
     _ = SubscriptionWorker.start_link([{:event_bus, OMG.InternalEventBus} | params])
     _ = raise_clear(state.alarm_module, state.raised, state.ethereum_height)

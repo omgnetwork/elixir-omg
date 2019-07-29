@@ -34,7 +34,7 @@ defmodule OMG.Status.Metric.StatsdMonitor do
             child_module: nil,
             interval: @default_interval,
             monitor: nil,
-            raised: true,
+            raised: false,
             tref: nil
 
   def start_link(args) do
@@ -69,12 +69,13 @@ defmodule OMG.Status.Metric.StatsdMonitor do
     _ = state.alarm_module.set({:statsd_client_connection, Node.self(), __MODULE__})
     _ = :timer.cancel(state.tref)
     {:ok, tref} = :timer.send_after(state.interval, :connect)
-    {:noreply, %{state | tref: tref}}
+    {:noreply, %{state | raised: true, tref: tref}}
   end
 
   def handle_info(:connect, state) do
     {pid, _ref} = monitor = Kernel.spawn_monitor(state.child_module, :start, [])
-    _ = raise_clear(state.alarm_module, state.raised, Process.alive?(pid))
+    alive = Process.alive?(pid)
+    _ = raise_clear(state.alarm_module, state.raised, alive)
     {:noreply, %{state | monitor: monitor}}
   end
 

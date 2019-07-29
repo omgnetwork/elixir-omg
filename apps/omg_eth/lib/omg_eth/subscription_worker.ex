@@ -29,7 +29,7 @@ defmodule OMG.Eth.SubscriptionWorker do
   """
   @spec start_link(Keyword.t()) :: {:ok, pid()} | no_return()
   def start_link(opts) do
-    ws_url = Keyword.get(opts, :ws_url, Application.get_env(:omg, :ws_url))
+    ws_url = Keyword.get(opts, :ws_url)
 
     {:ok, pid} = WebSockex.start_link(ws_url, __MODULE__, opts, [])
     spawn(fn -> listen(pid, opts) end)

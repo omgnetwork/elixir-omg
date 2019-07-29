@@ -37,11 +37,12 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
   @tag fixtures: [:eth_node]
   test "that worker can subscribe to different events and receive events" do
     listen_to = ["newHeads", "newPendingTransactions"]
+    {:ok, {server_ref, websocket_url}} = ServerMock.start(self())
 
     Enum.each(
       listen_to,
       fn listen ->
-        params = [listen_to: listen]
+        params = [listen_to: listen, ws_url: websocket_url]
         _ = SubscriptionWorker.start_link([{:event_bus, OMG.InternalEventBus} | params])
         :ok = OMG.InternalEventBus.subscribe(listen, link: true)
         event = String.to_atom(listen)
@@ -52,6 +53,8 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
         end
       end
     )
+
+    ServerMock.shutdown(server_ref)
   end
 
   test "that worker can subscribe to my own server via arguments" do

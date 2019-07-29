@@ -42,7 +42,7 @@ defmodule OMG.RootChainCoordinatorTest do
       Supervisor.start_link(
         [
           {OMG.InternalEventBus, []},
-          {OMG.EthereumClientMonitor, [alarm_module: Alarm]},
+          {OMG.EthereumClientMonitor, [alarm_module: Alarm, ws_url: Application.get_env(:omg, :ws_url)]},
           {OMG.EthereumHeight, []},
           {OMG.RootChainCoordinator, coordinator_setup},
           OMG.EthereumEventListener.prepare_child(
