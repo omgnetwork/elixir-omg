@@ -91,10 +91,7 @@ defmodule OMG.Block do
 
   # extracts the necessary data from a single transaction to include in a block and merkle hash
   # add more clauses to form blocks from other forms of transactions
-  defp get_data_per_tx(%Transaction.Recovered{
-         tx_hash: hash,
-         signed_tx: %Transaction.Signed{signed_tx_bytes: bytes}
-       }) do
+  defp get_data_per_tx(%Transaction.Recovered{tx_hash: hash, signed_tx_bytes: bytes}) do
     {bytes, hash}
   end
 

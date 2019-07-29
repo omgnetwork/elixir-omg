@@ -198,7 +198,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     {ife_hash, struct!(__MODULE__, ife_map)}
   end
 
-  # NOTE: the databases currently don't hold the `signed_tx_bytes` field, hence dropping this here and in the other fun.
   # NOTE: non-private because `CompetitorInfo` holds `Transaction.Signed` objects too
   def from_db_signed_tx(%{raw_tx: raw_tx_map, sigs: sigs}) when is_map(raw_tx_map) and is_list(sigs) do
     value = %{raw_tx: from_db_raw_tx(raw_tx_map), sigs: sigs}

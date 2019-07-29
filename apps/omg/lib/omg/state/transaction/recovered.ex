@@ -28,6 +28,8 @@ defmodule OMG.State.Transaction.Recovered do
 
   @empty_signature <<0::size(520)>>
 
+  @type tx_bytes() :: binary()
+
   @type recover_tx_error() ::
           :bad_signature_length
           | :duplicate_inputs
@@ -36,12 +38,13 @@ defmodule OMG.State.Transaction.Recovered do
           | :signature_corrupt
           | :missing_signature
 
-  defstruct [:signed_tx, :tx_hash, spenders: nil]
+  defstruct [:signed_tx, :tx_hash, :signed_tx_bytes, spenders: nil]
 
   @type t() :: %__MODULE__{
           tx_hash: Transaction.tx_hash(),
           spenders: [Crypto.address_t()],
-          signed_tx: Transaction.Signed.t()
+          signed_tx: Transaction.Signed.t(),
+          signed_tx_bytes: tx_bytes()
         }
 
   @doc """
@@ -57,7 +60,7 @@ defmodule OMG.State.Transaction.Recovered do
   def recover_from(encoded_signed_tx) do
     with {:ok, signed_tx} <- Transaction.Signed.decode(encoded_signed_tx),
          true <- valid?(signed_tx),
-         do: recover_from_struct(signed_tx)
+         do: recover_from_struct(signed_tx, encoded_signed_tx)
   end
 
   @doc """
@@ -77,10 +80,17 @@ defmodule OMG.State.Transaction.Recovered do
     if spenders == inputs_spenders, do: :ok, else: {:error, :unauthorized_spent}
   end
 
-  @spec recover_from_struct(Transaction.Signed.t()) :: {:ok, t()} | {:error, recover_tx_error()}
-  defp recover_from_struct(%Transaction.Signed{} = signed_tx) do
+  @spec recover_from_struct(Transaction.Signed.t(), tx_bytes()) :: {:ok, t()} | {:error, recover_tx_error()}
+  defp recover_from_struct(%Transaction.Signed{} = signed_tx, signed_tx_bytes) do
     with {:ok, spenders} <- Transaction.Signed.get_spenders(signed_tx),
-         do: {:ok, %__MODULE__{tx_hash: Transaction.raw_txhash(signed_tx), spenders: spenders, signed_tx: signed_tx}}
+         do:
+           {:ok,
+            %__MODULE__{
+              tx_hash: Transaction.raw_txhash(signed_tx),
+              spenders: spenders,
+              signed_tx: signed_tx,
+              signed_tx_bytes: signed_tx_bytes
+            }}
   end
 
   defp valid?(%Transaction.Signed{sigs: sigs} = tx) do
