@@ -25,6 +25,8 @@ defmodule OMG.Supervisor do
   end
 
   def init(:ok) do
+    DeferredConfig.populate(:omg)
+
     children = [
       {OMG.InternalEventBus, []},
       {OMG.EthereumClientMonitor, [alarm_module: Alarm, ws_url: Application.get_env(:omg, :ws_url)]},

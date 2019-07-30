@@ -21,17 +21,11 @@ defmodule OMG.Watcher.API.AlarmTest do
     system_alarm = {:system_memory_high_watermark, []}
     system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
     app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
-
-    on_exit(fn ->
-      :alarm_handler.clear_alarm(app_alarm)
-      :alarm_handler.clear_alarm(system_alarm)
-      :alarm_handler.clear_alarm(system_disk_alarm)
-    end)
-
     %{system_alarm: system_alarm, system_disk_alarm: system_disk_alarm, app_alarm: app_alarm}
   end
 
   test "if alarms are returned when there are no alarms raised", _ do
+    _ = OMG.Status.Alert.Alarm.clear_all()
     {:ok, []} = Alarm.get_alarms()
   end
 
@@ -40,6 +34,7 @@ defmodule OMG.Watcher.API.AlarmTest do
     system_disk_alarm: system_disk_alarm,
     app_alarm: app_alarm
   } do
+    _ = OMG.Status.Alert.Alarm.clear_all()
     :alarm_handler.set_alarm(system_alarm)
     :alarm_handler.set_alarm(app_alarm)
     :alarm_handler.set_alarm(system_disk_alarm)
