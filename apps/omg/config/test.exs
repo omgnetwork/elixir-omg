@@ -8,5 +8,4 @@ config :omg,
   environment: :test,
   # an entry to fix a common reference path to the root directory of the umbrella project
   # this is useful because `mix test` and `mix coveralls --umbrella` have different views on the root dir when testing
-  umbrella_root_dir: Path.join(__DIR__, "../../.."),
-  ws_url: "ws://localhost:8546/ws"
+  umbrella_root_dir: Path.join(__DIR__, "../../..")
