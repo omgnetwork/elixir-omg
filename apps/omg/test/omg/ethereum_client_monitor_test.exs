@@ -72,8 +72,8 @@ defmodule OMG.EthereumClientMonitorTest do
         _ -> true
       end)
 
-    true = Process.exit(ws_connection, :testkill)
     :erlang.trace(pid, true, [:receive])
+    true = Process.exit(ws_connection, :testkill)
     assert_receive {:trace, ^pid, :receive, {:EXIT, ^ws_connection, :testkill}}
     assert_receive {:trace, ^pid, :receive, {:"$gen_cast", :set_alarm}}
 
