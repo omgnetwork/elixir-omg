@@ -29,6 +29,6 @@ defmodule OMG.Watcher.BlockGetter.Measure do
       |> Process.info(:message_queue_len)
       |> elem(1)
 
-    :ok = Datadog.gauge(name(:block_getter_message_queue_len), value)
+    _ = Datadog.gauge(name(:block_getter_message_queue_len), value)
   end
 end

@@ -8,4 +8,5 @@ config :omg_eth,
   exit_period_seconds: 22,
   # an entry to fix a common reference path to the root directory of the umbrella project
   # this is useful because `mix test` and `mix coveralls --umbrella` have different views on the root dir when testing
-  umbrella_root_dir: Path.join(__DIR__, "../../..")
+  umbrella_root_dir: Path.join(__DIR__, "../../.."),
+  ws_url: "ws://localhost:8546/ws"

@@ -17,6 +17,7 @@ defmodule OMG.Status.Application do
   Top level application module.
   """
   use Application
+  alias OMG.Status.Alert.Alarm
   alias OMG.Status.Alert.AlarmHandler
   alias OMG.Status.Metric.Datadog
   alias OMG.Status.Metric.VmstatsSink
@@ -27,20 +28,23 @@ defmodule OMG.Status.Application do
     :ok = DeferredConfig.populate(:spandex_datadog)
     :ok = DeferredConfig.populate(:statix)
     :ok = DeferredConfig.populate(:omg_status)
+    datadog = is_disabled?()
 
     children =
-      if is_enabled?() do
-        [VmstatsSink.prepare_child()]
+      if datadog do
+        # spandex datadog api server is able to flush when disabled?: true
+        [{SpandexDatadog.ApiServer, spandex_datadog_options()}]
       else
-        []
+        [
+          {OMG.Status.Metric.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
+          VmstatsSink.prepare_child(),
+          {SpandexDatadog.ApiServer, spandex_datadog_options()}
+        ]
       end
-
-    spandex = [{SpandexDatadog.ApiServer, spandex_datadog_options()}]
 
     # TODO remove when running full releases (it'll be covered with config providers)
     :ok = configure_sentry()
-    :ok = Datadog.connect()
-    Supervisor.start_link(spandex ++ children, strategy: :one_for_one, name: Status.Supervisor)
+    Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
   end
 
   def start_phase(:install_alarm_handler, _start_type, _phase_args) do
@@ -57,14 +61,11 @@ defmodule OMG.Status.Application do
     end
   end
 
-  @spec is_enabled?() :: boolean() | nil
-  defp is_enabled?() do
-    case {Application.get_env(:omg_status, :metrics), System.get_env("METRICS")} do
-      {true, _} -> true
-      {_, "true"} -> true
-      {false, _} -> false
-      {_, "false"} -> false
-      _ -> nil
+  @spec is_disabled?() :: boolean()
+  defp is_disabled?() do
+    case System.get_env("DD_DISABLED") do
+      "false" -> false
+      _ -> true
     end
   end
 

@@ -57,20 +57,36 @@ defmodule OMG.EthereumClientMonitorTest do
     %{server_ref: server_ref, websocket_url: websocket_url}
   end
 
-  test "that alarm gets raised if there's no ethereum client running", %{
-    server_ref: server_ref,
+  test "that alarms get raised when we kill the connection", %{
+    server_ref: _server_ref,
     websocket_url: _websocket_url
   } do
-    WebSockexServerMock.shutdown(server_ref)
-    true = is_pid(Process.whereis(EthereumClientMonitor))
+    pid = Process.whereis(EthereumClientMonitor)
+    %{raised: false} = :sys.get_state(EthereumClientMonitor)
+    {:links, links} = Process.info(pid, :links)
+    exclude_test_pid = self()
 
-    :ok =
-      pull_client_alarm(400, [
-        %{
-          details: %{node: Node.self(), reporter: EthereumClientMonitor},
-          id: :ethereum_client_connection
-        }
-      ])
+    [ws_connection] =
+      Enum.filter(links, fn
+        ^exclude_test_pid -> false
+        _ -> true
+      end)
+
+    :erlang.trace(pid, true, [:receive])
+    true = Process.exit(ws_connection, :testkill)
+    assert_receive {:trace, ^pid, :receive, {:EXIT, ^ws_connection, :testkill}}
+    assert_receive {:trace, ^pid, :receive, {:"$gen_cast", :set_alarm}}
+
+    alarm = %{
+      details: %{node: Node.self(), reporter: EthereumClientMonitor},
+      id: :ethereum_client_connection
+    }
+
+    [^alarm] = Alarm.all()
+
+    %{raised: true} = :sys.get_state(EthereumClientMonitor)
+    # eventually, the connection should recover
+    assert_receive {:trace, ^pid, :receive, {:"$gen_cast", :clear_alarm}}
   end
 
   test "that alarm gets raised if there's no ethereum client running and cleared when it's running", %{

@@ -14,7 +14,12 @@
 
 defmodule OMG.EthereumEventListener.Measure do
   @moduledoc """
-  Counting business metrics sent to Datadog
+  Counting business metrics sent to Datadog.
+  We don't want to pattern match on :ok to Datadog because the connection
+  towards the statsd client can be intermittent and sending would be unsuccessful and that
+  would trigger the removal of telemetry handler. But because we have monitors in place,
+  that eventually recover the connection to Statsd handlers wouldn't exist anymore and metrics
+  wouldn't be published.
   """
 
   import OMG.Status.Metric.Event, only: [name: 2]
@@ -30,7 +35,7 @@ defmodule OMG.EthereumEventListener.Measure do
   def supported_events, do: @supported_events
 
   def handle_event([:process, OMG.EthereumEventListener], %{events: events}, state, _config) do
-    :ok = Datadog.gauge(name(state.service_name, :events), length(events))
+    _ = Datadog.gauge(name(state.service_name, :events), length(events))
   end
 
   def handle_event([:process, OMG.EthereumEventListener], %{}, state, _config) do
@@ -39,7 +44,7 @@ defmodule OMG.EthereumEventListener.Measure do
       |> Process.info(:message_queue_len)
       |> elem(1)
 
-    :ok = Datadog.gauge(name(state.service_name, :message_queue_len), value)
+    _ = Datadog.gauge(name(state.service_name, :message_queue_len), value)
   end
 
   def handle_event([:trace, _], %{}, state, _config) do

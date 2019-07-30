@@ -15,7 +15,7 @@ config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
 config :omg_watcher_rpc, OMG.WatcherRPC.Tracer,
   service: :web,
   adapter: SpandexDatadog.Adapter,
-  disabled?: {:system, "METRICS", false},
+  disabled?: {:system, "DD_DISABLED", false, {String, :to_existing_atom}},
   env: {:system, "APP_ENV"},
   type: :web
 

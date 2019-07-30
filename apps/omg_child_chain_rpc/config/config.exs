@@ -25,7 +25,7 @@ config :phoenix,
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
   service: :web,
   adapter: SpandexDatadog.Adapter,
-  disabled?: {:system, "METRICS", false},
+  disabled?: {:system, "DD_DISABLED", false, {String, :to_existing_atom}},
   env: {:system, "APP_ENV"},
   type: :web
 

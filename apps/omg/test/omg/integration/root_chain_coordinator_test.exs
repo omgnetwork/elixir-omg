@@ -34,6 +34,7 @@ defmodule OMG.RootChainCoordinatorTest do
   test "can do a simplest sync",
        %{alice: alice} do
     DeferredConfig.populate(:omg_eth)
+    DeferredConfig.populate(:omg)
     :ok = AlarmHandler.install()
     coordinator_setup = %{test: [finality_margin: 0]}
     test_process = self()
@@ -42,7 +43,7 @@ defmodule OMG.RootChainCoordinatorTest do
       Supervisor.start_link(
         [
           {OMG.InternalEventBus, []},
-          {OMG.EthereumClientMonitor, [alarm_module: Alarm]},
+          {OMG.EthereumClientMonitor, [alarm_module: Alarm, ws_url: Application.get_env(:omg_eth, :ws_url)]},
           {OMG.EthereumHeight, []},
           {OMG.RootChainCoordinator, coordinator_setup},
           OMG.EthereumEventListener.prepare_child(

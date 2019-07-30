@@ -14,11 +14,11 @@
 
 defmodule OMG.Eth.SubscriptionWorkerTest do
   @moduledoc false
-  alias __MODULE__.WebSockex.ServerMock
   alias OMG.Eth.SubscriptionWorker
 
   use ExUnitFixtures
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
+  use OMG.Utils.LoggerExt
 
   @moduletag :wrappers
   @moduletag :common
@@ -41,7 +41,7 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
     Enum.each(
       listen_to,
       fn listen ->
-        params = [listen_to: listen]
+        params = [listen_to: listen, ws_url: Application.get_env(:omg_eth, :ws_url)]
         _ = SubscriptionWorker.start_link([{:event_bus, OMG.InternalEventBus} | params])
         :ok = OMG.InternalEventBus.subscribe(listen, link: true)
         event = String.to_atom(listen)
@@ -52,83 +52,5 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
         end
       end
     )
-  end
-
-  test "that worker can subscribe to my own server via arguments" do
-    {:ok, {server_ref, websocket_url}} = ServerMock.start(self())
-    listen_to = ["newHeads", "newPendingTransactions"]
-
-    Enum.each(
-      listen_to,
-      fn listen ->
-        params = [listen_to: listen, ws_url: websocket_url]
-        _ = SubscriptionWorker.start_link([{:event_bus, OMG.InternalEventBus} | params])
-        :ok = OMG.InternalEventBus.subscribe(listen, link: true)
-        event = String.to_atom(listen)
-
-        receive do
-          {:internal_event_bus, ^event, _message} ->
-            assert true
-        end
-      end
-    )
-
-    ServerMock.shutdown(server_ref)
-  end
-
-  defmodule WebSockex.ServerMock do
-    use Plug.Router
-
-    plug(:match)
-    plug(:dispatch)
-
-    match _ do
-      send_resp(conn, 200, "Hello from plug")
-    end
-
-    def start(pid) when is_pid(pid) do
-      ref = make_ref()
-      port = Enum.random(60_000..63_000)
-
-      url = "ws://localhost:#{port}/ws"
-
-      opts = [dispatch: dispatch(), port: port, ref: ref]
-
-      {:ok, _} = Plug.Adapters.Cowboy.http(__MODULE__, [], opts)
-      {:ok, {ref, url}}
-    end
-
-    def shutdown(ref) do
-      Plug.Adapters.Cowboy.shutdown(ref)
-    end
-
-    defp dispatch do
-      [{:_, [{"/ws", WebSockex.MockTestSocket, []}]}]
-    end
-  end
-
-  defmodule WebSockex.MockTestSocket do
-    @behaviour :cowboy_websocket_handler
-
-    def init(_, _req, _) do
-      {:upgrade, :protocol, :cowboy_websocket}
-    end
-
-    def terminate(_, _, _), do: :ok
-
-    def websocket_init(_, req, _) do
-      {:ok, req, %{}}
-    end
-
-    def websocket_terminate(_, _, _) do
-      :ok
-    end
-
-    def websocket_handle({:text, _body}, req, state) do
-      response = Jason.encode!(%{"params" => %{"result" => %{"number" => "0x77be11", "hash" => "0x1234"}}})
-      {:reply, {:text, response}, req, state}
-    end
-
-    def websocket_info(_, req, state), do: {:ok, req, state}
   end
 end

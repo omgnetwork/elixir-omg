@@ -18,6 +18,6 @@ config :omg_eth,
   child_block_interval: 1000,
   exit_period_seconds: {:system, "EXIT_PERIOD_SECONDS", 7 * 24 * 60 * 60, {String, :to_integer}},
   ethereum_client_warning_time_ms: ethereum_client_timeout_ms / 4,
-  ws_url: System.get_env("ETHEREUM_WS_RPC_URL") || "ws://localhost:8546/ws"
+  ws_url: {:system, "ETHEREUM_WS_RPC_URL", "ws://localhost:8546/ws"}
 
 import_config "#{Mix.env()}.exs"

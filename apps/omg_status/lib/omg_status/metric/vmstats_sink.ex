@@ -29,9 +29,9 @@ defmodule OMG.Status.Metric.VmstatsSink do
 
   defp base_key, do: Application.get_env(:vmstats, :base_key)
 
-  def collect(:counter, key, value), do: :ok = Datadog.set(key, value)
+  def collect(:counter, key, value), do: _ = Datadog.set(key, value)
 
-  def collect(:gauge, key, value), do: :ok = Datadog.gauge(key, value)
+  def collect(:gauge, key, value), do: _ = Datadog.gauge(key, value)
 
-  def collect(:timing, key, value), do: :ok = Datadog.timing(key, value)
+  def collect(:timing, key, value), do: _ = Datadog.timing(key, value)
 end

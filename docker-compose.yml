@@ -63,6 +63,7 @@ services:
       - ERL_CC_COOKIE=develop
       - APP_ENV=local_development_child_chain
       - DD_HOSTNAME=datadog
+      - DD_DISABLED=true
     restart: always
     ports:
       - "9656:9656"
@@ -94,6 +95,7 @@ services:
       - ERL_W_COOKIE=develop
       - APP_ENV=local_development_watcher
       - DD_HOSTNAME=datadog
+      - DD_DISABLED=true
     restart: always
     ports:
       - "7434:7434"

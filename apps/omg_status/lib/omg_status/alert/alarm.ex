@@ -14,14 +14,23 @@
 
 defmodule OMG.Status.Alert.Alarm do
   @moduledoc """
-  Interface for raising and clearing alarms.
+  Interface for raising and clearing alarms related to OMG Status.
   """
   alias OMG.Status.Alert.AlarmHandler
 
   @typedoc """
   The raw alarm being used to `set` the Alarm
   """
-  @type raw_t :: {atom(), list()} | {{atom(), binary()}, list} | {atom(), %{node: Node.t(), reporter: module()}}
+  @type raw_t :: {:statsd_client_connection, atom(), atom()}
+
+  def statsd_client_connection(node, reporter),
+    do: {:statsd_client_connection, %{node: node, reporter: reporter}}
+
+  @spec set(raw_t()) :: :ok | :duplicate
+  def set(raw_alarm), do: raw_alarm |> make_alarm() |> do_raise()
+
+  @spec clear(raw_t()) :: :ok | :not_raised
+  def clear(raw_alarm), do: raw_alarm |> make_alarm() |> do_clear()
 
   def clear_all do
     all_raw()
@@ -30,5 +39,25 @@ defmodule OMG.Status.Alert.Alarm do
 
   def all, do: all_raw()
 
+  defp do_raise(alarm) do
+    if Enum.member?(all_raw(), alarm),
+      do: :duplicate,
+      else: :alarm_handler.set_alarm(alarm)
+  end
+
+  defp do_clear(alarm) do
+    if Enum.member?(all_raw(), alarm),
+      do: :alarm_handler.clear_alarm(alarm),
+      else: :not_raised
+  end
+
   defp all_raw, do: :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
+
+  @spec make_alarm(raw_t()) :: {atom(), %{node: node(), reporter: module()}}
+  defp make_alarm(raw_alarm = {_, node, reporter}) when is_atom(node) and is_atom(reporter),
+    do: make_alarm_for(raw_alarm)
+
+  defp make_alarm_for({:statsd_client_connection, node, reporter}) do
+    statsd_client_connection(node, reporter)
+  end
 end
