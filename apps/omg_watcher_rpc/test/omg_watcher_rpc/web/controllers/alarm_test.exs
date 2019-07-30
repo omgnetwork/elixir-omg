@@ -22,13 +22,8 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
 
   setup do
     Enum.each(
-      :gen_event.which_handlers(:alarm_handler),
-      fn handler ->
-        Enum.each(
-          :gen_event.call(:alarm_handler, handler, :get_alarms),
-          fn alarm -> :alarm_handler.clear_alarm(alarm) end
-        )
-      end
+      :gen_event.call(:alarm_handler, OMG.Status.Alert.AlarmHandler, :get_alarms),
+      fn alarm -> :alarm_handler.clear_alarm(alarm) end
     )
   end
 

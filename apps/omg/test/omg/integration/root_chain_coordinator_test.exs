@@ -34,6 +34,7 @@ defmodule OMG.RootChainCoordinatorTest do
   test "can do a simplest sync",
        %{alice: alice} do
     DeferredConfig.populate(:omg_eth)
+    DeferredConfig.populate(:omg)
     :ok = AlarmHandler.install()
     coordinator_setup = %{test: [finality_margin: 0]}
     test_process = self()
