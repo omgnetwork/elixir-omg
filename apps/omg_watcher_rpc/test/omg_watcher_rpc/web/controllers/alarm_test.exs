@@ -14,16 +14,28 @@
 
 defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   use OMG.Fixtures
   use OMG.Watcher.Fixtures
   alias OMG.Watcher.TestHelper
 
+  setup do
+    Enum.each(
+      :gen_event.which_handlers(:alarm_handler),
+      fn handler ->
+        Enum.each(
+          :gen_event.call(:alarm_handler, handler, :get_alarms),
+          fn alarm -> :alarm_handler.clear_alarm(alarm) end
+        )
+      end
+    )
+  end
+
   ### a very basic test of empty alarms should be sufficient, alarms encoding is
   ### covered in OMG.Utils.HttpRPC.ResponseTest
   @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
-  test "if the controller returns the correct result when there's no alarms raised" do
+  test "if the controller returns the correct result when there's no alarms raised", _ do
     assert [] == TestHelper.success?("alarm.get")
   end
 end

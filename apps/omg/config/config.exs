@@ -8,7 +8,7 @@ config :omg,
   coordinator_eth_height_check_interval_ms: 6_000,
   client_monitor_interval_ms: 4500,
   metrics_collection_interval: 60_000,
-  ws_url: System.get_env("ETHEREUM_WS_RPC_URL") || "ws://localhost:8546/ws"
+  ws_url: {:system, "ETHEREUM_WS_RPC_URL", "ws://localhost:8546/ws"}
 
 config :omg, :eip_712_domain,
   name: "OMG Network",

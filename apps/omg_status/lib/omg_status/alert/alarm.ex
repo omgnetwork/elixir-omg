@@ -21,7 +21,7 @@ defmodule OMG.Status.Alert.Alarm do
   @typedoc """
   The raw alarm being used to `set` the Alarm
   """
-  @type raw_t :: {atom(), list()} | {{atom(), binary()}, list} | {atom(), %{node: Node.t(), reporter: module()}}
+  @type raw_t :: {:statsd_client_connection, atom(), atom()}
 
   def statsd_client_connection(node, reporter),
     do: {:statsd_client_connection, %{node: node, reporter: reporter}}
