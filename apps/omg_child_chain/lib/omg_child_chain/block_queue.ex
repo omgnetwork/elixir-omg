@@ -16,7 +16,7 @@ defmodule OMG.ChildChain.BlockQueue do
   @moduledoc """
   Imperative shell for `OMG.ChildChain.BlockQueue.Core`, see there for more info
 
-  The new blocks to enqueue arrive here via `OMG.InternalEventBus`
+  The new blocks to enqueue arrive here via `OMG.Bus`
   """
 
   alias OMG.Block
@@ -42,7 +42,7 @@ defmodule OMG.ChildChain.BlockQueue do
 
     alias OMG.Eth
     alias OMG.Eth.Encoding
-    alias OMG.EthereumHeight
+    alias OMG.Eth.EthereumHeight
 
     def start_link(_args) do
       GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -111,7 +111,7 @@ defmodule OMG.ChildChain.BlockQueue do
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
       # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
-      :ok = OMG.InternalEventBus.subscribe("blocks", link: true)
+      :ok = OMG.Bus.subscribe("blocks", link: true)
 
       {:ok, _} =
         :timer.send_interval(

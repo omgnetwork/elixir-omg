@@ -16,7 +16,7 @@ defmodule OMG.RootChainCoordinator do
   Synchronizes services on root chain height, see `OMG.RootChainCoordinator.Core`
   """
 
-  alias OMG.EthereumHeight
+  alias OMG.Eth.EthereumHeight
   alias OMG.RootChainCoordinator.Core
 
   use GenServer
@@ -99,7 +99,7 @@ defmodule OMG.RootChainCoordinator do
   end
 
   def handle_info(:update_root_chain_height, state) do
-    {:ok, root_chain_height} = OMG.EthereumHeight.get()
+    {:ok, root_chain_height} = EthereumHeight.get()
     {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
     {:noreply, state}
   end

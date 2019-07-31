@@ -21,8 +21,9 @@ defmodule OMG.ChildChain.FeeServer do
   Fee's file parsing and rules of transaction's fee validation are in `OMG.Fees`
   """
 
-  alias OMG.Alert.Alarm
+  alias OMG.ChildChain.FeeParser
   alias OMG.Fees
+  alias OMG.Status.Alert.Alarm
 
   use GenServer
   use OMG.Utils.LoggerExt
@@ -88,7 +89,7 @@ defmodule OMG.ChildChain.FeeServer do
 
     with {:reload, changed_at} <- should_load_file(path),
          {:ok, content} <- File.read(path),
-         {:ok, specs} <- Fees.parse_file_content(content) do
+         {:ok, specs} <- FeeParser.parse_file_content(content) do
       :ok = save_fees(specs, changed_at)
       _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
       :ok

@@ -25,6 +25,6 @@ defmodule OMG.Eth.Application do
 
     _ = Logger.info("Started #{inspect(__MODULE__)}, config used: #{inspect(Eth.Diagnostics.get_child_chain_config())}")
 
-    {:ok, self()}
+    OMG.Eth.Supervisor.start_link()
   end
 end

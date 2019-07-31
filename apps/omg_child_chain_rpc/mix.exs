@@ -46,6 +46,7 @@ defmodule OMG.ChildChainRPC.MixProject do
       {:spandex_datadog, "~> 0.4"},
       {:telemetry, "~> 0.4.0"},
       #
+      {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},
       {:omg_utils, in_umbrella: true}
     ]

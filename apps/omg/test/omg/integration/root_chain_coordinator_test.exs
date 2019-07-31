@@ -22,8 +22,6 @@ defmodule OMG.RootChainCoordinatorTest do
   use OMG.DB.Fixtures
   use OMG.Eth.Fixtures
 
-  alias OMG.Alert.Alarm
-  alias OMG.Alert.AlarmHandler
   alias OMG.Eth
   alias OMG.Integration.DepositHelper
 
@@ -35,16 +33,15 @@ defmodule OMG.RootChainCoordinatorTest do
        %{alice: alice} do
     DeferredConfig.populate(:omg_eth)
     DeferredConfig.populate(:omg)
-    :ok = AlarmHandler.install()
+    Application.ensure_all_started(:omg_bus)
+    Application.ensure_all_started(:omg_eth)
+    Application.ensure_all_started(:omg_status)
     coordinator_setup = %{test: [finality_margin: 0]}
     test_process = self()
     # we're starting a mock event listening machinery, which will send all deposit events to the test process to assert
     {:ok, _} =
       Supervisor.start_link(
         [
-          {OMG.InternalEventBus, []},
-          {OMG.EthereumClientMonitor, [alarm_module: Alarm, ws_url: Application.get_env(:omg_eth, :ws_url)]},
-          {OMG.EthereumHeight, []},
           {OMG.RootChainCoordinator, coordinator_setup},
           OMG.EthereumEventListener.prepare_child(
             service_name: :test,

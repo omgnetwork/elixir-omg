@@ -14,11 +14,9 @@
 
 defmodule OMG.ChildChain.MonitorTest do
   @moduledoc false
-
   alias __MODULE__.EthereumClientMock
-  alias OMG.Alert.Alarm
-  alias OMG.Alert.AlarmHandler
   alias OMG.ChildChain.Monitor
+  alias OMG.Status.Alert.Alarm
 
   use ExUnit.Case, async: true
 
@@ -27,7 +25,8 @@ defmodule OMG.ChildChain.MonitorTest do
   @moduletag timeout: 120_000
 
   setup_all do
-    :ok = AlarmHandler.install()
+    _ = Application.ensure_all_started(:omg_status)
+    :ok
   end
 
   setup do

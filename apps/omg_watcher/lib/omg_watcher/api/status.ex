@@ -18,6 +18,7 @@ defmodule OMG.Watcher.API.Status do
   """
 
   alias OMG.Eth
+  alias OMG.Eth.EthereumHeight
   alias OMG.RootChainCoordinator
   alias OMG.State
   alias OMG.Watcher.BlockGetter
@@ -47,7 +48,7 @@ defmodule OMG.Watcher.API.Status do
   """
   @spec get_status() :: {:ok, t()}
   def get_status do
-    {:ok, eth_block_number} = OMG.EthereumHeight.get()
+    {:ok, eth_block_number} = EthereumHeight.get()
     {:ok, eth_block_timestamp} = Eth.get_block_timestamp_by_number(eth_block_number)
     eth_syncing = Eth.syncing?()
 

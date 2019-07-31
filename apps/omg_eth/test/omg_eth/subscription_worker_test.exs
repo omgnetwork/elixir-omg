@@ -23,14 +23,7 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
   @moduletag :wrappers
   @moduletag :common
   setup_all(_) do
-    {:ok, _} =
-      Supervisor.start_link(
-        [
-          {Phoenix.PubSub.PG2, [name: OMG.InternalEventBus]}
-        ],
-        strategy: :one_for_one
-      )
-
+    _ = Application.ensure_all_started(:omg_bus)
     :ok
   end
 
@@ -42,8 +35,8 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
       listen_to,
       fn listen ->
         params = [listen_to: listen, ws_url: Application.get_env(:omg_eth, :ws_url)]
-        _ = SubscriptionWorker.start_link([{:event_bus, OMG.InternalEventBus} | params])
-        :ok = OMG.InternalEventBus.subscribe(listen, link: true)
+        _ = SubscriptionWorker.start_link([{:event_bus, OMG.Bus} | params])
+        :ok = OMG.Bus.subscribe(listen, link: true)
         event = String.to_atom(listen)
 
         receive do

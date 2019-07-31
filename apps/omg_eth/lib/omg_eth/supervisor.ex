@@ -12,15 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Application do
+defmodule OMG.Eth.Supervisor do
   @moduledoc """
-  The application here is the Child chain server and its API.
-  See here (children) for the processes that compose into the Child Chain server.
+   OMG top level supervisor.
   """
+  use Supervisor
+  alias OMG.Alert.Alarm
+  require Logger
 
-  use Application
+  def start_link do
+    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
+  end
 
-  def start(_type, _args) do
-    OMG.Supervisor.start_link()
+  def init(:ok) do
+    children = [
+      {OMG.Eth.EthereumClientMonitor,
+       [
+         alarm_module: Alarm,
+         event_bus: OMG.Bus,
+         ws_url: Application.get_env(:omg_eth, :ws_url)
+       ]},
+      {OMG.Eth.EthereumHeight, [event_bus: OMG.Bus]}
+    ]
+
+    opts = [strategy: :one_for_one]
+
+    _ = Logger.info("Starting #{inspect(__MODULE__)}")
+    Supervisor.init(children, opts)
   end
 end

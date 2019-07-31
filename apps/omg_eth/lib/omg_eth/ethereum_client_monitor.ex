@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.EthereumClientMonitor do
+defmodule OMG.Eth.EthereumClientMonitor do
   @moduledoc """
   Process serves as a health check to Ethereum client node by maintaining a newHead subscription over websocket connection
   in order to reduce the number of RPC calls. The websocket connection is linked with this process and when it dies,
@@ -30,21 +30,23 @@ defmodule OMG.EthereumClientMonitor do
   alias OMG.Eth.Encoding
   alias OMG.Eth.SubscriptionWorker
 
-  @default_interval Application.get_env(:omg, :client_monitor_interval_ms)
+  @default_interval Application.get_env(:omg_eth, :client_monitor_interval_ms)
   @type t :: %__MODULE__{
           interval: pos_integer(),
           tref: reference() | nil,
           alarm_module: module(),
           raised: boolean(),
           ethereum_height: integer | :error,
-          ws_url: binary() | nil
+          ws_url: binary() | nil,
+          event_bus: module()
         }
   defstruct interval: @default_interval,
             tref: nil,
             alarm_module: nil,
             raised: false,
             ethereum_height: :error,
-            ws_url: nil
+            ws_url: nil,
+            event_bus: nil
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -60,7 +62,8 @@ defmodule OMG.EthereumClientMonitor do
     state = %__MODULE__{
       alarm_module: alarm_module,
       ethereum_height: ethereum_height,
-      ws_url: Keyword.get(opts, :ws_url)
+      ws_url: Keyword.get(opts, :ws_url),
+      event_bus: Keyword.get(opts, :event_bus)
     }
 
     _ = raise_clear(alarm_module, state.raised, ethereum_height)
@@ -77,7 +80,7 @@ defmodule OMG.EthereumClientMonitor do
 
     params = [listen_to: "newHeads", ws_url: state.ws_url]
 
-    _ = SubscriptionWorker.start_link([{:event_bus, OMG.InternalEventBus} | params])
+    _ = SubscriptionWorker.start_link([{:event_bus, state.event_bus} | params])
     _ = raise_clear(state.alarm_module, state.raised, state.ethereum_height)
     {:noreply, state}
   rescue

@@ -151,7 +151,7 @@ defmodule OMG.Performance do
 
     :ok = OMG.DB.init()
 
-    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_child_chain_rpc, :omg_status])
+    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_bus, :omg_child_chain_rpc])
     {:ok, simple_perftest_chain} = start_simple_perftest_chain(opts)
 
     {:ok, started_apps, simple_perftest_chain}
@@ -163,7 +163,6 @@ defmodule OMG.Performance do
   # Instead, we start the artificial `BlockCreator`
   defp start_simple_perftest_chain(opts) do
     children = [
-      {OMG.InternalEventBus, []},
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, []},
@@ -215,8 +214,7 @@ defmodule OMG.Performance do
 
   # We're not basing on mix to start all neccessary test's components.
   defp ensure_all_started(app_list) do
-    app_list
-    |> Enum.reduce([], fn app, list ->
+    Enum.reduce(app_list, [], fn app, list ->
       {:ok, started_apps} = Application.ensure_all_started(app)
       list ++ started_apps
     end)

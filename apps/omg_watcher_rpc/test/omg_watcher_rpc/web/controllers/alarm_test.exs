@@ -21,10 +21,16 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
   alias OMG.Watcher.TestHelper
 
   setup do
+    {:ok, apps} = Application.ensure_all_started(:omg_status)
+
     Enum.each(
       :gen_event.call(:alarm_handler, OMG.Status.Alert.AlarmHandler, :get_alarms),
       fn alarm -> :alarm_handler.clear_alarm(alarm) end
     )
+
+    on_exit(fn ->
+      Enum.each(apps, fn app -> :ok = Application.stop(app) end)
+    end)
   end
 
   ### a very basic test of empty alarms should be sufficient, alarms encoding is

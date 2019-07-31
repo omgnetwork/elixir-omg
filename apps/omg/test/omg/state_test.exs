@@ -34,22 +34,16 @@ defmodule OMG.StateTest do
     _ = db_initialized
     # need to override that to very often, so that many checks fall in between a single child chain block submission
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
+    {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
 
     on_exit(fn ->
-      started_apps
+      (started_apps ++ bus_apps)
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
-    # the pubsub is required, because `OMG.State` is broadcasting to the `OMG.InternalEventBus`
-    {:ok, _} =
-      Supervisor.start_link(
-        [
-          {OMG.State, []},
-          {Phoenix.PubSub.PG2, [name: OMG.InternalEventBus]}
-        ],
-        strategy: :one_for_one
-      )
+    # the pubsub is required, because `OMG.State` is broadcasting to the `OMG.Bus`
+    {:ok, _} = Supervisor.start_link([{OMG.State, []}], strategy: :one_for_one)
 
     :ok
   end

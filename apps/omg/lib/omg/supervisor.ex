@@ -18,7 +18,6 @@ defmodule OMG.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
-  alias OMG.Alert.Alarm
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -27,11 +26,7 @@ defmodule OMG.Supervisor do
   def init(:ok) do
     DeferredConfig.populate(:omg)
 
-    children = [
-      {OMG.InternalEventBus, []},
-      {OMG.EthereumClientMonitor, [alarm_module: Alarm, ws_url: Application.get_env(:omg_eth, :ws_url)]},
-      {OMG.EthereumHeight, []}
-    ]
+    children = []
 
     opts = [strategy: :one_for_one]
 

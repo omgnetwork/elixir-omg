@@ -36,6 +36,8 @@ defmodule OMG.Status.Mixfile do
       {:statix, "~> 1.1"},
       {:spandex_datadog, "~> 0.4"},
       {:decorator, "~> 1.2"},
-      {:vmstats, "~> 2.3", runtime: false}
+      {:vmstats, "~> 2.3", runtime: false},
+      # umbrella apps
+      {:omg_bus, in_umbrella: true}
     ]
 end

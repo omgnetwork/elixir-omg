@@ -5,4 +5,7 @@ config :omg_status,
   environment: :test,
   client_monitor_interval_ms: 10
 
-config :omg_status, OMG.Status.Metric.Tracer, env: "test"
+config :omg_status, OMG.Status.Metric.Tracer,
+  service: :omg_status,
+  env: "test",
+  disabled?: true

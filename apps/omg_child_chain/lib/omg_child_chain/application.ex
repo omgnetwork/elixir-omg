@@ -19,7 +19,7 @@ defmodule OMG.ChildChain.Application do
   """
   use Application
 
-  alias OMG.Alert.Alarm
+  alias OMG.Status.Alert.Alarm
 
   require Logger
 
@@ -28,7 +28,6 @@ defmodule OMG.ChildChain.Application do
     cookie = System.get_env("ERL_CC_COOKIE")
     true = set_cookie(cookie)
     :ok = Alarm.set(alarm())
-
     OMG.ChildChain.Supervisor.start_link()
   end
 

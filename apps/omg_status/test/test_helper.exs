@@ -12,6 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-Application.ensure_all_started(:omg_status)
 ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
 ExUnit.start()
