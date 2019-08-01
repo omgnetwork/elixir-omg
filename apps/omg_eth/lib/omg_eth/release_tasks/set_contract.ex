@@ -25,12 +25,35 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   """
   @impl Provider
   def init(_args) do
-    case get_env("ETHEREUM_NETWORK") do
-      "RINKEBY" = network -> :ok = apply_settings(network)
-      _ -> exit("Rinkeby or not implemented. There's no contracts that the release could point to.")
-    end
+    case get_env("CONTRACT_EXCHANGER_URL") do
+      value when is_binary(value) ->
+        _ = Application.ensure_all_started(:hackney)
+        {:ok, %{body: body}} = HTTPoison.get(value)
 
-    :ok
+        %{
+          "authority_addr" => authority_address,
+          "contract_addr" => contract_address,
+          "txhash_contract" => txhash_contract
+        } = Jason.decode!(body)
+
+        :ok = Application.put_env(:omg_eth, :txhash_contract, String.downcase(txhash_contract), persistent: true)
+        :ok = Application.put_env(:omg_eth, :authority_addr, String.downcase(authority_address), persistent: true)
+        :ok = Application.put_env(:omg_eth, :contract_addr, String.downcase(contract_address), persistent: true)
+
+      _ ->
+        case get_env("ETHEREUM_NETWORK") do
+          "RINKEBY" = network ->
+            :ok = apply_settings(network)
+
+          _ ->
+            error =
+              "Set RINKEBY_TXHASH_CONTRACT, RINKEBY_AUTHORITY_ADDRESS and RINKEBY_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
+
+            exit(error)
+        end
+
+        :ok
+    end
   end
 
   defp apply_settings(network) do
@@ -42,11 +65,5 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     :ok = Application.put_env(:omg_eth, :contract_addr, contract_address, persistent: true)
   end
 
-  defp get_env(key), do: validate(System.get_env(key))
-
-  defp validate(value) when is_binary(value), do: value
-
-  defp validate(nil),
-    do:
-      exit("Set RINKEBY_TXHASH_CONTRACT, RINKEBY_AUTHORITY_ADDRESS and RINKEBY_CONTRACT_ADDRESS environment variables.")
+  defp get_env(key), do: System.get_env(key)
 end
