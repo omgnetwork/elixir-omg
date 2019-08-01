@@ -29,6 +29,8 @@ config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
   env: {:system, "APP_ENV"},
   type: :web
 
+config :spandex_phoenix, tracer: OMG.ChildChainRPC.Tracer
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
