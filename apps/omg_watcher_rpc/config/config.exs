@@ -19,6 +19,4 @@ config :omg_watcher_rpc, OMG.WatcherRPC.Tracer,
   env: {:system, "APP_ENV"},
   type: :web
 
-config :spandex_phoenix, tracer: OMG.WatcherRPC.Tracer
-
 import_config "#{Mix.env()}.exs"
