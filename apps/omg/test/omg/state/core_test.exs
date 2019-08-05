@@ -284,6 +284,26 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  test "all inputs must be authorized to be spent", %{alice: alice, bob: bob, state_alice_deposit: state} do
+    state =
+      state
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :ignore)
+      |> success?()
+
+    state
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, bob}], @eth, []), :ignore)
+    |> fail?(:unauthorized_spent)
+    |> same?(state)
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}, {@blknum1, 0, 1, alice}], @eth, []), :ignore)
+    |> fail?(:unauthorized_spent)
+    |> same?(state)
+
+    state
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, []), :ignore)
+    |> success?()
+  end
+
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend spent", %{alice: alice, bob: bob, state_alice_deposit: state} do
     transactions = [
       create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]),
