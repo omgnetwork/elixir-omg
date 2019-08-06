@@ -73,12 +73,10 @@ defmodule OMG.DB do
   def child_spec(args), do: driver().child_spec(args)
 
   def init(path) do
-    DeferredConfig.populate(:omg_db)
     driver().init(path)
   end
 
   def init do
-    DeferredConfig.populate(:omg_db)
     driver().init()
   end
 

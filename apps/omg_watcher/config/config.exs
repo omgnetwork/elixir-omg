@@ -6,7 +6,7 @@
 use Mix.Config
 
 # child chain url
-config :omg_watcher, child_chain_url: {:system, "CHILD_CHAIN_URL", "http://localhost:9656"}
+config :omg_watcher, child_chain_url: "http://localhost:9656"
 
 # General application configuration
 # see [here](README.md) for documentation
@@ -29,13 +29,13 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
   # NOTE: not sure if appropriate, but this allows reasonable blocks to be written to unoptimized Postgres setup
   timeout: 60_000,
-  connect_timeout: 60_000
+  connect_timeout: 60_000,
+  url: "postgres://omisego:omisego@localhost/omisego"
 
 config :omg_watcher, OMG.Watcher.Tracer,
   service: :db,
   adapter: SpandexDatadog.Adapter,
-  disabled?: {:system, "DD_DISABLED", false, {String, :to_existing_atom}},
-  env: {:system, "APP_ENV"},
+  disabled?: false,
   type: :db
 
 config :spandex_ecto, SpandexEcto.EctoLogger,

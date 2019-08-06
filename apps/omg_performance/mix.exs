@@ -29,7 +29,6 @@ defmodule OMG.Performance.MixProject do
 
   defp deps do
     [
-      {:deferred_config, "~> 0.1.1"},
       # TEST ONLY
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
       {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false},

@@ -6,11 +6,20 @@ config :omg_status,
   client_monitor_interval_ms: 10
 
 config :omg_status, OMG.Status.Metric.Tracer,
-  service: :omg_status,
   env: "test",
   disabled?: true
 
-# we don't want system alarms auto raised
+config :statix,
+  host: "datadog",
+  port: 8125
+
+config :spandex_datadog,
+  host: "datadog",
+  port: 8126,
+  batch_size: 10,
+  sync_threshold: 10,
+  http: HTTPoison
+
 config :os_mon,
   memsup_helper_timeout: 120,
   memory_check_interval: 5,

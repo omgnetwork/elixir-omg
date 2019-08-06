@@ -1,10 +1,12 @@
 use Mix.Config
 
+config :omg_watcher, child_chain_url: "http://localhost:9656"
+
 config :omg_watcher, OMG.Watcher.DB.Repo,
   ownership_timeout: 180_000,
   pool: Ecto.Adapters.SQL.Sandbox,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
-  url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_test"}
+  url: "postgres://omisego_dev:omisego_dev@localhost/omisego_test"
 
 config :omg_watcher,
   # NOTE: can't be made shorter. At 3 it sometimes causes :unchallenged_exit because `geth --dev` is too fast
@@ -18,10 +20,7 @@ config :omg_watcher,
   umbrella_root_dir: Path.join(__DIR__, "../../..")
 
 config :omg_watcher, OMG.Watcher.Tracer,
-  service: :ecto,
-  adapter: SpandexDatadog.Adapter,
   disabled?: true,
-  env: "test",
-  type: :db
+  env: "test"
 
 config :omg_watcher, environment: :test
