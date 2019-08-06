@@ -5,7 +5,7 @@
 Command:
 
 ```
-mix run --no-start -e 'OMG.Performance.start_simple_perftest(8_000, 32, %{block_every_ms: 15_000})'
+DD_DISABLED=true mix run --no-start -e 'OMG.Performance.start_simple_perftest(8_000, 32, %{block_every_ms: 15_000})'
 ```
 
 Performance statistics:

@@ -76,7 +76,10 @@ defmodule OMG.Performance do
         "PerfTest number of spenders: #{inspect(nspenders)}, number of tx to send per spender: #{inspect(ntx_to_send)}."
       )
 
-    DeferredConfig.populate(:omg_child_chain_rpc)
+    :ok = DeferredConfig.populate(:spandex_datadog)
+    :ok = DeferredConfig.populate(:statix)
+    :ok = DeferredConfig.populate(:omg_child_chain_rpc)
+    :ok = DeferredConfig.populate(:omg_watcher_rpc)
 
     defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
     opts = Map.merge(defaults, opts)
@@ -215,8 +218,7 @@ defmodule OMG.Performance do
 
   # We're not basing on mix to start all neccessary test's components.
   defp ensure_all_started(app_list) do
-    app_list
-    |> Enum.reduce([], fn app, list ->
+    Enum.reduce(app_list, [], fn app, list ->
       {:ok, started_apps} = Application.ensure_all_started(app)
       list ++ started_apps
     end)
