@@ -27,8 +27,6 @@ Run `iex -S mix run --no-start --config ~/config.exs` and inside REPL do:
 alias OMG.Eth
 alias OMG.TestHelper
 
-DeferredConfig.populate(:omg_eth)
-
 contract_addr = Application.fetch_env!(:omg_eth, :contract_addr) |> Eth.Encoding.from_hex()
 
 # defaults

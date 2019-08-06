@@ -219,8 +219,6 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture test_server do
-    DeferredConfig.populate(:omg_child_chain_rpc)
-    DeferredConfig.populate(:omg_watcher)
     {:ok, server_id, port} = Server.run()
     env = FakeServer.Env.new(port)
 

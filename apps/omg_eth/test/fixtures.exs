@@ -22,7 +22,6 @@ defmodule OMG.Eth.Fixtures do
   alias OMG.Eth.Encoding
 
   deffixture eth_node do
-    DeferredConfig.populate(:omg_eth)
     {:ok, exit_fn} = Eth.DevNode.start()
     on_exit(exit_fn)
     :ok
@@ -40,7 +39,6 @@ defmodule OMG.Eth.Fixtures do
     root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
-    DeferredConfig.populate(:omg_eth)
     {:ok, _, token_addr} = Eth.Deployer.create_new(OMG.Eth.Token, root_path, Encoding.from_hex(addr))
 
     # ensuring that the root chain contract handles token_addr
@@ -52,7 +50,6 @@ defmodule OMG.Eth.Fixtures do
   end
 
   deffixture root_chain_contract_config(contract) do
-    DeferredConfig.populate(:omg_eth)
     Application.put_env(:omg_eth, :contract_addr, Encoding.to_hex(contract.contract_addr), persistent: true)
     Application.put_env(:omg_eth, :authority_addr, Encoding.to_hex(contract.authority_addr), persistent: true)
     Application.put_env(:omg_eth, :txhash_contract, Encoding.to_hex(contract.txhash_contract), persistent: true)

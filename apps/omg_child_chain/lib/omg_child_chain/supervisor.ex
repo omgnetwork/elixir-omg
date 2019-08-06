@@ -25,9 +25,6 @@ defmodule OMG.ChildChain.Supervisor do
   end
 
   def init(:ok) do
-    DeferredConfig.populate(:omg_child_chain)
-    DeferredConfig.populate(:omg_eth)
-
     monitor_children = [
       {OMG.ChildChain.BlockQueue.Server, []},
       {OMG.RootChainCoordinator, coordinator_setup()},

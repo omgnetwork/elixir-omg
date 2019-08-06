@@ -149,7 +149,6 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   defp get_exit_period(nil) do
-    DeferredConfig.populate(:omg_eth)
     Application.fetch_env!(:omg_eth, :exit_period_seconds)
   end
 

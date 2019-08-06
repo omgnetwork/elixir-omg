@@ -14,7 +14,10 @@ config :omg_child_chain_rpc,
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
   render_errors: [view: OMG.ChildChainRPC.Web.Views.Error, accepts: ~w(json)],
   instrumenters: [SpandexPhoenix.Instrumenter],
-  enable_cors: true
+  enable_cors: true,
+  http: [:inet6, port: 9656],
+  url: [host: "cc.example.com", port: 80],
+  code_reloader: false
 
 # Use Poison for JSON parsing in Phoenix
 config :phoenix,
@@ -25,12 +28,9 @@ config :phoenix,
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
   service: :web,
   adapter: SpandexDatadog.Adapter,
-  disabled?: {:system, "DD_DISABLED", false, {String, :to_existing_atom}},
-  env: {:system, "APP_ENV"},
+  disabled?: false,
   type: :web
 
 config :spandex_phoenix, tracer: OMG.ChildChainRPC.Tracer
 
-# Import environment specific config. This must remain at the bottom
-# of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

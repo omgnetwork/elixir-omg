@@ -11,9 +11,9 @@ executors:
       - image: omisegoimages/elixir-omg-builder:v1.3
       - image: circleci/postgres:9.6-alpine
         environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: omisego_dev
+          POSTGRES_USER: omisego_dev
+          POSTGRES_PASSWORD: omisego_dev
+          POSTGRES_DB: omisego_test
     working_directory: ~/src
 
   builder_pg_geth:
@@ -21,9 +21,9 @@ executors:
       - image: omisegoimages/elixir-omg-tester:stable
       - image: circleci/postgres:9.6-alpine
         environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: omisego_dev
+          POSTGRES_USER: omisego_dev
+          POSTGRES_PASSWORD: omisego_dev
+          POSTGRES_DB: omisego_test
     working_directory: ~/src
 
   deploy:
@@ -52,7 +52,7 @@ jobs:
   build:
     executor: builder
     environment:
-      MIX_ENV: "test"
+      MIX_ENV: test
     steps:
       - checkout
       - restore_cache:
@@ -93,7 +93,6 @@ jobs:
   lint:
     executor: builder_pg
     environment:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
@@ -102,7 +101,6 @@ jobs:
   child_chain_coveralls_and_integration_tests:
     executor: builder_pg_geth
     environment:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
@@ -128,7 +126,6 @@ jobs:
   watcher_coveralls_and_integration_tests:
     executor: builder_pg_geth
     environment:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
@@ -154,7 +151,6 @@ jobs:
   common_coveralls_and_integration_tests:
     executor: builder_pg_geth
     environment:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
@@ -180,7 +176,6 @@ jobs:
   test:
     executor: builder_pg
     environment:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
@@ -205,8 +200,6 @@ jobs:
 
   dialyzer:
     executor: builder_pg
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
     steps:
       - setup_elixir-omg_workspace
       - restore_cache:

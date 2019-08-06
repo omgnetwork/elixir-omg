@@ -10,13 +10,20 @@ config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
   render_errors: [view: OMG.WatcherRPC.Web.Views.Error, accepts: ~w(json)],
   pubsub: [name: OMG.WatcherRPC.PubSub, adapter: Phoenix.PubSub.PG2],
   instrumenters: [SpandexPhoenix.Instrumenter],
-  enable_cors: true
+  enable_cors: true,
+  http: [:inet6, port: 7434],
+  url: [host: "w.example.com", port: 80],
+  code_reloader: false
+
+config :phoenix,
+  json_library: Jason,
+  serve_endpoints: true,
+  persistent: true
 
 config :omg_watcher_rpc, OMG.WatcherRPC.Tracer,
   service: :web,
   adapter: SpandexDatadog.Adapter,
-  disabled?: {:system, "DD_DISABLED", false, {String, :to_existing_atom}},
-  env: {:system, "APP_ENV"},
+  disabled?: false,
   type: :web
 
 config :spandex_phoenix, tracer: OMG.WatcherRPC.Tracer
