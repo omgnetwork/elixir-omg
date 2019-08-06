@@ -5,7 +5,7 @@ config :ethereumex,
   http_options: [recv_timeout: :infinity]
 
 config :omg_eth,
-  client_monitor_interval_ms: 50,
+  client_monitor_interval_ms: 10,
   environment: :test,
   exit_period_seconds: 22,
   # an entry to fix a common reference path to the root directory of the umbrella project

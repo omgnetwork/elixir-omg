@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule OMG.Bus do
-  @moduledoc false
+  @moduledoc """
+  Modules purpose is to serve as a event bus, the implementation is in the `OMG.Bus.PubSub` macro.
+  """
   use OMG.Bus.PubSub
 end

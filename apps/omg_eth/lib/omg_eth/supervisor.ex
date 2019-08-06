@@ -14,7 +14,8 @@
 
 defmodule OMG.Eth.Supervisor do
   @moduledoc """
-   OMG top level supervisor.
+   OMG Eth top level supervisor is supervising connection monitor towards Eth clients and
+   a gen server that serves as a unified view of reported block height (`OMG.Eth.EthereumHeight`).
   """
   use Supervisor
   alias OMG.Alert.Alarm

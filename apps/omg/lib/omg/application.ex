@@ -21,6 +21,6 @@ defmodule OMG.Application do
   use Application
 
   def start(_type, _args) do
-    OMG.Supervisor.start_link()
+    {:ok, self()}
   end
 end

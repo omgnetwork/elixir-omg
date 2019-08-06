@@ -14,7 +14,7 @@
 
 defmodule OMG.Bus.Supervisor do
   @moduledoc """
-   OMG top level supervisor.
+   OMG Bus top level supervisor.
   """
   use Supervisor
   require Logger

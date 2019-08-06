@@ -146,7 +146,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
         :ok
 
       _ ->
-        Process.sleep(100)
+        Process.sleep(50)
         pull_client_alarm(n - 1, match)
     end
   end

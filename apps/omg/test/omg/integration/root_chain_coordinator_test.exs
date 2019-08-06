@@ -27,6 +27,15 @@ defmodule OMG.RootChainCoordinatorTest do
 
   @moduletag :integration
   @moduletag :common
+  setup do
+    on_exit(fn ->
+      _ = Application.stop(:omg_bus)
+      _ = Application.stop(:omg_eth)
+      _ = Application.stop(:omg_status)
+    end)
+
+    :ok
+  end
 
   @tag fixtures: [:alice, :db_initialized, :root_chain_contract_config]
   test "can do a simplest sync",
