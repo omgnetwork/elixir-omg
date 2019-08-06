@@ -24,7 +24,6 @@ cowlib 1.0.2            -> ISC
 credo 0.9.3             -> MIT
 db_connection 1.1.3     -> Apache 2.0
 decimal 1.5.0           -> Apache 2.0
-deferred_config 0.1.1   -> MIT
 dialyxir 0.5.1          -> Apache 2.0
 ecto 2.2.10             -> Apache 2.0
 eleveldb 2.2.20         -> Apache 2.0

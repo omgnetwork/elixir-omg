@@ -18,7 +18,6 @@ defmodule OMG.Watcher.Application do
   use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
-    DeferredConfig.populate(:omg_watcher)
     cookie = System.get_env("ERL_W_COOKIE")
     true = set_cookie(cookie)
     _ = Logger.info("Starting #{inspect(__MODULE__)}")

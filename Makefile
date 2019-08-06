@@ -77,9 +77,17 @@ build-test: deps-elixir-omg
 # Testing
 #
 
-test: test-elixir-omg
+test:
+	mix test --include test --exclude common --exclude watcher --exclude child_chain
 
-.PHONY: test test-elixir-omg
+test-watcher:
+	mix test --include watcher --exclude child_chain --exclude common --exclude test
+
+test-common:
+	mix test --include common --exclude child_chain --exclude watcher --exclude test
+
+test-child_chain:
+	mix test --include child_chain --exclude common --exclude watcher --exclude test
 
 #
 # Documentation
@@ -132,6 +140,7 @@ docker-push: docker
 	docker push $(CHILD_CHAIN_IMAGE_NAME)
 	docker push $(WATCHER_IMAGE_NAME)
 
+###OTHER
 cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-deployer watcher childchain
 

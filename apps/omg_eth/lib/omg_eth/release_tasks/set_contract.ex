@@ -15,7 +15,8 @@
 defmodule OMG.Eth.ReleaseTasks.SetContract do
   @moduledoc false
   use Distillery.Releases.Config.Provider
-
+  require Logger
+  @app :omg_eth
   @doc """
   The contract values can currently come either from ENV variables for deployments in
   - development
@@ -25,6 +26,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   """
   @impl Provider
   def init(_args) do
+    _ = Application.ensure_all_started(:logger)
+
     case get_env("CONTRACT_EXCHANGER_URL") do
       value when is_binary(value) ->
         _ = Application.ensure_all_started(:hackney)
@@ -36,18 +39,31 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           "txhash_contract" => txhash_contract
         } = Jason.decode!(body)
 
-        :ok = Application.put_env(:omg_eth, :txhash_contract, String.downcase(txhash_contract), persistent: true)
-        :ok = Application.put_env(:omg_eth, :authority_addr, String.downcase(authority_address), persistent: true)
-        :ok = Application.put_env(:omg_eth, :contract_addr, String.downcase(contract_address), persistent: true)
+        :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
+        :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
+        :ok = Application.put_env(@app, :contract_addr, String.downcase(contract_address), persistent: true)
+
+        :ok =
+          Application.put_env(
+            @app,
+            :exit_period_seconds,
+            validate_integer(
+              get_env("EXIT_PERIOD_SECONDS"),
+              Application.get_env(@app, :exit_period_seconds)
+            )
+          )
 
       _ ->
         case get_env("ETHEREUM_NETWORK") do
           "RINKEBY" = network ->
             :ok = apply_settings(network)
 
+          "rinkeby" = network ->
+            :ok = apply_settings(network)
+
           _ ->
             error =
-              "Set RINKEBY_TXHASH_CONTRACT, RINKEBY_AUTHORITY_ADDRESS and RINKEBY_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
+              "Set ETHEREUM_NETWORK, RINKEBY_TXHASH_CONTRACT, RINKEBY_AUTHORITY_ADDRESS and RINKEBY_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
 
             exit(error)
         end
@@ -60,10 +76,13 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     txhash_contract = get_env(network <> "_TXHASH_CONTRACT")
     authority_address = get_env(network <> "_AUTHORITY_ADDRESS")
     contract_address = get_env(network <> "_CONTRACT_ADDRESS")
-    :ok = Application.put_env(:omg_eth, :txhash_contract, txhash_contract, persistent: true)
-    :ok = Application.put_env(:omg_eth, :authority_addr, authority_address, persistent: true)
-    :ok = Application.put_env(:omg_eth, :contract_addr, contract_address, persistent: true)
+    :ok = Application.put_env(@app, :txhash_contract, txhash_contract, persistent: true)
+    :ok = Application.put_env(@app, :authority_addr, authority_address, persistent: true)
+    :ok = Application.put_env(@app, :contract_addr, contract_address, persistent: true)
   end
 
   defp get_env(key), do: System.get_env(key)
+
+  defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
+  defp validate_integer(_, default), do: default
 end

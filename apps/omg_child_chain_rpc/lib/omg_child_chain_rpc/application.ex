@@ -21,8 +21,6 @@ defmodule OMG.ChildChainRPC.Application do
   require Logger
 
   def start(_type, _args) do
-    DeferredConfig.populate(:omg_child_chain_rpc)
-
     _ = Logger.info("Started application #{__MODULE__}")
 
     opts = [strategy: :one_for_one, name: OMG.ChildChainRPC.Supervisor]

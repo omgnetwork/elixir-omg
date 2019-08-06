@@ -18,8 +18,6 @@ defmodule OMG.WatcherRPC.Application do
   use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
-    DeferredConfig.populate(:omg_watcher_rpc)
-
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
     start_root_supervisor()

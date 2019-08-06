@@ -6,21 +6,20 @@ config :omg_status,
 config :omg_status, OMG.Status.Metric.Tracer,
   service: :omg_status,
   adapter: SpandexDatadog.Adapter,
-  disabled?: {:system, "DD_DISABLED", false, {String, :to_existing_atom}},
-  env: {:system, "APP_ENV"},
+  disabled?: false,
   type: :backend
 
 config :spandex, :decorators, tracer: OMG.Status.Metric.Tracer
 
 config :statix,
-  host: {:system, "DD_HOSTNAME", "datadog"},
-  port: {:system, "DD_PORT", 8125, {String, :to_integer}}
+  host: "datadog",
+  port: 8125
 
 config :spandex_datadog,
-  host: {:system, "DD_HOSTNAME", "datadog"},
-  port: {:system, "DD_TRACING_PORT", 8126, {String, :to_integer}},
-  batch_size: {:system, "TRACING_BATCH_SIZE", 10, {String, :to_integer}},
-  sync_threshold: {:system, "TRACING_SYNC_THRESHOLD", 100, {String, :to_integer}},
+  host: "datadog",
+  port: 8126,
+  batch_size: 10,
+  sync_threshold: 100,
   http: HTTPoison
 
 config :vmstats,

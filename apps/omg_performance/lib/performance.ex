@@ -76,8 +76,6 @@ defmodule OMG.Performance do
         "PerfTest number of spenders: #{inspect(nspenders)}, number of tx to send per spender: #{inspect(ntx_to_send)}."
       )
 
-    DeferredConfig.populate(:omg_child_chain_rpc)
-
     defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
     opts = Map.merge(defaults, opts)
 
@@ -118,8 +116,6 @@ defmodule OMG.Performance do
         }."
       )
 
-    DeferredConfig.populate(:omg_watcher)
-
     url = Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
 
     defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
@@ -143,7 +139,6 @@ defmodule OMG.Performance do
 
   @spec setup_simple_perftest(map()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
-    DeferredConfig.populate(:omg_watcher)
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omg_db, :path, dbdir, persistent: true)

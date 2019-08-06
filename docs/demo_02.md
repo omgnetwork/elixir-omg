@@ -22,8 +22,6 @@ alias OMG.TestHelper
 alias OMG.Integration.DepositHelper
 alias OMG.Eth.Encoding
 
-DeferredConfig.populate(:omg_eth)
-
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Eth.RootChain.eth_pseudo_address()

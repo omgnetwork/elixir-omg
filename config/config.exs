@@ -22,14 +22,14 @@ config :logger,
   backends: [:console]
 
 config :sentry,
-  dsn: System.get_env("SENTRY_DSN"),
-  environment_name: System.get_env("APP_ENV"),
-  included_environments: [:dev, :prod, System.get_env("APP_ENV")],
-  server_name: elem(:inet.gethostname(), 1),
+  dsn: "url",
+  environment_name: "development",
+  included_environments: [:dev, :prod, "development"],
+  server_name: 'localhost',
   tags: %{
-    application: System.get_env("ELIXIR_SERVICE"),
-    eth_network: System.get_env("ETHEREUM_NETWORK"),
-    eth_node: System.get_env("ETH_NODE")
+    application: "development",
+    eth_network: "development",
+    eth_node: "GETH"
   }
 
 import_config "#{Mix.env()}.exs"

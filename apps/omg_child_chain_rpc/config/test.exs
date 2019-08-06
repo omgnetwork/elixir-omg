@@ -7,10 +7,7 @@ config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
   server: true
 
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
-  service: :omg_child_chain_rpc,
-  adapter: SpandexDatadog.Adapter,
   disabled?: true,
-  env: "test",
-  type: :web
+  env: "test"
 
 config :omg_child_chain_rpc, environment: :test
