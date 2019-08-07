@@ -149,12 +149,12 @@ defmodule OMG.Performance do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omg_db, :path, dbdir, persistent: true)
-    OMG.Alert.AlarmHandler.install()
     _ = Logger.info("Perftest leveldb path: #{inspect(dbdir)}")
 
     :ok = OMG.DB.init()
 
     started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_child_chain_rpc, :omg_status])
+    :ok = OMG.Alert.AlarmHandler.install()
     {:ok, simple_perftest_chain} = start_simple_perftest_chain(opts)
 
     {:ok, started_apps, simple_perftest_chain}
