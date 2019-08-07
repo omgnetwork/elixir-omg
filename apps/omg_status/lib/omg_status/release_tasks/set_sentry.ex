@@ -20,12 +20,12 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
-    app_env = System.get_env("APP_ENV")
+    app_env = get_app_env()
     sentry_dsn = System.get_env("SENTRY_DSN")
 
     :ok =
-      case {is_binary(app_env), is_binary(sentry_dsn)} do
-        {true, true} ->
+      case is_binary(sentry_dsn) do
+        true ->
           hostname = get_hostname()
 
           _ =
@@ -57,6 +57,12 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
       end
   end
 
+  defp get_app_env do
+    env = validate_string(get_env("APP_ENV"), Application.get_env(@app, :environment_name))
+    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
+    env
+  end
+
   defp get_hostname do
     hostname =
       validate_string(
@@ -70,12 +76,13 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
 
   defp get_application do
     app =
-      case :code.ensure_loaded(OMG.Watcher) do
+      case Code.ensure_loaded?(OMG.Watcher) do
         true -> :watcher
         _ -> :child_chain
       end
 
     _ = Logger.warn("CONFIGURATION: App: #{@app} Key: application Value: #{inspect(app)}.")
+
     app
   end
 

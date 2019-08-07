@@ -21,7 +21,6 @@ defmodule OMG.Eth.Application do
   use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
-    Logger.error("#{inspect(Application.get_all_env(:logger))}")
     _ = Logger.info("Started #{inspect(__MODULE__)}, config used: #{inspect(Eth.Diagnostics.get_child_chain_config())}")
 
     OMG.Eth.Supervisor.start_link()
