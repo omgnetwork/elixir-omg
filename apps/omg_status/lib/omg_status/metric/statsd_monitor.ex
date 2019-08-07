@@ -25,7 +25,7 @@ defmodule OMG.Status.Metric.StatsdMonitor do
           alarm_module: module(),
           child_module: module(),
           interval: pos_integer(),
-          monitor: {pid(), reference()},
+          pid: pid(),
           raised: boolean(),
           tref: reference() | nil
         }
@@ -33,7 +33,7 @@ defmodule OMG.Status.Metric.StatsdMonitor do
   defstruct alarm_module: nil,
             child_module: nil,
             interval: @default_interval,
-            monitor: nil,
+            pid: nil,
             raised: false,
             tref: nil
 
@@ -48,12 +48,12 @@ defmodule OMG.Status.Metric.StatsdMonitor do
     alarm_module = Keyword.get(opts, :alarm_module)
     child_module = Keyword.get(opts, :child_module)
     false = Process.flag(:trap_exit, true)
-    {pid, _ref} = monitor = Kernel.spawn_monitor(child_module, :start, [])
+    {:ok, pid} = apply(child_module, :start_link, [])
 
     state = %__MODULE__{
       alarm_module: alarm_module,
       child_module: child_module,
-      monitor: monitor
+      pid: pid
     }
 
     _ = raise_clear(alarm_module, state.raised, Process.alive?(pid))
@@ -65,7 +65,8 @@ defmodule OMG.Status.Metric.StatsdMonitor do
     {:ok, %{}}
   end
 
-  def handle_info({:DOWN, _ref, :process, _object, _reason}, state) do
+  def handle_info({:EXIT, _, reason}, state) do
+    _ = Logger.error("Monitored datadog connection process from statix died of reason #{inspect(reason)} ")
     _ = state.alarm_module.set({:statsd_client_connection, Node.self(), __MODULE__})
     _ = :timer.cancel(state.tref)
     {:ok, tref} = :timer.send_after(state.interval, :connect)
@@ -73,10 +74,10 @@ defmodule OMG.Status.Metric.StatsdMonitor do
   end
 
   def handle_info(:connect, state) do
-    {pid, _ref} = monitor = Kernel.spawn_monitor(state.child_module, :start, [])
+    {:ok, pid} = apply(state.child_module, :start_link, [])
     alive = Process.alive?(pid)
     _ = raise_clear(state.alarm_module, state.raised, alive)
-    {:noreply, %{state | monitor: monitor}}
+    {:noreply, %{state | pid: pid}}
   end
 
   def handle_cast(:clear_alarm, state) do

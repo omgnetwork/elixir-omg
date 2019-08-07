@@ -25,6 +25,7 @@ defmodule OMG.Status.Metric.StatsdMonitorTest do
     on_exit(fn ->
       Process.exit(alarm_process, :cleanup)
       Process.exit(statsd_monitor, :cleanup)
+      Process.sleep(10)
     end)
 
     %{
@@ -35,6 +36,8 @@ defmodule OMG.Status.Metric.StatsdMonitorTest do
 
   test "if exiting process/port sends an exit signal to the parent process", %{alarm_process: alarm_process} do
     :erlang.trace(alarm_process, true, [:receive])
+    %{pid: pid} = :sys.get_state(StatsdMonitor)
+    true = Process.exit(pid, :testkill)
     assert_receive :got_raise_alarm
   end
 
@@ -42,10 +45,9 @@ defmodule OMG.Status.Metric.StatsdMonitorTest do
     alarm_process: alarm_process,
     statsd_monitor: _statsd_monitor
   } do
+    %{pid: pid} = :sys.get_state(StatsdMonitor)
     :erlang.trace(alarm_process, true, [:receive])
-    {:ok, statsd_wrapper} = __MODULE__.StasdWrapper.start()
-    assert_receive :got_clear_alarm
-    true = Process.exit(statsd_wrapper, :testkill)
+    true = Process.exit(pid, :testkill)
     assert_receive :got_raise_alarm
     assert_receive :got_clear_alarm
   end
@@ -81,8 +83,8 @@ defmodule OMG.Status.Metric.StatsdMonitorTest do
   defmodule StasdWrapper do
     use GenServer
 
-    def start do
-      GenServer.start(__MODULE__, [], [])
+    def start_link do
+      GenServer.start_link(__MODULE__, [], [])
     end
 
     def init(_) do
