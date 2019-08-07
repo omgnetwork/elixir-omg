@@ -122,7 +122,6 @@ defmodule OMG.Performance do
       )
 
     DeferredConfig.populate(:omg_watcher)
-
     url = Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
 
     defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
@@ -150,6 +149,7 @@ defmodule OMG.Performance do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omg_db, :path, dbdir, persistent: true)
+    OMG.Alert.AlarmHandler.install()
     _ = Logger.info("Perftest leveldb path: #{inspect(dbdir)}")
 
     :ok = OMG.DB.init()
