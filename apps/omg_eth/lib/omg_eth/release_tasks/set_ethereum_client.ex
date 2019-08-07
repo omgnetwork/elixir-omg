@@ -70,12 +70,4 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   defp validate_string(_, default), do: default
 
   defp get_env(key), do: System.get_env(key)
-
-  defp print_msg(msg) when is_binary(msg) do
-    if IO.ANSI.enabled?() do
-      IO.puts(IO.ANSI.format([IO.ANSI.red(), msg, IO.ANSI.reset()]))
-    else
-      IO.puts(msg)
-    end
-  end
 end
