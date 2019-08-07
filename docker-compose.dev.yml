@@ -8,10 +8,14 @@ services:
     volumes:
       - .:/home/elixir-user/elixir-omg
   watcher:
+    environment:
+      - DD_DISABLED=false
     depends_on:
       datadog:
         condition: service_healthy
   childchain:
+    environment:
+      - DD_DISABLED=false
     depends_on:
       datadog:
         condition: service_healthy

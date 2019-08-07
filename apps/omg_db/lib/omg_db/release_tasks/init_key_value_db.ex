@@ -21,7 +21,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
   alias OMG.Utils.CLI
 
   def run do
-    path = Application.get_env(:omg_db, :path)
+    path = System.get_env("DB_PATH")
     _ = process(path)
     :ok
   end

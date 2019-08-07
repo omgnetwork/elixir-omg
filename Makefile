@@ -132,6 +132,8 @@ docker-push: docker
 	docker push $(CHILD_CHAIN_IMAGE_NAME)
 	docker push $(WATCHER_IMAGE_NAME)
 
+cluster-with-datadog:
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-deployer watcher childchain
 
 ### UTILS
 OSFLAG := ''
