@@ -30,6 +30,7 @@ defmodule OMG.Status.Metric.Datadog do
   def start_link, do: GenServer.start_link(__MODULE__, [], [])
 
   def init(_opts) do
+    _ = Process.flag(:trap_exit, true)
     _ = Logger.info("Starting #{inspect(__MODULE__)} and connecting to Datadog.")
     __MODULE__.connect()
     _ = Logger.info("Connection opened #{inspect(current_conn())}")

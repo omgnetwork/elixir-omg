@@ -25,6 +25,7 @@ defmodule OMG.Status.Metric.StatsdMonitorTest do
     on_exit(fn ->
       Process.exit(alarm_process, :cleanup)
       Process.exit(statsd_monitor, :cleanup)
+      Process.sleep(10)
     end)
 
     %{
