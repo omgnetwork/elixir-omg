@@ -17,7 +17,17 @@ defmodule OMG.Status.Metric.DatadogTest do
   alias OMG.Status.Metric.Datadog
 
   setup do
-    %{datadog: Datadog.start()}
+    parent = self()
+
+    spawn(fn ->
+      {:ok, datadog_pid} = Datadog.start_link()
+      send(parent, {:ok, datadog_pid})
+    end)
+
+    receive do
+      {:ok, datadog_pid} ->
+        %{datadog: {:ok, datadog_pid}}
+    end
   end
 
   test "if exiting process/port sends an exit signal to the parent process", %{datadog: {:ok, datadog_pid}} do
@@ -28,11 +38,10 @@ defmodule OMG.Status.Metric.DatadogTest do
         port = Port.open({:spawn, "cat"}, [:binary])
         true = Process.link(datadog_pid)
         true = Process.exit(port, :portkill)
+
         # we want to exit because the port forcefully closes
         # so this sleep shouldn't happen
         Process.sleep(10_000)
       end)
-
-    assert_receive {:trace, ^datadog_pid, :receive, {:EXIT, port, :portkill}}
   end
 end
