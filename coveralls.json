@@ -1,0 +1,12 @@
+{
+  "skip_files": [
+    "apps/omg_watcher/test/support",
+    "apps/omg_watcher/lib/omg_watcher/release_tasks",
+    "apps/omg_watcher_rpc/test/support",
+    "apps/omg_watcher_rpc/lib/release_tasks",
+    "apps/omg_status/test/support",
+    "apps/omg_status/lib/omg_status/release_tasks",
+    "apps/omg_eth/test/support",
+    "apps/omg_eth/lib/omg_eth/release_tasks"
+  ]
+}
