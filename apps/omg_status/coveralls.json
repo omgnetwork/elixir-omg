@@ -1,6 +1,6 @@
 {
   "skip_files": [
     "test/support",
-     "lib/omg_eth/release_tasks"
+    "lib/omg_status/release_tasks"
   ]
 }
