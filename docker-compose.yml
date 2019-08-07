@@ -57,10 +57,12 @@ services:
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - ERL_CC_COOKIE=develop
+      - ERLANG_COOKIE=develop
+      - NODE_HOST=127.0.0.1
       - APP_ENV=local_development_child_chain
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
+      - DB_PATH=/app/.omg/data
     restart: always
     ports:
       - "9656:9656"
@@ -87,10 +89,12 @@ services:
       - CHILD_CHAIN_URL=http://childchain:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
-      - ERL_W_COOKIE=develop
+      - ERLANG_COOKIE=develop
+      - NODE_HOST=127.0.0.1
       - APP_ENV=local_development_watcher
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
+      - DB_PATH=/app/.omg/data
     restart: always
     ports:
       - "7434:7434"
