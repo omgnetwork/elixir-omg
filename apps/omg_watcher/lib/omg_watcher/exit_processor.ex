@@ -19,14 +19,15 @@ defmodule OMG.Watcher.ExitProcessor do
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
+  # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Block
   alias OMG.DB
   alias OMG.Eth
+  alias OMG.Eth.EthereumHeight
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.Eventer.Core
-  # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.StandardExit
@@ -255,7 +256,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
     {new_state, event_triggers, db_updates} = Core.finalize_exits(state, validities)
 
-    :ok = OMG.InternalEventBus.broadcast("events", {:preprocess_emit_events, event_triggers})
+    :ok = OMG.Bus.broadcast("events", {:preprocess_emit_events, event_triggers})
 
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
@@ -425,7 +426,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp run_status_gets(%ExitProcessor.Request{eth_height_now: nil, blknum_now: nil} = request) do
-    {:ok, eth_height_now} = OMG.EthereumHeight.get()
+    {:ok, eth_height_now} = EthereumHeight.get()
     {blknum_now, _} = State.get_status()
 
     _ = Logger.debug("eth_height_now: #{inspect(eth_height_now)}, blknum_now: #{inspect(blknum_now)}")

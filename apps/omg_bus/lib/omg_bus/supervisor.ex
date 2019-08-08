@@ -12,7 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.start()
-ExUnitFixtures.load_fixture_files()
-ExUnit.start()
+defmodule OMG.Bus.Supervisor do
+  @moduledoc """
+   OMG Bus top level supervisor.
+  """
+  use Supervisor
+  require Logger
+
+  def start_link do
+    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
+  end
+
+  def init(:ok) do
+    children = [{OMG.Bus.PubSub, []}]
+
+    opts = [strategy: :one_for_one]
+
+    _ = Logger.info("Starting #{inspect(__MODULE__)}")
+    Supervisor.init(children, opts)
+  end
+end

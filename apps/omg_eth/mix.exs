@@ -22,7 +22,7 @@ defmodule OMG.Eth.MixProject do
   def application do
     [
       mod: {OMG.Eth.Application, []},
-      extra_applications: [:logger]
+      extra_applications: [:sasl, :logger]
     ]
   end
 
@@ -44,6 +44,9 @@ defmodule OMG.Eth.MixProject do
         app: false,
         only: [:dev, :test]
       },
+      # Umbrella
+      {:omg_bus, in_umbrella: true},
+      {:omg_status, in_umbrella: true},
       # TEST ONLY
       {:exexec,
        git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},

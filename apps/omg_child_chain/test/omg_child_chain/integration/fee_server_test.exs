@@ -31,8 +31,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
   @fees %{@eth_hex => 0}
 
   setup do
-    :ok = OMG.Alert.AlarmHandler.install()
-    OMG.Alert.Alarm.clear_all()
+    _ = Application.ensure_all_started(:omg_status)
 
     # make sure :ets managed to clear up before we start another
     Stream.repeatedly(fn ->

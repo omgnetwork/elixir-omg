@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.start()
-ExUnitFixtures.load_fixture_files()
-ExUnit.start()
+defmodule OMG.Bus.Application do
+  @moduledoc false
+
+  use Application
+
+  def start(_type, _args) do
+    OMG.Bus.Supervisor.start_link()
+  end
+end

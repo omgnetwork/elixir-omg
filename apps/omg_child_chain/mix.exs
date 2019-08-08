@@ -35,6 +35,7 @@ defmodule OMG.ChildChain.MixProject do
       {:deferred_config, "~> 0.1.1"},
       {:telemetry, "~> 0.4.0"},
       #
+      {:omg_bus, in_umbrella: true},
       {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},
       {:omg_db, in_umbrella: true},

@@ -31,7 +31,7 @@ defmodule OMG.WatcherRPC.BroadcastEvent do
 
   def init(:ok) do
     # `link: true` because we want the `BroadcastEvent` to restart and resubscribe, if the bus crashes
-    :ok = OMG.InternalEventBus.subscribe("broadcast_event", link: true)
+    :ok = OMG.Bus.subscribe("broadcast_event", link: true)
 
     {:ok, nil}
   end

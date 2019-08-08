@@ -18,9 +18,11 @@ defmodule OMG.Watcher.API.AlarmTest do
   alias OMG.Watcher.API.Alarm
 
   setup %{} do
+    _ = Application.ensure_all_started(:omg_status)
     system_alarm = {:system_memory_high_watermark, []}
     system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
     app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
+
     %{system_alarm: system_alarm, system_disk_alarm: system_disk_alarm, app_alarm: app_alarm}
   end
 
@@ -34,10 +36,9 @@ defmodule OMG.Watcher.API.AlarmTest do
     system_disk_alarm: system_disk_alarm,
     app_alarm: app_alarm
   } do
-    _ = OMG.Status.Alert.Alarm.clear_all()
-    :alarm_handler.set_alarm(system_alarm)
-    :alarm_handler.set_alarm(app_alarm)
-    :alarm_handler.set_alarm(system_disk_alarm)
+    :ok = :alarm_handler.set_alarm(system_alarm)
+    :ok = :alarm_handler.set_alarm(app_alarm)
+    :ok = :alarm_handler.set_alarm(system_disk_alarm)
 
     {:ok,
      [

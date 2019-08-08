@@ -34,10 +34,14 @@ defmodule OMG.Status.Alert.AlarmHandler do
   def handle_call(:get_alarms, %{alarms: alarms} = state), do: {:ok, alarms, state}
 
   def handle_event({:set_alarm, new_alarm}, %{alarms: alarms} = state) do
-    if Enum.any?(alarms, &(&1 == new_alarm)) do
-      {:ok, state}
-    else
-      {:ok, %{alarms: [new_alarm | alarms]}}
+    # was the alarm raised already and is this our type of alarm?
+    case Enum.any?(alarms, &(&1 == new_alarm)) do
+      true ->
+        {:ok, state}
+
+      false ->
+        # the alarm has not been raised before and we're subscribed
+        {:ok, %{alarms: [new_alarm | alarms]}}
     end
   end
 

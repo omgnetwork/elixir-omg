@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.InternalEventBus do
+defmodule OMG.Bus.PubSub do
   @moduledoc """
   Thin wrapper around the pubsub mechanism allowing us to not repeat ourselves when starting/broadcasting/subscribing
 
@@ -41,39 +41,46 @@ defmodule OMG.InternalEventBus do
   """
   alias Phoenix.PubSub
 
-  @doc """
-  Fixes the name of the PubSub server and the variant of `Phoenix.PubSub` used
-  """
   def child_spec(args \\ []) do
     args
     |> Keyword.put_new(:name, __MODULE__)
     |> PubSub.PG2.child_spec()
   end
 
-  @doc """
-  Subscribes the current process to the internal bus topic
-  """
-  def subscribe(topic, opts \\ []) do
-    PubSub.subscribe(__MODULE__, topic, opts)
-  end
+  defmacro __using__(_) do
+    quote do
+      alias Phoenix.PubSub
 
-  @doc """
-  Broadcast a message with a prefix indicating that it is originating from the internal event bus
+      @doc """
+      Fixes the name of the PubSub server and the variant of `Phoenix.PubSub` used
+      """
 
-  Handle the message in the receiving process by e.g.
-  ```
-  def handle_info({:internal_bus_event, :some_event, my_payload}, state)
-  ```
-  """
-  def broadcast(topic, {event, payload}) when is_atom(event) do
-    PubSub.broadcast(__MODULE__, topic, {:internal_event_bus, event, payload})
-  end
+      @doc """
+      Subscribes the current process to the internal bus topic
+      """
+      def subscribe(topic, opts \\ []) do
+        PubSub.subscribe(OMG.Bus.PubSub, topic, opts)
+      end
 
-  @doc """
-  Same as `broadcast/1`, but performed on the local node
-  """
-  def direct_local_broadcast(topic, {event, payload}) when is_atom(event) do
-    node_name = PubSub.node_name(__MODULE__)
-    PubSub.direct_broadcast(node_name, __MODULE__, topic, {:internal_event_bus, event, payload})
+      @doc """
+      Broadcast a message with a prefix indicating that it is originating from the internal event bus
+
+      Handle the message in the receiving process by e.g.
+      ```
+      def handle_info({:internal_bus_event, :some_event, my_payload}, state)
+      ```
+      """
+      def broadcast(topic, {event, payload}) when is_atom(event) do
+        PubSub.broadcast(OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
+      end
+
+      @doc """
+      Same as `broadcast/1`, but performed on the local node
+      """
+      def direct_local_broadcast(topic, {event, payload}) when is_atom(event) do
+        node_name = PubSub.node_name(OMG.Bus.PubSub)
+        PubSub.direct_broadcast(node_name, OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
+      end
+    end
   end
 end

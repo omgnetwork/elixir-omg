@@ -19,11 +19,8 @@ defmodule OMG.Application do
   """
 
   use Application
-  alias OMG.Alert.AlarmHandler
 
   def start(_type, _args) do
-    :ok = AlarmHandler.install()
-
-    OMG.Supervisor.start_link()
+    {:ok, self()}
   end
 end

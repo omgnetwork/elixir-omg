@@ -12,31 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.EthereumClientMonitorTest do
+defmodule OMG.Eth.EthereumClientMonitorTest do
   @moduledoc false
 
   use ExUnit.Case, async: false
-
   alias __MODULE__.EthereumClientMock
   alias __MODULE__.WebSockexMockTestSocket
   alias __MODULE__.WebSockexServerMock
-  alias OMG.Alert.Alarm
-  alias OMG.Alert.AlarmHandler
-  alias OMG.EthereumClientMonitor
+  alias OMG.Eth.EthereumClientMonitor
+  alias OMG.Status.Alert.Alarm
 
   @moduletag :capture_log
 
   setup_all do
     _ = Application.put_env(:omg_child_chain, :eth_integration_module, EthereumClientMock)
-    :ok = AlarmHandler.install()
-    {:ok, _} = EthereumClientMock.start_link()
+    Application.ensure_all_started(:omg_status)
 
-    # OMG.EthereumClientMonitor use OMG.InternalEventBus
-    {:ok, _} =
-      Supervisor.start_link(
-        [{Phoenix.PubSub.PG2, [name: OMG.InternalEventBus]}],
-        strategy: :one_for_one
-      )
+    Application.ensure_all_started(:omg_bus)
+
+    {:ok, _} = EthereumClientMock.start_link()
 
     on_exit(fn ->
       Application.put_env(:omg_child_chain, :eth_integration_module, nil)
@@ -77,16 +71,13 @@ defmodule OMG.EthereumClientMonitorTest do
     assert_receive {:trace, ^pid, :receive, {:EXIT, ^ws_connection, :testkill}}
     assert_receive {:trace, ^pid, :receive, {:"$gen_cast", :set_alarm}}
 
-    alarm = %{
-      details: %{node: Node.self(), reporter: EthereumClientMonitor},
-      id: :ethereum_client_connection
-    }
+    alarm = [ethereum_client_connection: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumClientMonitor}]
 
-    [^alarm] = Alarm.all()
+    ^alarm = Alarm.all()
 
     %{raised: true} = :sys.get_state(EthereumClientMonitor)
     # eventually, the connection should recover
-    assert_receive {:trace, ^pid, :receive, {:"$gen_cast", :clear_alarm}}
+    assert_receive({:trace, ^pid, :receive, {:"$gen_cast", :clear_alarm}}, 100)
   end
 
   test "that alarm gets raised if there's no ethereum client running and cleared when it's running", %{
@@ -105,12 +96,9 @@ defmodule OMG.EthereumClientMonitorTest do
     true = is_pid(Process.whereis(EthereumClientMonitor))
 
     :ok =
-      pull_client_alarm(300, [
-        %{
-          details: %{node: Node.self(), reporter: EthereumClientMonitor},
-          id: :ethereum_client_connection
-        }
-      ])
+      pull_client_alarm(300,
+        ethereum_client_connection: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumClientMonitor}
+      )
 
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
 
@@ -132,17 +120,14 @@ defmodule OMG.EthereumClientMonitorTest do
 
     WebSockexServerMock.shutdown(server_ref)
     EthereumClientMock.set_faulty_response()
-    EthereumClientMock.set_long_response(4500)
+    EthereumClientMock.set_long_response(1500)
     pid = Process.whereis(EthereumClientMonitor)
     true = is_pid(pid)
 
-    _ =
-      pull_client_alarm(100, [
-        %{
-          details: %{node: Node.self(), reporter: EthereumClientMonitor},
-          id: :ethereum_client_connection
-        }
-      ])
+    :ok =
+      pull_client_alarm(100,
+        ethereum_client_connection: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumClientMonitor}
+      )
 
     {:message_queue_len, 0} = Process.info(pid, :message_queue_len)
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
@@ -161,7 +146,7 @@ defmodule OMG.EthereumClientMonitorTest do
         :ok
 
       _ ->
-        Process.sleep(100)
+        Process.sleep(50)
         pull_client_alarm(n - 1, match)
     end
   end

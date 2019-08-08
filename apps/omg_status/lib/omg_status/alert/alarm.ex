@@ -21,10 +21,23 @@ defmodule OMG.Status.Alert.Alarm do
   @typedoc """
   The raw alarm being used to `set` the Alarm
   """
-  @type raw_t :: {:statsd_client_connection, atom(), atom()}
+  @type raw_t ::
+          {:boot_in_progress
+           | :ethereum_client_connection
+           | :invalid_fee_file
+           | :statsd_client_connection, atom(), atom()}
 
   def statsd_client_connection(node, reporter),
     do: {:statsd_client_connection, %{node: node, reporter: reporter}}
+
+  def ethereum_client_connection_issue(node, reporter),
+    do: {:ethereum_client_connection, %{node: node, reporter: reporter}}
+
+  def boot_in_progress(node, reporter),
+    do: {:boot_in_progress, %{node: node, reporter: reporter}}
+
+  def invalid_fee_file(node, reporter),
+    do: {:invalid_fee_file, %{node: node, reporter: reporter}}
 
   @spec set(raw_t()) :: :ok | :duplicate
   def set(raw_alarm), do: raw_alarm |> make_alarm() |> do_raise()
@@ -33,29 +46,39 @@ defmodule OMG.Status.Alert.Alarm do
   def clear(raw_alarm), do: raw_alarm |> make_alarm() |> do_clear()
 
   def clear_all do
-    all_raw()
-    |> Enum.each(&:alarm_handler.clear_alarm(&1))
+    Enum.each(all(), &:alarm_handler.clear_alarm(&1))
   end
 
-  def all, do: all_raw()
+  def all do
+    :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
+  end
 
   defp do_raise(alarm) do
-    if Enum.member?(all_raw(), alarm),
+    if Enum.member?(all(), alarm),
       do: :duplicate,
       else: :alarm_handler.set_alarm(alarm)
   end
 
   defp do_clear(alarm) do
-    if Enum.member?(all_raw(), alarm),
+    if Enum.member?(all(), alarm),
       do: :alarm_handler.clear_alarm(alarm),
       else: :not_raised
   end
 
-  defp all_raw, do: :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
-
-  @spec make_alarm(raw_t()) :: {atom(), %{node: node(), reporter: module()}}
   defp make_alarm(raw_alarm = {_, node, reporter}) when is_atom(node) and is_atom(reporter),
     do: make_alarm_for(raw_alarm)
+
+  defp make_alarm_for({:ethereum_client_connection, node, reporter}) do
+    ethereum_client_connection_issue(node, reporter)
+  end
+
+  defp make_alarm_for({:boot_in_progress, node, reporter}) do
+    boot_in_progress(node, reporter)
+  end
+
+  defp make_alarm_for({:invalid_fee_file, node, reporter}) do
+    invalid_fee_file(node, reporter)
+  end
 
   defp make_alarm_for({:statsd_client_connection, node, reporter}) do
     statsd_client_connection(node, reporter)

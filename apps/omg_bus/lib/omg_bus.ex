@@ -12,30 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Supervisor do
+defmodule OMG.Bus do
   @moduledoc """
-   OMG top level supervisor.
+  Modules purpose is to serve as a event bus, the implementation is in the `OMG.Bus.PubSub` macro.
   """
-  use Supervisor
-  use OMG.Utils.LoggerExt
-  alias OMG.Alert.Alarm
-
-  def start_link do
-    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
-  end
-
-  def init(:ok) do
-    DeferredConfig.populate(:omg)
-
-    children = [
-      {OMG.InternalEventBus, []},
-      {OMG.EthereumClientMonitor, [alarm_module: Alarm, ws_url: Application.get_env(:omg_eth, :ws_url)]},
-      {OMG.EthereumHeight, []}
-    ]
-
-    opts = [strategy: :one_for_one]
-
-    _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(children, opts)
-  end
+  use OMG.Bus.PubSub
 end

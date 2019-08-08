@@ -20,6 +20,11 @@ defmodule OMG.Status.Alert.AlarmTest do
   @moduletag :common
   @moduletag timeout: 240_000
 
+  setup_all do
+    _ = Application.ensure_all_started(:omg_status)
+    :ok
+  end
+
   setup do
     Alarm.clear_all()
   end
@@ -40,6 +45,31 @@ defmodule OMG.Status.Alert.AlarmTest do
     assert get_alarms([:id5]) == [alarm]
     :alarm_handler.clear_alarm(alarm)
     assert get_alarms([:id5]) == []
+  end
+
+  test "adds and removes alarms" do
+    # we *do* (unifying them under one app) want system alarms (like CPU, memory...)
+    :alarm_handler.set_alarm({:some_system_alarm, "description_1"})
+    assert not Enum.empty?(get_alarms([:some_system_alarm]))
+    Alarm.clear_all()
+    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__})
+    assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 1
+
+    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__.SecondProcess})
+    assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 2
+
+    Alarm.clear({:ethereum_client_connection, Node.self(), __MODULE__})
+    assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 1
+
+    Alarm.clear_all()
+    assert Enum.empty?(get_alarms([:some_system_alarm, :ethereum_client_connection])) == true
+  end
+
+  test "an alarm raise twice is reported once" do
+    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__})
+    first_count = Enum.count(get_alarms([:ethereum_client_connection]))
+    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__})
+    ^first_count = Enum.count(get_alarms([:ethereum_client_connection]))
   end
 
   test "memsup alarms" do

@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Eventer do
   Imperative shell for handling events, which are exposed to the client of the Watcher application.
   All handling of event triggers that are processed, transformed into events and pushed to the internal EventBus where they get consumed by Phoenix Eventer module.
 
-  The event triggers (which get later translated into specific events/topics etc.) arrive here via `OMG.InternalEventBus`
+  The event triggers (which get later translated into specific events/topics etc.) arrive here via `OMG.Bus`
 
   See `OMG.EventerAPI` for the API to the GenServer
   """
@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Eventer do
 
   def init(:ok) do
     # `link: true` because we want the `Eventer` to restart and resubscribe, if the bus crashes
-    :ok = OMG.InternalEventBus.subscribe("events", link: true)
+    :ok = OMG.Bus.subscribe("events", link: true)
 
     {:ok, _} =
       :timer.send_interval(Application.fetch_env!(:omg_watcher, :metrics_collection_interval), self(), :send_metrics)
@@ -61,6 +61,6 @@ defmodule OMG.Watcher.Eventer do
   end
 
   defp do_broadcast(event_triggers) do
-    OMG.InternalEventBus.broadcast("broadcast_event", {:emit_events, event_triggers})
+    OMG.Bus.broadcast("broadcast_event", {:emit_events, event_triggers})
   end
 end

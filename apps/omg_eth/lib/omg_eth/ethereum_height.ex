@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.EthereumHeight do
+defmodule OMG.Eth.EthereumHeight do
   @moduledoc """
   A GenServer that subscribes to `newHeads` events coming from the internal event bus, decodes and saves only the height to be consumed
   by other services.
@@ -28,12 +28,13 @@ defmodule OMG.EthereumHeight do
     GenServer.call(__MODULE__, :get)
   end
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init(:ok) do
-    :ok = OMG.InternalEventBus.subscribe("newHeads", link: true)
+  def init(opts) do
+    event_bus = Keyword.get(opts, :event_bus)
+    :ok = event_bus.subscribe("newHeads", link: true)
     {:ok, get_ethereum_height()}
   end
 
@@ -67,5 +68,5 @@ defmodule OMG.EthereumHeight do
     _check_error -> :error_ethereum_height
   end
 
-  defp eth, do: Application.get_env(:omg_child_chain, :eth_integration_module, Eth)
+  defp eth, do: Application.get_env(:omg_eth, :eth_integration_module, Eth)
 end

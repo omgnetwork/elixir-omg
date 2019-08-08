@@ -17,6 +17,7 @@ defmodule OMG.Status.Metric.StatsdMonitorTest do
   alias OMG.Status.Metric.StatsdMonitor
 
   setup do
+    _ = Application.ensure_all_started(:omg_status)
     {:ok, alarm_process} = __MODULE__.Alarm.start(self())
 
     {:ok, statsd_monitor} =
