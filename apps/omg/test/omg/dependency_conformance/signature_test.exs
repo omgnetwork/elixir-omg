@@ -49,7 +49,7 @@ defmodule OMG.DependencyConformance.SignatureTest do
 
   test "signature test empty transaction", context do
     contract = context[:contract]
-    tx = Transaction.new([], []) |> DevCrypto.sign([@alice.priv])
+    tx = Transaction.Payment.new([], []) |> DevCrypto.sign([@alice.priv])
     sig = tx.sigs |> Enum.at(0)
 
     verify(contract, tx, sig)

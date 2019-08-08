@@ -70,25 +70,25 @@ defmodule OMG.TypedDataHash.Tools do
 
   @spec hash_transaction(
           list(Utxo.Position.t()),
-          list(Transaction.output()),
+          list(Transaction.Payment.output()),
           Transaction.metadata(),
           Crypto.hash_t(),
           Crypto.hash_t()
         ) :: Crypto.hash_t()
   def hash_transaction(inputs, outputs, metadata, empty_input_hash, empty_output_hash) do
-    require Transaction
+    require Transaction.Payment
 
     input_hashes =
       inputs
       |> Stream.map(&hash_input/1)
       |> Stream.concat(Stream.cycle([empty_input_hash]))
-      |> Enum.take(Transaction.max_inputs())
+      |> Enum.take(Transaction.Payment.max_inputs())
 
     output_hashes =
       outputs
       |> Stream.map(&hash_output/1)
       |> Stream.concat(Stream.cycle([empty_output_hash]))
-      |> Enum.take(Transaction.max_outputs())
+      |> Enum.take(Transaction.Payment.max_outputs())
 
     [
       @transaction_type_hash,
@@ -113,7 +113,7 @@ defmodule OMG.TypedDataHash.Tools do
     |> Crypto.hash()
   end
 
-  @spec hash_output(Transaction.output()) :: Crypto.hash_t()
+  @spec hash_output(Transaction.Payment.output()) :: Crypto.hash_t()
   def hash_output(%{owner: owner, currency: currency, amount: amount}) do
     [
       @output_type_hash,

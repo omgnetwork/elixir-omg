@@ -236,7 +236,8 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
-  test "can't spend when signature order does not match input order", %{alice: alice, bob: bob, state_empty: state} do
+  test "can't spend when signature order does not match input order (restrictive spender checks)",
+       %{alice: alice, bob: bob, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
     |> do_deposit(bob, %{amount: 20, currency: @eth, blknum: 2})
@@ -473,8 +474,9 @@ defmodule OMG.State.CoreTest do
              }, _, _}, _} = form_block_check(state)
 
     # precomputed fixed hash to check compliance with hashing algo
-    assert block_hash |> Base.encode16(case: :lower) ==
-             "ee44e104950e8784c17495e423493c54026fa554180bbbca057c1176bc4e1ded"
+    assert block_hash ==
+             <<238, 68, 225, 4, 149, 14, 135, 132, 193, 116, 149, 228, 35, 73, 60, 84, 2, 111, 165, 84, 24, 11, 187,
+               202, 5, 124, 17, 118, 188, 78, 29, 237>>
 
     # Check that contents of the block can be recovered again to original txs
     assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)

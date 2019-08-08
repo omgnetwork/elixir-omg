@@ -24,8 +24,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   require Utxo
   require Transaction
+  require Transaction.Payment
 
-  @max_inputs Transaction.max_inputs()
+  @max_inputs Transaction.Payment.max_inputs()
 
   # TODO: divide into inputs and outputs: prevent contract's implementation from leaking into watcher
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247926222
@@ -207,14 +208,14 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def from_db_raw_tx(%{inputs: inputs, outputs: outputs, metadata: metadata})
       when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
     value = %{inputs: inputs, outputs: outputs, metadata: metadata}
-    struct!(Transaction, value)
+    struct!(Transaction.Payment, value)
   end
 
   def to_db_value(%Transaction.Signed{raw_tx: raw_tx, sigs: sigs}) when is_list(sigs) do
     %{raw_tx: to_db_value(raw_tx), sigs: sigs}
   end
 
-  def to_db_value(%Transaction{inputs: inputs, outputs: outputs, metadata: metadata})
+  def to_db_value(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
       when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
     %{inputs: inputs, outputs: outputs, metadata: metadata}
   end

@@ -37,7 +37,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
     end
   end
 
-  @spec parse_transaction(map()) :: {:ok, Transaction.t()} | {:error, any}
+  @spec parse_transaction(map()) :: {:ok, Transaction.Payment.t()} | {:error, any}
   def parse_transaction(params) do
     with {:ok, msg} <- expect(params, "message", :map),
          inputs when is_list(inputs) <- parse_inputs(msg),
@@ -45,7 +45,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
          {:ok, metadata} <- expect(msg, "metadata", :hash) do
       metadata = if metadata == @empty_metadata, do: nil, else: metadata
 
-      {:ok, Transaction.new(inputs, outputs, metadata)}
+      {:ok, Transaction.Payment.new(inputs, outputs, metadata)}
     end
   end
 
@@ -84,9 +84,9 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
 
   @spec parse_inputs(map()) :: [{integer(), integer(), integer()}] | {:error, any()}
   defp parse_inputs(message) do
-    require Transaction
+    require Transaction.Payment
 
-    0..(Transaction.max_inputs() - 1)
+    0..(Transaction.Payment.max_inputs() - 1)
     |> Enum.map(fn i -> expect(message, "input#{i}", map: &parse_input/1) end)
     |> all_success_or_error()
   end
@@ -102,9 +102,9 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
 
   @spec parse_outputs(map()) :: [{OMG.Crypto.address_t(), OMG.Crypto.address_t(), integer()}] | {:error, any()}
   defp parse_outputs(message) do
-    require Transaction
+    require Transaction.Payment
 
-    0..(Transaction.max_outputs() - 1)
+    0..(Transaction.Payment.max_outputs() - 1)
     |> Enum.map(fn i -> expect(message, "output#{i}", map: &parse_output/1) end)
     |> all_success_or_error()
   end

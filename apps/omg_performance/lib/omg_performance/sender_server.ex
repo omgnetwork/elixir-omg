@@ -122,7 +122,7 @@ defmodule OMG.Performance.SenderServer do
 
     # create and return signed transaction
     [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
-    |> Transaction.new([{spender.addr, @eth, newamount}, {recipient.addr, @eth, to_spend}])
+    |> Transaction.Payment.new([{spender.addr, @eth, newamount}, {recipient.addr, @eth, to_spend}])
     |> DevCrypto.sign([spender.priv, <<>>])
   end
 

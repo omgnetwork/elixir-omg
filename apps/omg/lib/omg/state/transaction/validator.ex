@@ -22,6 +22,7 @@ defmodule OMG.State.Transaction.Validator do
   alias OMG.Fees
   alias OMG.State.Core
   alias OMG.State.Transaction
+  alias OMG.State.UtxoSet
   alias OMG.Utxo
   require Utxo
 
@@ -35,14 +36,14 @@ defmodule OMG.State.Transaction.Validator do
 
   @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
           true | {{:error, exec_error()}, Core.t()}
-  def can_apply_spend(state, %Transaction.Recovered{} = tx, fees) do
-    outputs = Transaction.get_outputs(tx)
+  def can_apply_spend(%Core{utxos: utxos} = state, %Transaction.Recovered{} = tx, fees) do
+    inputs = Transaction.get_inputs(tx)
 
     with :ok <- validate_block_size(state),
-         {:ok, input_amounts_by_currency} <- correct_inputs?(state, tx),
-         output_amounts_by_currency = get_amounts_by_currency(outputs),
-         :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
-         :ok <- transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
+         :ok <- inputs_not_from_future_block?(state, inputs),
+         {:ok, input_utxos} <- UtxoSet.get_by_inputs(utxos, inputs),
+         {:ok, implicit_paid_fee_by_currency} <- Transaction.Recovered.can_apply?(tx, input_utxos),
+         true <- Fees.covered?(implicit_paid_fee_by_currency, fees) || {:error, :fees_not_covered} do
       true
     else
       {:error, _reason} = error -> {error, state}
@@ -56,38 +57,6 @@ defmodule OMG.State.Transaction.Validator do
     end
   end
 
-  defp correct_inputs?(%Core{utxos: utxos} = state, tx) do
-    inputs = Transaction.get_inputs(tx)
-
-    with :ok <- inputs_not_from_future_block?(state, inputs),
-         {:ok, input_utxos} <- get_input_utxos(utxos, inputs),
-         input_utxos_owners <- Enum.map(input_utxos, fn %{owner: owner} -> owner end),
-         :ok <- Transaction.Recovered.all_spenders_authorized(tx, input_utxos_owners) do
-      {:ok, get_amounts_by_currency(input_utxos)}
-    end
-  end
-
-  defp get_amounts_by_currency(utxos) do
-    utxos
-    |> Enum.group_by(fn %{currency: currency} -> currency end, fn %{amount: amount} -> amount end)
-    |> Enum.map(fn {currency, amounts} -> {currency, Enum.sum(amounts)} end)
-    |> Map.new()
-  end
-
-  defp amounts_add_up?(input_amounts, output_amounts) do
-    for {output_currency, output_amount} <- Map.to_list(output_amounts) do
-      input_amount = Map.get(input_amounts, output_currency, 0)
-      input_amount >= output_amount
-    end
-    |> Enum.all?()
-    |> if(do: :ok, else: {:error, :amounts_do_not_add_up})
-  end
-
-  defp transaction_covers_fee?(input_amounts, output_amounts, fees) do
-    Fees.covered?(input_amounts, output_amounts, fees)
-    |> if(do: :ok, else: {:error, :fees_not_covered})
-  end
-
   defp inputs_not_from_future_block?(%Core{height: blknum}, inputs) do
     no_utxo_from_future_block =
       inputs
@@ -95,21 +64,4 @@ defmodule OMG.State.Transaction.Validator do
 
     if no_utxo_from_future_block, do: :ok, else: {:error, :input_utxo_ahead_of_state}
   end
-
-  defp get_input_utxos(utxos, inputs) do
-    inputs
-    |> Enum.reduce_while({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
-    |> reverse()
-  end
-
-  defp get_utxos(utxos, position, {:ok, acc}) do
-    case Map.get(utxos, position) do
-      nil -> {:halt, {:error, :utxo_not_found}}
-      found -> {:cont, {:ok, [found | acc]}}
-    end
-  end
-
-  @spec reverse({:ok, any()} | {:error, :utxo_not_found}) :: {:ok, list(any())} | {:error, :utxo_not_found}
-  defp reverse({:ok, input_utxos}), do: {:ok, Enum.reverse(input_utxos)}
-  defp reverse({:error, :utxo_not_found} = result), do: result
 end

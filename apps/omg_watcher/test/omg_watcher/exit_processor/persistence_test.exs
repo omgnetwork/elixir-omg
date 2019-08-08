@@ -49,8 +49,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     {:ok, processor_empty} = Core.init([], [], [])
 
     transactions = [
-      Transaction.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}]),
-      Transaction.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
+      Transaction.Payment.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}]),
+      Transaction.Payment.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
     ]
 
     [txbytes1, txbytes2] = transactions |> Enum.map(&Transaction.raw_txbytes/1)
@@ -116,8 +116,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   test "persist started ifes regardless of status",
        %{processor_empty: processor, alice: alice, carol: carol, db_pid: db_pid} do
     txs = [
-      Transaction.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}]),
-      Transaction.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
+      Transaction.Payment.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}]),
+      Transaction.Payment.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
     ]
 
     contract_statuses = [{1, @non_zero_exit_id}, {0, @zero_exit_id}]
@@ -128,9 +128,9 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   test "persist new challenges, responses and piggybacks",
        %{processor_empty: processor, alice: alice, db_pid: db_pid} do
-    tx = Transaction.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
+    tx = Transaction.Payment.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
     hash = Transaction.raw_txhash(tx)
-    competing_tx = Transaction.new([{2, 1, 0}, {1, 0, 0}], [{alice.addr, @eth, 2}, {alice.addr, @eth, 1}])
+    competing_tx = Transaction.Payment.new([{2, 1, 0}, {1, 0, 0}], [{alice.addr, @eth, 2}, {alice.addr, @eth, 1}])
 
     challenge = %{
       tx_hash: hash,
@@ -157,7 +157,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   test "persist ife finalizations",
        %{processor_empty: processor, alice: alice, db_pid: db_pid} do
-    tx = Transaction.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
+    tx = Transaction.Payment.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
     hash = Transaction.raw_txhash(tx)
 
     piggybacks1 = [%{tx_hash: hash, output_index: 0}, %{tx_hash: hash, output_index: 4}]

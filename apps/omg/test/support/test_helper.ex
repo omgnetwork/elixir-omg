@@ -77,7 +77,7 @@ defmodule OMG.TestHelper do
   """
   @spec create_recovered(
           list({pos_integer, non_neg_integer, 0 | 1, map}),
-          Transaction.currency(),
+          Transaction.Payment.currency(),
           list({map, pos_integer}),
           Transaction.metadata()
         ) :: Transaction.Recovered.t()
@@ -87,7 +87,7 @@ defmodule OMG.TestHelper do
 
   @spec create_recovered(
           list({pos_integer, non_neg_integer, 0 | 1, map}),
-          list({map, Transaction.currency(), pos_integer})
+          list({map, Transaction.Payment.currency(), pos_integer})
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, outputs), do: create_encoded(inputs, outputs) |> Transaction.Recovered.recover_from!()
 
@@ -104,13 +104,13 @@ defmodule OMG.TestHelper do
   """
   @spec create_signed(
           list({pos_integer, non_neg_integer, 0 | 1, map}),
-          Transaction.currency(),
+          Transaction.Payment.currency(),
           list({map, pos_integer}),
           Transaction.metadata()
         ) :: Transaction.Signed.t()
   def create_signed(inputs, currency, outputs, metadata \\ nil) do
     raw_tx =
-      Transaction.new(
+      Transaction.Payment.new(
         inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
         outputs |> Enum.map(fn {owner, amount} -> {owner.addr, currency, amount} end),
         metadata
@@ -122,11 +122,11 @@ defmodule OMG.TestHelper do
 
   @spec create_signed(
           list({pos_integer, non_neg_integer, 0 | 1, map}),
-          list({map, Transaction.currency(), pos_integer})
+          list({map, Transaction.Payment.currency(), pos_integer})
         ) :: Transaction.Signed.t()
   def create_signed(inputs, outputs) do
     raw_tx =
-      Transaction.new(
+      Transaction.Payment.new(
         inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
         outputs |> Enum.map(fn {owner, currency, amount} -> {owner.addr, currency, amount} end)
       )
@@ -135,9 +135,9 @@ defmodule OMG.TestHelper do
     DevCrypto.sign(raw_tx, privs)
   end
 
-  def sign_encode(%Transaction{} = tx, priv_keys), do: tx |> DevCrypto.sign(priv_keys) |> Transaction.Signed.encode()
+  def sign_encode(%{} = tx, priv_keys), do: tx |> DevCrypto.sign(priv_keys) |> Transaction.Signed.encode()
 
-  def sign_recover!(%Transaction{} = tx, priv_keys),
+  def sign_recover!(%{} = tx, priv_keys),
     do: tx |> sign_encode(priv_keys) |> Transaction.Recovered.recover_from!()
 
   @doc """

@@ -57,7 +57,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
     end
 
     tx_exit = tx_encode.(30)
-    tx_exit_raw_tx_bytes = Transaction.Signed.decode(tx_exit) |> elem(1) |> Transaction.raw_txbytes()
+    tx_exit_raw_tx_bytes = Transaction.Signed.decode!(tx_exit) |> Transaction.raw_txbytes()
 
     position = Utxo.position(3, 0, 1)
     encode_utxo = position |> Utxo.Position.encode()

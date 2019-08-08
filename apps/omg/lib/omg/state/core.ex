@@ -18,7 +18,7 @@ defmodule OMG.State.Core do
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
 
-  defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0]
+  defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0, utxo_db_updates: []]
 
   alias OMG.Block
   alias OMG.Crypto
@@ -26,6 +26,7 @@ defmodule OMG.State.Core do
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
+  alias OMG.State.UtxoSet
   alias OMG.Utxo
 
   use OMG.Utils.LoggerExt
@@ -36,7 +37,10 @@ defmodule OMG.State.Core do
           last_deposit_child_blknum: non_neg_integer(),
           utxos: utxos,
           pending_txs: list(Transaction.Recovered.t()),
-          tx_index: non_neg_integer()
+          tx_index: non_neg_integer(),
+          # NOTE: that this list is being build reverse, in some cases it may matter. It is reversed just before
+          #       it leaves this module in `form_block/3`
+          utxo_db_updates: list(db_update())
         }
 
   @type deposit() :: %{
@@ -110,15 +114,10 @@ defmodule OMG.State.Core do
     # extract height, last deposit height and utxos from query result
     height = height_query_result + child_block_interval
 
-    utxos =
-      Enum.into(utxos_query_result, %{}, fn {db_position, db_utxo} ->
-        {Utxo.Position.from_db_key(db_position), Utxo.from_db_value(db_utxo)}
-      end)
-
     state = %__MODULE__{
       height: height,
       last_deposit_child_blknum: last_deposit_child_blknum_query_result,
-      utxos: utxos
+      utxos: UtxoSet.init(utxos_query_result)
     }
 
     {:ok, state}
@@ -188,8 +187,12 @@ defmodule OMG.State.Core do
   """
   @spec form_block(pos_integer(), pos_integer() | nil, state :: t()) ::
           {:ok, {Block.t(), [tx_event], [db_update]}, new_state :: t()}
-  def form_block(child_block_interval, eth_height \\ nil, %Core{pending_txs: reverse_txs, height: height} = state) do
-    txs = Enum.reverse(reverse_txs)
+  def form_block(
+        child_block_interval,
+        eth_height \\ nil,
+        %Core{pending_txs: reversed_txs, height: height, utxo_db_updates: reversed_utxo_db_updates} = state
+      ) do
+    txs = Enum.reverse(reversed_txs)
 
     block = Block.hashed_txs_at(txs, height)
 
@@ -202,17 +205,17 @@ defmodule OMG.State.Core do
       # enrich the event triggers with the ethereum height supplied
       |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
 
-    db_updates_utxos = db_update_utxos(height, txs)
     db_updates_block = {:put, :block, Block.to_db_value(block)}
     db_updates_top_block_number = {:put, :child_top_block_number, height}
 
-    db_updates = [db_updates_block, db_updates_top_block_number | db_updates_utxos]
+    db_updates = [db_updates_top_block_number, db_updates_block | reversed_utxo_db_updates] |> Enum.reverse()
 
     new_state = %Core{
       state
       | tx_index: 0,
         height: height + child_block_interval,
-        pending_txs: []
+        pending_txs: [],
+        utxo_db_updates: []
     }
 
     {:ok, {block, event_triggers, db_updates}, new_state}
@@ -222,9 +225,9 @@ defmodule OMG.State.Core do
   def deposit(deposits, %Core{utxos: utxos, last_deposit_child_blknum: last_deposit_child_blknum} = state) do
     deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_child_blknum))
 
-    new_utxos =
-      deposits
-      |> Enum.map(&deposit_to_utxo/1)
+    new_utxos_map = deposits |> Enum.into(%{}, &deposit_to_utxo/1)
+    new_utxos = UtxoSet.apply_effects(utxos, [], new_utxos_map)
+    db_updates_new_utxos = UtxoSet.db_updates([], new_utxos_map)
 
     event_triggers =
       deposits
@@ -232,17 +235,13 @@ defmodule OMG.State.Core do
 
     last_deposit_child_blknum = get_last_deposit_child_blknum(deposits, last_deposit_child_blknum)
 
-    db_updates_new_utxos =
-      new_utxos
-      |> Enum.map(&utxo_to_db_put/1)
-
     db_updates = db_updates_new_utxos ++ last_deposit_child_blknum_db_update(deposits, last_deposit_child_blknum)
 
     _ = if deposits != [], do: Logger.info("Recognized deposits #{inspect(deposits)}")
 
     new_state = %Core{
       state
-      | utxos: Map.merge(utxos, Map.new(new_utxos)),
+      | utxos: new_utxos,
         last_deposit_child_blknum: last_deposit_child_blknum
     }
 
@@ -278,10 +277,10 @@ defmodule OMG.State.Core do
     |> exit_utxos(state)
   end
 
-  def exit_utxos([%{tx_hash: _} | _] = piggybacks, %Core{utxos: utxos} = state) do
+  def exit_utxos([%{tx_hash: _} | _] = piggybacks, state) do
     {piggybacks_of_unknown_utxos, piggybacks_of_known_utxos} =
       piggybacks
-      |> Enum.map(&find_utxo_matching_piggyback(&1, utxos))
+      |> Enum.map(&find_utxo_matching_piggyback(&1, state))
       |> Enum.split_with(fn {_, position} -> position == nil end)
 
     {:ok, {db_updates, {valid, invalid}}, state} =
@@ -299,9 +298,9 @@ defmodule OMG.State.Core do
 
     {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
 
-    db_updates = valid |> Enum.map(fn utxo_pos -> {:delete, :utxo, Utxo.Position.to_db_key(utxo_pos)} end)
-
-    new_state = %{state | utxos: Map.drop(utxos, valid)}
+    new_utxos = UtxoSet.apply_effects(utxos, valid, %{})
+    db_updates = UtxoSet.db_updates(valid, %{})
+    new_state = %{state | utxos: new_utxos}
 
     {:ok, {db_updates, validities}, new_state}
   end
@@ -310,9 +309,8 @@ defmodule OMG.State.Core do
   Checks if utxo exists
   """
   @spec utxo_exists?(Utxo.Position.t(), t()) :: boolean()
-  def utxo_exists?(Utxo.position(_blknum, _txindex, _oindex) = utxo_pos, %Core{utxos: utxos}) do
-    Map.has_key?(utxos, utxo_pos)
-  end
+  def utxo_exists?(Utxo.position(_blknum, _txindex, _oindex) = utxo_pos, %Core{utxos: utxos}),
+    do: UtxoSet.exists?(utxos, utxo_pos)
 
   @doc """
       Gets the current block's height and whether at the beginning of the block
@@ -323,27 +321,6 @@ defmodule OMG.State.Core do
     {height, is_beginning}
   end
 
-  @spec db_update_utxos(non_neg_integer(), list(Transaction.Recovered.t())) ::
-          list({:put, :utxo, {Utxo.Position.db_t(), Utxo.t()}} | {:delet, :utxo, Utxo.Position.db_t()})
-  defp db_update_utxos(height, txs) do
-    db_updates_new_utxos =
-      txs
-      |> Enum.with_index()
-      |> Enum.flat_map(fn {tx, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
-      |> Enum.map(&utxo_to_db_put/1)
-
-    db_updates_spent_utxos =
-      txs
-      |> Enum.flat_map(&Transaction.get_inputs/1)
-      |> Enum.flat_map(fn utxo_pos ->
-        # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
-        db_key = Utxo.Position.to_db_key(utxo_pos)
-        [{:delete, :utxo, db_key}, {:put, :spend, {db_key, height}}]
-      end)
-
-    Enum.concat(db_updates_new_utxos, db_updates_spent_utxos)
-  end
-
   defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, %Transaction.Recovered{} = new_tx) do
     %Core{
       state
@@ -352,35 +329,17 @@ defmodule OMG.State.Core do
     }
   end
 
-  defp apply_spend(%Core{height: height, tx_index: tx_index, utxos: utxos} = state, tx) do
-    new_utxos_map = tx |> non_zero_utxos_from(height, tx_index) |> Map.new()
-
-    inputs = Transaction.get_inputs(tx)
-    utxos = Map.drop(utxos, inputs)
-    %Core{state | utxos: Map.merge(utxos, new_utxos_map)}
+  defp apply_spend(
+         %Core{height: blknum, tx_index: tx_index, utxos: utxos, utxo_db_updates: db_updates} = state,
+         %Transaction.Recovered{signed_tx: %{raw_tx: tx}}
+       ) do
+    {spent_input_pointers, new_utxos_map} = Transaction.Protocol.get_effects(tx, blknum, tx_index)
+    new_utxos = UtxoSet.apply_effects(utxos, spent_input_pointers, new_utxos_map)
+    new_db_updates = UtxoSet.db_updates(spent_input_pointers, new_utxos_map)
+    # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
+    spent_blknum_updates = spent_input_pointers |> Enum.map(&{:put, :spend, {Utxo.Position.to_db_key(&1), blknum}})
+    %Core{state | utxos: new_utxos, utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates}
   end
-
-  defp non_zero_utxos_from(tx, height, tx_index) do
-    tx
-    |> utxos_from(height, tx_index)
-    |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
-  end
-
-  defp utxos_from(tx, height, tx_index) do
-    hash = Transaction.raw_txhash(tx)
-    outputs = Transaction.get_outputs(tx)
-
-    for {%{owner: owner, currency: currency, amount: amount}, oindex} <- Enum.with_index(outputs) do
-      {Utxo.position(height, tx_index, oindex),
-       %Utxo{owner: owner, currency: currency, amount: amount, creating_txhash: hash}}
-    end
-  end
-
-  defp is_non_zero_amount?(%{amount: 0}), do: false
-  defp is_non_zero_amount?(%{amount: _}), do: true
-
-  defp utxo_to_db_put({utxo_pos, utxo}),
-    do: {:put, :utxo, {Utxo.Position.to_db_key(utxo_pos), Utxo.to_db_value(utxo)}}
 
   defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
     {Utxo.position(blknum, 0, 0), %Utxo{amount: amount, currency: cur, owner: owner}}
@@ -399,12 +358,10 @@ defmodule OMG.State.Core do
   defp last_deposit_child_blknum_db_update(_deposits, last_deposit_child_blknum),
     do: [{:put, :last_deposit_child_blknum, last_deposit_child_blknum}]
 
-  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex} = piggyback, utxos) do
+  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex} = piggyback, %Core{utxos: utxos}) do
     # oindex in contract is 0-7 where 4-7 are outputs
     oindex = oindex - 4
-
-    position = Enum.find(utxos, &match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
-
+    position = UtxoSet.scan_for_matching_utxo(utxos, tx_hash, oindex)
     {piggyback, position}
   end
 end

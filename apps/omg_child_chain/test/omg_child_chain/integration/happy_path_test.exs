@@ -45,13 +45,15 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
-    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 3}], <<0::256>>)
+    raw_tx = Transaction.Payment.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 3}], <<0::256>>)
 
     tx = raw_tx |> OMG.TestHelper.sign_encode([alice.priv, <<>>])
     # spend the deposit
     assert {:ok, %{"blknum" => spend_child_block}} = submit_transaction(tx)
 
-    token_raw_tx = Transaction.new([{token_deposit_blknum, 0, 0}], [{bob.addr, token, 8}, {alice.addr, token, 2}])
+    token_raw_tx =
+      Transaction.Payment.new([{token_deposit_blknum, 0, 0}], [{bob.addr, token, 8}, {alice.addr, token, 2}])
+
     token_tx = token_raw_tx |> OMG.TestHelper.sign_encode([alice.priv, <<>>])
     # spend the token deposit
     assert {:ok, %{"blknum" => spend_token_child_block}} = submit_transaction(token_tx)
@@ -65,7 +67,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     # NOTE: we are checking only the `hd` because token_tx might possibly be in the next block
     {:ok, decoded_tx_bytes} = transactions |> hd() |> Encoding.from_hex()
-    assert {:ok, %{raw_tx: ^raw_tx}} = Transaction.Signed.decode(decoded_tx_bytes)
+    assert %{raw_tx: ^raw_tx} = Transaction.Signed.decode!(decoded_tx_bytes)
 
     # Restart everything to check persistance and revival.
     # NOTE: this is an integration test of the critical data persistence in the child chain
@@ -76,7 +78,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert Enum.member?(started_apps, :omg_child_chain)
 
     # repeat spending to see if all works
-    raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, @eth, 10}])
+    raw_tx2 = Transaction.Payment.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, @eth, 10}])
     tx2 = raw_tx2 |> OMG.TestHelper.sign_encode([bob.priv, alice.priv])
     # spend the output of the first tx
     assert {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
@@ -89,7 +91,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     assert {:ok, %{"transactions" => [transaction2]}} = get_block(block_hash2)
     {:ok, decoded_tx2_bytes} = transaction2 |> Encoding.from_hex()
-    assert {:ok, %{raw_tx: ^raw_tx2}} = Transaction.Signed.decode(decoded_tx2_bytes)
+    assert %{raw_tx: ^raw_tx2} = Transaction.Signed.decode!(decoded_tx2_bytes)
 
     # sanity checks, mainly persistence & failure responses
     assert {:ok, %{}} = get_block(block_hash)
@@ -116,7 +118,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
     {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
 
-    invalid_raw_tx = Transaction.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
+    invalid_raw_tx = Transaction.Payment.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
     invalid_tx = invalid_raw_tx |> OMG.TestHelper.sign_encode([alice.priv])
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(invalid_tx)
   end

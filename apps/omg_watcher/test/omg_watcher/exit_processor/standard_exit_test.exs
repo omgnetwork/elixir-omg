@@ -106,7 +106,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
   describe "Core.determine_exit_txbytes" do
     test "produces valid exit txbytes for exits from deposits",
          %{alice: alice, processor_empty: processor} do
-      tx = Transaction.new([], [{alice.addr, @eth, 10}])
+      tx = Transaction.Payment.new([], [{alice.addr, @eth, 10}])
       deposit_txbytes = Transaction.raw_txbytes(tx)
       processor = processor |> start_se_from(tx, @utxo_pos_deposit)
 
@@ -248,8 +248,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
     test "creates challenge: tx utxo double spent signed_by different signers",
          %{alice: alice, bob: bob, processor_empty: processor} do
-      tx1 = Transaction.new([@deposit_input2], [{alice.addr, @eth, 10}])
-      tx2 = Transaction.new([@deposit_input2], [{bob.addr, @eth, 10}])
+      tx1 = Transaction.Payment.new([@deposit_input2], [{alice.addr, @eth, 10}])
+      tx2 = Transaction.Payment.new([@deposit_input2], [{bob.addr, @eth, 10}])
       processor1 = processor |> start_se_from(tx1, @utxo_pos_tx)
       processor2 = processor |> start_se_from(tx2, @utxo_pos_tx)
 
@@ -275,7 +275,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
     test "creates challenge: both utxos spent don't interfere",
          %{alice: alice, processor_empty: processor} do
-      tx = Transaction.new([@deposit_input2], [{alice.addr, @eth, 10}, {alice.addr, @eth, 10}])
+      tx = Transaction.Payment.new([@deposit_input2], [{alice.addr, @eth, 10}, {alice.addr, @eth, 10}])
       processor = processor |> start_se_from(tx, @utxo_pos_tx)
 
       recovered_spend = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [{alice, 10}])

@@ -31,7 +31,7 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   def double_spends_from_known_tx(inputs, %KnownTx{signed_tx: signed} = known_tx) when is_list(inputs) do
     known_spent_inputs = signed |> Transaction.get_inputs() |> Enum.with_index()
 
-    # NOTE: possibly ineffective if Transaction.max_inputs >> 4, BUT we're calling it seldom so no biggie
+    # NOTE: possibly ineffective if Transaction.Payment.max_inputs >> 4, BUT we're calling it seldom so no biggie
     for {left, left_index} <- inputs,
         {right, right_index} <- known_spent_inputs,
         left == right,

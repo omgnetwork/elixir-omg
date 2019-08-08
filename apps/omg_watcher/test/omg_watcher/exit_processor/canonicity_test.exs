@@ -379,14 +379,14 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       other_input3 = {112, 2, 1}
 
       comps = [
-        Transaction.new([input_spent_in_idx0], []),
-        Transaction.new([other_input1, input_spent_in_idx0], []),
-        Transaction.new([other_input1, other_input2, input_spent_in_idx0], []),
-        Transaction.new([other_input1, other_input2, other_input3, input_spent_in_idx0], []),
-        Transaction.new([input_spent_in_idx1], []),
-        Transaction.new([other_input1, input_spent_in_idx1], []),
-        Transaction.new([other_input1, other_input2, input_spent_in_idx1], []),
-        Transaction.new([other_input1, other_input2, other_input3, input_spent_in_idx1], [])
+        Transaction.Payment.new([input_spent_in_idx0], []),
+        Transaction.Payment.new([other_input1, input_spent_in_idx0], []),
+        Transaction.Payment.new([other_input1, other_input2, input_spent_in_idx0], []),
+        Transaction.Payment.new([other_input1, other_input2, other_input3, input_spent_in_idx0], []),
+        Transaction.Payment.new([input_spent_in_idx1], []),
+        Transaction.Payment.new([other_input1, input_spent_in_idx1], []),
+        Transaction.Payment.new([other_input1, other_input2, input_spent_in_idx1], []),
+        Transaction.Payment.new([other_input1, other_input2, other_input3, input_spent_in_idx1], [])
       ]
 
       expected_input_ids = [{0, 0}, {1, 0}, {2, 0}, {3, 0}, {0, 1}, {1, 1}, {2, 1}, {3, 1}]

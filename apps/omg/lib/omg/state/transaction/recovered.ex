@@ -20,13 +20,11 @@ defmodule OMG.State.Transaction.Recovered do
   `Transaction.Recovered` represents a transaction that can be sent to `OMG.State.exec/1`
   """
 
-  alias OMG.Crypto
   alias OMG.State.Transaction
+  alias OMG.State.Transaction.OutputPredicateProtocol
   alias OMG.Utxo
 
   require Utxo
-
-  @empty_signature <<0::size(520)>>
 
   @type tx_bytes() :: binary()
 
@@ -38,11 +36,11 @@ defmodule OMG.State.Transaction.Recovered do
           | :signature_corrupt
           | :missing_signature
 
-  defstruct [:signed_tx, :tx_hash, :signed_tx_bytes, spenders: nil]
+  defstruct [:signed_tx, :tx_hash, :signed_tx_bytes, :witnesses]
 
   @type t() :: %__MODULE__{
           tx_hash: Transaction.tx_hash(),
-          spenders: [Crypto.address_t()],
+          witnesses: %{non_neg_integer => Transaction.Witness.t()},
           signed_tx: Transaction.Signed.t(),
           signed_tx_bytes: tx_bytes()
         }
@@ -72,32 +70,53 @@ defmodule OMG.State.Transaction.Recovered do
     recovered
   end
 
+  # Checks the inputs spent by this transaction have been authorized by correct witnesses
+  @spec authorized?(t(), list()) :: :ok | {:error, :unauthorized_spent}
+  defp authorized?(%__MODULE__{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses}, input_utxos) do
+    input_utxos
+    |> Enum.with_index()
+    |> Enum.map(fn {input_utxo, idx} -> OutputPredicateProtocol.can_spend?(witnesses[idx], input_utxo, raw_tx) end)
+    |> Enum.all?()
+    |> if(do: :ok, else: {:error, :unauthorized_spent})
+  end
+
   @doc """
-  Checks if input spenders and recovered transaction's spenders are the same and have the same order
+  True if a transaction can be applied, given a set of input UTXOs is present in the ledger.
+
+  Returns the fees that this transaction is paying, mapped by currency
+
+  Calls into the particular output predicate protocols' code and into transaction protocol
   """
-  @spec all_spenders_authorized(t(), list()) :: :ok | {:error, :unauthorized_spent}
-  def all_spenders_authorized(%__MODULE__{spenders: spenders}, inputs_spenders) do
-    if spenders == inputs_spenders, do: :ok, else: {:error, :unauthorized_spent}
+  @spec can_apply?(t(), list(Utxo.t())) :: {:ok, map()} | {:error, :unauthorized_spent | atom}
+  def can_apply?(%Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}} = tx, input_utxos) do
+    with :ok <- authorized?(tx, input_utxos),
+         do: Transaction.Protocol.can_apply?(raw_tx, input_utxos)
   end
 
   @spec recover_from_struct(Transaction.Signed.t(), tx_bytes()) :: {:ok, t()} | {:error, recover_tx_error()}
   defp recover_from_struct(%Transaction.Signed{} = signed_tx, signed_tx_bytes) do
-    with {:ok, spenders} <- Transaction.Signed.get_spenders(signed_tx),
+    with {:ok, witnesses} <- Transaction.Signed.get_witnesses(signed_tx),
          do:
            {:ok,
             %__MODULE__{
               tx_hash: Transaction.raw_txhash(signed_tx),
-              spenders: spenders,
+              witnesses: witnesses,
               signed_tx: signed_tx,
               signed_tx_bytes: signed_tx_bytes
             }}
   end
 
-  defp valid?(%Transaction.Signed{sigs: sigs} = tx) do
-    inputs = Transaction.get_inputs(tx)
+  defp valid?(%Transaction.Signed{raw_tx: raw_tx} = tx) do
+    with true <- generic_valid?(tx),
+         true <- Transaction.Protocol.valid?(raw_tx, tx),
+         do: true
+  end
+
+  defp generic_valid?(%Transaction.Signed{raw_tx: raw_tx}) do
+    inputs = Transaction.get_inputs(raw_tx)
 
     with true <- no_duplicate_inputs?(inputs) || {:error, :duplicate_inputs},
-         do: all_inputs_signed?(inputs, sigs)
+         do: true
   end
 
   defp no_duplicate_inputs?(inputs) do
@@ -108,16 +127,5 @@ defmodule OMG.State.Transaction.Recovered do
 
     inputs_length = Enum.count(inputs)
     inputs_length == number_of_unique_inputs
-  end
-
-  defp all_inputs_signed?(non_zero_inputs, sigs) do
-    count_non_zero_signatures = Enum.count(sigs, &(&1 != @empty_signature))
-    count_non_zero_inputs = length(non_zero_inputs)
-
-    cond do
-      count_non_zero_signatures > count_non_zero_inputs -> {:error, :superfluous_signature}
-      count_non_zero_signatures < count_non_zero_inputs -> {:error, :missing_signature}
-      true -> true
-    end
   end
 end

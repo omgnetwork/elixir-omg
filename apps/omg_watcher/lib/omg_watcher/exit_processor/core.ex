@@ -449,14 +449,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec prepare_available_piggyback(InFlightExitInfo.t()) :: list(Event.PiggybackAvailable.t())
   defp prepare_available_piggyback(%InFlightExitInfo{tx: signed_tx} = ife) do
     outputs = Transaction.get_outputs(signed_tx)
-    {:ok, input_owners} = Transaction.Signed.get_spenders(signed_tx)
+    {:ok, input_witnesses} = Transaction.Signed.get_witnesses(signed_tx)
 
     available_inputs =
-      input_owners
-      |> Enum.filter(&zero_address?/1)
-      |> Enum.with_index()
-      |> Enum.filter(fn {_, index} -> not InFlightExitInfo.is_input_piggybacked?(ife, index) end)
-      |> Enum.map(fn {owner, index} -> %{index: index, address: owner} end)
+      input_witnesses
+      |> Enum.filter(fn {index, _} -> not InFlightExitInfo.is_input_piggybacked?(ife, index) end)
+      |> Enum.map(fn {index, owner} -> %{index: index, address: owner} end)
 
     available_outputs =
       outputs

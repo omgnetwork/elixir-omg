@@ -45,8 +45,8 @@ defmodule OMG.DevCrypto do
     ```<<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
       55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>```
   """
-  @spec sign(Transaction.t(), list(Crypto.priv_key_t())) :: Transaction.Signed.t()
-  def sign(%Transaction{} = tx, private_keys) do
+  @spec sign(Transaction.Protocol.t(), list(Crypto.priv_key_t())) :: Transaction.Signed.t()
+  def sign(%{} = tx, private_keys) do
     sigs = Enum.map(private_keys, fn pk -> signature(tx, pk) end)
     %Transaction.Signed{raw_tx: tx, sigs: sigs}
   end
@@ -63,11 +63,11 @@ defmodule OMG.DevCrypto do
   @doc """
   Produces a stand-alone, 65 bytes long, signature for a given transaction.
   """
-  @spec signature(Transaction.t(), Crypto.priv_key_t()) :: Crypto.sig_t()
+  @spec signature(Transaction.Protocol.t(), Crypto.priv_key_t()) :: Crypto.sig_t()
   def signature(_tx, <<>>), do: <<0::size(520)>>
   def signature(tx, priv), do: do_signature(tx, priv)
 
-  defp do_signature(%Transaction{} = tx, priv) do
+  defp do_signature(%{} = tx, priv) do
     tx
     |> TypedDataHash.hash_struct()
     |> signature_digest(priv)

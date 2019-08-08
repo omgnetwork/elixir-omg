@@ -122,14 +122,13 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     exit_id_to_get_by_txbytes =
       if Utxo.Position.is_deposit?(exiting_pos) do
         %ExitInfo{owner: owner, currency: currency, amount: amount} = exits[exiting_pos]
-        Transaction.new([], [{owner, currency, amount}])
+        Transaction.Payment.new([], [{owner, currency, amount}])
       else
         [%Block{transactions: transactions}] = creating_blocks_result
         Utxo.position(_, txindex, _) = exiting_pos
 
         {:ok, signed_bytes} = Enum.fetch(transactions, txindex)
-        {:ok, tx} = Transaction.Signed.decode(signed_bytes)
-        tx
+        Transaction.Signed.decode!(signed_bytes)
       end
       |> Transaction.raw_txbytes()
 
@@ -188,8 +187,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   @spec get_double_spend_for_standard_exit(Block.t() | KnownTx.t(), Utxo.Position.t()) :: DoubleSpend.t() | nil
   defp get_double_spend_for_standard_exit(%Block{transactions: txs}, utxo_pos) do
     txs
-    |> Enum.map(&Transaction.Signed.decode/1)
-    |> Enum.find_value(fn {:ok, tx} -> get_double_spend_for_standard_exit(%KnownTx{signed_tx: tx}, utxo_pos) end)
+    |> Enum.map(&Transaction.Signed.decode!/1)
+    |> Enum.find_value(fn tx -> get_double_spend_for_standard_exit(%KnownTx{signed_tx: tx}, utxo_pos) end)
   end
 
   defp get_double_spend_for_standard_exit(%KnownTx{} = known_tx, utxo_pos) do

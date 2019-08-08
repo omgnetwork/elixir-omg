@@ -14,54 +14,29 @@
 
 defmodule OMG.State.Transaction do
   @moduledoc """
-  Internal representation of transaction spent on Plasma chain.
-
-  This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
-
-  This module also contains the public Transaction API to be prefered to access data of different transaction "flavors",
+  This module contains the public Transaction API to be prefered to access data of different transaction "flavors",
   like `Transaction.Signed` or `Transaction.Recovered`
-
-  NOTE: consider splitting the "raw" struct out of here to `Transaction.Raw` and have only the public Transaction API
-  remain here
   """
 
   alias OMG.Crypto
+  alias OMG.State.Transaction
   alias OMG.Utxo
 
   require Utxo
 
-  @zero_address OMG.Eth.zero_address()
-  @max_inputs 4
-  @max_outputs 4
+  # TODO: commented code for the tx markers handling
+  #
+  # @payment_marker Transaction.Markers.payment()
+  # @tx_types_modules %{@payment_marker => Transaction.Payment}
+  # @type_markers Map.keys(@tx_types_modules)
+  #
+  # end tx markers section
 
-  @default_metadata nil
+  @type any_flavor_t() :: __MODULE__.Signed.t() | __MODULE__.Recovered.t() | __MODULE__.Protocol.t()
 
-  defstruct [:inputs, :outputs, metadata: @default_metadata]
-
-  @type t() :: %__MODULE__{
-          inputs: list(input()),
-          outputs: list(output()),
-          metadata: metadata()
-        }
-
-  @type any_flavor_t() :: t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()
-
-  @type currency() :: Crypto.address_t()
   @type tx_bytes() :: binary()
   @type tx_hash() :: Crypto.hash_t()
   @type metadata() :: binary() | nil
-
-  @type input() :: %{
-          blknum: non_neg_integer(),
-          txindex: non_neg_integer(),
-          oindex: non_neg_integer()
-        }
-
-  @type output() :: %{
-          owner: Crypto.address_t(),
-          currency: currency(),
-          amount: non_neg_integer()
-        }
 
   @type decode_error() ::
           :malformed_transaction_rlp
@@ -77,117 +52,26 @@ defmodule OMG.State.Transaction do
     end
   end
 
-  defmacro max_inputs do
-    quote do
-      unquote(@max_inputs)
-    end
-  end
-
-  defmacro max_outputs do
-    quote do
-      unquote(@max_outputs)
-    end
-  end
-
   @type input_index_t() :: 0..3
 
-  @doc """
-  Creates a new transaction from a list of inputs and a list of outputs.
-  Adds empty (zeroes) inputs and/or outputs to reach the expected size
-  of `@max_inputs` inputs and `@max_outputs` outputs.
+  # TODO: commented code is for the tx type handling
+  # def dispatching_reconstruct([type_marker | raw_tx_rlp_decoded_chunks]) when type_marker in @type_markers do
+  def dispatching_reconstruct(raw_tx_rlp_decoded_chunks) do
+    # protocol_module = @tx_types_modules[type_marker]
+    protocol_module = Transaction.Payment
 
-  assumptions:
-  ```
-    length(inputs) <= @max_inputs
-    length(outputs) <= @max_outputs
-  ```
-  """
-  @spec new(
-          list({pos_integer, pos_integer, 0 | 1}),
-          list({Crypto.address_t(), currency(), pos_integer}),
-          metadata()
-        ) :: t()
-  def new(inputs, outputs, metadata \\ @default_metadata)
-
-  def new(inputs, outputs, metadata)
-      when is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
-    inputs =
-      inputs
-      |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
-
-    inputs = inputs ++ List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, @max_inputs - Kernel.length(inputs))
-
-    outputs =
-      outputs
-      |> Enum.map(fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end)
-
-    outputs =
-      outputs ++
-        List.duplicate(
-          %{owner: @zero_address, currency: @zero_address, amount: 0},
-          @max_outputs - Kernel.length(outputs)
-        )
-
-    %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
+    with {:ok, reconstructed} <- protocol_module.reconstruct(raw_tx_rlp_decoded_chunks),
+         do: {:ok, reconstructed}
   end
 
-  @doc """
-  Transaform the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
-  """
-  def reconstruct([inputs_rlp, outputs_rlp | rest_rlp])
-      when rest_rlp == [] or length(rest_rlp) == 1 do
-    with {:ok, inputs} <- reconstruct_inputs(inputs_rlp),
-         {:ok, outputs} <- reconstruct_outputs(outputs_rlp),
-         {:ok, metadata} <- reconstruct_metadata(rest_rlp),
-         do: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}}
-  end
-
-  def reconstruct(_), do: {:error, :malformed_transaction}
-
-  defp reconstruct_inputs(inputs_rlp) do
-    Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
-      %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
-    end)
-    |> inputs_without_gaps()
-  rescue
-    _ -> {:error, :malformed_inputs}
-  end
-
-  defp reconstruct_outputs(outputs_rlp) do
-    outputs =
-      Enum.map(outputs_rlp, fn [owner, currency, amount] ->
-        with {:ok, cur12} <- parse_address(currency),
-             {:ok, owner} <- parse_address(owner) do
-          %{owner: owner, currency: cur12, amount: parse_int(amount)}
-        end
-      end)
-
-    if(error = Enum.find(outputs, &match?({:error, _}, &1)),
-      do: error,
-      else: outputs
-    )
-    |> outputs_without_gaps()
-  rescue
-    _ -> {:error, :malformed_outputs}
-  end
-
-  defp reconstruct_metadata([]), do: {:ok, nil}
-  defp reconstruct_metadata([metadata]) when is_metadata(metadata), do: {:ok, metadata}
-  defp reconstruct_metadata([_]), do: {:error, :malformed_metadata}
-
-  defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
-
-  # necessary, because RLP handles empty string equally to integer 0
-  @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
-  defp parse_address(binary)
-  defp parse_address(""), do: {:ok, <<0::160>>}
-  defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
-  defp parse_address(_), do: {:error, :malformed_address}
-
-  @spec decode(tx_bytes()) :: {:ok, t()} | {:error, decode_error()}
+  # TODO: commented code for tx type handling
+  # def dispatching_reconstruct(_), do: {:error, :malformed_transaction}
+  #
+  # end commented section
+  @spec decode(tx_bytes()) :: {:ok, Transaction.Protocol.t()} | {:error, decode_error()}
   def decode(tx_bytes) do
     with {:ok, raw_tx_rlp_decoded_chunks} <- try_exrlp_decode(tx_bytes),
-         do: reconstruct(raw_tx_rlp_decoded_chunks)
+         do: dispatching_reconstruct(raw_tx_rlp_decoded_chunks)
   end
 
   def decode!(tx_bytes) do
@@ -201,56 +85,32 @@ defmodule OMG.State.Transaction do
     _ -> {:error, :malformed_transaction_rlp}
   end
 
-  @spec encode(t()) :: tx_bytes()
   defp encode(transaction) do
-    get_data_for_rlp(transaction)
+    Transaction.Protocol.get_data_for_rlp(transaction)
     |> ExRLP.encode()
   end
 
-  @doc """
-  Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
-  """
-  def get_data_for_rlp(%__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}) when is_metadata(metadata),
-    do:
-      [
-        # contract expects 4 inputs and outputs
-        Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
-          List.duplicate([0, 0, 0], 4 - length(inputs)),
-        Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
-          List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
-      ] ++ if(metadata, do: [metadata], else: [])
-
-  @spec hash(t()) :: tx_hash()
-  defp hash(%__MODULE__{} = tx) do
+  defp hash(tx) do
     tx
-    |> encode
+    |> encode()
     |> Crypto.hash()
   end
 
   @doc """
   Returns all inputs, never returns zero inputs
   """
-  @spec get_inputs(any_flavor_t()) :: list(input())
+  @spec get_inputs(any_flavor_t()) :: list()
   def get_inputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_inputs(signed_tx)
   def get_inputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_inputs(raw_tx)
-
-  def get_inputs(%__MODULE__{inputs: inputs}) do
-    inputs
-    |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
-    |> Enum.filter(&Utxo.Position.non_zero?/1)
-  end
+  def get_inputs(tx), do: Transaction.Protocol.get_inputs(tx)
 
   @doc """
   Returns all outputs, never returns zero outputs
   """
-  @spec get_outputs(any_flavor_t()) :: list(output())
+  @spec get_outputs(any_flavor_t()) :: list()
   def get_outputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_outputs(signed_tx)
   def get_outputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_outputs(raw_tx)
-
-  def get_outputs(%__MODULE__{outputs: outputs}) do
-    outputs
-    |> Enum.reject(&match?(%{owner: @zero_address, currency: @zero_address, amount: 0}, &1))
-  end
+  def get_outputs(tx), do: Transaction.Protocol.get_outputs(tx)
 
   @doc """
   Returns the encoded bytes of the raw transaction involved, i.e. without the signatures
@@ -258,7 +118,7 @@ defmodule OMG.State.Transaction do
   @spec raw_txbytes(any_flavor_t()) :: binary
   def raw_txbytes(%__MODULE__.Recovered{signed_tx: signed_tx}), do: raw_txbytes(signed_tx)
   def raw_txbytes(%__MODULE__.Signed{raw_tx: raw_tx}), do: raw_txbytes(raw_tx)
-  def raw_txbytes(%__MODULE__{} = raw_tx), do: encode(raw_tx)
+  def raw_txbytes(raw_tx), do: encode(raw_tx)
 
   @doc """
   Returns the hash of the raw transaction involved, i.e. without the signatures
@@ -266,31 +126,5 @@ defmodule OMG.State.Transaction do
   @spec raw_txhash(any_flavor_t()) :: tx_hash()
   def raw_txhash(%__MODULE__.Recovered{tx_hash: hash}), do: hash
   def raw_txhash(%__MODULE__.Signed{raw_tx: raw_tx}), do: raw_txhash(raw_tx)
-  def raw_txhash(%__MODULE__{} = raw_tx), do: hash(raw_tx)
-
-  defp inputs_without_gaps(inputs),
-    do: check_for_gaps(inputs, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})
-
-  defp outputs_without_gaps({:error, _} = error), do: error
-
-  defp outputs_without_gaps(outputs),
-    do:
-      check_for_gaps(
-        outputs,
-        %{owner: @zero_address, currency: @zero_address, amount: 0},
-        {:error, :outputs_contain_gaps}
-      )
-
-  # Check if any consecutive pair of elements contains empty followed by non-empty element
-  # which means there is a gap
-  defp check_for_gaps(items, empty, error) do
-    items
-    # discard - discards last unpaired element from a comparison
-    |> Stream.chunk_every(2, 1, :discard)
-    |> Enum.any?(fn
-      [^empty, elt] when elt != empty -> true
-      _ -> false
-    end)
-    |> if(do: error, else: {:ok, items})
-  end
+  def raw_txhash(raw_tx), do: hash(raw_tx)
 end
