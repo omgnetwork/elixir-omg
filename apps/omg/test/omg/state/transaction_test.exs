@@ -91,13 +91,13 @@ defmodule OMG.State.TransactionTest do
       assert 1 == tx1_1 |> Transaction.get_inputs() |> length()
       assert 1 == tx1_1 |> Transaction.get_outputs() |> length()
       assert [^check_input1 | _] = Transaction.get_inputs(tx1_1)
-      assert [^check_output2 | _] = Transaction.get_outputs(tx1_1)
+      assert ^check_output2 = Transaction.get_outputs(tx1_1) |> hd() |> Map.from_struct()
       # 4 - input, 4 - outputs
       tx4_4 = Transaction.Payment.new(@utxo_positions, [output1, {"J", @eth, 929}, {"J", @eth, 929}, {"J", @eth, 199}])
       assert 4 == tx4_4 |> Transaction.get_inputs() |> length()
       assert 4 == tx4_4 |> Transaction.get_outputs() |> length()
       assert [^check_input1 | _] = Transaction.get_inputs(tx4_4)
-      assert [^check_output2 | _] = Transaction.get_outputs(tx4_4)
+      assert ^check_output2 = Transaction.get_outputs(tx4_4) |> hd() |> Map.from_struct()
     end
 
     @tag fixtures: [:alice, :bob]

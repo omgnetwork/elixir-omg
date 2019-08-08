@@ -50,12 +50,4 @@ defprotocol OMG.State.Transaction.Protocol do
   """
   @spec can_apply?(t(), list()) :: {:ok, map()} | {:error, atom}
   def can_apply?(tx, input_utxos)
-
-  @doc """
-  Effects of transaction application
-
-  Should return a tuple consisting of input pointers to be spent and new UTXOs to create
-  """
-  @spec get_effects(t(), non_neg_integer(), non_neg_integer()) :: {list(), map()}
-  def get_effects(tx, blknum, tx_index)
 end

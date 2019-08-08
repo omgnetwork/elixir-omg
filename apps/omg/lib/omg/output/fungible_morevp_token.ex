@@ -36,6 +36,9 @@ defimpl OMG.Output, for: OMG.Output.FungibleMoreVPToken do
     owner == witness
   end
 
+  def is_zero?(%FungibleMoreVPToken{amount: 0}), do: false
+  def is_zero?(%FungibleMoreVPToken{amount: _}), do: true
+
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
   def to_db_value(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) do

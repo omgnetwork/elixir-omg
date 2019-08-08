@@ -337,12 +337,30 @@ defmodule OMG.State.Core do
          %Core{height: blknum, tx_index: tx_index, utxos: utxos, utxo_db_updates: db_updates} = state,
          %Transaction.Recovered{signed_tx: %{raw_tx: tx}}
        ) do
-    {spent_input_pointers, new_utxos_map} = Transaction.Protocol.get_effects(tx, blknum, tx_index)
+    {spent_input_pointers, new_utxos_map} = get_effects(tx, blknum, tx_index)
     new_utxos = UtxoSet.apply_effects(utxos, spent_input_pointers, new_utxos_map)
     new_db_updates = UtxoSet.db_updates(spent_input_pointers, new_utxos_map)
     # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
     spent_blknum_updates = spent_input_pointers |> Enum.map(&{:put, :spend, {Utxo.Position.to_db_key(&1), blknum}})
     %Core{state | utxos: new_utxos, utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates}
+  end
+
+  # Effects of a payment transaction - spends all inputs and creates all outputs
+  # Relies on the polymorphic `get_inputs` and `get_outputs` of Transaction`
+  defp get_effects(tx, blknum, tx_index) do
+    {Transaction.get_inputs(tx), non_zero_utxos_from(tx, blknum, tx_index)}
+  end
+
+  defp non_zero_utxos_from(tx, blknum, tx_index) do
+    hash = Transaction.raw_txhash(tx)
+
+    tx
+    |> Transaction.get_outputs()
+    |> Enum.with_index()
+    |> Enum.filter(fn {output, _index} -> OMG.Output.is_zero?(output) end)
+    |> Enum.into(%{}, fn {output, oindex} ->
+      {Utxo.position(blknum, tx_index, oindex), %Utxo{output: output, creating_txhash: hash}}
+    end)
   end
 
   defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do

@@ -184,6 +184,9 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   def get_outputs(%Transaction.Payment{outputs: outputs}) do
     outputs
+    |> Enum.map(fn %{owner: owner, currency: currency, amount: amount} ->
+      %OMG.Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
+    end)
   end
 
   def get_inputs(%Transaction.Payment{inputs: inputs}) do
@@ -223,15 +226,6 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
          do: {:ok, fees_paid(input_amounts_by_currency, output_amounts_by_currency)}
   end
 
-  @doc """
-  Effects of a payment transaction - spends all inputs and creates all outputs
-  """
-  def get_effects(%Transaction.Payment{} = tx, blknum, tx_index) do
-    new_utxos_map = tx |> non_zero_utxos_from(blknum, tx_index) |> Map.new()
-    spent_input_pointers = Transaction.get_inputs(tx)
-    {spent_input_pointers, new_utxos_map}
-  end
-
   defp all_inputs_signed?(non_zero_inputs, sigs) do
     count_non_zero_signatures = Enum.count(sigs, &(&1 != @empty_signature))
     count_non_zero_inputs = length(non_zero_inputs)
@@ -242,28 +236,6 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       true -> true
     end
   end
-
-  defp non_zero_utxos_from(tx, blknum, tx_index) do
-    hash = Transaction.raw_txhash(tx)
-
-    tx
-    |> Transaction.get_outputs()
-    |> Enum.with_index()
-    |> Enum.filter(fn {output, _index} -> is_non_zero_amount?(output) end)
-    |> Enum.map(fn {%{owner: owner, currency: currency, amount: amount}, oindex} ->
-      {
-        Utxo.position(blknum, tx_index, oindex),
-        # FIXME. Transaction.get_outputs can well return this struct already
-        %Utxo{
-          output: %OMG.Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount},
-          creating_txhash: hash
-        }
-      }
-    end)
-  end
-
-  defp is_non_zero_amount?(%{amount: 0}), do: false
-  defp is_non_zero_amount?(%{amount: _}), do: true
 
   defp fees_paid(input_amounts_by_currency, output_amounts_by_currency) do
     input_amounts_by_currency

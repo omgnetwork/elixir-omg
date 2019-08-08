@@ -27,6 +27,11 @@ defprotocol OMG.Output do
   def can_spend?(output_spent, witness, raw_tx)
 
   @doc """
+  True if this particular output can and should be completely disregarded
+  """
+  def is_zero?(output)
+
+  @doc """
   Transforms into a db-specific term
   """
   def to_db_value(output)
