@@ -18,7 +18,7 @@ defmodule OMG.ChildChain.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
-  alias OMG.Alert.Alarm
+  alias OMG.Status.Alert.Alarm
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)

@@ -22,9 +22,28 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(@app, OMG.WatcherRPC.Web.Endpoint)
-    config = Keyword.put(config, :disabled?, get_port())
-    config = Keyword.put(config, :env, get_hostname())
-    :ok = Application.put_env(@app, OMG.WatcherRPC.Web.Endpoint, config, persistent: true)
+
+    config =
+      Keyword.put(
+        config,
+        :http,
+        List.foldl(config[:http], [], fn
+          {:port, _num}, acc -> [get_port() | acc]
+          other, acc -> [other | acc]
+        end)
+      )
+
+    config =
+      Keyword.put(
+        config,
+        :url,
+        List.foldl(config[:url], [], fn
+          {:host, _num}, acc -> [get_hostname() | acc]
+          other, acc -> [other | acc]
+        end)
+      )
+
+    :ok = Application.put_env(@app, OMG.WatcherRPC.Web.Endpoint, Enum.sort(config), persistent: true)
   end
 
   defp get_port do
@@ -35,7 +54,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
       )
 
     _ = Logger.warn("CONFIGURATION: App: #{@app} Key: PORT Value: #{inspect(port)}.")
-    port
+    {:port, port}
   end
 
   defp get_hostname do
@@ -46,7 +65,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
       )
 
     _ = Logger.warn("CONFIGURATION: App: #{@app} Key: HOSTNAME Value: #{inspect(hostname)}.")
-    hostname
+    {:host, hostname}
   end
 
   defp get_env(key), do: System.get_env(key)

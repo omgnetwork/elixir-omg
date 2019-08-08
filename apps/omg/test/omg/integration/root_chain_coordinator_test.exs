@@ -28,6 +28,8 @@ defmodule OMG.RootChainCoordinatorTest do
   @moduletag :integration
   @moduletag :common
   setup do
+    _ = Application.ensure_all_started(:omg_status)
+
     on_exit(fn ->
       _ = Application.stop(:omg_bus)
       _ = Application.stop(:omg_eth)
@@ -40,7 +42,6 @@ defmodule OMG.RootChainCoordinatorTest do
   @tag fixtures: [:alice, :db_initialized, :root_chain_contract_config]
   test "can do a simplest sync",
        %{alice: alice} do
-    :ok = AlarmHandler.install()
     coordinator_setup = %{test: [finality_margin: 0]}
     test_process = self()
     # we're starting a mock event listening machinery, which will send all deposit events to the test process to assert
