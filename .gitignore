@@ -46,3 +46,5 @@ env/
 # VS Code config file
 .vscode/
 
+# Docker
+src/

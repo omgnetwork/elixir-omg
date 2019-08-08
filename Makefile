@@ -135,6 +135,9 @@ docker-push: docker
 cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-deployer watcher childchain
 
+stop-cluster-with-datadog:
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
+
 ### UTILS
 OSFLAG := ''
 UNAME_S := $(shell uname -s)
