@@ -25,7 +25,7 @@ config :phoenix,
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
   service: :web,
   adapter: SpandexDatadog.Adapter,
-  disabled?: false,
+  disabled?: true,
   type: :web
 
 config :spandex_phoenix, tracer: OMG.ChildChainRPC.Tracer

@@ -16,7 +16,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracer do
   @moduledoc false
   use Distillery.Releases.Config.Provider
   require Logger
-  @app :child_chain_rpc
+  @app :omg_child_chain_rpc
 
   @impl Provider
   def init(_args) do
