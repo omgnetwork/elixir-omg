@@ -85,7 +85,8 @@ defmodule OMG.State.Transaction.Payment do
       when Transaction.is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
     inputs =
       inputs
-      |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
+      |> Enum.map(fn {blknum, txindex, oindex} -> Utxo.position(blknum, txindex, oindex) end)
+      |> Enum.filter(&Utxo.Position.non_zero?/1)
 
     outputs =
       outputs
@@ -115,12 +116,9 @@ defmodule OMG.State.Transaction.Payment do
 
   # messy, see comments on the abstract output/input fixing this properly
   defp from_new_rlp_input(binary_input) when is_binary(binary_input) do
-    Utxo.position(blknum, txindex, oindex) =
-      binary_input
-      |> :binary.decode_unsigned(:big)
-      |> Utxo.Position.decode!()
-
-    %{blknum: blknum, txindex: txindex, oindex: oindex}
+    binary_input
+    |> :binary.decode_unsigned(:big)
+    |> Utxo.Position.decode!()
   end
 
   defp reconstruct_outputs(outputs_rlp) do
@@ -189,13 +187,10 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
     end)
   end
 
-  def get_inputs(%Transaction.Payment{inputs: inputs}) do
-    inputs
-    |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
-  end
+  def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
 
-  defp to_new_rlp_input(%{blknum: blknum, txindex: txindex, oindex: oindex}),
-    do: Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode() |> :binary.encode_unsigned(:big)
+  defp to_new_rlp_input(Utxo.position(_, _, _), utxo_pos),
+    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big)
 
   @doc """
   True if the witnessses provided follow some extra custom validation.
