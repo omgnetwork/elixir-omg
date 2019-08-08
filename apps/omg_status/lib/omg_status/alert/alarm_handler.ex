@@ -18,10 +18,16 @@ defmodule OMG.Status.Alert.AlarmHandler do
   """
 
   def install do
-    previous_alarms = :alarm_handler.get_alarms()
-    :ok = :gen_event.swap_handler(:alarm_handler, {:alarm_handler, :swap}, {__MODULE__, :ok})
-    # migrates old alarms
-    Enum.each(previous_alarms, &:alarm_handler.set_alarm(&1))
+    case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
+      true ->
+        :ok
+
+      false ->
+        previous_alarms = :alarm_handler.get_alarms()
+        :ok = :gen_event.swap_handler(:alarm_handler, {:alarm_handler, :swap}, {__MODULE__, :ok})
+        # migrates old alarms
+        Enum.each(previous_alarms, &:alarm_handler.set_alarm(&1))
+    end
   end
 
   # -----------------------------------------------------------------
