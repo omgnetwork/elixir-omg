@@ -23,18 +23,19 @@ services:
       - "8000:8000"
     expose:
       - "8000"
+    restart: always
     healthcheck:
       test: curl plasma-deployer:8000
-      interval: 7s
-      timeout: 3s
-      retries: 15
+      interval: 30s
+      timeout: 1s
+      retries: 5
     depends_on:
       geth:
         condition: service_healthy
 
   geth:
-    image: ethereum/client-go:v1.8.21
-    entrypoint: /bin/sh -c "apk add curl && geth --targetgaslimit "8000000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 --ws --wsaddr 0.0.0.0 --wsorigins='*'"
+    image: ethereum/client-go:v1.8.27
+    entrypoint: /bin/sh -c "apk add curl && geth --miner.gastarget 7500000 --miner.gasprice "10" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 --ws --wsaddr 0.0.0.0 --wsorigins='*'"
     ports:
       - "8545:8545"
       - "8546:8546"
@@ -70,9 +71,9 @@ services:
       - "9656"
     healthcheck:
       test: curl childchain:9656
-      interval: 7s
-      timeout: 3s
-      retries: 15
+      interval: 30s
+      timeout: 1s
+      retries: 5
     depends_on:
       plasma-deployer:
         condition: service_healthy
@@ -102,8 +103,8 @@ services:
       - "7434"
     healthcheck:
       test: curl watcher:7434
-      interval: 5s
-      timeout: 3s
+      interval: 30s
+      timeout: 1s
       retries: 5
     depends_on:
       plasma-deployer:
