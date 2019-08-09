@@ -60,13 +60,13 @@ defmodule OMG.Utxo do
   def to_db_value(%__MODULE__{output: output, creating_txhash: creating_txhash})
       when is_nil_or_binary(creating_txhash) do
     %{creating_txhash: creating_txhash}
-    |> Map.put(:output, OMG.Output.to_db_value(output))
+    |> Map.put(:output, OMG.Output.Protocol.to_db_value(output))
   end
 
   def from_db_value(%{output: output, creating_txhash: creating_txhash})
       when is_nil_or_binary(creating_txhash) do
     value = %{
-      output: OMG.Output.Dispatcher.from_db_value(output),
+      output: OMG.Output.from_db_value(output),
       creating_txhash: creating_txhash
     }
 

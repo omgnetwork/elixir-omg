@@ -12,7 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defprotocol OMG.Output do
+defmodule OMG.Output do
+  @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
+
+  def from_db_value(%{type: type_marker} = db_value), do: @output_types_modules[type_marker].from_db_value(db_value)
+end
+
+defprotocol OMG.Output.Protocol do
   @moduledoc """
   Captures the varying behavior of outputs that build the plasma chain
 
@@ -39,11 +45,5 @@ defprotocol OMG.Output do
   @doc """
   Transforms into a RLP-ready structure
   """
-  def to_rlp(output)
-end
-
-defmodule OMG.Output.Dispatcher do
-  @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
-
-  def from_db_value(%{type: type_marker} = db_value), do: @output_types_modules[type_marker].from_db_value(db_value)
+  def get_data_for_rlp(output)
 end

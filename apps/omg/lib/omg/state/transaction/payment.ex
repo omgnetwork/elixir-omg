@@ -157,7 +157,7 @@ defmodule OMG.State.Transaction.Payment do
          do: %{owner: owner, currency: cur12, amount: parse_int!(amount)}
   end
 
-  defp parse_output!(output), do: FungibleMoreVPToken.from_rlp!(output)
+  defp parse_output!(output), do: FungibleMoreVPToken.reconstruct(output)
 
   defp parse_input!([blknum, txindex, oindex]),
     do: Utxo.position(parse_int!(blknum), parse_int!(txindex), parse_int!(oindex))
@@ -173,8 +173,8 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   @empty_signature <<0::size(520)>>
 
-  # TODO: note this is fixed and improved in the abstract outputs/inputs PR
-  @payment_marker Transaction.Markers.payment()
+  # TODO: dry wrt. Application.fetch_env!(:omg, :tx_types_modules)? Use `bimap` perhaps?
+  @payment_marker <<1>>
 
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
@@ -184,7 +184,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       do: [
         @payment_marker,
         Enum.map(inputs, &to_new_rlp_input/1),
-        Enum.map(outputs, &OMG.Output.to_rlp/1),
+        Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
         metadata

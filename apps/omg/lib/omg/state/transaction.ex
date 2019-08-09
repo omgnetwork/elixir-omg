@@ -24,9 +24,7 @@ defmodule OMG.State.Transaction do
 
   require Utxo
 
-  # TODO: note this is fixed and improved in the abstract outputs/inputs PR
-  @payment_marker Transaction.Markers.payment()
-  @tx_types_modules %{@payment_marker => Transaction.Payment}
+  @tx_types_modules Application.fetch_env!(:omg, :tx_types_modules)
   @type_markers Map.keys(@tx_types_modules)
 
   @type any_flavor_t() :: __MODULE__.Signed.t() | __MODULE__.Recovered.t() | __MODULE__.Protocol.t()
@@ -53,9 +51,7 @@ defmodule OMG.State.Transaction do
 
   def dispatching_reconstruct([type_marker | raw_tx_rlp_decoded_chunks]) when type_marker in @type_markers do
     protocol_module = @tx_types_modules[type_marker]
-
-    with {:ok, reconstructed} <- protocol_module.reconstruct(raw_tx_rlp_decoded_chunks),
-         do: {:ok, reconstructed}
+    protocol_module.reconstruct(raw_tx_rlp_decoded_chunks)
   end
 
   def dispatching_reconstruct(_), do: {:error, :malformed_transaction}
@@ -119,4 +115,44 @@ defmodule OMG.State.Transaction do
   def raw_txhash(%__MODULE__.Recovered{tx_hash: hash}), do: hash
   def raw_txhash(%__MODULE__.Signed{raw_tx: raw_tx}), do: raw_txhash(raw_tx)
   def raw_txhash(raw_tx), do: hash(raw_tx)
+end
+
+defprotocol OMG.State.Transaction.Protocol do
+  @moduledoc """
+  Should be implemented for any type of transaction processed in the system
+  """
+
+  alias OMG.State.Transaction
+
+  @doc """
+  Transforms structured data into RLP-structured (encodable) list of fields
+  """
+  @spec get_data_for_rlp(t()) :: list(any())
+  def get_data_for_rlp(tx)
+
+  @doc """
+  List of input pointers (e.g. of which one implementation is `utxo_pos`) this transaction is intending to spend
+  """
+  @spec get_inputs(t()) :: list(any())
+  def get_inputs(tx)
+
+  @doc """
+  List of outputs this transaction intends to create
+  """
+  @spec get_outputs(t()) :: list(any())
+  def get_outputs(tx)
+
+  @doc """
+  Custom validation of the transaction with respect to its witnesses. Part of stateless validation routine
+  """
+  @spec valid?(t(), Transaction.Signed.t()) :: true | {:error, atom}
+  def valid?(tx, signed_tx)
+
+  @doc """
+  Custom stateful validity, based on pre-fetched subset of input UTXOs
+
+  Should also return the fees that this transaction is paying, mapped by currency; for fee validation
+  """
+  @spec can_apply?(t(), list()) :: {:ok, map()} | {:error, atom}
+  def can_apply?(tx, input_utxos)
 end

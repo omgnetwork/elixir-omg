@@ -357,7 +357,7 @@ defmodule OMG.State.Core do
     tx
     |> Transaction.get_outputs()
     |> Enum.with_index()
-    |> Enum.filter(fn {output, _index} -> OMG.Output.is_zero?(output) end)
+    |> Enum.filter(fn {output, _index} -> OMG.Output.Protocol.is_zero?(output) end)
     |> Enum.into(%{}, fn {output, oindex} ->
       {Utxo.position(blknum, tx_index, oindex), %Utxo{output: output, creating_txhash: hash}}
     end)

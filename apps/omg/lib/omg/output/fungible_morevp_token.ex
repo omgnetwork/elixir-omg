@@ -30,7 +30,7 @@ defmodule OMG.Output.FungibleMoreVPToken do
     %__MODULE__{owner: owner, currency: currency, amount: amount}
   end
 
-  def from_rlp!([owner, currency, amount]) do
+  def reconstruct([owner, currency, amount]) do
     with {:ok, cur12} <- parse_address(currency),
          {:ok, owner} <- parse_address(owner),
          do: %__MODULE__{owner: owner, currency: cur12, amount: parse_int!(amount)}
@@ -46,7 +46,7 @@ defmodule OMG.Output.FungibleMoreVPToken do
   defp parse_address(_), do: {:error, :malformed_address}
 end
 
-defimpl OMG.Output, for: OMG.Output.FungibleMoreVPToken do
+defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
   alias OMG.Output.FungibleMoreVPToken
 
   # TODO: dry wrt. Application.fetch_env!(:omg, :output_types_modules)? Use `bimap` perhaps?
@@ -67,5 +67,6 @@ defimpl OMG.Output, for: OMG.Output.FungibleMoreVPToken do
     %{owner: owner, currency: currency, amount: amount, type: @output_type_marker}
   end
 
-  def to_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}), do: [owner, currency, amount]
+  def get_data_for_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}),
+    do: [owner, currency, amount]
 end

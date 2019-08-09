@@ -74,7 +74,7 @@ defmodule OMG.State.Transaction.Recovered do
   defp authorized?(%__MODULE__{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses}, outputs_spent) do
     outputs_spent
     |> Enum.with_index()
-    |> Enum.map(fn {output_spent, idx} -> OMG.Output.can_spend?(output_spent, witnesses[idx], raw_tx) end)
+    |> Enum.map(fn {output_spent, idx} -> OMG.Output.Protocol.can_spend?(output_spent, witnesses[idx], raw_tx) end)
     |> Enum.all?()
     |> if(do: :ok, else: {:error, :unauthorized_spent})
   end
