@@ -135,9 +135,8 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
          signed_ife_tx,
          blocks
        ) do
-    {:ok, input_owners} = Transaction.Signed.get_spenders(signed_ife_tx)
-
-    owner = Enum.at(input_owners, in_flight_input_index)
+    {:ok, input_witnesses} = Transaction.Signed.get_witnesses(signed_ife_tx)
+    owner = input_witnesses[in_flight_input_index]
 
     %{
       in_flight_txbytes: signed_ife_tx |> Transaction.raw_txbytes(),

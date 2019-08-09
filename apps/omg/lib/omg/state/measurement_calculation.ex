@@ -18,6 +18,8 @@ defmodule OMG.State.MeasurementCalculation do
   alias OMG.Eth.Encoding
   alias OMG.State.Core
 
+  # TODO: functions here reach uncleanly into the UtxoSet (not going through `OMG.State.UtxoSet`) - is this bad?
+
   def calculate(%Core{utxos: utxos}) do
     balance =
       Enum.map(

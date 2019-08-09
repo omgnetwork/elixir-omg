@@ -30,19 +30,20 @@ defmodule OMG.FeesTest do
     @not_eth => 3
   }
 
+  # TODO: brittle test? why not test via public API (State.Core)?
   @tag fixtures: [:alice, :bob]
   test "Transactions covers the fee only in one currency accepted by the operator", %{alice: alice, bob: bob} do
     fees =
       create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}])
       |> for_tx(@fees)
 
-    assert covered?(%{@eth => 10}, %{@eth => 9}, fees)
+    assert covered?(%{@eth => 1}, fees)
 
     fees =
       create_recovered([{1, 0, 0, alice}], @not_eth, [{bob, 4}, {alice, 3}])
       |> for_tx(@fees)
 
-    assert covered?(%{@not_eth => 10}, %{@not_eth => 7}, fees)
+    assert covered?(%{@not_eth => 3}, fees)
 
     fees =
       create_recovered(
@@ -51,11 +52,7 @@ defmodule OMG.FeesTest do
       )
       |> for_tx(@fees)
 
-    assert covered?(
-             %{@eth => 5, @not_eth => 13},
-             %{@eth => 5, @not_eth => 10},
-             fees
-           )
+    assert covered?(%{@eth => 0, @not_eth => 3}, fees)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -66,7 +63,7 @@ defmodule OMG.FeesTest do
       create_recovered([{1, 0, 0, alice}], other_token, [{bob, 5}, {alice, 3}])
       |> for_tx(@fees)
 
-    assert false == covered?(%{other_token => 10}, %{other_token => 7}, fees)
+    assert false == covered?(%{other_token => 3}, fees)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -78,7 +75,7 @@ defmodule OMG.FeesTest do
       create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, other_token, 5}, {alice, other_token, 5}])
       |> for_tx(@fees)
 
-    assert covered?(%{@not_eth => 5, other_token => 10}, %{other_token => 10}, fees)
+    assert covered?(%{@not_eth => 5, other_token => 0}, fees)
   end
 
   describe "Merge transactions are free of cost" do
@@ -88,7 +85,7 @@ defmodule OMG.FeesTest do
         create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @not_eth, [{alice, 10}])
         |> for_tx(@fees)
 
-      assert covered?(%{@not_eth => 10}, %{@not_eth => 10}, fees)
+      assert covered?(%{@not_eth => 0}, fees)
     end
 
     @tag fixtures: [:alice]
@@ -100,11 +97,7 @@ defmodule OMG.FeesTest do
         )
         |> for_tx(@fees)
 
-      assert not covered?(
-               %{@eth => 10, @not_eth => 10},
-               %{@eth => 10, @not_eth => 10},
-               fees
-             )
+      assert not covered?(%{@eth => 0}, fees)
     end
 
     @tag fixtures: [:alice, :bob]
@@ -117,7 +110,7 @@ defmodule OMG.FeesTest do
         )
         |> for_tx(@fees)
 
-      assert not covered?(%{@eth => 10}, %{@eth => 10}, fees)
+      assert not covered?(%{@eth => 0}, fees)
     end
   end
 end

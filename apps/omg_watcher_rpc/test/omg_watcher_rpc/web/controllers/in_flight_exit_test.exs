@@ -77,12 +77,12 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
       )
 
       test_in_flight_exit_data.([{3000, 1, 0, alice}], [
-        OMG.State.Transaction.new([{1000, 1, 1}], [{bob.addr, @eth, 150}, {alice.addr, @eth, 50}])
+        Transaction.Payment.new([{1000, 1, 1}], [{bob.addr, @eth, 150}, {alice.addr, @eth, 50}])
       ])
 
       test_in_flight_exit_data.([{3000, 1, 0, alice}, {2000, 0, 1, alice}], [
-        OMG.State.Transaction.new([{1000, 1, 1}], [{bob.addr, @eth, 150}, {alice.addr, @eth, 50}]),
-        OMG.State.Transaction.new([{1000, 1, 0}], [{bob.addr, @eth, 99}, {alice.addr, @eth, 1}], <<1322::256>>)
+        Transaction.Payment.new([{1000, 1, 1}], [{bob.addr, @eth, 150}, {alice.addr, @eth, 50}]),
+        Transaction.Payment.new([{1000, 1, 0}], [{bob.addr, @eth, 99}, {alice.addr, @eth, 1}], <<1322::256>>)
       ])
     end
 

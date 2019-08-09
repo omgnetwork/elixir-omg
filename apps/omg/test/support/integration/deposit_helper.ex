@@ -26,7 +26,7 @@ defmodule OMG.Integration.DepositHelper do
 
   def deposit_to_child_chain(to, value, @eth) do
     {:ok, receipt} =
-      Transaction.new([], [{to, @eth, value}])
+      Transaction.Payment.new([], [{to, @eth, value}])
       |> Transaction.raw_txbytes()
       |> Eth.RootChainHelper.deposit(value, to)
       |> Eth.DevHelpers.transact_sync!()
@@ -40,7 +40,7 @@ defmodule OMG.Integration.DepositHelper do
     {:ok, _} = Eth.Token.approve(to, contract_addr, value, token_addr) |> Eth.DevHelpers.transact_sync!()
 
     {:ok, receipt} =
-      Transaction.new([], [{to, token_addr, value}])
+      Transaction.Payment.new([], [{to, token_addr, value}])
       |> Transaction.raw_txbytes()
       |> Eth.RootChainHelper.deposit_from(to)
       |> Eth.DevHelpers.transact_sync!()

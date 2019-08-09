@@ -69,8 +69,10 @@ defmodule OMG.Watcher.Eventer.Core do
     get_address_received_events(event_trigger) ++ get_address_spent_events(event_trigger)
   end
 
-  defp get_address_spent_events(%{tx: %Transaction.Recovered{spenders: spenders}} = event_trigger) do
-    spenders
+  defp get_address_spent_events(%{tx: %Transaction.Recovered{witnesses: witnesses}} = event_trigger) do
+    witnesses
+    |> Map.values()
+    # makes sure only spender witnesses are used here. This should fail&crash when other kinds of witnesses go through
     |> Enum.filter(&account_address?/1)
     |> Enum.map(&create_address_spent_event(event_trigger, &1))
     |> Enum.uniq()
@@ -92,7 +94,6 @@ defmodule OMG.Watcher.Eventer.Core do
 
   defp account_address?(@zero_address), do: false
   defp account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
-  defp account_address?(_), do: false
 
   defp create_address_received_event(event_trigger, address) do
     subtopic = create_transfer_subtopic(address)

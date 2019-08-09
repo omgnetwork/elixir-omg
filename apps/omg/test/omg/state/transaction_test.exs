@@ -30,10 +30,17 @@ defmodule OMG.State.TransactionTest do
 
   require Utxo
 
+  # TODO: commented code for the tx markers handling
+  #
+  # # TODO: proper magic values of types
+  # @payment_marker <<188, 97, 78>>
+  #
+  # end commented code
+
   @zero_address OMG.Eth.zero_address()
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @utxo_positions [{20, 42, 1}, {2, 21, 0}, {1000, 0, 0}, {10_001, 0, 0}]
-  @transaction Transaction.new(
+  @transaction Transaction.Payment.new(
                  [{1, 1, 0}, {1, 2, 1}],
                  [{"alicealicealicealice", @eth, 1}, {"carolcarolcarolcarol", @eth, 2}],
                  <<0::256>>
@@ -44,8 +51,8 @@ defmodule OMG.State.TransactionTest do
 
   describe "hashing and metadata field" do
     test "create transaction with metadata" do
-      tx_with_metadata = Transaction.new(@utxo_positions, [{"Joe Black", @eth, 53}], <<42::256>>)
-      tx_without_metadata = Transaction.new(@utxo_positions, [{"Joe Black", @eth, 53}])
+      tx_with_metadata = Transaction.Payment.new(@utxo_positions, [{"Joe Black", @eth, 53}], <<42::256>>)
+      tx_without_metadata = Transaction.Payment.new(@utxo_positions, [{"Joe Black", @eth, 53}])
 
       assert Transaction.raw_txhash(tx_with_metadata) != Transaction.raw_txhash(tx_without_metadata)
 
@@ -64,7 +71,7 @@ defmodule OMG.State.TransactionTest do
     test "using created transaction in child chain", %{alice: alice, bob: bob, state_alice_deposit: state} do
       state = state |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
 
-      Transaction.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, @eth, 12}])
+      Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, @eth, 12}])
       |> DevCrypto.sign([alice.priv, alice.priv])
       |> assert_tx_usable(state)
     end
@@ -75,7 +82,7 @@ defmodule OMG.State.TransactionTest do
       bob: bob,
       state_alice_deposit: state
     } do
-      Transaction.new([{1, 0, 0}], [{bob.addr, @eth, 4}])
+      Transaction.Payment.new([{1, 0, 0}], [{bob.addr, @eth, 4}])
       |> DevCrypto.sign([alice.priv, <<>>])
       |> assert_tx_usable(state)
     end
@@ -85,13 +92,13 @@ defmodule OMG.State.TransactionTest do
       output1 = {"Joe Black", @eth, 99}
       check_output2 = %{amount: 99, currency: @eth, owner: "Joe Black"}
       # 1 - input, 1 - output
-      tx1_1 = Transaction.new([hd(@utxo_positions)], [output1])
+      tx1_1 = Transaction.Payment.new([hd(@utxo_positions)], [output1])
       assert 1 == tx1_1 |> Transaction.get_inputs() |> length()
       assert 1 == tx1_1 |> Transaction.get_outputs() |> length()
       assert [^check_input1 | _] = Transaction.get_inputs(tx1_1)
       assert [^check_output2 | _] = Transaction.get_outputs(tx1_1)
       # 4 - input, 4 - outputs
-      tx4_4 = Transaction.new(@utxo_positions, [output1, {"J", @eth, 929}, {"J", @eth, 929}, {"J", @eth, 199}])
+      tx4_4 = Transaction.Payment.new(@utxo_positions, [output1, {"J", @eth, 929}, {"J", @eth, 929}, {"J", @eth, 199}])
       assert 4 == tx4_4 |> Transaction.get_inputs() |> length()
       assert 4 == tx4_4 |> Transaction.get_outputs() |> length()
       assert [^check_input1 | _] = Transaction.get_inputs(tx4_4)
@@ -102,37 +109,12 @@ defmodule OMG.State.TransactionTest do
     test "recovering spenders: different signers, one output", %{alice: alice, bob: bob} do
       {:ok, recovered} =
         [{3000, 0, 0}, {3000, 0, 1}]
-        |> Transaction.new([{alice.addr, @eth, 10}])
+        |> Transaction.Payment.new([{alice.addr, @eth, 10}])
         |> DevCrypto.sign([bob.priv, alice.priv])
         |> Transaction.Signed.encode()
         |> Transaction.Recovered.recover_from()
 
-      assert recovered.spenders == [bob.addr, alice.addr]
-    end
-
-    @tag fixtures: [:alice, :bob, :carol]
-    test "checks if spenders are authorized", %{alice: alice, bob: bob, carol: carol} do
-      authorized_tx = TestHelper.create_recovered([{1, 1, 0, alice}, {1, 3, 0, bob}], @eth, [{bob, 6}, {alice, 4}])
-
-      :ok = Transaction.Recovered.all_spenders_authorized(authorized_tx, [alice.addr, bob.addr])
-
-      {:error, :unauthorized_spent} = Transaction.Recovered.all_spenders_authorized(authorized_tx, [carol.addr])
-
-      {:error, :unauthorized_spent} =
-        Transaction.Recovered.all_spenders_authorized(authorized_tx, [alice.addr, carol.addr])
-    end
-
-    @tag fixtures: [:alice, :bob]
-    test "restrictive spender checks: signature indices correspond to input indices", %{alice: alice, bob: bob} do
-      # an additional check on the authorization which might be dropped later - for now we require all inputs to be
-      # signed in order, because this is what the contract requires
-      authorized_tx = TestHelper.create_recovered([{1, 1, 0, alice}, {1, 3, 0, bob}], @eth, [{bob, 6}, {alice, 4}])
-
-      {:error, :unauthorized_spent} =
-        Transaction.Recovered.all_spenders_authorized(authorized_tx, [bob.addr, alice.addr])
-
-      {:error, :unauthorized_spent} =
-        Transaction.Recovered.all_spenders_authorized(authorized_tx, [alice.addr, alice.addr, bob.addr])
+      assert recovered.witnesses == %{0 => bob.addr, 1 => alice.addr}
     end
 
     @tag fixtures: [:alice, :bob]
@@ -166,14 +148,78 @@ defmodule OMG.State.TransactionTest do
       assert decoded == @transaction |> Transaction.raw_txbytes() |> Transaction.decode!()
     end
 
+    # TODO: commented version of the test for the markered-payment tx
+    # @tag fixtures: [:alice]
+    # test "decoding malformed signed payment transaction", %{alice: alice} do
+    #   %Transaction.Signed{sigs: sigs} =
+    #     tx =
+    #     Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, @eth, 12}])
+    #     |> DevCrypto.sign([alice.priv, alice.priv])
+    #
+    #   [_payment_marker, inputs, outputs] = Transaction.raw_txbytes(tx) |> ExRLP.decode()
+    #
+    #   # sanity
+    #   assert {:ok, _} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs]))
+    #
+    #   assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<192>>)
+    #   assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<0x80>>)
+    #   assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<>>)
+    #   assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode(23))
+    #   assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, []]))
+    #
+    #   assert {:error, :malformed_transaction} =
+    #            Transaction.Recovered.recover_from(ExRLP.encode([sigs, inputs, outputs]))
+    #
+    #   assert {:error, :malformed_transaction} =
+    #            Transaction.Recovered.recover_from(ExRLP.encode([sigs, "bad_marker", inputs, outputs]))
+    #
+    #   assert {:error, :malformed_witnesses} ==
+    #            Transaction.Recovered.recover_from(ExRLP.encode([[<<1>>, <<1>>], @payment_marker, inputs, outputs]))
+    #
+    #   assert {:error, :malformed_witnesses} ==
+    #            Transaction.Recovered.recover_from(ExRLP.encode([<<1>>, @payment_marker, inputs, outputs]))
+    #
+    #   assert {:error, :malformed_inputs} =
+    #            Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, 42, outputs]))
+    #
+    #   assert {:error, :malformed_inputs} =
+    #            Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, [[1, 2]], outputs]))
+    #
+    #   assert {:error, :malformed_inputs} =
+    #            Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, [[1, 2, 'a']], outputs]))
+    #
+    #   assert {:error, :malformed_outputs} =
+    #            Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, 42]))
+    #
+    #   assert {:error, :malformed_outputs} =
+    #            Transaction.Recovered.recover_from(
+    #              ExRLP.encode([sigs, @payment_marker, inputs, [[alice.addr, alice.addr]]])
+    #            )
+    #
+    #   assert {:error, :malformed_outputs} =
+    #            Transaction.Recovered.recover_from(
+    #              ExRLP.encode([sigs, @payment_marker, inputs, [[alice.addr, alice.addr, 'a']]])
+    #            )
+    #
+    #   assert {:error, :malformed_metadata} =
+    #            Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, ""]))
+    #
+    #   assert {:error, :malformed_metadata} =
+    #            Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, <<0::288>>]))
+    # end
+
+    # TODO: the unmarkered version of the test (to remove when the above test is uncommented)
     @tag fixtures: [:alice]
     test "decoding malformed signed transaction", %{alice: alice} do
       %Transaction.Signed{sigs: sigs} =
         tx =
-        Transaction.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, @eth, 12}])
+        Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, @eth, 12}])
         |> DevCrypto.sign([alice.priv, alice.priv])
 
       [inputs, outputs] = Transaction.raw_txbytes(tx) |> ExRLP.decode()
+
+      # sanity
+      assert {:ok, _} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, inputs, outputs]))
 
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<192>>)
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<0x80>>)
@@ -181,13 +227,14 @@ defmodule OMG.State.TransactionTest do
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode(23))
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, []]))
 
-      assert {:error, :malformed_signatures} ==
+      assert {:error, :malformed_witnesses} ==
                Transaction.Recovered.recover_from(ExRLP.encode([[<<1>>, <<1>>], inputs, outputs]))
 
-      assert {:error, :malformed_signatures} ==
+      assert {:error, :malformed_witnesses} ==
                Transaction.Recovered.recover_from(ExRLP.encode([<<1>>, inputs, outputs]))
 
       assert {:error, :malformed_inputs} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, 42, outputs]))
+
       assert {:error, :malformed_inputs} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, [[1, 2]], outputs]))
 
       assert {:error, :malformed_inputs} =
@@ -371,15 +418,17 @@ defmodule OMG.State.TransactionTest do
 
     encoded_signed_tx = Transaction.Signed.encode(tx)
 
-    spenders =
+    witnesses =
       inputs
       |> Enum.filter(fn {_, _, _, %{addr: addr}} -> addr != nil end)
       |> Enum.map(fn {_, _, _, spender} -> spender.addr end)
+      |> Enum.with_index()
+      |> Enum.into(%{}, fn {witness, index} -> {index, witness} end)
 
     assert {:ok,
             %Transaction.Recovered{
               signed_tx: ^tx,
-              spenders: ^spenders
+              witnesses: ^witnesses
             }} = Transaction.Recovered.recover_from(encoded_signed_tx)
   end
 end

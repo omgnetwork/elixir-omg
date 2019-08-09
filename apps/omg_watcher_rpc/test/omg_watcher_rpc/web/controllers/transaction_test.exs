@@ -20,11 +20,11 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
   alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.DB
-
   alias OMG.Watcher.TestHelper
 
-  alias OMG.Utils.HttpRPC.Encoding
+  require OMG.State.Transaction.Payment
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @other_token <<127::160>>
@@ -746,7 +746,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
 
       verbose_tx =
-        Transaction.new(
+        Transaction.Payment.new(
           verbose_inputs |> Enum.map(&{&1["blknum"], &1["txindex"], &1["oindex"]}),
           verbose_outputs |> Enum.map(&{from_hex!(&1["owner"]), from_hex!(&1["currency"]), &1["amount"]}),
           from_hex!(verbose_metadata)
@@ -877,8 +877,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                )
 
-      require OMG.State.Transaction
-      assert OMG.State.Transaction.max_inputs() == length(transaction["inputs"])
+      assert OMG.State.Transaction.Payment.max_inputs() == length(transaction["inputs"])
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
@@ -1123,14 +1122,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     defp max_amount_spendable_in_single_tx(address, token) do
-      alias OMG.State.Transaction
-      require Transaction
       currency = Encoding.to_hex(token)
 
       TestHelper.get_utxos(address)
       |> Stream.filter(&(&1["currency"] == currency))
       |> Enum.sort_by(& &1["amount"], &>=/2)
-      |> Stream.take(Transaction.max_inputs())
+      |> Stream.take(Transaction.Payment.max_inputs())
       |> Stream.map(& &1["amount"])
       |> Enum.sum()
     end

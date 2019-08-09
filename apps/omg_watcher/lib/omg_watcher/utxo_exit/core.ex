@@ -44,7 +44,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
 
   def compose_output_exit(sorted_tx_bytes, Utxo.position(_blknum, txindex, _) = utxo_pos) do
     if signed_tx = Enum.at(sorted_tx_bytes, txindex) do
-      {:ok, %Transaction.Signed{sigs: sigs} = tx} = Transaction.Signed.decode(signed_tx)
+      %Transaction.Signed{sigs: sigs} = tx = Transaction.Signed.decode!(signed_tx)
 
       {:ok,
        %{
@@ -58,8 +58,8 @@ defmodule OMG.Watcher.UtxoExit.Core do
     end
   end
 
-  @spec get_deposit_utxo({:ok, list({OMG.DB.utxo_pos_db_t(), Transaction.output()})}, Utxo.Position.t()) ::
-          nil | Transaction.output()
+  @spec get_deposit_utxo({:ok, list({OMG.DB.utxo_pos_db_t(), Transaction.Payment.output()})}, Utxo.Position.t()) ::
+          nil | Transaction.Payment.output()
   def get_deposit_utxo({:ok, utxos}, Utxo.position(blknum, _, _)) do
     case Enum.find(utxos, fn {{blk, _, _}, _} -> blk == blknum end) do
       {_, utxo} -> utxo
@@ -67,7 +67,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
     end
   end
 
-  @spec compose_deposit_exit(Transaction.output() | any(), Utxo.Position.t()) ::
+  @spec compose_deposit_exit(Transaction.Payment.output() | any(), Utxo.Position.t()) ::
           {:error, :no_deposit_for_given_blknum}
           | {:ok,
              %{
@@ -76,7 +76,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
                proof: binary
              }}
   def compose_deposit_exit(%{amount: amount, currency: currency, owner: owner}, utxo_pos) do
-    tx = Transaction.new([], [{owner, currency, amount}])
+    tx = Transaction.Payment.new([], [{owner, currency, amount}])
     txs = [Transaction.Signed.encode(%Transaction.Signed{raw_tx: tx, sigs: []})]
 
     {:ok,

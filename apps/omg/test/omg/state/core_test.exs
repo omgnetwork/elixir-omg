@@ -236,7 +236,8 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
-  test "can't spend when signature order does not match input order", %{alice: alice, bob: bob, state_empty: state} do
+  test "can't spend when signature order does not match input order (restrictive spender checks)",
+       %{alice: alice, bob: bob, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
     |> do_deposit(bob, %{amount: 20, currency: @eth, blknum: 2})
@@ -281,6 +282,26 @@ defmodule OMG.State.CoreTest do
     |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{alice, 10}]), :ignore)
     |> fail?(:unauthorized_spent)
     |> same?(state)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  test "all inputs must be authorized to be spent", %{alice: alice, bob: bob, state_alice_deposit: state} do
+    state =
+      state
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :ignore)
+      |> success?()
+
+    state
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, bob}], @eth, []), :ignore)
+    |> fail?(:unauthorized_spent)
+    |> same?(state)
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}, {@blknum1, 0, 1, alice}], @eth, []), :ignore)
+    |> fail?(:unauthorized_spent)
+    |> same?(state)
+
+    state
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, []), :ignore)
+    |> success?()
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -453,8 +474,9 @@ defmodule OMG.State.CoreTest do
              }, _, _}, _} = form_block_check(state)
 
     # precomputed fixed hash to check compliance with hashing algo
-    assert block_hash |> Base.encode16(case: :lower) ==
-             "ee44e104950e8784c17495e423493c54026fa554180bbbca057c1176bc4e1ded"
+    assert block_hash ==
+             <<238, 68, 225, 4, 149, 14, 135, 132, 193, 116, 149, 228, 35, 73, 60, 84, 2, 111, 165, 84, 24, 11, 187,
+               202, 5, 124, 17, 118, 188, 78, 29, 237>>
 
     # Check that contents of the block can be recovered again to original txs
     assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)

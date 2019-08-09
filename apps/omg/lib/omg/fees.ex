@@ -24,20 +24,17 @@ defmodule OMG.Fees do
 
   use OMG.Utils.LoggerExt
 
-  @type fee_spec_t() :: %{token: Transaction.currency(), flat_fee: non_neg_integer}
-  @type fee_t() :: %{Transaction.currency() => non_neg_integer} | :ignore
+  @type fee_spec_t() :: %{token: Transaction.Payment.currency(), flat_fee: non_neg_integer}
+  @type fee_t() :: %{Transaction.Payment.currency() => non_neg_integer} | :ignore
 
   @doc """
   Checks whether transaction's funds cover the fee
   """
-  @spec covered?(input_amounts :: map(), output_amounts :: map(), fees :: fee_t()) :: boolean()
-  def covered?(_, _, :ignore), do: true
+  @spec covered?(implicit_paid_fee_by_currency :: map(), fees :: fee_t()) :: boolean()
+  def covered?(_, :ignore), do: true
 
-  def covered?(input_amounts, output_amounts, fees) do
-    for {input_currency, input_amount} <- Map.to_list(input_amounts) do
-      # fee is implicit - it's the difference between funds owned and spend
-      implicit_paid_fee = input_amount - Map.get(output_amounts, input_currency, 0)
-
+  def covered?(implicit_paid_fee_by_currency, fees) do
+    for {input_currency, implicit_paid_fee} <- implicit_paid_fee_by_currency do
       case Map.get(fees, input_currency) do
         nil -> false
         fee -> fee <= implicit_paid_fee
@@ -59,6 +56,7 @@ defmodule OMG.Fees do
 
   defp is_merge_transaction?(recovered_tx) do
     [
+      &is_payment?/1,
       &has_less_outputs_than_inputs?/1,
       &has_single_currency?/1,
       &has_same_account?/1
@@ -66,7 +64,12 @@ defmodule OMG.Fees do
     |> Enum.all?(fn predicate -> predicate.(recovered_tx) end)
   end
 
-  defp has_same_account?(%Transaction.Recovered{spenders: spenders} = tx) do
+  defp is_payment?(%Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Payment{}}}), do: true
+  defp is_payment?(_), do: false
+
+  defp has_same_account?(%Transaction.Recovered{witnesses: witnesses} = tx) do
+    spenders = Map.values(witnesses)
+
     tx
     |> Transaction.get_outputs()
     |> Enum.map(& &1.owner)

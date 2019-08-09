@@ -115,7 +115,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
          %{processor_empty: processor, alice: alice} do
       # there is leeway in the contract, that allows IFE transactions to hold non-zero signatures for zero-inputs
       # we want to be sure that this doesn't crash the `ExitProcessor`
-      tx = Transaction.new([{1, 0, 0}], [])
+      tx = Transaction.Payment.new([{1, 0, 0}], [])
       txbytes = txbytes(tx)
       # superfluous signatures
       %{sigs: sigs} = signed_tx = OMG.DevCrypto.sign(tx, [alice.priv, alice.priv, alice.priv])

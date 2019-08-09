@@ -76,7 +76,7 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
     do: do_new(tx_bytes, index, sig)
 
   defp do_new(tx_bytes, competing_input_index, competing_input_signature) do
-    with {:ok, %Transaction{} = raw_tx} <- Transaction.decode(tx_bytes) do
+    with {:ok, %Transaction.Payment{} = raw_tx} <- Transaction.decode(tx_bytes) do
       {Transaction.raw_txhash(raw_tx),
        %__MODULE__{
          tx: %Transaction.Signed{

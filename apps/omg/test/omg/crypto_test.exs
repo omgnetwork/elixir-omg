@@ -62,7 +62,7 @@ defmodule OMG.CryptoTest do
     {:ok, pub} = DevCrypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)
 
-    raw_tx = Transaction.new([{1000, 1, 0}], [])
+    raw_tx = Transaction.Payment.new([{1000, 1, 0}], [])
     signature = DevCrypto.signature(raw_tx, priv)
     assert byte_size(signature) == 65
 
@@ -73,7 +73,7 @@ defmodule OMG.CryptoTest do
              |> (&match?({:ok, ^address}, &1)).()
 
     assert false ==
-             Transaction.new([{1000, 0, 1}], [])
+             Transaction.Payment.new([{1000, 0, 1}], [])
              |> TypedDataHash.hash_struct()
              |> Crypto.recover_address(signature)
              |> (&match?({:ok, ^address}, &1)).()

@@ -23,15 +23,16 @@ defmodule OMG.Watcher.UtxoSelection do
   alias OMG.Watcher.DB
 
   require Transaction
+  require Transaction.Payment
 
   @type payment_t() :: %{
           owner: Crypto.address_t() | nil,
-          currency: Transaction.currency(),
+          currency: Transaction.Payment.currency(),
           amount: pos_integer()
         }
 
   @type fee_t() :: %{
-          currency: Transaction.currency(),
+          currency: Transaction.Payment.currency(),
           amount: non_neg_integer()
         }
 
@@ -67,7 +68,7 @@ defmodule OMG.Watcher.UtxoSelection do
   If also provided with receiver's address, creates and encodes a transaction.
   TODO: seems unocovered by any tests
   """
-  @spec create_advice(%{Transaction.currency() => list(%DB.TxOutput{})}, order_t()) :: advice_t()
+  @spec create_advice(%{Transaction.Payment.currency() => list(%DB.TxOutput{})}, order_t()) :: advice_t()
   def create_advice(utxos, %{owner: owner, payments: payments, fee: fee} = order) do
     needed_funds = needed_funds(payments, fee)
     token_utxo_selection = select_utxo(utxos, needed_funds)
@@ -78,7 +79,7 @@ defmodule OMG.Watcher.UtxoSelection do
         |> Stream.map(fn {_, utxos} -> length(utxos) end)
         |> Enum.sum()
 
-      if utxo_count <= Transaction.max_inputs(),
+      if utxo_count <= Transaction.Payment.max_inputs(),
         do: create_transaction(funds, order) |> respond(:complete),
         else: create_merge(owner, funds) |> respond(:intermediate)
     end
@@ -89,8 +90,10 @@ defmodule OMG.Watcher.UtxoSelection do
   # We return {token, {change, [utxos for payment]}}, change > 0 means insufficient funds.
   # NOTE: order of Utxo list is implicitly assumed for the algorithm to work deterministically,
   # see: `OMG.Watcher.DB.TxOutput.get_sorted_grouped_utxos`
-  @spec select_utxo(%{Transaction.currency() => list(%DB.TxOutput{})}, %{Transaction.currency() => pos_integer()}) ::
-          list({Transaction.currency(), {integer, list(%DB.TxOutput{})}})
+  @spec select_utxo(%{Transaction.Payment.currency() => list(%DB.TxOutput{})}, %{
+          Transaction.Payment.currency() => pos_integer()
+        }) ::
+          list({Transaction.Payment.currency(), {integer, list(%DB.TxOutput{})}})
   defp select_utxo(utxos, needed_funds) do
     Enum.map(needed_funds, fn {token, need} ->
       token_utxos = Map.get(utxos, token, [])
@@ -153,7 +156,7 @@ defmodule OMG.Watcher.UtxoSelection do
       |> List.flatten()
 
     cond do
-      Enum.count(outputs) > Transaction.max_outputs() ->
+      Enum.count(outputs) > Transaction.Payment.max_outputs() ->
         {:error, :too_many_outputs}
 
       Enum.empty?(inputs) ->
@@ -177,7 +180,7 @@ defmodule OMG.Watcher.UtxoSelection do
   defp create_merge(owner, utxos_per_token) do
     utxos_per_token
     |> Enum.map(fn {token, utxos} ->
-      Stream.chunk_every(utxos, Transaction.max_outputs())
+      Stream.chunk_every(utxos, Transaction.Payment.max_outputs())
       |> Enum.map(fn
         [_single_input] ->
           # merge not needed
@@ -200,7 +203,7 @@ defmodule OMG.Watcher.UtxoSelection do
     if Enum.any?(outputs, &(&1.owner == nil)),
       do: nil,
       else:
-        Transaction.new(
+        Transaction.Payment.new(
           inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
           outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
           metadata
