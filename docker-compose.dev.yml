@@ -1,4 +1,4 @@
-version: "2.1"
+version: "3.7"
 services:
   elixir-omg:
     build: .
@@ -10,23 +10,34 @@ services:
   watcher:
     environment:
       - DD_DISABLED=false
+    # labels:
+    #   local.development.of: "watcher"
+    #   local.development.from: "ino"
+    labels:
+      my.custom.label.project: 'projectA'
+      my.custom.label.version: '1'
     depends_on:
-      datadog:
-        condition: service_healthy
+      - datadog
   childchain:
     environment:
       - DD_DISABLED=false
-    depends_on:
-      datadog:
-        condition: service_healthy
+    labels:
+      local.development.of: "child_chain"
+      local.development.from: "ino"
+    #depends_on:
+     #  - datadog
+
   datadog:
     image: datadog/agent:latest
     restart: always
     environment:
       - DD_API_KEY=${DD_API_KEY}
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
-      - DD_DOGSTATSD_TAGS=["env:local_development"]
-      #- DD_LOG_LEVEL=debug
+      #- DD_DOGSTATSD_TAGS=["env:local_development"]
+      - DD_DOCKER_LABELS_AS_TAGS='{"com.docker.compose.service":"service_name","my.custom.label.project":"projecttag","my.custom.label.version":"versiontag"}'
+      - DD_LOG_LEVEL=debug
+#      - DD_AC_INCLUDE="image:watcher image:childchain"
+#      - DD_AC_EXCLUDE="image:*"
       - DOCKER_CONTENT_TRUST=1
       - DD_APM_ENABLED=true
     volumes:

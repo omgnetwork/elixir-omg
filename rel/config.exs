@@ -50,6 +50,8 @@ release :watcher do
 
   set(
     commands: [
+      wait_for_postgres: "rel/commands/watcher/wait_for_postgres.sh",
+      wait_for_it: "rel/commands/wait_for_it.sh",
       init_postgresql_db: "rel/commands/watcher/init_postgresql_db.sh",
       init_key_value_db: "rel/commands/init_key_value_db.sh"
     ]
@@ -83,6 +85,7 @@ release :child_chain do
 
   set(
     commands: [
+      wait_for: "rel/commands/wait_for.sh",
       init_key_value_db: "rel/commands/init_key_value_db.sh"
     ]
   )

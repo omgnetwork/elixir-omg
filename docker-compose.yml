@@ -1,4 +1,4 @@
-version: "2.1"
+version: "3.7"
 services:
   postgres:
     image: postgres:9.6.13-alpine
@@ -30,12 +30,11 @@ services:
       timeout: 1s
       retries: 5
     depends_on:
-      geth:
-        condition: service_healthy
+      - geth
 
   geth:
     image: ethereum/client-go:v1.8.27
-    entrypoint: /bin/sh -c "apk add curl && geth --miner.gastarget 7500000 --miner.gasprice "10" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 --ws --wsaddr 0.0.0.0 --wsorigins='*'"
+    entrypoint: /bin/sh -c "apk add curl && geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 --ws --wsaddr 0.0.0.0 --wsorigins='*'"
     ports:
       - "8545:8545"
       - "8546:8546"
@@ -51,7 +50,11 @@ services:
   childchain:
     image: omisego/child_chain:latest
     command: "full_local"
+    labels:
+      my.custom.label.project: 'projectA'
+      my.custom.label.version: '1'
     environment:
+      - DD_DISABLED=false
       - EXIT_PERIOD_SECONDS=86400
       - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000
       - ETHEREUM_RPC_URL=http://geth:8545
@@ -62,7 +65,7 @@ services:
       - NODE_HOST=127.0.0.1
       - APP_ENV=local_development_child_chain
       - DD_HOSTNAME=datadog
-      - DD_DISABLED=true
+      #- DD_DISABLED=true
       - DB_PATH=/app/.omg/data
     restart: always
     ports:
@@ -74,11 +77,13 @@ services:
       interval: 30s
       timeout: 1s
       retries: 5
+    # command: /bin/bash -c " /app/bin/child_chain wait_for_it geth:8545
+    #   && /app/bin/child_chain wait_for_it plasma-deployer:8000
+    #   && /app/bin/child_chain init_key_value_db
+    #   && /app/bin/child_chain foreground"
     depends_on:
-      plasma-deployer:
-        condition: service_healthy
-      geth:
-        condition: service_healthy
+      - plasma-deployer
+      - geth
 
   watcher:
     image: omisego/watcher:latest
@@ -107,10 +112,7 @@ services:
       timeout: 1s
       retries: 5
     depends_on:
-      plasma-deployer:
-        condition: service_healthy
-      childchain:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+      - plasma-deployer
+      - childchain
+      - postgres
 

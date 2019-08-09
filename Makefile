@@ -133,7 +133,7 @@ docker-push: docker
 	docker push $(WATCHER_IMAGE_NAME)
 
 cluster-with-datadog:
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-deployer watcher childchain
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up datadog plasma-deployer watcher childchain
 
 stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
