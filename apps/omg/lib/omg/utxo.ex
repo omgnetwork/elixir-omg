@@ -65,21 +65,21 @@ defmodule OMG.Utxo do
 
   def from_db_value(%{output: output, creating_txhash: creating_txhash})
       when is_nil_or_binary(creating_txhash) do
-    # FIXME: dispatch
     value = %{
-      output: OMG.Output.from_db_value(%OMG.Output.FungibleMoreVPToken{}, output),
+      output: OMG.Output.Dispatcher.from_db_value(output),
       creating_txhash: creating_txhash
     }
 
     struct!(__MODULE__, value)
   end
 
-  # Reading from old db format
-  def from_db_value(%{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash}) do
+  # Reading from old db format, only `OMG.Output.FungibleMoreVPToken`
+  def from_db_value(%{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash})
+      when is_nil_or_binary(creating_txhash) do
     output = %{owner: owner, currency: currency, amount: amount}
 
     value = %{
-      output: OMG.Output.from_db_value(%OMG.Output.FungibleMoreVPToken{}, output),
+      output: OMG.Output.FungibleMoreVPToken.from_db_value(output),
       creating_txhash: creating_txhash
     }
 

@@ -19,6 +19,7 @@ defmodule OMG.State.Transaction.Payment do
       This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
   """
   alias OMG.Crypto
+  alias OMG.Output.FungibleMoreVPToken
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -86,11 +87,14 @@ defmodule OMG.State.Transaction.Payment do
     inputs =
       inputs
       |> Enum.map(fn {blknum, txindex, oindex} -> Utxo.position(blknum, txindex, oindex) end)
-      |> filter_non_zero()
+      |> filter_non_zero_inputs()
 
     outputs =
       outputs
-      |> Enum.map(fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end)
+      |> Enum.map(fn {owner, currency, amount} ->
+        %FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
+      end)
+      |> filter_non_zero_outputs()
 
     %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
@@ -132,13 +136,6 @@ defmodule OMG.State.Transaction.Payment do
 
   defp parse_int!(binary), do: :binary.decode_unsigned(binary, :big)
 
-  # necessary, because RLP handles empty string equally to integer 0
-  @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
-  defp parse_address(binary)
-  defp parse_address(""), do: {:ok, <<0::160>>}
-  defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
-  defp parse_address(_), do: {:error, :malformed_address}
-
   defp parse_inputs(inputs_rlp) do
     {:ok, Enum.map(inputs_rlp, &parse_input!/1)}
   rescue
@@ -159,6 +156,8 @@ defmodule OMG.State.Transaction.Payment do
          {:ok, owner} <- parse_address(owner),
          do: %{owner: owner, currency: cur12, amount: parse_int!(amount)}
   end
+
+  defp parse_output!(output), do: FungibleMoreVPToken.from_rlp!(output)
 
   defp parse_input!([blknum, txindex, oindex]),
     do: Utxo.position(parse_int!(blknum), parse_int!(txindex), parse_int!(oindex))
@@ -181,25 +180,17 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
   def get_data_for_rlp(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
-      when Transaction.is_metadata(metadata),
+      when Transaction.Payment.is_metadata(metadata),
       do: [
         @payment_marker,
         Enum.map(inputs, &to_new_rlp_input/1),
-        # TODO: ugly but to be cleaned up in the abstract output PR soon, so leaving as is
-        #       hard coded output type 1
-        Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [1, owner, currency, amount] end),
+        Enum.map(outputs, &OMG.Output.to_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
         metadata
       ]
 
-  def get_outputs(%Transaction.Payment{outputs: outputs}) do
-    outputs
-    |> Enum.map(fn %{owner: owner, currency: currency, amount: amount} ->
-      %OMG.Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
-    end)
-  end
-
+  def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
   def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
 
   defp to_new_rlp_input(Utxo.position(_, _, _), utxo_pos),

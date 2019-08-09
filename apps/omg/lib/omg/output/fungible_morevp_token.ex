@@ -24,10 +24,33 @@ defmodule OMG.Output.FungibleMoreVPToken do
           currency: Crypto.address_t(),
           amount: non_neg_integer()
         }
+
+  def from_db_value(%{owner: owner, currency: currency, amount: amount})
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) do
+    %__MODULE__{owner: owner, currency: currency, amount: amount}
+  end
+
+  def from_rlp!([owner, currency, amount]) do
+    with {:ok, cur12} <- parse_address(currency),
+         {:ok, owner} <- parse_address(owner),
+         do: %__MODULE__{owner: owner, currency: cur12, amount: parse_int!(amount)}
+  end
+
+  defp parse_int!(binary), do: :binary.decode_unsigned(binary, :big)
+
+  # necessary, because RLP handles empty string equally to integer 0
+  @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
+  defp parse_address(binary)
+  defp parse_address(""), do: {:ok, <<0::160>>}
+  defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
+  defp parse_address(_), do: {:error, :malformed_address}
 end
 
 defimpl OMG.Output, for: OMG.Output.FungibleMoreVPToken do
   alias OMG.Output.FungibleMoreVPToken
+
+  # TODO: dry wrt. Application.fetch_env!(:omg, :output_types_modules)? Use `bimap` perhaps?
+  @output_type_marker <<1>>
 
   @doc """
   For payment outputs, a binary witness is assumed to be a signature equal to the payment's output owner
@@ -39,14 +62,10 @@ defimpl OMG.Output, for: OMG.Output.FungibleMoreVPToken do
   def is_zero?(%FungibleMoreVPToken{amount: 0}), do: false
   def is_zero?(%FungibleMoreVPToken{amount: _}), do: true
 
-  # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
   def to_db_value(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) do
-    %{owner: owner, currency: currency, amount: amount}
+    %{owner: owner, currency: currency, amount: amount, type: @output_type_marker}
   end
 
-  def from_db_value(%FungibleMoreVPToken{}, %{owner: owner, currency: currency, amount: amount})
-      when is_binary(owner) and is_binary(currency) and is_integer(amount) do
-    %FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
-  end
+  def to_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}), do: [owner, currency, amount]
 end

@@ -37,7 +37,13 @@ defprotocol OMG.Output do
   def to_db_value(output)
 
   @doc """
-  Restores from a db-specific term
+  Transforms into a RLP-ready structure
   """
-  def from_db_value(type, db_value)
+  def to_rlp(output)
+end
+
+defmodule OMG.Output.Dispatcher do
+  @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
+
+  def from_db_value(%{type: type_marker} = db_value), do: @output_types_modules[type_marker].from_db_value(db_value)
 end
