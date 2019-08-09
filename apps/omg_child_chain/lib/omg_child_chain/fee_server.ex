@@ -28,7 +28,7 @@ defmodule OMG.ChildChain.FeeServer do
   use GenServer
   use OMG.Utils.LoggerExt
 
-  @file_check_default_interval_ms 10_000
+  @fee_file_check_interval_ms Application.fetch_env!(:omg_child_chain, :fee_file_check_interval_ms)
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -46,7 +46,7 @@ defmodule OMG.ChildChain.FeeServer do
 
         opt when is_nil(opt) or is_boolean(opt) ->
           :ok = update_fee_spec()
-          interval = Keyword.get(args, :interval_ms, @file_check_default_interval_ms)
+          interval = Keyword.get(args, :interval_ms, @fee_file_check_interval_ms)
           {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_spec)
           Keyword.put(args, :tref, tref)
       end
