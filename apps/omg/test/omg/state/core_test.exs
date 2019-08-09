@@ -798,11 +798,11 @@ defmodule OMG.State.CoreTest do
     carol: carol
   } do
     utxos_query_result = [
-      {{1000, 0, 0}, %{amount: 1, currency: @eth, owner: alice}},
-      {{2000, 1, 1}, %{amount: 2, currency: @eth, owner: bob}},
-      {{1000, 2, 0}, %{amount: 3, currency: @not_eth, owner: alice}},
-      {{1000, 3, 1}, %{amount: 4, currency: @eth, owner: alice}},
-      {{1000, 4, 0}, %{amount: 5, currency: @eth, owner: bob}}
+      {{1000, 0, 0}, %{output: %{amount: 1, currency: @eth, owner: alice}}},
+      {{2000, 1, 1}, %{output: %{amount: 2, currency: @eth, owner: bob}}},
+      {{1000, 2, 0}, %{output: %{amount: 3, currency: @not_eth, owner: alice}}},
+      {{1000, 3, 1}, %{output: %{amount: 4, currency: @eth, owner: alice}}},
+      {{1000, 4, 0}, %{output: %{amount: 5, currency: @eth, owner: bob}}}
     ]
 
     assert [] == Core.standard_exitable_utxos(utxos_query_result, carol)

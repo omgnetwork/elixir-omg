@@ -28,5 +28,16 @@ lib/websockex.ex:297: Expression produces a value of type 'ok' | {'error',_}, bu
 :0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Port':'__impl__'/1
 :0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Reference':'__impl__'/1
 :0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Tuple':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Atom':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.BitString':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Float':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Function':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Integer':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.List':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Map':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.PID':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Port':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Reference':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Tuple':'__impl__'/1
 #
 ####

@@ -175,7 +175,9 @@ defmodule OMG.State.Core do
   @spec standard_exitable_utxos(list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()}), Crypto.address_t()) ::
           list(exitable_utxos)
   def standard_exitable_utxos(utxos_query_result, address) do
-    Stream.filter(utxos_query_result, fn {_, %{owner: owner}} -> owner == address end)
+    utxos_query_result
+    |> Stream.map(fn {position, %{output: output}} -> {position, output} end)
+    |> Stream.filter(fn {_, %{owner: owner}} -> owner == address end)
     |> Enum.map(fn {{blknum, txindex, oindex}, utxo} ->
       utxo |> Map.put(:blknum, blknum) |> Map.put(:txindex, txindex) |> Map.put(:oindex, oindex)
     end)
@@ -344,7 +346,8 @@ defmodule OMG.State.Core do
   end
 
   defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
-    {Utxo.position(blknum, 0, 0), %Utxo{amount: amount, currency: cur, owner: owner}}
+    {Utxo.position(blknum, 0, 0),
+     %Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: cur, owner: owner}}}
   end
 
   defp get_last_deposit_child_blknum([] = _deposits, current_height), do: current_height

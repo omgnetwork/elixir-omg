@@ -35,9 +35,8 @@ defmodule OMG.State.UtxoSet do
   Provides the outputs that are pointed by `inputs` provided
   """
   def get_by_inputs(utxos, inputs) do
-    inputs
-    |> Enum.reduce_while({:ok, []}, fn input, acc -> get_utxo(utxos, input, acc) end)
-    |> reverse()
+    with {:ok, utxos_for_inputs} <- get_utxos_by_inputs(utxos, inputs),
+         do: {:ok, utxos_for_inputs |> Enum.reverse() |> Enum.map(fn %Utxo{output: output} -> output end)}
   end
 
   @doc """
@@ -70,6 +69,11 @@ defmodule OMG.State.UtxoSet do
     Enum.find(utxos, &match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
   end
 
+  defp get_utxos_by_inputs(utxos, inputs) do
+    inputs
+    |> Enum.reduce_while({:ok, []}, fn input, acc -> get_utxo(utxos, input, acc) end)
+  end
+
   defp get_utxo(utxos, position, {:ok, acc}) do
     case Map.get(utxos, position) do
       nil -> {:halt, {:error, :utxo_not_found}}
@@ -82,8 +86,4 @@ defmodule OMG.State.UtxoSet do
 
   defp utxo_to_db_delete(utxo_pos),
     do: {:delete, :utxo, Utxo.Position.to_db_key(utxo_pos)}
-
-  @spec reverse({:ok, any()} | {:error, :utxo_not_found}) :: {:ok, list(any())} | {:error, :utxo_not_found}
-  defp reverse({:ok, input_utxos}), do: {:ok, Enum.reverse(input_utxos)}
-  defp reverse({:error, :utxo_not_found} = result), do: result
 end

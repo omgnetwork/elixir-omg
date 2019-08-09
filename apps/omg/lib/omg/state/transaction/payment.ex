@@ -211,11 +211,12 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   Returns the fees that this transaction is paying, mapped by currency
   """
-  @spec can_apply?(Transaction.Payment.t(), list(Utxo.t())) :: {:ok, map()} | {:error, :amounts_do_not_add_up}
-  def can_apply?(%Transaction.Payment{} = tx, input_utxos) do
+  # FIXME: detyped list of inputs - retype
+  @spec can_apply?(Transaction.Payment.t(), list(any())) :: {:ok, map()} | {:error, :amounts_do_not_add_up}
+  def can_apply?(%Transaction.Payment{} = tx, outputs_spent) do
     outputs = Transaction.get_outputs(tx)
 
-    input_amounts_by_currency = get_amounts_by_currency(input_utxos)
+    input_amounts_by_currency = get_amounts_by_currency(outputs_spent)
     output_amounts_by_currency = get_amounts_by_currency(outputs)
 
     with :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
@@ -243,20 +244,21 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   end
 
   defp non_zero_utxos_from(tx, blknum, tx_index) do
-    tx
-    |> utxos_from(blknum, tx_index)
-    |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
-  end
-
-  defp utxos_from(tx, blknum, tx_index) do
     hash = Transaction.raw_txhash(tx)
 
     tx
     |> Transaction.get_outputs()
     |> Enum.with_index()
+    |> Enum.filter(fn {output, _index} -> is_non_zero_amount?(output) end)
     |> Enum.map(fn {%{owner: owner, currency: currency, amount: amount}, oindex} ->
-      {Utxo.position(blknum, tx_index, oindex),
-       %Utxo{owner: owner, currency: currency, amount: amount, creating_txhash: hash}}
+      {
+        Utxo.position(blknum, tx_index, oindex),
+        # FIXME. Transaction.get_outputs can well return this struct already
+        %Utxo{
+          output: %OMG.Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount},
+          creating_txhash: hash
+        }
+      }
     end)
   end
 
@@ -272,8 +274,8 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
     end)
   end
 
-  defp get_amounts_by_currency(utxos) do
-    utxos
+  defp get_amounts_by_currency(outputs) do
+    outputs
     |> Enum.group_by(fn %{currency: currency} -> currency end, fn %{amount: amount} -> amount end)
     |> Enum.map(fn {currency, amounts} -> {currency, Enum.sum(amounts)} end)
     |> Map.new()

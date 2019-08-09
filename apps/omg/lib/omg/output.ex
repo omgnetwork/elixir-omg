@@ -12,17 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Transaction.OutputPredicateProtocol do
+defprotocol OMG.Output do
   @moduledoc """
-  Code allowing outputs being spent by txs to be unlocked.
+  Captures the varying behavior of outputs that build the plasma chain
 
-  Intended to be called in stateful validation
+  Includes the "output predicate", within the `can_spend?/3` function
   """
 
   @doc """
   True if a particular witness can unlock a particular output to be spent, given being put in a particular transaction
+
+  Intended to be called in stateful validation
   """
-  def can_spend?(witness, output_spent, _raw_tx) when is_binary(witness) do
-    output_spent.owner == witness
-  end
+  def can_spend?(output_spent, witness, raw_tx)
+
+  @doc """
+  Transforms into a db-specific term
+  """
+  def to_db_value(output)
+
+  @doc """
+  Restores from a db-specific term
+  """
+  def from_db_value(type, db_value)
 end
