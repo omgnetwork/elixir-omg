@@ -17,6 +17,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   use Distillery.Releases.Config.Provider
   require Logger
   @app :omg_db
+
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
@@ -24,10 +25,18 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
     _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DB_TYPE Value: #{inspect(type)}.")
     :ok = Application.put_env(:omg_db, :type, type, persistent: true)
 
-    case get_env("DB_PATH") do
-      path when is_binary(path) -> :ok = Application.put_env(:omg_db, :path, path, persistent: true)
-      _ -> :ok = Application.put_env(:omg_db, :path, System.user_home!(), persistent: true)
-    end
+    path =
+      case get_env("DB_PATH") do
+        path when is_binary(path) ->
+          :ok = Application.put_env(:omg_db, :path, path, persistent: true)
+          path
+
+        _ ->
+          path = Path.join([System.user_home!(), ".omg/data"])
+          :ok = Application.put_env(:omg_db, :path, path, persistent: true)
+      end
+
+    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
   end
 
   defp get_env(key), do: System.get_env(key)
