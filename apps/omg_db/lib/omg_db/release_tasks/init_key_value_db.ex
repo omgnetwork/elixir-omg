@@ -21,9 +21,8 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
   require Logger
 
   def run do
-    path = System.get_env("DB_PATH")
-    _ = process(path)
-    :ok
+    path = Application.get_env(:omg_db, :path)
+    process(path)
   end
 
   defp process(path) do
