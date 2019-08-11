@@ -26,8 +26,8 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
   end
 
   defp process(path) do
-    _ = Logger.warn("Creating database at #{inspect(path)}")
     _ = Enum.each(@start_apps, &Application.ensure_all_started/1)
+    _ = Logger.warn("Creating database at #{inspect(path)}")
     _ = init_kv_db(path)
     Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
   end

@@ -34,6 +34,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
         _ ->
           path = Path.join([System.user_home!(), ".omg/data"])
           :ok = Application.put_env(:omg_db, :path, path, persistent: true)
+          path
       end
 
     _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
@@ -46,5 +47,5 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
 
   defp to_db_type("LEVELDB"), do: :leveldb
   defp to_db_type("ROCKSDB"), do: :rocksdb
-  defp to_db_type(_), do: Application.get_env(@app, :type)
+  defp to_db_type(_), do: exit("DB type not found. Choose from LevelDB or RocksDB.")
 end
