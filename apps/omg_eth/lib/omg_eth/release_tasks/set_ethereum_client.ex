@@ -42,7 +42,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   end
 
   defp get_ethereum_ws_rpc_url do
-    url = validate_string(get_env("ETHEREUM_WS_RPC_URL"), Application.get_env(:omg_eth, :ws_url))
+    url = validate_string(get_env("ETHEREUM_WS_RPC_URL"), Application.get_env(@app, :ws_url))
 
     _ = Logger.warn("CONFIGURATION: App: #{@app} Key: ETHEREUM_WS_RPC_URL Value: #{inspect(url)}.")
 
@@ -57,14 +57,14 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   end
 
   defp validate_rpc_client_type(value, default) when is_binary(value),
-    do: to_rpc_client_type(String.upcase(value), default)
+    do: to_rpc_client_type(String.upcase(value))
 
   defp validate_rpc_client_type(_value, default),
     do: default
 
-  defp to_rpc_client_type("GETH", _), do: "geth"
-  defp to_rpc_client_type("PARITY", _), do: "parity"
-  defp to_rpc_client_type(_, default), do: default
+  defp to_rpc_client_type("GETH"), do: "geth"
+  defp to_rpc_client_type("PARITY"), do: "parity"
+  defp to_rpc_client_type(_), do: exit("You need to choose between geth or parity.")
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default
