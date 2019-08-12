@@ -14,34 +14,62 @@
 
 defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
   use ExUnit.Case, async: false
+  alias OMG.Eth.ReleaseTasks.SetEthereumClient
+  @app :omg_eth
+  @configuration_old Application.get_all_env(@app)
+  @configuration_old_ethereumex Application.get_all_env(:ethereumex)
+  setup %{} do
+    on_exit(fn ->
+      :ok =
+        Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
 
-  # test "init works and DB starts" do
-  #   {:ok, _} = Application.ensure_all_started(:briefly)
-  #   {:ok, dir} = Briefly.create(directory: true)
-  #   :ok = System.put_env("DB_PATH", dir)
-  #   :ok = SetKeyValueDB.init([])
-  #   :ok = InitKeyValueDB.run()
-  #   {:ok, _} = Application.ensure_all_started(:omg_db)
-  #   :ok = Application.stop(:omg_db)
-  # end
+      :ok =
+        Enum.each(@configuration_old_ethereumex, fn {key, value} ->
+          Application.put_env(:ethereumex, key, value, persistent: true)
+        end)
+    end)
 
-  # test "if init isn't called, DB doesn't start" do
-  #   _ = Application.stop(:omg_db)
-  #   {:ok, _} = Application.ensure_all_started(:briefly)
-  #   {:ok, dir} = Briefly.create(directory: true)
-  #   :ok = System.put_env("DB_PATH", dir)
-  #   :ok = SetKeyValueDB.init([])
+    :ok
+  end
 
-  #   try do
-  #     {:ok, _} = Application.ensure_all_started(:omg_db)
-  #   catch
-  #     _,
-  #     {:badmatch,
-  #      {:error,
-  #       {:omg_db,
-  #        {{:shutdown, {:failed_to_start_child, _, {:bad_return_value, {:error, {:db_open, _}}}}},
-  #         {OMG.DB.Application, :start, [:normal, []]}}}}} ->
-  #       :ok
-  #   end
-  # end
+  test "if defaults are used when env vars are not set" do
+    url = Application.get_env(:ethereumex, :url)
+    ws_url = Application.get_env(:omg_eth, :ws_url)
+    eth_node = Application.get_env(@app, :eth_node)
+    :ok = SetEthereumClient.init([])
+    ^url = Application.get_env(:ethereumex, :url)
+    ^ws_url = Application.get_env(:omg_eth, :ws_url)
+    ^eth_node = Application.get_env(@app, :eth_node)
+  end
+
+  test "if values are used when env vars set" do
+    :ok = System.put_env("ETHEREUM_WS_RPC_URL", "ws_url")
+    :ok = System.put_env("ETHEREUM_RPC_URL", "url")
+    :ok = System.put_env("ETH_NODE", "geth")
+    :ok = SetEthereumClient.init([])
+    "url" = Application.get_env(:ethereumex, :url)
+    "ws_url" = Application.get_env(:omg_eth, :ws_url)
+    "geth" = Application.get_env(@app, :eth_node)
+
+    :ok = System.put_env("ETH_NODE", "parity")
+    :ok = SetEthereumClient.init([])
+    "url" = Application.get_env(:ethereumex, :url)
+    "ws_url" = Application.get_env(:omg_eth, :ws_url)
+    "parity" = Application.get_env(@app, :eth_node)
+    # cleanup
+    :ok = System.delete_env("ETHEREUM_WS_RPC_URL")
+    :ok = System.delete_env("ETHEREUM_RPC_URL")
+    :ok = System.delete_env("ETH_NODE")
+  end
+
+  test "if faulty eth node exits" do
+    :ok = System.put_env("ETH_NODE", "random random random")
+
+    try do
+      SetEthereumClient.init([])
+    catch
+      :exit, _reason ->
+        :ok = System.delete_env("ETH_NODE")
+    end
+  end
 end

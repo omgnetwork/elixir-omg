@@ -14,6 +14,7 @@
 
 defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   use ExUnit.Case, async: false
+  alias OMG.Eth.ReleaseTasks.SetContract
   @app :omg_eth
   @configuration_old Application.get_all_env(@app)
 
@@ -30,7 +31,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     port = 9009
     pid = spawn(fn -> start(port) end)
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
-    :ok = OMG.Eth.ReleaseTasks.SetContract.init([])
+    :ok = SetContract.init([])
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     "contract_address_value" = Application.get_env(@app, :contract_addr)
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
@@ -44,7 +45,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     port = 9010
     pid = spawn(fn -> start(port) end)
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
-    :ok = OMG.Eth.ReleaseTasks.SetContract.init([])
+    :ok = SetContract.init([])
     22 = Application.get_env(@app, :exit_period_seconds)
 
     :ok = Process.send(pid, :stop, [])
@@ -56,7 +57,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
-    :ok = OMG.Eth.ReleaseTasks.SetContract.init([])
+    :ok = SetContract.init([])
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     "contract_address_value" = Application.get_env(@app, :contract_addr)
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
@@ -72,7 +73,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
-    :ok = OMG.Eth.ReleaseTasks.SetContract.init([])
+    :ok = SetContract.init([])
     22 = Application.get_env(@app, :exit_period_seconds)
 
     :ok = System.delete_env("ETHEREUM_NETWORK")
@@ -87,7 +88,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
     :ok = System.put_env("EXIT_PERIOD_SECONDS", "2222")
-    :ok = OMG.Eth.ReleaseTasks.SetContract.init([])
+    :ok = SetContract.init([])
     2222 = Application.get_env(@app, :exit_period_seconds)
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     "contract_address_value" = Application.get_env(@app, :contract_addr)
