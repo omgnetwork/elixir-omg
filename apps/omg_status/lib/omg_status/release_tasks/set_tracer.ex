@@ -15,20 +15,21 @@
 defmodule OMG.Status.ReleaseTasks.SetTracer do
   @moduledoc false
   use Distillery.Releases.Config.Provider
+  alias OMG.Status.Metric.Tracer
   require Logger
   @app :omg_status
 
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
-    config = Application.get_env(:omg_status, OMG.Status.Metric.Tracer)
+    config = Application.get_env(:omg_status, Tracer)
     config = Keyword.put(config, :disabled?, get_dd_disabled())
     config = Keyword.put(config, :env, get_app_env())
-    :ok = Application.put_env(:omg_status, OMG.Status.Metric.Tracer, config, persistent: true)
+    :ok = Application.put_env(:omg_status, Tracer, config, persistent: true)
 
     # statix setup
     :ok = Application.put_env(:statix, :host, get_dd_hostname(Application.get_env(:statix, :host)), persistent: true)
-    :ok = Application.put_env(:statix, :port, get_dd_port(Application.get_env(:statix, :host)), persistent: true)
+    :ok = Application.put_env(:statix, :port, get_dd_port(Application.get_env(:statix, :port)), persistent: true)
     # spandex_datadog setup
 
     :ok =
@@ -49,7 +50,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     dd_disabled? =
       validate_bool(
         get_env("DD_DISABLED"),
-        Application.get_env(:omg_status, OMG.Status.Metric.Tracer)[:disabled?]
+        Application.get_env(:omg_status, Tracer)[:disabled?]
       )
 
     _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
@@ -57,7 +58,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   end
 
   defp get_app_env do
-    env = validate_string(get_env("APP_ENV"), Application.get_env(@app, OMG.Status.Tracer)[:env])
+    env = validate_string(get_env("APP_ENV"), Application.get_env(@app, Tracer)[:env])
     _ = Logger.warn("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
     env
   end
@@ -88,7 +89,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
         Application.get_env(:spandex_datadog, :sync_threshold)
       )
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: SYNC_TRESHOLD Value: #{inspect(sync_threshold)}.")
+    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: SYNC_THRESHOLD Value: #{inspect(sync_threshold)}.")
     sync_threshold
   end
 
