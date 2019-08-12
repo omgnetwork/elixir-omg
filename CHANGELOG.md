@@ -15,17 +15,14 @@
 ## [v0.2.0](https://github.com/omisego/elixir-omg/tree/v0.2.0) (2019-06-07)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.5...v0.2.0)
 
-**Fixed bugs:**
+**Closed issues:**
 
-- Starting Watcher after fully syncing with 1.5M txs [\#724](https://github.com/omisego/elixir-omg/issues/724)
 - BlockGetter will proceed syncing if there's no blocks after an invalid block [\#703](https://github.com/omisego/elixir-omg/issues/703)
 - Transaction data missing an input on Ari [\#695](https://github.com/omisego/elixir-omg/issues/695)
 - Watcher startup succeeds with errors for fresh deployments [\#691](https://github.com/omisego/elixir-omg/issues/691)
 - get\_challenge\_data raise error [\#673](https://github.com/omisego/elixir-omg/issues/673)
 - status.get endpoint might timeout and crash if Watcher is very busy [\#541](https://github.com/omisego/elixir-omg/issues/541)
-
-**Closed issues:**
-
+- Starting Watcher after fully syncing with 1.5M txs [\#724](https://github.com/omisego/elixir-omg/issues/724)
 - Watcher is no longer listening on 7434 [\#760](https://github.com/omisego/elixir-omg/issues/760)
 - Samrong transactions can't be decoded [\#740](https://github.com/omisego/elixir-omg/issues/740)
 - Body-less request requires content-type header [\#738](https://github.com/omisego/elixir-omg/issues/738)
@@ -116,10 +113,6 @@
 ## [v0.1.6](https://github.com/omisego/elixir-omg/tree/v0.1.6) (2019-06-25)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.2.1...v0.1.6)
 
-**Implemented enhancements:**
-
-- Add `docker-compose` and `docker-compose.dev` [\#793](https://github.com/omisego/elixir-omg/pull/793) ([achiurizo](https://github.com/achiurizo))
-
 **Closed issues:**
 
 - Sentry configuration kills Logger [\#789](https://github.com/omisego/elixir-omg/issues/789)
@@ -146,6 +139,7 @@
 - style: move dialyzer ignore directive to dialyzer-igore file [\#769](https://github.com/omisego/elixir-omg/pull/769) ([pnowosie](https://github.com/pnowosie))
 - fix: general fixes [\#764](https://github.com/omisego/elixir-omg/pull/764) ([InoMurko](https://github.com/InoMurko))
 - fix: remove the quadratic cost of finding double spends for IFE txs [\#754](https://github.com/omisego/elixir-omg/pull/754) ([pdobacz](https://github.com/pdobacz))
+- Add `docker-compose` and `docker-compose.dev` [\#793](https://github.com/omisego/elixir-omg/pull/793) ([achiurizo](https://github.com/achiurizo))
 
 ## [v0.1.5](https://github.com/omisego/elixir-omg/tree/v0.1.5) (2019-05-07)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.4...v0.1.5)
