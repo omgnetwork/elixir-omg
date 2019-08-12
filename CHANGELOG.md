@@ -1,39 +1,5 @@
 # Change Log
 
-## [v0.1.6](https://github.com/omisego/elixir-omg/tree/v0.1.6) (2019-06-25)
-[Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.2.1...v0.1.6)
-
-**Implemented enhancements:**
-
-- Add `docker-compose` and `docker-compose.dev` [\#793](https://github.com/omisego/elixir-omg/pull/793) ([achiurizo](https://github.com/achiurizo))
-
-**Closed issues:**
-
-- Sentry configuration kills Logger [\#789](https://github.com/omisego/elixir-omg/issues/789)
-- Is CORS enabled on the Childchain? [\#782](https://github.com/omisego/elixir-omg/issues/782)
-- OMG-363 - Watcher get.block by number [\#721](https://github.com/omisego/elixir-omg/issues/721)
-
-**Merged pull requests:**
-
-- chore: bump version to v0.1.6 [\#804](https://github.com/omisego/elixir-omg/pull/804) ([pdobacz](https://github.com/pdobacz))
-- Watcher rpc dont listen on dev [\#799](https://github.com/omisego/elixir-omg/pull/799) ([pnowosie](https://github.com/pnowosie))
-- update docker-compose directions in README [\#798](https://github.com/omisego/elixir-omg/pull/798) ([achiurizo](https://github.com/achiurizo))
-- fix: Service 'watcher' depends on service 'postgres' which is undefined. [\#797](https://github.com/omisego/elixir-omg/pull/797) ([InoMurko](https://github.com/InoMurko))
-- fix: Finally fix this condition [\#795](https://github.com/omisego/elixir-omg/pull/795) ([jbunce](https://github.com/jbunce))
-- Use `APP\_ENV` for Sentry environment [\#794](https://github.com/omisego/elixir-omg/pull/794) ([achiurizo](https://github.com/achiurizo))
-- fix: Bash syntax [\#791](https://github.com/omisego/elixir-omg/pull/791) ([jbunce](https://github.com/jbunce))
-- fix: Change from waiting for k8s readiness to full e2e [\#790](https://github.com/omisego/elixir-omg/pull/790) ([jbunce](https://github.com/jbunce))
-- 782 ch cors [\#783](https://github.com/omisego/elixir-omg/pull/783) ([InoMurko](https://github.com/InoMurko))
-- fix: Sleep time increase to allow Watcher to deploy [\#780](https://github.com/omisego/elixir-omg/pull/780) ([jbunce](https://github.com/jbunce))
-- fix: f you bash [\#779](https://github.com/omisego/elixir-omg/pull/779) ([jbunce](https://github.com/jbunce))
-- feat: Add functional tests to master commits [\#776](https://github.com/omisego/elixir-omg/pull/776) ([jbunce](https://github.com/jbunce))
-- Chore: Update installation instructions for Linux [\#773](https://github.com/omisego/elixir-omg/pull/773) ([chrishunt](https://github.com/chrishunt))
-- feature: subscribe to block change [\#772](https://github.com/omisego/elixir-omg/pull/772) ([InoMurko](https://github.com/InoMurko))
-- Add Sentry for exception reporting [\#771](https://github.com/omisego/elixir-omg/pull/771) ([achiurizo](https://github.com/achiurizo))
-- style: move dialyzer ignore directive to dialyzer-igore file [\#769](https://github.com/omisego/elixir-omg/pull/769) ([pnowosie](https://github.com/pnowosie))
-- fix: general fixes [\#764](https://github.com/omisego/elixir-omg/pull/764) ([InoMurko](https://github.com/InoMurko))
-- fix: remove the quadratic cost of finding double spends for IFE txs [\#754](https://github.com/omisego/elixir-omg/pull/754) ([pdobacz](https://github.com/pdobacz))
-
 ## [v0.2.1](https://github.com/omisego/elixir-omg/tree/v0.2.1) (2019-06-08)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.2.0...v0.2.1)
 
@@ -146,6 +112,40 @@
 - refactor: db abstraction [\#629](https://github.com/omisego/elixir-omg/pull/629) ([InoMurko](https://github.com/InoMurko))
 - Performance metrics [\#616](https://github.com/omisego/elixir-omg/pull/616) ([pthomalla](https://github.com/pthomalla))
 - Initial CHANGELOG [\#603](https://github.com/omisego/elixir-omg/pull/603) ([kasima](https://github.com/kasima))
+
+## [v0.1.6](https://github.com/omisego/elixir-omg/tree/v0.1.6) (2019-06-25)
+[Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.2.1...v0.1.6)
+
+**Implemented enhancements:**
+
+- Add `docker-compose` and `docker-compose.dev` [\#793](https://github.com/omisego/elixir-omg/pull/793) ([achiurizo](https://github.com/achiurizo))
+
+**Closed issues:**
+
+- Sentry configuration kills Logger [\#789](https://github.com/omisego/elixir-omg/issues/789)
+- Is CORS enabled on the Childchain? [\#782](https://github.com/omisego/elixir-omg/issues/782)
+- OMG-363 - Watcher get.block by number [\#721](https://github.com/omisego/elixir-omg/issues/721)
+
+**Merged pull requests:**
+
+- chore: bump version to v0.1.6 [\#804](https://github.com/omisego/elixir-omg/pull/804) ([pdobacz](https://github.com/pdobacz))
+- Watcher rpc dont listen on dev [\#799](https://github.com/omisego/elixir-omg/pull/799) ([pnowosie](https://github.com/pnowosie))
+- update docker-compose directions in README [\#798](https://github.com/omisego/elixir-omg/pull/798) ([achiurizo](https://github.com/achiurizo))
+- fix: Service 'watcher' depends on service 'postgres' which is undefined. [\#797](https://github.com/omisego/elixir-omg/pull/797) ([InoMurko](https://github.com/InoMurko))
+- fix: Finally fix this condition [\#795](https://github.com/omisego/elixir-omg/pull/795) ([jbunce](https://github.com/jbunce))
+- Use `APP\_ENV` for Sentry environment [\#794](https://github.com/omisego/elixir-omg/pull/794) ([achiurizo](https://github.com/achiurizo))
+- fix: Bash syntax [\#791](https://github.com/omisego/elixir-omg/pull/791) ([jbunce](https://github.com/jbunce))
+- fix: Change from waiting for k8s readiness to full e2e [\#790](https://github.com/omisego/elixir-omg/pull/790) ([jbunce](https://github.com/jbunce))
+- 782 ch cors [\#783](https://github.com/omisego/elixir-omg/pull/783) ([InoMurko](https://github.com/InoMurko))
+- fix: Sleep time increase to allow Watcher to deploy [\#780](https://github.com/omisego/elixir-omg/pull/780) ([jbunce](https://github.com/jbunce))
+- fix: f you bash [\#779](https://github.com/omisego/elixir-omg/pull/779) ([jbunce](https://github.com/jbunce))
+- feat: Add functional tests to master commits [\#776](https://github.com/omisego/elixir-omg/pull/776) ([jbunce](https://github.com/jbunce))
+- Chore: Update installation instructions for Linux [\#773](https://github.com/omisego/elixir-omg/pull/773) ([chrishunt](https://github.com/chrishunt))
+- feature: subscribe to block change [\#772](https://github.com/omisego/elixir-omg/pull/772) ([InoMurko](https://github.com/InoMurko))
+- Add Sentry for exception reporting [\#771](https://github.com/omisego/elixir-omg/pull/771) ([achiurizo](https://github.com/achiurizo))
+- style: move dialyzer ignore directive to dialyzer-igore file [\#769](https://github.com/omisego/elixir-omg/pull/769) ([pnowosie](https://github.com/pnowosie))
+- fix: general fixes [\#764](https://github.com/omisego/elixir-omg/pull/764) ([InoMurko](https://github.com/InoMurko))
+- fix: remove the quadratic cost of finding double spends for IFE txs [\#754](https://github.com/omisego/elixir-omg/pull/754) ([pdobacz](https://github.com/pdobacz))
 
 ## [v0.1.5](https://github.com/omisego/elixir-omg/tree/v0.1.5) (2019-05-07)
 [Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.4...v0.1.5)
