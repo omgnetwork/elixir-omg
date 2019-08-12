@@ -33,8 +33,8 @@ services:
     environment:
       - DD_API_KEY=${DD_API_KEY}
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
-      #- DD_DOGSTATSD_TAGS=["env:local_development"]
-      - DD_DOCKER_LABELS_AS_TAGS='{"com.docker.compose.service":"service_name","my.custom.label.project":"projecttag","my.custom.label.version":"versiontag"}'
+      - DD_DOGSTATSD_TAGS=["env:local_development"]
+      - DD_DOCKER_LABELS_AS_TAGS={"com.docker.compose.service":"service_name","my.custom.label.project":"projecttag","my.custom.label.version":"versiontag"}
       - DD_LOG_LEVEL=debug
 #      - DD_AC_INCLUDE="image:watcher image:childchain"
 #      - DD_AC_EXCLUDE="image:*"
