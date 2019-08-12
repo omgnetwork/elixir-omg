@@ -56,7 +56,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
     rpc_client_type
   end
 
-  defp validate_rpc_client_type(value, default) when is_binary(value),
+  defp validate_rpc_client_type(value, _default) when is_binary(value),
     do: to_rpc_client_type(String.upcase(value))
 
   defp validate_rpc_client_type(_value, default),
