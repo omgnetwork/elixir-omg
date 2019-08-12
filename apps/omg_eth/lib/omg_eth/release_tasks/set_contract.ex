@@ -39,26 +39,17 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           "txhash_contract" => txhash_contract
         } = Jason.decode!(body)
 
+        exit_period_seconds =
+          validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
+
         :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
         :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
         :ok = Application.put_env(@app, :contract_addr, String.downcase(contract_address), persistent: true)
-
-        :ok =
-          Application.put_env(
-            @app,
-            :exit_period_seconds,
-            validate_integer(
-              get_env("EXIT_PERIOD_SECONDS"),
-              Application.get_env(@app, :exit_period_seconds)
-            )
-          )
+        :ok = Application.put_env(@app, :exit_period_seconds, exit_period_seconds)
 
       _ ->
-        case get_env("ETHEREUM_NETWORK") do
+        case String.upcase(get_env("ETHEREUM_NETWORK")) do
           "RINKEBY" = network ->
-            :ok = apply_settings(network)
-
-          "rinkeby" = network ->
             :ok = apply_settings(network)
 
           _ ->
@@ -76,9 +67,14 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     txhash_contract = get_env(network <> "_TXHASH_CONTRACT")
     authority_address = get_env(network <> "_AUTHORITY_ADDRESS")
     contract_address = get_env(network <> "_CONTRACT_ADDRESS")
+
+    exit_period_seconds =
+      validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
+
     :ok = Application.put_env(@app, :txhash_contract, txhash_contract, persistent: true)
     :ok = Application.put_env(@app, :authority_addr, authority_address, persistent: true)
     :ok = Application.put_env(@app, :contract_addr, contract_address, persistent: true)
+    :ok = Application.put_env(@app, :exit_period_seconds, exit_period_seconds)
   end
 
   defp get_env(key), do: System.get_env(key)

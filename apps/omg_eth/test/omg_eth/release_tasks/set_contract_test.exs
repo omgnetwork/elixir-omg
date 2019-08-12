@@ -14,34 +14,120 @@
 
 defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   use ExUnit.Case, async: false
+  @app :omg_eth
+  @configuration_old Application.get_all_env(@app)
 
-  # test "init works and DB starts" do
-  #   {:ok, _} = Application.ensure_all_started(:briefly)
-  #   {:ok, dir} = Briefly.create(directory: true)
-  #   :ok = System.put_env("DB_PATH", dir)
-  #   :ok = SetKeyValueDB.init([])
-  #   :ok = InitKeyValueDB.run()
-  #   {:ok, _} = Application.ensure_all_started(:omg_db)
-  #   :ok = Application.stop(:omg_db)
-  # end
+  setup %{} do
+    on_exit(fn ->
+      :ok =
+        Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
+    end)
 
-  # test "if init isn't called, DB doesn't start" do
-  #   _ = Application.stop(:omg_db)
-  #   {:ok, _} = Application.ensure_all_started(:briefly)
-  #   {:ok, dir} = Briefly.create(directory: true)
-  #   :ok = System.put_env("DB_PATH", dir)
-  #   :ok = SetKeyValueDB.init([])
+    :ok
+  end
 
-  #   try do
-  #     {:ok, _} = Application.ensure_all_started(:omg_db)
-  #   catch
-  #     _,
-  #     {:badmatch,
-  #      {:error,
-  #       {:omg_db,
-  #        {{:shutdown, {:failed_to_start_child, _, {:bad_return_value, {:error, {:db_open, _}}}}},
-  #         {OMG.DB.Application, :start, [:normal, []]}}}}} ->
-  #       :ok
-  #   end
-  # end
+  test "fetching from contract exchanger" do
+    port = 9009
+    pid = spawn(fn -> start(port) end)
+    :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
+    :ok = OMG.Eth.ReleaseTasks.SetContract.init([])
+    "authority_address_value" = Application.get_env(@app, :authority_addr)
+    "contract_address_value" = Application.get_env(@app, :contract_addr)
+    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+
+    :ok = Process.send(pid, :stop, [])
+
+    :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
+  end
+
+  test "fetching from contract exchanger sets default exit period seconds" do
+    port = 9010
+    pid = spawn(fn -> start(port) end)
+    :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
+    :ok = OMG.Eth.ReleaseTasks.SetContract.init([])
+    22 = Application.get_env(@app, :exit_period_seconds)
+
+    :ok = Process.send(pid, :stop, [])
+    :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
+  end
+
+  test "contract details from env" do
+    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
+    :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
+    :ok = OMG.Eth.ReleaseTasks.SetContract.init([])
+    "authority_address_value" = Application.get_env(@app, :authority_addr)
+    "contract_address_value" = Application.get_env(@app, :contract_addr)
+    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+
+    :ok = System.delete_env("ETHEREUM_NETWORK")
+    :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
+    :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+  end
+
+  test "contract details from env sets default exit period seconds" do
+    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
+    :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
+    :ok = OMG.Eth.ReleaseTasks.SetContract.init([])
+    22 = Application.get_env(@app, :exit_period_seconds)
+
+    :ok = System.delete_env("ETHEREUM_NETWORK")
+    :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
+    :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+  end
+
+  test "contract details and exit period seconds from env" do
+    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
+    :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
+    :ok = System.put_env("EXIT_PERIOD_SECONDS", "2222")
+    :ok = OMG.Eth.ReleaseTasks.SetContract.init([])
+    2222 = Application.get_env(@app, :exit_period_seconds)
+    "authority_address_value" = Application.get_env(@app, :authority_addr)
+    "contract_address_value" = Application.get_env(@app, :contract_addr)
+    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+    :ok = System.delete_env("ETHEREUM_NETWORK")
+    :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
+    :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+    :ok = System.delete_env("EXIT_PERIOD_SECONDS")
+  end
+
+  # a very simple web server that serves conctract exchanger requests
+  defp start(port) do
+    {:ok, sock} = :gen_tcp.listen(port, [{:active, false}])
+    spawn(fn -> loop(sock) end)
+
+    receive do
+      :stop ->
+        :gen_tcp.close(sock)
+    end
+  end
+
+  defp loop(sock) do
+    case :gen_tcp.accept(sock) do
+      {:ok, conn} ->
+        handler = spawn(fn -> handle(conn) end)
+        :gen_tcp.controlling_process(conn, handler)
+        loop(sock)
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp handle(conn) do
+    body =
+      "{\"authority_addr\":\"authority_address_value\",\"contract_addr\":\"contract_address_value\",\"txhash_contract\":\"txhash_contract_value\"}"
+
+    :ok = :gen_tcp.send(conn, ["HTTP/1.0 ", Integer.to_charlist(200), "\r\n", [], "\r\n", body])
+
+    :gen_tcp.close(conn)
+  end
 end
