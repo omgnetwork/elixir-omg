@@ -17,6 +17,14 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
   alias OMG.DB.ReleaseTasks.InitKeyValueDB
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
 
+  setup_all do
+    on_exit(fn ->
+      _ = Enum.each([:logger, :crypto, :ssl], &Application.ensure_all_started/1)
+    end)
+
+    :ok
+  end
+
   test "init works and DB starts" do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dir} = Briefly.create(directory: true)
