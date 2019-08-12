@@ -1,11 +1,154 @@
 # Change Log
 
-## [v0.1.5](https://github.com/omisego/elixir-omg/tree/v0.1.5) (2019-05-07)
-[Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.4...v0.1.5)
+## [v0.1.6](https://github.com/omisego/elixir-omg/tree/v0.1.6) (2019-06-25)
+[Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.2.1...v0.1.6)
+
+**Implemented enhancements:**
+
+- Add `docker-compose` and `docker-compose.dev` [\#793](https://github.com/omisego/elixir-omg/pull/793) ([achiurizo](https://github.com/achiurizo))
+
+**Closed issues:**
+
+- Sentry configuration kills Logger [\#789](https://github.com/omisego/elixir-omg/issues/789)
+- Is CORS enabled on the Childchain? [\#782](https://github.com/omisego/elixir-omg/issues/782)
+- OMG-363 - Watcher get.block by number [\#721](https://github.com/omisego/elixir-omg/issues/721)
+
+**Merged pull requests:**
+
+- chore: bump version to v0.1.6 [\#804](https://github.com/omisego/elixir-omg/pull/804) ([pdobacz](https://github.com/pdobacz))
+- Watcher rpc dont listen on dev [\#799](https://github.com/omisego/elixir-omg/pull/799) ([pnowosie](https://github.com/pnowosie))
+- update docker-compose directions in README [\#798](https://github.com/omisego/elixir-omg/pull/798) ([achiurizo](https://github.com/achiurizo))
+- fix: Service 'watcher' depends on service 'postgres' which is undefined. [\#797](https://github.com/omisego/elixir-omg/pull/797) ([InoMurko](https://github.com/InoMurko))
+- fix: Finally fix this condition [\#795](https://github.com/omisego/elixir-omg/pull/795) ([jbunce](https://github.com/jbunce))
+- Use `APP\_ENV` for Sentry environment [\#794](https://github.com/omisego/elixir-omg/pull/794) ([achiurizo](https://github.com/achiurizo))
+- fix: Bash syntax [\#791](https://github.com/omisego/elixir-omg/pull/791) ([jbunce](https://github.com/jbunce))
+- fix: Change from waiting for k8s readiness to full e2e [\#790](https://github.com/omisego/elixir-omg/pull/790) ([jbunce](https://github.com/jbunce))
+- 782 ch cors [\#783](https://github.com/omisego/elixir-omg/pull/783) ([InoMurko](https://github.com/InoMurko))
+- fix: Sleep time increase to allow Watcher to deploy [\#780](https://github.com/omisego/elixir-omg/pull/780) ([jbunce](https://github.com/jbunce))
+- fix: f you bash [\#779](https://github.com/omisego/elixir-omg/pull/779) ([jbunce](https://github.com/jbunce))
+- feat: Add functional tests to master commits [\#776](https://github.com/omisego/elixir-omg/pull/776) ([jbunce](https://github.com/jbunce))
+- Chore: Update installation instructions for Linux [\#773](https://github.com/omisego/elixir-omg/pull/773) ([chrishunt](https://github.com/chrishunt))
+- feature: subscribe to block change [\#772](https://github.com/omisego/elixir-omg/pull/772) ([InoMurko](https://github.com/InoMurko))
+- Add Sentry for exception reporting [\#771](https://github.com/omisego/elixir-omg/pull/771) ([achiurizo](https://github.com/achiurizo))
+- style: move dialyzer ignore directive to dialyzer-igore file [\#769](https://github.com/omisego/elixir-omg/pull/769) ([pnowosie](https://github.com/pnowosie))
+- fix: general fixes [\#764](https://github.com/omisego/elixir-omg/pull/764) ([InoMurko](https://github.com/InoMurko))
+- fix: remove the quadratic cost of finding double spends for IFE txs [\#754](https://github.com/omisego/elixir-omg/pull/754) ([pdobacz](https://github.com/pdobacz))
+
+## [v0.2.1](https://github.com/omisego/elixir-omg/tree/v0.2.1) (2019-06-08)
+[Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.2.0...v0.2.1)
+
+**Closed issues:**
+
+- Add transaction.all pagination [\#725](https://github.com/omisego/elixir-omg/issues/725)
+
+**Merged pull requests:**
+
+- fix: get cors settings from proper app [\#768](https://github.com/omisego/elixir-omg/pull/768) ([InoMurko](https://github.com/InoMurko))
+- 725 transaction list pagination [\#763](https://github.com/omisego/elixir-omg/pull/763) ([pnowosie](https://github.com/pnowosie))
+
+## [v0.2.0](https://github.com/omisego/elixir-omg/tree/v0.2.0) (2019-06-07)
+[Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.5...v0.2.0)
 
 **Fixed bugs:**
 
-- Fix /transaction.all slow responses [\#596](https://github.com/omisego/elixir-omg/pull/596) ([T-Dnzt](https://github.com/T-Dnzt))
+- Starting Watcher after fully syncing with 1.5M txs [\#724](https://github.com/omisego/elixir-omg/issues/724)
+- BlockGetter will proceed syncing if there's no blocks after an invalid block [\#703](https://github.com/omisego/elixir-omg/issues/703)
+- Transaction data missing an input on Ari [\#695](https://github.com/omisego/elixir-omg/issues/695)
+- Watcher startup succeeds with errors for fresh deployments [\#691](https://github.com/omisego/elixir-omg/issues/691)
+- get\_challenge\_data raise error [\#673](https://github.com/omisego/elixir-omg/issues/673)
+- status.get endpoint might timeout and crash if Watcher is very busy [\#541](https://github.com/omisego/elixir-omg/issues/541)
+
+**Closed issues:**
+
+- Watcher is no longer listening on 7434 [\#760](https://github.com/omisego/elixir-omg/issues/760)
+- Samrong transactions can't be decoded [\#740](https://github.com/omisego/elixir-omg/issues/740)
+- Body-less request requires content-type header [\#738](https://github.com/omisego/elixir-omg/issues/738)
+- Decouple the smart contract deployment mechanism from the Childchain [\#734](https://github.com/omisego/elixir-omg/issues/734)
+- Make sure v0.2 API is updated in swagger docs [\#727](https://github.com/omisego/elixir-omg/issues/727)
+- Port \#604 from `v0.1` to master [\#726](https://github.com/omisego/elixir-omg/issues/726)
+- Find Transaction by Metadata hash [\#722](https://github.com/omisego/elixir-omg/issues/722)
+- Standalone Watcher deployment [\#713](https://github.com/omisego/elixir-omg/issues/713)
+- Update Swagger specs [\#690](https://github.com/omisego/elixir-omg/issues/690)
+- Transaction metadata should not be \_required\_ to be 32 bytes in length [\#688](https://github.com/omisego/elixir-omg/issues/688)
+- Watcher /transaction.get should return metadata [\#687](https://github.com/omisego/elixir-omg/issues/687)
+- Change signing typedData Ouput to use 'currency' instead of 'token' [\#677](https://github.com/omisego/elixir-omg/issues/677)
+- Operator API docs are broken [\#676](https://github.com/omisego/elixir-omg/issues/676)
+- Authority account unlocked on geth. Childchain reports locked [\#662](https://github.com/omisego/elixir-omg/issues/662)
+- Path is a directory but has no mix.exs [\#659](https://github.com/omisego/elixir-omg/issues/659)
+- Prepare EIP-712 metamask signing demo on development env [\#655](https://github.com/omisego/elixir-omg/issues/655)
+- UTXOs consolidations for convenient exit [\#638](https://github.com/omisego/elixir-omg/issues/638)
+- Watcher allows for spending in-flight exited utxos [\#630](https://github.com/omisego/elixir-omg/issues/630)
+- Add support for LevelDB replacement [\#628](https://github.com/omisego/elixir-omg/issues/628)
+- Verification of network parameters during startup [\#621](https://github.com/omisego/elixir-omg/issues/621)
+- Heavily test exits on staging [\#615](https://github.com/omisego/elixir-omg/issues/615)
+- Producing and verifying transaction.submit attestations [\#610](https://github.com/omisego/elixir-omg/issues/610)
+- Allow to omit content-type header if no param sent in watcher API [\#590](https://github.com/omisego/elixir-omg/issues/590)
+- Builds on master result in high CPU use for the Watcher [\#572](https://github.com/omisego/elixir-omg/issues/572)
+- Horizontally scale child chain servers [\#561](https://github.com/omisego/elixir-omg/issues/561)
+- Use omg\_rpc for omg\_watcher \(or not!\) [\#559](https://github.com/omisego/elixir-omg/issues/559)
+- Expose application alarms [\#558](https://github.com/omisego/elixir-omg/issues/558)
+- Performance metrics [\#550](https://github.com/omisego/elixir-omg/issues/550)
+
+**Merged pull requests:**
+
+- fix: Typo [\#762](https://github.com/omisego/elixir-omg/pull/762) ([jbunce](https://github.com/jbunce))
+- because we have a very special bootup :-\) [\#761](https://github.com/omisego/elixir-omg/pull/761) ([InoMurko](https://github.com/InoMurko))
+- 590 Remove 'Content-Type' header enforcing [\#759](https://github.com/omisego/elixir-omg/pull/759) ([pnowosie](https://github.com/pnowosie))
+- 559 web api p2 [\#757](https://github.com/omisego/elixir-omg/pull/757) ([InoMurko](https://github.com/InoMurko))
+- Enable `specdiffs` for Dialyzer and fix some dialyzer issues [\#756](https://github.com/omisego/elixir-omg/pull/756) ([achiurizo](https://github.com/achiurizo))
+- fix: rename omg\_rpc to omg\_child\_chain\_rpc [\#755](https://github.com/omisego/elixir-omg/pull/755) ([InoMurko](https://github.com/InoMurko))
+- fix: wrong module name [\#753](https://github.com/omisego/elixir-omg/pull/753) ([InoMurko](https://github.com/InoMurko))
+- fix: Revert removal of --no-start [\#751](https://github.com/omisego/elixir-omg/pull/751) ([jbunce](https://github.com/jbunce))
+- fix: fix starting watcher [\#750](https://github.com/omisego/elixir-omg/pull/750) ([pthomalla](https://github.com/pthomalla))
+- fix: Remove --no-start from mix ecto.reset [\#749](https://github.com/omisego/elixir-omg/pull/749) ([jbunce](https://github.com/jbunce))
+- feature: swap DB type via env [\#748](https://github.com/omisego/elixir-omg/pull/748) ([InoMurko](https://github.com/InoMurko))
+- feature: swap DB type via env [\#747](https://github.com/omisego/elixir-omg/pull/747) ([InoMurko](https://github.com/InoMurko))
+- feature: make local watcher run a proper OTP release [\#746](https://github.com/omisego/elixir-omg/pull/746) ([InoMurko](https://github.com/InoMurko))
+- feat: more responsiveness for BlockGetter by adding BlockGetter.Status [\#745](https://github.com/omisego/elixir-omg/pull/745) ([pdobacz](https://github.com/pdobacz))
+- 727 api compliance with v02 [\#744](https://github.com/omisego/elixir-omg/pull/744) ([pnowosie](https://github.com/pnowosie))
+- fix: fix docker compose to handle DB conn & startup correctly [\#743](https://github.com/omisego/elixir-omg/pull/743) ([pdobacz](https://github.com/pdobacz))
+- docs: document that docker-compose 1.24 works but 1.17 might not [\#742](https://github.com/omisego/elixir-omg/pull/742) ([pdobacz](https://github.com/pdobacz))
+- fix: libsecp256k1 doesn't work in a release [\#741](https://github.com/omisego/elixir-omg/pull/741) ([InoMurko](https://github.com/InoMurko))
+- docs: explain nonces restriction \(nonces problem\) in docs [\#737](https://github.com/omisego/elixir-omg/pull/737) ([pdobacz](https://github.com/pdobacz))
+- feat: Add docker-compose for Watcher only deployments [\#736](https://github.com/omisego/elixir-omg/pull/736) ([jbunce](https://github.com/jbunce))
+- refactor: port specs format from v0.1 to master [\#733](https://github.com/omisego/elixir-omg/pull/733) ([pnowosie](https://github.com/pnowosie))
+- fix: use Stream for the large collections of known\_txs in ExitProcessor [\#732](https://github.com/omisego/elixir-omg/pull/732) ([pdobacz](https://github.com/pdobacz))
+- chore: update copyright year to 2019 [\#730](https://github.com/omisego/elixir-omg/pull/730) ([achiurizo](https://github.com/achiurizo))
+- Add Pull Request Template [\#729](https://github.com/omisego/elixir-omg/pull/729) ([achiurizo](https://github.com/achiurizo))
+- 579 publish release docker p2 [\#728](https://github.com/omisego/elixir-omg/pull/728) ([InoMurko](https://github.com/InoMurko))
+- feat: return rich syncing information from /status.get [\#708](https://github.com/omisego/elixir-omg/pull/708) ([pdobacz](https://github.com/pdobacz))
+- Proper ife response handler [\#706](https://github.com/omisego/elixir-omg/pull/706) ([pdobacz](https://github.com/pdobacz))
+- Port 701 704 from v0.1 [\#705](https://github.com/omisego/elixir-omg/pull/705) ([pdobacz](https://github.com/pdobacz))
+- fix: make BlockGetter take a not-ok-chain into account when syncing [\#704](https://github.com/omisego/elixir-omg/pull/704) ([pdobacz](https://github.com/pdobacz))
+- fix: make deposits written to WatcherDB always come before getter's txs [\#701](https://github.com/omisego/elixir-omg/pull/701) ([pdobacz](https://github.com/pdobacz))
+- fix: Update CircleCI for development Samrong [\#700](https://github.com/omisego/elixir-omg/pull/700) ([jbunce](https://github.com/jbunce))
+- feat: improve error logs when BlockQueue has problems, ports \#685 [\#699](https://github.com/omisego/elixir-omg/pull/699) ([pdobacz](https://github.com/pdobacz))
+- feat: add get\_extable\_utxos to watcher security-critical API [\#696](https://github.com/omisego/elixir-omg/pull/696) ([pthomalla](https://github.com/pthomalla))
+- feat: Add support to launcher.py for Infura [\#694](https://github.com/omisego/elixir-omg/pull/694) ([jbunce](https://github.com/jbunce))
+- Simplified branching and deployment process [\#692](https://github.com/omisego/elixir-omg/pull/692) ([kasima](https://github.com/kasima))
+- Add metadata to `transaction.get` endpoint output [\#689](https://github.com/omisego/elixir-omg/pull/689) ([pnowosie](https://github.com/pnowosie))
+- refactor: prefix and configuration cleanup [\#686](https://github.com/omisego/elixir-omg/pull/686) ([InoMurko](https://github.com/InoMurko))
+- feat: improve error logs when BlockQueue has problems [\#685](https://github.com/omisego/elixir-omg/pull/685) ([pdobacz](https://github.com/pdobacz))
+- Refactor ExitProcessor.Core \(tidy exit processor pt4\) [\#684](https://github.com/omisego/elixir-omg/pull/684) ([pdobacz](https://github.com/pdobacz))
+- leveldb default [\#683](https://github.com/omisego/elixir-omg/pull/683) ([InoMurko](https://github.com/InoMurko))
+- Dockerfile cmake [\#682](https://github.com/omisego/elixir-omg/pull/682) ([InoMurko](https://github.com/InoMurko))
+- apt install cmake [\#681](https://github.com/omisego/elixir-omg/pull/681) ([InoMurko](https://github.com/InoMurko))
+- fix: not raise exceptions during get\_challenge\_data [\#678](https://github.com/omisego/elixir-omg/pull/678) ([pthomalla](https://github.com/pthomalla))
+- Replay prevention for EIP-712  structural signatures [\#675](https://github.com/omisego/elixir-omg/pull/675) ([pnowosie](https://github.com/pnowosie))
+- bump version to v0.1.5 [\#674](https://github.com/omisego/elixir-omg/pull/674) ([pdobacz](https://github.com/pdobacz))
+- docs: clarify the confusing bit about socket route for watcher channels [\#668](https://github.com/omisego/elixir-omg/pull/668) ([pdobacz](https://github.com/pdobacz))
+- setup containers with releases [\#666](https://github.com/omisego/elixir-omg/pull/666) ([InoMurko](https://github.com/InoMurko))
+- fix: make odd length string error logs in tests go away [\#658](https://github.com/omisego/elixir-omg/pull/658) ([pdobacz](https://github.com/pdobacz))
+- 628 rocksdb support [\#653](https://github.com/omisego/elixir-omg/pull/653) ([InoMurko](https://github.com/InoMurko))
+- fix: finalize in-flight exits in Watcher [\#646](https://github.com/omisego/elixir-omg/pull/646) ([pgebal](https://github.com/pgebal))
+- Fix wrong filename for 0.1 operator api spec [\#643](https://github.com/omisego/elixir-omg/pull/643) ([mederic-p](https://github.com/mederic-p))
+- fix: make ExitProcessor tolerate spending blocks not being found [\#642](https://github.com/omisego/elixir-omg/pull/642) ([pdobacz](https://github.com/pdobacz))
+- refactor: db abstraction [\#629](https://github.com/omisego/elixir-omg/pull/629) ([InoMurko](https://github.com/InoMurko))
+- Performance metrics [\#616](https://github.com/omisego/elixir-omg/pull/616) ([pthomalla](https://github.com/pthomalla))
+- Initial CHANGELOG [\#603](https://github.com/omisego/elixir-omg/pull/603) ([kasima](https://github.com/kasima))
+
+## [v0.1.5](https://github.com/omisego/elixir-omg/tree/v0.1.5) (2019-05-07)
+[Full Changelog](https://github.com/omisego/elixir-omg/compare/v0.1.4...v0.1.5)
 
 **Closed issues:**
 
