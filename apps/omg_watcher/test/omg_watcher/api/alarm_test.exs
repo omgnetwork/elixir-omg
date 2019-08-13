@@ -44,11 +44,20 @@ defmodule OMG.Watcher.API.AlarmTest do
     :ok = :alarm_handler.set_alarm(app_alarm)
     :ok = :alarm_handler.set_alarm(system_disk_alarm)
 
-    {:ok,
-     [
-       {{:disk_almost_full, "/dev/null"}, []},
-       {:ethereum_client_connection, %{node: :nonode@nohost, reporter: Reporter}},
-       {:system_memory_high_watermark, []}
-     ]} = Alarm.get_alarms()
+    find_alarms = [
+      {{:disk_almost_full, "/dev/null"}, []},
+      {:ethereum_client_connection, %{node: :nonode@nohost, reporter: __MODULE__}},
+      {:system_memory_high_watermark, []}
+    ]
+
+    {:ok, alarms} = Alarm.get_alarms()
+
+    [true, true, true] =
+      Enum.map(
+        alarms,
+        fn alarm ->
+          Enum.member?(find_alarms, alarm)
+        end
+      )
   end
 end

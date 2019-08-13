@@ -23,12 +23,6 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
       # configuration is global state so we reset it to known values in case
       # it got fiddled before
       :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
-      # vals =
-      #   Enum.map(@configuration_old, fn {key, value} ->
-      #     {key, value}
-      #   end)
-
-      # Application.put_env(@app, Tracer, vals, persistent: true)
     end)
 
     :ok
@@ -51,7 +45,6 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
   end
 
   test "if default configuration is used when there's no environment variables" do
-    # :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
     :ok = System.delete_env("DD_DISABLED")
     :ok = System.delete_env("APP_ENV")
     :ok = SetTracer.init([])
