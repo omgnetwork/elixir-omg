@@ -1,27 +1,17 @@
 {
   "skip_files": [
     "apps/omg/test/support",
-    "apps/omg/lib/omg/release_tasks",
     "apps/omg_bus/test/support",
-    "apps/omg_bus/lib/omg_bus/release_tasks",
     "apps/omg_child_chain/test/support",
-    "apps/omg_child_chain/lib/omg_child_chain/release_tasks",
     "apps/omg_child_chain_rpc/test/support",
-    "apps/omg_child_chain_rpc/lib/omg_child_chain_rpc/release_tasks",
     "apps/omg_db/test/support",
-    "apps/omg_db/lib/omg_db/release_tasks",
     "apps/omg_eth/test/support",
-    "apps/omg_eth/lib/omg_eth/release_tasks",
     "apps/omg_performance/test/support",
-    "apps/omg_performance/lib/omg_performance/release_tasks",
     "apps/omg_status/test/support",
-    "apps/omg_status/lib/omg_status/release_tasks",
     "apps/omg_utils/test/support",
-    "apps/omg_utils/lib/omg_utils/release_tasks",
     "apps/omg_watcher/test/support",
-    "apps/omg_watcher/lib/omg_watcher/release_tasks",
+    "apps/omg_watcher/lib/omg_watcher/release_tasks/init_postgresql_db.ex",
     "apps/omg_watcher_rpc/test/support",
-    "apps/omg_watcher_rpc/lib/omg_watcher_rpc/release_tasks",
     "apps/xomg_tasks"
   ]
 }
