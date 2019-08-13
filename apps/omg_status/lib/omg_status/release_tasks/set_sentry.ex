@@ -41,7 +41,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
           :ok = Application.put_env(@app, :server_name, hostname)
 
           :ok =
-            Application.put_env(@app, :server_name, %{
+            Application.put_env(@app, :tags, %{
               application: get_application(),
               eth_network: get_env("ETHEREUM_NETWORK"),
               eth_node: get_rpc_client_type()
@@ -95,15 +95,15 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
 
   defp get_env(key), do: System.get_env(key)
 
-  defp validate_rpc_client_type(value, default) when is_binary(value),
-    do: to_rpc_client_type(String.upcase(value), default)
+  defp validate_rpc_client_type(value, _default) when is_binary(value),
+    do: to_rpc_client_type(String.upcase(value))
 
   defp validate_rpc_client_type(_value, default),
     do: default
 
-  defp to_rpc_client_type("GETH", _), do: "geth"
-  defp to_rpc_client_type("PARITY", _), do: "parity"
-  defp to_rpc_client_type(_, default), do: default
+  defp to_rpc_client_type("GETH"), do: "geth"
+  defp to_rpc_client_type("PARITY"), do: "parity"
+  defp to_rpc_client_type(_), do: exit("ETH_NODE must be either GETH or PARITY.")
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default

@@ -120,4 +120,15 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
 
     ^sorted_configuration = Enum.sort(@configuration_old_spandex_datadog)
   end
+
+  test "if exit is thrown when faulty configuration is used" do
+    :ok = System.put_env("DD_DISABLED", "TRUEeee")
+
+    try do
+      :ok = SetTracer.init([])
+    catch
+      :exit, _ ->
+        :ok = System.delete_env("DD_DISABLED")
+    end
+  end
 end

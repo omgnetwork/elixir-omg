@@ -16,10 +16,10 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
   use ExUnit.Case, async: false
   alias OMG.DB.ReleaseTasks.InitKeyValueDB
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
-
+  @apps [:logger, :crypto, :ssl]
   setup_all do
     on_exit(fn ->
-      _ = Enum.each([:logger, :crypto, :ssl], &Application.ensure_all_started/1)
+      _ = Enum.each(@apps, &Application.ensure_all_started/1)
     end)
 
     :ok
@@ -31,6 +31,8 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
     :ok = System.put_env("DB_PATH", dir)
     :ok = SetKeyValueDB.init([])
     :ok = InitKeyValueDB.run()
+    started_apps = Enum.map(Application.started_applications(), fn {app, _, _} -> app end)
+    [true, true, true] = Enum.map(@apps, fn app -> not Enum.member?(started_apps, app) end)
     {:ok, _} = Application.ensure_all_started(:omg_db)
     :ok = Application.stop(:omg_db)
     :ok = System.delete_env("DB_PATH")

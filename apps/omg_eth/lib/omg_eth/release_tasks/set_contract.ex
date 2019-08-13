@@ -27,11 +27,18 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
+    exchanger = get_env("CONTRACT_EXCHANGER_URL")
+    via_env = get_env("ETHEREUM_NETWORK")
 
-    case get_env("CONTRACT_EXCHANGER_URL") do
-      value when is_binary(value) ->
+    case {exchanger, via_env} do
+      {exchanger, _} when is_binary(exchanger) ->
+        _ =
+          unless is_binary(via_env) && String.upcase(via_env) == "RINKEBY" do
+            exit("Set ETHEREUM_NETWORK to RINKEBY and populate CONTRACT_EXCHANGER_URL")
+          end
+
         _ = Application.ensure_all_started(:hackney)
-        {:ok, %{body: body}} = HTTPoison.get(value)
+        {:ok, %{body: body}} = HTTPoison.get(exchanger)
 
         %{
           "authority_addr" => authority_address,
@@ -47,19 +54,23 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
         :ok = Application.put_env(@app, :contract_addr, String.downcase(contract_address), persistent: true)
         :ok = Application.put_env(@app, :exit_period_seconds, exit_period_seconds)
 
-      _ ->
-        case String.upcase(get_env("ETHEREUM_NETWORK")) do
+      {_, via_env} when is_binary(via_env) ->
+        case String.upcase(via_env) do
           "RINKEBY" = network ->
             :ok = apply_settings(network)
 
           _ ->
             error =
-              "Set ETHEREUM_NETWORK, RINKEBY_TXHASH_CONTRACT, RINKEBY_AUTHORITY_ADDRESS and RINKEBY_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
+              "Set ETHEREUM_NETWORK to RINKEBY, RINKEBY_TXHASH_CONTRACT, RINKEBY_AUTHORITY_ADDRESS and RINKEBY_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
 
             exit(error)
         end
 
-        :ok
+      _ ->
+        error =
+          "Set ETHEREUM_NETWORK to RINKEBY, RINKEBY_TXHASH_CONTRACT, RINKEBY_AUTHORITY_ADDRESS and RINKEBY_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
+
+        exit(error)
     end
   end
 

@@ -31,13 +31,14 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     port = 9009
     pid = spawn(fn -> start(port) end)
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
+    :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
     :ok = SetContract.init([])
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     "contract_address_value" = Application.get_env(@app, :contract_addr)
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
     :ok = Process.send(pid, :stop, [])
-
+    :ok = System.delete_env("ETHEREUM_NETWORK")
     :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
   end
 
@@ -45,10 +46,29 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     port = 9010
     pid = spawn(fn -> start(port) end)
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
+    :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
     :ok = SetContract.init([])
     22 = Application.get_env(@app, :exit_period_seconds)
 
     :ok = Process.send(pid, :stop, [])
+    :ok = System.delete_env("ETHEREUM_NETWORK")
+    :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
+  end
+
+  test "unsuported network throws exception for contract exchanger" do
+    port = 9010
+    pid = spawn(fn -> start(port) end)
+    :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
+    :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY-GORLI")
+
+    try do
+      :ok = SetContract.init([])
+    catch
+      :exit, _ ->
+        :ok
+    end
+
+    :ok = System.delete_env("ETHEREUM_NETWORK")
     :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
   end
 
@@ -98,6 +118,40 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
     :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
     :ok = System.delete_env("EXIT_PERIOD_SECONDS")
+  end
+
+  test "that exit is thrown when env configuration is faulty for network name" do
+    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby is what we are, rinkeby is what we know")
+    :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
+
+    try do
+      :ok = SetContract.init([])
+    catch
+      :exit, _ ->
+        :ok
+    end
+
+    :ok = System.delete_env("ETHEREUM_NETWORK")
+    :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
+    :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+  end
+
+  test "that exit is thrown when there's no mandatory configuration" do
+    :ok = System.delete_env("ETHEREUM_NETWORK")
+    :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
+    :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+    :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
+
+    try do
+      :ok = SetContract.init([])
+    catch
+      :exit, _ ->
+        :ok
+    end
   end
 
   # a very simple web server that serves conctract exchanger requests

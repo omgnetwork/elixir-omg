@@ -46,12 +46,12 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
 
   defp get_env(key), do: System.get_env(key)
 
-  defp validate_bool(value, default) when is_binary(value), do: to_bool(String.upcase(value), default)
+  defp validate_bool(value, default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default
 
-  defp to_bool("TRUE", _default), do: true
-  defp to_bool("FALSE", _default), do: false
-  defp to_bool(_, default), do: default
+  defp to_bool("TRUE"), do: true
+  defp to_bool("FALSE"), do: false
+  defp to_bool(_), do: exit("DD_DISABLED either true or false.")
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default
