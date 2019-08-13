@@ -1,6 +1,5 @@
 {
   "skip_files": [
-    "test/support",
-    "lib/release_tasks"
+    "test/support"
   ]
 }
