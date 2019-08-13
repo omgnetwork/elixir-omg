@@ -51,7 +51,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     :ok = System.put_env("DD_HOSTNAME", "cluster")
     :ok = System.put_env("DD_PORT", "1919")
     :ok = SetTracer.init([])
-    configuration = Application.get_all_env(:statix)
+    configuration = Enum.sort(Application.get_all_env(:statix))
     host = configuration[:host]
     port = configuration[:port]
     "cluster" = host

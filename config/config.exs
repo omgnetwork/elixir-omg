@@ -22,13 +22,13 @@ config :logger,
   backends: [:console]
 
 config :sentry,
-  dsn: "url",
-  environment_name: "development",
-  included_environments: [:dev, :prod, "development"],
+  dsn: nil,
+  environment_name: nil,
+  included_environments: [],
   server_name: 'localhost',
   tags: %{
-    application: "development",
-    eth_network: "development",
+    application: nil,
+    eth_network: nil,
     eth_node: "geth"
   }
 

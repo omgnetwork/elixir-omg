@@ -3,12 +3,12 @@ use Mix.Config
 config :logger, level: :warn
 
 config :sentry,
-  dsn: "url",
-  environment_name: "test",
+  dsn: nil,
+  environment_name: nil,
   included_environments: [],
-  server_name: "test.com",
+  server_name: nil,
   tags: %{
-    application: "test",
-    eth_network: "local",
+    application: nil,
+    eth_network: nil,
     eth_node: "geth"
   }

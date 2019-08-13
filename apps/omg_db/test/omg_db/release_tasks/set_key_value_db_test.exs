@@ -16,8 +16,26 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
   use ExUnit.Case, async: false
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
   @app :omg_db
-
   @configuration_old Application.get_all_env(@app)
+
+  setup_all do
+    on_exit(fn ->
+      :ok =
+        Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
+    end)
+
+    :ok
+  end
+
+  setup do
+    on_exit(fn ->
+      :ok = System.delete_env("DB_TYPE")
+      :ok = System.delete_env("DB_PATH")
+    end)
+
+    :ok
+  end
+
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("DB_TYPE", "ROCKsDB")
     :ok = System.put_env("DB_PATH", "/tmp/YOLO")
@@ -31,6 +49,9 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
       |> Keyword.put(:type, :rocksdb)
       |> Keyword.put(:path, "/tmp/YOLO")
       |> Enum.sort()
+
+    :ok = System.delete_env("DB_TYPE")
+    :ok = System.delete_env("DB_PATH")
   end
 
   test "if default configuration is used when there's no environment variables" do
