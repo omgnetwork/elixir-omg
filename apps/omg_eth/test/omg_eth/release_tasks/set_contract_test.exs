@@ -56,7 +56,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   end
 
   test "unsuported network throws exception for contract exchanger" do
-    port = 9010
+    port = 9011
     pid = spawn(fn -> start(port) end)
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY-GORLI")
@@ -65,6 +65,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
       :ok = SetContract.init([])
     catch
       :exit, _ ->
+        :ok = Process.send(pid, :stop, [])
         :ok
     end
 
