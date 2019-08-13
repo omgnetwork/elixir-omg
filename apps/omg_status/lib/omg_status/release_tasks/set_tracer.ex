@@ -95,7 +95,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
 
   defp get_env(key), do: System.get_env(key)
 
-  defp validate_bool(value, default) when is_binary(value), do: to_bool(String.upcase(value))
+  defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default
 
   defp to_bool("TRUE"), do: true
