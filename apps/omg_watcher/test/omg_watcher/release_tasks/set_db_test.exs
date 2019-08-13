@@ -23,8 +23,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetDBTest do
       # configuration is global state so we reset it to known values in case
       # it got fiddled before
 
-      :ok =
-        Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
+      :ok = Application.put_env(@app, Repo, @configuration_old, persistent: true)
     end)
 
     :ok
@@ -45,7 +44,6 @@ defmodule OMG.Watcher.ReleaseTasks.SetDBTest do
   end
 
   test "if default configuration is used when there's no environment variables" do
-    :ok = Application.put_env(@app, Repo, @configuration_old, persistent: true)
     :ok = System.delete_env("DATABASE_URL")
     :ok = SetDB.init([])
     configuration = Application.get_env(@app, Repo)
