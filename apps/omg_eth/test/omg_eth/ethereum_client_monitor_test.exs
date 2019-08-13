@@ -25,6 +25,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
   @moduletag :capture_log
 
   setup_all do
+    _ = Agent.start_link(fn -> 55_555 end, name: :port_holder)
     _ = Application.put_env(:omg_child_chain, :eth_integration_module, EthereumClientMock)
     {:ok, status_apps} = Application.ensure_all_started(:omg_status)
     {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
@@ -45,7 +46,8 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
 
     on_exit(fn ->
       :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
-      WebSockexServerMock.shutdown(server_ref)
+      _ = WebSockexServerMock.shutdown(server_ref)
+      _ = Process.sleep(10)
       true = Process.exit(ethereum_client_monitor, :kill)
     end)
 
@@ -92,7 +94,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
     ### We continue by re-starting the mocked RPC server and websocket server and check if the alarm
     ## was removed.
 
-    WebSockexServerMock.shutdown(server_ref)
+    _ = WebSockexServerMock.shutdown(server_ref)
 
     true = is_pid(Process.whereis(EthereumClientMonitor))
 
@@ -103,8 +105,9 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
 
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
 
-    {:ok, {_server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
+    {:ok, {server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
     :ok = pull_client_alarm(400, [])
+    WebSockexServerMock.shutdown(server_ref)
   end
 
   test "that we don't overflow the message queue with timers when Eth client needs time to respond", %{
@@ -132,8 +135,9 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
 
     {:message_queue_len, 0} = Process.info(pid, :message_queue_len)
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
-    {:ok, {_server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
+    {:ok, {server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
     :ok = pull_client_alarm(400, [])
+    WebSockexServerMock.shutdown(server_ref)
   rescue
     reason ->
       raise("message_queue_not_empty #{inspect(reason)}")
@@ -194,7 +198,8 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
     end
 
     def start(pid) when is_pid(pid) do
-      port = Enum.random(60_000..63_000)
+      port = Agent.get(:port_holder, & &1) + 1
+      :ok = Agent.update(:port_holder, &(&1 + 1))
       start(pid, "ws://localhost:#{port}/ws")
     end
 

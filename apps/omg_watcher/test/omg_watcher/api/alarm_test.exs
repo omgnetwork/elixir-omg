@@ -52,8 +52,8 @@ defmodule OMG.Watcher.API.AlarmTest do
 
     {:ok, alarms} = Alarm.get_alarms()
 
-    [true, true, true] =
-      Enum.map(
+    ^find_alarms =
+      Enum.filter(
         alarms,
         fn alarm ->
           Enum.member?(find_alarms, alarm)
