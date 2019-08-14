@@ -38,7 +38,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
       )
 
     :ok =
-      Application.put_env(:spandex_datadog, :port, get_dd_port(Application.get_env(:spandex_datadog, :port)),
+      Application.put_env(:spandex_datadog, :port, get_dd_spandex_port(Application.get_env(:spandex_datadog, :port)),
         persistent: true
       )
 
@@ -70,9 +70,15 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   end
 
   defp get_dd_port(default) do
-    dd_hostname = validate_integer(get_env("DD_PORT"), default)
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DD_PORT Value: #{inspect(dd_hostname)}.")
-    dd_hostname
+    dd_port = validate_integer(get_env("DD_PORT"), default)
+    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DD_PORT Value: #{inspect(dd_port)}.")
+    dd_port
+  end
+
+  defp get_dd_spandex_port(default) do
+    dd_spandex_port = validate_integer(get_env("DD_APM_PORT"), default)
+    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DD_APM_PORT Value: #{inspect(dd_spandex_port)}.")
+    dd_spandex_port
   end
 
   def get_batch_size do

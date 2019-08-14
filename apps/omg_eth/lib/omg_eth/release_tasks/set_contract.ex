@@ -16,7 +16,10 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   @moduledoc false
   use Distillery.Releases.Config.Provider
   require Logger
+
   @app :omg_eth
+  @error "Set ETHEREUM_NETWORK to RINKEBY or LOCALCHAIN, *_TXHASH_CONTRACT, *_AUTHORITY_ADDRESS and *_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
+
   @doc """
   The contract values can currently come either from ENV variables for deployments in
   - development
@@ -24,6 +27,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   - production
   or, they're manually deployed for local development:
   """
+
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
@@ -33,7 +37,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     case {exchanger, via_env} do
       {exchanger, _} when is_binary(exchanger) ->
         _ =
-          unless is_binary(via_env) && String.upcase(via_env) == "RINKEBY" do
+          unless is_binary(via_env) && (String.upcase(via_env) == "RINKEBY" or String.upcase(via_env) == "LOCALCHAIN") do
             exit("Set ETHEREUM_NETWORK to RINKEBY and populate CONTRACT_EXCHANGER_URL")
           end
 
@@ -55,26 +59,26 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
         :ok = Application.put_env(@app, :exit_period_seconds, exit_period_seconds)
 
       {_, via_env} when is_binary(via_env) ->
-        case String.upcase(via_env) do
-          "RINKEBY" = network ->
-            :ok = apply_settings(network)
-
-          _ ->
-            error =
-              "Set ETHEREUM_NETWORK to RINKEBY, RINKEBY_TXHASH_CONTRACT, RINKEBY_AUTHORITY_ADDRESS and RINKEBY_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
-
-            exit(error)
-        end
+        :ok = apply_static_settings(via_env)
 
       _ ->
-        error =
-          "Set ETHEREUM_NETWORK to RINKEBY, RINKEBY_TXHASH_CONTRACT, RINKEBY_AUTHORITY_ADDRESS and RINKEBY_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
-
-        exit(error)
+        exit(@error)
     end
   end
 
-  defp apply_settings(network) do
+  defp apply_static_settings(network) do
+    network =
+      case String.upcase(network) do
+        "RINKEBY" = network ->
+          network
+
+        "LOCALCHAIN" = network ->
+          network
+
+        _ ->
+          exit(@error)
+      end
+
     txhash_contract = get_env(network <> "_TXHASH_CONTRACT")
     authority_address = get_env(network <> "_AUTHORITY_ADDRESS")
     contract_address = get_env(network <> "_CONTRACT_ADDRESS")

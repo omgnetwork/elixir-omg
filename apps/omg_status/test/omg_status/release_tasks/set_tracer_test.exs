@@ -82,7 +82,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
 
   test "if environment variables get applied in the spandex_datadog configuration" do
     :ok = System.put_env("DD_HOSTNAME", "cluster")
-    :ok = System.put_env("DD_PORT", "1919")
+    :ok = System.put_env("DD_APM_PORT", "1919")
     :ok = System.put_env("BATCH_SIZE", "7000")
     :ok = System.put_env("SYNC_THRESHOLD", "900")
     :ok = SetTracer.init([])
@@ -112,7 +112,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
       end)
 
     :ok = System.delete_env("DD_HOSTNAME")
-    :ok = System.delete_env("DD_PORT")
+    :ok = System.delete_env("DD_APM_PORT")
     :ok = System.delete_env("BATCH_SIZE")
     :ok = System.delete_env("SYNC_THRESHOLD")
     :ok = SetTracer.init([])
