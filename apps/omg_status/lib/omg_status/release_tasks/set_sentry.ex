@@ -14,10 +14,13 @@
 
 defmodule OMG.Status.ReleaseTasks.SetSentry do
   @moduledoc false
+
   use Distillery.Releases.Config.Provider
   require Logger
+
   @app :sentry
   @impl Provider
+
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
     app_env = get_app_env()

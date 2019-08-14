@@ -16,7 +16,9 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
   use ExUnit.Case, async: false
   alias OMG.DB.ReleaseTasks.InitKeyValueDB
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
+
   @apps [:logger, :crypto, :ssl]
+
   setup_all do
     on_exit(fn ->
       _ = Enum.each(@apps, &Application.ensure_all_started/1)

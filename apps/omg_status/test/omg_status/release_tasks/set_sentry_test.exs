@@ -15,6 +15,7 @@
 defmodule OMG.Status.ReleaseTasks.SetSentryTest do
   use ExUnit.Case, async: false
   alias OMG.Status.ReleaseTasks.SetSentry
+
   @app :sentry
   @configuration_old Application.get_all_env(@app)
 

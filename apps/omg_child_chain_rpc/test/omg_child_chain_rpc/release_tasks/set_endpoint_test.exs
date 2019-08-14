@@ -16,11 +16,13 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetEndpointTest do
   use ExUnit.Case, async: false
   alias OMG.ChildChainRPC.ReleaseTasks.SetEndpoint
   alias OMG.ChildChainRPC.Web.Endpoint
+
   @app :omg_child_chain_rpc
   @test_host "cc.test.example.com"
   @test_port "9999999999999999"
   @test_port_int String.to_integer(@test_port)
   @configuration_old Application.get_env(@app, Endpoint)
+
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("PORT", @test_port)
     :ok = System.put_env("HOSTNAME", @test_host)

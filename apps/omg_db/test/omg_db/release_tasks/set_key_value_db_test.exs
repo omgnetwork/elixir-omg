@@ -15,6 +15,7 @@
 defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
   use ExUnit.Case, async: false
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
+
   @app :omg_db
   @configuration_old Application.get_all_env(@app)
 

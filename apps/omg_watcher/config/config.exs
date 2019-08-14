@@ -35,7 +35,7 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
 config :omg_watcher, OMG.Watcher.Tracer,
   service: :db,
   adapter: SpandexDatadog.Adapter,
-  disabled?: false,
+  disabled?: true,
   type: :db
 
 config :spandex_ecto, SpandexEcto.EctoLogger,

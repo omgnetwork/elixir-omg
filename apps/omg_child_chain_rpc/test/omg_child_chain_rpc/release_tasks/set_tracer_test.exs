@@ -16,6 +16,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracerTest do
   use ExUnit.Case, async: false
   alias OMG.ChildChainRPC.ReleaseTasks.SetTracer
   alias OMG.ChildChainRPC.Tracer
+
   @app :omg_child_chain_rpc
   @configuration_old Application.get_env(@app, Tracer)
 

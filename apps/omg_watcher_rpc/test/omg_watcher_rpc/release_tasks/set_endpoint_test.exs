@@ -22,6 +22,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpointTest do
   @test_port "9999999999999999"
   @test_port_int String.to_integer(@test_port)
   @configuration_old Application.get_env(@app, Endpoint)
+
   test "if environment variables get applied in the configuration" do
     configuration_old = deep_sort(Application.get_env(@app, Endpoint))
     :ok = System.put_env("PORT", @test_port)

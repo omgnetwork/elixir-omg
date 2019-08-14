@@ -15,6 +15,7 @@
 defmodule OMG.Watcher.ReleaseTasks.SetChildChainTest do
   use ExUnit.Case, async: false
   alias OMG.Watcher.ReleaseTasks.SetChildChain
+
   @app :omg_watcher
   @configuration_old Application.get_all_env(@app)
 

@@ -15,6 +15,7 @@
 defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   use ExUnit.Case, async: false
   alias OMG.Eth.ReleaseTasks.SetContract
+
   @app :omg_eth
   @configuration_old Application.get_all_env(@app)
 

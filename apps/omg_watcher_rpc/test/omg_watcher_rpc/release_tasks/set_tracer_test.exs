@@ -16,6 +16,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracerTest do
   use ExUnit.Case, async: false
   alias OMG.WatcherRPC.ReleaseTasks.SetTracer
   alias OMG.WatcherRPC.Tracer
+
   @app :omg_watcher_rpc
   @configuration_old Application.get_env(@app, Tracer)
 

@@ -16,8 +16,10 @@ defmodule OMG.Watcher.ReleaseTasks.SetDBTest do
   use ExUnit.Case, async: false
   alias OMG.Watcher.DB.Repo
   alias OMG.Watcher.ReleaseTasks.SetDB
+
   @app :omg_watcher
   @configuration_old Application.get_env(@app, Repo)
+
   setup do
     on_exit(fn ->
       # configuration is global state so we reset it to known values in case

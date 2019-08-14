@@ -15,9 +15,11 @@
 defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
   use ExUnit.Case, async: false
   alias OMG.Eth.ReleaseTasks.SetEthereumClient
+
   @app :omg_eth
   @configuration_old Application.get_all_env(@app)
   @configuration_old_ethereumex Application.get_all_env(:ethereumex)
+
   setup %{} do
     on_exit(fn ->
       :ok =

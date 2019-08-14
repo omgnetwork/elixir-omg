@@ -23,7 +23,7 @@ config :phoenix,
 config :omg_watcher_rpc, OMG.WatcherRPC.Tracer,
   service: :web,
   adapter: SpandexDatadog.Adapter,
-  disabled?: false,
+  disabled?: true,
   type: :web
 
 config :spandex_phoenix, tracer: OMG.WatcherRPC.Tracer

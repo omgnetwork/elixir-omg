@@ -6,7 +6,7 @@ config :omg_status,
 config :omg_status, OMG.Status.Metric.Tracer,
   service: :omg_status,
   adapter: SpandexDatadog.Adapter,
-  disabled?: false,
+  disabled?: true,
   type: :backend
 
 config :spandex, :decorators, tracer: OMG.Status.Metric.Tracer

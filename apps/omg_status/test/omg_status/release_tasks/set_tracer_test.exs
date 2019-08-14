@@ -16,6 +16,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   use ExUnit.Case, async: false
   alias OMG.Status.Metric.Tracer
   alias OMG.Status.ReleaseTasks.SetTracer
+
   @app :omg_status
   @configuration_old Application.get_env(@app, Tracer)
   @configuration_old_statix Application.get_all_env(:statix)
