@@ -29,6 +29,7 @@ services:
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - NODE_HOST=127.0.0.1
       - DD_DISABLED=true
+      - DB_PATH=/app/.omg/data
       - APP_ENV=localwatcher
     ports:
       - "7434:7434"
