@@ -59,7 +59,7 @@ defmodule OMG.DB.LevelDB.Server do
       {:ok, %__MODULE__{name: name, db_ref: db_ref}}
     else
       error ->
-        _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
+        _ = Logger.error("It seems that #{app()} database is not initialized. Check README.md")
         error
     end
   end
@@ -205,6 +205,13 @@ defmodule OMG.DB.LevelDB.Server do
   end
 
   defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
+
+  defp app do
+    case Code.ensure_loaded?(OMG.Watcher) do
+      true -> :watcher
+      _ -> :child_chain
+    end
+  end
 
   # WARNING, terminate below will be called only if :trap_exit is set to true
   def terminate(_reason, %__MODULE__{db_ref: db_ref}), do: :ok = Exleveldb.close(db_ref)

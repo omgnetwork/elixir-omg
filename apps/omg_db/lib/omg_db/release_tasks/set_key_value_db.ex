@@ -27,17 +27,30 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
 
     path =
       case get_env("DB_PATH") do
-        path when is_binary(path) ->
-          :ok = Application.put_env(:omg_db, :path, path, persistent: true)
+        root_path when is_binary(root_path) ->
+          {:ok, path} = set_db(root_path)
           path
 
         _ ->
-          path = Path.join([System.user_home!(), ".omg/data"])
-          :ok = Application.put_env(:omg_db, :path, path, persistent: true)
+          root_path = Path.join([System.user_home!(), ".omg/data"])
+          {:ok, path} = set_db(root_path)
           path
       end
 
     _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
+    :ok
+  end
+
+  defp set_db(root_path) do
+    app =
+      case Code.ensure_loaded?(OMG.Watcher) do
+        true -> :watcher
+        _ -> :child_chain
+      end
+
+    path = Path.join([root_path, "#{app}"])
+    :ok = Application.put_env(:omg_db, :path, path, persistent: true)
+    {:ok, path}
   end
 
   defp get_env(key), do: System.get_env(key)
