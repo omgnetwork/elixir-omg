@@ -90,6 +90,39 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
   end
 
+  test "contract details from env for localchain" do
+    :ok = System.put_env("ETHEREUM_NETWORK", "localchain")
+    :ok = System.put_env("LOCALCHAIN_TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("LOCALCHAIN_AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS", "contract_address_value")
+    :ok = SetContract.init([])
+    "authority_address_value" = Application.get_env(@app, :authority_addr)
+    "contract_address_value" = Application.get_env(@app, :contract_addr)
+    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+
+    :ok = System.delete_env("ETHEREUM_NETWORK")
+    :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
+    :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+  end
+
+  test "if exit is thrown when mixed network names" do
+    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
+    :ok = System.put_env("LOCALCHAIN_TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("LOCALCHAIN_AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS", "contract_address_value")
+
+    try do
+      :ok = SetContract.init([])
+    catch
+      :exit, _ ->
+        :ok = System.delete_env("ETHEREUM_NETWORK")
+        :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
+        :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
+        :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+    end
+  end
+
   test "contract details from env sets default exit period seconds" do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")

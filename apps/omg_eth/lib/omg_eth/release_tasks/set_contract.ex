@@ -53,10 +53,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
         exit_period_seconds =
           validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
 
-        :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
-        :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
-        :ok = Application.put_env(@app, :contract_addr, String.downcase(contract_address), persistent: true)
-        :ok = Application.put_env(@app, :exit_period_seconds, exit_period_seconds)
+        update_configuration(txhash_contract, authority_address, contract_address, exit_period_seconds)
 
       {_, via_env} when is_binary(via_env) ->
         :ok = apply_static_settings(via_env)
@@ -86,11 +83,19 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     exit_period_seconds =
       validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
 
-    :ok = Application.put_env(@app, :txhash_contract, txhash_contract, persistent: true)
-    :ok = Application.put_env(@app, :authority_addr, authority_address, persistent: true)
-    :ok = Application.put_env(@app, :contract_addr, contract_address, persistent: true)
+    update_configuration(txhash_contract, authority_address, contract_address, exit_period_seconds)
+  end
+
+  defp update_configuration(txhash_contract, authority_address, contract_address, exit_period_seconds)
+       when is_binary(txhash_contract) and
+              is_binary(authority_address) and is_binary(contract_address) and is_integer(exit_period_seconds) do
+    :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
+    :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
+    :ok = Application.put_env(@app, :contract_addr, String.downcase(contract_address), persistent: true)
     :ok = Application.put_env(@app, :exit_period_seconds, exit_period_seconds)
   end
+
+  defp update_configuration(_, _, _, _), do: exit(@error)
 
   defp get_env(key), do: System.get_env(key)
 
