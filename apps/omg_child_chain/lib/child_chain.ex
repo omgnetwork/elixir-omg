@@ -52,6 +52,11 @@ defmodule OMG.ChildChain do
     |> result_with_logging()
   end
 
+  alias OMG.Status.Alert.Alarm
+
+  @spec get_alarms() :: {:ok, Alarm.raw_t()}
+  def get_alarms, do: {:ok, Alarm.all()}
+
   defp result_with_logging(result) do
     _ = Logger.debug(" resulted with #{inspect(result)}")
     result

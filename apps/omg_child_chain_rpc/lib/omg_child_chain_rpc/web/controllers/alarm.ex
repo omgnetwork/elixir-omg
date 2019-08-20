@@ -12,22 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Web.Router do
-  use OMG.ChildChainRPC.Web, :router
+defmodule OMG.ChildChainRPC.Web.Controller.Alarm do
+  @moduledoc """
+  Module provides operation related to the child chain raised alarms that might point to
+  faulty childchain node.
+  """
 
-  pipeline :api do
-    plug(:accepts, ["json"])
-    plug(OMG.ChildChainRPC.Plugs.Health)
-  end
+  use OMG.ChildChainRPC.Web, :controller
 
-  scope "/", OMG.ChildChainRPC.Web do
-    pipe_through(:api)
+  alias OMG.ChildChain
+  alias OMG.ChildChainRPC.Web.View
 
-    post("/block.get", Controller.Block, :get_block)
-    post("/transaction.submit", Controller.Transaction, :submit)
-    post("/alarm.get", Controller.Alarm, :get_alarms)
+  def get_alarms(conn, _params) do
+    {:ok, alarms} = ChildChain.get_alarms()
 
-    # NOTE: This *has to* be the last route, catching all unhandled paths
-    match(:*, "/*path", Controller.Fallback, Route.NotFound)
+    conn
+    |> put_view(View.Alarm)
+    |> render(:alarm, response: alarms)
   end
 end
