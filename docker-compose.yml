@@ -54,7 +54,6 @@ services:
       my.custom.label.project: 'projectA'
       my.custom.label.version: '1'
     environment:
-      - DD_DISABLED=false
       - EXIT_PERIOD_SECONDS=86400
       - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000
       - ETHEREUM_RPC_URL=http://geth:8545
@@ -65,8 +64,8 @@ services:
       - NODE_HOST=127.0.0.1
       - APP_ENV=local_development_child_chain
       - DD_HOSTNAME=datadog
-      #- DD_DISABLED=true
-      - DB_PATH=/app/.omg/data
+      - DD_DISABLED=false
+      - DB_PATH=/app/.omg/data/ch/
     restart: always
     ports:
       - "9656:9656"
@@ -99,8 +98,8 @@ services:
       - NODE_HOST=127.0.0.1
       - APP_ENV=local_development_watcher
       - DD_HOSTNAME=datadog
-      - DD_DISABLED=true
-      - DB_PATH=/app/.omg/data
+      - DD_DISABLED=false
+      - DB_PATH=/app/.omg/data/w/
     restart: always
     ports:
       - "7434:7434"
