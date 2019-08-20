@@ -25,6 +25,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
     config = Keyword.put(config, :disabled?, get_dd_disabled())
     config = Keyword.put(config, :env, get_app_env())
     :ok = Application.put_env(@app, OMG.WatcherRPC.Tracer, config, persistent: true)
+    :ok = Application.put_env(:spandex_phoenix, :tracer, OMG.WatcherRPC.Tracer, persistent: true)
   end
 
   defp get_dd_disabled do
