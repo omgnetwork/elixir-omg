@@ -14,8 +14,8 @@
 
 defmodule OMG.WatcherRPC.Web.Controller.Alarm do
   @moduledoc """
-  Module provides operation related to the child chain raised alarms that might point to
-  faulty childchain node.
+  Module provides operation related to the watcher raised alarms that might point to
+  faulty watcher node.
   """
 
   use OMG.WatcherRPC.Web, :controller

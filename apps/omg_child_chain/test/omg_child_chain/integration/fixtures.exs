@@ -46,9 +46,10 @@ defmodule OMG.ChildChain.Integration.Fixtures do
     _ = fee_file
     # need to override that to very often, so that many checks fall in between a single child chain block submission
     {:ok, started_apps} = Application.ensure_all_started(:omg_child_chain)
+    {:ok, started_apps_rpc} = Application.ensure_all_started(:omg_child_chain_rpc)
 
     on_exit(fn ->
-      started_apps
+      (started_apps ++ started_apps_rpc)
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
