@@ -390,7 +390,7 @@ workflows:
   nightly:
     triggers:
       - schedule:
-          cron: "15 15 * * 1-5"
+          cron: "15 18 * * 1-5"
           filters:
             branches:
               only:
