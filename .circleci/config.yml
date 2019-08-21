@@ -203,6 +203,26 @@ jobs:
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
+  integration_tests:
+    executor: builder_pg_geth
+    environment:
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Integration Tests
+          command: |
+            # Don't submit coverage report for forks, but let the build succeed
+            export SHELL=/bin/bash
+            mix test --only integration
+
+
   dialyzer:
     executor: builder_pg
     environment:
@@ -367,6 +387,18 @@ jobs:
 
 workflows:
   version: 2
+  nightly:
+    triggers:
+      - schedule:
+          cron: "15 15 * * 1-5"
+          filters:
+            branches:
+              only:
+                - master
+                - run_integration_ci
+    jobs:
+      - build
+      - integration_tests
   build-deploy:
     jobs:
       - build
