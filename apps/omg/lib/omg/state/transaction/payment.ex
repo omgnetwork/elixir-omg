@@ -19,7 +19,8 @@ defmodule OMG.State.Transaction.Payment do
       This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
   """
   alias OMG.Crypto
-  alias OMG.Output.FungibleMoreVPToken
+  alias OMG.InputPointer
+  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -92,7 +93,7 @@ defmodule OMG.State.Transaction.Payment do
     outputs =
       outputs
       |> Enum.map(fn {owner, currency, amount} ->
-        %FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
+        %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
       end)
       |> filter_non_zero_outputs()
 
@@ -134,8 +135,6 @@ defmodule OMG.State.Transaction.Payment do
   defp reconstruct_metadata([metadata]) when Transaction.is_metadata(metadata), do: {:ok, metadata}
   defp reconstruct_metadata([_]), do: {:error, :malformed_metadata}
 
-  defp parse_int!(binary), do: :binary.decode_unsigned(binary, :big)
-
   defp parse_inputs(inputs_rlp) do
     {:ok, Enum.map(inputs_rlp, &parse_input!/1)}
   rescue
@@ -159,8 +158,8 @@ defmodule OMG.State.Transaction.Payment do
 
   defp parse_output!(output), do: FungibleMoreVPToken.reconstruct(output)
 
-  defp parse_input!([blknum, txindex, oindex]),
-    do: Utxo.position(parse_int!(blknum), parse_int!(txindex), parse_int!(oindex))
+  # FIXME: worse: we predetermine the input_pointer type, this is most likely bad - how to dispatch here?
+  defp parse_input!(input_pointer), do: InputPointer.UtxoPosition.reconstruct(input_pointer)
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
@@ -183,7 +182,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       when Transaction.Payment.is_metadata(metadata),
       do: [
         @payment_marker,
-        Enum.map(inputs, &to_new_rlp_input/1),
+        Enum.map(inputs, &OMG.InputPointer.Protocol.get_data_for_rlp/1),
         Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if

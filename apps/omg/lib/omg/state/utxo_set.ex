@@ -21,13 +21,14 @@ defmodule OMG.State.UtxoSet do
   It also translates the modifications to it into DB updates, and is able to interpret the UTXO query result from DB
   """
 
+  alias OMG.InputPointer
   alias OMG.Utxo
 
   require Utxo
 
   def init(utxos_query_result) do
-    Enum.into(utxos_query_result, %{}, fn {db_position, db_utxo} ->
-      {Utxo.Position.from_db_key(db_position), Utxo.from_db_value(db_utxo)}
+    Enum.into(utxos_query_result, %{}, fn {db_input_pointer, db_utxo} ->
+      {InputPointer.from_db_key(db_input_pointer), Utxo.from_db_value(db_utxo)}
     end)
   end
 
@@ -66,6 +67,7 @@ defmodule OMG.State.UtxoSet do
   Current implementation is **expensive**
   """
   def scan_for_matching_utxo(utxos, tx_hash, oindex) do
+    # FIXME: this is still utxo pos specific
     Enum.find(utxos, &match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
   end
 
@@ -81,9 +83,9 @@ defmodule OMG.State.UtxoSet do
     end
   end
 
-  defp utxo_to_db_put({utxo_pos, utxo}),
-    do: {:put, :utxo, {Utxo.Position.to_db_key(utxo_pos), Utxo.to_db_value(utxo)}}
+  defp utxo_to_db_put({input_pointer, utxo}),
+    do: {:put, :utxo, {InputPointer.Protocol.to_db_key(input_pointer), Utxo.to_db_value(utxo)}}
 
-  defp utxo_to_db_delete(utxo_pos),
-    do: {:delete, :utxo, Utxo.Position.to_db_key(utxo_pos)}
+  defp utxo_to_db_delete(input_pointer),
+    do: {:delete, :utxo, InputPointer.Protocol.to_db_key(input_pointer)}
 end

@@ -16,6 +16,8 @@ defmodule OMG.Output do
   @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
 
   def from_db_value(%{type: type_marker} = db_value), do: @output_types_modules[type_marker].from_db_value(db_value)
+  # default clause for backwards compatibility
+  def from_db_value(%{} = db_value), do: OMG.Output.FungibleMoreVPToken.from_db_value(db_value)
 end
 
 defprotocol OMG.Output.Protocol do

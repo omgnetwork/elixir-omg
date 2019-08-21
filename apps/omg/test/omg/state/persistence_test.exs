@@ -20,6 +20,7 @@ defmodule OMG.State.PersistenceTest do
   use OMG.DB.RocksDBCase, async: true
 
   alias OMG.Block
+  alias OMG.InputPointer
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -151,7 +152,9 @@ defmodule OMG.State.PersistenceTest do
     %Block{number: @blknum1, transactions: [block_tx], hash: ^hash} = Block.from_db_value(db_block)
 
     assert {:ok, tx} == Transaction.Recovered.recover_from(block_tx)
-    assert {:ok, 1000} == OMG.DB.spent_blknum({1, 0, 0}, db_pid)
+
+    assert {:ok, 1000} ==
+             tx |> Transaction.get_inputs() |> hd() |> InputPointer.Protocol.to_db_key() |> OMG.DB.spent_blknum(db_pid)
   end
 
   # mimics `&OMG.State.init/1`

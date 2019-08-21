@@ -23,6 +23,7 @@ defmodule OMG.State.Core do
   alias OMG.Block
   alias OMG.Crypto
   alias OMG.Fees
+  alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
@@ -177,9 +178,10 @@ defmodule OMG.State.Core do
           list(exitable_utxos)
   def standard_exitable_utxos(utxos_query_result, address) do
     utxos_query_result
-    |> Stream.map(fn {position, %{output: output}} -> {position, output} end)
+    |> Stream.map(fn {position, %{output: output}} -> {InputPointer.from_db_key(position), output} end)
     |> Stream.filter(fn {_, %{owner: owner}} -> owner == address end)
-    |> Enum.map(fn {{blknum, txindex, oindex}, utxo} ->
+    # FIXME: this is still utxo pos specific
+    |> Enum.map(fn {Utxo.position(blknum, txindex, oindex), utxo} ->
       utxo |> Map.put(:blknum, blknum) |> Map.put(:txindex, txindex) |> Map.put(:oindex, oindex)
     end)
   end
@@ -342,7 +344,9 @@ defmodule OMG.State.Core do
     new_utxos = UtxoSet.apply_effects(utxos, spent_input_pointers, new_utxos_map)
     new_db_updates = UtxoSet.db_updates(spent_input_pointers, new_utxos_map)
     # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
-    spent_blknum_updates = spent_input_pointers |> Enum.map(&{:put, :spend, {Utxo.Position.to_db_key(&1), blknum}})
+    spent_blknum_updates =
+      spent_input_pointers |> Enum.map(&{:put, :spend, {InputPointer.Protocol.to_db_key(&1), blknum}})
+
     %Core{state | utxos: new_utxos, utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates}
   end
 
