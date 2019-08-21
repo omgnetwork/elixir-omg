@@ -398,7 +398,8 @@ workflows:
                 - run_integration_ci
     jobs:
       - build
-      - integration_tests
+      - integration_tests:
+          requires: [build]
   build-deploy:
     jobs:
       - build
@@ -409,21 +410,17 @@ workflows:
             - common_coveralls_and_integration_tests
             - test
       - child_chain_coveralls_and_integration_tests:
-          requires:
-            - build
+          requires: [build]
       - watcher_coveralls_and_integration_tests:
-          requires:
-            - build
+          requires: [build]
       - common_coveralls_and_integration_tests:
-          requires:
-            - build
+          requires: [build]
       - lint:
           requires: [build]
       - dialyzer:
           requires: [build]
       - test:
-          requires:
-            - build
+          requires: [build]
 
       - build_and_deploy_development:
           requires:
