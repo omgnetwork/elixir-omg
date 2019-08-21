@@ -21,7 +21,12 @@ defmodule OMG.Status.Alert.AlarmTest do
   @moduletag timeout: 240_000
 
   setup_all do
-    _ = Application.ensure_all_started(:omg_status)
+    {:ok, apps} = Application.ensure_all_started(:omg_status)
+
+    on_exit(fn ->
+      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+    end)
+
     :ok
   end
 

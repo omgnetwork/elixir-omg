@@ -31,7 +31,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
   @fees %{@eth_hex => 0}
 
   setup do
-    _ = Application.ensure_all_started(:omg_status)
+    {:ok, apps} = Application.ensure_all_started(:omg_status)
 
     # make sure :ets managed to clear up before we start another
     Stream.repeatedly(fn ->
@@ -47,6 +47,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name)
 
     on_exit(fn ->
+      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
       File.rm(file_path)
       Application.put_env(:omg_child_chain, :ignore_fees, ignore_option)
       Application.put_env(:omg_child_chain, :fee_specs_file_name, old_file_name)

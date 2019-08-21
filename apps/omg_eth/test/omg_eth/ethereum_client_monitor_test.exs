@@ -26,13 +26,14 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
 
   setup_all do
     _ = Application.put_env(:omg_child_chain, :eth_integration_module, EthereumClientMock)
-    Application.ensure_all_started(:omg_status)
-
-    Application.ensure_all_started(:omg_bus)
+    {:ok, status_apps} = Application.ensure_all_started(:omg_status)
+    {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
+    apps = status_apps ++ bus_apps
 
     {:ok, _} = EthereumClientMock.start_link()
 
     on_exit(fn ->
+      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
       Application.put_env(:omg_child_chain, :eth_integration_module, nil)
     end)
   end
