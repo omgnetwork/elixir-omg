@@ -12,26 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.MonitorTest do
+defmodule OMG.Watcher.MonitorTest do
   @moduledoc false
   alias __MODULE__.EthereumClientMock
 
-  alias OMG.ChildChain.Monitor
   alias OMG.Status.Alert.Alarm
+  alias OMG.Watcher.Monitor
 
   use ExUnit.Case, async: true
 
   @moduletag :integration
-  @moduletag :child_chain
+  @moduletag :watcher
   @moduletag timeout: 120_000
 
   setup_all do
-    {:ok, apps} = Application.ensure_all_started(:omg_status)
-
-    on_exit(fn ->
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
-    end)
-
+    _ = Application.ensure_all_started(:omg_status)
     :ok
   end
 

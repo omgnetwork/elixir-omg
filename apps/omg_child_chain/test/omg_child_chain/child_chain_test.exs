@@ -14,6 +14,7 @@
 
 defmodule OMG.ChildChainTest do
   alias OMG.ChildChain
+  alias OMG.Status.Alert.AlarmHandler
   use ExUnit.Case, async: false
 
   setup_all do
@@ -27,7 +28,7 @@ defmodule OMG.ChildChainTest do
   setup %{} do
     system_alarm = {:system_memory_high_watermark, []}
     system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
-    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
+    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: Reporter}}
 
     on_exit(fn ->
       :alarm_handler.clear_alarm(app_alarm)
@@ -39,6 +40,8 @@ defmodule OMG.ChildChainTest do
   end
 
   test "if alarms are returned when there are no alarms raised", _ do
+    all = :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
+    :ok = Enum.each(all, &:alarm_handler.clear_alarm(&1))
     {:ok, []} = ChildChain.get_alarms()
   end
 
@@ -54,7 +57,7 @@ defmodule OMG.ChildChainTest do
     {:ok,
      [
        {{:disk_almost_full, "/dev/null"}, []},
-       {:ethereum_client_connection, %{node: :nonode@nohost, reporter: __MODULE__}},
+       {:ethereum_client_connection, %{node: :nonode@nohost, reporter: Reporter}},
        {:system_memory_high_watermark, []}
      ]} = ChildChain.get_alarms()
   end
