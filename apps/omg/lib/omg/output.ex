@@ -48,4 +48,9 @@ defprotocol OMG.Output.Protocol do
   Transforms into a RLP-ready structure
   """
   def get_data_for_rlp(output)
+
+  @doc """
+  True if this **is not** a placeholder for lack of data
+  """
+  def non_empty?(output)
 end

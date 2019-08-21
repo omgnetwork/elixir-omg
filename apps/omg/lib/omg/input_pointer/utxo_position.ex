@@ -40,4 +40,7 @@ defimpl OMG.InputPointer.Protocol, for: Tuple do
 
   @spec get_data_for_rlp(Utxo.Position.t()) :: list()
   def get_data_for_rlp(Utxo.position(blknum, txindex, oindex)), do: [blknum, txindex, oindex]
+
+  @spec non_empty?(Utxo.Position.t()) :: boolean()
+  def non_empty?(Utxo.position(_, _, _) = utxo_pos), do: Utxo.Position.non_zero?(utxo_pos)
 end

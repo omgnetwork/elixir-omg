@@ -36,4 +36,9 @@ defprotocol OMG.InputPointer.Protocol do
   Transforms into a RLP-ready structure
   """
   def get_data_for_rlp(input_pointer)
+
+  @doc """
+  True if this input pointer **is not** a placeholder for lack of data
+  """
+  def non_empty?(input_pointer)
 end

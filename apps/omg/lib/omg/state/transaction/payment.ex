@@ -150,12 +150,7 @@ defmodule OMG.State.Transaction.Payment do
     _ -> {:error, :malformed_outputs}
   end
 
-  defp parse_output!([<<1>>, owner, currency, amount]) do
-    with {:ok, cur12} <- parse_address(currency),
-         {:ok, owner} <- parse_address(owner),
-         do: %{owner: owner, currency: cur12, amount: parse_int!(amount)}
-  end
-
+  # FIXME: check if `non_empty?/1` functions on ins/outs are still necessary
   defp parse_output!(output), do: FungibleMoreVPToken.reconstruct(output)
 
   # FIXME: worse: we predetermine the input_pointer type, this is most likely bad - how to dispatch here?
