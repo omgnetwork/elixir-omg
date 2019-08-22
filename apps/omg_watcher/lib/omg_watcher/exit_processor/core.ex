@@ -266,8 +266,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.filter(&InFlightExitInfo.should_be_seeked_in_blocks?/1)
+      |> Enum.filter(&InFlightExitInfo.is_relevant?(&1, blknum_now))
       |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
-      |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
       |> :lists.usort()
 
     %{request | ife_input_utxos_to_check: ife_input_positions}
@@ -286,14 +286,20 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp do_determine_utxo_existence_to_get(%__MODULE__{in_flight_exits: ifes} = state, blknum_now) do
-    standard_exits_pos = StandardExit.exiting_positions(state)
+    standard_exits_pos =
+      StandardExit.exiting_positions(state)
+      |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
 
-    active_ifes = ifes |> Map.values() |> Enum.filter(& &1.is_active)
-    ife_inputs_pos = active_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
-    ife_outputs_pos = active_ifes |> Enum.flat_map(&InFlightExitInfo.get_piggybacked_outputs_positions/1)
+    active_relevant_ifes =
+      ifes
+      |> Map.values()
+      |> Enum.filter(& &1.is_active)
+      |> Enum.filter(&InFlightExitInfo.is_relevant?(&1, blknum_now))
+
+    ife_inputs_pos = active_relevant_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
+    ife_outputs_pos = active_relevant_ifes |> Enum.flat_map(&InFlightExitInfo.get_piggybacked_outputs_positions/1)
 
     (ife_outputs_pos ++ ife_inputs_pos ++ standard_exits_pos)
-    |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 and blknum < blknum_now end)
     |> :lists.usort()
   end
 
