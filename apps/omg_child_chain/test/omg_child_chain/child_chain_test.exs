@@ -18,10 +18,10 @@ defmodule OMG.ChildChainTest do
   use ExUnit.Case, async: false
 
   setup_all do
-    _ = Application.ensure_all_started(:omg_status)
+    {:ok, apps} = Application.ensure_all_started(:omg_status)
 
     on_exit(fn ->
-      _ = Application.stop(:omg_status)
+      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
     end)
   end
 
