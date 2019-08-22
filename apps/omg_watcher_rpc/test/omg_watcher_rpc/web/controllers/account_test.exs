@@ -107,9 +107,10 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
         }
       ])
 
+      # TODO: this test is brittle because of the way the DB entries are hardcoded
       OMG.DB.multi_update([
-        {:put, :utxo, {{1, 0, 0}, %{amount: 333, creating_txhash: nil, currency: @eth, owner: alice.addr}}},
-        {:put, :utxo, {{2, 0, 0}, %{amount: 100, creating_txhash: nil, currency: @eth, owner: bob.addr}}}
+        {:put, :utxo, {{1, 0, 0}, %{output: %{amount: 333, creating_txhash: nil, currency: @eth, owner: alice.addr}}}},
+        {:put, :utxo, {{2, 0, 0}, %{output: %{amount: 100, creating_txhash: nil, currency: @eth, owner: bob.addr}}}}
       ])
 
       assert TestHelper.get_exitable_utxos(alice.addr) == TestHelper.get_utxos(alice.addr)

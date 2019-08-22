@@ -178,6 +178,7 @@ defmodule OMG.State.Core do
           list(exitable_utxos)
   def standard_exitable_utxos(utxos_query_result, address) do
     utxos_query_result
+    # FIXME: assumes a particular format of the utxo struct. Maybe this should run through the UtxoSet?
     |> Stream.map(fn {position, %{output: output}} -> {InputPointer.from_db_key(position), output} end)
     |> Stream.filter(fn {_, %{owner: owner}} -> owner == address end)
     # FIXME: this is still utxo pos specific
