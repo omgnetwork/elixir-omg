@@ -346,6 +346,45 @@ jobs:
             apt-get update && apt-get install python3-requests -y
             python3 .circleci/test_runner.py
 
+  notify_services:
+    executor: builder_pg
+    steps:
+      - run:
+          name: Send development deployment markers
+          command: |
+            curl -X POST -H 'Content-type: application/json' -d '{"title": "Starting Service", "text": "Starting with git SHA '"$CIRCLE_SHA1"'", "alert_type": "info" }' 'https://app.datadoghq.com/api/v1/events?api_key='"$DD_API_KEY"''
+            curl -X POST -H 'Content-type: application/json' -H 'Authorization: Bearer '"$SENTRY_TOKEN"'' -d '{"projects": ["elixir-omg"], "ref": "'"$CIRCLE_SHA1"'", "version": "Watcher-ChildChain-'"$CIRCLE_SHA1"'"}' 'https://sentry.io/api/0/organizations/omisego/releases/'
+            GH_URL="https://github.com/omisego/elixir-omg/tree/${CIRCLE_BRANCH}"
+            CIRCLE_URL="https://circleci.com/gh/omisego/elixir-omg/${CIRCLE_BUILD_NUM}"
+            WORKFLOW_URL="https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID}"
+            MESSAGE="omisego/elixir-omg branch ${CIRCLE_BRANCH} has deployed a new version"
+            RICH_MESSAGE="*omisego/elixir-omg* branch *${CIRCLE_BRANCH}* has been deployed"
+            curl -X POST -H 'Content-Type: application/json' --data "{ \
+              \"attachments\": [ \
+                { \
+                  \"fallback\": \"${MESSAGE}\", \
+                  \"text\": \"Deployment: ${RICH_MESSAGE}\", \
+                  \"mrkdwn\": true, \
+                  \"color\": \"#2ced49\", \
+                  \"fields\": [ \
+                    { \
+                      \"title\": \"Git SHA\", \
+                      \"value\": \"<$GH_URL|$CIRCLE_SHA1>\", \
+                      \"short\": true \
+                    }, { \
+                      \"title\": \"Branch\", \
+                      \"value\": \"<$GH_URL|$CIRCLE_BRANCH>\", \
+                      \"short\": true \
+                    }, { \
+                      \"title\": \"Build\", \
+                      \"value\": \"<$CIRCLE_URL|$CIRCLE_BUILD_NUM>\", \
+                      \"short\": true \
+                    } \
+                  ] \
+                } \
+              ] \
+            }" ${SLACK_WEBHOOK}
+
   build_and_deploy_staging:
     docker:
       - image: ubuntu:16.04
@@ -402,6 +441,13 @@ workflows:
   build-deploy:
     jobs:
       - build
+      - notify_services:
+          requires:
+            - build_and_deploy_development
+          filters:
+            branches:
+              only:
+                - master
       - coveralls_merge:
           requires:
             - child_chain_coveralls_and_integration_tests
@@ -420,7 +466,6 @@ workflows:
           requires: [build]
       - test:
           requires: [build]
-
       - build_and_deploy_development:
           requires:
             - build
