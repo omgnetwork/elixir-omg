@@ -19,6 +19,7 @@ defmodule OMG.ChildChain do
   Should handle all the initial processing of requests like state-less validity, decoding/encoding
   (but not transport-specific encoding like hex).
   """
+  use OMG.Utils.LoggerExt
 
   alias OMG.Block
   alias OMG.ChildChain.FeeServer
@@ -26,7 +27,7 @@ defmodule OMG.ChildChain do
   alias OMG.Fees
   alias OMG.State
   alias OMG.State.Transaction
-  use OMG.Utils.LoggerExt
+  alias OMG.Status.Alert.Alarm
 
   @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error()
 
@@ -51,6 +52,9 @@ defmodule OMG.ChildChain do
     end
     |> result_with_logging()
   end
+
+  @spec get_alarms() :: {:ok, Alarm.raw_t()}
+  def get_alarms, do: {:ok, Alarm.all()}
 
   defp result_with_logging(result) do
     _ = Logger.debug(" resulted with #{inspect(result)}")

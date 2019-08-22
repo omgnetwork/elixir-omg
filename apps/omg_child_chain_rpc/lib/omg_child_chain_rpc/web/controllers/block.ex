@@ -19,13 +19,12 @@ defmodule OMG.ChildChainRPC.Web.Controller.Block do
 
   use OMG.ChildChainRPC.Web, :controller
 
+  alias OMG.ChildChain
   alias OMG.ChildChainRPC.Web.View
-
-  @api_module Application.fetch_env!(:omg_child_chain_rpc, :child_chain_api_module)
 
   def get_block(conn, params) do
     with {:ok, hash} <- expect(params, "hash", :hash),
-         {:ok, block} <- apply(@api_module, :get_block, [hash]) do
+         {:ok, block} <- ChildChain.get_block(hash) do
       conn
       |> put_view(View.Block)
       |> render(:block, block: block)

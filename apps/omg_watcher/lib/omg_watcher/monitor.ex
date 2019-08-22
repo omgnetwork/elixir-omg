@@ -144,8 +144,8 @@ defmodule OMG.Watcher.Monitor do
     alarms = alarm_module.all()
 
     alarms
-    |> Enum.find(fn x -> match?(%{id: :ethereum_client_connection}, x) end)
-    |> is_map()
+    |> Enum.find(fn x -> match?(:ethereum_client_connection, elem(x, 0)) end)
+    |> is_tuple()
   end
 
   defp install do

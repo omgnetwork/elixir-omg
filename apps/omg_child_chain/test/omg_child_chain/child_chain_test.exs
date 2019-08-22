@@ -12,27 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.AlarmTest do
+defmodule OMG.ChildChainTest do
+  alias OMG.ChildChain
+  alias OMG.Status.Alert.AlarmHandler
   use ExUnit.Case, async: false
 
-  alias OMG.Watcher.API.Alarm
+  setup_all do
+    {:ok, apps} = Application.ensure_all_started(:omg_status)
+
+    on_exit(fn ->
+      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+    end)
+  end
 
   setup %{} do
-    {:ok, apps} = Application.ensure_all_started(:omg_status)
     system_alarm = {:system_memory_high_watermark, []}
     system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
     app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: Reporter}}
 
     on_exit(fn ->
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      :alarm_handler.clear_alarm(app_alarm)
+      :alarm_handler.clear_alarm(system_alarm)
+      :alarm_handler.clear_alarm(system_disk_alarm)
     end)
 
     %{system_alarm: system_alarm, system_disk_alarm: system_disk_alarm, app_alarm: app_alarm}
   end
 
   test "if alarms are returned when there are no alarms raised", _ do
-    _ = OMG.Status.Alert.Alarm.clear_all()
-    {:ok, []} = Alarm.get_alarms()
+    all = :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
+    :ok = Enum.each(all, &:alarm_handler.clear_alarm(&1))
+    {:ok, []} = ChildChain.get_alarms()
   end
 
   test "if alarms are returned when there are alarms raised", %{
@@ -40,15 +50,15 @@ defmodule OMG.Watcher.API.AlarmTest do
     system_disk_alarm: system_disk_alarm,
     app_alarm: app_alarm
   } do
-    :ok = :alarm_handler.set_alarm(system_alarm)
-    :ok = :alarm_handler.set_alarm(app_alarm)
-    :ok = :alarm_handler.set_alarm(system_disk_alarm)
+    :alarm_handler.set_alarm(system_alarm)
+    :alarm_handler.set_alarm(app_alarm)
+    :alarm_handler.set_alarm(system_disk_alarm)
 
     {:ok,
      [
        {{:disk_almost_full, "/dev/null"}, []},
        {:ethereum_client_connection, %{node: :nonode@nohost, reporter: Reporter}},
        {:system_memory_high_watermark, []}
-     ]} = Alarm.get_alarms()
+     ]} = ChildChain.get_alarms()
   end
 end

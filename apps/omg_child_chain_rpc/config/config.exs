@@ -7,9 +7,6 @@
 # General application configuration
 use Mix.Config
 
-config :omg_child_chain_rpc,
-  child_chain_api_module: OMG.ChildChain
-
 # Configures the endpoint
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
   render_errors: [view: OMG.ChildChainRPC.Web.Views.Error, accepts: ~w(json)],

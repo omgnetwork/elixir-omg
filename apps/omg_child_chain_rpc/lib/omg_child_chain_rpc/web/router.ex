@@ -25,6 +25,7 @@ defmodule OMG.ChildChainRPC.Web.Router do
 
     post("/block.get", Controller.Block, :get_block)
     post("/transaction.submit", Controller.Transaction, :submit)
+    post("/alarm.get", Controller.Alarm, :get_alarms)
 
     # NOTE: This *has to* be the last route, catching all unhandled paths
     match(:*, "/*path", Controller.Fallback, Route.NotFound)

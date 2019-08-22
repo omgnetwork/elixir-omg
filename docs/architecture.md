@@ -93,9 +93,6 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 
 - pushes events to `Phoenix app`
 
-### `OMG.RPC`
-
-- exposes `OMG.ChildChain` (as configured by `:omg_child_chain_rpc, :child_chain_api_module` setting) via a `phoenix`-driven HTTP-RPC interface
 
 ### `OMG.Performance`
 

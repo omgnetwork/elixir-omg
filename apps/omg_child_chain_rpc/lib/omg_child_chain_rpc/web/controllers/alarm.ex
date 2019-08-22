@@ -12,18 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Controller.Alarm do
+defmodule OMG.ChildChainRPC.Web.Controller.Alarm do
   @moduledoc """
-  Module provides operation related to the watcher raised alarms that might point to
-  faulty watcher node.
+  Module provides operation related to the child chain raised alarms that might point to
+  faulty childchain node.
   """
 
-  use OMG.WatcherRPC.Web, :controller
+  use OMG.ChildChainRPC.Web, :controller
 
-  alias OMG.Watcher.API
+  alias OMG.ChildChain
+  alias OMG.ChildChainRPC.Web.View
 
   def get_alarms(conn, _params) do
-    {:ok, alarms} = API.Alarm.get_alarms()
-    api_response(alarms, conn, :alarm)
+    {:ok, alarms} = ChildChain.get_alarms()
+
+    conn
+    |> put_view(View.Alarm)
+    |> render(:alarm, response: alarms)
   end
 end

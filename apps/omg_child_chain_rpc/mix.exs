@@ -48,7 +48,8 @@ defmodule OMG.ChildChainRPC.MixProject do
       #
       {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},
-      {:omg_utils, in_umbrella: true}
+      {:omg_utils, in_umbrella: true},
+      {:omg_child_chain, in_umbrella: true}
     ]
   end
 end

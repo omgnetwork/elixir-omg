@@ -45,5 +45,17 @@ defmodule OMG.ChildChainRPC.Web.TestHelper do
     Jason.decode!(response.resp_body)
   end
 
-  defp send_request(req), do: OMG.ChildChainRPC.Web.Endpoint.call(req, [])
+  # dear god this is ugly
+  defp send_request(req) do
+    case Process.whereis(OMG.ChildChainRPC.Web.Endpoint) do
+      nil ->
+        _ = Application.ensure_all_started(:omg_child_chain_rpc)
+        do_send_request(req)
+
+      _ ->
+        do_send_request(req)
+    end
+  end
+
+  defp do_send_request(req), do: apply(OMG.ChildChainRPC.Web.Endpoint, :call, [req, []])
 end

@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Controller.Alarm do
+defmodule OMG.ChildChainRPC.Web.View.Alarm do
   @moduledoc """
-  Module provides operation related to the watcher raised alarms that might point to
-  faulty watcher node.
+  The status view for rendering json
   """
 
-  use OMG.WatcherRPC.Web, :controller
+  use OMG.ChildChainRPC.Web, :view
+  alias OMG.Utils.HttpRPC.Response
 
-  alias OMG.Watcher.API
-
-  def get_alarms(conn, _params) do
-    {:ok, alarms} = API.Alarm.get_alarms()
-    api_response(alarms, conn, :alarm)
+  def render("alarm.json", %{response: alarms}) do
+    Response.serialize(alarms)
   end
 end

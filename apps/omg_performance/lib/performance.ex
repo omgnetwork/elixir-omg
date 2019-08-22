@@ -151,7 +151,7 @@ defmodule OMG.Performance do
 
     :ok = OMG.DB.init()
 
-    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_bus, :omg_child_chain_rpc])
+    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_bus])
     {:ok, simple_perftest_chain} = start_simple_perftest_chain(opts)
 
     {:ok, started_apps, simple_perftest_chain}
@@ -163,6 +163,8 @@ defmodule OMG.Performance do
   # Instead, we start the artificial `BlockCreator`
   defp start_simple_perftest_chain(opts) do
     children = [
+      {OMG.ChildChainRPC.Plugs.Health, []},
+      {OMG.ChildChainRPC.Web.Endpoint, []},
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, []},
