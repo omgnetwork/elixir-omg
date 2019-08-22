@@ -395,7 +395,6 @@ workflows:
             branches:
               only:
                 - master
-                - run_integration_ci
     jobs:
       - build
       - integration_tests:
@@ -455,14 +454,12 @@ workflows:
             branches:
               only:
                 - master
-                - 579-publish_release_docker_p3
       - publish_watcher:
           requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
           filters:
             branches:
               only:
                 - master
-                - 579-publish_release_docker_p3
       # Release deploy to development in case of master branch.
       - deploy_child_chain:
           requires: [publish_child_chain, publish_watcher]
@@ -470,11 +467,9 @@ workflows:
             branches:
               only:
                 - master
-                - 579-publish_release_docker_p3
       - deploy_watcher:
           requires: [publish_child_chain, publish_watcher]
           filters:
             branches:
               only:
                 - master
-                - 579-publish_release_docker_p3
