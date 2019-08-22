@@ -20,9 +20,9 @@ defmodule OMG.Watcher.SyncSupervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
 
-  alias OMG.Alert.Alarm
   alias OMG.Eth
   alias OMG.EthereumEventListener
+  alias OMG.Status.Alert.Alarm
   alias OMG.Watcher
   alias OMG.Watcher.CoordinatorSetup
   alias OMG.Watcher.Monitor

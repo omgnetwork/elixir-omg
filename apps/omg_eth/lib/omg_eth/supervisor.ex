@@ -18,7 +18,7 @@ defmodule OMG.Eth.Supervisor do
    a gen server that serves as a unified view of reported block height (`OMG.Eth.EthereumHeight`).
   """
   use Supervisor
-  alias OMG.Alert.Alarm
+  alias OMG.Status.Alert.Alarm
   require Logger
 
   def start_link do

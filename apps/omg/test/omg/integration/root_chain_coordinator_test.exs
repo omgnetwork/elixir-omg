@@ -28,10 +28,15 @@ defmodule OMG.RootChainCoordinatorTest do
   @moduletag :integration
   @moduletag :common
   setup do
+    DeferredConfig.populate(:omg_eth)
+    DeferredConfig.populate(:omg)
+    {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
+    {:ok, eth_apps} = Application.ensure_all_started(:omg_eth)
+    {:ok, status_apps} = Application.ensure_all_started(:omg_status)
+    apps = bus_apps ++ eth_apps ++ status_apps
+
     on_exit(fn ->
-      _ = Application.stop(:omg_bus)
-      _ = Application.stop(:omg_eth)
-      _ = Application.stop(:omg_status)
+      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
     end)
 
     :ok
@@ -40,11 +45,6 @@ defmodule OMG.RootChainCoordinatorTest do
   @tag fixtures: [:alice, :db_initialized, :root_chain_contract_config]
   test "can do a simplest sync",
        %{alice: alice} do
-    DeferredConfig.populate(:omg_eth)
-    DeferredConfig.populate(:omg)
-    Application.ensure_all_started(:omg_bus)
-    Application.ensure_all_started(:omg_eth)
-    Application.ensure_all_started(:omg_status)
     coordinator_setup = %{test: [finality_margin: 0]}
     test_process = self()
     # we're starting a mock event listening machinery, which will send all deposit events to the test process to assert
