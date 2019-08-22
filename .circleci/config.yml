@@ -203,6 +203,26 @@ jobs:
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
+  integration_tests:
+    executor: builder_pg_geth
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Integration Tests
+          command: |
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration` works
+            export SHELL=/bin/bash
+            mix test --only integration
+
   dialyzer:
     executor: builder_pg
     environment:
@@ -367,6 +387,19 @@ jobs:
 
 workflows:
   version: 2
+  nightly:
+    triggers:
+      - schedule:
+          cron: "30 8 * * 1-5"
+          filters:
+            branches:
+              only:
+                - master
+                - run_integration_ci
+    jobs:
+      - build
+      - integration_tests:
+          requires: [build]
   build-deploy:
     jobs:
       - build
@@ -377,21 +410,17 @@ workflows:
             - common_coveralls_and_integration_tests
             - test
       - child_chain_coveralls_and_integration_tests:
-          requires:
-            - build
+          requires: [build]
       - watcher_coveralls_and_integration_tests:
-          requires:
-            - build
+          requires: [build]
       - common_coveralls_and_integration_tests:
-          requires:
-            - build
+          requires: [build]
       - lint:
           requires: [build]
       - dialyzer:
           requires: [build]
       - test:
-          requires:
-            - build
+          requires: [build]
 
       - build_and_deploy_development:
           requires:
