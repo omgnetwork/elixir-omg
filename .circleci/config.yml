@@ -1,6 +1,13 @@
 version: 2.1
 
 executors:
+  metal:
+    docker:
+      - image: circleci/elixir:1.8.2
+        environment:
+          MIX_ENV: test
+    working_directory: ~/src
+
   builder:
     docker:
       - image: omisegoimages/elixir-omg-builder:v1.3
@@ -48,7 +55,19 @@ commands:
       - attach_workspace:
           name: Attach workspace
           at: .
+
 jobs:
+  barebuild:
+    executor: metal
+    steps:
+      - checkout
+      - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+      - run:
+          command: ./bin/setup
+          no_output_timeout: 2400
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+      - run: mix test
   build:
     executor: builder
     environment:
@@ -469,6 +488,7 @@ workflows:
             branches:
               only:
                 - master
+      - barebuild
       - coveralls_merge:
           requires:
             - child_chain_coveralls_and_integration_tests
