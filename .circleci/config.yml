@@ -10,9 +10,7 @@ executors:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: omisego_dev
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
           CIRLCECI: true
-          ERLANG_ROCKSDB_BUILDOPTS: '-j 2'
 
     working_directory: ~/src
 
