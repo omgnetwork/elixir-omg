@@ -67,6 +67,9 @@ commands:
 jobs:
   barebuild:
     executor: metal
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
     steps:
       - checkout
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
