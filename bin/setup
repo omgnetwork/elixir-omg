@@ -13,7 +13,7 @@ install_linux_deps() {
   echo $flavor
   case $flavor in
     debian|ubuntu)
-      sudo apt-get install -y $LINUX_DEPS libgmp-dev erlang-dev build-essential libssl-dev libncurses5-dev unzip
+      sudo apt-get install -y $LINUX_DEPS libgmp-dev erlang-dev build-essential libssl-dev libncurses5-dev unzip lsb-release software-properties-common
       ;;
     fedora|centos)
       sudo yum install $LINUX_DEPS gmp-devel
@@ -34,17 +34,21 @@ install_linux_solc(){
 }
 
 install_linux_postgres(){
-  echo "Installing Postgres 9.6"
-  echo "Adding public key 7FCC7D46ACCC4CF8 to repo"
+  echo "Installing Postgres 9.6."
+  echo "Adding public key 7FCC7D46ACCC4CF8 to repo."
   sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 7FCC7D46ACCC4CF8
   sudo add-apt-repository "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -sc)-pgdg main"
   wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
   sudo apt-get update
   sudo apt-get install postgresql-9.6 -y
-  echo
-  echo "Creating users and roles... we will ask you for a password, insert ~omisego_dev~"
-  echo
-  sudo -u postgres createuser -D -A -P omisego_dev --createdb
+  sudo apt-get install postgresql-client-9.6
+  echo "Start PG."
+  sudo service postgresql start
+  echo "Create user."
+  sudo -i -u postgres psql -c "CREATE USER omisego_dev WITH PASSWORD 'omisego_dev';"
+  echo "Grant permission."
+  sudo -i -u postgres psql -c "ALTER USER omisego_dev CREATEDB;"
+  echo "Done with PG."
 }
 
 install_linux_geth(){
@@ -77,7 +81,11 @@ install_deps() {
       install_linux_deps
       install_linux_solc
       install_linux_geth
-      install_linux_postgres
+      if [ -z "$CIRLCECI" ]; then
+        echo "Skip Postgres setup, because CircleCI."
+      else
+        install_linux_postgres
+      fi
       ;;
     Darwin*)
       install_darwin_deps
