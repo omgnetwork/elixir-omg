@@ -73,8 +73,8 @@ jobs:
       - run:
           command: ./bin/setup
           no_output_timeout: 2400
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
+      - run: make deps-elixir-omg
+      - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - run: mix test
   build:
     executor: builder
