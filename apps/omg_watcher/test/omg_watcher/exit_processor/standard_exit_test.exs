@@ -440,6 +440,22 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     end
   end
 
+  test "ifes and standard exits don't interfere if all valid",
+       %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
+    standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos_tx) |> start_ife_from(tx)
+
+    assert %{utxos_to_check: [_, Utxo.position(1, 2, 1), @utxo_pos_tx]} =
+             exit_processor_request =
+             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+             |> Core.determine_utxo_existence_to_get(processor)
+
+    assert {:ok, []} =
+             exit_processor_request
+             |> struct!(utxo_exists_result: [true, true, true])
+             |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
+  end
+
   describe "challenge events" do
     test "can challenge exits, which are then forgotten completely",
          %{processor_empty: processor, alice: alice} do
