@@ -25,7 +25,7 @@ defmodule Utils.MixProject do
   defp elixirc_paths(:prod), do: ["lib"]
   defp elixirc_paths(_), do: ["lib", "test/support"]
 
-  defp version_and_git_revision_hash() do
+  defp version_and_git_revision_hash do
     {rev, _i} = System.cmd("git", ["rev-parse", "HEAD"])
     sha = String.replace(rev, "\n", "")
     version = String.trim(File.read!("../../VERSION"))
