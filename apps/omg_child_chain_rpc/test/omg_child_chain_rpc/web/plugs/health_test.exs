@@ -14,7 +14,7 @@
 
 defmodule OMG.ChildChainRPC.Plugs.HealthTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias OMG.ChildChainRPC.Web.TestHelper
   @alarm_1 {:boot_in_progress, %{node: Node.self(), reporter: __MODULE__}}
