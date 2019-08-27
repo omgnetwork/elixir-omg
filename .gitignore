@@ -48,6 +48,3 @@ env/
 
 # Docker
 src/
-
-#Prevent unintentional VERSION commit
-VERSION
