@@ -94,6 +94,8 @@ changelog:
 #
 
 docker-child_chain-prod:
+	sudo rm -rf _build/prod/rel/child_chain/lib/omg* ; \
+	sudo rm -rf _build/prod/lib/omg* ; \
 	docker run --rm -it \
 		-v $(PWD):/app \
 		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
@@ -103,6 +105,8 @@ docker-child_chain-prod:
 		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-child_chain-prod"
 
 docker-watcher-prod:
+	sudo rm -rf _build/prod/rel/watcher/lib/omg* ; \
+	sudo rm -rf _build/prod/lib/omg* ; \
 	docker run --rm -it \
 		-v $(PWD):/app \
 		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
