@@ -37,6 +37,9 @@ defmodule OMG.Fees do
     for {input_currency, implicit_paid_fee} <- implicit_paid_fee_by_currency do
       case Map.get(fees, input_currency) do
         nil -> false
+
+
+
         fee -> fee <= implicit_paid_fee
       end
     end
