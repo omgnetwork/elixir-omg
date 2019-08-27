@@ -23,13 +23,38 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   Relies on RootChain contract having reorg protection ('decimals for deposits' part).
   Relies on RootChain contract's 'authority' account not being used to send any other transaction.
 
-  Reacts to external requests of changing gas price and resubmits block submission transactions not being mined.
-  For changing the gas price it needs external signals (e.g. from a price oracle)
+  Calculates gas price and resubmits block submission transactions not being mined, using a higher gas price.
+  See [section](#gas-price-selection)
 
   Note that first nonce (zero) of authority account is used to deploy RootChain.
   Every next nonce is used to submit operator blocks.
 
   This is the functional core: has no side-effects or side-causes, for the effectful shell see `OMG.ChildChain.BlockQueue`
+
+  ### Gas price selection
+
+  The mechanism employed is minimalistic, aiming at:
+    - pushing formed block submissions as reliably as possible, avoiding delayed mining of submissions as much as possible
+    - saving Ether only when certain that we're overpaying
+    - being simple and avoiding any external factors driving the mechanism
+
+  The mechanics goes as follows:
+
+  If:
+    - we've got a new child block formed, whose submission isn't yet mined and
+    - it's been more than 2 (`OMG.ChildChain.BlockQueue.GasPriceAdjustment.eth_gap_without_child_blocks`) root chain blocks
+    since a submission has last been seen mined
+
+  the gas price is raised by a factor of 2 (`OMG.ChildChain.BlockQueue.GasPriceAdjustment.gas_price_raising_factor`)
+
+  **NOTE** there's also an upper limit for the gas price (`OMG.ChildChain.BlockQueue.GasPriceAdjustment.max_gas_price`)
+
+  If:
+    - we've got a new child block formed, whose submission isn't yet mined and
+    - it's been no more than 2 (`OMG.ChildChain.BlockQueue.GasPriceAdjustment.eth_gap_without_child_blocks`) root chain blocks
+    since a submission has last been seen mined
+
+  the gas price is lowered by a factor of 0.9 ('OMG.ChildChain.BlockQueue.GasPriceAdjustment.gas_price_lowering_factor')
   """
 
   alias OMG.ChildChain.BlockQueue

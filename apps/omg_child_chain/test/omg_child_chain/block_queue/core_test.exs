@@ -425,6 +425,9 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
   end
 
   describe "Adjusting gas price" do
+    # TODO: rewrite these tests to not use the internal `gas_price_adj_params` field - ask for submissions via public
+    #       interface instead
+
     @tag fixtures: [:empty]
     test "Calling with empty state will initailize gas information", %{empty: empty} do
       {:dont_form_block, state} =
@@ -524,10 +527,28 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
       # Despite Ethereum height changing multiple times, gas price does not grow since no new blocks are mined
       Enum.reduce(4..100, state, fn eth_height, state ->
-        {_, state} = set_ethereum_status(state, eth_height, 3, false)
+        {_, state} = set_ethereum_status(state, eth_height, 2 * @child_block_interval, false)
         assert expected_max_price == state.gas_price_to_use
         state
       end)
+    end
+
+    @tag fixtures: [:empty_with_gas_params]
+    test "Gas price doesn't change if no new blocks are formed, and is lowered the moment there's one",
+         %{empty_with_gas_params: state} do
+      expected_price = state.gas_price_to_use
+      current_blknum = 5 * @child_block_interval
+      next_blknum = 6 * @child_block_interval
+
+      # Despite Ethereum height changing multiple times, gas price does not grow since no new blocks are mined
+      Enum.reduce(4..100, state, fn eth_height, state ->
+        {_, state} = set_ethereum_status(state, eth_height, current_blknum, false)
+        assert expected_price == state.gas_price_to_use
+        state
+      end)
+
+      {_, state} = state |> enqueue_block(<<0>>, next_blknum, 1) |> set_ethereum_status(1000, current_blknum, false)
+      assert expected_price > state.gas_price_to_use
     end
   end
 
