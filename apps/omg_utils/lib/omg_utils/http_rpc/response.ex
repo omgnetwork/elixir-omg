@@ -28,8 +28,8 @@ defmodule OMG.Utils.HttpRPC.Response do
   Append result of operation to the response data forming standard api response structure
   """
   @spec serialize(any()) :: response_t()
-  def serialize(%{object: :error} = error), do: to_response(error, :error)
-  def serialize(data), do: data |> sanitize() |> to_response(:success)
+  def serialize(%{object: :error} = error), do: to_response(error, :error) |> add_version()
+  def serialize(data), do: data |> sanitize() |> to_response(:success) |> add_version()
 
   @doc """
   Removes or encodes fields in response that cannot be serialized to api response.

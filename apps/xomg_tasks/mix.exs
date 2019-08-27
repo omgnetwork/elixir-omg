@@ -26,13 +26,13 @@ defmodule OMG.XomgTasks.MixProject do
 
   defp version_and_git_revision_hash do
     {rev, _i} = System.cmd("git", ["rev-parse", "HEAD"])
-    sha = String.replace(rev, "\n", "")
+    sha = String.replace(rev, "\n", "") |> Kernel.binary_part(0, 7)
     version = String.trim(File.read!("../../VERSION"))
 
     updated_ver =
-      case String.split(version, [".", "-"]) do
-        items when length(items) == 3 -> Enum.join(items, ".") <> "-" <> sha
-        items -> Enum.join(Enum.take(items, 3), ".") <> "-" <> sha
+      case String.split(version, [".", "+"]) do
+        items when length(items) == 3 -> Enum.join(items, ".") <> "+" <> sha
+        items -> Enum.join(Enum.take(items, 3), ".") <> "+" <> sha
       end
 
     :ok = File.write!("../../VERSION", updated_ver)

@@ -142,6 +142,15 @@ cluster-with-datadog:
 stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
+### git setup
+init:
+	git config core.hooksPath .githooks
+
+#old git
+#init:
+#  find .git/hooks -type l -exec rm {} \;
+#  find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
+
 ### UTILS
 OSFLAG := ''
 UNAME_S := $(shell uname -s)

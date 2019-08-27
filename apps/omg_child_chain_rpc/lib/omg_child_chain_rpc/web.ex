@@ -41,6 +41,30 @@ defmodule OMG.ChildChainRPC.Web do
 
       action_fallback(OMG.ChildChainRPC.Web.Controller.Fallback)
       use SpandexPhoenix, tracer: OMG.ChildChainRPC.Tracer
+
+      @doc """
+      Passes result to the render process when successful or returns error result unchanged.
+      Error tuple will be passed to the see: `OMG.WatcherRPC.Web.Controller.Fallback`
+      """
+      def api_response(api_result, conn, template) when is_tuple(api_result),
+        do: with({:ok, data} <- api_result, do: api_response(data, conn, template))
+
+      @doc """
+      Takes advantage of preset api response structure and module names conventions to discover parameters
+      to Phoenix Controller's [render/3](https://hexdocs.pm/phoenix/Phoenix.Controller.html#render/3)
+      """
+      def api_response(data, conn, template) do
+        view_module =
+          conn
+          |> controller_module()
+          |> Atom.to_string()
+          |> String.replace("Controller", "View")
+          |> String.to_existing_atom()
+
+        conn
+        |> put_view(view_module)
+        |> render(template, response: data)
+      end
     end
   end
 
