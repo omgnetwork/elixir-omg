@@ -500,7 +500,6 @@ workflows:
             branches:
               only:
                 - master
-                - 908-deployment-markers2
       - publish_watcher:
           requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
           filters:

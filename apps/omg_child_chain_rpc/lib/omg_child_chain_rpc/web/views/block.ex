@@ -18,8 +18,7 @@ defmodule OMG.ChildChainRPC.Web.View.Block do
   """
   alias OMG.Utils.HttpRPC.Response
 
-  def render("block.json", %{block: block}) do
-    block
-    |> Response.serialize()
+  def render("block.json", %{response: block}) do
+    Response.serialize(block)
   end
 end

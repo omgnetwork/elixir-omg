@@ -93,4 +93,21 @@ defmodule OMG.Utils.HttpRPC.Response do
       success: result == :success,
       data: data
     }
+
+  # not the most beatuful way of doing this but
+  # because our "response serializer" is in utils there's no other way
+  defp add_version(response) do
+    vsn =
+      if Code.ensure_loaded?(OMG.ChildChainRPC) do
+        {:ok, vsn} = :application.get_key(:omg_child_chain_rpc, :vsn)
+
+        vsn
+      else
+        {:ok, vsn} = :application.get_key(:omg_watcher_rpc, :vsn)
+
+        vsn
+      end
+
+    Map.merge(response, %{version: List.to_string(vsn)})
+  end
 end
