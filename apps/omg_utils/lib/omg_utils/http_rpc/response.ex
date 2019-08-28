@@ -98,8 +98,15 @@ defmodule OMG.Utils.HttpRPC.Response do
   # not the most beatuful way of doing this but
   # because our "response serializer" is in utils there's no other way
   defp add_version(response) do
+    # TODO remove this hack when running releases
+    is_child_chain_running =
+      Enum.find(Application.started_applications(), fn
+        {:omg_child_chain_rpc, _, _} -> true
+        _ -> false
+      end)
+
     vsn =
-      if Code.ensure_loaded?(OMG.ChildChainRPC) do
+      if Code.ensure_loaded?(OMG.ChildChainRPC) and is_child_chain_running != nil do
         {:ok, vsn} = :application.get_key(:omg_child_chain_rpc, :vsn)
 
         vsn
