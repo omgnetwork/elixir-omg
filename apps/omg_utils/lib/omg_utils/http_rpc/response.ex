@@ -16,7 +16,7 @@ defmodule OMG.Utils.HttpRPC.Response do
   Serializes the response into expected result/data format.
   """
   alias OMG.Utils.HttpRPC.Encoding
-  @version String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
+  @sha String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
 
   @type response_t :: %{version: binary(), success: boolean(), data: map()}
 
@@ -109,6 +109,6 @@ defmodule OMG.Utils.HttpRPC.Response do
         vsn
       end
 
-    Map.merge(response, %{version: List.to_string(vsn) <> "+" <> @version})
+    Map.merge(response, %{version: List.to_string(vsn) <> "+" <> @sha})
   end
 end
