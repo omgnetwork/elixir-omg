@@ -69,18 +69,4 @@ defmodule OMG.Eth.WaitFor do
       :error, {:badmatch, _} = _error -> repeat_until_ok(f)
     end
   end
-
-  def repeat_until_ok(f, acc) do
-    Process.sleep(100)
-
-    try do
-      case f.(acc) do
-        {:ok, _} = return -> return
-        acc -> repeat_until_ok(f, acc)
-      end
-    catch
-      _something -> repeat_until_ok(f, acc)
-      :error, {:badmatch, _} = _error -> repeat_until_ok(f, acc)
-    end
-  end
 end

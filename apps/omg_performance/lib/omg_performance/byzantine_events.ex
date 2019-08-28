@@ -33,14 +33,13 @@ defmodule OMG.Performance.ByzantineEvents do
 
   defp worker_dos_exit(exit_positions) do
     worker = fn exit_positions ->
-      exit_positions
-      |> Enum.map(fn position ->
+      Enum.map(exit_positions, fn position ->
         get_exit_data(position) |> valid_exit_data()
       end)
     end
 
     Task.async(fn ->
-      exit_positions = exit_positions |> Enum.shuffle()
+      exit_positions = Enum.shuffle(exit_positions)
       {time, valid?} = :timer.tc(fn -> worker.(exit_positions) end)
       %{time: time, correct: Enum.count(valid?, & &1), error: Enum.count(valid?, &(!&1))}
     end)
