@@ -20,14 +20,11 @@ defmodule OMG.ChildChainRPC.Web.Controller.Block do
   use OMG.ChildChainRPC.Web, :controller
 
   alias OMG.ChildChain
-  alias OMG.ChildChainRPC.Web.View
 
   def get_block(conn, params) do
     with {:ok, hash} <- expect(params, "hash", :hash),
          {:ok, block} <- ChildChain.get_block(hash) do
-      conn
-      |> put_view(View.Block)
-      |> render(:block, block: block)
+      api_response(block, conn, :block)
     end
   end
 end

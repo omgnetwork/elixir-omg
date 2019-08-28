@@ -16,6 +16,8 @@ defmodule OMG.Utils.HttpRPC.Response do
   Serializes the response into expected result/data format.
   """
   alias OMG.Utils.HttpRPC.Encoding
+  @sha String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
+
   @type response_t :: %{version: binary(), success: boolean(), data: map()}
 
   def serialize_page(data, data_paging) do
@@ -28,8 +30,8 @@ defmodule OMG.Utils.HttpRPC.Response do
   Append result of operation to the response data forming standard api response structure
   """
   @spec serialize(any()) :: response_t()
-  def serialize(%{object: :error} = error), do: to_response(error, :error)
-  def serialize(data), do: data |> sanitize() |> to_response(:success)
+  def serialize(%{object: :error} = error), do: to_response(error, :error) |> add_version()
+  def serialize(data), do: data |> sanitize() |> to_response(:success) |> add_version()
 
   @doc """
   Removes or encodes fields in response that cannot be serialized to api response.
@@ -89,8 +91,24 @@ defmodule OMG.Utils.HttpRPC.Response do
 
   defp to_response(data, result),
     do: %{
-      version: "0.2",
       success: result == :success,
       data: data
     }
+
+  # not the most beatuful way of doing this but
+  # because our "response serializer" is in utils there's no other way
+  defp add_version(response) do
+    vsn =
+      if Code.ensure_loaded?(OMG.ChildChainRPC) do
+        {:ok, vsn} = :application.get_key(:omg_child_chain_rpc, :vsn)
+
+        vsn
+      else
+        {:ok, vsn} = :application.get_key(:omg_watcher_rpc, :vsn)
+
+        vsn
+      end
+
+    Map.merge(response, %{version: List.to_string(vsn) <> "+" <> @sha})
+  end
 end

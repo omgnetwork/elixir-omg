@@ -20,14 +20,11 @@ defmodule OMG.ChildChainRPC.Web.Controller.Transaction do
   use OMG.ChildChainRPC.Web, :controller
 
   alias OMG.ChildChain
-  alias OMG.ChildChainRPC.Web.View
 
   def submit(conn, params) do
     with {:ok, txbytes} <- expect(params, "transaction", :hex),
          {:ok, details} <- ChildChain.submit(txbytes) do
-      conn
-      |> put_view(View.Transaction)
-      |> render(:submit, result: details)
+      api_response(details, conn, :submit)
     end
   end
 end

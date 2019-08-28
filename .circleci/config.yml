@@ -89,6 +89,7 @@ jobs:
             - docker-compose.yml
             - rel/
             - VERSION
+            - .git
 
   lint:
     executor: builder_pg

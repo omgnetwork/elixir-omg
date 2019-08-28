@@ -152,6 +152,8 @@ defmodule OMG.Watcher.Fixtures do
         name: Watcher.Endpoint
       )
 
+    _ = Application.load(:omg_watcher_rpc)
+
     on_exit(fn ->
       TestHelper.wait_for_process(pid)
       :ok

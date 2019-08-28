@@ -32,12 +32,6 @@ defmodule OMG.Utils.HttpRPC.Encoding do
   # because https://github.com/rrrene/credo/issues/583, we need to:
   # credo:disable-for-next-line Credo.Check.Consistency.SpaceAroundOperators
   @spec from_hex(<<_::16, _::_*8>>) :: {:ok, binary()} | {:error, :invalid_hex}
-  def from_hex(encoded) do
-    with "0x" <> hexstr <- encoded,
-         {:ok, binary} <- Base.decode16(hexstr, case: :mixed) do
-      {:ok, binary}
-    else
-      _otherwise -> {:error, :invalid_hex}
-    end
-  end
+  def from_hex("0x" <> hexstr), do: Base.decode16(hexstr, case: :mixed)
+  def from_hex(_), do: {:error, :invalid_hex}
 end

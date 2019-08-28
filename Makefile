@@ -113,14 +113,14 @@ docker-watcher-prod:
 
 docker-child_chain-build-prod:
 	docker build -f Dockerfile.child_chain \
-		--build-arg release_version=$$(cat $(PWD)/VERSION) \
+		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
 		--cache-from $(CHILD_CHAIN_IMAGE_NAME) \
 		-t $(CHILD_CHAIN_IMAGE_NAME) \
 		.
 
 docker-watcher-build-prod:
 	docker build -f Dockerfile.watcher \
-		--build-arg release_version=$$(cat $(PWD)/VERSION) \
+		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
 		--cache-from $(WATCHER_IMAGE_NAME) \
 		-t $(WATCHER_IMAGE_NAME) \
 		.
@@ -137,6 +137,15 @@ cluster-with-datadog:
 
 stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
+
+### git setup
+init:
+	git config core.hooksPath .githooks
+
+#old git
+#init:
+#  find .git/hooks -type l -exec rm {} \;
+#  find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
 
 ### UTILS
 OSFLAG := ''

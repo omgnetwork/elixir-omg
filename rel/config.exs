@@ -7,6 +7,8 @@
 |> Path.wildcard()
 |> Enum.map(&Code.eval_file(&1))
 
+sha = String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
+
 use Distillery.Releases.Config,
   # This sets the default environment used by `mix release`
   default_environment: Mix.env()
@@ -24,7 +26,8 @@ environment :prod do
 end
 
 release :watcher do
-  set(version: current_version(:omg_watcher))
+  set(version: current_version(:omg_child_chain) <> "+" <> sha)
+
   set(vm_args: "rel/vm.args")
 
   set(
@@ -57,7 +60,8 @@ release :watcher do
 end
 
 release :child_chain do
-  set(version: current_version(:omg_child_chain))
+  set(version: current_version(:omg_child_chain) <> "+" <> sha)
+
   set(vm_args: "rel/vm.args")
 
   set(

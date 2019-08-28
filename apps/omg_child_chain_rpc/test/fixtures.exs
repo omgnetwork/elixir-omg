@@ -20,6 +20,7 @@ defmodule OMG.ChildChainRPC.Fixtures do
     DeferredConfig.populate(:omg_eth)
     {:ok, apps} = Application.ensure_all_started(:omg_status)
     {:ok, pid} = OMG.ChildChainRPC.Application.start([], [])
+    _ = Application.load(:omg_child_chain_rpc)
 
     on_exit(fn ->
       apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
