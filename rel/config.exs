@@ -24,7 +24,13 @@ environment :prod do
 end
 
 release :watcher do
-  set(version: current_version(:omg_watcher))
+  set(
+    version:
+      current_version(:omg_watcher) <>
+        "+" <>
+        String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
+  )
+
   set(vm_args: "rel/vm.args")
 
   set(
@@ -57,7 +63,13 @@ release :watcher do
 end
 
 release :child_chain do
-  set(version: current_version(:omg_child_chain))
+  set(
+    version:
+      current_version(:omg_child_chain) <>
+        "+" <>
+        String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
+  )
+
   set(vm_args: "rel/vm.args")
 
   set(

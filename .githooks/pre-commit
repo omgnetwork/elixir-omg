@@ -1,6 +1,3 @@
 #!/bin/sh
-git checkout origin/master -- VERSION
-git add VERSION
-echo "Took VERSION from master."
 echo "Is your code formatted?"
 exec mix format --check-formatted

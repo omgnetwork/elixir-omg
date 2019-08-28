@@ -16,6 +16,8 @@ defmodule OMG.Utils.HttpRPC.Response do
   Serializes the response into expected result/data format.
   """
   alias OMG.Utils.HttpRPC.Encoding
+  @version String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
+
   @type response_t :: %{version: binary(), success: boolean(), data: map()}
 
   def serialize_page(data, data_paging) do
@@ -89,7 +91,6 @@ defmodule OMG.Utils.HttpRPC.Response do
 
   defp to_response(data, result),
     do: %{
-      version: "0.2",
       success: result == :success,
       data: data
     }
@@ -108,6 +109,6 @@ defmodule OMG.Utils.HttpRPC.Response do
         vsn
       end
 
-    Map.merge(response, %{version: List.to_string(vsn)})
+    Map.merge(response, %{version: List.to_string(vsn) <> "+" <> @version})
   end
 end
