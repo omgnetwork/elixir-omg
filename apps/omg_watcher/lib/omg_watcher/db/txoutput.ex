@@ -16,6 +16,8 @@ defmodule OMG.Watcher.DB.TxOutput do
   @moduledoc """
   Ecto schema for transaction's output or input
   """
+  import Ecto.Query, only: [from: 2]
+
   use Ecto.Schema
 
   alias OMG.State.Transaction
@@ -74,18 +76,29 @@ defmodule OMG.Watcher.DB.TxOutput do
     # TODO: Make use of Block API's block.get when available
     do: DB.Transaction.get_by_blknum(blknum) |> Core.compose_output_exit(decoded_utxo_pos)
 
+  # preload ethevents in a single query as there will not be a large number of them
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
-    Repo.get_by(__MODULE__, blknum: blknum, txindex: txindex, oindex: oindex)
+    DB.Repo.one from txoutput in __MODULE__,
+                preload: [:ethevents],
+                left_join: ethevent in assoc(txoutput, :ethevents),
+                where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
   end
 
   def get_utxos(owner) do
     query =
       from(
-        txo in __MODULE__,
+        txoutput in __MODULE__,
         preload: [:ethevents],
-        left_join: ethevent in assoc(txo, :ethevents),
-        where: txo.owner == ^owner and is_nil(txo.spending_txhash) and (is_nil(ethevent) or ethevent.event_type != ^:standard_exit),
+        left_join: ethevent in assoc(txoutput, :ethevents),
+        where: txoutput.owner == ^owner
+               and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+                 NOT EXISTS (SELECT 1
+                             FROM ethevents_txoutputs AS etfrag
+                             JOIN ethevents AS efrag ON
+                                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
+                                      AND efrag.event_type NOT IN (?)
+                                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
         order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
       )
 
@@ -96,11 +109,17 @@ defmodule OMG.Watcher.DB.TxOutput do
   def get_balance(owner) do
     query =
       from(
-        txo in __MODULE__,
-        left_join: ethevent in assoc(txo, :ethevents),
-        where: txo.owner == ^owner and is_nil(txo.spending_txhash) and (is_nil(ethevent) or ethevent.event_type != ^:standard_exit),
-        group_by: txo.currency,
-        select: {txo.currency, sum(txo.amount)}
+        txoutput in __MODULE__,
+        left_join: ethevent in assoc(txoutput, :ethevents),
+        where: txoutput.owner == ^owner and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+                 NOT EXISTS (SELECT 1
+                             FROM ethevents_txoutputs AS etfrag
+                             JOIN ethevents AS efrag ON
+                                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
+                                      AND efrag.event_type NOT IN (?)
+                                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+        group_by: txoutput.currency,
+        select: {txoutput.currency, sum(txoutput.amount)}
       )
 
     Repo.all(query)

@@ -20,7 +20,9 @@ defmodule OMG.Watcher.DB.Repo.Migrations.AlterTxOutputsTableAddRootchainTxnHashD
 
     create table(:ethevents, primary_key: false) do
       add(:root_chain_txhash, :binary, primary_key: true)
-      add(:event_type, :string, size: 124, primary_key: true)
+      add(:log_index, :int, primary_key: true)
+
+      add(:event_type, :string, size: 124)
 
       add(:root_chain_txhash_event, :binary)
 
@@ -28,7 +30,7 @@ defmodule OMG.Watcher.DB.Repo.Migrations.AlterTxOutputsTableAddRootchainTxnHashD
     end
 
     create index(:ethevents, :root_chain_txhash)
-    create index(:ethevents, :event_type)
+    create index(:ethevents, :log_index)
     create unique_index(:ethevents, :root_chain_txhash_event)
 
     # how to do this in ecto correctly? do it manually

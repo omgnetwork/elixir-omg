@@ -53,8 +53,9 @@ Stores events logged in root contract, such as _deposits_ or _exits_.
 
 |**ethevents**|||
 |:-:|:-|:-|
-|root_chain_txhash|bytea|Pk(root_chain_txhash, event_type)|
-|event_type|varchar(124)|Pk^|
+|root_chain_txhash|bytea|Pk(root_chain_txhash, log_index)|
+|event_type|integer|Pk^|
+|event_type|varchar(124)||
 |root_chain_txhash_event|bytea|UI|
 |inserted_at|datetime|UTC (w/o TZ)|
 |updated_at|datetime|UTC (w/o TZ)|
@@ -148,6 +149,7 @@ SELECT CASE WHEN t.child_chain_utxohash IS NULL THEN NULL
        END AS root_chain_txhash,
        blknum, txindex, oindex,
        amount,
+       log_index,
        event_type
 FROM txoutputs t
     LEFT OUTER JOIN ethevents_txoutputs et ON t.child_chain_utxohash = et.child_chain_utxohash

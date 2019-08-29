@@ -263,8 +263,8 @@ defmodule OMG.Eth do
     Map.new(Enum.zip(arg_names, function_inputs))
   end
 
-  defp common_parse_event(result, %{"blockNumber" => eth_height, "transactionHash" => root_chain_txhash}) do
-    Map.merge(result, %{eth_height: int_from_hex(eth_height), root_chain_txhash: from_hex(root_chain_txhash)})
+  defp common_parse_event(result, %{"blockNumber" => eth_height, "transactionHash" => root_chain_txhash, "logIndex" => log_index}) do
+    Map.merge(result, %{eth_height: int_from_hex(eth_height), root_chain_txhash: from_hex(root_chain_txhash), log_index: int_from_hex(log_index)})
   end
 
   defp get_signer_passphrase("0x00a329c0648769a73afac7f9381e08fb43dbea72") do

@@ -16,8 +16,10 @@ defmodule OMG.Watcher.DB.EthEvent do
   @moduledoc """
   Ecto schema for events logged by Ethereum
   """
-  use Ecto.Schema
+  import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
+
+  use Ecto.Schema
 
   alias OMG.Crypto
   alias OMG.Eth.Encoding
@@ -29,7 +31,9 @@ defmodule OMG.Watcher.DB.EthEvent do
   @primary_key false
   schema "ethevents" do
     field(:root_chain_txhash, :binary, primary_key: true)
-    field(:event_type, OMG.Watcher.DB.Types.AtomType, primary_key: true)
+    field(:log_index, :integer, primary_key: true)
+
+    field(:event_type, OMG.Watcher.DB.Types.AtomType)
 
     field(:root_chain_txhash_event, :binary)
 
@@ -52,17 +56,19 @@ defmodule OMG.Watcher.DB.EthEvent do
   end
 
   @spec insert_deposit!(OMG.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
-  defp insert_deposit!(%{root_chain_txhash: root_chain_txhash, blknum: blknum, owner: owner, currency: currency, amount: amount}) do
+  defp insert_deposit!(%{root_chain_txhash: root_chain_txhash, log_index: log_index, blknum: blknum, owner: owner,
+                         currency: currency, amount: amount}) do
     event_type = :deposit
     position = Utxo.position(blknum, 0, 0)
-    root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, event_type)
+    root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
 
     case get(root_chain_txhash_event) do
       nil ->
         %__MODULE__{
           root_chain_txhash_event: root_chain_txhash_event,
+          log_index: log_index,
           root_chain_txhash: root_chain_txhash,
-          event_type: :deposit,
+          event_type: event_type,
 
           # a deposit from the root chain will only ever have 1 childchain txoutput object
           txoutputs: [%DB.TxOutput{
@@ -96,28 +102,28 @@ defmodule OMG.Watcher.DB.EthEvent do
     |> Enum.each(&insert_exit!/1)
   end
 
-  @spec utxo_exit_from_exit_event(%{call_data: %{utxo_pos: pos_integer()}, root_chain_txhash: charlist()})
-      :: %{root_chain_txhash: binary(), decoded_utxo_position: Utxo.Position.t()}
-  defp utxo_exit_from_exit_event(%{call_data: %{utxo_pos: utxo_pos}, root_chain_txhash: root_chain_txhash}) do
-    %{root_chain_txhash: root_chain_txhash, decoded_utxo_position: Utxo.Position.decode!(utxo_pos)}
+  @spec utxo_exit_from_exit_event(%{call_data: %{utxo_pos: pos_integer()}, root_chain_txhash: charlist(), log_index: non_neg_integer()})
+      :: %{root_chain_txhash: binary(), log_index: non_neg_integer(), decoded_utxo_position: Utxo.Position.t()}
+  defp utxo_exit_from_exit_event(%{call_data: %{utxo_pos: utxo_pos}, root_chain_txhash: root_chain_txhash, log_index: log_index}) do
+    %{root_chain_txhash: root_chain_txhash, log_index: log_index, decoded_utxo_position: Utxo.Position.decode!(utxo_pos)}
   end
 
-  @spec insert_exit!(%{root_chain_txhash: binary(), decoded_utxo_position: Utxo.Position.t()})
+  @spec insert_exit!(%{root_chain_txhash: binary(), log_index: non_neg_integer(), decoded_utxo_position: Utxo.Position.t()})
       :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
-  defp insert_exit!(%{root_chain_txhash: root_chain_txhash, decoded_utxo_position: decoded_utxo_position}) do
+  defp insert_exit!(%{root_chain_txhash: root_chain_txhash, log_index: log_index, decoded_utxo_position: decoded_utxo_position}) do
     event_type = :standard_exit
-    root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, event_type)
+    root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
 
     case get(root_chain_txhash_event) do
       nil ->
         ethevent = %__MODULE__{
           root_chain_txhash_event: root_chain_txhash_event,
+          log_index: log_index,
           root_chain_txhash: root_chain_txhash,
-          event_type: :standard_exit
+          event_type: event_type
         }
 
         DB.TxOutput.get_by_position(decoded_utxo_position)
-        |> DB.Repo.preload(:ethevents)
         |> txoutput_changeset(%{child_chain_utxohash: generate_child_chain_utxohash(decoded_utxo_position)}, ethevent)
         |> DB.Repo.update()
 
@@ -147,9 +153,15 @@ defmodule OMG.Watcher.DB.EthEvent do
     "<#{position |> Utxo.Position.encode()}>" |> Crypto.hash()
   end
 
-  defp generate_root_chain_txhash_event(root_chain_txhash, event_type) do
-    Encoding.to_hex(root_chain_txhash) <> Atom.to_string(event_type) |> Crypto.hash()
+  def generate_root_chain_txhash_event(root_chain_txhash, log_index) do
+    Encoding.to_hex(root_chain_txhash) <> Integer.to_string(log_index) |> Crypto.hash()
   end
 
-  defp get(root_chain_txhash_event), do: DB.Repo.get_by(__MODULE__, root_chain_txhash_event: root_chain_txhash_event)
+  # preload txoutputs in a single query as there will not be a large number of them
+  def get(root_chain_txhash_event) do
+    DB.Repo.one from ethevent in __MODULE__,
+      where: ethevent.root_chain_txhash_event == ^root_chain_txhash_event,
+      left_join: txoutputs in assoc(ethevent, :txoutputs),
+      preload: [txoutputs: txoutputs]
+  end
 end
