@@ -1,0 +1,90 @@
+
+ARG ALPINE_VERSION=3.9
+
+ARG SERVICE
+
+FROM omg-service-env-$SERVICE as omg-service-env
+
+FROM alpine:$ALPINE_VERSION AS alpine
+
+FROM alpine AS omg-service-release
+
+LABEL maintainer="OmiseGO Team <omg@omise.co>"
+LABEL description="Official image for OmiseGO (Watcher) Plasma Network"
+
+ARG MIX_ENV=dev
+ARG PORT
+ARG RELEASE_VERSION
+
+ARG SHA
+
+# needed here again because cannot read the SERVICE ARG outside of the FROM context
+ARG SERVICE
+
+# USER directive is not being used here since privileges are dropped via
+# s6-setuigid in /entrypoint. s6-overlay is required to be run as root.
+ARG USER=$SERVICE
+ARG GROUP=$SERVICE
+ARG UID=10000
+ARG GID=10000
+ARG APP_DIR=/app
+
+ENV LANG=C.UTF-8
+
+## S6
+##
+
+ENV S6_VERSION="1.21.4.0"
+
+RUN set -xe \
+ && apk add --update --no-cache --virtual .fetch-deps \
+        curl \
+        ca-certificates \
+ && S6_DOWNLOAD_URL="https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-amd64.tar.gz" \
+ && S6_DOWNLOAD_SHA256="e903f138dea67e75afc0f61e79eba529212b311dc83accc1e18a449d58a2b10c" \
+ && curl -fsL -o s6-overlay.tar.gz ${S6_DOWNLOAD_URL} \
+ && echo "${S6_DOWNLOAD_SHA256}  s6-overlay.tar.gz" | sha256sum -c - \
+ && tar -xzC / -f s6-overlay.tar.gz \
+ && rm s6-overlay.tar.gz \
+ && apk del .fetch-deps
+
+## Application
+##
+
+#leveldb and rocksdb need libstdc++
+RUN apk add --update --no-cache --virtual .watcher-runtime \
+        bash \
+        libressl \
+        libressl-dev \
+        libstdc++ \
+        lksctp-tools
+
+#libsecp256k1
+RUN apk add --no-cache gmp-dev
+
+COPY --from=omg-service-env /entrypoint /entrypoint
+
+RUN set -xe \
+ && addgroup -g $GID $GROUP \
+ && adduser -D -h $APP_DIR -u $UID -G $GROUP $USER \
+ && chown ${UID}:${GID} $APP_DIR \
+ && chmod +x /entrypoint
+
+WORKDIR $APP_DIR
+
+COPY --from=omg-service-env ${APP_DIR}/_build/${MIX_ENV}/rel/${SERVICE}/releases/${RELEASE_VERSION}${SHA}/${SERVICE}.tar.gz $APP_DIR
+RUN set -xe \
+  && tar xzf ${APP_DIR}/${SERVICE}.tar.gz && chown -R ${UID}:${GID} $APP_DIR \
+  && rm ${APP_DIR}/${SERVICE}.tar.gz
+
+EXPOSE $PORT
+
+# These are ports required for clustering. The range is defined in vm.args
+# in inet_dist_listen_min and inet_dist_listen_max.
+#EXPOSE 4369 6900 6901 6902 6903 6904 6905 6906 6907 6908 6909
+# curl for healthchecks
+RUN apk add --no-cache curl
+
+ENTRYPOINT ["/init", "/entrypoint"]
+
+CMD ["foreground"]

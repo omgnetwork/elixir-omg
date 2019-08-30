@@ -1,0 +1,15 @@
+.circleci/
+.elixir_ls/
+.githooks/
+.github
+.idea/
+.vscode/
+
+_build/
+deps/
+
+docker/
+
+docker-compose.*
+
+elixir-omg.iml

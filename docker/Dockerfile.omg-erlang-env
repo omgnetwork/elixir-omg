@@ -1,0 +1,87 @@
+
+ARG ALPINE_VERSION=3.9
+
+FROM alpine:${ALPINE_VERSION} AS alpine
+
+FROM alpine AS omg-erlang-env
+
+LABEL maintainer="OmiseGO Team <omg@omise.co>"
+LABEL description="Builder image for OmiseGO elixir-omg"
+
+ARG OTP_VERSION="21.2.4"
+ARG OTP_DOWNLOAD_SHA256="833d31ac102536b752e474dc6d69be7cc3e37d2d944191317312b30b1ea8ef0d"
+
+RUN set -xe \
+ && OTP_DOWNLOAD_URL="https://github.com/erlang/otp/archive/OTP-${OTP_VERSION}.tar.gz" \
+ && apk add --update --no-cache --virtual .erlang-build \
+        autoconf \
+        ca-certificates \
+        curl \
+        dpkg \
+        dpkg-dev \
+        g++ \
+        gcc \
+        libc-dev \
+        libressl-dev \
+        linux-headers \
+        lksctp-tools-dev \
+        make \
+        ncurses-dev \
+        tar \
+        unixodbc-dev \
+ && curl -fsL -o otp-src.tar.gz ${OTP_DOWNLOAD_URL} \
+ && echo "${OTP_DOWNLOAD_SHA256}  otp-src.tar.gz" | sha256sum -c - \
+ && mkdir -vp /usr/local/src/otp \
+ && tar -xzC /usr/local/src/otp --strip-components=1 -f otp-src.tar.gz \
+ && rm otp-src.tar.gz \
+ && ( \
+        cd /usr/local/src/otp \
+            && ./otp_build autoconf \
+            && ./configure --prefix=/usr/local/otp --build="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
+            && make -j$(nproc) \
+            && make install \
+    ) \
+ && rm -rf /usr/local/src/otp \
+ && find /usr/local/otp -regex '/usr/local/otp/lib/erlang/\(lib/\|erts-\).*/\(man\|doc\|obj\|c_src\|emacs\|info\|examples\)' | xargs rm -rf \
+ && find /usr/local/otp -name src | xargs -r find | grep -v '\.hrl$' | xargs rm -v || true \
+ && find /usr/local/otp -name src | xargs -r find | xargs rmdir -vp || true \
+ && scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/local/otp | xargs -r strip --strip-all \
+ && scanelf --nobanner -E ET_DYN -BF '%F' --recursive /usr/local/otp | xargs -r strip --strip-unneeded \
+ && OTP_RUN_DEPS="$( \
+        scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/otp \
+            | tr ',' '\n' \
+            | sort -u \
+            | awk 'system("[ -e /usr/local/otp/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
+    )" \
+ && apk add --update --no-cache --virtual .erlang-run \
+        $OTP_RUN_DEPS \
+        lksctp-tools \
+ && apk del .erlang-build \
+ && rm -rf /usr/local/src
+
+ENV PATH=/usr/local/otp/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/otp/lib:$LD_LIBRARY_PATH
+
+ARG REBAR3_VERSION="3.8.0"
+ARG REBAR3_DOWNLOAD_SHA256="fc4d08037d39bcc651a4a749f8a5b1a10b2205527df834c2aee8f60725c3f431"
+
+RUN set -xe \
+ && apk add --update --no-cache --virtual .fetch-deps \
+        ca-certificates \
+        curl \
+ && REBAR3_DOWNLOAD_URL="https://github.com/erlang/rebar3/archive/${REBAR3_VERSION}.tar.gz" \
+ && curl -fsL -o rebar3-src.tar.gz ${REBAR3_DOWNLOAD_URL} \
+ && echo "${REBAR3_DOWNLOAD_SHA256}  rebar3-src.tar.gz" | sha256sum -c - \
+ && mkdir -p /usr/local/src/rebar3 \
+ && tar -xzC /usr/local/src/rebar3 --strip-components=1 -f rebar3-src.tar.gz \
+ && rm rebar3-src.tar.gz \
+ && ( \
+        cd /usr/local/src/rebar3 \
+            && HOME=$PWD ./bootstrap \
+            && mkdir -p /usr/local/rebar3/bin \
+            && install -v ./rebar3 /usr/local/rebar3/bin/rebar3 \
+    ) \
+ && apk del .fetch-deps \
+ && rm -rf /usr/local/src
+
+ENV PATH=/usr/local/rebar3/bin:$PATH

@@ -1,0 +1,32 @@
+
+FROM omg-erlang-env AS omg-elixir-env
+
+LABEL maintainer="OmiseGO Team <omg@omise.co>"
+LABEL description="Builder image for OmiseGO elixir-omg"
+
+ARG ELIXIR_VERSION="1.8.1"
+ARG ELIXIR_DOWNLOAD_SHA256="de8c636ea999392496ccd9a204ccccbc8cb7f417d948fd12692cda2bd02d9822"
+
+RUN set -xe \
+ && apk add --update --no-cache --virtual .elixir-build \
+        ca-certificates \
+        curl \
+        make \
+        tar \
+ && ELIXIR_DOWNLOAD_URL="https://github.com/elixir-lang/elixir/archive/v${ELIXIR_VERSION}.tar.gz" \
+ && curl -fsL -o elixir-src.tar.gz ${ELIXIR_DOWNLOAD_URL} \
+ && echo "${ELIXIR_DOWNLOAD_SHA256}  elixir-src.tar.gz" | sha256sum -c - \
+ && mkdir -p /usr/local/src/elixir \
+ && tar -xzC /usr/local/src/elixir --strip-components=1 -f elixir-src.tar.gz \
+ && rm elixir-src.tar.gz \
+ && ( \
+        cd /usr/local/src/elixir \
+            && make -j$(nproc) \
+            && PREFIX=/usr/local/elixir make install \
+    ) \
+ && rm -rf /usr/local/src/elixir \
+ && apk del .elixir-build \
+ && rm -rf /usr/local/src
+
+ENV PATH=/usr/local/elixir/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/elixir/lib:$LD_LIBRARY_PATH

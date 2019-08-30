@@ -1,0 +1,58 @@
+
+FROM omg-dev-env AS omg-service-env
+
+LABEL maintainer="OmiseGO Team <omg@omise.co>"
+LABEL description="Builder image for OmiseGO elixir-omg"
+
+ARG USER=elixir-omg
+ARG GROUP=elixir-omg
+ARG UID=10000
+ARG GID=10000
+ARG HOME=/home/$USER
+ARG APP_DIR=/app
+
+ARG MIX_ENV=dev
+ARG PORT
+ARG RELEASE_VERSION
+ARG SERVICE
+
+ARG SHA
+
+COPY . $APP_DIR
+
+USER root
+
+#leveldb and rocksdb need libstdc++
+RUN apk add --update --no-cache --virtual .watcher-runtime \
+        bash \
+        libressl \
+        libressl-dev \
+        libstdc++ \
+        lksctp-tools
+
+#libsecp256k1
+RUN apk add --no-cache gmp-dev
+
+COPY /rootfs/${SERVICE}_entrypoint /entrypoint
+
+RUN set -xe \
+ && chmod +x /entrypoint
+
+WORKDIR $APP_DIR
+
+RUN set -xe \
+ && MIX_ENV=$MIX_ENV mix do compile, distillery.release $MIX_ENV --name $SERVICE --verbose \
+ && cp ${APP_DIR}/_build/${MIX_ENV}/rel/${SERVICE}/releases/${RELEASE_VERSION}${SHA}/${SERVICE}.tar.gz $APP_DIR \
+ && tar xzf ${APP_DIR}/${SERVICE}.tar.gz \
+ && chown -R ${UID}:${GID} $APP_DIR \
+ && rm ${APP_DIR}/${SERVICE}.tar.gz
+
+EXPOSE $PORT
+
+# curl for healthchecks
+RUN apk add --no-cache curl
+
+ENTRYPOINT ["/init", "/entrypoint"]
+
+CMD ["foreground"]
+
