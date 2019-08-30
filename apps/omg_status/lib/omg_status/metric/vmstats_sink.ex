@@ -29,38 +29,9 @@ defmodule OMG.Status.Metric.VmstatsSink do
 
   defp base_key, do: Application.get_env(:vmstats, :base_key)
 
-  def collect(:counter, key, value), do: _ = Datadog.set(key, value, tags: ["application:#{get_application_mode()}"])
+  def collect(:counter, key, value), do: _ = Datadog.set(key, value)
 
-  def collect(:gauge, key, value), do: _ = Datadog.gauge(key, value, tags: ["application:#{get_application_mode()}"])
+  def collect(:gauge, key, value), do: _ = Datadog.gauge(key, value)
 
-  def collect(:timing, key, value), do: _ = Datadog.timing(key, value, tags: ["application:#{get_application_mode()}"])
-
-  # TODO yet another hack because of lacking releases
-  # we store the tag in the process dictionary so that we don't have to go through the
-  # difficult path of retrieving it later
-  defp get_application_mode do
-    case Process.get(:application_mode) do
-      nil ->
-        application = application()
-        nil = Process.put(:application_mode, application)
-        application
-
-      application ->
-        application
-    end
-  end
-
-  defp application do
-    is_child_chain_running =
-      Enum.find(Application.started_applications(), fn
-        {:omg_child_chain_rpc, _, _} -> true
-        _ -> false
-      end)
-
-    if Code.ensure_loaded?(OMG.ChildChainRPC) and is_child_chain_running != nil do
-      :child_chain
-    else
-      :watcher
-    end
-  end
+  def collect(:timing, key, value), do: _ = Datadog.timing(key, value)
 end
