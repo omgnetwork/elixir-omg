@@ -35,6 +35,8 @@ defmodule OMG.Status.Application do
         # spandex datadog api server is able to flush when disabled?: true
         [{SpandexDatadog.ApiServer, spandex_datadog_options()}]
       else
+        set_statix_global_tag()
+
         [
           {OMG.Status.Metric.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
           VmstatsSink.prepare_child(),
@@ -88,5 +90,38 @@ defmodule OMG.Status.Application do
       sync_threshold: config_sync_threshold || 100,
       http: config_http || HTTPoison
     ]
+  end
+
+  defp set_statix_global_tag do
+    Application.put_env(:statix, :tags, ["application:#{get_application_mode()}"], persistent: true)
+  end
+
+  # TODO yet another hack because of lacking releases
+  # we store the tag in the process dictionary so that we don't have to go through the
+  # difficult path of retrieving it later
+  defp get_application_mode do
+    case Process.get(:application_mode) do
+      nil ->
+        application = application()
+        nil = Process.put(:application_mode, application)
+        application
+
+      application ->
+        application
+    end
+  end
+
+  defp application do
+    is_child_chain_running =
+      Enum.find(Application.started_applications(), fn
+        {:omg_child_chain_rpc, _, _} -> true
+        _ -> false
+      end)
+
+    if Code.ensure_loaded?(OMG.ChildChainRPC) and is_child_chain_running != nil do
+      :child_chain
+    else
+      :watcher
+    end
   end
 end
