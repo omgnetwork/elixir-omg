@@ -42,6 +42,7 @@ defmodule OMG.WatcherRPC.Application do
       name: OMG.WatcherRPC.RootSupervisor
     ]
 
+    set_statix_global_tag()
     Supervisor.start_link(children, opts)
   end
 
@@ -50,5 +51,9 @@ defmodule OMG.WatcherRPC.Application do
   def config_change(changed, _new, removed) do
     OMG.WatcherRPC.Web.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  defp set_statix_global_tag do
+    Application.put_env(:statix, :tags, ["application:watcher"], persistent: true)
   end
 end
