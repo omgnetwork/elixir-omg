@@ -28,8 +28,9 @@ defmodule OMG.Status.Metric.VmstatsSink do
   end
 
   defp base_key, do: Application.get_env(:vmstats, :base_key)
-
-  def collect(:counter, key, value), do: _ = Datadog.set(key, value)
+  # statix currently does not support `count` or `monotonic_count`, only increment and decrement
+  # because of that, we're sending counters as gauges
+  def collect(:counter, key, value), do: _ = Datadog.gauge(key, value)
 
   def collect(:gauge, key, value), do: _ = Datadog.gauge(key, value)
 
