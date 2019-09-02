@@ -22,6 +22,7 @@ defmodule OMG.ChildChainRPC.Application do
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_child_chain_rpc)
+    DeferredConfig.populate(:omg_watcher_rpc)
 
     _ = Logger.info("Started application #{__MODULE__}")
 
