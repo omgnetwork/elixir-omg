@@ -67,7 +67,7 @@ defmodule OMG.Eth.Librarian do
       ~c(solc #{contracts_dir}/#{name}Linked.bin --libraries #{libs_arg} --link)
       |> :os.cmd()
 
-    bytecode = Eth.get_bytecode!(path_project_root, "#{name}Linked")
+    bytecode = get_bytecode!(path_project_root, "#{name}Linked")
 
     cleanup(contracts_dir, name)
 
