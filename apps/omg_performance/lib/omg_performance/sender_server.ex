@@ -49,14 +49,16 @@ defmodule OMG.Performance.SenderServer do
     :ntx_to_send,
     :spender,
     # {blknum, txindex, oindex, amount}, @see %LastTx above
-    :last_tx
+    :last_tx,
+    :child_chain_url
   ]
 
   @opaque state :: %__MODULE__{
             seqnum: integer,
             ntx_to_send: integer,
             spender: map,
-            last_tx: LastTx.t()
+            last_tx: LastTx.t(),
+            child_chain_url: binary()
           }
 
   @doc """
@@ -73,15 +75,15 @@ defmodule OMG.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({pos_integer(), map(), pos_integer()}) :: {:ok, state()}
-  def init({seqnum, utxo, ntx_to_send}) do
+  @spec init({pos_integer(), map(), pos_integer(), map()}) :: {:ok, state()}
+  def init({seqnum, utxo, ntx_to_send, opts}) do
     _ =
       Logger.debug(
         "[#{inspect(seqnum)}] init called with utxo: #{inspect(utxo)} and requests: '#{inspect(ntx_to_send)}'"
       )
 
     send(self(), :do)
-    {:ok, init_state(seqnum, utxo, ntx_to_send)}
+    {:ok, init_state(seqnum, utxo, ntx_to_send, opts)}
   end
 
   @doc """
@@ -131,11 +133,11 @@ defmodule OMG.Performance.SenderServer do
           {:ok, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
           | {:error, any()}
           | :retry
-  defp submit_tx(tx, %__MODULE__{seqnum: seqnum}) do
+  defp submit_tx(tx, %__MODULE__{seqnum: seqnum, child_chain_url: child_chain_url}) do
     result =
       tx
       |> Transaction.Signed.encode()
-      |> submit_tx_rpc()
+      |> submit_tx_rpc(child_chain_url)
 
     case result do
       {:error, {:client_error, %{"code" => "submit:too_many_transactions_in_block"}}} ->
@@ -187,15 +189,14 @@ defmodule OMG.Performance.SenderServer do
   end
 
   # Submits Tx to the child chain server via http (Http-RPC) and translates successful result to atom-keyed map.
-  @spec submit_tx_rpc(binary) :: {:ok, map} | {:error, any}
-  defp submit_tx_rpc(encoded_tx) do
-    url = Application.get_env(:omg_watcher, :child_chain_url)
-    Client.submit(encoded_tx, url)
+  @spec submit_tx_rpc(binary, binary()) :: {:ok, map} | {:error, any}
+  defp submit_tx_rpc(encoded_tx, child_chain_url) do
+    Client.submit(encoded_tx, child_chain_url)
   end
 
   #   Generates module's initial state
-  @spec init_state(pos_integer(), map(), pos_integer()) :: __MODULE__.state()
-  defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send) do
+  @spec init_state(pos_integer(), map(), pos_integer(), map()) :: __MODULE__.state()
+  defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send, opts) do
     Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode!(utxo_pos)
 
     %__MODULE__{
@@ -208,7 +209,8 @@ defmodule OMG.Performance.SenderServer do
         txindex: txindex,
         oindex: oindex,
         amount: amount
-      }
+      },
+      child_chain_url: Map.get(opts, :child_chain_url)
     }
   end
 

@@ -77,8 +77,12 @@ defmodule OMG.Performance do
       )
 
     DeferredConfig.populate(:omg_child_chain_rpc)
+    DeferredConfig.populate(:omg_watcher)
 
-    defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
+    url =
+      System.get_env("CHILD_CHAIN_URL") || Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
+
+    defaults = %{destdir: ".", profile: false, block_every_ms: 2000, child_chain_url: url}
     opts = Map.merge(defaults, opts)
 
     {:ok, started_apps, simple_perftest_chain} = setup_simple_perftest(opts)
@@ -120,9 +124,15 @@ defmodule OMG.Performance do
 
     DeferredConfig.populate(:omg_watcher)
 
-    url = Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
+    url =
+      System.get_env("CHILD_CHAIN_URL") || Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
 
-    defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
+    defaults = %{
+      destdir: ".",
+      geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545",
+      child_chain_url: url
+    }
+
     opts = Map.merge(defaults, opts)
 
     {:ok, started_apps} = setup_extended_perftest(opts, contract_addr)
