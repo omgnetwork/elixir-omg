@@ -33,12 +33,12 @@ defmodule OMG.Eth.Deployer do
   end
 
   def create_new(OMG.Eth.Token, path_project_root, from, opts) do
-    Eth.get_bytecode!(path_project_root, "MintableToken")
+    get_bytecode!(path_project_root, "MintableToken")
     |> deploy_contract(from, @gas_contract_token, opts)
   end
 
   def create_new(OMG.Eth.Eip712, path_project_root, from, opts) do
-    Eth.get_bytecode!(path_project_root, "SignatureTest")
+    get_bytecode!(path_project_root, "SignatureTest")
     |> deploy_contract(from, @gas_contract_sigtest, opts)
   end
 
@@ -48,5 +48,24 @@ defmodule OMG.Eth.Deployer do
 
     Eth.deploy_contract(from, bytecode, [], [], opts)
     |> Eth.DevHelpers.deploy_sync!()
+  end
+
+  defp get_bytecode!(path_project_root, contract_name) do
+    "0x" <> read_contracts_bin!(path_project_root, contract_name)
+  end
+
+  defp read_contracts_bin!(path_project_root, contract_name) do
+    path = "_build/contracts/#{contract_name}.bin"
+
+    case File.read(Path.join(path_project_root, path)) do
+      {:ok, contract_json} ->
+        contract_json
+
+      {:error, reason} ->
+        raise(
+          RuntimeError,
+          "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
+        )
+    end
   end
 end

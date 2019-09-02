@@ -33,8 +33,7 @@ defmodule OMG.Eth.Librarian do
 
   def link_for!(OMG.Eth.RootChain, path_project_root, from) do
     {:ok, _txhash, lib_addr3_pql} =
-      Eth.get_bytecode!(path_project_root, "PriorityQueueLib")
-      |> deploy(from, @gas_contract_libs)
+      deploy(get_bytecode!(path_project_root, "PriorityQueueLib"), from, @gas_contract_libs)
 
     {:ok, _txhash, lib_addr3_pqf} =
       bytecode_linked(path_project_root, "PriorityQueueFactory", [{"PriorityQueueLib", lib_addr3_pql}])
@@ -80,5 +79,24 @@ defmodule OMG.Eth.Librarian do
     |> Path.join("#{name}Linked.*")
     |> Path.wildcard()
     |> Enum.each(&File.rm!/1)
+  end
+
+  defp get_bytecode!(path_project_root, contract_name) do
+    "0x" <> read_contracts_bin!(path_project_root, contract_name)
+  end
+
+  defp read_contracts_bin!(path_project_root, contract_name) do
+    path = "_build/contracts/#{contract_name}.bin"
+
+    case File.read(Path.join(path_project_root, path)) do
+      {:ok, contract_json} ->
+        contract_json
+
+      {:error, reason} ->
+        raise(
+          RuntimeError,
+          "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
+        )
+    end
   end
 end
