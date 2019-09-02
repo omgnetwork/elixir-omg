@@ -30,8 +30,19 @@ defmodule OMG.Utils.HttpRPC.Response do
   Append result of operation to the response data forming standard api response structure
   """
   @spec serialize(any()) :: response_t()
-  def serialize(%{object: :error} = error), do: to_response(error, :error) |> add_version()
-  def serialize(data), do: data |> sanitize() |> to_response(:success) |> add_version()
+  def serialize(%{object: :error} = error) do
+    to_response(error, :error)
+    |> add_version()
+    |> add_service_type()
+  end
+
+  def serialize(data) do
+    data
+    |> sanitize()
+    |> to_response(:success)
+    |> add_version()
+    |> add_service_type()
+  end
 
   @doc """
   Removes or encodes fields in response that cannot be serialized to api response.
@@ -117,5 +128,27 @@ defmodule OMG.Utils.HttpRPC.Response do
       end
 
     Map.merge(response, %{version: List.to_string(vsn) <> "+" <> @sha})
+  end
+
+  # Not the most "beautiful way", but I'm just referencing
+  # how they're injecting the version
+  defp add_service_type(response) do
+    # TODO remove this hack when running releases
+    is_child_chain_running =
+      Enum.find(Application.started_applications(), fn
+        {:omg_child_chain_rpc, _, _} -> true
+        _ -> false
+      end)
+    
+    # Is type "watcher" or "childchain"
+    service_type =
+      if Code.ensure_loaded?(OMG.ChildChainRPC) and is_child_chain_running != nil do
+        "childchain"
+      else
+        "watcher"
+      end
+    
+    # Inject it into the response code
+    Map.merge(response, %{type: service_type})
   end
 end
