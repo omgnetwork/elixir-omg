@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Application do
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_watcher_rpc)
-
+    DeferredConfig.populate(:omg_child_chain_rpc)
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
     start_root_supervisor()
