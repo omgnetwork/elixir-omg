@@ -84,7 +84,7 @@ defmodule OMG.Watcher.Application do
     end)
   end
   
-  # Only set once during bootup. cookie value retrieved from ENV. 
+  # Only set once during bootup. cookie value retrieved from ENV.
   # sobelow_skip ["DOS.StringToAtom"]
   defp set_cookie(cookie) when is_binary(cookie) do
     cookie
