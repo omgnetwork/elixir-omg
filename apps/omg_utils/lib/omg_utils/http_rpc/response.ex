@@ -143,7 +143,7 @@ defmodule OMG.Utils.HttpRPC.Response do
     # Is type "watcher" or "childchain"
     service_type =
       if Code.ensure_loaded?(OMG.ChildChainRPC) and is_child_chain_running != nil do
-        "childchain"
+        "child_chain"
       else
         "watcher"
       end
