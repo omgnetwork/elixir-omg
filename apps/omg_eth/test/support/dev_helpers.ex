@@ -169,7 +169,10 @@ defmodule OMG.Eth.DevHelpers do
     params = %{from: faucet, to: account_enc, value: to_hex(initial_funds)}
     {:ok, tx_fund} = OMG.Eth.send_transaction(params)
 
-    tx_fund |> WaitFor.eth_receipt(@about_4_blocks_time)
+    case Keyword.get(opts, :timeout) do
+      nil -> WaitFor.eth_receipt(tx_fund, @about_4_blocks_time)
+      timeout -> WaitFor.eth_receipt(tx_fund, timeout)
+    end
   end
 
   defp unlock_if_possible(account_enc) do
