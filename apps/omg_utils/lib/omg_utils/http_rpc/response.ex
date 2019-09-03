@@ -139,7 +139,7 @@ defmodule OMG.Utils.HttpRPC.Response do
         {:omg_child_chain_rpc, _, _} -> true
         _ -> false
       end)
-    
+
     # Is type "watcher" or "childchain"
     service_type =
       if Code.ensure_loaded?(OMG.ChildChainRPC) and is_child_chain_running != nil do
@@ -147,7 +147,7 @@ defmodule OMG.Utils.HttpRPC.Response do
       else
         "watcher"
       end
-    
+
     # Inject it into the response code
     Map.merge(response, %{type: service_type})
   end
