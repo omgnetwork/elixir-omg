@@ -173,6 +173,8 @@ defmodule OMG.Performance.SenderManager do
   defp txs_per_second(txs_count, interval_ms), do: Kernel.round(txs_count * 1000 / interval_ms)
 
   # handle termination
+  # omg_performance is not part of the application deployment bundle. It's used only for testing.
+  # sobelow_skip ["Traversal"]
   defp write_stats(%{destdir: destdir} = state) do
     destfile = Path.join(destdir, "perf_result_#{:os.system_time(:seconds)}_stats.json")
 
