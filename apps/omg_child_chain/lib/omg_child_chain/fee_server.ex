@@ -83,6 +83,9 @@ defmodule OMG.ChildChain.FeeServer do
   end
 
   # Reads fee specification file if needed and updates :ets state with current fees information
+  # FeeServer is an internal elixir process* that holds child chain's fees per currency. 
+  # The operator can change the fees and this is done via a JSON file that iss loaded from disk (path variable).
+  # sobelow_skip ["Traversal"]
   @spec update_fee_spec() :: :ok | {:error, atom() | [{:error, atom()}, ...]}
   defp update_fee_spec do
     path = get_fees()
