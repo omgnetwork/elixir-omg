@@ -108,11 +108,11 @@ if Code.ensure_loaded?(:rocksdb) do
           :not_found
 
         {:ok, encoded} ->
-          :erlang.binary_to_term(encoded)
+          :erlang.binary_to_term(encoded, [:safe])
 
         encoded ->
           # iterator search returns raw values
-          :erlang.binary_to_term(encoded)
+          :erlang.binary_to_term(encoded, [:safe])
       end
     end
 

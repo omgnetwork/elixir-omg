@@ -111,7 +111,7 @@ defmodule OMG.DB.LevelDB.Core do
   defp decode_response(_type, db_response) do
     case db_response do
       :not_found -> :not_found
-      {:ok, encoded} -> :erlang.binary_to_term(encoded)
+      {:ok, encoded} -> :erlang.binary_to_term(encoded, [:safe])
       # TODO delete
       other -> {:error, other}
     end
