@@ -102,17 +102,18 @@ if Code.ensure_loaded?(:rocksdb) do
     defp encode_value(:spend, {_position, blknum}), do: :erlang.term_to_binary(blknum)
     defp encode_value(_type, value), do: :erlang.term_to_binary(value)
 
+    # sobelow_skip ["Misc.BinToTerm"]
     defp decode_response(_type, db_response) do
       case db_response do
         :not_found ->
           :not_found
 
         {:ok, encoded} ->
-          :erlang.binary_to_term(encoded)
+          :erlang.binary_to_term(encoded, [:safe])
 
         encoded ->
           # iterator search returns raw values
-          :erlang.binary_to_term(encoded)
+          :erlang.binary_to_term(encoded, [:safe])
       end
     end
 
