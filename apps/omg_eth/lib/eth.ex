@@ -142,10 +142,6 @@ defmodule OMG.Eth do
     |> Enum.into(opts, fn {k, v} -> {k, to_hex(v)} end)
   end
 
-  def get_bytecode!(path_project_root, contract_name) do
-    "0x" <> read_contracts_bin!(path_project_root, contract_name)
-  end
-
   defp encode_tx_data(signature, args) do
     signature
     |> ABI.encode(args)
@@ -168,21 +164,6 @@ defmodule OMG.Eth do
       |> encode_all_integer_opts()
 
     {:ok, _txhash} = send_transaction(txmap)
-  end
-
-  defp read_contracts_bin!(path_project_root, contract_name) do
-    path = "_build/contracts/#{contract_name}.bin"
-
-    case File.read(Path.join(path_project_root, path)) do
-      {:ok, contract_json} ->
-        contract_json
-
-      {:error, reason} ->
-        raise(
-          RuntimeError,
-          "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
-        )
-    end
   end
 
   defp event_topic_for_signature(signature) do
@@ -279,13 +260,11 @@ defmodule OMG.Eth do
         encoded_input
       )
 
-    Enum.zip(arg_names, function_inputs)
-    |> Map.new()
+    Map.new(Enum.zip(arg_names, function_inputs))
   end
 
   defp common_parse_event(result, %{"blockNumber" => eth_height}) do
-    result
-    |> Map.put(:eth_height, int_from_hex(eth_height))
+    Map.put(result, :eth_height, int_from_hex(eth_height))
   end
 
   defp get_signer_passphrase("0x00a329c0648769a73afac7f9381e08fb43dbea72") do
