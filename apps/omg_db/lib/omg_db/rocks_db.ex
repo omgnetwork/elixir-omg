@@ -132,6 +132,8 @@ if Code.ensure_loaded?(:rocksdb) do
     def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :path))
     def init(server_name, path), do: do_init(server_name, path)
 
+    # File.mkdir_p is called at the application start
+    # sobelow_skip ["Traversal"]
     defp do_init(server_name, path) do
       :ok = File.mkdir_p(path)
 

@@ -48,3 +48,6 @@ env/
 
 # Docker
 src/
+
+# Sobelow
+.sobelow
