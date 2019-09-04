@@ -72,7 +72,7 @@ defmodule OMG.Watcher.DB.EthEvent do
 
           # a deposit from the root chain will only ever have 1 childchain txoutput object
           txoutputs: [%DB.TxOutput{
-            child_chain_utxohash: generate_child_chain_utxohash(position),
+              child_chain_utxohash: generate_child_chain_utxohash(position),
               blknum: blknum,
               txindex: 0,
               oindex: 0,

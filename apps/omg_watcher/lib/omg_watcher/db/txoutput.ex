@@ -97,7 +97,7 @@ defmodule OMG.Watcher.DB.TxOutput do
                              FROM ethevents_txoutputs AS etfrag
                              JOIN ethevents AS efrag ON
                                       etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                                      AND efrag.event_type NOT IN (?)
+                                      AND efrag.event_type IN (?)
                                       AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
         order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
       )
@@ -116,7 +116,7 @@ defmodule OMG.Watcher.DB.TxOutput do
                              FROM ethevents_txoutputs AS etfrag
                              JOIN ethevents AS efrag ON
                                       etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                                      AND efrag.event_type NOT IN (?)
+                                      AND efrag.event_type IN (?)
                                       AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
         group_by: txoutput.currency,
         select: {txoutput.currency, sum(txoutput.amount)}

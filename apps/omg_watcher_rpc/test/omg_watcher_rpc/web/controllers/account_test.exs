@@ -18,6 +18,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   use OMG.Fixtures
   use OMG.Watcher.Fixtures
 
+  alias OMG.Crypto
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher.DB
@@ -95,7 +96,8 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :alice, :bob]
     test "get_utxos and get_exitable_utxos have the same return format", %{alice: alice, bob: bob} do
-      DB.EthEvent.insert_deposits!([%{owner: alice.addr, currency: @eth, amount: 333, blknum: 1}])
+      DB.EthEvent.insert_deposits!([
+        %{root_chain_txhash: Crypto.hash(<<1000::256>>), log_index: 0, owner: alice.addr, currency: @eth, amount: 333, blknum: 1}])
 
       OMG.DB.multi_update([
         {:put, :utxo, {{1, 0, 0}, %{amount: 333, creating_txhash: nil, currency: @eth, owner: alice.addr}}},
