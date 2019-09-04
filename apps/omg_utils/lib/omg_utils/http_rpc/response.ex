@@ -33,7 +33,7 @@ defmodule OMG.Utils.HttpRPC.Response do
   def serialize(%{object: :error} = error) do
     to_response(error, :error)
     |> add_version()
-    |> add_service_type()
+    |> add_service_name()
   end
 
   def serialize(data) do
@@ -41,7 +41,7 @@ defmodule OMG.Utils.HttpRPC.Response do
     |> sanitize()
     |> to_response(:success)
     |> add_version()
-    |> add_service_type()
+    |> add_service_name()
   end
 
   @doc """
@@ -132,7 +132,7 @@ defmodule OMG.Utils.HttpRPC.Response do
 
   # Not the most "beautiful way", but I'm just referencing
   # how they're injecting the version
-  defp add_service_type(response) do
+  defp add_service_name(response) do
     # TODO remove this hack when running releases
     is_child_chain_running =
       Enum.find(Application.started_applications(), fn
@@ -141,7 +141,7 @@ defmodule OMG.Utils.HttpRPC.Response do
       end)
 
     # Is type "watcher" or "childchain"
-    service_type =
+    service_name =
       if Code.ensure_loaded?(OMG.ChildChainRPC) and is_child_chain_running != nil do
         "child_chain"
       else
@@ -149,6 +149,6 @@ defmodule OMG.Utils.HttpRPC.Response do
       end
 
     # Inject it into the response code
-    Map.merge(response, %{type: service_type})
+    Map.merge(response, %{service_name: service_name})
   end
 end
