@@ -402,11 +402,18 @@ mix deps.compile plasma_contracts
 
 You can setup the docker environment to run testing and development tasks:
 
+(Note: If they exist, be sure to delete the `deps` and `_build` dirs from your host drive. Otherwise these dirs will get mapped into the docker container and can create build discrepancies and breakages.)
+
 ```sh
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --entrypoint bash elixir-omg
 ```
 
 Once the shell has loaded, you can continue and run additional tasks.
+
+Get the necessary dependencies for building:
+```bash
+mix deps.get
+```
 
 Quick test (no integration tests):
 ```bash

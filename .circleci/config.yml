@@ -100,6 +100,26 @@ jobs:
       - setup_elixir-omg_workspace
       - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
 
+  sobelow:
+    executor: builder_pg
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - run: mix archive.install hex sobelow --force
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r .
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_bus
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_child_chain
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_child_chain_rpc --router apps/omg_child_chain_rpc/lib/omg_child_chain_rpc/web/router.ex
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_db
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_eth
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_status
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_utils
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher_rpc --router apps/omg_watcher_rpc/lib/web/router.ex
+
   child_chain_coveralls_and_integration_tests:
     executor: builder_pg_geth
     environment:
@@ -463,6 +483,8 @@ workflows:
           requires: [build]
       - lint:
           requires: [build]
+      - sobelow:
+          requires: [build]
       - dialyzer:
           requires: [build]
       - test:
@@ -470,6 +492,7 @@ workflows:
       - build_and_deploy_development:
           requires:
             - build
+            - sobelow
             - lint
             - dialyzer
             - test
@@ -484,6 +507,7 @@ workflows:
           requires:
             - build
             - lint
+            - sobelow
             - dialyzer
             - test
             - child_chain_coveralls_and_integration_tests

@@ -36,16 +36,16 @@ defmodule OMG.Performance.SenderManager do
   Starts the sender's manager process
   """
   @spec start_link_all_senders(pos_integer(), list(), map()) :: pid
-  def start_link_all_senders(ntx_to_send, utxos, %{destdir: destdir} = _opt) do
-    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, utxos, destdir}, name: __MODULE__)
+  def start_link_all_senders(ntx_to_send, utxos, opts) do
+    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, utxos, opts}, name: __MODULE__)
     mypid
   end
 
   @doc """
   Starts sender processes
   """
-  @spec init({pos_integer(), list(), binary}) :: {:ok, map()}
-  def init({ntx_to_send, utxos, destdir}) do
+  @spec init({pos_integer(), list(), map()}) :: {:ok, map()}
+  def init({ntx_to_send, utxos, opts}) do
     Process.flag(:trap_exit, true)
     _ = Logger.debug("init called with utxos: #{inspect(length(utxos))}, ntx_to_send: #{inspect(ntx_to_send)}")
 
@@ -53,7 +53,7 @@ defmodule OMG.Performance.SenderManager do
       utxos
       |> Enum.with_index(1)
       |> Enum.map(fn {utxo, seqnum} ->
-        {:ok, pid} = OMG.Performance.SenderServer.start_link({seqnum, utxo, ntx_to_send})
+        {:ok, pid} = OMG.Performance.SenderServer.start_link({seqnum, utxo, ntx_to_send, opts})
         {seqnum, pid}
       end)
 
@@ -71,7 +71,7 @@ defmodule OMG.Performance.SenderManager do
        block_times: [],
        goal: ntx_to_send,
        start_time: System.monotonic_time(:millisecond),
-       destdir: destdir,
+       destdir: Map.get(opts, :destdir),
        initial_blknums: initial_blknums
      }}
   end
@@ -173,6 +173,8 @@ defmodule OMG.Performance.SenderManager do
   defp txs_per_second(txs_count, interval_ms), do: Kernel.round(txs_count * 1000 / interval_ms)
 
   # handle termination
+  # omg_performance is not part of the application deployment bundle. It's used only for testing.
+  # sobelow_skip ["Traversal"]
   defp write_stats(%{destdir: destdir} = state) do
     destfile = Path.join(destdir, "perf_result_#{:os.system_time(:seconds)}_stats.json")
 
