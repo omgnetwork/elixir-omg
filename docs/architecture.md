@@ -13,16 +13,7 @@ The below diagram demonstrates the various pieces and where this umbrella app fi
 This lists only interactions between the different processes that build up both the Child Chain Server and Watcher.
 For responsibilities of the processes/modules look into respective docs in `.ex` files.
 
-**NOTE**:
-- for `OMG` modules/processes look in `apps/omg`
-- for `OMG.ChildChain` modules/processes look in `apps/omg_child_chain`
-- for `OMG.Watcher` modules/processes look in `apps/omg_watcher`
-- for `OMG.Eth` look in `apps/omg_eth`
-- for `OMG.DB` look in `apps/omg_db`
-- for `OMG.Performance` look in `apps/omg_performance`
-- for `OMG.ChildChainRPC` look in `apps/omg_child_chain_rpc`
-
-**NOTE 2** The hexagonal shape hints towards component being a wrapper (port/adapter) to something external, versus rectangular shape being an internal component.
+**NOTE** The hexagonal shape hints towards component being a wrapper (port/adapter) to something external, versus rectangular shape being an internal component.
 
 ### `OMG.State`
 
@@ -65,7 +56,7 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 - tracks Ethereum height and child chain block submission mining via `OMG.Eth` and `OMG.RootChainCoordinator`
 
 ### `OMG.ChildChain.FeeServer`
-- `OMG.ChildChain` calls it to get acceptable currencies and actual fee amounts to validate transactions
+- `OMG.ChildChain` calls it to get required fee amounts to validate transactions
 
 ### `OMG.Watcher.BlockGetter`
 
@@ -81,18 +72,16 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 - get various Ethereum events from `OMG.EthereumEventListener`
 - used only in Watcher
 - validates exits
-- emits byzantine events to `OMG.Watcher.Eventer`
 - spends finalizing exits in `OMG.State`
 
-### `Phoenix app` (not a module - section name TODO)
+### `OMG.WatcherRPC`
 
-- uses data stored in the `WatcherDB` to server user's requests
+- uses `OMG.Watcher` to server user's requests
 - subscribes to event buses to `OMG.Watcher.Eventer`
 
 ### `OMG.Watcher.Eventer`
 
 - pushes events to `Phoenix app`
-
 
 ### `OMG.Performance`
 
@@ -110,23 +99,21 @@ May be seen and read by other processes to sync on the persisted state of `OMG.S
 
 Non-relational data, so we're having a simple KV for this.
 
-Implemented with `leveldb` via `ExlevelDB`, possibly to be swapped out for anything better in the future.
 Each instance of either Child Chain Server or Watcher should have it's own instance.
 
 Database necessary to properly ensure validity and availability of blocks and transactions
 
 - it is read by `OMG.State` to discover the UTXO set on restart
 - it is read by many other processes to discover where they left off, on restart
+- it is used for the Watcher's security critical features to access exits info and blocks
 
-### `WatcherDB` (TODO - name? there is no such module as `WatcherDB`)
+### WatcherDB
 
-A convenience database running alongside the Watcher **only**.
-Holds all information necessary to manage the funds held:
+A database running used by the Watcher in convenience API mode **only**.
+
+Holds all information necessary to conveniently manage the funds held:
 - UTXOs owned by user's particular address(es)
-- all transactions to be able to challenge
 - transaction history
 
 Relational data, to be able to navigate through the transactions and UTXOs.
-
-Implemented with Postgres (SQLite for test runs).
-This database might be shared between Watchers, e.g. when it pertains to a single wallet provider running multiple `eWallet` instances for scaling.
+Implemented with PostgreSQL.
