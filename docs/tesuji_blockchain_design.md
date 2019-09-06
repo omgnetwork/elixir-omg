@@ -250,7 +250,7 @@ To not have it, this item should just be skipped in the array
 **NOTE** To create a valid transaction, a user needs to have access to positions of all the UTXOs that they own.
 
 **TODO** A detailed documentation of transaction encoding scheme used is pending.
-As a temporary source of information refer to the implementation details in `elixir-omg` repo [with an entrypoint here.](https://github.com/omisego/elixir-omg/blob/master/apps/omg/lib/state/transaction/signed.ex#L35)
+As a temporary source of information refer to the implementation details in `elixir-omg` repo [with an entrypoint here.](https://github.com/omisego/elixir-omg/blob/master/apps/omg/lib/omg/state/transaction/signed.ex#L41)
 
 ### Fees
 
@@ -287,6 +287,7 @@ Any of these make the watcher prompt for an exit of funds:
 It's the watchers job to check that the operator never exits more fees than they're due, because the funds to cover the exited fees are drawn from the same pool, where the deposited funds are.
 In other words, if watchers overlook the child chain operator exiting too much fees, there might be not enough funds left in the root chain contract for them to exit.
 3. Inability to acquire (for a long enough period of time) enough information to validate a child chain block that's been submitted to the root chain.
+4. Any invalid claim done on the root chain contract (e.g. an invalid exit), that goes without challenge for too long and becomes a risk on the security of the funds held on the child chain.
 
 The watcher will check for the following conditions that (optionally) prompt for an exit challenge:
 
