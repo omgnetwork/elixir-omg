@@ -131,16 +131,22 @@ Solutions to common problems may be found in the [troubleshooting](docs/troubles
 `elixir-omg` is an umbrella app comprising of several Elixir applications:
 
 The general idea of the apps responsibilities is:
+  - `omg` - common application logic used by both the child chain server and watcher
+  - `omg_bus` - an internal event bus to tie services together
   - `omg_child_chain` - child chain server
     - tracks Ethereum for things happening in the root chain contract (deposits/exits)
     - gathers transactions, decides on validity, forms blocks, persists
     - submits blocks to the root chain contract
     - see `apps/omg_child_chain/lib/omg_child_chain/application.ex` for a rundown of children processes involved
+  - `omg_child_chain_rpc` - an HTTP-RPC server being the gateway to `omg_child_chain`
   - `omg_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
   - `omg_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
-  - `omg_child_chain_rpc` - an HTTP-RPC server being the gateway to `omg_child_chain`
   - `omg_performance` - performance tester for the child chain server
+  - `omg_status` - application monitoring facilities
+  - `omg_utils` - various non-omg-specific shared code
   - `omg_watcher` - the [Watcher](#watcher)
+  - `omg_watcher_rpc` - an HTTP-RPC server being the gateway to `omg_watcher`
+  - `xomg_tasks` - `Mix.Task` implementations for our `mix <...>` commands
 
 See [application architecture](docs/architecture.md) for more details.
 
