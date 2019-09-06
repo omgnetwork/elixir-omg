@@ -103,6 +103,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
   defp pull_client_alarm(n, match, fnn) do
     endpoint_call_result = fnn.()
     match = Map.put_new(match, "version", Map.get(endpoint_call_result, "version"))
+    match = Map.put_new(match, "service_name", Map.get(endpoint_call_result, "service_name"))
 
     case endpoint_call_result do
       ^match ->
