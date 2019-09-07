@@ -487,6 +487,8 @@ workflows:
       - build
       - integration_tests:
           requires: [build]
+      - barebuild:
+          requires: [build]
   build-deploy:
     jobs:
       - build
@@ -497,7 +499,6 @@ workflows:
             branches:
               only:
                 - master
-      - barebuild
       - coveralls_merge:
           requires:
             - child_chain_coveralls_and_integration_tests
