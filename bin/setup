@@ -82,9 +82,9 @@ install_deps() {
       install_linux_solc
       install_linux_geth
       if [ -z "$CIRLCECI" ]; then
-        echo "Skip Postgres setup, because CircleCI."
-      else
         install_linux_postgres
+      else
+        echo "Skip Postgres setup, because CircleCI."
       fi
       ;;
     Darwin*)
