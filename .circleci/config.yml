@@ -492,7 +492,6 @@ workflows:
   build-deploy:
     jobs:
       - build
-      - barebuild
       - notify_services:
           requires:
             - build_and_deploy_development
