@@ -36,6 +36,9 @@ defmodule Mix.Tasks.Xomg.Watcher.Start do
   end
 
   defp start_watcher(args) do
+    _ = :code.purge(OMG.ChildChainRPC)
+    _ = :code.delete(OMG.ChildChainRPC)
+
     args
     |> generic_prepare_args()
     |> generic_run([:omg_watcher, :omg_watcher_rpc])
