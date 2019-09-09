@@ -13,6 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.InputPointer do
+  @moduledoc """
+  Dispatching module for the various input pointer types
+  """
   @input_pointer_types_modules Application.fetch_env!(:omg, :input_pointer_types_modules)
 
   def from_db_key({:input_pointer, type_marker, db_value}),

@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# FIXME: should we have this ugly module, or just use Utxo.Position like protocols allow us to?
 defmodule OMG.InputPointer.UtxoPosition do
+  @moduledoc """
+  Represents the UTXO position interpeted as an implementation of an input pointer type
+  """
+
   alias OMG.Utxo
 
   require Utxo

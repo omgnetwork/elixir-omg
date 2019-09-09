@@ -150,10 +150,12 @@ defmodule OMG.State.Transaction.Payment do
     _ -> {:error, :malformed_outputs}
   end
 
-  # FIXME: check if `non_empty?/1` functions on ins/outs are still necessary
-  defp parse_output!(output), do: FungibleMoreVPToken.reconstruct(output)
+  # NOTE: here we predetermine the type of the created output in the creating transaction
+  #       I think this makes sense, but rethink later
+  defp parse_output!(output), do: Output.FungibleMoreVPToken.reconstruct(output)
 
-  # FIXME: worse: we predetermine the input_pointer type, this is most likely bad - how to dispatch here?
+  # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
+  #       most likely one needs to route through generic InputPointer` function that does the dispatch
   defp parse_input!(input_pointer), do: InputPointer.UtxoPosition.reconstruct(input_pointer)
 end
 

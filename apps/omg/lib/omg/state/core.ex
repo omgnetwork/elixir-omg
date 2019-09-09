@@ -178,13 +178,19 @@ defmodule OMG.State.Core do
           list(exitable_utxos)
   def standard_exitable_utxos(utxos_query_result, address) do
     utxos_query_result
-    # FIXME: assumes a particular format of the utxo struct. Maybe this should run through the UtxoSet?
-    |> Stream.map(fn {position, %{output: output}} -> {InputPointer.from_db_key(position), output} end)
-    |> Stream.filter(fn {_, %{owner: owner}} -> owner == address end)
-    # FIXME: this is still utxo pos specific
-    |> Enum.map(fn {Utxo.position(blknum, txindex, oindex), utxo} ->
-      utxo |> Map.put(:blknum, blknum) |> Map.put(:txindex, txindex) |> Map.put(:oindex, oindex)
-    end)
+    |> UtxoSet.init()
+    |> Stream.map(fn utxo_kv -> {utxo_kv, Utxo.get_position(utxo_kv), Utxo.get_owner(utxo_kv)} end)
+    |> Stream.filter(fn {_utxo_kv, _position, owner} -> owner && owner == address end)
+    |> Enum.map(fn {{_, utxo}, position, _owner} -> utxo_to_exitable_utxo_map(utxo, position) end)
+  end
+
+  defp utxo_to_exitable_utxo_map(%Utxo{output: output}, Utxo.position(blknum, txindex, oindex)) do
+    output
+    |> Map.from_struct()
+    |> Map.take([:owner, :currency, :amount])
+    |> Map.put(:blknum, blknum)
+    |> Map.put(:txindex, txindex)
+    |> Map.put(:oindex, oindex)
   end
 
   @doc """

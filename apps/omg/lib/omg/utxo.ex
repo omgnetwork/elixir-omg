@@ -85,4 +85,10 @@ defmodule OMG.Utxo do
 
     struct!(__MODULE__, value)
   end
+
+  def get_position(utxo_kv)
+  def get_position({position(_, _, _) = utxo_pos, _utxo}), do: utxo_pos
+
+  def get_owner(utxo_kv)
+  def get_owner({_input_pointer, %__MODULE__{output: output}}), do: Map.get(output, :owner)
 end
