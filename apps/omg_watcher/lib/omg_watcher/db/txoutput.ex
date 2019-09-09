@@ -65,7 +65,7 @@ defmodule OMG.Watcher.DB.TxOutput do
       join_keys: [child_chain_utxohash: :child_chain_utxohash, root_chain_txhash_event: :root_chain_txhash_event]
     )
 
-    timestamps([type: :utc_datetime])
+    timestamps(type: :utc_datetime)
   end
 
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
@@ -79,10 +79,13 @@ defmodule OMG.Watcher.DB.TxOutput do
   # preload ethevents in a single query as there will not be a large number of them
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
-    DB.Repo.one from txoutput in __MODULE__,
-                preload: [:ethevents],
-                left_join: ethevent in assoc(txoutput, :ethevents),
-                where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
+    DB.Repo.one(
+      from(txoutput in __MODULE__,
+        preload: [:ethevents],
+        left_join: ethevent in assoc(txoutput, :ethevents),
+        where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
+      )
+    )
   end
 
   def get_utxos(owner) do
@@ -91,14 +94,15 @@ defmodule OMG.Watcher.DB.TxOutput do
         txoutput in __MODULE__,
         preload: [:ethevents],
         left_join: ethevent in assoc(txoutput, :ethevents),
-        where: txoutput.owner == ^owner
-               and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
-                 NOT EXISTS (SELECT 1
-                             FROM ethevents_txoutputs AS etfrag
-                             JOIN ethevents AS efrag ON
-                                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                                      AND efrag.event_type IN (?)
-                                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+        where:
+          txoutput.owner == ^owner and
+            is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+ NOT EXISTS (SELECT 1
+             FROM ethevents_txoutputs AS etfrag
+             JOIN ethevents AS efrag ON
+                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
+                      AND efrag.event_type IN (?)
+                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
         order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
       )
 
@@ -112,12 +116,12 @@ defmodule OMG.Watcher.DB.TxOutput do
         txoutput in __MODULE__,
         left_join: ethevent in assoc(txoutput, :ethevents),
         where: txoutput.owner == ^owner and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
-                 NOT EXISTS (SELECT 1
-                             FROM ethevents_txoutputs AS etfrag
-                             JOIN ethevents AS efrag ON
-                                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                                      AND efrag.event_type IN (?)
-                                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+ NOT EXISTS (SELECT 1
+             FROM ethevents_txoutputs AS etfrag
+             JOIN ethevents AS efrag ON
+                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
+                      AND efrag.event_type IN (?)
+                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
         group_by: txoutput.currency,
         select: {txoutput.currency, sum(txoutput.amount)}
       )

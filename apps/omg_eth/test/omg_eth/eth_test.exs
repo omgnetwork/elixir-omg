@@ -58,7 +58,8 @@ defmodule OMG.EthTest do
   end
 
   @tag fixtures: [:contract]
-  test "binary/integer arugments tx and integer argument call returning a binary/integer tuple", %{contract: contract} do
+  test "binary/integer arugments tx and integer argument call returning a binary/integer tuple",
+       %{contract: contract} do
     assert {:ok, _} =
              Eth.RootChain.submit_block(
                <<234::256>>,
@@ -91,7 +92,14 @@ defmodule OMG.EthTest do
 
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr, currency: @eth, eth_height: height}]} ==
-             Eth.RootChain.get_deposits(1, height, contract.contract_addr)
+    authority_addr = contract.authority_addr
+    deposits = Eth.RootChain.get_deposits(1, height, contract.contract_addr)
+
+    assert {:ok, [%{amount: 1, blknum: 1, owner: ^authority_addr, currency: @eth, eth_height: height, log_index: 0}]} =
+             deposits
+
+    {:ok, [%{} = deposit]} = deposits
+
+    assert Map.has_key?(deposit, :root_chain_txhash)
   end
 end

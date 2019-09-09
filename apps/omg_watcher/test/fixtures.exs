@@ -206,8 +206,22 @@ defmodule OMG.Watcher.Fixtures do
     :ok = phoenix_ecto_sandbox
 
     deposits = [
-      %{root_chain_txhash: Crypto.hash(<<1000::256>>), log_index: 0, owner: alice.addr, currency: @eth, amount: 333, blknum: 1},
-      %{root_chain_txhash: Crypto.hash(<<2000::256>>), log_index: 0, owner: bob.addr, currency: @eth, amount: 100, blknum: 2}
+      %{
+        root_chain_txhash: Crypto.hash(<<1000::256>>),
+        log_index: 0,
+        owner: alice.addr,
+        currency: @eth,
+        amount: 333,
+        blknum: 1
+      },
+      %{
+        root_chain_txhash: Crypto.hash(<<2000::256>>),
+        log_index: 0,
+        owner: bob.addr,
+        currency: @eth,
+        amount: 100,
+        blknum: 2
+      }
     ]
 
     # Initial data depending tests can reuse

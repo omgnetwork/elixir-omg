@@ -34,8 +34,8 @@ defmodule OMG.Watcher.DB.Repo.Migrations.AlterTxOutputsTableAddRootchainTxnHashD
     create unique_index(:ethevents, :root_chain_txhash_event)
 
     # how to do this in ecto correctly? do it manually
-    execute("ALTER TABLE ethevents ALTER COLUMN inserted_at SET DEFAULT (now() at time zone 'utc');");
-    execute("ALTER TABLE ethevents ALTER COLUMN updated_at SET DEFAULT (now() at time zone 'utc');");
+    execute("ALTER TABLE ethevents ALTER COLUMN inserted_at SET DEFAULT (now() at time zone 'utc');")
+    execute("ALTER TABLE ethevents ALTER COLUMN updated_at SET DEFAULT (now() at time zone 'utc');")
 
     alter table(:txoutputs) do
       add(:child_chain_utxohash, :binary)
@@ -66,19 +66,22 @@ defmodule OMG.Watcher.DB.Repo.Migrations.AlterTxOutputsTableAddRootchainTxnHashD
     end
 
     # how to do this in ecto correctly? do it manually
-    execute("ALTER TABLE txoutputs ALTER COLUMN inserted_at SET DEFAULT (now() at time zone 'utc');");
-    execute("ALTER TABLE txoutputs ALTER COLUMN updated_at SET DEFAULT (now() at time zone 'utc');");
+    execute("ALTER TABLE txoutputs ALTER COLUMN inserted_at SET DEFAULT (now() at time zone 'utc');")
+    execute("ALTER TABLE txoutputs ALTER COLUMN updated_at SET DEFAULT (now() at time zone 'utc');")
 
     create table(:ethevents_txoutputs, primary_key: false) do
-      add(:root_chain_txhash_event, references(:ethevents, column: :root_chain_txhash_event, type: :binary, on_delete: :restrict), primary_key: true)
-      add(:child_chain_utxohash, references(:txoutputs, column: :child_chain_utxohash, type: :binary, on_delete: :restrict), primary_key: true)
+      add(:root_chain_txhash_event,
+        references(:ethevents, column: :root_chain_txhash_event, type: :binary, on_delete: :restrict),
+                   primary_key: true)
+      add(:child_chain_utxohash, references(:txoutputs, column: :child_chain_utxohash, type: :binary,
+          on_delete: :restrict), primary_key: true)
 
       timestamps([type: :utc_datetime])
     end
 
     # how to do this in ecto correctly? do it manually
-    execute("ALTER TABLE ethevents_txoutputs ALTER COLUMN inserted_at SET DEFAULT (now() at time zone 'utc');");
-    execute("ALTER TABLE ethevents_txoutputs ALTER COLUMN updated_at SET DEFAULT (now() at time zone 'utc');");
+    execute("ALTER TABLE ethevents_txoutputs ALTER COLUMN inserted_at SET DEFAULT (now() at time zone 'utc');")
+    execute("ALTER TABLE ethevents_txoutputs ALTER COLUMN updated_at SET DEFAULT (now() at time zone 'utc');")
 
     create index(:ethevents_txoutputs, :root_chain_txhash_event)
     create index(:ethevents_txoutputs, :child_chain_utxohash)
