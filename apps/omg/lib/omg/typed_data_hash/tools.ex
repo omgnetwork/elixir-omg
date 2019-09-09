@@ -19,11 +19,12 @@ defmodule OMG.TypedDataHash.Tools do
   """
 
   alias OMG.Crypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TypedDataHash.Types
   alias OMG.Utxo
 
   require Utxo
+  require OMG.Transaction.Payment
 
   @type eip712_domain_t() :: %{
           name: binary(),
@@ -76,8 +77,6 @@ defmodule OMG.TypedDataHash.Tools do
           Crypto.hash_t()
         ) :: Crypto.hash_t()
   def hash_transaction(inputs, outputs, metadata, empty_input_hash, empty_output_hash) do
-    require Transaction.Payment
-
     input_hashes =
       inputs
       |> Stream.map(&hash_input/1)

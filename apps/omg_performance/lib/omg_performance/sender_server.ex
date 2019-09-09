@@ -24,7 +24,7 @@ defmodule OMG.Performance.SenderServer do
   use OMG.Utils.LoggerExt
 
   alias OMG.DevCrypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
@@ -154,7 +154,7 @@ defmodule OMG.Performance.SenderServer do
             "[#{inspect(seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}"
           )
 
-        [%{amount: amount} | _] = Transaction.get_outputs(tx)
+        [%{amount: amount} | _] = OMG.Transaction.Extract.get_outputs(tx)
         {:ok, blknum, txindex, amount}
     end
   end

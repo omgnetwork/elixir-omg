@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defprotocol OMG.State.Transaction.Protocol do
+defprotocol OMG.Transaction.Protocol do
   @moduledoc """
   Should be implemented for any type of transaction processed in the system
   """
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction
 
   @doc """
   Transforms structured data into RLP-structured (encodable) list of fields

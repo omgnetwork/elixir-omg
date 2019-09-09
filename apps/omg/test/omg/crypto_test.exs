@@ -21,7 +21,7 @@ defmodule OMG.CryptoTest do
 
   alias OMG.Crypto
   alias OMG.DevCrypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TypedDataHash
 
   test "sha3 library usage, address generation" do

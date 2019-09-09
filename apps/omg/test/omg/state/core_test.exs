@@ -23,7 +23,7 @@ defmodule OMG.State.CoreTest do
   alias OMG.Block
   alias OMG.Fees
   alias OMG.State.Core
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Utxo
 
   import OMG.TestHelper
@@ -479,8 +479,8 @@ defmodule OMG.State.CoreTest do
                202, 5, 124, 17, 118, 188, 78, 29, 237>>
 
     # Check that contents of the block can be recovered again to original txs
-    assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)
-    assert {:ok, ^recovered_tx_2} = Transaction.Recovered.recover_from(block_tx2)
+    assert {:ok, ^recovered_tx_1} = OMG.Transaction.Recovered.recover_from(block_tx1)
+    assert {:ok, ^recovered_tx_2} = OMG.Transaction.Recovered.recover_from(block_tx2)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -540,7 +540,8 @@ defmodule OMG.State.CoreTest do
   test "exits utxos given in various forms", %{alice: alice, state_alice_deposit: state} do
     # this test checks whether all ways of calling `exit_utxos/1` work on par
     # this is _very important_ to support all clients of that functions, whose inputs come in different flavors
-    %Transaction.Recovered{tx_hash: tx_hash} = tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+    %OMG.Transaction.Recovered{tx_hash: tx_hash} =
+      tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
     state =
       state
@@ -603,8 +604,8 @@ defmodule OMG.State.CoreTest do
 
     state = state |> Core.exec(tx, :ignore) |> success?
 
-    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
-    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.raw_txhash(tx), output_index: 4}]
+    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: OMG.Transaction.Extract.raw_txbytes(tx)}}]
+    utxo_pos_exits_piggyback = [%{tx_hash: OMG.Transaction.Extract.raw_txhash(tx), output_index: 4}]
     expected_position = Utxo.position(@blknum1, 0, 0)
 
     assert {:ok, {[], {[], _}}, ^state} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
@@ -630,7 +631,7 @@ defmodule OMG.State.CoreTest do
 
     tx = create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 3}, {alice, 3}])
 
-    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
+    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: OMG.Transaction.Extract.raw_txbytes(tx)}}]
     expected_position = Utxo.position(@blknum1, 0, 0)
 
     assert {:ok, {[_ | _], {[^expected_position], _}}, state_after_exit} =

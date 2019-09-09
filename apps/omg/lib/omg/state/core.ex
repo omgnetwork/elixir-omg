@@ -22,10 +22,8 @@ defmodule OMG.State.Core do
 
   alias OMG.Block
   alias OMG.Crypto
-  alias OMG.Fees
+
   alias OMG.State.Core
-  alias OMG.State.Transaction
-  alias OMG.State.Transaction.Validator
   alias OMG.State.UtxoSet
   alias OMG.Utxo
 
@@ -36,7 +34,7 @@ defmodule OMG.State.Core do
           height: non_neg_integer(),
           last_deposit_child_blknum: non_neg_integer(),
           utxos: utxos,
-          pending_txs: list(Transaction.Recovered.t()),
+          pending_txs: list(OMG.Transaction.Recovered.t()),
           tx_index: non_neg_integer(),
           # NOTE: that this list is being build reverse, in some cases it may matter. It is reversed just before
           #       it leaves this module in `form_block/3`
@@ -71,7 +69,7 @@ defmodule OMG.State.Core do
 
   @type deposit_event :: %{deposit: %{amount: non_neg_integer, owner: Crypto.address_t()}}
   @type tx_event :: %{
-          tx: Transaction.Recovered.t(),
+          tx: OMG.Transaction.Recovered.t(),
           child_blknum: pos_integer,
           child_txindex: pos_integer,
           child_block_hash: Block.block_hash_t()
@@ -139,31 +137,6 @@ defmodule OMG.State.Core do
         _child_block_interval
       ) do
     {:error, :top_block_number_not_found}
-  end
-
-  @doc """
-  Includes the transaction into the state when valid, rejects otherwise.
-
-  NOTE that tx is assumed to have distinct inputs, that should be checked in prior state-less validation
-
-  See docs/transaction_validation.md for more information about stateful and stateless validation.
-  """
-  @spec exec(state :: t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
-          {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
-          | {{:error, Validator.exec_error()}, t()}
-  def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
-    tx_hash = Transaction.raw_txhash(tx)
-
-    case Validator.can_apply_spend(state, tx, fees) do
-      true ->
-        {:ok, {tx_hash, state.height, state.tx_index},
-         state
-         |> apply_spend(tx)
-         |> add_pending_tx(tx)}
-
-      {{:error, _reason}, _state} = error ->
-        error
-    end
   end
 
   @doc """
@@ -271,8 +244,8 @@ defmodule OMG.State.Core do
   def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do
     in_flight_txs
     |> Enum.flat_map(fn %{call_data: %{in_flight_tx: tx_bytes}} ->
-      {:ok, tx} = Transaction.decode(tx_bytes)
-      Transaction.get_inputs(tx)
+      {:ok, tx} = OMG.Transaction.Decoding.decode(tx_bytes)
+      OMG.Transaction.Extract.get_inputs(tx)
     end)
     |> exit_utxos(state)
   end
@@ -321,25 +294,28 @@ defmodule OMG.State.Core do
     {height, is_beginning}
   end
 
-  defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, %Transaction.Recovered{} = new_tx) do
-    %Core{
-      state
-      | tx_index: tx_index + 1,
-        pending_txs: [new_tx | pending_txs]
-    }
-  end
+  # defp add_pending_tx(
+  #        %Core{pending_txs: pending_txs, tx_index: tx_index} = state,
+  #        %OMG.Transaction.Recovered{} = new_tx
+  #      ) do
+  #   %Core{
+  #     state
+  #     | tx_index: tx_index + 1,
+  #       pending_txs: [new_tx | pending_txs]
+  #   }
+  # end
 
-  defp apply_spend(
-         %Core{height: blknum, tx_index: tx_index, utxos: utxos, utxo_db_updates: db_updates} = state,
-         %Transaction.Recovered{signed_tx: %{raw_tx: tx}}
-       ) do
-    {spent_input_pointers, new_utxos_map} = Transaction.Protocol.get_effects(tx, blknum, tx_index)
-    new_utxos = UtxoSet.apply_effects(utxos, spent_input_pointers, new_utxos_map)
-    new_db_updates = UtxoSet.db_updates(spent_input_pointers, new_utxos_map)
-    # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
-    spent_blknum_updates = spent_input_pointers |> Enum.map(&{:put, :spend, {Utxo.Position.to_db_key(&1), blknum}})
-    %Core{state | utxos: new_utxos, utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates}
-  end
+  # defp apply_spend(
+  #        %Core{height: blknum, tx_index: tx_index, utxos: utxos, utxo_db_updates: db_updates} = state,
+  #        %OMG.Transaction.Recovered{signed_tx: %{raw_tx: tx}}
+  #      ) do
+  #   {spent_input_pointers, new_utxos_map} = Transaction.Protocol.get_effects(tx, blknum, tx_index)
+  #   new_utxos = UtxoSet.apply_effects(utxos, spent_input_pointers, new_utxos_map)
+  #   new_db_updates = UtxoSet.db_updates(spent_input_pointers, new_utxos_map)
+  #   # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
+  #   spent_blknum_updates = spent_input_pointers |> Enum.map(&{:put, :spend, {Utxo.Position.to_db_key(&1), blknum}})
+  #   %Core{state | utxos: new_utxos, utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates}
+  # end
 
   defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
     {Utxo.position(blknum, 0, 0), %Utxo{amount: amount, currency: cur, owner: owner}}

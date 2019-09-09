@@ -16,7 +16,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TestHelper
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
@@ -69,13 +69,13 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
 
     assert {:ok, tx} = TypedDataSigned.parse_transaction(params)
 
-    assert [Utxo.position(1000, 0, 1), Utxo.position(3001, 0, 0)] == Transaction.get_inputs(tx)
+    assert [Utxo.position(1000, 0, 1), Utxo.position(3001, 0, 0)] == OMG.Transaction.Extract.get_inputs(tx)
 
     assert [
              %{owner: @alice.addr, currency: @eth, amount: 10},
              %{owner: @alice.addr, currency: @other_token, amount: 300},
              %{owner: @bob.addr, currency: @other_token, amount: 100}
-           ] == Transaction.get_outputs(tx)
+           ] == OMG.Transaction.Extract.get_outputs(tx)
 
     assert nil == tx.metadata
   end

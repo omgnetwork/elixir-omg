@@ -20,7 +20,7 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
   """
 
   alias OMG.Crypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   # mapped by tx_hash
@@ -76,8 +76,8 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
     do: do_new(tx_bytes, index, sig)
 
   defp do_new(tx_bytes, competing_input_index, competing_input_signature) do
-    with {:ok, %Transaction.Payment{} = raw_tx} <- Transaction.decode(tx_bytes) do
-      {Transaction.raw_txhash(raw_tx),
+    with {:ok, %Transaction.Payment{} = raw_tx} <- OMG.Transaction.Decoding.decode(tx_bytes) do
+      {OMG.Transaction.Extract.raw_txhash(raw_tx),
        %__MODULE__{
          tx: %Transaction.Signed{
            raw_tx: raw_tx,

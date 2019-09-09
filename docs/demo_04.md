@@ -15,7 +15,7 @@ alias OMG.Eth
 alias OMG.Crypto
 alias OMG.DevCrypto
 alias OMG.Integration.DepositHelper
-alias OMG.State.Transaction
+alias OMG.Transaction
 alias OMG.TestHelper
 alias OMG.Eth.Encoding
 

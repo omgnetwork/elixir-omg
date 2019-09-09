@@ -18,7 +18,7 @@ defmodule OMG.Integration.DepositHelper do
   """
 
   alias OMG.Eth
-  alias OMG.State.Transaction
+  alias OMG.Transaction
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -27,7 +27,7 @@ defmodule OMG.Integration.DepositHelper do
   def deposit_to_child_chain(to, value, @eth) do
     {:ok, receipt} =
       Transaction.Payment.new([], [{to, @eth, value}])
-      |> Transaction.raw_txbytes()
+      |> OMG.Transaction.Extract.raw_txbytes()
       |> Eth.RootChainHelper.deposit(value, to)
       |> Eth.DevHelpers.transact_sync!()
 
@@ -41,7 +41,7 @@ defmodule OMG.Integration.DepositHelper do
 
     {:ok, receipt} =
       Transaction.Payment.new([], [{to, token_addr, value}])
-      |> Transaction.raw_txbytes()
+      |> OMG.Transaction.Extract.raw_txbytes()
       |> Eth.RootChainHelper.deposit_from(to)
       |> Eth.DevHelpers.transact_sync!()
 

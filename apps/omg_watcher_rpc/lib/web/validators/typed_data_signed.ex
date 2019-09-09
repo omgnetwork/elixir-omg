@@ -17,7 +17,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   Validates `/transaction.submit_typed` request body.
   """
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TypedDataHash.Tools
   alias OMG.Utils.HttpRPC.Validator.Base
   import OMG.Utils.HttpRPC.Validator.Base

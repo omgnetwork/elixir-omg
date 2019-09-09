@@ -19,7 +19,7 @@ defmodule OMG.Watcher.DB.Transaction do
   use Ecto.Schema
   use OMG.Utils.LoggerExt
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.Watcher.DB
@@ -29,7 +29,7 @@ defmodule OMG.Watcher.DB.Transaction do
   import Ecto.Query, only: [from: 2, where: 2, where: 3, select: 3, join: 5, distinct: 2]
 
   @type mined_block() :: %{
-          transactions: [OMG.State.Transaction.Recovered.t()],
+          transactions: [OMG.Transaction.Recovered.t()],
           blknum: pos_integer(),
           blkhash: <<_::256>>,
           timestamp: pos_integer(),
@@ -163,9 +163,9 @@ defmodule OMG.Watcher.DB.Transaction do
     result
   end
 
-  @spec process(Transaction.Recovered.t(), pos_integer(), integer(), list()) :: [list()]
+  @spec process(OMG.Transaction.Recovered.t(), pos_integer(), integer(), list()) :: [list()]
   defp process(
-         %Transaction.Recovered{
+         %OMG.Transaction.Recovered{
            signed_tx: %Transaction.Signed{raw_tx: %Transaction.Payment{metadata: metadata}} = tx,
            signed_tx_bytes: signed_tx_bytes
          },
@@ -173,7 +173,7 @@ defmodule OMG.Watcher.DB.Transaction do
          txindex,
          [tx_list, output_list, input_list]
        ) do
-    tx_hash = Transaction.raw_txhash(tx)
+    tx_hash = OMG.Transaction.Extract.raw_txhash(tx)
 
     [
       [create(block_number, txindex, tx_hash, signed_tx_bytes, metadata) | tx_list],

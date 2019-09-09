@@ -16,7 +16,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @moduledoc false
 
   alias OMG.Block
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
@@ -107,7 +107,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           :incorrect_hash
           | :bad_returned_hash
           | :withholding
-          | Transaction.Recovered.recover_tx_error()
+          | OMG.Transaction.Recovered.recover_tx_error()
 
   @type init_error() :: :not_at_block_beginning
 
@@ -539,7 +539,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     transactions
     |> Enum.reverse()
     |> Enum.reduce_while({:ok, []}, fn tx, {:ok, recovered_so_far} ->
-      case Transaction.Recovered.recover_from(tx) do
+      case OMG.Transaction.Recovered.recover_from(tx) do
         {:ok, recovered} -> {:cont, {:ok, [recovered | recovered_so_far]}}
         other -> {:halt, other}
       end

@@ -51,12 +51,12 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
   @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :bob]
   test "getting exit data returns properly formatted response", %{bob: bob} do
     tx = OMG.TestHelper.create_signed([{1, 0, 0, bob}], @eth, [{bob, 100}])
-    tx_encode = tx |> OMG.State.Transaction.Signed.encode()
+    tx_encode = tx |> OMG.Transaction.Signed.encode()
 
     OMG.DB.multi_update([
       {:put, :utxo,
        {{1000, 0, 0},
-        %{amount: 100, creating_txhash: OMG.State.Transaction.raw_txhash(tx), currency: @eth, owner: bob.addr}}},
+        %{amount: 100, creating_txhash: OMG.Transaction.Extract.raw_txhash(tx), currency: @eth, owner: bob.addr}}},
       {:put, :block, %{number: 1000, hash: 0, transactions: [tx_encode]}}
     ])
 

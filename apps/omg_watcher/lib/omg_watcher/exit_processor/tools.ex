@@ -18,7 +18,7 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   """
 
   alias OMG.Crypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TypedDataHash
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.DoubleSpend
@@ -29,7 +29,7 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   @spec double_spends_from_known_tx(list({Utxo.Position.t(), non_neg_integer()}), KnownTx.t()) ::
           list(DoubleSpend.t())
   def double_spends_from_known_tx(inputs, %KnownTx{signed_tx: signed} = known_tx) when is_list(inputs) do
-    known_spent_inputs = signed |> Transaction.get_inputs() |> Enum.with_index()
+    known_spent_inputs = signed |> OMG.Transaction.Extract.get_inputs() |> Enum.with_index()
 
     # NOTE: possibly ineffective if Transaction.Payment.max_inputs >> 4, BUT we're calling it seldom so no biggie
     for {left, left_index} <- inputs,
@@ -77,10 +77,10 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
     sig
   end
 
-  def txs_different(tx1, tx2), do: Transaction.raw_txhash(tx1) != Transaction.raw_txhash(tx2)
+  def txs_different(tx1, tx2), do: OMG.Transaction.Extract.raw_txhash(tx1) != OMG.Transaction.Extract.raw_txhash(tx2)
 
   def get_ife(ife_tx, ifes) do
-    case ifes[Transaction.raw_txhash(ife_tx)] do
+    case ifes[OMG.Transaction.Extract.raw_txhash(ife_tx)] do
       nil -> {:error, :ife_not_known_for_tx}
       value -> {:ok, value}
     end

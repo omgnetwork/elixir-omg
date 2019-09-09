@@ -20,13 +20,8 @@ defmodule OMG.State do
   alias OMG.Block
   alias OMG.DB
   alias OMG.Eth
-  alias OMG.Fees
   alias OMG.State.Core
-  alias OMG.State.Transaction
-  alias OMG.State.Transaction.Validator
   alias OMG.Utxo
-
-  use GenServer
 
   use OMG.Utils.LoggerExt
 
@@ -38,11 +33,8 @@ defmodule OMG.State do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @spec exec(tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
-          {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}}
-          | {:error, exec_error()}
-  def exec(tx, input_fees) do
-    GenServer.call(__MODULE__, {:exec, tx, input_fees})
+  def transaction_requirements() do
+    GenServer.call(__MODULE__, :transaction_requirements)
   end
 
   def form_block do
@@ -130,16 +122,11 @@ defmodule OMG.State do
   end
 
   @doc """
-  Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
+    Delivers required data for transaction processing
   """
-  def handle_call({:exec, tx, fees}, _from, state) do
-    case Core.exec(state, tx, fees) do
-      {:ok, tx_result, new_state} ->
-        {:reply, {:ok, tx_result}, new_state}
-
-      {tx_result, new_state} ->
-        {:reply, tx_result, new_state}
-    end
+  def handle_call(:transaction_requirements, _from, state) do
+    %{utxos: utxos, tx_index: tx_index, heght: height} = state
+    {:reply, {:ok, utxos, tx_index, height}, state}
   end
 
   @doc """

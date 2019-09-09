@@ -18,13 +18,13 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   use OMG.Fixtures
   use OMG.Watcher.Fixtures
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TestHelper, as: Test
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
-  require OMG.State.Transaction.Payment
+  require OMG.Transaction.Payment
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @other_token <<127::160>>
@@ -721,7 +721,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns correctly formed transaction, identical with the verbose form", %{alice: alice, bob: bob} do
-      alias OMG.State.Transaction
+      alias OMG.Transaction
 
       assert %{
                "result" => "complete",
@@ -752,13 +752,13 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
           from_hex!(verbose_metadata)
         )
 
-      assert tx_hex == verbose_tx |> Transaction.raw_txbytes() |> Encoding.to_hex()
+      assert tx_hex == verbose_tx |> OMG.Transaction.Extract.raw_txbytes() |> Encoding.to_hex()
       assert sign_hash_hex == verbose_tx |> OMG.TypedDataHash.hash_struct() |> Encoding.to_hex()
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns typed data in the form of request of typedDataSign", %{alice: alice, bob: bob} do
-      alias OMG.State.Transaction
+      alias OMG.Transaction
 
       metadata_hex = Encoding.to_hex(<<123::256>>)
 
@@ -877,7 +877,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                )
 
-      assert OMG.State.Transaction.Payment.max_inputs() == length(transaction["inputs"])
+      assert OMG.Transaction.Payment.max_inputs() == length(transaction["inputs"])
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
@@ -1134,18 +1134,18 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     defp make_payments(blknum, spender, txs_bytes, blocks_inserter) when is_list(txs_bytes) do
       alias OMG.DevCrypto
-      alias OMG.State.Transaction
+      alias OMG.Transaction
 
       recovered_txs =
         txs_bytes
         |> Enum.map(fn "0x" <> tx ->
-          raw_tx = tx |> Base.decode16!(case: :lower) |> Transaction.decode!()
-          n_inputs = raw_tx |> Transaction.get_inputs() |> length
+          raw_tx = tx |> Base.decode16!(case: :lower) |> OMG.Transaction.Decoding.decode!()
+          n_inputs = raw_tx |> OMG.Transaction.Extract.get_inputs() |> length
 
           raw_tx
           |> DevCrypto.sign(List.duplicate(spender.priv, n_inputs))
           |> Transaction.Signed.encode()
-          |> Transaction.Recovered.recover_from!()
+          |> OMG.Transaction.Recovered.recover_from!()
         end)
 
       [{blknum, recovered_txs}] |> blocks_inserter.()

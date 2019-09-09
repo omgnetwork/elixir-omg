@@ -23,7 +23,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   use OMG.DB.LevelDBCase, async: true
 
   alias OMG.DevCrypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.Core
 
@@ -53,7 +53,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
       Transaction.Payment.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
     ]
 
-    [txbytes1, txbytes2] = transactions |> Enum.map(&Transaction.raw_txbytes/1)
+    [txbytes1, txbytes2] = transactions |> Enum.map(&OMG.Transaction.Extract.raw_txbytes/1)
 
     exits =
       {[
@@ -129,14 +129,14 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   test "persist new challenges, responses and piggybacks",
        %{processor_empty: processor, alice: alice, db_pid: db_pid} do
     tx = Transaction.Payment.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
-    hash = Transaction.raw_txhash(tx)
+    hash = OMG.Transaction.Extract.raw_txhash(tx)
     competing_tx = Transaction.Payment.new([{2, 1, 0}, {1, 0, 0}], [{alice.addr, @eth, 2}, {alice.addr, @eth, 1}])
 
     challenge = %{
       tx_hash: hash,
       competitor_position: Utxo.Position.encode(@utxo_pos2),
       call_data: %{
-        competing_tx: Transaction.raw_txbytes(competing_tx),
+        competing_tx: OMG.Transaction.Extract.raw_txbytes(competing_tx),
         competing_tx_input_index: 0,
         competing_tx_sig: @zero_sig
       }
@@ -158,7 +158,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   test "persist ife finalizations",
        %{processor_empty: processor, alice: alice, db_pid: db_pid} do
     tx = Transaction.Payment.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
-    hash = Transaction.raw_txhash(tx)
+    hash = OMG.Transaction.Extract.raw_txhash(tx)
 
     piggybacks1 = [%{tx_hash: hash, output_index: 0}, %{tx_hash: hash, output_index: 4}]
     piggybacks2 = [%{tx_hash: hash, output_index: 5}]
@@ -212,7 +212,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   defp persist_new_ifes(processor, txs, priv_keys, statuses \\ nil, db_pid) do
     # TODO: dry against machinery in CoreTest, after other TODO's settle down (`deffixture in_flight_exit_events`)
-    encoded_txs = txs |> Enum.map(&Transaction.raw_txbytes/1)
+    encoded_txs = txs |> Enum.map(&OMG.Transaction.Extract.raw_txbytes/1)
 
     sigs =
       txs

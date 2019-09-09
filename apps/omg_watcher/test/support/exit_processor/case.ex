@@ -19,7 +19,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
   use ExUnit.CaseTemplate
 
   alias OMG.Block
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
@@ -53,7 +53,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
 
     contract_ife_statuses = 1..length(transactions) |> Enum.map(fn i -> {i, i} end)
 
-    ife_tx_hashes = transactions |> Enum.map(&Transaction.raw_txhash/1)
+    ife_tx_hashes = transactions |> Enum.map(&OMG.Transaction.Extract.raw_txhash/1)
 
     processor_filled =
       transactions

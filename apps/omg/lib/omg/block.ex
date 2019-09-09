@@ -18,10 +18,12 @@ defmodule OMG.Block do
   """
 
   alias OMG.Crypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction.Recovered
+  alias OMG.Transaction.Signed
 
   @transaction_merkle_tree_height 16
   @type block_hash_t() :: <<_::256>>
+  @default_leaf <<0>> |> List.duplicate(32) |> Enum.join() |> Crypto.hash()
 
   defstruct [:transactions, :hash, :number]
 
@@ -41,7 +43,7 @@ defmodule OMG.Block do
   Returns a Block from enumberable of transactions, at a certain child block number, along with a calculated merkle
   root hash
   """
-  @spec hashed_txs_at(list(Transaction.Recovered.t()), non_neg_integer()) :: t()
+  @spec hashed_txs_at(list(Recovered.t()), non_neg_integer()) :: t()
   def hashed_txs_at(txs, blknum) do
     {txs_bytes, hashed_txs} =
       txs
@@ -76,7 +78,7 @@ defmodule OMG.Block do
   @doc """
   Calculates inclusion proof for the transaction in the block
   """
-  @spec inclusion_proof(t() | list(Transaction.Signed.tx_bytes()), non_neg_integer()) :: binary()
+  @spec inclusion_proof(t() | list(Signed.tx_bytes()), non_neg_integer()) :: binary()
   def inclusion_proof(transactions, txindex) when is_list(transactions) do
     {_, hashed_txs} =
       transactions
@@ -91,13 +93,12 @@ defmodule OMG.Block do
 
   # extracts the necessary data from a single transaction to include in a block and merkle hash
   # add more clauses to form blocks from other forms of transactions
-  defp get_data_per_tx(%Transaction.Recovered{tx_hash: hash, signed_tx_bytes: bytes}) do
+  defp get_data_per_tx(%Recovered{tx_hash: hash, signed_tx_bytes: bytes}) do
     {bytes, hash}
   end
 
-  defp to_recovered_tx(txbytes), do: Transaction.Recovered.recover_from!(txbytes)
+  defp to_recovered_tx(txbytes), do: Recovered.recover_from!(txbytes)
 
-  @default_leaf <<0>> |> List.duplicate(32) |> Enum.join() |> Crypto.hash()
   # Creates a Merkle proof that transaction under a given transaction index
   # is included in block consisting of hashed transactions
   @spec create_tx_proof(nonempty_list(binary()), non_neg_integer()) :: binary()

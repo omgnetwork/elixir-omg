@@ -26,7 +26,7 @@ defmodule OMG.TypedDataHashTest do
   use ExUnit.Case, async: true
 
   alias OMG.Crypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TypedDataHash
   alias OMG.TypedDataHash.Tools
   alias OMG.Utxo

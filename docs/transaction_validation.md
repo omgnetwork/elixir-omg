@@ -8,12 +8,12 @@ This document presents current way of stateless and stateful validation of
 
 #### Stateless validation
 
-1. Decoding of encoded singed transaction using `OMG.State.Transaction.Signed.decode` method
+1. Decoding of encoded singed transaction using `OMG.Transaction.Signed.decode` method
     * Decoding using `ExRLP.decode` method and if fail then `{:error, :malformed_transaction_rlp}`
     * Decoding the raw structure of RLP items and if fail then `{:error, :malformed_transaction}`
     * Checking signatures lengths and if fail then `{:error, :bad_signature_length}`
     * Checking addresses/inputs/outputs/metadata and if fail then `{:error, :malformed_address}` / `{:error, :malformed_inputs}` / `{:error, :malformed_outputs}` / `{:error, :malformed_metadata}` respectively
-2. Checking signed_tx using `OMG.State.Transaction.Recovered.recover_from`
+2. Checking signed_tx using `OMG.Transaction.Recovered.recover_from`
     * if transaction have duplicated inputs then `{:error, :duplicate_inputs}`
     * if transaction's inputs intersperse with empty ones then `{:error, :inputs_contain_gaps}`
     * if transaction's outputs intersperse with empty ones then `{:error, :outputs_contain_gaps}`

@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Transaction.Recovered do
+defmodule OMG.Transaction.Recovered do
   @moduledoc """
-  Representation of a signed transaction, with addresses recovered from signatures (from `OMG.State.Transaction.Signed`)
+  Representation of a signed transaction, with addresses recovered from signatures (from `OMG.Transaction.Signed`)
   Intent is to allow concurrent processing of signatures outside of serial processing in `OMG.State`.
 
-  `Transaction.Recovered` represents a transaction that can be sent to `OMG.State.exec/1`
+  `OMG.Transaction.Recovered` represents a transaction that can be sent to `OMG.State.exec/1`
   """
 
-  alias OMG.State.Transaction
-  alias OMG.State.Transaction.OutputPredicateProtocol
+  alias OMG.Transaction
+  alias OMG.Transaction.OutputPredicateProtocol
   alias OMG.Utxo
 
   require Utxo
@@ -54,7 +54,7 @@ defmodule OMG.State.Transaction.Recovered do
 
    See docs/transaction_validation.md for more information about stateful and stateless validation.
   """
-  @spec recover_from(binary) :: {:ok, Transaction.Recovered.t()} | {:error, recover_tx_error()}
+  @spec recover_from(binary) :: {:ok, OMG.Transaction.Recovered.t()} | {:error, recover_tx_error()}
   def recover_from(encoded_signed_tx) do
     with {:ok, signed_tx} <- Transaction.Signed.decode(encoded_signed_tx),
          true <- valid?(signed_tx),
@@ -64,9 +64,9 @@ defmodule OMG.State.Transaction.Recovered do
   @doc """
   Throwing version of `recover_from/1`
   """
-  @spec recover_from!(binary) :: Transaction.Recovered.t()
+  @spec recover_from!(binary) :: OMG.Transaction.Recovered.t()
   def recover_from!(encoded_signed_tx) do
-    {:ok, recovered} = Transaction.Recovered.recover_from(encoded_signed_tx)
+    {:ok, recovered} = OMG.Transaction.Recovered.recover_from(encoded_signed_tx)
     recovered
   end
 
@@ -88,7 +88,7 @@ defmodule OMG.State.Transaction.Recovered do
   Calls into the particular output predicate protocols' code and into transaction protocol
   """
   @spec can_apply?(t(), list(Utxo.t())) :: {:ok, map()} | {:error, :unauthorized_spent | atom}
-  def can_apply?(%Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}} = tx, input_utxos) do
+  def can_apply?(%OMG.Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}} = tx, input_utxos) do
     with :ok <- authorized?(tx, input_utxos),
          do: Transaction.Protocol.can_apply?(raw_tx, input_utxos)
   end
@@ -99,7 +99,7 @@ defmodule OMG.State.Transaction.Recovered do
          do:
            {:ok,
             %__MODULE__{
-              tx_hash: Transaction.raw_txhash(signed_tx),
+              tx_hash: OMG.Transaction.Extract.raw_txhash(signed_tx),
               witnesses: witnesses,
               signed_tx: signed_tx,
               signed_tx_bytes: signed_tx_bytes
@@ -113,7 +113,7 @@ defmodule OMG.State.Transaction.Recovered do
   end
 
   defp generic_valid?(%Transaction.Signed{raw_tx: raw_tx}) do
-    inputs = Transaction.get_inputs(raw_tx)
+    inputs = OMG.Transaction.Extract.get_inputs(raw_tx)
 
     with true <- no_duplicate_inputs?(inputs) || {:error, :duplicate_inputs},
          do: true

@@ -76,7 +76,7 @@ defmodule OMG.State.PropTest.Transaction do
   end
 
   def impl(tr, fee_map),
-    do: OMG.State.PropTest.StateCoreGS.exec(create(tr), create_fee_map(fee_map))
+    do: OMG.PropTest.StateCoreGS.exec(create(tr), create_fee_map(fee_map))
 
   def args(%{model: %{history: history}}) do
     {unspent, _spent} = Helper.get_utxos(history)

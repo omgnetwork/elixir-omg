@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Watcher.API
   alias OMG.WatcherRPC.Web.Validator
 
@@ -80,7 +80,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
 
   # Provides extra validation (recover_from) and passes transaction to API layer
   defp submit_tx(txbytes, conn) do
-    with {:ok, %Transaction.Recovered{signed_tx: signed_tx}} <- Transaction.Recovered.recover_from(txbytes) do
+    with {:ok, %OMG.Transaction.Recovered{signed_tx: signed_tx}} <- OMG.Transaction.Recovered.recover_from(txbytes) do
       API.Transaction.submit(signed_tx)
       |> api_response(conn, :submission)
     end

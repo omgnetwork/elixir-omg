@@ -234,7 +234,7 @@
 - fix: alarms raised in the appropriate application and passed as param, removed supervision tree [\#563](https://github.com/omisego/elixir-omg/pull/563) ([InoMurko](https://github.com/InoMurko))
 - Omg 430 fix the annoying non failing error messages in integration tests [\#562](https://github.com/omisego/elixir-omg/pull/562) ([pthomalla](https://github.com/pthomalla))
 - fix: allow dual-syncs of geth and watcher [\#554](https://github.com/omisego/elixir-omg/pull/554) ([pdobacz](https://github.com/pdobacz))
-- fix: make spender getting not use Transaction.Recovered.recover\_from [\#553](https://github.com/omisego/elixir-omg/pull/553) ([pdobacz](https://github.com/pdobacz))
+- fix: make spender getting not use OMG.Transaction.Recovered.recover\_from [\#553](https://github.com/omisego/elixir-omg/pull/553) ([pdobacz](https://github.com/pdobacz))
 - \[OMG-403\] transaction getters should filter out empty values [\#552](https://github.com/omisego/elixir-omg/pull/552) ([pnowosie](https://github.com/pnowosie))
 - \[Omg 442\] transaction.create: making empty transaction incorrect [\#548](https://github.com/omisego/elixir-omg/pull/548) ([pnowosie](https://github.com/pnowosie))
 - Omg 189 tidy tx api and tests [\#547](https://github.com/omisego/elixir-omg/pull/547) ([pdobacz](https://github.com/pdobacz))

@@ -17,7 +17,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
   use ExUnit.Case, async: true
   use OMG.Fixtures
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction.Signed
   alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.UtxoExit.Core
@@ -57,7 +57,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
     end
 
     tx_exit = tx_encode.(30)
-    tx_exit_raw_tx_bytes = Transaction.Signed.decode!(tx_exit) |> Transaction.raw_txbytes()
+    tx_exit_raw_tx_bytes = Signed.decode!(tx_exit) |> OMG.Transaction.Extract.raw_txbytes()
 
     position = Utxo.position(3, 0, 1)
     encode_utxo = position |> Utxo.Position.encode()

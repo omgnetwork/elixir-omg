@@ -21,7 +21,7 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
   defstruct [:signed_tx, :utxo_pos]
 
   alias OMG.Block
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.TxAppendix
@@ -45,7 +45,7 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
     blocks
     |> get_all_from()
     # cannot simply `Enum.into` here, because for every position the tx might have been included, we need the oldest
-    |> Enum.group_by(&Transaction.raw_txhash(&1.signed_tx), & &1.utxo_pos)
+    |> Enum.group_by(&OMG.Transaction.Extract.raw_txhash(&1.signed_tx), & &1.utxo_pos)
     |> Enum.into(%{}, fn {txhash, positions} -> {txhash, hd(positions)} end)
   end
 
@@ -70,7 +70,7 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
   @spec group_txs_by_input(Enumerable.t()) :: known_txs_by_input_t
   def group_txs_by_input(all_known_txs) do
     all_known_txs
-    |> Stream.map(&{&1, Transaction.get_inputs(&1.signed_tx)})
+    |> Stream.map(&{&1, OMG.Transaction.Extract.get_inputs(&1.signed_tx)})
     |> Stream.flat_map(fn {known_tx, inputs} -> for input <- inputs, do: {input, known_tx} end)
     |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
   end

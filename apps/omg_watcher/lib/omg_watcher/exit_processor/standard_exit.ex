@@ -26,7 +26,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     defstruct [:exit_id, :txbytes, :input_index, :sig]
 
     alias OMG.Crypto
-    alias OMG.State.Transaction
+    alias OMG.Transaction
 
     @type t() :: %__MODULE__{
             exit_id: pos_integer(),
@@ -37,7 +37,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   end
 
   alias OMG.Block
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -130,7 +130,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
         {:ok, signed_bytes} = Enum.fetch(transactions, txindex)
         Transaction.Signed.decode!(signed_bytes)
       end
-      |> Transaction.raw_txbytes()
+      |> OMG.Transaction.Extract.raw_txbytes()
 
     %ExitProcessor.Request{request | se_exit_id_to_get: exit_id_to_get_by_txbytes}
   end
@@ -160,7 +160,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
        %Challenge{
          exit_id: exit_id,
          input_index: input_index,
-         txbytes: challenging_signed |> Transaction.raw_txbytes(),
+         txbytes: challenging_signed |> OMG.Transaction.Extract.raw_txbytes(),
          sig: find_sig!(challenging_signed, owner)
        }}
     end

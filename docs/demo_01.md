@@ -13,7 +13,7 @@ Run a developer's Child chain server and start IEx REPL with code and config loa
 
 alias OMG.Eth
 alias OMG.DevCrypto
-alias OMG.State.Transaction
+alias OMG.Transaction
 alias OMG.TestHelper
 alias OMG.Integration.DepositHelper
 

@@ -20,7 +20,6 @@ defmodule OMG.Watcher.Event do
   """
   alias OMG.Block
   alias OMG.Crypto
-  alias OMG.State.Transaction
 
   @type byzantine_t ::
           OMG.Watcher.Event.InvalidBlock.t()
@@ -45,7 +44,7 @@ defmodule OMG.Watcher.Event do
     defstruct [:tx, :child_blknum, :child_txindex, :child_block_hash, :submited_at_ethheight]
 
     @type t :: %__MODULE__{
-            tx: Transaction.Recovered.t(),
+            tx: OMG.Transaction.Recovered.t(),
             child_blknum: pos_integer(),
             child_txindex: non_neg_integer(),
             child_block_hash: Block.block_hash_t(),
@@ -61,7 +60,7 @@ defmodule OMG.Watcher.Event do
     defstruct [:tx, :child_blknum, :child_txindex, :child_block_hash, :submited_at_ethheight]
 
     @type t :: %__MODULE__{
-            tx: Transaction.Recovered.t(),
+            tx: OMG.Transaction.Recovered.t(),
             child_blknum: pos_integer(),
             child_txindex: non_neg_integer(),
             child_block_hash: Block.block_hash_t(),

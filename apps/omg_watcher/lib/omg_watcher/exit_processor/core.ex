@@ -31,7 +31,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
 
   alias OMG.Block
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
@@ -44,7 +44,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   import OMG.Watcher.ExitProcessor.Tools
 
   require Utxo
-  require Transaction
 
   use OMG.Utils.LoggerExt
 
@@ -252,7 +251,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.filter(&InFlightExitInfo.should_be_seeked_in_blocks?/1)
-      |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
+      |> Enum.flat_map(&OMG.Transaction.Extract.get_inputs(&1.tx))
       |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
       |> :lists.usort()
 
@@ -275,7 +274,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     standard_exits_pos = StandardExit.exiting_positions(state)
 
     active_ifes = ifes |> Map.values() |> Enum.filter(& &1.is_active)
-    ife_inputs_pos = active_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
+    ife_inputs_pos = active_ifes |> Enum.flat_map(&OMG.Transaction.Extract.get_inputs(&1.tx))
     ife_outputs_pos = active_ifes |> Enum.flat_map(&InFlightExitInfo.get_piggybacked_outputs_positions/1)
 
     (ife_outputs_pos ++ ife_inputs_pos ++ standard_exits_pos)
@@ -308,7 +307,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.flat_map(fn %{tx: tx} = ife ->
-        InFlightExitInfo.get_piggybacked_outputs_positions(ife) ++ Transaction.get_inputs(tx)
+        InFlightExitInfo.get_piggybacked_outputs_positions(ife) ++ OMG.Transaction.Extract.get_inputs(tx)
       end)
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> :lists.usort()
@@ -337,7 +336,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     spends_to_get =
       ifes
       |> Map.values()
-      |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
+      |> Enum.flat_map(&OMG.Transaction.Extract.get_inputs(&1.tx))
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> :lists.usort()
 
@@ -448,7 +447,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec prepare_available_piggyback(InFlightExitInfo.t()) :: list(Event.PiggybackAvailable.t())
   defp prepare_available_piggyback(%InFlightExitInfo{tx: signed_tx} = ife) do
-    outputs = Transaction.get_outputs(signed_tx)
+    outputs = OMG.Transaction.Extract.get_outputs(signed_tx)
     {:ok, input_witnesses} = Transaction.Signed.get_witnesses(signed_tx)
 
     available_inputs =
@@ -468,7 +467,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     else
       [
         %Event.PiggybackAvailable{
-          txbytes: Transaction.raw_txbytes(signed_tx),
+          txbytes: OMG.Transaction.Extract.raw_txbytes(signed_tx),
           available_outputs: available_outputs,
           available_inputs: available_inputs
         }
@@ -491,7 +490,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     %{
       txhash: txhash,
-      txbytes: Transaction.raw_txbytes(tx),
+      txbytes: OMG.Transaction.Extract.raw_txbytes(tx),
       eth_height: eth_height,
       piggybacked_inputs: InFlightExitInfo.piggybacked_inputs(ife_info),
       piggybacked_outputs: InFlightExitInfo.piggybacked_outputs(ife_info)

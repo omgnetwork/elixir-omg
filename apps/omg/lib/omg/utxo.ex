@@ -18,7 +18,7 @@ defmodule OMG.Utxo do
   """
 
   alias OMG.Crypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction
 
   defstruct [:owner, :currency, :amount, :creating_txhash]
 

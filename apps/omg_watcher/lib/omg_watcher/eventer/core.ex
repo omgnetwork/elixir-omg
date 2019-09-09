@@ -17,7 +17,8 @@ defmodule OMG.Watcher.Eventer.Core do
   Functional core of eventer
   """
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction.Extract
+  alias OMG.Transaction.Recovered
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher.Event
@@ -69,7 +70,7 @@ defmodule OMG.Watcher.Eventer.Core do
     get_address_received_events(event_trigger) ++ get_address_spent_events(event_trigger)
   end
 
-  defp get_address_spent_events(%{tx: %Transaction.Recovered{witnesses: witnesses}} = event_trigger) do
+  defp get_address_spent_events(%{tx: %Recovered{witnesses: witnesses}} = event_trigger) do
     witnesses
     |> Map.values()
     # makes sure only spender witnesses are used here. This should fail&crash when other kinds of witnesses go through
@@ -85,7 +86,7 @@ defmodule OMG.Watcher.Eventer.Core do
 
   defp get_address_received_events(%{tx: tx} = event_trigger) do
     tx
-    |> Transaction.get_outputs()
+    |> Extract.get_outputs()
     |> Enum.map(fn %{owner: owner} -> owner end)
     |> Enum.filter(&account_address?/1)
     |> Enum.map(&create_address_received_event(event_trigger, &1))

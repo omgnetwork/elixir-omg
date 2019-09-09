@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Transaction.Witness do
+defmodule OMG.Transaction.Witness do
   @moduledoc """
   Code required to validate and recover raw witnesses (e.g. signatures) goes here.
 

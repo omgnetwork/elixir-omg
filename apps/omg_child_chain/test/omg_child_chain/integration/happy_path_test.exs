@@ -25,7 +25,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
   alias OMG.Integration.DepositHelper
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   require OMG.Utxo
@@ -103,7 +103,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     # try to exit from transaction2's output
     proof = Block.inclusion_proof([tx2], 0)
     encoded_utxo_pos = Utxo.position(spend_child_block2, 0, 0) |> Utxo.Position.encode()
-    raw_txbytes = Transaction.raw_txbytes(raw_tx2)
+    raw_txbytes = OMG.Transaction.Extract.raw_txbytes(raw_tx2)
 
     assert {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
              Eth.RootChainHelper.start_exit(
@@ -142,7 +142,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChainHelper.in_flight_exit(
-        in_flight_tx |> Transaction.raw_txbytes(),
+        in_flight_tx |> OMG.Transaction.Extract.raw_txbytes(),
         get_input_txs([tx, tx]),
         proof <> proof,
         Enum.join(in_flight_tx_sigs),
@@ -164,7 +164,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     {:ok, %{"blknum" => blknum}} = submit_transaction(in_flight_tx2 |> Transaction.Signed.encode())
 
-    in_flight_tx2_rawbytes = in_flight_tx2 |> Transaction.raw_txbytes()
+    in_flight_tx2_rawbytes = in_flight_tx2 |> OMG.Transaction.Extract.raw_txbytes()
 
     # create exit data for tx spending deposit & start in-flight exit
     deposit_tx = OMG.TestHelper.create_signed([], @eth, [{alice, 10}])
@@ -220,7 +220,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
   defp get_input_txs(txs) do
     txs
-    |> Enum.map(&(Transaction.raw_txbytes(&1) |> ExRLP.decode()))
+    |> Enum.map(&(OMG.Transaction.Extract.raw_txbytes(&1) |> ExRLP.decode()))
     |> ExRLP.encode()
   end
 end

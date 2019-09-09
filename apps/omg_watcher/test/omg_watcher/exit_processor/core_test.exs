@@ -19,7 +19,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   use OMG.Watcher.ExitProcessor.Case, async: true
 
   alias OMG.Block
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
@@ -91,15 +91,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{processor_filled: processor, transactions: [tx1, tx2 | _]} do
       assert [
                %{
-                 txbytes: Transaction.raw_txbytes(tx1),
-                 txhash: Transaction.raw_txhash(tx1),
+                 txbytes: OMG.Transaction.Extract.raw_txbytes(tx1),
+                 txhash: OMG.Transaction.Extract.raw_txhash(tx1),
                  eth_height: 1,
                  piggybacked_inputs: [],
                  piggybacked_outputs: []
                },
                %{
-                 txbytes: Transaction.raw_txbytes(tx2),
-                 txhash: Transaction.raw_txhash(tx2),
+                 txbytes: OMG.Transaction.Extract.raw_txbytes(tx2),
+                 txhash: OMG.Transaction.Extract.raw_txhash(tx2),
                  eth_height: 4,
                  piggybacked_inputs: [],
                  piggybacked_outputs: []
@@ -109,7 +109,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     test "reports piggybacked inputs/outputs when getting ifes",
          %{processor_empty: processor, transactions: [tx | _]} do
-      txhash = Transaction.raw_txhash(tx)
+      txhash = OMG.Transaction.Extract.raw_txhash(tx)
       processor = processor |> start_ife_from(tx)
       assert [%{piggybacked_inputs: [], piggybacked_outputs: []}] = Core.get_active_in_flight_exits(processor)
 

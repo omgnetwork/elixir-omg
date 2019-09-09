@@ -30,7 +30,7 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   For the imperative shell, see `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -38,9 +38,8 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.KnownTx
 
-  import OMG.Watcher.ExitProcessor.Tools
-
-  require Transaction.Payment
+  import OMG.Watcher.ExitProcessor.Tools, only: [get_ife: 2]
+  require OMG.Transaction.Payment
 
   use OMG.Utils.LoggerExt
 
@@ -66,7 +65,7 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
 
   @type piggyback_challenge_data_error() ::
           :ife_not_known_for_tx
-          | Transaction.decode_error()
+          | OMG.Transaction.Decoding.decode_error()
           | :no_double_spend_on_particular_piggyback
 
   def get_input_challenge_data(request, state, txbytes, input_index) do
@@ -101,7 +100,7 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   # we need to produce only one event per IFE, with both piggybacks on inputs and outputs
   defp group_by_txbytes(invalid_piggybacks) do
     invalid_piggybacks
-    |> Enum.map(fn {ife, type, materials} -> {Transaction.raw_txbytes(ife.tx), type, materials} end)
+    |> Enum.map(fn {ife, type, materials} -> {OMG.Transaction.Extract.raw_txbytes(ife.tx), type, materials} end)
     |> Enum.group_by(&elem(&1, 0), fn {_, type, materials} -> {type, materials} end)
   end
 
@@ -146,7 +145,7 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   @spec get_piggyback_challenge_data(ExitProcessor.Request.t(), Core.t(), binary(), piggyback_t()) ::
           {:ok, input_challenge_data() | output_challenge_data()} | {:error, piggyback_challenge_data_error()}
   defp get_piggyback_challenge_data(%ExitProcessor.Request{blocks_result: blocks}, state, txbytes, piggyback) do
-    with {:ok, tx} <- Transaction.decode(txbytes),
+    with {:ok, tx} <- OMG.Transaction.Decoding.decode(txbytes),
          {:ok, ife} <- get_ife(tx, state.in_flight_exits) do
       known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
       produce_invalid_piggyback_proof(ife, known_txs_by_input, piggyback)
@@ -187,9 +186,9 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
           input_challenge_data() | output_challenge_data()
   defp prepare_piggyback_challenge_response(ife, {:input, input_index}, proof) do
     %{
-      in_flight_txbytes: Transaction.raw_txbytes(ife.tx),
+      in_flight_txbytes: OMG.Transaction.Extract.raw_txbytes(ife.tx),
       in_flight_input_index: input_index,
-      spending_txbytes: Transaction.raw_txbytes(proof.known_tx.signed_tx),
+      spending_txbytes: OMG.Transaction.Extract.raw_txbytes(proof.known_tx.signed_tx),
       spending_input_index: proof.known_spent_index,
       spending_sig: Enum.at(proof.known_tx.signed_tx.sigs, proof.known_spent_index)
     }
@@ -199,10 +198,10 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
     {_, inclusion_proof} = ife.tx_seen_in_blocks_at
 
     %{
-      in_flight_txbytes: Transaction.raw_txbytes(ife.tx),
+      in_flight_txbytes: OMG.Transaction.Extract.raw_txbytes(ife.tx),
       in_flight_output_pos: proof.utxo_pos,
       in_flight_proof: inclusion_proof,
-      spending_txbytes: Transaction.raw_txbytes(proof.known_tx.signed_tx),
+      spending_txbytes: OMG.Transaction.Extract.raw_txbytes(proof.known_tx.signed_tx),
       spending_input_index: proof.known_spent_index,
       spending_sig: Enum.at(proof.known_tx.signed_tx.sigs, proof.known_spent_index)
     }

@@ -19,9 +19,11 @@ defmodule OMG.TypedDataHash do
   """
 
   alias OMG.Crypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction.Extract
+  alias OMG.Transaction.Payment
+  alias OMG.TypedDataHash.Config
+  alias OMG.TypedDataHash.Tools
   alias OMG.Utxo
-
   require Utxo
 
   @zero_address <<0::160>>
@@ -38,17 +40,17 @@ defmodule OMG.TypedDataHash do
   @doc """
   Computes a hash of encoded transaction as defined in EIP-712
   """
-  @spec hash_struct(Transaction.Payment.t(), Crypto.domain_separator_t()) :: Crypto.hash_t()
-  def hash_struct(%Transaction.Payment{} = raw_tx, domain_separator \\ nil) do
-    domain_separator = domain_separator || __MODULE__.Config.domain_separator_from_config()
+  @spec hash_struct(Payment.t(), Crypto.domain_separator_t()) :: Crypto.hash_t()
+  def hash_struct(%Payment{} = raw_tx, domain_separator \\ nil) do
+    domain_separator = domain_separator || Config.domain_separator_from_config()
     Crypto.hash(@eip_191_prefix <> domain_separator <> hash_transaction(raw_tx))
   end
 
-  @spec hash_transaction(Transaction.Payment.t()) :: Crypto.hash_t()
-  def hash_transaction(%Transaction.Payment{} = raw_tx) do
-    __MODULE__.Tools.hash_transaction(
-      Transaction.get_inputs(raw_tx),
-      Transaction.get_outputs(raw_tx),
+  @spec hash_transaction(Payment.t()) :: Crypto.hash_t()
+  def hash_transaction(%Payment{} = raw_tx) do
+    Tools.hash_transaction(
+      Extract.get_inputs(raw_tx),
+      Extract.get_outputs(raw_tx),
       raw_tx.metadata,
       @empty_input_hash,
       @empty_output_hash

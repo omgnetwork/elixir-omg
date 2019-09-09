@@ -42,7 +42,7 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   end
 
   defp fills_in_outputs?(payments) do
-    alias OMG.State.Transaction
+    alias OMG.Transaction
     require Transaction.Payment
 
     if length(payments) <= Transaction.Payment.max_outputs(),

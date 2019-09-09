@@ -20,7 +20,8 @@ defmodule OMG.DevCrypto do
 
   alias OMG.Crypto
   alias OMG.SignatureHelper
-  alias OMG.State.Transaction
+  alias OMG.Transaction
+  alias OMG.Transaction.Signed
   alias OMG.TypedDataHash
 
   @doc """
@@ -48,7 +49,7 @@ defmodule OMG.DevCrypto do
   @spec sign(Transaction.Protocol.t(), list(Crypto.priv_key_t())) :: Transaction.Signed.t()
   def sign(%{} = tx, private_keys) do
     sigs = Enum.map(private_keys, fn pk -> signature(tx, pk) end)
-    %Transaction.Signed{raw_tx: tx, sigs: sigs}
+    %Signed{raw_tx: tx, sigs: sigs}
   end
 
   @doc """

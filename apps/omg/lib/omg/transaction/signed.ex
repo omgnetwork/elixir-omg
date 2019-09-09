@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Transaction.Signed do
+defmodule OMG.Transaction.Signed do
   @moduledoc """
   Representation of a signed transaction.
 
-  NOTE: before you use this, make sure you shouldn't use `Transaction` or `Transaction.Recovered`
+  NOTE: before you use this, make sure you shouldn't use `Transaction` or `OMG.Transaction.Recovered`
   """
 
   alias OMG.Crypto
-  alias OMG.State.Transaction
-  alias OMG.State.Transaction.Witness
+  alias OMG.Transaction
+  alias OMG.Transaction.Witness
   alias OMG.TypedDataHash
+  alias OMG.Transaction.Decoding
+  alias OMG.Transaction.Signed
 
   @type tx_bytes() :: binary()
   @empty_signature <<0::size(520)>>
@@ -78,6 +80,15 @@ defmodule OMG.State.Transaction.Signed do
             |> Enum.into(%{}, fn {witness, idx} -> {idx, witness} end)}
   end
 
+  def reconstruct([raw_witnesses | typed_tx_rlp_decoded_chunks]) do
+    with true <- is_list(raw_witnesses) || {:error, :malformed_witnesses},
+         true <- Enum.all?(raw_witnesses, &Witness.valid?/1) || {:error, :malformed_witnesses},
+         {:ok, raw_tx} <- Decoding.dispatching_reconstruct(typed_tx_rlp_decoded_chunks),
+         do: {:ok, %Signed{raw_tx: raw_tx, sigs: raw_witnesses}}
+  end
+
+  def reconstruct(_), do: {:error, :malformed_transaction}
+
   defp get_reversed_witnesses(raw_txhash, raw_tx, raw_witnesses) do
     raw_witnesses
     # TODO: move this check out of here and make generic?
@@ -99,13 +110,4 @@ defmodule OMG.State.Transaction.Signed do
   rescue
     _ -> {:error, :malformed_transaction_rlp}
   end
-
-  def reconstruct([raw_witnesses | typed_tx_rlp_decoded_chunks]) do
-    with true <- is_list(raw_witnesses) || {:error, :malformed_witnesses},
-         true <- Enum.all?(raw_witnesses, &Witness.valid?/1) || {:error, :malformed_witnesses},
-         {:ok, raw_tx} <- Transaction.dispatching_reconstruct(typed_tx_rlp_decoded_chunks),
-         do: {:ok, %Transaction.Signed{raw_tx: raw_tx, sigs: raw_witnesses}}
-  end
-
-  def reconstruct(_), do: {:error, :malformed_transaction}
 end

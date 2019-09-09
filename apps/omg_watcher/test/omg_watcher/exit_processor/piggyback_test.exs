@@ -19,7 +19,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
   use OMG.Watcher.ExitProcessor.Case, async: true
 
   alias OMG.Block
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.Event
@@ -78,8 +78,8 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
   describe "available piggybacks" do
     test "detects multiple available piggybacks, with all the fields",
          %{processor_filled: processor, transactions: [tx1, tx2], alice: alice, carol: carol} do
-      txbytes_1 = Transaction.raw_txbytes(tx1)
-      txbytes_2 = Transaction.raw_txbytes(tx2)
+      txbytes_1 = OMG.Transaction.Extract.raw_txbytes(tx1)
+      txbytes_2 = OMG.Transaction.Extract.raw_txbytes(tx2)
 
       assert {:ok, events} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -163,7 +163,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
     test "when output is already piggybacked, it is not reported in piggyback available event",
          %{alice: alice, processor_empty: processor} do
       tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [])
-      tx_hash = Transaction.raw_txhash(tx)
+      tx_hash = OMG.Transaction.Extract.raw_txhash(tx)
       processor = processor |> start_ife_from(tx) |> piggyback_ife_from(tx_hash, 0)
 
       assert {:ok,
@@ -180,7 +180,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
     test "when ife is finalized, it's outputs are not reported as available for piggyback",
          %{alice: alice, processor_empty: processor} do
       tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [])
-      tx_hash = Transaction.raw_txhash(tx)
+      tx_hash = OMG.Transaction.Extract.raw_txhash(tx)
       processor = processor |> start_ife_from(tx) |> piggyback_ife_from(tx_hash, 0)
       finalization = %{in_flight_exit_id: @exit_id, output_index: 0}
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization], %{})
@@ -617,7 +617,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
     test "fail when asked to produce proof for wrong txhash",
          %{invalid_piggyback_on_input: %{state: state, request: request}, unrelated_tx: comp} do
-      comp_txbytes = Transaction.raw_txbytes(comp)
+      comp_txbytes = OMG.Transaction.Extract.raw_txbytes(comp)
       assert {:error, :ife_not_known_for_tx} = Core.get_input_challenge_data(request, state, comp_txbytes, 0)
       assert {:error, :ife_not_known_for_tx} = Core.get_output_challenge_data(request, state, comp_txbytes, 0)
     end

@@ -18,7 +18,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
   use OMG.Fixtures
   use OMG.Watcher.Fixtures
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.TestHelper
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -53,7 +53,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
           |> ExRLP.decode()
           |> Enum.filter(&(&1 != ""))
           |> Enum.map(&ExRLP.encode/1)
-          |> Enum.map(&Transaction.decode!/1)
+          |> Enum.map(&OMG.Transaction.Decoding.decode!/1)
 
         assert input_txs == expected_input_txs
       end

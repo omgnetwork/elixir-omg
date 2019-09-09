@@ -18,7 +18,7 @@ defmodule OMG.TestHelper do
   alias OMG.Crypto
   alias OMG.DevCrypto
   alias OMG.State.Core
-  alias OMG.State.Transaction
+  alias OMG.Transaction
 
   @type entity :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
 
@@ -80,16 +80,17 @@ defmodule OMG.TestHelper do
           Transaction.Payment.currency(),
           list({map, pos_integer}),
           Transaction.metadata()
-        ) :: Transaction.Recovered.t()
+        ) :: OMG.Transaction.Recovered.t()
   def create_recovered(inputs, currency, outputs, metadata \\ nil) do
-    create_encoded(inputs, currency, outputs, metadata) |> Transaction.Recovered.recover_from!()
+    create_encoded(inputs, currency, outputs, metadata) |> OMG.Transaction.Recovered.recover_from!()
   end
 
   @spec create_recovered(
           list({pos_integer, non_neg_integer, 0 | 1, map}),
           list({map, Transaction.Payment.currency(), pos_integer})
-        ) :: Transaction.Recovered.t()
-  def create_recovered(inputs, outputs), do: create_encoded(inputs, outputs) |> Transaction.Recovered.recover_from!()
+        ) :: OMG.Transaction.Recovered.t()
+  def create_recovered(inputs, outputs),
+    do: create_encoded(inputs, outputs) |> OMG.Transaction.Recovered.recover_from!()
 
   def create_encoded(inputs, currency, outputs, metadata \\ nil) do
     create_signed(inputs, currency, outputs, metadata) |> Transaction.Signed.encode()
@@ -138,7 +139,7 @@ defmodule OMG.TestHelper do
   def sign_encode(%{} = tx, priv_keys), do: tx |> DevCrypto.sign(priv_keys) |> Transaction.Signed.encode()
 
   def sign_recover!(%{} = tx, priv_keys),
-    do: tx |> sign_encode(priv_keys) |> Transaction.Recovered.recover_from!()
+    do: tx |> sign_encode(priv_keys) |> OMG.Transaction.Recovered.recover_from!()
 
   @doc """
   Always creates file in the priv/ folder of the application.

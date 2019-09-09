@@ -19,14 +19,18 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   Internal stuff of `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction.Extract
+  alias OMG.Transaction.Metadata
+  alias OMG.Transaction.Payment
+  alias OMG.Transaction.Signed
   alias OMG.Utxo
 
   require Utxo
-  require Transaction
-  require Transaction.Payment
+  require OMG.Transaction.Metadata
 
-  @max_inputs Transaction.Payment.max_inputs()
+  require OMG.Transaction.Payment
+
+  @max_inputs Payment.max_inputs()
 
   # TODO: divide into inputs and outputs: prevent contract's implementation from leaking into watcher
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247926222
@@ -68,7 +72,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @type ife_contract_id() :: <<_::192>>
 
   @type t :: %__MODULE__{
-          tx: Transaction.Signed.t(),
+          tx: Signed.t(),
           # if not nil, position was proven in contract
           contract_tx_pos: Utxo.Position.t() | nil,
           # nil value means that it was not included
@@ -107,14 +111,14 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         |> Keyword.put_new(:tx, tx)
         |> Keyword.put_new(:is_active, parse_contract_in_flight_exit_status(contract_status))
 
-      {Transaction.raw_txhash(tx), struct!(__MODULE__, fields)}
+      {Extract.raw_txhash(tx), struct!(__MODULE__, fields)}
     end
   end
 
   defp prepare_tx(tx_bytes, tx_signatures) do
-    with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
+    with {:ok, raw_tx} <- OMG.Transaction.Decoding.decode(tx_bytes) do
       chopped_sigs = for <<chunk::size(65)-unit(8) <- tx_signatures>>, do: <<chunk::size(65)-unit(8)>>
-      tx = %Transaction.Signed{raw_tx: raw_tx, sigs: chopped_sigs}
+      tx = %Signed{raw_tx: raw_tx, sigs: chopped_sigs}
       {:ok, tx}
     end
   end
@@ -125,7 +129,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def make_db_update(
         {ife_hash,
          %__MODULE__{
-           tx: %Transaction.Signed{} = tx,
+           tx: %Signed{} = tx,
            contract_tx_pos: tx_pos,
            timestamp: timestamp,
            contract_id: contract_id,
@@ -202,21 +206,21 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   # NOTE: non-private because `CompetitorInfo` holds `Transaction.Signed` objects too
   def from_db_signed_tx(%{raw_tx: raw_tx_map, sigs: sigs}) when is_map(raw_tx_map) and is_list(sigs) do
     value = %{raw_tx: from_db_raw_tx(raw_tx_map), sigs: sigs}
-    struct!(Transaction.Signed, value)
+    struct!(Signed, value)
   end
 
   def from_db_raw_tx(%{inputs: inputs, outputs: outputs, metadata: metadata})
-      when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
+      when is_list(inputs) and is_list(outputs) and Metadata.is_metadata(metadata) do
     value = %{inputs: inputs, outputs: outputs, metadata: metadata}
-    struct!(Transaction.Payment, value)
+    struct!(Payment, value)
   end
 
-  def to_db_value(%Transaction.Signed{raw_tx: raw_tx, sigs: sigs}) when is_list(sigs) do
+  def to_db_value(%Signed{raw_tx: raw_tx, sigs: sigs}) when is_list(sigs) do
     %{raw_tx: to_db_value(raw_tx), sigs: sigs}
   end
 
-  def to_db_value(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
-      when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
+  def to_db_value(%Payment{inputs: inputs, outputs: outputs, metadata: metadata})
+      when is_list(inputs) and is_list(outputs) and Metadata.is_metadata(metadata) do
     %{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
@@ -325,7 +329,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def indexed_piggybacks_by_ife(%__MODULE__{tx: tx} = ife, :input) do
     indexed_piggybacked_inputs =
       tx
-      |> Transaction.get_inputs()
+      |> OMG.Transaction.Extract.get_inputs()
       |> Enum.with_index()
       |> Enum.filter(fn {_input, index} -> is_input_piggybacked?(ife, index) end)
 

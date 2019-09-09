@@ -18,7 +18,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
   """
   use OMG.Watcher.ExitProcessor.Case, async: true
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.Core
@@ -47,8 +47,8 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
          %{processor_empty: processor, transactions: [tx1 | [tx2 | _]]} do
       ife_id1 = 1
       ife_id2 = 2
-      tx_hash1 = Transaction.raw_txhash(tx1)
-      tx_hash2 = Transaction.raw_txhash(tx2)
+      tx_hash1 = OMG.Transaction.Extract.raw_txhash(tx1)
+      tx_hash2 = OMG.Transaction.Extract.raw_txhash(tx2)
 
       processor =
         processor
@@ -84,7 +84,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
     test "fails when exiting an output that is not piggybacked",
          %{processor_empty: processor, transactions: [tx | _]} do
-      tx_hash = Transaction.raw_txhash(tx)
+      tx_hash = OMG.Transaction.Extract.raw_txhash(tx)
       ife_id = 123
 
       processor =
@@ -106,7 +106,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
     test "exits piggybacked transaction inputs",
          %{processor_empty: processor, transactions: [tx | _]} do
       ife_id = 123
-      tx_hash = Transaction.raw_txhash(tx)
+      tx_hash = OMG.Transaction.Extract.raw_txhash(tx)
 
       processor =
         processor
@@ -124,7 +124,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
     test "exits piggybacked transaction outputs",
          %{processor_empty: processor, transactions: [tx | _]} do
       ife_id = 123
-      tx_hash = Transaction.raw_txhash(tx)
+      tx_hash = OMG.Transaction.Extract.raw_txhash(tx)
 
       processor =
         processor
@@ -146,7 +146,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
     test "deactivates in-flight exit after all piggybacked outputs are finalized",
          %{processor_empty: processor, transactions: [tx | _]} do
       ife_id = 123
-      tx_hash = Transaction.raw_txhash(tx)
+      tx_hash = OMG.Transaction.Extract.raw_txhash(tx)
 
       processor =
         processor
@@ -168,7 +168,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
     test "finalizing multiple times does not change state or produce database updates",
          %{processor_empty: processor, transactions: [tx | _]} do
       ife_id = 123
-      tx_hash = Transaction.raw_txhash(tx)
+      tx_hash = OMG.Transaction.Extract.raw_txhash(tx)
 
       processor =
         processor
@@ -183,9 +183,9 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
     test "finalizing perserve in flights exits that are not being finalized",
          %{processor_empty: processor, transactions: [tx1, tx2]} do
       ife_id1 = 123
-      tx_hash1 = Transaction.raw_txhash(tx1)
+      tx_hash1 = OMG.Transaction.Extract.raw_txhash(tx1)
       ife_id2 = 124
-      tx_hash2 = Transaction.raw_txhash(tx2)
+      tx_hash2 = OMG.Transaction.Extract.raw_txhash(tx2)
 
       processor =
         processor
@@ -207,7 +207,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
     test "fails when exiting an output that is not piggybacked",
          %{processor_empty: processor, transactions: [tx | _]} do
-      tx_hash = Transaction.raw_txhash(tx)
+      tx_hash = OMG.Transaction.Extract.raw_txhash(tx)
       ife_id = 123
 
       processor =

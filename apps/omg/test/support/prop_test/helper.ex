@@ -17,7 +17,8 @@ defmodule OMG.PropTest.Helper do
   Common helper functions that are useful when propCheck testing
   """
   alias OMG.PropTest.Constants
-  alias OMG.State.Transaction
+  alias OMG.Transaction.Recovered
+  alias OMG.Transaction.Extract
   alias OMG.Utxo
   require Constants
   require Utxo
@@ -25,10 +26,10 @@ defmodule OMG.PropTest.Helper do
   @doc """
   Collapse of the recover transaction into a short form use in OMG.PropTest
   """
-  def format_transaction(%Transaction.Recovered{witnesses: witnesses} = tx) do
+  def format_transaction(%Recovered{witnesses: witnesses} = tx) do
     [spender1, spender2] = Map.values(witnesses)
-    inputs = Transaction.get_inputs(tx)
-    outputs = Transaction.get_outputs(tx)
+    inputs = Extract.get_inputs(tx)
+    outputs = Extract.get_outputs(tx)
 
     [%{blknum: blknum1, txindex: txindex1, oindex: oindex1}, %{blknum: blknum2, txindex: txindex2, oindex: oindex2}] =
       inputs

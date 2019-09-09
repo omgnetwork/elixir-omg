@@ -170,7 +170,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     # non-canonical
     ife_exit_tx2 = TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{alice, 20}])
-    tx_hash2 = State.Transaction.raw_txhash(ife_exit_tx2)
+    tx_hash2 = State.OMG.Transaction.Extract.raw_txhash(ife_exit_tx2)
     ife_id2 = 2
 
     {processor, _} =
@@ -197,7 +197,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   test "acts on invalidities reported when exiting utxos in State",
        %{processor_empty: processor, state_empty: state, alice: alice} do
     ife_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    tx_hash = State.Transaction.raw_txhash(ife_exit_tx)
+    tx_hash = State.OMG.Transaction.Extract.raw_txhash(ife_exit_tx)
     ife_id = 1
 
     {processor, _} =

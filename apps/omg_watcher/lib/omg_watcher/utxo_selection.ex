@@ -18,21 +18,21 @@ defmodule OMG.Watcher.UtxoSelection do
   """
 
   alias OMG.Crypto
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.TypedDataHash
   alias OMG.Watcher.DB
-
   require Transaction
-  require Transaction.Payment
+  require OMG.Transaction.Payment
+  require OMG.Transaction.Metadata
 
   @type payment_t() :: %{
           owner: Crypto.address_t() | nil,
-          currency: Transaction.Payment.currency(),
+          currency: Payment.currency(),
           amount: pos_integer()
         }
 
   @type fee_t() :: %{
-          currency: Transaction.Payment.currency(),
+          currency: Payment.currency(),
           amount: non_neg_integer()
         }
 
@@ -212,7 +212,7 @@ defmodule OMG.Watcher.UtxoSelection do
 
   defp create_txbytes(tx) do
     with tx when not is_nil(tx) <- tx,
-         do: Transaction.raw_txbytes(tx)
+         do: OMG.Transaction.Extract.raw_txbytes(tx)
   end
 
   defp compute_sign_hash(tx) do

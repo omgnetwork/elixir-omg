@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Transaction.Markers do
+defmodule OMG.Transaction.Markers do
   @moduledoc """
   Collection of binary markers to decode the transaction type
   """

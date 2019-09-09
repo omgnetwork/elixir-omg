@@ -17,7 +17,7 @@ defmodule OMG.Fees do
   Transaction's fee validation functions
   """
 
-  alias OMG.State.Transaction
+  alias OMG.Transaction
   alias OMG.Utxo
 
   require Utxo
@@ -46,7 +46,7 @@ defmodule OMG.Fees do
   @doc """
   Returns fees to require for a particular transaction, and under particular fee specs listed in `fee_map`
   """
-  @spec for_tx(Transaction.Recovered.t(), fee_t()) :: fee_t()
+  @spec for_tx(OMG.Transaction.Recovered.t(), fee_t()) :: fee_t()
   def for_tx(tx, fee_map) do
     if is_merge_transaction?(tx),
       do: :ignore,
@@ -64,14 +64,14 @@ defmodule OMG.Fees do
     |> Enum.all?(fn predicate -> predicate.(recovered_tx) end)
   end
 
-  defp is_payment?(%Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Payment{}}}), do: true
+  defp is_payment?(%OMG.Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Payment{}}}), do: true
   defp is_payment?(_), do: false
 
-  defp has_same_account?(%Transaction.Recovered{witnesses: witnesses} = tx) do
+  defp has_same_account?(%OMG.Transaction.Recovered{witnesses: witnesses} = tx) do
     spenders = Map.values(witnesses)
 
     tx
-    |> Transaction.get_outputs()
+    |> OMG.Transaction.Extract.get_outputs()
     |> Enum.map(& &1.owner)
     |> Enum.concat(spenders)
     |> single?()
@@ -79,15 +79,15 @@ defmodule OMG.Fees do
 
   defp has_single_currency?(tx) do
     tx
-    |> Transaction.get_outputs()
+    |> OMG.Transaction.Extract.get_outputs()
     |> Enum.map(& &1.currency)
     |> single?()
   end
 
   defp has_less_outputs_than_inputs?(tx) do
     has_less_outputs_than_inputs?(
-      Transaction.get_inputs(tx),
-      Transaction.get_outputs(tx)
+      OMG.Transaction.Extract.get_inputs(tx),
+      OMG.Transaction.Extract.get_outputs(tx)
     )
   end
 

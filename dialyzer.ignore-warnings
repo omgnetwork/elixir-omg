@@ -17,16 +17,16 @@ lib/websockex.ex:297: Expression produces a value of type 'ok' | {'error',_}, bu
 # here: https://github.com/elixir-lang/elixir/issues/7708 and here https://github.com/jeremyjh/dialyxir/issues/221
 # fixed in https://github.com/jeremyjh/dialyxir/commit/3d0a13f17a46649bca2413d57cef45bb278d1474, not yet released in `dialyxir`
 # undo once we use the `dialyxir` release that includes this (presumably >1.0.0-rc.6)
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Atom':'__impl__'/1
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.BitString':'__impl__'/1
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Float':'__impl__'/1
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Function':'__impl__'/1
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Integer':'__impl__'/1
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.List':'__impl__'/1
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Map':'__impl__'/1
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.PID':'__impl__'/1
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Port':'__impl__'/1
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Reference':'__impl__'/1
-:0: Unknown function 'Elixir.OMG.State.Transaction.Protocol.Tuple':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.Atom':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.BitString':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.Float':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.Function':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.Integer':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.List':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.Map':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.PID':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.Port':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.Reference':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Transaction.Protocol.Tuple':'__impl__'/1
 #
 ####
