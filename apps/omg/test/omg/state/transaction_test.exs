@@ -54,14 +54,14 @@ defmodule OMG.State.TransactionTest do
       tx_with_metadata = Transaction.Payment.new(@utxo_positions, [{"Joe Black", @eth, 53}], <<42::256>>)
       tx_without_metadata = Transaction.Payment.new(@utxo_positions, [{"Joe Black", @eth, 53}])
 
-      assert Transaction.raw_txhash(tx_with_metadata) != Transaction.raw_txhash(tx_without_metadata)
+      assert Transaction.Extract.raw_txhash(tx_with_metadata) != Transaction.Extract.raw_txhash(tx_without_metadata)
 
-      assert byte_size(Transaction.raw_txbytes(tx_with_metadata)) >
-               byte_size(Transaction.raw_txbytes(tx_without_metadata))
+      assert byte_size(Transaction.Extract.raw_txbytes(tx_with_metadata)) >
+               byte_size(Transaction.Extract.raw_txbytes(tx_without_metadata))
     end
 
     test "raw transaction hash is invariant" do
-      assert Transaction.raw_txhash(@transaction) ==
+      assert Transaction.Extract.raw_txhash(@transaction) ==
                Base.decode16!("09645ee9736332be55eaccf9d08ff572a6fa23e2f6dc2aac42dbf09832d8f60e", case: :lower)
     end
   end
@@ -93,16 +93,16 @@ defmodule OMG.State.TransactionTest do
       check_output2 = %{amount: 99, currency: @eth, owner: "Joe Black"}
       # 1 - input, 1 - output
       tx1_1 = Transaction.Payment.new([hd(@utxo_positions)], [output1])
-      assert 1 == tx1_1 |> Transaction.get_inputs() |> length()
-      assert 1 == tx1_1 |> Transaction.get_outputs() |> length()
-      assert [^check_input1 | _] = Transaction.get_inputs(tx1_1)
-      assert [^check_output2 | _] = Transaction.get_outputs(tx1_1)
+      assert 1 == tx1_1 |> Transaction.Extract.get_inputs() |> length()
+      assert 1 == tx1_1 |> Transaction.Extract.get_outputs() |> length()
+      assert [^check_input1 | _] = Transaction.Extract.get_inputs(tx1_1)
+      assert [^check_output2 | _] = Transaction.Extract.get_outputs(tx1_1)
       # 4 - input, 4 - outputs
       tx4_4 = Transaction.Payment.new(@utxo_positions, [output1, {"J", @eth, 929}, {"J", @eth, 929}, {"J", @eth, 199}])
-      assert 4 == tx4_4 |> Transaction.get_inputs() |> length()
-      assert 4 == tx4_4 |> Transaction.get_outputs() |> length()
-      assert [^check_input1 | _] = Transaction.get_inputs(tx4_4)
-      assert [^check_output2 | _] = Transaction.get_outputs(tx4_4)
+      assert 4 == tx4_4 |> Transaction.Extract.get_inputs() |> length()
+      assert 4 == tx4_4 |> Transaction.Extract.get_outputs() |> length()
+      assert [^check_input1 | _] = Transaction.Extract.get_inputs(tx4_4)
+      assert [^check_output2 | _] = Transaction.Extract.get_outputs(tx4_4)
     end
 
     @tag fixtures: [:alice, :bob]
@@ -142,12 +142,6 @@ defmodule OMG.State.TransactionTest do
   end
 
   describe "encoding/decoding is done properly" do
-    test "Decode raw transaction, a low level encode/decode parity check" do
-      {:ok, decoded} = @transaction |> Transaction.raw_txbytes() |> Transaction.decode()
-      assert decoded == @transaction
-      assert decoded == @transaction |> Transaction.raw_txbytes() |> Transaction.decode!()
-    end
-
     # TODO: commented version of the test for the markered-payment tx
     # @tag fixtures: [:alice]
     # test "decoding malformed signed payment transaction", %{alice: alice} do
@@ -156,7 +150,7 @@ defmodule OMG.State.TransactionTest do
     #     Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, @eth, 12}])
     #     |> DevCrypto.sign([alice.priv, alice.priv])
     #
-    #   [_payment_marker, inputs, outputs] = Transaction.raw_txbytes(tx) |> ExRLP.decode()
+    #   [_payment_marker, inputs, outputs] = Transaction.Extract.raw_txbytes(tx) |> ExRLP.decode()
     #
     #   # sanity
     #   assert {:ok, _} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs]))
@@ -216,7 +210,7 @@ defmodule OMG.State.TransactionTest do
         Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, @eth, 12}])
         |> DevCrypto.sign([alice.priv, alice.priv])
 
-      [inputs, outputs] = Transaction.raw_txbytes(tx) |> ExRLP.decode()
+      [inputs, outputs] = Transaction.Extract.raw_txbytes(tx) |> ExRLP.decode()
 
       # sanity
       assert {:ok, _} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, inputs, outputs]))

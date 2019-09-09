@@ -18,6 +18,7 @@ defmodule OMG.Fees do
   """
 
   alias OMG.State.Transaction
+
   alias OMG.Utxo
 
   require Utxo
@@ -71,7 +72,7 @@ defmodule OMG.Fees do
     spenders = Map.values(witnesses)
 
     tx
-    |> Transaction.get_outputs()
+    |> Transaction.Extract.get_outputs()
     |> Enum.map(& &1.owner)
     |> Enum.concat(spenders)
     |> single?()
@@ -79,15 +80,15 @@ defmodule OMG.Fees do
 
   defp has_single_currency?(tx) do
     tx
-    |> Transaction.get_outputs()
+    |> Transaction.Extract.get_outputs()
     |> Enum.map(& &1.currency)
     |> single?()
   end
 
   defp has_less_outputs_than_inputs?(tx) do
     has_less_outputs_than_inputs?(
-      Transaction.get_inputs(tx),
-      Transaction.get_outputs(tx)
+      Transaction.Extract.get_inputs(tx),
+      Transaction.Extract.get_outputs(tx)
     )
   end
 

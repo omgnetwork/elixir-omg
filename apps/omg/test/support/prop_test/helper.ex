@@ -19,6 +19,7 @@ defmodule OMG.PropTest.Helper do
   alias OMG.PropTest.Constants
   alias OMG.State.Transaction
   alias OMG.Utxo
+
   require Constants
   require Utxo
 
@@ -27,8 +28,8 @@ defmodule OMG.PropTest.Helper do
   """
   def format_transaction(%Transaction.Recovered{witnesses: witnesses} = tx) do
     [spender1, spender2] = Map.values(witnesses)
-    inputs = Transaction.get_inputs(tx)
-    outputs = Transaction.get_outputs(tx)
+    inputs = Transaction.Extract.get_inputs(tx)
+    outputs = Transaction.Extract.get_outputs(tx)
 
     [%{blknum: blknum1, txindex: txindex1, oindex: oindex1}, %{blknum: blknum2, txindex: txindex2, oindex: oindex2}] =
       inputs

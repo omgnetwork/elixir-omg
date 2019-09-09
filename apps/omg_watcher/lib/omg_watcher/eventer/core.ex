@@ -85,7 +85,7 @@ defmodule OMG.Watcher.Eventer.Core do
 
   defp get_address_received_events(%{tx: tx} = event_trigger) do
     tx
-    |> Transaction.get_outputs()
+    |> Transaction.Extract.get_outputs()
     |> Enum.map(fn %{owner: owner} -> owner end)
     |> Enum.filter(&account_address?/1)
     |> Enum.map(&create_address_received_event(event_trigger, &1))

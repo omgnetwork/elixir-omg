@@ -25,6 +25,7 @@ defmodule OMG.State.Core do
   alias OMG.Fees
   alias OMG.State.Core
   alias OMG.State.Transaction
+  alias OMG.State.Transaction.Decode
   alias OMG.State.Transaction.Validator
   alias OMG.State.UtxoSet
   alias OMG.Utxo
@@ -152,7 +153,7 @@ defmodule OMG.State.Core do
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
           | {{:error, Validator.exec_error()}, t()}
   def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
-    tx_hash = Transaction.raw_txhash(tx)
+    tx_hash = Transaction.Extract.raw_txhash(tx)
 
     case Validator.can_apply_spend(state, tx, fees) do
       true ->
@@ -269,12 +270,13 @@ defmodule OMG.State.Core do
   end
 
   def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do
-    in_flight_txs
-    |> Enum.flat_map(fn %{call_data: %{in_flight_tx: tx_bytes}} ->
-      {:ok, tx} = Transaction.decode(tx_bytes)
-      Transaction.get_inputs(tx)
-    end)
-    |> exit_utxos(state)
+    inputs =
+      Enum.flat_map(in_flight_txs, fn %{call_data: %{in_flight_tx: tx_bytes}} ->
+        {:ok, tx} = Decode.it(tx_bytes)
+        Transaction.Extract.get_inputs(tx)
+      end)
+
+    exit_utxos(inputs, state)
   end
 
   def exit_utxos([%{tx_hash: _} | _] = piggybacks, state) do

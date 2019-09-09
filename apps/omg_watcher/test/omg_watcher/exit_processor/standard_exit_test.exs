@@ -107,7 +107,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     test "produces valid exit txbytes for exits from deposits",
          %{alice: alice, processor_empty: processor} do
       tx = Transaction.Payment.new([], [{alice.addr, @eth, 10}])
-      deposit_txbytes = Transaction.raw_txbytes(tx)
+      deposit_txbytes = Transaction.Extract.raw_txbytes(tx)
       processor = processor |> start_se_from(tx, @utxo_pos_deposit)
 
       assert %ExitProcessor.Request{se_exit_id_to_get: ^deposit_txbytes} =
@@ -118,7 +118,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     test "produces valid exit txbytes for exits from txs in child blocks",
          %{alice: alice, processor_empty: processor} do
       creating_recovered = TestHelper.create_recovered([{@deposit_blknum2, 0, 0, alice}], @eth, [{alice, 10}])
-      creating_txbytes = Transaction.raw_txbytes(creating_recovered)
+      creating_txbytes = Transaction.Extract.raw_txbytes(creating_recovered)
       processor = processor |> start_se_from(creating_recovered, @utxo_pos_tx)
 
       assert %ExitProcessor.Request{se_exit_id_to_get: ^creating_txbytes} =
@@ -507,5 +507,5 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     processor |> start_se_from(tx, exiting_pos)
   end
 
-  defp get_bytes_sig(tx, sig_idx \\ 0), do: {Transaction.raw_txbytes(tx), Enum.at(tx.signed_tx.sigs, sig_idx)}
+  defp get_bytes_sig(tx, sig_idx \\ 0), do: {Transaction.Extract.raw_txbytes(tx), Enum.at(tx.signed_tx.sigs, sig_idx)}
 end

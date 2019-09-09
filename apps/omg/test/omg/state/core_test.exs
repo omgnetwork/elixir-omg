@@ -603,8 +603,8 @@ defmodule OMG.State.CoreTest do
 
     state = state |> Core.exec(tx, :ignore) |> success?
 
-    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
-    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.raw_txhash(tx), output_index: 4}]
+    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.Extract.raw_txbytes(tx)}}]
+    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.Extract.raw_txhash(tx), output_index: 4}]
     expected_position = Utxo.position(@blknum1, 0, 0)
 
     assert {:ok, {[], {[], _}}, ^state} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
@@ -630,7 +630,7 @@ defmodule OMG.State.CoreTest do
 
     tx = create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 3}, {alice, 3}])
 
-    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
+    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.Extract.raw_txbytes(tx)}}]
     expected_position = Utxo.position(@blknum1, 0, 0)
 
     assert {:ok, {[_ | _], {[^expected_position], _}}, state_after_exit} =

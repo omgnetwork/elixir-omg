@@ -94,8 +94,8 @@ defmodule OMG.State.PersistenceTest do
        %{alice: alice, db_pid: db_pid, state_empty: state} do
     tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
-    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
-    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.raw_txhash(tx), output_index: 4}]
+    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.Extract.raw_txbytes(tx)}}]
+    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.Extract.raw_txhash(tx), output_index: 4}]
 
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
@@ -110,7 +110,7 @@ defmodule OMG.State.PersistenceTest do
        %{alice: alice, db_pid: db_pid, state_empty: state} do
     tx = create_signed([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
-    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
+    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.Extract.raw_txbytes(tx)}}]
 
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)

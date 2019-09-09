@@ -21,6 +21,7 @@ defmodule OMG.State.Transaction.Signed do
 
   alias OMG.Crypto
   alias OMG.State.Transaction
+  alias OMG.State.Transaction.Decode
   alias OMG.State.Transaction.Witness
   alias OMG.TypedDataHash
 
@@ -103,7 +104,7 @@ defmodule OMG.State.Transaction.Signed do
   def reconstruct([raw_witnesses | typed_tx_rlp_decoded_chunks]) do
     with true <- is_list(raw_witnesses) || {:error, :malformed_witnesses},
          true <- Enum.all?(raw_witnesses, &Witness.valid?/1) || {:error, :malformed_witnesses},
-         {:ok, raw_tx} <- Transaction.dispatching_reconstruct(typed_tx_rlp_decoded_chunks),
+         {:ok, raw_tx} <- Decode.dispatching_reconstruct(typed_tx_rlp_decoded_chunks),
          do: {:ok, %Transaction.Signed{raw_tx: raw_tx, sigs: raw_witnesses}}
   end
 

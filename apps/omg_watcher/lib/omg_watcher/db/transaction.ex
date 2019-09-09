@@ -18,7 +18,6 @@ defmodule OMG.Watcher.DB.Transaction do
   """
   use Ecto.Schema
   use OMG.Utils.LoggerExt
-
   alias OMG.State.Transaction
   alias OMG.Utils.Paginator
   alias OMG.Utxo
@@ -173,7 +172,7 @@ defmodule OMG.Watcher.DB.Transaction do
          txindex,
          [tx_list, output_list, input_list]
        ) do
-    tx_hash = Transaction.raw_txhash(tx)
+    tx_hash = Transaction.Extract.raw_txhash(tx)
 
     [
       [create(block_number, txindex, tx_hash, signed_tx_bytes, metadata) | tx_list],

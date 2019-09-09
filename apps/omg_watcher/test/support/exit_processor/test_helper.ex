@@ -37,9 +37,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   def se_event_status(tx, exiting_pos, opts \\ []) do
     Utxo.position(_, _, oindex) = exiting_pos
-    txbytes = Transaction.raw_txbytes(tx)
+    txbytes = Transaction.Extract.raw_txbytes(tx)
     enc_pos = Utxo.Position.encode(exiting_pos)
-    owner = tx |> Transaction.get_outputs() |> Enum.at(oindex) |> Map.get(:owner)
+    owner = tx |> Transaction.Extract.get_outputs() |> Enum.at(oindex) |> Map.get(:owner)
     eth_height = Keyword.get(opts, :eth_height, 2)
 
     call_data = %{utxo_pos: enc_pos, output_tx: txbytes}
@@ -68,13 +68,13 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     eth_height = Keyword.get(opts, :eth_height, 2)
 
     %{
-      call_data: %{in_flight_tx: Transaction.raw_txbytes(tx), in_flight_tx_sigs: Enum.join(sigs)},
+      call_data: %{in_flight_tx: Transaction.Extract.raw_txbytes(tx), in_flight_tx_sigs: Enum.join(sigs)},
       eth_height: eth_height
     }
   end
 
   def ife_response(tx, position),
-    do: %{tx_hash: Transaction.raw_txhash(tx), challenge_position: Utxo.Position.encode(position)}
+    do: %{tx_hash: Transaction.Extract.raw_txhash(tx), challenge_position: Utxo.Position.encode(position)}
 
   def ife_challenge(tx, comp, opts \\ []) do
     competitor_position = Keyword.get(opts, :competitor_position)
@@ -83,7 +83,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
       if competitor_position, do: Utxo.Position.encode(competitor_position), else: not_included_competitor_pos()
 
     %{
-      tx_hash: Transaction.raw_txhash(tx),
+      tx_hash: Transaction.Extract.raw_txhash(tx),
       competitor_position: competitor_position,
       call_data: %{
         competing_tx: txbytes(comp),
@@ -93,7 +93,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     }
   end
 
-  def txbytes(tx), do: Transaction.raw_txbytes(tx)
+  def txbytes(tx), do: Transaction.Extract.raw_txbytes(tx)
   def sigs(tx), do: tx.signed_tx.sigs
   def sig(tx, idx \\ 0), do: tx |> sigs() |> Enum.at(idx)
 

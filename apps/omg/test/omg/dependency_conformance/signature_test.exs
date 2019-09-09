@@ -90,7 +90,7 @@ defmodule OMG.DependencyConformance.SignatureTest do
 
   defp verify(contract, %Transaction.Signed{raw_tx: tx}, signature) do
     {:ok, solidity_signer} =
-      Eth.call_contract(contract, "getSigner(bytes,bytes)", [Transaction.raw_txbytes(tx), signature], [:address])
+      Eth.call_contract(contract, "getSigner(bytes,bytes)", [Transaction.Extract.raw_txbytes(tx), signature], [:address])
 
     {:ok, elixir_signer} =
       tx

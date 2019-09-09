@@ -162,7 +162,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
         {[], [%{tx_hash: tx_hash, output_index: output}]}
       else
         %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: tx}} = ife
-        input_exit = tx |> Transaction.get_inputs() |> Enum.at(output)
+        input_exit = tx |> Transaction.Extract.get_inputs() |> Enum.at(output)
         {[input_exit], []}
       end
 

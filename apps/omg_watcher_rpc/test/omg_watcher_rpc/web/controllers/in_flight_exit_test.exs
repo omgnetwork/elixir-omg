@@ -53,7 +53,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
           |> ExRLP.decode()
           |> Enum.filter(&(&1 != ""))
           |> Enum.map(&ExRLP.encode/1)
-          |> Enum.map(&Transaction.decode!/1)
+          |> Enum.map(&Transaction.Decode.it!/1)
 
         assert input_txs == expected_input_txs
       end

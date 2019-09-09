@@ -20,6 +20,7 @@ defmodule OMG.Watcher.ExitProcessor.DoubleSpend do
   defstruct [:index, :utxo_pos, :known_spent_index, :known_tx]
 
   alias OMG.State.Transaction
+
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.KnownTx
   alias OMG.Watcher.ExitProcessor.Tools
@@ -38,7 +39,7 @@ defmodule OMG.Watcher.ExitProcessor.DoubleSpend do
   """
   @spec find_competitor(KnownTx.known_txs_by_input_t(), Transaction.any_flavor_t()) :: nil | t()
   def find_competitor(known_txs_by_input, tx) do
-    inputs = Transaction.get_inputs(tx)
+    inputs = Transaction.Extract.get_inputs(tx)
 
     known_txs_by_input
     |> all_distinct_spends_of_inputs(inputs, tx)

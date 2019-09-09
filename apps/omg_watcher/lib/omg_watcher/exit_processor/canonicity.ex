@@ -73,7 +73,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
     |> Stream.filter(fn {ife, %DoubleSpend{known_tx: %KnownTx{utxo_pos: utxo_pos}}} ->
       InFlightExitInfo.is_viable_competitor?(ife, utxo_pos)
     end)
-    |> Stream.map(fn {ife, _double_spend} -> Transaction.raw_txbytes(ife.tx) end)
+    |> Stream.map(fn {ife, _double_spend} -> Transaction.Extract.raw_txbytes(ife.tx) end)
     |> Enum.uniq()
     |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
   end
@@ -84,7 +84,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
     ifes
     |> Map.values()
     |> Stream.filter(&InFlightExitInfo.is_invalidly_challenged?/1)
-    |> Stream.map(&Transaction.raw_txbytes(&1.tx))
+    |> Stream.map(&Transaction.Extract.raw_txbytes(&1.tx))
     |> Enum.uniq()
     |> Enum.map(fn txbytes -> %Event.InvalidIFEChallenge{txbytes: txbytes} end)
   end
@@ -105,7 +105,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
       ) do
     known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
     # find its competitor and use it to prepare the requested data
-    with {:ok, ife_tx} <- Transaction.decode(ife_txbytes),
+    with {:ok, ife_tx} <- Transaction.Decode.it(ife_txbytes),
          {:ok, ife} <- get_ife(ife_tx, state.in_flight_exits),
          {:ok, double_spend} <- get_competitor(known_txs_by_input, ife.tx),
          %DoubleSpend{known_tx: %KnownTx{utxo_pos: utxo_pos}} = double_spend,
@@ -120,7 +120,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   @spec prove_canonical_for_ife(Core.t(), binary()) ::
           {:ok, prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
   def prove_canonical_for_ife(%Core{} = state, ife_txbytes) do
-    with {:ok, raw_ife_tx} <- Transaction.decode(ife_txbytes),
+    with {:ok, raw_ife_tx} <- Transaction.Decode.it(ife_txbytes),
          {:ok, ife} <- get_ife(raw_ife_tx, state.in_flight_exits),
          true <- check_is_invalidly_challenged(ife),
          do: {:ok, prepare_canonical_response(ife)}
@@ -139,9 +139,9 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
     owner = input_witnesses[in_flight_input_index]
 
     %{
-      in_flight_txbytes: signed_ife_tx |> Transaction.raw_txbytes(),
+      in_flight_txbytes: signed_ife_tx |> Transaction.Extract.raw_txbytes(),
       in_flight_input_index: in_flight_input_index,
-      competing_txbytes: known_signed_tx |> Transaction.raw_txbytes(),
+      competing_txbytes: known_signed_tx |> Transaction.Extract.raw_txbytes(),
       competing_input_index: competing_input_index,
       competing_sig: find_sig!(known_signed_tx, owner),
       competing_tx_pos: known_tx_utxo_pos || Utxo.position(0, 0, 0),
@@ -150,7 +150,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   end
 
   defp prepare_canonical_response(%InFlightExitInfo{tx: tx, tx_seen_in_blocks_at: {pos, proof}}),
-    do: %{in_flight_txbytes: Transaction.raw_txbytes(tx), in_flight_tx_pos: pos, in_flight_proof: proof}
+    do: %{in_flight_txbytes: Transaction.Extract.raw_txbytes(tx), in_flight_tx_pos: pos, in_flight_proof: proof}
 
   defp maybe_calculate_proof(nil, _), do: <<>>
 

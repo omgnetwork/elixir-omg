@@ -46,7 +46,7 @@ defmodule OMG.Watcher.API.InFlightExit do
 
       {:ok,
        %{
-         in_flight_tx: Transaction.raw_txbytes(tx),
+         in_flight_tx: Transaction.Extract.raw_txbytes(tx),
          input_txs: ExRLP.encode(input_txs),
          input_txs_inclusion_proofs: proofs,
          in_flight_tx_sigs: sigs
@@ -94,7 +94,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   defp find_input_data(tx) do
     result =
       tx
-      |> Transaction.get_inputs()
+      |> Transaction.Extract.get_inputs()
       |> Enum.map(fn
         utxo_pos ->
           with {:ok, %{proof: proof, txbytes: txbytes}} <- API.Utxo.compose_utxo_exit(utxo_pos),

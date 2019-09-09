@@ -49,7 +49,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
       {:ok,
        %{
          utxo_pos: Utxo.Position.encode(utxo_pos),
-         txbytes: Transaction.raw_txbytes(tx),
+         txbytes: Transaction.Extract.raw_txbytes(tx),
          proof: Block.inclusion_proof(sorted_tx_bytes, txindex),
          sigs: Enum.join(sigs)
        }}
@@ -82,7 +82,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
     {:ok,
      %{
        utxo_pos: Utxo.Position.encode(utxo_pos),
-       txbytes: Transaction.raw_txbytes(tx),
+       txbytes: Transaction.Extract.raw_txbytes(tx),
        proof: Block.inclusion_proof(txs, 0)
      }}
   end

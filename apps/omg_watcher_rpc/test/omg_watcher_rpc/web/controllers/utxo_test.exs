@@ -56,7 +56,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
     OMG.DB.multi_update([
       {:put, :utxo,
        {{1000, 0, 0},
-        %{amount: 100, creating_txhash: OMG.State.Transaction.raw_txhash(tx), currency: @eth, owner: bob.addr}}},
+        %{amount: 100, creating_txhash: OMG.State.Transaction.Extract.raw_txhash(tx), currency: @eth, owner: bob.addr}}},
       {:put, :block, %{number: 1000, hash: 0, transactions: [tx_encode]}}
     ])
 

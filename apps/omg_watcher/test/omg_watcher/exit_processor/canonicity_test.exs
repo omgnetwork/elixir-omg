@@ -147,7 +147,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       # for tx1, which is what we want to detect:
       comp = TestHelper.create_recovered([{1, 0, 0, alice}, {2, 1, 0, alice}], [])
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
-      txbytes = Transaction.raw_txbytes(tx1)
+      txbytes = Transaction.Extract.raw_txbytes(tx1)
       challenge_event = ife_challenge(tx2, comp)
       {processor, _} = Core.new_ife_challenges(processor, [challenge_event])
 
@@ -395,7 +395,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
         # unfortunately, transaction validity requires us to duplicate a signature for every non-zero input
         required_priv_key_list =
           comp
-          |> Transaction.get_inputs()
+          |> Transaction.Extract.get_inputs()
           |> Enum.count()
           |> (&List.duplicate(alice.priv, &1)).()
 
@@ -510,7 +510,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
     test "by not asking for utxo existence concerning finalized ifes",
          %{processor_empty: processor, transactions: [tx | _]} do
-      tx_hash = Transaction.raw_txhash(tx)
+      tx_hash = Transaction.Extract.raw_txhash(tx)
       piggybacks = [%{tx_hash: tx_hash, output_index: 1}, %{tx_hash: tx_hash, output_index: 2}]
       ife_id = 123
       {processor, _} = processor |> start_ife_from(tx, status: {1, ife_id}) |> Core.new_piggybacks(piggybacks)
@@ -539,7 +539,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
     test "for nonexistent tx doesn't crash",
          %{transactions: [tx | _], processor_empty: processor} do
-      txbytes = Transaction.raw_txbytes(tx)
+      txbytes = Transaction.Extract.raw_txbytes(tx)
 
       assert {:error, :ife_not_known_for_tx} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -558,7 +558,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
     test "against a competitor",
          %{processor_filled: processor, transactions: [tx1 | _] = txs, competing_tx: comp} do
       {challenged_processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx1, comp)])
-      txbytes = Transaction.raw_txbytes(tx1)
+      txbytes = Transaction.Extract.raw_txbytes(tx1)
       other_blknum = 3000
 
       request = %ExitProcessor.Request{
@@ -583,7 +583,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
     end
 
     test "proving canonical for nonexistent tx doesn't crash", %{processor_empty: processor, transactions: [tx | _]} do
-      txbytes = Transaction.raw_txbytes(tx)
+      txbytes = Transaction.Extract.raw_txbytes(tx)
       request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
       processor = processor |> Core.find_ifes_in_blocks(request)
       assert {:error, :ife_not_known_for_tx} = Core.prove_canonical_for_ife(processor, txbytes)
@@ -603,7 +603,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
     test "none if challenge gets responded and ife canonical",
          %{processor_filled: processor, transactions: [tx | _] = txs, competing_tx: comp} do
-      txbytes = Transaction.raw_txbytes(tx)
+      txbytes = Transaction.Extract.raw_txbytes(tx)
       other_blknum = 3000
       {processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx, comp)])
 
@@ -624,7 +624,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
     test "when there are two transaction inclusions to respond with",
          %{processor_filled: processor, transactions: [tx | _], competing_tx: comp} do
-      txbytes = Transaction.raw_txbytes(tx)
+      txbytes = Transaction.Extract.raw_txbytes(tx)
       other_blknum = 3000
       {processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx, comp)])
 

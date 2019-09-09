@@ -212,7 +212,7 @@ defmodule OMG.Watcher.UtxoSelection do
 
   defp create_txbytes(tx) do
     with tx when not is_nil(tx) <- tx,
-         do: Transaction.raw_txbytes(tx)
+         do: Transaction.Extract.raw_txbytes(tx)
   end
 
   defp compute_sign_hash(tx) do

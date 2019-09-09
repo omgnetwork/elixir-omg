@@ -20,11 +20,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   """
 
   alias OMG.State.Transaction
+  alias OMG.State.Transaction.Decode
   alias OMG.Utxo
 
   require Utxo
   require Transaction
   require Transaction.Payment
+  import OMG.State.Transaction.Metadata, only: [is_metadata?: 1]
 
   @max_inputs Transaction.Payment.max_inputs()
 
@@ -107,12 +109,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         |> Keyword.put_new(:tx, tx)
         |> Keyword.put_new(:is_active, parse_contract_in_flight_exit_status(contract_status))
 
-      {Transaction.raw_txhash(tx), struct!(__MODULE__, fields)}
+      {Transaction.Extract.raw_txhash(tx), struct!(__MODULE__, fields)}
     end
   end
 
   defp prepare_tx(tx_bytes, tx_signatures) do
-    with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
+    with {:ok, raw_tx} <- Decode.it(tx_bytes) do
       chopped_sigs = for <<chunk::size(65)-unit(8) <- tx_signatures>>, do: <<chunk::size(65)-unit(8)>>
       tx = %Transaction.Signed{raw_tx: raw_tx, sigs: chopped_sigs}
       {:ok, tx}
@@ -206,7 +208,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   end
 
   def from_db_raw_tx(%{inputs: inputs, outputs: outputs, metadata: metadata})
-      when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
+      when is_list(inputs) and is_list(outputs) and is_metadata?(metadata) do
     value = %{inputs: inputs, outputs: outputs, metadata: metadata}
     struct!(Transaction.Payment, value)
   end
@@ -216,7 +218,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   end
 
   def to_db_value(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
-      when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
+      when is_list(inputs) and is_list(outputs) and is_metadata?(metadata) do
     %{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
@@ -325,7 +327,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def indexed_piggybacks_by_ife(%__MODULE__{tx: tx} = ife, :input) do
     indexed_piggybacked_inputs =
       tx
-      |> Transaction.get_inputs()
+      |> Transaction.Extract.get_inputs()
       |> Enum.with_index()
       |> Enum.filter(fn {_input, index} -> is_input_piggybacked?(ife, index) end)
 

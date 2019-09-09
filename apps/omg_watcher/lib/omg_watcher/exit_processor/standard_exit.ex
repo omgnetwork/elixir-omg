@@ -130,7 +130,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
         {:ok, signed_bytes} = Enum.fetch(transactions, txindex)
         Transaction.Signed.decode!(signed_bytes)
       end
-      |> Transaction.raw_txbytes()
+      |> Transaction.Extract.raw_txbytes()
 
     %ExitProcessor.Request{request | se_exit_id_to_get: exit_id_to_get_by_txbytes}
   end
@@ -160,7 +160,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
        %Challenge{
          exit_id: exit_id,
          input_index: input_index,
-         txbytes: challenging_signed |> Transaction.raw_txbytes(),
+         txbytes: challenging_signed |> Transaction.Extract.raw_txbytes(),
          sig: find_sig!(challenging_signed, owner)
        }}
     end

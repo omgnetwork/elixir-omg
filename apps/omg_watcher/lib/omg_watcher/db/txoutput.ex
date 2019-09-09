@@ -123,7 +123,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     # zero-value outputs are not inserted, tx can have no outputs at all
     outputs =
       tx
-      |> Transaction.get_outputs()
+      |> Transaction.Extract.get_outputs()
       |> Enum.with_index()
       |> Enum.flat_map(fn {%{currency: currency, owner: owner, amount: amount}, oindex} ->
         create_output(blknum, txindex, oindex, txhash, owner, currency, amount)
@@ -150,7 +150,7 @@ defmodule OMG.Watcher.DB.TxOutput do
   @spec create_inputs(Transaction.any_flavor_t(), binary()) :: [tuple()]
   def create_inputs(tx, spending_txhash) do
     tx
-    |> Transaction.get_inputs()
+    |> Transaction.Extract.get_inputs()
     |> Enum.with_index()
     |> Enum.map(fn {Utxo.position(_, _, _) = input_utxo_pos, index} ->
       {input_utxo_pos, index, spending_txhash}

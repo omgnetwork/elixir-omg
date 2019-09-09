@@ -24,6 +24,7 @@ defmodule OMG.State.Transaction.Payment do
 
   require Transaction
   require Utxo
+  import OMG.State.Transaction.Metadata, only: [is_metadata?: 1]
 
   @default_metadata nil
 
@@ -53,11 +54,11 @@ defmodule OMG.State.Transaction.Payment do
   @max_inputs 4
   @max_outputs 4
 
-  defmacro is_metadata(metadata) do
-    quote do
-      unquote(metadata) == nil or (is_binary(unquote(metadata)) and byte_size(unquote(metadata)) == 32)
-    end
-  end
+  # defmacro is_metadata(metadata) do
+  #   quote do
+  #     unquote(metadata) == nil or (is_binary(unquote(metadata)) and byte_size(unquote(metadata)) == 32)
+  #   end
+  # end
 
   defmacro max_inputs do
     quote do
@@ -90,7 +91,7 @@ defmodule OMG.State.Transaction.Payment do
   def new(inputs, outputs, metadata \\ @default_metadata)
 
   def new(inputs, outputs, metadata)
-      when is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
+      when is_metadata?(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
     inputs =
       inputs
       |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
@@ -152,7 +153,7 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   defp reconstruct_metadata([]), do: {:ok, nil}
-  defp reconstruct_metadata([metadata]) when Transaction.is_metadata(metadata), do: {:ok, metadata}
+  defp reconstruct_metadata([metadata]) when is_metadata?(metadata), do: {:ok, metadata}
   defp reconstruct_metadata([_]), do: {:error, :malformed_metadata}
 
   defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
@@ -199,6 +200,8 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   require Utxo
   require Transaction.Payment
 
+  import OMG.State.Transaction.Metadata, only: [is_metadata?: 1]
+
   @zero_address OMG.Eth.zero_address()
   @empty_signature <<0::size(520)>>
 
@@ -211,7 +214,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
   def get_data_for_rlp(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
-      when Transaction.Payment.is_metadata(metadata),
+      when is_metadata?(metadata),
       do:
         [
           # TODO: commented code for the tx markers handling
@@ -241,7 +244,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   """
   def valid?(%Transaction.Payment{}, %Transaction.Signed{sigs: sigs} = tx) do
     tx
-    |> Transaction.get_inputs()
+    |> Transaction.Extract.get_inputs()
     |> all_inputs_signed?(sigs)
   end
 
@@ -253,7 +256,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   """
   @spec can_apply?(Transaction.Payment.t(), list(Utxo.t())) :: {:ok, map()} | {:error, :amounts_do_not_add_up}
   def can_apply?(%Transaction.Payment{} = tx, input_utxos) do
-    outputs = Transaction.get_outputs(tx)
+    outputs = Transaction.Extract.get_outputs(tx)
 
     input_amounts_by_currency = get_amounts_by_currency(input_utxos)
     output_amounts_by_currency = get_amounts_by_currency(outputs)
@@ -267,7 +270,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   """
   def get_effects(%Transaction.Payment{} = tx, blknum, tx_index) do
     new_utxos_map = tx |> non_zero_utxos_from(blknum, tx_index) |> Map.new()
-    spent_input_pointers = Transaction.get_inputs(tx)
+    spent_input_pointers = Transaction.Extract.get_inputs(tx)
     {spent_input_pointers, new_utxos_map}
   end
 
@@ -289,10 +292,10 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   end
 
   defp utxos_from(tx, blknum, tx_index) do
-    hash = Transaction.raw_txhash(tx)
+    hash = Transaction.Extract.raw_txhash(tx)
 
     tx
-    |> Transaction.get_outputs()
+    |> Transaction.Extract.get_outputs()
     |> Enum.with_index()
     |> Enum.map(fn {%{owner: owner, currency: currency, amount: amount}, oindex} ->
       {Utxo.position(blknum, tx_index, oindex),

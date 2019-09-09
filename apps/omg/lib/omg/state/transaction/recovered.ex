@@ -99,7 +99,7 @@ defmodule OMG.State.Transaction.Recovered do
          do:
            {:ok,
             %__MODULE__{
-              tx_hash: Transaction.raw_txhash(signed_tx),
+              tx_hash: Transaction.Extract.raw_txhash(signed_tx),
               witnesses: witnesses,
               signed_tx: signed_tx,
               signed_tx_bytes: signed_tx_bytes
@@ -113,7 +113,7 @@ defmodule OMG.State.Transaction.Recovered do
   end
 
   defp generic_valid?(%Transaction.Signed{raw_tx: raw_tx}) do
-    inputs = Transaction.get_inputs(raw_tx)
+    inputs = Transaction.Extract.get_inputs(raw_tx)
 
     with true <- no_duplicate_inputs?(inputs) || {:error, :duplicate_inputs},
          do: true

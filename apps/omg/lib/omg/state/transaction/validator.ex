@@ -24,6 +24,7 @@ defmodule OMG.State.Transaction.Validator do
   alias OMG.State.Transaction
   alias OMG.State.UtxoSet
   alias OMG.Utxo
+
   require Utxo
 
   @type exec_error ::
@@ -37,7 +38,7 @@ defmodule OMG.State.Transaction.Validator do
   @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
           true | {{:error, exec_error()}, Core.t()}
   def can_apply_spend(%Core{utxos: utxos} = state, %Transaction.Recovered{} = tx, fees) do
-    inputs = Transaction.get_inputs(tx)
+    inputs = Transaction.Extract.get_inputs(tx)
 
     with :ok <- validate_block_size(state),
          :ok <- inputs_not_from_future_block?(state, inputs),

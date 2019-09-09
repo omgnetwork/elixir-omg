@@ -752,7 +752,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
           from_hex!(verbose_metadata)
         )
 
-      assert tx_hex == verbose_tx |> Transaction.raw_txbytes() |> Encoding.to_hex()
+      assert tx_hex == verbose_tx |> Transaction.Extract.raw_txbytes() |> Encoding.to_hex()
       assert sign_hash_hex == verbose_tx |> OMG.TypedDataHash.hash_struct() |> Encoding.to_hex()
     end
 
@@ -1139,8 +1139,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       recovered_txs =
         txs_bytes
         |> Enum.map(fn "0x" <> tx ->
-          raw_tx = tx |> Base.decode16!(case: :lower) |> Transaction.decode!()
-          n_inputs = raw_tx |> Transaction.get_inputs() |> length
+          raw_tx = tx |> Base.decode16!(case: :lower) |> Transaction.Decode.it!()
+          n_inputs = raw_tx |> Transaction.Extract.get_inputs() |> length
 
           raw_tx
           |> DevCrypto.sign(List.duplicate(spender.priv, n_inputs))

@@ -53,7 +53,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
 
     contract_ife_statuses = 1..length(transactions) |> Enum.map(fn i -> {i, i} end)
 
-    ife_tx_hashes = transactions |> Enum.map(&Transaction.raw_txhash/1)
+    ife_tx_hashes = transactions |> Enum.map(&Transaction.Extract.raw_txhash/1)
 
     processor_filled =
       transactions
