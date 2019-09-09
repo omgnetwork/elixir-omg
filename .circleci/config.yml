@@ -1,6 +1,19 @@
 version: 2.1
 
 executors:
+  metal:
+    docker:
+      - image: circleci/elixir:1.8.2
+      - image: circleci/postgres:9.6
+        environment:
+          MIX_ENV: test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+          CIRLCECI: true
+
+    working_directory: ~/src
+
   builder:
     docker:
       - image: omisegoimages/elixir-omg-builder:v1.3
@@ -48,7 +61,22 @@ commands:
       - attach_workspace:
           name: Attach workspace
           at: .
+
 jobs:
+  barebuild:
+    executor: metal
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      MIX_ENV: test
+    steps:
+      - checkout
+      - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+      - run:
+          command: ./bin/setup
+          no_output_timeout: 2400
+      - run: make deps-elixir-omg
+      - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
+      - run: mix test
   build:
     executor: builder
     environment:
@@ -458,6 +486,8 @@ workflows:
     jobs:
       - build
       - integration_tests:
+          requires: [build]
+      - barebuild:
           requires: [build]
   build-deploy:
     jobs:

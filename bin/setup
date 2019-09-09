@@ -1,0 +1,144 @@
+#!/usr/bin/env sh
+
+fancy_echo() {
+  local fmt="$1"; shift
+
+  # shellcheck disable=SC2059
+  printf "\\n$fmt\\n" "$@"
+}
+
+install_linux_deps() {
+  local LINUX_DEPS="automake autoconf autogen libtool gcc curl cmake gnupg"
+  local flavor=`grep "^ID=" /etc/os-release | cut -d"=" -f 2`
+  echo $flavor
+  case $flavor in
+    debian|ubuntu)
+      sudo apt-get install -y $LINUX_DEPS libgmp-dev erlang-dev build-essential libssl-dev libncurses5-dev unzip lsb-release software-properties-common
+      ;;
+    fedora|centos)
+      sudo yum install $LINUX_DEPS gmp-devel
+      ;;
+    *)
+      fancy_echo "Unrecognized distribution $flavor"
+      exit 1
+      ;;
+  esac
+}
+
+install_linux_solc(){
+  echo "Installing Solc v0.4.25"
+  wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-static-linux \
+  && chmod +x solc-static-linux \
+  && mv solc-static-linux solc  \
+  && sudo install -m0755 solc /usr/local/bin/solc
+}
+
+install_linux_postgres(){
+  echo "Installing Postgres 9.6."
+  echo "Adding public key 7FCC7D46ACCC4CF8 to repo."
+  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 7FCC7D46ACCC4CF8
+  sudo add-apt-repository "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -sc)-pgdg main"
+  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+  sudo apt-get update
+  sudo apt-get install postgresql-9.6 -y
+  sudo apt-get install postgresql-client-9.6
+  echo "Start PG."
+  sudo service postgresql start
+  echo "Create user."
+  sudo -i -u postgres psql -c "CREATE USER omisego_dev WITH PASSWORD 'omisego_dev';"
+  echo "Grant permission."
+  sudo -i -u postgres psql -c "ALTER USER omisego_dev CREATEDB;"
+  echo "Done with PG."
+}
+
+install_linux_geth(){
+  echo "Installing Geth 1.8.27"
+  mkdir gethDownload \
+  && wget -qO- https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.8.27-4bcc0a37.tar.gz | tar xvz -C gethDownload --strip-components 1 \
+  && cd gethDownload \
+  && mkdir -p /usr/local/bin \
+  && sudo mv geth /usr/local/bin/ \
+  && cd .. \
+  && rm -r gethDownload
+}
+
+install_darwin_deps(){
+    fancy_echo "Installing dependencies via brew"
+    brew bundle --file=- <<EOF
+brew "automake"
+brew "autoconf"
+brew "gmp"
+brew "libtool"
+brew "cmake"
+EOF
+}
+
+install_deps() {
+  local sys=`uname -s`
+  echo $sys
+  case $sys in
+    Linux*)
+      install_linux_deps
+      install_linux_solc
+      install_linux_geth
+      if [ -z "$CIRCLE_SHA1" ]; then
+        install_linux_postgres
+      else
+        echo "Skip Postgres setup, because CircleCI."
+      fi
+      ;;
+    Darwin*)
+      install_darwin_deps
+      ;;
+    *)
+      fancy_echo "Unknown system"
+      exit 1
+      ;;
+  esac
+}
+
+# Exit if any subcommand fails
+set -e
+
+install_deps
+
+# Set up Elixir
+#git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.7.4
+#Linux
+#echo -e '\n. $HOME/.asdf/asdf.sh' >> ~/.bashrc
+#echo -e '\n. $HOME/.asdf/completions/asdf.bash' >> ~/.bashrc
+#source ~/.bashrc
+#MacOS
+#echo -e '\n. $HOME/.asdf/asdf.sh' >> ~/.bash_profile
+#echo -e '\n. $HOME/.asdf/completions/asdf.bash' >> ~/.bash_profile
+#source ~/.bash_profile
+#Linux and MacOS
+#asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
+#asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
+#asdf install erlang 21.0
+#asdf install elixir 1.8.2
+#asdf global elixir 1.8.2
+#asdf global erlang 21.0
+if ! command -v mix > /dev/null; then
+  fancy_echo "It looks like you don't have Elixir installed."
+  echo "See https://asdf-vm.com/#/core-manage-asdf-vm for instructions."
+  echo "See https://github.com/asdf-vm/asdf-elixir for instructions."
+  echo "See https://github.com/asdf-vm/asdf-erlang for instructions."
+  exit 1
+fi
+
+mix local.hex --force
+
+if ! command -v mix > /dev/null; then
+  fancy_echo "\`mix\`: command not found"
+  fancy_echo "Please add \`~/.mix\` to your \$PATH environment variable"
+  exit 1
+fi
+
+fancy_echo "Installing elixir dependencies."
+mix local.hex --force
+mix local.rebar --force
+
+mix deps.get
+
+fancy_echo "You're all set!"

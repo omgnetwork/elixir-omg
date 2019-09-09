@@ -109,22 +109,17 @@ defmodule OMG.Utils.HttpRPC.Response do
   # not the most beatuful way of doing this but
   # because our "response serializer" is in utils there's no other way
   defp add_version(response) do
-    # TODO remove this hack when running releases
-    is_child_chain_running =
-      Enum.find(Application.started_applications(), fn
-        {:omg_child_chain_rpc, _, _} -> true
-        _ -> false
-      end)
-
     vsn =
-      if Code.ensure_loaded?(OMG.ChildChainRPC) and is_child_chain_running != nil do
-        {:ok, vsn} = :application.get_key(:omg_child_chain_rpc, :vsn)
+      case :code.is_loaded(OMG.ChildChainRPC) do
+        {:file, _} ->
+          {:ok, vsn} = :application.get_key(:omg_child_chain_rpc, :vsn)
 
-        vsn
-      else
-        {:ok, vsn} = :application.get_key(:omg_watcher_rpc, :vsn)
+          vsn
 
-        vsn
+        _ ->
+          {:ok, vsn} = :application.get_key(:omg_watcher_rpc, :vsn)
+
+          vsn
       end
 
     Map.merge(response, %{version: List.to_string(vsn) <> "+" <> @sha})
@@ -133,22 +128,18 @@ defmodule OMG.Utils.HttpRPC.Response do
   # Not the most "beautiful way", but I'm just referencing
   # how they're injecting the version
   defp add_service_name(response) do
-    # TODO remove this hack when running releases
-    is_child_chain_running =
-      Enum.find(Application.started_applications(), fn
-        {:omg_child_chain_rpc, _, _} -> true
-        _ -> false
-      end)
-
-    # Is type "watcher" or "childchain"
-    service_name =
-      if Code.ensure_loaded?(OMG.ChildChainRPC) and is_child_chain_running != nil do
-        "child_chain"
-      else
-        "watcher"
-      end
-
+    service_name = service_name()
     # Inject it into the response code
     Map.merge(response, %{service_name: service_name})
+  end
+
+  defp service_name do
+    case :code.is_loaded(OMG.ChildChainRPC) do
+      {:file, _} ->
+        "child_chain"
+
+      _ ->
+        "watcher"
+    end
   end
 end
