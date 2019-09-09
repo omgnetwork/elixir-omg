@@ -77,5 +77,4 @@ unicode_util_compat 0.3.1-> Apache 2.0
 * `py-solc`, MIT, https://github.com/ethereum/py-solc
 * `solc`, GPL 3.0, https://github.com/ethereum/solidity
 * `postgresql`, PostgreSQL License, https://www.postgresql.org
-* `proper`, GPL 3.0, https://github.com/proper-testing/proper/
-* `propcheck`, GPL 3.0, https://github.com/alfert/propcheck/
+

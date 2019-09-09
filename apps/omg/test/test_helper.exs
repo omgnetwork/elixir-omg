@@ -14,7 +14,6 @@
 
 ExUnitFixtures.start()
 ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-Application.ensure_all_started(:propcheck)
 umbrella_root_dir = Application.fetch_env!(:omg, :umbrella_root_dir)
 ExUnitFixtures.load_fixture_files(Path.join(umbrella_root_dir, "apps/*/test/**/fixtures.exs"))
 ExUnit.start()

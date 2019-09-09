@@ -88,8 +88,6 @@ defmodule OMG.Umbrella.MixProject do
       :jason,
       :mix,
       :plug,
-      :propcheck,
-      :proper,
       :ranch,
       :sentry,
       :vmstats
