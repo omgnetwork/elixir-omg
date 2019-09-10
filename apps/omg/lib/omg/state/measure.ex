@@ -34,6 +34,8 @@ defmodule OMG.State.Measure do
       end)
     end
 
+    # TODO proper fix! this is a very hackish approach to get measurements off the back
+    # of OMG State
     _ = Task.start(execute)
     :ok
   end
