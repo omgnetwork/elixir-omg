@@ -39,9 +39,16 @@ def check_job_completed(test_runner: str, job_id: str):
             '{}/job/{}/status'.format(test_runner, job_id),
             headers={'Cache-Control': 'no-cache'}
         )
-        if 'Exited' in request.content.decode('utf-8'):
+
+        resp = request.content.decode('utf-8')
+
+        if 'Exited' in resp:
             logging.info('Job completed successfully')
             break
+
+        elif 'Failed' in resp:
+            logging.info(f'Job failed, reason: {resp}')
+            raise Exception(f'Job failed, reason: {resp}')
 
 
 def check_job_result(test_runner: str, job_id: str):
