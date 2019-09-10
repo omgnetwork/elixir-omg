@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import time
+import traceback
 
 import requests
 
@@ -17,11 +18,8 @@ def create_job(test_runner: str) -> str:
             "cwd": "/home/omg/omg-js"
         }
     }
-    try:
-        request = requests.post(test_runner + '/job', json=payload)
-    except ConnectionError:
-        logging.critical('Could not connect to the test runner')
-        sys.exit(1)  # Return a non-zero exit code so CircleCI fails
+
+    request = requests.post(test_runner + '/job', json=payload)
 
     logging.info('Job created: {}'.format(
         request.content.decode('utf-8'))
@@ -36,15 +34,11 @@ def check_job_completed(test_runner: str, job_id: str):
     while True:
         if start_time >= (start_time + 360):
             logging.critical('Test runner did not complete within six minutes')
-            sys.exit(1)  # Return a non-zero exit code so CircleCI fails
-        try:
-            request = requests.get(
-                '{}/job/{}/status'.format(test_runner, job_id),
-                headers={'Cache-Control': 'no-cache'}
-            )
-        except ConnectionError:
-            logging.critical('Could not connect to the test runner')
-            sys.exit(1)  # Return a non-zero exit code so CircleCI fails
+            raise Exception('Test runner did not complete within six minutes')
+        request = requests.get(
+            '{}/job/{}/status'.format(test_runner, job_id),
+            headers={'Cache-Control': 'no-cache'}
+        )
         if 'Exited' in request.content.decode('utf-8'):
             logging.info('Job completed successfully')
             break
@@ -54,14 +48,11 @@ def check_job_result(test_runner: str, job_id: str):
     ''' Check the result of the job. This is the result of the tests that are
     executed against the push. If they all pass 'true' is returned.
     '''
-    try:
-        request = requests.get(
-            test_runner + '/job/{}/success'.format(job_id),
-            headers={'Cache-Control': 'no-cache'}
-        )
-    except ConnectionError:
-        logging.critical('Could not connect to the test runner')
-        sys.exit(1)
+    request = requests.get(
+        test_runner + '/job/{}/success'.format(job_id),
+        headers={'Cache-Control': 'no-cache'}
+    )
+
     if 'true' in request.content.decode('utf-8'):
         logging.info('Tests completed successfully')
 
@@ -73,7 +64,17 @@ def get_envs() -> dict:
     test_runner = os.getenv('TEST_RUNNER_SERVICE')
     if test_runner is None:
         logging.critical('Test runner service ENV missing')
-        sys.exit(1)  # Return a non-zero exit code so CircleCI fails
+        raise Exception('Test runner service ENV missing')
+
+    envs['TEST_RUNNER_SLACK_WEBHOOK_01'] = os.getenv(
+        'TEST_RUNNER_SLACK_WEBHOOK_01', None)
+    envs['TEST_RUNNER_SLACK_WEBHOOK_02'] = os.getenv(
+        'TEST_RUNNER_SLACK_WEBHOOK_02', None)
+    envs['CIRCLE_BUILD_URL'] = os.getenv('CIRCLE_BUILD_URL', None)
+
+    if envs['TEST_RUNNER_SLACK_WEBHOOK_02'] is None or \
+            envs['TEST_RUNNER_SLACK_WEBHOOK_01'] is None:
+        logging.warning('Slack webhook URL(s) not defined properly')
 
     envs['TEST_RUNNER_SERVICE'] = test_runner
     return envs
@@ -82,11 +83,40 @@ def get_envs() -> dict:
 def start_workflow():
     ''' Get the party started
     '''
-    logging.info('Workflow started')
-    envs = get_envs()
-    job_id = str(create_job(envs['TEST_RUNNER_SERVICE']))
-    check_job_completed(envs['TEST_RUNNER_SERVICE'], job_id)
-    check_job_result(envs['TEST_RUNNER_SERVICE'], job_id)
+    try:
+        logging.info('Workflow started')
+        envs = get_envs()
+        job_id = str(create_job(envs['TEST_RUNNER_SERVICE']))
+        check_job_completed(envs['TEST_RUNNER_SERVICE'], job_id)
+        check_job_result(envs['TEST_RUNNER_SERVICE'], job_id)
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        logging.critical(
+            f'Test runner service crashed, exception: {e}\ntraceback: {tb}')
+
+        circleci_build_url = envs['CIRCLE_BUILD_URL']
+        # Sends notification to the web slack hooks
+        for webhook in [envs['TEST_RUNNER_SLACK_WEBHOOK_01'], envs['TEST_RUNNER_SLACK_WEBHOOK_02']]:
+            if webhook is not None:
+                requests.post(webhook, json={
+                    'attachments': [
+                        {
+                            'title': 'Traceback',
+                            'pretext': 'Test runner service crashed, exception: `{}`\nCircleCI build results: {}'.format(
+                                e, circleci_build_url
+                            ),
+                            'text': '```{}```'.format(tb),
+                            "mrkdwn_in": [
+                                "text",
+                                "pretext"
+                            ]
+                        }
+                    ]
+                })
+
+        # Returns a non-zero exit code so CircleCI fails
+        sys.exit(1)
 
 
 def set_logger():
