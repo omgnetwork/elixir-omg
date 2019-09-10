@@ -171,7 +171,7 @@ defmodule OMG.Eth do
   end
 
   defp filter_not_removed(logs) do
-    logs |> Enum.filter(&(not Map.get(&1, "removed", true)))
+    logs |> Enum.filter(&(not Map.get(&1, "removed", false)))
   end
 
   def get_ethereum_events(block_from, block_to, signature, contract) do
