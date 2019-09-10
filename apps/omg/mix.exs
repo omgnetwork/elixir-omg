@@ -41,7 +41,7 @@ defmodule OMG.MixProject do
       {:omg_status, in_umbrella: true},
 
       # TEST ONLY
-      {:propcheck, "~> 1.1", only: [:dev, :test], runtime: false},
+
       # Used for mocking websocket servers
       {:plug_cowboy, "~> 1.0", only: [:dev, :test]}
     ]
