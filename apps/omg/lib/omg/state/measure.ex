@@ -27,9 +27,16 @@ defmodule OMG.State.Measure do
   def supported_events, do: @supported_events
 
   def handle_event([:process, OMG.State], _, %Core{} = state, _config) do
-    Enum.each(MeasurementCalculation.calculate(state), fn
-      {key, value} -> _ = Datadog.gauge(name(key), value)
-      {key, value, metadata} -> _ = Datadog.gauge(name(key), value, tags: [metadata])
-    end)
+    execute = fn ->
+      Enum.each(MeasurementCalculation.calculate(state), fn
+        {key, value} -> _ = Datadog.gauge(name(key), value)
+        {key, value, metadata} -> _ = Datadog.gauge(name(key), value, tags: [metadata])
+      end)
+    end
+
+    # TODO proper fix! this is a very hackish approach to get measurements off the back
+    # of OMG State
+    _ = Task.start(execute)
+    :ok
   end
 end

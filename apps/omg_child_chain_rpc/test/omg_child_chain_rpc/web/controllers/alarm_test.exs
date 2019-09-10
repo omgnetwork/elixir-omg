@@ -27,7 +27,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.AlarmTest do
     )
 
     on_exit(fn ->
-      Enum.each(apps, fn app -> :ok = Application.stop(app) end)
+      Enum.each(Enum.reverse(apps), fn app -> :ok = Application.stop(app) end)
     end)
   end
 
