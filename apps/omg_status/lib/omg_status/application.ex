@@ -112,16 +112,9 @@ defmodule OMG.Status.Application do
   end
 
   defp application do
-    is_child_chain_running =
-      Enum.find(Application.started_applications(), fn
-        {:omg_child_chain_rpc, _, _} -> true
-        _ -> false
-      end)
-
-    if Code.ensure_loaded?(OMG.ChildChainRPC) and is_child_chain_running != nil do
-      :child_chain
-    else
-      :watcher
+    case String.downcase(System.get_env("ELIXIR_SERVICE")) do
+      "watcher" -> :watcher
+      _ -> :child_chain
     end
   end
 end
