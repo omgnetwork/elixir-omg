@@ -102,17 +102,23 @@ def start_workflow():
         logging.critical(
             f'Test runner service crashed, exception: {e}\ntraceback: {tb}')
 
+        # Formatted text
         circleci_build_url = envs['CIRCLE_BUILD_URL']
+        pretext = """
+        Test runner service crashed, exception: `{}`
+        CircleCI build results: {}
+        """.format(e, circleci_build_url)
         # Sends notification to the web slack hooks
-        for webhook in [envs['TEST_RUNNER_SLACK_WEBHOOK_01'], envs['TEST_RUNNER_SLACK_WEBHOOK_02']]:
+        for webhook in [
+            envs['TEST_RUNNER_SLACK_WEBHOOK_01'],
+            envs['TEST_RUNNER_SLACK_WEBHOOK_02']
+        ]:
             if webhook is not None:
                 requests.post(webhook, json={
                     'attachments': [
                         {
                             'title': 'Traceback',
-                            'pretext': 'Test runner service crashed, exception: `{}`\nCircleCI build results: {}'.format(
-                                e, circleci_build_url
-                            ),
+                            'pretext': pretext,
                             'text': '```{}```'.format(tb),
                             "mrkdwn_in": [
                                 "text",
