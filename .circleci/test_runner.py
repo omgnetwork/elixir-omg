@@ -60,8 +60,14 @@ def check_job_result(test_runner: str, job_id: str):
         headers={'Cache-Control': 'no-cache'}
     )
 
-    if 'true' in request.content.decode('utf-8'):
+    resp = request.content.decode('utf-8')
+
+    if 'true' in resp:
         logging.info('Tests completed successfully')
+
+    elif 'false' in resp:
+        logging.critical('Tests failed')
+        raise Exception('Tests failed')
 
 
 def get_envs() -> dict:
@@ -81,7 +87,7 @@ def get_envs() -> dict:
 
     if envs['TEST_RUNNER_SLACK_WEBHOOK_02'] is None or \
             envs['TEST_RUNNER_SLACK_WEBHOOK_01'] is None:
-        logging.warning('Slack webhook URL(s) not defined properly')
+        logging.warning('Some slack webhook URL(s) are empty')
 
     envs['TEST_RUNNER_SERVICE'] = test_runner
     return envs
@@ -97,6 +103,18 @@ def start_workflow():
         check_job_completed(envs['TEST_RUNNER_SERVICE'], job_id)
         check_job_result(envs['TEST_RUNNER_SERVICE'], job_id)
 
+        # Post success to slack
+        for webhook in [
+            envs['TEST_RUNNER_SLACK_WEBHOOK_01'],
+            envs['TEST_RUNNER_SLACK_WEBHOOK_02']
+        ]:
+            if webhook is not None:
+                requests.post(webhook, json={
+                    'text': 'Functional tests for elixir-omg completed successfully!\n{}'.format(
+                        envs['CIRCLE_BUILD_URL']
+                    )
+                })
+
     except Exception as e:
         tb = traceback.format_exc()
         logging.critical(
@@ -105,7 +123,7 @@ def start_workflow():
         # Formatted text
         circleci_build_url = envs['CIRCLE_BUILD_URL']
         pretext = """
-        Test runner service crashed, exception: `{}`
+        elixir-omg functional tests failed, exception: `{}`
         CircleCI build results: {}
         """.format(e, circleci_build_url)
         # Sends notification to the web slack hooks
