@@ -197,7 +197,6 @@ defmodule OMG.Watcher.DB.EthEventTest do
              end)
   end
 
-  #  @tag fixtures: [:initial_blocks]
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "insert exits: creates exit event and marks utxo as spent" do
     expected_owner = <<1::160>>

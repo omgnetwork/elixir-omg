@@ -23,6 +23,7 @@ defmodule OMG.EthTest do
   """
 
   alias OMG.Eth
+  alias OMG.Eth.Encoding
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
@@ -86,20 +87,28 @@ defmodule OMG.EthTest do
       [List.duplicate(zero_in, 4), [[contract.authority_addr, @eth, 1]] ++ List.duplicate(zero_out, 3)]
       |> ExRLP.encode()
 
-    {:ok, _} =
+    {:ok, tx_hash} =
       Eth.RootChainHelper.deposit(tx, 1, contract.authority_addr, contract.contract_addr)
       |> Eth.DevHelpers.transact_sync!()
 
     {:ok, height} = Eth.get_ethereum_height()
 
     authority_addr = contract.authority_addr
+    root_chain_txhash = Encoding.from_hex(tx_hash["transactionHash"])
+
     deposits = Eth.RootChain.get_deposits(1, height, contract.contract_addr)
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: ^authority_addr, currency: @eth, eth_height: height, log_index: 0}]} =
-             deposits
-
-    {:ok, [%{} = deposit]} = deposits
-
-    assert Map.has_key?(deposit, :root_chain_txhash)
+    assert {:ok,
+            [
+              %{
+                amount: 1,
+                blknum: 1,
+                owner: ^authority_addr,
+                currency: @eth,
+                eth_height: height,
+                log_index: 0,
+                root_chain_txhash: ^root_chain_txhash
+              }
+            ]} = deposits
   end
 end
