@@ -24,12 +24,20 @@ if Code.ensure_loaded?(Exleveldb) do
     alias OMG.DB.LevelDB.Server
 
     setup_all do
+      setup_all()
+    end
+
+    setup %{test: test_name} do
+      setup(test_name)
+    end
+
+    def setup_all do
       :ok = Application.put_env(:omg_db, :type, :leveldb, persistent: true)
       {:ok, _} = Application.ensure_all_started(:briefly)
       :ok
     end
 
-    setup %{test: test_name} do
+    def setup(test_name) do
       {:ok, dir} = Briefly.create(directory: true)
       :ok = Server.init_storage(dir)
       name = :"TestDB_#{test_name}"

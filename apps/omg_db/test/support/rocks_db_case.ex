@@ -24,6 +24,18 @@ if Code.ensure_loaded?(:rocksdb) do
     alias OMG.DB.RocksDB.Server
 
     setup_all do
+      setup_all()
+    end
+
+    setup %{test: test_name} do
+      {:ok, dir} = Briefly.create(directory: true)
+      :ok = Server.init_storage(dir)
+      name = :"TestDB_#{test_name}"
+      {:ok, pid} = start_supervised(OMG.DB.child_spec(db_path: dir, name: name), restart: :temporary)
+      {:ok, %{db_dir: dir, db_pid: pid, db_pid_name: name}}
+    end
+
+    def setup_all do
       :ok = Application.put_env(:omg_db, :type, :rocksdb, persistent: true)
       {:ok, _} = Application.ensure_all_started(:briefly)
 
@@ -34,7 +46,7 @@ if Code.ensure_loaded?(:rocksdb) do
       :ok
     end
 
-    setup %{test: test_name} do
+    def setup(test_name) do
       {:ok, dir} = Briefly.create(directory: true)
       :ok = Server.init_storage(dir)
       name = :"TestDB_#{test_name}"

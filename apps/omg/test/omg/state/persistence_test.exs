@@ -17,7 +17,7 @@ defmodule OMG.State.PersistenceTest do
   Test focused on the persistence bits of `OMG.State.Core`
   """
   use ExUnitFixtures
-  use OMG.DB.LevelDBCase, async: true
+  use OMG.DB.DBCase, async: true
 
   alias OMG.Block
   alias OMG.State.Core

@@ -17,9 +17,14 @@ defmodule OMG.DB.Fixtures do
   Contains fixtures for tests that require db
   """
   use ExUnitFixtures.FixtureModule
+  alias OMG.DB.TestDBAdapter
 
   deffixture db_initialized do
-    :ok = Application.put_env(:omg_db, :type, :leveldb, persistent: true)
+    init(TestDBAdapter.get_loaded_db())
+  end
+
+  defp init(db_name) do
+    :ok = Application.put_env(:omg_db, :type, db_name, persistent: true)
     {:ok, briefly} = Application.ensure_all_started(:briefly)
     db_path = Briefly.create!(directory: true)
     Application.put_env(:omg_db, :path, db_path, persistent: true)
