@@ -16,6 +16,8 @@ defmodule OMG.Watcher.DB.TxOutput do
   @moduledoc """
   Ecto schema for transaction's output or input
   """
+  import Ecto.Query, only: [from: 2]
+
   use Ecto.Schema
 
   alias OMG.State.Transaction
@@ -51,12 +53,19 @@ defmodule OMG.Watcher.DB.TxOutput do
     field(:currency, :binary)
     field(:proof, :binary)
     field(:spending_tx_oindex, :integer)
+    field(:child_chain_utxohash, :binary)
 
     belongs_to(:creating_transaction, DB.Transaction, foreign_key: :creating_txhash, references: :txhash, type: :binary)
-    belongs_to(:deposit, DB.EthEvent, foreign_key: :creating_deposit, references: :hash, type: :binary)
-
     belongs_to(:spending_transaction, DB.Transaction, foreign_key: :spending_txhash, references: :txhash, type: :binary)
-    belongs_to(:exit, DB.EthEvent, foreign_key: :spending_exit, references: :hash, type: :binary)
+
+    many_to_many(
+      :ethevents,
+      DB.EthEvent,
+      join_through: "ethevents_txoutputs",
+      join_keys: [child_chain_utxohash: :child_chain_utxohash, root_chain_txhash_event: :root_chain_txhash_event]
+    )
+
+    timestamps(type: :utc_datetime)
   end
 
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
@@ -67,18 +76,33 @@ defmodule OMG.Watcher.DB.TxOutput do
     # TODO: Make use of Block API's block.get when available
     do: DB.Transaction.get_by_blknum(blknum) |> Core.compose_output_exit(decoded_utxo_pos)
 
+  # preload ethevents in a single query as there will not be a large number of them
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
-    Repo.get_by(__MODULE__, blknum: blknum, txindex: txindex, oindex: oindex)
+    DB.Repo.one(
+      from(txoutput in __MODULE__,
+        preload: [:ethevents],
+        left_join: ethevent in assoc(txoutput, :ethevents),
+        where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
+      )
+    )
   end
 
   def get_utxos(owner) do
     query =
       from(
-        txo in __MODULE__,
-        where: txo.owner == ^owner and is_nil(txo.spending_txhash) and is_nil(txo.spending_exit),
-        order_by: [asc: :blknum, asc: :txindex, asc: :oindex],
-        preload: [:creating_transaction, :deposit]
+        txoutput in __MODULE__,
+        preload: [:ethevents],
+        left_join: ethevent in assoc(txoutput, :ethevents),
+        # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
+        where: txoutput.owner == ^owner and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+ NOT EXISTS (SELECT 1
+             FROM ethevents_txoutputs AS etfrag
+             JOIN ethevents AS efrag ON
+                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
+                      AND efrag.event_type IN (?)
+                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+        order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
       )
 
     Repo.all(query)
@@ -88,10 +112,18 @@ defmodule OMG.Watcher.DB.TxOutput do
   def get_balance(owner) do
     query =
       from(
-        t in __MODULE__,
-        where: t.owner == ^owner and is_nil(t.spending_txhash) and is_nil(t.spending_exit),
-        group_by: t.currency,
-        select: {t.currency, sum(t.amount)}
+        txoutput in __MODULE__,
+        left_join: ethevent in assoc(txoutput, :ethevents),
+        # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
+        where: txoutput.owner == ^owner and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+ NOT EXISTS (SELECT 1
+             FROM ethevents_txoutputs AS etfrag
+             JOIN ethevents AS efrag ON
+                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
+                      AND efrag.event_type IN (?)
+                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+        group_by: txoutput.currency,
+        select: {txoutput.currency, sum(txoutput.amount)}
       )
 
     Repo.all(query)
