@@ -62,6 +62,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
       @configuration_old_statix
       |> Keyword.put(:host, "cluster")
       |> Keyword.put(:port, 1919)
+      |> Keyword.put(:tags, ["application:#{application()}"])
       |> Enum.sort()
   end
 
@@ -77,7 +78,10 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     configuration = Application.get_all_env(:statix)
     sorted_configuration = Enum.sort(configuration)
 
-    ^sorted_configuration = Enum.sort(@configuration_old_statix)
+    ^sorted_configuration =
+      @configuration_old_statix
+      |> Keyword.put(:tags, ["application:#{application()}"])
+      |> Enum.sort()
   end
 
   test "if environment variables get applied in the spandex_datadog configuration" do
@@ -130,6 +134,14 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     catch
       :exit, _ ->
         :ok = System.delete_env("DD_DISABLED")
+    end
+  end
+
+  defp application do
+    if Code.ensure_loaded?(OMG.ChildChain) do
+      :child_chain
+    else
+      :watcher
     end
   end
 end
