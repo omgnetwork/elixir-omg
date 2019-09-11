@@ -36,6 +36,7 @@ defmodule OMG.DB.TestDBAdapter do
     case get_loaded_db() do
       :rocksdb ->
         RocksDBCase
+
       :leveldb ->
         LevelDBCase
     end
