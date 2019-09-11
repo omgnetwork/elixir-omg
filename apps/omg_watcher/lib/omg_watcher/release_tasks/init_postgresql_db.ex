@@ -31,6 +31,7 @@ defmodule OMG.Watcher.ReleaseTasks.InitPostgresqlDB do
   end
 
   defp init_pg_db(app_name) do
+    _ = Application.load(app_name)
     repos = Application.get_env(app_name, :ecto_repos, [])
 
     Enum.each(repos, &run_create_for/1)

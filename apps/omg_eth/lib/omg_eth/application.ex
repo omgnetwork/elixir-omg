@@ -21,8 +21,6 @@ defmodule OMG.Eth.Application do
   use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
-    DeferredConfig.populate(:omg_eth)
-
     _ = Logger.info("Started #{inspect(__MODULE__)}, config used: #{inspect(Eth.Diagnostics.get_child_chain_config())}")
 
     OMG.Eth.Supervisor.start_link()

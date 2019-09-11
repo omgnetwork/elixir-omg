@@ -21,9 +21,6 @@ defmodule OMG.ChildChainRPC.Application do
   require Logger
 
   def start(_type, _args) do
-    DeferredConfig.populate(:omg_child_chain_rpc)
-    DeferredConfig.populate(:omg_watcher_rpc)
-
     _ = Logger.info("Started application #{__MODULE__}")
 
     opts = [strategy: :one_for_one, name: OMG.ChildChainRPC.Supervisor]
@@ -33,7 +30,6 @@ defmodule OMG.ChildChainRPC.Application do
       {OMG.ChildChainRPC.Web.Endpoint, []}
     ]
 
-    set_statix_global_tag()
     Supervisor.start_link(children, opts)
   end
 
@@ -42,9 +38,5 @@ defmodule OMG.ChildChainRPC.Application do
   def config_change(changed, _new, removed) do
     OMG.ChildChainRPC.Web.Endpoint.config_change(changed, removed)
     :ok
-  end
-
-  defp set_statix_global_tag do
-    Application.put_env(:statix, :tags, ["application:child_chain"], persistent: true)
   end
 end

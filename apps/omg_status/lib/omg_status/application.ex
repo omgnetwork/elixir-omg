@@ -25,9 +25,6 @@ defmodule OMG.Status.Application do
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
-    :ok = DeferredConfig.populate(:spandex_datadog)
-    :ok = DeferredConfig.populate(:statix)
-    :ok = DeferredConfig.populate(:omg_status)
     datadog = is_disabled?()
 
     children =
@@ -35,7 +32,7 @@ defmodule OMG.Status.Application do
         # spandex datadog api server is able to flush when disabled?: true
         [{SpandexDatadog.ApiServer, spandex_datadog_options()}]
       else
-        set_statix_global_tag()
+        # set_statix_global_tag()
 
         [
           {OMG.Status.Metric.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
@@ -44,23 +41,11 @@ defmodule OMG.Status.Application do
         ]
       end
 
-    # TODO remove when running full releases (it'll be covered with config providers)
-    :ok = configure_sentry()
     Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
   end
 
   def start_phase(:install_alarm_handler, _start_type, _phase_args) do
     :ok = AlarmHandler.install()
-  end
-
-  defp configure_sentry do
-    app_env = System.get_env("APP_ENV")
-    sentry_dsn = System.get_env("SENTRY_DSN")
-
-    case {is_binary(app_env), is_binary(sentry_dsn)} do
-      {true, true} -> Application.put_env(:sentry, :included_environments, [app_env], persistent: true)
-      _ -> Application.put_env(:sentry, :included_environments, [], persistent: true)
-    end
   end
 
   @spec is_disabled?() :: boolean()
@@ -72,13 +57,12 @@ defmodule OMG.Status.Application do
   end
 
   defp spandex_datadog_options do
-    env = System.get_env()
     config = Application.get_all_env(:spandex_datadog)
-    config_host = env["DD_HOSTNAME"] || config[:host]
-    config_port = env["DD_TRACING_PORT"] || config[:port]
-    config_batch_size = env["TRACING_BATCH_SIZE"] || config[:batch_size]
-    config_sync_threshold = env["TRACING_SYNC_THRESHOLD"] || config[:sync_threshold]
-    config_http = env["TRACING_HTTP"] || config[:http]
+    config_host = config[:host]
+    config_port = config[:port]
+    config_batch_size = config[:batch_size]
+    config_sync_threshold = config[:sync_threshold]
+    config_http = config[:http]
     spandex_datadog_options(config_host, config_port, config_batch_size, config_sync_threshold, config_http)
   end
 
@@ -90,31 +74,5 @@ defmodule OMG.Status.Application do
       sync_threshold: config_sync_threshold || 100,
       http: config_http || HTTPoison
     ]
-  end
-
-  defp set_statix_global_tag do
-    Application.put_env(:statix, :tags, ["application:#{get_application_mode()}"], persistent: true)
-  end
-
-  # TODO yet another hack because of lacking releases
-  # we store the tag in the process dictionary so that we don't have to go through the
-  # difficult path of retrieving it later
-  defp get_application_mode do
-    case Process.get(:application_mode) do
-      nil ->
-        application = application()
-        nil = Process.put(:application_mode, application)
-        application
-
-      application ->
-        application
-    end
-  end
-
-  defp application do
-    case String.downcase(System.get_env("ELIXIR_SERVICE")) do
-      "watcher" -> :watcher
-      _ -> :child_chain
-    end
   end
 end

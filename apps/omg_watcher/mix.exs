@@ -34,7 +34,6 @@ defmodule OMG.Watcher.Mixfile do
     [
       {:postgrex, "~> 0.14"},
       {:ecto_sql, "~> 3.1"},
-      {:deferred_config, "~> 0.1.1"},
       {:telemetry, "~> 0.4.0"},
       {:spandex_ecto, "~> 0.6.0"},
       # there's no apparent reason why libsecp256k1, spandex and distillery need to be included as dependencies

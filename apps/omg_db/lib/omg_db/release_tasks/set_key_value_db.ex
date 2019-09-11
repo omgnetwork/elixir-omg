@@ -13,20 +13,52 @@
 # limitations under the License.
 
 defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
-  @moduledoc """
-  Gets the DB path from environment and perstists it to configuration.
-  """
+  @moduledoc false
   use Distillery.Releases.Config.Provider
+  require Logger
+  @app :omg_db
 
   @impl Provider
   def init(_args) do
-    case get_env("DB_PATH") do
-      path when is_binary(path) -> :ok = Application.put_env(:omg_db, :path, path, persistent: true)
-      _ -> :ok = Application.put_env(:omg_db, :path, System.user_home!(), persistent: true)
-    end
+    _ = Application.ensure_all_started(:logger)
+    type = validate_db_type(get_env("DB_TYPE"))
+    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DB_TYPE Value: #{inspect(type)}.")
+    :ok = Application.put_env(:omg_db, :type, type, persistent: true)
 
+    path =
+      case get_env("DB_PATH") do
+        root_path when is_binary(root_path) ->
+          {:ok, path} = set_db(root_path)
+          path
+
+        _ ->
+          root_path = Path.join([System.user_home!(), ".omg/data"])
+          {:ok, path} = set_db(root_path)
+          path
+      end
+
+    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
     :ok
   end
 
+  defp set_db(root_path) do
+    app =
+      case Code.ensure_loaded?(OMG.Watcher) do
+        true -> :watcher
+        _ -> :child_chain
+      end
+
+    path = Path.join([root_path, "#{app}"])
+    :ok = Application.put_env(:omg_db, :path, path, persistent: true)
+    {:ok, path}
+  end
+
   defp get_env(key), do: System.get_env(key)
+
+  defp validate_db_type(value) when is_binary(value), do: to_db_type(String.upcase(value))
+  defp validate_db_type(_), do: Application.get_env(@app, :type)
+
+  defp to_db_type("LEVELDB"), do: :leveldb
+  defp to_db_type("ROCKSDB"), do: :rocksdb
+  defp to_db_type(_), do: exit("DB type not found. Choose from LevelDB or RocksDB.")
 end

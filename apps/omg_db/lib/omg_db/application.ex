@@ -18,8 +18,6 @@ defmodule OMG.DB.Application do
   use Application
 
   def start(_type, _args) do
-    DeferredConfig.populate(:omg_db)
-
     children = [OMG.DB.child_spec()]
 
     opts = [strategy: :one_for_one, name: OMG.DB.Supervisor]

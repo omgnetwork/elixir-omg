@@ -28,8 +28,6 @@ defmodule OMG.RootChainCoordinatorTest do
   @moduletag :integration
   @moduletag :common
   setup do
-    DeferredConfig.populate(:omg_eth)
-    DeferredConfig.populate(:omg)
     {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
     {:ok, eth_apps} = Application.ensure_all_started(:omg_eth)
     {:ok, status_apps} = Application.ensure_all_started(:omg_status)

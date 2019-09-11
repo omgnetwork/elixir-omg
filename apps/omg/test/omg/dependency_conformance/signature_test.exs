@@ -34,7 +34,6 @@ defmodule OMG.DependencyConformance.SignatureTest do
   @token TestHelper.generate_entity().addr
 
   setup_all do
-    DeferredConfig.populate(:omg_eth)
     {:ok, exit_fn} = Eth.DevNode.start()
 
     root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
