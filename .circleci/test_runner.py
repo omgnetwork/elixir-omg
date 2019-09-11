@@ -104,15 +104,18 @@ def start_workflow():
         check_job_result(envs['TEST_RUNNER_SERVICE'], job_id)
 
         # Post success to slack
+        success_text = """
+        Functional tests for elixir-omg completed successfully!\n{}
+        """.format(
+            envs['CIRCLE_BUILD_URL']
+        )
         for webhook in [
             envs['TEST_RUNNER_SLACK_WEBHOOK_01'],
             envs['TEST_RUNNER_SLACK_WEBHOOK_02']
         ]:
             if webhook is not None:
                 requests.post(webhook, json={
-                    'text': 'Functional tests for elixir-omg completed successfully!\n{}'.format(
-                        envs['CIRCLE_BUILD_URL']
-                    )
+                    'text': success_text
                 })
 
     except Exception as e:
