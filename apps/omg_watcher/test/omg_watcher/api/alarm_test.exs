@@ -46,7 +46,7 @@ defmodule OMG.Watcher.API.AlarmTest do
 
     find_alarms = [
       {{:disk_almost_full, "/dev/null"}, []},
-      {:ethereum_client_connection, %{node: :nonode@nohost, reporter: __MODULE__}},
+      {:ethereum_client_connection, %{node: Node.self(), reporter: Reporter}},
       {:system_memory_high_watermark, []}
     ]
 
