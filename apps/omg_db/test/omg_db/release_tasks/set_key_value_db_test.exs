@@ -40,7 +40,6 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
     :ok = System.put_env("DB_PATH", "/tmp/YOLO/")
     :ok = SetKeyValueDB.init([])
     configuration = Enum.sort(Application.get_all_env(@app))
-    :rocksdb = configuration[:type]
     "/tmp/YOLO/watcher" = configuration[:path]
 
     ^configuration =

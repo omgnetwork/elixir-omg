@@ -79,7 +79,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
              %{"blknum" => ^block_nr}
            ] = TestHelper.get_utxos(alice.addr)
 
-    assert TestHelper.get_utxos(alice.addr) == TestHelper.get_exitable_utxos(alice.addr)
+    assert Enum.sort(TestHelper.get_utxos(alice.addr)) == Enum.sort(TestHelper.get_exitable_utxos(alice.addr))
 
     # only checking integration of the events here, contents of events tested elsewhere
     assert_push("address_received", %{})

@@ -64,7 +64,6 @@ defmodule OMG.DB.RocksDB.Core do
   @spec decode_values(Enumerable.t(), atom) :: {:ok, list}
   def decode_values(encoded_enumerable, type) do
     raw_decoded = Enum.map(encoded_enumerable, fn encoded -> decode_response(type, encoded) end)
-
     {:ok, raw_decoded}
   end
 
