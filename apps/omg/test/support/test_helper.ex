@@ -79,7 +79,7 @@ defmodule OMG.TestHelper do
           list({pos_integer, non_neg_integer, 0 | 1, map}),
           Transaction.Payment.currency(),
           list({map, pos_integer}),
-          Transaction.metadata()
+          Transaction.Metadata.metadata()
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, currency, outputs, metadata \\ nil) do
     create_encoded(inputs, currency, outputs, metadata) |> Transaction.Recovered.recover_from!()

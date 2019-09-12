@@ -64,7 +64,7 @@ defmodule OMG.State.Core do
           | [in_flight_exit()]
 
   @type in_flight_exit() :: %{in_flight_tx: binary()}
-  @type piggyback() :: %{tx_hash: Transaction.tx_hash(), output_index: non_neg_integer}
+  @type piggyback() :: %{tx_hash: Transaction.Decode.tx_bytes(), output_index: non_neg_integer}
 
   @type validities_t() :: {list(Utxo.Position.t()), list(Utxo.Position.t() | piggyback())}
 
@@ -86,7 +86,7 @@ defmodule OMG.State.Core do
           | {:put, :block, Block.db_t()}
 
   @type exitable_utxos :: %{
-          creating_txhash: Transaction.tx_hash(),
+          creating_txhash: Transaction.Decode.tx_bytes(),
           owner: Crypto.address_t(),
           currency: Crypto.address_t(),
           amount: non_neg_integer(),
@@ -150,7 +150,7 @@ defmodule OMG.State.Core do
   See docs/transaction_validation.md for more information about stateful and stateless validation.
   """
   @spec exec(state :: t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
-          {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
+          {:ok, {Transaction.Decode.tx_bytes(), pos_integer, non_neg_integer}, t()}
           | {{:error, Validator.exec_error()}, t()}
   def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
     tx_hash = Transaction.Extract.raw_txhash(tx)

@@ -30,7 +30,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
 
     @type t() :: %__MODULE__{
             exit_id: pos_integer(),
-            txbytes: Transaction.tx_bytes(),
+            txbytes: Transaction.Decode.tx_bytes(),
             input_index: non_neg_integer(),
             sig: Crypto.sig_t()
           }

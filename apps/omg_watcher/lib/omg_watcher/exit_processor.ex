@@ -169,14 +169,14 @@ defmodule OMG.Watcher.ExitProcessor do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
 
-  @spec get_input_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
+  @spec get_input_challenge_data(Transaction.Signed.tx_bytes(), Transaction.Decode.input_index_t()) ::
           {:ok, ExitProcessor.Piggyback.input_challenge_data()}
           | {:error, ExitProcessor.Piggyback.piggyback_challenge_data_error()}
   def get_input_challenge_data(txbytes, input_index) do
     GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index})
   end
 
-  @spec get_output_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
+  @spec get_output_challenge_data(Transaction.Signed.tx_bytes(), Transaction.Decode.input_index_t()) ::
           {:ok, ExitProcessor.Piggyback.output_challenge_data()}
           | {:error, ExitProcessor.Piggyback.piggyback_challenge_data_error()}
   def get_output_challenge_data(txbytes, output_index) do

@@ -47,8 +47,8 @@ defmodule OMG.Watcher.UtxoSelection do
           inputs: nonempty_list(%DB.TxOutput{}),
           outputs: nonempty_list(payment_t()),
           fee: fee_t(),
-          txbytes: Transaction.tx_bytes() | nil,
-          metadata: Transaction.metadata(),
+          txbytes: Transaction.Decode.tx_bytes() | nil,
+          metadata: Transaction.Metadata.metadata(),
           sign_hash: Crypto.hash_t() | nil,
           typed_data: TypedDataHash.Types.typedDataSignRequest_t()
         }

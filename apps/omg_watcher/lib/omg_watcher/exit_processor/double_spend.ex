@@ -37,7 +37,7 @@ defmodule OMG.Watcher.ExitProcessor.DoubleSpend do
 
   `known_txs_by_input` are assumed to hold _the oldest_ transaction spending given input for every input
   """
-  @spec find_competitor(KnownTx.known_txs_by_input_t(), Transaction.any_flavor_t()) :: nil | t()
+  @spec find_competitor(KnownTx.known_txs_by_input_t(), Transaction.Extract.any_flavor_t()) :: nil | t()
   def find_competitor(known_txs_by_input, tx) do
     inputs = Transaction.Extract.get_inputs(tx)
 
@@ -61,7 +61,7 @@ defmodule OMG.Watcher.ExitProcessor.DoubleSpend do
   @spec all_double_spends_by_index(
           list({Utxo.Position.t(), non_neg_integer}),
           map(),
-          Transaction.any_flavor_t()
+          Transaction.Extract.any_flavor_t()
         ) :: %{non_neg_integer => t()}
   def all_double_spends_by_index(indexed_utxo_positions, known_txs_by_input, tx) do
     {inputs, _indices} = Enum.unzip(indexed_utxo_positions)

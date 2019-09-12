@@ -113,7 +113,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
-  @spec create_outputs(pos_integer(), integer(), binary(), Transaction.any_flavor_t()) :: [map()]
+  @spec create_outputs(pos_integer(), integer(), binary(), Transaction.Extract.any_flavor_t()) :: [map()]
   def create_outputs(
         blknum,
         txindex,
@@ -147,7 +147,7 @@ defmodule OMG.Watcher.DB.TxOutput do
       }
     ]
 
-  @spec create_inputs(Transaction.any_flavor_t(), binary()) :: [tuple()]
+  @spec create_inputs(Transaction.Extract.any_flavor_t(), binary()) :: [tuple()]
   def create_inputs(tx, spending_txhash) do
     tx
     |> Transaction.Extract.get_inputs()

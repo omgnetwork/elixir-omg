@@ -16,7 +16,9 @@ defmodule OMG.State.Transaction.Metadata do
   @moduledoc """
     Is matadata guard implementation and nothing more.
   """
-  @type is_metadata?() :: binary() | nil
+  @type metadata() :: binary() | nil
+
+  @type is_metadata?() :: metadata()
   defmacro is_metadata?(metadata) do
     quote do
       unquote(metadata) == nil or byte_size(unquote(metadata)) == 32

@@ -32,7 +32,7 @@ defmodule OMG.ChildChain do
   @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error()
 
   @spec submit(transaction :: binary) ::
-          {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
+          {:ok, %{txhash: Transaction.Decode.tx_bytes(), blknum: pos_integer, txindex: non_neg_integer}}
           | {:error, submit_error()}
   def submit(transaction) do
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),

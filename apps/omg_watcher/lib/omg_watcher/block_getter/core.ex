@@ -547,7 +547,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   @spec validate_executions(
-          list({Transaction.tx_hash(), pos_integer, pos_integer}),
+          list({Transaction.Decode.tx_bytes(), pos_integer, pos_integer}),
           map,
           t()
         ) :: {:ok, t()} | {{:error, {:tx_execution, any()}}, t()}

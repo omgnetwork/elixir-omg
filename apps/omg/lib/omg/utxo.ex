@@ -23,7 +23,7 @@ defmodule OMG.Utxo do
   defstruct [:owner, :currency, :amount, :creating_txhash]
 
   @type t() :: %__MODULE__{
-          creating_txhash: Transaction.tx_hash(),
+          creating_txhash: Transaction.Decode.tx_bytes(),
           owner: Crypto.address_t(),
           currency: Crypto.address_t(),
           amount: non_neg_integer()

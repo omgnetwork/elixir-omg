@@ -49,25 +49,25 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   @type piggyback_t() :: {piggyback_type_t(), non_neg_integer()}
 
   @type input_challenge_data :: %{
-          in_flight_txbytes: Transaction.tx_bytes(),
+          in_flight_txbytes: Transaction.Decode.tx_bytes(),
           in_flight_input_index: 0..3,
-          spending_txbytes: Transaction.tx_bytes(),
+          spending_txbytes: Transaction.Decode.tx_bytes(),
           spending_input_index: 0..3,
           spending_sig: <<_::520>>
         }
 
   @type output_challenge_data :: %{
-          in_flight_txbytes: Transaction.tx_bytes(),
+          in_flight_txbytes: Transaction.Decode.tx_bytes(),
           in_flight_output_pos: pos_integer(),
           in_flight_input_index: 4..7,
-          spending_txbytes: Transaction.tx_bytes(),
+          spending_txbytes: Transaction.Decode.tx_bytes(),
           spending_input_index: 0..3,
           spending_sig: <<_::520>>
         }
 
   @type piggyback_challenge_data_error() ::
           :ife_not_known_for_tx
-          | Transaction.decode_error()
+          | Transaction.Decode.decode_error()
           | :no_double_spend_on_particular_piggyback
 
   def get_input_challenge_data(request, state, txbytes, input_index) do

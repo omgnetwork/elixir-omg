@@ -59,8 +59,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @type t :: %__MODULE__{
           sla_margin: non_neg_integer(),
           exits: %{Utxo.Position.t() => ExitInfo.t()},
-          in_flight_exits: %{Transaction.tx_hash() => InFlightExitInfo.t()},
-          competitors: %{Transaction.tx_hash() => CompetitorInfo.t()}
+          in_flight_exits: %{Transaction.Decode.tx_bytes() => InFlightExitInfo.t()},
+          competitors: %{Transaction.Decode.tx_bytes() => CompetitorInfo.t()}
         }
 
   @type check_validity_result_t :: {:ok | {:error, :unchallenged_exit}, list(Event.byzantine_t())}
@@ -81,8 +81,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
   @spec init(
           db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}],
-          db_in_flight_exits :: [{Transaction.tx_hash(), InFlightExitInfo.t()}],
-          db_competitors :: [{Transaction.tx_hash(), CompetitorInfo.t()}],
+          db_in_flight_exits :: [{Transaction.Decode.tx_bytes(), InFlightExitInfo.t()}],
+          db_competitors :: [{Transaction.Decode.tx_bytes(), CompetitorInfo.t()}],
           sla_margin :: non_neg_integer
         ) :: {:ok, t()}
   def init(db_exits, db_in_flight_exits, db_competitors, sla_margin \\ @default_sla_margin) do
@@ -178,7 +178,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
     Add piggybacks from Ethereum events into tracked state.
   """
-  @spec new_piggybacks(t(), [%{tx_hash: Transaction.tx_hash(), output_index: contract_piggyback_offset_t()}]) ::
+  @spec new_piggybacks(t(), [%{tx_hash: Transaction.Decode.tx_bytes(), output_index: contract_piggyback_offset_t()}]) ::
           {t(), list()}
   def new_piggybacks(%__MODULE__{} = state, piggyback_events) when is_list(piggyback_events) do
     consume_events(state, piggyback_events, :output_index, &InFlightExitInfo.piggyback/2)

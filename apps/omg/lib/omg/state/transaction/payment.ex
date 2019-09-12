@@ -35,7 +35,7 @@ defmodule OMG.State.Transaction.Payment do
   @type t() :: %__MODULE__{
           inputs: list(input()),
           outputs: list(output()),
-          metadata: Transaction.metadata()
+          metadata: Transaction.Metadata.metadata()
         }
 
   @type input() :: %{

@@ -181,7 +181,7 @@ defmodule OMG.Watcher.DB.Transaction do
     ]
   end
 
-  @spec create(pos_integer(), integer(), binary(), binary(), Transaction.metadata()) ::
+  @spec create(pos_integer(), integer(), binary(), binary(), Transaction.Metadata.metadata()) ::
           map()
   defp create(
          block_number,

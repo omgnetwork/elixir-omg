@@ -39,7 +39,7 @@ defmodule OMG.State do
   end
 
   @spec exec(tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
-          {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}}
+          {:ok, {Transaction.Decode.tx_bytes(), pos_integer, non_neg_integer}}
           | {:error, exec_error()}
   def exec(tx, input_fees) do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})

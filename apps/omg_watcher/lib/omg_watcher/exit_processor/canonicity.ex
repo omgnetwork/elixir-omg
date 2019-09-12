@@ -97,7 +97,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
           | {:error, :competitor_not_found}
           | {:error, :ife_not_known_for_tx}
           | {:error, :no_viable_competitor_found}
-          | {:error, Transaction.decode_error()}
+          | {:error, Transaction.Decode.decode_error()}
   def get_competitor_for_ife(
         %ExitProcessor.Request{blocks_result: blocks},
         %Core{} = state,

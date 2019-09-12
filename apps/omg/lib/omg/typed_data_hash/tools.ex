@@ -71,7 +71,7 @@ defmodule OMG.TypedDataHash.Tools do
   @spec hash_transaction(
           list(Utxo.Position.t()),
           list(Transaction.Payment.output()),
-          Transaction.metadata(),
+          Transaction.Metadata.metadata(),
           Crypto.hash_t(),
           Crypto.hash_t()
         ) :: Crypto.hash_t()

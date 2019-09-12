@@ -39,7 +39,7 @@ defmodule OMG.State.Transaction.Recovered do
   defstruct [:signed_tx, :tx_hash, :signed_tx_bytes, :witnesses]
 
   @type t() :: %__MODULE__{
-          tx_hash: Transaction.tx_hash(),
+          tx_hash: Transaction.Decode.tx_bytes(),
           witnesses: %{non_neg_integer => Transaction.Witness.t()},
           signed_tx: Transaction.Signed.t(),
           signed_tx_bytes: tx_bytes()

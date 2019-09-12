@@ -35,7 +35,6 @@ defmodule OMG.State.Transaction.Decode do
 
   @type tx_bytes() :: binary()
   @type tx_hash() :: Crypto.hash_t()
-  @type metadata() :: binary() | nil
 
   @type decode_error() ::
           :malformed_transaction_rlp
