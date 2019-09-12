@@ -208,10 +208,8 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   @zero_address OMG.Eth.zero_address()
   @empty_signature <<0::size(520)>>
 
-  # TODO: commented code for the tx markers handling
-  # @payment_marker Transaction.Markers.payment()
-  #
-  # end commented code
+  # TODO: note this is fixed and improved in the abstract outputs/inputs PR
+  @payment_marker Transaction.Markers.payment()
 
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
@@ -220,8 +218,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       when Transaction.is_metadata(metadata),
       do:
         [
-          # TODO: commented code for the tx markers handling
-          # @payment_marker,
+          @payment_marker,
           # contract expects 4 inputs and outputs
           # TODO: this is ugly and messy, but will all get straightened out at the abstract ins/outs PR on hold
           inputs
