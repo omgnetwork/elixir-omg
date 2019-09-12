@@ -1,7 +1,7 @@
 # Watcher database design
 
 Watcher benefits from two databases approach:
-* leveldb - key-value database that child chain state uses for transaction validation
+* rocksdb - key-value database that child chain state uses for transaction validation
 * watcherDb - PostgreSQL database that stores transactions and contains data needed for challenges and exits. It provides user interface with the data of user's concern (e.g: did I pay the electricity bill, who sent me money last week).
 
 [PostgreSQL Schema Diagram](https://docs.google.com/drawings/d/14_0bfUGGWarndNWwpzA2Nznll4PHLbefvQy05B2LB38/edit?usp=sharing)

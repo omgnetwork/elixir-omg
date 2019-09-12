@@ -4,7 +4,6 @@
 - "HOSTNAME" - server domain name of Child Chain or Watcher. *mandatory*
 - "DD_DISABLED" - boolean that allows you to turn on or of Datadog metrics. Defaults to true.
 - "APP_ENV" - environment name in which the the application was deployed *mandatory*
-- "DB_TYPE" - RocksDB or LevelDB, defaults to LevelDB
 - "DB_PATH" - directory of the KV db *mandatory*
 - "EXIT_PERIOD_SECONDS" - defaults to `604800`
 - "ETHEREUM_RPC_URL" - address of Geth or Parity instance *mandatory*

@@ -151,10 +151,5 @@ defmodule OMG.DB do
     ]
   end
 
-  defp driver do
-    case Application.get_env(:omg_db, :type) do
-      :rocksdb -> OMG.DB.RocksDB
-      :leveldb -> OMG.DB.LevelDB
-    end
-  end
+  defp driver, do: OMG.DB.RocksDB
 end

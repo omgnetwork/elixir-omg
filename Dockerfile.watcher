@@ -25,7 +25,7 @@ RUN set -xe \
 ## Application
 ##
 
-#leveldb and rocksdb need libstdc++
+#rocksdb need libstdc++
 RUN apk add --update --no-cache --virtual .watcher-runtime \
         bash \
         libressl \
