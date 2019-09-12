@@ -20,6 +20,7 @@ defmodule OMG.Status.Application do
   alias OMG.Status.Alert.Alarm
   alias OMG.Status.Alert.AlarmHandler
   alias OMG.Status.Metric.Datadog
+  alias OMG.Status.Metric.Tracer
   alias OMG.Status.Metric.VmstatsSink
 
   def start(_type, _args) do
@@ -32,8 +33,6 @@ defmodule OMG.Status.Application do
         # spandex datadog api server is able to flush when disabled?: true
         [{SpandexDatadog.ApiServer, spandex_datadog_options()}]
       else
-        # set_statix_global_tag()
-
         [
           {OMG.Status.Metric.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
           VmstatsSink.prepare_child(),
@@ -49,12 +48,7 @@ defmodule OMG.Status.Application do
   end
 
   @spec is_disabled?() :: boolean()
-  defp is_disabled?() do
-    case System.get_env("DD_DISABLED") do
-      "false" -> false
-      _ -> true
-    end
-  end
+  defp is_disabled?(), do: Application.get_env(:omg_status, Tracer)[:disabled?]
 
   defp spandex_datadog_options do
     config = Application.get_all_env(:spandex_datadog)
