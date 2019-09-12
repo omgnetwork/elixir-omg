@@ -1,3 +1,20 @@
+#barebone child chain and watcher setup
+export EXIT_PERIOD_SECONDS=86400
+export ETHEREUM_NETWORK=LOCALCHAIN
+export CONTRACT_EXCHANGER_URL=http://127.0.0.1:8000
+export ETHEREUM_RPC_URL=http://127.0.0.1:8545
+export ETHEREUM_WS_RPC_URL=ws://127.0.0.1:8546
+export CHILD_CHAIN_URL=http://127.0.0.1:9656
+export ERLANG_COOKIE=develop
+export NODE_HOST=127.0.0.1
+export APP_ENV=local_development
+export DD_HOSTNAME=127.0.0.1
+export DD_DISABLED=true
+export DB_PATH=/home/asdf/data/
+export DB_TYPE=leveldb
+export DATABASE_URL=postgres://omisego_dev:omisego_dev@127.0.0.1:5432/omisego_dev
+export REPLACE_OS_VARS=true
+
 all: clean build-child_chain-prod build-watcher-prod
 
 WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
@@ -141,6 +158,24 @@ docker-push: docker
 	docker push $(WATCHER_IMAGE_NAME)
 
 ###OTHER
+raw-cluster-with-datadog:
+	docker-compose up -d geth ; \
+	docker-compose up -d plasma-deployer ; \
+	docker-compose up -d postgres ; \
+	make build-child_chain-dev  ; \
+	make build-watcher-dev ; \
+	make child_chain& make watcher
+
+
+watcher:
+	_build/dev/rel/watcher/bin/watcher init_postgresql_db && \
+	_build/dev/rel/watcher/bin/watcher init_key_value_db && \
+	_build/dev/rel/watcher/bin/watcher foreground
+
+child_chain:
+	_build/dev/rel/child_chain/bin/child_chain init_key_value_db && \
+	_build/dev/rel/child_chain/bin/child_chain foreground
+
 cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-deployer watcher childchain
 
@@ -152,9 +187,9 @@ init:
 	git config core.hooksPath .githooks
 
 #old git
-#init:
-#  find .git/hooks -type l -exec rm {} \;
-#  find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
+# init:
+# 	find .git/hooks -type l -exec rm {} \;
+# 	find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
 
 ### UTILS
 OSFLAG := ''
