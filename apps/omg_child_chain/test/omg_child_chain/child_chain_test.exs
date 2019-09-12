@@ -36,6 +36,8 @@ defmodule OMG.ChildChainTest do
       :alarm_handler.clear_alarm(system_disk_alarm)
     end)
 
+    all = :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
+    :ok = Enum.each(all, &:alarm_handler.clear_alarm(&1))
     %{system_alarm: system_alarm, system_disk_alarm: system_disk_alarm, app_alarm: app_alarm}
   end
 
