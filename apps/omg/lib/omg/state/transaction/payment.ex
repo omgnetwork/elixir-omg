@@ -88,18 +88,9 @@ defmodule OMG.State.Transaction.Payment do
       inputs
       |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
 
-    inputs = inputs ++ List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, @max_inputs - Kernel.length(inputs))
-
     outputs =
       outputs
       |> Enum.map(fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end)
-
-    outputs =
-      outputs ++
-        List.duplicate(
-          %{owner: @zero_address, currency: @zero_address, amount: 0},
-          @max_outputs - Kernel.length(outputs)
-        )
 
     %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
@@ -205,7 +196,6 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   require Utxo
   require Transaction.Payment
 
-  @zero_address OMG.Eth.zero_address()
   @empty_signature <<0::size(520)>>
 
   # TODO: note this is fixed and improved in the abstract outputs/inputs PR
@@ -219,25 +209,17 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       do:
         [
           @payment_marker,
-          # contract expects 4 inputs and outputs
-          # TODO: this is ugly and messy, but will all get straightened out at the abstract ins/outs PR on hold
-          inputs
-          |> Kernel.++(List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 4 - length(inputs)))
-          |> Enum.map(&to_new_rlp_input/1),
-          outputs
-          |> Enum.map(fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end)
-          |> Kernel.++(List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs)))
+          Enum.map(inputs, &to_new_rlp_input/1),
+          Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end)
         ] ++ if(metadata, do: [metadata], else: [])
 
   def get_outputs(%Transaction.Payment{outputs: outputs}) do
     outputs
-    |> Enum.reject(&match?(%{owner: @zero_address, currency: @zero_address, amount: 0}, &1))
   end
 
   def get_inputs(%Transaction.Payment{inputs: inputs}) do
     inputs
     |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
-    |> Enum.filter(&Utxo.Position.non_zero?/1)
   end
 
   defp to_new_rlp_input(%{blknum: blknum, txindex: txindex, oindex: oindex}),

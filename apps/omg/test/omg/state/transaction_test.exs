@@ -42,7 +42,6 @@ defmodule OMG.State.TransactionTest do
                )
 
   @empty_signature <<0::size(520)>>
-  @no_owner %{priv: <<>>, addr: nil}
 
   describe "hashing and metadata field" do
     test "create transaction with metadata" do
@@ -114,22 +113,19 @@ defmodule OMG.State.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob]
-    test "signed transaction is valid in all input zeroing combinations", %{
+    test "signed transaction is valid in various empty input/output combinations", %{
       alice: alice,
       bob: bob
     } do
       [
+        {[], []},
+        {[{1, 2, 3, alice}], []},
+        {[], [{alice, @eth, 7}]},
+        {[{1, 2, 3, alice}], [{alice, @eth, 7}]},
+        {[{1, 2, 3, alice}], [{alice, @eth, 7}, {bob, @eth, 3}]},
         {[{1, 2, 3, alice}, {2, 3, 4, bob}], [{alice, @eth, 7}, {bob, @eth, 3}]},
-        {[{1, 2, 3, alice}, {0, 0, 0, @no_owner}], [{alice, @eth, 7}, {bob, @eth, 3}]},
-        {[{1, 2, 3, alice}, {2, 3, 4, bob}, {0, 0, 0, @no_owner}, {0, 0, 0, @no_owner}],
-         [{alice, @eth, 7}, {bob, @eth, 3}]}
-      ]
-      |> Enum.map(&parametrized_tester/1)
-    end
-
-    @tag fixtures: [:alice, :bob]
-    test "transaction with 4in/4out is valid", %{alice: alice, bob: bob} do
-      [
+        {[{1, 2, 3, alice}, {2, 3, 4, bob}, {2, 3, 5, bob}], [{alice, @eth, 7}, {bob, @eth, 3}]},
+        {[{1, 2, 3, alice}, {2, 3, 4, bob}, {2, 3, 5, bob}], [{alice, @eth, 7}, {bob, @eth, 3}, {bob, @eth, 3}]},
         {[{1, 2, 3, alice}, {2, 3, 1, alice}, {2, 3, 2, bob}, {3, 3, 4, bob}],
          [{alice, @eth, 7}, {alice, @eth, 3}, {bob, @eth, 7}, {bob, @eth, 3}]}
       ]
@@ -151,7 +147,7 @@ defmodule OMG.State.TransactionTest do
         Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, @eth, 12}])
         |> DevCrypto.sign([alice.priv, alice.priv])
 
-      [_payment_marker, inputs, outputs] = Transaction.raw_txbytes(tx) |> ExRLP.decode()
+      [_payment_marker, inputs, outputs, _metadata] = Transaction.raw_txbytes(tx) |> ExRLP.decode()
 
       # sanity
       assert {:ok, _} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs]))
