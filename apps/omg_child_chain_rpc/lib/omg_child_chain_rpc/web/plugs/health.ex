@@ -86,9 +86,11 @@ defmodule OMG.ChildChainRPC.Plugs.Health do
   ###
   def init(options), do: options
 
+  # we want to passthrough the alarm endpoint requests
+  def call(%{request_path: "/alarm.get"} = conn, _), do: conn
+
   def call(conn, _params) do
     # is anything raised?
-
     case :ets.match_object(@table_name, {:_, 1}) do
       [] ->
         conn

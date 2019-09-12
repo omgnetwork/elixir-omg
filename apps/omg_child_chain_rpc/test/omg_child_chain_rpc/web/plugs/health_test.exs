@@ -22,6 +22,31 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
 
   describe "testing for boot_in_progress alarm" do
     @tag fixtures: [:phoenix_sandbox]
+    test "if alarm.get endpoint does not reject request because alarms are raised" do
+      :ok = :alarm_handler.clear_alarm(@alarm_2)
+      :ok = :alarm_handler.set_alarm(@alarm_1)
+
+      :ok =
+        pull_client_alarm(
+          300,
+          %{
+            "data" => [
+              %{
+                "boot_in_progress" => %{
+                  "node" => "nonode@nohost",
+                  "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
+                }
+              }
+            ],
+            "success" => true
+          },
+          fn -> TestHelper.rpc_call(:post, "/alarm.get", %{}) end
+        )
+
+      :ok = :alarm_handler.clear_alarm(@alarm_1)
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
     test "if block.get endpoint rejects request because alarms are raised" do
       :ok = :alarm_handler.clear_alarm(@alarm_2)
       :ok = :alarm_handler.set_alarm(@alarm_1)
@@ -60,6 +85,31 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
   end
 
   describe "testing for ethereum_client_connection alarm " do
+    @tag fixtures: [:phoenix_sandbox]
+    test "if alarm.get endpoint works even though alarms are raised" do
+      :ok = :alarm_handler.set_alarm(@alarm_2)
+      :ok = :alarm_handler.clear_alarm(@alarm_1)
+
+      :ok =
+        pull_client_alarm(
+          300,
+          %{
+            "data" => [
+              %{
+                "ethereum_client_connection" => %{
+                  "node" => "nonode@nohost",
+                  "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
+                }
+              }
+            ],
+            "success" => true
+          },
+          fn -> TestHelper.rpc_call(:post, "/alarm.get", %{}) end
+        )
+
+      :ok = :alarm_handler.clear_alarm(@alarm_2)
+    end
+
     @tag fixtures: [:phoenix_sandbox]
     test "if block.get endpoint rejects request because alarms are raised" do
       :ok = :alarm_handler.set_alarm(@alarm_2)
