@@ -125,12 +125,25 @@ defmodule OMG.State.Transaction.Payment do
   def reconstruct(_), do: {:error, :malformed_transaction}
 
   defp reconstruct_inputs(inputs_rlp) do
-    Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
-      %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
-    end)
+    inputs_rlp
+    |> Enum.map(&from_new_rlp_input/1)
     |> inputs_without_gaps()
   rescue
     _ -> {:error, :malformed_inputs}
+  end
+
+  # messy, see comments on the abstract output/input fixing this properly
+  defp from_new_rlp_input(binary_input) when is_binary(binary_input) do
+    binary_input
+    |> :binary.decode_unsigned(:big)
+    |> case do
+      0 ->
+        %{blknum: 0, txindex: 0, oindex: 0}
+
+      encoded ->
+        Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode!(encoded)
+        %{blknum: blknum, txindex: txindex, oindex: oindex}
+    end
   end
 
   defp reconstruct_outputs(outputs_rlp) do
@@ -217,10 +230,13 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
           # TODO: commented code for the tx markers handling
           # @payment_marker,
           # contract expects 4 inputs and outputs
-          Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
-            List.duplicate([0, 0, 0], 4 - length(inputs)),
-          Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
-            List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
+          # TODO: this is ugly and messy, but will all get straightened out at the abstract ins/outs PR on hold
+          inputs
+          |> Kernel.++(List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 4 - length(inputs)))
+          |> Enum.map(&to_new_rlp_input/1),
+          outputs
+          |> Enum.map(fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end)
+          |> Kernel.++(List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs)))
         ] ++ if(metadata, do: [metadata], else: [])
 
   def get_outputs(%Transaction.Payment{outputs: outputs}) do
@@ -233,6 +249,9 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
     |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
     |> Enum.filter(&Utxo.Position.non_zero?/1)
   end
+
+  defp to_new_rlp_input(%{blknum: blknum, txindex: txindex, oindex: oindex}),
+    do: Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode() |> :binary.encode_unsigned(:big)
 
   @doc """
   True if the witnessses provided follow some extra custom validation.

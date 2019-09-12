@@ -62,7 +62,8 @@ defmodule OMG.State.TransactionTest do
 
     test "raw transaction hash is invariant" do
       assert Transaction.raw_txhash(@transaction) ==
-               Base.decode16!("09645ee9736332be55eaccf9d08ff572a6fa23e2f6dc2aac42dbf09832d8f60e", case: :lower)
+               <<223, 203, 72, 245, 189, 73, 191, 26, 209, 76, 48, 223, 168, 223, 143, 194, 136, 249, 36, 242, 110, 15,
+                 251, 217, 235, 157, 237, 24, 142, 214, 3, 113>>
     end
   end
 
