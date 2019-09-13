@@ -45,7 +45,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @endpoint OMG.WatcherRPC.Web.Endpoint
 
-  @tag timeout: 200_000
+  @tag timeout: 100_000
   @tag fixtures: [:watcher, :child_chain, :alice, :bob, :alice_deposits, :token]
   test "get the blocks from child chain after sending a transaction and start exit", %{
     alice: %{addr: alice_addr} = alice,
