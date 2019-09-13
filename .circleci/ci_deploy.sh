@@ -46,7 +46,6 @@ echo "$GCP_KEY_FILE" | base64 -d > "$GCPFILE"
 gcloud auth activate-service-account --key-file="$GCPFILE"
 gcloud config set project "$GCP_ACCOUNT_ID"
 gcloud config set compute/region "$GCP_REGION"
-gcloud config set compute/zone "$GCP_ZONE"
 gcloud container clusters get-credentials ${GCP_CLUSTER_DEVELOPMENT}
 
 if [ "$DEPLOY" = "watcher" ]; then
