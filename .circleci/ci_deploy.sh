@@ -19,7 +19,6 @@ if [ -z "$CIRCLE_GPG_KEY" ] ||
        [ -z "$GCP_KEY_FILE" ] ||
        [ -z "$GCP_ACCOUNT_ID" ] ||
        [ -z "$GCP_REGION" ] ||
-       [ -z "$GCP_ZONE" ] ||
        [ -z "$GCP_CLUSTER_ID" ]; then
     echo_warn "Deploy credentials not present, skipping deploy."
     exit 0
