@@ -136,11 +136,19 @@ defmodule OMG.Eth.RootChain do
   Returns lists of deposits sorted by child chain block number
   """
   def get_deposits(block_from, block_to, contract \\ nil) do
-    # TODO: this will most likely not work, look into which contract to call
-    contract = maybe_fetch_addr!(contract, :plasma_framework)
+    # NOTE: see https://github.com/omisego/plasma-contracts/issues/262
+    contract_eth = maybe_fetch_addr!(contract, :eth_vault)
+    contract_erc20 = maybe_fetch_addr!(contract, :erc20_vault)
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, @deposit_created_event_signature, contract),
-         do: {:ok, Enum.map(logs, &decode_deposit/1)}
+    with {:ok, logs_eth} <-
+           Eth.get_ethereum_events(block_from, block_to, @deposit_created_event_signature, contract_eth),
+         {:ok, logs_erc20} <-
+           Eth.get_ethereum_events(block_from, block_to, @deposit_created_event_signature, contract_erc20),
+         all_sorted_logs =
+           [logs_eth, logs_erc20]
+           |> Enum.concat()
+           |> Enum.sort_by(fn event -> {event["blockNumber"], event["logIndex"]} end),
+         do: {:ok, Enum.map(all_sorted_logs, &decode_deposit/1)}
   end
 
   @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) ::
