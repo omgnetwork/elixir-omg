@@ -139,7 +139,7 @@ docker-watcher-prod:
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then EXCLUDE_ROCKSDB=1 make clean ; fi && make build-watcher-prod"
+		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-watcher-prod"
 
 docker-child_chain-build:
 	docker build -f Dockerfile.child_chain \
@@ -149,7 +149,6 @@ docker-child_chain-build:
 		.
 
 docker-watcher-build:
-	echo "downloaded $(release_type): Done!"
 	docker build -f Dockerfile.watcher \
 		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
 		--cache-from $(WATCHER_IMAGE_NAME) \
@@ -189,7 +188,7 @@ raw-requirements:
 	@echo "export NODE_HOST=127.0.0.1"
 	@echo "export APP_ENV=devino"
 	@echo "export HOSTNAME=yolo"
-	@echo "export DB_PATH=/opt/elixir-omg/database/"
+	@echo "export DB_PATH=~/plasma-data/"
 	@echo "export ETHEREUM_RPC_URL=http://localhost:8545"
 	@echo "export ETHEREUM_WS_RPC_URL=ws://localhost:8546"
 	@echo "export ETH_NODE=geth"
