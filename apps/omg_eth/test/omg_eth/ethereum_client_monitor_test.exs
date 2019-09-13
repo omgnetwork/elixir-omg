@@ -40,7 +40,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
   end
 
   setup do
-    {:ok, {server_ref, websocket_url}} = WebSockexServerMock.start(self())
+    {:ok, {server_ref, websocket_url}} = WebSockexServerMock.start()
     {:ok, ethereum_client_monitor} = EthereumClientMonitor.start_link(alarm_module: Alarm, ws_url: websocket_url)
     Alarm.clear_all()
 
@@ -105,7 +105,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
 
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
 
-    {:ok, {server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
+    {:ok, {server_ref, ^websocket_url}} = WebSockexServerMock.restart(websocket_url)
     :ok = pull_client_alarm(400, [])
     WebSockexServerMock.shutdown(server_ref)
   end
@@ -135,7 +135,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
 
     {:message_queue_len, 0} = Process.info(pid, :message_queue_len)
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
-    {:ok, {server_ref, ^websocket_url}} = WebSockexServerMock.start(self(), websocket_url)
+    {:ok, {server_ref, ^websocket_url}} = WebSockexServerMock.restart(websocket_url)
     :ok = pull_client_alarm(400, [])
     WebSockexServerMock.shutdown(server_ref)
   rescue
@@ -197,17 +197,17 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
       send_resp(conn, 200, "Hello from plug")
     end
 
-    def start(pid) when is_pid(pid) do
-      port = Agent.get(:port_holder, & &1) + 1
-      :ok = Agent.update(:port_holder, &(&1 + 1))
-      start(pid, "ws://localhost:#{port}/ws")
+    def start() do
+      ref = make_ref()
+      port = Agent.get_and_update(:port_holder, fn state -> {state, state + 1} end)
+      websocket_url = start_server(port, ref)
+      {:ok, {ref, websocket_url}}
     end
 
-    def start(pid, "ws://localhost:" <> <<port::bytes-size(5)>> <> "/ws" = websocket_url) when is_pid(pid) do
+    def restart("ws://localhost:" <> <<port::bytes-size(5)>> <> "/ws" = websocket_url) do
       ref = make_ref()
-
       opts = [dispatch: dispatch(), port: String.to_integer(port), ref: ref]
-      {:ok, _} = Plug.Adapters.Cowboy.http(__MODULE__, [], opts)
+      :ok = wait_until_restart(opts, 100)
       {:ok, {ref, websocket_url}}
     end
 
@@ -217,6 +217,31 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
 
     defp dispatch do
       [{:_, [{"/ws", WebSockexMockTestSocket, []}]}]
+    end
+
+    defp start_server(port, ref) do
+      opts = [dispatch: dispatch(), port: port, ref: ref]
+
+      case Plug.Adapters.Cowboy.http(__MODULE__, [], opts) do
+        {:error, :eaddrinuse} ->
+          start_server(Agent.get_and_update(:port_holder, fn state -> {state, state + 1} end), ref)
+
+        {:ok, _} ->
+          "ws://localhost:#{port}/ws"
+      end
+    end
+
+    defp wait_until_restart(opts, 0), do: Plug.Adapters.Cowboy.http(__MODULE__, [], opts)
+
+    defp wait_until_restart(opts, index) do
+      case Plug.Adapters.Cowboy.http(__MODULE__, [], opts) do
+        {:ok, _} ->
+          :ok
+
+        {:error, :eaddrinuse} ->
+          Process.sleep(10)
+          wait_until_restart(opts, index - 1)
+      end
     end
   end
 
