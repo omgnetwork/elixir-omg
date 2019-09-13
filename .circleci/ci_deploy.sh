@@ -47,9 +47,9 @@ gcloud config set compute/zone ${GCP_ZONE}
 gcloud container clusters get-credentials ${GCP_CLUSTER_DEVELOPMENT}
 
 if [ "$DEPLOY" = "watcher" ]; then
-    kubectl set image statefulset watcher-samrong watcher=omisego/watcher:latest
-    while true; do if [ "$(kubectl get pods watcher-samrong-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
+    kubectl set image statefulset watcher watcher=omisego/watcher:latest
+    while true; do if [ "$(kubectl get pods watcher-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
 else
-    kubectl set image statefulset childchain-samrong childchain=omisego/child_chain:latest
-    while true; do if [ "$(kubectl get pods childchain-samrong-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
+    kubectl set image statefulset childchain childchain=omisego/child_chain:latest
+    while true; do if [ "$(kubectl get pods childchain-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
 fi;
