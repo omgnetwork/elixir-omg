@@ -1,19 +1,25 @@
-#barebone child chain and watcher setup
-export EXIT_PERIOD_SECONDS=86400
-export ETHEREUM_NETWORK=LOCALCHAIN
-export CONTRACT_EXCHANGER_URL=http://127.0.0.1:8000
-export ETHEREUM_RPC_URL=http://127.0.0.1:8545
-export ETHEREUM_WS_RPC_URL=ws://127.0.0.1:8546
-export CHILD_CHAIN_URL=http://127.0.0.1:9656
-export ERLANG_COOKIE=develop
-export NODE_HOST=127.0.0.1
-export APP_ENV=local_development
-export DD_HOSTNAME=127.0.0.1
-export DD_DISABLED=true
-export DB_PATH=/home/asdf/data/
-export DB_TYPE=leveldb
-export DATABASE_URL=postgres://omisego_dev:omisego_dev@127.0.0.1:5432/omisego_dev
-export REPLACE_OS_VARS=true
+help:
+	@echo "Dont Fear the Makefile"
+	@echo "*DOCKER DEVELOPMENT*:"
+	@echo "make cluster - will start everything for you, but if there are no local images"
+	@echo "for Watcher and Child chain tagged with latest they will get pulled from our repository."
+	@echo "If you want to use your own image containers for Watcher and Child Chain"
+	@echo "use make docker-watcher && make docker-child_chain."
+	@echo "For rapid development that replaces containers with your code changes"
+	@echo "one can use make watcher-update or make child_chain-update."
+	@echo "BARE METAL DEVELOPMENT:"
+	@echo "ATTENTION ATTENTION ATTENTION"
+	@echo "-----------------------------"
+	@echo "You need to export environment variables."
+	@$(MAKE) -s raw-requirements
+	@echo "-----------------------------"
+	@echo "This presumes you want to run geth, plasma-deployer and postgres as containers"
+	@echo "but Watcher and Child Chain bare metal."
+	@echo "make raw-cluster - will start everything for you where Child Chain and Watcher continue running in background."
+	@echo "For rapid development that restarts releases with your code changes"
+	@echo "one can use make raw-watcher-update or make raw-child_chain-update."
+	@echo "Stop the release with raw-stop-child_chain or raw-stop-watcher."
+	@echo "To inject yourself into a running node use raw-remote-child_chain or raw-remote-watcher."
 
 all: clean build-child_chain-prod build-watcher-prod
 
@@ -117,7 +123,6 @@ changelog:
 #
 # Docker
 #
-
 docker-child_chain-prod:
 	docker run --rm -it \
 		-v $(PWD):/app \
@@ -134,47 +139,43 @@ docker-watcher-prod:
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-watcher-prod"
+		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then EXCLUDE_ROCKSDB=1 make clean ; fi && make build-watcher-prod"
 
-docker-child_chain-build-prod:
+docker-child_chain-build:
 	docker build -f Dockerfile.child_chain \
 		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
 		--cache-from $(CHILD_CHAIN_IMAGE_NAME) \
 		-t $(CHILD_CHAIN_IMAGE_NAME) \
 		.
 
-docker-watcher-build-prod:
+docker-watcher-build:
+	echo "downloaded $(release_type): Done!"
 	docker build -f Dockerfile.watcher \
 		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
 		--cache-from $(WATCHER_IMAGE_NAME) \
 		-t $(WATCHER_IMAGE_NAME) \
 		.
 
-docker-watcher: docker-watcher-prod docker-watcher-build-prod
-docker-child_chain: docker-child_chain-prod docker-child_chain-build-prod
+docker-watcher: docker-watcher-prod docker-watcher-build
+docker-child_chain: docker-child_chain-prod docker-child_chain-build
 
 docker-push: docker
 	docker push $(CHILD_CHAIN_IMAGE_NAME)
 	docker push $(WATCHER_IMAGE_NAME)
 
 ###OTHER
-raw-cluster-with-datadog:
-	docker-compose up -d geth ; \
-	docker-compose up -d plasma-deployer ; \
-	docker-compose up -d postgres ; \
-	make build-child_chain-dev  ; \
-	make build-watcher-dev ; \
-	make child_chain& make watcher
+cluster:
+	docker-compose up
 
+update-watcher:
+	docker stop elixir-omg_watcher_1
+	$(MAKE) docker-watcher
+	docker-compose up watcher
 
-watcher:
-	_build/dev/rel/watcher/bin/watcher init_postgresql_db && \
-	_build/dev/rel/watcher/bin/watcher init_key_value_db && \
-	_build/dev/rel/watcher/bin/watcher foreground
-
-child_chain:
-	_build/dev/rel/child_chain/bin/child_chain init_key_value_db && \
-	_build/dev/rel/child_chain/bin/child_chain foreground
+update-child_chain:
+	docker stop elixir-omg_childchain_1
+	$(MAKE) docker-child_chain
+	docker-compose up childchain
 
 cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-deployer watcher childchain
@@ -182,14 +183,75 @@ cluster-with-datadog:
 stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
+#BAREMETAL
+raw-requirements:
+	@echo "export REPLACE_OS_VARS=true"
+	@echo "export NODE_HOST=127.0.0.1"
+	@echo "export APP_ENV=devino"
+	@echo "export HOSTNAME=yolo"
+	@echo "export DB_PATH=/opt/elixir-omg/database/"
+	@echo "export ETHEREUM_RPC_URL=http://localhost:8545"
+	@echo "export ETHEREUM_WS_RPC_URL=ws://localhost:8546"
+	@echo "export ETH_NODE=geth"
+	@echo "export ETHEREUM_NETWORK=LOCALCHAIN"
+	@echo "export CONTRACT_EXCHANGER_URL=http://localhost:8000"
+	@echo "export DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost:5432/omisego_dev"
+	@echo "export CHILD_CHAIN_URL=http://localhost:9656"
+	@echo "export ERLANG_COOKIE=develop"
+
+raw-cluster:
+	docker-compose up -d geth postgres plasma-deployer && \
+	echo "Building Child Chain" && \
+	$(MAKE) build-child_chain-dev && \
+	echo "Building Watcher" && \
+	$(MAKE) build-watcher-dev && \
+	echo "Potential cleanup" && \
+	rm -f ./_build/dev/rel/watcher/var/sys.config || true && \
+	rm -f ./_build/dev/rel/child_chain/var/sys.config || true && \
+	echo "Init Child Chain DB" && \
+	_build/dev/rel/child_chain/bin/child_chain init_key_value_db && \
+	echo "Init Child Chain DB DONE" && \
+	echo "Init Watcher DBs" && \
+	_build/dev/rel/watcher/bin/watcher init_key_value_db && \
+	_build/dev/rel/watcher/bin/watcher init_postgresql_db && \
+	echo "Init Watcher DBs DONE" && \
+	echo "Run Child Chain" && \
+	exec _build/dev/rel/child_chain/bin/child_chain foreground & \
+	echo "Run Watcher" && \
+	_build/dev/rel/watcher/bin/watcher foreground &
+
+raw-update-child_chain:
+	_build/dev/rel/child_chain/bin/child_chain stop ; $(MAKE) build-child_chain-dev && _build/dev/rel/child_chain/bin/child_chain foreground &
+
+raw-update-watcher:
+	_build/dev/rel/watcher/bin/watcher stop ; $(MAKE) build-watcher-dev && _build/dev/rel/watcher/bin/watcher foreground &
+
+raw-stop-child_chain:
+	_build/dev/rel/child_chain/bin/child_chain stop
+
+raw-stop-watcher:
+	_build/dev/rel/watcher/bin/watcher stop
+
+raw-remote-child_chain:
+	_build/dev/rel/child_chain/bin/child_chain remote_console
+
+raw-remote-watcher:
+	_build/dev/rel/watcher/bin/watcher remote_console
+
+alarms:
+	curl -X POST http://localhost:9656/alarm.get| jq ; curl -X POST http://localhost:7434/alarm.get| jq
+
+raw-cluster-stop:
+	docker-compose down ; ${MAKE} raw-stop-watcher ; ${MAKE} raw-stop-child_chain
+
 ### git setup
 init:
 	git config core.hooksPath .githooks
 
 #old git
-# init:
-# 	find .git/hooks -type l -exec rm {} \;
-# 	find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
+#init:
+#  find .git/hooks -type l -exec rm {} \;
+#  find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
 
 ### UTILS
 OSFLAG := ''
