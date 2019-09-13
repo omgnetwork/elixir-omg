@@ -66,6 +66,10 @@ tx =
 
 # 2/ Using the Watcher
 
+~c(echo '{}' | http POST #{watcher_url}/transaction.all) |>
+:os.cmd() |>
+Jason.decode!()
+
 # we grabbed the first transaction hash as returned by the Child chain server's API (response to `http`'s request)
 
 ~c(echo '{"id": "#{tx1_hash}"}' | http POST #{watcher_url}/transaction.get) |>
