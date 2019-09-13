@@ -323,13 +323,13 @@ jobs:
     executor: deploy
     steps:
       - checkout
-      #TODO - run: sh .circleci/ci_deploy.sh
+      - run: DEPLOY=watcher sh .circleci/ci_deploy.sh
 
   deploy_child_chain:
     executor: deploy
     steps:
       - checkout
-      #TODO - run: sh .circleci/ci_deploy.sh
+      - run: DEPLOY=child_chain sh .circleci/ci_deploy.sh
 
   coveralls_merge:
     docker:
@@ -342,51 +342,6 @@ jobs:
       - run:
           name: Tell coveralls.io build is done
           command: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done"
-
-  build_and_deploy_development:
-    docker:
-      - image: ubuntu:16.04
-    working_directory: ~/repo
-    steps:
-      - setup_remote_docker
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            apt-get update && apt-get install -y lsb-release curl cmake
-            curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
-      - run:
-          name: Install gcloud SDK
-          command: |
-            export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
-            echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-            apt-get update -y && apt-get install -y google-cloud-sdk kubectl
-      - run:
-          name: Initialise & authenticate gcloud SDK
-          command: |
-            echo "${GCP_KEY_FILE}" | base64 --decode >> /tmp/gcp_key.json
-            gcloud auth activate-service-account --key-file /tmp/gcp_key.json
-            gcloud config set project ${GCP_ACCOUNT_ID}
-            gcloud config set compute/zone ${GCP_ZONE}
-            gcloud container clusters get-credentials ${GCP_CLUSTER_DEVELOPMENT}
-      - run:
-          name: Build & Deploy Services
-          command: |
-            docker build -t elixir-omg .
-            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
-            export DOCKER_IMAGE=jakebunce/elixir-omg:$CIRCLE_SHA1
-            docker tag elixir-omg $DOCKER_IMAGE
-            docker push jakebunce/elixir-omg:$CIRCLE_SHA1
-            kubectl set image statefulset childchain-samrong childchain=$DOCKER_IMAGE
-            while true; do if [ "$(kubectl get pods childchain-samrong-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
-            kubectl set image statefulset watcher-samrong watcher=$DOCKER_IMAGE
-            while true; do if curl $WATCHER_DEVELOPMENT; then break; fi; done
-      - run:
-          name: Functional Tests
-          command: |
-            apt-get update && apt-get install python3-requests -y
-            python3 .circleci/test_runner.py
 
   notify_services:
     executor: builder_pg
@@ -486,8 +441,7 @@ workflows:
     jobs:
       - build
       - notify_services:
-          requires:
-            - build_and_deploy_development
+          requires: [deploy_watcher, deploy_child_chain]
           filters:
             branches:
               only:
@@ -512,20 +466,6 @@ workflows:
           requires: [build]
       - test:
           requires: [build]
-      - build_and_deploy_development:
-          requires:
-            - build
-            - sobelow
-            - lint
-            - dialyzer
-            - test
-            - child_chain_coveralls_and_integration_tests
-            - watcher_coveralls_and_integration_tests
-            - common_coveralls_and_integration_tests
-          filters:
-            branches:
-              only:
-                - master
       - build_and_deploy_staging:
           requires:
             - build
