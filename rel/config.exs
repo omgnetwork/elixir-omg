@@ -14,8 +14,8 @@ use Distillery.Releases.Config,
   default_environment: Mix.env()
 
 environment :dev do
-  set(dev_mode: false)
-  set(include_erts: true)
+  set(dev_mode: true)
+  set(include_erts: false)
   set(cookie: :dev)
 end
 
