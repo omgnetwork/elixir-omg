@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 1.0.0
+  version: 0.2.2
   title: Watcher security-critical API
   description: >
     API specification of the Watcher's security-critical Service
