@@ -19,7 +19,6 @@ defmodule OMG.DB.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   deffixture db_initialized do
-    :ok = Application.put_env(:omg_db, :type, :leveldb, persistent: true)
     {:ok, briefly} = Application.ensure_all_started(:briefly)
     db_path = Briefly.create!(directory: true)
     Application.put_env(:omg_db, :path, db_path, persistent: true)

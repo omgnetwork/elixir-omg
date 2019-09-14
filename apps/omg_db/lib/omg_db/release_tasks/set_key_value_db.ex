@@ -21,9 +21,6 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
-    type = validate_db_type(get_env("DB_TYPE"))
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DB_TYPE Value: #{inspect(type)}.")
-    :ok = Application.put_env(:omg_db, :type, type, persistent: true)
 
     path =
       case get_env("DB_PATH") do
@@ -54,11 +51,4 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   end
 
   defp get_env(key), do: System.get_env(key)
-
-  defp validate_db_type(value) when is_binary(value), do: to_db_type(String.upcase(value))
-  defp validate_db_type(_), do: Application.get_env(@app, :type)
-
-  defp to_db_type("LEVELDB"), do: :leveldb
-  defp to_db_type("ROCKSDB"), do: :rocksdb
-  defp to_db_type(_), do: exit("DB type not found. Choose from LevelDB or RocksDB.")
 end

@@ -21,7 +21,7 @@ defmodule OMG.DBTest do
   Note the excluded moduletag, this test requires an explicit `--include wrappers`
   """
   use ExUnitFixtures
-  use OMG.DB.LevelDBCase, async: false
+  use OMG.DB.RocksDBCase, async: false
 
   alias OMG.DB
 

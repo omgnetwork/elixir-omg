@@ -14,7 +14,7 @@
 if Code.ensure_loaded?(:rocksdb) do
   defmodule OMG.DB.RocksDB.Core do
     @moduledoc """
-    Responsible for converting type-aware, logic-specific queries and updates into leveldb specific queries and updates
+    Responsible for converting type-aware, logic-specific queries and updates into rocksdb specific queries and updates
     """
 
     # adapter - testable, if we really really want to
@@ -47,7 +47,7 @@ if Code.ensure_loaded?(:rocksdb) do
     def parse_multi_updates(db_updates), do: Enum.flat_map(db_updates, &parse_multi_update/1)
 
     @doc """
-    Interprets the response from leveldb and returns a success-decorated result
+    Interprets the response from rocksdb and returns a success-decorated result
     """
     @spec decode_value({:ok, binary()} | :not_found, atom()) :: {:ok, term()} | :not_found
     def decode_value(db_response, type) do
@@ -58,13 +58,12 @@ if Code.ensure_loaded?(:rocksdb) do
     end
 
     @doc """
-    Interprets an enumerable of responses from leveldb and decorates the enumerable with a `{:ok, _enumerable}`
+    Interprets an enumerable of responses from rocksdb and decorates the enumerable with a `{:ok, _enumerable}`
     if no errors occurred
     """
     @spec decode_values(Enumerable.t(), atom) :: {:ok, list}
     def decode_values(encoded_enumerable, type) do
       raw_decoded = Enum.map(encoded_enumerable, fn encoded -> decode_response(type, encoded) end)
-
       {:ok, raw_decoded}
     end
 
@@ -120,7 +119,8 @@ if Code.ensure_loaded?(:rocksdb) do
     defp do_filter_keys(reference, prefix) do
       # https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes#use-readoptionsprefix_seek
       {:ok, iterator} = :rocksdb.iterator(reference, prefix_same_as_start: true)
-      search(reference, iterator, :rocksdb.iterator_move(iterator, {:seek, prefix}), [])
+      move_iterator = :rocksdb.iterator_move(iterator, {:seek, prefix})
+      Enum.reverse(search(reference, iterator, move_iterator, []))
     end
 
     defp search(_reference, _iterator, {:error, :invalid_iterator}, acc), do: acc

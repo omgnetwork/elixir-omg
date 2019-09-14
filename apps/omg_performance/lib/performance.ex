@@ -149,9 +149,9 @@ defmodule OMG.Performance do
   @spec setup_simple_perftest(map()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
     {:ok, _} = Application.ensure_all_started(:briefly)
-    {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
+    {:ok, dbdir} = Briefly.create(directory: true, prefix: "rocksdb")
     Application.put_env(:omg_db, :path, dbdir, persistent: true)
-    _ = Logger.info("Perftest leveldb path: #{inspect(dbdir)}")
+    _ = Logger.info("Perftest rocksdb path: #{inspect(dbdir)}")
 
     :ok = OMG.DB.init()
 

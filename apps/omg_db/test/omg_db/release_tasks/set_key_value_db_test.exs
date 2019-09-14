@@ -30,7 +30,6 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
 
   setup do
     on_exit(fn ->
-      :ok = System.delete_env("DB_TYPE")
       :ok = System.delete_env("DB_PATH")
     end)
 
@@ -38,26 +37,22 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
   end
 
   test "if environment variables get applied in the configuration" do
-    :ok = System.put_env("DB_TYPE", "ROCKsDB")
     :ok = System.put_env("DB_PATH", "/tmp/YOLO/")
     :ok = SetKeyValueDB.init([])
     configuration = Enum.sort(Application.get_all_env(@app))
-    :rocksdb = configuration[:type]
     "/tmp/YOLO/watcher" = configuration[:path]
 
     ^configuration =
       @configuration_old
-      |> Keyword.put(:type, :rocksdb)
       |> Keyword.put(:path, "/tmp/YOLO/watcher")
       |> Enum.sort()
 
-    :ok = System.delete_env("DB_TYPE")
     :ok = System.delete_env("DB_PATH")
   end
 
   test "if default configuration is used when there's no environment variables" do
     :ok = Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
-    :ok = System.delete_env("DB_TYPE")
+
     :ok = System.delete_env("DB_PATH")
     :ok = SetKeyValueDB.init([])
     configuration = Application.get_all_env(@app)
@@ -69,16 +64,5 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
 
     sorted_configuration = Enum.sort(configuration)
     ^sorted_configuration = Enum.sort(configuration_old)
-  end
-
-  test "if faulty db type exits" do
-    :ok = System.put_env("DB_TYPE", "LEVELDB1111")
-
-    try do
-      SetKeyValueDB.init([])
-    catch
-      :exit, _reason ->
-        :ok = System.delete_env("DB_TYPE")
-    end
   end
 end

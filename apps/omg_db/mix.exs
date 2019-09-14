@@ -12,7 +12,7 @@ defmodule OMG.DB.MixProject do
       elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps() ++ rocksdb(),
+      deps: deps(),
       test_coverage: [tool: ExCoveralls]
     ]
   end
@@ -31,7 +31,7 @@ defmodule OMG.DB.MixProject do
 
   defp deps do
     [
-      {:exleveldb, "~> 0.11"},
+      {:rocksdb, "~> 1.2"},
       {:omg_status, in_umbrella: true},
       # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see
@@ -42,12 +42,5 @@ defmodule OMG.DB.MixProject do
       {:telemetry, "~> 0.4.0"},
       {:omg_utils, in_umbrella: true}
     ]
-  end
-
-  defp rocksdb do
-    case System.get_env("EXCLUDE_ROCKSDB") do
-      nil -> [{:rocksdb, "~> 1.2"}]
-      _ -> []
-    end
   end
 end

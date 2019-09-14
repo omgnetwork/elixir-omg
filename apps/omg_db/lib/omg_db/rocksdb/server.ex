@@ -14,7 +14,7 @@
 if Code.ensure_loaded?(:rocksdb) do
   defmodule OMG.DB.RocksDB.Server do
     @moduledoc """
-    Handles connection to leveldb
+    Handles connection to rocksdb
     """
 
     # All complex operations on data written/read should go into OMG.DB.RocksDB.Core
