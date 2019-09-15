@@ -17,6 +17,7 @@ executors:
   builder:
     docker:
       - image: omisegoimages/elixir-omg-builder:v1.3
+      - image: expert/rocksdb:4.13
     working_directory: ~/src
 
   builder_pg:
