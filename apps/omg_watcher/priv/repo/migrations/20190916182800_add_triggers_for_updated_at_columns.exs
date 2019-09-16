@@ -10,13 +10,19 @@ defmodule OMG.Watcher.DB.Repo.Migrations.AddTriggersForUpdatedAtColumns do
           RETURN NEW;
       END;
       $$ language 'plpgsql';
+    """
 
+    execute """
       CREATE TRIGGER update_txoutputs_updated_at
       BEFORE UPDATE ON txoutputs FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+    """
 
+    execute """
       CREATE TRIGGER update_ethevents_updated_at
       BEFORE UPDATE ON ethevents FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+    """
 
+    execute """
       CREATE TRIGGER update_ethevents_txoutputs_updated_at
       BEFORE UPDATE ON ethevents_txoutputs FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
     """
