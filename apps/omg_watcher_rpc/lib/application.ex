@@ -18,6 +18,9 @@ defmodule OMG.WatcherRPC.Application do
   use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
+    # tracers have global settings that don't support more then one phoenix application,
+    # so watcher's configuration comes in first and :spandex_datadog picks that one,
+    # which needs to be populated from env vars
     DeferredConfig.populate(:omg_watcher_rpc)
     DeferredConfig.populate(:omg_child_chain_rpc)
     :ok = Application.put_env(:spandex_phoenix, :tracer, OMG.WatcherRPC.Tracer, persistent: true)
