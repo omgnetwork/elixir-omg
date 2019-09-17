@@ -24,6 +24,8 @@ defmodule Mix.Tasks.Xomg.ChildChain.Start do
   @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
 
   def run(args) do
+    :ok = Application.put_env(:spandex_phoenix, :tracer, OMG.ChildChainRPC.Tracer, persistent: true)
+
     args
     |> generic_prepare_args()
     |> generic_run([:omg_child_chain_rpc, :omg_child_chain])

@@ -19,7 +19,8 @@ defmodule OMG.WatcherRPC.Application do
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_watcher_rpc)
-
+    DeferredConfig.populate(:omg_child_chain_rpc)
+    :ok = Application.put_env(:spandex_phoenix, :tracer, OMG.WatcherRPC.Tracer, persistent: true)
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
     start_root_supervisor()
