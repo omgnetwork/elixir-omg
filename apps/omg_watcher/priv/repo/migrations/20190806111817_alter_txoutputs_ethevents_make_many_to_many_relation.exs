@@ -62,12 +62,8 @@ defmodule OMG.Watcher.DB.Repo.Migrations.AlterTxOutputsTableAddRootchainTxnHashD
       remove(:creating_deposit)
       remove(:spending_exit)
 
-      timestamps([type: :utc_datetime])
+      timestamps(type: :utc_datetime, default: fragment("(now() at time zone 'utc')"), null: false)
     end
-
-    # how to do this in ecto correctly? do it manually
-    execute("ALTER TABLE txoutputs ALTER COLUMN inserted_at SET DEFAULT (now() at time zone 'utc');")
-    execute("ALTER TABLE txoutputs ALTER COLUMN updated_at SET DEFAULT (now() at time zone 'utc');")
 
     create table(:ethevents_txoutputs, primary_key: false) do
       add(:root_chain_txhash_event,
