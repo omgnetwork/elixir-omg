@@ -36,6 +36,8 @@ defmodule Mix.Tasks.Xomg.Watcher.Start do
   end
 
   defp start_watcher(args) do
+    :ok = Application.put_env(:spandex_phoenix, :tracer, OMG.WatcherRPC.Tracer, persistent: true)
+
     args
     |> generic_prepare_args()
     |> generic_run([:omg_watcher, :omg_watcher_rpc])
