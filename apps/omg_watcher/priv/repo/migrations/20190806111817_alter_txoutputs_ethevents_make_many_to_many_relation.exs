@@ -62,7 +62,7 @@ defmodule OMG.Watcher.DB.Repo.Migrations.AlterTxOutputsTableAddRootchainTxnHashD
       remove(:creating_deposit)
       remove(:spending_exit)
 
-      timestamps(type: :utc_datetime, default: fragment("(now() at time zone 'utc')"), null: false)
+      timestamps(type: :utc_datetime, default: fragment("(now() at time zone 'utc')"), null: true)
     end
 
     create table(:ethevents_txoutputs, primary_key: false) do
