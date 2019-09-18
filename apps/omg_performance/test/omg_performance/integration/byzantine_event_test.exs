@@ -18,17 +18,33 @@ defmodule OMG.Performance.ByzantineEventsTest do
   use OMG.ChildChain.Integration.Fixtures
   use OMG.Watcher.Fixtures
 
+  alias OMG.Eth
   alias OMG.Performance
   alias OMG.Performance.ByzantineEvents
-  alias OMG.Watcher.TestHelper
+  alias OMG.Performance.ByzantineEvents.Generators
+  alias OMG.Utils.HttpRPC.Client
 
   @moduletag :integration
+  @moduletag timeout: 180_000
+  @watcher_url Application.get_env(:byzantine_events, :watcher_url)
 
-  @tag fixtures: [:contract, :child_chain, :watcher]
+  setup_all do
+    Application.put_env(:omg_child_chain, :mix_env, "dev")
+    Application.put_env(:omg_watcher, :mix_env, "dev")
+
+    on_exit(fn ->
+      Application.put_env(:omg_child_chain, :mix_env, nil)
+      Application.put_env(:omg_watcher, :mix_env, nil)
+    end)
+
+    :ok
+  end
+
+  @tag fixtures: [:contract, :child_chain, :omg_watcher]
   test "time response for asking for exit data", %{contract: %{contract_addr: contract}} do
-    dos_users = 10
+    dos_users = 3
     ntx_to_send = 100
-    spenders = ByzantineEvents.generate_users(2)
+    spenders = Generators.generate_users(4)
     exit_per_dos = length(spenders) * ntx_to_send
     total_exits = length(spenders) * ntx_to_send * dos_users
 
@@ -42,9 +58,9 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     Performance.start_extended_perftest(ntx_to_send, spenders, contract)
     # get exit position from child chain, blocking call
-    exit_positions = ByzantineEvents.stream_tx_positions() |> Enum.take(exit_per_dos)
+    exit_positions = Generators.stream_utxo_positions() |> Enum.take(exit_per_dos)
     # wait before asking watcher about exit data
-    TestHelper.watcher_synchronize()
+    ByzantineEvents.watcher_synchronize()
 
     statistics = ByzantineEvents.start_dos_get_exits(dos_users, exit_positions)
 
@@ -62,5 +78,29 @@ defmodule OMG.Performance.ByzantineEventsTest do
     """)
 
     assert error_exits == 0
+  end
+
+  @tag fixtures: [:contract, :child_chain, :omg_watcher]
+  test "watcher catch all non_canonical_ife", %{contract: %{contract_addr: contract}} do
+    dos_users = 2
+    ntx_to_send = 10
+    spenders = Generators.generate_users(3)
+    ife_per_dos = length(spenders) * ntx_to_send
+
+    OMG.Performance.start_extended_perftest(ntx_to_send, spenders, contract)
+    binary_txs = Generators.stream_txs() |> Enum.take(ife_per_dos)
+    utxos = spenders |> Enum.map(fn spender -> ByzantineEvents.get_exitable_utxos(spender) end) |> Enum.concat()
+
+    ByzantineEvents.watcher_synchronize()
+    dos_result = ByzantineEvents.start_dos_non_canonical_ife(dos_users, binary_txs, utxos, spenders)
+    started_ife = Enum.reduce(dos_result, 0, fn %{start_ife: start_ife}, acc -> start_ife + acc end)
+
+    {:ok, ethereum_height} = Eth.get_ethereum_height()
+    ByzantineEvents.watcher_synchronize_service("in_flight_exit_processor", ethereum_height)
+
+    {:ok, %{byzantine_events: byzantine_events}} = Client.get_status(@watcher_url)
+    non_canonical_ife = Enum.filter(byzantine_events, &match?(%{"event" => "non_canonical_ife"}, &1))
+
+    assert length(non_canonical_ife) == started_ife
   end
 end
