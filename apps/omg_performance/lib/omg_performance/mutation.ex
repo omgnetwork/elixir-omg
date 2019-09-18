@@ -13,42 +13,45 @@
 # limitations under the License.
 
 defmodule OMG.Performance.ByzantineEvents.Mutation do
-  @moduledoc false
+  @moduledoc """
+  module supports transaction modification in such a way that it will still be possible send ife
+  """
 
   alias OMG.State.Transaction
   alias OMG.Utxo
 
   require Utxo
 
-  def mutation_tx(tx, utxos, users) when is_binary(tx) do
-    mutation_tx(Transaction.Recovered.recover_from!(tx), utxos, users)
+  @spec mutate(binary | Transaction.Recovered.t(), %{Utxo.Position.t() => binary}, %{binary => binary}) :: any()
+  def mutate(tx, map_position_owners, map_users) when is_binary(tx) do
+    mutate(Transaction.Recovered.recover_from!(tx), map_position_owners, map_users)
   end
 
-  def mutation_tx(
-        recovered_tx,
-        utxos,
-        users,
+  def mutate(
+        %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}} = recovered_tx,
+        map_position_owners,
+        map_users,
         {probability_remove, probability_add, probability_change_value, probability_order} \\ {10, 20, 30, 50}
       ) do
     mutated_tx =
-      recovered_tx.signed_tx.raw_tx
+      raw_tx
       |> (fn tx -> apply_with_probability(probability_remove, &mutate_remove/1, [tx]) end).()
-      |> (fn tx -> apply_with_probability(probability_add, &mutate_add/2, [tx, utxos]) end).()
+      |> (fn tx -> apply_with_probability(probability_add, &mutate_add/2, [tx, map_position_owners]) end).()
       |> (fn tx -> apply_with_probability(probability_change_value, &mutate_change_value/1, [tx]) end).()
       |> (fn tx -> apply_with_probability(probability_order, &mutate_order/1, [tx]) end).()
 
-    if mutated_tx == recovered_tx.signed_tx.raw_tx,
-      do: mutation_tx(recovered_tx, utxos, users),
-      else: sign(mutated_tx, recovered_tx, utxos, users)
+    if mutated_tx == raw_tx,
+      do: mutate(recovered_tx, map_position_owners, map_users),
+      else: sign(mutated_tx, recovered_tx, map_position_owners, map_users)
   end
 
-  def apply_with_probability(percent, function, args) do
-    if :random.uniform(100) <= percent,
+  defp apply_with_probability(percent, function, [tx | _] = args) do
+    if :rand.uniform(100) <= percent,
       do: apply(function, args),
-      else: hd(args)
+      else: tx
   end
 
-  def mutate_order(tx) do
+  defp mutate_order(tx) do
     inputs =
       Transaction.get_inputs(tx)
       |> Enum.shuffle()
@@ -62,24 +65,25 @@ defmodule OMG.Performance.ByzantineEvents.Mutation do
     Transaction.Payment.new(inputs, outputs, tx.metadata)
   end
 
-  def mutate_remove(tx) do
-    inputs = Transaction.get_inputs(tx) |> payment_input()
-    # inputs = inputs |> List.delete_at(:random.uniform(length(inputs) + 1) - 1)
+  defp mutate_remove(tx) do
     outputs = Transaction.get_outputs(tx) |> payment_output()
-    outputs = outputs |> List.delete_at(:random.uniform(length(outputs) + 1) - 1)
+    # we can try to remove at lenght which does not change a list
+    outputs = outputs |> List.delete_at(:rand.uniform(length(outputs) + 1) - 1)
 
     metadata =
       if Enum.random([true, false]),
         do: tx.metadata,
         else: nil
 
+    inputs = Transaction.get_inputs(tx) |> payment_input()
+
     Transaction.Payment.new(inputs, outputs, metadata)
   end
 
-  def mutate_change_value(tx) do
+  defp mutate_change_value(tx) do
     outputs = Transaction.get_outputs(tx)
-    random_position = :random.uniform(length(outputs)) - 1
-    random_modification = Enum.random(0..10)
+    random_position = :rand.uniform(length(outputs) + 1) - 1
+    random_modification = Enum.random(1..10)
 
     outputs =
       List.update_at(outputs, random_position, fn %{amount: amount} = output ->
@@ -90,7 +94,7 @@ defmodule OMG.Performance.ByzantineEvents.Mutation do
     Transaction.Payment.new(Transaction.get_inputs(tx) |> payment_input, outputs, tx.metadata)
   end
 
-  def mutate_add(tx, utxos) do
+  defp mutate_add(tx, map_position_owners) do
     input = Transaction.get_inputs(tx)
     outputs = Transaction.get_outputs(tx)
     metadata = tx.metadata
@@ -102,8 +106,12 @@ defmodule OMG.Performance.ByzantineEvents.Mutation do
 
     input =
       if Enum.random([true, false]) do
-        %{blknum: blknum, txindex: txindex, oindex: oindex} = Enum.random(utxos)
-        [Utxo.position(blknum, txindex, oindex) | input]
+        new_position =
+          map_position_owners
+          |> Map.keys()
+          |> Enum.random()
+
+        [new_position | input]
       else
         input
       end
@@ -123,35 +131,30 @@ defmodule OMG.Performance.ByzantineEvents.Mutation do
     Transaction.Payment.new(input |> payment_input, outputs |> payment_output, metadata)
   end
 
-  def random_binary(size) do
-    for _ <- 1..size, into: <<>>, do: <<:random.uniform(256)>>
+  defp random_binary(size) do
+    for _ <- 1..size, into: <<>>, do: <<:rand.uniform(256)>>
   end
 
-  def sign(raw_tx, recovered_tx, utxos, users) do
-    map_owners =
-      [
-        utxos
-        |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex, owner: owner} ->
-          {Utxo.position(blknum, txindex, oindex), OMG.Eth.Encoding.from_hex(owner)}
-        end),
-        Transaction.get_inputs(recovered_tx)
-        |> Enum.with_index()
-        |> Enum.map(fn {position, index} ->
-          {position, recovered_tx.witnesses[index]}
-        end)
-      ]
-      |> Enum.concat()
-      |> Enum.map(fn {position, owner} ->
-        owner = Enum.find(users, fn %{addr: addr} -> addr == owner end)
-
-        case owner do
-          %{priv: priv_key} -> {position, priv_key}
-          _ -> {position, nil}
-        end
+  defp sign(raw_tx, recovered_tx, map_position_owners, map_users) do
+    map_position_owners_from_recovered_tx =
+      Transaction.get_inputs(recovered_tx)
+      |> Enum.with_index()
+      |> Enum.map(fn {position, index} ->
+        owner = recovered_tx.witnesses[index]
+        priv_key = Map.get(map_users, owner)
+        {position, priv_key}
       end)
       |> Map.new()
 
-    privs = Transaction.get_inputs(raw_tx) |> Enum.map(fn utxo -> Map.get(map_owners, utxo) end)
+    privs =
+      Transaction.get_inputs(raw_tx)
+      |> Enum.map(fn position ->
+        owner = Map.get(map_position_owners, position)
+
+        if owner == nil,
+          do: Map.get(map_position_owners_from_recovered_tx, position),
+          else: owner
+      end)
 
     if Enum.any?(privs, &(&1 == nil)),
       do: {:error, :cant_sign},

@@ -48,7 +48,7 @@ defmodule OMG.Performance.Fixtures do
       env: %{
         "MIX_ENV" => mix_env,
         "DD_DISABLED" => "true",
-        "APP_ENV" => "dev",
+        "APP_ENV" => mix_env,
         "DD_HOSTNAME" => "localhost",
         "ETH_NODE" => "geth"
       },
@@ -59,7 +59,7 @@ defmodule OMG.Performance.Fixtures do
 
     {:ok, _db_proc, _ref, [{:stream, db_out, _stream_server}]} =
       Exexec.run_link(
-        "mix run --no-start -e ':ok = OMG.DB.init()' --config #{config_file_path} 2>&1",
+        "mix ecto.reset --no-start && mix run --no-start -e ':ok = OMG.DB.init()' --config #{config_file_path} 2>&1",
         exexec_opts_for_mix
       )
 

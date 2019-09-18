@@ -13,7 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.Performance.ByzantineEvents.Generators do
-  @moduledoc false
+  @moduledoc """
+  Module to generate users,
+  and stream of transaction, utxo position, block using data from child chain
+  """
 
   alias OMG.Eth
   alias OMG.Eth.RootChain
@@ -65,27 +68,20 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   def random_block(child_chain_url \\ @child_chain_url) do
     {:ok, interval} = RootChain.get_child_block_interval()
     {:ok, mined_block} = RootChain.get_mined_child_block()
+    # interval <= blknum <= mined_block
     blknum = :rand.uniform(div(mined_block, interval)) * interval
     get_block!(blknum, child_chain_url)
   end
 
-  def get_block!(blknum, child_chain_url \\ @child_chain_url) do
+  defp get_block!(blknum, child_chain_url) do
     {:ok, block} =
-      Enum.find(
-        Stream.iterate(0, fn _ ->
-          with {:ok, {block_hash, _timestamp}} <- RootChain.get_child_chain(blknum) do
-            Client.get_block(block_hash, child_chain_url)
-          end
-        end),
-        fn
-          {:ok, _} ->
-            true
-
-          _ ->
-            Process.sleep(1000)
-            false
+      Eth.WaitFor.repeat_until_ok(fn ->
+        with {:ok, {block_hash, _timestamp}} <- RootChain.get_child_chain(blknum) do
+          Client.get_block(block_hash, child_chain_url)
+        else
+          _ -> :repeat
         end
-      )
+      end)
 
     block
   end
@@ -94,8 +90,13 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
     Stream.with_index(block.transactions)
     |> Stream.map(fn {tx, index} ->
       recover_tx = Transaction.Recovered.recover_from!(tx)
-      outputs = Transaction.get_outputs(recover_tx)
-      Enum.map(0..(length(outputs) - 1), &(Utxo.position(block.number, index, &1) |> Utxo.Position.encode()))
+
+      Transaction.get_outputs(recover_tx)
+      |> Enum.with_index()
+      |> Enum.map(fn {_, oindex} ->
+        Utxo.position(block.number, index, oindex)
+        |> Utxo.Position.encode()
+      end)
     end)
     |> Stream.concat()
   end
