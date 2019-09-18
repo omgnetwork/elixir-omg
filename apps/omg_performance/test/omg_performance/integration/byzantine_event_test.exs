@@ -65,8 +65,8 @@ defmodule OMG.Performance.ByzantineEventsTest do
     statistics = ByzantineEvents.start_dos_get_exits(dos_users, exit_positions)
 
     times = statistics |> Enum.map(&Map.get(&1, :time))
-    correct_exits = statistics |> Enum.map(&Map.get(&1, :correct)) |> Enum.sum()
-    error_exits = statistics |> Enum.map(&Map.get(&1, :error)) |> Enum.sum()
+    correct_exits = statistics |> Enum.map(&Map.get(&1, :corrects_count)) |> Enum.sum()
+    error_exits = statistics |> Enum.map(&Map.get(&1, :errors_count)) |> Enum.sum()
 
     IO.puts("""
     max dos user time: #{Enum.max(times) / 1_000_000} s
@@ -93,7 +93,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     ByzantineEvents.watcher_synchronize()
     dos_result = ByzantineEvents.start_dos_non_canonical_ife(dos_users, binary_txs, utxos, spenders)
-    started_ife = Enum.reduce(dos_result, 0, fn %{start_ife: start_ife}, acc -> start_ife + acc end)
+    started_ife = Enum.reduce(dos_result, 0, fn %{started_ife_count: start_ife}, acc -> start_ife + acc end)
 
     {:ok, ethereum_height} = Eth.get_ethereum_height()
     ByzantineEvents.watcher_synchronize_service("in_flight_exit_processor", ethereum_height)
