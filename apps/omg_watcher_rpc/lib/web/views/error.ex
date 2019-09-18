@@ -22,42 +22,20 @@ defmodule OMG.WatcherRPC.Web.Views.Error do
   @doc """
   Handles client errors, e.g. malformed json in request body
   """
-  def render("400.json", %{reason: reason, conn: conn}) do
-    _ =
-      Logger.warn(
-        "Malformed request. #{inspect(Map.get(conn, :request_path, "<undefined path>"))}\nReason: #{inspect(reason)}"
-      )
-
-    Error.serialize(
-      "operation:bad_request",
-      "Server has failed to parse the request.",
-      # add stack trace unless running on production env
-      if(Application.get_env(:omg_watcher, :environment) in [:dev, :test], do: "#{inspect(reason)}")
-    )
+  def render("400.json", _) do
+    Error.serialize("operation:bad_request", "Server has failed to parse the request.")
   end
 
   @doc """
   Supports internal server error thrown by Phoenix.
   """
-  def render("500.json", %{reason: %{message: message}} = conn) do
-    Error.serialize(
-      "server:internal_server_error",
-      message,
-      # add stack trace unless running on production env
-      if(Application.get_env(:omg_watcher, :environment) in [:dev, :test], do: "#{inspect(Map.get(conn, :stack))}")
-    )
+  def render("500.json", %{reason: %{message: message}} = _conn) do
+    Error.serialize("server:internal_server_error", message)
   end
 
-  @doc """
-  Renders error when no render clause matches or no template is found.
-  """
-  def template_not_found(_template, %{reason: reason} = conn) do
-    _ = Logger.error("Unhandled error occurred most likely in controller / API layer: #{inspect(conn)}")
-
-    throw(
-      "Unmatched render clause for template #{inspect(Map.get(reason, :template, "<unable to find>"))} in #{
-        inspect(Map.get(reason, :module, "<unable to find>"))
-      }"
-    )
+  # In case no render clause matches or no
+  # template is found, let's render it as 500
+  def template_not_found(_template, _assigns) do
+    Error.serialize("server:internal_server_error", nil)
   end
 end
