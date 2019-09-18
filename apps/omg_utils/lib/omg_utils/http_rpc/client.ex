@@ -67,7 +67,7 @@ defmodule OMG.Utils.HttpRPC.Client do
   @doc """
   Gets Watcher status
   """
-  @spec get_status(binary()) :: map()
+  @spec get_status(binary()) :: response_t()
   def get_status(url) do
     Adapter.rpc_post(%{}, "status.get", url)
     |> Adapter.get_response_body()
