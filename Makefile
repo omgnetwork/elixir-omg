@@ -262,6 +262,15 @@ cluster-stop:
 init:
 	git config core.hooksPath .githooks
 
+### a helper that allows us to get rocksdb installed files from the
+### builder image into the deployer image
+get_rocks:
+	mkdir -p _build/rocksdb/usr/lib/ && mkdir -p _build/rocksdb/usr/local/rocksdb/ && mkdir -p _build/rocksdb/usr/include/ \
+	&& cp /usr/local/rocksdb/lib/librocksdb.so* _build/rocksdb \
+	&& cp -r /usr/local/rocksdb/ _build/rocksdb/usr/local/rocksdb/ \
+	&& cp -r /usr/include/* _build/rocksdb/usr/include/
+
+
 #old git
 #init:
 #  find .git/hooks -type l -exec rm {} \;
