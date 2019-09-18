@@ -37,11 +37,11 @@ defmodule OMG.Performance.ByzantineEvents do
     |> Enum.map(fn task ->
       {time, exits} = Task.await(task, :infinity)
       valid? = Enum.map(exits, &valid_exit_data/1)
-      %{time: time, correct: Enum.count(valid?, & &1), error: Enum.count(valid?, &(!&1))}
+      %{time: time, corrects_count: Enum.count(valid?, & &1), errors_count: Enum.count(valid?, &(!&1))}
     end)
   end
 
-  def worker_dos_get_exit(exit_positions, url \\ @watcher_url) do
+  defp worker_dos_get_exit(exit_positions, url) do
     worker = fn exit_positions ->
       Enum.map(exit_positions, fn position ->
         get_exit_data(position, url)
@@ -59,20 +59,29 @@ defmodule OMG.Performance.ByzantineEvents do
     |> Enum.map(fn task ->
       {time, ifes} = Task.await(task, :infinity)
       valid? = Enum.map(ifes, &valid_ife_response/1)
-      %{time: time, start_ife: Enum.count(valid?, & &1), not_started_ife: Enum.count(valid?, &(!&1))}
+      %{time: time, started_ife_count: Enum.count(valid?, & &1), not_started_ife_count: Enum.count(valid?, &(!&1))}
     end)
   end
 
-  def worker_dos_non_canonical_ife(binary_txs, utxos, users, url \\ @watcher_url) do
+  defp worker_dos_non_canonical_ife(binary_txs, utxos, users, url) do
     {:ok, eth_height} = Eth.get_ethereum_height()
     {:ok, deposits} = RootChain.get_deposits(0, eth_height)
     %{addr: addr} = Enum.random(users)
+    map_users = Enum.map(users, fn %{addr: addr, priv: priv_key} -> {addr, priv_key} end) |> Map.new()
+
+    map_position_owners =
+      utxos
+      |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex, owner: owner} ->
+        owner = OMG.Eth.Encoding.from_hex(owner)
+        {Utxo.position(blknum, txindex, oindex), Map.get(map_users, owner)}
+      end)
+      |> Map.new()
 
     worker = fn binary_txs ->
-      Stream.map(
-        binary_txs,
+      binary_txs
+      |> Stream.map(
         &with(
-          {:ok, ife} <- compose_in_flight_exit(&1, users, utxos, deposits, url),
+          {:ok, ife} <- compose_in_flight_exit(&1, map_position_owners, map_users, deposits, url),
           {:ok, txhash} <-
             Eth.RootChainHelper.in_flight_exit(
               ife.in_flight_tx,
@@ -103,15 +112,16 @@ defmodule OMG.Performance.ByzantineEvents do
   def valid_ife_response({:ok, %{"status" => "0x1"}}), do: true
   def valid_ife_response(_), do: false
 
-  def compose_in_flight_exit(binary_tx, users, utxos, deposits, url \\ @watcher_url) do
+  defp compose_in_flight_exit(binary_tx, map_position_owners, map_users, deposits, url) do
     with {:ok, recover_tx} <- Transaction.Recovered.recover_from(binary_tx),
-         {:ok, sign_tx} <- Mutation.mutation_tx(recover_tx, utxos, users),
+         {:ok, sign_tx} <- Mutation.mutate(recover_tx, map_position_owners, map_users),
          exit_datas = Transaction.get_inputs(sign_tx) |> Enum.map(&compose_exit(&1, deposits, url)),
-         true <- Enum.all?(exit_datas, &match?({:ok, _}, &1)),
-         {proofs, input_txs} <-
-           exit_datas
-           |> Enum.map(fn {:ok, %{proof: proof, txbytes: txbytes}} -> {proof, txbytes} end)
-           |> Enum.unzip() do
+         true <- Enum.all?(exit_datas, &match?({:ok, _}, &1)) do
+      {proofs, input_txs} =
+        exit_datas
+        |> Enum.map(fn {:ok, %{proof: proof, txbytes: txbytes}} -> {proof, txbytes} end)
+        |> Enum.unzip()
+
       input_txs =
         input_txs
         |> Enum.map(&ExRLP.decode/1)
@@ -152,15 +162,13 @@ defmodule OMG.Performance.ByzantineEvents do
     error -> error
   end
 
-  def compose_exit(utxo_pos, deposits, watcher_url \\ @watcher_url)
-
-  def compose_exit(Utxo.position(blknum, _, _) = utxo_pos, deposits, _)
-      when is_deposit(utxo_pos) do
+  defp compose_exit(Utxo.position(blknum, _, _) = utxo_pos, deposits, _)
+       when is_deposit(utxo_pos) do
     Enum.find(deposits, fn deposit -> deposit.blknum == blknum end)
     |> OMG.Watcher.UtxoExit.Core.compose_deposit_exit(utxo_pos)
   end
 
-  def compose_exit(utxo_pos, _, watcher_url) do
+  defp compose_exit(utxo_pos, _, watcher_url) do
     utxo_pos
     |> Utxo.Position.encode()
     |> get_exit_data(watcher_url)
@@ -180,11 +188,11 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
-  def watcher_synchronize_service(service, service_height, watcher_url \\ @watcher_url) do
+  def watcher_synchronize_service(expected_service, min_service_height, watcher_url \\ @watcher_url) do
     Eth.WaitFor.repeat_until_ok(fn ->
       with {:ok, %{services_synced_heights: services_synced_heights}} <- Client.get_status(watcher_url),
-           %{"height" => height} when height >= service_height <-
-             Enum.find(services_synced_heights, &match?(%{"service" => ^service}, &1)) do
+           %{"height" => height} when height >= min_service_height <-
+             Enum.find(services_synced_heights, &match?(%{"service" => ^expected_service}, &1)) do
         {:ok, height}
       else
         _ -> :repeat

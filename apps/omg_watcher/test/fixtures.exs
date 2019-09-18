@@ -60,7 +60,7 @@ defmodule OMG.Watcher.Fixtures do
       env: %{
         "MIX_ENV" => mix_env,
         "DD_DISABLED" => "true",
-        "APP_ENV" => "dev",
+        "APP_ENV" => mix_env,
         "DD_HOSTNAME" => "localhost",
         "ETH_NODE" => "geth"
       },
