@@ -37,7 +37,7 @@ all: clean build-child_chain-prod build-watcher-prod
 
 WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-c31381e"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-6656422"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -142,7 +142,7 @@ docker-child_chain-prod:
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make get_rocks && make build-child_chain-prod"
+		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-child_chain-prod"
 
 docker-watcher-prod:
 	docker run --rm -it \
@@ -151,7 +151,7 @@ docker-watcher-prod:
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make get_rocks && make build-watcher-prod"
+		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-watcher-prod"
 
 docker-child_chain-build:
 	docker build -f Dockerfile.child_chain \
@@ -261,15 +261,6 @@ cluster-stop:
 ### git setup
 init:
 	git config core.hooksPath .githooks
-
-### a helper that allows us to get rocksdb installed files from the
-### builder image into the deployer image
-get_rocks:
-	mkdir -p _build/rocksdb/usr/lib/ && mkdir -p _build/rocksdb/usr/local/rocksdb/ && mkdir -p _build/rocksdb/usr/include/ \
-	&& cp /usr/local/rocksdb/lib/librocksdb.so* _build/rocksdb \
-	&& cp -r /usr/local/rocksdb/ _build/rocksdb/usr/local/rocksdb/ \
-	&& cp -r /usr/include/* _build/rocksdb/usr/include/
-
 
 #old git
 #init:
