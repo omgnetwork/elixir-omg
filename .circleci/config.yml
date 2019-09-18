@@ -16,13 +16,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:v1.3
-      - image: expert/rocksdb:4.13
+      - image: omisegoimages/elixir-omg-builder:dev-c31381e
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:v1.3
+      - image: omisegoimages/elixir-omg-builder:dev-c31381e
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
