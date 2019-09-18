@@ -70,25 +70,28 @@ defmodule OMG.Watcher.DB.EthEvent do
 
     case get(root_chain_txhash_event) do
       nil ->
-        %__MODULE__{
-          root_chain_txhash_event: root_chain_txhash_event,
-          log_index: log_index,
-          root_chain_txhash: root_chain_txhash,
-          event_type: event_type,
+        __MODULE__.changeset(
+          %__MODULE__{},
+          %{
+            root_chain_txhash_event: root_chain_txhash_event,
+            log_index: log_index,
+            root_chain_txhash: root_chain_txhash,
+            event_type: event_type,
 
-          # a deposit from the root chain will only ever have 1 childchain txoutput object
-          txoutputs: [
-            %DB.TxOutput{
-              child_chain_utxohash: generate_child_chain_utxohash(position),
-              blknum: blknum,
-              txindex: 0,
-              oindex: 0,
-              owner: owner,
-              currency: currency,
-              amount: amount
-            }
-          ]
-        }
+            # a deposit from the root chain will only ever have 1 childchain txoutput object
+            txoutputs: [
+              %DB.TxOutput{
+                child_chain_utxohash: generate_child_chain_utxohash(position),
+                blknum: blknum,
+                txindex: 0,
+                oindex: 0,
+                owner: owner,
+                currency: currency,
+                amount: amount
+              }
+            ]
+          }
+        )
         |> DB.Repo.insert()
 
         # an ethevents row just got inserted, now return the ethevent with all populated fields including
