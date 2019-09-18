@@ -51,8 +51,15 @@ RUN set -xe \
  && chown "${uid}:${gid}" "/app" \
  && chmod +x /watcher_entrypoint
 
-ARG release_version
+#rocksdb from builder image to deployer image
+RUN mkdir -p /usr/local/rocksdb/lib
+RUN mkdir /usr/local/rocksdb/include
+ADD _build/rocksdb/librocksdb.so* /usr/local/rocksdb/lib/
+ADD _build/rocksdb/librocksdb.so* /usr/lib/
+ADD _build/rocksdb/usr/local/rocksdb/ /usr/local/rocksdb/
+ADD _build/rocksdb/usr/include/ /usr/include/
 
+ARG release_version
 ADD _build/prod/rel/watcher/releases/${release_version}/watcher.tar.gz /app
 RUN chown -R "${uid}:${gid}" /app
 WORKDIR /app
