@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.HttpRPC.Client do
+defmodule OMG.Utils.HttpRPC.Client do
   @moduledoc """
   Provides functions to communicate with Child Chain API
   """
 
+  alias OMG.Utils.HttpRPC.Adapter
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Watcher.HttpRPC.Adapter
 
   require Logger
 
@@ -39,6 +39,20 @@ defmodule OMG.Watcher.HttpRPC.Client do
     |> decode_response()
   end
 
+  def get_exit_data(encoded_position, url) do
+    %{utxo_pos: encoded_position}
+    |> Adapter.rpc_post("utxo.get_exit_data", url)
+    |> Adapter.get_response_body()
+    |> decode_response()
+  end
+
+  def get_exitable_utxos(address, url) do
+    %{address: address}
+    |> Adapter.rpc_post("account.get_exitable_utxos", url)
+    |> Adapter.get_response_body()
+    |> decode_response()
+  end
+
   @doc """
   Submits transaction
   """
@@ -46,6 +60,22 @@ defmodule OMG.Watcher.HttpRPC.Client do
   def submit(tx, url) do
     %{transaction: Encoding.to_hex(tx)}
     |> Adapter.rpc_post("transaction.submit", url)
+    |> Adapter.get_response_body()
+    |> decode_response()
+  end
+
+  @doc """
+  Gets Watcher status
+  """
+  @spec get_status(binary()) :: map()
+  def get_status(url) do
+    Adapter.rpc_post(%{}, "status.get", url)
+    |> Adapter.get_response_body()
+    |> decode_response()
+  end
+
+  def get_in_flight_exit(txbytes, url) do
+    Adapter.rpc_post(%{txbytes: txbytes}, "in_flight_exit.get_data", url)
     |> Adapter.get_response_body()
     |> decode_response()
   end
@@ -62,6 +92,16 @@ defmodule OMG.Watcher.HttpRPC.Client do
 
   defp decode_response({:ok, %{txhash: _hash} = response}) do
     {:ok, Map.update!(response, :txhash, &decode16!/1)}
+  end
+
+  defp decode_response({:ok, %{proof: proof, sigs: sigs, txbytes: txbytes, utxo_pos: utxo_pos}}) do
+    {:ok,
+     %{
+       proof: decode16!(proof),
+       sigs: decode16!(sigs),
+       txbytes: decode16!(txbytes),
+       utxo_pos: utxo_pos
+     }}
   end
 
   defp decode_response(error), do: error

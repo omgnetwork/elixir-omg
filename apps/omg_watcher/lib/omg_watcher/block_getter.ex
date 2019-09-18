@@ -27,7 +27,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
   alias OMG.State
-  alias OMG.Watcher.HttpRPC.Client
+  alias OMG.Utils.HttpRPC.Client
 
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
