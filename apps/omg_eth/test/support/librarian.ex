@@ -33,9 +33,9 @@ defmodule OMG.Eth.Librarian do
 
   def link_for!("PaymentExitGame" = name, path_project_root, from) do
     paths = [
-      "plasma_framework/contracts/src/exits/payment/controllers/PaymentStartStandardExit.sol",
-      "plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeStandardExit.sol",
-      "plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessStandardExit.sol"
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentStartStandardExit.sol",
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeStandardExit.sol",
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessStandardExit.sol"
     ]
 
     names = get_lib_names(paths)
