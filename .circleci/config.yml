@@ -31,7 +31,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:stable
+      - image: omisegoimages/elixir-omg-tester:dev-fd8eb00
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
