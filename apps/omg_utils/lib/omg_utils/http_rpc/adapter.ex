@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.HttpRPC.Adapter do
+defmodule OMG.Utils.HttpRPC.Adapter do
   @moduledoc """
   Provides functions to communicate with Child Chain API
   """
@@ -28,11 +28,11 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
 
     with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
-      _ = Logger.debug("Child chain rpc post #{inspect(addr)} completed successfully")
+      _ = Logger.debug("rpc post #{inspect(addr)} completed successfully")
       response
     else
       err ->
-        _ = Logger.warn("Child chain rpc post #{inspect(addr)} failed with #{inspect(err)}")
+        _ = Logger.warn("rpc post #{inspect(addr)} failed with #{inspect(err)}")
         err
     end
   end
@@ -44,10 +44,7 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
   def get_response_body(%HTTPoison.Response{status_code: 200, body: body}) do
     with {:ok, response} <- Jason.decode(body),
          %{"success" => true, "data" => data} <- response do
-      {
-        :ok,
-        convert_keys_to_atoms(data)
-      }
+      {:ok, convert_keys_to_atoms(data)}
     else
       %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
       match_err -> {:error, {:malformed_response, match_err}}
@@ -59,7 +56,11 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
 
   def get_response_body(error), do: {:error, {:client_error, error}}
 
-  defp convert_keys_to_atoms(data) when is_map(data) do
+  def convert_keys_to_atoms(data) when is_list(data) do
+    data |> Enum.map(&convert_keys_to_atoms/1)
+  end
+
+  def convert_keys_to_atoms(data) when is_map(data) do
     data
     |> Stream.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
     |> Map.new()
