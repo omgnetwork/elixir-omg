@@ -35,6 +35,9 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 180_000
 
+  # TODO: unskip, IFEs don't work yet
+  @moduletag :skip
+
   @tag fixtures: [:watcher, :alice, :bob, :child_chain]
   test "piggyback in flight exit", %{alice: alice, bob: bob} do
     {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)

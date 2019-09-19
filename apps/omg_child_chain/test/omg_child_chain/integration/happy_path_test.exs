@@ -123,6 +123,8 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(invalid_tx)
   end
 
+  # TODO: unskip, IFEs don't work yet
+  @tag :skip
   @tag fixtures: [:alice, :omg_child_chain, :alice_deposits]
   test "check that unspent funds can be exited exited with in-flight exits",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do

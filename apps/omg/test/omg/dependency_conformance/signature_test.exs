@@ -28,6 +28,9 @@ defmodule OMG.DependencyConformance.SignatureTest do
   @moduletag :integration
   @moduletag :common
 
+  # TODO: skipped since eip712 is necessary for challenges&ifes which aren't supported yet. Revisit then
+  @moduletag :skip
+
   @alice TestHelper.generate_entity()
   @bob TestHelper.generate_entity()
   @eth OMG.Eth.RootChain.eth_pseudo_address()
