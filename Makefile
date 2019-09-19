@@ -1,3 +1,4 @@
+MAKEFLAGS += --silent
 help:
 	@echo "Dont Fear the Makefile"
 	@echo "*DOCKER DEVELOPMENT*:"
@@ -17,7 +18,7 @@ help:
 	@echo "but Watcher and Child Chain bare metal."
 	@echo "make raw-cluster - will start everything for you where Child Chain and Watcher continue running in background."
 	@echo "For rapid development that restarts releases with your code changes"
-	@echo "one can use make raw-watcher-update or make raw-child_chain-update."
+	@echo "one can use make raw-update-watcher or make raw-update-child_chain."
 	@echo "Stop the release with raw-stop-child_chain or raw-stop-watcher."
 	@echo "To inject yourself into a running node use raw-remote-child_chain or raw-remote-watcher."
 
@@ -182,23 +183,8 @@ cluster-with-datadog:
 stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
-#BAREMETAL
-raw-requirements:
-	@echo "export REPLACE_OS_VARS=true"
-	@echo "export NODE_HOST=127.0.0.1"
-	@echo "export APP_ENV=devino"
-	@echo "export HOSTNAME=yolo"
-	@echo "export DB_PATH=~/plasma-data/"
-	@echo "export ETHEREUM_RPC_URL=http://localhost:8545"
-	@echo "export ETHEREUM_WS_RPC_URL=ws://localhost:8546"
-	@echo "export ETH_NODE=geth"
-	@echo "export ETHEREUM_NETWORK=LOCALCHAIN"
-	@echo "export CONTRACT_EXCHANGER_URL=http://localhost:8000"
-	@echo "export DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost:5432/omisego_dev"
-	@echo "export CHILD_CHAIN_URL=http://localhost:9656"
-	@echo "export ERLANG_COOKIE=develop"
-
 raw-cluster:
+	set -e; . ./bin/variables; \
 	docker-compose up -d geth postgres plasma-deployer && \
 	echo "Building Child Chain" && \
 	$(MAKE) build-child_chain-dev && \
@@ -220,10 +206,16 @@ raw-cluster:
 	_build/dev/rel/watcher/bin/watcher foreground &
 
 raw-update-child_chain:
-	_build/dev/rel/child_chain/bin/child_chain stop ; $(MAKE) build-child_chain-dev && _build/dev/rel/child_chain/bin/child_chain foreground &
+	_build/dev/rel/child_chain/bin/child_chain stop ; \
+	$(ENV_DEV) mix do compile, distillery.release dev --name child_chain --silent && \
+	set -e; . ./bin/variables && \
+	exec _build/dev/rel/child_chain/bin/child_chain foreground &
 
 raw-update-watcher:
-	_build/dev/rel/watcher/bin/watcher stop ; $(MAKE) build-watcher-dev && _build/dev/rel/watcher/bin/watcher foreground &
+	_build/dev/rel/watcher/bin/watcher stop ; \
+	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --silent && \
+	set -e; . ./bin/variables && \
+	exec _build/dev/rel/watcher/bin/watcher foreground &
 
 raw-stop-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop
@@ -232,16 +224,21 @@ raw-stop-watcher:
 	_build/dev/rel/watcher/bin/watcher stop
 
 raw-remote-child_chain:
+	set -e; . ./bin/variables && \
 	_build/dev/rel/child_chain/bin/child_chain remote_console
 
 raw-remote-watcher:
+	set -e; . ./bin/variables && \
 	_build/dev/rel/watcher/bin/watcher remote_console
 
 alarms:
-	curl -X POST http://localhost:9656/alarm.get| jq ; curl -X POST http://localhost:7434/alarm.get| jq
+	echo "Child Chain alarms" ; \
+	curl -s -X POST http://localhost:9656/alarm.get | jq ; \
+	echo "Watcher alarms" ; \
+	curl -s -X POST http://localhost:7434/alarm.get | jq
 
 raw-cluster-stop:
-	docker-compose down ; ${MAKE} raw-stop-watcher ; ${MAKE} raw-stop-child_chain
+	${MAKE} raw-stop-watcher ; ${MAKE} raw-stop-child_chain ; docker-compose down
 
 ### git setup
 init:

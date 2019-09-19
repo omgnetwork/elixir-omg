@@ -42,7 +42,12 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           end
 
         _ = Application.ensure_all_started(:hackney)
-        {:ok, %{body: body}} = HTTPoison.get(exchanger)
+        body = get_body_from_exchanger(exchanger)
+
+        _ =
+          unless is_binary(body) do
+            exit("CONTRACT_EXCHANGER_URL is not reachable")
+          end
 
         %{
           "authority_addr" => authority_address,
@@ -101,4 +106,22 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
   defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
   defp validate_integer(_, default), do: default
+
+  defp get_body_from_exchanger(exchanger) do
+    # maybe it's not up yet, let's give it 60 seconds
+    get_body_from_exchanger(exchanger, 60)
+  end
+
+  defp get_body_from_exchanger(_, 0), do: {:error, :cant_reach_exchanger}
+
+  defp get_body_from_exchanger(exchanger, count) do
+    case HTTPoison.get(exchanger) do
+      {:ok, %{body: body}} ->
+        body
+
+      _ ->
+        :ok = Process.sleep(1_000)
+        get_body_from_exchanger(exchanger, count - 1)
+    end
+  end
 end
