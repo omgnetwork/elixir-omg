@@ -24,7 +24,7 @@ defmodule OMG.Merkle do
 
   # Creates a Merkle proof that transaction under a given transaction index
   # is included in block consisting of hashed transactions
-  @spec create_tx_proof(nonempty_list(binary()), non_neg_integer()) :: binary()
+  @spec create_tx_proof(list(binary()), non_neg_integer()) :: binary()
   def create_tx_proof(hashed_txs, txindex) do
     build(hashed_txs)
     |> prove(txindex)
@@ -33,7 +33,7 @@ defmodule OMG.Merkle do
     |> Enum.join()
   end
 
-  @spec hash(nonempty_list(binary())) :: binary()
+  @spec hash(list(binary())) :: binary()
   def hash(hashed_txs) do
     MerkleTree.fast_root(hashed_txs,
       hash_function: &Crypto.hash/1,
