@@ -22,6 +22,10 @@ help:
 	@echo "Stop the release with raw-stop-child_chain or raw-stop-watcher."
 	@echo "To inject yourself into a running node use raw-remote-child_chain or raw-remote-watcher."
 
+.PHONY: list
+list:
+	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
+
 all: clean build-child_chain-prod build-watcher-prod
 
 WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
