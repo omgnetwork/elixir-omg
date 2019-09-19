@@ -87,12 +87,8 @@ defmodule OMG.Eth.RootChain do
   """
   def get_standard_exit(exit_id, contract \\ nil) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
-    Eth.call_contract(contract, "exits(uint192)", [exit_id], [:address, :address, {:uint, 256}, {:uint, 192}])
-  end
-
-  def get_standard_exit_id(txbytes, utxo_pos, contract \\ nil) do
-    contract = maybe_fetch_addr!(contract, :payment_exit_game)
-    Eth.call_contract(contract, "getStandardExitId(bytes,uint256)", [txbytes, utxo_pos], [{:uint, 192}])
+    return_fields = [:bool, {:uint, 192}, {:bytes, 32}, :address, :address, {:uint, 256}, {:uint, 256}]
+    Eth.call_contract(contract, "standardExits(uint192)", [exit_id], return_fields)
   end
 
   @doc """
@@ -114,6 +110,7 @@ defmodule OMG.Eth.RootChain do
     Eth.call_contract(contract, "inFlightExits(uint192)", [in_flight_exit_id], return_struct)
   end
 
+  # TODO: we're storing exit_ids for SEs, we should do the same for IFEs and remove this
   def get_in_flight_exit_id(tx_bytes, contract \\ nil) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     Eth.call_contract(contract, "getInFlightExitId(bytes)", [tx_bytes], [{:uint, 192}])
@@ -215,7 +212,7 @@ defmodule OMG.Eth.RootChain do
               :competing_tx_sig
             ]
 
-            types = [:bytes, :uint8, :bytes, :uint8, :uint256, :bytes, :bytes]
+            types = ["bytes", "uint8", "bytes", "uint8", "uint256", "bytes", "bytes"]
             hash = from_hex(log["transactionHash"])
             call_data = Eth.get_call_data(hash, "challengeInFlightExitNotCanonical", args, types)
 
@@ -284,18 +281,14 @@ defmodule OMG.Eth.RootChain do
   @spec contract_ready(optional_addr_t()) ::
           :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
   def contract_ready(contract \\ nil) do
-    contract = maybe_fetch_addr!(contract, :plasma_framework)
+    {:ok, addr} = authority(contract)
 
-    try do
-      {:ok, addr} = authority(contract)
-
-      case addr do
-        <<0::256>> -> {:error, :root_chain_authority_is_nil}
-        _ -> :ok
-      end
-    rescue
-      _ -> {:error, :root_chain_contract_not_available}
+    case addr do
+      <<0::256>> -> {:error, :root_chain_authority_is_nil}
+      _ -> :ok
     end
+  rescue
+    _ -> {:error, :root_chain_contract_not_available}
   end
 
   # TODO - missing description + could this be moved to a statefull process?
@@ -362,7 +355,7 @@ defmodule OMG.Eth.RootChain do
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
       {:ok, logs} ->
         args = [:in_flight_tx, :inputs_txs, :input_inclusion_proofs, :in_flight_tx_sigs]
-        types = [:bytes, :bytes, :bytes, :bytes]
+        types = ["bytes", "bytes", "bytes", "bytes"]
 
         result =
           Enum.map(logs, fn log ->
@@ -380,21 +373,20 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  gets contract addresses from somewhere
-  maybe_fetch_addr!(nil, name) will fetch! from Application env, get the correct entry and decode
-  otherwise it just returns whatever you gave it, assuming it's decoded already
+  Gets a particular contract's address (by name) from somewhere
+  `maybe_fetch_addr!(nil, name)` will `Application.fetch_env!`, get the correct entry and decode
+  Otherwise it just returns the entry from whatever the map provided, assuming it's decoded already
   """
-  # FIXME: find a better place for this? it's shared between here and _helper.ex
+  @spec maybe_fetch_addr!(%{atom => Eth.address()} | nil, atom) :: Eth.address()
   def maybe_fetch_addr!(contract, name) do
-    contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr)[name])
+    contract[name] || from_hex(Application.fetch_env!(:omg_eth, :contract_addr)[name])
   end
 
-  # FIXME: tidy this
   @doc """
-  Hexifies the entire contract map
+  Hexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
   """
-  def contract_map_to_hex(contract_addr),
-    do: contract_addr |> Enum.into(%{}, fn {name, addr} -> {name, to_hex(addr)} end)
+  def contract_map_to_hex(contract_map),
+    do: contract_map |> Enum.into(%{}, fn {name, addr} -> {name, to_hex(addr)} end)
 
   @doc """
   Unhexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
@@ -476,7 +468,7 @@ defmodule OMG.Eth.RootChain do
     non_indexed_keys = []
     non_indexed_key_types = []
     indexed_keys = [:exit_id]
-    indexed_keys_types = [{:uint, 256}]
+    indexed_keys_types = [{:uint, 192}]
 
     Eth.parse_events_with_indexed_fields(
       log,

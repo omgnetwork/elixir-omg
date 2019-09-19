@@ -77,12 +77,12 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     processor =
       processor
-      |> start_se_from(standard_exit_tx1, @utxo_pos1)
-      |> start_se_from(standard_exit_tx2, @utxo_pos2, eth_height: 4)
+      |> start_se_from(standard_exit_tx1, @utxo_pos1, exit_id: 1)
+      |> start_se_from(standard_exit_tx2, @utxo_pos2, eth_height: 4, exit_id: 2)
 
     # exits invalidly finalize and continue/start emitting events and complain
     {:ok, {_, two_spend}, state_after_spend} =
-      [@utxo_pos1, @utxo_pos2] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
+      [1, 2] |> Enum.map(&Core.exit_key_by_exit_id(processor, &1)) |> State.Core.exit_utxos(state)
 
     # finalizing here - note that without `finalize_exits`, we would just get a single invalid exit event
     # with - we get 3, because we include the invalidly finalized on which will hurt forever
@@ -117,8 +117,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              |> Core.check_validity(processor)
 
     # exit validly finalizes and continues to not emit any events
-    {:ok, {_, spends}, _} = [@utxo_pos1] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
-    assert {processor, _, [{:delete, :exit_info, {2, 0, 0}}]} = Core.finalize_exits(processor, spends)
+    {:ok, {_, spends}, _} = [1] |> Enum.map(&Core.exit_key_by_exit_id(processor, &1)) |> State.Core.exit_utxos(state)
+    assert {processor, _, [{:put, :exit_info, {{2, 0, 0}, _}}]} = Core.finalize_exits(processor, spends)
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
@@ -220,6 +220,4 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   defp mock_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request, state) do
     %{request | utxo_exists_result: positions |> Enum.map(&State.Core.utxo_exists?(&1, state))}
   end
-
-  defp prepare_exit_finalizations(utxo_positions), do: Enum.map(utxo_positions, &%{utxo_pos: Utxo.Position.encode(&1)})
 end

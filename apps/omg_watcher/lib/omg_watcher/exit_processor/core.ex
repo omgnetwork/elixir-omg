@@ -53,12 +53,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @type contract_piggyback_offset_t() :: 0..7
 
-  defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}, competitors: %{}]
+  defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}, exit_ids: %{}, competitors: %{}]
 
   @type t :: %__MODULE__{
           sla_margin: non_neg_integer(),
           exits: %{Utxo.Position.t() => ExitInfo.t()},
           in_flight_exits: %{Transaction.tx_hash() => InFlightExitInfo.t()},
+          # TODO intended to store both SE and IFE keys by `exit_id`. Not sure, reconsider this when doing IFEs
+          exit_ids: %{non_neg_integer() => Utxo.Position.t() | Transaction.tx_hash()},
           competitors: %{Transaction.tx_hash() => CompetitorInfo.t()}
         }
 
@@ -85,14 +87,20 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           sla_margin :: non_neg_integer
         ) :: {:ok, t()}
   def init(db_exits, db_in_flight_exits, db_competitors, sla_margin \\ @default_sla_margin) do
+    exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
+    exit_ids = exits |> Enum.into(%{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
+
     {:ok,
      %__MODULE__{
-       exits: db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new(),
+       exits: exits,
        in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
+       exit_ids: exit_ids,
        competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
        sla_margin: sla_margin
      }}
   end
+
+  def exit_key_by_exit_id(%__MODULE__{exit_ids: exit_ids}, exit_id), do: exit_ids[exit_id]
 
   @doc """
   Add new exits from Ethereum events into tracked state.
@@ -108,7 +116,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {:error, :unexpected_events}
   end
 
-  def new_exits(%__MODULE__{exits: exits} = state, new_exits, exit_contract_statuses) do
+  def new_exits(%__MODULE__{exits: exits, exit_ids: exit_ids} = state, new_exits, exit_contract_statuses) do
     new_exits_kv_pairs =
       new_exits
       |> Enum.zip(exit_contract_statuses)
@@ -119,7 +127,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     db_updates = new_exits_kv_pairs |> Enum.map(&ExitInfo.make_db_update/1)
     new_exits_map = Map.new(new_exits_kv_pairs)
 
-    {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates}
+    new_exit_ids_map =
+      new_exits_map |> Enum.into(%{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
+
+    {%{state | exits: Map.merge(exits, new_exits_map), exit_ids: Map.merge(exit_ids, new_exit_ids_map)}, db_updates}
   end
 
   defdelegate finalize_exits(state, validities), to: ExitProcessor.Finalizations
@@ -129,18 +140,21 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec challenge_exits(t(), list(map)) :: {t(), list}
   def challenge_exits(%__MODULE__{exits: exits} = state, challenges) do
     challenged_positions = get_positions_from_events(challenges)
-    state = %{state | exits: Map.drop(exits, challenged_positions)}
-    db_updates = delete_positions(challenged_positions)
-    {state, db_updates}
+
+    new_exits_kv_pairs =
+      exits
+      |> Map.take(challenged_positions)
+      |> Enum.into(%{}, fn {utxo_pos, exit_info} -> {utxo_pos, %ExitInfo{exit_info | is_active: false}} end)
+
+    new_state = %{state | exits: Map.merge(exits, new_exits_kv_pairs)}
+    db_updates = new_exits_kv_pairs |> Enum.map(&ExitInfo.make_db_update/1)
+    {new_state, db_updates}
   end
 
   defp get_positions_from_events(exits) do
     exits
     |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode!(utxo_pos) end)
   end
-
-  defp delete_positions(utxo_positions),
-    do: utxo_positions |> Enum.map(&{:delete, :exit_info, Utxo.Position.to_db_key(&1)})
 
   # TODO: syncing problem (look new exits)
   @doc """
@@ -435,7 +449,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defdelegate get_output_challenge_data(request, state, txbytes, output_index), to: ExitProcessor.Piggyback
 
   defdelegate determine_standard_challenge_queries(request, state), to: ExitProcessor.StandardExit
-  defdelegate determine_exit_txbytes(request, state), to: ExitProcessor.StandardExit
   defdelegate create_challenge(request, state), to: ExitProcessor.StandardExit
 
   @spec get_ifes_to_piggyback(t()) :: list(InFlightExitInfo.t())

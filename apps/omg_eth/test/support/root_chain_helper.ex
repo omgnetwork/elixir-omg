@@ -149,19 +149,12 @@ defmodule OMG.Eth.RootChainHelper do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
-  def process_exits(
-        token,
-        top_exit_id,
-        exits_to_process,
-        from,
-        contract \\ nil,
-        opts \\ []
-      ) do
+  def process_exits(token, top_exit_priority, exits_to_process, from, contract \\ nil, opts \\ []) do
     opts = @tx_defaults |> Keyword.merge(opts)
 
-    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "processExits(address,uint192,uint256)"
-    args = [token, top_exit_id, exits_to_process]
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
+    signature = "processExits(address,uint256,uint256)"
+    args = [token, top_exit_priority, exits_to_process]
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 

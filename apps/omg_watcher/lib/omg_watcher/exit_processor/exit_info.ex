@@ -25,7 +25,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
   require Utxo
 
-  @enforce_keys [:amount, :currency, :owner, :is_active, :eth_height]
+  @enforce_keys [:amount, :currency, :owner, :exit_id, :is_active, :eth_height]
 
   defstruct @enforce_keys
 
@@ -33,19 +33,18 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           amount: non_neg_integer(),
           currency: Crypto.address_t(),
           owner: Crypto.address_t(),
+          exit_id: non_neg_integer(),
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
           eth_height: pos_integer()
         }
 
-  @zero_address OMG.Eth.zero_address()
-
-  def new(contract_status, %{eth_height: eth_height, call_data: %{output_tx: txbytes}} = event) do
+  def new(contract_status, %{eth_height: eth_height, call_data: %{output_tx: txbytes}, exit_id: exit_id} = event) do
     Utxo.position(_, _, oindex) = utxo_pos_for(event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
-    do_new(contract_status, amount: amount, currency: currency, owner: owner, eth_height: eth_height)
+    do_new(contract_status, amount: amount, currency: currency, owner: owner, exit_id: exit_id, eth_height: eth_height)
   end
 
   def new_key(_contract_status, event),
@@ -66,15 +65,23 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
   def make_db_update(
         {position,
-         %__MODULE__{amount: amount, currency: currency, owner: owner, is_active: is_active, eth_height: eth_height}}
+         %__MODULE__{
+           amount: amount,
+           currency: currency,
+           owner: owner,
+           exit_id: exit_id,
+           is_active: is_active,
+           eth_height: eth_height
+         }}
       )
       when is_integer(amount) and is_integer(eth_height) and
-             is_binary(currency) and is_binary(owner) and
+             is_binary(currency) and is_binary(owner) and is_integer(exit_id) and
              is_boolean(is_active) do
     value = %{
       amount: amount,
       currency: currency,
       owner: owner,
+      exit_id: exit_id,
       is_active: is_active,
       eth_height: eth_height
     }
@@ -88,18 +95,20 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
            amount: amount,
            currency: currency,
            owner: owner,
+           exit_id: exit_id,
            is_active: is_active,
            eth_height: eth_height
          }}
       )
       when is_integer(amount) and is_integer(eth_height) and
-             is_binary(currency) and is_binary(owner) and
+             is_binary(currency) and is_binary(owner) and is_integer(exit_id) and
              is_boolean(is_active) do
     # mapping is used in case of changes in data structure
     value = %{
       amount: amount,
       currency: currency,
       owner: owner,
+      exit_id: exit_id,
       is_active: is_active,
       eth_height: eth_height
     }
@@ -107,6 +116,5 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
   end
 
-  defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount, _contract_position}), do: false
-  defp parse_contract_exit_status({_contract_owner, _contract_token, _contract_amount, _contract_position}), do: true
+  defp parse_contract_exit_status({exitable, _, _, _, _, _, _}), do: exitable
 end

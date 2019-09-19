@@ -108,48 +108,16 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   end
 
   @doc """
-  Determines the txbytes of the particular transaction related to the SE - aka "output tx" - which creates the exiting
-  utxo
-  """
-  @spec determine_exit_txbytes(ExitProcessor.Request.t(), Core.t()) ::
-          ExitProcessor.Request.t()
-  def determine_exit_txbytes(
-        %ExitProcessor.Request{se_exiting_pos: exiting_pos, se_creating_blocks_result: creating_blocks_result} =
-          request,
-        %Core{exits: exits}
-      )
-      when not is_nil(exiting_pos) do
-    exit_id_to_get_by_txbytes =
-      if Utxo.Position.is_deposit?(exiting_pos) do
-        %ExitInfo{owner: owner, currency: currency, amount: amount} = exits[exiting_pos]
-        Transaction.Payment.new([], [{owner, currency, amount}])
-      else
-        [%Block{transactions: transactions}] = creating_blocks_result
-        Utxo.position(_, txindex, _) = exiting_pos
-
-        {:ok, signed_bytes} = Enum.fetch(transactions, txindex)
-        Transaction.Signed.decode!(signed_bytes)
-      end
-      |> Transaction.raw_txbytes()
-
-    %ExitProcessor.Request{request | se_exit_id_to_get: exit_id_to_get_by_txbytes}
-  end
-
-  @doc """
   Creates the final challenge response, if possible
   """
   @spec create_challenge(ExitProcessor.Request.t(), Core.t()) ::
           {:ok, Challenge.t()} | {:error, :utxo_not_spent}
   def create_challenge(
-        %ExitProcessor.Request{
-          se_exiting_pos: exiting_pos,
-          se_spending_blocks_result: spending_blocks_result,
-          se_exit_id_result: exit_id
-        },
+        %ExitProcessor.Request{se_exiting_pos: exiting_pos, se_spending_blocks_result: spending_blocks_result},
         %Core{exits: exits} = state
       )
-      when not is_nil(exiting_pos) and not is_nil(exit_id) do
-    %ExitInfo{owner: owner} = exits[exiting_pos]
+      when not is_nil(exiting_pos) do
+    %ExitInfo{owner: owner, exit_id: exit_id} = exits[exiting_pos]
     ife_result = get_ife_based_on_utxo(exiting_pos, state)
 
     with {:ok, spending_tx_or_block} <- ensure_challengeable(spending_blocks_result, ife_result) do

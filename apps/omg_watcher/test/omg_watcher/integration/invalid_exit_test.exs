@@ -66,7 +66,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     # after the notification has been received, a challenged is composed and sent
     challenge = TestHelper.get_exit_challenge(first_tx_blknum, 0, 0)
-    assert {:ok, {alice.addr, @eth, 10, tx_utxo_pos}} == Eth.RootChain.get_standard_exit(challenge["exit_id"])
 
     assert {:ok, %{"status" => "0x1"}} =
              OMG.Eth.RootChainHelper.challenge_exit(
@@ -78,13 +77,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
              )
              |> Eth.DevHelpers.transact_sync!()
 
-    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} == Eth.RootChain.get_standard_exit(challenge["exit_id"])
-
     # challenge standard exits from deposits
     challenge_exit_deposit = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
-
-    assert {:ok, {alice.addr, @eth, 10, deposit_utxo_pos}} ==
-             Eth.RootChain.get_standard_exit(challenge_exit_deposit["exit_id"])
 
     assert {:ok, %{"status" => "0x1"}} =
              OMG.Eth.RootChainHelper.challenge_exit(
@@ -95,9 +89,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
                alice.addr
              )
              |> Eth.DevHelpers.transact_sync!()
-
-    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} ==
-             Eth.RootChain.get_standard_exit(challenge_exit_deposit["exit_id"])
 
     IntegrationTest.wait_for_byzantine_events([], @timeout)
   end

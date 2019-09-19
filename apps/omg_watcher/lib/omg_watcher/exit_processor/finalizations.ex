@@ -56,13 +56,18 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
         %{exit_finalized: %{owner: owner, currency: currency, amount: amount, utxo_pos: utxo_pos}}
       end)
 
-    state_without_valid_ones = %{state | exits: Map.drop(exits, valid_finalizations)}
-    db_updates = delete_positions(valid_finalizations)
+    new_exits_kv_pairs =
+      exits
+      |> Map.take(valid_finalizations)
+      |> Enum.into(%{}, fn {utxo_pos, exit_info} -> {utxo_pos, %ExitInfo{exit_info | is_active: false}} end)
+
+    new_state1 = %{state | exits: Map.merge(exits, new_exits_kv_pairs)}
+    db_updates = new_exits_kv_pairs |> Enum.map(&ExitInfo.make_db_update/1)
 
     # invalid ones - activating, in case they were inactive, to keep being invalid forever
-    {new_state, activating_db_updates} = activate_on_invalid_finalization(state_without_valid_ones, invalid)
+    {new_state2, activating_db_updates} = activate_on_invalid_finalization(new_state1, invalid)
 
-    {new_state, exit_event_triggers, db_updates ++ activating_db_updates}
+    {new_state2, exit_event_triggers, db_updates ++ activating_db_updates}
   end
 
   defp activate_on_invalid_finalization(%Core{exits: exits} = state, invalid_finalizations) do
@@ -251,7 +256,4 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
       {ife_id, {tx_hash, ife}}
     end
   end
-
-  defp delete_positions(utxo_positions),
-    do: utxo_positions |> Enum.map(&{:delete, :exit_info, Utxo.Position.to_db_key(&1)})
 end

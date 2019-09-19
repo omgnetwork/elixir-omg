@@ -47,9 +47,7 @@ defmodule OMG.Watcher.ExitProcessor.Request do
     se_creating_blocks_to_get: [],
     se_creating_blocks_result: [],
     se_spending_blocks_to_get: [],
-    se_spending_blocks_result: [],
-    se_exit_id_to_get: nil,
-    se_exit_id_result: nil
+    se_spending_blocks_result: []
   ]
 
   @type t :: %__MODULE__{
@@ -69,8 +67,6 @@ defmodule OMG.Watcher.ExitProcessor.Request do
           se_creating_blocks_to_get: list(pos_integer),
           se_creating_blocks_result: list(Block.t()),
           se_spending_blocks_to_get: list(Utxo.Position.t()),
-          se_spending_blocks_result: list(Block.t()),
-          se_exit_id_to_get: nil | binary(),
-          se_exit_id_result: nil | pos_integer()
+          se_spending_blocks_result: list(Block.t())
         }
 end

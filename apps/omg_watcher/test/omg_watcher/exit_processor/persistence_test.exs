@@ -32,7 +32,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   import OMG.Watcher.ExitProcessor.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @zero_address OMG.Eth.zero_address()
 
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.position(1_000, 0, 1)
@@ -71,8 +70,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
          }
        ],
        [
-         {alice.addr, @eth, 10, Utxo.Position.encode(@utxo_pos1)},
-         {@zero_address, @eth, 10, Utxo.Position.encode(@utxo_pos2)}
+         {true, Utxo.Position.encode(@utxo_pos1), Utxo.Position.encode(@utxo_pos1), @eth, alice.addr, 10, 0},
+         {false, Utxo.Position.encode(@utxo_pos2), Utxo.Position.encode(@utxo_pos2), @eth, alice.addr, 10, 0}
        ]}
 
     {:ok, %{alice: alice, carol: carol, processor_empty: processor_empty, transactions: transactions, exits: exits}}

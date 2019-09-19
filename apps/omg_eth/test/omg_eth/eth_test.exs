@@ -80,11 +80,9 @@ defmodule OMG.EthTest do
   @tag fixtures: [:contract]
   test "gets events with various fields and topics", %{contract: contract} do
     # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
-    zero_in = [0, 0, 0]
-    zero_out = [<<0::160>>, <<0::160>>, 0]
-
+    # payment marker, no inputs, one output, metadata
     tx =
-      [List.duplicate(zero_in, 4), [[contract.authority_addr, @eth, 1]] ++ List.duplicate(zero_out, 3)]
+      [<<1>>, [], [[contract.authority_addr, @eth, 1]], <<0::256>>]
       |> ExRLP.encode()
 
     {:ok, tx_hash} =

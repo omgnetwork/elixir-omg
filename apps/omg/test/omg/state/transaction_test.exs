@@ -271,25 +271,10 @@ defmodule OMG.State.TransactionTest do
 
   describe "formal protocol rules are enforced" do
     @tag fixtures: [:alice]
-    test "Decoding transaction with gaps in inputs returns error", %{alice: alice} do
-      assert {:error, :inputs_contain_gaps} ==
+    test "Decoding transaction with gaps in inputs is ok now, but 0 utxo pos is illegal", %{alice: alice} do
+      # explicitly testing the behavior that we have instead of the obsolete gap checking
+      assert {:error, :malformed_inputs} =
                TestHelper.create_encoded([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{alice, 100}])
-               |> Transaction.Recovered.recover_from()
-
-      assert {:error, :inputs_contain_gaps} ==
-               TestHelper.create_encoded(
-                 [{1000, 0, 0, alice}, {0, 0, 0, alice}, {2000, 0, 0, alice}],
-                 @eth,
-                 [{alice, 100}]
-               )
-               |> Transaction.Recovered.recover_from()
-
-      assert {:ok, _} =
-               TestHelper.create_encoded(
-                 [{1000, 0, 0, alice}, {2000, 0, 0, alice}, {3000, 0, 0, alice}],
-                 @eth,
-                 [{alice, 100}]
-               )
                |> Transaction.Recovered.recover_from()
     end
 
@@ -301,27 +286,11 @@ defmodule OMG.State.TransactionTest do
     end
 
     @tag fixtures: [:alice]
-    test "Decoding transaction with gaps in outputs returns error", %{alice: alice} do
+    test "Decoding transaction with gaps in outputs is ok now", %{alice: alice} do
       no_account = %{addr: @zero_address}
 
-      assert {:error, :outputs_contain_gaps} ==
-               TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{no_account, 0}, {alice, 100}])
-               |> Transaction.Recovered.recover_from()
-
-      assert {:error, :outputs_contain_gaps} ==
-               TestHelper.create_encoded(
-                 [{1000, 0, 0, alice}],
-                 @eth,
-                 [{alice, 100}, {no_account, 0}, {alice, 100}]
-               )
-               |> Transaction.Recovered.recover_from()
-
       assert {:ok, _} =
-               TestHelper.create_encoded(
-                 [{1000, 0, 0, alice}],
-                 @eth,
-                 [{alice, 100}, {alice, 100}, {no_account, 0}, {no_account, 0}]
-               )
+               TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{no_account, 0}, {alice, 100}])
                |> Transaction.Recovered.recover_from()
     end
 

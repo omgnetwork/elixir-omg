@@ -49,9 +49,7 @@ defmodule OMG.Eth.DevHelpers do
 
     transact_opts = @tx_defaults |> Keyword.put(:gas, @gas_init_tx)
 
-    # FIXME: unhardcode exitperiod in constructor of PlasmaFramework
-    #        also note the deferred config done inside, it is useful outside of that function
-    _exit_period_seconds = get_exit_period(exit_period_seconds)
+    exit_period_seconds = get_exit_period(exit_period_seconds)
 
     # FIXME TxOutputTypes.PAYMENT.value, how to refactor, since it's redefined in `omg` config :/ ?
     payment_tx_marker = 1
@@ -63,9 +61,9 @@ defmodule OMG.Eth.DevHelpers do
          {:ok, authority} <- create_and_fund_authority_addr(opts),
          {:ok, deployer_addr} <- get_deployer_address(opts),
          {:ok, txhash, plasma_framework_addr} <-
-           Eth.Deployer.create_new("PlasmaFramework", root_path, deployer_addr),
+           Eth.Deployer.create_new2("PlasmaFramework", root_path, deployer_addr, exit_period_seconds),
          {:ok, _} <-
-           Eth.RootChainHelper.init_authority(authority, plasma_framework_addr),
+           Eth.RootChainHelper.init_authority(authority, %{plasma_framework: plasma_framework_addr}),
          # |> Eth.DevHelpers.transact_sync!(),
          {:ok, _, eth_deposit_verifier_addr} <-
            Eth.Deployer.create_new("EthDepositVerifier", root_path, deployer_addr),
@@ -219,7 +217,9 @@ defmodule OMG.Eth.DevHelpers do
   """
   @spec deploy_sync!({:ok, Eth.hash()}) :: {:ok, Eth.hash(), Eth.address()}
   def deploy_sync!({:ok, txhash} = transaction_submission_result) do
-    {:ok, %{"contractAddress" => contract, "status" => "0x1"}} = transact_sync!(transaction_submission_result)
+    {:ok, %{"contractAddress" => contract, "status" => "0x1", "gasUsed" => _gas_used}} =
+      transact_sync!(transaction_submission_result)
+
     {:ok, txhash, from_hex(contract)}
   end
 
