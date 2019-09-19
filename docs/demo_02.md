@@ -49,8 +49,8 @@ watcher_url = "localhost:7434"
 
 # create and prepare transaction for signing
 tx =
-  Transaction.new([{alice_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
-  DevCrypto.sign([alice.priv, <<>>]) |>
+  Transaction.Payment.new([{alice_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
+  DevCrypto.sign([alice.priv]) |>
   Transaction.Signed.encode() |>
   OMG.Utils.HttpRPC.Encoding.to_hex()
 
@@ -102,7 +102,7 @@ tx2 =
 Jason.decode!()
 
 {:ok, txhash} =
-  Eth. RootChainHelper.start_exit(
+  Eth.RootChainHelper.start_exit(
     composed_exit["utxo_pos"],
     composed_exit["txbytes"] |> Encoding.from_hex(),
     composed_exit["proof"] |> Encoding.from_hex(),
@@ -117,7 +117,7 @@ Eth.WaitFor.eth_receipt(txhash)
   Jason.decode!()
 
 {:ok, txhash} =
-  OMG.Eth.RootChainHelper.challenge_exit(
+  Eth.RootChainHelper.challenge_exit(
     challenge["exit_id"],
     challenge["txbytes"] |> Encoding.from_hex(),
     challenge["input_index"],

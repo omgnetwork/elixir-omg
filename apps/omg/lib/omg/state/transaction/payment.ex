@@ -25,7 +25,6 @@ defmodule OMG.State.Transaction.Payment do
   require Transaction
   require Utxo
 
-  @zero_address OMG.Eth.zero_address()
   @zero_metadata <<0::256>>
 
   defstruct [:inputs, :outputs, metadata: @zero_metadata]
@@ -109,25 +108,19 @@ defmodule OMG.State.Transaction.Payment do
   def reconstruct(_), do: {:error, :malformed_transaction}
 
   defp reconstruct_inputs(inputs_rlp) do
-    inputs_rlp
-    |> Enum.map(&from_new_rlp_input/1)
-    |> inputs_without_gaps()
+    {:ok, Enum.map(inputs_rlp, &from_new_rlp_input/1)}
   rescue
     _ -> {:error, :malformed_inputs}
   end
 
   # messy, see comments on the abstract output/input fixing this properly
   defp from_new_rlp_input(binary_input) when is_binary(binary_input) do
-    binary_input
-    |> :binary.decode_unsigned(:big)
-    |> case do
-      0 ->
-        %{blknum: 0, txindex: 0, oindex: 0}
+    Utxo.position(blknum, txindex, oindex) =
+      binary_input
+      |> :binary.decode_unsigned(:big)
+      |> Utxo.Position.decode!()
 
-      encoded ->
-        Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode!(encoded)
-        %{blknum: blknum, txindex: txindex, oindex: oindex}
-    end
+    %{blknum: blknum, txindex: txindex, oindex: oindex}
   end
 
   defp reconstruct_outputs(outputs_rlp) do
@@ -139,11 +132,7 @@ defmodule OMG.State.Transaction.Payment do
         end
       end)
 
-    if(error = Enum.find(outputs, &match?({:error, _}, &1)),
-      do: error,
-      else: outputs
-    )
-    |> outputs_without_gaps()
+    if error = Enum.find(outputs, &match?({:error, _}, &1)), do: error, else: {:ok, outputs}
   rescue
     _ -> {:error, :malformed_outputs}
   end
@@ -160,32 +149,6 @@ defmodule OMG.State.Transaction.Payment do
   defp parse_address(""), do: {:ok, <<0::160>>}
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
-
-  defp inputs_without_gaps(inputs),
-    do: check_for_gaps(inputs, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})
-
-  defp outputs_without_gaps({:error, _} = error), do: error
-
-  defp outputs_without_gaps(outputs),
-    do:
-      check_for_gaps(
-        outputs,
-        %{owner: @zero_address, currency: @zero_address, amount: 0},
-        {:error, :outputs_contain_gaps}
-      )
-
-  # Check if any consecutive pair of elements contains empty followed by non-empty element
-  # which means there is a gap
-  defp check_for_gaps(items, empty, error) do
-    items
-    # discard - discards last unpaired element from a comparison
-    |> Stream.chunk_every(2, 1, :discard)
-    |> Enum.any?(fn
-      [^empty, elt] when elt != empty -> true
-      _ -> false
-    end)
-    |> if(do: error, else: {:ok, items})
-  end
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
@@ -206,12 +169,14 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   """
   def get_data_for_rlp(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
       when Transaction.is_metadata(metadata),
-      do:
-        [
-          @payment_marker,
-          Enum.map(inputs, &to_new_rlp_input/1),
-          Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end)
-        ] ++ if(metadata, do: [metadata], else: [])
+      do: [
+        @payment_marker,
+        Enum.map(inputs, &to_new_rlp_input/1),
+        Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end),
+        # used to be optional and as such was `if`-appended if not null here
+        # When it is not optional, and there's the if, dialyzer complains about the if
+        metadata
+      ]
 
   def get_outputs(%Transaction.Payment{outputs: outputs}) do
     outputs

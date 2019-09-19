@@ -22,8 +22,7 @@ defmodule OMG.Eth.Librarian do
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
-  # FIXME adjust
-  @gas_contract_libs 4_180_000
+  @gas_contract_libs 3_000_000
 
   @doc """
   Provides linked bytecode for a particular contract. All required libs are hardcoded inside.
@@ -84,9 +83,8 @@ defmodule OMG.Eth.Librarian do
 
     # For some reason, solc returns this weird woes + a success message. The file is indeed resolved.
     # Let's just check the success thing here, instead of pattern matching against an empty stdout
-    # FIXME: revert solc path
     true =
-      ~c(~/Downloads/solc-static-linux #{contracts_dir}/#{name}Linked.bin --libraries \"#{libs_arg}\" --link)
+      ~c(solc #{contracts_dir}/#{name}Linked.bin --libraries \"#{libs_arg}\" --link)
       |> :os.cmd()
       |> to_string()
       |> String.contains?("Linking completed")

@@ -88,8 +88,7 @@ defmodule OMG.Eth.MixProject do
 
     [
       "cd #{compilation_path}",
-      # FIXME: revert solc path
-      "~/Downloads/solc-static-linux openzeppelin-solidity=openzeppelin-solidity #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{
+      "solc openzeppelin-solidity=openzeppelin-solidity #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{
         output_path
       }",
       "cd #{current_path}"

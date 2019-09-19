@@ -74,6 +74,45 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, Enum.slice(events, 0, 1), [])
       assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, [], Enum.slice(statuses, 0, 1))
     end
+
+    test "knows exits by exit_id the moment they start",
+         %{processor_empty: processor, alice: alice} do
+      standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+      assert nil == Core.exit_key_by_exit_id(processor, 314)
+
+      processor =
+        processor
+        |> start_se_from(standard_exit_tx, @utxo_pos1, exit_id: 314)
+
+      assert @utxo_pos1 == Core.exit_key_by_exit_id(processor, 314)
+      assert nil == Core.exit_key_by_exit_id(processor, 315)
+    end
+
+    test "knows exits by exit_id after challenging",
+         %{processor_empty: processor, alice: alice} do
+      standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+
+      {processor, _} =
+        processor
+        |> start_se_from(standard_exit_tx, @utxo_pos1, exit_id: 314)
+        |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}])
+
+      assert @utxo_pos1 == Core.exit_key_by_exit_id(processor, 314)
+    end
+
+    test "doesn't know ife by exit_id because NOT IMPLEMENTED, remove when it's implemented",
+         %{processor_empty: processor, alice: alice} do
+      standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+
+      {processor, _} =
+        processor
+        |> start_ife_from(standard_exit_tx, exit_id: 314)
+        |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}])
+
+      # because not implemented yet
+      # TODO fix when implemented
+      assert nil == Core.exit_key_by_exit_id(processor, 314)
+    end
   end
 
   describe "active SE/IFE listing (only IFEs for now)" do

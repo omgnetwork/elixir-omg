@@ -33,10 +33,7 @@ defmodule OMG.Eth.DevGeth do
 
     geth_pid =
       launch(
-        # FIXME: revert geth path
-        "~/Downloads/geth-linux-amd64-1.8.27-4bcc0a37/geth --dev --dev.period=1 --ws --wsorigins='*' --rpc --rpcapi=personal,eth,web3,admin --datadir #{
-          homedir
-        } 2>&1"
+        "geth --dev --dev.period=1 --ws --wsorigins='*' --rpc --rpcapi=personal,eth,web3,admin --datadir #{homedir} 2>&1"
       )
 
     {:ok, :ready} = Eth.WaitFor.eth_rpc()

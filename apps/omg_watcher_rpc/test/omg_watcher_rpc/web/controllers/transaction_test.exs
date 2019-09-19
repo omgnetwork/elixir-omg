@@ -530,10 +530,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :phoenix_ecto_sandbox]
     test "provides stateless validation", %{alice: alice} do
-      signed_bytes = Test.create_encoded([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{alice, 100}])
+      signed_bytes = Test.create_encoded([{1, 0, 0, alice}, {1, 0, 0, alice}], @eth, [{alice, 100}])
 
       assert %{
-               "code" => "submit:inputs_contain_gaps",
+               "code" => "submit:duplicate_inputs",
                "description" => nil,
                "object" => "error"
              } == TestHelper.no_success?("transaction.submit", %{"transaction" => Encoding.to_hex(signed_bytes)})

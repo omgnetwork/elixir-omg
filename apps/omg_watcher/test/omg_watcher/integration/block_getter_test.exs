@@ -37,22 +37,19 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   require Utxo
 
+  @timeout 40_000
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @endpoint OMG.WatcherRPC.Web.Endpoint
+
   @moduletag :integration
   @moduletag :watcher
 
-  @timeout 40_000
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @moduletag timeout: 100_000
 
-  @endpoint OMG.WatcherRPC.Web.Endpoint
-
-  @tag timeout: 100_000
+  @tag timeout: 200_000
   @tag fixtures: [:watcher, :child_chain, :alice, :bob, :alice_deposits, :token]
-  test "get the blocks from child chain after sending a transaction and start exit", %{
-    alice: %{addr: alice_addr} = alice,
-    bob: bob,
-    token: token,
-    alice_deposits: {deposit_blknum, token_deposit_blknum}
-  } do
+  test "get the blocks from child chain after sending a transaction and start exit",
+       %{alice: alice, bob: bob, token: token, alice_deposits: {deposit_blknum, token_deposit_blknum}} do
     token_addr = Encoding.to_hex(token)
 
     # utxo from deposit should be available
@@ -100,13 +97,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
-
-    assert {:ok, [%{exit_id: exit_id, owner: ^alice_addr, eth_height: ^exit_eth_height}]} =
-             Eth.RootChain.get_standard_exits(0, exit_eth_height)
-
-    assert {:ok, {alice_addr, @eth, 7, utxo_pos}} == Eth.RootChain.get_standard_exit(exit_id)
-
     # Here we're waiting for child chain and watcher to process the exits
     IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
@@ -118,7 +108,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "proof" => proof
     } = TestHelper.get_exit_data(token_deposit_blknum, 0, 0)
 
-    {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
+    {:ok, %{"status" => "0x1"}} =
       Eth.RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
@@ -127,9 +117,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
-    IntegrationTest.process_exits(token, alice)
-    IntegrationTest.process_exits(@eth, alice)
+    :ok = IntegrationTest.process_exits(token, alice)
+    :ok = IntegrationTest.process_exits(@eth, alice)
 
     assert TestHelper.get_utxos(alice.addr) == TestHelper.get_exitable_utxos(alice.addr)
     assert [] == TestHelper.get_utxos(alice.addr)

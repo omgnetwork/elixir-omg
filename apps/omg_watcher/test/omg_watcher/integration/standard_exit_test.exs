@@ -50,7 +50,6 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
         TestHelper.create_topic("exit", Eth.Encoding.to_hex(alice.addr))
       )
 
-    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => tx_blknum} = TestHelper.submit(tx)
 
@@ -71,13 +70,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds) * 1_000
-    Process.sleep(2 * exit_period + 5_000)
-
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChainHelper.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()
-
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+    :ok = IntegrationTest.process_exits(@eth, alice)
 
     expected_event =
       %Event.ExitFinalized{

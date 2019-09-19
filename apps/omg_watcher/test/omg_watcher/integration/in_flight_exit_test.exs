@@ -375,18 +375,10 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   defp piggyback_and_process_exits(%Transaction.Signed{raw_tx: raw_tx}, output, output_owner) do
     raw_tx_bytes = raw_tx |> Transaction.raw_txbytes()
 
-    {:ok, _} =
+    {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChainHelper.piggyback_in_flight_exit(raw_tx_bytes, output, output_owner.addr)
       |> Eth.DevHelpers.transact_sync!()
 
-    exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds) * 1_000
-    Process.sleep(2 * exit_period + 5_000)
-
-    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
-
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChainHelper.process_exits(@eth, 0, 1, output_owner.addr) |> Eth.DevHelpers.transact_sync!()
-
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 10)
+    :ok = IntegrationTest.process_exits(@eth, output_owner)
   end
 end

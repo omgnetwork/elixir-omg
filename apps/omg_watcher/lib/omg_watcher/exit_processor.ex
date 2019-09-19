@@ -246,14 +246,9 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:finalize_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized finalizations: #{inspect(exits)}")
 
-    exits =
-      exits
-      |> Enum.map(fn %{exit_id: exit_id} ->
-        {:ok, {_, _, _, utxo_pos}} = Eth.RootChain.get_standard_exit(exit_id)
-        Utxo.Position.decode!(utxo_pos)
-      end)
+    {:ok, db_updates_from_state, validities} =
+      exits |> Enum.map(&Core.exit_key_by_exit_id(state, &1.exit_id)) |> State.exit_utxos()
 
-    {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
     {new_state, event_triggers, db_updates} = Core.finalize_exits(state, validities)
 
     :ok = OMG.Bus.broadcast("events", {:preprocess_emit_events, event_triggers})
@@ -367,8 +362,6 @@ defmodule OMG.Watcher.ExitProcessor do
            do:
              request_with_queries
              |> fill_request_with_standard_challenge_data()
-             |> Core.determine_exit_txbytes(state)
-             |> fill_request_with_standard_exit_id()
              |> Core.create_challenge(state)
 
     {:reply, response, state}
@@ -387,13 +380,6 @@ defmodule OMG.Watcher.ExitProcessor do
       | se_spending_blocks_result: do_get_spending_blocks(positions),
         se_creating_blocks_result: do_get_blocks(blknums)
     }
-  end
-
-  defp fill_request_with_standard_exit_id(
-         %ExitProcessor.Request{se_exit_id_to_get: creating_txbytes, se_exiting_pos: utxo_pos} = request
-       ) do
-    {:ok, exit_id} = OMG.Eth.RootChain.get_standard_exit_id(creating_txbytes, Utxo.Position.encode(utxo_pos))
-    %ExitProcessor.Request{request | se_exit_id_result: exit_id}
   end
 
   # based on the exits being processed, fills the request structure with data required to process queries

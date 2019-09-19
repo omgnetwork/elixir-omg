@@ -247,8 +247,10 @@ defmodule OMG.Eth do
   NOTE: function name and rich information about argument names and types is used, rather than its compact signature
   (like elsewhere) because `ABI.decode` has some issues with parsing signatures in this context.
   """
-  @spec get_call_data(binary(), binary(), list(atom), list(atom), keyword()) :: map
-  def get_call_data(eth_tx_hash, name, arg_names, arg_types, opts \\ []) do
+  @spec get_call_data(binary(), binary(), list(atom), list(binary), keyword()) :: map()
+  def get_call_data(eth_tx_hash, name, arg_names, arg_types, opts \\ [])
+
+  def get_call_data(eth_tx_hash, name, arg_names, arg_types, opts) do
     {:ok, %{"input" => eth_tx_input}} = Ethereumex.HttpClient.eth_get_transaction_by_hash(to_hex(eth_tx_hash))
     encoded_input = from_hex(eth_tx_input)
 
@@ -265,7 +267,7 @@ defmodule OMG.Eth do
 
     call_data_raw = Map.new(Enum.zip(arg_names, function_inputs))
 
-    unpack_tuple_args = Keyword.get(opts, :unpack_tuple_args)
+    unpack_tuple_args = Keyword.get(opts, :unpack_tuple_args, false)
     if unpack_tuple_args, do: parse_tuple_args(call_data_raw, unpack_tuple_args), else: call_data_raw
   end
 
