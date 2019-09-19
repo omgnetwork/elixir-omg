@@ -18,9 +18,9 @@ defmodule OMG.Block do
   """
 
   alias OMG.Crypto
+  alias OMG.Merkle
   alias OMG.State.Transaction
 
-  @transaction_merkle_tree_height 16
   @type block_hash_t() :: <<_::256>>
 
   defstruct [:transactions, :hash, :number]
@@ -48,7 +48,7 @@ defmodule OMG.Block do
       |> Enum.map(&get_data_per_tx/1)
       |> Enum.unzip()
 
-    %__MODULE__{hash: merkle_hash(hashed_txs), transactions: txs_bytes, number: blknum}
+    %__MODULE__{hash: Merkle.hash(hashed_txs), transactions: txs_bytes, number: blknum}
   end
 
   @doc """
@@ -84,7 +84,7 @@ defmodule OMG.Block do
       |> Enum.map(&get_data_per_tx/1)
       |> Enum.unzip()
 
-    create_tx_proof(hashed_txs, txindex)
+    Merkle.create_tx_proof(hashed_txs, txindex)
   end
 
   def inclusion_proof(%__MODULE__{transactions: transactions}, txindex), do: inclusion_proof(transactions, txindex)
@@ -96,30 +96,4 @@ defmodule OMG.Block do
   end
 
   defp to_recovered_tx(txbytes), do: Transaction.Recovered.recover_from!(txbytes)
-
-  @default_leaf <<0>> |> List.duplicate(32) |> Enum.join() |> Crypto.hash()
-  # Creates a Merkle proof that transaction under a given transaction index
-  # is included in block consisting of hashed transactions
-  @spec create_tx_proof(nonempty_list(binary()), non_neg_integer()) :: binary()
-  defp create_tx_proof(hashed_txs, txindex),
-    do:
-      MerkleTree.build(hashed_txs,
-        hash_function: &Crypto.hash/1,
-        hash_leaves: false,
-        height: @transaction_merkle_tree_height,
-        default_data_block: @default_leaf
-      )
-      |> MerkleTree.Proof.prove(txindex)
-      |> (& &1.hashes).()
-      |> Enum.reverse()
-      |> Enum.join()
-
-  defp merkle_hash(hashed_txs),
-    do:
-      MerkleTree.fast_root(hashed_txs,
-        hash_function: &Crypto.hash/1,
-        hash_leaves: false,
-        height: @transaction_merkle_tree_height,
-        default_data_block: @default_leaf
-      )
 end
