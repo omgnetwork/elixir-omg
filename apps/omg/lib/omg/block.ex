@@ -17,7 +17,6 @@ defmodule OMG.Block do
   Representation of an OMG network child chain block.
   """
 
-  alias OMG.Crypto
   alias OMG.Merkle
   alias OMG.State.Transaction
 
