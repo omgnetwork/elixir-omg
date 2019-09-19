@@ -27,18 +27,11 @@ defmodule OMG.MerkleTest do
       # return the same result
       values = ["abc", "def", "ghi"]
 
-      proof_1 =
-        values
-        |> Merkle.create_tx_proof(1)
-        |> Base.encode16(case: :lower)
+      proof_1 = Merkle.create_tx_proof(values, 1)
+      proof_2 = Merkle.create_tx_proof(values, 2)
 
-      proof_2 =
-        values
-        |> Merkle.create_tx_proof(2)
-        |> Base.encode16(case: :lower)
-
-      assert "6162639621ddbb2d2631190" <> _ = proof_1
       assert proof_1 != proof_2
+      assert "6162639621ddbb2d2631190" <> _ = Base.encode16(proof_1, case: :lower)
     end
   end
 
