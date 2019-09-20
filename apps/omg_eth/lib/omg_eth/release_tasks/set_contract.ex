@@ -42,7 +42,14 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           end
 
         _ = Application.ensure_all_started(:hackney)
-        {:ok, %{body: body}} = HTTPoison.get(exchanger)
+
+        body =
+          try do
+            {:ok, %{body: body}} = HTTPoison.get(exchanger)
+            body
+          rescue
+            _ -> exit("CONTRACT_EXCHANGER_URL #{exchanger} is not reachable")
+          end
 
         %{
           "authority_addr" => authority_address,
