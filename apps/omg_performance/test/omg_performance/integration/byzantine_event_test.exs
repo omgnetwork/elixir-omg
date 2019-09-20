@@ -49,9 +49,10 @@ defmodule OMG.Performance.ByzantineEventsTest do
     total_exits = length(spenders) * ntx_to_send * dos_users
 
     IO.puts("""
+
     dos users: #{dos_users}
     spenders: #{length(spenders)}
-    ntx_toxend: #{ntx_to_send}
+    ntx_to_send: #{ntx_to_send}
     exits per dos user: #{exit_per_dos}
     total exits: #{total_exits}
     """)

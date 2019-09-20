@@ -112,14 +112,10 @@ defmodule OMG.Utils.HttpRPC.Response do
     vsn =
       case :code.is_loaded(OMG.ChildChainRPC) do
         {:file, _} ->
-          {:ok, vsn} = :application.get_key(:omg_child_chain_rpc, :vsn)
-
-          vsn
+          get_vsn(:omg_child_chain_rpc)
 
         _ ->
-          {:ok, vsn} = :application.get_key(:omg_watcher_rpc, :vsn)
-
-          vsn
+          get_vsn(:omg_watcher_rpc)
       end
 
     Map.merge(response, %{version: List.to_string(vsn) <> "+" <> @sha})
@@ -140,6 +136,15 @@ defmodule OMG.Utils.HttpRPC.Response do
 
       _ ->
         "watcher"
+    end
+  end
+
+  defp get_vsn(service) when is_atom(service) do
+    with {:ok, vsn} <- :application.get_key(service, :vsn) do
+      vsn
+    else
+      _ ->
+        '0.0.0'
     end
   end
 end
