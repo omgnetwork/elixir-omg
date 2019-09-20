@@ -53,12 +53,14 @@ defmodule OMG.Performance.ByzantineEvents.Mutation do
 
   defp mutate_order(tx) do
     inputs =
-      Transaction.get_inputs(tx)
+      tx
+      |> Transaction.get_inputs()
       |> Enum.shuffle()
       |> payment_input()
 
     outputs =
-      Transaction.get_outputs(tx)
+      tx
+      |> Transaction.get_outputs()
       |> Enum.shuffle()
       |> payment_output()
 
@@ -67,7 +69,7 @@ defmodule OMG.Performance.ByzantineEvents.Mutation do
 
   defp mutate_remove(tx) do
     outputs = Transaction.get_outputs(tx) |> payment_output()
-    # we can try to remove at lenght which does not change a list
+    # note: eventually removing at lenght which does not change a list
     outputs = outputs |> List.delete_at(:rand.uniform(length(outputs) + 1) - 1)
 
     metadata =
@@ -89,13 +91,13 @@ defmodule OMG.Performance.ByzantineEvents.Mutation do
       List.update_at(outputs, random_position, fn %{amount: amount} = output ->
         %{output | amount: max(0, amount - random_modification)}
       end)
-      |> payment_output
+      |> payment_output()
 
     Transaction.Payment.new(Transaction.get_inputs(tx) |> payment_input, outputs, tx.metadata)
   end
 
   defp mutate_add(tx, map_position_owners) do
-    input = Transaction.get_inputs(tx)
+    inputs = Transaction.get_inputs(tx)
     outputs = Transaction.get_outputs(tx)
     metadata = tx.metadata
 
@@ -104,16 +106,16 @@ defmodule OMG.Performance.ByzantineEvents.Mutation do
         do: random_binary(32),
         else: metadata
 
-    input =
+    inputs =
       if Enum.random([true, false]) do
         new_position =
           map_position_owners
           |> Map.keys()
           |> Enum.random()
 
-        [new_position | input]
+        [new_position | inputs]
       else
-        input
+        inputs
       end
 
     outputs =
@@ -128,7 +130,7 @@ defmodule OMG.Performance.ByzantineEvents.Mutation do
         ],
         else: outputs
 
-    Transaction.Payment.new(input |> payment_input, outputs |> payment_output, metadata)
+    Transaction.Payment.new(inputs |> payment_input, outputs |> payment_output, metadata)
   end
 
   defp random_binary(size) do
@@ -161,11 +163,11 @@ defmodule OMG.Performance.ByzantineEvents.Mutation do
       else: {:ok, OMG.DevCrypto.sign(raw_tx, privs)}
   end
 
-  defp payment_input(input) do
-    Enum.map(input, fn Utxo.position(blknum, txindex, oindex) -> {blknum, txindex, oindex} end)
+  defp payment_input(inputs) do
+    Enum.map(inputs, fn Utxo.position(blknum, txindex, oindex) -> {blknum, txindex, oindex} end)
   end
 
-  defp payment_output(output) do
-    Enum.map(output, fn %{amount: amount, currency: currency, owner: owner} -> {owner, currency, amount} end)
+  defp payment_output(outputs) do
+    Enum.map(outputs, fn %{amount: amount, currency: currency, owner: owner} -> {owner, currency, amount} end)
   end
 end
