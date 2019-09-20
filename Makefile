@@ -11,12 +11,10 @@ help:
 	@echo "BARE METAL DEVELOPMENT:"
 	@echo "ATTENTION ATTENTION ATTENTION"
 	@echo "-----------------------------"
-	@echo "You need to export environment variables."
-	@$(MAKE) -s raw-requirements
-	@echo "-----------------------------"
 	@echo "This presumes you want to run geth, plasma-deployer and postgres as containers"
 	@echo "but Watcher and Child Chain bare metal."
 	@echo "make raw-cluster - will start everything for you where Child Chain and Watcher continue running in background."
+	@echo "Exported variables are in bin/variables."
 	@echo "For rapid development that restarts releases with your code changes"
 	@echo "one can use make raw-update-watcher or make raw-update-child_chain."
 	@echo "Stop the release with raw-stop-child_chain or raw-stop-watcher."
