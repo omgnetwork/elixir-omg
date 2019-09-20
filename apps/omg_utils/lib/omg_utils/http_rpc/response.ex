@@ -140,11 +140,7 @@ defmodule OMG.Utils.HttpRPC.Response do
   end
 
   defp get_vsn(service) when is_atom(service) do
-    with {:ok, vsn} <- :application.get_key(service, :vsn) do
-      vsn
-    else
-      _ ->
-        '0.0.0'
-    end
+    {:ok, vsn} = :application.get_key(service, :vsn)
+    vsn
   end
 end
