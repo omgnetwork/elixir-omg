@@ -185,27 +185,31 @@ cluster-with-datadog:
 stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
-raw-cluster:
+raw-cluster-services:
+	docker-compose up geth postgres plasma-deployer
+
+raw-start-child_chain:
 	set -e; . ./bin/variables; \
-	docker-compose up -d geth postgres plasma-deployer && \
 	echo "Building Child Chain" && \
-	$(MAKE) build-child_chain-dev && \
-	echo "Building Watcher" && \
-	$(MAKE) build-watcher-dev && \
-	echo "Potential cleanup" && \
-	rm -f ./_build/dev/rel/watcher/var/sys.config || true && \
+	make build-child_chain-dev && \
 	rm -f ./_build/dev/rel/child_chain/var/sys.config || true && \
 	echo "Init Child Chain DB" && \
 	_build/dev/rel/child_chain/bin/child_chain init_key_value_db && \
 	echo "Init Child Chain DB DONE" && \
+	_build/dev/rel/child_chain/bin/child_chain foreground
+
+raw-start-watcher:
+	set -e; . ./bin/variables; \
+	echo "Building Watcher" && \
+	make build-watcher-dev && \
+	echo "Potential cleanup" && \
+	rm -f ./_build/dev/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
 	_build/dev/rel/watcher/bin/watcher init_key_value_db && \
 	_build/dev/rel/watcher/bin/watcher init_postgresql_db && \
 	echo "Init Watcher DBs DONE" && \
-	echo "Run Child Chain" && \
-	exec _build/dev/rel/child_chain/bin/child_chain foreground & \
 	echo "Run Watcher" && \
-	_build/dev/rel/watcher/bin/watcher foreground &
+	_build/dev/rel/watcher/bin/watcher foreground
 
 raw-update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
@@ -235,9 +239,9 @@ raw-remote-watcher:
 
 alarms:
 	echo "Child Chain alarms" ; \
-	curl -s -X POST http://localhost:9656/alarm.get | jq ; \
-	echo "Watcher alarms" ; \
-	curl -s -X POST http://localhost:7434/alarm.get | jq
+	curl -s -X POST http://localhost:9656/alarm.get ; \
+	echo "\nWatcher alarms" ; \
+	curl -s -X POST http://localhost:7434/alarm.get
 
 raw-cluster-stop:
 	${MAKE} raw-stop-watcher ; ${MAKE} raw-stop-child_chain ; docker-compose down
