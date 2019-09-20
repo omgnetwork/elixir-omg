@@ -1,8 +1,8 @@
 # Load testing the child chain and Watcher
 
-The following demo is a mix of commands executed in IEx (Elixir's) REPL (see README.md for instructions) and shell.
+The following demo is a mix of commands executed in IEx (Elixir's) REPL (see [manual startup](/docs/manual_service_startup.md) for instructions) and shell.
 
-Run a developer's Child chain server, Watcher, and start IEx REPL with code and config loaded, as described in README.md instructions.
+Run a developer's Child chain server, Watcher, and start IEx REPL with code and config loaded, as described in [manual startup](/docs/manual_service_startup.md) instructions.
 
 **NOTE** It's advisable to adjust the processing of deposits like so (in your `~/config.exs`):
 ```
@@ -11,7 +11,7 @@ config :omg,
   ethereum_status_check_interval_ms: 100
 
 config :omg_child_chain,
-  exiters_finality_margin: 2,
+  exiters_finality_margin: 2
 ```
 Otherwise one might experience a long wait before the child chain allows the deposits to be spent (which every invocation of `start_extended_perftest` waits for).
 
@@ -30,8 +30,6 @@ import OMG.Performance.ByzantineEvents
 alias OMG.Eth
 alias OMG.Performance
  
-DeferredConfig.populate(:omg_eth)
-
 contract_addr = Application.fetch_env!(:omg_eth, :contract_addr) |> Eth.Encoding.from_hex()
 
 # defaults
