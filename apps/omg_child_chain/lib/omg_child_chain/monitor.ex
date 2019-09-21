@@ -17,6 +17,7 @@ defmodule OMG.ChildChain.Monitor do
   This module is a custom implemented supervisor that monitors all it's chilldren
   and restarts them based on alarms raised. This means that in the period when Geth alarms are raised
   it would wait before it would restart them.
+  #TODO - implement a proper supervisor
 
   When you receive an EXIT, check for an alarm raised that's related to Ethereum client synhronisation or connection
   problems and reacts accordingly.
