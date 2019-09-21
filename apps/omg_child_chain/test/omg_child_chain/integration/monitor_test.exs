@@ -29,7 +29,9 @@ defmodule OMG.ChildChain.MonitorTest do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
 
     on_exit(fn ->
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      apps
+      |> Enum.reverse()
+      |> Enum.each(fn app -> Application.stop(app) end)
     end)
 
     :ok
