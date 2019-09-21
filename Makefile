@@ -13,7 +13,7 @@ help:
 	@echo "-----------------------------"
 	@echo "This presumes you want to run geth, plasma-deployer and postgres as containers"
 	@echo "but Watcher and Child Chain bare metal."
-	@echo "You will need four terminal windows.
+	@echo "You will need four terminal windows."
 	@echo "In the first one run:"
 	@echo "make raw-start-services"
 	@echo "This will start geth, postgres and plasma-deployer. In case on of the containers is faulty, restart it by running the command again. Usually it's plasma-deployer."
@@ -24,9 +24,9 @@ help:
 	@echo "Wait until they all boot. And run in the fourth terminal window"
 	@echo "make get-alarms"
 	@echo "If you want to attach yourself to running services, use"
-	@echoe "make remote-child_chain"
+	@echo "make remote-child_chain"
 	@echo "or make remote-watcher"
-	@echo "Discover other rules with
+	@echo "Discover other rules with"
 	@echo "make list"
 
 .PHONY: list
