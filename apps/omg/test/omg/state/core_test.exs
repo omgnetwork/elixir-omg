@@ -151,7 +151,7 @@ defmodule OMG.State.CoreTest do
     test "Merge transaction is fee free", %{alice: alice, state_empty: state} do
       fees = %{@eth => 2}
       tx = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{alice, 15}])
-      fee = Fees.for_tx(tx, fees)
+      fee = Fees.for_transaction(tx, fees)
 
       state
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
