@@ -63,7 +63,10 @@ defmodule OMG.State.CoreTest do
       |> fail?(:amounts_do_not_add_up)
 
       state1
-      |> Core.exec(create_recovered([{1000, 0, 0, alice}], [{alice, @eth, 9}, {alice, @not_eth, 3}]), :no_fees_transaction)
+      |> Core.exec(
+        create_recovered([{1000, 0, 0, alice}], [{alice, @eth, 9}, {alice, @not_eth, 3}]),
+        :no_fees_transaction
+      )
       |> fail?(:amounts_do_not_add_up)
 
       state1
@@ -313,7 +316,11 @@ defmodule OMG.State.CoreTest do
 
     for first <- transactions,
         second <- transactions do
-      state |> Core.exec(first, :no_fees_transaction) |> success? |> Core.exec(second, :no_fees_transaction) |> fail?(:utxo_not_found)
+      state
+      |> Core.exec(first, :no_fees_transaction)
+      |> success?
+      |> Core.exec(second, :no_fees_transaction)
+      |> fail?(:utxo_not_found)
     end
   end
 
@@ -331,7 +338,10 @@ defmodule OMG.State.CoreTest do
     |> success?
     |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{carol, 3}]), :no_fees_transaction)
     |> success?
-    |> Core.exec(create_recovered([{@blknum1, 1, 0, carol}, {@blknum1, 2, 0, carol}], @eth, [{alice, 10}]), :no_fees_transaction)
+    |> Core.exec(
+      create_recovered([{@blknum1, 1, 0, carol}, {@blknum1, 2, 0, carol}], @eth, [{alice, 10}]),
+      :no_fees_transaction
+    )
     |> success?
   end
 
@@ -578,7 +588,10 @@ defmodule OMG.State.CoreTest do
 
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, amount_1}, {alice, amount_2}]), :no_fees_transaction)
+      |> Core.exec(
+        create_recovered([{1, 0, 0, alice}], @eth, [{alice, amount_1}, {alice, amount_2}]),
+        :no_fees_transaction
+      )
       |> success?
 
     utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
@@ -754,7 +767,10 @@ defmodule OMG.State.CoreTest do
 
     # input utxo blknum is greater than state's blknum
     state
-    |> Core.exec(create_recovered([{future_deposit_blknum, 0, 0, alice}], @eth, [{bob, 6}, {alice, 4}]), :no_fees_transaction)
+    |> Core.exec(
+      create_recovered([{future_deposit_blknum, 0, 0, alice}], @eth, [{bob, 6}, {alice, 4}]),
+      :no_fees_transaction
+    )
     |> fail?(:input_utxo_ahead_of_state)
 
     state
