@@ -29,7 +29,9 @@ defmodule OMG.ChildChain.MonitorTest do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
 
     on_exit(fn ->
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      apps
+      |> Enum.reverse()
+      |> Enum.each(fn app -> Application.stop(app) end)
     end)
 
     :ok
@@ -39,7 +41,13 @@ defmodule OMG.ChildChain.MonitorTest do
     Alarm.clear_all()
 
     on_exit(fn ->
-      Process.exit(Process.whereis(Monitor), :kill)
+      case Process.whereis(Monitor) do
+        nil ->
+          :ok
+
+        pid ->
+          Process.exit(pid, :kill)
+      end
 
       case Process.whereis(EthereumClientMock) do
         nil ->
@@ -119,61 +127,73 @@ defmodule OMG.ChildChain.MonitorTest do
   end
 
   @tag :capture_log
-  test "if a map spec child gets restarted after exit" do
+  test "if a map spec for child process and tuple spec get restarted after exit" do
+    # test with a child defined as a map
     child = EthereumClientMock.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
-    handle_killing_and_monitoring(monitor_pid)
-  end
+    registered_name = get_registered_child_name(monitor_pid)
+    assert registered_name == EthereumClientMock
+    old_pid = Process.whereis(registered_name)
+    stop(registered_name)
+    assert has_child_pid_changed(monitor_pid, old_pid, 1000)
 
-  @tag :capture_log
-  test "if a tuple spec child gets restarted after exit" do
+    # unlink between the test pid and started monitor process
+    # so that we can tear it down
+    Process.unlink(monitor_pid)
+    :ok = GenServer.stop(monitor_pid, :killed)
+    # repeat, but with a tuple child
     child = {EthereumClientMock, []}
     {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
-    handle_killing_and_monitoring(monitor_pid)
+    registered_name = get_registered_child_name(monitor_pid)
+    assert registered_name == EthereumClientMock
+    old_pid = Process.whereis(registered_name)
+    stop(registered_name)
+    assert has_child_pid_changed(monitor_pid, old_pid, 1000)
   end
 
-  defp handle_killing_and_monitoring(monitor_pid) do
-    # 1. we start the child and log the pid
-    # 2. exit the pid
-    # 3. wait for the child with the name registered name gets restarted by the monitor
-    # 4. and check that pids don't match
-    Process.unlink(monitor_pid)
-    {:links, links} = Process.info(monitor_pid, :links)
+  defp get_registered_child_name(monitor_pid) do
+    [child] = get_child_link(monitor_pid, 10_000)
+    {:registered_name, registered_name} = Process.info(child, :registered_name)
+    registered_name
+  end
 
-    names =
-      Enum.map(links, fn x ->
-        {:registered_name, registered_name} = Process.info(x, :registered_name)
-        registered_name
-      end)
-
-    assert Enum.member?(names, EthereumClientMock)
-    # process is started and is monitored, lets log the pid
-    old_pid = Process.whereis(EthereumClientMock)
-    Process.unlink(old_pid)
+  defp stop(registered_name) do
     # exit the pid by sending a shutdown command
-    spawn(fn -> EthereumClientMock.terminate(:kill) end)
-
-    assert pull_links_and_find_process(monitor_pid, old_pid, 10_000)
+    :ok = GenServer.stop(registered_name)
   end
 
-  defp pull_links_and_find_process(_, _, 0), do: false
+  defp has_child_pid_changed(_, _, 0), do: false
 
-  defp pull_links_and_find_process(monitor_pid, old_pid, index) do
-    {:links, links} = Process.info(monitor_pid, :links)
+  defp has_child_pid_changed(monitor_pid, old_pid, index) do
+    [child] = get_child_link(monitor_pid, 10_000)
 
-    names =
-      Enum.map(links, fn x ->
-        {:registered_name, registered_name} = Process.info(x, :registered_name)
-        registered_name
-      end)
+    {:registered_name, registered_name} = Process.info(child, :registered_name)
 
-    case {Enum.member?(names, EthereumClientMock), old_pid == Process.whereis(EthereumClientMock)} do
-      {true, false} ->
+    case {registered_name, old_pid == Process.whereis(EthereumClientMock)} do
+      {EthereumClientMock, false} ->
+        # registered under the same name, but different pid means it was restarted
         true
 
       _ ->
         Process.sleep(10)
-        pull_links_and_find_process(monitor_pid, old_pid, index - 1)
+        has_child_pid_changed(monitor_pid, old_pid, index - 1)
+    end
+  end
+
+  # we want to find the child link pid
+  defp get_child_link(_, 0), do: []
+
+  defp get_child_link(monitor_pid, count) do
+    {:links, links} = Process.info(monitor_pid, :links)
+    just_me = [self()]
+
+    case links do
+      _ when links == [] or links == just_me ->
+        _ = Process.sleep(10)
+        get_child_link(monitor_pid, count - 1)
+
+      _ ->
+        links -- just_me
     end
   end
 
@@ -187,18 +207,13 @@ defmodule OMG.ChildChain.MonitorTest do
       %{id: __MODULE__, start: {__MODULE__, :start_link, [[]]}}
     end
 
-    def start_link([:no_name]), do: GenServer.start_link(__MODULE__, [:no_name])
     def start_link(_), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
-
-    def init([:no_name]) do
-      Process.sleep(3_000)
-      {:ok, %{}}
-    end
 
     def init(_), do: {:ok, %{}}
 
-    def terminate(:ethereum_client_connection), do: GenServer.call(__MODULE__, :terminate_ethereum_client_connection)
-    def terminate(reason), do: GenServer.call(__MODULE__, {:terminate, reason})
+    def terminate(_reason, _) do
+      :ok
+    end
 
     def handle_call({:terminate, reason}, _, state), do: {:stop, reason, state}
 
