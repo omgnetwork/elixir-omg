@@ -410,7 +410,7 @@ defmodule OMG.State.TransactionTest do
 
   defp assert_tx_usable(signed, state_core) do
     {:ok, transaction} = signed |> Transaction.Signed.encode() |> Transaction.Recovered.recover_from()
-    assert {:ok, {_, _, _}, _state} = State.Core.exec(state_core, transaction, :ignore)
+    assert {:ok, {_, _, _}, _state} = State.Core.exec(state_core, transaction, :no_fees_transaction)
   end
 
   defp parametrized_tester({inputs, outputs}) do

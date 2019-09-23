@@ -173,7 +173,7 @@ defmodule OMG.State.PersistenceTest do
   end
 
   defp exec(state, tx) do
-    assert {:ok, _, state} = Core.exec(state, tx, :ignore)
+    assert {:ok, _, state} = Core.exec(state, tx, :no_fees_transaction)
     state
   end
 
