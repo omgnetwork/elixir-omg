@@ -78,8 +78,13 @@ defmodule OMG.Watcher.Integration.TestHelper do
     # enough to wait out the exit period on the contract
     Process.sleep(2 * exit_period_ms)
 
-    {:ok, %{"status" => "0x1", "blockNumber" => process_eth_height}} =
+    {:ok, %{"status" => "0x1", "blockNumber" => process_eth_height, "logs" => logs}} =
       OMG.Eth.RootChainHelper.process_exits(token, 0, 1, user.addr) |> Eth.DevHelpers.transact_sync!()
+
+    # status 0x1 doesn't yet mean much. To smoke test the success of the processing (exits actually processed) we
+    # take a look at the logs. Single entry means no logs were processed (it is the `ProcessedExitsNum`, that always
+    # gets emmitted)
+    true = length(logs) > 1 || {:error, :looks_like_no_exits_were_processed}
 
     # to have the new event fully acknowledged by the services, wait the finality margin
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)

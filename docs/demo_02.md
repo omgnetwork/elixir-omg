@@ -91,7 +91,7 @@ exiting_utxopos = OMG.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum,
   Jason.decode!()
 
 tx2 =
-  Transaction.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
+  Transaction.Payment.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   OMG.Utils.HttpRPC.Encoding.to_hex()

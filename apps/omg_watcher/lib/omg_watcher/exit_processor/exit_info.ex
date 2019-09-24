@@ -128,5 +128,9 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
   end
 
+  # processes the return value of `Eth.get_standard_exit(exit_id)`
+  # `exitable` will be `false` if the exit was challenged
+  # `exitable` will be `false` ALONG WITH the whole tuple holding zeroees, if the exit was processed successfully
+  # **NOTE** one can only rely on the zero-nonzero of this data, since for processed exits this data will be all zeros
   defp parse_contract_exit_status({exitable, _, _, _, _, _, _}), do: exitable
 end

@@ -216,7 +216,6 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:new_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
-    # FIXME: statuses handling must be changed in this PR
     exit_contract_statuses =
       Enum.map(exits, fn %{exit_id: exit_id} ->
         {:ok, result} = Eth.RootChain.get_standard_exit(exit_id)
