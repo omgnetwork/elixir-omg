@@ -18,15 +18,12 @@ defmodule OMG.Performance.ByzantineEventsTest do
   use OMG.ChildChain.Integration.Fixtures
   use OMG.Watcher.Fixtures
 
-  alias OMG.Eth
   alias OMG.Performance
   alias OMG.Performance.ByzantineEvents
   alias OMG.Performance.ByzantineEvents.Generators
-  alias OMG.Utils.HttpRPC.Client
 
   @moduletag :integration
   @moduletag timeout: 180_000
-  @watcher_url Application.get_env(:byzantine_events, :watcher_url)
 
   setup_all do
     Application.put_env(:omg_child_chain, :mix_env, "dev")
@@ -79,29 +76,5 @@ defmodule OMG.Performance.ByzantineEventsTest do
     """)
 
     assert error_exits == 0
-  end
-
-  @tag fixtures: [:contract, :child_chain, :omg_watcher]
-  test "watcher catch all non_canonical_ife", %{contract: %{contract_addr: contract}} do
-    dos_users = 2
-    ntx_to_send = 10
-    spenders = Generators.generate_users(3)
-    ife_per_dos = length(spenders) * ntx_to_send
-
-    OMG.Performance.start_extended_perftest(ntx_to_send, spenders, contract)
-    binary_txs = Generators.stream_txs() |> Enum.take(ife_per_dos)
-    utxos = spenders |> Enum.map(fn spender -> ByzantineEvents.get_exitable_utxos(spender) end) |> Enum.concat()
-
-    ByzantineEvents.watcher_synchronize()
-    dos_result = ByzantineEvents.start_dos_non_canonical_ife(dos_users, binary_txs, utxos, spenders)
-    started_ife = Enum.reduce(dos_result, 0, fn %{started_ife_count: start_ife}, acc -> start_ife + acc end)
-
-    {:ok, ethereum_height} = Eth.get_ethereum_height()
-    ByzantineEvents.watcher_synchronize_service("in_flight_exit_processor", ethereum_height)
-
-    {:ok, %{byzantine_events: byzantine_events}} = Client.get_status(@watcher_url)
-    non_canonical_ife = Enum.filter(byzantine_events, &match?(%{"event" => "non_canonical_ife"}, &1))
-
-    assert length(non_canonical_ife) == started_ife
   end
 end

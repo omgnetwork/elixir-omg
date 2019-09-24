@@ -17,18 +17,9 @@ defmodule OMG.Performance.ByzantineEvents do
   OMG network child chain server byzantine event test. Setup and runs performance byzantine tests.
   """
 
-  require OMG.Utxo
-  use OMG.Utils.LoggerExt
-
-  import OMG.Utxo, only: [is_deposit: 1]
-
   alias OMG.Eth
-  alias OMG.Eth.RootChain
-  alias OMG.Performance.ByzantineEvents.Mutation
-  alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Client
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utxo
 
   @watcher_url Application.get_env(:byzantine_events, :watcher_url)
 
@@ -54,95 +45,6 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
-  def start_dos_non_canonical_ife(dos_users, binary_txs, utxos, users, url \\ @watcher_url) do
-    Enum.map(1..dos_users, fn _ -> worker_dos_non_canonical_ife(binary_txs, utxos, users, url) end)
-    |> Enum.map(fn task ->
-      {time, ifes} = Task.await(task, :infinity)
-      valid? = Enum.map(ifes, &valid_ife_response/1)
-      %{time: time, started_ife_count: Enum.count(valid?, & &1), not_started_ife_count: Enum.count(valid?, &(!&1))}
-    end)
-  end
-
-  defp worker_dos_non_canonical_ife(binary_txs, utxos, users, url) do
-    {:ok, eth_height} = Eth.get_ethereum_height()
-    {:ok, deposits} = RootChain.get_deposits(0, eth_height)
-    %{addr: addr} = Enum.random(users)
-    map_users = Enum.map(users, fn %{addr: addr, priv: priv_key} -> {addr, priv_key} end) |> Map.new()
-
-    map_position_owners =
-      utxos
-      |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex, owner: owner} ->
-        owner = OMG.Eth.Encoding.from_hex(owner)
-        {Utxo.position(blknum, txindex, oindex), Map.get(map_users, owner)}
-      end)
-      |> Map.new()
-
-    worker = fn binary_txs ->
-      binary_txs
-      |> Stream.map(
-        &with(
-          {:ok, ife} <- compose_in_flight_exit(&1, map_position_owners, map_users, deposits, url),
-          {:ok, txhash} <-
-            Eth.RootChainHelper.in_flight_exit(
-              ife.in_flight_tx,
-              ife.input_txs,
-              ife.input_txs_inclusion_proofs,
-              ife.in_flight_tx_sigs,
-              addr
-            ),
-          do: {:ok, txhash}
-        )
-      )
-      |> Enum.map(fn
-        {:ok, txhash} -> Eth.WaitFor.eth_receipt(txhash, 60_000)
-        error -> error
-      end)
-    end
-
-    Task.async(fn ->
-      exit_positions = Enum.shuffle(binary_txs)
-      :timer.tc(fn -> worker.(exit_positions) end)
-    end)
-  end
-
-  def valid_exit_data({:ok, respons}), do: valid_exit_data(respons)
-  def valid_exit_data(%{proof: _}), do: true
-  def valid_exit_data(_), do: false
-
-  def valid_ife_response({:ok, %{"status" => "0x1"}}), do: true
-  def valid_ife_response(_), do: false
-
-  defp compose_in_flight_exit(binary_tx, map_position_owners, map_users, deposits, url) do
-    with {:ok, recover_tx} <- Transaction.Recovered.recover_from(binary_tx),
-         {:ok, sign_tx} <- Mutation.mutate(recover_tx, map_position_owners, map_users),
-         exit_datas = Transaction.get_inputs(sign_tx) |> Enum.map(&compose_exit(&1, deposits, url)),
-         true <- Enum.all?(exit_datas, &match?({:ok, _}, &1)) do
-      {proofs, input_txs} =
-        exit_datas
-        |> Enum.map(fn {:ok, %{proof: proof, txbytes: txbytes}} -> {proof, txbytes} end)
-        |> Enum.unzip()
-
-      input_txs =
-        input_txs
-        |> Enum.map(&ExRLP.decode/1)
-        |> ExRLP.encode()
-
-      sigs = sign_tx.sigs |> Enum.join()
-      proofs = Enum.join(proofs)
-
-      {:ok,
-       %{
-         in_flight_tx: Transaction.raw_txbytes(sign_tx),
-         input_txs: input_txs,
-         input_txs_inclusion_proofs: proofs,
-         in_flight_tx_sigs: sigs
-       }}
-    else
-      false -> {:error, :not_all_inputs_exitable}
-      error -> error
-    end
-  end
-
   def get_exitable_utxos(addr, watcher_url \\ @watcher_url)
 
   def get_exitable_utxos(addr, watcher_url) when is_binary(addr) do
@@ -155,24 +57,6 @@ defmodule OMG.Performance.ByzantineEvents do
 
   def get_exitable_utxos(users, watcher_url) when is_list(users),
     do: Enum.map(users, &get_exitable_utxos(&1, watcher_url)) |> Enum.concat()
-
-  def get_exit_data(utxo_pos, watcher_url \\ @watcher_url) do
-    Client.get_exit_data(utxo_pos, watcher_url)
-  rescue
-    error -> error
-  end
-
-  defp compose_exit(Utxo.position(blknum, _, _) = utxo_pos, deposits, _)
-       when is_deposit(utxo_pos) do
-    Enum.find(deposits, fn deposit -> deposit.blknum == blknum end)
-    |> OMG.Watcher.UtxoExit.Core.compose_deposit_exit(utxo_pos)
-  end
-
-  defp compose_exit(utxo_pos, _, watcher_url) do
-    utxo_pos
-    |> Utxo.Position.encode()
-    |> get_exit_data(watcher_url)
-  end
 
   def watcher_synchronize(watcher_url \\ @watcher_url) do
     Eth.WaitFor.repeat_until_ok(fn ->
@@ -199,4 +83,14 @@ defmodule OMG.Performance.ByzantineEvents do
       end
     end)
   end
+
+  defp get_exit_data(utxo_pos, watcher_url) do
+    Client.get_exit_data(utxo_pos, watcher_url)
+  rescue
+    error -> error
+  end
+
+  defp valid_exit_data({:ok, respons}), do: valid_exit_data(respons)
+  defp valid_exit_data(%{proof: _}), do: true
+  defp valid_exit_data(_), do: false
 end

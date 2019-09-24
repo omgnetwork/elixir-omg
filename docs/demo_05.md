@@ -67,5 +67,4 @@ utxos = spenders |> Enum.map(fn spender -> ByzantineEvents.get_exitable_utxos(sp
 ByzantineEvents.watcher_synchronize()
 
 ByzantineEvents.start_dos_get_exits(dos_users, exit_positions)
-ByzantineEvents.start_dos_non_canonical_ife(dos_users, binary_txs, utxos, spenders)
 ```
