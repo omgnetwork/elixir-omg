@@ -29,6 +29,8 @@ import OMG.Performance.ByzantineEvents
 
 alias OMG.Eth
 alias OMG.Performance
+alias OMG.Performance.ByzantineEvents
+alias OMG.Performance.ByzantineEvents.Generators
  
 contract_addr = Application.fetch_env!(:omg_eth, :contract_addr) |> Eth.Encoding.from_hex()
 
@@ -55,15 +57,15 @@ total_exits = length(spenders) * ntx_to_send * dos_users
 
 OMG.Performance.start_extended_perftest(ntx_to_send, spenders, contract_addr)
 
-#get exit position from child chain
-exit_positions = ByzantineEvents.stream_utxo_positions() |> Enum.take(exit_per_dos)
+# get exit position from child chain
+exit_positions = Generators.stream_utxo_positions() |> Enum.take(exit_per_dos)
 
-binary_txs = stream_txs() |> Enum.take(exit_per_dos)
-utxos =  spenders |> Enum.map( fn spender -> get_exitable_utxos(spender) end ) |> Enum.concat()
+binary_txs = Generators.stream_txs() |> Enum.take(exit_per_dos)
+utxos = spenders |> Enum.map(fn spender -> ByzantineEvents.get_exitable_utxos(spender) end) |> Enum.concat()
 
-#wait before asking watcher about exit data
-watcher_synchronize()
+# wait before asking watcher about exit data
+ByzantineEvents.watcher_synchronize()
 
-start_dos_get_exits(dos_users, exit_positions)
-start_dos_non_canonical_ife(dos_users, binary_txs, utxos, spenders)
+ByzantineEvents.start_dos_get_exits(dos_users, exit_positions)
+ByzantineEvents.start_dos_non_canonical_ife(dos_users, binary_txs, utxos, spenders)
 ```
