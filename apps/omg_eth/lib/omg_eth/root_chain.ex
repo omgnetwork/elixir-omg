@@ -24,12 +24,12 @@ defmodule OMG.Eth.RootChain do
 
   @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
 
-  @type optional_addr_t() :: <<_::160>> | nil
+  @type optional_addr_t() :: %{atom => Eth.address()} | %{atom => nil}
   @type in_flight_exit_piggybacked_event() :: %{owner: <<_::160>>, tx_hash: <<_::256>>, output_index: non_neg_integer}
   @spec submit_block(binary, pos_integer, pos_integer, optional_addr_t(), optional_addr_t()) ::
           {:error, binary() | atom() | map()}
           | {:ok, binary()}
-  def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ nil) do
+  def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :plasma_framework)
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
 
@@ -66,7 +66,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns next blknum that is supposed to be mined by operator
   """
-  def get_next_child_block(contract \\ nil) do
+  def get_next_child_block(contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "nextChildBlock()", [], [{:uint, 256}])
   end
@@ -74,7 +74,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns blknum that was already mined by operator (with exception for 0)
   """
-  def get_mined_child_block(contract \\ nil) do
+  def get_mined_child_block(contract \\ %{}) do
     with {:ok, next} <- get_next_child_block(contract),
          {:ok, interval} <- get_child_block_interval(),
          do: {:ok, next - interval}
@@ -85,7 +85,7 @@ defmodule OMG.Eth.RootChain do
 
   #TODO - can exits accept a list of exits? Look at ExitProcessor.handle_call({:new_exits, new_exits})
   """
-  def get_standard_exit(exit_id, contract \\ nil) do
+  def get_standard_exit(exit_id, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     return_fields = [:bool, {:uint, 192}, {:bytes, 32}, :address, :address, {:uint, 256}, {:uint, 256}]
     Eth.call_contract(contract, "standardExits(uint192)", [exit_id], return_fields)
@@ -95,7 +95,7 @@ defmodule OMG.Eth.RootChain do
   Returns in flight exit for a specific id. Calls contract method.
   #TODO - can exits accept a list of in_flight_exit_id? Look at ExitProcessor.handle_call({:new_in_flight_exits, events})
   """
-  def get_in_flight_exit(in_flight_exit_id, contract \\ nil) do
+  def get_in_flight_exit(in_flight_exit_id, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
 
     # solidity does not return arrays of structs
@@ -111,12 +111,12 @@ defmodule OMG.Eth.RootChain do
   end
 
   # TODO: we're storing exit_ids for SEs, we should do the same for IFEs and remove this
-  def get_in_flight_exit_id(tx_bytes, contract \\ nil) do
+  def get_in_flight_exit_id(tx_bytes, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     Eth.call_contract(contract, "getInFlightExitId(bytes)", [tx_bytes], [{:uint, 192}])
   end
 
-  def get_child_chain(blknum, contract \\ nil) do
+  def get_child_chain(blknum, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "blocks(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
   end
@@ -128,7 +128,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns lists of deposits sorted by child chain block number
   """
-  def get_deposits(block_from, block_to, contract \\ nil) do
+  def get_deposits(block_from, block_to, contract \\ %{}) do
     # NOTE: see https://github.com/omisego/plasma-contracts/issues/262
     contract_eth = maybe_fetch_addr!(contract, :eth_vault)
     contract_erc20 = maybe_fetch_addr!(contract, :erc20_vault)
@@ -146,7 +146,7 @@ defmodule OMG.Eth.RootChain do
 
   @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) ::
           {:ok, [in_flight_exit_piggybacked_event]}
-  def get_piggybacks(block_from, block_to, contract \\ nil) do
+  def get_piggybacks(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "InFlightExitPiggybacked(address,bytes32,uint8)"
 
@@ -157,7 +157,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns lists of block submissions from Ethereum logs
   """
-  def get_block_submitted_events({block_from, block_to}, contract \\ nil) do
+  def get_block_submitted_events({block_from, block_to}, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "BlockSubmitted(uint256)"
 
@@ -168,7 +168,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns finalizations of exits from a range of blocks from Ethereum logs.
   """
-  def get_finalizations(block_from, block_to, contract \\ nil) do
+  def get_finalizations(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "ExitFinalized(uint192)"
 
@@ -180,7 +180,7 @@ defmodule OMG.Eth.RootChain do
   Returns challenges of exits from a range of blocks from Ethereum logs.
   Used as a callback function in EthereumEventListener.
   """
-  def get_challenges(block_from, block_to, contract \\ nil) do
+  def get_challenges(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "ExitChallenged(uint256)"
 
@@ -192,7 +192,7 @@ defmodule OMG.Eth.RootChain do
   Returns challenges of in flight exits from a range of blocks from Ethereum logs.
   Used as a callback function in EthereumEventListener.
   """
-  def get_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
+  def get_in_flight_exit_challenges(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "InFlightExitChallenged(address,bytes32,uint256)"
 
@@ -230,7 +230,7 @@ defmodule OMG.Eth.RootChain do
   Returns responds to challenges of in flight exits from a range of blocks from Ethereum logs.
   Used as a callback function in EthereumEventListener.
   """
-  def get_responds_to_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
+  def get_responds_to_in_flight_exit_challenges(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "InFlightExitChallengeResponded(address,bytes32,uint256)"
 
@@ -242,7 +242,7 @@ defmodule OMG.Eth.RootChain do
   Returns challenges of piggybacks from a range of block from Ethereum logs.
   Used as a callback function in EthereumEventListener.
   """
-  def get_piggybacks_challenges(block_from, block_to, contract \\ nil) do
+  def get_piggybacks_challenges(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "InFlightExitOutputBlocked(address,bytes32,uint256)"
 
@@ -254,7 +254,7 @@ defmodule OMG.Eth.RootChain do
   Returns finalizations of in flight exits from a range of blocks from Ethereum logs.
   Used as a callback function in EthereumEventListener.
   """
-  def get_in_flight_exit_finalizations(block_from, block_to, contract \\ nil) do
+  def get_in_flight_exit_finalizations(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "InFlightExitFinalized(uint192,uint8)"
 
@@ -280,7 +280,7 @@ defmodule OMG.Eth.RootChain do
 
   @spec contract_ready(optional_addr_t()) ::
           :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
-  def contract_ready(contract \\ nil) do
+  def contract_ready(contract \\ %{}) do
     {:ok, addr} = authority(contract)
 
     case addr do
@@ -294,7 +294,7 @@ defmodule OMG.Eth.RootChain do
   # TODO - missing description + could this be moved to a statefull process?
   @spec get_root_deployment_height(binary() | nil, optional_addr_t()) ::
           {:ok, integer()} | Ethereumex.HttpClient.error()
-  def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
+  def get_root_deployment_height(txhash \\ nil, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :plasma_framework)
     txhash = txhash || from_hex(Application.fetch_env!(:omg_eth, :txhash_contract))
 
@@ -317,7 +317,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns standard exits from a range of blocks. Collects exits from Ethereum logs.
   """
-  def get_standard_exits(block_from, block_to, contract \\ nil) do
+  def get_standard_exits(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "ExitStarted(address,uint192)"
 
@@ -348,7 +348,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns InFlightExit from a range of blocks.
   """
-  def get_in_flight_exit_starts(block_from, block_to, contract \\ nil) do
+  def get_in_flight_exit_starts(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "InFlightExitStarted(address,bytes32)"
 
@@ -374,10 +374,10 @@ defmodule OMG.Eth.RootChain do
 
   @doc """
   Gets a particular contract's address (by name) from somewhere
-  `maybe_fetch_addr!(nil, name)` will `Application.fetch_env!`, get the correct entry and decode
+  `maybe_fetch_addr!(%{}, name)` will `Application.fetch_env!`, get the correct entry and decode
   Otherwise it just returns the entry from whatever the map provided, assuming it's decoded already
   """
-  @spec maybe_fetch_addr!(%{atom => Eth.address()} | nil, atom) :: Eth.address()
+  @spec maybe_fetch_addr!(%{atom => Eth.address()}, atom) :: Eth.address()
   def maybe_fetch_addr!(contract, name) do
     contract[name] || from_hex(Application.fetch_env!(:omg_eth, :contract_addr)[name])
   end
