@@ -18,31 +18,16 @@ defmodule OMG.Performance.ByzantineEvents do
   """
 
   alias OMG.Eth
+  alias OMG.Performance.DoSExitWorker
   alias OMG.Utils.HttpRPC.Client
   alias OMG.Utils.HttpRPC.Encoding
 
   @watcher_url Application.get_env(:byzantine_events, :watcher_url)
 
   def start_dos_get_exits(dos_users, positions, url \\ @watcher_url) do
-    Enum.map(1..dos_users, fn _ -> worker_dos_get_exit(positions, url) end)
-    |> Enum.map(fn task ->
-      {time, exits} = Task.await(task, :infinity)
-      valid? = Enum.map(exits, &valid_exit_data/1)
-      %{time: time, corrects_count: Enum.count(valid?, & &1), errors_count: Enum.count(valid?, &(!&1))}
-    end)
-  end
-
-  defp worker_dos_get_exit(exit_positions, url) do
-    worker = fn exit_positions ->
-      Enum.map(exit_positions, fn position ->
-        get_exit_data(position, url)
-      end)
-    end
-
-    Task.async(fn ->
-      exit_positions = Enum.shuffle(exit_positions)
-      :timer.tc(fn -> worker.(exit_positions) end)
-    end)
+    1..dos_users
+    |> Enum.map(fn _ -> DoSExitWorker.get_exits_fun(positions, url) |> Task.async() end)
+    |> Enum.map(&compute_std_exits_statistics/1)
   end
 
   def get_exitable_utxos(addr, watcher_url \\ @watcher_url)
@@ -84,13 +69,13 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
-  defp get_exit_data(utxo_pos, watcher_url) do
-    Client.get_exit_data(utxo_pos, watcher_url)
-  rescue
-    error -> error
-  end
-
   defp valid_exit_data({:ok, respons}), do: valid_exit_data(respons)
   defp valid_exit_data(%{proof: _}), do: true
   defp valid_exit_data(_), do: false
+
+  defp compute_std_exits_statistics(task) do
+    {time, exits} = Task.await(task, :infinity)
+    valid? = Enum.map(exits, &valid_exit_data/1)
+    %{time: time, corrects_count: Enum.count(valid?, & &1), errors_count: Enum.count(valid?, &(!&1))}
+  end
 end
