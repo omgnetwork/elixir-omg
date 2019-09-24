@@ -14,17 +14,48 @@
 
 defmodule OMG.Performance.ByzantineEvents do
   @moduledoc """
-  OMG network child chain server byzantine event test. Setup and runs performance byzantine tests.
+  OMG network child chain server byzantine event test entrypoint. Setup and runs performance byzantine tests.
+
+  # Usage
+
+  See functions in this module for options available
+
+  ## start_dos_get_exits runs a test to get exit data for given 10 positions for 3 users
+
+  ```
+  mix run --no-start -e \
+    '
+      OMG.Performance.ByzantineEvents.Generators.stream_utxo_positions() |>
+      Enum.take(10) |> OMG.Performance.ByzantineEvents.start_dos_get_exits(3)
+    '
+  ```
+
+  __ASSUMPTIONS:__
+  This test should be run on testnet filled with transactions make sure you followed instructions in `docs/demo_05.md`
+  and `geth`, `omg_child_chain` and `omg_watcher` are running; and watcher is fully synced.
+
+  Expected result of running the above command should looks like:
+
+  ```
+  [
+    %{time: 232000, corrects_count: 10, errors_count: 0},
+    %{time: 221500, corrects_count: 10, errors_count: 0},
+    %{time: 219900, corrects_count: 10, errors_count: 0},
+  ]
+  ```
+
+  where time is expressed in microseconds and the sum of `corrects_count + errors_count` should equal to
+  `length(positions)`. If all passed position was unspent there should be no errors.
   """
 
   alias OMG.Eth
-  alias OMG.Performance.DoSExitWorker
+  alias OMG.Performance.ByzantineEvents.DoSExitWorker
   alias OMG.Utils.HttpRPC.Client
   alias OMG.Utils.HttpRPC.Encoding
 
   @watcher_url Application.get_env(:byzantine_events, :watcher_url)
 
-  def start_dos_get_exits(dos_users, positions, url \\ @watcher_url) do
+  def start_dos_get_exits(positions, dos_users, url \\ @watcher_url) do
     1..dos_users
     |> Enum.map(fn _ -> DoSExitWorker.get_exits_fun(positions, url) |> Task.async() end)
     |> Enum.map(&compute_std_exits_statistics/1)

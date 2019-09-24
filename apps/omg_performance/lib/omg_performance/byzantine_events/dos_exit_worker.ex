@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.DoSExitWorker do
+defmodule OMG.Performance.ByzantineEvents.DoSExitWorker do
   @moduledoc """
   Contains a functions performing specified task (e.g. standard exit) that can be run in parallel by `ByzantineEvents`
   """

@@ -60,7 +60,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     # wait before asking watcher about exit data
     ByzantineEvents.watcher_synchronize()
 
-    statistics = ByzantineEvents.start_dos_get_exits(dos_users, exit_positions)
+    statistics = ByzantineEvents.start_dos_get_exits(exit_positions, dos_users)
 
     times = statistics |> Enum.map(&Map.get(&1, :time))
     correct_exits = statistics |> Enum.map(&Map.get(&1, :corrects_count)) |> Enum.sum()
