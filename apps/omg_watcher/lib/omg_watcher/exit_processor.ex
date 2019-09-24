@@ -216,6 +216,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:new_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
+    # FIXME: statuses handling must be changed in this PR
     exit_contract_statuses =
       Enum.map(exits, fn %{exit_id: exit_id} ->
         {:ok, result} = Eth.RootChain.get_standard_exit(exit_id)
@@ -372,14 +373,8 @@ defmodule OMG.Watcher.ExitProcessor do
     {:noreply, state}
   end
 
-  defp fill_request_with_standard_challenge_data(
-         %ExitProcessor.Request{se_spending_blocks_to_get: positions, se_creating_blocks_to_get: blknums} = request
-       ) do
-    %ExitProcessor.Request{
-      request
-      | se_spending_blocks_result: do_get_spending_blocks(positions),
-        se_creating_blocks_result: do_get_blocks(blknums)
-    }
+  defp fill_request_with_standard_challenge_data(%ExitProcessor.Request{se_spending_blocks_to_get: positions} = request) do
+    %ExitProcessor.Request{request | se_spending_blocks_result: do_get_spending_blocks(positions)}
   end
 
   # based on the exits being processed, fills the request structure with data required to process queries

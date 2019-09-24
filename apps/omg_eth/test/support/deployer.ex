@@ -69,9 +69,15 @@ defmodule OMG.Eth.Deployer do
     |> deploy_contract(from, @gas_contract_default, [{:address, plasma_framework}], opts)
   end
 
-  def create_new("PaymentOutputGuardHandler" = name, path_project_root, from, [tx_type_marker: tx_type_marker], opts) do
+  def create_new(
+        "PaymentOutputGuardHandler" = name,
+        path_project_root,
+        from,
+        [payment_output_type_marker: payment_output_type_marker],
+        opts
+      ) do
     get_bytecode!(path_project_root, name)
-    |> deploy_contract(from, @gas_contract_default, [{{:uint, 256}, tx_type_marker}], opts)
+    |> deploy_contract(from, @gas_contract_default, [{{:uint, 256}, payment_output_type_marker}], opts)
   end
 
   def create_new(

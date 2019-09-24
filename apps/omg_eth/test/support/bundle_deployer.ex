@@ -33,6 +33,7 @@ defmodule OMG.Eth.BundleDeployer do
   # NOTE tx marker must match values defined in the `omg` app. This doesn't depend on `omg` so can't import from there
   # TODO drying this properly would require moving at least part of the deployment to `omg`. Not ready for this yet
   @payment_tx_marker 1
+  @payment_output_type_marker 1
   # `Protocol.MORE_VP()` from `Protocol.sol`
   @morevp_protocol_marker 2
   @eth_vault_number 1
@@ -104,7 +105,9 @@ defmodule OMG.Eth.BundleDeployer do
       Deployer.create_new("OutputGuardHandlerRegistry", root_path, deployer_addr, [])
 
     {:ok, _, payment_output_guard_handler_addr} =
-      Deployer.create_new("PaymentOutputGuardHandler", root_path, deployer_addr, tx_type_marker: @payment_tx_marker)
+      Deployer.create_new("PaymentOutputGuardHandler", root_path, deployer_addr,
+        payment_output_type_marker: @payment_output_type_marker
+      )
 
     {:ok, _} =
       Eth.contract_transact(

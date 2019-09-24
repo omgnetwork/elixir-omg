@@ -107,13 +107,35 @@ defmodule OMG.Eth.RootChainHelper do
     Eth.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
   end
 
-  def challenge_exit(exit_id, challenge_tx, input_index, challenge_tx_sig, from, contract \\ nil, opts \\ []) do
+  def challenge_exit(
+        exit_id,
+        exiting_tx,
+        challenge_tx,
+        input_index,
+        challenge_tx_sig,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
     opts = defaults |> Keyword.merge(opts)
 
+    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    output_type = 1
+    challenge_tx_type = 1
+    optional_bytes = ""
+    optional_uint = 0
+
     contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "challengeStandardExit(uint192,bytes,uint8,bytes)"
-    args = [exit_id, challenge_tx, input_index, challenge_tx_sig]
+
+    signature =
+      "challengeStandardExit((uint192,uint256,bytes,uint256,bytes,uint16,bytes,bytes,bytes,uint256,bytes,bytes))"
+
+    args = [
+      {exit_id, output_type, exiting_tx, challenge_tx_type, challenge_tx, input_index, challenge_tx_sig, optional_bytes,
+       optional_bytes, optional_uint, optional_bytes, optional_bytes}
+    ]
+
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 

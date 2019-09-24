@@ -44,8 +44,6 @@ defmodule OMG.Watcher.ExitProcessor.Request do
     ife_input_utxo_exists_result: [],
     ife_input_spending_blocks_result: [],
     se_exiting_pos: nil,
-    se_creating_blocks_to_get: [],
-    se_creating_blocks_result: [],
     se_spending_blocks_to_get: [],
     se_spending_blocks_result: []
   ]
@@ -64,8 +62,6 @@ defmodule OMG.Watcher.ExitProcessor.Request do
           ife_input_utxo_exists_result: list(boolean),
           ife_input_spending_blocks_result: list(Block.t()),
           se_exiting_pos: nil | Utxo.Position.t(),
-          se_creating_blocks_to_get: list(pos_integer),
-          se_creating_blocks_result: list(Block.t()),
           se_spending_blocks_to_get: list(Utxo.Position.t()),
           se_spending_blocks_result: list(Block.t())
         }
