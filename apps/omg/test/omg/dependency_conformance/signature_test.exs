@@ -28,9 +28,6 @@ defmodule OMG.DependencyConformance.SignatureTest do
   @moduletag :integration
   @moduletag :common
 
-  # TODO: skipped since eip712 is necessary for challenges&ifes which aren't supported yet. Revisit then
-  @moduletag :skip
-
   @alice TestHelper.generate_entity()
   @bob TestHelper.generate_entity()
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -43,10 +40,11 @@ defmodule OMG.DependencyConformance.SignatureTest do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
     {:ok, _, signtest_addr} =
-      Eth.Deployer.create_new(OMG.Eth.Eip712SignatureWrapper, root_path, Eth.Encoding.from_hex(addr), [])
+      Eth.Deployer.create_new(OMG.Eth.PaymentEip712LibMock, root_path, Eth.Encoding.from_hex(addr), [])
 
-    # TODO if this breaks here someday, it might be because this entry has been changed to be a map of multiple addrs
-    :ok = Application.put_env(:omg_eth, :contract_addr, Eth.Encoding.to_hex(signtest_addr))
+    # impose our testing signature contract wrapper (mock) as the validating contract, which normally would be
+    # plasma framework
+    :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: Eth.Encoding.to_hex(signtest_addr)})
 
     on_exit(exit_fn)
     [contract: signtest_addr]
@@ -55,12 +53,29 @@ defmodule OMG.DependencyConformance.SignatureTest do
   test "signature test empty transaction", context do
     contract = context[:contract]
     tx = Transaction.Payment.new([], []) |> DevCrypto.sign([@alice.priv])
-    sig = tx.sigs |> Enum.at(0)
 
-    verify(contract, tx, sig)
+    verify(contract, tx)
   end
 
-  test "signature test", context do
+  test "no inputs test", context do
+    contract = context[:contract]
+    tx = TestHelper.create_signed([], [{@alice, @eth, 100}])
+    verify(contract, tx)
+  end
+
+  test "no outputs test", context do
+    contract = context[:contract]
+    tx = TestHelper.create_signed([{1, 0, 0, @alice}], [])
+    verify(contract, tx)
+  end
+
+  test "signature test - small tx", context do
+    contract = context[:contract]
+    tx = TestHelper.create_signed([{1, 0, 0, @alice}], [{@alice, @eth, 100}])
+    verify(contract, tx)
+  end
+
+  test "signature test - full tx", context do
     contract = context[:contract]
 
     tx =
@@ -69,10 +84,7 @@ defmodule OMG.DependencyConformance.SignatureTest do
         [{@alice, @eth, 100}, {@alice, @token, 50}, {@bob, @token, 75}, {@bob, @eth, 25}]
       )
 
-    [alice_sig, bob_sig | _] = tx.sigs
-
-    verify(contract, tx, alice_sig)
-    verify(contract, tx, bob_sig)
+    verify(contract, tx)
   end
 
   test "signature test transaction with metadata", context do
@@ -87,21 +99,14 @@ defmodule OMG.DependencyConformance.SignatureTest do
         metadata
       )
 
-    [alice_sig, bob_sig | _] = tx.sigs
-
-    verify(contract, tx, alice_sig)
-    verify(contract, tx, bob_sig)
+    verify(contract, tx)
+    verify(contract, tx)
   end
 
-  defp verify(contract, %Transaction.Signed{raw_tx: tx}, signature) do
-    {:ok, solidity_signer} =
-      Eth.call_contract(contract, "getSigner(bytes,bytes)", [Transaction.raw_txbytes(tx), signature], [:address])
+  defp verify(contract, %Transaction.Signed{raw_tx: tx}) do
+    {:ok, solidity_hash} =
+      Eth.call_contract(contract, "hashTx(address,bytes)", [contract, Transaction.raw_txbytes(tx)], [{:bytes, 32}])
 
-    {:ok, elixir_signer} =
-      tx
-      |> OMG.TypedDataHash.hash_struct()
-      |> OMG.Crypto.recover_address(signature)
-
-    assert solidity_signer == elixir_signer
+    assert solidity_hash == OMG.TypedDataHash.hash_struct(tx)
   end
 end

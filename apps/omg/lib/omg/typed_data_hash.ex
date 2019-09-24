@@ -47,6 +47,7 @@ defmodule OMG.TypedDataHash do
   @spec hash_transaction(Transaction.Payment.t()) :: Crypto.hash_t()
   def hash_transaction(%Transaction.Payment{} = raw_tx) do
     __MODULE__.Tools.hash_transaction(
+      Transaction.Markers.payment(),
       Transaction.get_inputs(raw_tx),
       Transaction.get_outputs(raw_tx),
       raw_tx.metadata,

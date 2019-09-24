@@ -124,16 +124,16 @@ defmodule OMG.TypedDataHashTest do
     test "Output is hashed properly", %{outputs: [output1, output2, output3, output4]} do
       to_output = fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end
 
-      assert "96c33f4f5d36248f3885b7eef86aef0b5b22c78609d6a1e4e716db1854b3586f" ==
+      assert "ab6467081c7b782378b188e4e7e6e769b8ca4e24f6506caa529ce23423ecd0a4" ==
                Tools.hash_output(to_output.(output1)) |> Base.encode16(case: :lower)
 
-      assert "0a7e96daa5e6e390e3302ad0f3215abfc430b1f4fbd1b60793462e9db72dd2df" ==
+      assert "cd29671159482b06d18128343d9be9825e68df94ac7384e3b58e0474f31d017f" ==
                Tools.hash_output(to_output.(output2)) |> Base.encode16(case: :lower)
 
-      assert "594795caf8154c6c4023c627b44831d7b7a55ffaa9a2acc7e938993d18ea32ae" ==
+      assert "e143688bfd8c20c163fda04b736c0ddbc085d9cd113630545e0da908acf9dcf0" ==
                Tools.hash_output(to_output.(output3)) |> Base.encode16(case: :lower)
 
-      assert "1171715d9d7d4d25b206621d80fd66c71beb59c1933fc3f2266ebc5607202fb8" ==
+      assert "a3f97133bb62989c1c848c8bdcefbe68d03f9bf97c9b066cf6923b3e3a06ea68" ==
                Tools.hash_output(to_output.(output4)) |> Base.encode16(case: :lower)
     end
 
@@ -148,28 +148,28 @@ defmodule OMG.TypedDataHashTest do
     end
 
     test "Transaction is hashed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
-      assert "86b1c850f5221d40683097c9257dd13ee50964089ed3080ebd7ddc0a733adff3" ==
+      assert "b2b6ae7a5a92e58adf1d554d675906ff557df278ae1297f8fa9b01f01dede6b6" ==
                TypedDataHash.hash_transaction(Transaction.Payment.new([], [])) |> Base.encode16(case: :lower)
 
-      assert "444ec233a0a80d7a40aff0bc53462543994aa088b2d0a3e635acc57176076ef8" ==
+      assert "88541c996667133fb693974c032b9ca94582e2f5629dfd3c8f681220ea57c4a6" ==
                TypedDataHash.hash_transaction(Transaction.Payment.new(inputs, outputs))
                |> Base.encode16(case: :lower)
 
-      assert "636491ffc56c65f51760e1149da96e1f1605815ba21efe4ffa4c9a18ce7a0560" ==
+      assert "312a9d61c2ead1ec95c0213caefaf5a6dcaf1f1f8cd3f807e4d7336fc977b7c1" ==
                TypedDataHash.hash_transaction(Transaction.Payment.new(inputs, outputs, metadata))
                |> Base.encode16(case: :lower)
     end
 
     test "Structured hash is computed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
-      assert "992ac0f45bff7d9fb74636623e5d8b111b49b818cadcf3a91c035735a84d154f" ==
+      assert "554368e062dba0a496463941733fbe37cdb8e9169ba0744d7b23154372528364" ==
                TypedDataHash.hash_struct(Transaction.Payment.new([], []), @test_domain_separator)
                |> Base.encode16(case: :lower)
 
-      assert "b42dc40570279af9faa05e64d62f54db0fd2b768a4a69646efba068cf88eb7a2" ==
+      assert "1f6cc38540d402435ff4e8300adc91044f32ff229f343d5ec74b3de749d119d7" ==
                TypedDataHash.hash_struct(Transaction.Payment.new(inputs, outputs), @test_domain_separator)
                |> Base.encode16(case: :lower)
 
-      assert "5f9adeaaba8d2fa17de40f45eb12136c7e7f26ea56567226274314d0a563e81d" ==
+      assert "a3911ce926e4b42722a39e6347e9d7d96c6df03bea6894a00cc3eab40c31c79a" ==
                TypedDataHash.hash_struct(Transaction.Payment.new(inputs, outputs, metadata), @test_domain_separator)
                |> Base.encode16(case: :lower)
     end
@@ -181,6 +181,7 @@ defmodule OMG.TypedDataHashTest do
                TypedDataHash.Types.encode_type(:EIP712Domain)
 
       assert "Transaction(" <>
+               "uint256 txType," <>
                "Input input0,Input input1,Input input2,Input input3," <>
                "Output output0,Output output1,Output output2,Output output3," <>
                "bytes32 metadata)" ==
@@ -189,7 +190,7 @@ defmodule OMG.TypedDataHashTest do
       assert "Input(uint256 blknum,uint256 txindex,uint256 oindex)" ==
                TypedDataHash.Types.encode_type(:Input)
 
-      assert "Output(address owner,address currency,uint256 amount)" ==
+      assert "Output(bytes20 owner,address currency,uint256 amount)" ==
                TypedDataHash.Types.encode_type(:Output)
     end
   end

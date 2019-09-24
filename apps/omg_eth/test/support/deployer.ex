@@ -35,10 +35,10 @@ defmodule OMG.Eth.Deployer do
     |> deploy_contract(from, gas, opts)
   end
 
-  def create_new(OMG.Eth.Eip712SignatureWrapper, path_project_root, from, [], opts) do
-    gas = Map.get(@gas_contracts, "SignatureTest", @gas_contract_rootchain)
+  def create_new(OMG.Eth.PaymentEip712LibMock, path_project_root, from, [], opts) do
+    gas = Map.get(@gas_contracts, "PaymentEip712LibMock", @gas_contract_rootchain)
 
-    get_bytecode!(path_project_root, "SignatureTest")
+    get_bytecode!(path_project_root, "PaymentEip712LibMock")
     |> deploy_contract(from, gas, opts)
   end
 
