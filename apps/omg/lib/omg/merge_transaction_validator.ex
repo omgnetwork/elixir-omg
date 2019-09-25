@@ -14,7 +14,9 @@
 
 defmodule OMG.MergeTransactionValidator do
   @moduledoc """
-  Checks for transaction attributes. Used by OMG.Fees.
+  Decides whether transactions qualify as "merge" transactions that use a single currency,
+  single recipient address and have fewer outputs than inputs. This decision is necessary
+  to know by the child chain to not require the transaction fees.
   """
 
   alias OMG.State.Transaction
@@ -24,6 +26,7 @@ defmodule OMG.MergeTransactionValidator do
 
   use OMG.Utils.LoggerExt
 
+  @spec is_merge_transaction?(%Transaction.Recovered{}) :: boolean()
   def is_merge_transaction?(recovered_transaction) do
     [
       &is_payment?/1,
@@ -63,5 +66,5 @@ defmodule OMG.MergeTransactionValidator do
 
   defp has_less_outputs_than_inputs?(inputs, outputs), do: length(inputs) >= 1 and length(inputs) > length(outputs)
 
-  defp single?(list), do: 1 == list |> Enum.dedup() |> length()
+  defp single?(list), do: 1 == list |> Enum.uniq() |> length()
 end
