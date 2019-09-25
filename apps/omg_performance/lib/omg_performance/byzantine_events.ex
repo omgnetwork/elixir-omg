@@ -100,7 +100,7 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
-  defp valid_exit_data({:ok, respons}), do: valid_exit_data(respons)
+  defp valid_exit_data({:ok, response}), do: valid_exit_data(response)
   defp valid_exit_data(%{proof: _}), do: true
   defp valid_exit_data(_), do: false
 
