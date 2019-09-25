@@ -28,8 +28,14 @@ defmodule OMG.Fees do
   @type fee_spec_t() :: %{token: Transaction.Payment.currency(), flat_fee: non_neg_integer}
   @type fee_t() :: %{Transaction.Payment.currency() => non_neg_integer} | :no_fees_transaction
 
-  @doc """
+  @doc ~S"""
   Checks whether the transaction's inputs cover the fees.
+
+  ## Examples
+
+      iex> Fees.covered?(%{"eth" => 2}, %{"eth" => 1, "omg" => 3})
+      true
+
   """
   @spec covered?(implicit_paid_fee_by_currency :: map(), fees :: fee_t()) :: boolean()
   def covered?(_, :no_fees_transaction), do: true
@@ -44,9 +50,15 @@ defmodule OMG.Fees do
     |> Enum.any?()
   end
 
-  @doc """
+  @doc ~S"""
   Returns the fees to pay for a particular transaction,
   and under particular fee specs listed in `fee_map`.
+
+  ## Examples
+
+      iex> OMG.Fees.for_transaction(%OMG.State.Transaction.Recovered{}, %{"eth" => 1, "omg" => 3})
+      %{"eth" => 1, "omg" => 3}
+
   """
   @spec for_transaction(Transaction.Recovered.t(), fee_t()) :: fee_t()
   def for_transaction(transaction, fee_map) do

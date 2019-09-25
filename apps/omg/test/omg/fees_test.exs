@@ -23,6 +23,8 @@ defmodule OMG.FeesTest do
 
   alias OMG.Fees
 
+  doctest OMG.Fees
+
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
 
@@ -34,10 +36,6 @@ defmodule OMG.FeesTest do
   describe "covered?/2" do
     test "does not check the fees when :no_fees_transaction is passed" do
       assert Fees.covered?(%{@eth => 0}, :no_fees_transaction)
-    end
-
-    test "returns true when fees are covered by eth" do
-      assert Fees.covered?(%{@eth => 2}, @fees)
     end
 
     test "returns true when fees are covered by another currency" do
@@ -73,13 +71,13 @@ defmodule OMG.FeesTest do
 
   describe "for_transaction/2" do
     @tag fixtures: [:alice, :bob]
-    test "returns the fee map when not a merge transaction (different addresses)", %{alice: alice, bob: bob} do
+    test "returns the fee map when not a merge transaction", %{alice: alice, bob: bob} do
       transaction = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}])
       assert Fees.for_transaction(transaction, @fees) == @fees
     end
 
     @tag fixtures: [:alice]
-    test "returns :no_fees_transaction for merge transactions with single currency (eth) and same in/out address (free)",
+    test "returns :no_fees_transaction for merge transactions",
          %{alice: alice} do
       transaction = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{alice, 10}])
       assert Fees.for_transaction(transaction, @fees) == :no_fees_transaction
@@ -95,24 +93,6 @@ defmodule OMG.FeesTest do
         )
 
       assert Fees.for_transaction(transaction, @fees) == :no_fees_transaction
-    end
-
-    @tag fixtures: [:alice]
-    test "returns :no_fees_transaction for merge transactions with single currency (not eth) and same in/out address (free)",
-         %{alice: alice} do
-      transaction = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @not_eth, [{alice, 10}])
-      assert Fees.for_transaction(transaction, @fees) == :no_fees_transaction
-    end
-
-    @tag fixtures: [:alice]
-    test "returns fees for merge transactions when not single currency", %{alice: alice} do
-      transaction =
-        create_recovered(
-          [{1, 0, 0, alice}, {1, 0, 1, alice}, {2, 0, 0, alice}, {2, 1, 0, alice}],
-          [{alice, @eth, 10}, {alice, @not_eth, 10}]
-        )
-
-      assert Fees.for_transaction(transaction, @fees) == @fees
     end
   end
 end
