@@ -80,72 +80,37 @@ defmodule OMG.Watcher.Monitor do
     {:ok, state}
   end
 
-  # we got an exit signal from a linked child, we have to act as a supervisor now and decide what to do
-  # we try to find the child via his old pid that we kept in the state, retrieve his exit reason and specification for
-  # starting the child
-  def handle_info({:EXIT, from, _reason}, state) do
-    {%Child{pid: ^from} = child, other_children} = pop_child_from_dead_pid(from, state.children)
-
-    new_child = restart_or_delay(state.alarm_module, child)
-
-    {:noreply, %{state | children: [new_child | other_children]}}
+  # there's a supervisor below us already that did the needed restarts for it's children
+  # so we just ignore the exit from the supervisor, if the alarm clears, we restart it
+  def handle_info({:EXIT, _from, _reason}, state) do
+    {:noreply, state}
   end
 
+  # alarm has cleared, we can now begin restarting children
   def handle_cast(:start_children, state) do
-    children = Enum.map(state.children, &start_child(&1.spec))
-
+    children = Enum.map(state.children, &start_child(&1))
     {:noreply, %{state | children: children}}
   end
 
-  #  We try to find the child specs from the pid that was started.
-  #  The child will be updated so we return also the new child list without that child.
-
-  @spec pop_child_from_dead_pid(pid(), list(Child.t())) :: {Child.t(), list(Child.t())} | {nil, list(Child.t())}
-  defp pop_child_from_dead_pid(pid, children) do
-    item = Enum.find(children, &(&1.pid == pid))
-
-    {item, children -- [item]}
-  end
-
-  ### Figure out, if the client is unavailable. If it is, we'll postpone the
-  ### restart until the alarm clears. Other processes can be restarted immediately.
-  defp restart_or_delay(alarm_module, child) do
-    case is_raised?(alarm_module) do
-      true ->
-        # wait until we get notified that the alarm was cleared
-        child
-
-      _ ->
-        start_child(child.spec)
+  defp start_child(%Child{pid: pid, spec: spec} = child) do
+    case Process.alive?(pid) do
+      true -> child
+      false -> do_start_child(spec)
     end
   end
 
-  defp start_child({child_module, args} = spec) do
-    case child_module.start_link(args) do
-      {:ok, pid} ->
-        %Child{pid: pid, spec: spec}
-
-      {:error, {:already_started, pid}} ->
-        %Child{pid: pid, spec: spec}
-    end
+  defp start_child(spec) do
+    do_start_child(spec)
   end
 
-  defp start_child(%{id: _name, start: {child_module, function, args}} = spec) do
-    case apply(child_module, function, args) do
-      {:ok, pid} ->
-        %Child{pid: pid, spec: spec}
-
-      {:error, {:already_started, pid}} ->
-        %Child{pid: pid, spec: spec}
-    end
+  defp do_start_child({child_module, args} = spec) do
+    {:ok, pid} = child_module.start_link(args)
+    %Child{pid: pid, spec: spec}
   end
 
-  defp is_raised?(alarm_module) do
-    alarms = alarm_module.all()
-
-    alarms
-    |> Enum.find(fn x -> match?(:ethereum_client_connection, elem(x, 0)) end)
-    |> is_tuple()
+  defp do_start_child(%{id: _name, start: {child_module, function, args}} = spec) do
+    {:ok, pid} = apply(child_module, function, args)
+    %Child{pid: pid, spec: spec}
   end
 
   defp install do
