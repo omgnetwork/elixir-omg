@@ -26,7 +26,7 @@ defmodule OMG.Fees do
   use OMG.Utils.LoggerExt
 
   @type fee_spec_t() :: %{token: Transaction.Payment.currency(), flat_fee: non_neg_integer}
-  @type fee_t() :: %{Transaction.Payment.currency() => non_neg_integer} | :no_fees_transaction
+  @type fee_t() :: %{Transaction.Payment.currency() => non_neg_integer} | ::no_fees_required
 
   @doc ~S"""
   Checks whether the transaction's inputs cover the fees.
@@ -38,7 +38,7 @@ defmodule OMG.Fees do
 
   """
   @spec covered?(implicit_paid_fee_by_currency :: map(), fees :: fee_t()) :: boolean()
-  def covered?(_, :no_fees_transaction), do: true
+  def covered?(_, ::no_fees_required), do: true
 
   def covered?(implicit_paid_fee_by_currency, fees) do
     for {input_currency, implicit_paid_fee} <- implicit_paid_fee_by_currency do
@@ -64,7 +64,7 @@ defmodule OMG.Fees do
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do
       true ->
-        :no_fees_transaction
+        ::no_fees_required
 
       # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
       false ->
