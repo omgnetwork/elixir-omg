@@ -16,6 +16,7 @@ defmodule OMG.Status.Alert.AlarmHandler do
   @moduledoc """
     This is the SASL alarm handler process.
   """
+  @table_name :alarms
 
   def install do
     case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
@@ -30,10 +31,13 @@ defmodule OMG.Status.Alert.AlarmHandler do
     end
   end
 
+  def table_name(), do: @table_name
+
   # -----------------------------------------------------------------
   # :gen_event handlers
   # -----------------------------------------------------------------
   def init(_args) do
+    table_setup()
     {:ok, %{alarms: []}}
   end
 
@@ -66,4 +70,10 @@ defmodule OMG.Status.Alert.AlarmHandler do
 
   def terminate(:swap, state), do: {__MODULE__, state}
   def terminate(_, _), do: :ok
+
+  defp table_setup do
+    _ = if :undefined == :ets.info(@table_name), do: @table_name = :ets.new(@table_name, table_settings())
+  end
+
+  defp table_settings, do: [:named_table, :set, :public, read_concurrency: true]
 end

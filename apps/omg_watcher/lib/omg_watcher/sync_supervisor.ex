@@ -22,27 +22,21 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   alias OMG.Eth
   alias OMG.EthereumEventListener
-  alias OMG.Status.Alert.Alarm
   alias OMG.Watcher
   alias OMG.Watcher.CoordinatorSetup
-  alias OMG.Watcher.Monitor
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
-    children = [
-      {Monitor, [Alarm, monitor_children()]}
-    ]
-
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(children, opts)
+    Supervisor.init(children(), opts)
   end
 
-  defp monitor_children do
+  defp children do
     [
       %{
         id: OMG.Watcher.BlockGetter.Supervisor,
