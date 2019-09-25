@@ -34,8 +34,8 @@ defmodule OMG.FeesTest do
   }
 
   describe "covered?/2" do
-    test "does not check the fees when ::no_fees_required is passed" do
-      assert Fees.covered?(%{@eth => 0}, ::no_fees_required)
+    test "does not check the fees when :no_fees_required is passed" do
+      assert Fees.covered?(%{@eth => 0}, :no_fees_required)
     end
 
     test "returns true when fees are covered by another currency" do
@@ -77,14 +77,14 @@ defmodule OMG.FeesTest do
     end
 
     @tag fixtures: [:alice]
-    test "returns ::no_fees_required for merge transactions",
+    test "returns :no_fees_required for merge transactions",
          %{alice: alice} do
       transaction = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{alice, 10}])
-      assert Fees.for_transaction(transaction, @fees) == ::no_fees_required
+      assert Fees.for_transaction(transaction, @fees) == :no_fees_required
     end
 
     @tag fixtures: [:alice]
-    test "returns ::no_fees_required for valid merge transactions with multiple inputs/ouputs",
+    test "returns :no_fees_required for valid merge transactions with multiple inputs/ouputs",
          %{alice: alice} do
       transaction =
         create_recovered(
@@ -92,7 +92,7 @@ defmodule OMG.FeesTest do
           [{alice, @eth, 10}, {alice, @eth, 10}]
         )
 
-      assert Fees.for_transaction(transaction, @fees) == ::no_fees_required
+      assert Fees.for_transaction(transaction, @fees) == :no_fees_required
     end
   end
 end

@@ -55,7 +55,7 @@ defmodule OMG.StateTest do
     assert true == State.utxo_exists?(Utxo.position(1, 0, 0))
 
     assert {:ok, _} =
-             State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]), ::no_fees_required)
+             State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]), :no_fees_required)
 
     # block forming & status
     assert {blknum, _} = State.get_status()
