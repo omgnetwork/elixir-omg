@@ -35,6 +35,10 @@ defmodule OMG.Status.Metric.Statix do
 
       def set(key, val, options \\ []), do: :ok
 
+      def event(key, val, options), do: :ok
+
+      def service_check(key, val, options), do: :ok
+
       def current_conn, do: %Statix.Conn{sock: __MODULE__}
     end
   end

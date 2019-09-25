@@ -33,7 +33,7 @@ defmodule OMG.Status.Mixfile do
     do: [
       {:telemetry, "~> 0.4.0"},
       {:sentry, "~> 7.0"},
-      {:statix, "~> 1.2"},
+      {:statix, git: "git@github.com:bleacherreport/statix.git", branch: "otp-21.3.8.4-support"},
       {:spandex_datadog, "~> 0.4"},
       {:decorator, "~> 1.2"},
       {:vmstats, "~> 2.3", runtime: false},
