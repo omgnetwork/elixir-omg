@@ -446,7 +446,7 @@ workflows:
           filters:
             branches:
               only:
-                - v0.1
+                - v0.2
       # Publish in case of master branch.
       - publish_child_chain:
           requires: [child_chain_coveralls_and_integration_tests, watcher_coveralls_and_integration_tests, common_coveralls_and_integration_tests, test, dialyzer, lint]
