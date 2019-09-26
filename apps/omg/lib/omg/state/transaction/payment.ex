@@ -25,11 +25,10 @@ defmodule OMG.State.Transaction.Payment do
   require Transaction
   require Utxo
 
-  @default_metadata nil
-
   @zero_address OMG.Eth.zero_address()
+  @zero_metadata <<0::256>>
 
-  defstruct [:inputs, :outputs, metadata: @default_metadata]
+  defstruct [:inputs, :outputs, metadata: @zero_metadata]
 
   @type t() :: %__MODULE__{
           inputs: list(input()),
@@ -52,12 +51,6 @@ defmodule OMG.State.Transaction.Payment do
 
   @max_inputs 4
   @max_outputs 4
-
-  defmacro is_metadata(metadata) do
-    quote do
-      unquote(metadata) == nil or (is_binary(unquote(metadata)) and byte_size(unquote(metadata)) == 32)
-    end
-  end
 
   defmacro max_inputs do
     quote do
@@ -87,10 +80,10 @@ defmodule OMG.State.Transaction.Payment do
           list({Crypto.address_t(), currency(), pos_integer}),
           Transaction.metadata()
         ) :: t()
-  def new(inputs, outputs, metadata \\ @default_metadata)
+  def new(inputs, outputs, metadata \\ @zero_metadata)
 
   def new(inputs, outputs, metadata)
-      when is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
+      when Transaction.is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
     inputs =
       inputs
       |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
@@ -164,7 +157,7 @@ defmodule OMG.State.Transaction.Payment do
     _ -> {:error, :malformed_outputs}
   end
 
-  defp reconstruct_metadata([]), do: {:ok, nil}
+  defp reconstruct_metadata([]), do: {:ok, @zero_metadata}
   defp reconstruct_metadata([metadata]) when Transaction.is_metadata(metadata), do: {:ok, metadata}
   defp reconstruct_metadata([_]), do: {:error, :malformed_metadata}
 
@@ -224,7 +217,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
   def get_data_for_rlp(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
-      when Transaction.Payment.is_metadata(metadata),
+      when Transaction.is_metadata(metadata),
       do:
         [
           # TODO: commented code for the tx markers handling
