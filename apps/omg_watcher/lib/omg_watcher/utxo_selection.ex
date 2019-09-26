@@ -63,6 +63,8 @@ defmodule OMG.Watcher.UtxoSelection do
           | {:error, :too_many_outputs}
           | {:error, :empty_transaction}
 
+  @empty_metadata <<0::256>>
+
   @doc """
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
@@ -189,7 +191,7 @@ defmodule OMG.Watcher.UtxoSelection do
         inputs ->
           create_transaction([{token, inputs}], %{
             fee: %{amount: 0, currency: token},
-            metadata: nil,
+            metadata: @empty_metadata,
             owner: owner,
             payments: []
           })
@@ -206,7 +208,7 @@ defmodule OMG.Watcher.UtxoSelection do
         Transaction.Payment.new(
           inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
           outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
-          metadata
+          metadata || @empty_metadata
         )
   end
 

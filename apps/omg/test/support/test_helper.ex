@@ -21,6 +21,7 @@ defmodule OMG.TestHelper do
   alias OMG.State.Transaction
 
   @type entity :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
+  @empty_metadata <<0::256>>
 
   # Deterministic entities. Use only when truly needed.
   def entities_stable,
@@ -81,7 +82,7 @@ defmodule OMG.TestHelper do
           list({map, pos_integer}),
           Transaction.metadata()
         ) :: Transaction.Recovered.t()
-  def create_recovered(inputs, currency, outputs, metadata \\ nil) do
+  def create_recovered(inputs, currency, outputs, metadata \\ @empty_metadata) do
     create_encoded(inputs, currency, outputs, metadata) |> Transaction.Recovered.recover_from!()
   end
 
@@ -91,7 +92,7 @@ defmodule OMG.TestHelper do
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, outputs), do: create_encoded(inputs, outputs) |> Transaction.Recovered.recover_from!()
 
-  def create_encoded(inputs, currency, outputs, metadata \\ nil) do
+  def create_encoded(inputs, currency, outputs, metadata \\ @empty_metadata) do
     create_signed(inputs, currency, outputs, metadata) |> Transaction.Signed.encode()
   end
 
@@ -108,7 +109,7 @@ defmodule OMG.TestHelper do
           list({map, pos_integer}),
           Transaction.metadata()
         ) :: Transaction.Signed.t()
-  def create_signed(inputs, currency, outputs, metadata \\ nil) do
+  def create_signed(inputs, currency, outputs, metadata \\ @empty_metadata) do
     raw_tx =
       Transaction.Payment.new(
         inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),

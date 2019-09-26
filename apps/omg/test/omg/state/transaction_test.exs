@@ -51,19 +51,19 @@ defmodule OMG.State.TransactionTest do
 
   describe "hashing and metadata field" do
     test "create transaction with metadata" do
-      tx_with_metadata = Transaction.Payment.new(@utxo_positions, [{"Joe Black", @eth, 53}], <<42::256>>)
+      tx_with_metadata = Transaction.Payment.new(@utxo_positions, [{"Joe Black", @eth, 53}], <<0::256>>)
       tx_without_metadata = Transaction.Payment.new(@utxo_positions, [{"Joe Black", @eth, 53}])
 
-      assert Transaction.raw_txhash(tx_with_metadata) != Transaction.raw_txhash(tx_without_metadata)
+      assert Transaction.raw_txhash(tx_with_metadata) == Transaction.raw_txhash(tx_without_metadata)
 
-      assert byte_size(Transaction.raw_txbytes(tx_with_metadata)) >
+      assert byte_size(Transaction.raw_txbytes(tx_with_metadata)) ==
                byte_size(Transaction.raw_txbytes(tx_without_metadata))
     end
 
     test "raw transaction hash is invariant" do
       assert Transaction.raw_txhash(@transaction) ==
-               <<223, 203, 72, 245, 189, 73, 191, 26, 209, 76, 48, 223, 168, 223, 143, 194, 136, 249, 36, 242, 110, 15,
-                 251, 217, 235, 157, 237, 24, 142, 214, 3, 113>>
+               <<22, 144, 106, 111, 111, 175, 135, 22, 122, 230, 103, 220, 153, 161, 147, 239, 150, 205, 18, 226, 161,
+                 163, 127, 20, 163, 205, 24, 68, 0, 213, 103, 161>>
     end
   end
 
