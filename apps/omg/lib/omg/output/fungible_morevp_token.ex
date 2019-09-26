@@ -48,6 +48,9 @@ end
 
 defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
   alias OMG.Output.FungibleMoreVPToken
+  alias OMG.Utxo
+
+  require Utxo
 
   # TODO: dry wrt. Application.fetch_env!(:omg, :output_types_modules)? Use `bimap` perhaps?
   @output_type_marker <<1>>
@@ -59,8 +62,8 @@ defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
     owner == witness
   end
 
-  def is_zero?(%FungibleMoreVPToken{amount: 0}), do: false
-  def is_zero?(%FungibleMoreVPToken{amount: _}), do: true
+  def input_pointer(%FungibleMoreVPToken{}, blknum, tx_index, oindex, _, _),
+    do: Utxo.position(blknum, tx_index, oindex)
 
   def to_db_value(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) do

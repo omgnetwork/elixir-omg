@@ -718,16 +718,6 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :state_empty]
-  test "Output can have a zero value; can't be used as input though", %{alice: alice, state_empty: state} do
-    state
-    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}, {alice, 0}]), :no_fees_required)
-    |> success?
-    |> Core.exec(create_recovered([{1000, 0, 1, alice}], @eth, [{alice, 0}]), :no_fees_required)
-    |> fail?(:utxo_not_found)
-  end
-
-  @tag fixtures: [:alice, :state_empty]
   test "Output with zero value does not change oindex of other outputs", %{alice: alice, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
@@ -735,17 +725,6 @@ defmodule OMG.State.CoreTest do
     |> success?
     |> Core.exec(create_recovered([{1000, 0, 1, alice}], @eth, [{alice, 1}]), :no_fees_required)
     |> success?
-  end
-
-  @tag fixtures: [:alice, :state_alice_deposit]
-  test "Output with zero value will not be written to DB", %{alice: alice, state_alice_deposit: state} do
-    state =
-      state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]), :no_fees_required)
-      |> success?
-
-    {:ok, {_, _, db_updates}, _} = form_block_check(state)
-    assert [] = Enum.filter(db_updates, &match?({:put, :utxo, _}, &1))
   end
 
   @tag fixtures: [:alice, :state_empty]

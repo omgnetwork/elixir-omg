@@ -23,6 +23,7 @@ defmodule OMG.State.Core do
   alias OMG.Block
   alias OMG.Crypto
   alias OMG.Fees
+  alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
@@ -357,15 +358,19 @@ defmodule OMG.State.Core do
     tx
     |> Transaction.get_outputs()
     |> Enum.with_index()
-    |> Enum.filter(fn {output, _index} -> OMG.Output.Protocol.is_zero?(output) end)
-    |> Enum.into(%{}, fn {output, oindex} ->
-      {Utxo.position(blknum, tx_index, oindex), %Utxo{output: output, creating_txhash: hash}}
+    |> Enum.map(fn {output, oindex} ->
+      {Output.Protocol.input_pointer(output, blknum, tx_index, oindex, tx, hash), output}
+    end)
+    |> Enum.into(%{}, fn {input_pointer, output} ->
+      {input_pointer, %Utxo{output: output, creating_txhash: hash}}
     end)
   end
 
   defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
-    {Utxo.position(blknum, 0, 0),
-     %Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: cur, owner: owner}}}
+    Transaction.Payment.new([], [{owner, cur, amount}])
+    |> non_zero_utxos_from(blknum, 0)
+    |> Enum.map(& &1)
+    |> hd()
   end
 
   defp get_last_deposit_child_blknum([] = _deposits, current_height), do: current_height

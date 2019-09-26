@@ -33,9 +33,9 @@ defprotocol OMG.Output.Protocol do
   def can_spend?(output_spent, witness, raw_tx)
 
   @doc """
-  True if this particular output can and should be completely disregarded
+  Returns the input pointer that the output should be later referenced by in inputs to be spent
   """
-  def is_zero?(output)
+  def input_pointer(output, blknum, tx_index, oindex, tx, hash)
 
   @doc """
   Transforms into a db-specific term
