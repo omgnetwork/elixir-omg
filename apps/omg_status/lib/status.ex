@@ -13,5 +13,33 @@
 # limitations under the License.
 
 defmodule OMG.Status do
-  @moduledoc false
+  @moduledoc """
+  An interface towards the node health.
+  """
+  alias OMG.Status.Alert.AlarmHandler
+  @health_match for n <- [:boot_in_progress, :ethereum_client_connection], do: {{n, 0}, [], [false]}
+
+  @spec is_healthy() :: boolean()
+  def is_healthy() do
+    case :ets.select(AlarmHandler.table_name(), @health_match) do
+      [] -> false
+      _ -> true
+    end
+  end
 end
+
+# :ets.new(OMG.Status.Alert.AlarmHandler.table_name, [:named_table, :set, :public, read_concurrency: true])
+# :ets.update_counter(OMG.Status.Alert.AlarmHandler.table_name, :ethereum_client_connection, {2, 1, 1, 1}, {:ethereum_client_connection, 0})
+
+# :ets.update_counter(OMG.Status.Alert.AlarmHandler.table_name, :ethereum_client_connection, {2, -1, 0, 0}, {:ethereum_client_connection, 1})
+# a = [
+#   {{:ethereum_client_connection, 1}, [], [true]},
+#   {{:boot_in_progress, 1}, [], [true]},
+#   {:_, [], [false]}
+# ]
+# :ets.select(OMG.Status.Alert.AlarmHandler.table_name, a)
+
+# a = [
+#   {{:ethereum_client_connection, 1}, [], [true]},
+#   {:_, [], [false]}
+# ]

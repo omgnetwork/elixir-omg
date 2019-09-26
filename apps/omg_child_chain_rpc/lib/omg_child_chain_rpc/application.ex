@@ -25,10 +25,7 @@ defmodule OMG.ChildChainRPC.Application do
 
     opts = [strategy: :one_for_one, name: OMG.ChildChainRPC.Supervisor]
 
-    children = [
-      {OMG.ChildChainRPC.Plugs.Health, []},
-      {OMG.ChildChainRPC.Web.Endpoint, []}
-    ]
+    children = [{OMG.ChildChainRPC.Web.Endpoint, []}]
 
     Supervisor.start_link(children, opts)
   end
