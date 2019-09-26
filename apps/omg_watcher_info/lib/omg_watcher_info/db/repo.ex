@@ -37,9 +37,9 @@ defmodule OMG.WatcherInfo.DB.Repo do
 
     entries
     |> Enum.map(fn entry ->
-      utc_now = DateTime.utc_now()
-      Map.merge(entry, %{inserted_at: utc_now, updated_at: utc_now})
-    end)
+         utc_now = DateTime.utc_now()
+         Map.merge(entry, %{inserted_at: utc_now, updated_at: utc_now})
+       end)
     |> Stream.chunk_every(chunk_size)
     |> Enum.each(&insert_all(schema_or_source, &1, opts))
   end
