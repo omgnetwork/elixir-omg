@@ -29,7 +29,7 @@ defmodule OMG.TypedDataHash.Config do
   """
   @spec domain_data_from_config() :: Tools.eip712_domain_t()
   def domain_data_from_config do
-    contract_addr = Application.fetch_env!(:omg_eth, :contract_addr) || @fallback_ari_network_address
+    contract_addr = Application.fetch_env!(:omg_eth, :contract_addr)[:plasma_framework] || @fallback_ari_network_address
 
     Application.fetch_env!(:omg, :eip_712_domain)
     |> Map.new()

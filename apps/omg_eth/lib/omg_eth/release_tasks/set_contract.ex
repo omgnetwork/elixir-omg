@@ -53,14 +53,14 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
         %{
           "authority_addr" => authority_address,
-          "contract_addr" => contract_address,
+          "contract_addr" => contract_addresses,
           "txhash_contract" => txhash_contract
         } = Jason.decode!(body)
 
         exit_period_seconds =
           validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
 
-        update_configuration(txhash_contract, authority_address, contract_address, exit_period_seconds)
+        update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
 
       {_, via_env} when is_binary(via_env) ->
         :ok = apply_static_settings(via_env)
@@ -71,6 +71,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   end
 
   defp apply_static_settings(network) do
+    # FIXME: not so easy here - rethink how do we allow to set the contracts via the system ENV
     network =
       case String.upcase(network) do
         "RINKEBY" = network ->
@@ -93,12 +94,13 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     update_configuration(txhash_contract, authority_address, contract_address, exit_period_seconds)
   end
 
-  defp update_configuration(txhash_contract, authority_address, contract_address, exit_period_seconds)
+  defp update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
        when is_binary(txhash_contract) and
               is_binary(authority_address) and is_binary(contract_address) and is_integer(exit_period_seconds) do
+    contract_addresses = contract_addresses |> Enum.into(%{}, fn {name, addr} -> {name, String.downcase(addr)} end)
     :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
     :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
-    :ok = Application.put_env(@app, :contract_addr, String.downcase(contract_address), persistent: true)
+    :ok = Application.put_env(@app, :contract_addr, contract_addresses, persistent: true)
     :ok = Application.put_env(@app, :exit_period_seconds, exit_period_seconds)
   end
 

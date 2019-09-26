@@ -30,7 +30,7 @@ defmodule OMG.Eth.RootChain do
           {:error, binary() | atom() | map()}
           | {:ok, binary()}
   def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
 
     # NOTE: we're not using any defaults for opts here!
@@ -67,7 +67,7 @@ defmodule OMG.Eth.RootChain do
   Returns next blknum that is supposed to be mined by operator
   """
   def get_next_child_block(contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "nextChildBlock()", [], [{:uint, 256}])
   end
 
@@ -86,12 +86,14 @@ defmodule OMG.Eth.RootChain do
   #TODO - can exits accept a list of exits? Look at ExitProcessor.handle_call({:new_exits, new_exits})
   """
   def get_standard_exit(exit_id, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "exits(uint192)", [exit_id], [:address, :address, {:uint, 256}, {:uint, 192}])
   end
 
   def get_standard_exit_id(txbytes, utxo_pos, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "getStandardExitId(bytes,uint256)", [txbytes, utxo_pos], [{:uint, 192}])
   end
 
@@ -100,7 +102,8 @@ defmodule OMG.Eth.RootChain do
   #TODO - can exits accept a list of in_flight_exit_id? Look at ExitProcessor.handle_call({:new_in_flight_exits, events})
   """
   def get_in_flight_exit(in_flight_exit_id, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
 
     # solidity does not return arrays of structs
     return_struct = [
@@ -115,12 +118,13 @@ defmodule OMG.Eth.RootChain do
   end
 
   def get_in_flight_exit_id(tx_bytes, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "getInFlightExitId(bytes)", [tx_bytes], [{:uint, 192}])
   end
 
   def get_child_chain(blknum, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "blocks(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
   end
 
@@ -132,7 +136,8 @@ defmodule OMG.Eth.RootChain do
   Returns lists of deposits sorted by child chain block number
   """
   def get_deposits(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, @deposit_created_event_signature, contract),
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
@@ -141,7 +146,8 @@ defmodule OMG.Eth.RootChain do
   @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) ::
           {:ok, [in_flight_exit_piggybacked_event]}
   def get_piggybacks(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "InFlightExitPiggybacked(address,bytes32,uint8)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
@@ -152,7 +158,8 @@ defmodule OMG.Eth.RootChain do
   Returns lists of block submissions from Ethereum logs
   """
   def get_block_submitted_events({block_from, block_to}, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "BlockSubmitted(uint256)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
@@ -163,7 +170,8 @@ defmodule OMG.Eth.RootChain do
   Returns finalizations of exits from a range of blocks from Ethereum logs.
   """
   def get_finalizations(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "ExitFinalized(uint192)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
@@ -175,7 +183,8 @@ defmodule OMG.Eth.RootChain do
   Used as a callback function in EthereumEventListener.
   """
   def get_challenges(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "ExitChallenged(uint256)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
@@ -187,7 +196,8 @@ defmodule OMG.Eth.RootChain do
   Used as a callback function in EthereumEventListener.
   """
   def get_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "InFlightExitChallenged(address,bytes32,uint256)"
 
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
@@ -225,7 +235,8 @@ defmodule OMG.Eth.RootChain do
   Used as a callback function in EthereumEventListener.
   """
   def get_responds_to_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "InFlightExitChallengeResponded(address,bytes32,uint256)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
@@ -237,7 +248,8 @@ defmodule OMG.Eth.RootChain do
   Used as a callback function in EthereumEventListener.
   """
   def get_piggybacks_challenges(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "InFlightExitOutputBlocked(address,bytes32,uint256)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
@@ -249,7 +261,8 @@ defmodule OMG.Eth.RootChain do
   Used as a callback function in EthereumEventListener.
   """
   def get_in_flight_exit_finalizations(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "InFlightExitFinalized(uint192,uint8)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
@@ -275,7 +288,7 @@ defmodule OMG.Eth.RootChain do
   @spec contract_ready(optional_addr_t()) ::
           :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
   def contract_ready(contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
 
     try do
       {:ok, addr} = authority(contract)
@@ -293,7 +306,7 @@ defmodule OMG.Eth.RootChain do
   @spec get_root_deployment_height(binary() | nil, optional_addr_t()) ::
           {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     txhash = txhash || from_hex(Application.fetch_env!(:omg_eth, :txhash_contract))
 
     # the back&forth is just the dumb but natural way to go about Ethereumex/Eth APIs conventions for encoding
@@ -316,7 +329,8 @@ defmodule OMG.Eth.RootChain do
   Returns standard exits from a range of blocks. Collects exits from Ethereum logs.
   """
   def get_standard_exits(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "ExitStarted(address,uint192)"
 
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
@@ -341,7 +355,8 @@ defmodule OMG.Eth.RootChain do
   Returns InFlightExit from a range of blocks.
   """
   def get_in_flight_exit_starts(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     signature = "InFlightExitStarted(address,bytes32)"
 
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
@@ -363,6 +378,29 @@ defmodule OMG.Eth.RootChain do
         other
     end
   end
+
+  @doc """
+  gets contract addresses from somewhere
+  maybe_fetch_addr!(nil, name) will fetch! from Application env, get the correct entry and decode
+  otherwise it just returns whatever you gave it, assuming it's decoded already
+  """
+  # FIXME: find a better place for this? it's shared between here and _helper.ex
+  def maybe_fetch_addr!(contract, name) do
+    contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr)[name])
+  end
+
+  # FIXME: tidy this
+  @doc """
+  Hexifies the entire contract map
+  """
+  def contract_map_to_hex(contract_addr),
+    do: contract_addr |> Enum.into(%{}, fn {name, addr} -> {name, to_hex(addr)} end)
+
+  @doc """
+  Unhexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
+  """
+  def contract_map_from_hex(contract_map),
+    do: contract_map |> Enum.into(%{}, fn {name, addr} -> {name, from_hex(addr)} end)
 
   def decode_deposit(log) do
     non_indexed_keys = [:amount]
@@ -404,7 +442,8 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp authority(contract) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "operator()", [], [:address])
   end
 

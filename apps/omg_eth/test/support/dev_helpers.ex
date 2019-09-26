@@ -33,6 +33,10 @@ defmodule OMG.Eth.DevHelpers do
 
   @passphrase "ThisIsATestnetPassphrase"
 
+  @tx_defaults Eth.Defaults.tx_defaults()
+
+  @gas_init_tx 500_000
+
   @doc """
   Prepares the developer's environment with respect to the root chain contract and its configuration within
   the application.
@@ -43,15 +47,81 @@ defmodule OMG.Eth.DevHelpers do
     opts = Keyword.merge([root_path: "./"], opts)
     %{root_path: root_path} = Enum.into(opts, %{})
 
-    exit_period_seconds = get_exit_period(exit_period_seconds)
+    transact_opts = @tx_defaults |> Keyword.put(:gas, @gas_init_tx)
+
+    # FIXME: unhardcode exitperiod in constructor of PlasmaFramework
+    #        also note the deferred config done inside, it is useful outside of that function
+    _exit_period_seconds = get_exit_period(exit_period_seconds)
 
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
          {:ok, authority} <- create_and_fund_authority_addr(opts),
          {:ok, deployer_addr} <- get_deployer_address(opts),
-         {:ok, txhash, contract_addr} <- Eth.Deployer.create_new(OMG.Eth.RootChain, root_path, deployer_addr),
+         {:ok, txhash, plasma_framework_addr} <-
+           Eth.Deployer.create_new(OMG.Eth.PlasmaFramework, root_path, deployer_addr),
          {:ok, _} <-
-           Eth.RootChainHelper.init(exit_period_seconds, authority, contract_addr) |> Eth.DevHelpers.transact_sync!() do
-      %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
+           Eth.RootChainHelper.init_authority(authority, plasma_framework_addr),
+         {:ok, _, eth_deposit_verifier_addr} <-
+           Eth.Deployer.create_new(OMG.Eth.EthDepositVerifier, root_path, deployer_addr),
+         {:ok, _, erc20_deposit_verifier_addr} <-
+           Eth.Deployer.create_new(OMG.Eth.Erc20DepositVerifier, root_path, deployer_addr),
+         {:ok, _, eth_vault_addr} <-
+           Eth.Deployer.create_new2(OMG.Eth.EthVault, root_path, deployer_addr, plasma_framework_addr),
+         {:ok, _, erc20_vault_addr} <-
+           Eth.Deployer.create_new2(OMG.Eth.Erc20Vault, root_path, deployer_addr, plasma_framework_addr),
+         {:ok, _} <-
+           Eth.contract_transact(
+             deployer_addr,
+             eth_vault_addr,
+             "setDepositVerifier(address)",
+             [eth_deposit_verifier_addr],
+             transact_opts
+           ),
+         {:ok, _} <-
+           Eth.contract_transact(
+             deployer_addr,
+             plasma_framework_addr,
+             "registerVault(uint256,address)",
+             [1, eth_vault_addr],
+             transact_opts
+           ),
+         {:ok, _} <-
+           Eth.contract_transact(
+             deployer_addr,
+             erc20_vault_addr,
+             "setDepositVerifier(address)",
+             [erc20_deposit_verifier_addr],
+             transact_opts
+           ),
+         {:ok, _} <-
+           Eth.contract_transact(
+             deployer_addr,
+             plasma_framework_addr,
+             "registerVault(uint256,address)",
+             [2, erc20_vault_addr],
+             transact_opts
+           )
+           # FIXME: transact_sync was removed from all the contract_transact calls above, just one remains at the end
+           #        this will work, since it's the same address sending txs and they are synchronous. This speeds up a lot
+           |> Eth.DevHelpers.transact_sync!() do
+      # FIXME commented out b/c broken and not necessary before exits
+      # {:ok, _, payment_standard_exit_router_addr} <-
+      #   Eth.Deployer.create_new3(
+      #     OMG.Eth.PaymentStandardExitRouter,
+      #     root_path,
+      #     deployer_addr,
+      #     plasma_framework_addr,
+      #     eth_vault_addr,
+      #     erc20_vault_addr
+      #   )
+      %{
+        contract_addr: %{
+          plasma_framework: plasma_framework_addr,
+          eth_vault: eth_vault_addr,
+          erc20_vault: erc20_vault_addr
+        },
+        txhash_contract: txhash,
+        authority_addr: authority
+      }
     else
       {:error, :econnrefused} = error ->
         Logger.error("It seems that Ethereum instance is not running. Check README.md")
@@ -63,10 +133,12 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
+    contract_addr = Eth.RootChain.contract_map_to_hex(contract_addr)
+
     """
     use Mix.Config
     config :omg_eth,
-      contract_addr: #{inspect(to_hex(contract_addr))},
+      contract_addr: #{inspect(contract_addr)},
       txhash_contract: #{inspect(to_hex(txhash))},
       authority_addr: #{inspect(to_hex(authority_addr))}
     """

@@ -60,7 +60,7 @@ defmodule OMG.Watcher.API.Status do
 
     {:ok, services_synced_heights} = RootChainCoordinator.get_ethereum_heights()
 
-    contract_addr = Eth.Diagnostics.get_child_chain_config()[:contract_addr] |> Eth.Encoding.from_hex()
+    contract_addr = Eth.Diagnostics.get_child_chain_config()[:contract_addr] |> Eth.RootChain.contract_map_from_hex()
 
     {_, events_processor} = ExitProcessor.check_validity()
     {:ok, in_flight_exits} = ExitProcessor.get_active_in_flight_exits()

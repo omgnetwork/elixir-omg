@@ -40,6 +40,7 @@ defmodule OMG.DependencyConformance.SignatureTest do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     {:ok, _, signtest_addr} = Eth.Deployer.create_new(OMG.Eth.Eip712, root_path, Eth.Encoding.from_hex(addr))
 
+    # TODO if this breaks here someday, it might be because this entry has been changed to be a map of multiple addrs
     :ok = Application.put_env(:omg_eth, :contract_addr, Eth.Encoding.to_hex(signtest_addr))
 
     on_exit(exit_fn)
