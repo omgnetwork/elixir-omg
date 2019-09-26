@@ -37,7 +37,7 @@ defmodule OMG.ChildChain do
   def submit(transaction) do
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
          {:ok, fees} <- FeeServer.transaction_fees(),
-         fees = Fees.for_tx(recovered_tx, fees),
+         fees = Fees.for_transaction(recovered_tx, fees),
          {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
       {:ok, %{txhash: tx_hash, blknum: blknum, txindex: tx_index}}
     end

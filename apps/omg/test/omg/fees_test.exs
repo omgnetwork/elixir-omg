@@ -19,8 +19,11 @@ defmodule OMG.FeesTest do
   use OMG.Fixtures
   use ExUnit.Case, async: true
 
-  import OMG.Fees
   import OMG.TestHelper
+
+  alias OMG.Fees
+
+  doctest OMG.Fees
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
@@ -30,87 +33,66 @@ defmodule OMG.FeesTest do
     @not_eth => 3
   }
 
-  # TODO: brittle test? why not test via public API (State.Core)?
-  @tag fixtures: [:alice, :bob]
-  test "Transactions covers the fee only in one currency accepted by the operator", %{alice: alice, bob: bob} do
-    fees =
-      create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}])
-      |> for_tx(@fees)
+  describe "covered?/2" do
+    test "does not check the fees when :no_fees_required is passed" do
+      assert Fees.covered?(%{@eth => 0}, :no_fees_required)
+    end
 
-    assert covered?(%{@eth => 1}, fees)
+    test "returns true when fees are covered by another currency" do
+      assert Fees.covered?(%{@not_eth => 5}, @fees)
+    end
 
-    fees =
-      create_recovered([{1, 0, 0, alice}], @not_eth, [{bob, 4}, {alice, 3}])
-      |> for_tx(@fees)
+    test "returns true when multiple implicit fees are given and fee is covered by eth" do
+      assert Fees.covered?(%{@eth => 2, @not_eth => 2}, @fees)
+    end
 
-    assert covered?(%{@not_eth => 3}, fees)
+    test "returns true when multiple implicit fees are given and fee is covered by another currency" do
+      assert Fees.covered?(%{@eth => 0.5, @not_eth => 4}, @fees)
+    end
 
-    fees =
-      create_recovered(
-        [{1, 0, 0, alice}, {2, 0, 0, alice}],
-        [{bob, @eth, 4}, {alice, @eth, 1}, {bob, @not_eth, 5}, {alice, @not_eth, 5}]
-      )
-      |> for_tx(@fees)
+    test "returns false when the implicit fees currency does not match any of the supported fee currencies" do
+      other_currency = <<2::160>>
+      refute Fees.covered?(%{other_currency => 100}, @fees)
+    end
 
-    assert covered?(%{@eth => 0, @not_eth => 3}, fees)
+    # TODO: Fix this test?
+    @tag fixtures: [:alice, :bob]
+    test "returns true when one input is dedicated for fee payment", %{alice: alice, bob: bob} do
+      other_token = <<2::160>>
+
+      transaction =
+        create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, other_token, 5}, {alice, other_token, 5}])
+
+      fees = Fees.for_transaction(transaction, @fees)
+
+      assert Fees.covered?(%{@not_eth => 5, other_token => 0}, fees)
+    end
   end
 
-  @tag fixtures: [:alice, :bob]
-  test "Transaction which does not transfer any fee currency is object to fees", %{alice: alice, bob: bob} do
-    other_token = <<2::160>>
-
-    fees =
-      create_recovered([{1, 0, 0, alice}], other_token, [{bob, 5}, {alice, 3}])
-      |> for_tx(@fees)
-
-    assert false == covered?(%{other_token => 3}, fees)
-  end
-
-  @tag fixtures: [:alice, :bob]
-  test "Transaction can dedicate one input for a fee entirely, reducing to tx's outputs currencies is incorrect",
-       %{alice: alice, bob: bob} do
-    other_token = <<2::160>>
-
-    fees =
-      create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, other_token, 5}, {alice, other_token, 5}])
-      |> for_tx(@fees)
-
-    assert covered?(%{@not_eth => 5, other_token => 0}, fees)
-  end
-
-  describe "Merge transactions are free of cost" do
-    @tag fixtures: [:alice]
-    test "merging utxo erases the fee", %{alice: alice} do
-      fees =
-        create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @not_eth, [{alice, 10}])
-        |> for_tx(@fees)
-
-      assert covered?(%{@not_eth => 0}, fees)
+  describe "for_transaction/2" do
+    @tag fixtures: [:alice, :bob]
+    test "returns the fee map when not a merge transaction", %{alice: alice, bob: bob} do
+      transaction = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}])
+      assert Fees.for_transaction(transaction, @fees) == @fees
     end
 
     @tag fixtures: [:alice]
-    test "merge is single currency transaction", %{alice: alice} do
-      fees =
+    test "returns :no_fees_required for merge transactions",
+         %{alice: alice} do
+      transaction = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{alice, 10}])
+      assert Fees.for_transaction(transaction, @fees) == :no_fees_required
+    end
+
+    @tag fixtures: [:alice]
+    test "returns :no_fees_required for valid merge transactions with multiple inputs/ouputs",
+         %{alice: alice} do
+      transaction =
         create_recovered(
           [{1, 0, 0, alice}, {1, 0, 1, alice}, {2, 0, 0, alice}, {2, 1, 0, alice}],
-          [{alice, @eth, 10}, {alice, @not_eth, 10}]
+          [{alice, @eth, 10}, {alice, @eth, 10}]
         )
-        |> for_tx(@fees)
 
-      assert not covered?(%{@eth => 0}, fees)
-    end
-
-    @tag fixtures: [:alice, :bob]
-    test "merge is single same address transaction", %{alice: alice, bob: bob} do
-      fees =
-        create_recovered(
-          [{1, 0, 0, alice}, {1, 0, 1, alice}, {2, 0, 0, alice}],
-          @eth,
-          [{alice, 5}, {bob, 5}]
-        )
-        |> for_tx(@fees)
-
-      assert not covered?(%{@eth => 0}, fees)
+      assert Fees.for_transaction(transaction, @fees) == :no_fees_required
     end
   end
 end

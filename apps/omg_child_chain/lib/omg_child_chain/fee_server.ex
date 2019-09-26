@@ -40,7 +40,7 @@ defmodule OMG.ChildChain.FeeServer do
     args =
       case Application.get_env(:omg_child_chain, :ignore_fees) do
         true ->
-          :ok = save_fees(:ignore, 0)
+          :ok = save_fees(:no_fees_required, 0)
           _ = Logger.warn("Fee specs from file are ignored.")
           args
 

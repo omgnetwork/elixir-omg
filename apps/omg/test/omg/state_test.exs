@@ -53,7 +53,9 @@ defmodule OMG.StateTest do
     # deposits, transactions, utxo existence
     assert {:ok, _} = State.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}])
     assert true == State.utxo_exists?(Utxo.position(1, 0, 0))
-    assert {:ok, _} = State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]), :ignore)
+
+    assert {:ok, _} = State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]), :no_fees_required)
+
     # block forming & status
     assert {blknum, _} = State.get_status()
     assert :ok = State.form_block()

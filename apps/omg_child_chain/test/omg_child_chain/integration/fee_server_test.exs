@@ -108,11 +108,11 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end
 
     test "fee server ignores file updates" do
-      assert {:ok, :ignore} == FeeServer.transaction_fees()
+      assert {:ok, :no_fees_required} == FeeServer.transaction_fees()
 
       assert refresh_fees() =~ "Updates takes no effect"
 
-      assert {:ok, :ignore} == FeeServer.transaction_fees()
+      assert {:ok, :no_fees_required} == FeeServer.transaction_fees()
       assert server_alive?()
     end
   end
