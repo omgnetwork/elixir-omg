@@ -148,7 +148,7 @@ defmodule OMG.Eth do
     |> to_hex()
   end
 
-  defp encode_constructor_params(args, types) do
+  defp encode_constructor_params(types, args) do
     args
     |> ABI.TypeEncoder.encode_raw(types)
     # NOTE: we're not using `to_hex` because the `0x` will be appended to the bytecode already

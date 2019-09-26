@@ -50,7 +50,8 @@ defmodule OMG.Eth.Fixtures do
   end
 
   deffixture root_chain_contract_config(contract) do
-    Application.put_env(:omg_eth, :contract_addr, Encoding.to_hex(contract.contract_addr), persistent: true)
+    contract_addr = Eth.RootChain.contract_map_to_hex(contract.contract_addr)
+    Application.put_env(:omg_eth, :contract_addr, contract_addr, persistent: true)
     Application.put_env(:omg_eth, :authority_addr, Encoding.to_hex(contract.authority_addr), persistent: true)
     Application.put_env(:omg_eth, :txhash_contract, Encoding.to_hex(contract.txhash_contract), persistent: true)
 

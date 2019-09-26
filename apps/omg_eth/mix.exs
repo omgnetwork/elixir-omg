@@ -37,7 +37,7 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "master",
+        branch: "150_python_tests_on_plasma_framework",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
@@ -60,21 +60,35 @@ defmodule OMG.Eth.MixProject do
   defp contracts_compile do
     current_path = File.cwd!()
     mixfile_path = __DIR__
-    contracts_dir = "deps/plasma_contracts/contracts"
+    contracts_dir = "deps/plasma_contracts"
 
     # NOTE: `solc` needs the relative paths to contracts (`contract_paths`) to be short, hence we need to `cd`
     #       deeply into where the sources are (`compilation_path`)
     compilation_path = Path.join([mixfile_path, "../..", contracts_dir])
 
     contract_paths =
-      ["RootChain.sol", "MintableToken.sol", "SignatureTest.sol"]
+      [
+        "plasma_framework/contracts/src/framework/PlasmaFramework.sol",
+        "plasma_framework/contracts/src/vaults/verifiers/EthDepositVerifier.sol",
+        "plasma_framework/contracts/src/vaults/verifiers/Erc20DepositVerifier.sol",
+        "plasma_framework/contracts/src/vaults/EthVault.sol",
+        "plasma_framework/contracts/src/vaults/Erc20Vault.sol",
+        "plasma_framework/contracts/src/exits/payment/routers/PaymentStandardExitRouter.sol",
+        "plasma_framework/contracts/src/exits/payment/controllers/PaymentStartStandardExit.sol",
+        "plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeStandardExit.sol",
+        "plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessStandardExit.sol",
+        "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol"
+      ]
       |> Enum.join(" ")
 
     output_path = Path.join([mixfile_path, "../..", "_build/contracts"])
 
     [
       "cd #{compilation_path}",
-      "solc #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{output_path}",
+      # FIXME: revert solc path
+      "~/Downloads/solc-static-linux openzeppelin-solidity=openzeppelin-solidity #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{
+        output_path
+      }",
       "cd #{current_path}"
     ]
     |> Enum.join(" && ")

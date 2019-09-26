@@ -542,7 +542,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
   describe "submitting structural transaction" do
     deffixture typed_data_request(alice, bob) do
-      contract_addr = :crypto.exor(alice.addr, bob.addr) |> Encoding.to_hex()
+      contract_addr = <<1::160>> |> Encoding.to_hex()
 
       alice_addr = Encoding.to_hex(alice.addr)
       bob_addr = Encoding.to_hex(bob.addr)

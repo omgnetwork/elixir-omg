@@ -31,7 +31,7 @@ defmodule OMG.Eth.RootChainHelper do
 
   @type optional_addr_t() :: <<_::160>> | nil
 
-  @gas_add_token 500_000
+  @gas_add_token 800_000
   @gas_start_exit 1_000_000
   @gas_challenge_exit 300_000
   @gas_deposit 180_000
@@ -53,7 +53,8 @@ defmodule OMG.Eth.RootChainHelper do
 
     opts = defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
 
     Eth.contract_transact(
       from,
@@ -71,7 +72,8 @@ defmodule OMG.Eth.RootChainHelper do
       |> Keyword.put(:value, @piggyback_bond)
 
     opts = defaults |> Keyword.merge(opts)
-    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes,uint8)", [in_flight_tx, output_index], opts)
   end
 
@@ -83,7 +85,7 @@ defmodule OMG.Eth.RootChainHelper do
       |> Keyword.merge(opts)
       |> Keyword.put(:value, value)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract = RootChain.maybe_fetch_addr!(contract, :eth_vault)
     Eth.contract_transact(from, contract, "deposit(bytes)", [tx_bytes], opts)
   end
 
@@ -91,14 +93,14 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit_from)
     opts = defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.contract_transact(from, contract, "depositFrom(bytes)", [tx], opts)
+    contract = RootChain.maybe_fetch_addr!(contract, :erc20_vault)
+    Eth.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
   end
 
   def add_token(token, contract \\ nil, opts \\ []) do
     opts = @tx_defaults |> Keyword.put(:gas, @gas_add_token) |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
 
     Eth.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
@@ -108,20 +110,21 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
     opts = defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     signature = "challengeStandardExit(uint192,bytes,uint8,bytes)"
     args = [exit_id, challenge_tx, input_index, challenge_tx_sig]
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
-  def init(exit_period, from \\ nil, contract \\ nil, opts \\ []) do
+  def init_authority(from \\ nil, contract \\ nil, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_init)
     opts = defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
 
-    Eth.contract_transact(from, contract, "init(uint256)", [exit_period], opts)
+    Eth.contract_transact(from, contract, "initAuthority()", [], opts)
   end
 
   def in_flight_exit(
@@ -140,7 +143,8 @@ defmodule OMG.Eth.RootChainHelper do
 
     opts = defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
     args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
     Eth.contract_transact(from, contract, signature, args, opts)
@@ -156,7 +160,8 @@ defmodule OMG.Eth.RootChainHelper do
       ) do
     opts = @tx_defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     signature = "processExits(address,uint192,uint256)"
     args = [token, top_exit_id, exits_to_process]
     Eth.contract_transact(from, contract, signature, args, opts)
@@ -178,7 +183,8 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_in_flight_exit_not_canonical)
     opts = defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     signature = @challenge_ife_func_signature
 
     args = [
@@ -205,7 +211,8 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
     opts = defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
 
     args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
@@ -224,7 +231,8 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
     opts = defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
 
     args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
@@ -246,7 +254,8 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults
     opts = defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     signature = @challenge_ife_input_spent
 
     args = [
@@ -275,7 +284,8 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults
     opts = defaults |> Keyword.merge(opts)
 
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    # TODO: this will most likely not work, look into which contract to call
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     signature = @challenge_ife_output_spent
 
     args = [
@@ -291,7 +301,7 @@ defmodule OMG.Eth.RootChainHelper do
   end
 
   def has_token(token, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "hasToken(address)", [token], [:bool])
   end
 
