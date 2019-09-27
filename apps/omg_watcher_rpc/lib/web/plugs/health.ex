@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Plugs.Health do
   @moduledoc """
-
+  Observes the systems alarms and prevents calls towards an unhealthy one.
   """
 
   alias OMG.Status
