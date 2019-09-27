@@ -18,6 +18,11 @@ defmodule OMG.ChildChain.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
+  alias OMG.ChildChain.FeeServer
+  alias OMG.ChildChain.FreshBlocks
+  alias OMG.ChildChain.Monitor
+  alias OMG.ChildChain.SyncSupervisor
+  alias OMG.State
   alias OMG.Status.Alert.Alarm
 
   def start_link do
@@ -25,63 +30,27 @@ defmodule OMG.ChildChain.Supervisor do
   end
 
   def init(:ok) do
-    monitor_children = [
-      {OMG.ChildChain.BlockQueue.Server, []},
-      {OMG.RootChainCoordinator, coordinator_setup()},
-      OMG.EthereumEventListener.prepare_child(
-        service_name: :depositor,
-        synced_height_update_key: :last_depositor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
-        process_events_callback: &OMG.State.deposit/1
-      ),
-      OMG.EthereumEventListener.prepare_child(
-        service_name: :in_flight_exit,
-        synced_height_update_key: :last_in_flight_exit_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-        process_events_callback: &exit_and_ignore_validities/1
-      ),
-      OMG.EthereumEventListener.prepare_child(
-        service_name: :piggyback,
-        synced_height_update_key: :last_piggyback_exit_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
-        process_events_callback: &exit_and_ignore_validities/1
-      ),
-      OMG.EthereumEventListener.prepare_child(
-        service_name: :exiter,
-        synced_height_update_key: :last_exiter_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
-        process_events_callback: &exit_and_ignore_validities/1
-      )
-    ]
-
     children = [
-      {OMG.State, []},
-      {OMG.ChildChain.FreshBlocks, []},
-      {OMG.ChildChain.FeeServer, []},
-      {OMG.ChildChain.Monitor, [Alarm, monitor_children]}
+      {State, []},
+      {FreshBlocks, []},
+      {FeeServer, []},
+      {Monitor,
+       [
+         Alarm,
+         [
+           %{
+             id: SyncSupervisor,
+             start: {SyncSupervisor, :start_link, []},
+             restart: :permanent,
+             type: :supervisor
+           }
+         ]
+       ]}
     ]
 
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     Supervisor.init(children, opts)
-  end
-
-  # The setup of `OMG.RootChainCoordinator` for the child chain server - configures the relations between different
-  # event listeners
-  def coordinator_setup do
-    deposit_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin)
-
-    %{
-      depositor: [finality_margin: deposit_finality_margin],
-      exiter: [waits_for: :depositor, finality_margin: 0],
-      in_flight_exit: [waits_for: :depositor, finality_margin: 0],
-      piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
-    }
-  end
-
-  defp exit_and_ignore_validities(exits) do
-    {status, db_updates, _validities} = OMG.State.exit_utxos(exits)
-    {status, db_updates}
   end
 end

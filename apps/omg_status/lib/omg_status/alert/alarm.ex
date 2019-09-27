@@ -27,6 +27,8 @@ defmodule OMG.Status.Alert.Alarm do
            | :invalid_fee_file
            | :statsd_client_connection, atom(), atom()}
 
+  def alarm_types(), do: [:boot_in_progress, :ethereum_client_connection, :invalid_fee_file, :statsd_client_connection]
+
   def statsd_client_connection(node, reporter),
     do: {:statsd_client_connection, %{node: node, reporter: reporter}}
 
@@ -57,14 +59,12 @@ defmodule OMG.Status.Alert.Alarm do
     if Enum.member?(all(), alarm) do
       :duplicate
     else
-      write_raise(elem(alarm, 0))
       :alarm_handler.set_alarm(alarm)
     end
   end
 
   defp do_clear(alarm) do
     if Enum.member?(all(), alarm) do
-      write_clear(elem(alarm, 0))
       :alarm_handler.clear_alarm(alarm)
     else
       :not_raised
@@ -89,7 +89,4 @@ defmodule OMG.Status.Alert.Alarm do
   defp make_alarm_for({:statsd_client_connection, node, reporter}) do
     statsd_client_connection(node, reporter)
   end
-
-  defp write_raise(key), do: :ets.update_counter(AlarmHandler.table_name(), key, {2, 1, 1, 1}, {key, 0})
-  defp write_clear(key), do: :ets.update_counter(AlarmHandler.table_name(), key, {2, -1, 0, 0}, {key, 1})
 end
