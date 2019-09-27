@@ -142,7 +142,7 @@ docker-child_chain-prod:
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-child_chain-prod"
+		-c "cd /app && make build-child_chain-prod"
 
 docker-watcher-prod:
 	docker run --rm -it \
@@ -151,7 +151,7 @@ docker-watcher-prod:
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && if [[ OSX == $(OSFLAG) ]] ; then make clean ; fi && make build-watcher-prod"
+		-c "cd /app && make build-watcher-prod"
 
 docker-child_chain-build:
 	docker build -f Dockerfile.child_chain \
