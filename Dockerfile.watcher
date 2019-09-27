@@ -54,11 +54,7 @@ RUN set -xe \
 #rocksdb from builder image to deployer image
 RUN mkdir -p /usr/local/rocksdb/lib
 RUN mkdir /usr/local/rocksdb/include
-COPY --from=omisegoimages/elixir-omg-builder:dev-6656422 /usr/local/rocksdb/lib/librocksdb.so* /usr/local/rocksdb/lib/
-#COPY --from=omisegoimages/elixir-omg-builder:dev-6656422 /usr/local/rocksdb/lib/librocksdb.so* /usr/lib/
-RUN ln -s /usr/local/rocksdb/lib/librocksdb.so* /usr/lib/
-COPY --from=omisegoimages/elixir-omg-builder:dev-6656422 /usr/local/rocksdb/ /usr/local/rocksdb/
-COPY --from=omisegoimages/elixir-omg-builder:dev-6656422 /usr/include/ /usr/include/
+COPY --from=omisegoimages/elixir-omg-builder:dev-5505b9b /usr/local/rocksdb/ /usr/local/rocksdb/
 
 ARG release_version
 ADD _build/prod/rel/watcher/releases/${release_version}/watcher.tar.gz /app
