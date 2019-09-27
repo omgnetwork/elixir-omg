@@ -33,10 +33,6 @@ defmodule OMG.Eth.DevHelpers do
 
   @passphrase "ThisIsATestnetPassphrase"
 
-  @tx_defaults Eth.Defaults.tx_defaults()
-
-  @gas_init_tx 500_000
-
   @doc """
   Prepares the developer's environment with respect to the root chain contract and its configuration within
   the application.
@@ -47,124 +43,14 @@ defmodule OMG.Eth.DevHelpers do
     opts = Keyword.merge([root_path: "./"], opts)
     %{root_path: root_path} = Enum.into(opts, %{})
 
-    transact_opts = @tx_defaults |> Keyword.put(:gas, @gas_init_tx)
-
-    exit_period_seconds = get_exit_period(exit_period_seconds)
-
-    # FIXME TxOutputTypes.PAYMENT.value, how to refactor, since it's redefined in `omg` config :/ ?
-    payment_tx_marker = 1
-    # FIXME Protocols.MoreVP.value, is this still really required
-    morevp_protocol_marker = 2
-
-    # FIXME: break this huge with up
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
          {:ok, authority} <- create_and_fund_authority_addr(opts),
          {:ok, deployer_addr} <- get_deployer_address(opts),
-         {:ok, txhash, plasma_framework_addr} <-
-           Eth.Deployer.create_new2("PlasmaFramework", root_path, deployer_addr, exit_period_seconds),
-         {:ok, _} <-
-           Eth.RootChainHelper.init_authority(authority, %{plasma_framework: plasma_framework_addr}),
-         # |> Eth.DevHelpers.transact_sync!(),
-         {:ok, _, eth_deposit_verifier_addr} <-
-           Eth.Deployer.create_new("EthDepositVerifier", root_path, deployer_addr),
-         {:ok, _, erc20_deposit_verifier_addr} <-
-           Eth.Deployer.create_new("Erc20DepositVerifier", root_path, deployer_addr),
-         {:ok, _, eth_vault_addr} <-
-           Eth.Deployer.create_new2("EthVault", root_path, deployer_addr, plasma_framework_addr),
-         {:ok, _, erc20_vault_addr} <-
-           Eth.Deployer.create_new2("Erc20Vault", root_path, deployer_addr, plasma_framework_addr),
-         {:ok, _} <-
-           Eth.contract_transact(
-             deployer_addr,
-             eth_vault_addr,
-             "setDepositVerifier(address)",
-             [eth_deposit_verifier_addr],
-             transact_opts
-           ),
-         # |> Eth.DevHelpers.transact_sync!(),
-         {:ok, _} <-
-           Eth.contract_transact(
-             deployer_addr,
-             plasma_framework_addr,
-             "registerVault(uint256,address)",
-             [1, eth_vault_addr],
-             transact_opts
-           ),
-         # |> Eth.DevHelpers.transact_sync!(),
-         {:ok, _} <-
-           Eth.contract_transact(
-             deployer_addr,
-             erc20_vault_addr,
-             "setDepositVerifier(address)",
-             [erc20_deposit_verifier_addr],
-             transact_opts
-           ),
-         # |> Eth.DevHelpers.transact_sync!(),
-         {:ok, _} <-
-           Eth.contract_transact(
-             deployer_addr,
-             plasma_framework_addr,
-             "registerVault(uint256,address)",
-             [2, erc20_vault_addr],
-             transact_opts
-           ),
-         # |> Eth.DevHelpers.transact_sync!(),
-         {:ok, _, payment_spending_condition_registry_addr} <-
-           Eth.Deployer.create_new(
-             "PaymentSpendingConditionRegistry",
-             root_path,
-             deployer_addr
-           ),
-         {:ok, _, output_guard_handler_registry_addr} <-
-           Eth.Deployer.create_new(
-             "OutputGuardHandlerRegistry",
-             root_path,
-             deployer_addr
-           ),
-         {:ok, _, payment_output_guard_handler_addr} <-
-           Eth.Deployer.create_new2(
-             "PaymentOutputGuardHandler",
-             root_path,
-             deployer_addr,
-             payment_tx_marker
-           ),
-         {:ok, _} <-
-           Eth.contract_transact(
-             deployer_addr,
-             output_guard_handler_registry_addr,
-             "registerOutputGuardHandler(uint256,address)",
-             [payment_tx_marker, payment_output_guard_handler_addr],
-             transact_opts
-           ),
-         # |> Eth.DevHelpers.transact_sync!(),
-         {:ok, _, payment_exit_game_addr} <-
-           Eth.Deployer.create_new3(
-             "PaymentExitGame",
-             root_path,
-             deployer_addr,
-             plasma_framework_addr,
-             eth_vault_addr,
-             erc20_vault_addr,
-             output_guard_handler_registry_addr,
-             payment_spending_condition_registry_addr
-           ),
-         {:ok, _} <-
-           Eth.contract_transact(
-             deployer_addr,
-             plasma_framework_addr,
-             "registerExitGame(uint256,address,uint8)",
-             [payment_tx_marker, payment_exit_game_addr, morevp_protocol_marker],
-             transact_opts
-           )
-           |> Eth.DevHelpers.transact_sync!() do
+         {:ok, txhash_contract, contracts_map} <-
+           Eth.BundleDeployer.deploy_all(root_path, deployer_addr, authority, exit_period_seconds) do
       %{
-        contract_addr: %{
-          plasma_framework: plasma_framework_addr,
-          eth_vault: eth_vault_addr,
-          erc20_vault: erc20_vault_addr,
-          payment_exit_game: payment_exit_game_addr
-        },
-        txhash_contract: txhash,
+        contract_addr: contracts_map,
+        txhash_contract: txhash_contract,
         authority_addr: authority
       }
     else
@@ -266,12 +152,6 @@ defmodule OMG.Eth.DevHelpers do
       {:ok, from_hex(authority)}
     end
   end
-
-  defp get_exit_period(nil) do
-    Application.fetch_env!(:omg_eth, :exit_period_seconds)
-  end
-
-  defp get_exit_period(exit_period), do: exit_period
 
   defp fund_address_from_faucet(account_enc, opts) do
     {:ok, [default_faucet | _]} = Ethereumex.HttpClient.eth_accounts()

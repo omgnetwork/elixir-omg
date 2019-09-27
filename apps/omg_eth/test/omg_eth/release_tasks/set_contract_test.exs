@@ -19,6 +19,9 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   @app :omg_eth
   @configuration_old Application.get_all_env(@app)
 
+  @contract_addresses_value %{contract_name: "contract_address_value"}
+  @contract_addresses_json Jason.encode!(@contract_addresses_value)
+
   setup %{} do
     on_exit(fn ->
       :ok =
@@ -35,7 +38,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
     :ok = SetContract.init([])
     "authority_address_value" = Application.get_env(@app, :authority_addr)
-    "contract_address_value" = Application.get_env(@app, :contract_addr)
+    @contract_addresses_value = Application.get_env(@app, :contract_addr)
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
     :ok = Process.send(pid, :stop, [])
@@ -78,10 +81,10 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", @contract_addresses_json)
     :ok = SetContract.init([])
     "authority_address_value" = Application.get_env(@app, :authority_addr)
-    "contract_address_value" = Application.get_env(@app, :contract_addr)
+    @contract_addresses_value = Application.get_env(@app, :contract_addr)
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
     :ok = System.delete_env("ETHEREUM_NETWORK")
@@ -94,10 +97,10 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "localchain")
     :ok = System.put_env("LOCALCHAIN_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("LOCALCHAIN_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS", "contract_address_value")
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS", @contract_addresses_json)
     :ok = SetContract.init([])
     "authority_address_value" = Application.get_env(@app, :authority_addr)
-    "contract_address_value" = Application.get_env(@app, :contract_addr)
+    @contract_addresses_value = Application.get_env(@app, :contract_addr)
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
     :ok = System.delete_env("ETHEREUM_NETWORK")
@@ -110,7 +113,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("LOCALCHAIN_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("LOCALCHAIN_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS", "contract_address_value")
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS", @contract_addresses_json)
 
     try do
       :ok = SetContract.init([])
@@ -127,7 +130,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", @contract_addresses_json)
     :ok = SetContract.init([])
     22 = Application.get_env(@app, :exit_period_seconds)
 
@@ -141,12 +144,12 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", @contract_addresses_json)
     :ok = System.put_env("EXIT_PERIOD_SECONDS", "2222")
     :ok = SetContract.init([])
     2222 = Application.get_env(@app, :exit_period_seconds)
     "authority_address_value" = Application.get_env(@app, :authority_addr)
-    "contract_address_value" = Application.get_env(@app, :contract_addr)
+    @contract_addresses_value = Application.get_env(@app, :contract_addr)
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
     :ok = System.delete_env("ETHEREUM_NETWORK")
     :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
@@ -159,7 +162,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby is what we are, rinkeby is what we know")
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", "contract_address_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", @contract_addresses_json)
 
     try do
       :ok = SetContract.init([])
@@ -214,7 +217,11 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
 
   defp handle(conn) do
     body =
-      "{\"authority_addr\":\"authority_address_value\",\"contract_addr\":\"contract_address_value\",\"txhash_contract\":\"txhash_contract_value\"}"
+      Jason.encode!(%{
+        authority_addr: "authority_address_value",
+        contract_addr: @contract_addresses_value,
+        txhash_contract: "txhash_contract_value"
+      })
 
     :ok = :gen_tcp.send(conn, ["HTTP/1.0 ", Integer.to_charlist(200), "\r\n", [], "\r\n", body])
 
