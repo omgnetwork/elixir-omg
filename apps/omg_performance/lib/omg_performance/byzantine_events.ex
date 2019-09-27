@@ -53,15 +53,33 @@ defmodule OMG.Performance.ByzantineEvents do
   alias OMG.Utils.HttpRPC.Client
   alias OMG.Utils.HttpRPC.Encoding
 
-  @watcher_url Application.get_env(:byzantine_events, :watcher_url)
+  @type stats_t :: %{
+          span_ms: non_neg_integer(),
+          corrects_count: non_neg_integer(),
+          errors_count: non_neg_integer()
+        }
 
+  @watcher_url Application.get_env(:byzantine_events, :watcher_url)
+  @micros_in_millisecond 1000
+
+  @doc """
+  For given utxo positions and given number of users start fetching exit data from Watcher.
+  User tasks are run asynchronously, each user receives the same positions list, shuffle its order
+  and call Watcher for exit data sequentially one position at a time.
+  """
+  @spec start_dos_get_exits([non_neg_integer()], [%{addr: binary(), priv: binary()}], watcher_url: binary()) ::
+          stats_t()
   def start_dos_get_exits(positions, dos_users, url \\ @watcher_url) do
     1..dos_users
     |> Enum.map(fn _ -> DoSExitWorker.get_exits_fun(positions, url) |> Task.async() end)
     |> Enum.map(&compute_std_exits_statistics/1)
   end
 
-  def get_exitable_utxos(addr, watcher_url \\ @watcher_url)
+  @doc """
+  Fetches utxo positions for a given users list.
+  """
+  @spec get_exitable_utxos([%{addr: binary()}], watcher_url: binary()) :: [non_neg_integer()]
+  def get_exitable_utxos(entities, watcher_url \\ @watcher_url)
 
   def get_exitable_utxos(addr, watcher_url) when is_binary(addr) do
     {:ok, utxos} = Client.get_exitable_utxos(addr, watcher_url)
@@ -107,6 +125,11 @@ defmodule OMG.Performance.ByzantineEvents do
   defp compute_std_exits_statistics(task) do
     {time, exits} = Task.await(task, :infinity)
     valid? = Enum.map(exits, &valid_exit_data/1)
-    %{time: time, corrects_count: Enum.count(valid?, & &1), errors_count: Enum.count(valid?, &(!&1))}
+
+    %{
+      span_ms: div(time, @micros_in_millisecond),
+      corrects_count: Enum.count(valid?, & &1),
+      errors_count: Enum.count(valid?, &(!&1))
+    }
   end
 end

@@ -14,8 +14,8 @@
 
 defmodule OMG.Performance.ByzantineEvents.Generators do
   @moduledoc """
-  Module to generate users,
-  and stream of transaction, utxo position, block using data from child chain
+  Provides helper functions to generate spenders for perftest,
+  Streams transactions, utxo positions and blocks using data from Watcher.
   """
 
   alias OMG.Eth
@@ -28,6 +28,10 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
 
   @child_chain_url Application.get_env(:byzantine_events, :child_chain_url)
 
+  @doc """
+  Creates addresses with private keys and funds them with given `initial_funds` on geth.
+  """
+  @spec generate_users(non_neg_integer, [Keyword.t()]) :: [%{addr: binary(), priv: binary()}]
   def generate_users(size, opts \\ [initial_funds: trunc(:math.pow(10, 18))]) do
     async_generate_user = fn _ -> Task.async(fn -> generate_user(opts) end) end
 
@@ -40,37 +44,55 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
     |> List.flatten()
   end
 
-  def generate_user(opts) do
-    user = OMG.TestHelper.generate_entity()
-    {:ok, _user} = Eth.DevHelpers.import_unlock_fund(user, opts)
-    user
-  end
-
-  def stream_txs(blocks \\ block_stream()) do
-    blocks
-    |> Stream.map(& &1.transactions)
-    |> Stream.concat()
-  end
-
-  def stream_utxo_positions(blocks \\ block_stream()) do
-    blocks
-    |> Stream.map(&to_utxo_position_list(&1))
-    |> Stream.concat()
-  end
-
-  def block_stream(child_chain_url \\ @child_chain_url) do
+  @doc """
+  Streams blocks from child chain rpc starting from the first block.
+  """
+  @spec stream_blocks(child_chain_url: binary()) :: [OMG.Block.t()]
+  def stream_blocks(child_chain_url \\ @child_chain_url) do
     {:ok, interval} = RootChain.get_child_block_interval()
 
     Stream.iterate(1, &(&1 + 1))
     |> Stream.map(&get_block!(&1 * interval, child_chain_url))
   end
 
+  @doc """
+  Streams rlp-encoded transactions from a given blocks.
+  Blocks are streamed form child chain rpc if not provided.
+  """
+  @spec stream_transactions([OMG.Block.t()]) :: [binary()]
+  def stream_transactions(blocks \\ stream_blocks()) do
+    blocks
+    |> Stream.map(& &1.transactions)
+    |> Stream.concat()
+  end
+
+  @doc """
+  Streams encoded output position from all transactions from a given blocks.
+  Blocks are streamed form child chain rpc if not provided.
+  """
+  @spec stream_utxo_positions([OMG.Block.t()]) :: [non_neg_integer()]
+  def stream_utxo_positions(blocks \\ stream_blocks()) do
+    blocks
+    |> Stream.map(&to_utxo_position_list(&1))
+    |> Stream.concat()
+  end
+
+  @doc """
+  Gets a mined block at random. Block is fetch from child chain rpc.
+  """
+  @spec random_block(child_chain_url: binary()) :: OMG.Block.t()
   def random_block(child_chain_url \\ @child_chain_url) do
     {:ok, interval} = RootChain.get_child_block_interval()
     {:ok, mined_block} = RootChain.get_mined_child_block()
     # interval <= blknum <= mined_block
     blknum = :rand.uniform(div(mined_block, interval)) * interval
     get_block!(blknum, child_chain_url)
+  end
+
+  defp generate_user(opts) do
+    user = OMG.TestHelper.generate_entity()
+    {:ok, _user} = Eth.DevHelpers.import_unlock_fund(user, opts)
+    user
   end
 
   defp get_block!(blknum, child_chain_url) do

@@ -39,42 +39,24 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
   @tag fixtures: [:contract, :child_chain, :omg_watcher]
   test "time response for asking for exit data", %{contract: %{contract_addr: contract}} do
-    dos_users = 3
-    ntx_to_send = 100
-    spenders = Generators.generate_users(4)
-    exit_per_dos = length(spenders) * ntx_to_send
-    total_exits = length(spenders) * ntx_to_send * dos_users
-
-    IO.puts("""
-
-    dos users: #{dos_users}
-    spenders: #{length(spenders)}
-    ntx_to_send: #{ntx_to_send}
-    exits per dos user: #{exit_per_dos}
-    total exits: #{total_exits}
-    """)
+    exiting_users = 3
+    ntx_to_send = 15
+    spenders = Generators.generate_users(2)
+    exits_per_user = length(spenders) * ntx_to_send
+    total_exits = length(spenders) * ntx_to_send * exiting_users
 
     Performance.start_extended_perftest(ntx_to_send, spenders, contract)
     # get exit position from child chain, blocking call
-    exit_positions = Generators.stream_utxo_positions() |> Enum.take(exit_per_dos)
+    exit_positions = Generators.stream_utxo_positions() |> Enum.take(exits_per_user)
     # wait before asking watcher about exit data
     ByzantineEvents.watcher_synchronize()
 
-    statistics = ByzantineEvents.start_dos_get_exits(exit_positions, dos_users)
+    statistics = ByzantineEvents.start_dos_get_exits(exit_positions, exiting_users)
 
-    times = statistics |> Enum.map(&Map.get(&1, :time))
     correct_exits = statistics |> Enum.map(&Map.get(&1, :corrects_count)) |> Enum.sum()
     error_exits = statistics |> Enum.map(&Map.get(&1, :errors_count)) |> Enum.sum()
 
-    IO.puts("""
-    max dos user time: #{Enum.max(times) / 1_000_000} s
-    min dos user time: #{Enum.min(times) / 1_000_000} s
-    average dos user time: #{Enum.sum(times) / dos_users / 1_000_000} s
-    time per exit: #{Enum.sum(times) / total_exits / 1_000_000} s
-    correct exits: #{correct_exits}
-    error exits: #{error_exits}
-    """)
-
+    assert total_exits == correct_exits + error_exits
     assert error_exits == 0
   end
 end

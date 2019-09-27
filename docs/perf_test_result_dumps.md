@@ -150,38 +150,3 @@ Command as above
 ]
 ```
 
-## `8240f8b2c828c30853b6a34d8fa1b89b75da399e`, 2019-09-24
-
-run extended perftest with 35 sender (opts: %{randomized:false}), dev.period 3 seconds
-
-```
-[
-  %{blknum: 1000, span_ms: 611, tps: 3905, txs: 2386},
-  %{blknum: 2000, span_ms: 5307, tps: 4107, txs: 21798},
-  %{blknum: 3000, span_ms: 6000, tps: 3962, txs: 23771},
-  %{blknum: 4000, span_ms: 6030, tps: 3674, txs: 22156},
-  %{blknum: 5000, span_ms: 6014, tps: 3460, txs: 20809},
-  %{blknum: 6000, span_ms: 2431, tps: 4352, txs: 10580}
-]
-```
-
-then pick one of senders at random, call
-
-```
-jan = senders |> Enum.random()
-jan_utxos = jan
-    |> ByzantineEvents.get_exitable_utxos() 
-    |> Enum.map(& &1.utxo_pos) 
-    |> Enum.shuffle() 
-    |> Enum.take(10)
-    |> ByzantineEvents.start_dos_get_exits(1)
-```
-
-result will looks like below
-
-```
-[%{corrects_count: 8, errors_count: 2, time: 44_248_966}]
-```
-
-where `time` is expressed in _microseconds_ (44.2 sec).
-You may experience rpc call to timeout, with `WARN` log flashed out.
