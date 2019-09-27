@@ -20,38 +20,22 @@ defmodule OMG.Watcher.UtxoExit.Core do
   alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.DB
 
   require Utxo
 
-  @spec compose_output_exit(list(%DB.Transaction{}) | list(Transaction.Signed.tx_bytes()), Utxo.Position.t()) ::
-          {:error, :utxo_not_found}
-          | {:ok,
-             %{
-               utxo_pos: non_neg_integer(),
-               txbytes: binary,
-               proof: binary,
-               sigs: binary
-             }}
-  def compose_output_exit([%{txindex: _} | _] = txs, Utxo.position(_, txindex, _) = utxo_pos) do
-    if Enum.any?(txs, &match?(%{txindex: ^txindex}, &1)) do
-      sorted_tx_bytes = Enum.sort_by(txs, & &1.txindex) |> Enum.map(& &1.txbytes)
-      compose_output_exit(sorted_tx_bytes, utxo_pos)
-    else
-      {:error, :utxo_not_found}
-    end
-  end
+  def compose_output_exit(:not_found, _), do: {:error, :utxo_not_found}
 
-  def compose_output_exit(sorted_tx_bytes, Utxo.position(_blknum, txindex, _) = utxo_pos) do
-    if signed_tx = Enum.at(sorted_tx_bytes, txindex) do
-      %Transaction.Signed{sigs: sigs} = tx = Transaction.Signed.decode!(signed_tx)
+  def compose_output_exit(db_block, Utxo.position(blknum, txindex, _) = utxo_pos) do
+    %Block{transactions: sorted_txs_bytes, number: ^blknum} = block = Block.from_db_value(db_block)
+
+    if signed_tx_bytes = Enum.at(sorted_txs_bytes, txindex) do
+      signed_tx = Transaction.Signed.decode!(signed_tx_bytes)
 
       {:ok,
        %{
          utxo_pos: Utxo.Position.encode(utxo_pos),
-         txbytes: Transaction.raw_txbytes(tx),
-         proof: Block.inclusion_proof(sorted_tx_bytes, txindex),
-         sigs: Enum.join(sigs)
+         txbytes: Transaction.raw_txbytes(signed_tx),
+         proof: Block.inclusion_proof(block, txindex)
        }}
     else
       {:error, :utxo_not_found}
