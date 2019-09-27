@@ -37,7 +37,7 @@ all: clean build-child_chain-prod build-watcher-prod
 
 WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-5505b9b"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-f49c934"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
