@@ -71,7 +71,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   end
 
   defp apply_static_settings(network) do
-    # FIXME: not so easy here - rethink how do we allow to set the contracts via the system ENV
+    # TODO: not so easy here - rethink how do we allow to set the contracts via the system ENV, for now assuming json
     network =
       case String.upcase(network) do
         "RINKEBY" = network ->
@@ -86,18 +86,22 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
     txhash_contract = get_env(network <> "_TXHASH_CONTRACT")
     authority_address = get_env(network <> "_AUTHORITY_ADDRESS")
-    contract_address = get_env(network <> "_CONTRACT_ADDRESS")
+    env_contract_addresses = get_env(network <> "_CONTRACT_ADDRESS")
+    contract_addresses = if env_contract_addresses, do: Jason.decode!(env_contract_addresses), else: nil
 
     exit_period_seconds =
       validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
 
-    update_configuration(txhash_contract, authority_address, contract_address, exit_period_seconds)
+    update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
   end
 
   defp update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
        when is_binary(txhash_contract) and
-              is_binary(authority_address) and is_binary(contract_address) and is_integer(exit_period_seconds) do
-    contract_addresses = contract_addresses |> Enum.into(%{}, fn {name, addr} -> {name, String.downcase(addr)} end)
+              is_binary(authority_address) and is_map(contract_addresses) and is_integer(exit_period_seconds) do
+    contract_addresses =
+      contract_addresses
+      |> Enum.into(%{}, fn {name, addr} -> {String.to_existing_atom(to_string(name)), String.downcase(addr)} end)
+
     :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
     :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
     :ok = Application.put_env(@app, :contract_addr, contract_addresses, persistent: true)

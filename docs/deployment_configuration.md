@@ -30,7 +30,7 @@ We allow a static configuration or a dynamic one, served as a http endpoint (one
 ```
 {
   "authority_addr": "<authority_address>",
-  "contract_addr": "<contract_address>",
+  "contract_addr": {"plasma_framework": "<contract_address>", ...},
   "txhash_contract": "<txhash_contract>"
 }
 ```
@@ -39,11 +39,27 @@ Static configuration
 - "ETHEREUM_NETWORK" - RINKEBY or LOCALNETWORK
 - "RINKEBY_TXHASH_CONTRACT"
 - "RINKEBY_AUTHORITY_ADDRESS"
-- "RINKEBY_CONTRACT_ADDRESS"
+- "RINKEBY_CONTRACT_ADDRESS" being a JSON encoded map of the form:
+```
+{"plasma_framework": "<contract_address>", ...}
+```
 or
 - "LOCALNETWORK_TXHASH_CONTRACT"
 - "LOCALNETWORK_AUTHORITY_ADDRESS"
 - "LOCALNETWORK_CONTRACT_ADDRESS"
+
+***Required contract addresses***
+
+The contract addresses that are required to be included in the `contract_addr` field (or `_CONTRACT_ADDRESS` JSON) are:
+
+```
+{
+  "plasma_framework": "...",
+  "eth_vault": "...",
+  "erc20_vault": "...",
+  "payment_exit_game": "..."
+}
+```
 
 ***Watcher only***
 

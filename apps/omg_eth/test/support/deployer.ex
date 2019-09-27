@@ -25,18 +25,17 @@ defmodule OMG.Eth.Deployer do
   @gas_contract_default 2_000_000
   @gas_contracts %{"SignatureTest" => 1_590_893, "ERC20Mintable" => 1_590_893}
 
-  def create_new(contract, path_project_root, from, opts \\ [])
+  def create_new(contract, path_project_root, from, args, opts \\ [])
 
   # special case so that we have a civil name for the Token contract
-  def create_new(OMG.Eth.Token, path_project_root, from, opts) do
+  def create_new(OMG.Eth.Token, path_project_root, from, [], opts) do
     gas = Map.get(@gas_contracts, "ERC20Mintable", @gas_contract_rootchain)
 
     get_bytecode!(path_project_root, "ERC20Mintable")
     |> deploy_contract(from, gas, opts)
   end
 
-  # TODO: this one actually could use a better name on the plasma_contracts end
-  def create_new(OMG.Eth.Eip712SignatureWrapper, path_project_root, from, opts) do
+  def create_new(OMG.Eth.Eip712SignatureWrapper, path_project_root, from, [], opts) do
     gas = Map.get(@gas_contracts, "SignatureTest", @gas_contract_rootchain)
 
     get_bytecode!(path_project_root, "SignatureTest")
@@ -44,7 +43,7 @@ defmodule OMG.Eth.Deployer do
   end
 
   # common case for no-argument deployments
-  def create_new(contract_module_name, path_project_root, from, opts) when is_binary(contract_module_name) do
+  def create_new(contract_module_name, path_project_root, from, [], opts) when is_binary(contract_module_name) do
     contract_name = contract_module_name |> to_string() |> String.split(".") |> List.last()
 
     gas = Map.get(@gas_contracts, contract_name, @gas_contract_default)
@@ -53,37 +52,29 @@ defmodule OMG.Eth.Deployer do
     |> deploy_contract(from, gas, opts)
   end
 
-  # FIXME: super ugly, fix this thing
-  def create_new2(contract, path_project_root, from, arg, opts \\ [])
+  def create_new("PlasmaFramework" = name, path_project_root, from, [exit_period_seconds: exit_period_seconds], opts) do
+    args = [{{:uint, 256}, exit_period_seconds}, {{:uint, 256}, 2}, {{:uint, 256}, 1}]
 
-  def create_new2("PlasmaFramework" = name, path_project_root, from, exit_period_seconds, opts) do
     get_bytecode!(path_project_root, name)
-    |> deploy_contract(
-      from,
-      @gas_contract_rootchain,
-      [{{:uint, 256}, exit_period_seconds}, {{:uint, 256}, 2}, {{:uint, 256}, 1}],
-      opts
-    )
+    |> deploy_contract(from, @gas_contract_rootchain, args, opts)
   end
 
-  def create_new2("EthVault" = name, path_project_root, from, plasma_framework, opts) do
+  def create_new("EthVault" = name, path_project_root, from, [plasma_framework: plasma_framework], opts) do
     get_bytecode!(path_project_root, name)
     |> deploy_contract(from, @gas_contract_default, [{:address, plasma_framework}], opts)
   end
 
-  def create_new2("Erc20Vault" = name, path_project_root, from, plasma_framework, opts) do
+  def create_new("Erc20Vault" = name, path_project_root, from, [plasma_framework: plasma_framework], opts) do
     get_bytecode!(path_project_root, name)
     |> deploy_contract(from, @gas_contract_default, [{:address, plasma_framework}], opts)
   end
 
-  def create_new2("PaymentOutputGuardHandler" = name, path_project_root, from, tx_type_marker, opts) do
+  def create_new("PaymentOutputGuardHandler" = name, path_project_root, from, [tx_type_marker: tx_type_marker], opts) do
     get_bytecode!(path_project_root, name)
     |> deploy_contract(from, @gas_contract_default, [{{:uint, 256}, tx_type_marker}], opts)
   end
 
-  def create_new3(contract, path_project_root, from, pf_addr, v1_addr, v2_addr, ogh_addr, sc_addr, opts \\ [])
-
-  def create_new3(
+  def create_new(
         "PaymentExitGame" = name,
         path_project_root,
         from,
@@ -105,18 +96,7 @@ defmodule OMG.Eth.Deployer do
     ]
 
     Eth.Librarian.link_for!(name, path_project_root, from)
-    |> deploy_contract(
-      from,
-      @gas_contract_default,
-      [
-        {:address, plasma_framework},
-        {:address, v1_addr},
-        {:address, v2_addr},
-        {:address, ogh_addr},
-        {:address, sc_addr}
-      ],
-      opts
-    )
+    |> deploy_contract(from, @gas_contract_default, args, opts)
   end
 
   defp deploy_contract(bytecode, from, gas_value, types_args \\ [], opts)
