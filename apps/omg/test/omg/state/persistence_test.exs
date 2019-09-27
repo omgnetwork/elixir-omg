@@ -66,6 +66,15 @@ defmodule OMG.State.PersistenceTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
+  test "utxos are persisted and can be fetched from db",
+       %{alice: alice, db_pid: db_pid, state_empty: state} do
+    state
+    |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
+
+    assert {:ok, {{1, 0, 0}, %{amount: 20}}} = OMG.DB.utxo({1, 0, 0}, db_pid)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
   test "all utxos get initialized by query result from db",
        %{alice: alice, db_pid: db_pid, bob: bob, state_empty: state} do
     state

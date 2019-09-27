@@ -30,101 +30,80 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
     %{alice: alice}
   end
 
-  test "getting exit data returns error when there is no deposit" do
-    assert {:error, :no_deposit_for_given_blknum} == Core.compose_deposit_exit(nil, Utxo.position(1003, 0, 0))
+  describe "compose_deposit_standard_exit/1" do
+    test "creates deposit exit", %{alice: alice} do
+      position = Utxo.position(1003, 0, 0)
+      encode_utxo = position |> Utxo.Position.encode()
+
+      assert {:ok,
+              %{
+                utxo_pos: ^encode_utxo,
+                txbytes: txbytes,
+                proof: proof
+              }} =
+               Core.compose_deposit_standard_exit(
+                 {:ok,
+                  {Utxo.Position.to_db_key(position),
+                   Utxo.to_db_value(%Utxo{amount: 10, currency: @eth, owner: alice.addr})}}
+               )
+
+      assert [%{amount: 10}] = txbytes |> Transaction.decode!() |> Transaction.get_outputs()
+      assert byte_size(proof) == 32 * 16
+    end
+
+    test "fails to create deposit exit when UTXO missing in DB" do
+      assert {:error, :no_deposit_for_given_blknum} = Core.compose_deposit_standard_exit(:not_found)
+    end
   end
 
-  test "creating deposit exit", %{alice: alice} do
-    position = Utxo.position(1003, 0, 0)
-    encode_utxo = position |> Utxo.Position.encode()
+  describe "compose_utxo_exit/2" do
+    test "composes output exit from tx inside a block", %{alice: alice} do
+      blknum = 4000
+      tx_exit = TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])
+      tx_exit_raw_tx_bytes = Transaction.raw_txbytes(tx_exit)
+      position = Utxo.position(blknum, 1, 0)
+      encode_utxo = position |> Utxo.Position.encode()
 
-    assert {:ok,
-            %{
-              utxo_pos: ^encode_utxo,
-              txbytes: _txbytes,
-              proof: _proof
-            }} =
-             Core.compose_deposit_exit(
-               %{
-                 amount: 10,
-                 currency: OMG.Eth.zero_address(),
-                 owner: alice.addr
-               },
-               position
-             )
-  end
+      block =
+        [
+          TestHelper.create_recovered([{1_000, 2, 0, alice}], @eth, [{alice, 10}]),
+          tx_exit,
+          TestHelper.create_recovered([{1_000, 3, 0, alice}], @eth, [{alice, 10}])
+        ]
+        |> Block.hashed_txs_at(blknum)
+        |> Block.to_db_value()
 
-  test "compose output exit", %{alice: alice} do
-    blknum = 4000
-    tx_exit = TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])
-    tx_exit_raw_tx_bytes = Transaction.raw_txbytes(tx_exit)
-    position = Utxo.position(blknum, 1, 0)
-    encode_utxo = position |> Utxo.Position.encode()
+      assert {:ok,
+              %{
+                proof: proof,
+                txbytes: ^tx_exit_raw_tx_bytes,
+                utxo_pos: ^encode_utxo
+              }} = Core.compose_block_standard_exit(block, position)
 
-    block =
-      [
-        TestHelper.create_recovered([{1_000, 2, 0, alice}], @eth, [{alice, 10}]),
-        tx_exit,
-        TestHelper.create_recovered([{1_000, 3, 0, alice}], @eth, [{alice, 10}])
-      ]
-      |> Block.hashed_txs_at(blknum)
-      |> Block.to_db_value()
+      assert byte_size(proof) == 32 * 16
+    end
 
-    assert {:ok,
-            %{
-              proof: proof,
-              txbytes: ^tx_exit_raw_tx_bytes,
-              utxo_pos: ^encode_utxo
-            }} = Core.compose_output_exit(block, position)
+    test "doesn't find utxo for the output exit, position exceeding the block tx count", %{alice: alice} do
+      blknum = 4000
+      position = Utxo.position(blknum, 1, 0)
 
-    assert byte_size(proof) == 32 * 16
-  end
+      block =
+        [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]
+        |> Block.hashed_txs_at(blknum)
+        |> Block.to_db_value()
 
-  test "compose output exit, position exceeding the block tx count", %{alice: alice} do
-    blknum = 4000
-    position = Utxo.position(blknum, 1, 0)
+      assert {:error, :utxo_not_found} = Core.compose_block_standard_exit(block, position)
+    end
 
-    block =
-      [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]
-      |> Block.hashed_txs_at(blknum)
-      |> Block.to_db_value()
+    test "throws when composing output exit, mismatch blknum and utxo pos (should never occur)", %{alice: alice} do
+      position = Utxo.position(3000, 0, 0)
 
-    assert {:error, :utxo_not_found} = Core.compose_output_exit(block, position)
-  end
+      block =
+        [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]
+        |> Block.hashed_txs_at(4000)
+        |> Block.to_db_value()
 
-  test "compose output exit, erroneously mismatch blknum and utxo pos (should never occur)", %{alice: alice} do
-    position = Utxo.position(3000, 0, 0)
-
-    block =
-      [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]
-      |> Block.hashed_txs_at(4000)
-      |> Block.to_db_value()
-
-    assert_raise MatchError, fn -> Core.compose_output_exit(block, position) end
-  end
-
-  test "getting exit data returns error when there is no utxo" do
-    block = Block.hashed_txs_at([], 1000) |> Block.to_db_value()
-
-    assert {:error, :utxo_not_found} ==
-             Core.compose_output_exit(block, Utxo.position(1_000, 1, 2))
-  end
-
-  test "return utxo when in blknum in utxos map", %{alice: %{addr: alice_addr}} do
-    assert %{amount: 7, currency: @eth, owner: alice_addr} ==
-             Core.get_deposit_utxo(
-               {:ok,
-                Map.new(Enum.map(1..20, fn a -> {{a, 0, 0}, %{amount: a, currency: @eth, owner: alice_addr}} end))},
-               Utxo.position(7, 0, 0)
-             )
-  end
-
-  test "return nil when in blknum not in utxos map", %{alice: alice} do
-    assert nil ==
-             Core.get_deposit_utxo(
-               {:ok,
-                Map.new(Enum.map(1..20, fn a -> {{a, 0, 0}, %{amount: a, currency: @eth, owner: alice.addr}} end))},
-               Utxo.position(42, 0, 0)
-             )
+      assert_raise MatchError, fn -> Core.compose_block_standard_exit(block, position) end
+    end
   end
 end

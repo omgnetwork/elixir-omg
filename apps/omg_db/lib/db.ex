@@ -30,6 +30,7 @@ defmodule OMG.DB do
   @callback multi_update(term()) :: :ok | {:error, any}
   @callback blocks(block_to_fetch :: list()) :: {:ok, list(term)}
   @callback utxos() :: {:ok, list({utxo_pos_db_t, term})}
+  @callback utxo(utxo_pos_db_t) :: {:ok, term}
   @callback exit_infos() :: {:ok, list(term)}
   @callback in_flight_exits_info() :: {:ok, list(term)}
   @callback competitors_info() :: {:ok, list(term)}
@@ -44,6 +45,7 @@ defmodule OMG.DB do
   @callback multi_update(term(), GenServer.server()) :: :ok | {:error, any}
   @callback blocks(block_to_fetch :: list(), GenServer.server()) :: {:ok, list()} | {:error, any}
   @callback utxos(GenServer.server()) :: {:ok, list({utxo_pos_db_t, term})} | {:error, any}
+  @callback utxo(utxo_pos_db_t, GenServer.server()) :: {:ok, term} | {:error, any}
   @callback exit_infos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback in_flight_exits_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback competitors_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
@@ -58,6 +60,7 @@ defmodule OMG.DB do
                       multi_update: 2,
                       blocks: 2,
                       utxos: 1,
+                      utxo: 2,
                       exit_infos: 1,
                       in_flight_exits_info: 1,
                       competitors_info: 1,
@@ -96,6 +99,9 @@ defmodule OMG.DB do
 
   def utxos, do: driver().utxos()
   def utxos(server), do: driver().utxos(server)
+
+  def utxo(utxo_pos), do: driver().utxo(utxo_pos)
+  def utxo(utxo_pos, server), do: driver().utxo(utxo_pos, server)
 
   def exit_infos, do: driver().exit_infos
   def exit_infos(server), do: driver().exit_infos(server)

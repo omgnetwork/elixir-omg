@@ -23,9 +23,9 @@ defmodule OMG.Watcher.UtxoExit.Core do
 
   require Utxo
 
-  def compose_output_exit(:not_found, _), do: {:error, :utxo_not_found}
+  def compose_block_standard_exit(:not_found, _), do: {:error, :utxo_not_found}
 
-  def compose_output_exit(db_block, Utxo.position(blknum, txindex, _) = utxo_pos) do
+  def compose_block_standard_exit(db_block, Utxo.position(blknum, txindex, _) = utxo_pos) do
     %Block{transactions: sorted_txs_bytes, number: ^blknum} = block = Block.from_db_value(db_block)
 
     if signed_tx_bytes = Enum.at(sorted_txs_bytes, txindex) do
@@ -42,16 +42,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
     end
   end
 
-  @spec get_deposit_utxo({:ok, list({OMG.DB.utxo_pos_db_t(), Transaction.Payment.output()})}, Utxo.Position.t()) ::
-          nil | Transaction.Payment.output()
-  def get_deposit_utxo({:ok, utxos}, Utxo.position(blknum, _, _)) do
-    case Enum.find(utxos, fn {{blk, _, _}, _} -> blk == blknum end) do
-      {_, utxo} -> utxo
-      _ -> nil
-    end
-  end
-
-  @spec compose_deposit_exit(Transaction.Payment.output() | any(), Utxo.Position.t()) ::
+  @spec compose_deposit_standard_exit({:ok, {tuple, map}} | :not_found) ::
           {:error, :no_deposit_for_given_blknum}
           | {:ok,
              %{
@@ -59,7 +50,9 @@ defmodule OMG.Watcher.UtxoExit.Core do
                txbytes: binary,
                proof: binary
              }}
-  def compose_deposit_exit(%{amount: amount, currency: currency, owner: owner}, utxo_pos) do
+  def compose_deposit_standard_exit({:ok, {db_utxo_pos, db_utxo_value}}) do
+    utxo_pos = Utxo.Position.from_db_key(db_utxo_pos)
+    %{amount: amount, currency: currency, owner: owner} = Utxo.from_db_value(db_utxo_value)
     tx = Transaction.Payment.new([], [{owner, currency, amount}])
     txs = [Transaction.Signed.encode(%Transaction.Signed{raw_tx: tx, sigs: []})]
 
@@ -71,5 +64,5 @@ defmodule OMG.Watcher.UtxoExit.Core do
      }}
   end
 
-  def compose_deposit_exit(_, _), do: {:error, :no_deposit_for_given_blknum}
+  def compose_deposit_standard_exit(:not_found), do: {:error, :no_deposit_for_given_blknum}
 end
