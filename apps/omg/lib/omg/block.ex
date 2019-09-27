@@ -42,12 +42,10 @@ defmodule OMG.Block do
   """
   @spec hashed_txs_at(list(Transaction.Recovered.t()), non_neg_integer()) :: t()
   def hashed_txs_at(txs, blknum) do
-    {txs_bytes, hashed_txs} =
-      txs
-      |> Enum.map(&get_data_per_tx/1)
-      |> Enum.unzip()
+    signed_txs_bytes = Enum.map(txs, & &1.signed_tx_bytes)
+    txs_hashes = Enum.map(txs, &Transaction.raw_txhash/1)
 
-    %__MODULE__{hash: Merkle.hash(hashed_txs), transactions: txs_bytes, number: blknum}
+    %__MODULE__{hash: Merkle.hash(txs_hashes), transactions: signed_txs_bytes, number: blknum}
   end
 
   @doc """
@@ -77,22 +75,13 @@ defmodule OMG.Block do
   """
   @spec inclusion_proof(t() | list(Transaction.Signed.tx_bytes()), non_neg_integer()) :: binary()
   def inclusion_proof(transactions, txindex) when is_list(transactions) do
-    {_, hashed_txs} =
+    txs_hashes =
       transactions
-      |> Enum.map(&to_recovered_tx/1)
-      |> Enum.map(&get_data_per_tx/1)
-      |> Enum.unzip()
+      |> Enum.map(&Transaction.Signed.decode!/1)
+      |> Enum.map(&Transaction.raw_txhash/1)
 
-    Merkle.create_tx_proof(hashed_txs, txindex)
+    Merkle.create_tx_proof(txs_hashes, txindex)
   end
 
   def inclusion_proof(%__MODULE__{transactions: transactions}, txindex), do: inclusion_proof(transactions, txindex)
-
-  # extracts the necessary data from a single transaction to include in a block and merkle hash
-  # add more clauses to form blocks from other forms of transactions
-  defp get_data_per_tx(%Transaction.Recovered{tx_hash: hash, signed_tx_bytes: bytes}) do
-    {bytes, hash}
-  end
-
-  defp to_recovered_tx(txbytes), do: Transaction.Recovered.recover_from!(txbytes)
 end
