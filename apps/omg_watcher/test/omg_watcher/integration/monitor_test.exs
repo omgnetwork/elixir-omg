@@ -30,7 +30,13 @@ defmodule OMG.Watcher.MonitorTest do
       apps
       |> Enum.reverse()
       |> Enum.each(fn app -> Application.stop(app) end)
+    end)
 
+    :ok
+  end
+
+  setup do
+    on_exit(fn ->
       case Process.whereis(Monitor) do
         nil ->
           :ok
@@ -45,7 +51,7 @@ defmodule OMG.Watcher.MonitorTest do
     :ok
   end
 
-  test "when a child is specified as a map spec child gets restarted after alarm is cleared" do
+  test "that a child process gets restarted after alarm is cleared" do
     child = ChildProcess.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
     app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
@@ -67,6 +73,7 @@ defmodule OMG.Watcher.MonitorTest do
     {:ok, _} = :dbg.p(:all, [:call])
     :ok = :alarm_handler.clear_alarm(app_alarm)
     assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_children}}
+    :erlang.trace(monitor_pid, false, [:receive])
 
     started =
       receive do
@@ -75,6 +82,35 @@ defmodule OMG.Watcher.MonitorTest do
       end
 
     assert started == true
+  end
+
+  test "that a child process does not get restarted if an alarm is cleared but it was not down" do
+    child = ChildProcess.prepare_child()
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
+    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
+    :ok = :alarm_handler.set_alarm(app_alarm)
+    :erlang.trace(monitor_pid, true, [:receive])
+    {:links, links} = Process.info(monitor_pid, :links)
+    # now we clear the alarm and let the monitor restart the child processes
+    # in our case the child is alive so init should NOT be called
+    parent = self()
+    {:ok, _} = :dbg.tracer(:process, {fn msg, _ -> send(parent, msg) end, []})
+    {:ok, _} = :dbg.tpl(ChildProcess, :init, [{:_, [], [{:return_trace}]}])
+    {:ok, _} = :dbg.p(:all, [:call])
+    :ok = :alarm_handler.clear_alarm(app_alarm)
+    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_children}}, 1500
+    :erlang.trace(monitor_pid, false, [:receive])
+
+    started =
+      receive do
+        {:trace, _, :call, {ChildProcess, :init, [_]}} ->
+          true
+      after
+        10 -> false
+      end
+
+    {:links, ^links} = Process.info(monitor_pid, :links)
+    assert started == false
   end
 
   defmodule ChildProcess do
