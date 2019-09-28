@@ -36,7 +36,7 @@ defmodule OMG.Watcher.SyncSupervisor do
     Supervisor.init(children(), opts)
   end
 
-  defp children do
+  defp children() do
     [
       %{
         id: OMG.Watcher.BlockGetter.Supervisor,

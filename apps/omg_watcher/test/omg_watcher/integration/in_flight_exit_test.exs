@@ -177,7 +177,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
-    raw_tx2_bytes = tx2 |> Transaction.raw_txbytes()
+    raw_tx2_bytes = Transaction.raw_txbytes(tx2)
 
     {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
     {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)

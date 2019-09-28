@@ -30,6 +30,14 @@ defmodule OMG.ChildChain.MonitorTest do
       apps
       |> Enum.reverse()
       |> Enum.each(fn app -> Application.stop(app) end)
+
+      case Process.whereis(Monitor) do
+        nil ->
+          :ok
+
+        pid ->
+          Process.exit(pid, :kill)
+      end
     end)
 
     :ok
@@ -38,15 +46,15 @@ defmodule OMG.ChildChain.MonitorTest do
   test "when a child is specified as a map spec child gets restarted after alarm is cleared" do
     child = ChildProcess.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
-    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: Reporter}}
+    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
     :ok = :alarm_handler.set_alarm(app_alarm)
-    _ = Process.unlink(monitor_pid)
+    true = Process.unlink(monitor_pid)
     {:links, [child_pid]} = Process.info(monitor_pid, :links)
     true = Process.exit(Process.whereis(ChildProcess), :kill)
     # we prove that we're linked to the child process and that when it gets killed
     # we get the trap exit message
     :erlang.trace(monitor_pid, true, [:receive])
-    assert_receive {:trace, ^monitor_pid, :receive, {:EXIT, ^child_pid, :killed}}
+    assert_receive {:trace, ^monitor_pid, :receive, {:EXIT, ^child_pid, :killed}}, 5_000
     {:links, links} = Process.info(monitor_pid, :links)
     assert Enum.empty?(links) == true
     # now we can clear the alarm and let the monitor restart the child process
@@ -54,6 +62,8 @@ defmodule OMG.ChildChain.MonitorTest do
     assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_children}}
     {:links, links} = Process.info(monitor_pid, :links)
     assert Enum.empty?(links) == false
+    # cleanup
+    true = Process.link(monitor_pid)
   end
 
   defmodule ChildProcess do
