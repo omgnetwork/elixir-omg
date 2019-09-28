@@ -22,6 +22,7 @@ defmodule OMG.ChildChain.Supervisor do
   alias OMG.ChildChain.FreshBlocks
   alias OMG.ChildChain.Monitor
   alias OMG.ChildChain.SyncSupervisor
+  alias OMG.Eth.RootChain
   alias OMG.State
   alias OMG.Status.Alert.Alarm
 
@@ -30,6 +31,9 @@ defmodule OMG.ChildChain.Supervisor do
   end
 
   def init(:ok) do
+    # prevent booting if contracts are not ready
+    :ok = RootChain.contract_ready()
+
     children = [
       {State, []},
       {FreshBlocks, []},
