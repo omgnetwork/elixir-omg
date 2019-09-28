@@ -167,7 +167,6 @@ defmodule OMG.Performance do
   # Instead, we start the artificial `BlockCreator`
   defp start_simple_perftest_chain(opts) do
     children = [
-      {OMG.ChildChainRPC.Plugs.Health, []},
       {OMG.ChildChainRPC.Web.Endpoint, []},
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},

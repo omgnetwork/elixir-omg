@@ -50,7 +50,7 @@ defmodule OMG.Watcher.Monitor do
   end
 
   def init([alarm_module, children_specs]) do
-    install()
+    subscribe_to_alarms()
     Process.flag(:trap_exit, true)
 
     children = Enum.map(children_specs, &start_child(&1))
@@ -80,7 +80,7 @@ defmodule OMG.Watcher.Monitor do
     {:ok, state}
   end
 
-  # there's a supervisor below us already that did the needed restarts for it's children
+  # there's a supervisor below us that did the needed restarts for it's children
   # so we just ignore the exit from the supervisor, if the alarm clears, we restart it
   def handle_info({:EXIT, _from, _reason}, state) do
     {:noreply, state}
@@ -103,17 +103,12 @@ defmodule OMG.Watcher.Monitor do
     do_start_child(spec)
   end
 
-  defp do_start_child({child_module, args} = spec) do
-    {:ok, pid} = child_module.start_link(args)
-    %Child{pid: pid, spec: spec}
-  end
-
   defp do_start_child(%{id: _name, start: {child_module, function, args}} = spec) do
     {:ok, pid} = apply(child_module, function, args)
     %Child{pid: pid, spec: spec}
   end
 
-  defp install do
+  defp subscribe_to_alarms() do
     case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
       true -> :ok
       _ -> :alarm_handler.add_alarm_handler(__MODULE__)
