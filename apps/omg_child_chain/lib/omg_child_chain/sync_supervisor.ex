@@ -20,6 +20,12 @@ defmodule OMG.ChildChain.SyncSupervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
 
+  alias OMG.ChildChain.CoordinatorSetup
+  alias OMG.Eth.RootChain
+  alias OMG.EthereumEventListener
+  alias OMG.RootChainCoordinator
+  alias OMG.State
+
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
@@ -34,49 +40,36 @@ defmodule OMG.ChildChain.SyncSupervisor do
   defp children() do
     [
       {OMG.ChildChain.BlockQueue.Server, []},
-      {OMG.RootChainCoordinator, coordinator_setup()},
-      OMG.EthereumEventListener.prepare_child(
+      {RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
+      EthereumEventListener.prepare_child(
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
-        process_events_callback: &OMG.State.deposit/1
+        get_events_callback: &RootChain.get_deposits/2,
+        process_events_callback: &State.deposit/1
       ),
-      OMG.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :in_flight_exit,
         synced_height_update_key: :last_in_flight_exit_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
+        get_events_callback: &RootChain.get_in_flight_exit_starts/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
-      OMG.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :piggyback,
         synced_height_update_key: :last_piggyback_exit_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
+        get_events_callback: &RootChain.get_piggybacks/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
-      OMG.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
+        get_events_callback: &RootChain.get_standard_exits/2,
         process_events_callback: &exit_and_ignore_validities/1
       )
     ]
   end
 
-  # The setup of `OMG.RootChainCoordinator` for the child chain server - configures the relations between different
-  # event listeners
-  def coordinator_setup do
-    deposit_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin)
-
-    %{
-      depositor: [finality_margin: deposit_finality_margin],
-      exiter: [waits_for: :depositor, finality_margin: 0],
-      in_flight_exit: [waits_for: :depositor, finality_margin: 0],
-      piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
-    }
-  end
-
   defp exit_and_ignore_validities(exits) do
-    {status, db_updates, _validities} = OMG.State.exit_utxos(exits)
+    {status, db_updates, _validities} = State.exit_utxos(exits)
     {status, db_updates}
   end
 end
