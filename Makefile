@@ -15,7 +15,7 @@ help:
 	@echo "but Watcher and Child Chain bare metal."
 	@echo "You will need four terminal windows."
 	@echo "In the first one run:"
-	@echo "make raw-start-services"
+	@echo "make start-services"
 	@echo "This will start geth, postgres and plasma-deployer. In case on of the containers is faulty, restart it by running the command again. Usually it's plasma-deployer."
 	@echo "In the second terminal window, run:"
 	@echo "make start-child_chain"
@@ -37,7 +37,7 @@ all: clean build-child_chain-prod build-watcher-prod
 
 WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-f49c934"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20190928"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
