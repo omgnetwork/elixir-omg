@@ -23,6 +23,7 @@ defmodule OMG.Watcher.Supervisor do
   alias OMG.Status.Alert.Alarm
   alias OMG.Watcher
   alias OMG.Watcher.Monitor
+  alias OMG.Watcher.SyncSupervisor
 
   if Mix.env() == :test do
     defmodule Sandbox do
@@ -69,8 +70,8 @@ defmodule OMG.Watcher.Supervisor do
          Alarm,
          [
            %{
-             id: Watcher.SyncSupervisor,
-             start: {Watcher.SyncSupervisor, :start_link, []},
+             id: SyncSupervisor,
+             start: {SyncSupervisor, :start_link, []},
              restart: :permanent,
              type: :supervisor
            }
