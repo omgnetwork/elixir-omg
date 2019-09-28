@@ -33,6 +33,7 @@ defmodule OMG.ChildChain.Supervisor do
   def init(:ok) do
     # prevent booting if contracts are not ready
     :ok = RootChain.contract_ready()
+    {:ok, _contract_deployment_height} = RootChain.get_root_deployment_height()
 
     children = [
       {State, []},
