@@ -38,6 +38,8 @@ defmodule OMG.Watcher.MonitorTest do
         pid ->
           Process.exit(pid, :kill)
       end
+
+      :dbg.stop_clear()
     end)
 
     :ok
@@ -58,12 +60,21 @@ defmodule OMG.Watcher.MonitorTest do
     {:links, links} = Process.info(monitor_pid, :links)
     assert Enum.empty?(links) == true
     # now we can clear the alarm and let the monitor restart the child process
+    # and trace that the child process gets started
+    parent = self()
+    {:ok, _} = :dbg.tracer(:process, {fn msg, _ -> send(parent, msg) end, []})
+    {:ok, _} = :dbg.tpl(ChildProcess, :init, [{:_, [], [{:return_trace}]}])
+    {:ok, _} = :dbg.p(:all, [:call])
     :ok = :alarm_handler.clear_alarm(app_alarm)
     assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_children}}
-    {:links, links} = Process.info(monitor_pid, :links)
-    assert Enum.empty?(links) == false
-    # cleanup
-    true = Process.link(monitor_pid)
+
+    started =
+      receive do
+        {:trace, _, :call, {ChildProcess, :init, [_]}} ->
+          true
+      end
+
+    assert started == true
   end
 
   defmodule ChildProcess do
