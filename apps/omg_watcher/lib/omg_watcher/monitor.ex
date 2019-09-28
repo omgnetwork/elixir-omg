@@ -14,17 +14,10 @@
 
 defmodule OMG.Watcher.Monitor do
   @moduledoc """
-  This module is a custom implemented supervisor that monitors all it's chilldren
-  and restarts them based on alarms raised. This means that in the period when Geth alarms are raised
-  it would wait before it would restart them.
-  #TODO - implement a proper supervisor
-  When you receive an EXIT, check for an alarm raised that's related to Ethereum client synhronisation or connection
-  problems and reacts accordingly.
-
-  If there's an alarm raised of type :ethereum_client_connection we postpone
-  the restart util the alarm is cleared. Other children are restarted immediately.
-
-  Implements a GenServer and callbacks of an alarm handler to be able to react to clearead alarms.
+  This module restarts it's children if the Ethereum client
+  connectivity is dropped.
+  It subscribes to alarms and when an alarm is cleared it restarts it
+  children if they're dead.
   """
   defmodule Child do
     @moduledoc false
@@ -38,7 +31,7 @@ defmodule OMG.Watcher.Monitor do
   use GenServer
 
   require Logger
-  # needs to be less then checks from RootChainCoordinator
+
   @type t :: %__MODULE__{
           alarm_module: module(),
           children: list(Child.t())
@@ -92,20 +85,21 @@ defmodule OMG.Watcher.Monitor do
     {:noreply, %{state | children: children}}
   end
 
-  defp start_child(%Child{pid: pid, spec: spec} = child) do
-    case Process.alive?(pid) do
-      true -> child
-      false -> do_start_child(spec)
-    end
-  end
-
-  defp start_child(spec) do
-    do_start_child(spec)
-  end
-
-  defp do_start_child(%{id: _name, start: {child_module, function, args}} = spec) do
+  defp start_child(%{id: _name, start: {child_module, function, args}} = spec) do
     {:ok, pid} = apply(child_module, function, args)
     %Child{pid: pid, spec: spec}
+  end
+
+  defp start_child(%Child{pid: pid, spec: spec} = child) do
+    case Process.alive?(pid) do
+      true ->
+        child
+
+      false ->
+        %{id: _name, start: {child_module, function, args}} = spec
+        {:ok, pid} = apply(child_module, function, args)
+        %Child{pid: pid, spec: spec}
+    end
   end
 
   defp subscribe_to_alarms() do
