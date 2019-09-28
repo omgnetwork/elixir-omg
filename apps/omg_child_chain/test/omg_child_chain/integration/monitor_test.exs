@@ -52,10 +52,10 @@ defmodule OMG.ChildChain.MonitorTest do
     :ok = :alarm_handler.set_alarm(app_alarm)
     true = Process.unlink(monitor_pid)
     {:links, [child_pid]} = Process.info(monitor_pid, :links)
+    :erlang.trace(monitor_pid, true, [:receive])
     true = Process.exit(Process.whereis(ChildProcess), :kill)
     # we prove that we're linked to the child process and that when it gets killed
     # we get the trap exit message
-    :erlang.trace(monitor_pid, true, [:receive])
     assert_receive {:trace, ^monitor_pid, :receive, {:EXIT, ^child_pid, :killed}}, 5_000
     {:links, links} = Process.info(monitor_pid, :links)
     assert Enum.empty?(links) == true
