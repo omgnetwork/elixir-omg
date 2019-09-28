@@ -16,12 +16,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:v1.3
+      - image: omisegoimages/elixir-omg-builder:stable-20190928
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:v1.3
+      - image: omisegoimages/elixir-omg-builder:stable-20190928
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -31,7 +31,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:stable
+      - image: omisegoimages/elixir-omg-tester:stable-20190928
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -41,7 +41,7 @@ executors:
 
   deploy:
     docker:
-      - image: omisegoimages/elixir-omg-deploy:stable
+      - image: omisegoimages/elixir-omg-deploy:stable-20190928
     working_directory: ~/src
 
   metal_child_chain:
