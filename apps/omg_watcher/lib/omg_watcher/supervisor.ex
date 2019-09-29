@@ -68,14 +68,12 @@ defmodule OMG.Watcher.Supervisor do
       {Monitor,
        [
          Alarm,
-         [
-           %{
-             id: SyncSupervisor,
-             start: {SyncSupervisor, :start_link, []},
-             restart: :permanent,
-             type: :supervisor
-           }
-         ]
+         %{
+           id: SyncSupervisor,
+           start: {SyncSupervisor, :start_link, []},
+           restart: :permanent,
+           type: :supervisor
+         }
        ]},
       # Start workers
       {Watcher.Eventer, []}
