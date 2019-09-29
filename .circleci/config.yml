@@ -84,18 +84,16 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
+          key: v1-deps-cache-{{ checksum "mix.lock" }}
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - save_cache:
           key: v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
           paths: "_build"
       - save_cache:
-          key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
+          key: v1-deps-cache-{{ checksum "mix.lock" }}
           paths:
-            - "deps/rocksdb"
-            - "_build/test/lib/rocksdb/"
-            - "_build/test/dev/rocksdb/"
+            - "deps/"
       - persist_to_workspace:
           name: Persist workspace
           root: ~/src
