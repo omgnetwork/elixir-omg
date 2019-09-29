@@ -63,9 +63,17 @@ defmodule OMG.Watcher.MonitorTest do
     :ok
   end
 
+<<<<<<< HEAD
   @tag :capture_log
   test "if a tuple spec child gets restarted after alarm is raised" do
     {:ok, monitor_pid} = Monitor.start_link([Alarm, [{EthereumClientMock, []}]])
+=======
+  test "that a child process gets restarted after alarm is cleared" do
+    child = ChildProcess.prepare_child()
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
+    app_alarm = Alarm.ethereum_client_connection(__MODULE__)
+    :ok = :alarm_handler.set_alarm(app_alarm)
+>>>>>>> c9789554... fix: clenaup raising and clearing alarms
     _ = Process.unlink(monitor_pid)
     {:links, links} = Process.info(monitor_pid, :links)
 
@@ -131,6 +139,7 @@ defmodule OMG.Watcher.MonitorTest do
     # test with a child defined as a map
     child = EthereumClientMock.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
+<<<<<<< HEAD
     registered_name = get_registered_child_name(monitor_pid)
     assert registered_name == EthereumClientMock
     old_pid = Process.whereis(registered_name)
@@ -184,6 +193,11 @@ defmodule OMG.Watcher.MonitorTest do
   defp get_child_link(_, 0), do: []
 
   defp get_child_link(monitor_pid, count) do
+=======
+    app_alarm = Alarm.ethereum_client_connection(__MODULE__)
+    :ok = :alarm_handler.set_alarm(app_alarm)
+    :erlang.trace(monitor_pid, true, [:receive])
+>>>>>>> c9789554... fix: clenaup raising and clearing alarms
     {:links, links} = Process.info(monitor_pid, :links)
     just_me = [self()]
 

@@ -68,14 +68,12 @@ defmodule OMG.ChildChain.FeeServer do
       if Application.get_env(:omg_child_chain, :ignore_fees) do
         _ = Logger.warn("Fee specs from file are ignored. Updates takes no effect.")
       else
-        alarm = {:invalid_fee_file, Node.self(), __MODULE__}
-
         case update_fee_spec() do
           :ok ->
-            Alarm.clear(alarm)
+            Alarm.clear(Alarm.invalid_fee_file(__MODULE__))
 
           _ ->
-            Alarm.set(alarm)
+            Alarm.set(Alarm.invalid_fee_file(__MODULE__))
         end
       end
 
