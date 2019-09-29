@@ -92,9 +92,8 @@ defmodule OMG.ChildChain.MonitorTest do
     {:ok, _} = :dbg.tracer(:process, {fn msg, _ -> send(parent, msg) end, []})
     {:ok, _} = :dbg.tpl(Monitor, :is_raised?, [{:_, [], [{:return_trace}]}])
     {:ok, _} = :dbg.p(:all, [:call])
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [{EthereumClientMock, []}]])
-    _ = Process.unlink(monitor_pid)
-    {:links, links} = Process.info(monitor_pid, :links)
+    :ok = :alarm_handler.clear_alarm(app_alarm)
+    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_child}}
 
     names =
       Enum.map(links, fn x ->
@@ -120,41 +119,30 @@ defmodule OMG.ChildChain.MonitorTest do
     end
   end
 
-<<<<<<< HEAD
-  test "if a map spec child gets started" do
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [EthereumClientMock.prepare_child()]])
-    Process.unlink(monitor_pid)
-    {:links, links} = Process.info(monitor_pid, :links)
-
-    names =
-      Enum.map(links, fn x ->
-        {:registered_name, registered_name} = Process.info(x, :registered_name)
-        registered_name
-      end)
-
-    assert Enum.member?(names, EthereumClientMock)
-  end
-
-  @tag :capture_log
-  test "if a map spec for child process and tuple spec get restarted after exit" do
-    # test with a child defined as a map
-    child = EthereumClientMock.prepare_child()
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
-=======
   test "that a child process does not get restarted if an alarm is cleared but it was not down" do
     child = ChildProcess.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([Alarm, child])
->>>>>>> 94236337... refactor: simplify monitor to one child
     app_alarm = Alarm.ethereum_client_connection(__MODULE__)
     :ok = :alarm_handler.set_alarm(app_alarm)
     :erlang.trace(monitor_pid, true, [:receive])
     {:links, links} = Process.info(monitor_pid, :links)
-    just_me = [self()]
+    # now we clear the alarm and let the monitor restart the child processes
+    # in our case the child is alive so init should NOT be called
+    parent = self()
+    {:ok, _} = :dbg.tracer(:process, {fn msg, _ -> send(parent, msg) end, []})
+    {:ok, _} = :dbg.tpl(ChildProcess, :init, [{:_, [], [{:return_trace}]}])
+    {:ok, _} = :dbg.p(:all, [:call])
+    :ok = :alarm_handler.clear_alarm(app_alarm)
+    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_child}}, 1500
+    :erlang.trace(monitor_pid, false, [:receive])
 
-    case links do
-      _ when links == [] or links == just_me ->
-        _ = Process.sleep(10)
-        get_child_link(monitor_pid, count - 1)
+    started =
+      receive do
+        {:trace, _, :call, {ChildProcess, :init, [_]}} ->
+          true
+      after
+        10 -> false
+      end
 
       _ ->
         links -- just_me
