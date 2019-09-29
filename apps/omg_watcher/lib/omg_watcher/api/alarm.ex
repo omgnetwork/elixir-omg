@@ -19,6 +19,6 @@ defmodule OMG.Watcher.API.Alarm do
 
   alias OMG.Status.Alert.Alarm
 
-  @spec get_alarms() :: {:ok, Alarm.raw_t()}
+  @spec get_alarms() :: {:ok, Alarm.alarms()}
   def get_alarms, do: {:ok, Alarm.all()}
 end
