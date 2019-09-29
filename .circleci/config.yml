@@ -94,6 +94,8 @@ jobs:
           key: v1-deps-cache-{{ checksum "mix.lock" }}
           paths:
             - "deps/"
+            - "!_build/test/lib/omg*"
+            - "!_build/test/lib/xomg*"
       - persist_to_workspace:
           name: Persist workspace
           root: ~/src
