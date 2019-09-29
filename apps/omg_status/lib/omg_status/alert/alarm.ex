@@ -25,7 +25,11 @@ defmodule OMG.Status.Alert.Alarm do
           {:boot_in_progress
            | :ethereum_client_connection
            | :invalid_fee_file
-           | :statsd_client_connection, atom(), atom()}
+           | :statsd_client_connection
+           | :chain_crash, atom(), atom()}
+
+  def alarm_types(),
+    do: [:boot_in_progress, :ethereum_client_connection, :invalid_fee_file, :statsd_client_connection, :chain_crash]
 
   def statsd_client_connection(node, reporter),
     do: {:statsd_client_connection, %{node: node, reporter: reporter}}
@@ -38,6 +42,9 @@ defmodule OMG.Status.Alert.Alarm do
 
   def invalid_fee_file(node, reporter),
     do: {:invalid_fee_file, %{node: node, reporter: reporter}}
+
+  def chain_crash(node, reporter),
+    do: {:chain_crash, %{node: node, reporter: reporter}}
 
   @spec set(raw_t()) :: :ok | :duplicate
   def set(raw_alarm), do: raw_alarm |> make_alarm() |> do_raise()
@@ -68,6 +75,9 @@ defmodule OMG.Status.Alert.Alarm do
   defp make_alarm(raw_alarm = {_, node, reporter}) when is_atom(node) and is_atom(reporter),
     do: make_alarm_for(raw_alarm)
 
+  defp make_alarm({alarm_type, details} = alarm) when is_atom(alarm_type) and is_map(details),
+    do: alarm
+
   defp make_alarm_for({:ethereum_client_connection, node, reporter}) do
     ethereum_client_connection_issue(node, reporter)
   end
@@ -82,5 +92,9 @@ defmodule OMG.Status.Alert.Alarm do
 
   defp make_alarm_for({:statsd_client_connection, node, reporter}) do
     statsd_client_connection(node, reporter)
+  end
+
+  defp make_alarm_for({:chain_crash, node, reporter}) do
+    chain_crash(node, reporter)
   end
 end

@@ -80,20 +80,25 @@ defmodule OMG.ChildChain.Monitor do
     {:ok, state}
   end
 
-  # we got an exit signal from a linked child, we have to act as a supervisor now and decide what to do
-  # we try to find the child via his old pid that we kept in the state, retrieve his exit reason and specification for
-  # starting the child
-  def handle_info({:EXIT, from, _reason}, state) do
-    {%Child{pid: ^from} = child, other_children} = pop_child_from_dead_pid(from, state.children)
+  # there's a supervisor below us that did the needed restarts for it's children
+  # so we do not attempt to restart the exit from the supervisor, if the alarm clears, we restart it then.
+  # we check if there are any descendants left, if not, we raise an alarm and declare the sytem unhealthy
+  def handle_info({:EXIT, _from, _reason}, state) do
+    {:links, links} = Process.info(self(), :links)
 
-    new_child = restart_or_delay(state.alarm_module, child)
+    _ =
+      if Enum.count(links) == 1 do
+        state.alarm_module.set(state.alarm_module.chain_crash(Node.self(), __MODULE__))
+      end
 
-    {:noreply, %{state | children: [new_child | other_children]}}
+    {:noreply, state}
   end
 
   def handle_cast(:start_children, state) do
-    children = Enum.map(state.children, &start_child(&1.spec))
-
+    children = state.children
+    _ = Logger.info("Monitor is restarting children #{inspect(children)} and clearing chain_crash alarm.")
+    children = Enum.map(children, &start_child(&1))
+    _ = state.alarm_module.clear(state.alarm_module.chain_crash(Node.self(), __MODULE__))
     {:noreply, %{state | children: children}}
   end
 
