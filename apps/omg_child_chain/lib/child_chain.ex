@@ -53,7 +53,7 @@ defmodule OMG.ChildChain do
     |> result_with_logging()
   end
 
-  @spec get_alarms() :: {:ok, Alarm.raw_t()}
+  @spec get_alarms() :: {:ok, Alarm.alarms()}
   def get_alarms, do: {:ok, Alarm.all()}
 
   defp result_with_logging(result) do
