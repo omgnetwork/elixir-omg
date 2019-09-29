@@ -72,7 +72,7 @@ defmodule OMG.ChildChain.MonitorTest do
     {:ok, _} = :dbg.tpl(ChildProcess, :init, [{:_, [], [{:return_trace}]}])
     {:ok, _} = :dbg.p(:all, [:call])
     :ok = :alarm_handler.clear_alarm(app_alarm)
-    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_children}}
+    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_child}}
 
     started =
       receive do
@@ -97,7 +97,7 @@ defmodule OMG.ChildChain.MonitorTest do
     {:ok, _} = :dbg.tpl(ChildProcess, :init, [{:_, [], [{:return_trace}]}])
     {:ok, _} = :dbg.p(:all, [:call])
     :ok = :alarm_handler.clear_alarm(app_alarm)
-    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_children}}, 1500
+    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_child}}, 1500
     :erlang.trace(monitor_pid, false, [:receive])
 
     started =
