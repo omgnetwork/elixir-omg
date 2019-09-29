@@ -74,14 +74,25 @@ defmodule OMG.ChildChain.Monitor do
   end
 
   # there's a supervisor below us that did the needed restarts for it's children
-  # so we just ignore the exit from the supervisor, if the alarm clears, we restart it
+  # so we do not attempt to restart the exit from the supervisor, if the alarm clears, we restart it then.
+  # we check if there are any descendants left, if not, we raise an alarm and declare the sytem unhealthy
   def handle_info({:EXIT, _from, _reason}, state) do
+    {:links, links} = Process.info(self(), :links)
+
+    _ =
+      if Enum.count(links) == 1 do
+        state.alarm_module.set(state.alarm_module.chain_crash(Node.self(), __MODULE__))
+      end
+
     {:noreply, state}
   end
 
   # alarm has cleared, we can now begin restarting children
   def handle_cast(:start_children, state) do
-    children = Enum.map(state.children, &start_child(&1))
+    children = state.children
+    _ = Logger.info("Monitor is restarting children #{inspect(children)} and clearing chain_crash alarm.")
+    children = Enum.map(children, &start_child(&1))
+    _ = state.alarm_module.clear(state.alarm_module.chain_crash(Node.self(), __MODULE__))
     {:noreply, %{state | children: children}}
   end
 
