@@ -81,7 +81,7 @@ defmodule OMG.ChildChain.Monitor do
 
     _ =
       if Enum.count(links) == 1 do
-        state.alarm_module.set(state.alarm_module.chain_crash(Node.self(), __MODULE__))
+        state.alarm_module.set(state.alarm_module.chain_crash(__MODULE__))
       end
 
     {:noreply, state}
@@ -92,7 +92,7 @@ defmodule OMG.ChildChain.Monitor do
     children = state.children
     _ = Logger.info("Monitor is restarting children #{inspect(children)} and clearing chain_crash alarm.")
     children = Enum.map(children, &start_child(&1))
-    _ = state.alarm_module.clear(state.alarm_module.chain_crash(Node.self(), __MODULE__))
+    _ = state.alarm_module.clear(state.alarm_module.chain_crash(__MODULE__))
     {:noreply, %{state | children: children}}
   end
 
