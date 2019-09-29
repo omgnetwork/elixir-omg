@@ -55,10 +55,26 @@ defmodule OMG.ChildChain.Supervisor do
     ]
 
     children = [
+<<<<<<< HEAD
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, []},
       {OMG.ChildChain.Monitor, [Alarm, monitor_children]}
+=======
+      {State, []},
+      {FreshBlocks, []},
+      {FeeServer, []},
+      {Monitor,
+       [
+         Alarm,
+         %{
+           id: SyncSupervisor,
+           start: {SyncSupervisor, :start_link, []},
+           restart: :permanent,
+           type: :supervisor
+         }
+       ]}
+>>>>>>> 94236337... refactor: simplify monitor to one child
     ]
 
     opts = [strategy: :one_for_one]

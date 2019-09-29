@@ -42,20 +42,19 @@ defmodule OMG.ChildChain.Monitor do
 
   @type t :: %__MODULE__{
           alarm_module: module(),
-          children: list(Child.t())
+          child: Child.t()
         }
-  defstruct alarm_module: nil, children: nil
+  defstruct alarm_module: nil, child: nil
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init([alarm_module, children_specs]) do
-    install()
+  def init([alarm_module, child_spec]) do
+    subscribe_to_alarms()
     Process.flag(:trap_exit, true)
-    _ = Logger.info("Starting #{__MODULE__}")
-    children = Enum.map(children_specs, &start_child(&1))
-    {:ok, %__MODULE__{alarm_module: alarm_module, children: children}}
+
+    {:ok, %__MODULE__{alarm_module: alarm_module, child: start_child(child_spec)}}
   end
 
   # gen_event boot
@@ -80,26 +79,22 @@ defmodule OMG.ChildChain.Monitor do
     {:ok, state}
   end
 
-  # there's a supervisor below us that did the needed restarts for it's children
+  # There's a supervisor below us that did the needed restarts for it's children
   # so we do not attempt to restart the exit from the supervisor, if the alarm clears, we restart it then.
-  # we check if there are any descendants left, if not, we raise an alarm and declare the sytem unhealthy
+  # We declare the sytem unhealthy
   def handle_info({:EXIT, _from, _reason}, state) do
-    {:links, links} = Process.info(self(), :links)
-
-    _ =
-      if Enum.count(links) == 1 do
-        state.alarm_module.set(state.alarm_module.chain_crash(__MODULE__))
-      end
+    state.alarm_module.set(state.alarm_module.chain_crash(__MODULE__))
 
     {:noreply, state}
   end
 
-  def handle_cast(:start_children, state) do
-    children = state.children
-    _ = Logger.info("Monitor is restarting children #{inspect(children)} and clearing chain_crash alarm.")
-    children = Enum.map(children, &start_child(&1))
+  # alarm has cleared, we can now begin restarting children
+  def handle_cast(:start_child, state) do
+    child = state.child
+    _ = Logger.info("Monitor is restarting children #{inspect(child)} and clearing chain_crash alarm.")
+
     _ = state.alarm_module.clear(state.alarm_module.chain_crash(__MODULE__))
-    {:noreply, %{state | children: children}}
+    {:noreply, %{state | child: start_child(child)}}
   end
 
   #  We try to find the child specs from the pid that was started.

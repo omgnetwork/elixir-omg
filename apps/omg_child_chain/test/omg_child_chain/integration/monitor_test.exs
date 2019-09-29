@@ -65,7 +65,7 @@ defmodule OMG.ChildChain.MonitorTest do
 
   test "when a child is specified as a map spec child gets restarted after alarm is cleared" do
     child = ChildProcess.prepare_child()
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, child])
     app_alarm = Alarm.ethereum_client_connection(__MODULE__)
     :ok = :alarm_handler.set_alarm(app_alarm)
     true = Process.unlink(monitor_pid)
@@ -120,6 +120,7 @@ defmodule OMG.ChildChain.MonitorTest do
     end
   end
 
+<<<<<<< HEAD
   test "if a map spec child gets started" do
     {:ok, monitor_pid} = Monitor.start_link([Alarm, [EthereumClientMock.prepare_child()]])
     Process.unlink(monitor_pid)
@@ -139,6 +140,11 @@ defmodule OMG.ChildChain.MonitorTest do
     # test with a child defined as a map
     child = EthereumClientMock.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
+=======
+  test "that a child process does not get restarted if an alarm is cleared but it was not down" do
+    child = ChildProcess.prepare_child()
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, child])
+>>>>>>> 94236337... refactor: simplify monitor to one child
     app_alarm = Alarm.ethereum_client_connection(__MODULE__)
     :ok = :alarm_handler.set_alarm(app_alarm)
     :erlang.trace(monitor_pid, true, [:receive])
