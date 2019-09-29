@@ -75,7 +75,6 @@ defmodule OMG.Watcher.Supervisor do
            type: :supervisor
          }
        ]},
-      # Start workers
       {Watcher.Eventer, []}
     ]
 

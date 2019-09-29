@@ -14,8 +14,7 @@
 
 defmodule OMG.ChildChain.MonitorTest do
   @moduledoc false
-  alias __MODULE__.EthereumClientMock
-
+  alias __MODULE__.ChildProcess
   alias OMG.ChildChain.Monitor
   alias OMG.Status.Alert.Alarm
 
@@ -23,7 +22,6 @@ defmodule OMG.ChildChain.MonitorTest do
 
   @moduletag :integration
   @moduletag :child_chain
-  @moduletag timeout: 120_000
 
   setup_all do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
@@ -38,8 +36,6 @@ defmodule OMG.ChildChain.MonitorTest do
   end
 
   setup do
-    Alarm.clear_all()
-
     on_exit(fn ->
       case Process.whereis(Monitor) do
         nil ->
@@ -49,15 +45,7 @@ defmodule OMG.ChildChain.MonitorTest do
           Process.exit(pid, :kill)
       end
 
-      case Process.whereis(EthereumClientMock) do
-        nil ->
-          :ok
-
-        pid ->
-          Process.exit(pid, :kill)
-      end
-
-      :ok
+      :dbg.stop_clear()
     end)
 
     :ok
@@ -76,96 +64,60 @@ defmodule OMG.ChildChain.MonitorTest do
     # we get the trap exit message
     assert_receive {:trace, ^monitor_pid, :receive, {:EXIT, ^child_pid, :killed}}, 5_000
     {:links, links} = Process.info(monitor_pid, :links)
-
-    names =
-      Enum.map(links, fn x ->
-        {:registered_name, registered_name} = Process.info(x, :registered_name)
-        registered_name
-      end)
-
-    assert Enum.member?(names, EthereumClientMock)
-  end
-
-  @tag :capture_log
-  test "if a tuple spec child gets started" do
+    assert Enum.empty?(links) == true
+    # now we can clear the alarm and let the monitor restart the child process
+    # and trace that the child process gets started
     parent = self()
     {:ok, _} = :dbg.tracer(:process, {fn msg, _ -> send(parent, msg) end, []})
-    {:ok, _} = :dbg.tpl(Monitor, :is_raised?, [{:_, [], [{:return_trace}]}])
+    {:ok, _} = :dbg.tpl(ChildProcess, :init, [{:_, [], [{:return_trace}]}])
     {:ok, _} = :dbg.p(:all, [:call])
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [{EthereumClientMock, []}]])
-    _ = Process.unlink(monitor_pid)
-    {:links, links} = Process.info(monitor_pid, :links)
+    :ok = :alarm_handler.clear_alarm(app_alarm)
+    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_child}}
 
-    names =
-      Enum.map(links, fn x ->
-        {:registered_name, registered_name} = Process.info(x, :registered_name)
-        registered_name
-      end)
+    started =
+      receive do
+        {:trace, _, :call, {ChildProcess, :init, [_]}} ->
+          true
+      end
 
-    assert Enum.member?(names, EthereumClientMock)
-    # everything is nice and dandy, now we raise an alarm and exit the child process that the monitor
-    # is monitoring
-    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: Reporter}}
-    :ok = :alarm_handler.set_alarm(app_alarm)
-    true = Process.exit(Process.whereis(EthereumClientMock), :kill)
-    :dbg.stop_clear()
-    # we're testing that the timer's work and that private functions for
-    # checking for raised alarms are properly detecting it
-    receive do
-      {:trace, ^monitor_pid, :call, {Monitor, :is_raised?, [_]}} ->
-        receive do
-          {:trace, ^monitor_pid, :return_from, {Monitor, :is_raised?, 1}, data} ->
-            assert data == true
-        end
-    end
+    assert started == true
   end
 
-<<<<<<< HEAD
-  test "if a map spec child gets started" do
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [EthereumClientMock.prepare_child()]])
-    Process.unlink(monitor_pid)
-    {:links, links} = Process.info(monitor_pid, :links)
-
-    names =
-      Enum.map(links, fn x ->
-        {:registered_name, registered_name} = Process.info(x, :registered_name)
-        registered_name
-      end)
-
-    assert Enum.member?(names, EthereumClientMock)
-  end
-
-  @tag :capture_log
-  test "if a map spec for child process and tuple spec get restarted after exit" do
-    # test with a child defined as a map
-    child = EthereumClientMock.prepare_child()
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
-=======
   test "that a child process does not get restarted if an alarm is cleared but it was not down" do
     child = ChildProcess.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([Alarm, child])
->>>>>>> 94236337... refactor: simplify monitor to one child
     app_alarm = Alarm.ethereum_client_connection(__MODULE__)
     :ok = :alarm_handler.set_alarm(app_alarm)
     :erlang.trace(monitor_pid, true, [:receive])
     {:links, links} = Process.info(monitor_pid, :links)
-    just_me = [self()]
+    # now we clear the alarm and let the monitor restart the child processes
+    # in our case the child is alive so init should NOT be called
+    parent = self()
+    {:ok, _} = :dbg.tracer(:process, {fn msg, _ -> send(parent, msg) end, []})
+    {:ok, _} = :dbg.tpl(ChildProcess, :init, [{:_, [], [{:return_trace}]}])
+    {:ok, _} = :dbg.p(:all, [:call])
+    :ok = :alarm_handler.clear_alarm(app_alarm)
+    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_child}}, 1500
+    :erlang.trace(monitor_pid, false, [:receive])
 
-    case links do
-      _ when links == [] or links == just_me ->
-        _ = Process.sleep(10)
-        get_child_link(monitor_pid, count - 1)
+    started =
+      receive do
+        {:trace, _, :call, {ChildProcess, :init, [_]}} ->
+          true
+      after
+        10 -> false
+      end
 
-      _ ->
-        links -- just_me
-    end
+    {:links, ^links} = Process.info(monitor_pid, :links)
+    assert started == false
   end
 
-  defmodule EthereumClientMock do
+  defmodule ChildProcess do
     @moduledoc """
-    Mocking the ETH module integration point.
+    Mocking a child process to Monitor
     """
     use GenServer
+
     @spec prepare_child() :: %{id: atom(), start: tuple()}
     def prepare_child do
       %{id: __MODULE__, start: {__MODULE__, :start_link, [[]]}}
@@ -178,10 +130,5 @@ defmodule OMG.ChildChain.MonitorTest do
     def terminate(_reason, _) do
       :ok
     end
-
-    def handle_call({:terminate, reason}, _, state), do: {:stop, reason, state}
-
-    def handle_call(:terminate_ethereum_client_connection, _, state),
-      do: Process.exit(self(), {{:ethereum_client_connection, :normal}, state})
   end
 end
