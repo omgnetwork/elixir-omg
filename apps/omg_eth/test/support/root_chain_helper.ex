@@ -37,7 +37,7 @@ defmodule OMG.Eth.RootChainHelper do
   @gas_deposit 180_000
   @gas_deposit_from 250_000
   @gas_init 1_000_000
-  @standard_exit_bond 31_415_926_535
+  @standard_exit_bond 14_000_000_000_000_000
   @piggyback_bond 31_415_926_535
   @gas_respond_to_non_canonical_challenge 1_000_000
 
@@ -53,14 +53,16 @@ defmodule OMG.Eth.RootChainHelper do
 
     opts = defaults |> Keyword.merge(opts)
 
-    # TODO: this will most likely not work, look into which contract to call
-    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
+    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    output_type = 1
+    output_guard_preimage = ""
 
     Eth.contract_transact(
       from,
       contract,
-      "startStandardExit(uint192,bytes,bytes)",
-      [utxo_pos, tx_bytes, proof],
+      "startStandardExit((uint192,bytes,uint256,bytes,bytes))",
+      [{utxo_pos, tx_bytes, output_type, output_guard_preimage, proof}],
       opts
     )
   end
@@ -72,8 +74,7 @@ defmodule OMG.Eth.RootChainHelper do
       |> Keyword.put(:value, @piggyback_bond)
 
     opts = defaults |> Keyword.merge(opts)
-    # TODO: this will most likely not work, look into which contract to call
-    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
     Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes,uint8)", [in_flight_tx, output_index], opts)
   end
 
@@ -110,8 +111,7 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
     opts = defaults |> Keyword.merge(opts)
 
-    # TODO: this will most likely not work, look into which contract to call
-    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "challengeStandardExit(uint192,bytes,uint8,bytes)"
     args = [exit_id, challenge_tx, input_index, challenge_tx_sig]
     Eth.contract_transact(from, contract, signature, args, opts)
@@ -143,8 +143,7 @@ defmodule OMG.Eth.RootChainHelper do
 
     opts = defaults |> Keyword.merge(opts)
 
-    # TODO: this will most likely not work, look into which contract to call
-    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
     args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
     Eth.contract_transact(from, contract, signature, args, opts)
@@ -160,8 +159,7 @@ defmodule OMG.Eth.RootChainHelper do
       ) do
     opts = @tx_defaults |> Keyword.merge(opts)
 
-    # TODO: this will most likely not work, look into which contract to call
-    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "processExits(address,uint192,uint256)"
     args = [token, top_exit_id, exits_to_process]
     Eth.contract_transact(from, contract, signature, args, opts)
@@ -183,8 +181,7 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_in_flight_exit_not_canonical)
     opts = defaults |> Keyword.merge(opts)
 
-    # TODO: this will most likely not work, look into which contract to call
-    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = @challenge_ife_func_signature
 
     args = [
@@ -211,28 +208,7 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
     opts = defaults |> Keyword.merge(opts)
 
-    # TODO: this will most likely not work, look into which contract to call
-    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
-    signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
-
-    args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
-
-    Eth.contract_transact(from, contract, signature, args, opts)
-  end
-
-  def pond_to_non_canonical_challenge(
-        in_flight_tx,
-        in_flight_tx_pos,
-        in_flight_tx_inclusion_proof,
-        from,
-        contract \\ nil,
-        opts \\ []
-      ) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
-    opts = defaults |> Keyword.merge(opts)
-
-    # TODO: this will most likely not work, look into which contract to call
-    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
 
     args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
@@ -254,8 +230,7 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults
     opts = defaults |> Keyword.merge(opts)
 
-    # TODO: this will most likely not work, look into which contract to call
-    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = @challenge_ife_input_spent
 
     args = [
@@ -284,8 +259,7 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults
     opts = defaults |> Keyword.merge(opts)
 
-    # TODO: this will most likely not work, look into which contract to call
-    contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = @challenge_ife_output_spent
 
     args = [

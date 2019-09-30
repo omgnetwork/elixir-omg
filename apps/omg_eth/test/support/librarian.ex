@@ -32,7 +32,7 @@ defmodule OMG.Eth.Librarian do
   """
   def link_for!(contract, path_project_root, from)
 
-  def link_for!(OMG.Eth.PaymentStandardExitRouter, path_project_root, from) do
+  def link_for!("PaymentExitGame" = name, path_project_root, from) do
     paths = [
       "plasma_framework/contracts/src/exits/payment/controllers/PaymentStartStandardExit.sol",
       "plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeStandardExit.sol",
@@ -44,7 +44,7 @@ defmodule OMG.Eth.Librarian do
     libs = deploy_libs!(names, path_project_root, from, @gas_contract_libs)
 
     paths_names_and_libs = Enum.zip([paths, names, libs])
-    bytecode_linked(path_project_root, "PaymentStandardExitRouter", paths_names_and_libs)
+    bytecode_linked(path_project_root, name, paths_names_and_libs)
   end
 
   defp get_lib_names(paths),

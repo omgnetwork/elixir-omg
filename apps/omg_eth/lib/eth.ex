@@ -241,11 +241,14 @@ defmodule OMG.Eth do
 
   `eth_tx_hash` is expected encoded in raw binary format, as usual
 
+  If `unpack_tuple_args` named argument is provided it is interpreted as a list of atoms representing names of arguments
+  which are packed into a tuple named `args` in the contract functions signature.
+
   NOTE: function name and rich information about argument names and types is used, rather than its compact signature
   (like elsewhere) because `ABI.decode` has some issues with parsing signatures in this context.
   """
-  @spec get_call_data(binary(), binary(), list(atom), list(atom)) :: map
-  def get_call_data(eth_tx_hash, name, arg_names, arg_types) do
+  @spec get_call_data(binary(), binary(), list(atom), list(atom), keyword()) :: map
+  def get_call_data(eth_tx_hash, name, arg_names, arg_types, opts \\ []) do
     {:ok, %{"input" => eth_tx_input}} = Ethereumex.HttpClient.eth_get_transaction_by_hash(to_hex(eth_tx_hash))
     encoded_input = from_hex(eth_tx_input)
 
@@ -260,7 +263,17 @@ defmodule OMG.Eth do
         encoded_input
       )
 
-    Map.new(Enum.zip(arg_names, function_inputs))
+    call_data_raw = Map.new(Enum.zip(arg_names, function_inputs))
+
+    unpack_tuple_args = Keyword.get(opts, :unpack_tuple_args)
+    if unpack_tuple_args, do: parse_tuple_args(call_data_raw, unpack_tuple_args), else: call_data_raw
+  end
+
+  # interprets an argument called `args` in the call_data (arguments) and reinterprets the arguments according to names
+  # given
+  defp parse_tuple_args(call_data, tuple_arg_names) do
+    tuple_args = call_data |> Map.fetch!(:args) |> Tuple.to_list()
+    tuple_arg_names |> Enum.zip(tuple_args) |> Map.new()
   end
 
   defp common_parse_event(result, %{
