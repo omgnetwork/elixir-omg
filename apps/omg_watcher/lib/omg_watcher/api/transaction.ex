@@ -18,10 +18,10 @@ defmodule OMG.Watcher.API.Transaction do
   """
 
   alias OMG.State.Transaction
-  alias OMG.Utils.HttpRPC.Client
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.Watcher.DB
+  alias OMG.Watcher.HttpRPC.Client
   alias OMG.Watcher.UtxoSelection
 
   require Utxo

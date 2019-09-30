@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Utils.HttpRPC.Adapter do
+defmodule OMG.Watcher.HttpRPC.Adapter do
   @moduledoc """
   Provides functions to communicate with Child Chain API
   """
@@ -56,11 +56,11 @@ defmodule OMG.Utils.HttpRPC.Adapter do
 
   def get_response_body(error), do: {:error, {:client_error, error}}
 
-  def convert_keys_to_atoms(data) when is_list(data) do
+  defp convert_keys_to_atoms(data) when is_list(data) do
     data |> Enum.map(&convert_keys_to_atoms/1)
   end
 
-  def convert_keys_to_atoms(data) when is_map(data) do
+  defp convert_keys_to_atoms(data) when is_map(data) do
     data
     |> Stream.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
     |> Map.new()

@@ -52,7 +52,7 @@ defmodule OMG.Performance.ByzantineEvents do
 
   alias OMG.Eth
   alias OMG.Performance.ByzantineEvents.DoSExitWorker
-  alias OMG.Utils.HttpRPC.Client
+  alias OMG.Performance.HttpRPC.WatcherClient
   alias OMG.Utils.HttpRPC.Encoding
 
   @type stats_t :: %{
@@ -84,7 +84,7 @@ defmodule OMG.Performance.ByzantineEvents do
   def get_exitable_utxos(entities, watcher_url \\ @watcher_url)
 
   def get_exitable_utxos(addr, watcher_url) when is_binary(addr) do
-    {:ok, utxos} = Client.get_exitable_utxos(addr, watcher_url)
+    {:ok, utxos} = WatcherClient.get_exitable_utxos(addr, watcher_url)
     utxos
   end
 
@@ -100,7 +100,7 @@ defmodule OMG.Performance.ByzantineEvents do
 
   def watcher_synchronize_service(expected_service, min_service_height, watcher_url \\ @watcher_url) do
     Eth.WaitFor.repeat_until_ok(fn ->
-      with {:ok, %{services_synced_heights: services_synced_heights}} <- Client.get_status(watcher_url),
+      with {:ok, %{services_synced_heights: services_synced_heights}} <- WatcherClient.get_status(watcher_url),
            %{"height" => height} when height >= min_service_height <-
              Enum.find(services_synced_heights, &match?(%{"service" => ^expected_service}, &1)) do
         {:ok, height}
@@ -136,7 +136,7 @@ defmodule OMG.Performance.ByzantineEvents do
             last_mined_child_block_number: last_validated_child_block_number,
             last_validated_child_block_number: last_validated_child_block_number
           }}
-         when last_validated_child_block_number > 0 <- Client.get_status(watcher_url) do
+         when last_validated_child_block_number > 0 <- WatcherClient.get_status(watcher_url) do
       _ = Logger.debug("Synced to blknum: #{last_validated_child_block_number}")
       {:ok, last_validated_child_block_number}
     else

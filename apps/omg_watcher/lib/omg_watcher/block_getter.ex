@@ -27,13 +27,12 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
   alias OMG.State
-  alias OMG.Utils.HttpRPC.Client
-
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.BlockGetter.Status
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.HttpRPC.Client
 
   use GenServer
   use OMG.Utils.LoggerExt

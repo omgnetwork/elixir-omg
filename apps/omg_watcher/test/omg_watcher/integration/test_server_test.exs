@@ -16,9 +16,10 @@ defmodule OMG.Watcher.Integration.TestServerTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias OMG.Utils.HttpRPC.Client
   alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Watcher.HttpRPC.Client
   alias OMG.Watcher.Integration.TestServer
+
   @expected_block_hash <<0::256>>
 
   describe "/block.get -" do

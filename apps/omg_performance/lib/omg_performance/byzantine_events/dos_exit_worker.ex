@@ -17,7 +17,7 @@ defmodule OMG.Performance.ByzantineEvents.DoSExitWorker do
   Contains a functions performing specified task (e.g. standard exit) that can be run in parallel by `ByzantineEvents`
   """
 
-  alias OMG.Utils.HttpRPC.Client
+  alias OMG.Performance.HttpRPC.WatcherClient
 
   @doc """
   Returns a worker function that fetches all exits data in random order
@@ -34,7 +34,7 @@ defmodule OMG.Performance.ByzantineEvents.DoSExitWorker do
   end
 
   defp get_exit_data(utxo_pos, watcher_url) do
-    Client.get_exit_data(utxo_pos, watcher_url)
+    WatcherClient.get_exit_data(utxo_pos, watcher_url)
   rescue
     error -> error
   end
