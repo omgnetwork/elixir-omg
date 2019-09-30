@@ -77,6 +77,7 @@ jobs:
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - run: mix test
+      - run: mix test --only integration
   build:
     executor: builder
     environment:
@@ -440,6 +441,7 @@ workflows:
   build-deploy:
     jobs:
       - build
+      - barebuild
       - notify_services:
           requires: [deploy_watcher, deploy_child_chain]
           filters:

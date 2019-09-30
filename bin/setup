@@ -71,7 +71,7 @@ install_linux_rocksdb(){
   && git checkout v6.2.2 \
   && make shared_lib \
   && mkdir -p /usr/local/rocksdb/lib \
-  && mkdir /usr/local/rocksdb/include \
+  && mkdir -p /usr/local/rocksdb/include \
   && cp librocksdb.so* /usr/local/rocksdb/lib \
   && cp /usr/local/rocksdb/lib/librocksdb.so* /usr/lib/ \
   && cp -r include /usr/local/rocksdb/ \
