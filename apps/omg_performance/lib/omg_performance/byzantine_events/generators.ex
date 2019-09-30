@@ -21,12 +21,12 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   alias OMG.Eth
   alias OMG.Eth.RootChain
   alias OMG.State.Transaction
-  alias OMG.Utils.HttpRPC.Client
   alias OMG.Utxo
+  alias OMG.Watcher.HttpRPC.Client
 
   require Utxo
 
-  @child_chain_url Application.get_env(:byzantine_events, :child_chain_url)
+  @child_chain_url Application.get_env(:omg_watcher, :child_chain_url)
 
   @doc """
   Creates addresses with private keys and funds them with given `initial_funds` on geth.
@@ -35,12 +35,15 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   def generate_users(size, opts \\ [initial_funds: trunc(:math.pow(10, 18))]) do
     async_generate_user = fn _ -> Task.async(fn -> generate_user(opts) end) end
 
+    async_generate_users_chunk = fn chunk ->
+      chunk
+      |> Enum.map(async_generate_user)
+      |> Enum.map(&Task.await(&1, :infinity))
+    end
+
     1..size
     |> Enum.chunk_every(10)
-    |> Enum.map(fn chunk ->
-      Enum.map(chunk, async_generate_user)
-      |> Enum.map(&Task.await(&1, :infinity))
-    end)
+    |> Enum.map(async_generate_users_chunk)
     |> List.flatten()
   end
 

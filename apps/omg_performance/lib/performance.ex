@@ -53,7 +53,7 @@ defmodule OMG.Performance do
   ```
 
   ## Parameters passed are: 1. list of senders, 2. number of users that fetching exits in parallel, 3. contract address
-  With default options, number of transactions sent to the network is 10 times the senders cound per each sender
+  With default options, number of transactions sent to the network is 10 times the senders count per each sender
   Number of exiting utxo is total number of transactions, each exiting user ask for the same utxo set, but mixes the order.
   """
 

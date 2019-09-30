@@ -17,26 +17,26 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   Provides access to Watcher's RPC API
   """
 
-  alias OMG.Utils.HttpRPC.Adapter
   alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Watcher.HttpRPC.Adapter
 
   @doc """
   Gets Watcher status
   """
-  @spec get_status(binary()) :: OMG.Utils.HttpRPC.Client.response_t()
-  def get_status(url), do: call(%{}, "status.get", url)
+  @spec get_status(binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
+  def get_status(url), do: call("status.get", %{}, url)
 
   @doc """
   Gets standard exit data from Watcher's RPC
   """
-  @spec get_exit_data(non_neg_integer(), binary()) :: OMG.Utils.HttpRPC.Client.response_t()
+  @spec get_exit_data(non_neg_integer(), binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
   def get_exit_data(encoded_position, url),
     do: "utxo.get_exit_data" |> call(%{utxo_pos: encoded_position}, url) |> decode_response()
 
   @doc """
   Gets utxo for given address from Watcher's RPC
   """
-  @spec get_exitable_utxos(OMG.Crypto.address_t(), binary()) :: OMG.Utils.HttpRPC.Client.response_t()
+  @spec get_exitable_utxos(OMG.Crypto.address_t(), binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
   def get_exitable_utxos(address, url),
     do: "account.get_exitable_utxos" |> call(%{address: address}, url)
 

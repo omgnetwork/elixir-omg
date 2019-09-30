@@ -9,19 +9,15 @@ In the elixir REPL continue with
 
 ### PREPARATIONS
 
+alias OMG.Performance
 alias OMG.Performance.ByzantineEvents
-alias OMG.Performance.ByzantineEvents.Generators
  
-dos_users = 5
-exit_per_dos = 10
+exiting_users = 5
 
 ### START DEMO HERE
-
-# get exit position from child chain
-exit_positions = Generators.stream_utxo_positions() |> Enum.take(exit_per_dos)
 
 # wait before asking watcher about exit data
 ByzantineEvents.watcher_synchronize()
 
-ByzantineEvents.start_dos_get_exits(exit_positions, dos_users)
+Performance.start_standard_exit_perftest(alices, exiting_users, contract_addr)
 ```

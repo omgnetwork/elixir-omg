@@ -38,14 +38,14 @@ defmodule OMG.Performance.ByzantineEvents do
 
   ```
   [
-    %{time: 232000, corrects_count: 10, errors_count: 0},
-    %{time: 221500, corrects_count: 10, errors_count: 0},
-    %{time: 219900, corrects_count: 10, errors_count: 0},
+    %{span_ms: 232000, corrects_count: 10, errors_count: 0},
+    %{span_ms: 221500, corrects_count: 10, errors_count: 0},
+    %{span_ms: 219900, corrects_count: 10, errors_count: 0},
   ]
   ```
 
-  where time is expressed in microseconds and the sum of `corrects_count + errors_count` should equal to
-  `length(positions)`. If all passed position was unspent there should be no errors.
+  where the sum of `corrects_count + errors_count` should equal to `length(positions)`.
+  If all passed position was unspent there should be no errors.
   """
 
   use OMG.Utils.LoggerExt
@@ -61,7 +61,7 @@ defmodule OMG.Performance.ByzantineEvents do
           errors_count: non_neg_integer()
         }
 
-  @watcher_url Application.get_env(:byzantine_events, :watcher_url)
+  @watcher_url Application.get_env(:omg_performance, :watcher_url)
   @micros_in_millisecond 1000
 
   @doc """
