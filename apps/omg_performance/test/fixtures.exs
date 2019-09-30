@@ -32,7 +32,7 @@ defmodule OMG.Performance.Fixtures do
     #{OMG.Eth.DevHelpers.create_conf_file(contract)}
 
     config :omg_db, path: "#{db_path}"
-    # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level
+    # this causes the inner test watcher server process to log debug. To see these logs adjust test's log level
     config :logger, level: :info
     """)
     |> File.close()
@@ -40,18 +40,11 @@ defmodule OMG.Performance.Fixtures do
     {:ok, config} = File.read(config_file_path)
     Logger.debug(IO.ANSI.format([:blue, :bright, config], true))
     Logger.debug("Starting db_init")
-    mix_env = Application.get_env(:omg_watcher, :mix_env, to_string(Mix.env()))
 
     exexec_opts_for_mix = [
       stdout: :stream,
       cd: Application.fetch_env!(:omg_watcher, :umbrella_root_dir),
-      env: %{
-        "MIX_ENV" => mix_env,
-        "DD_DISABLED" => "true",
-        "APP_ENV" => mix_env,
-        "DD_HOSTNAME" => "localhost",
-        "ETH_NODE" => "geth"
-      },
+      env: %{"MIX_ENV" => to_string(Mix.env())},
       # group 0 will create a new process group, equal to the OS pid of that process
       group: 0,
       kill_group: true
@@ -63,7 +56,7 @@ defmodule OMG.Performance.Fixtures do
         exexec_opts_for_mix
       )
 
-    db_out |> Enum.each(&log_output("db_init", &1))
+    db_out |> Enum.each(&log_output("db_init_watcher", &1))
 
     watcher_mix_cmd = "mix xomg.watcher.start --config #{config_file_path} 2>&1"
 

@@ -52,18 +52,11 @@ defmodule OMG.Watcher.Fixtures do
     {:ok, config} = File.read(config_file_path)
     Logger.debug(IO.ANSI.format([:blue, :bright, config], true))
     Logger.debug("Starting db_init")
-    mix_env = Application.get_env(:omg_child_chain, :mix_env, to_string(Mix.env()))
 
     exexec_opts_for_mix = [
       stdout: :stream,
       cd: Application.fetch_env!(:omg_watcher, :umbrella_root_dir),
-      env: %{
-        "MIX_ENV" => mix_env,
-        "DD_DISABLED" => "true",
-        "APP_ENV" => mix_env,
-        "DD_HOSTNAME" => "localhost",
-        "ETH_NODE" => "geth"
-      },
+      env: %{"MIX_ENV" => to_string(Mix.env())},
       # group 0 will create a new process group, equal to the OS pid of that process
       group: 0,
       kill_group: true

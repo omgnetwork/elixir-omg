@@ -24,18 +24,6 @@ defmodule OMG.Performance.ByzantineEventsTest do
   @moduletag :integration
   @moduletag timeout: 180_000
 
-  setup_all do
-    Application.put_env(:omg_child_chain, :mix_env, "dev")
-    Application.put_env(:omg_watcher, :mix_env, "dev")
-
-    on_exit(fn ->
-      Application.put_env(:omg_child_chain, :mix_env, nil)
-      Application.put_env(:omg_watcher, :mix_env, nil)
-    end)
-
-    :ok
-  end
-
   @tag fixtures: [:contract, :child_chain, :omg_watcher]
   test "time response for asking for exit data", %{contract: %{contract_addr: contract_addr}} do
     exiting_users = 3

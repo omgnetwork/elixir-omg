@@ -4,7 +4,7 @@ use Mix.Config
 # you can enable the server option below.
 config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
   http: [port: 7435],
-  server: false
+  server: true
 
 config :omg_watcher_rpc, OMG.WatcherRPC.Tracer,
   service: :omg_watcher_rpc,

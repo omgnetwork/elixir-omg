@@ -147,10 +147,6 @@ defmodule OMG.Performance.SenderServer do
         _ = Logger.info("[#{inspect(seqnum)}]: Transaction submission will be retried, block is full.")
         :retry
 
-      {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} ->
-        _ = Logger.info("[#{inspect(seqnum)}]: Transaction submission will be retried, utxo not found.")
-        :retry
-
       {:error, reason} ->
         _ = Logger.info("[#{inspect(seqnum)}]: Transaction submission has failed, reason: #{inspect(reason)}")
         {:error, reason}
