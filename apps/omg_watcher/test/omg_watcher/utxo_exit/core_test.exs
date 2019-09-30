@@ -80,12 +80,25 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
                 utxo_pos: ^encode_utxo
               }} = Core.compose_block_standard_exit(block, position)
 
+      # hash byte_size * merkle tree depth
       assert byte_size(proof) == 32 * 16
     end
 
-    test "doesn't find utxo for the output exit, position exceeding the block tx count", %{alice: alice} do
+    test "doesn't find utxo for the output exit, tx position exceeding the block tx count", %{alice: alice} do
       blknum = 4000
       position = Utxo.position(blknum, 1, 0)
+
+      block =
+        [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]
+        |> Block.hashed_txs_at(blknum)
+        |> Block.to_db_value()
+
+      assert {:error, :utxo_not_found} = Core.compose_block_standard_exit(block, position)
+    end
+
+    test "doesn't find utxo for the output exit, output position exceeding the output count", %{alice: alice} do
+      blknum = 4000
+      position = Utxo.position(blknum, 0, 3)
 
       block =
         [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]

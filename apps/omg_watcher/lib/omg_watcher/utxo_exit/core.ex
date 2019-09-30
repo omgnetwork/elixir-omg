@@ -28,17 +28,15 @@ defmodule OMG.Watcher.UtxoExit.Core do
   def compose_block_standard_exit(db_block, Utxo.position(blknum, txindex, _) = utxo_pos) do
     %Block{transactions: sorted_txs_bytes, number: ^blknum} = block = Block.from_db_value(db_block)
 
-    if signed_tx_bytes = Enum.at(sorted_txs_bytes, txindex) do
-      signed_tx = Transaction.Signed.decode!(signed_tx_bytes)
-
+    with {:ok, signed_tx_bytes} <- get_tx_by_index(sorted_txs_bytes, txindex),
+         signed_tx = Transaction.Signed.decode!(signed_tx_bytes),
+         :ok <- get_output_by_index(signed_tx, utxo_pos) do
       {:ok,
        %{
          utxo_pos: Utxo.Position.encode(utxo_pos),
          txbytes: Transaction.raw_txbytes(signed_tx),
          proof: Block.inclusion_proof(block, txindex)
        }}
-    else
-      {:error, :utxo_not_found}
     end
   end
 
@@ -65,4 +63,23 @@ defmodule OMG.Watcher.UtxoExit.Core do
   end
 
   def compose_deposit_standard_exit(:not_found), do: {:error, :no_deposit_for_given_blknum}
+
+  defp get_tx_by_index(sorted_txs, txindex) do
+    sorted_txs
+    |> Enum.at(txindex)
+    |> case do
+      nil -> {:error, :utxo_not_found}
+      found -> {:ok, found}
+    end
+  end
+
+  defp get_output_by_index(tx, Utxo.position(_, _, oindex)) do
+    tx
+    |> Transaction.get_outputs()
+    |> Enum.at(oindex)
+    |> case do
+      nil -> {:error, :utxo_not_found}
+      _found -> :ok
+    end
+  end
 end

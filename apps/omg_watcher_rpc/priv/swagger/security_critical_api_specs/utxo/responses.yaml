@@ -6,7 +6,7 @@ GetUtxoChallengeResponse:
         $ref: 'response_schemas.yaml#/GetUtxoChallengeResponseSchema'
 
 GetUtxoExitResponse:
-  description: Utxo challenge successful response
+  description: Utxo exit successful response
   content:
     application/json:
       schema:
