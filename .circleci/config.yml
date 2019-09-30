@@ -76,8 +76,13 @@ jobs:
           no_output_timeout: 2400
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
-      - run: mix test
-      - run: mix test --only integration
+      - run: mix test --trace
+      - run:
+          name: Integration Tests
+          command: |
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration` works
+            export SHELL=/bin/bash
+            mix test --trace --only integration
   build:
     executor: builder
     environment:

@@ -77,7 +77,7 @@ install_linux_rocksdb(){
   && sudo cp -r include /usr/local/rocksdb/ \
   && sudo cp -r include/* /usr/include/ \
   && cd ../../ \
-  && rm -r tmp_rocksdb
+  && rm -rf tmp_rocksdb
 }
 
 install_darwin_deps(){
