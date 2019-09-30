@@ -73,7 +73,7 @@ defmodule OMG.Performance.ByzantineEvents do
           stats_t()
   def start_dos_get_exits(positions, dos_users, url \\ @watcher_url) do
     1..dos_users
-    |> Enum.map(fn _ -> DoSExitWorker.get_exits_fun(positions, url) |> Task.async() end)
+    |> Enum.map(fn _ -> Task.async(DosExitWorker, :get_exits_fun, [positions, url]) end)
     |> Enum.map(&compute_std_exits_statistics/1)
   end
 
