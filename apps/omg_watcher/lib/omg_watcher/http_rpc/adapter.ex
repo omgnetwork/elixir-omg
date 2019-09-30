@@ -56,9 +56,8 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
 
   def get_response_body(error), do: {:error, {:client_error, error}}
 
-  defp convert_keys_to_atoms(data) when is_list(data) do
-    data |> Enum.map(&convert_keys_to_atoms/1)
-  end
+  defp convert_keys_to_atoms(data) when is_list(data),
+    do: Enum.map(data, &convert_keys_to_atoms/1)
 
   defp convert_keys_to_atoms(data) when is_map(data) do
     data

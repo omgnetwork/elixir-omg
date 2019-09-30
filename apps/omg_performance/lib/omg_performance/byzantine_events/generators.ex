@@ -119,8 +119,8 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
       Transaction.get_outputs(recover_tx)
       |> Enum.with_index()
       |> Enum.map(fn {_, oindex} ->
-        Utxo.position(block.number, index, oindex)
-        |> Utxo.Position.encode()
+        utxo_pos = Utxo.position(block.number, index, oindex)
+        Utxo.Position.encode(utxo_pos)
       end)
     end)
     |> Stream.concat()

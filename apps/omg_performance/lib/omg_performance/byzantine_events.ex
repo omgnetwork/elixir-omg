@@ -53,7 +53,6 @@ defmodule OMG.Performance.ByzantineEvents do
   alias OMG.Eth
   alias OMG.Performance.ByzantineEvents.DoSExitWorker
   alias OMG.Performance.HttpRPC.WatcherClient
-  alias OMG.Utils.HttpRPC.Encoding
 
   @type stats_t :: %{
           span_ms: non_neg_integer(),
@@ -71,9 +70,12 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec start_dos_get_exits([non_neg_integer()], [OMG.TestHelper.entity()], watcher_url: binary()) ::
           stats_t()
-  def start_dos_get_exits(positions, dos_users, url \\ @watcher_url) do
+  def start_dos_get_exits(positions, dos_users, watcher_url \\ @watcher_url) do
     1..dos_users
-    |> Enum.map(fn _ -> Task.async(DosExitWorker, :get_exits_fun, [positions, url]) end)
+    |> Enum.map(fn _ ->
+      exit_fn = DoSExitWorker.get_exits_fun(positions, watcher_url)
+      Task.async(exit_fn)
+    end)
     |> Enum.map(&compute_std_exits_statistics/1)
   end
 
@@ -83,31 +85,19 @@ defmodule OMG.Performance.ByzantineEvents do
   @spec get_exitable_utxos([%{addr: binary()}], watcher_url: binary()) :: [non_neg_integer()]
   def get_exitable_utxos(entities, watcher_url \\ @watcher_url)
 
-  def get_exitable_utxos(addr, watcher_url) when is_binary(addr) do
+  def get_exitable_utxos(users, watcher_url) when is_list(users),
+    do: Enum.map(users, &get_exitable_utxos(&1, watcher_url)) |> Enum.concat()
+
+  def get_exitable_utxos(%{addr: addr}, watcher_url) when is_binary(addr),
+    do: get_exitable_utxos(addr, watcher_url)
+
+  def get_exitable_utxos(addr, watcher_url) do
     {:ok, utxos} = WatcherClient.get_exitable_utxos(addr, watcher_url)
     utxos
   end
 
-  def get_exitable_utxos(%{addr: addr}, watcher_url) when is_binary(addr),
-    do: Encoding.to_hex(addr) |> get_exitable_utxos(watcher_url)
-
-  def get_exitable_utxos(users, watcher_url) when is_list(users),
-    do: Enum.map(users, &get_exitable_utxos(&1, watcher_url)) |> Enum.concat()
-
   def watcher_synchronize(watcher_url \\ @watcher_url) do
     Eth.WaitFor.repeat_until_ok(fn -> watcher_synchronized?(watcher_url) end)
-  end
-
-  def watcher_synchronize_service(expected_service, min_service_height, watcher_url \\ @watcher_url) do
-    Eth.WaitFor.repeat_until_ok(fn ->
-      with {:ok, %{services_synced_heights: services_synced_heights}} <- WatcherClient.get_status(watcher_url),
-           %{"height" => height} when height >= min_service_height <-
-             Enum.find(services_synced_heights, &match?(%{"service" => ^expected_service}, &1)) do
-        {:ok, height}
-      else
-        _ -> :repeat
-      end
-    end)
   end
 
   defp valid_exit_data({:ok, response}), do: valid_exit_data(response)
@@ -125,22 +115,25 @@ defmodule OMG.Performance.ByzantineEvents do
     }
   end
 
+  # This function is prepared to be called in `WaitFor.repeat_until_ok`.
+  # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
   defp watcher_synchronized?(watcher_url) do
-    # Tricky part that deserves a note. This function is prepared to be called in `WaitFor.repeat_until_ok`.
-    # It repeatedly ask for Watcher's `/status.get` until:
-    #  1. last_mined_child_block_number == last_validated_child_block_number, so Watcher synced to last ch-ch block
-    #  2. last_validated_child_block_number > 0, and we expect there will be at least one block as it's called
-    # after perftest.
-    with {:ok,
-          %{
-            last_mined_child_block_number: last_validated_child_block_number,
-            last_validated_child_block_number: last_validated_child_block_number
-          }}
-         when last_validated_child_block_number > 0 <- WatcherClient.get_status(watcher_url) do
-      _ = Logger.debug("Synced to blknum: #{last_validated_child_block_number}")
-      {:ok, last_validated_child_block_number}
+    with {:ok, status} <- WatcherClient.get_status(watcher_url) do
+      watcher_synchronized_to_mined_block?(status)
     else
       _ -> :repeat
     end
   end
+
+  defp watcher_synchronized_to_mined_block?(%{
+         last_mined_child_block_number: last_mined_child_block_number,
+         last_validated_child_block_number: last_validated_child_block_number
+       })
+       when last_mined_child_block_number == last_validated_child_block_number and
+              last_mined_child_block_number > 0 do
+    _ = Logger.debug("Synced to blknum: #{last_validated_child_block_number}")
+    {:ok, last_validated_child_block_number}
+  end
+
+  defp watcher_synchronized_to_mined_block?(_), do: :repeat
 end
