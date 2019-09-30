@@ -48,6 +48,8 @@ defmodule OMG.Performance.ByzantineEvents do
   `length(positions)`. If all passed position was unspent there should be no errors.
   """
 
+  use OMG.Utils.LoggerExt
+
   alias OMG.Eth
   alias OMG.Performance.ByzantineEvents.DoSExitWorker
   alias OMG.Utils.HttpRPC.Client
@@ -67,7 +69,7 @@ defmodule OMG.Performance.ByzantineEvents do
   User tasks are run asynchronously, each user receives the same positions list, shuffle its order
   and call Watcher for exit data sequentially one position at a time.
   """
-  @spec start_dos_get_exits([non_neg_integer()], [%{addr: binary(), priv: binary()}], watcher_url: binary()) ::
+  @spec start_dos_get_exits([non_neg_integer()], [OMG.TestHelper.entity()], watcher_url: binary()) ::
           stats_t()
   def start_dos_get_exits(positions, dos_users, url \\ @watcher_url) do
     1..dos_users
@@ -93,17 +95,7 @@ defmodule OMG.Performance.ByzantineEvents do
     do: Enum.map(users, &get_exitable_utxos(&1, watcher_url)) |> Enum.concat()
 
   def watcher_synchronize(watcher_url \\ @watcher_url) do
-    Eth.WaitFor.repeat_until_ok(fn ->
-      with {:ok,
-            %{
-              last_mined_child_block_number: last_validated_child_block_number,
-              last_validated_child_block_number: last_validated_child_block_number
-            }} <- Client.get_status(watcher_url) do
-        {:ok, last_validated_child_block_number}
-      else
-        _ -> :repeat
-      end
-    end)
+    Eth.WaitFor.repeat_until_ok(fn -> watcher_synchronized?(watcher_url) end)
   end
 
   def watcher_synchronize_service(expected_service, min_service_height, watcher_url \\ @watcher_url) do
@@ -131,5 +123,24 @@ defmodule OMG.Performance.ByzantineEvents do
       corrects_count: Enum.count(valid?, & &1),
       errors_count: Enum.count(valid?, &(!&1))
     }
+  end
+
+  defp watcher_synchronized?(watcher_url) do
+    # Tricky part that deserves a note. This function is prepared to be called in `WaitFor.repeat_until_ok`.
+    # It repeatedly ask for Watcher's `/status.get` until:
+    #  1. last_mined_child_block_number == last_validated_child_block_number, so Watcher synced to last ch-ch block
+    #  2. last_validated_child_block_number > 0, and we expect there will be at least one block as it's called
+    # after perftest.
+    with {:ok,
+          %{
+            last_mined_child_block_number: last_validated_child_block_number,
+            last_validated_child_block_number: last_validated_child_block_number
+          }}
+         when last_validated_child_block_number > 0 <- Client.get_status(watcher_url) do
+      _ = Logger.debug("Synced to blknum: #{last_validated_child_block_number}")
+      {:ok, last_validated_child_block_number}
+    else
+      _ -> :repeat
+    end
   end
 end

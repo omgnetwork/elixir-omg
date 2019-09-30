@@ -31,7 +31,7 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   @doc """
   Creates addresses with private keys and funds them with given `initial_funds` on geth.
   """
-  @spec generate_users(non_neg_integer, [Keyword.t()]) :: [%{addr: binary(), priv: binary()}]
+  @spec generate_users(non_neg_integer, [Keyword.t()]) :: [OMG.TestHelper.entity()]
   def generate_users(size, opts \\ [initial_funds: trunc(:math.pow(10, 18))]) do
     async_generate_user = fn _ -> Task.async(fn -> generate_user(opts) end) end
 

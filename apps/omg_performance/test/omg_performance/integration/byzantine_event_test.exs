@@ -19,7 +19,6 @@ defmodule OMG.Performance.ByzantineEventsTest do
   use OMG.Watcher.Fixtures
 
   alias OMG.Performance
-  alias OMG.Performance.ByzantineEvents
   alias OMG.Performance.ByzantineEvents.Generators
 
   @moduletag :integration
@@ -38,20 +37,20 @@ defmodule OMG.Performance.ByzantineEventsTest do
   end
 
   @tag fixtures: [:contract, :child_chain, :omg_watcher]
-  test "time response for asking for exit data", %{contract: %{contract_addr: contract}} do
+  test "time response for asking for exit data", %{contract: %{contract_addr: contract_addr}} do
     exiting_users = 3
-    ntx_to_send = 15
     spenders = Generators.generate_users(2)
+    ntx_to_send = 10 * length(spenders)
     exits_per_user = length(spenders) * ntx_to_send
-    total_exits = length(spenders) * ntx_to_send * exiting_users
+    total_exits = exiting_users * exits_per_user
 
-    Performance.start_extended_perftest(ntx_to_send, spenders, contract)
-    # get exit position from child chain, blocking call
-    exit_positions = Generators.stream_utxo_positions() |> Enum.take(exits_per_user)
-    # wait before asking watcher about exit data
-    ByzantineEvents.watcher_synchronize()
-
-    statistics = ByzantineEvents.start_dos_get_exits(exit_positions, exiting_users)
+    %{
+      opts: %{
+        ntx_to_send: ^ntx_to_send,
+        exits_per_user: ^exits_per_user
+      },
+      statistics: statistics
+    } = Performance.start_standard_exit_perftest(spenders, exiting_users, contract_addr)
 
     correct_exits = statistics |> Enum.map(&Map.get(&1, :corrects_count)) |> Enum.sum()
     error_exits = statistics |> Enum.map(&Map.get(&1, :errors_count)) |> Enum.sum()
