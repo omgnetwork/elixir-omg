@@ -26,7 +26,7 @@ defmodule OMG.ChildChain.Supervisor do
 
   def init(:ok) do
     monitor_children = [
-      {OMG.ChildChain.BlockQueue.Server, []},
+      {OMG.ChildChain.BlockQueue.BlockQueueServer, []},
       {OMG.RootChainCoordinator, coordinator_setup()},
       OMG.EthereumEventListener.prepare_child(
         service_name: :depositor,
