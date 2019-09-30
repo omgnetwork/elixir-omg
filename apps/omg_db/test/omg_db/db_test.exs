@@ -78,6 +78,14 @@ defmodule OMG.DBTest do
     {:ok, ["xyz", "vxyz", "wvxyz"]} = OMG.DB.block_hashes([1, 2, 3], pid)
   end
 
+  test "utxo can be fetched by utxo position", %{db_pid: pid} do
+    index = 123
+    item = {{index, index, index}, %{test: :crypto.strong_rand_bytes(index)}}
+    db_writes = [{:put, :utxo, item}]
+    :ok = write(db_writes, pid)
+    assert {:ok, ^item} = DB.utxo({index, index, index}, pid)
+  end
+
   test "if multi reading exit infos returns writen results", %{db_dir: _dir, db_pid: pid} do
     db_writes = create_write(:exit_info, pid)
     {:ok, exits} = DB.exit_infos(pid)

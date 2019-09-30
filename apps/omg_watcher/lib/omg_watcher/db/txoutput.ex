@@ -24,12 +24,10 @@ defmodule OMG.Watcher.DB.TxOutput do
   alias OMG.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.DB.Repo
-  alias OMG.Watcher.UtxoExit.Core
 
   require Utxo
 
   import Ecto.Query, only: [from: 2, where: 2]
-  import Utxo, only: [is_deposit: 1]
 
   @type balance() :: %{
           currency: binary(),
@@ -67,14 +65,6 @@ defmodule OMG.Watcher.DB.TxOutput do
 
     timestamps(type: :utc_datetime)
   end
-
-  @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
-  def compose_utxo_exit(Utxo.position(_, _, _) = decoded_utxo_pos) when is_deposit(decoded_utxo_pos),
-    do: get_by_position(decoded_utxo_pos) |> Core.compose_deposit_exit(decoded_utxo_pos)
-
-  def compose_utxo_exit(Utxo.position(blknum, _, _) = decoded_utxo_pos),
-    # TODO: Make use of Block API's block.get when available
-    do: DB.Transaction.get_by_blknum(blknum) |> Core.compose_output_exit(decoded_utxo_pos)
 
   # preload ethevents in a single query as there will not be a large number of them
   @spec get_by_position(Utxo.Position.t()) :: map() | nil

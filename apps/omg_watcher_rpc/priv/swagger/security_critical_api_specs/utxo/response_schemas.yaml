@@ -26,6 +26,5 @@ GetUtxoExitResponseSchema:
     example:
       data:
         proof: '0xcedb8b31d1e4...'
-        sigs: '0xcc52d1d9ffe7...'
         txbytes: '0x3eb6ae5b06f3...'
         utxo_pos: 10000000010000000

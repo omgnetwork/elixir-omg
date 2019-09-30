@@ -57,14 +57,13 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
       {:put, :utxo,
        {{1000, 0, 0},
         %{amount: 100, creating_txhash: OMG.State.Transaction.raw_txhash(tx), currency: @eth, owner: bob.addr}}},
-      {:put, :block, %{number: 1000, hash: 0, transactions: [tx_encode]}}
+      {:put, :block, %{number: 1000, hash: <<>>, transactions: [tx_encode]}}
     ])
 
     %{
       "utxo_pos" => _utxo_pos,
       "txbytes" => _txbytes,
-      "proof" => proof,
-      "sigs" => _sigs
+      "proof" => proof
     } = TestHelper.get_exit_data(1000, 0, 0)
 
     assert <<_proof::bytes-size(512)>> = proof

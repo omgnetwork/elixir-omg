@@ -78,6 +78,7 @@ if Code.ensure_loaded?(:rocksdb) do
     def handle_call({:multi_update, db_updates}, _from, state), do: do_multi_update(db_updates, state)
     def handle_call({:blocks, blocks_to_fetch}, _from, state), do: do_blocks(blocks_to_fetch, state)
     def handle_call(:utxos, _from, state), do: do_utxos(state)
+    def handle_call({:utxo, utxo_pos}, _from, state), do: do_utxo(utxo_pos, state)
     def handle_call(:exit_infos, _from, state), do: do_exit_infos(state)
 
     def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state),
@@ -119,6 +120,11 @@ if Code.ensure_loaded?(:rocksdb) do
 
     defp do_utxos(state) do
       result = get_all_by_type(:utxo, state)
+      {:reply, result, state}
+    end
+
+    defp do_utxo(utxo_pos, state) do
+      result = Core.key(:utxo, utxo_pos) |> get(state) |> Core.decode_value(:utxo)
       {:reply, result, state}
     end
 
