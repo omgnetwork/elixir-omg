@@ -37,7 +37,7 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "150_python_tests_on_plasma_framework_temp",
+        branch: "integration_949_elixir_omg_pr",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
@@ -73,10 +73,13 @@ defmodule OMG.Eth.MixProject do
         "plasma_framework/contracts/src/vaults/verifiers/Erc20DepositVerifier.sol",
         "plasma_framework/contracts/src/vaults/EthVault.sol",
         "plasma_framework/contracts/src/vaults/Erc20Vault.sol",
-        "plasma_framework/contracts/src/exits/payment/routers/PaymentStandardExitRouter.sol",
         "plasma_framework/contracts/src/exits/payment/controllers/PaymentStartStandardExit.sol",
         "plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeStandardExit.sol",
         "plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessStandardExit.sol",
+        "plasma_framework/contracts/src/exits/payment/spendingConditions/PaymentSpendingConditionRegistry.sol",
+        "plasma_framework/contracts/src/exits/registries/OutputGuardHandlerRegistry.sol",
+        "plasma_framework/contracts/src/exits/payment/outputGuardHandlers/PaymentOutputGuardHandler.sol",
+        "plasma_framework/contracts/src/exits/payment/PaymentExitGame.sol",
         "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol"
       ]
       |> Enum.join(" ")
