@@ -12,19 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Web.Controller.Block do
+defmodule OMG.ChildChain.CoordinatorSetup do
   @moduledoc """
-  Provides endpoint action to retrieve block details of published Plasma block.
+   The setup of `OMG.RootChainCoordinator` for the child chain server - configures the relations between different
+   event listeners
   """
 
-  use OMG.ChildChainRPC.Web, :controller
-  plug(OMG.ChildChainRPC.Plugs.Health)
-  alias OMG.ChildChain
+  def coordinator_setup() do
+    deposit_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin)
 
-  def get_block(conn, params) do
-    with {:ok, hash} <- expect(params, "hash", :hash),
-         {:ok, block} <- ChildChain.get_block(hash) do
-      api_response(block, conn, :block)
-    end
+    %{
+      depositor: [finality_margin: deposit_finality_margin],
+      exiter: [waits_for: :depositor, finality_margin: 0],
+      in_flight_exit: [waits_for: :depositor, finality_margin: 0],
+      piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
+    }
   end
 end

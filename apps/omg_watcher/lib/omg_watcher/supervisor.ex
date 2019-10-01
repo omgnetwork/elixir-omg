@@ -20,7 +20,10 @@ defmodule OMG.Watcher.Supervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
 
+  alias OMG.Status.Alert.Alarm
   alias OMG.Watcher
+  alias OMG.Watcher.Monitor
+  alias OMG.Watcher.SyncSupervisor
 
   if Mix.env() == :test do
     defmodule Sandbox do
@@ -62,12 +65,18 @@ defmodule OMG.Watcher.Supervisor do
       ] ++ @children_run_after_repo
 
     children = [
-      %{
-        id: Watcher.SyncSupervisor,
-        start: {Watcher.SyncSupervisor, :start_link, []},
-        restart: :permanent,
-        type: :supervisor
-      },
+      {Monitor,
+       [
+         Alarm,
+         [
+           %{
+             id: SyncSupervisor,
+             start: {SyncSupervisor, :start_link, []},
+             restart: :permanent,
+             type: :supervisor
+           }
+         ]
+       ]},
       # Start workers
       {Watcher.Eventer, []}
     ]

@@ -21,7 +21,7 @@ defmodule OMG.ChildChain.SupTest do
 
   alias OMG.RootChainCoordinator.Core
 
-  @setup OMG.ChildChain.Supervisor.coordinator_setup()
+  @setup OMG.ChildChain.CoordinatorSetup.coordinator_setup()
   @pid @setup
        |> Map.keys()
        |> Enum.with_index(1)

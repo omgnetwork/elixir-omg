@@ -12,19 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Web.Controller.Block do
+defmodule OMG.WatcherRPC.Plugs.Health do
   @moduledoc """
-  Provides endpoint action to retrieve block details of published Plasma block.
+  Observes the systems alarms and prevents calls towards an unhealthy one.
   """
 
-  use OMG.ChildChainRPC.Web, :controller
-  plug(OMG.ChildChainRPC.Plugs.Health)
-  alias OMG.ChildChain
+  alias OMG.Status
+  alias OMG.Utils.HttpRPC.Error
+  alias Phoenix.Controller
 
-  def get_block(conn, params) do
-    with {:ok, hash} <- expect(params, "hash", :hash),
-         {:ok, block} <- ChildChain.get_block(hash) do
-      api_response(block, conn, :block)
+  import Plug.Conn
+  require Logger
+  use GenServer
+
+  ###
+  ### PLUG
+  ###
+  def init(options), do: options
+
+  def call(conn, _params) do
+    # is anything raised?
+    if Status.is_healthy() do
+      conn
+    else
+      data = Error.serialize("operation:service_unavailable", "The server is not ready to handle the request.")
+
+      conn
+      |> Controller.json(data)
+      |> halt()
     end
   end
 end

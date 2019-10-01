@@ -50,7 +50,7 @@ defmodule OMG.EthereumEventListener do
   @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
   def prepare_child(opts \\ []) do
     name = Keyword.fetch!(opts, :service_name)
-    %{id: name, start: {OMG.EthereumEventListener, :start_link, [Map.new(opts)]}}
+    %{id: name, start: {OMG.EthereumEventListener, :start_link, [Map.new(opts)]}, shutdown: :brutal_kill, type: :worker}
   end
 
   ### Server
