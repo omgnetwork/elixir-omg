@@ -33,14 +33,17 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   """
   @spec get_exit_data(non_neg_integer(), binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
   def get_exit_data(encoded_position, url),
-    do: call(%{utxo_pos: encoded_position}, "utxo.get_exit_data", url) |> decode_response()
+    do:
+      %{utxo_pos: encoded_position}
+      |> call("utxo.get_exit_data", url)
+      |> decode_response()
 
   @doc """
   Gets utxo for given address from Watcher's RPC
   """
   @spec get_exitable_utxos(OMG.Crypto.address_t(), binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
   def get_exitable_utxos(address, url) when is_binary(address) and byte_size(address) == @address_bytes_size,
-    do: %{address: Encoding.to_hex(address)} |> call("account.get_exitable_utxos", url)
+    do: call(%{address: Encoding.to_hex(address)}, "account.get_exitable_utxos", url)
 
   defp call(params, path, url),
     do: Adapter.rpc_post(params, path, url) |> Adapter.get_response_body()

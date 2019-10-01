@@ -54,8 +54,10 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   def stream_blocks(child_chain_url \\ @child_chain_url) do
     {:ok, interval} = RootChain.get_child_block_interval()
 
-    Stream.iterate(1, &(&1 + 1))
-    |> Stream.map(&get_block!(&1 * interval, child_chain_url))
+    Stream.map(
+      Stream.iterate(1, &(&1 + 1)),
+      &get_block!(&1 * interval, child_chain_url)
+    )
   end
 
   @doc """
@@ -112,17 +114,22 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   end
 
   defp to_utxo_position_list(block) do
-    Stream.with_index(block.transactions)
+    block.transactions
+    |> Stream.with_index()
     |> Stream.map(fn {tx, index} ->
-      recover_tx = Transaction.Recovered.recover_from!(tx)
-
-      Transaction.get_outputs(recover_tx)
-      |> Enum.with_index()
-      |> Enum.map(fn {_, oindex} ->
-        utxo_pos = Utxo.position(block.number, index, oindex)
-        Utxo.Position.encode(utxo_pos)
-      end)
+      transaction_to_output_positions(tx, block.number, index)
     end)
     |> Stream.concat()
+  end
+
+  defp transaction_to_output_positions(tx, blknum, txindex) do
+    tx
+    |> Transaction.Recovered.recover_from!()
+    |> Transaction.get_outputs()
+    |> Enum.with_index()
+    |> Enum.map(fn {_, oindex} ->
+      utxo_pos = Utxo.position(blknum, txindex, oindex)
+      Utxo.Position.encode(utxo_pos)
+    end)
   end
 end

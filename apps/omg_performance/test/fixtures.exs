@@ -56,7 +56,7 @@ defmodule OMG.Performance.Fixtures do
         exexec_opts_for_mix
       )
 
-    db_out |> Enum.each(&log_output("db_init_watcher", &1))
+    Enum.each(db_out, &log_output("db_init_watcher", &1))
 
     watcher_mix_cmd = "mix xomg.watcher.start --config #{config_file_path} 2>&1"
 
@@ -66,7 +66,7 @@ defmodule OMG.Performance.Fixtures do
       Exexec.run_link(watcher_mix_cmd, exexec_opts_for_mix)
 
     fn ->
-      watcher_out |> Enum.each(&log_output("watcher", &1))
+      Enum.each(watcher_out, &log_output("watcher", &1))
     end
     |> Task.async()
 
@@ -84,10 +84,6 @@ defmodule OMG.Performance.Fixtures do
 
           :noproc ->
             :ok
-
-          other ->
-            _ = Logger.warn("Watcher stopped with an unexpected reason")
-            other
         end
 
       File.rm(config_file_path)

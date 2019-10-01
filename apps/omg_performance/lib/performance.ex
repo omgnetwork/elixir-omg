@@ -186,10 +186,7 @@ defmodule OMG.Performance do
 
     statistics = ByzantineEvents.start_dos_get_exits(exit_positions, exiting_users)
 
-    %{
-      opts: Map.take(opts, [:spenders_count, :ntx_to_send, :exits_per_user]),
-      statistics: statistics
-    }
+    %{opts: opts, statistics: statistics}
   end
 
   # Hackney is http-client httpoison's dependency.
