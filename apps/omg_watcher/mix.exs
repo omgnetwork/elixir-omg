@@ -22,7 +22,7 @@ defmodule OMG.Watcher.Mixfile do
     [
       mod: {OMG.Watcher.Application, []},
       start_phases: [{:attach_telemetry, []}],
-      extra_applications: [:logger, :runtime_tools, :telemetry]
+      extra_applications: [:logger, :runtime_tools, :telemetry, :distillery]
     ]
   end
 
@@ -42,7 +42,7 @@ defmodule OMG.Watcher.Mixfile do
       {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
       {:spandex, "~> 2.4",
        git: "https://github.com/omisego/spandex.git", branch: "fix_dialyzer_in_macro", override: true},
-      {:distillery, "~> 2.1", runtime: false},
+      {:distillery, "~> 2.1"},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
       {:omg, in_umbrella: true},
