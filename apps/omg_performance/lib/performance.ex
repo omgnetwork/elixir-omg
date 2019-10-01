@@ -274,8 +274,8 @@ defmodule OMG.Performance do
           |> Enum.take(opts.exits_per_user)
 
         nil ->
-          ByzantineEvents.Generators.stream_utxo_positions()
-          |> Enum.take(opts.exits_per_user)
+          utxo_positions_stream = ByzantineEvents.Generators.stream_utxo_positions()
+          Enum.take(utxo_positions_stream, opts.exits_per_user)
       end
 
     _ = Logger.debug("Get #{length(utxos)} utxos for exit, for user: #{Map.get(exit_for || %{}, :addr, "<no user>")}")

@@ -65,10 +65,7 @@ defmodule OMG.Performance.Fixtures do
     {:ok, watcher_proc, _ref, [{:stream, watcher_out, _stream_server}]} =
       Exexec.run_link(watcher_mix_cmd, exexec_opts_for_mix)
 
-    fn ->
-      Enum.each(watcher_out, &log_output("watcher", &1))
-    end
-    |> Task.async()
+    Task.async(fn -> Enum.each(watcher_out, &log_output("watcher", &1)) end)
 
     on_exit(fn ->
       # NOTE see DevGeth.stop/1 for details
