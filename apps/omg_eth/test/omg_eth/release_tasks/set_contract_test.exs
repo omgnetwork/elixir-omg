@@ -19,8 +19,12 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   @app :omg_eth
   @configuration_old Application.get_all_env(@app)
 
-  @contract_addresses_value %{contract_name: "contract_address_value"}
-  @contract_addresses_json Jason.encode!(@contract_addresses_value)
+  @contract_addresses_value %{
+    plasma_framework: "plasma_framework_value",
+    eth_vault: "eth_vault_value",
+    erc20_vault: "erc20_vault_value",
+    payment_exit_game: "payment_exit_game_value"
+  }
 
   setup %{} do
     on_exit(fn ->
@@ -81,7 +85,10 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", @contract_addresses_json)
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "plasma_framework_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
     :ok = SetContract.init([])
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     @contract_addresses_value = Application.get_env(@app, :contract_addr)
@@ -90,39 +97,76 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.delete_env("ETHEREUM_NETWORK")
     :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
     :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+  end
+
+  test "contract details from env, mixed case" do
+    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
+    :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "Txhash_contract_value")
+    :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "Authority_address_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "Plasma_framework_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "Eth_vault_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "Erc20_vault_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "Payment_exit_game_value")
+    :ok = SetContract.init([])
+    "authority_address_value" = Application.get_env(@app, :authority_addr)
+    @contract_addresses_value = Application.get_env(@app, :contract_addr)
+    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+
+    :ok = System.delete_env("ETHEREUM_NETWORK")
+    :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
+    :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
   end
 
   test "contract details from env for localchain" do
     :ok = System.put_env("ETHEREUM_NETWORK", "localchain")
     :ok = System.put_env("LOCALCHAIN_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("LOCALCHAIN_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS", @contract_addresses_json)
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "plasma_framework_value")
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
     :ok = SetContract.init([])
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     @contract_addresses_value = Application.get_env(@app, :contract_addr)
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
     :ok = System.delete_env("ETHEREUM_NETWORK")
-    :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
-    :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+    :ok = System.delete_env("LOCALCHAIN_TXHASH_CONTRACT")
+    :ok = System.delete_env("LOCALCHAIN_AUTHORITY_ADDRESS")
+    :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT")
+    :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT")
+    :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
   end
 
   test "if exit is thrown when mixed network names" do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("LOCALCHAIN_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("LOCALCHAIN_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS", @contract_addresses_json)
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "plasma_framework_value")
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
 
     try do
       :ok = SetContract.init([])
     catch
       :exit, _ ->
         :ok = System.delete_env("ETHEREUM_NETWORK")
-        :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
-        :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-        :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+        :ok = System.delete_env("LOCALCHAIN_TXHASH_CONTRACT")
+        :ok = System.delete_env("LOCALCHAIN_AUTHORITY_ADDRESS")
+        :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+        :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT")
+        :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT")
+        :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
     end
   end
 
@@ -130,21 +174,30 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", @contract_addresses_json)
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "plasma_framework_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
     :ok = SetContract.init([])
     22 = Application.get_env(@app, :exit_period_seconds)
 
     :ok = System.delete_env("ETHEREUM_NETWORK")
     :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
     :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
   end
 
   test "contract details and exit period seconds from env" do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", @contract_addresses_json)
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "plasma_framework_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
     :ok = System.put_env("EXIT_PERIOD_SECONDS", "2222")
     :ok = SetContract.init([])
     2222 = Application.get_env(@app, :exit_period_seconds)
@@ -154,7 +207,10 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.delete_env("ETHEREUM_NETWORK")
     :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
     :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
     :ok = System.delete_env("EXIT_PERIOD_SECONDS")
   end
 
@@ -162,7 +218,10 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby is what we are, rinkeby is what we know")
     :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS", @contract_addresses_json)
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "plasma_framework_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
 
     try do
       :ok = SetContract.init([])
@@ -174,14 +233,20 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.delete_env("ETHEREUM_NETWORK")
     :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
     :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
   end
 
   test "that exit is thrown when there's no mandatory configuration" do
     :ok = System.delete_env("ETHEREUM_NETWORK")
     :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
     :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
+    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
     :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
 
     try do

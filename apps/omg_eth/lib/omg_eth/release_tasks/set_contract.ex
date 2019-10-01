@@ -18,7 +18,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   require Logger
 
   @app :omg_eth
-  @error "Set ETHEREUM_NETWORK to RINKEBY or LOCALCHAIN, *_TXHASH_CONTRACT, *_AUTHORITY_ADDRESS and *_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
+  @error "Set ETHEREUM_NETWORK to RINKEBY or LOCALCHAIN, *_TXHASH_CONTRACT, *_AUTHORITY_ADDRESS and *_CONTRACT_ADDRESS_* environment variables or CONTRACT_EXCHANGER_URL."
 
   @doc """
   The contract values can currently come either from ENV variables for deployments in
@@ -51,11 +51,14 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
             _ -> exit("CONTRACT_EXCHANGER_URL #{exchanger} is not reachable")
           end
 
+        # NOTE: this uses `to_exiting_atoms` underneath. It relies on the explicit contract map defined in the
+        #       `apply_static_settings` which is not cool. This should be resolved after switching to file-based static
+        #       configuration
         %{
-          "authority_addr" => authority_address,
-          "contract_addr" => contract_addresses,
-          "txhash_contract" => txhash_contract
-        } = Jason.decode!(body)
+          authority_addr: authority_address,
+          contract_addr: contract_addresses,
+          txhash_contract: txhash_contract
+        } = Jason.decode!(body, keys: :atoms!)
 
         exit_period_seconds =
           validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
@@ -86,8 +89,17 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
     txhash_contract = get_env(network <> "_TXHASH_CONTRACT")
     authority_address = get_env(network <> "_AUTHORITY_ADDRESS")
-    env_contract_addresses = get_env(network <> "_CONTRACT_ADDRESS")
-    contract_addresses = if env_contract_addresses, do: Jason.decode!(env_contract_addresses), else: nil
+    env_contract_address_plasma_framework = get_env(network <> "_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    env_contract_address_eth_vault = get_env(network <> "_CONTRACT_ADDRESS_ETH_VAULT")
+    env_contract_address_erc20_vault = get_env(network <> "_CONTRACT_ADDRESS_ERC20_VAULT")
+    env_contract_address_payment_exit_game = get_env(network <> "_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+
+    contract_addresses = %{
+      plasma_framework: env_contract_address_plasma_framework,
+      eth_vault: env_contract_address_eth_vault,
+      erc20_vault: env_contract_address_erc20_vault,
+      payment_exit_game: env_contract_address_payment_exit_game
+    }
 
     exit_period_seconds =
       validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
@@ -98,10 +110,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   defp update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
        when is_binary(txhash_contract) and
               is_binary(authority_address) and is_map(contract_addresses) and is_integer(exit_period_seconds) do
-    contract_addresses =
-      contract_addresses
-      |> Enum.into(%{}, fn {name, addr} -> {String.to_existing_atom(to_string(name)), String.downcase(addr)} end)
-
+    contract_addresses = Enum.into(contract_addresses, %{}, fn {name, addr} -> {name, String.downcase(addr)} end)
     :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
     :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
     :ok = Application.put_env(@app, :contract_addr, contract_addresses, persistent: true)
