@@ -72,10 +72,10 @@ install_linux_rocksdb(){
   && make shared_lib \
   && sudo mkdir -p /usr/local/rocksdb/lib \
   && sudo mkdir -p /usr/local/rocksdb/include \
-  && sudo cp librocksdb.so* /usr/local/rocksdb/lib \
-  && sudo cp /usr/local/rocksdb/lib/librocksdb.so* /usr/lib/ \
-  && sudo cp -r include /usr/local/rocksdb/ \
-  && sudo cp -r include/* /usr/include/ \
+  && sudo cp -P librocksdb.so* /usr/local/rocksdb/lib \
+  && sudo cp -P /usr/local/rocksdb/lib/librocksdb.so* /usr/lib/ \
+  && sudo cp -rP include /usr/local/rocksdb/ \
+  && sudo cp -rP include/* /usr/include/ \
   && cd ../../ \
   && rm -rf tmp_rocksdb
 }
