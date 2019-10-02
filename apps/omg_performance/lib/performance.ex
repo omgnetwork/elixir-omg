@@ -188,7 +188,7 @@ defmodule OMG.Performance do
     Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)
     Application.put_env(:ethereumex, :url, opts[:geth])
 
-    Application.put_env(:omg_eth, :contract_addr, OMG.Eth.Encoding.to_hex(contract_addr))
+    Application.put_env(:omg_eth, :contract_addr, OMG.Eth.RootChain.contract_map_to_hex(contract_addr))
 
     {:ok, started_apps}
   end

@@ -26,7 +26,6 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @zero_address OMG.Eth.zero_address()
   @exit_id 1
 
   def start_se_from(%Core{} = processor, tx, exiting_pos, opts \\ []) do
@@ -41,19 +40,25 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     enc_pos = Utxo.Position.encode(exiting_pos)
     owner = tx |> Transaction.get_outputs() |> Enum.at(oindex) |> Map.get(:owner)
     eth_height = Keyword.get(opts, :eth_height, 2)
-
+    exit_id = Keyword.get(opts, :exit_id, @exit_id)
     call_data = %{utxo_pos: enc_pos, output_tx: txbytes}
-    event = %{owner: owner, eth_height: eth_height, exit_id: @exit_id, call_data: call_data}
 
-    status =
-      Keyword.get(opts, :status) ||
-        if(Keyword.get(opts, :inactive), do: {@zero_address, @eth, 10, enc_pos}, else: {owner, @eth, 10, enc_pos})
+    event = %{owner: owner, eth_height: eth_height, exit_id: exit_id, call_data: call_data}
+
+    exitable = not Keyword.get(opts, :inactive, false)
+    # those should be unused so setting to `nil`
+    fake_output_id = enc_pos
+    amount = nil
+    bond_size = nil
+
+    status = Keyword.get(opts, :status) || {exitable, enc_pos, fake_output_id, @eth, owner, amount, bond_size}
 
     {event, status}
   end
 
   def start_ife_from(%Core{} = processor, tx, opts \\ []) do
-    status = Keyword.get(opts, :status, {1, @exit_id})
+    exit_id = Keyword.get(opts, :exit_id, @exit_id)
+    status = Keyword.get(opts, :status, {1, exit_id})
     {processor, _} = Core.new_in_flight_exits(processor, [ife_event(tx, opts)], [status])
     processor
   end

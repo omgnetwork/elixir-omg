@@ -22,7 +22,7 @@ defmodule OMG.Eth.Librarian do
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
-  @gas_contract_libs 1_180_000
+  @gas_contract_libs 3_000_000
 
   @doc """
   Provides linked bytecode for a particular contract. All required libs are hardcoded inside.
@@ -31,15 +31,28 @@ defmodule OMG.Eth.Librarian do
   """
   def link_for!(contract, path_project_root, from)
 
-  def link_for!(OMG.Eth.RootChain, path_project_root, from) do
-    {:ok, _txhash, lib_addr3_pql} =
-      deploy(get_bytecode!(path_project_root, "PriorityQueueLib"), from, @gas_contract_libs)
+  def link_for!("PaymentExitGame" = name, path_project_root, from) do
+    paths = [
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentStartStandardExit.sol",
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeStandardExit.sol",
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessStandardExit.sol"
+    ]
 
-    {:ok, _txhash, lib_addr3_pqf} =
-      bytecode_linked(path_project_root, "PriorityQueueFactory", [{"PriorityQueueLib", lib_addr3_pql}])
-      |> deploy(from, @gas_contract_libs)
+    names = get_lib_names(paths)
 
-    bytecode_linked(path_project_root, "RootChain", [{"PriorityQueueFactory", lib_addr3_pqf}])
+    libs = deploy_libs!(names, path_project_root, from, @gas_contract_libs)
+
+    paths_names_and_libs = Enum.zip([paths, names, libs])
+    bytecode_linked(path_project_root, name, paths_names_and_libs)
+  end
+
+  defp get_lib_names(paths),
+    do: paths |> Enum.map(&Path.basename/1) |> Enum.map(&Path.rootname/1)
+
+  defp deploy_libs!(names, path_project_root, from, gas) do
+    names
+    |> Enum.map(&get_bytecode!(path_project_root, &1))
+    |> Enum.map(&deploy!(&1, from, gas))
   end
 
   defp deploy(bytecode, from, gas) do
@@ -50,22 +63,31 @@ defmodule OMG.Eth.Librarian do
       |> Eth.DevHelpers.deploy_sync!()
   end
 
+  defp deploy!(bytecode, from, gas) do
+    {:ok, _txhash, lib} = deploy(bytecode, from, gas)
+    lib
+  end
+
   # given a name of the contract/lib and a list of `{lib_name, lib_address}` tuples, will provide linked bytecode
   @spec bytecode_linked(binary, binary, list({binary, binary})) :: binary
-  defp bytecode_linked(path_project_root, name, libs) do
+  defp bytecode_linked(path_project_root, name, paths_names_and_libs) do
     contracts_dir = Path.join(path_project_root, "_build/contracts")
 
     # NOTE: we need to keep the linked versions of contract binaries separate, otherwise `solc --link` overwrites
     File.copy!(Path.join(contracts_dir, "#{name}.bin"), Path.join(contracts_dir, "#{name}Linked.bin"))
 
     libs_arg =
-      libs
-      |> Enum.map(fn {lib_name, lib_addr} -> "#{lib_name}.sol:#{lib_name}:#{Encoding.to_hex(lib_addr)}" end)
+      paths_names_and_libs
+      |> Enum.map(fn {lib_path, lib_name, lib_addr} -> "#{lib_path}:#{lib_name}:#{Encoding.to_hex(lib_addr)}" end)
       |> Enum.join(" ")
 
-    [] =
-      ~c(solc #{contracts_dir}/#{name}Linked.bin --libraries #{libs_arg} --link)
+    # For some reason, solc returns this weird woes + a success message. The file is indeed resolved.
+    # Let's just check the success thing here, instead of pattern matching against an empty stdout
+    true =
+      ~c(solc #{contracts_dir}/#{name}Linked.bin --libraries \"#{libs_arg}\" --link)
       |> :os.cmd()
+      |> to_string()
+      |> String.contains?("Linking completed")
 
     bytecode = get_bytecode!(path_project_root, "#{name}Linked")
 

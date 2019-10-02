@@ -26,8 +26,8 @@ install_linux_deps() {
 }
 
 install_linux_solc(){
-  echo "Installing Solc v0.4.25"
-  wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-static-linux \
+  echo "Installing Solc v0.5.11"
+  wget https://github.com/ethereum/solidity/releases/download/v0.5.11/solc-static-linux \
   && chmod +x solc-static-linux \
   && mv solc-static-linux solc  \
   && sudo install -m0755 solc /usr/local/bin/solc
@@ -89,6 +89,8 @@ brew "gmp"
 brew "libtool"
 brew "cmake"
 brew "rocksdb"
+brew "tap ethereum/ethereum"
+brew "solidity"
 EOF
 }
 

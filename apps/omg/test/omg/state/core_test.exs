@@ -311,7 +311,7 @@ defmodule OMG.State.CoreTest do
   test "can't spend spent", %{alice: alice, bob: bob, state_alice_deposit: state} do
     transactions = [
       create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]),
-      create_recovered([{1, 0, 0, alice}, {0, 0, 0, %{priv: <<>>, addr: nil}}], @eth, [{bob, 7}, {alice, 3}])
+      create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}])
     ]
 
     for first <- transactions,
@@ -485,8 +485,8 @@ defmodule OMG.State.CoreTest do
 
     # precomputed fixed hash to check compliance with hashing algo
     assert block_hash ==
-             <<238, 68, 225, 4, 149, 14, 135, 132, 193, 116, 149, 228, 35, 73, 60, 84, 2, 111, 165, 84, 24, 11, 187,
-               202, 5, 124, 17, 118, 188, 78, 29, 237>>
+             <<16, 139, 87, 31, 138, 148, 220, 238, 229, 44, 183, 103, 56, 33, 63, 158, 60, 71, 34, 132, 92, 211, 169,
+               221, 234, 110, 103, 233, 122, 84, 126, 180>>
 
     # Check that contents of the block can be recovered again to original txs
     assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)

@@ -77,7 +77,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
              %{owner: @bob.addr, currency: @other_token, amount: 100}
            ] == Transaction.get_outputs(tx)
 
-    assert nil == tx.metadata
+    assert <<0::256>> == tx.metadata
   end
 
   test "parses transaction with metadata from message data" do

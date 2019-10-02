@@ -25,11 +25,9 @@ defmodule OMG.State.Transaction.Payment do
   require Transaction
   require Utxo
 
-  @default_metadata nil
+  @zero_metadata <<0::256>>
 
-  @zero_address OMG.Eth.zero_address()
-
-  defstruct [:inputs, :outputs, metadata: @default_metadata]
+  defstruct [:inputs, :outputs, metadata: @zero_metadata]
 
   @type t() :: %__MODULE__{
           inputs: list(input()),
@@ -52,12 +50,6 @@ defmodule OMG.State.Transaction.Payment do
 
   @max_inputs 4
   @max_outputs 4
-
-  defmacro is_metadata(metadata) do
-    quote do
-      unquote(metadata) == nil or (is_binary(unquote(metadata)) and byte_size(unquote(metadata)) == 32)
-    end
-  end
 
   defmacro max_inputs do
     quote do
@@ -87,26 +79,17 @@ defmodule OMG.State.Transaction.Payment do
           list({Crypto.address_t(), currency(), pos_integer}),
           Transaction.metadata()
         ) :: t()
-  def new(inputs, outputs, metadata \\ @default_metadata)
+  def new(inputs, outputs, metadata \\ @zero_metadata)
 
   def new(inputs, outputs, metadata)
-      when is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
+      when Transaction.is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
     inputs =
       inputs
       |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
 
-    inputs = inputs ++ List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, @max_inputs - Kernel.length(inputs))
-
     outputs =
       outputs
       |> Enum.map(fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end)
-
-    outputs =
-      outputs ++
-        List.duplicate(
-          %{owner: @zero_address, currency: @zero_address, amount: 0},
-          @max_outputs - Kernel.length(outputs)
-        )
 
     %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
@@ -125,12 +108,19 @@ defmodule OMG.State.Transaction.Payment do
   def reconstruct(_), do: {:error, :malformed_transaction}
 
   defp reconstruct_inputs(inputs_rlp) do
-    Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
-      %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
-    end)
-    |> inputs_without_gaps()
+    {:ok, Enum.map(inputs_rlp, &from_new_rlp_input/1)}
   rescue
     _ -> {:error, :malformed_inputs}
+  end
+
+  # messy, see comments on the abstract output/input fixing this properly
+  defp from_new_rlp_input(binary_input) when is_binary(binary_input) do
+    Utxo.position(blknum, txindex, oindex) =
+      binary_input
+      |> :binary.decode_unsigned(:big)
+      |> Utxo.Position.decode!()
+
+    %{blknum: blknum, txindex: txindex, oindex: oindex}
   end
 
   defp reconstruct_outputs(outputs_rlp) do
@@ -142,16 +132,12 @@ defmodule OMG.State.Transaction.Payment do
         end
       end)
 
-    if(error = Enum.find(outputs, &match?({:error, _}, &1)),
-      do: error,
-      else: outputs
-    )
-    |> outputs_without_gaps()
+    if error = Enum.find(outputs, &match?({:error, _}, &1)), do: error, else: {:ok, outputs}
   rescue
     _ -> {:error, :malformed_outputs}
   end
 
-  defp reconstruct_metadata([]), do: {:ok, nil}
+  defp reconstruct_metadata([]), do: {:ok, @zero_metadata}
   defp reconstruct_metadata([metadata]) when Transaction.is_metadata(metadata), do: {:ok, metadata}
   defp reconstruct_metadata([_]), do: {:error, :malformed_metadata}
 
@@ -163,32 +149,6 @@ defmodule OMG.State.Transaction.Payment do
   defp parse_address(""), do: {:ok, <<0::160>>}
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
-
-  defp inputs_without_gaps(inputs),
-    do: check_for_gaps(inputs, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})
-
-  defp outputs_without_gaps({:error, _} = error), do: error
-
-  defp outputs_without_gaps(outputs),
-    do:
-      check_for_gaps(
-        outputs,
-        %{owner: @zero_address, currency: @zero_address, amount: 0},
-        {:error, :outputs_contain_gaps}
-      )
-
-  # Check if any consecutive pair of elements contains empty followed by non-empty element
-  # which means there is a gap
-  defp check_for_gaps(items, empty, error) do
-    items
-    # discard - discards last unpaired element from a comparison
-    |> Stream.chunk_every(2, 1, :discard)
-    |> Enum.any?(fn
-      [^empty, elt] when elt != empty -> true
-      _ -> false
-    end)
-    |> if(do: error, else: {:ok, items})
-  end
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
@@ -199,40 +159,36 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   require Utxo
   require Transaction.Payment
 
-  @zero_address OMG.Eth.zero_address()
   @empty_signature <<0::size(520)>>
 
-  # TODO: commented code for the tx markers handling
-  # @payment_marker Transaction.Markers.payment()
-  #
-  # end commented code
+  # TODO: note this is fixed and improved in the abstract outputs/inputs PR
+  @payment_marker Transaction.Markers.payment()
 
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
   def get_data_for_rlp(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
-      when Transaction.Payment.is_metadata(metadata),
-      do:
-        [
-          # TODO: commented code for the tx markers handling
-          # @payment_marker,
-          # contract expects 4 inputs and outputs
-          Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
-            List.duplicate([0, 0, 0], 4 - length(inputs)),
-          Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
-            List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
-        ] ++ if(metadata, do: [metadata], else: [])
+      when Transaction.is_metadata(metadata),
+      do: [
+        @payment_marker,
+        Enum.map(inputs, &to_new_rlp_input/1),
+        Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end),
+        # used to be optional and as such was `if`-appended if not null here
+        # When it is not optional, and there's the if, dialyzer complains about the if
+        metadata
+      ]
 
   def get_outputs(%Transaction.Payment{outputs: outputs}) do
     outputs
-    |> Enum.reject(&match?(%{owner: @zero_address, currency: @zero_address, amount: 0}, &1))
   end
 
   def get_inputs(%Transaction.Payment{inputs: inputs}) do
     inputs
     |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
-    |> Enum.filter(&Utxo.Position.non_zero?/1)
   end
+
+  defp to_new_rlp_input(%{blknum: blknum, txindex: txindex, oindex: oindex}),
+    do: Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode() |> :binary.encode_unsigned(:big)
 
   @doc """
   True if the witnessses provided follow some extra custom validation.

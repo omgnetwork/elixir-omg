@@ -530,10 +530,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :phoenix_ecto_sandbox]
     test "provides stateless validation", %{alice: alice} do
-      signed_bytes = Test.create_encoded([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{alice, 100}])
+      signed_bytes = Test.create_encoded([{1, 0, 0, alice}, {1, 0, 0, alice}], @eth, [{alice, 100}])
 
       assert %{
-               "code" => "submit:inputs_contain_gaps",
+               "code" => "submit:duplicate_inputs",
                "description" => nil,
                "object" => "error"
              } == TestHelper.no_success?("transaction.submit", %{"transaction" => Encoding.to_hex(signed_bytes)})
@@ -542,7 +542,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
   describe "submitting structural transaction" do
     deffixture typed_data_request(alice, bob) do
-      contract_addr = :crypto.exor(alice.addr, bob.addr) |> Encoding.to_hex()
+      contract_addr = %{plasma_framework: Encoding.to_hex(<<1::160>>)}
 
       alice_addr = Encoding.to_hex(alice.addr)
       bob_addr = Encoding.to_hex(bob.addr)
@@ -560,7 +560,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
           "name" => "OMG Network",
           "version" => "1",
           "salt" => "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83",
-          "verifyingContract" => contract_addr
+          "verifyingContract" => contract_addr.plasma_framework
         },
         "message" => %{
           "input0" => %{"blknum" => 1000, "txindex" => 0, "oindex" => 1},

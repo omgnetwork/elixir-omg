@@ -43,15 +43,16 @@ defmodule OMG.Eth.DevHelpers do
     opts = Keyword.merge([root_path: "./"], opts)
     %{root_path: root_path} = Enum.into(opts, %{})
 
-    exit_period_seconds = get_exit_period(exit_period_seconds)
-
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
          {:ok, authority} <- create_and_fund_authority_addr(opts),
          {:ok, deployer_addr} <- get_deployer_address(opts),
-         {:ok, txhash, contract_addr} <- Eth.Deployer.create_new(OMG.Eth.RootChain, root_path, deployer_addr),
-         {:ok, _} <-
-           Eth.RootChainHelper.init(exit_period_seconds, authority, contract_addr) |> Eth.DevHelpers.transact_sync!() do
-      %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
+         {:ok, txhash_contract, contracts_map} <-
+           Eth.BundleDeployer.deploy_all(root_path, deployer_addr, authority, exit_period_seconds) do
+      %{
+        contract_addr: contracts_map,
+        txhash_contract: txhash_contract,
+        authority_addr: authority
+      }
     else
       {:error, :econnrefused} = error ->
         Logger.error("It seems that Ethereum instance is not running. Check README.md")
@@ -63,10 +64,12 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
+    contract_addr = Eth.RootChain.contract_map_to_hex(contract_addr)
+
     """
     use Mix.Config
     config :omg_eth,
-      contract_addr: #{inspect(to_hex(contract_addr))},
+      contract_addr: #{inspect(contract_addr)},
       txhash_contract: #{inspect(to_hex(txhash))},
       authority_addr: #{inspect(to_hex(authority_addr))}
     """
@@ -100,7 +103,9 @@ defmodule OMG.Eth.DevHelpers do
   """
   @spec deploy_sync!({:ok, Eth.hash()}) :: {:ok, Eth.hash(), Eth.address()}
   def deploy_sync!({:ok, txhash} = transaction_submission_result) do
-    {:ok, %{"contractAddress" => contract, "status" => "0x1"}} = transact_sync!(transaction_submission_result)
+    {:ok, %{"contractAddress" => contract, "status" => "0x1", "gasUsed" => _gas_used}} =
+      transact_sync!(transaction_submission_result)
+
     {:ok, txhash, from_hex(contract)}
   end
 
@@ -147,12 +152,6 @@ defmodule OMG.Eth.DevHelpers do
       {:ok, from_hex(authority)}
     end
   end
-
-  defp get_exit_period(nil) do
-    Application.fetch_env!(:omg_eth, :exit_period_seconds)
-  end
-
-  defp get_exit_period(exit_period), do: exit_period
 
   defp fund_address_from_faucet(account_enc, opts) do
     {:ok, [default_faucet | _]} = Ethereumex.HttpClient.eth_accounts()

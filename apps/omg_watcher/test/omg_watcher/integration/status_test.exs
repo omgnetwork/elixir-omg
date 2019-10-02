@@ -39,7 +39,8 @@ defmodule OMG.Watcher.Integration.StatusTest do
     assert is_integer(eth_height_now)
     assert is_integer(eth_timestamp_now)
     assert is_atom(eth_syncing)
-    assert is_binary(contract_addr)
+    assert is_map(contract_addr)
+    assert byte_size(contract_addr["plasma_framework"]) == 42
     assert %{"height" => height, "service" => service_name} = hd(services_synced_heights)
     assert is_integer(height)
     assert is_binary(service_name)

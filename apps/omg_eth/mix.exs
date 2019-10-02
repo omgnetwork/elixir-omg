@@ -37,9 +37,31 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "master",
+        branch: "integration_949_elixir_omg_pr",
         sparse: "contracts/",
-        compile: contracts_compile(),
+        compile:
+          contracts_compile("plasma_contracts", [
+            "plasma_framework/contracts/src/framework/PlasmaFramework.sol",
+            "plasma_framework/contracts/src/vaults/verifiers/EthDepositVerifier.sol",
+            "plasma_framework/contracts/src/vaults/verifiers/Erc20DepositVerifier.sol",
+            "plasma_framework/contracts/src/vaults/EthVault.sol",
+            "plasma_framework/contracts/src/vaults/Erc20Vault.sol",
+            "plasma_framework/contracts/src/exits/payment/controllers/PaymentStartStandardExit.sol",
+            "plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeStandardExit.sol",
+            "plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessStandardExit.sol",
+            "plasma_framework/contracts/src/exits/payment/spendingConditions/PaymentSpendingConditionRegistry.sol",
+            "plasma_framework/contracts/src/exits/registries/OutputGuardHandlerRegistry.sol",
+            "plasma_framework/contracts/src/exits/payment/outputGuardHandlers/PaymentOutputGuardHandler.sol",
+            "plasma_framework/contracts/src/exits/payment/PaymentExitGame.sol"
+          ]),
+        app: false,
+        only: [:dev, :test]
+      },
+      {
+        :openzeppelin_solidity,
+        git: "https://github.com/OpenZeppelin/openzeppelin-solidity",
+        tag: "v2.3.0",
+        compile: contracts_compile("openzeppelin_solidity", ["contracts/token/ERC20/ERC20Mintable.sol"]),
         app: false,
         only: [:dev, :test]
       },
@@ -57,24 +79,21 @@ defmodule OMG.Eth.MixProject do
     ]
   end
 
-  defp contracts_compile do
+  defp contracts_compile(contracts_subdir, contract_paths) do
     current_path = File.cwd!()
     mixfile_path = __DIR__
-    contracts_dir = "deps/plasma_contracts/contracts"
+    contracts_dir = "deps"
 
-    # NOTE: `solc` needs the relative paths to contracts (`contract_paths`) to be short, hence we need to `cd`
-    #       deeply into where the sources are (`compilation_path`)
     compilation_path = Path.join([mixfile_path, "../..", contracts_dir])
-
-    contract_paths =
-      ["RootChain.sol", "MintableToken.sol", "SignatureTest.sol"]
-      |> Enum.join(" ")
+    contract_paths = contract_paths |> Enum.map(&Path.join(contracts_subdir, &1)) |> Enum.join(" ")
 
     output_path = Path.join([mixfile_path, "../..", "_build/contracts"])
 
     [
       "cd #{compilation_path}",
-      "solc #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{output_path}",
+      "solc openzeppelin-solidity=openzeppelin_solidity #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{
+        output_path
+      }",
       "cd #{current_path}"
     ]
     |> Enum.join(" && ")
