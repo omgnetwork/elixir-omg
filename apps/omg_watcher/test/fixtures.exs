@@ -174,6 +174,101 @@ defmodule OMG.Watcher.Fixtures do
     end)
   end
 
+  deffixture web_endpoint do
+    Application.ensure_all_started(:spandex_ecto)
+    Application.ensure_all_started(:telemetry)
+
+    :telemetry.attach(
+      "spandex-query-tracer",
+      [:omg, :watcher, :db, :repo, :query],
+      &SpandexEcto.TelemetryAdapter.handle_event/4,
+      nil
+    )
+
+    {:ok, pid} = ensure_web_started(OMG.WatcherRPC.Web.Endpoint, :start_link, [], 100)
+
+    _ = Application.load(:omg_watcher_rpc)
+
+    on_exit(fn ->
+      WatcherHelper.wait_for_process(pid)
+      :ok
+    end)
+  end
+
+  @doc "run only database in sandbox and endpoint to make request"
+  deffixture phoenix_ecto_sandbox(web_endpoint) do
+    :ok = web_endpoint
+
+    {:ok, pid} =
+      Supervisor.start_link(
+        [%{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor}],
+        strategy: :one_for_one,
+        name: Watcher.Supervisor
+      )
+
+    :ok = SQL.Sandbox.checkout(DB.Repo)
+    # setup and body test are performed in one process, `on_exit` is performed in another
+    on_exit(fn ->
+      WatcherHelper.wait_for_process(pid)
+      :ok
+    end)
+  end
+
+  deffixture initial_blocks(alice, bob, blocks_inserter, initial_deposits) do
+    :ok = initial_deposits
+
+    [
+      {1000,
+       [
+         OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
+         OMG.TestHelper.create_recovered([{1000, 0, 0, bob}], @eth, [{alice, 100}, {bob, 200}])
+       ]},
+      {2000,
+       [
+         OMG.TestHelper.create_recovered([{1000, 1, 0, alice}], @eth, [{bob, 99}, {alice, 1}], <<1337::256>>)
+       ]},
+      {3000,
+       [
+         OMG.TestHelper.create_recovered([], @eth, [{alice, 150}]),
+         OMG.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
+       ]}
+    ]
+    |> blocks_inserter.()
+  end
+
+  deffixture initial_deposits(alice, bob, phoenix_ecto_sandbox) do
+    :ok = phoenix_ecto_sandbox
+
+    deposits = [
+      %{
+        root_chain_txhash: Crypto.hash(<<1000::256>>),
+        log_index: 0,
+        owner: alice.addr,
+        currency: @eth,
+        amount: 333,
+        blknum: 1
+      },
+      %{
+        root_chain_txhash: Crypto.hash(<<2000::256>>),
+        log_index: 0,
+        owner: bob.addr,
+        currency: @eth,
+        amount: 100,
+        blknum: 2
+      }
+    ]
+
+    # Initial data depending tests can reuse
+    DB.EthEvent.insert_deposits!(deposits)
+    :ok
+  end
+
+  deffixture blocks_inserter(phoenix_ecto_sandbox) do
+    :ok = phoenix_ecto_sandbox
+
+    fn blocks -> Enum.flat_map(blocks, &prepare_one_block/1) end
+  end
+
   deffixture test_server do
     {:ok, server_id, port} = Server.run()
     env = FakeServer.Env.new(port)
