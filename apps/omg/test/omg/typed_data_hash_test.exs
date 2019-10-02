@@ -175,53 +175,6 @@ defmodule OMG.TypedDataHashTest do
     end
   end
 
-  describe "Signature compliance with Metamask" do
-    # This account was used with metamask to create signatures - do not change!
-    @signer <<34, 88, 165, 39, 152, 80, 246, 251, 120, 136, 138, 126, 69, 234, 42, 94, 177, 179, 196, 54>>
-
-    test "test #0" do
-      signature =
-        "55d95900e5bffef27e6225c6ff4cbe1d18cbc28281583a24402ceec80aa924db337f9f663a6a80ca153497cd328e2a0b49d896b66d640e785f59eb76a37cb9aa1b"
-        |> Base.decode16!(case: :lower)
-
-      raw_tx = Transaction.Payment.new([], [])
-
-      assert true ==
-               raw_tx
-               |> TypedDataHash.hash_struct(@test_domain_separator)
-               |> Crypto.recover_address(signature)
-               |> (&match?({:ok, @signer}, &1)).()
-    end
-
-    test "test #1", %{inputs: inputs, outputs: outputs} do
-      signature =
-        "836c4c3726674a93e9d034a60152a64c7de0b55670bbed0c228647ca3797d5b043fea4325452eec47e644dd9124e46d7334b22997dbbbb3cf7b81f2a02a81ccd1c"
-        |> Base.decode16!(case: :lower)
-
-      raw_tx = Transaction.Payment.new(inputs, outputs)
-
-      assert true ==
-               raw_tx
-               |> TypedDataHash.hash_struct(@test_domain_separator)
-               |> Crypto.recover_address(signature)
-               |> (&match?({:ok, @signer}, &1)).()
-    end
-
-    test "test #2", %{inputs: inputs, outputs: outputs, metadata: metadata} do
-      signature =
-        "7b0c9abe27135205c82571b9e4fcbf0641ba9db05d4d8256db3b8f0680a3a55729058aabb15b0f9a101325d60ec1730ae6dd907efd86dcb98cad88616d64a92d1c"
-        |> Base.decode16!(case: :lower)
-
-      raw_tx = Transaction.Payment.new(inputs, outputs, metadata)
-
-      assert true ==
-               raw_tx
-               |> TypedDataHash.hash_struct(@test_domain_separator)
-               |> Crypto.recover_address(signature)
-               |> (&match?({:ok, @signer}, &1)).()
-    end
-  end
-
   describe "Eip-712 types" do
     test "align with encodeType format" do
       assert "EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)" ==
