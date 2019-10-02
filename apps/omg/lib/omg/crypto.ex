@@ -31,6 +31,12 @@ defmodule OMG.Crypto do
 
   @doc """
   Produces a cryptographic digest of a message.
+
+  ## Example
+
+    iex> OMG.Crypto.hash("omg!")
+    <<241, 85, 204, 147, 187, 239, 139, 133, 69, 248, 239, 233, 219, 51, 189, 54,
+      171, 76, 106, 229, 69, 102, 203, 7, 21, 134, 230, 92, 23, 209, 187, 12>>
   """
   @spec hash(binary) :: hash_t()
   def hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())

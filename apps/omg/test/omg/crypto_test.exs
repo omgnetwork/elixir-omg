@@ -14,6 +14,8 @@
 
 defmodule OMG.CryptoTest do
   use ExUnit.Case, async: true
+  doctest OMG.Crypto
+
 
   @moduledoc """
   A sanity and compatibility check of the crypto implementation.
