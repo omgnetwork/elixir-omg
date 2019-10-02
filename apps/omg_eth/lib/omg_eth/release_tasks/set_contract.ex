@@ -51,17 +51,24 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
             _ -> exit("CONTRACT_EXCHANGER_URL #{exchanger} is not reachable")
           end
 
-        # NOTE: this uses `to_exiting_atoms` underneath. It relies on the explicit contract map defined in the
-        #       `apply_static_settings` which is not cool. This should be resolved after switching to file-based static
-        #       configuration
         %{
-          authority_addr: authority_address,
-          contract_addr: contract_addresses,
-          txhash_contract: txhash_contract
+          authority_address: authority_address,
+          erc20_vault: erc20_vault,
+          eth_vault: eth_vault,
+          payment_exit_game: payment_exit_game,
+          plasma_framework: plasma_framework,
+          plasma_framework_tx_hash: txhash_contract
         } = Jason.decode!(body, keys: :atoms!)
 
         exit_period_seconds =
           validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
+
+        contract_addresses = %{
+          plasma_framework: plasma_framework,
+          eth_vault: eth_vault,
+          erc20_vault: erc20_vault,
+          payment_exit_game: payment_exit_game
+        }
 
         update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
 

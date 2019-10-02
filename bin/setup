@@ -89,6 +89,8 @@ brew "gmp"
 brew "libtool"
 brew "cmake"
 brew "rocksdb"
+brew "tap ethereum/ethereum"
+brew "solidity"
 EOF
 }
 

@@ -29,9 +29,12 @@ We allow a static configuration or a dynamic one, served as a http endpoint (one
 - "CONTRACT_EXCHANGER_URL" - a server that can serve JSON in form of
 ```
 {
-  "authority_addr": "<authority_address>",
-  "contract_addr": {"plasma_framework": "<contract_address>", ...},
-  "txhash_contract": "<txhash_contract>"
+  "plasma_framework_tx_hash":"<plasma_framework_tx_hash>",
+  "plasma_framework":"<plasma_framework>",
+  "eth_vault":"<eth_vault>",
+  "erc20_vault":"<erc20_vault>",
+  "payment_exit_game":"<payment_exit_game>",
+  "authority_address":"<authority_address>"
 }
 ```
 Static configuration
@@ -39,14 +42,19 @@ Static configuration
 - "ETHEREUM_NETWORK" - RINKEBY or LOCALNETWORK
 - "RINKEBY_TXHASH_CONTRACT"
 - "RINKEBY_AUTHORITY_ADDRESS"
-- "RINKEBY_CONTRACT_ADDRESS" being a JSON encoded map of the form:
-```
-{"plasma_framework": "<contract_address>", ...}
-```
+- "RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK"
+- "RINKEBY_CONTRACT_ADDRESS_ETH_VAULT
+- "RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT
+- "RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"
+
 or
+
 - "LOCALNETWORK_TXHASH_CONTRACT"
 - "LOCALNETWORK_AUTHORITY_ADDRESS"
-- "LOCALNETWORK_CONTRACT_ADDRESS"
+- "LOCALNETWORK_CONTRACT_ADDRESS_PLASMA_FRAMEWORK"
+- "LOCALNETWORK_CONTRACT_ADDRESS_ETH_VAULT
+- "LOCALNETWORK_CONTRACT_ADDRESS_ERC20_VAULT
+- "LOCALNETWORK_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"
 
 ***Required contract addresses***
 

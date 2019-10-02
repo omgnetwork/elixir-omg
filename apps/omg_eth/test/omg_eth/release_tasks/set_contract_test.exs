@@ -19,11 +19,20 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   @app :omg_eth
   @configuration_old Application.get_all_env(@app)
 
-  @contract_addresses_value %{
+  @exchanger_body %{
+    plasma_framework_tx_hash: "txhash_contract_value",
     plasma_framework: "plasma_framework_value",
     eth_vault: "eth_vault_value",
     erc20_vault: "erc20_vault_value",
-    payment_exit_game: "payment_exit_game_value"
+    payment_exit_game: "payment_exit_game_value",
+    authority_address: "authority_address_value"
+  }
+
+  @contract_addresses_value %{
+    erc20_vault: "erc20_vault_value",
+    eth_vault: "eth_vault_value",
+    payment_exit_game: "payment_exit_game_value",
+    plasma_framework: "plasma_framework_value"
   }
 
   setup %{} do
@@ -281,12 +290,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   end
 
   defp handle(conn) do
-    body =
-      Jason.encode!(%{
-        authority_addr: "authority_address_value",
-        contract_addr: @contract_addresses_value,
-        txhash_contract: "txhash_contract_value"
-      })
+    body = Jason.encode!(@exchanger_body)
 
     :ok = :gen_tcp.send(conn, ["HTTP/1.0 ", Integer.to_charlist(200), "\r\n", [], "\r\n", body])
 
