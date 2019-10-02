@@ -1,91 +1,28 @@
 
-ARG ALPINE_VERSION=3.9
+FROM omg-base-env AS omg-dev-env
 
-FROM alpine:${ALPINE_VERSION} AS alpine
-
-FROM alpine AS omg-dev-env
-
-LABEL maintainer="OmiseGO Team <omg@omise.co>"
-LABEL description="Builder image for OmiseGO elixir-omg"
-
-COPY --from=omg-elixir-env /usr/local/otp /usr/local/otp
-COPY --from=omg-elixir-env /usr/local/rebar3 /usr/local/rebar3
-COPY --from=omg-elixir-env /usr/local/elixir /usr/local/elixir
+ENV MIX_ENV=dev
 
 ARG USER=elixir-omg
-ARG GROUP=elixir-omg
 ARG UID=10000
 ARG GID=10000
-ARG HOME=/home/${USER}
+
 ARG APP_DIR=/app
+ARG BUILD_DIR=/build
 
-ARG MIX_ENV=dev
+WORKDIR $APP_DIR
 
-ENV LANG=en_US.UTF-8
-ENV LC_ALL=en_US.UTF-8
+USER root
 
-ENV LD_LIBRARY_PATH=/usr/local/otp/lib:$LD_LIBRARY_PATH
-ENV LD_LIBRARY_PATH=/usr/local/elixir/lib:$LD_LIBRARY_PATH
-ENV PATH=/usr/local/otp/bin:$PATH
-ENV PATH=/usr/local/rebar3/bin:$PATH
-ENV PATH=/usr/local/elixir/bin:$PATH
+COPY . $APP_DIR
+RUN mv -f $BUILD_DIR/* $APP_DIR && rm -rf $BUILD_DIR
 
-RUN wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-static-linux \
-  && chmod +x solc-static-linux \
-  && mv solc-static-linux solc  \
-  && install -m0755 solc /usr/local/bin/solc
+RUN chown -R ${UID}:${GID} $APP_DIR
 
-RUN set -xe \
- && apk add --update --no-cache --virtual .utils \
-        linux-headers \
-        bash \
-        build-base \
-        ca-certificates \
-        cmake \
-        curl \
-        expect \
-        findutils \
-        git \
-        gnupg \
-        libressl \
-        openssh \
- && apk add --no-cache --virtual .libsecp256k1-build \
-        autoconf \
-        automake \
-        gmp \
-        gmp-dev \
-        libtool \
- && rm -rf "$HOME/.cache" \
- && RUN_DEPS="$( \
-        find /usr/local -type f -executable -not \( -name '*tkinter*' \) -exec \
-            scanelf --needed --nobanner --format '%n#p' '{}' ';' \
-            | tr ',' '\n' \
-            | sort -u \
-            | awk '! /^$/ && system("test -z $(find /usr/local -iname " $1 ")") == 0 { print "so:" $1 }' \
-    )" \
- && apk add --update --no-cache --virtual .run-deps \
-        $RUN_DEPS \
-        ca-certificates \
-        libressl-dev \
-        lksctp-tools \
- && addgroup -g ${GID} ${GROUP} \
- && adduser -D -h ${HOME} -u ${UID} -G ${GROUP} -H ${USER} \
- && mkdir -p ${HOME} \
- && chown -R ${UID}:${GID} ${HOME} \
- && mkdir -p ${APP_DIR} \
- && chown -R ${UID}:${GID} ${APP_DIR}
+RUN MIX_ENV=test mix deps.get \
+ && MIX_ENV=test mix deps.compile
 
-USER ${USER}
+USER $USER
 
-WORKDIR ${APP_DIR}
+ENTRYPOINT ["/bin/bash"]
 
-RUN set -xe \
-  && mix do local.hex --force, local.rebar --force
-
-COPY . ${APP_DIR}
-
-RUN set -xe \
- && MIX_ENV=${MIX_ENV} mix deps.get \
- && MIX_ENV=${MIX_ENV} mix deps.compile
-
-ENTRYPOINT ["/bash"]

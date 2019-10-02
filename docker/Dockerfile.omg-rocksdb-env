@@ -1,0 +1,48 @@
+
+ARG ALPINE_VERSION=3.9
+
+FROM alpine:${ALPINE_VERSION} AS alpine
+
+FROM alpine AS omg-rocksdb-env
+
+ARG ROCKSDB_VERSION="6.2.2"
+ARG ROCKSDB_DOWNLOAD_SHA256="3e7365cb2a35982e95e5e5dd0b3352dc78573193dafca02788572318c38483fb"
+
+RUN set -xe \
+ && ROCKSDB_DOWNLOAD_URL="https://github.com/facebook/rocksdb/archive/v${ROCKSDB_VERSION}.tar.gz" \
+ && apk add --update --no-cache --virtual .rocksdb-build \
+        bash \
+        curl \
+        g++ \
+        gcc \
+        linux-headers \
+        make \
+        perl \
+        tar \
+ && curl -fsL -o rocksdb-src.tar.gz "${ROCKSDB_DOWNLOAD_URL}" \
+ && echo "${ROCKSDB_DOWNLOAD_SHA256}  rocksdb-src.tar.gz" | sha256sum -c - \
+ && mkdir -vp /usr/local/src/rocksdb \
+ && tar -xzC /usr/local/src/rocksdb --strip-components=1 -f rocksdb-src.tar.gz \
+ && rm rocksdb-src.tar.gz \
+ && ( \
+        cd /usr/local/src/rocksdb \
+        && make -j$(nproc) shared_lib \
+        && mkdir -p /usr/local/rocksdb/lib \
+        && mkdir -p /usr/local/rocksdb/include \
+        && cp -dr librocksdb.so* /usr/local/rocksdb/lib \
+        && cp -dr include/* /usr/local/rocksdb/include \
+    ) \
+ && rm -rf /usr/local/src/rocksdb \
+ && scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/local/rocksdb | xargs -r strip --strip-all \
+ && scanelf --nobanner -E ET_DYN -BF '%F' --recursive /usr/local/rocksdb | xargs -r strip --strip-unneeded \
+ && ROCKSDB_RUN_DEPS="$( \
+        scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/rocksdb \
+            | tr ',' '\n' \
+            | sort -u \
+            | awk 'system("[ -e /usr/local/rocksdb/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
+    )" \
+ && apk add --update --no-cache --virtual .rocksdb-run $ROCKSDB_RUN_DEPS \
+ && apk del .rocksdb-build \
+ && rm -rf /usr/local/src
+
+ENV LD_LIBRARY_PATH=/usr/local/rocksdb/lib:$LD_LIBRARY_PATH
