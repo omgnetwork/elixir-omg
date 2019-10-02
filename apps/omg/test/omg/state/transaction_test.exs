@@ -23,7 +23,6 @@ defmodule OMG.State.TransactionTest do
   use ExUnit.Case, async: true
 
   alias OMG.DevCrypto
-  alias OMG.Output.FungibleMoreVPToken
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.TestHelper

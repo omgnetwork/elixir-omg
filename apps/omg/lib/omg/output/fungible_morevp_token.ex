@@ -73,7 +73,4 @@ defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
 
   def get_data_for_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}),
     do: [owner, currency, amount]
-
-  def non_empty?(%FungibleMoreVPToken{owner: @zero_address, currency: @zero_address, amount: 0}), do: false
-  def non_empty?(%FungibleMoreVPToken{}), do: true
 end

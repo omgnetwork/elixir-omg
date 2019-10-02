@@ -9,7 +9,7 @@ config :omg,
   metrics_collection_interval: 60_000,
   input_pointer_types_modules: %{<<1>> => OMG.InputPointer.UtxoPosition},
   output_types_modules: %{<<1>> => OMG.Output.FungibleMoreVPToken},
-  tx_types_modules: %{<<188, 97, 78>> => OMG.State.Transaction.Payment}
+  tx_types_modules: %{<<1>> => OMG.State.Transaction.Payment}
 
 config :omg, :eip_712_domain,
   name: "OMG Network",

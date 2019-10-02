@@ -89,7 +89,6 @@ defmodule OMG.State.Core do
           | {:put, :block, Block.db_t()}
 
   @type exitable_utxos :: %{
-          creating_txhash: Transaction.tx_hash(),
           owner: Crypto.address_t(),
           currency: Crypto.address_t(),
           amount: non_neg_integer(),
@@ -263,25 +262,39 @@ defmodule OMG.State.Core do
   end
 
   @doc """
-  Spends exited utxos. Accepts both a list of utxo positions (decoded) or full exit info from an event.
+  Spends exited utxos. Accepts either
+   - a list of utxo positions (decoded)
+   - a list of utxo positions (encoded)
+   - a list of full exit infos containing the utxo positions
+   - a list of full exit events (from ethereum listeners) containing the utxo positions
+   - a list of IFE started events
+   - a list of IFE input/output piggybacked events
 
   NOTE: It is done like this to accommodate different clients of this function as they can either be
   bare `EthereumEventListener` or `ExitProcessor`. Hence different forms it can get the exiting utxos delivered
   """
   @spec exit_utxos(exiting_utxos :: exiting_utxos_t(), state :: t()) ::
           {:ok, {[db_update], validities_t()}, new_state :: t()}
+
+  # empty list of whatever to bypass typing
+  def exit_utxos([], %Core{} = state), do: {:ok, {[], {[], []}}, state}
+
+  # list of full exit infos (from events) containing the utxo positions
   def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
     exit_infos |> Enum.map(& &1.utxo_pos) |> exit_utxos(state)
   end
 
+  # list of full exit events (from ethereum listeners)
   def exit_utxos([%{call_data: %{utxo_pos: _}} | _] = exit_infos, %Core{} = state) do
     exit_infos |> Enum.map(& &1.call_data) |> exit_utxos(state)
   end
 
+  # list of utxo positions (encoded)
   def exit_utxos([encoded_utxo_pos | _] = exit_infos, %Core{} = state) when is_integer(encoded_utxo_pos) do
     exit_infos |> Enum.map(&Utxo.Position.decode!/1) |> exit_utxos(state)
   end
 
+  # list of IFE input/output piggybacked events
   def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do
     in_flight_txs
     |> Enum.flat_map(fn %{call_data: %{in_flight_tx: tx_bytes}} ->
@@ -291,23 +304,26 @@ defmodule OMG.State.Core do
     |> exit_utxos(state)
   end
 
+  # list of IFE input/output piggybacked events
   def exit_utxos([%{tx_hash: _} | _] = piggybacks, state) do
     {piggybacks_of_unknown_utxos, piggybacks_of_known_utxos} =
       piggybacks
       |> Enum.map(&find_utxo_matching_piggyback(&1, state))
-      |> Enum.split_with(fn {_, position} -> position == nil end)
+      |> Enum.zip(piggybacks)
+      |> Enum.split_with(fn {utxo, _} -> utxo == nil end)
 
     {:ok, {db_updates, {valid, invalid}}, state} =
       piggybacks_of_known_utxos
-      |> Enum.map(fn {_, {position, _}} -> position end)
+      |> Enum.map(fn {{position, _}, _} -> position end)
       |> exit_utxos(state)
 
-    {unknown_piggybacks, _} = Enum.unzip(piggybacks_of_unknown_utxos)
+    {_unknown_piggybacks_positions, unknown_piggybacks} = Enum.unzip(piggybacks_of_unknown_utxos)
 
     {:ok, {db_updates, {valid, invalid ++ unknown_piggybacks}}, state}
   end
 
-  def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
+  # list of utxo positions (decoded)
+  def exit_utxos([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{utxos: utxos} = state) do
     _ = if exiting_utxos != [], do: Logger.info("Recognized exits #{inspect(exiting_utxos)}")
 
     {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
@@ -397,10 +413,9 @@ defmodule OMG.State.Core do
   defp last_deposit_child_blknum_db_update(_deposits, last_deposit_child_blknum),
     do: [{:put, :last_deposit_child_blknum, last_deposit_child_blknum}]
 
-  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex} = piggyback, %Core{utxos: utxos}) do
+  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex}, %Core{utxos: utxos}) do
     # oindex in contract is 0-7 where 4-7 are outputs
     oindex = oindex - 4
-    position = UtxoSet.scan_for_matching_utxo(utxos, tx_hash, oindex)
-    {piggyback, position}
+    UtxoSet.scan_for_matching_utxo(utxos, tx_hash, oindex)
   end
 end

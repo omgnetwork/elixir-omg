@@ -23,10 +23,8 @@ defmodule OMG.InputPointer.UtxoPosition do
 
   defdelegate from_db_key(db_key), to: Utxo.Position
 
-  def reconstruct([blknum, txindex, oindex]),
-    do: Utxo.position(parse_int!(blknum), parse_int!(txindex), parse_int!(oindex))
-
-  defp parse_int!(binary), do: :binary.decode_unsigned(binary, :big)
+  def reconstruct(binary_input) when is_binary(binary_input),
+    do: binary_input |> :binary.decode_unsigned(:big) |> Utxo.Position.decode!()
 end
 
 defimpl OMG.InputPointer.Protocol, for: Tuple do
@@ -42,8 +40,6 @@ defimpl OMG.InputPointer.Protocol, for: Tuple do
     do: {:input_pointer, @input_pointer_type_marker, Utxo.Position.to_db_key(utxo_pos)}
 
   @spec get_data_for_rlp(Utxo.Position.t()) :: list()
-  def get_data_for_rlp(Utxo.position(blknum, txindex, oindex)), do: [blknum, txindex, oindex]
-
-  @spec non_empty?(Utxo.Position.t()) :: boolean()
-  def non_empty?(Utxo.position(_, _, _) = utxo_pos), do: Utxo.Position.non_zero?(utxo_pos)
+  def get_data_for_rlp(Utxo.position(_, _, _) = utxo_pos),
+    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big)
 end

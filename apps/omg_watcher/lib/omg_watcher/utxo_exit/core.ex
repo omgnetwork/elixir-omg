@@ -49,8 +49,8 @@ defmodule OMG.Watcher.UtxoExit.Core do
                proof: binary
              }}
   def compose_deposit_standard_exit({:ok, {db_utxo_pos, db_utxo_value}}) do
-    utxo_pos = Utxo.Position.from_db_key(db_utxo_pos)
-    %{amount: amount, currency: currency, owner: owner} = Utxo.from_db_value(db_utxo_value)
+    utxo_pos = OMG.InputPointer.from_db_key(db_utxo_pos)
+    %{amount: amount, currency: currency, owner: owner} = OMG.Output.from_db_value(db_utxo_value)
     tx = Transaction.Payment.new([], [{owner, currency, amount}])
     txs = [Transaction.Signed.encode(%Transaction.Signed{raw_tx: tx, sigs: []})]
 

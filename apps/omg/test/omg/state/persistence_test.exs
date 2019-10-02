@@ -72,7 +72,8 @@ defmodule OMG.State.PersistenceTest do
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
 
-    assert {:ok, {{1, 0, 0}, %{amount: 20}}} = OMG.DB.utxo({1, 0, 0}, db_pid)
+    db_key = OMG.InputPointer.Protocol.to_db_key(Utxo.position(1, 0, 0))
+    assert {:ok, {^db_key, %{output: %{amount: 20}}}} = OMG.DB.utxo(db_key, db_pid)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]

@@ -35,17 +35,20 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
       position = Utxo.position(1003, 0, 0)
       encode_utxo = position |> Utxo.Position.encode()
 
+      fake_utxo_db_kv =
+        {OMG.InputPointer.Protocol.to_db_key(position),
+         OMG.Output.Protocol.to_db_value(%OMG.Output.FungibleMoreVPToken{
+           amount: 10,
+           currency: @eth,
+           owner: alice.addr
+         })}
+
       assert {:ok,
               %{
                 utxo_pos: ^encode_utxo,
                 txbytes: txbytes,
                 proof: proof
-              }} =
-               Core.compose_deposit_standard_exit(
-                 {:ok,
-                  {Utxo.Position.to_db_key(position),
-                   Utxo.to_db_value(%Utxo{amount: 10, currency: @eth, owner: alice.addr})}}
-               )
+              }} = Core.compose_deposit_standard_exit({:ok, fake_utxo_db_kv})
 
       assert [%{amount: 10}] = txbytes |> Transaction.decode!() |> Transaction.get_outputs()
       assert byte_size(proof) == 32 * 16

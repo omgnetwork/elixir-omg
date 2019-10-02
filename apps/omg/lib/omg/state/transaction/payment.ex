@@ -85,17 +85,12 @@ defmodule OMG.State.Transaction.Payment do
 
   def new(inputs, outputs, metadata)
       when Transaction.is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
-    inputs =
-      inputs
-      |> Enum.map(fn {blknum, txindex, oindex} -> Utxo.position(blknum, txindex, oindex) end)
-      |> filter_non_zero_inputs()
+    inputs = Enum.map(inputs, fn {blknum, txindex, oindex} -> Utxo.position(blknum, txindex, oindex) end)
 
     outputs =
-      outputs
-      |> Enum.map(fn {owner, currency, amount} ->
+      Enum.map(outputs, fn {owner, currency, amount} ->
         %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
       end)
-      |> filter_non_zero_outputs()
 
     %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
@@ -116,14 +111,6 @@ defmodule OMG.State.Transaction.Payment do
   defp reconstruct_inputs(inputs_rlp) do
     with {:ok, inputs} <- parse_inputs(inputs_rlp),
          do: {:ok, inputs}
-  end
-
-  # messy, see comments on the abstract output/input fixing this properly
-  # FIXME: this ought to be moved to the proper spot
-  defp from_new_rlp_input(binary_input) when is_binary(binary_input) do
-    binary_input
-    |> :binary.decode_unsigned(:big)
-    |> Utxo.Position.decode!()
   end
 
   defp reconstruct_outputs(outputs_rlp) do
@@ -150,13 +137,13 @@ defmodule OMG.State.Transaction.Payment do
     _ -> {:error, :malformed_outputs}
   end
 
-  # NOTE: here we predetermine the type of the created output in the creating transaction
-  #       I think this makes sense, but rethink later
-  defp parse_output!(output), do: Output.FungibleMoreVPToken.reconstruct(output)
-
   # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
   #       most likely one needs to route through generic InputPointer` function that does the dispatch
   defp parse_input!(input_pointer), do: InputPointer.UtxoPosition.reconstruct(input_pointer)
+
+  # NOTE: here we predetermine the type of the created output in the creating transaction
+  #       I think this makes sense, but rethink later
+  defp parse_output!(output), do: Output.FungibleMoreVPToken.reconstruct(output)
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
@@ -165,7 +152,6 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   require Transaction
   require Utxo
-  require Transaction.Payment
 
   @empty_signature <<0::size(520)>>
 
@@ -176,11 +162,11 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
   def get_data_for_rlp(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
-      when Transaction.Payment.is_metadata(metadata),
+      when Transaction.is_metadata(metadata),
       do: [
         @payment_marker,
         Enum.map(inputs, &OMG.InputPointer.Protocol.get_data_for_rlp/1),
-        Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
+        Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
         metadata
@@ -188,9 +174,6 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
   def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
-
-  defp to_new_rlp_input(Utxo.position(_, _, _), utxo_pos),
-    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big)
 
   @doc """
   True if the witnessses provided follow some extra custom validation.
