@@ -42,14 +42,12 @@ defmodule OMG.ChildChain.Supervisor do
       {Monitor,
        [
          Alarm,
-         [
-           %{
-             id: SyncSupervisor,
-             start: {SyncSupervisor, :start_link, []},
-             restart: :permanent,
-             type: :supervisor
-           }
-         ]
+         %{
+           id: SyncSupervisor,
+           start: {SyncSupervisor, :start_link, []},
+           restart: :permanent,
+           type: :supervisor
+         }
        ]}
     ]
 

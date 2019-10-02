@@ -25,12 +25,12 @@ defmodule OMG.ChildChain.Application do
 
   def start(_type, _args) do
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    :ok = Alarm.set(alarm())
+    :ok = Alarm.set(Alarm.boot_in_progress(__MODULE__))
     OMG.ChildChain.Supervisor.start_link()
   end
 
   def start_phase(:boot_done, :normal, _phase_args) do
-    :ok = Alarm.clear(alarm())
+    :ok = Alarm.clear(Alarm.boot_in_progress(__MODULE__))
   end
 
   def start_phase(:attach_telemetry, :normal, _phase_args) do
@@ -51,6 +51,4 @@ defmodule OMG.ChildChain.Application do
       end
     end)
   end
-
-  defp alarm, do: {:boot_in_progress, Node.self(), __MODULE__}
 end
