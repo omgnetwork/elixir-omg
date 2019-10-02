@@ -8,7 +8,7 @@ defmodule OMG.Watcher.Repo.Migrations.AddAndFixTimestamps do
     end
 
     alter table(:ethevents) do
-      timestamps([type: :timestamptz, default: "1970-01-01T00:00:00Z"])
+      timestamps([default: "1970-01-01T00:00:00Z"])
     end
 
     alter table(:txoutputs) do
@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Repo.Migrations.AddAndFixTimestamps do
     end
 
     alter table(:txoutputs) do
-      timestamps([type: :timestamptz, default: "1970-01-01T00:00:00Z"])
+      timestamps([default: "1970-01-01T00:00:00Z"])
     end
 
     alter table(:ethevents_txoutputs) do
@@ -26,11 +26,11 @@ defmodule OMG.Watcher.Repo.Migrations.AddAndFixTimestamps do
     end
 
     alter table(:transactions) do
-      timestamps([type: :timestamptz, default: "1970-01-01T00:00:00Z"])
+      timestamps([default: "1970-01-01T00:00:00Z"])
     end
 
     alter table(:blocks) do
-      timestamps([type: :timestamptz, default: "1970-01-01T00:00:00Z"])
+      timestamps([default: "1970-01-01T00:00:00Z"])
     end
   end
 end
