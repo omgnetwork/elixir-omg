@@ -30,7 +30,9 @@ defmodule OMG.Crypto do
   @type domain_separator_t() :: <<_::256>> | nil
 
   @doc """
-  Produces a cryptographic digest of a message.
+  Produces a KECCAK digest for the message.
+
+  see https://hexdocs.pm/exth_crypto/ExthCrypto.Hash.html#kec/0
 
   ## Example
 
@@ -39,7 +41,7 @@ defmodule OMG.Crypto do
       171, 76, 106, 229, 69, 102, 203, 7, 21, 134, 230, 92, 23, 209, 187, 12>>
   """
   @spec hash(binary) :: hash_t()
-  def hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+  def hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
 
   @doc """
   Recovers address of signer from binary-encoded signature.
