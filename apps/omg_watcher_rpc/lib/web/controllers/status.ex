@@ -19,6 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Status do
   """
 
   use OMG.WatcherRPC.Web, :controller
+  # check for health before calling action
   plug(OMG.WatcherRPC.Plugs.Health)
   alias OMG.Watcher.API.Status
 

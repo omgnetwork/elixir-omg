@@ -85,30 +85,4 @@ defmodule OMG.Status.Alert.Alarm do
       :not_raised
     end
   end
-
-  # defp make_alarm(raw_alarm = {_, node, reporter}) when is_atom(node) and is_atom(reporter),
-  #   do: make_alarm_for(raw_alarm)
-
-  # defp make_alarm({alarm_type, details} = alarm) when is_atom(alarm_type) and is_map(details),
-  #   do: alarm
-
-  # defp make_alarm_for({:ethereum_client_connection, node, reporter}) do
-  #   ethereum_client_connection_issue(node, reporter)
-  # end
-
-  # defp make_alarm_for({:boot_in_progress, node, reporter}) do
-  #   boot_in_progress(node, reporter)
-  # end
-
-  # defp make_alarm_for({:invalid_fee_file, node, reporter}) do
-  #   invalid_fee_file(node, reporter)
-  # end
-
-  # defp make_alarm_for({:statsd_client_connection, node, reporter}) do
-  #   statsd_client_connection(node, reporter)
-  # end
-
-  # defp make_alarm_for({:chain_crash, node, reporter}) do
-  #   chain_crash(node, reporter)
-  # end
 end
