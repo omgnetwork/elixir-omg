@@ -50,7 +50,7 @@ defmodule OMG.Crypto do
   Chain id parameter can be ignored when signature was created without it.
   """
   @spec recover_public(<<_::256>>, sig_t) :: {:ok, <<_::512>>} | {:error, :signature_corrupt | binary}
-  def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
+  defp recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
 
     with {:ok, _pub} = result <- Signature.recover_public(digest, v, r, s) do

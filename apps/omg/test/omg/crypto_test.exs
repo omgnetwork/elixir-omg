@@ -24,28 +24,41 @@ defmodule OMG.CryptoTest do
   alias OMG.State.Transaction
   alias OMG.TypedDataHash
 
-  test "sha3 library usage, address generation" do
-    # test vectors below were generated using pyethereum's sha3 and privtoaddr
-    priv = Crypto.hash(<<"11">>)
-    py_priv = "7880aec93413f117ef14bd4e6d130875ab2c7d7d55a064fac3c2f7bd51516380"
-    py_pub = "c4d178249d840f548b09ad8269e8a3165ce2c170"
-    assert {:ok, ^priv} = Base.decode16(py_priv, case: :lower)
-    {:ok, pub} = DevCrypto.generate_public_key(priv)
-    {:ok, address} = Crypto.generate_address(pub)
-    assert {:ok, ^address} = Base.decode16(py_pub, case: :lower)
+  describe "recover_address/2" do
+    test "recovers address of the signer from a binary-encoded signature" do
+    end
   end
 
-  test "signature compatibility" do
-    msg = Crypto.hash("1234")
-    priv = Crypto.hash("11")
-    {:ok, pub} = DevCrypto.generate_public_key(priv)
-    {:ok, _} = Crypto.generate_address(pub)
-    # this test vector was generated using plasma.utils.utils.sign/2 from plasma-mvp
-    py_signature =
-      "b8670d619701733e1b4d10149bc90eb4eb276760d2f77a08a5428d4cbf2eadbd656f374c187b1ac80ce31d8c62076af26150e52ef1f33bfc07c6d244da7ca38c1c"
+  describe "generate_address/1" do
+    test "generates an address with SHA3" do
+      # test vectors below were generated using pyethereum's sha3 and privtoaddr
+      py_priv = "7880aec93413f117ef14bd4e6d130875ab2c7d7d55a064fac3c2f7bd51516380"
+      py_pub = "c4d178249d840f548b09ad8269e8a3165ce2c170"
+      priv = Crypto.hash(<<"11">>)
 
-    sig = DevCrypto.signature_digest(msg, priv)
-    assert ^sig = Base.decode16!(py_signature, case: :lower)
+      {:ok, pub} = DevCrypto.generate_public_key(priv)
+      {:ok, address} = Crypto.generate_address(pub)
+      {:ok, decoded_private} = Base.decode16(py_priv, case: :lower)
+      {:ok, decoded_address} = Base.decode16(py_pub, case: :lower)
+
+      assert ^decoded_private = priv
+      assert ^address = decoded_address
+    end
+
+    test "generates an address with a public signature" do
+      # test vector was generated using plasma.utils.utils.sign/2 from plasma-mvp
+      py_signature =
+        "b8670d619701733e1b4d10149bc90eb4eb276760d2f77a08a5428d4cbf2eadbd656f374c187b1ac80ce31d8c62076af26150e52ef1f33bfc07c6d244da7ca38c1c"
+
+      msg = Crypto.hash("1234")
+      priv = Crypto.hash("11")
+
+      {:ok, pub} = DevCrypto.generate_public_key(priv)
+      {:ok, _} = Crypto.generate_address(pub)
+
+      sig = DevCrypto.signature_digest(msg, priv)
+      assert ^sig = Base.decode16!(py_signature, case: :lower)
+    end
   end
 
   test "digest sign, recover" do
