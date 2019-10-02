@@ -48,7 +48,7 @@ defmodule OMG.WatcherInfo.DB.Repo do
   end
 
   @doc """
-  The functions fetch/1, fetch/2 and fetch_by/2 are added here to provide a consistent Ecto.Repo interface.
+  The functions fetch/1 and fetch_by/2 are added here to provide a consistent Ecto.Repo interface.
   The Ecto.Repo interface provides functions like: get/3, get_by/2, one/2. They all return `nil` if nothing
   is found and raise an exception if more than one entry was found.
 
