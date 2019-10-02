@@ -1,6 +1,6 @@
 # Load testing the child chain and Watcher
 
-The following demo is a mix of commands executed in IEx (Elixir's) REPL (see README.md for instructions) and shell.
+The following demo is a mix of commands executed in IEx (Elixir's) REPL (see [manual startup](/docs/manual_service_startup.md) for instructions) and shell.
 
 Run a developer's Child chain server, Watcher, and start IEx REPL with code and config loaded, as described in README.md instructions.
 

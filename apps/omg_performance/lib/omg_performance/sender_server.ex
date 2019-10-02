@@ -50,7 +50,9 @@ defmodule OMG.Performance.SenderServer do
     :spender,
     # {blknum, txindex, oindex, amount}, @see %LastTx above
     :last_tx,
-    :child_chain_url
+    :child_chain_url,
+    # tells whether recipients of the transactions should be random addresses (default) or self.
+    :randomized
   ]
 
   @opaque state :: %__MODULE__{
@@ -58,7 +60,8 @@ defmodule OMG.Performance.SenderServer do
             ntx_to_send: integer,
             spender: map,
             last_tx: LastTx.t(),
-            child_chain_url: binary()
+            child_chain_url: binary(),
+            randomized: boolean()
           }
 
   @doc """
@@ -112,10 +115,10 @@ defmodule OMG.Performance.SenderServer do
     {:noreply, newstate}
   end
 
-  defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
+  defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx, randomized: randomized}) do
     to_spend = 1
     newamount = last_tx.amount - to_spend
-    recipient = TestHelper.generate_entity()
+    recipient = if randomized, do: TestHelper.generate_entity(), else: spender
 
     _ =
       Logger.debug(
@@ -210,7 +213,8 @@ defmodule OMG.Performance.SenderServer do
         oindex: oindex,
         amount: amount
       },
-      child_chain_url: Map.get(opts, :child_chain_url)
+      child_chain_url: Map.get(opts, :child_chain_url),
+      randomized: Map.get(opts, :randomized, true)
     }
   end
 
