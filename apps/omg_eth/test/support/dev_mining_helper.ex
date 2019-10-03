@@ -19,6 +19,8 @@ defmodule OMG.Eth.DevMiningHelper do
   """
 
   alias OMG.Eth.Encoding
+  alias OMG.Crypto
+  alias OMG.DevCrypto
 
   @devperiod_ms 1000
 
@@ -66,23 +68,9 @@ defmodule OMG.Eth.DevMiningHelper do
   end
 
   defp generate_entity do
-    priv = :crypto.strong_rand_bytes(32)
-    {:ok, <<4::integer-size(8), pub::binary>>} = get_public_key(priv)
-    {:ok, addr} = generate_address(pub)
-    %{priv: priv, addr: addr}
-  end
-
-  defp generate_address(<<pub::binary-size(64)>>) do
-    <<_::binary-size(12), address::binary-size(20)>> = hash(pub)
-    {:ok, address}
-  end
-
-  defp hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
-
-  defp get_public_key(private_key) do
-    case :libsecp256k1.ec_pubkey_create(private_key, :uncompressed) do
-      {:ok, public_key} -> {:ok, public_key}
-      {:error, reason} -> {:error, to_string(reason)}
-    end
+    {:ok, priv} = DevCrypto.generate_private_key()
+    {:ok, pub} = DevCrypto.generate_public_key(priv)
+    {:ok, address} = Crypto.generate_address(pub)
+    %{priv: priv, addr: address}
   end
 end

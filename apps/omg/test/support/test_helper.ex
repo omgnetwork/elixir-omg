@@ -61,7 +61,7 @@ defmodule OMG.TestHelper do
   def generate_entity do
     {:ok, priv} = DevCrypto.generate_private_key()
     {:ok, pub} = DevCrypto.generate_public_key(priv)
-    <<_::binary-size(12), address::binary-size(20)>> = Crypto.hash(pub)
+    {:ok, address} = Crypto.generate_address(pub)
     %{priv: priv, addr: address}
   end
 
