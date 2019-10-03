@@ -44,25 +44,13 @@ defmodule OMG.Crypto do
   def hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
 
   @doc """
-  Recovers address of signer from binary-encoded signature.
+  Recovers the address of the signer from a binary-encoded signature.
   """
   @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt | binary}
   def recover_address(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
-    with {:ok, pub} <- recover_public(digest, packed_signature) do
-      generate_address(pub)
-    end
-  end
-
-  @doc """
-  Recovers public key of signer from binary-encoded signature and chain id.
-  Chain id parameter can be ignored when signature was created without it.
-  """
-  @spec recover_public(<<_::256>>, sig_t) :: {:ok, <<_::512>>} | {:error, :signature_corrupt | binary}
-  defp recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
-    {v, r, s} = unpack_signature(packed_signature)
-
-    with {:ok, _pub} = result <- Signature.recover_public(digest, v, r, s) do
-      result
+    with {:ok, pub} <- Signature.recover_public(digest, packed_signature) do
+      <<_::binary-size(12), address::binary-size(20)>> = hash(pub)
+      {:ok, address}
     else
       {:error, "Recovery id invalid 0-3"} -> {:error, :signature_corrupt}
       other -> other
@@ -76,12 +64,5 @@ defmodule OMG.Crypto do
   def generate_address(<<pub::binary-size(64)>>) do
     <<_::binary-size(12), address::binary-size(20)>> = hash(pub)
     {:ok, address}
-  end
-
-  # private
-
-  # Unpack 65-bytes binary signature into {v,r,s} tuple.
-  defp unpack_signature(<<r::integer-size(256), s::integer-size(256), v::integer-size(8)>>) do
-    {v, r, s}
   end
 end

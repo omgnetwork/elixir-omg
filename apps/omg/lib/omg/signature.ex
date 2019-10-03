@@ -42,6 +42,9 @@ defmodule OMG.Signature do
   This implements Eq.(208) of the Yellow Paper, adapted from https://stackoverflow.com/a/20000007
 
   """
+  def recover_public(hash, <<r::integer-size(256), s::integer-size(256), v::integer-size(8)>>, chain_id \\ nil),
+    do: recover_public(hash, v, r, s, chain_id)
+
   @spec recover_public(keccak_hash(), hash_v, hash_r, hash_s, integer() | nil) ::
           {:ok, public_key} | {:error, String.t()}
   def recover_public(hash, v, r, s, chain_id \\ nil) do
