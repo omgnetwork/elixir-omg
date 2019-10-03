@@ -61,8 +61,8 @@ defmodule OMG.TestHelper do
   def generate_entity do
     {:ok, priv} = DevCrypto.generate_private_key()
     {:ok, pub} = DevCrypto.generate_public_key(priv)
-    {:ok, addr} = Crypto.generate_address(pub)
-    %{priv: priv, addr: addr}
+    {:ok, address} = Crypto.generate_address(pub)
+    %{priv: priv, addr: address}
   end
 
   def do_deposit(state, owner, %{amount: amount, currency: cur, blknum: blknum}) do
