@@ -30,12 +30,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   # TODO: divide into inputs and outputs: prevent contract's implementation from leaking into watcher
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247926222
-  @exit_map_index_range Range.new(0, @max_inputs * 2 - 1)
-
-  @inputs_index_range Range.new(0, @max_inputs - 1)
-  @outputs_index_range Range.new(@max_inputs, @max_inputs * 2 - 1)
-
-  @max_number_of_inputs Enum.count(@inputs_index_range)
 
   @enforce_keys [
     :tx,
@@ -55,10 +49,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     :eth_height,
     :relevant_from_blknum,
     # piggybacking
-    exit_map:
-      @exit_map_index_range
-      |> Enum.map(&{&1, %{is_piggybacked: false, is_finalized: false}})
-      |> Map.new(),
+    exit_map: Map.new(),
     is_canonical: true,
     is_active: true
   ]
@@ -82,7 +73,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           eth_height: pos_integer(),
           relevant_from_blknum: pos_integer(),
           exit_map: %{
-            non_neg_integer() => %{
+            {:input | :output, non_neg_integer()} => %{
               is_piggybacked: boolean(),
               is_finalized: boolean()
             }
@@ -237,7 +228,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec piggyback(t(), non_neg_integer()) :: t() | {:error, :non_existent_exit | :cannot_piggyback}
   def piggyback(ife, index)
 
-  def piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @exit_map_index_range do
+  # TODO(pnowosie): Do we want to be more defensive in guard, e.g. {type, idx} = index => type in [:input, :output] and 0 <= idx <= MAX_INPUT
+  def piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when is_tuple(index) do
     with exit <- Map.get(exit_map, index),
          {:ok, updated_exit} <- piggyback_exit(exit) do
       %{ife | exit_map: Map.put(exit_map, index, updated_exit)}
@@ -266,7 +258,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @exit_map_index_range do
+  def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when is_tuple(index) do
     %{is_piggybacked: true, is_finalized: false} = Map.get(exit_map, index)
     %{ife | exit_map: Map.replace!(exit_map, index, %{is_piggybacked: false, is_finalized: false})}
   end
@@ -315,9 +307,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _},
         exit_map: exit_map
       }) do
+    # TODO(pnowosie): exit_map keys now contains info whether they are inputs or outputs, see: L73: exit_map type spec
     @outputs_index_range
     |> Enum.filter(&exit_map[&1].is_piggybacked)
-    |> Enum.map(&Utxo.position(blknum, txindex, &1 - @max_number_of_inputs))
+    |> Enum.map(&Utxo.position(blknum, txindex, &1 - @max_inputs))
   end
 
   def is_piggybacked?(%__MODULE__{exit_map: map}, index) when is_integer(index) do
@@ -358,11 +351,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   defp index_output_position(position), do: {position, Utxo.Position.oindex(position)}
 
   def piggybacked_inputs(ife) do
+    # TODO(pnowosie): exit_map keys now contains info whether they are inputs or outputs, see: L73: exit_map type spec
     @inputs_index_range
     |> Enum.filter(&is_piggybacked?(ife, &1))
   end
 
   def piggybacked_outputs(ife) do
+    # TODO(pnowosie): exit_map keys now contains info whether they are inputs or outputs, see: L73: exit_map type spec
     @outputs_index_range
     |> Enum.filter(&is_piggybacked?(ife, &1))
     |> Enum.map(&(&1 - @max_inputs))
