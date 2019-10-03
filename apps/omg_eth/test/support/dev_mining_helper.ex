@@ -18,9 +18,9 @@ defmodule OMG.Eth.DevMiningHelper do
   Basically helps to simulate behavior of `geth --dev --dev.period 1`. Useful with parity.
   """
 
-  alias OMG.Eth.Encoding
   alias OMG.Crypto
   alias OMG.DevCrypto
+  alias OMG.Eth.Encoding
 
   @devperiod_ms 1000
 
