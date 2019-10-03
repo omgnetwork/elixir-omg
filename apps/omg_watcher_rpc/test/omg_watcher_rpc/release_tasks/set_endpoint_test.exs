@@ -47,7 +47,6 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpointTest do
   end
 
   test "if default configuration is used when there's no environment variables" do
-    :ok = Application.put_env(@app, Endpoint, @configuration_old, persistent: true)
     :ok = System.delete_env("PORT")
     :ok = System.delete_env("HOSTNAME")
     :ok = SetEndpoint.init([])
