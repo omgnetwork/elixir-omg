@@ -23,6 +23,10 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetEndpointTest do
   @test_port_int String.to_integer(@test_port)
   @configuration_old Application.get_env(@app, Endpoint)
 
+  setup do
+    on_exit(fn -> :ok = Application.put_env(@app, Endpoint, @configuration_old, persistent: true) end)
+  end
+
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("PORT", @test_port)
     :ok = System.put_env("HOSTNAME", @test_host)

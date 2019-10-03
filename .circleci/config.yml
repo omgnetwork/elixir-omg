@@ -446,7 +446,6 @@ workflows:
   build-deploy:
     jobs:
       - build
-      - barebuild
       - notify_services:
           requires: [deploy_watcher, deploy_child_chain]
           filters:
