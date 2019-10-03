@@ -49,14 +49,14 @@ defmodule OMG.CryptoTest do
       assert byte_size(signature) == 65
 
       assert raw_tx
-               |> TypedDataHash.hash_struct()
-               |> Crypto.recover_address(signature)
-               |> (&match?({:ok, ^address}, &1)).()
+             |> TypedDataHash.hash_struct()
+             |> Crypto.recover_address(signature)
+             |> (&match?({:ok, ^address}, &1)).()
 
       refute Transaction.Payment.new([{1000, 0, 1}], [])
-               |> TypedDataHash.hash_struct()
-               |> Crypto.recover_address(signature)
-               |> (&match?({:ok, ^address}, &1)).()
+             |> TypedDataHash.hash_struct()
+             |> Crypto.recover_address(signature)
+             |> (&match?({:ok, ^address}, &1)).()
     end
   end
 
