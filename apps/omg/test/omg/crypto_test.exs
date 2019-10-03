@@ -16,7 +16,6 @@ defmodule OMG.CryptoTest do
   use ExUnit.Case, async: true
   doctest OMG.Crypto
 
-
   @moduledoc """
   A sanity and compatibility check of the crypto implementation.
   """
@@ -27,7 +26,39 @@ defmodule OMG.CryptoTest do
   alias OMG.TypedDataHash
 
   describe "recover_address/2" do
+    # Tests that we can digest, sign, and recover.
     test "recovers address of the signer from a binary-encoded signature" do
+      {:ok, priv} = DevCrypto.generate_private_key()
+      {:ok, pub} = DevCrypto.generate_public_key(priv)
+      {:ok, address} = Crypto.generate_address(pub)
+
+      msg = :crypto.strong_rand_bytes(32)
+      sig = DevCrypto.signature_digest(msg, priv)
+
+      assert {:ok, ^address} = Crypto.recover_address(msg, sig)
+    end
+
+    # Test that we can sign and verify
+    test "recovers address from an encoded transaction" do
+      {:ok, priv} = DevCrypto.generate_private_key()
+      {:ok, pub} = DevCrypto.generate_public_key(priv)
+      {:ok, address} = Crypto.generate_address(pub)
+
+      raw_tx = Transaction.Payment.new([{1000, 1, 0}], [])
+      signature = DevCrypto.signature(raw_tx, priv)
+      assert byte_size(signature) == 65
+
+      assert true ==
+               raw_tx
+               |> TypedDataHash.hash_struct()
+               |> Crypto.recover_address(signature)
+               |> (&match?({:ok, ^address}, &1)).()
+
+      assert false ==
+               Transaction.Payment.new([{1000, 0, 1}], [])
+               |> TypedDataHash.hash_struct()
+               |> Crypto.recover_address(signature)
+               |> (&match?({:ok, ^address}, &1)).()
     end
   end
 
@@ -61,36 +92,5 @@ defmodule OMG.CryptoTest do
       sig = DevCrypto.signature_digest(msg, priv)
       assert ^sig = Base.decode16!(py_signature, case: :lower)
     end
-  end
-
-  test "digest sign, recover" do
-    {:ok, priv} = DevCrypto.generate_private_key()
-    {:ok, pub} = DevCrypto.generate_public_key(priv)
-    {:ok, address} = Crypto.generate_address(pub)
-    msg = :crypto.strong_rand_bytes(32)
-    sig = DevCrypto.signature_digest(msg, priv)
-    assert {:ok, ^address} = Crypto.recover_address(msg, sig)
-  end
-
-  test "sign, verify" do
-    {:ok, priv} = DevCrypto.generate_private_key()
-    {:ok, pub} = DevCrypto.generate_public_key(priv)
-    {:ok, address} = Crypto.generate_address(pub)
-
-    raw_tx = Transaction.Payment.new([{1000, 1, 0}], [])
-    signature = DevCrypto.signature(raw_tx, priv)
-    assert byte_size(signature) == 65
-
-    assert true ==
-             raw_tx
-             |> TypedDataHash.hash_struct()
-             |> Crypto.recover_address(signature)
-             |> (&match?({:ok, ^address}, &1)).()
-
-    assert false ==
-             Transaction.Payment.new([{1000, 0, 1}], [])
-             |> TypedDataHash.hash_struct()
-             |> Crypto.recover_address(signature)
-             |> (&match?({:ok, ^address}, &1)).()
   end
 end
