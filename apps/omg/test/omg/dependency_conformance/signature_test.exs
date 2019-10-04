@@ -40,7 +40,7 @@ defmodule OMG.DependencyConformance.SignatureTest do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
     {:ok, _, signtest_addr} =
-      Eth.Deployer.create_new(OMG.Eth.PaymentEip712LibMock, root_path, Eth.Encoding.from_hex(addr), [])
+      Eth.Deployer.create_new("PaymentEip712LibMock", root_path, Eth.Encoding.from_hex(addr), [])
 
     # impose our testing signature contract wrapper (mock) as the validating contract, which normally would be
     # plasma framework

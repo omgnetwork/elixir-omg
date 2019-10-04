@@ -28,21 +28,6 @@ defmodule OMG.Eth.Deployer do
 
   def create_new(contract, path_project_root, from, args, opts \\ [])
 
-  # special case so that we have a civil name for the Token contract
-  def create_new(OMG.Eth.Token, path_project_root, from, [], opts) do
-    gas = Map.get(@gas_contracts, "ERC20Mintable", @gas_contract_rootchain)
-
-    get_bytecode!(path_project_root, "ERC20Mintable")
-    |> deploy_contract(from, gas, opts)
-  end
-
-  def create_new(OMG.Eth.PaymentEip712LibMock, path_project_root, from, [], opts) do
-    gas = Map.get(@gas_contracts, "PaymentEip712LibMock", @gas_contract_rootchain)
-
-    get_bytecode!(path_project_root, "PaymentEip712LibMock")
-    |> deploy_contract(from, gas, opts)
-  end
-
   # common case for no-argument deployments
   def create_new(contract_module_name, path_project_root, from, [], opts) when is_binary(contract_module_name) do
     contract_name = contract_module_name |> to_string() |> String.split(".") |> List.last()
