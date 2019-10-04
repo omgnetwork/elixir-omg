@@ -23,6 +23,7 @@ defmodule OMG.Eth.Deployer do
 
   @gas_contract_rootchain 5_000_000
   @gas_contract_default 2_000_000
+  @gas_contract_payment_exit_game 6_000_000
   @gas_contracts %{"SignatureTest" => 1_590_893, "ERC20Mintable" => 1_590_893}
 
   def create_new(contract, path_project_root, from, args, opts \\ [])
@@ -89,7 +90,10 @@ defmodule OMG.Eth.Deployer do
           eth_vault: eth_vault,
           erc20_vault: erc20_vault,
           output_guard_handler: output_guard_handler,
-          spending_condition: spending_condition
+          spending_condition: spending_condition,
+          payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier,
+          tx_finalization_verifier: tx_finalization_verifier,
+          tx_type: tx_type
         ],
         opts
       ) do
@@ -98,10 +102,26 @@ defmodule OMG.Eth.Deployer do
       {:address, eth_vault},
       {:address, erc20_vault},
       {:address, output_guard_handler},
-      {:address, spending_condition}
+      {:address, spending_condition},
+      {:address, payment_transaction_state_transition_verifier},
+      {:address, tx_finalization_verifier},
+      {{:uint, 256}, tx_type}
     ]
 
     Eth.Librarian.link_for!(name, path_project_root, from)
+    |> deploy_contract(from, @gas_contract_payment_exit_game, args, opts)
+  end
+
+  def create_new(
+        "PaymentOutputToPaymentTxCondition" = name,
+        path_project_root,
+        from,
+        [plasma_framework: plasma_framework, input_tx_type: input_tx_type, spending_tx_type: spending_tx_type],
+        opts
+      ) do
+    args = [{:address, plasma_framework}, {{:uint, 256}, input_tx_type}, {{:uint, 256}, spending_tx_type}]
+
+    get_bytecode!(path_project_root, name)
     |> deploy_contract(from, @gas_contract_default, args, opts)
   end
 

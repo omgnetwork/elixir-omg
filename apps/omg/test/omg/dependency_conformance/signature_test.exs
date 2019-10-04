@@ -52,8 +52,7 @@ defmodule OMG.DependencyConformance.SignatureTest do
 
   test "signature test empty transaction", context do
     contract = context[:contract]
-    tx = Transaction.Payment.new([], []) |> DevCrypto.sign([@alice.priv])
-
+    tx = TestHelper.create_signed([], [])
     verify(contract, tx)
   end
 
@@ -99,7 +98,6 @@ defmodule OMG.DependencyConformance.SignatureTest do
         metadata
       )
 
-    verify(contract, tx)
     verify(contract, tx)
   end
 

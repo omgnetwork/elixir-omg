@@ -48,7 +48,8 @@ defmodule OMG.TypedDataHash.Types do
   ]
 
   @output_spec [
-    @make_spec.("owner", "bytes20"),
+    @make_spec.("outputType", "uint256"),
+    @make_spec.("outputGuard", "bytes20"),
     @make_spec.("currency", "address"),
     @make_spec.("amount", "uint256")
   ]

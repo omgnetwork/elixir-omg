@@ -456,7 +456,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     test "can process challenged exits", %{processor_empty: processor, alice: alice} do
       # see the contract and `Eth.RootChain.get_standard_exit/1` for some explanation why like this
       # this is what an exit looks like after a challenge
-      zero_status = {false, 0, 0, 0, 0, 0, 0}
+      zero_status = {false, 0, 0, 0, 0, 0}
       standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
       processor = processor |> start_se_from(standard_exit_tx, @utxo_pos_deposit2, status: zero_status)
 

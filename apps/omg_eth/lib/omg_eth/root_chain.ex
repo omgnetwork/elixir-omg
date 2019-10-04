@@ -87,8 +87,8 @@ defmodule OMG.Eth.RootChain do
   """
   def get_standard_exit(exit_id, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
-    return_fields = [:bool, {:uint, 192}, {:bytes, 32}, :address, :address, {:uint, 256}, {:uint, 256}]
-    Eth.call_contract(contract, "standardExits(uint192)", [exit_id], return_fields)
+    return_fields = [:bool, {:uint, 192}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]
+    Eth.call_contract(contract, "standardExits(uint160)", [exit_id], return_fields)
   end
 
   @doc """
@@ -107,13 +107,13 @@ defmodule OMG.Eth.RootChain do
       {:uint, 256}
     ]
 
-    Eth.call_contract(contract, "inFlightExits(uint192)", [in_flight_exit_id], return_struct)
+    Eth.call_contract(contract, "inFlightExits(uint160)", [in_flight_exit_id], return_struct)
   end
 
   # TODO: we're storing exit_ids for SEs, we should do the same for IFEs and remove this
   def get_in_flight_exit_id(tx_bytes, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
-    Eth.call_contract(contract, "getInFlightExitId(bytes)", [tx_bytes], [{:uint, 192}])
+    Eth.call_contract(contract, "getInFlightExitId(bytes)", [tx_bytes], [{:uint, 160}])
   end
 
   def get_child_chain(blknum, contract \\ %{}) do
@@ -170,7 +170,7 @@ defmodule OMG.Eth.RootChain do
   """
   def get_finalizations(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "ExitFinalized(uint192)"
+    signature = "ExitFinalized(uint160)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_exit_finalized/1)}
@@ -256,7 +256,7 @@ defmodule OMG.Eth.RootChain do
   """
   def get_in_flight_exit_finalizations(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "InFlightExitFinalized(uint192,uint8)"
+    signature = "InFlightExitFinalized(uint160,uint8)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_in_flight_exit_output_finalized/1)}
@@ -319,7 +319,7 @@ defmodule OMG.Eth.RootChain do
   """
   def get_standard_exits(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "ExitStarted(address,uint192)"
+    signature = "ExitStarted(address,uint160)"
 
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
       {:ok, logs} ->
@@ -327,8 +327,8 @@ defmodule OMG.Eth.RootChain do
           Enum.map(logs, fn log ->
             decode_exit_started = decode_exit_started(log)
             args = [:args]
-            types = ["(uint192,bytes,uint256,bytes,bytes)"]
-            tuple_arg_names = [:utxo_pos, :output_tx, :output_type, :output_guard_preimage, :output_tx_inclusion_proof]
+            types = ["(uint192,bytes,bytes,bytes)"]
+            tuple_arg_names = [:utxo_pos, :output_tx, :output_guard_preimage, :output_tx_inclusion_proof]
 
             call_data =
               Eth.get_call_data(decode_exit_started.root_chain_txhash, "startStandardExit", args, types,
@@ -409,7 +409,7 @@ defmodule OMG.Eth.RootChain do
 
   defp decode_exit_started(log) do
     non_indexed_keys = [:exit_id]
-    non_indexed_key_types = [{:uint, 192}]
+    non_indexed_key_types = [{:uint, 160}]
     indexed_keys = [:owner]
     indexed_keys_types = [:address]
 
@@ -468,7 +468,7 @@ defmodule OMG.Eth.RootChain do
     non_indexed_keys = []
     non_indexed_key_types = []
     indexed_keys = [:exit_id]
-    indexed_keys_types = [{:uint, 192}]
+    indexed_keys_types = [{:uint, 160}]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -479,7 +479,7 @@ defmodule OMG.Eth.RootChain do
 
   def decode_in_flight_exit_output_finalized(log) do
     non_indexed_keys = [:in_flight_exit_id, :output_index]
-    non_indexed_key_types = [{:uint, 192}, {:uint, 8}]
+    non_indexed_key_types = [{:uint, 160}, {:uint, 8}]
     indexed_keys = indexed_keys_types = []
 
     Eth.parse_events_with_indexed_fields(

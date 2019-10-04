@@ -25,7 +25,6 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   require Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
   @exit_id 1
 
   def start_se_from(%Core{} = processor, tx, exiting_pos, opts \\ []) do
@@ -51,7 +50,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     amount = nil
     bond_size = nil
 
-    status = Keyword.get(opts, :status) || {exitable, enc_pos, fake_output_id, @eth, owner, amount, bond_size}
+    status = Keyword.get(opts, :status) || {exitable, enc_pos, fake_output_id, owner, amount, bond_size}
 
     {event, status}
   end

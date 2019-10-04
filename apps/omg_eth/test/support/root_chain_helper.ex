@@ -55,14 +55,13 @@ defmodule OMG.Eth.RootChainHelper do
 
     contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
     # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
-    output_type = 1
     output_guard_preimage = ""
 
     Eth.contract_transact(
       from,
       contract,
-      "startStandardExit((uint192,bytes,uint256,bytes,bytes))",
-      [{utxo_pos, tx_bytes, output_type, output_guard_preimage, proof}],
+      "startStandardExit((uint192,bytes,bytes,bytes))",
+      [{utxo_pos, tx_bytes, output_guard_preimage, proof}],
       opts
     )
   end
@@ -121,19 +120,16 @@ defmodule OMG.Eth.RootChainHelper do
     opts = defaults |> Keyword.merge(opts)
 
     # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
-    output_type = 1
-    challenge_tx_type = 1
     optional_bytes = ""
     optional_uint = 0
 
     contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
 
-    signature =
-      "challengeStandardExit((uint192,uint256,bytes,uint256,bytes,uint16,bytes,bytes,bytes,uint256,bytes,bytes))"
+    signature = "challengeStandardExit((uint160,bytes,bytes,uint16,bytes,bytes,bytes,uint256,bytes,bytes))"
 
     args = [
-      {exit_id, output_type, exiting_tx, challenge_tx_type, challenge_tx, input_index, challenge_tx_sig, optional_bytes,
-       optional_bytes, optional_uint, optional_bytes, optional_bytes}
+      {exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig, optional_bytes, optional_bytes, optional_uint,
+       optional_bytes, optional_bytes}
     ]
 
     Eth.contract_transact(from, contract, signature, args, opts)
@@ -171,12 +167,12 @@ defmodule OMG.Eth.RootChainHelper do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
-  def process_exits(token, top_exit_priority, exits_to_process, from, contract \\ %{}, opts \\ []) do
+  def process_exits(token, top_exit_id, exits_to_process, from, contract \\ %{}, opts \\ []) do
     opts = @tx_defaults |> Keyword.merge(opts)
 
     contract = RootChain.maybe_fetch_addr!(contract, :plasma_framework)
-    signature = "processExits(address,uint256,uint256)"
-    args = [token, top_exit_priority, exits_to_process]
+    signature = "processExits(address,uint160,uint256)"
+    args = [token, top_exit_id, exits_to_process]
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 

@@ -38,8 +38,8 @@ defmodule OMG.BlockTest do
 
       assert Block.hashed_txs_at(transactions, 10) == %Block{
                hash:
-                 <<220, 18, 7, 33, 200, 22, 204, 255, 175, 174, 40, 137, 181, 32, 224, 31, 93, 145, 116, 100, 33, 151,
-                   124, 91, 42, 68, 242, 144, 183, 44, 211, 111>>,
+                 <<176, 46, 204, 183, 195, 13, 0, 18, 222, 66, 59, 155, 199, 150, 17, 242, 91, 26, 1, 182, 167, 115,
+                   134, 60, 139, 203, 239, 146, 166, 240, 118, 36>>,
                number: 10,
                transactions: [
                  tx_1.signed_tx_bytes,
@@ -186,7 +186,7 @@ defmodule OMG.BlockTest do
 
       proof = Block.inclusion_proof([tx_1, tx_2, tx_3], 1)
 
-      assert <<141, 196, 109, 106, 192, 192, 252, 104, 128, 186, 67, 0, 100, 193>> <> _ = proof
+      assert <<127, 13, 244, 211, 50, 186, 96, 99, 101, 6, 201, 45, 104, 54>> <> _ = proof
       assert is_binary(proof)
       assert byte_size(proof) == 32 * 16
     end

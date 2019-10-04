@@ -124,8 +124,10 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   defp reconstruct_outputs(outputs_rlp) do
+    # TODO: ugly but to be cleaned up in the abstract output PR soon, so leaving as is
+    #       hard coded output type 1
     outputs =
-      Enum.map(outputs_rlp, fn [owner, currency, amount] ->
+      Enum.map(outputs_rlp, fn [<<1>> = _type, owner, currency, amount] ->
         with {:ok, cur12} <- parse_address(currency),
              {:ok, owner} <- parse_address(owner) do
           %{owner: owner, currency: cur12, amount: parse_int(amount)}
@@ -172,7 +174,9 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       do: [
         @payment_marker,
         Enum.map(inputs, &to_new_rlp_input/1),
-        Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end),
+        # TODO: ugly but to be cleaned up in the abstract output PR soon, so leaving as is
+        #       hard coded output type 1
+        Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [1, owner, currency, amount] end),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
         metadata

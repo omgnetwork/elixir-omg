@@ -70,8 +70,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
          }
        ],
        [
-         {true, Utxo.Position.encode(@utxo_pos1), Utxo.Position.encode(@utxo_pos1), @eth, alice.addr, 10, 0},
-         {false, Utxo.Position.encode(@utxo_pos2), Utxo.Position.encode(@utxo_pos2), @eth, alice.addr, 10, 0}
+         {true, Utxo.Position.encode(@utxo_pos1), Utxo.Position.encode(@utxo_pos1), alice.addr, 10, 0},
+         {false, Utxo.Position.encode(@utxo_pos2), Utxo.Position.encode(@utxo_pos2), alice.addr, 10, 0}
        ]}
 
     {:ok, %{alice: alice, carol: carol, processor_empty: processor_empty, transactions: transactions, exits: exits}}
