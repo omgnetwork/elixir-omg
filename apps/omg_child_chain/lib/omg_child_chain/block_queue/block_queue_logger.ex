@@ -18,15 +18,18 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueLogger do
   """
   require Logger
 
+  alias OMG.Eth.Encoding
+  alias OMG.Eth.Diagnostics
+
   def log(event), do: do_log(event, nil)
   def log(event, args), do: do_log(event, args)
 
   defp do_log(:starting, module) do
-    Logger.info("Starting #{__MODULE__} service.")
+    Logger.info("Starting #{module} service.")
   end
 
   defp do_log(:init_error, fields) do
-    config = Eth.Diagnostics.get_child_chain_config()
+    config = Diagnostics.get_child_chain_config()
     fields = Keyword.update!(fields, :known_hashes, fn hashes -> Enum.map(hashes, &Encoding.to_hex/1) end)
     diagnostic = fields |> Enum.into(%{config: config})
 
@@ -40,7 +43,7 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueLogger do
   end
 
   defp do_log(:eth_node_error, _) do
-    eth_node_diagnostics = Eth.Diagnostics.get_node_diagnostics()
+    eth_node_diagnostics = Diagnostics.get_node_diagnostics()
     Logger.error("Ethereum operation failed, additional diagnostics: #{inspect(eth_node_diagnostics)}")
   end
 end

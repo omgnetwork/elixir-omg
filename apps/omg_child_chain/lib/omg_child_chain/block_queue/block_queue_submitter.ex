@@ -23,10 +23,14 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueSubmitter do
   alias OMG.ChildChain.BlockQueue.BlockQueueState
   alias OMG.ChildChain.BlockQueue.GasPriceCalculator
 
+  alias OMG.Eth.RootChain
+
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
-  @spec submit_blocks(BlockQueueState.t()) :: :ok
-  def submit_blocks(%BlockQueueState{} = state) do
+  @spec submit_blocks_or_skip(BlockQueueState.t(), Atom.t()) :: :ok
+  def submit_blocks_or_skip(_state, :do_not_form_block), do: :ok
+
+  def submit_blocks_or_skip(%BlockQueueState{} = state, :do_form_block) do
     state
     |> get_blocks_to_submit()
     |> Enum.each(&submit/1)
@@ -39,7 +43,10 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueSubmitter do
   """
   @spec get_blocks_to_submit(BlockQueueState.t()) :: [BlockQueue.encoded_signed_tx()]
   def get_blocks_to_submit(%{blocks: blocks, formed_child_block_num: formed} = state) do
-    _ = Logger.debug("preparing blocks #{inspect(GasPriceCalculator.first_to_mined(state))}..#{inspect(formed)} for submission")
+    _ =
+      Logger.debug(
+        "preparing blocks #{inspect(GasPriceCalculator.first_to_mined(state))}..#{inspect(formed)} for submission"
+      )
 
     blocks
     |> Enum.filter(GasPriceCalculator.to_mined_block_filter(state))
@@ -60,7 +67,9 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueSubmitter do
       case final_result do
         {:error, _} ->
           BlockQueueLogger.log(:eth_node_error)
-        _ -> :ok
+
+        _ ->
+          :ok
       end
 
     :ok = final_result

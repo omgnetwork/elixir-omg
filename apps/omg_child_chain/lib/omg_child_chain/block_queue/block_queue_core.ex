@@ -57,40 +57,48 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueCore do
   the gas price is lowered by a factor of 0.9 ('OMG.ChildChain.BlockQueue.GasPriceAdjustment.gas_price_lowering_factor')
   """
 
-  alias OMG.ChildChain.BlockQueue
-  alias OMG.ChildChain.BlockQueue.BlockQueueCore
+  alias OMG.ChildChain.BlockQueue.BlockQueueEthSync
   alias OMG.ChildChain.BlockQueue.BlockQueueInitializer
-  alias OMG.ChildChain.BlockQueue.GasPriceAdjustment
+  alias OMG.ChildChain.BlockQueue.BlockQueueLogger
+  alias OMG.ChildChain.BlockQueue.BlockQueueSubmitter
+  alias OMG.ChildChain.BlockQueue.BlockQueueQueuer
+  alias OMG.ChildChain.BlockQueue.GasPriceCalculator
+
+  alias OMG.DB
+
+  alias OMG.ChildChain.FreshBlocks
+
+  alias OMG.Eth.Encoding
+  alias OMG.Eth.EthereumHeight
+  alias OMG.Eth.RootChain
 
   use OMG.Utils.LoggerExt
 
-  @zero_bytes32 <<0::size(256)>>
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
-  def init_state(config) do
-    {:ok, state} = BlockQueueInitializer.init(config)
-    state = BlockQueueCore.enqueue_existing_blocks(state, state.top_mined_hash, state.known_hashes)
+  def init do
+    init(load_init_config())
+  end
 
-    {:ok, state}
+  def init(config) do
+    config
+    |> BlockQueueInitializer.init()
+    |> enqueue_existing_blocks()
   end
 
   def sync_with_ethereum(state, %{
         ethereum_height: ethereum_height,
         mined_child_block_num: mined_child_block_num,
         is_empty_block: is_empty_block
-    }) do
-    _ = Logger.debug("Ethereum at \#'#{inspect(ethereum_height)}', mined child at \#'#{inspect(mined_child_block_num)}'")
+      }) do
+    _ =
+      Logger.debug("Ethereum at \#'#{inspect(ethereum_height)}', mined child at \#'#{inspect(mined_child_block_num)}'")
 
-    new_state =
-      state
-      |> Map.put(state, :parent_height, ethereum_height)
-      |> BlockQueueEthSync.set_mined_block_num(mined_child_block_num)
-      |> GasPriceCalculator.adjust_gas_price()
-      |> BlockQueueEthSync.form_block_or_skip(is_empty_block)
-
-    :ok = BlockQueueSubmitter.submit_blocks(new_state)
-
-    new_state
+    state
+    |> Map.put(:parent_height, ethereum_height)
+    |> BlockQueueEthSync.set_mined_block_num(mined_child_block_num)
+    |> GasPriceCalculator.adjust_gas_price()
+    |> BlockQueueEthSync.form_block_or_skip(is_empty_block)
   end
 
   # TTODO: fix spec
@@ -100,12 +108,7 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueCore do
   def enqueue_block(state, %{number: number, hash: hash} = block, parent_height) do
     _ = Logger.info("Enqueuing block num '#{inspect(number)}', hash '#{inspect(Encoding.to_hex(hash))}'")
 
-    state = BlockQueueQueuerer.enqueue_block(state, hash, parent_height)
-
-    :ok = FreshBlocks.push(block)
-    :ok = BlockQueueSubmitter.submit_blocks(state)
-
-    state
+    BlockQueueQueuer.enqueue_block(state, block, parent_height)
   end
 
   # When restarting, we don't actually know what was the state of submission process to Ethereum.
@@ -114,9 +117,73 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueCore do
   # blocks (might still need tracking!) and blocks not yet submitted.
 
   # NOTE: handles both the case when there aren't any hashes in database and there are
-  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [{pos_integer(), BlockQueue.hash()}]) ::
+  @spec enqueue_existing_blocks(BlockQueueState.t()) ::
           {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
-  defp enqueue_existing_blocks(state, top_mined_hash, hashes) do
-    BlockQueueQueuerer.enqueue_existing_blocks(state, top_mined_hash, hashes)
+  defp enqueue_existing_blocks(state) do
+    case BlockQueueQueuer.enqueue_existing_blocks(state) do
+      {:ok, state} ->
+        {:ok, state}
+
+      {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
+        # TODO: Log error
+        _ =
+          BlockQueueLogger.log(
+            :init_error,
+            known_hashes: state.known_hashes,
+            parent_height: state.parent_height,
+            mined_num: state.mined_child_block_num,
+            stored_child_top_num: state.stored_child_top_num
+          )
+
+        error
+
+      other ->
+        other
+    end
+  end
+
+  defp load_init_config do
+    with {:ok, parent_height} <- EthereumHeight.get(),
+         {:ok, mined_child_block_num} <- RootChain.get_mined_child_block(),
+         {:ok, chain_start_parent_height} <- RootChain.get_root_deployment_height(),
+         {:ok, child_block_interval} <- RootChain.get_child_block_interval(),
+         {:ok, stored_child_top_num} <- DB.get_single_value(:child_top_block_number),
+         {:ok, finality_threshold} <- Application.fetch_env(:omg_child_chain, :submission_finality_margin),
+         minimal_enqueue_block_gap <- Application.fetch_env!(:omg_child_chain, :child_block_minimal_enqueue_gap),
+         range =
+           BlockQueueInitializer.child_block_nums_to_init_with(
+             mined_child_block_num,
+             stored_child_top_num,
+             child_block_interval,
+             finality_threshold
+           ),
+         {:ok, known_hashes} = DB.block_hashes(range),
+         {:ok, {top_mined_hash, _}} = RootChain.get_child_chain(mined_child_block_num) do
+      %{
+        parent_height: parent_height,
+        mined_child_block_num: mined_child_block_num,
+        chain_start_parent_height: chain_start_parent_height,
+        child_block_interval: child_block_interval,
+        last_enqueued_block_at_height: parent_height,
+        finality_threshold: finality_threshold,
+        minimal_enqueue_block_gap: minimal_enqueue_block_gap,
+        known_hashes: Enum.zip(range, known_hashes),
+        top_mined_hash: top_mined_hash,
+        stored_child_top_num: stored_child_top_num,
+        range: range
+      }
+    else
+      error ->
+        # TODO: Log?
+        error
+    end
+  end
+
+  def get_check_interval do
+    Application.fetch_env!(:omg_child_chain, :block_queue_eth_height_check_interval_ms)
+  end
+
+  def get_metrics_interval do
+    Application.fetch_env!(:omg_child_chain, :metrics_collection_interval)
   end
 end

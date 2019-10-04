@@ -17,122 +17,96 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueServer do
   Imperative shell for `OMG.ChildChain.BlockQueue.Core`, see there for more info
 
   The new blocks to enqueue arrive here via `OMG.Bus`
-  """
 
-  alias OMG.Block
+  Handles timing of calls to root chain.
+  Driven by block height and mined transaction data delivered by local geth node and new blocks
+  formed by server. Resubmits transaction until it is mined.
+  """
+  use GenServer
+  use OMG.Utils.LoggerExt
+
   alias OMG.ChildChain.BlockQueueCore
-  alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
+
+  alias OMG.ChildChain.BlockQueue.BlockQueueCore
+  alias OMG.ChildChain.BlockQueue.BlockQueueSubmitter
+
   alias OMG.ChildChain.FreshBlocks
 
-  defmodule Server do
-    @moduledoc """
-    Handles timing of calls to root chain.
-    Driven by block height and mined transaction data delivered by local geth node and new blocks
-    formed by server. Resubmits transaction until it is mined.
-    """
+  alias DB
+  alias OMG.Eth
+  alias OMG.Eth.EthereumHeight
+  alias OMG.Eth.RootChain
 
-    use GenServer
-    use OMG.Utils.LoggerExt
+  def start_link(_args) do
+    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  end
 
-    alias DB
-    alias OMG.Eth
-    alias OMG.Eth.Encoding
-    alias OMG.Eth.EthereumHeight
-    alias OMG.Eth.Rootchain
+  def init(:ok) do
+    {:ok, %{}, {:continue, :setup}}
+  end
 
-    def start_link(_args) do
-      GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
-    end
+  def handle_continue(:setup, %{}) do
+    # _ = BlockQueueLogger.log(:starting, __MODULE__)
 
-    def init(:ok) do
-      {:ok, %{}, {:continue, :setup}}
-    end
+    # Ensure external services are running (Ethereum node and childchain contract)
+    :ok = Eth.node_ready()
+    :ok = RootChain.contract_ready()
 
-    def handle_continue(:setup, %{}) do
-      # _ = BlockQueueLogger.log(:starting, __MODULE__)
+    {:ok, state} = BlockQueueCore.init()
 
-      # Ensure external services are running (Ethereum node and childchain contract)
-      :ok = Eth.node_ready()
-      :ok = RootChain.contract_ready()
+    # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
+    # TODO: Any reason to subscribe after we've triggered the timer?
+    :ok = OMG.Bus.subscribe("blocks", link: true)
 
-      config = load_config()
-      {:ok, state} = BlockQueueCore.init_state(config)
+    {:ok, _} = :timer.send_interval(BlockQueueCore.get_check_interval(), self(), :sync_with_ethereum)
+    {:ok, _} = :timer.send_interval(BlockQueueCore.get_metrics_interval(), self(), :send_metrics)
 
-      # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
-      # TODO: Any reason to subscribe after we've triggered the timer?
-      :ok = OMG.Bus.subscribe("blocks", link: true)
+    # _ = BlockQueueLogger.log(:started, __MODULE__)
+    # _ = Logger.info("Started #{inspect(__MODULE__)}")
+    {:noreply, state}
+  end
 
-      {:ok, _} = :timer.send_interval(get_check_interval(), self(), :sync_with_ethereum)
-      {:ok, _} = :timer.send_interval(get_metrics_interval(), self(), :send_metrics)
+  def handle_info(:send_metrics, state) do
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+    {:noreply, state}
+  end
 
-      # _ = BlockQueueLogger.log(:started, __MODULE__)
-      # _ = Logger.info("Started #{inspect(__MODULE__)}")
-      {:noreply, state}
-    end
+  @doc """
+  Checks the status of the Ethereum root chain, the top mined child block number
+  and status of State to decide what to do
+  """
+  def handle_info(:sync_with_ethereum, state) do
+    {:noreply, do_sync_with_ethereum(state)}
+  end
 
-    def handle_info(:send_metrics, state) do
-      :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
-      {:noreply, state}
-    end
+  def handle_info(block, state) do
+    {:noreply, do_internal_event_bus(block, state)}
+  end
 
-    @doc """
-    Checks the status of the Ethereum root chain, the top mined child block number
-    and status of State to decide what to do
-    """
-    def handle_info(:sync_with_ethereum, state) do
-      {:noreply, do_sync_with_ethereum(state)}
-    end
+  defp do_sync_with_ethereum(state) do
+    {:ok, parent_height} = EthereumHeight.get()
+    {:ok, mined_child_block_num} = RootChain.get_mined_child_block()
+    {_, is_empty_block?} = OMG.State.get_status()
 
-    def handle_info(block, state) do
-      {:noreply, do_internal_event_bus(block, state)}
-    end
-
-    defp do_sync_with_ethereum(state) do
-      {:ok, parent_height} = EthereumHeight.get()
-      {:ok, mined_child_block_num} = RootChain.get_mined_child_block()
-      {_, is_empty_block?} = OMG.State.get_status()
-
+    {form_block_or_skip, state} =
       BlockQueueCore.sync_with_ethereum(state, %{
         ethereum_height: parent_height,
         mined_child_block_num: mined_child_block_num,
         is_empty_block: is_empty_block?
       })
-    end
 
-    defp do_internal_event_bus(block, state) do
-      {:ok, parent_height} = EthereumHeight.get()
-      BlockQueueCore.enqueue_block(state, block, parent_height)
-    end
+    :ok = BlockQueueSubmitter.submit_blocks_or_skip(state, form_block_or_skip)
 
-    defp load_config do
-      with {:ok, parent_height} = EthereumHeight.get(),
-         {:ok, mined_child_block_num} = RootChain.get_mined_child_block(),
-         {:ok, chain_start_parent_height} = RootChain.get_root_deployment_height(),
-         {:ok, child_block_interval} = RootChain.get_child_block_interval(),
-         {:ok, stored_child_top_num} = DB.get_single_value(:child_top_block_number),
-         {:ok, finality_threshold} = Application.fetch_env(:omg_child_chain, :submission_finality_margin)
-      do
-        %{
-          parent_height: parent_height,
-          mined_child_block_num: mined_child_block_num,
-          chain_start_parent_height: chain_start_parent_height,
-          child_block_interval: child_block_interval,
-          stored_child_top_num: stored_child_top_num,
-          finality_threshold: finality_threshold
-        }
-      else
-        error ->
-          # TODO: Log?
-          error
-      end
-    end
+    state
+  end
 
-    defp get_check_interval do
-      Application.fetch_env!(:omg_child_chain, :block_queue_eth_height_check_interval_ms)
-    end
+  defp do_internal_event_bus(block, state) do
+    {:ok, parent_height} = EthereumHeight.get()
+    state = BlockQueueCore.enqueue_block(state, block, parent_height)
 
-    defp get_metrics_interval do
-      Application.fetch_env!(:omg_child_chain, :metrics_collection_interval)
-    end
+    :ok = FreshBlocks.push(block)
+    :ok = BlockQueueSubmitter.submit_blocks_or_skip(state, :do_form_block)
+
+    state
   end
 end

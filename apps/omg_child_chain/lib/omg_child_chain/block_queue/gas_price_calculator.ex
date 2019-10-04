@@ -30,7 +30,9 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
   # Updates gas price to use basing on :calculate_gas_price function, updates current parent height
   # and last mined child block number in the state which used by gas price calculations
   @spec adjust_gas_price(BlockQueueState.t()) :: BlockQueueState.t()
-  def adjust_gas_price(%BlockQueueState{gas_price_adj_params: %GasPriceAdjustment{last_block_mined: nil} = gas_params} = state) do
+  def adjust_gas_price(
+        %BlockQueueState{gas_price_adj_params: %GasPriceAdjustment{last_block_mined: nil} = gas_params} = state
+      ) do
     # initializes last block mined
     %{
       state
@@ -39,11 +41,12 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
   end
 
   def adjust_gas_price(
-         %BlockQueueState{blocks: blocks, parent_height: parent_height, last_parent_height: last_parent_height} = state
-       ) do
+        %BlockQueueState{blocks: blocks, parent_height: parent_height, last_parent_height: last_parent_height} = state
+      ) do
     case parent_height <= last_parent_height || !Enum.find(blocks, to_mined_block_filter(state)) do
       true ->
         state
+
       false ->
         new_gas_price = calculate_gas_price(state)
         _ = Logger.debug("using new gas price '#{inspect(new_gas_price)}'")
@@ -80,10 +83,12 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
   # Calculates the gas price basing on simple strategy to raise the gas price by gas_price_raising_factor
   # when gap of mined parent blocks is growing and droping the price by gas_price_lowering_factor otherwise
   @spec calculate_gas_price(BlockQueueState.t()) :: pos_integer()
-  defp calculate_gas_price(%BlockQueueState{
-    gas_price_to_use: gas_price_to_use,
-    gas_price_adj_params: %GasPriceAdjustment{max_gas_price: max_gas_price
-  }} = state) do
+  defp calculate_gas_price(
+         %BlockQueueState{
+           gas_price_to_use: gas_price_to_use,
+           gas_price_adj_params: %GasPriceAdjustment{max_gas_price: max_gas_price}
+         } = state
+       ) do
     Kernel.min(
       max_gas_price,
       Kernel.round(calculate_multiplier(state) * gas_price_to_use)
@@ -91,18 +96,18 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
   end
 
   defp calculate_multiplier(%BlockQueueState{
-    formed_child_block_num: formed_child_block_num,
-    mined_child_block_num: mined_child_block_num,
-    gas_price_to_use: gas_price_to_use,
-    parent_height: parent_height,
-    gas_price_adj_params: %GasPriceAdjustment{
-      gas_price_lowering_factor: gas_price_lowering_factor,
-      gas_price_raising_factor: gas_price_raising_factor,
-      eth_gap_without_child_blocks: eth_gap_without_child_blocks,
-      max_gas_price: max_gas_price,
-      last_block_mined: {lastchecked_parent_height, lastchecked_mined_block_num}
-    }
-  }) do
+         formed_child_block_num: formed_child_block_num,
+         mined_child_block_num: mined_child_block_num,
+         gas_price_to_use: gas_price_to_use,
+         parent_height: parent_height,
+         gas_price_adj_params: %GasPriceAdjustment{
+           gas_price_lowering_factor: gas_price_lowering_factor,
+           gas_price_raising_factor: gas_price_raising_factor,
+           eth_gap_without_child_blocks: eth_gap_without_child_blocks,
+           max_gas_price: max_gas_price,
+           last_block_mined: {lastchecked_parent_height, lastchecked_mined_block_num}
+         }
+       }) do
     with true <- blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num),
          true <- eth_blocks_gap_filled?(parent_height, lastchecked_parent_height, eth_gap_without_child_blocks),
          false <- new_blocks_mined?(mined_child_block_num, lastchecked_mined_block_num) do

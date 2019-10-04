@@ -45,34 +45,37 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueState do
     minimal_enqueue_block_gap: 1,
     finality_threshold: 12,
     gas_price_adj_params: %GasPriceAdjustment{},
+    known_hashes: [],
+    top_mined_hash: [],
+    range: 0,
     # TMP
     stored_child_top_num: nil
   ]
 
   @type t() :: %__MODULE__{
-    blocks: %{pos_integer() => %BlockSubmission{}},
-    # last mined block num
-    mined_child_block_num: plasma_block_num(),
-    # newest formed block num
-    formed_child_block_num: plasma_block_num(),
-    # current Ethereum block height
-    parent_height: nil | eth_height(),
-    # whether we're pending an enqueue signal with a new block
-    wait_for_enqueue: boolean(),
-    # gas price to use when (re)submitting transactions
-    gas_price_to_use: pos_integer(),
-    last_enqueued_block_at_height: pos_integer(),
-    # CONFIG CONSTANTS below
-    # spacing of child blocks in RootChain contract, being the amount of deposit decimals per child block
-    child_block_interval: pos_integer(),
-    # Ethereum height at which first block was mined
-    chain_start_parent_height: pos_integer(),
-    # minimal gap between child blocks
-    minimal_enqueue_block_gap: pos_integer(),
-    # depth of max reorg we take into account
-    finality_threshold: pos_integer(),
-    # the gas price adjustment strategy parameters
-    gas_price_adj_params: GasPriceAdjustment.t(),
-    last_parent_height: non_neg_integer()
-  }
+          blocks: %{pos_integer() => %BlockSubmission{}},
+          # last mined block num
+          mined_child_block_num: plasma_block_num(),
+          # newest formed block num
+          formed_child_block_num: plasma_block_num(),
+          # current Ethereum block height
+          parent_height: nil | eth_height(),
+          # whether we're pending an enqueue signal with a new block
+          wait_for_enqueue: boolean(),
+          # gas price to use when (re)submitting transactions
+          gas_price_to_use: pos_integer(),
+          last_enqueued_block_at_height: pos_integer(),
+          # CONFIG CONSTANTS below
+          # spacing of child blocks in RootChain contract, being the amount of deposit decimals per child block
+          child_block_interval: pos_integer(),
+          # Ethereum height at which first block was mined
+          chain_start_parent_height: pos_integer(),
+          # minimal gap between child blocks
+          minimal_enqueue_block_gap: pos_integer(),
+          # depth of max reorg we take into account
+          finality_threshold: pos_integer(),
+          # the gas price adjustment strategy parameters
+          gas_price_adj_params: GasPriceAdjustment.t(),
+          last_parent_height: non_neg_integer()
+        }
 end

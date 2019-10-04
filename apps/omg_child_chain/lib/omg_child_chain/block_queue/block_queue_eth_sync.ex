@@ -22,8 +22,6 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueEthSync do
 
   use OMG.Utils.LoggerExt
 
-  @zero_bytes32 <<0::size(256)>>
-
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
   # Set number of plasma block mined on the parent chain.
@@ -38,18 +36,17 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueEthSync do
     blocks = state.blocks |> Enum.filter(young?) |> Map.new()
     top_known_block = max(mined_child_block_num, state.formed_child_block_num)
 
-    %{state | formed_child_block_num: top_known_block,
-              mined_child_block_num: mined_child_block_num,
-              blocks: blocks}
+    %{state | formed_child_block_num: top_known_block, mined_child_block_num: mined_child_block_num, blocks: blocks}
   end
 
   def form_block_or_skip(state, is_empty_block) do
     case should_form_block?(state, is_empty_block) do
       true ->
         :ok = OMG.State.form_block()
-        %{state | wait_for_enqueue: true}
+        {:do_form_block, %{state | wait_for_enqueue: true}}
+
       false ->
-        state
+        {:do_not_form_block, state}
     end
   end
 
