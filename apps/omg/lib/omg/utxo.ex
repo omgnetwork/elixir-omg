@@ -17,13 +17,13 @@ defmodule OMG.Utxo do
   Manipulates a single unspent transaction output (UTXO) held be the child chain state.
   """
 
+  alias OMG.Output
   alias OMG.State.Transaction
 
   defstruct [:output, :creating_txhash]
 
   @type t() :: %__MODULE__{
-          # FIXME: type
-          output: any(),
+          output: Output.Protocol.t(),
           creating_txhash: Transaction.tx_hash()
         }
 

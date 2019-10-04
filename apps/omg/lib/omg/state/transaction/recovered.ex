@@ -20,6 +20,7 @@ defmodule OMG.State.Transaction.Recovered do
   `Transaction.Recovered` represents a transaction that can be sent to `OMG.State.exec/1`
   """
 
+  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -70,7 +71,7 @@ defmodule OMG.State.Transaction.Recovered do
   end
 
   # Checks the inputs spent by this transaction have been authorized by correct witnesses
-  @spec authorized?(t(), list()) :: :ok | {:error, :unauthorized_spent}
+  @spec authorized?(t(), list(Output.Protocol.t())) :: :ok | {:error, :unauthorized_spent}
   defp authorized?(%__MODULE__{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses}, outputs_spent) do
     outputs_spent
     |> Enum.with_index()
@@ -86,8 +87,7 @@ defmodule OMG.State.Transaction.Recovered do
 
   Calls into the particular output predicate protocols' code and into transaction protocol
   """
-  # FIXME: detyped list of inputs - retype
-  @spec can_apply?(t(), list(any())) :: {:ok, map()} | {:error, :unauthorized_spent | atom}
+  @spec can_apply?(t(), list(Output.Protocol.t())) :: {:ok, map()} | {:error, :unauthorized_spent | atom}
   def can_apply?(%Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}} = tx, outputs_spent) do
     with :ok <- authorized?(tx, outputs_spent),
          do: Transaction.Protocol.can_apply?(raw_tx, outputs_spent)

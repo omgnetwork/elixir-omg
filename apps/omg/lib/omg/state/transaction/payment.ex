@@ -147,6 +147,8 @@ defmodule OMG.State.Transaction.Payment do
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
+  alias OMG.InputPointer
+  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -161,6 +163,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
+  @spec get_data_for_rlp(Transaction.Payment.t()) :: list(any())
   def get_data_for_rlp(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
       when Transaction.is_metadata(metadata),
       do: [
@@ -172,7 +175,10 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
         metadata
       ]
 
+  @spec get_outputs(Transaction.Payment.t()) :: list(Output.Protocol.t())
   def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
+
+  @spec get_inputs(Transaction.Payment.t()) :: list(InputPointer.Protocol.t())
   def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
 
   @doc """
@@ -180,6 +186,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   Currently this covers the requirement for all the inputs to be signed on predetermined positions
   """
+  @spec valid?(Transaction.Payment.t(), Transaction.Signed.t()) :: true | {:error, atom}
   def valid?(%Transaction.Payment{}, %Transaction.Signed{sigs: sigs} = tx) do
     tx
     |> Transaction.get_inputs()
@@ -192,8 +199,8 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   Returns the fees that this transaction is paying, mapped by currency
   """
-  # FIXME: detyped list of inputs - retype
-  @spec can_apply?(Transaction.Payment.t(), list(any())) :: {:ok, map()} | {:error, :amounts_do_not_add_up}
+  @spec can_apply?(Transaction.Payment.t(), list(Output.Protocol.t())) ::
+          {:ok, map()} | {:error, :amounts_do_not_add_up}
   def can_apply?(%Transaction.Payment{} = tx, outputs_spent) do
     outputs = Transaction.get_outputs(tx)
 

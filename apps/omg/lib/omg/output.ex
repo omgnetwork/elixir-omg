@@ -13,6 +13,13 @@
 # limitations under the License.
 
 defmodule OMG.Output do
+  @moduledoc """
+  `OMG.Output` and `OMG.Output.Protocol` represent the outputs of transactions, i.e. the valuables or other pieces of
+  data spendable via transactions on the child chain, and/or exitable to the root chain.
+
+  This module specificially dispatches generic calls to the various specific types
+  """
+
   @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
 
   def from_db_value(%{type: type_marker} = db_value), do: @output_types_modules[type_marker].from_db_value(db_value)

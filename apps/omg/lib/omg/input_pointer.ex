@@ -14,7 +14,11 @@
 
 defmodule OMG.InputPointer do
   @moduledoc """
-  Dispatching module for the various input pointer types
+  `OMG.InputPointer` and `OMG.InputPointer.Protocol` represent the data that's used to mention outputs that are intended
+  to be inputs to a transaction. Examples are UTXO positions or output id (consisting of transaction hash and output
+  index)
+
+  This module specificially dispatches generic calls to the various specific types
   """
   @input_pointer_types_modules Application.fetch_env!(:omg, :input_pointer_types_modules)
 

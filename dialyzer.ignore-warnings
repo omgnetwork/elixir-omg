@@ -39,5 +39,26 @@ lib/websockex.ex:297: Expression produces a value of type 'ok' | {'error',_}, bu
 :0: Unknown function 'Elixir.OMG.Output.Port':'__impl__'/1
 :0: Unknown function 'Elixir.OMG.Output.Reference':'__impl__'/1
 :0: Unknown function 'Elixir.OMG.Output.Tuple':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.InputPointer.Protocol.Atom':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.InputPointer.Protocol.BitString':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.InputPointer.Protocol.Float':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.InputPointer.Protocol.Function':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.InputPointer.Protocol.Integer':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.InputPointer.Protocol.List':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.InputPointer.Protocol.Map':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.InputPointer.Protocol.PID':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.InputPointer.Protocol.Port':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.InputPointer.Protocol.Reference':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.Atom':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.BitString':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.Float':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.Function':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.Integer':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.List':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.Map':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.PID':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.Port':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.Reference':'__impl__'/1
+:0: Unknown function 'Elixir.OMG.Output.Protocol.Tuple':'__impl__'/1
 #
 ####
