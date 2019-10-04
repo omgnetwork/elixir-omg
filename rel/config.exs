@@ -39,7 +39,8 @@ release :watcher do
       omg_status: :permanent,
       omg_db: :permanent,
       omg_eth: :permanent,
-      omg_bus: :permanent
+      omg_bus: :permanent,
+      distillery: :permament
     ]
   )
 
@@ -80,7 +81,8 @@ release :child_chain do
       omg_status: :permanent,
       omg_db: :permanent,
       omg_eth: :permanent,
-      omg_bus: :permanent
+      omg_bus: :permanent,
+      distillery: :permament
     ]
   )
 
