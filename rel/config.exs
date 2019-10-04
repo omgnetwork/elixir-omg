@@ -26,7 +26,7 @@ environment :prod do
 end
 
 release :watcher do
-  set(version: current_version(:omg_child_chain) <> "+" <> sha)
+  set(version: current_version(:omg_watcher) <> "+" <> sha)
 
   set(vm_args: "rel/vm.args")
 
@@ -39,8 +39,7 @@ release :watcher do
       omg_status: :permanent,
       omg_db: :permanent,
       omg_eth: :permanent,
-      omg_bus: :permanent,
-      distillery: :permament
+      omg_bus: :permanent
     ]
   )
 
@@ -81,8 +80,7 @@ release :child_chain do
       omg_status: :permanent,
       omg_db: :permanent,
       omg_eth: :permanent,
-      omg_bus: :permanent,
-      distillery: :permament
+      omg_bus: :permanent
     ]
   )
 
