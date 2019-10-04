@@ -46,7 +46,12 @@ defmodule OMG.DependencyConformance.SignatureTest do
     # plasma framework
     :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: Eth.Encoding.to_hex(signtest_addr)})
 
-    on_exit(exit_fn)
+    on_exit(fn ->
+      # reverting to the original values from `omg_eth/config/test.exs`
+      Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: "0x0000000000000000000000000000000000000001"})
+      exit_fn.()
+    end)
+
     [contract: signtest_addr]
   end
 

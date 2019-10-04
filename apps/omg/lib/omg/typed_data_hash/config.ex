@@ -21,9 +21,6 @@ defmodule OMG.TypedDataHash.Config do
   alias OMG.Eth.Encoding
   alias OMG.TypedDataHash.Tools
 
-  # Needed for test only to have value of address when `:contract_address` is not set
-  @fallback_contract_addr <<1::size(20)-unit(8)>>
-
   use OMG.Utils.LoggerExt
 
   @doc """
@@ -32,17 +29,8 @@ defmodule OMG.TypedDataHash.Config do
   @spec domain_data_from_config() :: Tools.eip712_domain_t()
   def domain_data_from_config do
     # configuration from contract takes precedence, but if it's missing, the fallback addr will be used
-    config_contract_addr = Application.get_env(:omg_eth, :contract_addr, %{})[:plasma_framework]
-
     verifying_contract_addr =
-      if config_contract_addr do
-        Encoding.from_hex(config_contract_addr)
-      else
-        _ =
-          Logger.info("NOTE you're using the fallback contract address for EIP712: #{inspect(@fallback_contract_addr)}")
-
-        @fallback_contract_addr
-      end
+      Application.get_env(:omg_eth, :contract_addr) |> Access.get(:plasma_framework) |> Encoding.from_hex()
 
     Application.fetch_env!(:omg, :eip_712_domain)
     |> Map.new()

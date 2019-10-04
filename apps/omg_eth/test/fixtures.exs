@@ -58,7 +58,8 @@ defmodule OMG.Eth.Fixtures do
     {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
     on_exit(fn ->
-      Application.put_env(:omg_eth, :contract_addr, nil)
+      # reverting to the original values from `omg_eth/config/test.exs`
+      Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: "0x0000000000000000000000000000000000000001"})
       Application.put_env(:omg_eth, :authority_addr, nil)
       Application.put_env(:omg_eth, :txhash_contract, nil)
 
