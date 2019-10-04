@@ -24,6 +24,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
+  alias OMG.InputPointer
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -450,7 +451,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp do_get_spent_blknum(position) do
-    {:ok, spend_blknum} = position |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum()
+    {:ok, spend_blknum} = position |> InputPointer.Protocol.to_db_key() |> OMG.DB.spent_blknum()
     spend_blknum
   end
 

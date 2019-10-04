@@ -37,10 +37,12 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
 
       fake_utxo_db_kv =
         {OMG.InputPointer.Protocol.to_db_key(position),
-         OMG.Output.Protocol.to_db_value(%OMG.Output.FungibleMoreVPToken{
-           amount: 10,
-           currency: @eth,
-           owner: alice.addr
+         Utxo.to_db_value(%Utxo{
+           output: %OMG.Output.FungibleMoreVPToken{
+             amount: 10,
+             currency: @eth,
+             owner: alice.addr
+           }
          })}
 
       assert {:ok,
