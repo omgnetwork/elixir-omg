@@ -52,7 +52,6 @@ defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
 
   require Utxo
 
-  @zero_address OMG.Eth.zero_address()
   # TODO: dry wrt. Application.fetch_env!(:omg, :output_types_modules)? Use `bimap` perhaps?
   @output_type_marker <<1>>
 

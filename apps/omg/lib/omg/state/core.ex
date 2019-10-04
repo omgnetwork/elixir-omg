@@ -178,11 +178,13 @@ defmodule OMG.State.Core do
   def standard_exitable_utxos(utxos_query_result, address) do
     utxos_query_result
     |> UtxoSet.init()
-    |> Stream.map(fn utxo_kv -> {utxo_kv, Utxo.get_position(utxo_kv), Utxo.get_owner(utxo_kv)} end)
-    |> Stream.filter(fn {_utxo_kv, _position, owner} -> owner && owner == address end)
-    |> Enum.map(fn {{_, utxo}, position, _owner} -> utxo_to_exitable_utxo_map(utxo, position) end)
+    |> UtxoSet.filter_owned_by(address)
+    |> UtxoSet.zip_with_positions()
+    |> Enum.map(fn {{_, utxo}, position} -> utxo_to_exitable_utxo_map(utxo, position) end)
   end
 
+  # attempts to build a standard response data about a single UTXO, based on an abstract `output` structure
+  # so that the data can be useful to discover exitable UTXOs
   defp utxo_to_exitable_utxo_map(%Utxo{output: output}, Utxo.position(blknum, txindex, oindex)) do
     output
     |> Map.from_struct()
@@ -416,6 +418,6 @@ defmodule OMG.State.Core do
   defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex}, %Core{utxos: utxos}) do
     # oindex in contract is 0-7 where 4-7 are outputs
     oindex = oindex - 4
-    UtxoSet.scan_for_matching_utxo(utxos, tx_hash, oindex)
+    UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
   end
 end

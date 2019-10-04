@@ -62,18 +62,29 @@ defmodule OMG.State.UtxoSet do
     do: Map.has_key?(utxos, input_pointer)
 
   @doc """
-  Searches the UTXO set for a particular UTXO created with a `tx_hash` on `oindex` position.
+  Searches the UTXO set for a particular UTXO created with a `txhash` on `oindex` position.
 
   Current implementation is **expensive**
   """
-  def scan_for_matching_utxo(utxos, tx_hash, oindex) do
-    # FIXME: this is still utxo pos specific
-    Enum.find(utxos, &match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
+  def find_matching_utxo(utxos, requested_txhash, oindex) do
+    utxos
+    |> Stream.filter(&utxo_kv_created_by?(&1, requested_txhash))
+    |> Enum.find(&utxo_kv_has_oindex_equal?(&1, oindex))
+  end
+
+  @doc """
+  Streams the UTXO key-value pairs found to be owner by a particular address
+  """
+  def filter_owned_by(utxos, address) do
+    Stream.filter(utxos, fn utxo_kv -> utxo_kv_get_owner(utxo_kv) == address end)
+  end
+
+  def zip_with_positions(utxos) do
+    Stream.map(utxos, fn utxo_kv -> {utxo_kv, utxo_kv_get_position(utxo_kv)} end)
   end
 
   defp get_utxos_by_inputs(utxos, inputs) do
-    inputs
-    |> Enum.reduce_while({:ok, []}, fn input, acc -> get_utxo(utxos, input, acc) end)
+    Enum.reduce_while(inputs, {:ok, []}, fn input, acc -> get_utxo(utxos, input, acc) end)
   end
 
   defp get_utxo(utxos, position, {:ok, acc}) do
@@ -88,4 +99,20 @@ defmodule OMG.State.UtxoSet do
 
   defp utxo_to_db_delete(input_pointer),
     do: {:delete, :utxo, InputPointer.Protocol.to_db_key(input_pointer)}
+
+  # based on some key-value pair representing {input_pointer, utxo}, get its position from somewhere
+  defp utxo_kv_get_position(utxo_kv)
+  defp utxo_kv_get_position({Utxo.position(_, _, _) = utxo_pos, _utxo}), do: utxo_pos
+  defp utxo_kv_get_position({_non_utxo_pos_input_pointer, %{utxo_pos: Utxo.position(_, _, _) = utxo_pos}}), do: utxo_pos
+
+  # based on some key-value pair representing {input_pointer, utxo}, get its owner
+  defp utxo_kv_get_owner(utxo_kv)
+  defp utxo_kv_get_owner({_input_pointer, %Utxo{output: %{owner: owner}}}), do: owner
+  defp utxo_kv_get_owner({%{owner: owner}, _output_without_owner_specified}), do: owner
+
+  defp utxo_kv_created_by?({_input_pointer, %Utxo{creating_txhash: requested_txhash}}, requested_txhash), do: true
+  defp utxo_kv_created_by?({_input_pointer, %Utxo{}}, _), do: false
+
+  defp utxo_kv_has_oindex_equal?(utxo_kv, oindex),
+    do: utxo_kv |> utxo_kv_get_position() |> Utxo.Position.oindex() == oindex
 end
