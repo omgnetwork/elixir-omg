@@ -8,7 +8,7 @@ fancy_echo() {
 }
 
 install_linux_deps() {
-  local LINUX_DEPS="automake autoconf autogen libtool gcc curl cmake gnupg liblz4-dev libsnappy-dev librocksdb-dev"
+  local LINUX_DEPS="automake autoconf autogen libtool gcc curl cmake gnupg liblz4-dev libsnappy-dev"
   local flavor=`grep "^ID=" /etc/os-release | cut -d"=" -f 2`
   echo $flavor
   case $flavor in

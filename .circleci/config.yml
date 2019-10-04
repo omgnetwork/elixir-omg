@@ -76,6 +76,7 @@ jobs:
           no_output_timeout: 2400
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
+      - run: make start-child_chain
       - run: mix test --trace
       - run:
           name: Integration Tests
@@ -446,6 +447,7 @@ workflows:
   build-deploy:
     jobs:
       - build
+      - barebuild
       - notify_services:
           requires: [deploy_watcher, deploy_child_chain]
           filters:
