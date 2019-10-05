@@ -28,12 +28,16 @@ defmodule OMG.EthTest do
   use ExUnit.Case, async: false
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
-  @moduletag :wrappers
   @moduletag :common
 
   setup do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     ExVCR.Config.cassette_library_dir("test/fixtures/vcr_cassettes")
+    # NOTE achiurizo
+    #
+    # this is a hack to ensure we reset the counter to 0 despite
+    # the fixtures now resetting the counter.
+    :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
     :ok
   end
 
