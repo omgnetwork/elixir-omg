@@ -23,28 +23,30 @@ defmodule OMG.EthTest do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.Encoding
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
-
   @moduletag :wrappers
   @moduletag :common
 
   setup do
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
     ExVCR.Config.cassette_library_dir("test/fixtures/vcr_cassettes")
     :ok
   end
 
-  @tag fixtures: [:eth_node]
-  test "get_ethereum_height and get_block_timestamp_by_number return integers" do
-    use_cassette "get_ethereum_height" do
-      assert {:ok, number} = Eth.get_ethereum_height()
-      assert {:ok, timestamp} = Eth.get_block_timestamp_by_number(number)
+  test "get_ethereum_height/0 returns the block number" do
+    use_cassette "get_ethereum_height", match_requests_on: [:request_body] do
+      {:ok, number} = Eth.get_ethereum_height()
       assert is_integer(number)
+    end
+  end
+
+  test "get_block_timestamp_by_number/1 the block timestamp by block number" do
+    use_cassette "get_ethereum_height", match_requests_on: [:request_body] do
+      {:ok, timestamp} = Eth.get_block_timestamp_by_number(2)
       assert is_integer(timestamp)
     end
   end

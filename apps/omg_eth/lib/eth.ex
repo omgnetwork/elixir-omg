@@ -85,7 +85,6 @@ defmodule OMG.Eth do
     case Ethereumex.HttpClient.eth_block_number() do
       {:ok, height_hex} ->
         {:ok, int_from_hex(height_hex)}
-
       other ->
         other
     end
@@ -95,7 +94,6 @@ defmodule OMG.Eth do
     case Ethereumex.HttpClient.eth_get_block_by_number(to_hex(height), false) do
       {:ok, %{"timestamp" => timestamp_hex}} ->
         {:ok, int_from_hex(timestamp_hex)}
-
       other ->
         other
     end
