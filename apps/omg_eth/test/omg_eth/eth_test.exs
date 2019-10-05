@@ -27,86 +27,25 @@ defmodule OMG.EthTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
+  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @moduletag :wrappers
   @moduletag :common
 
+  setup do
+    ExVCR.Config.cassette_library_dir("test/fixtures/vcr_cassettes")
+    :ok
+  end
+
   @tag fixtures: [:eth_node]
   test "get_ethereum_height and get_block_timestamp_by_number return integers" do
-    assert {:ok, number} = Eth.get_ethereum_height()
-    assert {:ok, timestamp} = Eth.get_block_timestamp_by_number(number)
-    assert is_integer(number)
-    assert is_integer(timestamp)
-  end
-
-  @tag fixtures: [:contract]
-  test "get contract deployment height", %{contract: contract} do
-    {:ok, number} = Eth.RootChain.get_root_deployment_height(contract.txhash_contract, contract.contract_addr)
-    assert is_integer(number)
-  end
-
-  @tag fixtures: [:contract]
-  test "no argument call returning single integer", %{contract: contract} do
-    assert {:ok, 1000} = Eth.RootChain.get_next_child_block(contract.contract_addr)
-  end
-
-  @tag fixtures: [:contract]
-  test "single binary argument call returning bool", %{contract: contract} do
-    assert {:ok, true} = Eth.RootChainHelper.has_token(@eth, contract.contract_addr)
-    assert {:ok, false} = Eth.RootChainHelper.has_token(<<1::160>>, contract.contract_addr)
-  end
-
-  @tag fixtures: [:contract]
-  test "binary/integer arugments tx and integer argument call returning a binary/integer tuple",
-       %{contract: contract} do
-    assert {:ok, _} =
-             Eth.RootChain.submit_block(
-               <<234::256>>,
-               1,
-               20_000_000_000,
-               contract.authority_addr,
-               contract.contract_addr
-             )
-             |> Eth.DevHelpers.transact_sync!()
-
-    assert {:ok, {child_chain_hash, child_chain_time}} = Eth.RootChain.get_child_chain(1000, contract.contract_addr)
-    assert is_binary(child_chain_hash)
-    assert byte_size(child_chain_hash) == 32
-    assert is_integer(child_chain_time)
-  end
-
-  @tag fixtures: [:contract]
-  test "gets events with various fields and topics", %{contract: contract} do
-    # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
-    # payment marker, no inputs, one output, metadata
-    tx =
-      [<<1>>, [], [[contract.authority_addr, @eth, 1]], <<0::256>>]
-      |> ExRLP.encode()
-
-    {:ok, tx_hash} =
-      Eth.RootChainHelper.deposit(tx, 1, contract.authority_addr, contract.contract_addr)
-      |> Eth.DevHelpers.transact_sync!()
-
-    {:ok, height} = Eth.get_ethereum_height()
-
-    authority_addr = contract.authority_addr
-    root_chain_txhash = Encoding.from_hex(tx_hash["transactionHash"])
-
-    deposits = Eth.RootChain.get_deposits(1, height, contract.contract_addr)
-
-    assert {:ok,
-            [
-              %{
-                amount: 1,
-                blknum: 1,
-                owner: ^authority_addr,
-                currency: @eth,
-                eth_height: height,
-                log_index: 0,
-                root_chain_txhash: ^root_chain_txhash
-              }
-            ]} = deposits
+    use_cassette "get_ethereum_height" do
+      assert {:ok, number} = Eth.get_ethereum_height()
+      assert {:ok, timestamp} = Eth.get_block_timestamp_by_number(number)
+      assert is_integer(number)
+      assert is_integer(timestamp)
+    end
   end
 end
