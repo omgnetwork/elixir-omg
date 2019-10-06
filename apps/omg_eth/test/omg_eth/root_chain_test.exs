@@ -193,36 +193,51 @@ defmodule OMG.RootChainTest do
     end
   end
 
-  # @tag fixtures: [:contract]
-  # test "get_deposits/3 returns deposit events", %{contract: contract} do
-  ## not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
-  ## payment marker, no inputs, one output, metadata
-  # tx =
-  # [<<1>>, [], [[contract.authority_addr, @eth, 1]], <<0::256>>]
-  # |> ExRLP.encode()
+  test "get_deposits/3 returns deposit events" do
+    use_cassette "get_deposits" do
+      contract = %{
+        authority_addr: <<130, 88, 71, 242, 32, 229, 170, 158, 99, 187, 9, 191, 20, 222, 216, 78, 57, 12, 84, 166>>,
+        contract_addr: %{
+          erc20_vault: <<35, 58, 149, 47, 210, 251, 104, 228, 147, 225, 246, 114, 230, 57, 5, 15, 11, 97, 38, 25>>,
+          eth_vault: <<11, 116, 178, 235, 168, 218, 198, 67, 69, 147, 244, 183, 178, 23, 6, 85, 124, 28, 253, 115>>,
+          payment_exit_game: <<151, 188, 110, 247, 38, 78, 67, 79, 53, 154, 169, 25, 26, 251, 196, 70, 48, 40, 8, 238>>,
+          plasma_framework:
+            <<37, 228, 22, 32, 103, 146, 170, 159, 95, 57, 101, 150, 31, 182, 143, 90, 137, 204, 134, 103>>
+        },
+        txhash_contract:
+          <<175, 145, 234, 243, 233, 208, 195, 206, 165, 45, 144, 90, 174, 138, 135, 179, 98, 249, 136, 181, 109, 130,
+            222, 10, 66, 121, 206, 36, 67, 23, 96, 34>>
+      }
 
-  # {:ok, tx_hash} =
-  # RootChainHelper.deposit(tx, 1, contract.authority_addr, contract.contract_addr)
-  # |> DevHelpers.transact_sync!()
+      # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
+      # payment marker, no inputs, one output, metadata
+      tx =
+        [<<1>>, [], [[contract.authority_addr, @eth, 1]], <<0::256>>]
+        |> ExRLP.encode()
 
-  # {:ok, height} = Eth.get_ethereum_height()
+      {:ok, tx_hash} =
+        RootChainHelper.deposit(tx, 1, contract.authority_addr, contract.contract_addr)
+        |> DevHelpers.transact_sync!()
 
-  # authority_addr = contract.authority_addr
-  # root_chain_txhash = Encoding.from_hex(tx_hash["transactionHash"])
+      {:ok, height} = Eth.get_ethereum_height()
 
-  # deposits = RootChain.get_deposits(1, height, contract.contract_addr)
+      authority_addr = contract.authority_addr
+      root_chain_txhash = Encoding.from_hex(tx_hash["transactionHash"])
 
-  # assert {:ok,
-  # [
-  # %{
-  # amount: 1,
-  # blknum: 1,
-  # owner: ^authority_addr,
-  # currency: @eth,
-  # eth_height: height,
-  # log_index: 0,
-  # root_chain_txhash: ^root_chain_txhash
-  # }
-  # ]} = deposits
-  # end
+      deposits = RootChain.get_deposits(1, height, contract.contract_addr)
+
+      assert {:ok,
+              [
+                %{
+                  amount: 1,
+                  blknum: 1,
+                  owner: ^authority_addr,
+                  currency: @eth,
+                  eth_height: height,
+                  log_index: 0,
+                  root_chain_txhash: ^root_chain_txhash
+                }
+              ]} = deposits
+    end
+  end
 end
