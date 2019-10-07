@@ -42,14 +42,14 @@ defmodule OMG.EthTest do
   end
 
   test "get_ethereum_height/0 returns the block number" do
-    use_cassette "get_ethereum_height", match_requests_on: [:request_body] do
+    use_cassette "ganache/get_ethereum_height", match_requests_on: [:request_body] do
       {:ok, number} = Eth.get_ethereum_height()
       assert is_integer(number)
     end
   end
 
   test "get_block_timestamp_by_number/1 the block timestamp by block number" do
-    use_cassette "get_ethereum_height", match_requests_on: [:request_body] do
+    use_cassette "ganache/get_block_timestamp_by_number", match_requests_on: [:request_body] do
       {:ok, timestamp} = Eth.get_block_timestamp_by_number(2)
       assert is_integer(timestamp)
     end
