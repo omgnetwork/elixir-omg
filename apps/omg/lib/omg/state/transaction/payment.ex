@@ -32,22 +32,11 @@ defmodule OMG.State.Transaction.Payment do
   defstruct [:inputs, :outputs, metadata: @zero_metadata]
 
   @type t() :: %__MODULE__{
-          inputs: list(input()),
-          outputs: list(output()),
+          inputs: list(InputPointer.Protocol.t()),
+          outputs: list(Output.FungibleMoreVPToken.t()),
           metadata: Transaction.metadata()
         }
 
-  @type input() :: %{
-          blknum: non_neg_integer(),
-          txindex: non_neg_integer(),
-          oindex: non_neg_integer()
-        }
-
-  @type output() :: %{
-          owner: Crypto.address_t(),
-          currency: currency(),
-          amount: non_neg_integer()
-        }
   @type currency() :: Crypto.address_t()
 
   @max_inputs 4
@@ -85,13 +74,8 @@ defmodule OMG.State.Transaction.Payment do
 
   def new(inputs, outputs, metadata)
       when Transaction.is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
-    inputs = Enum.map(inputs, fn {blknum, txindex, oindex} -> Utxo.position(blknum, txindex, oindex) end)
-
-    outputs =
-      Enum.map(outputs, fn {owner, currency, amount} ->
-        %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
-      end)
-
+    inputs = Enum.map(inputs, &new_input/1)
+    outputs = Enum.map(outputs, &new_output/1)
     %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
@@ -107,6 +91,13 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   def reconstruct(_), do: {:error, :malformed_transaction}
+
+  # `new_input/1` and `new_output/1` are here to just help interpret the short-hand form of inputs outputs when doing
+  # `new/3`
+  defp new_input({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
+
+  defp new_output({owner, currency, amount}),
+    do: %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
 
   defp reconstruct_inputs(inputs_rlp) do
     with {:ok, inputs} <- parse_inputs(inputs_rlp),

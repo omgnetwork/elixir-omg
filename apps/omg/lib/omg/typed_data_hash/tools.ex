@@ -19,6 +19,7 @@ defmodule OMG.TypedDataHash.Tools do
   """
 
   alias OMG.Crypto
+  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.TypedDataHash.Types
   alias OMG.Utxo
@@ -71,7 +72,7 @@ defmodule OMG.TypedDataHash.Tools do
   @spec hash_transaction(
           binary,
           list(Utxo.Position.t()),
-          list(Transaction.Payment.output()),
+          list(Output.FungibleMoreVPToken.t()),
           Transaction.metadata(),
           Crypto.hash_t(),
           Crypto.hash_t()
@@ -115,7 +116,7 @@ defmodule OMG.TypedDataHash.Tools do
     |> Crypto.hash()
   end
 
-  @spec hash_output(Transaction.Payment.output()) :: Crypto.hash_t()
+  @spec hash_output(Output.FungibleMoreVPToken.t(), pos_integer) :: Crypto.hash_t()
   def hash_output(%{owner: owner, currency: currency, amount: amount}, output_type \\ 1) do
     [
       @output_type_hash,
