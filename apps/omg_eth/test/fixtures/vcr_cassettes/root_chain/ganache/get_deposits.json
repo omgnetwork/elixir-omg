@@ -1,0 +1,29 @@
+[
+  {
+    "request": {
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_sendTransaction\",\"params\":[{\"data\":\"0x98b1e06a00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000052f85001c0eceb9422d491bde2303f2f43325b2108d26f1eaba1e32b94000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\",\"from\":\"0x22d491bde2303f2f43325b2108d26f1eaba1e32b\",\"gas\":\"0x2BF20\",\"gasPrice\":\"0x3B9ACA00\",\"to\":\"0x1967d06b1faba91eaadb1be33b277447ea24fa0e\",\"value\":\"0x1\"}]}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "method": "post",
+      "options": {
+        "recv_timeout": "infinity",
+        "pool": "default"
+      },
+      "request_body": "",
+      "url": "http://localhost:8545"
+    },
+    "response": {
+      "binary": false,
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"0x6adf1f48c3d81836b919983cf0e787560a13f723fc0c9ea59ea30412b13fbca2\",\"error\":{\"message\":\"VM Exception while processing transaction: revert Invalid output encoding\",\"code\":-32000,\"data\":{\"0x6adf1f48c3d81836b919983cf0e787560a13f723fc0c9ea59ea30412b13fbca2\":{\"error\":\"revert\",\"program_counter\":1193,\"return\":\"0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000017496e76616c6964206f757470757420656e636f64696e67000000000000000000\",\"reason\":\"Invalid output encoding\"},\"stack\":\"o: VM Exception while processing transaction: revert Invalid output encoding\\n    at Function.o.fromResults (/app/ganache-core.docker.cli.js:10:96854)\\n    at /app/ganache-core.docker.cli.js:25:173180\\n    at /app/ganache-core.docker.cli.js:25:150740\\n    at h (/app/ganache-core.docker.cli.js:25:150397)\\n    at /app/ganache-core.docker.cli.js:25:150450\\n    at t.default (/app/ganache-core.docker.cli.js:37:381150)\\n    at /app/ganache-core.docker.cli.js:25:151364\\n    at t.n.emit (/app/ganache-core.docker.cli.js:61:16355)\\n    at /app/ganache-core.docker.cli.js:61:654328\\n    at /app/ganache-core.docker.cli.js:61:654351\\n    at /app/ganache-core.docker.cli.js:37:787015\\n    at /app/ganache-core.docker.cli.js:2:62040\\n    at i (/app/ganache-core.docker.cli.js:2:77139)\\n    at /app/ganache-core.docker.cli.js:2:57548\\n    at process._tickCallback (internal/process/next_tick.js:61:11)\",\"name\":\"o\"}}}",
+      "headers": {
+        "Content-Type": "application/json",
+        "Date": "Mon, 07 Oct 2019 17:47:33 GMT",
+        "Connection": "keep-alive",
+        "Transfer-Encoding": "chunked"
+      },
+      "status_code": 200,
+      "type": "ok"
+    }
+  }
+]
