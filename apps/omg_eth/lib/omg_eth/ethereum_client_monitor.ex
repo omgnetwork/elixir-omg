@@ -53,7 +53,7 @@ defmodule OMG.Eth.EthereumClientMonitor do
   end
 
   def init([_ | _] = opts) do
-    alarm_module = Keyword.get(opts, :alarm_module)
+    alarm_module = Keyword.fetch!(opts, :alarm_module)
     false = Process.flag(:trap_exit, true)
     _ = Logger.info("Starting Ethereum client monitor.")
     install_alarm_handler()

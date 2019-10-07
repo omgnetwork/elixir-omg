@@ -45,8 +45,8 @@ defmodule OMG.Status.Metric.StatsdMonitor do
     _ = Logger.info("Starting #{inspect(__MODULE__)}.")
     install_alarm_handler()
 
-    alarm_module = Keyword.get(opts, :alarm_module)
-    child_module = Keyword.get(opts, :child_module)
+    alarm_module = Keyword.fetch!(opts, :alarm_module)
+    child_module = Keyword.fetch!(opts, :child_module)
     false = Process.flag(:trap_exit, true)
     {:ok, pid} = apply(child_module, :start_link, [])
 
