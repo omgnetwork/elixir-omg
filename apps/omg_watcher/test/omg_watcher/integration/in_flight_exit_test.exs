@@ -35,9 +35,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 180_000
 
-  # TODO: unskip, IFEs don't work yet
-  @moduletag :skip
-
   @tag fixtures: [:watcher, :alice, :bob, :child_chain]
   test "piggyback in flight exit", %{alice: alice, bob: bob} do
     {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
@@ -91,10 +88,12 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     {:ok, {_, _, exitmap, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
     assert exitmap != 0
     # IFE tx 3
+    # FIXME: can use the DRYed version of this call?
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChainHelper.in_flight_exit(
         in_flight_tx["in_flight_tx"],
         in_flight_tx["input_txs"],
+        in_flight_tx["input_utxos_pos"],
         in_flight_tx["input_txs_inclusion_proofs"],
         in_flight_tx["in_flight_tx_sigs"],
         bob.addr
@@ -362,6 +361,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     OMG.Eth.RootChainHelper.in_flight_exit(
       get_in_flight_exit_response["in_flight_tx"],
       get_in_flight_exit_response["input_txs"],
+      get_in_flight_exit_response["input_utxos_pos"],
       get_in_flight_exit_response["input_txs_inclusion_proofs"],
       get_in_flight_exit_response["in_flight_tx_sigs"],
       exiting_user.addr

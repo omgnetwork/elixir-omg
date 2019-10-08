@@ -37,12 +37,14 @@ defmodule OMG.Eth.RootChainHelper do
   @gas_deposit 180_000
   @gas_deposit_from 250_000
   @gas_init 1_000_000
-  @standard_exit_bond 14_000_000_000_000_000
-  @piggyback_bond 31_415_926_535
-  @gas_respond_to_non_canonical_challenge 1_000_000
-
   @gas_start_in_flight_exit 2_000_000
+  @gas_respond_to_non_canonical_challenge 1_000_000
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
+
+  @standard_exit_bond 14_000_000_000_000_000
+  @ife_bond 37_000_000_000_000_000
+  @piggyback_bond 28_000_000_000_000_000
+
   @type in_flight_exit_piggybacked_event() :: %{owner: <<_::160>>, tx_hash: <<_::256>>, output_index: non_neg_integer}
 
   def start_exit(utxo_pos, tx_bytes, proof, from, contract \\ %{}, opts \\ []) do
@@ -148,6 +150,7 @@ defmodule OMG.Eth.RootChainHelper do
   def in_flight_exit(
         in_flight_tx,
         input_txs,
+        input_utxos_pos,
         input_txs_inclusion_proofs,
         in_flight_tx_sigs,
         from,
@@ -156,14 +159,37 @@ defmodule OMG.Eth.RootChainHelper do
       ) do
     defaults =
       @tx_defaults
-      |> Keyword.put(:value, @standard_exit_bond)
+      |> Keyword.put(:value, @ife_bond)
       |> Keyword.put(:gas, @gas_start_in_flight_exit)
 
     opts = defaults |> Keyword.merge(opts)
+    # FIXME don't miss removing this
+    # struct StartExitArgs {
+    #     bytes inFlightTx;
+    #     bytes[] inputTxs;
+    #     uint256[] inputTxTypes;
+    #     uint256[] inputUtxosPos;
+    #     bytes[] outputGuardPreimagesForInputs;
+    #     bytes[] inputTxsInclusionProofs;
+    #     bytes[] inputTxsConfirmSigs;
+    #     bytes[] inFlightTxWitnesses;
+    #     bytes[] inputSpendingConditionOptionalArgs;
+    # }
+
+    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    optional_bytes_array = List.duplicate("", Enum.count(input_txs))
+    # NOTE: this in particular will go away, since separate specification of input tx types isn't necessary
+    # c.f.: https://github.com/omisego/plasma-contracts/issues/338
+    input_tx_types = List.duplicate(1, Enum.count(input_txs))
 
     contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
-    args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
+    signature = "startInFlightExit((bytes,bytes[],uint256[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[]))"
+
+    args = [
+      {in_flight_tx, input_txs, input_tx_types, input_utxos_pos, optional_bytes_array, input_txs_inclusion_proofs,
+       optional_bytes_array, in_flight_tx_sigs, optional_bytes_array}
+    ]
+
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 

@@ -89,21 +89,39 @@ defmodule OMG.Watcher.TestHelper do
   @spec decode16(map(), list()) :: map()
   def decode16(data, keys) do
     keys
+    # FIXME: remove? this allows for errors, but there's a test of `decode16` that actually tests this behavior
     |> Enum.filter(&Map.has_key?(data, &1))
-    |> Enum.into(
-      %{},
-      fn key ->
-        value = data[key]
-
-        with true <- is_binary(value),
-             {:ok, bin} <- Encoding.from_hex(value) do
-          {key, bin}
-        else
-          _ -> {key, value}
-        end
-      end
-    )
+    |> Enum.into(%{}, &decode16_for_key(data, &1))
     |> (&Map.merge(data, &1)).()
+  end
+
+  defp decode16_for_key(data, key) do
+    case data[key] do
+      value when is_binary(value) ->
+        {key, decode_if_possible(value)}
+
+      value when is_list(value) ->
+        bin_list =
+          value
+          |> Enum.map(&Encoding.from_hex/1)
+          |> Enum.map(fn {:ok, bin} -> bin end)
+
+        {key, bin_list}
+
+      # FIXME: remove? this allows for errors, but there's a test of `decode16` that actually tests this behavior
+      other_value ->
+        {key, other_value}
+    end
+  end
+
+  # FIXME: remove? this allows for errors, but there's a test of `decode16` that actually tests this behavior
+  defp decode_if_possible(value) do
+    value
+    |> Encoding.from_hex()
+    |> case do
+      {:ok, bin} -> bin
+      {:error, :invalid_hex} -> value
+    end
   end
 
   def get_balance(address, token) do

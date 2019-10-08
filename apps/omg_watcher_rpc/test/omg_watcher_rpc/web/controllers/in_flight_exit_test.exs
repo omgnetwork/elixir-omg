@@ -18,43 +18,63 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
   use OMG.Fixtures
   use OMG.Watcher.Fixtures
 
+  alias OMG.Utxo
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.TestHelper
+
+  require Utxo
+
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "getting in-flight exits" do
     @tag fixtures: [:web_endpoint, :db_initialized, :bob, :alice]
     test "returns properly formatted in-flight exit data", %{bob: bob, alice: alice} do
       test_in_flight_exit_data = fn inputs, expected_input_txs ->
-        in_flight_txbytes =
+        in_flight_txbytes_raw =
           inputs
           |> OMG.TestHelper.create_encoded(@eth, [{bob, 100}])
-          |> Encoding.to_hex()
+
+        in_flight_txbytes = Encoding.to_hex(in_flight_txbytes_raw)
 
         # `2 + ` for prepending `0x` in HEX encoded binaries
-        proofs_size = 2 + 1024 * length(inputs)
-        sigs_size = 2 + 130 * length(inputs)
+        proofs_size = 2 + 16 * 32 * 2
+        sigs_size = 2 + 130
+
+        in_flight_raw_txbytes =
+          in_flight_txbytes_raw |> Transaction.Signed.decode!() |> Transaction.raw_txbytes() |> Encoding.to_hex()
 
         # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
         assert %{
-                 "in_flight_tx" => _in_flight_tx,
+                 "in_flight_tx" => ^in_flight_raw_txbytes,
                  "input_txs" => input_txs,
+                 "input_utxos_pos" => input_utxos_pos,
                  # encoded proofs, 1024 bytes each
-                 "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
+                 "input_txs_inclusion_proofs" => proofs,
                  # encoded signatures, 130 bytes each
-                 "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
+                 "in_flight_tx_sigs" => sigs
+                 # FIXME: leverage the test helper for hex and stuff
                } = TestHelper.success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
-
-        {:ok, input_txs} = Encoding.from_hex(input_txs)
 
         input_txs =
           input_txs
-          |> ExRLP.decode()
-          |> Enum.filter(&(&1 != ""))
-          |> Enum.map(&ExRLP.encode/1)
+          |> Enum.map(&Encoding.from_hex/1)
+          |> Enum.map(fn {:ok, decoded} -> decoded end)
           |> Enum.map(&Transaction.decode!/1)
 
+        assert Enum.count(input_txs) == Enum.count(inputs)
+        assert Enum.count(input_utxos_pos) == Enum.count(inputs)
+        assert Enum.count(proofs) == Enum.count(inputs)
+        assert Enum.count(sigs) == Enum.count(inputs)
+
+        input_utxos_pos
+        |> Enum.map(&Utxo.Position.decode!/1)
+        |> Enum.zip(inputs)
+        # assert true because we just want to pattern match both positions against each other
+        |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), {blknum, txindex, oindex, _}} -> assert true end)
+
+        Enum.each(proofs, fn proof -> assert byte_size(proof) == proofs_size end)
+        Enum.each(sigs, fn sig -> assert byte_size(sig) == sigs_size end)
         assert input_txs == expected_input_txs
       end
 
