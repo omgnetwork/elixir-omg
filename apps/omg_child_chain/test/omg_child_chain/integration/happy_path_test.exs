@@ -123,8 +123,6 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(invalid_tx)
   end
 
-  # TODO: unskip, IFEs don't work yet
-  @tag :skip
   @tag fixtures: [:alice, :omg_child_chain, :alice_deposits]
   test "check that unspent funds can be exited exited with in-flight exits",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
@@ -140,12 +138,16 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       in_flight_tx =
       OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
 
-    proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], 0)
+    proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], txindex)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChainHelper.in_flight_exit(
         in_flight_tx |> Transaction.raw_txbytes(),
         get_input_txs([tx, tx]),
+        [
+          Utxo.Position.encode(Utxo.position(blknum, txindex, 0)),
+          Utxo.Position.encode(Utxo.position(blknum, txindex, 1))
+        ],
         proof <> proof,
         Enum.join(in_flight_tx_sigs),
         alice.addr
@@ -175,6 +177,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       Eth.RootChainHelper.in_flight_exit(
         in_flight_tx2_rawbytes,
         get_input_txs([deposit_tx]),
+        [Utxo.Position.encode(Utxo.position(deposit_blknum, 0, 0))],
         Block.inclusion_proof([Transaction.Signed.encode(deposit_tx)], 0),
         Enum.join(sigs),
         alice.addr
