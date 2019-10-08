@@ -14,17 +14,66 @@
 
 defmodule OMG.ChildChain.BlockQueue.BlockQueueQueuer do
   @moduledoc """
+  This module is responsible for enqueuing blocks. The main 3 entry points for
+  the queueing mechanism are:
 
+    - enqueue_block
+    - enqueue_existing_blocks
+
+  See docs for those functions for more details.
   """
-
-  alias OMG.ChildChain.BlockQueue.BlockSubmission
-  alias OMG.ChildChain.BlockQueue.BlockQueueState
-
   use OMG.Utils.LoggerExt
 
-  @zero_bytes32 <<0::size(256)>>
-  @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
+  alias OMG.ChildChain.BlockQueue.BlockSubmission
+  alias OMG.Block
 
+  @zero_bytes32 <<0::size(256)>>
+
+  # The queue_state is a subset of fields from %BlockQueueState{} that
+  # are needed to interact with the functions in this module.
+  @type queue_state() :: %{
+          blocks: list(Block.t()),
+          known_hashes: list(String.t()),
+          top_mined_hash: String.t(),
+          mined_child_block_num: pos_integer(),
+          child_block_interval: pos_integer(),
+          last_enqueued_block_at_height: pos_integer(),
+          wait_for_enqueue: boolean(),
+          parent_height: pos_integer(),
+          formed_child_block_num: pos_integer()
+        }
+
+  @doc ~S"""
+  Checks if the received block number is correct, and proceeds to add it to the
+  list of blocks in the state if it is. This ensures the blocks we publish
+  follow each other using the defined interval.
+
+  ## Examples
+
+      iex> BlockQueueQueuer.enqueue_block(
+      ...> %{
+      ...>   formed_child_block_num: 1000,
+      ...>   child_block_interval: 1000,
+      ...>   blocks: %{},
+      ...>   wait_for_enqueue: nil,
+      ...>   last_enqueued_block_at_height: nil
+      ...> },
+      ...> %Block{hash: "hash", number: 2000},
+      ...> 10
+      ...> )
+      %{
+        formed_child_block_num: 2000,
+        wait_for_enqueue: false,
+        last_enqueued_block_at_height: 10,
+        child_block_interval: 1000,
+        blocks: %{
+          2000 => %BlockSubmission{hash: "hash", nonce: 2, num: 2000}
+        }
+      }
+
+  """
+  @spec enqueue_block(queue_state(), Block.t(), non_neg_integer) ::
+          queue_state() | {:error, :unexpected_block_number}
   def enqueue_block(state, %{hash: hash, number: expected_block_number}, parent_height) do
     own_height = state.formed_child_block_num + state.child_block_interval
 
@@ -59,31 +108,46 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueQueuer do
     trunc(height / interval)
   end
 
-  @doc """
-  Generates an enumberable of block numbers to be starting the BlockQueue with
-  (inclusive and it takes `finality_threshold` blocks before the youngest mined block)
+  @doc ~S"""
+  When restarting, we don't actually know what was the state of submission process to Ethereum.
+  Some blocks might have been submitted and lost/rejected/reorged by Ethereum in the mean time.
+  To properly restart the process we get last blocks known to DB and split them into mined
+  blocks (might still need tracking!) and blocks not yet submitted.
+
+  NOTE: handles both the case when there aren't any hashes in database, and when there are.
+
+  ## Examples
+
+      iex> BlockQueueQueuer.enqueue_existing_blocks(
+      ...> %{
+      ...>   blocks: [],
+      ...>   known_hashes: [{1000, "hash_1000"}, {2000, "hash_2000"}],
+      ...>   top_mined_hash: "hash_1000",
+      ...>   mined_child_block_num: 1000,
+      ...>   child_block_interval: 1_000,
+      ...>   last_enqueued_block_at_height: 1,
+      ...>   wait_for_enqueue: false,
+      ...>   parent_height: 10,
+      ...>   formed_child_block_num: nil
+      ...> })
+      {:ok, %{
+        formed_child_block_num: 2000,
+        wait_for_enqueue: false,
+        last_enqueued_block_at_height: 10,
+        child_block_interval: 1_000,
+        known_hashes: [{1000, "hash_1000"}, {2000, "hash_2000"}],
+        mined_child_block_num: 1000,
+        parent_height: 10,
+        top_mined_hash: "hash_1000",
+        blocks: %{
+          1000 => %BlockSubmission{hash: "hash_1000", nonce: 1, num: 1000},
+          2000 => %BlockSubmission{hash: "hash_2000", nonce: 2, num: 2000}
+        }
+      }}
+
   """
-  @spec child_block_nums_to_init_with(non_neg_integer, non_neg_integer, pos_integer, non_neg_integer) :: list
-  def child_block_nums_to_init_with(mined_num, until_child_block_num, interval, finality_threshold) do
-    make_range(max(interval, mined_num - finality_threshold * interval), until_child_block_num, interval)
-  end
-
-  # :lists.seq/3 throws, so wrapper
-  defp make_range(first, last, _) when first > last, do: []
-
-  defp make_range(first, last, step) do
-    :lists.seq(first, last, step)
-  end
-
-  # When restarting, we don't actually know what was the state of submission process to Ethereum.
-  # Some blocks might have been submitted and lost/rejected/reorged by Ethereum in the mean time.
-  # To properly restart the process we get last blocks known to DB and split them into mined
-  # blocks (might still need tracking!) and blocks not yet submitted.
-
-  # NOTE: handles both the case when there aren't any hashes in database and there are
-  @spec enqueue_existing_blocks(BlockQueueState.t()) ::
-          {:ok, BlockQueueState.t()}
-          | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
+  @spec enqueue_existing_blocks(queue_state()) ::
+          {:ok, Map.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
   def enqueue_existing_blocks(
         %{
           top_mined_hash: @zero_bytes32,
@@ -137,7 +201,7 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueQueuer do
 
   # splits into ones that are before top_mined_hash and those after
   # mined are zipped with their numbers to submit
-  defp split_existing_blocks(%BlockQueueState{mined_child_block_num: blknum}, blknums_and_hashes) do
+  defp split_existing_blocks(%{mined_child_block_num: blknum}, blknums_and_hashes) do
     {mined, fresh} =
       Enum.find_index(blknums_and_hashes, &(elem(&1, 0) == blknum))
       |> case do

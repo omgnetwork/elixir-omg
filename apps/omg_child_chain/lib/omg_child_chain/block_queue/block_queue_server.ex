@@ -37,6 +37,8 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueServer do
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
 
+  alias OMG.Block
+
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
@@ -79,7 +81,7 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueServer do
     {:noreply, do_sync_with_ethereum(state)}
   end
 
-  def handle_info(block, state) do
+  def handle_info(%Block{} = block, state) do
     {:noreply, do_internal_event_bus(block, state)}
   end
 
