@@ -33,6 +33,7 @@ defmodule OMG.Eth.BundleDeployer do
   # NOTE tx marker must match values defined in the `omg` app. This doesn't depend on `omg` so can't import from there
   # TODO drying this properly would require moving at least part of the deployment to `omg`. Not ready for this yet
   @payment_tx_marker 1
+  @payment_output_type_marker 1
   # `Protocol.MORE_VP()` from `Protocol.sol`
   @morevp_protocol_marker 2
   @eth_vault_number 1
@@ -97,14 +98,19 @@ defmodule OMG.Eth.BundleDeployer do
         transact_opts
       )
 
-    {:ok, _, payment_spending_condition_registry_addr} =
-      Deployer.create_new("PaymentSpendingConditionRegistry", root_path, deployer_addr, [])
+    {:ok, _, spending_condition_registry_addr} =
+      Deployer.create_new("SpendingConditionRegistry", root_path, deployer_addr, [])
 
     {:ok, _, output_guard_handler_registry_addr} =
       Deployer.create_new("OutputGuardHandlerRegistry", root_path, deployer_addr, [])
 
     {:ok, _, payment_output_guard_handler_addr} =
-      Deployer.create_new("PaymentOutputGuardHandler", root_path, deployer_addr, tx_type_marker: @payment_tx_marker)
+      Deployer.create_new("PaymentOutputGuardHandler", root_path, deployer_addr,
+        payment_output_type_marker: @payment_output_type_marker
+      )
+
+    {:ok, _, payment_transaction_state_transition_verifier_addr} =
+      Deployer.create_new("PaymentTransactionStateTransitionVerifier", root_path, deployer_addr, [])
 
     {:ok, _} =
       Eth.contract_transact(
@@ -115,6 +121,9 @@ defmodule OMG.Eth.BundleDeployer do
         transact_opts
       )
 
+    {:ok, _, tx_finalization_verifier_addr} =
+      Deployer.create_new("TxFinalizationVerifier", root_path, deployer_addr, [])
+
     {:ok, _, payment_exit_game_addr} =
       Deployer.create_new(
         "PaymentExitGame",
@@ -124,7 +133,29 @@ defmodule OMG.Eth.BundleDeployer do
         eth_vault: eth_vault_addr,
         erc20_vault: erc20_vault_addr,
         output_guard_handler: output_guard_handler_registry_addr,
-        spending_condition: payment_spending_condition_registry_addr
+        spending_condition: spending_condition_registry_addr,
+        payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier_addr,
+        tx_finalization_verifier: tx_finalization_verifier_addr,
+        tx_type: @payment_tx_marker
+      )
+
+    {:ok, _, payment_output_to_payment_tx_condition_addr} =
+      Deployer.create_new(
+        "PaymentOutputToPaymentTxCondition",
+        root_path,
+        deployer_addr,
+        plasma_framework: plasma_framework_addr,
+        input_tx_type: @payment_tx_marker,
+        spending_tx_type: @payment_tx_marker
+      )
+
+    {:ok, _} =
+      Eth.contract_transact(
+        deployer_addr,
+        spending_condition_registry_addr,
+        "registerSpendingCondition(uint256,uint256,address)",
+        [@payment_output_type_marker, @payment_tx_marker, payment_output_to_payment_tx_condition_addr],
+        transact_opts
       )
 
     {:ok, _} =
@@ -137,7 +168,7 @@ defmodule OMG.Eth.BundleDeployer do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    assert_count_of_mined_transactions(deployer_addr, transactions_before, 18)
+    assert_count_of_mined_transactions(deployer_addr, transactions_before, 28)
 
     {:ok, txhash,
      %{

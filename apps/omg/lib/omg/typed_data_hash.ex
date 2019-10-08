@@ -30,7 +30,7 @@ defmodule OMG.TypedDataHash do
   @empty_input_hash __MODULE__.Tools.hash_input(Utxo.position(0, 0, 0))
 
   # Precomputed hash of empty output for performance
-  @empty_output_hash __MODULE__.Tools.hash_output(%{owner: @zero_address, currency: @zero_address, amount: 0})
+  @empty_output_hash __MODULE__.Tools.hash_output(%{owner: @zero_address, currency: @zero_address, amount: 0}, 0)
 
   # Prefix and version byte motivated by http://eips.ethereum.org/EIPS/eip-191
   @eip_191_prefix <<0x19, 0x01>>
@@ -47,6 +47,7 @@ defmodule OMG.TypedDataHash do
   @spec hash_transaction(Transaction.Payment.t()) :: Crypto.hash_t()
   def hash_transaction(%Transaction.Payment{} = raw_tx) do
     __MODULE__.Tools.hash_transaction(
+      Transaction.Markers.payment(),
       Transaction.get_inputs(raw_tx),
       Transaction.get_outputs(raw_tx),
       raw_tx.metadata,

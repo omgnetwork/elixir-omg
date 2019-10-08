@@ -372,14 +372,8 @@ defmodule OMG.Watcher.ExitProcessor do
     {:noreply, state}
   end
 
-  defp fill_request_with_standard_challenge_data(
-         %ExitProcessor.Request{se_spending_blocks_to_get: positions, se_creating_blocks_to_get: blknums} = request
-       ) do
-    %ExitProcessor.Request{
-      request
-      | se_spending_blocks_result: do_get_spending_blocks(positions),
-        se_creating_blocks_result: do_get_blocks(blknums)
-    }
+  defp fill_request_with_standard_challenge_data(%ExitProcessor.Request{se_spending_blocks_to_get: positions} = request) do
+    %ExitProcessor.Request{request | se_spending_blocks_result: do_get_spending_blocks(positions)}
   end
 
   # based on the exits being processed, fills the request structure with data required to process queries

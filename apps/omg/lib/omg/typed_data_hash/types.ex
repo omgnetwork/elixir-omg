@@ -35,6 +35,7 @@ defmodule OMG.TypedDataHash.Types do
   ]
 
   @tx_spec Enum.concat([
+             [@make_spec.("txType", "uint256")],
              Enum.map(0..3, fn i -> @make_spec.("input" <> Integer.to_string(i), "Input") end),
              Enum.map(0..3, fn i -> @make_spec.("output" <> Integer.to_string(i), "Output") end),
              [@make_spec.("metadata", "bytes32")]
@@ -47,7 +48,8 @@ defmodule OMG.TypedDataHash.Types do
   ]
 
   @output_spec [
-    @make_spec.("owner", "address"),
+    @make_spec.("outputType", "uint256"),
+    @make_spec.("outputGuard", "bytes20"),
     @make_spec.("currency", "address"),
     @make_spec.("amount", "uint256")
   ]

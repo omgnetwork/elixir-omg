@@ -82,7 +82,7 @@ defmodule OMG.EthTest do
     # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
     # payment marker, no inputs, one output, metadata
     tx =
-      [<<1>>, [], [[contract.authority_addr, @eth, 1]], <<0::256>>]
+      [<<1>>, [], [[<<1>>, contract.authority_addr, @eth, 1]], <<0::256>>]
       |> ExRLP.encode()
 
     {:ok, tx_hash} =

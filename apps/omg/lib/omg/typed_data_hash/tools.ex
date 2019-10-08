@@ -69,13 +69,14 @@ defmodule OMG.TypedDataHash.Tools do
   end
 
   @spec hash_transaction(
+          binary,
           list(Utxo.Position.t()),
           list(Transaction.Payment.output()),
           Transaction.metadata(),
           Crypto.hash_t(),
           Crypto.hash_t()
         ) :: Crypto.hash_t()
-  def hash_transaction(inputs, outputs, metadata, empty_input_hash, empty_output_hash) do
+  def hash_transaction(plasma_framework_tx_type, inputs, outputs, metadata, empty_input_hash, empty_output_hash) do
     require Transaction.Payment
 
     input_hashes =
@@ -92,6 +93,7 @@ defmodule OMG.TypedDataHash.Tools do
 
     [
       @transaction_type_hash,
+      ABI.TypeEncoder.encode_raw([:binary.decode_unsigned(plasma_framework_tx_type)], [{:uint, 256}]),
       input_hashes,
       output_hashes,
       metadata || <<0::256>>
@@ -114,10 +116,13 @@ defmodule OMG.TypedDataHash.Tools do
   end
 
   @spec hash_output(Transaction.Payment.output()) :: Crypto.hash_t()
-  def hash_output(%{owner: owner, currency: currency, amount: amount}) do
+  def hash_output(%{owner: owner, currency: currency, amount: amount}, output_type \\ 1) do
     [
       @output_type_hash,
-      ABI.TypeEncoder.encode_raw([owner], [:address]),
+      # TODO: ugly but to be cleaned up in the abstract output PR soon, so leaving as is
+      #       hard coded output type 1
+      ABI.TypeEncoder.encode_raw([output_type], [{:uint, 256}]),
+      ABI.TypeEncoder.encode_raw([owner], [{:bytes, 20}]),
       ABI.TypeEncoder.encode_raw([currency], [:address]),
       ABI.TypeEncoder.encode_raw([amount], [{:uint, 256}])
     ]

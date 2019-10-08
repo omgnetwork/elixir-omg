@@ -39,7 +39,7 @@ defmodule OMG.Eth.Fixtures do
     root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
-    {:ok, _, token_addr} = Eth.Deployer.create_new(OMG.Eth.Token, root_path, Encoding.from_hex(addr), [])
+    {:ok, _, token_addr} = Eth.Deployer.create_new("ERC20Mintable", root_path, Encoding.from_hex(addr), [])
 
     # ensuring that the root chain contract handles token_addr
     {:ok, false} = Eth.RootChainHelper.has_token(token_addr)
@@ -58,7 +58,8 @@ defmodule OMG.Eth.Fixtures do
     {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
     on_exit(fn ->
-      Application.put_env(:omg_eth, :contract_addr, nil)
+      # reverting to the original values from `omg_eth/config/test.exs`
+      Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: "0x0000000000000000000000000000000000000001"})
       Application.put_env(:omg_eth, :authority_addr, nil)
       Application.put_env(:omg_eth, :txhash_contract, nil)
 

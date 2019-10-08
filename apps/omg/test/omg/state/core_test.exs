@@ -485,8 +485,8 @@ defmodule OMG.State.CoreTest do
 
     # precomputed fixed hash to check compliance with hashing algo
     assert block_hash ==
-             <<16, 139, 87, 31, 138, 148, 220, 238, 229, 44, 183, 103, 56, 33, 63, 158, 60, 71, 34, 132, 92, 211, 169,
-               221, 234, 110, 103, 233, 122, 84, 126, 180>>
+             <<218, 153, 13, 247, 52, 151, 31, 191, 14, 98, 96, 181, 113, 239, 1, 101, 78, 189, 159, 121, 97, 13, 89,
+               190, 182, 145, 161, 208, 25, 188, 28, 194>>
 
     # Check that contents of the block can be recovered again to original txs
     assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)

@@ -542,17 +542,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
   describe "submitting structural transaction" do
     deffixture typed_data_request(alice, bob) do
-      contract_addr = %{plasma_framework: Encoding.to_hex(<<1::160>>)}
-
+      contract_addr = Application.fetch_env!(:omg_eth, :contract_addr)
       alice_addr = Encoding.to_hex(alice.addr)
       bob_addr = Encoding.to_hex(bob.addr)
-
-      # we need contract address to be set for `TypedDataHash` computation, contract does not need to be deployed
-      Application.put_env(:omg_eth, :contract_addr, contract_addr)
-
-      on_exit(fn ->
-        Application.put_env(:omg_eth, :contract_addr, nil)
-      end)
 
       %{
         # these values should match configuration :omg, :eip_712_domain

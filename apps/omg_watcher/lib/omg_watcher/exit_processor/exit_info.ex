@@ -25,8 +25,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
   require Utxo
 
-  @enforce_keys [:amount, :currency, :owner, :exit_id, :is_active, :eth_height]
-
+  @enforce_keys [:amount, :currency, :owner, :exit_id, :exiting_txbytes, :is_active, :eth_height]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
@@ -34,6 +33,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           currency: Crypto.address_t(),
           owner: Crypto.address_t(),
           exit_id: non_neg_integer(),
+          # the transaction creating the exiting output
+          exiting_txbytes: Transaction.tx_bytes(),
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
           eth_height: pos_integer()
@@ -44,7 +45,14 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     {:ok, raw_tx} = Transaction.decode(txbytes)
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
-    do_new(contract_status, amount: amount, currency: currency, owner: owner, exit_id: exit_id, eth_height: eth_height)
+    do_new(contract_status,
+      amount: amount,
+      currency: currency,
+      owner: owner,
+      exit_id: exit_id,
+      exiting_txbytes: txbytes,
+      eth_height: eth_height
+    )
   end
 
   def new_key(_contract_status, event),
@@ -70,18 +78,20 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
            currency: currency,
            owner: owner,
            exit_id: exit_id,
+           exiting_txbytes: exiting_txbytes,
            is_active: is_active,
            eth_height: eth_height
          }}
       )
       when is_integer(amount) and is_integer(eth_height) and
-             is_binary(currency) and is_binary(owner) and is_integer(exit_id) and
+             is_binary(currency) and is_binary(owner) and is_integer(exit_id) and is_binary(exiting_txbytes) and
              is_boolean(is_active) do
     value = %{
       amount: amount,
       currency: currency,
       owner: owner,
       exit_id: exit_id,
+      exiting_txbytes: exiting_txbytes,
       is_active: is_active,
       eth_height: eth_height
     }
@@ -96,12 +106,13 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
            currency: currency,
            owner: owner,
            exit_id: exit_id,
+           exiting_txbytes: exiting_txbytes,
            is_active: is_active,
            eth_height: eth_height
          }}
       )
       when is_integer(amount) and is_integer(eth_height) and
-             is_binary(currency) and is_binary(owner) and is_integer(exit_id) and
+             is_binary(currency) and is_binary(owner) and is_integer(exit_id) and is_binary(exiting_txbytes) and
              is_boolean(is_active) do
     # mapping is used in case of changes in data structure
     value = %{
@@ -109,6 +120,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       currency: currency,
       owner: owner,
       exit_id: exit_id,
+      exiting_txbytes: exiting_txbytes,
       is_active: is_active,
       eth_height: eth_height
     }
@@ -116,5 +128,9 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
   end
 
-  defp parse_contract_exit_status({exitable, _, _, _, _, _, _}), do: exitable
+  # processes the return value of `Eth.get_standard_exit(exit_id)`
+  # `exitable` will be `false` if the exit was challenged
+  # `exitable` will be `false` ALONG WITH the whole tuple holding zeroees, if the exit was processed successfully
+  # **NOTE** one can only rely on the zero-nonzero of this data, since for processed exits this data will be all zeros
+  defp parse_contract_exit_status({exitable, _, _, _, _, _}), do: exitable
 end
