@@ -76,7 +76,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     eth_height = Keyword.get(opts, :eth_height, 2)
 
     %{
-      call_data: %{in_flight_tx: Transaction.raw_txbytes(tx), in_flight_tx_sigs: Enum.join(sigs)},
+      call_data: %{in_flight_tx: Transaction.raw_txbytes(tx), in_flight_tx_sigs: sigs},
       eth_height: eth_height
     }
   end
