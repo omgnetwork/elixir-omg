@@ -177,9 +177,16 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
       processor
       |> start_ife_from(ife_exit_tx1, status: {1, ife_id1})
       |> start_ife_from(ife_exit_tx2, status: {1, ife_id2})
-      |> Core.new_piggybacks([%{tx_hash: tx_hash1, output_index: 4}, %{tx_hash: tx_hash2, output_index: 0}])
+      # FIXME: refactor to leverage helpers more
+      |> Core.new_piggybacks([
+        %{tx_hash: tx_hash1, output_index: 0, omg_data: %{piggyback_type: :output}},
+        %{tx_hash: tx_hash2, output_index: 0, omg_data: %{piggyback_type: :input}}
+      ])
 
-    finalizations = [%{in_flight_exit_id: ife_id1, output_index: 4}, %{in_flight_exit_id: ife_id2, output_index: 0}]
+    finalizations = [
+      %{in_flight_exit_id: ife_id1, output_index: 0, omg_data: %{piggyback_type: :output}},
+      %{in_flight_exit_id: ife_id2, output_index: 0, omg_data: %{piggyback_type: :input}}
+    ]
 
     ife_id1 = <<ife_id1::192>>
     ife_id2 = <<ife_id2::192>>
@@ -203,9 +210,9 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     {processor, _} =
       processor
       |> start_ife_from(ife_exit_tx, status: {1, ife_id})
-      |> Core.new_piggybacks([%{tx_hash: tx_hash, output_index: 4}])
+      |> Core.new_piggybacks([%{tx_hash: tx_hash, output_index: 0, omg_data: %{piggyback_type: :output}}])
 
-    finalizations = [%{in_flight_exit_id: ife_id, output_index: 4}]
+    finalizations = [%{in_flight_exit_id: ife_id, output_index: 0, omg_data: %{piggyback_type: :output}}]
     ife_id = <<ife_id::192>>
 
     {:ok, %{^ife_id => {_input_exits, output_exits}}} =

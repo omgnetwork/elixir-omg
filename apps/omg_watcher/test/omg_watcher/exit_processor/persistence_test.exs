@@ -141,8 +141,12 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
       }
     }
 
-    piggybacks1 = [%{tx_hash: hash, output_index: 0}, %{tx_hash: hash, output_index: 4}]
-    piggybacks2 = [%{tx_hash: hash, output_index: 5}]
+    piggybacks1 = [
+      %{tx_hash: hash, output_index: 0, omg_data: %{piggyback_type: :input}},
+      %{tx_hash: hash, output_index: 0, omg_data: %{piggyback_type: :output}}
+    ]
+
+    piggybacks2 = [%{tx_hash: hash, output_index: 1, omg_data: %{piggyback_type: :output}}]
 
     processor
     |> persist_new_ifes([tx], [[alice.priv]], db_pid)
@@ -159,18 +163,25 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     tx = Transaction.Payment.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
     hash = Transaction.raw_txhash(tx)
 
-    piggybacks1 = [%{tx_hash: hash, output_index: 0}, %{tx_hash: hash, output_index: 4}]
-    piggybacks2 = [%{tx_hash: hash, output_index: 5}]
+    piggybacks1 = [
+      %{tx_hash: hash, output_index: 0, omg_data: %{piggyback_type: :input}},
+      %{tx_hash: hash, output_index: 0, omg_data: %{piggyback_type: :output}}
+    ]
+
+    piggybacks2 = [%{tx_hash: hash, output_index: 1, omg_data: %{piggyback_type: :output}}]
 
     processor
     |> persist_new_ifes([tx], [[alice.priv]], db_pid)
     |> persist_new_piggybacks(piggybacks1, db_pid)
     |> persist_new_piggybacks(piggybacks2, db_pid)
-    |> persist_finalize_ifes([%{in_flight_exit_id: @non_zero_exit_id, output_index: 0}], db_pid)
+    |> persist_finalize_ifes(
+      [%{in_flight_exit_id: @non_zero_exit_id, output_index: 0, omg_data: %{piggyback_type: :input}}],
+      db_pid
+    )
     |> persist_finalize_ifes(
       [
-        %{in_flight_exit_id: @non_zero_exit_id, output_index: 4},
-        %{in_flight_exit_id: @non_zero_exit_id, output_index: 5}
+        %{in_flight_exit_id: @non_zero_exit_id, output_index: 0, omg_data: %{piggyback_type: :output}},
+        %{in_flight_exit_id: @non_zero_exit_id, output_index: 1, omg_data: %{piggyback_type: :output}}
       ],
       db_pid
     )

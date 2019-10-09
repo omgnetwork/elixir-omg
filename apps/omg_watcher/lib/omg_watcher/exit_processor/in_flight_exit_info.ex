@@ -27,6 +27,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   require Transaction.Payment
 
   @max_inputs Transaction.Payment.max_inputs()
+  @max_outputs Transaction.Payment.max_outputs()
+  @inputs_index_range 0..(@max_inputs - 1)
+  @outputs_index_range 0..(@max_outputs - 1)
 
   # TODO: divide into inputs and outputs: prevent contract's implementation from leaking into watcher
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247926222
@@ -228,11 +231,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec piggyback(t(), non_neg_integer()) :: t() | {:error, :non_existent_exit | :cannot_piggyback}
   def piggyback(ife, index)
 
-  # TODO(pnowosie): Do we want to be more defensive in guard, e.g. {type, idx} = index => type in [:input, :output] and 0 <= idx <= MAX_INPUT
-  def piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when is_tuple(index) do
-    with exit <- Map.get(exit_map, index),
+  def piggyback(%__MODULE__{exit_map: exit_map} = ife, combined_index) when is_tuple(combined_index) do
+    with exit <- exit_map_get(exit_map, combined_index),
          {:ok, updated_exit} <- piggyback_exit(exit) do
-      %{ife | exit_map: Map.put(exit_map, index, updated_exit)}
+      %{ife | exit_map: Map.put(exit_map, combined_index, updated_exit)}
     end
   end
 
@@ -258,9 +260,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when is_tuple(index) do
-    %{is_piggybacked: true, is_finalized: false} = Map.get(exit_map, index)
-    %{ife | exit_map: Map.replace!(exit_map, index, %{is_piggybacked: false, is_finalized: false})}
+  def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, combined_index) when is_tuple(combined_index) do
+    %{is_piggybacked: true, is_finalized: false} = exit_map_get(exit_map, combined_index)
+    %{ife | exit_map: Map.replace!(exit_map, combined_index, %{is_piggybacked: false, is_finalized: false})}
   end
 
   @spec respond_to_challenge(t(), Utxo.Position.t()) ::
@@ -279,21 +281,22 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def respond_to_challenge(%__MODULE__{}, _), do: {:error, :cannot_respond}
 
-  @spec finalize(t(), non_neg_integer()) :: {:ok, t()} | :unknown_output_index
-  def finalize(%__MODULE__{exit_map: exit_map} = ife, output_index) do
-    case Map.get(exit_map, output_index) do
+  # FIXME dry typespecs
+  @spec finalize(t(), {atom, non_neg_integer()}) :: {:ok, t()} | :unknown_output_index
+  def finalize(%__MODULE__{exit_map: exit_map} = ife, combined_index) do
+    case exit_map_get(exit_map, combined_index) do
       nil ->
         :unknown_output_index
 
       output_exit ->
         output_exit = %{output_exit | is_finalized: true}
-        exit_map = Map.put(exit_map, output_index, output_exit)
+        exit_map = Map.put(exit_map, combined_index, output_exit)
         ife = %{ife | exit_map: exit_map}
 
         is_active =
           exit_map
           |> Map.keys()
-          |> Enum.any?(fn output_index -> is_active?(ife, output_index) end)
+          |> Enum.any?(&is_active?(ife, &1))
 
         ife = %{ife | is_active: is_active}
         {:ok, ife}
@@ -303,30 +306,26 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]
   def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
 
-  def get_piggybacked_outputs_positions(%__MODULE__{
-        tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _},
-        exit_map: exit_map
-      }) do
-    # TODO(pnowosie): exit_map keys now contains info whether they are inputs or outputs, see: L73: exit_map type spec
+  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _}} = ife) do
     @outputs_index_range
-    |> Enum.filter(&exit_map[&1].is_piggybacked)
-    |> Enum.map(&Utxo.position(blknum, txindex, &1 - @max_inputs))
+    |> Enum.filter(&is_output_piggybacked?(ife, &1))
+    |> Enum.map(&Utxo.position(blknum, txindex, &1))
   end
 
-  def is_piggybacked?(%__MODULE__{exit_map: map}, index) when is_integer(index) do
-    with {:ok, exit} <- Map.fetch(map, index) do
+  def is_piggybacked?(%__MODULE__{exit_map: map}, combined_index) when is_tuple(combined_index) do
+    if exit = exit_map_get(map, combined_index) do
       Map.get(exit, :is_piggybacked)
     else
-      :error -> false
+      false
     end
   end
 
   def is_input_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_inputs do
-    is_piggybacked?(ife, index)
+    is_piggybacked?(ife, {:input, index})
   end
 
-  def is_output_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_inputs do
-    is_piggybacked?(ife, index + @max_inputs)
+  def is_output_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_outputs do
+    is_piggybacked?(ife, {:output, index})
   end
 
   def indexed_piggybacks_by_ife(%__MODULE__{tx: tx} = ife, :input) do
@@ -351,28 +350,25 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   defp index_output_position(position), do: {position, Utxo.Position.oindex(position)}
 
   def piggybacked_inputs(ife) do
-    # TODO(pnowosie): exit_map keys now contains info whether they are inputs or outputs, see: L73: exit_map type spec
     @inputs_index_range
-    |> Enum.filter(&is_piggybacked?(ife, &1))
+    |> Enum.filter(&is_input_piggybacked?(ife, &1))
   end
 
   def piggybacked_outputs(ife) do
-    # TODO(pnowosie): exit_map keys now contains info whether they are inputs or outputs, see: L73: exit_map type spec
     @outputs_index_range
-    |> Enum.filter(&is_piggybacked?(ife, &1))
-    |> Enum.map(&(&1 - @max_inputs))
+    |> Enum.filter(&is_output_piggybacked?(ife, &1))
   end
 
-  def is_finalized?(%__MODULE__{exit_map: map}, index) do
-    with {:ok, exit} <- Map.fetch(map, index) do
+  def is_finalized?(%__MODULE__{exit_map: map}, combined_index) do
+    if exit = exit_map_get(map, combined_index) do
       Map.get(exit, :is_finalized)
     else
-      :error -> false
+      false
     end
   end
 
-  def is_active?(%__MODULE__{} = ife, index) do
-    is_piggybacked?(ife, index) and !is_finalized?(ife, index)
+  def is_active?(%__MODULE__{} = ife, combined_index) do
+    is_piggybacked?(ife, combined_index) and !is_finalized?(ife, combined_index)
   end
 
   def activate(%__MODULE__{} = ife) do
@@ -432,4 +428,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
+
+  defp exit_map_get(exit_map, {type, index} = combined_index)
+       when (type == :input and index < @max_inputs) or (type == :output and index < @max_outputs),
+       do: Map.get(exit_map, combined_index, %{is_piggybacked: false, is_finalized: false})
 end

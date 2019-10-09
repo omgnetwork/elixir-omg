@@ -238,6 +238,9 @@ defmodule OMG.State.Core do
 
   @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}
   def deposit(deposits, %Core{utxos: utxos, last_deposit_child_blknum: last_deposit_child_blknum} = state) do
+    # FIXME: after the refactor of EthereumEventListener pipes mentioned in root_chain.ex, we need to remove this check
+    #        this check seems like unnecessary defensive coding now - the only-once for deposits processing is now reliant on
+    #        `depositor`'s eth height tracking and atomicity of writes to the db of that marker and the deposit utxos
     deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_child_blknum))
 
     new_utxos_map = deposits |> Enum.into(%{}, &deposit_to_utxo/1)
@@ -418,9 +421,10 @@ defmodule OMG.State.Core do
   defp last_deposit_child_blknum_db_update(_deposits, last_deposit_child_blknum),
     do: [{:put, :last_deposit_child_blknum, last_deposit_child_blknum}]
 
-  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex}, %Core{utxos: utxos}) do
-    # oindex in contract is 0-7 where 4-7 are outputs
-    oindex = oindex - 4
-    UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
-  end
+  # if looking for an input of the piggyback, we won't find it like this (by creating tx that is), and we don't care
+  defp find_utxo_matching_piggyback(%{omg_data: %{piggyback_type: :input}}, %Core{}),
+    do: nil
+
+  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex}, %Core{utxos: utxos}),
+    do: UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
 end

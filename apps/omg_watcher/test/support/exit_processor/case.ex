@@ -89,7 +89,11 @@ defmodule OMG.Watcher.ExitProcessor.Case do
       ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], 3000)]
     }
 
-    state = state |> start_ife_from(competing_tx) |> piggyback_ife_from(ife_id, 0) |> Core.find_ifes_in_blocks(request)
+    state =
+      state
+      |> start_ife_from(competing_tx)
+      |> piggyback_ife_from(ife_id, 0, :input)
+      |> Core.find_ifes_in_blocks(request)
 
     %{
       state: state,
@@ -120,7 +124,11 @@ defmodule OMG.Watcher.ExitProcessor.Case do
     }
 
     # 3. stuff happens in the contract; output #4 is a double-spend; #5 is OK
-    state = state |> piggyback_ife_from(ife_id, 4) |> piggyback_ife_from(ife_id, 5) |> Core.find_ifes_in_blocks(request)
+    state =
+      state
+      |> piggyback_ife_from(ife_id, 0, :output)
+      |> piggyback_ife_from(ife_id, 1, :output)
+      |> Core.find_ifes_in_blocks(request)
 
     %{
       state: state,

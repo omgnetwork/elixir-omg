@@ -511,10 +511,20 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
     test "by not asking for utxo existence concerning finalized ifes",
          %{processor_empty: processor, transactions: [tx | _]} do
       tx_hash = Transaction.raw_txhash(tx)
-      piggybacks = [%{tx_hash: tx_hash, output_index: 1}, %{tx_hash: tx_hash, output_index: 2}]
+
+      piggybacks = [
+        %{tx_hash: tx_hash, output_index: 1, omg_data: %{piggyback_type: :input}},
+        %{tx_hash: tx_hash, output_index: 2, omg_data: %{piggyback_type: :input}}
+      ]
+
       ife_id = 123
       {processor, _} = processor |> start_ife_from(tx, status: {1, ife_id}) |> Core.new_piggybacks(piggybacks)
-      finalizations = [%{in_flight_exit_id: ife_id, output_index: 1}, %{in_flight_exit_id: ife_id, output_index: 2}]
+
+      finalizations = [
+        %{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}},
+        %{in_flight_exit_id: ife_id, output_index: 2, omg_data: %{piggyback_type: :input}}
+      ]
+
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, finalizations, %{})
 
       assert %{utxos_to_check: []} =
