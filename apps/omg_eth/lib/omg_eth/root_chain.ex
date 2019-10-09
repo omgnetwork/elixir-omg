@@ -104,17 +104,23 @@ defmodule OMG.Eth.RootChain do
 
     # solidity does not return arrays of structs
     return_struct = [
+      :bool,
+      {:uint, 64},
       {:uint, 256},
       {:uint, 256},
-      {:uint, 256},
+      # NOTE: there are these two more fields in the return but they can be ommitted???
+      # withdraw_data_struct,
+      # withdraw_data_struct,
       :address,
+      {:uint, 256},
       {:uint, 256}
     ]
 
     Eth.call_contract(contract, "inFlightExits(uint160)", [in_flight_exit_id], return_struct)
   end
 
-  # TODO: we're storing exit_ids for SEs, we should do the same for IFEs and remove this
+  # TODO: we're storing exit_ids for SEs, we should do the same for IFEs and remove this (requires exit_id to be
+  #       emitted from the start IFE event
   def get_in_flight_exit_id(tx_bytes, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     Eth.call_contract(contract, "getInFlightExitId(bytes)", [tx_bytes], [{:uint, 160}])
