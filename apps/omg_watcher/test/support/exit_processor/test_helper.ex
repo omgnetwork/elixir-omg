@@ -62,8 +62,12 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     processor
   end
 
-  def piggyback_ife_from(%Core{} = processor, tx_hash, output_index) do
-    {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: output_index}])
+  def piggyback_ife_from(%Core{} = processor, tx_hash, output_index, piggyback_type) do
+    {processor, _} =
+      Core.new_piggybacks(processor, [
+        %{tx_hash: tx_hash, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}}
+      ])
+
     processor
   end
 

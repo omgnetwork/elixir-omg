@@ -601,7 +601,11 @@ defmodule OMG.State.CoreTest do
              |> Enum.map(&Utxo.Position.encode/1)
              |> Core.exit_utxos(state)
 
-    piggybacks = [%{tx_hash: tx_hash, output_index: 4}, %{tx_hash: tx_hash, output_index: 5}]
+    piggybacks = [
+      %{tx_hash: tx_hash, output_index: 0, omg_data: %{piggyback_type: :output}},
+      %{tx_hash: tx_hash, output_index: 1, omg_data: %{piggyback_type: :output}}
+    ]
+
     assert exit_utxos_response_reference == Core.exit_utxos(piggybacks, state)
   end
 
@@ -642,7 +646,11 @@ defmodule OMG.State.CoreTest do
     state = state |> Core.exec(tx, :no_fees_required) |> success?
 
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
-    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.raw_txhash(tx), output_index: 4}]
+
+    utxo_pos_exits_piggyback = [
+      %{tx_hash: Transaction.raw_txhash(tx), output_index: 0, omg_data: %{piggyback_type: :output}}
+    ]
+
     expected_position = Utxo.position(@blknum1, 0, 0)
 
     assert {:ok, {[], {[], _}}, ^state} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
@@ -691,7 +699,7 @@ defmodule OMG.State.CoreTest do
 
   @tag fixtures: [:state_empty]
   test "notifies about invalid in-flight exit", %{state_empty: state} do
-    piggyback = %{tx_hash: 1, output_index: 5}
+    piggyback = %{tx_hash: 1, output_index: 1, omg_data: %{piggyback_type: :output}}
 
     assert {:ok, {[], {[], [^piggyback]}}, ^state} = Core.exit_utxos([piggyback], state)
   end

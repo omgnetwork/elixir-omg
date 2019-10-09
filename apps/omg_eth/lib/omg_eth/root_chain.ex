@@ -25,6 +25,7 @@ defmodule OMG.Eth.RootChain do
   @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
 
   @type optional_addr_t() :: %{atom => Eth.address()} | %{atom => nil}
+  # FIXME, revert and refresh, after the EEL pipes are fixed
   @type in_flight_exit_piggybacked_event() :: %{
           owner: <<_::160>>,
           tx_hash: <<_::256>>,
@@ -135,6 +136,10 @@ defmodule OMG.Eth.RootChain do
   """
   def get_deposits(block_from, block_to, contract \\ %{}) do
     # NOTE: see https://github.com/omisego/plasma-contracts/issues/262
+
+    # FIXME: note the `sort_by` here. It is necessary so that the (superfluous, see fixme there) check doesn't filter out
+    #        good deposits: `apps/omg/lib/omg/state/core.ex:231`
+    #        when the EthereumEventListener pipe refactor is done, the sorting can be removed and events treated separate
     contract_eth = maybe_fetch_addr!(contract, :eth_vault)
     contract_erc20 = maybe_fetch_addr!(contract, :erc20_vault)
 
@@ -237,6 +242,11 @@ defmodule OMG.Eth.RootChain do
           {:ok, [in_flight_exit_piggybacked_event]}
   def get_piggybacks(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
+    # FIXME: since intrictate processing of events doesn't fit into the scope of `RootChain` here, the plan is to:
+    #   - add `EthereumEventListener.EventProcessors.Piggyback/PiggybackBlocked/Deposit` (yes Deposit too)
+    #     machines that will do the processing and be tested
+    #     they will be what is hooked up to EELs in the supervisors, instead of the usual sinks (there can be more of these)
+    #   - let's proceed without this refactor though
     input_signature = "InFlightExitInputPiggybacked(address,bytes32,uint16)"
     output_signature = "InFlightExitOutputPiggybacked(address,bytes32,uint16)"
 
@@ -552,6 +562,6 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  defp update_with_output_type(%{output_index: index} = event, type),
-    do: %{event | output_index: {type, index}}
+  defp update_with_output_type(event, type),
+    do: Map.update(event, :omg_data, %{piggyback_type: type}, &Map.put(&1, :piggyback_type, type))
 end
