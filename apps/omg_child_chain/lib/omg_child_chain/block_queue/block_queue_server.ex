@@ -90,14 +90,17 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueServer do
     {:ok, mined_child_block_num} = RootChain.get_mined_child_block()
     {_, is_empty_block?} = OMG.State.get_status()
 
-    {form_block_or_skip, state} =
+    {form_block_status, state} =
       BlockQueueCore.sync_with_ethereum(state, %{
         ethereum_height: parent_height,
         mined_child_block_num: mined_child_block_num,
         is_empty_block: is_empty_block?
       })
 
-    :ok = BlockQueueSubmitter.submit_blocks_or_skip(state, form_block_or_skip)
+    if form_block_status == :do_form_block do
+      :ok = OMG.State.form_block()
+      :ok = BlockQueueSubmitter.submit_blocks_or_skip(state, form_block_status)
+    end
 
     state
   end

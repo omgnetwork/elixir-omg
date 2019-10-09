@@ -27,10 +27,8 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueSubmitter do
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
-  @spec submit_blocks_or_skip(BlockQueueState.t(), Atom.t()) :: :ok
-  def submit_blocks_or_skip(_state, :do_not_form_block), do: :ok
-
-  def submit_blocks_or_skip(%BlockQueueState{} = state, :do_form_block) do
+  @spec submit_blocks_or_skip(BlockQueueState.t()) :: :ok
+  def submit_blocks_or_skip(%BlockQueueState{} = state) do
     state
     |> get_blocks_to_submit()
     |> Enum.each(&submit/1)
