@@ -24,8 +24,10 @@ defmodule OMG.State.UtxoSet do
   correctly.
   """
 
+  alias OMG.Crypto
   alias OMG.InputPointer
   alias OMG.Output
+  alias OMG.State.Transaction
   alias OMG.Utxo
 
   require Utxo
@@ -54,7 +56,7 @@ defmodule OMG.State.UtxoSet do
   """
   @spec apply_effects(t(), list(InputPointer.Protocol.t()), t()) :: t()
   def apply_effects(utxos, spent_input_pointers, new_utxos_map) do
-    utxos |> Map.drop(spent_input_pointers) |> Map.merge(new_utxos_map)
+    utxos |> Map.merge(new_utxos_map) |> Map.drop(spent_input_pointers)
   end
 
   @doc """
@@ -68,6 +70,7 @@ defmodule OMG.State.UtxoSet do
     Enum.concat(db_updates_new_utxos, db_updates_spent_utxos)
   end
 
+  @spec exists?(t(), InputPointer.Protocol.t()) :: boolean()
   def exists?(utxos, input_pointer),
     do: Map.has_key?(utxos, input_pointer)
 
@@ -76,6 +79,7 @@ defmodule OMG.State.UtxoSet do
 
   Current implementation is **expensive**
   """
+  @spec find_matching_utxo(t(), Transaction.tx_hash(), non_neg_integer()) :: {InputPointer.Protocol.t(), Utxo.t()}
   def find_matching_utxo(utxos, requested_txhash, oindex) do
     utxos
     |> Stream.filter(&utxo_kv_created_by?(&1, requested_txhash))
@@ -85,10 +89,16 @@ defmodule OMG.State.UtxoSet do
   @doc """
   Streams the UTXO key-value pairs found to be owner by a particular address
   """
+  @spec filter_owned_by(t(), Crypto.address_t()) :: Enumerable.t()
   def filter_owned_by(utxos, address) do
     Stream.filter(utxos, fn utxo_kv -> utxo_kv_get_owner(utxo_kv) == address end)
   end
 
+  @doc """
+  Turns any enumerable of UTXOs (for example an instance of `OMG.State.UtxoSet.t` here) and produces a new enumerable
+  where the UTXO k-v pairs got zipped with UTXO positions coming from the data confined in the UTXO set
+  """
+  @spec zip_with_positions(t() | Enumerable.t()) :: Enumerable.t()
   def zip_with_positions(utxos) do
     Stream.map(utxos, fn utxo_kv -> {utxo_kv, utxo_kv_get_position(utxo_kv)} end)
   end

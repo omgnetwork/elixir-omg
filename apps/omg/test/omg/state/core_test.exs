@@ -371,6 +371,31 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  test "can't double spend chained txs", %{alice: alice, bob: bob, state_alice_deposit: state} do
+    recovered = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+    recovered2 = create_recovered([{1000, 0, 0, bob}], @eth, [{bob, 7}])
+
+    state
+    |> Core.exec(recovered, :no_fees_required)
+    |> success?
+    |> Core.exec(recovered2, :no_fees_required)
+    |> success?
+    |> Core.exec(recovered2, :no_fees_required)
+    |> fail?(:utxo_not_found)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  test "can't spend own output", %{bob: bob, state_alice_deposit: state} do
+    # The transaction here is designed so that it would spend its own output. Sanity checking first
+    {1000, true} = Core.get_status(state)
+    recovered2 = create_recovered([{1000, 0, 0, bob}], @eth, [{bob, 7}])
+
+    state
+    |> Core.exec(recovered2, :no_fees_required)
+    |> fail?(:utxo_not_found)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "spending emits event trigger", %{alice: alice, bob: bob, state_alice_deposit: state} do
     recover1 = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
     recover2 = create_recovered([{1000, 0, 0, bob}], @eth, [{alice, 3}])
