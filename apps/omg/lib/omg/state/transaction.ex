@@ -151,7 +151,8 @@ defprotocol OMG.State.Transaction.Protocol do
   def valid?(tx, signed_tx)
 
   @doc """
-  Custom stateful validity, based on pre-fetched subset of input UTXOs
+  Custom stateful validity, based on pre-fetched subset of input UTXOs. Check's if the `tx` can be applied given the
+  `input_utxos` presented, presumably UTXOs in the current state of `OMG.State`
 
   Should also return the fees that this transaction is paying, mapped by currency; for fee validation
   """

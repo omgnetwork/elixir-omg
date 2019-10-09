@@ -14,9 +14,9 @@
 
 defmodule OMG.State.Transaction.Payment do
   @moduledoc """
-      Internal representation of a payment transaction done on Plasma chain.
+  Internal representation of a raw payment transaction done on Plasma chain.
 
-      This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
+  This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
   """
   alias OMG.Crypto
   alias OMG.InputPointer
@@ -55,9 +55,7 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   @doc """
-  Creates a new transaction from a list of inputs and a list of outputs.
-  Adds empty (zeroes) inputs and/or outputs to reach the expected size
-  of `@max_inputs` inputs and `@max_outputs` outputs.
+  Creates a new raw transaction structure from a list of inputs and a list of outputs, given in a succinct tuple form.
 
   assumptions:
   ```

@@ -277,7 +277,6 @@ defmodule OMG.State.Core do
   """
   @spec exit_utxos(exiting_utxos :: exiting_utxos_t(), state :: t()) ::
           {:ok, {[db_update], validities_t()}, new_state :: t()}
-
   # empty list of whatever to bypass typing
   def exit_utxos([], %Core{} = state), do: {:ok, {[], {[], []}}, state}
 
@@ -298,6 +297,8 @@ defmodule OMG.State.Core do
 
   # list of IFE input/output piggybacked events
   def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do
+    _ = Logger.info("Recognized exits from IFE starts #{inspect(in_flight_txs)}")
+
     in_flight_txs
     |> Enum.flat_map(fn %{call_data: %{in_flight_tx: tx_bytes}} ->
       {:ok, tx} = Transaction.decode(tx_bytes)
@@ -308,6 +309,8 @@ defmodule OMG.State.Core do
 
   # list of IFE input/output piggybacked events
   def exit_utxos([%{tx_hash: _} | _] = piggybacks, state) do
+    _ = Logger.info("Recognized exits from piggybacks #{inspect(piggybacks)}")
+
     {piggybacks_of_unknown_utxos, piggybacks_of_known_utxos} =
       piggybacks
       |> Enum.map(&find_utxo_matching_piggyback(&1, state))
@@ -326,7 +329,7 @@ defmodule OMG.State.Core do
 
   # list of utxo positions (decoded)
   def exit_utxos([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{utxos: utxos} = state) do
-    _ = if exiting_utxos != [], do: Logger.info("Recognized exits #{inspect(exiting_utxos)}")
+    _ = Logger.info("Recognized exits #{inspect(exiting_utxos)}")
 
     {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
 
@@ -376,12 +379,12 @@ defmodule OMG.State.Core do
   end
 
   # Effects of a payment transaction - spends all inputs and creates all outputs
-  # Relies on the polymorphic `get_inputs` and `get_outputs` of Transaction`
+  # Relies on the polymorphic `get_inputs` and `get_outputs` of `Transaction`
   defp get_effects(tx, blknum, tx_index) do
-    {Transaction.get_inputs(tx), non_zero_utxos_from(tx, blknum, tx_index)}
+    {Transaction.get_inputs(tx), utxos_from(tx, blknum, tx_index)}
   end
 
-  defp non_zero_utxos_from(tx, blknum, tx_index) do
+  defp utxos_from(tx, blknum, tx_index) do
     hash = Transaction.raw_txhash(tx)
 
     tx
@@ -397,7 +400,7 @@ defmodule OMG.State.Core do
 
   defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
     Transaction.Payment.new([], [{owner, cur, amount}])
-    |> non_zero_utxos_from(blknum, 0)
+    |> utxos_from(blknum, 0)
     |> Enum.map(& &1)
     |> hd()
   end

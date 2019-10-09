@@ -14,11 +14,14 @@
 
 defmodule OMG.State.UtxoSet do
   @moduledoc """
-  Handles all the operations done on the UTXOs held in the ledger
+  Handles all the operations done on the UTXOs held in the ledger.
+  Provides the requested UTXOs by a collection of input pointers.
+  Trades in transaction effects (new utxos, utxos to delete).
 
-  It will provide the requested UTXOs by a collection of inputs, trade in transaction effects (new utxos, utxos to delete).
+  Translates the modifications to itself into DB updates, and is able to interpret the UTXO query result from DB.
 
-  It also translates the modifications to it into DB updates, and is able to interpret the UTXO query result from DB
+  Intended to handle any kind UTXO _subsets_ of the entire UTXO set, relying on that the subset of UTXOs is selected
+  correctly.
   """
 
   alias OMG.InputPointer
