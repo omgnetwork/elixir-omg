@@ -358,12 +358,13 @@ defmodule OMG.Eth.RootChain do
 
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
       {:ok, logs} ->
+        args = [:args]
+        types = ["(uint192,bytes,bytes,bytes)"]
+        tuple_arg_names = [:utxo_pos, :output_tx, :output_guard_preimage, :output_tx_inclusion_proof]
+
         exits =
           Enum.map(logs, fn log ->
             decode_exit_started = decode_exit_started(log)
-            args = [:args]
-            types = ["(uint192,bytes,bytes,bytes)"]
-            tuple_arg_names = [:utxo_pos, :output_tx, :output_guard_preimage, :output_tx_inclusion_proof]
 
             call_data =
               Eth.get_call_data(decode_exit_started.root_chain_txhash, "startStandardExit", args, types,
@@ -388,16 +389,33 @@ defmodule OMG.Eth.RootChain do
     signature = "InFlightExitStarted(address,bytes32)"
 
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
+      # FIXME: split into functions, here and elsewhere
       {:ok, logs} ->
-        args = [:in_flight_tx, :inputs_txs, :input_inclusion_proofs, :in_flight_tx_sigs]
-        types = ["bytes", "bytes", "bytes", "bytes"]
+        args = [:args]
+        types = ["(bytes,bytes[],uint256[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[])"]
+
+        tuple_arg_names = [
+          :in_flight_tx,
+          :inputs_txs,
+          :input_tx_types,
+          :input_utxos_pos,
+          :output_guard_preimages_for_inputs,
+          :input_inclusion_proofs,
+          :in_flight_tx_confirm_sigs,
+          :in_flight_tx_sigs,
+          :optional_args
+        ]
 
         result =
           Enum.map(logs, fn log ->
-            transaction_hash = from_hex(log["transactionHash"])
-            start_in_flight_exit = Eth.get_call_data(transaction_hash, "startInFlightExit", args, types)
             decode_in_flight_exit = decode_in_flight_exit(log)
-            Map.put(decode_in_flight_exit, :call_data, start_in_flight_exit)
+
+            call_data =
+              Eth.get_call_data(decode_in_flight_exit.root_chain_txhash, "startInFlightExit", args, types,
+                unpack_tuple_args: tuple_arg_names
+              )
+
+            Map.put(decode_in_flight_exit, :call_data, call_data)
           end)
 
         {:ok, result}

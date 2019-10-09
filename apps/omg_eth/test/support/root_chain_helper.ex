@@ -180,18 +180,6 @@ defmodule OMG.Eth.RootChainHelper do
       |> Keyword.put(:gas, @gas_start_in_flight_exit)
 
     opts = Keyword.merge(defaults, opts)
-    # FIXME don't miss removing this
-    # struct StartExitArgs {
-    #     bytes inFlightTx;
-    #     bytes[] inputTxs;
-    #     uint256[] inputTxTypes;
-    #     uint256[] inputUtxosPos;
-    #     bytes[] outputGuardPreimagesForInputs;
-    #     bytes[] inputTxsInclusionProofs;
-    #     bytes[] inputTxsConfirmSigs;
-    #     bytes[] inFlightTxWitnesses;
-    #     bytes[] inputSpendingConditionOptionalArgs;
-    # }
 
     # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
     optional_bytes_array = List.duplicate("", Enum.count(input_txs))
