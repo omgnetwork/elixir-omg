@@ -22,8 +22,6 @@ defmodule OMG.Eth.RootChain do
   alias OMG.Eth
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
-  @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
-
   @type optional_addr_t() :: %{atom => Eth.address()} | %{atom => nil}
   # FIXME, revert and refresh, after the EEL pipes are fixed
   @type in_flight_exit_piggybacked_event() :: %{
@@ -143,10 +141,12 @@ defmodule OMG.Eth.RootChain do
     contract_eth = maybe_fetch_addr!(contract, :eth_vault)
     contract_erc20 = maybe_fetch_addr!(contract, :erc20_vault)
 
+    event_signature = "DepositCreated(address,uint256,address,uint256)"
+
     with {:ok, logs_eth} <-
-           Eth.get_ethereum_events(block_from, block_to, @deposit_created_event_signature, contract_eth),
+           Eth.get_ethereum_events(block_from, block_to, event_signature, contract_eth),
          {:ok, logs_erc20} <-
-           Eth.get_ethereum_events(block_from, block_to, @deposit_created_event_signature, contract_erc20),
+           Eth.get_ethereum_events(block_from, block_to, event_signature, contract_erc20),
          all_sorted_logs =
            [logs_eth, logs_erc20]
            |> Enum.concat()

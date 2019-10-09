@@ -188,7 +188,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     # piggyback only to the first transaction's output & wait for finalization
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChainHelper.piggyback_in_flight_exit(in_flight_tx2_rawbytes, 4, alice.addr)
+      Eth.RootChainHelper.piggyback_in_flight_exit_on_output(in_flight_tx2_rawbytes, 0, alice.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)

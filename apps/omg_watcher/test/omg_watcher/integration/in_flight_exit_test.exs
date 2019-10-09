@@ -76,12 +76,12 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     # PB 1
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.piggyback_in_flight_exit(Transaction.raw_txbytes(tx_submit1), 5, bob.addr)
+      OMG.Eth.RootChainHelper.piggyback_in_flight_exit_on_output(Transaction.raw_txbytes(tx_submit1), 1, bob.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     # PB 2
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.piggyback_in_flight_exit(Transaction.raw_txbytes(tx_submit1), 1, bob.addr)
+      OMG.Eth.RootChainHelper.piggyback_in_flight_exit_on_input(Transaction.raw_txbytes(tx_submit1), 1, bob.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     # sanity check
@@ -334,7 +334,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     assert %{"in_flight_exits" => [%{}]} = TestHelper.success?("/status.get")
 
-    _ = piggyback_and_process_exits(tx, 4 + 1, bob)
+    _ = piggyback_and_process_exits(tx, 1, :output, bob)
 
     assert %{"in_flight_exits" => [], "byzantine_events" => []} = TestHelper.success?("/status.get")
   end
@@ -347,7 +347,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
 
     _ = exit_in_flight_and_wait_for_ife(tx, alice)
-    _ = piggyback_and_process_exits(tx, 4 + 1, bob)
+    _ = piggyback_and_process_exits(tx, 1, :output, bob)
 
     assert %{"in_flight_exits" => [_], "byzantine_events" => [_]} = TestHelper.success?("/status.get")
   end
@@ -375,11 +375,17 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
   end
 
-  defp piggyback_and_process_exits(%Transaction.Signed{raw_tx: raw_tx}, output, output_owner) do
+  defp piggyback_and_process_exits(%Transaction.Signed{raw_tx: raw_tx}, index, piggyback_type, output_owner) do
     raw_tx_bytes = raw_tx |> Transaction.raw_txbytes()
 
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.piggyback_in_flight_exit(raw_tx_bytes, output, output_owner.addr)
+      case piggyback_type do
+        :input ->
+          OMG.Eth.RootChainHelper.piggyback_in_flight_exit_on_input(raw_tx_bytes, index, output_owner.addr)
+
+        :output ->
+          OMG.Eth.RootChainHelper.piggyback_in_flight_exit_on_output(raw_tx_bytes, index, output_owner.addr)
+      end
       |> Eth.DevHelpers.transact_sync!()
 
     :ok = IntegrationTest.process_exits(@eth, output_owner)
