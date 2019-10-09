@@ -30,7 +30,7 @@ defmodule OMG.Output.FungibleMoreVPToken do
     %__MODULE__{owner: owner, currency: currency, amount: amount}
   end
 
-  def reconstruct([<<1>>, owner, currency, amount]) do
+  def reconstruct([owner, currency, amount]) do
     with {:ok, cur12} <- parse_address(currency),
          {:ok, owner} <- parse_address(owner),
          do: %__MODULE__{owner: owner, currency: cur12, amount: parse_int!(amount)}
@@ -71,5 +71,5 @@ defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
   end
 
   def get_data_for_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}),
-    do: [owner, currency, amount]
+    do: [@output_type_marker, owner, currency, amount]
 end

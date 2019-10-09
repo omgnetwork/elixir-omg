@@ -118,21 +118,21 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   defp parse_outputs(outputs_rlp) do
-    outputs = Enum.map(outputs_rlp, &parse_output!/1)
+    outputs = Enum.map(outputs_rlp, &Output.dispatching_reconstruct/1)
 
     with nil <- Enum.find(outputs, &match?({:error, _}, &1)),
+         true <- only_allowed_output_types?(outputs) || {:error, :tx_cannot_create_output_type},
          do: {:ok, outputs}
   rescue
     _ -> {:error, :malformed_outputs}
   end
 
+  defp only_allowed_output_types?(outputs),
+    do: Enum.all?(outputs, &match?(%Output.FungibleMoreVPToken{}, &1))
+
   # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
   #       most likely one needs to route through generic InputPointer` function that does the dispatch
   defp parse_input!(input_pointer), do: InputPointer.UtxoPosition.reconstruct(input_pointer)
-
-  # NOTE: here we predetermine the type of the created output in the creating transaction
-  #       I think this makes sense, but rethink later
-  defp parse_output!(output), do: Output.FungibleMoreVPToken.reconstruct(output)
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do

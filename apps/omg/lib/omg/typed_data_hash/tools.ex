@@ -44,6 +44,9 @@ defmodule OMG.TypedDataHash.Tools do
   @input_type_hash Crypto.hash(@input_encoded_type)
   @output_type_hash Crypto.hash(@output_encoded_type)
 
+  # TODO: dry wrt. Application.fetch_env!(:omg, :output_types_modules)? Use `bimap` perhaps?
+  @output_type_marker <<1>>
+
   @doc """
   Computes Domain Separator `hashStruct(eip712Domain)`,
   @see: http://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator
@@ -117,12 +120,12 @@ defmodule OMG.TypedDataHash.Tools do
   end
 
   @spec hash_output(Output.FungibleMoreVPToken.t(), pos_integer) :: Crypto.hash_t()
-  def hash_output(%{owner: owner, currency: currency, amount: amount}, output_type \\ 1) do
+  def hash_output(%Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}, opts \\ []) do
+    output_type = if Keyword.get(opts, :hash_zero), do: <<0>>, else: @output_type_marker
+
     [
       @output_type_hash,
-      # TODO: ugly but to be cleaned up in the abstract output PR soon, so leaving as is
-      #       hard coded output type 1
-      ABI.TypeEncoder.encode_raw([output_type], [{:uint, 256}]),
+      ABI.TypeEncoder.encode_raw([:binary.decode_unsigned(output_type)], [{:uint, 256}]),
       ABI.TypeEncoder.encode_raw([owner], [{:bytes, 20}]),
       ABI.TypeEncoder.encode_raw([currency], [:address]),
       ABI.TypeEncoder.encode_raw([amount], [{:uint, 256}])
