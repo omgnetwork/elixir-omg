@@ -26,6 +26,7 @@ defmodule OMG.TypedDataHashTest do
   use ExUnit.Case, async: true
 
   alias OMG.Crypto
+  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.TypedDataHash
   alias OMG.TypedDataHash.Tools
@@ -124,7 +125,9 @@ defmodule OMG.TypedDataHashTest do
     end
 
     test "Output is hashed properly", %{outputs: [output1, output2, output3, output4]} do
-      to_output = fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end
+      to_output = fn {owner, currency, amount} ->
+        %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
+      end
 
       assert "4b85fe2caac41f533c3d3b56ec75ca3363d0205e4dde63ca16b0d377fa79364d" ==
                Tools.hash_output(to_output.(output1)) |> Base.encode16(case: :lower)

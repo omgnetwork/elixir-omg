@@ -187,10 +187,10 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     {:ok, %{^ife_id1 => {_input_exits1, output_exits1}, ^ife_id2 => {input_exits2, _output_exits2}}} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
-    assert {:ok, {[{:delete, :utxo, {1000, 0, 0}}], {[{:utxo_position, 1000, 0, 0}], []}}, _} =
+    assert {:ok, {[{:delete, :utxo, _}], {[Utxo.position(1000, 0, 0)], []}}, _} =
              State.Core.exit_utxos(output_exits1, state)
 
-    assert {:ok, {[{:delete, :utxo, {2, 0, 0}}], {[{:utxo_position, 2, 0, 0}], []}}, _} =
+    assert {:ok, {[{:delete, :utxo, _}], {[Utxo.position(2, 0, 0)], []}}, _} =
              State.Core.exit_utxos(input_exits2, state)
   end
 

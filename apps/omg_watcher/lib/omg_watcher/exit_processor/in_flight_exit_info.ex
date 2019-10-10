@@ -53,6 +53,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     :contract_id,
     :oldest_competitor,
     :eth_height,
+    :relevant_from_blknum,
     # piggybacking
     exit_map:
       @exit_map_index_range
@@ -79,6 +80,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           contract_id: ife_contract_id(),
           oldest_competitor: Utxo.Position.t() | nil,
           eth_height: pos_integer(),
+          relevant_from_blknum: pos_integer(),
           exit_map: %{
             non_neg_integer() => %{
               is_piggybacked: boolean(),
@@ -102,10 +104,18 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   defp do_new(tx_bytes, tx_signatures, contract_status, fields) do
     with {:ok, tx} <- prepare_tx(tx_bytes, tx_signatures) do
+      # NOTE: in case of using output_id as the input pointer, getting the youngest will be entirely different
+      Utxo.position(youngest_input_blknum, _, _) =
+        tx
+        |> Transaction.get_inputs()
+        |> Enum.sort_by(&Utxo.Position.encode/1, &>=/2)
+        |> hd()
+
       fields =
         fields
         |> Keyword.put_new(:tx, tx)
         |> Keyword.put_new(:is_active, parse_contract_in_flight_exit_status(contract_status))
+        |> Keyword.put_new(:relevant_from_blknum, youngest_input_blknum)
 
       {Transaction.raw_txhash(tx), struct!(__MODULE__, fields)}
     end
@@ -131,14 +141,15 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
            contract_id: contract_id,
            oldest_competitor: oldest_competitor,
            eth_height: eth_height,
+           relevant_from_blknum: relevant_from_blknum,
            exit_map: exit_map,
            is_canonical: is_canonical,
            is_active: is_active
          }}
       )
       when is_binary(contract_id) and
-             is_integer(timestamp) and is_integer(eth_height) and is_map(exit_map) and
-             is_boolean(is_canonical) and is_boolean(is_active) do
+             is_integer(timestamp) and is_integer(eth_height) and is_integer(relevant_from_blknum) and
+             is_map(exit_map) and is_boolean(is_canonical) and is_boolean(is_active) do
     :ok = assert_utxo_pos_type(tx_pos)
     :ok = assert_utxo_pos_type(oldest_competitor)
     # mapping is used in case of changes in data structure
@@ -149,6 +160,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       contract_id: contract_id,
       oldest_competitor: oldest_competitor,
       eth_height: eth_height,
+      relevant_from_blknum: relevant_from_blknum,
       exit_map: exit_map,
       is_canonical: is_canonical,
       is_active: is_active
@@ -172,14 +184,15 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
            contract_id: contract_id,
            oldest_competitor: oldest_competitor,
            eth_height: eth_height,
+           relevant_from_blknum: relevant_from_blknum,
            exit_map: exit_map,
            is_canonical: is_canonical,
            is_active: is_active
          }}
       )
       when is_map(signed_tx_map) and is_binary(contract_id) and
-             is_integer(timestamp) and is_integer(eth_height) and is_map(exit_map) and
-             is_boolean(is_canonical) and is_boolean(is_active) do
+             is_integer(timestamp) and is_integer(eth_height) and is_integer(relevant_from_blknum) and
+             is_map(exit_map) and is_boolean(is_canonical) and is_boolean(is_active) do
     :ok = assert_utxo_pos_type(tx_pos)
     :ok = assert_utxo_pos_type(oldest_competitor)
 
@@ -191,6 +204,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       contract_id: contract_id,
       oldest_competitor: oldest_competitor,
       eth_height: eth_height,
+      relevant_from_blknum: relevant_from_blknum,
       exit_map: exit_map,
       is_canonical: is_canonical,
       is_active: is_active
@@ -405,6 +419,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         competitor_pos
       ),
       do: do_is_viable_competitor?(seen_at_pos, oldest_competitor_pos, competitor_pos)
+
+  def is_relevant?(%__MODULE__{relevant_from_blknum: relevant_from_blknum}, blknum_now),
+    do: relevant_from_blknum < blknum_now
 
   # there's nothing with any position, so there's nothing older than competitor, so it's good to challenge with
   defp do_is_viable_competitor?(nil, nil, _competitor_pos), do: true

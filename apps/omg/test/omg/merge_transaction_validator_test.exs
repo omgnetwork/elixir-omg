@@ -38,6 +38,12 @@ defmodule OMG.MergeTransactionValidatorTest do
       refute MergeTransactionValidator.is_merge_transaction?(%Transaction.Recovered{signed_tx: %{raw_tx: "fake"}})
     end
 
+    test "returns false when transaction doesn't consist of fungible-tokens only" do
+      refute MergeTransactionValidator.is_merge_transaction?(%Transaction.Recovered{
+               signed_tx: %Transaction.Signed{raw_tx: %Transaction.Payment{inputs: [1, 2], outputs: [%{}]}}
+             })
+    end
+
     @tag fixtures: [:alice]
     test "returns false when transaction has as many outputs than inputs", %{alice: alice} do
       transaction = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
