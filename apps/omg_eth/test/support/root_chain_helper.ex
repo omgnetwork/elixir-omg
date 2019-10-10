@@ -225,16 +225,17 @@ defmodule OMG.Eth.RootChainHelper do
     opts = defaults |> Keyword.merge(opts)
 
     contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)"
+
+    signature =
+      "challengeInFlightExitNotCanonical((bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes))"
+
+    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    optional_bytes = ""
 
     args = [
-      in_flight_txbytes,
-      in_flight_input_index,
-      competing_txbytes,
-      competing_input_index,
-      competing_tx_pos,
-      competing_proof,
-      competing_sig
+      {in_flight_txbytes, in_flight_input_index, competing_txbytes,
+       competing_input_index, optional_bytes, competing_tx_pos, competing_proof, competing_sig, optional_bytes,
+       optional_bytes}
     ]
 
     Eth.contract_transact(from, contract, signature, args, opts)
