@@ -200,9 +200,11 @@ defmodule OMG.Eth.RootChain do
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
       {:ok, logs} ->
         args = [:args]
-        types = ["(bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes)"]
+        types = ["(bytes,uint256,bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes)"]
 
         tuple_arg_names = [
+          :input_tx_bytes,
+          :input_utxo_pos,
           :in_flight_tx,
           :in_flight_input_index,
           :competing_tx,
