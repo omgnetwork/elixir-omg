@@ -197,7 +197,8 @@ defmodule OMG.Watcher.TestHelper do
       "in_flight_input_index",
       "spending_txbytes",
       "spending_input_index",
-      "spending_sig"
+      "spending_sig",
+      "input_tx"
     ])
   end
 

@@ -266,6 +266,8 @@ defmodule OMG.Eth.RootChainHelper do
         spending_txbytes,
         spending_tx_input_index,
         spending_tx_sig,
+        input_txbytes,
+        input_utxo_pos,
         from,
         contract \\ %{},
         opts \\ []
@@ -274,14 +276,14 @@ defmodule OMG.Eth.RootChainHelper do
     opts = defaults |> Keyword.merge(opts)
 
     contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "challengeInFlightExitInputSpent((bytes,uint16,bytes,uint16,bytes,bytes))"
+    signature = "challengeInFlightExitInputSpent((bytes,uint16,bytes,uint16,bytes,bytes,uint256,bytes))"
 
     # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
     optional_bytes = ""
 
     args = [
       {in_flight_txbytes, in_flight_input_index, spending_txbytes, spending_tx_input_index, spending_tx_sig,
-       optional_bytes}
+       input_txbytes, input_utxo_pos, optional_bytes}
     ]
 
     Eth.contract_transact(from, contract, signature, args, opts)
