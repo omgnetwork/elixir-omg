@@ -202,25 +202,34 @@ defmodule OMG.Eth.RootChain do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "InFlightExitChallenged(address,bytes32,uint256)"
 
+    # FIXME: split into functions, here and elsewhere
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
       {:ok, logs} ->
+        args = [:args]
+        types = ["(bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes)"]
+
+        tuple_arg_names = [
+          :in_flight_tx,
+          :in_flight_input_index,
+          :competing_tx,
+          :competing_tx_input_index,
+          :competing_tx_pos,
+          :competing_tx_inclusion_proof,
+          :competing_tx_sig
+        ]
+
         challenges =
           Enum.map(logs, fn log ->
             decode_in_flight_exit_challenged = decode_in_flight_exit_challenged(log)
 
-            args = [
-              :in_flight_tx,
-              :in_flight_input_index,
-              :competing_tx,
-              :competing_tx_input_index,
-              :competing_tx_pos,
-              :competing_tx_inclusion_proof,
-              :competing_tx_sig
-            ]
-
-            types = ["bytes", "uint8", "bytes", "uint8", "uint256", "bytes", "bytes"]
-            hash = from_hex(log["transactionHash"])
-            call_data = Eth.get_call_data(hash, "challengeInFlightExitNotCanonical", args, types)
+            call_data =
+              Eth.get_call_data(
+                decode_in_flight_exit_challenged.root_chain_txhash,
+                "challengeInFlightExitNotCanonical",
+                args,
+                types,
+                unpack_tuple_args: tuple_arg_names
+              )
 
             Map.put(decode_in_flight_exit_challenged, :call_data, call_data)
           end)
