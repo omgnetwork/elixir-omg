@@ -156,9 +156,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode!(utxo_pos) end)
   end
 
-  # TODO: syncing problem (look new exits)
   @doc """
-   Add new in flight exits from Ethereum events into tracked state.
+  Add new in flight exits from Ethereum events into tracked state.
   """
   @spec new_in_flight_exits(t(), list(map()), list(map())) :: {t(), list()} | {:error, :unexpected_events}
   def new_in_flight_exits(state, new_ifes_events, contract_statuses)

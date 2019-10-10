@@ -78,7 +78,7 @@ defmodule OMG.State.TransactionTest do
       state_alice_deposit: state
     } do
       Transaction.Payment.new([{1, 0, 0}], [{bob.addr, @eth, 4}])
-      |> DevCrypto.sign([alice.priv, <<>>])
+      |> DevCrypto.sign([alice.priv])
       |> assert_tx_usable(state)
     end
 

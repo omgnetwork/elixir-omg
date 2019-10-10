@@ -81,7 +81,6 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   end
 
   defp apply_static_settings(network) do
-    # TODO: not so easy here - rethink how do we allow to set the contracts via the system ENV, for now assuming json
     network =
       case String.upcase(network) do
         "RINKEBY" = network ->

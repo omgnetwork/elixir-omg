@@ -210,20 +210,11 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   end
 
   defp persist_new_ifes(processor, txs, priv_keys, statuses \\ nil, db_pid) do
-    # TODO: dry against machinery in CoreTest, after other TODO's settle down (`deffixture in_flight_exit_events`)
-    encoded_txs = txs |> Enum.map(&Transaction.raw_txbytes/1)
-
-    sigs =
+    in_flight_exit_events =
       txs
       |> Enum.zip(priv_keys)
-      |> Enum.map(fn {tx, keys} -> DevCrypto.sign(tx, keys) end)
-      |> Enum.map(&Enum.join(&1.sigs))
-
-    in_flight_exit_events =
-      Enum.zip(encoded_txs, sigs)
-      |> Enum.map(fn {txbytes, sigs} ->
-        %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: sigs}, eth_height: 2}
-      end)
+      |> Enum.map(fn {tx, keys} -> {tx, DevCrypto.sign(tx, keys)} end)
+      |> Enum.map(fn {tx, signed_tx} -> ife_event(tx, sigs: signed_tx.sigs) end)
 
     statuses = statuses || List.duplicate({1, @non_zero_exit_id}, length(in_flight_exit_events))
     {processor, db_updates} = Core.new_in_flight_exits(processor, in_flight_exit_events, statuses)

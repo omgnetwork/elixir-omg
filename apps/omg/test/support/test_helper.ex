@@ -165,11 +165,6 @@ defmodule OMG.TestHelper do
     {:ok, full_path, file}
   end
 
-  defp get_private_keys(inputs) do
-    filler = List.duplicate(<<>>, 4 - length(inputs))
-
-    inputs
-    |> Enum.map(fn {_, _, _, owner} -> owner.priv end)
-    |> Enum.concat(filler)
-  end
+  defp get_private_keys(inputs),
+    do: Enum.map(inputs, fn {_, _, _, owner} -> owner.priv end)
 end

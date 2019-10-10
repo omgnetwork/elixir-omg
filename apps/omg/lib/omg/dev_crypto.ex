@@ -64,7 +64,6 @@ defmodule OMG.DevCrypto do
   Produces a stand-alone, 65 bytes long, signature for a given transaction.
   """
   @spec signature(Transaction.Protocol.t(), Crypto.priv_key_t()) :: Crypto.sig_t()
-  def signature(_tx, <<>>), do: <<0::size(520)>>
   def signature(tx, priv), do: do_signature(tx, priv)
 
   defp do_signature(%{} = tx, priv) do
