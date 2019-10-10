@@ -115,6 +115,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
         proof1["spending_txbytes"],
         proof1["spending_input_index"],
         proof1["spending_sig"],
+        proof1["input_tx"],
+        proof1["input_utxo_pos"],
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()

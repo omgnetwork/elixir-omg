@@ -593,6 +593,17 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       assert_proof_sound(inclusion_proof)
     end
+
+    test "returns input txs and input utxo positions for invalid input piggyback challenges",
+         %{processor_filled: state, transactions: [tx | _], competing_tx: comp, ife_tx_hashes: [ife_id | _]} do
+      txbytes = txbytes(tx)
+      state = state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 0, :input)
+
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+
+      assert {:ok, %{input_tx: "input_tx", input_utxo_pos: Utxo.position(1, 0, 0)}} =
+               Core.get_input_challenge_data(request, state, txbytes, 0)
+    end
   end
 
   describe "produces challenges for bad piggybacks" do

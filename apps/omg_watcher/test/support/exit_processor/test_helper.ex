@@ -73,10 +73,17 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   def ife_event(tx, opts \\ []) do
     sigs = Keyword.get(opts, :sigs) || sigs(tx)
+    input_utxos_pos = Transaction.get_inputs(tx) |> Enum.map(&Utxo.Position.encode/1)
+    input_txs = Keyword.get(opts, :input_txs) || List.duplicate("input_tx", length(input_utxos_pos))
     eth_height = Keyword.get(opts, :eth_height, 2)
 
     %{
-      call_data: %{in_flight_tx: Transaction.raw_txbytes(tx), in_flight_tx_sigs: sigs},
+      call_data: %{
+        in_flight_tx: Transaction.raw_txbytes(tx),
+        input_txs: input_txs,
+        input_utxos_pos: input_utxos_pos,
+        in_flight_tx_sigs: sigs
+      },
       eth_height: eth_height
     }
   end

@@ -41,6 +41,7 @@ defmodule OMG.WatcherRPC.Web.View.InFlightExit do
 
   def render("get_input_challenge_data.json", %{response: challenge_data}) do
     challenge_data
+    |> Map.update!(:input_utxo_pos, &Utxo.Position.encode/1)
     |> Response.serialize()
   end
 
