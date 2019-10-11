@@ -402,7 +402,7 @@ defmodule OMG.Eth.RootChain do
 
         tuple_arg_names = [
           :in_flight_tx,
-          :inputs_txs,
+          :input_txs,
           :input_tx_types,
           :input_utxos_pos,
           :output_guard_preimages_for_inputs,

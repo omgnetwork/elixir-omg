@@ -289,14 +289,14 @@ defmodule OMG.Eth.RootChainHelper do
     opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "challengeInFlightExitInputSpent(bytes,uint8,bytes,uint8,bytes)"
+    signature = "challengeInFlightExitInputSpent((bytes,uint16,bytes,uint16,bytes,bytes))"
+
+    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    optional_bytes = ""
 
     args = [
-      in_flight_txbytes,
-      in_flight_input_index,
-      spending_txbytes,
-      spending_tx_input_index,
-      spending_tx_sig
+      {in_flight_txbytes, in_flight_input_index, spending_txbytes, spending_tx_input_index, spending_tx_sig,
+       optional_bytes}
     ]
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
@@ -320,15 +320,14 @@ defmodule OMG.Eth.RootChainHelper do
     opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "challengeInFlightExitOutputSpent(bytes,uint256,bytes,bytes,uint8,bytes)"
+    signature = "challengeInFlightExitOutputSpent((bytes,bytes,uint256,bytes,uint16,bytes,bytes))"
+
+    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    optional_bytes = ""
 
     args = [
-      in_flight_txbytes,
-      in_flight_output_pos,
-      in_flight_tx_inclusion_proof,
-      spending_txbytes,
-      spending_tx_input_index,
-      spending_tx_sig
+      {in_flight_txbytes, in_flight_tx_inclusion_proof, in_flight_output_pos, spending_txbytes, spending_tx_input_index,
+       spending_tx_sig, optional_bytes}
     ]
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
