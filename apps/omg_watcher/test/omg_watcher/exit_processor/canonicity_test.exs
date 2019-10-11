@@ -531,6 +531,17 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
                %ExitProcessor.Request{blknum_now: @late_blknum} |> Core.determine_utxo_existence_to_get(processor)
     end
 
+    test "returns input txs and input utxo positions for canonicity challenges",
+         %{processor_filled: processor, transactions: [tx | _], competing_tx: comp} do
+      txbytes = txbytes(tx)
+      processor = processor |> start_ife_from(comp)
+
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+
+      assert {:ok, %{input_tx: "input_tx", input_utxo_pos: Utxo.position(1, 0, 0)}} =
+               Core.get_competitor_for_ife(request, processor, txbytes)
+    end
+
     test "by not asking for spends on no ifes",
          %{processor_empty: processor} do
       assert %{spends_to_get: []} =
