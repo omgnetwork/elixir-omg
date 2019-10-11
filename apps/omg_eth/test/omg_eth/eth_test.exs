@@ -32,7 +32,7 @@ defmodule OMG.EthTest do
 
   setup do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
-    ExVCR.Config.cassette_library_dir("test/fixtures/vcr_cassettes")
+    ExVCR.Config.cassette_library_dir("./test/fixtures/vcr_cassettes")
     # NOTE achiurizo
     #
     # this is a hack to ensure we reset the counter to 0 despite
