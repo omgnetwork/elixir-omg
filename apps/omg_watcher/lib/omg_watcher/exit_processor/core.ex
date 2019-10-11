@@ -44,14 +44,31 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   import OMG.Watcher.ExitProcessor.Tools
 
   require Utxo
-  require Transaction
+  require Transaction.Payment
 
   use OMG.Utils.LoggerExt
 
   @default_sla_margin 10
   @zero_address OMG.Eth.zero_address()
 
-  @type contract_piggyback_offset_t() :: 0..7
+  @max_inputs Transaction.Payment.max_inputs()
+  @max_outputs Transaction.Payment.max_outputs()
+
+  @type piggyback_input_index_t() :: 0..unquote(@max_inputs - 1)
+  @type piggyback_output_index_t() :: 0..unquote(@max_outputs - 1)
+
+  @type new_piggyback_input_event_t() :: %{
+          tx_hash: Transaction.tx_hash(),
+          output_index: piggyback_input_index_t(),
+          omg_data: %{piggyback_type: :input}
+        }
+  @type new_piggyback_output_event_t() :: %{
+          tx_hash: Transaction.tx_hash(),
+          output_index: piggyback_output_index_t(),
+          omg_data: %{piggyback_type: :output}
+        }
+
+  @type new_piggyback_event_t() :: new_piggyback_input_event_t() | new_piggyback_output_event_t()
 
   defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}, exit_ids: %{}, competitors: %{}]
 
@@ -190,9 +207,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
     Add piggybacks from Ethereum events into tracked state.
   """
-  # FIXME: update specs
-  @spec new_piggybacks(t(), [%{tx_hash: Transaction.tx_hash(), output_index: contract_piggyback_offset_t()}]) ::
-          {t(), list()}
+  @spec new_piggybacks(t(), list(new_piggyback_event_t())) :: {t(), list()}
   def new_piggybacks(%__MODULE__{} = state, piggyback_events) when is_list(piggyback_events) do
     event_field_f = fn event -> {event[:omg_data][:piggyback_type], event[:output_index]} end
     consume_events(state, piggyback_events, event_field_f, &InFlightExitInfo.piggyback/2)
