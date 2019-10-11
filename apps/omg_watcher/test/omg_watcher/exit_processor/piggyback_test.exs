@@ -33,20 +33,12 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
   @exit_id 1
 
   describe "sanity checks" do
-    test "throwing when unknown piggyback events arrive", %{processor_filled: state, ife_tx_hashes: [ife_id | _]} do
-      catch_error(Core.new_piggybacks(state, [%{tx_hash: 0, output_index: 0, omg_data: %{piggyback_type: :input}}]))
-
-      catch_error(
-        Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4, omg_data: %{piggyback_type: :output}}])
-      )
-
+    test "throwing when unknown piggyback events arrive", %{processor_filled: processor, ife_tx_hashes: [ife_id | _]} do
+      catch_error(piggyback_ife_from(processor, <<0>>, 0, :input))
+      catch_error(piggyback_ife_from(processor, ife_id, 4, :output))
       # cannot piggyback twice the same output
-      {updated_state, [_]} =
-        Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0, omg_data: %{piggyback_type: :input}}])
-
-      catch_error(
-        Core.new_piggybacks(updated_state, [%{tx_hash: ife_id, output_index: 0, omg_data: %{piggyback_type: :input}}])
-      )
+      updated_processor = piggyback_ife_from(processor, ife_id, 0, :input)
+      catch_error(piggyback_ife_from(updated_processor, ife_id, 0, :input))
     end
 
     test "can process empty piggybacks and challenges", %{processor_empty: empty, processor_filled: filled} do
@@ -55,15 +47,27 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       {^empty, []} = Core.challenge_piggybacks(empty, [])
       {^filled, []} = Core.challenge_piggybacks(filled, [])
     end
+
+    test "can process new piggybacks in batch", %{processor_filled: processor, ife_tx_hashes: [tx_hash1, tx_hash2]} do
+      updated_processor =
+        processor
+        |> piggyback_ife_from(tx_hash1, 0, :input)
+        |> piggyback_ife_from(tx_hash2, 0, :input)
+
+      assert {^updated_processor, _} =
+               Core.new_piggybacks(processor, [
+                 %{tx_hash: tx_hash1, output_index: 0, omg_data: %{piggyback_type: :input}},
+                 %{tx_hash: tx_hash2, output_index: 0, omg_data: %{piggyback_type: :input}}
+               ])
+    end
   end
 
   test "forgets challenged piggybacks",
        %{processor_filled: processor, ife_tx_hashes: [tx_hash1, tx_hash2]} do
-    {processor, _} =
-      Core.new_piggybacks(processor, [
-        %{tx_hash: tx_hash1, output_index: 0, omg_data: %{piggyback_type: :input}},
-        %{tx_hash: tx_hash2, output_index: 0, omg_data: %{piggyback_type: :input}}
-      ])
+    processor =
+      processor
+      |> piggyback_ife_from(tx_hash1, 0, :input)
+      |> piggyback_ife_from(tx_hash2, 0, :input)
 
     # sanity: there are some piggybacks after piggybacking, to be removed later
     assert [%{piggybacked_inputs: [_]}, %{piggybacked_inputs: [_]}] = Core.get_active_in_flight_exits(processor)
