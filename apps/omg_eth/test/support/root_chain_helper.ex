@@ -222,6 +222,8 @@ defmodule OMG.Eth.RootChainHelper do
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   def challenge_in_flight_exit_not_canonical(
+        input_tx_bytes,
+        input_utxo_pos,
         in_flight_txbytes,
         in_flight_input_index,
         competing_txbytes,
@@ -239,13 +241,13 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
     signature =
-      "challengeInFlightExitNotCanonical((bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes))"
+      "challengeInFlightExitNotCanonical((bytes,uint256,bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes))"
 
     # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
     optional_bytes = ""
 
     args = [
-      {in_flight_txbytes, in_flight_input_index, competing_txbytes,
+      {input_tx_bytes, input_utxo_pos, in_flight_txbytes, in_flight_input_index, competing_txbytes,
        competing_input_index, optional_bytes, competing_tx_pos, competing_proof, competing_sig, optional_bytes,
        optional_bytes}
     ]

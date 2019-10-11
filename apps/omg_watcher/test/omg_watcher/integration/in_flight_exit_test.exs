@@ -20,12 +20,14 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   use Plug.Test
 
   alias OMG.Eth
+  alias OMG.Integration.DepositHelper
   alias OMG.State.Transaction
+  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
-  alias OMG.Integration.DepositHelper
+  require Utxo
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -212,6 +214,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     {:ok, %{"status" => "0x1", "blockNumber" => challenge_eth_height}} =
       OMG.Eth.RootChainHelper.challenge_in_flight_exit_not_canonical(
+        get_competitor_response["input_tx"],
+        get_competitor_response["input_utxo_pos"],
         get_competitor_response["in_flight_txbytes"],
         get_competitor_response["in_flight_input_index"],
         get_competitor_response["competing_txbytes"],
@@ -271,6 +275,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     {:ok, %{"status" => "0x1", "blockNumber" => challenge_eth_height}} =
       OMG.Eth.RootChainHelper.challenge_in_flight_exit_not_canonical(
+        Transaction.Payment.new([], [{alice.addr, @eth, 10}]) |> Transaction.raw_txbytes(),
+        Utxo.position(deposit_blknum, 0, 0) |> Utxo.Position.encode(),
         raw_tx1_bytes,
         0,
         raw_tx2_bytes,

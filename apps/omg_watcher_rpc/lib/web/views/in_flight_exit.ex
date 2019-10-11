@@ -30,6 +30,7 @@ defmodule OMG.WatcherRPC.Web.View.InFlightExit do
   def render("competitor.json", %{response: competitor}) do
     competitor
     |> Map.update!(:competing_tx_pos, &Utxo.Position.encode/1)
+    |> Map.update!(:input_utxo_pos, &Utxo.Position.encode/1)
     |> Response.serialize()
   end
 

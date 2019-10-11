@@ -170,7 +170,7 @@ defmodule OMG.Watcher.TestHelper do
   def get_in_flight_exit_competitors(transaction) do
     competitor_data = success?("in_flight_exit.get_competitor", %{txbytes: Encoding.to_hex(transaction)})
 
-    decode16(competitor_data, ["in_flight_txbytes", "competing_txbytes", "competing_sig", "competing_proof"])
+    decode16(competitor_data, ["in_flight_txbytes", "competing_txbytes", "competing_sig", "competing_proof", "input_tx"])
   end
 
   def get_prove_canonical(transaction) do
