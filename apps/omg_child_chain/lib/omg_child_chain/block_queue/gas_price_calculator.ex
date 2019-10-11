@@ -19,6 +19,7 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
 
   alias OMG.ChildChain.BlockQueue
   alias OMG.ChildChain.BlockQueue.BlockQueueState
+  alias OMG.ChildChain.BlockQueue.BlockQueueSubmitter
   alias OMG.ChildChain.BlockQueue.GasPriceAdjustment
 
   use OMG.Utils.LoggerExt
@@ -43,7 +44,8 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
   def adjust_gas_price(
         %BlockQueueState{blocks: blocks, parent_height: parent_height, last_parent_height: last_parent_height} = state
       ) do
-    case parent_height <= last_parent_height || !Enum.find(blocks, to_mined_block_filter(state)) do
+    case parent_height <= last_parent_height ||
+           !Enum.find(blocks, BlockQueueSubmitter.pending_mining_filter_func(state)) do
       true ->
         state
 
@@ -128,16 +130,5 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
 
   defp new_blocks_mined?(mined_child_block_num, last_mined_block_num) do
     mined_child_block_num > last_mined_block_num
-  end
-
-  # TTODO: Extract to other module?
-  @spec first_to_mined(BlockQueueState.t()) :: pos_integer()
-  def first_to_mined(%{mined_child_block_num: mined, child_block_interval: interval}), do: mined + interval
-
-  @spec to_mined_block_filter(BlockQueueState.t()) :: ({pos_integer, BlockSubmission.t()} -> boolean)
-  def to_mined_block_filter(%{formed_child_block_num: formed} = state) do
-    fn {blknum, _} ->
-      first_to_mined(state) <= blknum and blknum <= formed
-    end
   end
 end

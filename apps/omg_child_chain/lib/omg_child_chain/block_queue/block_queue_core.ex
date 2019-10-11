@@ -111,6 +111,15 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueCore do
     BlockQueueQueuer.enqueue_block(state, block, parent_height)
   end
 
+  # @spec submit_blocks_or_skip(BlockQueueState.t()) :: :ok
+  def submit_blocks(%{} = state) do
+    state
+    |> BlockQueueSubmitter.get_blocks_to_submit()
+    |> Enum.each(fn block ->
+      BlockQueueSubmitter.submit(block)
+    end)
+  end
+
   # When restarting, we don't actually know what was the state of submission process to Ethereum.
   # Some blocks might have been submitted and lost/rejected/reorged by Ethereum in the mean time.
   # To properly restart the process we get last blocks known to DB and split them into mined

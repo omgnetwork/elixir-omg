@@ -44,6 +44,48 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueLogger do
 
   defp do_log(:eth_node_error, _) do
     eth_node_diagnostics = Diagnostics.get_node_diagnostics()
-    Logger.error("Ethereum operation failed, additional diagnostics: #{inspect(eth_node_diagnostics)}")
+    _ = Logger.error("Ethereum operation failed, additional diagnostics: #{inspect(eth_node_diagnostics)}")
+  end
+
+  defp do_log(:known_tx, submission) do
+    _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
+  end
+
+  defp do_log(:submitted_block, %{submission: submission, txhash: txhash}) do
+    _ = Logger.info("Submitted #{inspect(submission)} at: #{inspect(txhash)}")
+  end
+
+  defp do_log(:authority_locked, %{submission: submission, newest_mined_blknum: newest_mined_blknum}) do
+    diagnostic = prepare_diagnostic(submission, newest_mined_blknum)
+    _ = Logger.error("It seems that authority account is locked: #{inspect(diagnostic)}. Check README.md")
+  end
+
+  defp do_log(:low_replacement_price, submission) do
+    _ = Logger.debug("Submission #{inspect(submission)} is known, but with higher price - ignored")
+  end
+
+  defp do_log(:nonce_too_low, %{submission: submission, newest_mined_blknum: newest_mined_blknum}) do
+    diagnostic = prepare_diagnostic(submission, newest_mined_blknum)
+    _ = Logger.error("Submission unexpectedly failed with nonce too low: #{inspect(diagnostic)}")
+  end
+
+  defp do_log(:preparing_blocks, %{
+         first_block_to_mine_num: first_block_to_mine_num,
+         formed_child_block_num: formed_child_block_num
+       }) do
+    _ =
+      Logger.debug(
+        "preparing blocks #{inspect(first_block_to_mine_num)}.." <>
+          "#{inspect(formed_child_block_num)} for submission"
+      )
+  end
+
+  defp do_log(:submitting_block, submission) do
+    _ = Logger.debug("Submitting: #{inspect(submission)}")
+  end
+
+  defp prepare_diagnostic(submission, newest_mined_blknum) do
+    config = Application.get_all_env(:omg_eth) |> Keyword.take([:contract_addr, :authority_addr, :txhash_contract])
+    %{submission: submission, newest_mined_blknum: newest_mined_blknum, config: config}
   end
 end

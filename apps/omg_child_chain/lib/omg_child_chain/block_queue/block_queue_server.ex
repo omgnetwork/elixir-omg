@@ -28,7 +28,6 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueServer do
   alias OMG.ChildChain.BlockQueueCore
 
   alias OMG.ChildChain.BlockQueue.BlockQueueCore
-  alias OMG.ChildChain.BlockQueue.BlockQueueSubmitter
 
   alias OMG.ChildChain.FreshBlocks
 
@@ -99,7 +98,7 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueServer do
 
     if form_block_status == :do_form_block do
       :ok = OMG.State.form_block()
-      :ok = BlockQueueSubmitter.submit_blocks_or_skip(state, form_block_status)
+      :ok = BlockQueueCore.submit_blocks(state)
     end
 
     state
@@ -110,7 +109,7 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueServer do
     state = BlockQueueCore.enqueue_block(state, block, parent_height)
 
     :ok = FreshBlocks.push(block)
-    :ok = BlockQueueSubmitter.submit_blocks_or_skip(state, :do_form_block)
+    :ok = BlockQueueCore.submit_blocks(state)
 
     state
   end

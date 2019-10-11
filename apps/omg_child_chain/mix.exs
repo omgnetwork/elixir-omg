@@ -27,7 +27,7 @@ defmodule OMG.ChildChain.MixProject do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:prod), do: ["lib"]
-  defp elixirc_paths(_), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib", "test/omg_child_chain/support"]
 
   defp deps do
     [

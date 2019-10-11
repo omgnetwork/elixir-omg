@@ -17,28 +17,14 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueEthSyncTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
+  import OMG.ChildChain.BlockTestHelper
+
   alias OMG.ChildChain.BlockQueue.BlockQueueEthSync
   alias OMG.ChildChain.BlockQueue.BlockSubmission
 
   @child_block_interval 1000
 
   doctest OMG.ChildChain.BlockQueue.BlockQueueEthSync
-
-  defp new_block(number) do
-    {number,
-     %BlockSubmission{
-       gas_price: nil,
-       hash: "hash_#{number}",
-       nonce: 1,
-       num: number
-     }}
-  end
-
-  defp get_blocks(end_count, start_count \\ 1, block_interval \\ @child_block_interval) do
-    Enum.into(start_count..end_count, %{}, fn i ->
-      new_block(i * block_interval)
-    end)
-  end
 
   describe "set_mined_block_num/2" do
     test "sets the last block mined on parent chain when no higher formed child block" do

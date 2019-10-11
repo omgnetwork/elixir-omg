@@ -752,10 +752,10 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
         recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
 
       # no change in mined blknum
-      assert :ok = BlockQueueSubmitter.process_submit_result(submission, {:ok, <<0::160>>}, 1000)
+      assert :ok = BlockQueueSubmitter.process_submit_result({:ok, <<0::160>>}, submission, 1000)
       # arbitrary ignored change in mined blknum
-      assert :ok = BlockQueueSubmitter.process_submit_result(submission, {:ok, <<0::160>>}, 0)
-      assert :ok = BlockQueueSubmitter.process_submit_result(submission, {:ok, <<0::160>>}, 2000)
+      assert :ok = BlockQueueSubmitter.process_submit_result({:ok, <<0::160>>}, submission, 0)
+      assert :ok = BlockQueueSubmitter.process_submit_result({:ok, <<0::160>>}, submission, 2000)
     end
 
     test "benign reports / warnings from geth" do
@@ -763,17 +763,17 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
         recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
 
       # no change in mined blknum
-      assert :ok = BlockQueueSubmitter.process_submit_result(submission, @known_transaction_response, 1000)
+      assert :ok = BlockQueueSubmitter.process_submit_result(@known_transaction_response, submission, 1000)
 
-      assert :ok = BlockQueueSubmitter.process_submit_result(submission, @replacement_transaction_response, 1000)
+      assert :ok = BlockQueueSubmitter.process_submit_result(@replacement_transaction_response, submission, 1000)
     end
 
     test "benign nonce too low error - related to our tx being mined, since the mined blknum advanced" do
       [submission] =
         recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
 
-      assert :ok = BlockQueueSubmitter.process_submit_result(submission, @nonce_too_low_response, 1000)
-      assert :ok = BlockQueueSubmitter.process_submit_result(submission, @nonce_too_low_response, 2000)
+      assert :ok = BlockQueueSubmitter.process_submit_result(@nonce_too_low_response, submission, 1000)
+      assert :ok = BlockQueueSubmitter.process_submit_result(@nonce_too_low_response, submission, 2000)
     end
 
     test "real nonce too low error" do
@@ -783,12 +783,12 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       # the new mined child block number is not the one we submitted, so we expect an error an error log
       assert capture_log(fn ->
                assert {:error, :nonce_too_low} =
-                        BlockQueueSubmitter.process_submit_result(submission, @nonce_too_low_response, 0)
+                        BlockQueueSubmitter.process_submit_result(@nonce_too_low_response, submission, 0)
              end) =~ "[error]"
 
       assert capture_log(fn ->
                assert {:error, :nonce_too_low} =
-                        BlockQueueSubmitter.process_submit_result(submission, @nonce_too_low_response, 90)
+                        BlockQueueSubmitter.process_submit_result(@nonce_too_low_response, submission, 90)
              end) =~ "[error]"
     end
 
@@ -799,7 +799,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       # the new mined child block number is not the one we submitted, so we expect an error an error log
       assert capture_log(fn ->
                assert {:error, :account_locked} =
-                        BlockQueueSubmitter.process_submit_result(submission, @account_locked_response, 0)
+                        BlockQueueSubmitter.process_submit_result(@account_locked_response, submission, 0)
              end) =~ "[error]"
     end
 
