@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RootChainTest do
+defmodule OMG.Eth.RootChainTest do
   alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.DevHelpers
