@@ -63,12 +63,8 @@ defmodule OMG.Fees do
   @spec for_transaction(Transaction.Recovered.t(), fee_t()) :: fee_t()
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do
-      true ->
-        :no_fees_required
-
-      # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
-      false ->
-        fee_map
+      true -> :no_fees_required
+      false -> fee_map
     end
   end
 end

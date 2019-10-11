@@ -25,7 +25,6 @@ defmodule OMG.State.Transaction.Signed do
   alias OMG.TypedDataHash
 
   @type tx_bytes() :: binary()
-  @empty_signature <<0::size(520)>>
 
   defstruct [:raw_tx, :sigs]
 
@@ -80,9 +79,6 @@ defmodule OMG.State.Transaction.Signed do
 
   defp get_reversed_witnesses(raw_txhash, raw_tx, raw_witnesses) do
     raw_witnesses
-    # TODO: move this check out of here and make generic?
-    #       (or remove altogether - this covers the padding using empty signatures, which might be going away)
-    |> Enum.filter(fn raw_witness -> raw_witness != @empty_signature end)
     |> Enum.reduce_while({:ok, []}, fn raw_witness, acc -> get_witness(raw_txhash, raw_tx, raw_witness, acc) end)
   end
 

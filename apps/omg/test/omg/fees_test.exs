@@ -55,16 +55,19 @@ defmodule OMG.FeesTest do
       refute Fees.covered?(%{other_currency => 100}, @fees)
     end
 
-    # TODO: Fix this test?
     @tag fixtures: [:alice, :bob]
-    test "returns true when one input is dedicated for fee payment", %{alice: alice, bob: bob} do
+    test "returns true when one input is dedicated for fee payment, and outputs are other tokens",
+         %{alice: alice, bob: bob} do
+      # a token that we don't allow to pay the fees in
       other_token = <<2::160>>
 
+      # it is presumed that one input is `other_token` (to cover outputs) and the other input is `@not_eth` to cover
+      # the fee only. Note that `@not_eth` doesn't appear in the outputs
       transaction =
         create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, other_token, 5}, {alice, other_token, 5}])
 
       fees = Fees.for_transaction(transaction, @fees)
-
+      # here we tell `Fees` that 5 `@not_eth` was sent to cover the fee
       assert Fees.covered?(%{@not_eth => 5, other_token => 0}, fees)
     end
   end
