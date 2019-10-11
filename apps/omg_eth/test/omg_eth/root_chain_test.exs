@@ -46,6 +46,7 @@ defmodule OMG.Eth.RootChainTest do
       payment_exit_game: Encoding.from_hex("0x902719f192aa5240632f704aa7a94bab61b86550"),
       authority_address: Encoding.from_hex("0x22d491bde2303f2f43325b2108d26f1eaba1e32b")
     }
+
     {:ok, contract: contract}
   end
 
@@ -97,7 +98,7 @@ defmodule OMG.Eth.RootChainTest do
 
   test "submit_block/1 submits a block to the contract", %{contract: contract} do
     use_cassette "ganache/submit_block", match_requests_on: [:request_body] do
-      block =
+      {:ok, txn_hash} =
         RootChain.submit_block(
           <<234::256>>,
           1,
@@ -106,7 +107,7 @@ defmodule OMG.Eth.RootChainTest do
           contract
         )
 
-      assert {:ok, _} = DevHelpers.transact_sync!(block)
+      assert {:ok, _} = DevHelpers.transact_sync!(txn_hash)
     end
   end
 

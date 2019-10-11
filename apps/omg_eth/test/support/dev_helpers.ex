@@ -92,10 +92,10 @@ defmodule OMG.Eth.DevHelpers do
   Use with contract-transacting functions that return {:ok, txhash}, e.g. `Eth.Token.mint`, for synchronous waiting
   for mining of a successful result
   """
-  @spec transact_sync!({:ok, Eth.hash()}) :: {:ok, map}
-  def transact_sync!({:ok, txhash} = _transaction_submission_result) when byte_size(txhash) == 32 do
-    {:ok, %{"status" => "0x1"} = result} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
-    {:ok, result |> Map.update!("blockNumber", &int_from_hex(&1))}
+  @spec transact_sync!(Eth.hash()) :: {:ok, map}
+  def transact_sync!(transaction_hash) do
+    {:ok, %{"status" => "0x1"} = result} = WaitFor.eth_receipt(transaction_hash, @about_4_blocks_time)
+    {:ok, Map.update!(result, "blockNumber", &int_from_hex(&1))}
   end
 
   @doc """
