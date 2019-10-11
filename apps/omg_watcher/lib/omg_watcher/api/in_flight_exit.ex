@@ -24,9 +24,6 @@ defmodule OMG.Watcher.API.InFlightExit do
 
   require Utxo
 
-  # FIXME: why are zero-signatures still popping up, clean this up
-  @zero_sig <<0::size(65)-unit(8)>>
-
   @type in_flight_exit() :: %{
           in_flight_tx: binary(),
           input_txs: list(binary()),
@@ -43,7 +40,6 @@ defmodule OMG.Watcher.API.InFlightExit do
     with {:ok, tx} <- Transaction.Signed.decode(txbytes),
          {:ok, {proofs, input_txs, input_utxos_pos}} <- find_input_data(tx) do
       %Transaction.Signed{sigs: sigs} = tx
-      non_zero_sigs = Enum.filter(sigs, &(&1 != @zero_sig))
 
       {:ok,
        %{
@@ -51,7 +47,7 @@ defmodule OMG.Watcher.API.InFlightExit do
          input_txs: input_txs,
          input_utxos_pos: input_utxos_pos,
          input_txs_inclusion_proofs: proofs,
-         in_flight_tx_sigs: non_zero_sigs
+         in_flight_tx_sigs: sigs
        }}
     end
   end

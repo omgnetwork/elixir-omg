@@ -152,17 +152,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       processor = processor |> start_ife_from(tx)
       assert [%{piggybacked_inputs: [], piggybacked_outputs: []}] = Core.get_active_in_flight_exits(processor)
 
-      processor = piggyback_ife_from(processor, txhash, 0, :input)
-
+      processor = processor |> piggyback_ife_from(txhash, 0, :input)
       assert [%{piggybacked_inputs: [0], piggybacked_outputs: []}] = Core.get_active_in_flight_exits(processor)
 
-      # FIXME: refactor to leverage piggyback_ife_from more
-      {processor, _} =
-        Core.new_piggybacks(processor, [
-          %{tx_hash: txhash, output_index: 0, omg_data: %{piggyback_type: :output}},
-          %{tx_hash: txhash, output_index: 1, omg_data: %{piggyback_type: :output}}
-        ])
-
+      processor = processor |> piggyback_ife_from(txhash, 0, :output) |> piggyback_ife_from(txhash, 1, :output)
       assert [%{piggybacked_inputs: [0], piggybacked_outputs: [0, 1]}] = Core.get_active_in_flight_exits(processor)
     end
 
