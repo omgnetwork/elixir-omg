@@ -36,6 +36,17 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceAdjustment do
           last_block_mined: tuple() | nil
         }
 
+  @doc ~S"""
+  Sets the last_block_mined value to a tuple.
+
+  ## Examples
+
+      iex> GasPriceAdjustment.with(%{last_block_mined: nil}, 1, 2)
+      %{
+        last_block_mined: {1, 2}
+      }
+
+  """
   def with(state, last_checked_parent_height, last_checked_mined_child_block_num) do
     %{state | last_block_mined: {last_checked_parent_height, last_checked_mined_child_block_num}}
   end
