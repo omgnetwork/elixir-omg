@@ -51,7 +51,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     :oldest_competitor,
     :eth_height,
     :relevant_from_blknum,
-    # piggybacking
+    # piggybacking & finalization
     exit_map: Map.new(),
     is_canonical: true,
     is_active: true
