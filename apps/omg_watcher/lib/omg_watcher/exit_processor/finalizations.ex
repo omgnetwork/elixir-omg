@@ -104,13 +104,12 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
     with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
          {:ok, []} <- known_piggybacks?(finalizations, ifes_by_id) do
-      {exits_by_ife_id, _} =
+      exiting_positions_by_ife_id =
         finalizations
         |> Enum.reverse()
-        # FIXME: ifes_by_id doesn't have to be the result of reduce
-        |> Enum.reduce({%{}, ifes_by_id}, &prepare_utxo_exits_for_finalization/2)
+        |> Enum.reduce(%{}, &prepare_utxo_exits_for_finalization(&1, &2, ifes_by_id))
 
-      {:ok, exits_by_ife_id}
+      {:ok, exiting_positions_by_ife_id}
     end
   end
 
@@ -164,7 +163,8 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
   defp prepare_utxo_exits_for_finalization(
          %{in_flight_exit_id: ife_id, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}},
-         {exiting_positions, ifes_by_id}
+         exiting_positions,
+         ifes_by_id
        ) do
     # FIXME: drop hash from this structure
     {_tx_hash, ife} = Map.get(ifes_by_id, ife_id)
@@ -173,10 +173,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
     exiting_positions_for_piggyback = get_exiting_positions(ife, output_index, piggyback_type)
 
-    new_exiting_positions =
-      Map.update(exiting_positions, ife_id, exiting_positions_for_piggyback, &(exiting_positions_for_piggyback ++ &1))
-
-    {new_exiting_positions, ifes_by_id}
+    Map.update(exiting_positions, ife_id, exiting_positions_for_piggyback, &(exiting_positions_for_piggyback ++ &1))
   end
 
   defp get_exiting_positions(ife, output_index, :input) do
