@@ -18,9 +18,11 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
   """
   use OMG.Watcher.ExitProcessor.Case, async: true
 
+  alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
+  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo
@@ -43,17 +45,91 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
   end
 
   describe "determining utxos that are exited by finalization" do
-    test "returns utxos that should be spent when exit finalizes",
-         %{processor_empty: processor, transactions: [tx1 | [tx2 | _]]} do
+    test "signals all included txs' outputs as exiting when piggybacked output exits",
+         %{processor_empty: processor, transactions: [tx1 | _]} do
+      ife_id1 = 1
+      tx_hash1 = Transaction.raw_txhash(tx1)
+      tx1_blknum = 3000
+
+      # both IFE txs are inlcuded in one of the blocks and picked up by the `ExitProcessor`
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1], tx1_blknum)]
+      }
+
+      processor =
+        processor
+        |> start_ife_from(tx1, status: {1, ife_id1})
+        |> piggyback_ife_from(tx_hash1, 0, :input)
+        |> piggyback_ife_from(tx_hash1, 1, :input)
+        |> piggyback_ife_from(tx_hash1, 0, :output)
+        |> piggyback_ife_from(tx_hash1, 1, :output)
+        |> Core.find_ifes_in_blocks(request)
+
+      finalizations = [
+        %{in_flight_exit_id: ife_id1, output_index: 0, omg_data: %{piggyback_type: :output}},
+        %{in_flight_exit_id: ife_id1, output_index: 1, omg_data: %{piggyback_type: :output}}
+      ]
+
+      ife_id1 = <<ife_id1::192>>
+
+      tx1_first_output = Utxo.position(tx1_blknum, 0, 0)
+      tx1_second_output = Utxo.position(tx1_blknum, 0, 1)
+
+      assert {:ok, %{^ife_id1 => [^tx1_first_output, ^tx1_second_output]}} =
+               Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+    end
+
+    test "doesn't signal non-included txs' outputs as exiting when piggybacked output exits",
+         %{processor_empty: processor, transactions: [tx1 | _]} do
+      ife_id1 = 2
+      tx_hash1 = Transaction.raw_txhash(tx1)
+
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: []
+      }
+
+      processor =
+        processor
+        |> start_ife_from(tx1, status: {1, ife_id1})
+        |> piggyback_ife_from(tx_hash1, 0, :output)
+        |> piggyback_ife_from(tx_hash1, 1, :output)
+        |> Core.find_ifes_in_blocks(request)
+
+      finalizations = [
+        %{in_flight_exit_id: ife_id1, output_index: 0, omg_data: %{piggyback_type: :output}},
+        %{in_flight_exit_id: ife_id1, output_index: 1, omg_data: %{piggyback_type: :output}}
+      ]
+
+      ife_id1 = <<ife_id1::192>>
+
+      assert {:ok, %{^ife_id1 => []}} =
+               Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+    end
+
+    test "returns utxos that should be spent when exit finalizes, two ifes combined",
+         %{processor_empty: processor, transactions: [tx1, tx2 | _]} do
       ife_id1 = 1
       ife_id2 = 2
       tx_hash1 = Transaction.raw_txhash(tx1)
       tx_hash2 = Transaction.raw_txhash(tx2)
+      tx2_blknum = 3000
+
+      # both IFE txs are inlcuded in one of the blocks and picked up by the `ExitProcessor`
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1, tx2], tx2_blknum)]
+      }
 
       processor =
         processor
         |> start_ife_from(tx1, status: {1, ife_id1})
         |> start_ife_from(tx2, status: {1, ife_id2})
+        |> Core.find_ifes_in_blocks(request)
         |> piggyback_ife_from(tx_hash1, 0, :input)
         |> piggyback_ife_from(tx_hash1, 1, :input)
         |> piggyback_ife_from(tx_hash2, 0, :output)
@@ -70,10 +146,9 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
       ife_id2 = <<ife_id2::192>>
 
       tx1_first_input = tx1 |> Transaction.get_inputs() |> hd()
-      ife1_exits = {[tx1_first_input], []}
-      ife2_exits = {[], [%{tx_hash: tx_hash2, output_index: 0, omg_data: %{piggyback_type: :output}}]}
+      tx2_first_output = Utxo.position(tx2_blknum, 1, 0)
 
-      assert {:ok, %{^ife_id1 => ^ife1_exits, ^ife_id2 => ^ife2_exits}} =
+      assert {:ok, %{^ife_id1 => [^tx1_first_input], ^ife_id2 => [^tx2_first_output]}} =
                Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
     end
 

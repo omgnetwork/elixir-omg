@@ -38,6 +38,8 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
   use OMG.Utils.LoggerExt
 
+  require Utxo
+
   @doc """
   Finalize exits based on Ethereum events, removing from tracked state if valid.
 
@@ -104,6 +106,8 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
          {:ok, []} <- known_piggybacks?(finalizations, ifes_by_id) do
       {exits_by_ife_id, _} =
         finalizations
+        |> Enum.reverse()
+        # FIXME: ifes_by_id doesn't have to be the result of reduce
         |> Enum.reduce({%{}, ifes_by_id}, &prepare_utxo_exits_for_finalization/2)
 
       {:ok, exits_by_ife_id}
@@ -160,29 +164,32 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
   defp prepare_utxo_exits_for_finalization(
          %{in_flight_exit_id: ife_id, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}},
-         {exits, ifes_by_id}
+         {exiting_positions, ifes_by_id}
        ) do
-    {tx_hash, ife} = Map.get(ifes_by_id, ife_id)
+    # FIXME: drop hash from this structure
+    {_tx_hash, ife} = Map.get(ifes_by_id, ife_id)
     # a runtime sanity check - if this were false it would mean all piggybacks finalized so contract wouldn't allow that
     true = InFlightExitInfo.is_active?(ife, {piggyback_type, output_index})
 
-    {input_exits, output_exits} =
-      case piggyback_type do
-        :output ->
-          # FIXME: consider simplifying this mess right away. Why aren't we using the inclusion information that the
-          #        exit processor collects? this is exactly what we need - we'll have the utxo position and State won't be
-          #        bothered by these special clauses
-          {[], [%{tx_hash: tx_hash, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}}]}
+    exiting_positions_for_piggyback = get_exiting_positions(ife, output_index, piggyback_type)
 
-        :input ->
-          %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: tx}} = ife
-          input_exit = tx |> Transaction.get_inputs() |> Enum.at(output_index)
-          {[input_exit], []}
-      end
+    new_exiting_positions =
+      Map.update(exiting_positions, ife_id, exiting_positions_for_piggyback, &(exiting_positions_for_piggyback ++ &1))
 
-    {input_exits_acc, output_exits_acc} = Map.get(exits, ife_id, {[], []})
-    exits = Map.put(exits, ife_id, {input_exits ++ input_exits_acc, output_exits ++ output_exits_acc})
-    {exits, ifes_by_id}
+    {new_exiting_positions, ifes_by_id}
+  end
+
+  defp get_exiting_positions(ife, output_index, :input) do
+    %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: tx}} = ife
+    input_position = tx |> Transaction.get_inputs() |> Enum.at(output_index)
+    [input_position]
+  end
+
+  defp get_exiting_positions(ife, output_index, :output) do
+    case ife.tx_seen_in_blocks_at do
+      nil -> []
+      {Utxo.position(blknum, txindex, _), _proof} -> [Utxo.position(blknum, txindex, output_index)]
+    end
   end
 
   @doc """
