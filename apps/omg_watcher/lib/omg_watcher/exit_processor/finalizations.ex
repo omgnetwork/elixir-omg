@@ -198,9 +198,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
           | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def finalize_in_flight_exits(%Core{in_flight_exits: ifes} = state, finalizations, invalidities_by_ife_id) do
     # convert ife_id from int (given by contract) to a binary
-    finalizations =
-      finalizations
-      |> Enum.map(fn %{in_flight_exit_id: id} = map -> Map.replace!(map, :in_flight_exit_id, <<id::192>>) end)
+    finalizations = Enum.map(finalizations, &ife_id_to_binary/1)
 
     with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
          {:ok, []} <- known_piggybacks?(finalizations, ifes_by_id) do
@@ -211,7 +209,6 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
       db_updates =
         ifes_by_id
-        |> Map.new()
         |> Map.take(updated_ifes)
         |> Map.values()
         # re-key those IFEs by tx_hash as how they are originally stored
@@ -221,7 +218,6 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
       ifes =
         ifes_by_id
         # re-key those IFEs by tx_hash as how they are originally stored
-        |> Map.new()
         |> Map.values()
         |> Enum.into(%{}, &{Transaction.raw_txhash(&1.tx), &1})
 
@@ -248,23 +244,16 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
   end
 
   defp activate_on_invalid_utxo_exits({ifes_by_id, updated_ifes}, invalidities_by_ife_id) do
-    ifes_to_activate =
+    ids_to_activate =
       invalidities_by_ife_id
       |> Enum.filter(fn {_ife_id, invalidities} -> not Enum.empty?(invalidities) end)
       |> Enum.map(fn {ife_id, _invalidities} -> ife_id end)
       |> MapSet.new()
 
-    ifes_by_id = Enum.map(ifes_by_id, &activate_in_flight_exit(&1, ifes_to_activate))
+    # iterates over the ifes that are spotted with invalid finalizing (their `ife_ids`) and activates the ifes
+    new_ifes_by_id =
+      Enum.reduce(ids_to_activate, ifes_by_id, fn id, ifes -> Map.update!(ifes, id, &InFlightExitInfo.activate/1) end)
 
-    updated_ifes = MapSet.to_list(ifes_to_activate) ++ MapSet.to_list(updated_ifes)
-    updated_ifes = MapSet.new(updated_ifes)
-
-    {ifes_by_id, updated_ifes}
-  end
-
-  defp activate_in_flight_exit({ife_id, ife}, ifes_to_activate) do
-    if MapSet.member?(ifes_to_activate, ife_id),
-      do: {ife_id, InFlightExitInfo.activate(ife)},
-      else: {ife_id, ife}
+    {new_ifes_by_id, MapSet.union(ids_to_activate, updated_ifes)}
   end
 end
