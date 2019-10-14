@@ -143,23 +143,15 @@ defmodule OMG.Eth.RootChain do
   def get_deposits(block_from, block_to, contract \\ %{}) do
     # NOTE: see https://github.com/omisego/plasma-contracts/issues/262
 
-    # FIXME: note the `sort_by` here. It is necessary so that the (superfluous, see fixme there) check doesn't filter out
-    #        good deposits: `apps/omg/lib/omg/state/core.ex:231`
-    #        when the EthereumEventListener pipe refactor is done, the sorting can be removed and events treated separate
     contract_eth = maybe_fetch_addr!(contract, :eth_vault)
     contract_erc20 = maybe_fetch_addr!(contract, :erc20_vault)
-
     event_signature = "DepositCreated(address,uint256,address,uint256)"
 
     with {:ok, logs_eth} <-
            Eth.get_ethereum_events(block_from, block_to, event_signature, contract_eth),
          {:ok, logs_erc20} <-
            Eth.get_ethereum_events(block_from, block_to, event_signature, contract_erc20),
-         all_sorted_logs =
-           [logs_eth, logs_erc20]
-           |> Enum.concat()
-           |> Enum.sort_by(fn event -> {event["blockNumber"], event["logIndex"]} end),
-         do: {:ok, Enum.map(all_sorted_logs, &decode_deposit/1)}
+         do: {:ok, [logs_eth, logs_erc20] |> Enum.concat() |> Enum.map(&decode_deposit/1)}
   end
 
   @doc """

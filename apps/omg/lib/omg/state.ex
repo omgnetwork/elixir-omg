@@ -92,11 +92,10 @@ defmodule OMG.State do
     # until we've processed history.
     {:ok, utxos_query_result} = DB.utxos()
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
-    {:ok, last_deposit_query_result} = DB.get_single_value(:last_deposit_child_blknum)
-    {:ok, [utxos_query_result, height_query_result, last_deposit_query_result], {:continue, :setup}}
+    {:ok, [utxos_query_result, height_query_result], {:continue, :setup}}
   end
 
-  def handle_continue(:setup, [utxos_query_result, height_query_result, last_deposit_query_result]) do
+  def handle_continue(:setup, [utxos_query_result, height_query_result]) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     {:ok, state} =
@@ -104,22 +103,16 @@ defmodule OMG.State do
              Core.extract_initial_state(
                utxos_query_result,
                height_query_result,
-               last_deposit_query_result,
                child_block_interval
              ) do
-        _ =
-          Logger.info(
-            "Started #{inspect(__MODULE__)}, height: #{height_query_result}, deposit height: #{
-              last_deposit_query_result
-            }"
-          )
+        _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{height_query_result}}")
 
         {:ok, _} =
           :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
 
         result
       else
-        {:error, reason} = error when reason in [:top_block_number_not_found, :last_deposit_not_found] ->
+        {:error, reason} = error when reason in [:top_block_number_not_found] ->
           _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
           error
 
