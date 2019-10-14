@@ -223,6 +223,24 @@ defmodule OMG.Eth do
     if unpack_tuple_args, do: parse_tuple_args(call_data_raw, unpack_tuple_args), else: call_data_raw
   end
 
+  @doc """
+  Enrichs the decoded log data from the Eth node, by getting the respective transaction's function call to the contract
+  and dissecting it using the name, args and argument types as specified. The call data is put under `:call_data`.
+
+  Passes on the optional arguments into `Eth.get_call_data`
+  """
+  @spec log_with_call_data(
+          %{required(:root_chain_txhash) => binary, optional(atom) => any},
+          binary,
+          list(atom),
+          list(binary),
+          keyword()
+        ) :: map()
+  def log_with_call_data(log, function_name, args, types, opts \\ []) do
+    call_data = get_call_data(log.root_chain_txhash, function_name, args, types, opts)
+    Map.put(log, :call_data, call_data)
+  end
+
   # interprets an argument called `args` in the call_data (arguments) and reinterprets the arguments according to names
   # given
   defp parse_tuple_args(call_data, tuple_arg_names) do
