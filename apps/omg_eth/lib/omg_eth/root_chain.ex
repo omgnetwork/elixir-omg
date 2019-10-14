@@ -202,44 +202,9 @@ defmodule OMG.Eth.RootChain do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "InFlightExitChallenged(address,bytes32,uint256)"
 
-    # FIXME: split into functions, here and elsewhere
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
-      {:ok, logs} ->
-        args = [:args]
-        types = ["(bytes,uint256,bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes)"]
-
-        tuple_arg_names = [
-          :input_tx_bytes,
-          :input_utxo_pos,
-          :in_flight_tx,
-          :in_flight_input_index,
-          :competing_tx,
-          :competing_tx_input_index,
-          :competing_tx_pos,
-          :competing_tx_inclusion_proof,
-          :competing_tx_sig
-        ]
-
-        challenges =
-          Enum.map(logs, fn log ->
-            decode_in_flight_exit_challenged = decode_in_flight_exit_challenged(log)
-
-            call_data =
-              Eth.get_call_data(
-                decode_in_flight_exit_challenged.root_chain_txhash,
-                "challengeInFlightExitNotCanonical",
-                args,
-                types,
-                unpack_tuple_args: tuple_arg_names
-              )
-
-            Map.put(decode_in_flight_exit_challenged, :call_data, call_data)
-          end)
-
-        {:ok, challenges}
-
-      other ->
-        other
+      {:ok, logs} -> prepare_in_flight_exit_challenged(logs)
+      other -> other
     end
   end
 
@@ -378,27 +343,8 @@ defmodule OMG.Eth.RootChain do
     signature = "ExitStarted(address,uint160)"
 
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
-      {:ok, logs} ->
-        args = [:args]
-        types = ["(uint192,bytes,bytes,bytes)"]
-        tuple_arg_names = [:utxo_pos, :output_tx, :output_guard_preimage, :output_tx_inclusion_proof]
-
-        exits =
-          Enum.map(logs, fn log ->
-            decode_exit_started = decode_exit_started(log)
-
-            call_data =
-              Eth.get_call_data(decode_exit_started.root_chain_txhash, "startStandardExit", args, types,
-                unpack_tuple_args: tuple_arg_names
-              )
-
-            Map.put(decode_exit_started, :call_data, call_data)
-          end)
-
-        {:ok, exits}
-
-      other ->
-        other
+      {:ok, logs} -> prepare_exit_started(logs)
+      other -> other
     end
   end
 
@@ -410,39 +356,8 @@ defmodule OMG.Eth.RootChain do
     signature = "InFlightExitStarted(address,bytes32)"
 
     case Eth.get_ethereum_events(block_from, block_to, signature, contract) do
-      # FIXME: split into functions, here and elsewhere
-      {:ok, logs} ->
-        args = [:args]
-        types = ["(bytes,bytes[],uint256[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[])"]
-
-        tuple_arg_names = [
-          :in_flight_tx,
-          :input_txs,
-          :input_tx_types,
-          :input_utxos_pos,
-          :output_guard_preimages_for_inputs,
-          :input_inclusion_proofs,
-          :in_flight_tx_confirm_sigs,
-          :in_flight_tx_sigs,
-          :optional_args
-        ]
-
-        result =
-          Enum.map(logs, fn log ->
-            decode_in_flight_exit = decode_in_flight_exit(log)
-
-            call_data =
-              Eth.get_call_data(decode_in_flight_exit.root_chain_txhash, "startInFlightExit", args, types,
-                unpack_tuple_args: tuple_arg_names
-              )
-
-            Map.put(decode_in_flight_exit, :call_data, call_data)
-          end)
-
-        {:ok, result}
-
-      other ->
-        other
+      {:ok, logs} -> prepare_in_flight_exit_started(logs)
+      other -> other
     end
   end
 
@@ -494,7 +409,20 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  defp decode_in_flight_exit(log) do
+  defp prepare_exit_started(logs) do
+    args = [:args]
+    types = ["(uint192,bytes,bytes,bytes)"]
+    tuple_arg_names = [:utxo_pos, :output_tx, :output_guard_preimage, :output_tx_inclusion_proof]
+
+    exits =
+      logs
+      |> Enum.map(&decode_exit_started/1)
+      |> Enum.map(&Eth.log_with_call_data(&1, "startStandardExit", args, types, unpack_tuple_args: tuple_arg_names))
+
+    {:ok, exits}
+  end
+
+  defp decode_in_flight_exit_started(log) do
     non_indexed_keys = [:tx_hash]
     non_indexed_key_types = [{:bytes, 32}]
     indexed_keys = [:initiator]
@@ -507,9 +435,28 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  defp authority(contract) do
-    contract = maybe_fetch_addr!(contract, :plasma_framework)
-    Eth.call_contract(contract, "operator()", [], [:address])
+  defp prepare_in_flight_exit_started(logs) do
+    args = [:args]
+    types = ["(bytes,bytes[],uint256[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[])"]
+
+    tuple_arg_names = [
+      :in_flight_tx,
+      :input_txs,
+      :input_tx_types,
+      :input_utxos_pos,
+      :output_guard_preimages_for_inputs,
+      :input_inclusion_proofs,
+      :in_flight_tx_confirm_sigs,
+      :in_flight_tx_sigs,
+      :optional_args
+    ]
+
+    result =
+      logs
+      |> Enum.map(&decode_in_flight_exit_started/1)
+      |> Enum.map(&Eth.log_with_call_data(&1, "startInFlightExit", args, types, unpack_tuple_args: tuple_arg_names))
+
+    {:ok, result}
   end
 
   defp decode_piggyback_challenged(log, type) do
@@ -597,6 +544,37 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
+  defp prepare_in_flight_exit_challenged(logs) do
+    args = [:args]
+    types = ["(bytes,uint256,bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes)"]
+
+    tuple_arg_names = [
+      :input_tx_bytes,
+      :input_utxo_pos,
+      :in_flight_tx,
+      :in_flight_input_index,
+      :competing_tx,
+      :competing_tx_input_index,
+      :competing_tx_pos,
+      :competing_tx_inclusion_proof,
+      :competing_tx_sig
+    ]
+
+    challenges =
+      logs
+      |> Enum.map(&decode_in_flight_exit_challenged/1)
+      |> Enum.map(
+        &Eth.log_with_call_data(&1, "challengeInFlightExitNotCanonical", args, types, unpack_tuple_args: tuple_arg_names)
+      )
+
+    {:ok, challenges}
+  end
+
   defp update_with_output_type(event, type),
     do: Map.update(event, :omg_data, %{piggyback_type: type}, &Map.put(&1, :piggyback_type, type))
+
+  defp authority(contract) do
+    contract = maybe_fetch_addr!(contract, :plasma_framework)
+    Eth.call_contract(contract, "operator()", [], [:address])
+  end
 end
