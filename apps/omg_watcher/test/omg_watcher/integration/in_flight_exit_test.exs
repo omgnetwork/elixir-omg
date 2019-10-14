@@ -339,21 +339,42 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert %{"in_flight_exits" => [], "byzantine_events" => []} = TestHelper.success?("/status.get")
   end
 
+  # NOTE: if https://github.com/omisego/elixir-omg/issues/994 is taken care of, this behavior will change, see comments
+  #       therein.
   @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
-  test "finalization of utxo not recognized in state leaves in-flight exit active",
+  test "finalization of output from non-included IFE tx - all is good",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     Eth.DevHelpers.import_unlock_fund(bob)
 
     tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
-
     _ = exit_in_flight_and_wait_for_ife(tx, alice)
+    piggyback_and_process_exits(tx, 1, :output, bob)
+
+    assert %{"in_flight_exits" => [], "byzantine_events" => []} = TestHelper.success?("/status.get")
+  end
+
+  @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
+  test "finalization of utxo double-spent in state leaves in-flight exit active and invalid; warns",
+       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    Eth.DevHelpers.import_unlock_fund(bob)
+
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+    ife1 = tx |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
+
+    %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> TestHelper.submit()
+    invalidating_tx = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 5}])
+    %{"blknum" => invalidating_blknum} = TestHelper.submit(invalidating_tx)
+    IntegrationTest.wait_for_block_fetch(invalidating_blknum, @timeout)
+
+    _ = exit_in_flight_and_wait_for_ife(ife1, alice)
 
     # checking if both machines and humans learn about the byzantine condition
     assert TestHelper.capture_log(fn ->
-             _ = piggyback_and_process_exits(tx, 1, :output, bob)
+             _ = piggyback_and_process_exits(tx, 0, :output, alice)
            end) =~ "Invalid in-flight exit finalization"
 
-    assert %{"in_flight_exits" => [_], "byzantine_events" => [_]} = TestHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [_], "byzantine_events" => byzantine_events} = TestHelper.success?("/status.get")
+    assert [%{"event" => "invalid_piggyback"}] = Enum.filter(byzantine_events, &(&1["event"] != "piggyback_available"))
   end
 
   defp exit_in_flight(%Transaction.Signed{} = tx, exiting_user) do
