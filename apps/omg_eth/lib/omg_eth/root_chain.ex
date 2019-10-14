@@ -16,18 +16,20 @@ defmodule OMG.Eth.RootChain do
   @moduledoc """
   Adapter/port to RootChain contract
 
-  Handles sending transactions and fetching events
+  Handles sending transactions and fetching events.
+
+  Should remain simple and not contain any business logic, except being aware of the RootChain contract(s) APIs.
+  For business-logic rich processing of Ethereum events see `OMG.EthereumEventListener.Groomer`
   """
 
   alias OMG.Eth
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   @type optional_addr_t() :: %{atom => Eth.address()} | %{atom => nil}
-  # FIXME, revert and refresh, after the EEL pipes are fixed
   @type in_flight_exit_piggybacked_event() :: %{
           owner: <<_::160>>,
           tx_hash: <<_::256>>,
-          output_index: {:input | :output, non_neg_integer}
+          output_index: non_neg_integer
         }
 
   @spec submit_block(binary, pos_integer, pos_integer, optional_addr_t(), optional_addr_t()) ::
@@ -224,23 +226,12 @@ defmodule OMG.Eth.RootChain do
           {:ok, [in_flight_exit_piggybacked_event]}
   def get_piggybacks(block_from, block_to, contract \\ %{}) do
     contract = maybe_fetch_addr!(contract, :payment_exit_game)
-    # FIXME: since intrictate processing of events doesn't fit into the scope of `RootChain` here, the plan is to:
-    #   - add `EthereumEventListener.EventProcessors.Piggyback/PiggybackBlocked/Deposit` (yes Deposit too)
-    #     machines that will do the processing and be tested
-    #     they will be what is hooked up to EELs in the supervisors, instead of the usual sinks (there can be more of these)
-    #   - let's proceed without this refactor though
     input_signature = "InFlightExitInputPiggybacked(address,bytes32,uint16)"
     output_signature = "InFlightExitOutputPiggybacked(address,bytes32,uint16)"
 
     with {:ok, ilogs} <- Eth.get_ethereum_events(block_from, block_to, input_signature, contract),
          {:ok, ologs} <- Eth.get_ethereum_events(block_from, block_to, output_signature, contract),
-         do: {
-           :ok,
-           Enum.concat(
-             Enum.map(ilogs, &decode_piggybacked(&1, :input)),
-             Enum.map(ologs, &decode_piggybacked(&1, :output))
-           )
-         }
+         do: {:ok, ilogs |> Enum.concat(ologs) |> Enum.map(&decode_piggybacked/1)}
   end
 
   @doc """
@@ -254,13 +245,7 @@ defmodule OMG.Eth.RootChain do
 
     with {:ok, ilogs} <- Eth.get_ethereum_events(block_from, block_to, input_signature, contract),
          {:ok, ologs} <- Eth.get_ethereum_events(block_from, block_to, output_signature, contract),
-         do: {
-           :ok,
-           Enum.concat(
-             Enum.map(ilogs, &decode_piggyback_challenged(&1, :input)),
-             Enum.map(ologs, &decode_piggyback_challenged(&1, :output))
-           )
-         }
+         do: {:ok, ilogs |> Enum.concat(ologs) |> Enum.map(&decode_piggyback_challenged/1)}
   end
 
   @doc """
@@ -274,13 +259,7 @@ defmodule OMG.Eth.RootChain do
 
     with {:ok, ilogs} <- Eth.get_ethereum_events(block_from, block_to, input_signature, contract),
          {:ok, ologs} <- Eth.get_ethereum_events(block_from, block_to, output_signature, contract),
-         do: {
-           :ok,
-           Enum.concat(
-             Enum.map(ilogs, &decode_in_flight_exit_output_finalized(&1, :input)),
-             Enum.map(ologs, &decode_in_flight_exit_output_finalized(&1, :output))
-           )
-         }
+         do: {:ok, ilogs |> Enum.concat(ologs) |> Enum.map(&decode_in_flight_exit_output_finalized/1)}
   end
 
   def decode_in_flight_exit_challenge_responded(log) do
@@ -459,36 +438,30 @@ defmodule OMG.Eth.RootChain do
     {:ok, result}
   end
 
-  defp decode_piggyback_challenged(log, type) do
+  defp decode_piggyback_challenged(log) do
     non_indexed_keys = [:tx_hash, :output_index]
     non_indexed_key_types = [{:bytes, 32}, {:uint, 16}]
     indexed_keys = [:challenger]
     indexed_keys_types = [:address]
 
-    decoded_event =
-      Eth.parse_events_with_indexed_fields(
-        log,
-        {non_indexed_keys, non_indexed_key_types},
-        {indexed_keys, indexed_keys_types}
-      )
-
-    update_with_output_type(decoded_event, type)
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
   end
 
-  defp decode_piggybacked(log, type) do
+  defp decode_piggybacked(log) do
     non_indexed_keys = [:tx_hash, :output_index]
     non_indexed_key_types = [{:bytes, 32}, {:uint, 16}]
     indexed_keys = [:owner]
     indexed_keys_types = [:address]
 
-    decoded_event =
-      Eth.parse_events_with_indexed_fields(
-        log,
-        {non_indexed_keys, non_indexed_key_types},
-        {indexed_keys, indexed_keys_types}
-      )
-
-    update_with_output_type(decoded_event, type)
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
   end
 
   defp decode_exit_finalized(log) do
@@ -504,20 +477,17 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def decode_in_flight_exit_output_finalized(log, type) do
+  def decode_in_flight_exit_output_finalized(log) do
     non_indexed_keys = [:output_index]
     non_indexed_key_types = [{:uint, 16}]
     indexed_keys = [:in_flight_exit_id]
     indexed_keys_types = [{:uint, 160}]
 
-    decoded_event =
-      Eth.parse_events_with_indexed_fields(
-        log,
-        {non_indexed_keys, non_indexed_key_types},
-        {indexed_keys, indexed_keys_types}
-      )
-
-    update_with_output_type(decoded_event, type)
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
   end
 
   defp decode_exit_challenged(log) do
@@ -569,9 +539,6 @@ defmodule OMG.Eth.RootChain do
 
     {:ok, challenges}
   end
-
-  defp update_with_output_type(event, type),
-    do: Map.update(event, :omg_data, %{piggyback_type: type}, &Map.put(&1, :piggyback_type, type))
 
   defp authority(contract) do
     contract = maybe_fetch_addr!(contract, :plasma_framework)
