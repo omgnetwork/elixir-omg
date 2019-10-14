@@ -125,7 +125,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
     by_contract_id =
       ifes
-      |> Enum.map(fn {tx_hash, %InFlightExitInfo{contract_id: id} = ife} -> {id, {tx_hash, ife}} end)
+      |> Enum.map(fn {_tx_hash, %InFlightExitInfo{contract_id: id} = ife} -> {id, ife} end)
       |> Map.new()
 
     known_ifes =
@@ -143,34 +143,29 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
   end
 
   defp known_piggybacks?(finalizations, ifes_by_id) do
-    not_piggybacked =
-      finalizations
-      |> Enum.filter(fn %{
-                          in_flight_exit_id: ife_id,
-                          output_index: output_index,
-                          omg_data: %{piggyback_type: piggyback_type}
-                        } ->
-        {_, ife} = Map.get(ifes_by_id, ife_id)
-        not InFlightExitInfo.is_piggybacked?(ife, {piggyback_type, output_index})
-      end)
-
-    if Enum.empty?(not_piggybacked) do
-      {:ok, []}
-    else
-      {:unknown_piggybacks, not_piggybacked}
+    finalizations
+    |> Enum.filter(&finalization_not_piggybacked?(&1, ifes_by_id))
+    |> case do
+      [] -> {:ok, []}
+      not_piggybacked -> {:unknown_piggybacks, not_piggybacked}
     end
   end
+
+  defp finalization_not_piggybacked?(
+         %{in_flight_exit_id: ife_id, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}},
+         ifes_by_id
+       ),
+       do: not InFlightExitInfo.is_piggybacked?(ifes_by_id[ife_id], {piggyback_type, output_index})
 
   defp prepare_utxo_exits_for_finalization(
          %{in_flight_exit_id: ife_id, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}},
          exiting_positions,
          ifes_by_id
        ) do
-    # FIXME: drop hash from this structure
-    {_tx_hash, ife} = Map.get(ifes_by_id, ife_id)
+    ife = ifes_by_id[ife_id]
     # a runtime sanity check - if this were false it would mean all piggybacks finalized so contract wouldn't allow that
     true = InFlightExitInfo.is_active?(ife, {piggyback_type, output_index})
-
+    # figure out if there's any UTXOs really exiting from the `OMG.State` from this IFE's piggybacked input/output
     exiting_positions_for_piggyback = get_exiting_positions(ife, output_index, piggyback_type)
 
     Map.update(exiting_positions, ife_id, exiting_positions_for_piggyback, &(exiting_positions_for_piggyback ++ &1))
@@ -215,15 +210,20 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
         |> activate_on_invalid_utxo_exits(invalidities_by_ife_id)
 
       db_updates =
-        Map.new(ifes_by_id)
+        ifes_by_id
+        |> Map.new()
         |> Map.take(updated_ifes)
-        |> Enum.map(fn {_, value} -> value end)
+        |> Map.values()
+        # re-key those IFEs by tx_hash as how they are originally stored
+        |> Enum.map(&{Transaction.raw_txhash(&1.tx), &1})
         |> Enum.map(&InFlightExitInfo.make_db_update/1)
 
       ifes =
         ifes_by_id
-        |> Enum.map(fn {_, value} -> value end)
+        # re-key those IFEs by tx_hash as how they are originally stored
         |> Map.new()
+        |> Map.values()
+        |> Enum.into(%{}, &{Transaction.raw_txhash(&1.tx), &1})
 
       {:ok, %{state | in_flight_exits: ifes}, db_updates}
     end
@@ -234,11 +234,11 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
          {ifes_by_id, updated_ifes}
        ) do
     combined_index = {piggyback_type, output_index}
-    {tx_hash, ife} = Map.get(ifes_by_id, ife_id)
+    ife = ifes_by_id[ife_id]
 
     if InFlightExitInfo.is_active?(ife, combined_index) do
       {:ok, finalized_ife} = InFlightExitInfo.finalize(ife, combined_index)
-      ifes_by_id = Map.put(ifes_by_id, ife_id, {tx_hash, finalized_ife})
+      ifes_by_id = Map.put(ifes_by_id, ife_id, finalized_ife)
       updated_ifes = MapSet.put(updated_ifes, ife_id)
 
       {ifes_by_id, updated_ifes}
@@ -262,12 +262,9 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
     {ifes_by_id, updated_ifes}
   end
 
-  defp activate_in_flight_exit({ife_id, {tx_hash, ife}}, ifes_to_activate) do
-    if MapSet.member?(ifes_to_activate, ife_id) do
-      activated_ife = InFlightExitInfo.activate(ife)
-      {ife_id, {tx_hash, activated_ife}}
-    else
-      {ife_id, {tx_hash, ife}}
-    end
+  defp activate_in_flight_exit({ife_id, ife}, ifes_to_activate) do
+    if MapSet.member?(ifes_to_activate, ife_id),
+      do: {ife_id, InFlightExitInfo.activate(ife)},
+      else: {ife_id, ife}
   end
 end
