@@ -60,7 +60,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx1, status: {1, ife_id1})
+        |> start_ife_from(tx1, exit_id: ife_id1)
         |> piggyback_ife_from(tx_hash1, 0, :input)
         |> piggyback_ife_from(tx_hash1, 1, :input)
         |> piggyback_ife_from(tx_hash1, 0, :output)
@@ -94,7 +94,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx1, status: {1, ife_id1})
+        |> start_ife_from(tx1, exit_id: ife_id1)
         |> piggyback_ife_from(tx_hash1, 0, :output)
         |> piggyback_ife_from(tx_hash1, 1, :output)
         |> Core.find_ifes_in_blocks(request)
@@ -127,8 +127,8 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx1, status: {1, ife_id1})
-        |> start_ife_from(tx2, status: {1, ife_id2})
+        |> start_ife_from(tx1, exit_id: ife_id1)
+        |> start_ife_from(tx2, exit_id: ife_id2)
         |> Core.find_ifes_in_blocks(request)
         |> piggyback_ife_from(tx_hash1, 0, :input)
         |> piggyback_ife_from(tx_hash1, 1, :input)
@@ -168,7 +168,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
+        |> start_ife_from(tx, exit_id: ife_id)
         |> piggyback_ife_from(tx_hash, 1, :input)
 
       finalization1 = %{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}}
@@ -191,7 +191,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
+        |> start_ife_from(tx, exit_id: ife_id)
         |> piggyback_ife_from(tx_hash, 0, :input)
         |> piggyback_ife_from(tx_hash, 1, :input)
 
@@ -217,7 +217,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
+        |> start_ife_from(tx, exit_id: ife_id)
         |> piggyback_ife_from(tx_hash, 0, :output)
         |> piggyback_ife_from(tx_hash, 1, :output)
 
@@ -239,7 +239,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
+        |> start_ife_from(tx, exit_id: ife_id)
         |> piggyback_ife_from(tx_hash, 1, :input)
         |> piggyback_ife_from(tx_hash, 2, :input)
 
@@ -269,7 +269,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
+        |> start_ife_from(tx, exit_id: ife_id)
         |> piggyback_ife_from(tx_hash, 1, :input)
 
       finalization = %{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}}
@@ -286,8 +286,8 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx1, status: {1, ife_id1})
-        |> start_ife_from(tx2, status: {1, ife_id2})
+        |> start_ife_from(tx1, exit_id: ife_id1)
+        |> start_ife_from(tx2, exit_id: ife_id2)
         |> piggyback_ife_from(tx_hash1, 1, :input)
 
       finalization = %{in_flight_exit_id: ife_id1, output_index: 1, omg_data: %{piggyback_type: :input}}
@@ -309,7 +309,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
+        |> start_ife_from(tx, exit_id: ife_id)
         |> piggyback_ife_from(tx_hash, 1, :input)
 
       finalization1 = %{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}}

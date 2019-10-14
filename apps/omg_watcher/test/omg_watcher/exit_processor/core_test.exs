@@ -69,10 +69,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
 
     test "in flight exits sanity checks",
-         %{processor_empty: state, in_flight_exit_events: events, contract_ife_statuses: statuses} do
+         %{processor_empty: state, in_flight_exit_events: events} do
       assert {state, []} == Core.new_in_flight_exits(state, [], [])
       assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, Enum.slice(events, 0, 1), [])
-      assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, [], Enum.slice(statuses, 0, 1))
+      assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, [], [{:anything, 1}])
     end
 
     test "knows exits by exit_id the moment they start",
@@ -117,8 +117,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   describe "active SE/IFE listing (only IFEs for now)" do
     test "properly processes new in flight exits, returns all of them on request",
-         %{processor_empty: processor, in_flight_exit_events: events, contract_ife_statuses: statuses} do
+         %{processor_empty: processor, in_flight_exit_events: events} do
       assert [] == Core.get_active_in_flight_exits(processor)
+      # some statuses as received from the contract
+      statuses = [{active_ife_status(), 1}, {active_ife_status(), 2}]
 
       {processor, _} = Core.new_in_flight_exits(processor, events, statuses)
       ifes_response = Core.get_active_in_flight_exits(processor)

@@ -103,11 +103,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
             input_utxos_pos: input_utxos_pos
           }
         },
-        {timestamp, contract_ife_id} = contract_status
+        {contract_status, contract_ife_id}
       ) do
     do_new(tx_bytes, signatures, contract_status,
       contract_id: <<contract_ife_id::192>>,
-      timestamp: timestamp,
       eth_height: eth_height,
       input_txs: input_txs,
       input_utxos_pos: Enum.map(input_utxos_pos, &Utxo.Position.decode!/1)
@@ -115,6 +114,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   end
 
   defp do_new(tx_bytes, tx_signatures, contract_status, fields) do
+    {timestamp, is_active} = parse_contract_in_flight_exit_status(contract_status)
+
     with {:ok, tx} <- prepare_tx(tx_bytes, tx_signatures) do
       # NOTE: in case of using output_id as the input pointer, getting the youngest will be entirely different
       Utxo.position(youngest_input_blknum, _, _) =
@@ -126,12 +127,15 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       fields =
         fields
         |> Keyword.put_new(:tx, tx)
-        |> Keyword.put_new(:is_active, parse_contract_in_flight_exit_status(contract_status))
+        |> Keyword.put_new(:is_active, is_active)
         |> Keyword.put_new(:relevant_from_blknum, youngest_input_blknum)
+        |> Keyword.put_new(:timestamp, timestamp)
 
       {Transaction.raw_txhash(tx), struct!(__MODULE__, fields)}
     end
   end
+
+  defp parse_contract_in_flight_exit_status({_, timestamp, _, _, _, _, _}), do: {timestamp, timestamp != 0}
 
   defp prepare_tx(tx_bytes, tx_signatures) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
@@ -139,8 +143,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       {:ok, tx}
     end
   end
-
-  defp parse_contract_in_flight_exit_status({timestamp, _contract_id}), do: timestamp != 0
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
   def make_db_update(
