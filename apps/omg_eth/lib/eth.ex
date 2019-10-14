@@ -138,7 +138,7 @@ defmodule OMG.Eth do
           topics: ["#{topic}"]
         })
 
-      {:ok, filter_not_removed(logs)}
+      {:ok, logs |> filter_not_removed() |> put_signature(signature)}
     catch
       _ -> {:error, :failed_to_get_ethereum_events}
     end
@@ -248,18 +248,18 @@ defmodule OMG.Eth do
     tuple_arg_names |> Enum.zip(tuple_args) |> Map.new()
   end
 
-  defp common_parse_event(result, %{
-         "blockNumber" => eth_height,
-         "transactionHash" => root_chain_txhash,
-         "logIndex" => log_index
-       }) do
-    Map.merge(
-      result,
-      %{
-        eth_height: int_from_hex(eth_height),
-        root_chain_txhash: from_hex(root_chain_txhash),
-        log_index: int_from_hex(log_index)
-      }
-    )
+  # here we merge the result of event parsing so far (holding the fields)
+  defp common_parse_event(
+         result,
+         %{"blockNumber" => eth_height, "transactionHash" => root_chain_txhash, "logIndex" => log_index} = event
+       ) do
+    # NOTE: we're using `put_new` here, because `merge` would allow us to overwrite data fields in case of conflict
+    result
+    |> Map.put_new(:eth_height, int_from_hex(eth_height))
+    |> Map.put_new(:root_chain_txhash, from_hex(root_chain_txhash))
+    |> Map.put_new(:log_index, int_from_hex(log_index))
+    # just copy `event_signature` over, if it's present (could use tidying up)
+    |> Map.put_new(:event_signature, event[:event_signature])
   end
+  defp put_signature(events, signature), do: Enum.map(events, &Map.put(&1, :event_signature, signature))
 end
