@@ -76,8 +76,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           sla_margin: non_neg_integer(),
           exits: %{Utxo.Position.t() => ExitInfo.t()},
           in_flight_exits: %{Transaction.tx_hash() => InFlightExitInfo.t()},
-          # TODO intended to store both SE and IFE keys by `exit_id`. Not sure, reconsider this when doing IFEs
-          exit_ids: %{non_neg_integer() => Utxo.Position.t() | Transaction.tx_hash()},
+          # NOTE: maps only standard exit_ids to the natural keys of standard exits (input pointers/utxo_pos)
+          #       rethink the approach to the keys in the data structures - how to manage exit_ids? should the contract
+          #       serve more data (e.g. input pointers/tx hashes) where it would normally only serve exit_ids?
+          exit_ids: %{non_neg_integer() => Utxo.Position.t()},
           competitors: %{Transaction.tx_hash() => CompetitorInfo.t()}
         }
 
