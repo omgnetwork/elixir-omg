@@ -249,16 +249,13 @@ defmodule OMG.Watcher.ExitProcessor do
         fn %{call_data: %{in_flight_tx: bytes}} ->
           {:ok, contract_ife_id} = Eth.RootChain.get_in_flight_exit_id(bytes)
           {:ok, status} = Eth.RootChain.get_in_flight_exit(contract_ife_id)
-          {raw_contract_ife_status_to_timestamp(status), contract_ife_id}
+          {status, contract_ife_id}
         end
       )
 
     {new_state, db_updates} = Core.new_in_flight_exits(state, events, ife_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
   end
-
-  # FIXME: move
-  defp raw_contract_ife_status_to_timestamp({_, timestamp, _, _, _, _, _}), do: timestamp
 
   def handle_call({:finalize_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized finalizations: #{inspect(exits)}")

@@ -57,10 +57,15 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   def start_ife_from(%Core{} = processor, tx, opts \\ []) do
     exit_id = Keyword.get(opts, :exit_id, @exit_id)
-    status = Keyword.get(opts, :status, {1, exit_id})
-    {processor, _} = Core.new_in_flight_exits(processor, [ife_event(tx, opts)], [status])
+    # `nil`s are unused portions of the returns data from the contract
+    status = Keyword.get(opts, :status, active_ife_status())
+    status = if status == :inactive, do: inactive_ife_status(), else: status
+    {processor, _} = Core.new_in_flight_exits(processor, [ife_event(tx, opts)], [{status, exit_id}])
     processor
   end
+
+  def active_ife_status(), do: {nil, 1, nil, nil, nil, nil, nil}
+  def inactive_ife_status(), do: {nil, 0, nil, nil, nil, nil, nil}
 
   def piggyback_ife_from(%Core{} = processor, tx_hash, output_index, piggyback_type) do
     {processor, _} =

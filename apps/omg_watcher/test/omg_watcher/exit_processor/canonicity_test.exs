@@ -34,7 +34,6 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @late_blknum 10_000
-  @exit_id 1
 
   describe "sanity checks" do
     test "can process empty challenges and responses", %{processor_empty: empty, processor_filled: filled} do
@@ -502,7 +501,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
     test "by not asking for utxo spends concerning non-active ifes",
          %{processor_empty: processor, transactions: [tx | _]} do
-      processor = processor |> start_ife_from(tx, status: {0, @exit_id})
+      processor = processor |> start_ife_from(tx, status: :inactive)
 
       assert %{utxos_to_check: []} =
                %ExitProcessor.Request{blknum_now: @late_blknum} |> Core.determine_utxo_existence_to_get(processor)
@@ -515,7 +514,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
+        |> start_ife_from(tx, exit_id: ife_id)
         |> piggyback_ife_from(tx_hash, 1, :input)
         |> piggyback_ife_from(tx_hash, 2, :input)
 

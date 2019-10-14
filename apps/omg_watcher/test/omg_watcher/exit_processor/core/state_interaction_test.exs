@@ -177,8 +177,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     processor =
       processor
-      |> start_ife_from(ife_exit_tx1, status: {1, ife_id1})
-      |> start_ife_from(ife_exit_tx2, status: {1, ife_id2})
+      |> start_ife_from(ife_exit_tx1, exit_id: ife_id1)
+      |> start_ife_from(ife_exit_tx2, exit_id: ife_id2)
       |> piggyback_ife_from(tx_hash1, 0, :output)
       |> piggyback_ife_from(tx_hash2, 0, :input)
       |> Core.find_ifes_in_blocks(request)
@@ -210,7 +210,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     processor =
       processor
-      |> start_ife_from(ife_exit_tx, status: {1, ife_id})
+      |> start_ife_from(ife_exit_tx, exit_id: ife_id)
       |> piggyback_ife_from(tx_hash, 0, :output)
       |> Core.find_ifes_in_blocks(request)
 
@@ -243,7 +243,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     processor =
       processor
-      |> start_ife_from(ife_exit_tx, status: {1, ife_id})
+      |> start_ife_from(ife_exit_tx, exit_id: ife_id)
       |> piggyback_ife_from(tx_hash, 0, :output)
       |> Core.find_ifes_in_blocks(request)
 
