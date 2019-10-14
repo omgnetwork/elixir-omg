@@ -249,21 +249,19 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
-  test "ignores deposits from blocks not higher than the block with the last previously received deposit", %{
-    alice: alice,
-    bob: bob,
-    state_empty: state
-  } do
-    assert {:ok, _, state} = Core.deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 2}], state)
-    assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: @eth, amount: 20, blknum: 1}], state)
-  end
-
-  test "extract_initial_state function returns error when passed last deposit as :not_found" do
-    assert {:error, :last_deposit_not_found} = Core.extract_initial_state([], 0, :not_found, @interval)
+  test "deposits can arrive in any order; `OMG.State.Core` doesn't care about this",
+       %{alice: alice, bob: bob, state_empty: state} do
+    state
+    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
+    |> do_deposit(bob, %{amount: 20, currency: @eth, blknum: 1})
+    |> Core.exec(create_recovered([{2, 0, 0, alice}], @eth, [{bob, 10}]), :no_fees_required)
+    |> success?
+    |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{alice, 20}]), :no_fees_required)
+    |> success?
   end
 
   test "extract_initial_state function returns error when passed top block number as :not_found" do
-    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, 0, @interval)
+    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, @interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]

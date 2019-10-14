@@ -164,11 +164,9 @@ defmodule OMG.State.PersistenceTest do
   # mimics `&OMG.State.init/1`
   defp state_from(db_pid) do
     {:ok, height_query_result} = OMG.DB.get_single_value(:child_top_block_number, db_pid)
-    {:ok, last_deposit_query_result} = OMG.DB.get_single_value(:last_deposit_child_blknum, db_pid)
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
 
-    {:ok, state} =
-      Core.extract_initial_state(utxos_query_result, height_query_result, last_deposit_query_result, @interval)
+    {:ok, state} = Core.extract_initial_state(utxos_query_result, height_query_result, @interval)
 
     state
   end
