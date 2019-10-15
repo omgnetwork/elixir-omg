@@ -413,6 +413,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       end
       |> Eth.DevHelpers.transact_sync!()
 
-    :ok = IntegrationTest.process_exits(@eth, output_owner)
+    :ok = IntegrationTest.process_exits(1, @eth, output_owner)
   end
 end

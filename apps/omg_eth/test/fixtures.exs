@@ -21,6 +21,8 @@ defmodule OMG.Eth.Fixtures do
   alias OMG.Eth
   alias OMG.Eth.Encoding
 
+  @test_erc20_vault_id 2
+
   deffixture eth_node do
     {:ok, exit_fn} = Eth.DevNode.start()
     on_exit(exit_fn)
@@ -44,9 +46,9 @@ defmodule OMG.Eth.Fixtures do
     {:ok, _, token_addr} = Eth.Deployer.create_new("ERC20Mintable", root_path, Encoding.from_hex(addr), [])
 
     # ensuring that the root chain contract handles token_addr
-    {:ok, false} = Eth.RootChainHelper.has_token(token_addr)
-    {:ok, _} = token_addr |> Eth.RootChainHelper.add_token() |> Eth.DevHelpers.transact_sync!()
-    {:ok, true} = Eth.RootChainHelper.has_token(token_addr)
+    {:ok, false} = Eth.RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
+    {:ok, _} = Eth.RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr) |> Eth.DevHelpers.transact_sync!()
+    {:ok, true} = Eth.RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
 
     token_addr
   end

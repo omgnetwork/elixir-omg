@@ -41,6 +41,8 @@ defmodule OMG.Eth.BundleDeployer do
   @erc20_vault_number 2
   #
 
+  @eth Eth.RootChain.eth_pseudo_address()
+
   import Eth.Encoding, only: [to_hex: 1, int_from_hex: 1]
 
   def deploy_all(root_path, deployer_addr, authority, exit_period_seconds \\ nil) do
@@ -138,8 +140,8 @@ defmodule OMG.Eth.BundleDeployer do
         root_path,
         deployer_addr,
         plasma_framework: plasma_framework_addr,
-        eth_vault: eth_vault_addr,
-        erc20_vault: erc20_vault_addr,
+        eth_vault_id: @eth_vault_number,
+        erc20_vault_id: @erc20_vault_number,
         output_guard_handler: output_guard_handler_registry_addr,
         spending_condition: spending_condition_registry_addr,
         payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier_addr,
@@ -176,9 +178,12 @@ defmodule OMG.Eth.BundleDeployer do
         [@payment_tx_marker, payment_exit_game_addr, @morevp_protocol_marker],
         transact_opts
       )
+
+    {:ok, _} =
+      Eth.RootChainHelper.add_exit_queue(1, @eth, %{plasma_framework: plasma_framework_addr})
       |> Eth.DevHelpers.transact_sync!()
 
-    assert_count_of_mined_transactions(deployer_addr, transactions_before, 28)
+    assert_count_of_mined_transactions(deployer_addr, transactions_before, 29)
 
     {:ok, txhash,
      %{

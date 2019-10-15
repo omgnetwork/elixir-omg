@@ -117,8 +117,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    :ok = IntegrationTest.process_exits(token, alice)
-    :ok = IntegrationTest.process_exits(@eth, alice)
+    :ok = IntegrationTest.process_exits(2, token, alice)
+    :ok = IntegrationTest.process_exits(1, @eth, alice)
 
     assert TestHelper.get_utxos(alice.addr) == TestHelper.get_exitable_utxos(alice.addr)
     assert [] == TestHelper.get_utxos(alice.addr)

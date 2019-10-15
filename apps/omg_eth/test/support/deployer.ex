@@ -74,8 +74,8 @@ defmodule OMG.Eth.Deployer do
         from,
         [
           plasma_framework: plasma_framework,
-          eth_vault: eth_vault,
-          erc20_vault: erc20_vault,
+          eth_vault_id: eth_vault_id,
+          erc20_vault_id: erc20_vault_id,
           output_guard_handler: output_guard_handler,
           spending_condition: spending_condition,
           payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier,
@@ -86,8 +86,8 @@ defmodule OMG.Eth.Deployer do
       ) do
     args = [
       {:address, plasma_framework},
-      {:address, eth_vault},
-      {:address, erc20_vault},
+      {{:uint, 256}, eth_vault_id},
+      {{:uint, 256}, erc20_vault_id},
       {:address, output_guard_handler},
       {:address, spending_condition},
       {:address, payment_transaction_state_transition_verifier},

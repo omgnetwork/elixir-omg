@@ -28,7 +28,7 @@ defmodule OMG.Eth.RootChainHelper do
 
   @type optional_addr_t() :: <<_::160>> | nil
 
-  @gas_add_token 800_000
+  @gas_add_exit_queue 800_000
   @gas_start_exit 1_000_000
   @gas_challenge_exit 300_000
   @gas_deposit 180_000
@@ -123,13 +123,13 @@ defmodule OMG.Eth.RootChainHelper do
     TransactionHelper.contract_transact(backend, from, contract, "deposit(bytes)", [tx], opts)
   end
 
-  def add_token(token, contract \\ %{}, opts \\ []) do
-    opts = @tx_defaults |> Keyword.put(:gas, @gas_add_token) |> Keyword.merge(opts)
+  def add_exit_queue(vault_id, token, contract \\ %{}, opts \\ []) do
+    opts = @tx_defaults |> Keyword.put(:gas, @gas_add_exit_queue) |> Keyword.merge(opts)
 
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
     backend = Application.fetch_env!(:omg_eth, :eth_node)
-    TransactionHelper.contract_transact(backend, from_hex(from), contract, "addToken(address)", [token], opts)
+    TransactionHelper.contract_transact(backend, from_hex(from), contract, "addExitQueue(uint256, address)", [vault_id, token], opts)
   end
 
   def challenge_exit(
@@ -209,12 +209,12 @@ defmodule OMG.Eth.RootChainHelper do
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
-  def process_exits(token, top_exit_id, exits_to_process, from, contract \\ %{}, opts \\ []) do
+  def process_exits(vault_id, token, top_exit_id, exits_to_process, from, contract \\ %{}, opts \\ []) do
     opts = @tx_defaults |> Keyword.merge(opts)
 
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    signature = "processExits(address,uint160,uint256)"
-    args = [token, top_exit_id, exits_to_process]
+    signature = "processExits(uint256,address,uint160,uint256)"
+    args = [vault_id, token, top_exit_id, exits_to_process]
     backend = Application.fetch_env!(:omg_eth, :eth_node)
 
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
@@ -340,9 +340,9 @@ defmodule OMG.Eth.RootChainHelper do
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
-  def has_token(token, contract \\ %{}) do
+  def has_exit_queue(vault_id, token, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    Eth.call_contract(contract, "hasToken(address)", [token], [:bool])
+    Eth.call_contract(contract, "hasExitQueue(uint256,address)", [vault_id, token], [:bool])
   end
 
   def deposit_blknum_from_receipt(%{"logs" => logs}) do
