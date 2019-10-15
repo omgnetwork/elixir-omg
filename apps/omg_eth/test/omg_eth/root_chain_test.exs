@@ -28,10 +28,9 @@ defmodule OMG.Eth.RootChainTest do
 
   setup do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
-    vcr_path = Path.join(__DIR__,"../fixtures/vcr_cassettes")
-    IO.inspect(ExVCR.Config.cassette_library_dir(vcr_path))
+    vcr_path = Path.join(__DIR__, "../fixtures/vcr_cassettes")
+    ExVCR.Config.cassette_library_dir(vcr_path)
 
-    IO.inspect(vcr_path)
     # NOTE achiurizo
     #
     # this is a hack to ensure we reset the counter to 0 despite
@@ -49,6 +48,7 @@ defmodule OMG.Eth.RootChainTest do
       payment_exit_game: Encoding.from_hex("0x902719f192aa5240632f704aa7a94bab61b86550"),
       authority_address: Encoding.from_hex("0x22d491bde2303f2f43325b2108d26f1eaba1e32b")
     }
+
     {:ok, contract: contract}
   end
 
@@ -61,7 +61,7 @@ defmodule OMG.Eth.RootChainTest do
 
   test "get_next_child_block/1 returns next blknum to be mined by operator", %{contract: contract} do
     use_cassette "ganache/get_next_child_block", match_requests_on: [:request_body] do
-      assert {:ok, 1000} = RootChain.get_next_child_block(contract)
+      assert {:ok, 2000} = RootChain.get_next_child_block(contract)
     end
   end
 
