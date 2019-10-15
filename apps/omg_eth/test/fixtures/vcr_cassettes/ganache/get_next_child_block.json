@@ -15,10 +15,15 @@
     },
     "response": {
       "binary": false,
-      "body": "econnrefused",
-      "headers": [],
-      "status_code": null,
-      "type": "error"
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"0x00000000000000000000000000000000000000000000000000000000000007d0\"}",
+      "headers": {
+        "Content-Type": "application/json",
+        "Date": "Tue, 15 Oct 2019 10:27:46 GMT",
+        "Connection": "keep-alive",
+        "Transfer-Encoding": "chunked"
+      },
+      "status_code": 200,
+      "type": "ok"
     }
   }
 ]

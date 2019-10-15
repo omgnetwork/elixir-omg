@@ -15,10 +15,10 @@
     },
     "response": {
       "binary": false,
-      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"0x28\"}",
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"0x29\"}",
       "headers": {
         "Content-Type": "application/json",
-        "Date": "Mon, 07 Oct 2019 03:30:07 GMT",
+        "Date": "Tue, 15 Oct 2019 10:27:49 GMT",
         "Connection": "keep-alive",
         "Transfer-Encoding": "chunked"
       },

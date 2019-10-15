@@ -29,7 +29,9 @@ defmodule OMG.Eth.RootChainTest do
   setup do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     vcr_path = Path.join(__DIR__,"../fixtures/vcr_cassettes")
-    ExVCR.Config.cassette_library_dir(vcr_path)
+    IO.inspect(ExVCR.Config.cassette_library_dir(vcr_path))
+
+    IO.inspect(vcr_path)
     # NOTE achiurizo
     #
     # this is a hack to ensure we reset the counter to 0 despite
