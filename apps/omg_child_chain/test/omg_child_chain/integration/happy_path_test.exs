@@ -142,14 +142,14 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChainHelper.in_flight_exit(
-        in_flight_tx |> Transaction.raw_txbytes(),
+        Transaction.raw_txbytes(in_flight_tx),
         get_input_txs([tx, tx]),
         [
           Utxo.Position.encode(Utxo.position(blknum, txindex, 0)),
           Utxo.Position.encode(Utxo.position(blknum, txindex, 1))
         ],
-        proof <> proof,
-        Enum.join(in_flight_tx_sigs),
+        [proof, proof],
+        in_flight_tx_sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
@@ -166,20 +166,21 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     %Transaction.Signed{sigs: sigs} =
       in_flight_tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
-    {:ok, %{"blknum" => blknum}} = submit_transaction(in_flight_tx2 |> Transaction.Signed.encode())
+    {:ok, %{"blknum" => blknum}} = in_flight_tx2 |> Transaction.Signed.encode() |> submit_transaction()
 
-    in_flight_tx2_rawbytes = in_flight_tx2 |> Transaction.raw_txbytes()
+    in_flight_tx2_rawbytes = Transaction.raw_txbytes(in_flight_tx2)
 
     # create exit data for tx spending deposit & start in-flight exit
     deposit_tx = OMG.TestHelper.create_signed([], @eth, [{alice, 10}])
+    proof = Block.inclusion_proof([Transaction.Signed.encode(deposit_tx)], 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChainHelper.in_flight_exit(
         in_flight_tx2_rawbytes,
         get_input_txs([deposit_tx]),
         [Utxo.Position.encode(Utxo.position(deposit_blknum, 0, 0))],
-        Block.inclusion_proof([Transaction.Signed.encode(deposit_tx)], 0),
-        Enum.join(sigs),
+        [proof],
+        sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
@@ -223,9 +224,5 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     }
   end
 
-  defp get_input_txs(txs) do
-    txs
-    |> Enum.map(&(Transaction.raw_txbytes(&1) |> ExRLP.decode()))
-    |> ExRLP.encode()
-  end
+  defp get_input_txs(txs), do: Enum.map(txs, &Transaction.raw_txbytes/1)
 end

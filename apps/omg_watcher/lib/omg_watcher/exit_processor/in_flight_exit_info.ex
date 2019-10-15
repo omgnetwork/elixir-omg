@@ -193,47 +193,40 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   defp assert_utxo_pos_type(nil), do: :ok
 
-  def from_db_kv(
-        {ife_hash,
-         %{
-           tx: signed_tx_map,
-           tx_pos: tx_pos,
-           timestamp: timestamp,
-           contract_id: contract_id,
-           oldest_competitor: oldest_competitor,
-           eth_height: eth_height,
-           input_txs: input_txs,
-           input_utxos_pos: input_utxos_pos,
-           relevant_from_blknum: relevant_from_blknum,
-           exit_map: exit_map,
-           is_canonical: is_canonical,
-           is_active: is_active
-         }}
-      )
-      when is_map(signed_tx_map) and is_binary(contract_id) and
-             is_integer(timestamp) and is_integer(eth_height) and is_list(input_txs) and is_list(input_utxos_pos) and
-             is_integer(relevant_from_blknum) and
-             is_map(exit_map) and is_boolean(is_canonical) and is_boolean(is_active) do
-    :ok = assert_utxo_pos_type(tx_pos)
-    :ok = assert_utxo_pos_type(oldest_competitor)
+  def from_db_kv({ife_hash, fields}) do
+    # TODO: this got really horrible. Instead of tidying up/maintaining maybe go `Ecto` and use `Ecto.x` facilities
+    #       on this here and elsewhere
+    assert_types(fields, [:tx_pos, :oldest_competitor], fn value -> :ok = assert_utxo_pos_type(value) end)
+    assert_types(fields, [:tx, :exit_map], fn value -> true = is_map(value) end)
+    assert_types(fields, [:contract_id], fn value -> true = is_binary(value) end)
+    assert_types(fields, [:timestamp, :eth_height, :relevant_from_blknum], fn value -> true = is_integer(value) end)
+    assert_types(fields, [:input_txs, :input_utxos_pos], fn value -> true = is_list(value) end)
+    assert_types(fields, [:is_canonical, :is_active], fn value -> true = is_boolean(value) end)
 
     # mapping is used in case of changes in data structure
     ife_map = %{
-      tx: from_db_signed_tx(signed_tx_map),
-      contract_tx_pos: tx_pos,
-      timestamp: timestamp,
-      contract_id: contract_id,
-      oldest_competitor: oldest_competitor,
-      eth_height: eth_height,
-      input_txs: input_txs,
-      input_utxos_pos: input_utxos_pos,
-      relevant_from_blknum: relevant_from_blknum,
-      exit_map: exit_map,
-      is_canonical: is_canonical,
-      is_active: is_active
+      tx: from_db_signed_tx(fields[:tx]),
+      contract_tx_pos: fields[:tx_pos],
+      timestamp: fields[:timestamp],
+      contract_id: fields[:contract_id],
+      oldest_competitor: fields[:oldest_competitor],
+      eth_height: fields[:eth_height],
+      input_txs: fields[:input_txs],
+      input_utxos_pos: fields[:input_utxos_pos],
+      relevant_from_blknum: fields[:relevant_from_blknum],
+      exit_map: fields[:exit_map],
+      is_canonical: fields[:is_canonical],
+      is_active: fields[:is_active]
     }
 
     {ife_hash, struct!(__MODULE__, ife_map)}
+  end
+
+  defp assert_types(fields, keys, assertion) do
+    fields
+    |> Map.take(keys)
+    |> Map.values()
+    |> Enum.each(assertion)
   end
 
   # NOTE: non-private because `CompetitorInfo` holds `Transaction.Signed` objects too
