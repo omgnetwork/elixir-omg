@@ -58,7 +58,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
       |> Enum.zip([1, 4])
       |> Enum.reduce(processor_empty, fn {tx, idx}, processor ->
         # use the idx as both two distinct ethereum heights and two distinct exit_ids arriving from the root chain
-        processor |> start_ife_from(tx, eth_height: idx, exit_id: idx)
+        start_ife_from(processor, tx, eth_height: idx, exit_id: idx)
       end)
 
     {:ok,

@@ -54,6 +54,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @max_inputs Transaction.Payment.max_inputs()
   @max_outputs Transaction.Payment.max_outputs()
 
+  @type new_in_flight_exit_status_t() :: {tuple(), pos_integer()}
+
   @type piggyback_input_index_t() :: 0..unquote(@max_inputs - 1)
   @type piggyback_output_index_t() :: 0..unquote(@max_outputs - 1)
 
@@ -178,7 +180,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Add new in flight exits from Ethereum events into tracked state.
   """
-  @spec new_in_flight_exits(t(), list(map()), list(map())) :: {t(), list()} | {:error, :unexpected_events}
+  @spec new_in_flight_exits(t(), list(map()), list(new_in_flight_exit_status_t())) ::
+          {t(), list()} | {:error, :unexpected_events}
   def new_in_flight_exits(state, new_ifes_events, contract_statuses)
 
   def new_in_flight_exits(_state, new_ifes_events, contract_statuses)
