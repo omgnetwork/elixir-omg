@@ -24,6 +24,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
+  alias OMG.InputPointer
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -45,6 +46,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new exits are tracked.
   Returns `db_updates`
   """
+  # empty list clause to not block the server for no-ops
+  def new_exits([]), do: {:ok, []}
 
   def new_exits(exits) do
     GenServer.call(__MODULE__, {:new_exits, exits})
@@ -54,6 +57,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new in flight exits are tracked.
   Returns `db_updates`
   """
+  # empty list clause to not block the server for no-ops
+  def new_in_flight_exits([]), do: {:ok, []}
 
   def new_in_flight_exits(in_flight_exit_started_events) do
     GenServer.call(__MODULE__, {:new_in_flight_exits, in_flight_exit_started_events})
@@ -63,6 +68,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - finalized exits are untracked _if valid_ otherwise raises alert
   Returns `db_updates`
   """
+  # empty list clause to not block the server for no-ops
+  def finalize_exits([]), do: {:ok, []}
 
   def finalize_exits(finalizations) do
     GenServer.call(__MODULE__, {:finalize_exits, finalizations})
@@ -72,6 +79,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new piggybacks are tracked, if invalid raises an alert
   Returns `db_updates`
   """
+  # empty list clause to not block the server for no-ops
+  def piggyback_exits([]), do: {:ok, []}
 
   def piggyback_exits(piggybacks) do
     GenServer.call(__MODULE__, {:piggyback_exits, piggybacks})
@@ -81,6 +90,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - challenged exits are untracked
   Returns `db_updates`
   """
+  # empty list clause to not block the server for no-ops
+  def challenge_exits([]), do: {:ok, []}
 
   def challenge_exits(challenges) do
     GenServer.call(__MODULE__, {:challenge_exits, challenges})
@@ -91,6 +102,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Competitors are stored for future use(i.e. to challenge an in flight exit).
   Returns `db_updates`
   """
+  # empty list clause to not block the server for no-ops
+  def new_ife_challenges([]), do: {:ok, []}
 
   def new_ife_challenges(challenges) do
     GenServer.call(__MODULE__, {:new_ife_challenges, challenges})
@@ -100,6 +113,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in state.
   Returns `db_updates`
   """
+  # empty list clause to not block the server for no-ops
+  def respond_to_in_flight_exits_challenges([]), do: {:ok, []}
 
   def respond_to_in_flight_exits_challenges(responds) do
     GenServer.call(__MODULE__, {:respond_to_in_flight_exits_challenges, responds})
@@ -110,6 +125,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Challenged piggybacks are forgotten.
   Returns `db_updates`
   """
+  # empty list clause to not block the server for no-ops
+  def challenge_piggybacks([]), do: {:ok, []}
 
   def challenge_piggybacks(challenges) do
     GenServer.call(__MODULE__, {:challenge_piggybacks, challenges})
@@ -119,6 +136,8 @@ defmodule OMG.Watcher.ExitProcessor do
     Accepts events and processes them in state - finalized outputs are applied to the state.
     Returns `db_updates`
   """
+  # empty list clause to not block the server for no-ops
+  def finalize_in_flight_exits([]), do: {:ok, []}
 
   def finalize_in_flight_exits(finalizations) do
     GenServer.call(__MODULE__, {:finalize_in_flight_exits, finalizations})
@@ -131,7 +150,6 @@ defmodule OMG.Watcher.ExitProcessor do
   This function may also update some internal caches to make subsequent calls not redo the work,
   but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
   """
-
   def check_validity do
     GenServer.call(__MODULE__, :check_validity)
   end
@@ -139,7 +157,6 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Returns a map of requested in flight exits, keyed by transaction hash
   """
-
   @spec get_active_in_flight_exits() :: {:ok, Core.in_flight_exits_response_t()}
   def get_active_in_flight_exits do
     GenServer.call(__MODULE__, :get_active_in_flight_exits)
@@ -149,7 +166,6 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns all information required to produce a transaction to the root chain contract to present a competitor for
   a non-canonical in-flight exit
   """
-
   @spec get_competitor_for_ife(binary()) ::
           {:ok, ExitProcessor.Canonicity.competitor_data_t()}
           | {:error, :competitor_not_found}
@@ -162,7 +178,6 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
   for a challenged in-flight exit
   """
-
   @spec prove_canonical_for_ife(binary()) ::
           {:ok, ExitProcessor.Canonicity.prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
   def prove_canonical_for_ife(txbytes) do
@@ -186,7 +201,6 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Returns challenge for an exit
   """
-
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, StandardExit.Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
   def create_challenge(exiting_utxo_pos) do
@@ -372,14 +386,8 @@ defmodule OMG.Watcher.ExitProcessor do
     {:noreply, state}
   end
 
-  defp fill_request_with_standard_challenge_data(
-         %ExitProcessor.Request{se_spending_blocks_to_get: positions, se_creating_blocks_to_get: blknums} = request
-       ) do
-    %ExitProcessor.Request{
-      request
-      | se_spending_blocks_result: do_get_spending_blocks(positions),
-        se_creating_blocks_result: do_get_blocks(blknums)
-    }
+  defp fill_request_with_standard_challenge_data(%ExitProcessor.Request{se_spending_blocks_to_get: positions} = request) do
+    %ExitProcessor.Request{request | se_spending_blocks_result: do_get_spending_blocks(positions)}
   end
 
   # based on the exits being processed, fills the request structure with data required to process queries
@@ -456,7 +464,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp do_get_spent_blknum(position) do
-    {:ok, spend_blknum} = position |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum()
+    {:ok, spend_blknum} = position |> InputPointer.Protocol.to_db_key() |> OMG.DB.spent_blknum()
     spend_blknum
   end
 

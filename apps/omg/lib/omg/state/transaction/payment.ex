@@ -14,11 +14,13 @@
 
 defmodule OMG.State.Transaction.Payment do
   @moduledoc """
-      Internal representation of a payment transaction done on Plasma chain.
+  Internal representation of a raw payment transaction done on Plasma chain.
 
-      This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
+  This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
   """
   alias OMG.Crypto
+  alias OMG.InputPointer
+  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -30,22 +32,11 @@ defmodule OMG.State.Transaction.Payment do
   defstruct [:inputs, :outputs, metadata: @zero_metadata]
 
   @type t() :: %__MODULE__{
-          inputs: list(input()),
-          outputs: list(output()),
+          inputs: list(InputPointer.Protocol.t()),
+          outputs: list(Output.FungibleMoreVPToken.t()),
           metadata: Transaction.metadata()
         }
 
-  @type input() :: %{
-          blknum: non_neg_integer(),
-          txindex: non_neg_integer(),
-          oindex: non_neg_integer()
-        }
-
-  @type output() :: %{
-          owner: Crypto.address_t(),
-          currency: currency(),
-          amount: non_neg_integer()
-        }
   @type currency() :: Crypto.address_t()
 
   @max_inputs 4
@@ -64,9 +55,7 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   @doc """
-  Creates a new transaction from a list of inputs and a list of outputs.
-  Adds empty (zeroes) inputs and/or outputs to reach the expected size
-  of `@max_inputs` inputs and `@max_outputs` outputs.
+  Creates a new raw transaction structure from a list of inputs and a list of outputs, given in a succinct tuple form.
 
   assumptions:
   ```
@@ -83,14 +72,8 @@ defmodule OMG.State.Transaction.Payment do
 
   def new(inputs, outputs, metadata)
       when Transaction.is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
-    inputs =
-      inputs
-      |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
-
-    outputs =
-      outputs
-      |> Enum.map(fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end)
-
+    inputs = Enum.map(inputs, &new_input/1)
+    outputs = Enum.map(outputs, &new_output/1)
     %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
@@ -107,94 +90,92 @@ defmodule OMG.State.Transaction.Payment do
 
   def reconstruct(_), do: {:error, :malformed_transaction}
 
+  # `new_input/1` and `new_output/1` are here to just help interpret the short-hand form of inputs outputs when doing
+  # `new/3`
+  defp new_input({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
+
+  defp new_output({owner, currency, amount}),
+    do: %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
+
   defp reconstruct_inputs(inputs_rlp) do
-    {:ok, Enum.map(inputs_rlp, &from_new_rlp_input/1)}
-  rescue
-    _ -> {:error, :malformed_inputs}
-  end
-
-  # messy, see comments on the abstract output/input fixing this properly
-  defp from_new_rlp_input(binary_input) when is_binary(binary_input) do
-    Utxo.position(blknum, txindex, oindex) =
-      binary_input
-      |> :binary.decode_unsigned(:big)
-      |> Utxo.Position.decode!()
-
-    %{blknum: blknum, txindex: txindex, oindex: oindex}
+    with {:ok, inputs} <- parse_inputs(inputs_rlp),
+         do: {:ok, inputs}
   end
 
   defp reconstruct_outputs(outputs_rlp) do
-    outputs =
-      Enum.map(outputs_rlp, fn [owner, currency, amount] ->
-        with {:ok, cur12} <- parse_address(currency),
-             {:ok, owner} <- parse_address(owner) do
-          %{owner: owner, currency: cur12, amount: parse_int(amount)}
-        end
-      end)
-
-    if error = Enum.find(outputs, &match?({:error, _}, &1)), do: error, else: {:ok, outputs}
-  rescue
-    _ -> {:error, :malformed_outputs}
+    with {:ok, outputs} <- parse_outputs(outputs_rlp),
+         do: {:ok, outputs}
   end
 
   defp reconstruct_metadata([]), do: {:ok, @zero_metadata}
   defp reconstruct_metadata([metadata]) when Transaction.is_metadata(metadata), do: {:ok, metadata}
   defp reconstruct_metadata([_]), do: {:error, :malformed_metadata}
 
-  defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
+  defp parse_inputs(inputs_rlp) do
+    {:ok, Enum.map(inputs_rlp, &parse_input!/1)}
+  rescue
+    _ -> {:error, :malformed_inputs}
+  end
 
-  # necessary, because RLP handles empty string equally to integer 0
-  @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
-  defp parse_address(binary)
-  defp parse_address(""), do: {:ok, <<0::160>>}
-  defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
-  defp parse_address(_), do: {:error, :malformed_address}
+  defp parse_outputs(outputs_rlp) do
+    outputs = Enum.map(outputs_rlp, &Output.dispatching_reconstruct/1)
+
+    with nil <- Enum.find(outputs, &match?({:error, _}, &1)),
+         true <- only_allowed_output_types?(outputs) || {:error, :tx_cannot_create_output_type},
+         do: {:ok, outputs}
+  rescue
+    _ -> {:error, :malformed_outputs}
+  end
+
+  defp only_allowed_output_types?(outputs),
+    do: Enum.all?(outputs, &match?(%Output.FungibleMoreVPToken{}, &1))
+
+  # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
+  #       most likely one needs to route through generic InputPointer` function that does the dispatch
+  defp parse_input!(input_pointer), do: InputPointer.UtxoPosition.reconstruct(input_pointer)
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
+  alias OMG.InputPointer
+  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
 
   require Transaction
   require Utxo
-  require Transaction.Payment
 
   @empty_signature <<0::size(520)>>
 
-  # TODO: note this is fixed and improved in the abstract outputs/inputs PR
-  @payment_marker Transaction.Markers.payment()
+  # TODO: dry wrt. Application.fetch_env!(:omg, :tx_types_modules)? Use `bimap` perhaps?
+  @payment_marker <<1>>
 
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
+  @spec get_data_for_rlp(Transaction.Payment.t()) :: list(any())
   def get_data_for_rlp(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
       when Transaction.is_metadata(metadata),
       do: [
         @payment_marker,
-        Enum.map(inputs, &to_new_rlp_input/1),
-        Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end),
+        Enum.map(inputs, &OMG.InputPointer.Protocol.get_data_for_rlp/1),
+        Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
         metadata
       ]
 
-  def get_outputs(%Transaction.Payment{outputs: outputs}) do
-    outputs
-  end
+  @spec get_outputs(Transaction.Payment.t()) :: list(Output.Protocol.t())
+  def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
 
-  def get_inputs(%Transaction.Payment{inputs: inputs}) do
-    inputs
-    |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
-  end
-
-  defp to_new_rlp_input(%{blknum: blknum, txindex: txindex, oindex: oindex}),
-    do: Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode() |> :binary.encode_unsigned(:big)
+  @spec get_inputs(Transaction.Payment.t()) :: list(InputPointer.Protocol.t())
+  def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
 
   @doc """
   True if the witnessses provided follow some extra custom validation.
 
   Currently this covers the requirement for all the inputs to be signed on predetermined positions
   """
+  @spec valid?(Transaction.Payment.t(), Transaction.Signed.t()) :: true | {:error, atom}
   def valid?(%Transaction.Payment{}, %Transaction.Signed{sigs: sigs} = tx) do
     tx
     |> Transaction.get_inputs()
@@ -207,24 +188,16 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   Returns the fees that this transaction is paying, mapped by currency
   """
-  @spec can_apply?(Transaction.Payment.t(), list(Utxo.t())) :: {:ok, map()} | {:error, :amounts_do_not_add_up}
-  def can_apply?(%Transaction.Payment{} = tx, input_utxos) do
+  @spec can_apply?(Transaction.Payment.t(), list(Output.Protocol.t())) ::
+          {:ok, map()} | {:error, :amounts_do_not_add_up}
+  def can_apply?(%Transaction.Payment{} = tx, outputs_spent) do
     outputs = Transaction.get_outputs(tx)
 
-    input_amounts_by_currency = get_amounts_by_currency(input_utxos)
+    input_amounts_by_currency = get_amounts_by_currency(outputs_spent)
     output_amounts_by_currency = get_amounts_by_currency(outputs)
 
     with :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
          do: {:ok, fees_paid(input_amounts_by_currency, output_amounts_by_currency)}
-  end
-
-  @doc """
-  Effects of a payment transaction - spends all inputs and creates all outputs
-  """
-  def get_effects(%Transaction.Payment{} = tx, blknum, tx_index) do
-    new_utxos_map = tx |> non_zero_utxos_from(blknum, tx_index) |> Map.new()
-    spent_input_pointers = Transaction.get_inputs(tx)
-    {spent_input_pointers, new_utxos_map}
   end
 
   defp all_inputs_signed?(non_zero_inputs, sigs) do
@@ -238,27 +211,6 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
     end
   end
 
-  defp non_zero_utxos_from(tx, blknum, tx_index) do
-    tx
-    |> utxos_from(blknum, tx_index)
-    |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
-  end
-
-  defp utxos_from(tx, blknum, tx_index) do
-    hash = Transaction.raw_txhash(tx)
-
-    tx
-    |> Transaction.get_outputs()
-    |> Enum.with_index()
-    |> Enum.map(fn {%{owner: owner, currency: currency, amount: amount}, oindex} ->
-      {Utxo.position(blknum, tx_index, oindex),
-       %Utxo{owner: owner, currency: currency, amount: amount, creating_txhash: hash}}
-    end)
-  end
-
-  defp is_non_zero_amount?(%{amount: 0}), do: false
-  defp is_non_zero_amount?(%{amount: _}), do: true
-
   defp fees_paid(input_amounts_by_currency, output_amounts_by_currency) do
     input_amounts_by_currency
     |> Enum.into(%{}, fn {input_currency, input_amount} ->
@@ -268,8 +220,8 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
     end)
   end
 
-  defp get_amounts_by_currency(utxos) do
-    utxos
+  defp get_amounts_by_currency(outputs) do
+    outputs
     |> Enum.group_by(fn %{currency: currency} -> currency end, fn %{amount: amount} -> amount end)
     |> Enum.map(fn {currency, amounts} -> {currency, Enum.sum(amounts)} end)
     |> Map.new()

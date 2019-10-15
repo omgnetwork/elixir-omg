@@ -41,8 +41,8 @@ defmodule OMG.State.Transaction.Validator do
 
     with :ok <- validate_block_size(state),
          :ok <- inputs_not_from_future_block?(state, inputs),
-         {:ok, input_utxos} <- UtxoSet.get_by_inputs(utxos, inputs),
-         {:ok, implicit_paid_fee_by_currency} <- Transaction.Recovered.can_apply?(tx, input_utxos),
+         {:ok, outputs_spent} <- UtxoSet.get_by_inputs(utxos, inputs),
+         {:ok, implicit_paid_fee_by_currency} <- Transaction.Recovered.can_apply?(tx, outputs_spent),
          true <- Fees.covered?(implicit_paid_fee_by_currency, fees) || {:error, :fees_not_covered} do
       true
     else

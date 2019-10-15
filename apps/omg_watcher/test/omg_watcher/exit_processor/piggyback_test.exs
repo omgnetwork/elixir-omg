@@ -118,7 +118,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       tx = Transaction.Payment.new([{1, 0, 0}], [])
       txbytes = txbytes(tx)
       # superfluous signatures
-      %{sigs: sigs} = signed_tx = OMG.DevCrypto.sign(tx, [alice.priv, alice.priv, alice.priv])
+      %{sigs: sigs} = signed_tx = OMG.DevCrypto.sign(tx, [alice.priv])
       processor = processor |> start_ife_from(signed_tx, sigs: sigs)
 
       assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes}]} =

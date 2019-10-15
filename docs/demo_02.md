@@ -91,7 +91,7 @@ exiting_utxopos = OMG.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum,
   Jason.decode!()
 
 tx2 =
-  Transaction.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
+  Transaction.Payment.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   OMG.Utils.HttpRPC.Encoding.to_hex()
@@ -107,8 +107,11 @@ Jason.decode!()
     composed_exit["txbytes"] |> Encoding.from_hex(),
     composed_exit["proof"] |> Encoding.from_hex(),
     bob.addr
-  )
-Eth.WaitFor.eth_receipt(txhash)
+  ) |> Eth.DevHelpers.transact_sync!()
+
+# see the invalid exit report & challenge
+
+~c(echo '{}' | http POST #{watcher_url}/status.get) |>  :os.cmd() |>  Poison.decode!()
 
 %{"data" => challenge} =
   ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_challenge_data) |>
@@ -119,12 +122,12 @@ Eth.WaitFor.eth_receipt(txhash)
 {:ok, txhash} =
   Eth.RootChainHelper.challenge_exit(
     challenge["exit_id"],
+    challenge["exiting_tx"] |> Encoding.from_hex(),
     challenge["txbytes"] |> Encoding.from_hex(),
     challenge["input_index"],
     challenge["sig"] |> Encoding.from_hex(),
     alice.addr
-  )
-{:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash)
+  ) |> Eth.DevHelpers.transact_sync!()
 
 # 4/ let's introduce a delay into the process of getting child block contents from the child chain server
 

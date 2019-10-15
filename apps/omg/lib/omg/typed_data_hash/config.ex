@@ -21,24 +21,20 @@ defmodule OMG.TypedDataHash.Config do
   alias OMG.Eth.Encoding
   alias OMG.TypedDataHash.Tools
 
-  # Needed for test only to have value of address when `:contract_address` is not set
-  @fallback_ari_network_address "0x44de0ec539b8c4a4b530c78620fe8320167f2f74"
+  use OMG.Utils.LoggerExt
 
   @doc """
   Returns EIP-712 domain based on values from configuration in a format `signTypedData` expects.
   """
   @spec domain_data_from_config() :: Tools.eip712_domain_t()
   def domain_data_from_config do
-    contract_addr =
-      with contract_addr when is_map(contract_addr) <- Application.get_env(:omg_eth, :contract_addr) do
-        Map.get(contract_addr, :plasma_framework, @fallback_ari_network_address)
-      else
-        _ -> @fallback_ari_network_address
-      end
+    # configuration from contract takes precedence, but if it's missing, the fallback addr will be used
+    verifying_contract_addr =
+      Application.get_env(:omg_eth, :contract_addr) |> Access.get(:plasma_framework) |> Encoding.from_hex()
 
     Application.fetch_env!(:omg, :eip_712_domain)
     |> Map.new()
-    |> Map.put_new(:verifyingContract, Encoding.from_hex(contract_addr))
+    |> Map.put_new(:verifyingContract, verifying_contract_addr)
     |> Map.update!(:salt, &Encoding.from_hex/1)
   end
 

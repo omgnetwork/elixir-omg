@@ -19,6 +19,7 @@ defmodule OMG.MergeTransactionValidator do
   to know by the child chain to not require the transaction fees.
   """
 
+  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -30,6 +31,7 @@ defmodule OMG.MergeTransactionValidator do
   def is_merge_transaction?(recovered_transaction) do
     [
       &is_payment?/1,
+      &only_fungible_tokens?/1,
       &has_less_outputs_than_inputs?/1,
       &has_single_currency?/1,
       &has_same_account?/1
@@ -39,6 +41,9 @@ defmodule OMG.MergeTransactionValidator do
 
   defp is_payment?(%Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Payment{}}}), do: true
   defp is_payment?(_), do: false
+
+  defp only_fungible_tokens?(tx),
+    do: tx |> Transaction.get_outputs() |> Enum.all?(&match?(%Output.FungibleMoreVPToken{}, &1))
 
   defp has_same_account?(%Transaction.Recovered{witnesses: witnesses} = tx) do
     spenders = Map.values(witnesses)

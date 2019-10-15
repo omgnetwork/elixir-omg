@@ -55,12 +55,18 @@ defmodule OMG.State do
   end
 
   @spec deposit(deposits :: [Core.deposit()]) :: {:ok, list(Core.db_update())}
+  # empty list clause to not block state for a no-op
+  def deposit([]), do: {:ok, []}
+
   def deposit(deposits) do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
   @spec exit_utxos(utxos :: Core.exiting_utxos_t()) ::
           {:ok, list(Core.db_update()), Core.validities_t()}
+  # empty list clause to not block state for a no-op
+  def exit_utxos([]), do: {:ok, [], {[], []}}
+
   def exit_utxos(utxos) do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end

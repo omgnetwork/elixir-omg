@@ -70,12 +70,14 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
     assert {:ok, tx} = TypedDataSigned.parse_transaction(params)
 
     assert [Utxo.position(1000, 0, 1), Utxo.position(3001, 0, 0)] == Transaction.get_inputs(tx)
+    alice_addr = @alice.addr
+    bob_addr = @bob.addr
 
     assert [
-             %{owner: @alice.addr, currency: @eth, amount: 10},
-             %{owner: @alice.addr, currency: @other_token, amount: 300},
-             %{owner: @bob.addr, currency: @other_token, amount: 100}
-           ] == Transaction.get_outputs(tx)
+             %{owner: ^alice_addr, currency: @eth, amount: 10},
+             %{owner: ^alice_addr, currency: @other_token, amount: 300},
+             %{owner: ^bob_addr, currency: @other_token, amount: 100}
+           ] = Transaction.get_outputs(tx)
 
     assert <<0::256>> == tx.metadata
   end

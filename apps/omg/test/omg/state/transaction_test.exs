@@ -56,8 +56,8 @@ defmodule OMG.State.TransactionTest do
 
     test "raw transaction hash is invariant" do
       assert Transaction.raw_txhash(@transaction) ==
-               <<22, 144, 106, 111, 111, 175, 135, 22, 122, 230, 103, 220, 153, 161, 147, 239, 150, 205, 18, 226, 161,
-                 163, 127, 20, 163, 205, 24, 68, 0, 213, 103, 161>>
+               <<32, 195, 156, 58, 16, 182, 26, 126, 67, 146, 125, 172, 69, 109, 119, 124, 233, 106, 160, 244, 41, 62,
+                 162, 17, 194, 94, 235, 113, 251, 18, 96, 224>>
     end
   end
 
@@ -78,7 +78,7 @@ defmodule OMG.State.TransactionTest do
       state_alice_deposit: state
     } do
       Transaction.Payment.new([{1, 0, 0}], [{bob.addr, @eth, 4}])
-      |> DevCrypto.sign([alice.priv, <<>>])
+      |> DevCrypto.sign([alice.priv])
       |> assert_tx_usable(state)
     end
 
@@ -91,13 +91,13 @@ defmodule OMG.State.TransactionTest do
       assert 1 == tx1_1 |> Transaction.get_inputs() |> length()
       assert 1 == tx1_1 |> Transaction.get_outputs() |> length()
       assert [^check_input1 | _] = Transaction.get_inputs(tx1_1)
-      assert [^check_output2 | _] = Transaction.get_outputs(tx1_1)
+      assert ^check_output2 = Transaction.get_outputs(tx1_1) |> hd() |> Map.from_struct()
       # 4 - input, 4 - outputs
       tx4_4 = Transaction.Payment.new(@utxo_positions, [output1, {"J", @eth, 929}, {"J", @eth, 929}, {"J", @eth, 199}])
       assert 4 == tx4_4 |> Transaction.get_inputs() |> length()
       assert 4 == tx4_4 |> Transaction.get_outputs() |> length()
       assert [^check_input1 | _] = Transaction.get_inputs(tx4_4)
-      assert [^check_output2 | _] = Transaction.get_outputs(tx4_4)
+      assert ^check_output2 = Transaction.get_outputs(tx4_4) |> hd() |> Map.from_struct()
     end
 
     @tag fixtures: [:alice, :bob]
@@ -184,12 +184,17 @@ defmodule OMG.State.TransactionTest do
 
       assert {:error, :malformed_outputs} =
                Transaction.Recovered.recover_from(
-                 ExRLP.encode([sigs, @payment_marker, inputs, [[alice.addr, alice.addr]]])
+                 ExRLP.encode([sigs, @payment_marker, inputs, [[<<1>>, alice.addr, alice.addr]]])
                )
 
       assert {:error, :malformed_outputs} =
                Transaction.Recovered.recover_from(
-                 ExRLP.encode([sigs, @payment_marker, inputs, [[alice.addr, alice.addr, 'a']]])
+                 ExRLP.encode([sigs, @payment_marker, inputs, [[<<1>>, alice.addr, alice.addr, 'a']]])
+               )
+
+      assert {:error, :unrecognized_output_type} =
+               Transaction.Recovered.recover_from(
+                 ExRLP.encode([sigs, @payment_marker, inputs, [[<<232>>, alice.addr, alice.addr, 1]]])
                )
 
       assert {:error, :malformed_metadata} =

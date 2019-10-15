@@ -34,7 +34,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
 
         # `2 + ` for prepending `0x` in HEX encoded binaries
         proofs_size = 2 + 1024 * length(inputs)
-        sigs_size = 2 + 130 * 4
+        sigs_size = 2 + 130 * length(inputs)
 
         # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
         assert %{

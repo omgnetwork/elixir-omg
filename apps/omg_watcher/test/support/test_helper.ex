@@ -140,7 +140,7 @@ defmodule OMG.Watcher.TestHelper do
 
     data = success?("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
 
-    decode16(data, ["txbytes", "sig"])
+    decode16(data, ["exiting_tx", "txbytes", "sig"])
   end
 
   def get_in_flight_exit(transaction) do

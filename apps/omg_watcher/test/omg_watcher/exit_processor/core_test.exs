@@ -197,7 +197,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_utxo_existence_to_get(state)
     end
 
-    test "seeks all IFE txs' inputs spends in blocks", %{processor_filled: processor} do
+    test "seeks all IFE txs' inputs spends in blocks", %{processor_filled: processor, transactions: txs} do
       request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5
@@ -205,9 +205,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       # for one piggybacked output, we're asking for its inputs positions to check utxo existence
       request = Core.determine_ife_input_utxos_existence_to_get(request, processor)
-
-      assert [Utxo.position(1, 0, 0), Utxo.position(1, 2, 1), Utxo.position(2, 1, 0), Utxo.position(2, 2, 1)] ==
-               request.ife_input_utxos_to_check
+      expected_inputs = txs |> Enum.flat_map(&Transaction.get_inputs/1)
+      assert Enum.sort(expected_inputs) == Enum.sort(request.ife_input_utxos_to_check)
 
       # if it turns out to not exists, we're fetching the spending block
       request =
@@ -215,10 +214,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         |> struct!(%{ife_input_utxo_exists_result: [false, true, true, true]})
         |> Core.determine_ife_spends_to_get(processor)
 
-      assert [Utxo.position(1, 0, 0)] == request.ife_input_spends_to_get
+      assert length(request.ife_input_spends_to_get) == 1
+      assert hd(request.ife_input_spends_to_get) in expected_inputs
     end
 
-    test "seeks IFE txs in blocks, correctly if IFE inputs duplicate", %{processor_filled: processor, alice: alice} do
+    test "seeks IFE txs in blocks, correctly if IFE inputs duplicate",
+         %{processor_filled: processor, alice: alice, transactions: txs} do
       other_tx = TestHelper.create_recovered([{1, 0, 0, alice}], [])
       processor = processor |> start_ife_from(other_tx)
 
@@ -229,24 +230,25 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       # for one piggybacked output, we're asking for its inputs positions to check utxo existence
       request = Core.determine_ife_input_utxos_existence_to_get(request, processor)
+      expected_inputs = txs |> Enum.flat_map(&Transaction.get_inputs/1)
 
-      assert [Utxo.position(1, 0, 0), Utxo.position(1, 2, 1), Utxo.position(2, 1, 0), Utxo.position(2, 2, 1)] ==
-               request.ife_input_utxos_to_check
+      assert Enum.sort(expected_inputs) == Enum.sort(request.ife_input_utxos_to_check)
     end
 
     test "seeks IFE txs in blocks only if not already found",
-         %{processor_filled: processor, transactions: [tx | _]} do
+         %{processor_filled: processor, transactions: [tx1, tx2]} do
       request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], 3000)]
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1], 3000)]
       }
 
       processor = processor |> Core.find_ifes_in_blocks(request)
       # for one piggybacked output, we're asking for its inputs positions to check utxo existence
       request = Core.determine_ife_input_utxos_existence_to_get(request, processor)
 
-      assert [Utxo.position(2, 1, 0), Utxo.position(2, 2, 1)] == request.ife_input_utxos_to_check
+      expected_inputs = Transaction.get_inputs(tx2)
+      assert Enum.sort(expected_inputs) == Enum.sort(request.ife_input_utxos_to_check)
     end
   end
 end

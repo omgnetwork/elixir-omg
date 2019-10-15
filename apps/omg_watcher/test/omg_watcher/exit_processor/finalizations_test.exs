@@ -66,7 +66,8 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
       ife_id1 = <<ife_id1::192>>
       ife_id2 = <<ife_id2::192>>
 
-      ife1_exits = {[Utxo.position(1, 0, 0)], []}
+      tx1_first_input = tx1 |> Transaction.get_inputs() |> hd()
+      ife1_exits = {[tx1_first_input], []}
       ife2_exits = {[], [%{tx_hash: tx_hash2, output_index: 4}]}
 
       assert {:ok, %{^ife_id1 => ^ife1_exits, ^ife_id2 => ^ife2_exits}} =

@@ -22,7 +22,7 @@ defmodule OMG.Eth.Librarian do
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
-  @gas_contract_libs 3_000_000
+  @gas_contract_libs 5_000_000
 
   @doc """
   Provides linked bytecode for a particular contract. All required libs are hardcoded inside.
@@ -35,7 +35,13 @@ defmodule OMG.Eth.Librarian do
     paths = [
       "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentStartStandardExit.sol",
       "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeStandardExit.sol",
-      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessStandardExit.sol"
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessStandardExit.sol",
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentStartInFlightExit.sol",
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentPiggybackInFlightExit.sol",
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeIFENotCanonical.sol",
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeIFEInputSpent.sol",
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessInFlightExit.sol",
+      "plasma_contracts/plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeIFEOutputSpent.sol"
     ]
 
     names = get_lib_names(paths)
@@ -52,20 +58,15 @@ defmodule OMG.Eth.Librarian do
   defp deploy_libs!(names, path_project_root, from, gas) do
     names
     |> Enum.map(&get_bytecode!(path_project_root, &1))
-    |> Enum.map(&deploy!(&1, from, gas))
+    |> Enum.map(&deploy(&1, from, gas))
+    |> Enum.map(&Eth.DevHelpers.deploy_sync!/1)
+    |> Enum.map(fn {:ok, _txhash, lib} -> lib end)
   end
 
   defp deploy(bytecode, from, gas) do
     opts = @tx_defaults |> Keyword.put(:gas, gas)
 
-    {:ok, _txhash, _addr} =
-      Eth.deploy_contract(from, bytecode, [], [], opts)
-      |> Eth.DevHelpers.deploy_sync!()
-  end
-
-  defp deploy!(bytecode, from, gas) do
-    {:ok, _txhash, lib} = deploy(bytecode, from, gas)
-    lib
+    {:ok, _txhash} = Eth.deploy_contract(from, bytecode, [], [], opts)
   end
 
   # given a name of the contract/lib and a list of `{lib_name, lib_address}` tuples, will provide linked bytecode

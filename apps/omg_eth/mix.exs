@@ -28,6 +28,7 @@ defmodule OMG.Eth.MixProject do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:prod), do: ["lib"]
+  defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(_), do: ["lib", "test/support"]
 
   defp deps do
@@ -37,7 +38,7 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "integration_949_elixir_omg_pr",
+        branch: "master",
         sparse: "contracts/",
         compile:
           contracts_compile("plasma_contracts", [
@@ -49,10 +50,20 @@ defmodule OMG.Eth.MixProject do
             "plasma_framework/contracts/src/exits/payment/controllers/PaymentStartStandardExit.sol",
             "plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeStandardExit.sol",
             "plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessStandardExit.sol",
-            "plasma_framework/contracts/src/exits/payment/spendingConditions/PaymentSpendingConditionRegistry.sol",
+            "plasma_framework/contracts/src/exits/payment/controllers/PaymentStartInFlightExit.sol",
+            "plasma_framework/contracts/src/exits/payment/controllers/PaymentPiggybackInFlightExit.sol",
+            "plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeIFENotCanonical.sol",
+            "plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeIFEInputSpent.sol",
+            "plasma_framework/contracts/src/exits/payment/controllers/PaymentProcessInFlightExit.sol",
+            "plasma_framework/contracts/src/exits/payment/controllers/PaymentChallengeIFEOutputSpent.sol",
+            "plasma_framework/contracts/src/exits/registries/SpendingConditionRegistry.sol",
             "plasma_framework/contracts/src/exits/registries/OutputGuardHandlerRegistry.sol",
             "plasma_framework/contracts/src/exits/payment/outputGuardHandlers/PaymentOutputGuardHandler.sol",
-            "plasma_framework/contracts/src/exits/payment/PaymentExitGame.sol"
+            "plasma_framework/contracts/src/exits/payment/PaymentTransactionStateTransitionVerifier.sol",
+            "plasma_framework/contracts/src/exits/utils/TxFinalizationVerifier.sol",
+            "plasma_framework/contracts/src/exits/payment/PaymentExitGame.sol",
+            "plasma_framework/contracts/src/exits/payment/spendingConditions/PaymentOutputToPaymentTxCondition.sol",
+            "plasma_framework/contracts/mocks/transactions/eip712Libs/PaymentEip712LibMock.sol"
           ]),
         app: false,
         only: [:dev, :test]
@@ -68,13 +79,13 @@ defmodule OMG.Eth.MixProject do
       # Umbrella
       {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},
+      {:omg_utils, in_umbrella: true},
       # TEST ONLY
       {:exexec,
        git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
       {:exvcr, "~> 0.10", only: :test},
       {:websockex, "~> 0.4.2"},
-      {:omg_utils, in_umbrella: true},
       # Used for mocking websocket servers
       {:plug_cowboy, "~> 1.0", only: [:dev, :test]}
     ]
