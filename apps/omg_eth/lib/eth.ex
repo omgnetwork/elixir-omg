@@ -28,8 +28,10 @@ defmodule OMG.Eth do
   however they must be encoded/decoded when entering/leaving the `Ethereumex` realm
   """
 
-  import OMG.Eth.Encoding, only: [from_hex: 1, to_hex: 1, int_from_hex: 1]
+  alias OMG.Eth.Config
   alias OMG.Eth.Transaction
+  alias OMG.Eth.RootChain.SubmitBlock
+
   require Logger
   import OMG.Eth.Encoding, only: [from_hex: 1, to_hex: 1, int_from_hex: 1]
 
@@ -116,7 +118,7 @@ defmodule OMG.Eth do
           | {:ok, binary()}
   def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    from = from || Encoding.from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
+    from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
     SubmitBlock.submit(hash, nonce, gas_price, from, contract)
   end
 

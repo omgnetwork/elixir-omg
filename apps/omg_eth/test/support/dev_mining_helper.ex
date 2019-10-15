@@ -68,9 +68,10 @@ defmodule OMG.Eth.DevMiningHelper do
   end
 
   defp generate_entity() do
-    {:ok, priv} = DevCrypto.generate_private_key()
-    {:ok, pub} = DevCrypto.generate_public_key(priv)
-    {:ok, address} = Crypto.generate_address(pub)
+    # lausy way of getting around circular dependency between omg_eth and omg
+    {:ok, priv} = apply(DevCrypto, :generate_private_key, [])
+    {:ok, pub} = apply(DevCrypto, :generate_public_key, [priv])
+    {:ok, address} = apply(Crypto, :generate_address, [pub])
     %{priv: priv, addr: address}
   end
 
