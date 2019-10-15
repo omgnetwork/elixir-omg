@@ -89,8 +89,6 @@ defmodule OMG.Watcher.TestHelper do
   @spec decode16(map(), list()) :: map()
   def decode16(data, keys) do
     keys
-    # FIXME: remove? this allows for errors, but there's a test of `decode16` that actually tests this behavior
-    |> Enum.filter(&Map.has_key?(data, &1))
     |> Enum.into(%{}, &decode16_for_key(data, &1))
     |> (&Map.merge(data, &1)).()
   end
@@ -98,7 +96,7 @@ defmodule OMG.Watcher.TestHelper do
   defp decode16_for_key(data, key) do
     case data[key] do
       value when is_binary(value) ->
-        {key, decode_if_possible(value)}
+        {key, decode_binary!(value)}
 
       value when is_list(value) ->
         bin_list =
@@ -107,21 +105,12 @@ defmodule OMG.Watcher.TestHelper do
           |> Enum.map(fn {:ok, bin} -> bin end)
 
         {key, bin_list}
-
-      # FIXME: remove? this allows for errors, but there's a test of `decode16` that actually tests this behavior
-      other_value ->
-        {key, other_value}
     end
   end
 
-  # FIXME: remove? this allows for errors, but there's a test of `decode16` that actually tests this behavior
-  defp decode_if_possible(value) do
-    value
-    |> Encoding.from_hex()
-    |> case do
-      {:ok, bin} -> bin
-      {:error, :invalid_hex} -> value
-    end
+  defp decode_binary!(value) do
+    {:ok, bin} = Encoding.from_hex(value)
+    bin
   end
 
   def get_balance(address, token) do
@@ -150,7 +139,7 @@ defmodule OMG.Watcher.TestHelper do
 
   def get_exit_data(encoded_position) do
     data = success?("utxo.get_exit_data", %{utxo_pos: encoded_position})
-    decode16(data, ["txbytes", "proof", "sigs"])
+    decode16(data, ["txbytes", "proof"])
   end
 
   def get_exit_challenge(blknum, txindex, oindex) do
@@ -194,9 +183,7 @@ defmodule OMG.Watcher.TestHelper do
 
     decode16(proof_data, [
       "in_flight_txbytes",
-      "in_flight_input_index",
       "spending_txbytes",
-      "spending_input_index",
       "spending_sig",
       "input_tx"
     ])
@@ -211,10 +198,8 @@ defmodule OMG.Watcher.TestHelper do
 
     decode16(proof_data, [
       "in_flight_txbytes",
-      "in_flight_output_pos",
       "in_flight_proof",
       "spending_txbytes",
-      "spending_input_index",
       "spending_sig"
     ])
   end
