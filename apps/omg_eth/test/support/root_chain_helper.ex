@@ -52,7 +52,7 @@ defmodule OMG.Eth.RootChainHelper do
       |> Keyword.put(:gas, @gas_start_exit)
       |> Keyword.put(:value, @standard_exit_bond)
 
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
@@ -73,7 +73,7 @@ defmodule OMG.Eth.RootChainHelper do
       |> Keyword.put(:gas, 1_000_000)
       |> Keyword.put(:value, @piggyback_bond)
 
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes,uint8)", [in_flight_tx, output_index], opts)
   end
@@ -92,7 +92,7 @@ defmodule OMG.Eth.RootChainHelper do
 
   def deposit_from(tx, from, contract \\ %{}, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit_from)
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :erc20_vault)
     Eth.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
@@ -118,7 +118,7 @@ defmodule OMG.Eth.RootChainHelper do
         opts \\ []
       ) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
     optional_bytes = ""
@@ -138,7 +138,7 @@ defmodule OMG.Eth.RootChainHelper do
 
   def init_authority(from \\ nil, contract \\ %{}, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_init)
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
@@ -160,7 +160,7 @@ defmodule OMG.Eth.RootChainHelper do
       |> Keyword.put(:value, @standard_exit_bond)
       |> Keyword.put(:gas, @gas_start_in_flight_exit)
 
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
@@ -191,7 +191,7 @@ defmodule OMG.Eth.RootChainHelper do
         opts \\ []
       ) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_in_flight_exit_not_canonical)
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = @challenge_ife_func_signature
@@ -218,7 +218,7 @@ defmodule OMG.Eth.RootChainHelper do
         opts \\ []
       ) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
@@ -240,7 +240,7 @@ defmodule OMG.Eth.RootChainHelper do
         opts \\ []
       ) do
     defaults = @tx_defaults
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = @challenge_ife_input_spent
@@ -269,7 +269,7 @@ defmodule OMG.Eth.RootChainHelper do
         opts \\ []
       ) do
     defaults = @tx_defaults
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = @challenge_ife_output_spent

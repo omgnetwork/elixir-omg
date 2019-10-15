@@ -118,7 +118,7 @@ defmodule OMG.Eth.Deployer do
 
   defp deploy_contract(bytecode, from, gas_value, types_args, opts) do
     defaults = @tx_defaults |> Keyword.put(:gas, gas_value)
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     {types, args} = Enum.unzip(types_args)
 
