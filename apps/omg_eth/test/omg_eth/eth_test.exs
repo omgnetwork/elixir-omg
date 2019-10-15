@@ -62,7 +62,7 @@ defmodule OMG.EthTest do
   test "binary/integer arugments tx and integer argument call returning a binary/integer tuple",
        %{contract: contract} do
     assert {:ok, _} =
-             Eth.RootChain.submit_block(
+             Eth.submit_block(
                <<234::256>>,
                1,
                20_000_000_000,
