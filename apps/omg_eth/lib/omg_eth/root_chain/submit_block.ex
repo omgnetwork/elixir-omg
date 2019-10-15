@@ -17,9 +17,14 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
   Interface to contract block submission.
   """
   alias OMG.Eth
-  alias OMG.Eth.RootChain
 
-  @spec submit(binary(), pos_integer(), pos_integer(), RootChain.optional_addr_t(), RootChain.optional_addr_t()) ::
+  @spec submit(
+          binary(),
+          pos_integer(),
+          pos_integer(),
+          OMG.Eth.RootChain.optional_address_t(),
+          OMG.Eth.RootChain.optional_address_t()
+        ) ::
           {:error, binary() | atom() | map()}
           | {:ok, <<_::256>>}
   def submit(hash, nonce, gas_price, from, contract) do

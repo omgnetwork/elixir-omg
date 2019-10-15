@@ -18,8 +18,8 @@ defmodule OMG.Eth.RootChainHelper do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.RootChain
   alias OMG.Eth.Config
+  alias OMG.Eth.RootChain
 
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1]
 

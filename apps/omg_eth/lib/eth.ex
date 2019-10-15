@@ -29,8 +29,9 @@ defmodule OMG.Eth do
   """
 
   alias OMG.Eth.Config
-  alias OMG.Eth.Transaction
+  alias OMG.Eth.RootChain
   alias OMG.Eth.RootChain.SubmitBlock
+  alias OMG.Eth.Transaction
 
   require Logger
   import OMG.Eth.Encoding, only: [from_hex: 1, to_hex: 1, int_from_hex: 1]
@@ -113,9 +114,14 @@ defmodule OMG.Eth do
     Transaction.send(txmap)
   end
 
-  @spec submit_block(binary(), pos_integer(), pos_integer(), RootChain.optional_addr_t(), RootChain.optional_addr_t()) ::
-          {:error, binary() | atom() | map()}
-          | {:ok, binary()}
+  @spec submit_block(
+          binary(),
+          pos_integer(),
+          pos_integer(),
+          RootChain.optional_address_t(),
+          RootChain.optional_address_t()
+        ) ::
+          {:error, binary() | atom() | map()} | {:ok, binary()}
   def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))

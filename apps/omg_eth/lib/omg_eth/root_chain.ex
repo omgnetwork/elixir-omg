@@ -26,7 +26,7 @@ defmodule OMG.Eth.RootChain do
 
   @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
 
-  @type optional_addr_t() :: %{atom => Eth.address()} | %{atom => nil}
+  @type optional_address_t() :: %{atom => Eth.address()} | %{atom => nil}
   @type in_flight_exit_piggybacked_event() :: %{owner: <<_::160>>, tx_hash: <<_::256>>, output_index: non_neg_integer}
 
   ########################
@@ -35,14 +35,14 @@ defmodule OMG.Eth.RootChain do
 
   # some constant-like getters to start
 
-  @spec get_child_block_interval :: {:ok, pos_integer} | :error
-  def get_child_block_interval, do: Application.fetch_env(:omg_eth, :child_block_interval)
+  @spec get_child_block_interval() :: {:ok, pos_integer()} | :error
+  def get_child_block_interval(), do: Application.fetch_env(:omg_eth, :child_block_interval)
 
   @doc """
   This is what the contract understands as the address of native Ether token
   """
-  @spec eth_pseudo_address :: <<_::160>>
-  def eth_pseudo_address, do: Eth.zero_address()
+  @spec eth_pseudo_address() :: <<_::160>>
+  def eth_pseudo_address(), do: Eth.zero_address()
 
   # actual READING THE CONTRACT
 
@@ -127,7 +127,7 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(all_sorted_logs, &decode_deposit/1)}
   end
 
-  @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) ::
+  @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_address_t) ::
           {:ok, [in_flight_exit_piggybacked_event]}
   def get_piggybacks(block_from, block_to, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
@@ -261,7 +261,7 @@ defmodule OMG.Eth.RootChain do
   # MISC #
   ########################
 
-  @spec contract_ready(optional_addr_t()) ::
+  @spec contract_ready(optional_address_t()) ::
           :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
   def contract_ready(contract \\ %{}) do
     {:ok, addr} = authority(contract)
@@ -275,7 +275,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   # TODO - missing description + could this be moved to a statefull process?
-  @spec get_root_deployment_height(binary() | nil, optional_addr_t()) ::
+  @spec get_root_deployment_height(binary() | nil, optional_address_t()) ::
           {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height(txhash \\ nil, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
