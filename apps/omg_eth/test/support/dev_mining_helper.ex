@@ -47,7 +47,7 @@ defmodule OMG.Eth.DevMiningHelper do
 
   defp mine(addr, passphrase) do
     %{from: addr, to: addr, value: Encoding.to_hex(1)}
-    |> OMG.Eth.Transact.send(passphrase: passphrase)
+    |> OMG.Eth.Transaction.send(passphrase: passphrase)
     |> OMG.Eth.DevHelpers.transact_sync!()
   end
 
@@ -56,12 +56,12 @@ defmodule OMG.Eth.DevMiningHelper do
     account_priv_enc = Base.encode16(tick_acc.priv)
     passphrase = "dev.period"
 
-    {:ok, addr} = OMG.Eth.DevHelpers.create_account_from_secret(OMG.Eth.backend(), account_priv_enc, passphrase)
+    {:ok, addr} = OMG.Eth.DevHelpers.create_account_from_secret(backend(), account_priv_enc, passphrase)
 
     {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
 
     %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
-    |> OMG.Eth.Transact.send(passphrase: "")
+    |> OMG.Eth.Transaction.send(passphrase: "")
     |> OMG.Eth.DevHelpers.transact_sync!()
 
     {:ok, addr, passphrase}
@@ -72,5 +72,9 @@ defmodule OMG.Eth.DevMiningHelper do
     {:ok, pub} = DevCrypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)
     %{priv: priv, addr: address}
+  end
+
+  defp backend() do
+    String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
   end
 end

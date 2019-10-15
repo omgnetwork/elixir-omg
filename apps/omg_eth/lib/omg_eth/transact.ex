@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Transact do
+defmodule OMG.Eth.Transaction do
   @moduledoc """
   An interface to Ethereum client transact function.
   """

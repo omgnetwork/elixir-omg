@@ -19,7 +19,7 @@ defmodule OMG.Eth.DevHelpers do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.Transact
+  alias OMG.Eth.Transaction
   alias OMG.Eth.WaitFor
   import Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
@@ -82,7 +82,7 @@ defmodule OMG.Eth.DevHelpers do
   def import_unlock_fund(%{priv: account_priv}, opts \\ []) do
     account_priv_enc = Base.encode16(account_priv)
 
-    {:ok, account_enc} = create_account_from_secret(OMG.Eth.backend(), account_priv_enc, @passphrase)
+    {:ok, account_enc} = create_account_from_secret(backend(), account_priv_enc, @passphrase)
     {:ok, _} = fund_address_from_faucet(account_enc, opts)
 
     {:ok, from_hex(account_enc)}
@@ -198,7 +198,7 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   defp unlock_if_possible(account_enc) do
-    unlock_if_possible(account_enc, OMG.Eth.backend())
+    unlock_if_possible(account_enc, backend())
   end
 
   defp unlock_if_possible(account_enc, :geth) do
@@ -207,5 +207,9 @@ defmodule OMG.Eth.DevHelpers do
 
   defp unlock_if_possible(_account_enc, :parity) do
     :dont_bother_will_use_personal_sendTransaction
+  end
+
+  defp backend() do
+    String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
   end
 end

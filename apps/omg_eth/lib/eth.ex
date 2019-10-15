@@ -29,7 +29,7 @@ defmodule OMG.Eth do
   """
 
   import OMG.Eth.Encoding, only: [from_hex: 1, to_hex: 1, int_from_hex: 1]
-  alias OMG.Eth.Transact
+  alias OMG.Eth.Transaction
   require Logger
 
   @type address :: <<_::160>>
@@ -54,10 +54,6 @@ defmodule OMG.Eth do
   """
   @spec syncing?() :: boolean
   def syncing?, do: node_ready() != :ok
-
-  def backend() do
-    String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
-  end
 
   def get_ethereum_height do
     case Ethereumex.HttpClient.eth_block_number() do
@@ -111,7 +107,7 @@ defmodule OMG.Eth do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
-    Transact.send(txmap)
+    Transaction.send(txmap)
   end
 
   defp encode_all_integer_opts(opts) do
@@ -141,7 +137,7 @@ defmodule OMG.Eth do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
-    {:ok, _txhash} = Transact.send(txmap)
+    {:ok, _txhash} = Transaction.send(txmap)
   end
 
   defp event_topic_for_signature(signature) do
@@ -149,7 +145,7 @@ defmodule OMG.Eth do
   end
 
   defp filter_not_removed(logs) do
-    logs |> Enum.filter(&(not Map.get(&1, "removed", false)))
+    Enum.filter(logs, &(not Map.get(&1, "removed", false)))
   end
 
   def get_ethereum_events(block_from, block_to, signature, contract) do
