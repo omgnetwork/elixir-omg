@@ -34,7 +34,6 @@ defmodule OMG.Watcher.API.InFlightExit do
   @doc """
   Returns arguments for plasma contract function that starts in-flight exit for a given transaction.
   """
-  # FIXME: don't forget to update the swagger docs
   @spec get_in_flight_exit(binary) :: {:ok, in_flight_exit()} | {:error, atom}
   def get_in_flight_exit(txbytes) do
     with {:ok, tx} <- Transaction.Signed.decode(txbytes),
