@@ -1,0 +1,24 @@
+[
+  {
+    "request": {
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_sendTransaction\",\"params\":[{\"data\":\"0xbaa4769400000000000000000000000000000000000000000000000000000000000000ea\",\"from\":\"0x22d491bde2303f2f43325b2108d26f1eaba1e32b\",\"gas\":\"0x186A0\",\"gasPrice\":\"0x4A817C800\",\"nonce\":\"0x1\",\"to\":\"0xd17e1233a03affb9092d5109179b43d6a8828607\",\"value\":\"0x0\"}]}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "method": "post",
+      "options": {
+        "recv_timeout": "infinity",
+        "pool": "default"
+      },
+      "request_body": "",
+      "url": "http://localhost:8545"
+    },
+    "response": {
+      "binary": false,
+      "body": "econnrefused",
+      "headers": [],
+      "status_code": null,
+      "type": "error"
+    }
+  }
+]
