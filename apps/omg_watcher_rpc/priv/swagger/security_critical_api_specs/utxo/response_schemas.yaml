@@ -13,6 +13,7 @@ GetUtxoChallengeResponseSchema:
         input_index: 0
         sig: '0x6bfb9b2dbe32...'
         txbytes: '0x3eb6ae5b06f3...'
+        exiting_tx: '0x6d6bda6bd6d6...'
 
 GetUtxoExitResponseSchema:
   description: The response schema for utxo exit data

@@ -21,8 +21,12 @@ StatusSchema:
       type: integer
       format: int64
     contract_addr:
-      type: string
-      format: binary
+      type: object
+      additionalProperties: true
+      properties:
+        plasma_framework:
+          type: string
+          format: binary
     eth_syncing:
       type: boolean
     byzantine_events:
