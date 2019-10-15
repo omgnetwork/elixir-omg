@@ -207,7 +207,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # checking if both machines and humans learn about the byzantine condition
     assert TestHelper.capture_log(fn ->
              # Here we're manually submitting invalid block to the root chain
-             {:ok, _} = OMG.Eth.submit_block(bad_block_hash, 2, 1)
+             {:ok, _} = Eth.submit_block(bad_block_hash, 2, 1)
              IntegrationTest.wait_for_byzantine_events([%Event.UnchallengedExit{}.name], @timeout)
            end) =~ inspect(:unchallenged_exit)
 

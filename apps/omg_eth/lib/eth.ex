@@ -159,7 +159,9 @@ defmodule OMG.Eth do
   end
 
   defp event_topic_for_signature(signature) do
-    ExthCrypto.Hash.hash(signature, ExthCrypto.Hash.kec()) |> to_hex()
+    signature
+    |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+    |> to_hex()
   end
 
   defp filter_not_removed(logs) do

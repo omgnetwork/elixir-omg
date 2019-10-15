@@ -22,8 +22,8 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
           binary(),
           pos_integer(),
           pos_integer(),
-          OMG.Eth.RootChain.optional_address_t(),
-          OMG.Eth.RootChain.optional_address_t()
+          OMG.Eth.address(),
+          OMG.Eth.address()
         ) ::
           {:error, binary() | atom() | map()}
           | {:ok, <<_::256>>}
