@@ -131,7 +131,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     # Here we're manually submitting invalid block to the root chain
     # NOTE: this **must** come after `start_exit` is mined (see just above) but still not later than
     #       `sla_margin` after exit start, hence the `config/test.exs` entry for the margin is rather high
-    {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
+    {:ok, _} = OMG.Eth.submit_block(bad_block_hash, 2, 1)
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
   end
@@ -151,7 +151,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {_, nonce} = get_next_blknum_nonce(tx_blknum)
 
-    {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, nonce, 20_000_000_000)
+    {:ok, _txhash} = Eth.submit_block(<<0::256>>, nonce, 20_000_000_000)
 
     # checking if both machines and humans learn about the byzantine condition
     assert capture_log(fn ->
