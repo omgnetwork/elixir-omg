@@ -29,7 +29,7 @@ defmodule OMG.Eth.Transaction do
     backend = String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
 
     case backend do
-      :geth ->
+      node when node == :geth or node == :infura ->
         with {:ok, receipt_enc} <- Ethereumex.HttpClient.eth_send_transaction(txmap), do: {:ok, from_hex(receipt_enc)}
 
       :parity ->

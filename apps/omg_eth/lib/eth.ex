@@ -31,6 +31,7 @@ defmodule OMG.Eth do
   import OMG.Eth.Encoding, only: [from_hex: 1, to_hex: 1, int_from_hex: 1]
   alias OMG.Eth.Transaction
   require Logger
+  import OMG.Eth.Encoding, only: [from_hex: 1, to_hex: 1, int_from_hex: 1]
 
   @type address :: <<_::160>>
   @type hash :: <<_::256>>
@@ -110,6 +111,15 @@ defmodule OMG.Eth do
     Transaction.send(txmap)
   end
 
+  @spec submit_block(binary(), pos_integer(), pos_integer(), RootChain.optional_addr_t(), RootChain.optional_addr_t()) ::
+          {:error, binary() | atom() | map()}
+          | {:ok, binary()}
+  def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ %{}) do
+    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
+    from = from || Encoding.from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
+    SubmitBlock.submit(hash, nonce, gas_price, from, contract)
+  end
+
   defp encode_all_integer_opts(opts) do
     opts
     |> Enum.filter(fn {_k, v} -> is_integer(v) end)
@@ -141,7 +151,7 @@ defmodule OMG.Eth do
   end
 
   defp event_topic_for_signature(signature) do
-    signature |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec()) |> to_hex()
+    ExthCrypto.Hash.hash(signature, ExthCrypto.Hash.kec()) |> to_hex()
   end
 
   defp filter_not_removed(logs) do
