@@ -19,8 +19,8 @@ defmodule OMG.Eth.DevHelpers do
   """
 
   alias OMG.Eth
+  alias OMG.Eth.Transact
   alias OMG.Eth.WaitFor
-
   import Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   require Logger
@@ -189,7 +189,7 @@ defmodule OMG.Eth.DevHelpers do
     unlock_if_possible(account_enc)
 
     params = %{from: faucet, to: account_enc, value: to_hex(initial_funds)}
-    {:ok, tx_fund} = OMG.Eth.send_transaction(params)
+    {:ok, tx_fund} = Transact.send(params)
 
     case Keyword.get(opts, :timeout) do
       nil -> WaitFor.eth_receipt(tx_fund, @about_4_blocks_time)

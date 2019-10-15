@@ -29,7 +29,7 @@ defmodule OMG.Eth do
   """
 
   import OMG.Eth.Encoding, only: [from_hex: 1, to_hex: 1, int_from_hex: 1]
-
+  alias OMG.Eth.Transact
   require Logger
 
   @type address :: <<_::160>>
@@ -55,30 +55,8 @@ defmodule OMG.Eth do
   @spec syncing?() :: boolean
   def syncing?, do: node_ready() != :ok
 
-  @doc """
-  Send transaction to be singed by a key managed by Ethereum node, geth or parity.
-  For geth, account must be unlocked externally.
-  If using parity, account passphrase must be provided directly or via config.
-  """
-  @spec send_transaction(map(), send_transaction_opts()) :: {:ok, hash()} | {:error, any()}
-  def send_transaction(txmap, opts \\ []) do
-    case backend() do
-      :geth ->
-        with {:ok, receipt_enc} <- Ethereumex.HttpClient.eth_send_transaction(txmap), do: {:ok, from_hex(receipt_enc)}
-
-      :parity ->
-        with {:ok, passphrase} <- get_signer_passphrase(txmap.from),
-             opts = Keyword.merge([passphrase: passphrase], opts),
-             params = [txmap, Keyword.get(opts, :passphrase, "")],
-             {:ok, receipt_enc} <- Ethereumex.HttpClient.request("personal_sendTransaction", params, []) do
-          {:ok, from_hex(receipt_enc)}
-        end
-    end
-  end
-
-  def backend do
-    Application.fetch_env!(:omg_eth, :eth_node)
-    |> String.to_existing_atom()
+  def backend() do
+    String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
   end
 
   def get_ethereum_height do
@@ -133,7 +111,7 @@ defmodule OMG.Eth do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
-    send_transaction(txmap)
+    Transact.send(txmap)
   end
 
   defp encode_all_integer_opts(opts) do
@@ -163,7 +141,7 @@ defmodule OMG.Eth do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
-    {:ok, _txhash} = send_transaction(txmap)
+    {:ok, _txhash} = Transact.send(txmap)
   end
 
   defp event_topic_for_signature(signature) do
@@ -291,21 +269,5 @@ defmodule OMG.Eth do
         log_index: int_from_hex(log_index)
       }
     )
-  end
-
-  defp get_signer_passphrase("0x00a329c0648769a73afac7f9381e08fb43dbea72") do
-    # Parity coinbase address in dev mode, passphrase is empty
-    {:ok, ""}
-  end
-
-  defp get_signer_passphrase(_) do
-    case System.get_env("SIGNER_PASSPHRASE") do
-      nil ->
-        _ = Logger.error("Passphrase missing. Please provide the passphrase to Parity managed account.")
-        {:error, :passphrase_missing}
-
-      value ->
-        {:ok, value}
-    end
   end
 end

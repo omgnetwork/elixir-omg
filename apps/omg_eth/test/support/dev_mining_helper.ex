@@ -47,11 +47,11 @@ defmodule OMG.Eth.DevMiningHelper do
 
   defp mine(addr, passphrase) do
     %{from: addr, to: addr, value: Encoding.to_hex(1)}
-    |> OMG.Eth.send_transaction(passphrase: passphrase)
+    |> OMG.Eth.Transact.send(passphrase: passphrase)
     |> OMG.Eth.DevHelpers.transact_sync!()
   end
 
-  defp create_tick_account do
+  defp create_tick_account() do
     tick_acc = generate_entity()
     account_priv_enc = Base.encode16(tick_acc.priv)
     passphrase = "dev.period"
@@ -61,13 +61,13 @@ defmodule OMG.Eth.DevMiningHelper do
     {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
 
     %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
-    |> OMG.Eth.send_transaction(passphrase: "")
+    |> OMG.Eth.Transact.send(passphrase: "")
     |> OMG.Eth.DevHelpers.transact_sync!()
 
     {:ok, addr, passphrase}
   end
 
-  defp generate_entity do
+  defp generate_entity() do
     {:ok, priv} = DevCrypto.generate_private_key()
     {:ok, pub} = DevCrypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)
