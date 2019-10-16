@@ -16,9 +16,14 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
   @moduledoc """
   Interface to contract block submission.
   """
-  alias OMG.Eth
+  alias OMG.Eth.Encoding
+  alias OMG.Eth.Transaction
+
+  @type address :: <<_::160>>
+  @type hash :: <<_::256>>
 
   @spec submit(
+          atom(),
           binary(),
           pos_integer(),
           pos_integer(),
@@ -27,9 +32,10 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
         ) ::
           {:error, binary() | atom() | map()}
           | {:ok, <<_::256>>}
-  def submit(hash, nonce, gas_price, from, contract) do
+  def submit(backend, hash, nonce, gas_price, from, contract) do
     # NOTE: we're not using any defaults for opts here!
-    Eth.contract_transact(
+    contract_transact(
+      backend,
       from,
       contract,
       "submitBlock(bytes32)",
@@ -39,5 +45,53 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
       value: 0,
       gas: 100_000
     )
+  end
+
+  @spec contract_transact(atom(), address, address, binary, [any], keyword) :: {:ok, hash()} | {:error, any}
+  defp contract_transact(:infura = backend, _from, to, signature, args, opts) do
+    abi_encoded_data = encode_tx_data(signature, args)
+    [nonce: nonce, gasPrice: gas_price, value: 0, gas: 100_000] = opts
+    private_key = System.get_env("PRIVATE_KEY")
+
+    transaction_data =
+      %Eth.Blockchain.Transaction{
+        data: abi_encoded_data,
+        gas_limit: 100_000,
+        gas_price: gas_price,
+        init: <<>>,
+        nonce: nonce,
+        to: to,
+        value: 0
+      }
+      |> Eth.Blockchain.Transaction.Signature.sign_transaction(private_key)
+      |> Eth.Blockchain.Transaction.serialize()
+      |> ExRLP.encode()
+      |> Base.encode16(case: :lower)
+
+    Transaction.send(backend, "0x" <> transaction_data)
+  end
+
+  @spec contract_transact(atom(), address, address, binary, [any], keyword) :: {:ok, hash()} | {:error, any}
+  defp contract_transact(backend, from, to, signature, args, opts) do
+    data = encode_tx_data(signature, args)
+
+    txmap =
+      %{from: Encoding.to_hex(from), to: Encoding.to_hex(to), data: data}
+      |> Map.merge(Map.new(opts))
+      |> encode_all_integer_opts()
+
+    Transaction.send(backend, txmap)
+  end
+
+  defp encode_tx_data(signature, args) do
+    signature
+    |> ABI.encode(args)
+    |> Encoding.to_hex()
+  end
+
+  defp encode_all_integer_opts(opts) do
+    opts
+    |> Enum.filter(fn {_k, v} -> is_integer(v) end)
+    |> Enum.into(opts, fn {k, v} -> {k, Encoding.to_hex(v)} end)
   end
 end

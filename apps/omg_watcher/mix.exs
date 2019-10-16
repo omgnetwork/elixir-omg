@@ -44,6 +44,8 @@ defmodule OMG.Watcher.Mixfile do
       {:spandex, "~> 2.4",
        git: "https://github.com/omisego/spandex.git", branch: "fix_dialyzer_in_macro", override: true},
       {:distillery, "~> 2.1", runtime: false},
+      # needed to override packages
+      {:poison, "~> 4.0.1", override: true},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
       {:omg, in_umbrella: true},

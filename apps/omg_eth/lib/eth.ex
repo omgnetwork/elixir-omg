@@ -31,7 +31,6 @@ defmodule OMG.Eth do
   alias OMG.Eth.Config
   alias OMG.Eth.RootChain
   alias OMG.Eth.RootChain.SubmitBlock
-  alias OMG.Eth.Transaction
 
   require Logger
   import OMG.Eth.Encoding, only: [from_hex: 1, to_hex: 1, int_from_hex: 1]
@@ -102,18 +101,6 @@ defmodule OMG.Eth do
     end
   end
 
-  @spec contract_transact(address, address, binary, [any], keyword) :: {:ok, hash()} | {:error, any}
-  def contract_transact(from, to, signature, args, opts \\ []) do
-    data = encode_tx_data(signature, args)
-
-    txmap =
-      %{from: to_hex(from), to: to_hex(to), data: data}
-      |> Map.merge(Map.new(opts))
-      |> encode_all_integer_opts()
-
-    Transaction.send(txmap)
-  end
-
   @spec submit_block(
           binary(),
           pos_integer(),
@@ -125,37 +112,8 @@ defmodule OMG.Eth do
   def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
-    SubmitBlock.submit(hash, nonce, gas_price, from, contract)
-  end
-
-  defp encode_all_integer_opts(opts) do
-    opts
-    |> Enum.filter(fn {_k, v} -> is_integer(v) end)
-    |> Enum.into(opts, fn {k, v} -> {k, to_hex(v)} end)
-  end
-
-  defp encode_tx_data(signature, args) do
-    signature
-    |> ABI.encode(args)
-    |> to_hex()
-  end
-
-  defp encode_constructor_params(types, args) do
-    args
-    |> ABI.TypeEncoder.encode_raw(types)
-    # NOTE: we're not using `to_hex` because the `0x` will be appended to the bytecode already
-    |> Base.encode16(case: :lower)
-  end
-
-  def deploy_contract(addr, bytecode, types, args, opts) do
-    enc_args = encode_constructor_params(types, args)
-
-    txmap =
-      %{from: to_hex(addr), data: bytecode <> enc_args}
-      |> Map.merge(Map.new(opts))
-      |> encode_all_integer_opts()
-
-    {:ok, _txhash} = Transaction.send(txmap)
+    backend = String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
+    SubmitBlock.submit(backend, hash, nonce, gas_price, from, contract)
   end
 
   defp event_topic_for_signature(signature) do

@@ -45,7 +45,7 @@ defmodule OMG.Eth.BundleDeployer do
   def deploy_all(root_path, deployer_addr, authority, exit_period_seconds \\ nil) do
     exit_period_seconds = get_exit_period(exit_period_seconds)
 
-    transact_opts = @tx_defaults |> Keyword.put(:gas, @gas_init_tx)
+    transact_opts = Keyword.put(@tx_defaults, :gas, @gas_init_tx)
 
     transactions_before = get_transaction_count(deployer_addr)
 
@@ -63,7 +63,7 @@ defmodule OMG.Eth.BundleDeployer do
       Deployer.create_new("Erc20Vault", root_path, deployer_addr, plasma_framework: plasma_framework_addr)
 
     {:ok, _} =
-      Eth.contract_transact(
+      TransactionHelper.contract_transact(
         deployer_addr,
         eth_vault_addr,
         "setDepositVerifier(address)",
@@ -72,7 +72,7 @@ defmodule OMG.Eth.BundleDeployer do
       )
 
     {:ok, _} =
-      Eth.contract_transact(
+      TransactionHelper.contract_transact(
         deployer_addr,
         plasma_framework_addr,
         "registerVault(uint256,address)",
@@ -81,7 +81,7 @@ defmodule OMG.Eth.BundleDeployer do
       )
 
     {:ok, _} =
-      Eth.contract_transact(
+      TransactionHelper.contract_transact(
         deployer_addr,
         erc20_vault_addr,
         "setDepositVerifier(address)",
@@ -90,7 +90,7 @@ defmodule OMG.Eth.BundleDeployer do
       )
 
     {:ok, _} =
-      Eth.contract_transact(
+      TransactionHelper.contract_transact(
         deployer_addr,
         plasma_framework_addr,
         "registerVault(uint256,address)",
@@ -113,7 +113,7 @@ defmodule OMG.Eth.BundleDeployer do
       Deployer.create_new("PaymentTransactionStateTransitionVerifier", root_path, deployer_addr, [])
 
     {:ok, _} =
-      Eth.contract_transact(
+      TransactionHelper.contract_transact(
         deployer_addr,
         output_guard_handler_registry_addr,
         "registerOutputGuardHandler(uint256,address)",
@@ -150,7 +150,7 @@ defmodule OMG.Eth.BundleDeployer do
       )
 
     {:ok, _} =
-      Eth.contract_transact(
+      TransactionHelper.contract_transact(
         deployer_addr,
         spending_condition_registry_addr,
         "registerSpendingCondition(uint256,uint256,address)",
@@ -159,7 +159,7 @@ defmodule OMG.Eth.BundleDeployer do
       )
 
     {:ok, _} =
-      Eth.contract_transact(
+      TransactionHelper.contract_transact(
         deployer_addr,
         plasma_framework_addr,
         "registerExitGame(uint256,address,uint8)",

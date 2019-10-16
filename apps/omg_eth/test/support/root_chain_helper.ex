@@ -20,6 +20,7 @@ defmodule OMG.Eth.RootChainHelper do
   alias OMG.Eth
   alias OMG.Eth.Config
   alias OMG.Eth.RootChain
+  alias OMG.Eth.TransactionHelper
 
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1]
 
@@ -58,7 +59,7 @@ defmodule OMG.Eth.RootChainHelper do
     # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
     output_guard_preimage = ""
 
-    Eth.contract_transact(
+    TransactionHelper.contract_transact(
       from,
       contract,
       "startStandardExit((uint192,bytes,bytes,bytes))",
@@ -75,7 +76,14 @@ defmodule OMG.Eth.RootChainHelper do
 
     opts = Keyword.merge(defaults, opts)
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes,uint8)", [in_flight_tx, output_index], opts)
+
+    TransactionHelper.contract_transact(
+      from,
+      contract,
+      "piggybackInFlightExit(bytes,uint8)",
+      [in_flight_tx, output_index],
+      opts
+    )
   end
 
   def deposit(tx_bytes, value, from, contract \\ %{}, opts \\ []) do
@@ -87,7 +95,7 @@ defmodule OMG.Eth.RootChainHelper do
       |> Keyword.put(:value, value)
 
     contract = Config.maybe_fetch_addr!(contract, :eth_vault)
-    Eth.contract_transact(from, contract, "deposit(bytes)", [tx_bytes], opts)
+    TransactionHelper.contract_transact(from, contract, "deposit(bytes)", [tx_bytes], opts)
   end
 
   def deposit_from(tx, from, contract \\ %{}, opts \\ []) do
@@ -95,7 +103,7 @@ defmodule OMG.Eth.RootChainHelper do
     opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :erc20_vault)
-    Eth.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
+    TransactionHelper.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
   end
 
   def add_token(token, contract \\ %{}, opts \\ []) do
@@ -104,7 +112,7 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
 
-    Eth.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
+    TransactionHelper.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
   end
 
   def challenge_exit(
@@ -133,7 +141,7 @@ defmodule OMG.Eth.RootChainHelper do
        optional_bytes, optional_bytes}
     ]
 
-    Eth.contract_transact(from, contract, signature, args, opts)
+    TransactionHelper.contract_transact(from, contract, signature, args, opts)
   end
 
   def init_authority(from \\ nil, contract \\ %{}, opts \\ []) do
@@ -143,7 +151,7 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
 
-    Eth.contract_transact(from, contract, "initAuthority()", [], opts)
+    TransactionHelper.contract_transact(from, contract, "initAuthority()", [], opts)
   end
 
   def in_flight_exit(
@@ -165,7 +173,7 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
     args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
-    Eth.contract_transact(from, contract, signature, args, opts)
+    TransactionHelper.contract_transact(from, contract, signature, args, opts)
   end
 
   def process_exits(token, top_exit_id, exits_to_process, from, contract \\ %{}, opts \\ []) do
@@ -174,7 +182,7 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     signature = "processExits(address,uint160,uint256)"
     args = [token, top_exit_id, exits_to_process]
-    Eth.contract_transact(from, contract, signature, args, opts)
+    TransactionHelper.contract_transact(from, contract, signature, args, opts)
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
@@ -206,7 +214,7 @@ defmodule OMG.Eth.RootChainHelper do
       competing_sig
     ]
 
-    Eth.contract_transact(from, contract, signature, args, opts)
+    TransactionHelper.contract_transact(from, contract, signature, args, opts)
   end
 
   def respond_to_non_canonical_challenge(
@@ -225,7 +233,7 @@ defmodule OMG.Eth.RootChainHelper do
 
     args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
 
-    Eth.contract_transact(from, contract, signature, args, opts)
+    TransactionHelper.contract_transact(from, contract, signature, args, opts)
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
@@ -253,7 +261,7 @@ defmodule OMG.Eth.RootChainHelper do
       spending_tx_sig
     ]
 
-    Eth.contract_transact(from, contract, signature, args, opts)
+    TransactionHelper.contract_transact(from, contract, signature, args, opts)
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
@@ -283,7 +291,7 @@ defmodule OMG.Eth.RootChainHelper do
       spending_tx_sig
     ]
 
-    Eth.contract_transact(from, contract, signature, args, opts)
+    TransactionHelper.contract_transact(from, contract, signature, args, opts)
   end
 
   def has_token(token, contract \\ %{}) do
