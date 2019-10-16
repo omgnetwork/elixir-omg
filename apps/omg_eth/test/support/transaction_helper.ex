@@ -16,6 +16,10 @@ defmodule OMG.Eth.TransactionHelper do
   @moduledoc """
   Standard interface for transacting with Ethereum
   """
+
+  alias OMG.Eth.Encoding
+  alias OMG.Eth.Transaction
+
   @spec contract_transact(atom(), <<_::160>>, <<_::160>>, binary, [any]) :: {:ok, <<_::256>>} | {:error, any}
   def contract_transact(backend, from, to, signature, args) do
     opts = []

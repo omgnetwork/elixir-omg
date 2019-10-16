@@ -19,6 +19,7 @@ defmodule OMG.Eth.Token do
 
   alias OMG.Eth
   alias OMG.Eth.Encoding
+  alias OMG.Eth.TransactionHelper
 
   @tx_defaults Eth.Defaults.tx_defaults()
 

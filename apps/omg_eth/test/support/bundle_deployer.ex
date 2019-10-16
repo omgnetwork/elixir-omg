@@ -20,6 +20,7 @@ defmodule OMG.Eth.BundleDeployer do
 
   alias OMG.Eth
   alias OMG.Eth.Deployer
+  alias OMG.Eth.TransactionHelper
 
   use OMG.Utils.LoggerExt
 

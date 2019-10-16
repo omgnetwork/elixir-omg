@@ -19,6 +19,7 @@ defmodule OMG.Eth.Deployer do
 
   alias OMG.Eth
   alias OMG.Eth.Encoding
+  alias OMG.Eth.Transaction
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
