@@ -62,7 +62,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
 
     :watcher = Map.get(tags, :application)
     "RINKEBY" = Map.get(tags, :eth_network)
-    "geth" = Map.get(tags, :eth_node)
+    :geth = Map.get(tags, :eth_node)
 
     ^configuration =
       @configuration_old
@@ -70,7 +70,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
       |> Keyword.put(:environment_name, "YOLO")
       |> Keyword.put(:included_environments, ["YOLO"])
       |> Keyword.put(:server_name, "server name")
-      |> Keyword.put(:tags, %{application: :watcher, eth_network: "RINKEBY", eth_node: "geth"})
+      |> Keyword.put(:tags, %{application: :watcher, eth_network: "RINKEBY", eth_node: :geth})
       |> Enum.sort()
   end
 
@@ -89,7 +89,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
 
     nil = Map.get(tags, :application)
     nil = Map.get(tags, :eth_network)
-    "geth" = Map.get(tags, :eth_node)
+    :geth = Map.get(tags, :eth_node)
 
     ^configuration =
       @configuration_old
@@ -97,7 +97,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
       |> Keyword.put(:environment_name, nil)
       |> Keyword.put(:included_environments, [])
       |> Keyword.put(:server_name, nil)
-      |> Keyword.put(:tags, %{application: nil, eth_network: nil, eth_node: "geth"})
+      |> Keyword.put(:tags, %{application: nil, eth_network: nil, eth_node: :geth})
       |> Enum.sort()
   end
 

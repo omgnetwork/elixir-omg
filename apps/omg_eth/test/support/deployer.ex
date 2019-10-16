@@ -18,6 +18,8 @@ defmodule OMG.Eth.Deployer do
   """
 
   alias OMG.Eth
+  alias OMG.Eth.Encoding
+  alias OMG.Eth.Transaction
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
@@ -118,11 +120,11 @@ defmodule OMG.Eth.Deployer do
 
   defp deploy_contract(bytecode, from, gas_value, types_args, opts) do
     defaults = @tx_defaults |> Keyword.put(:gas, gas_value)
-    opts = defaults |> Keyword.merge(opts)
+    opts = Keyword.merge(defaults, opts)
 
     {types, args} = Enum.unzip(types_args)
 
-    Eth.deploy_contract(from, bytecode, types, args, opts)
+    do_deploy_contract(from, bytecode, types, args, opts)
     |> Eth.DevHelpers.deploy_sync!()
   end
 
@@ -143,5 +145,30 @@ defmodule OMG.Eth.Deployer do
           "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
         )
     end
+  end
+
+  def do_deploy_contract(addr, bytecode, types, args, opts) do
+    enc_args = encode_constructor_params(types, args)
+
+    txmap =
+      %{from: Encoding.to_hex(addr), data: bytecode <> enc_args}
+      |> Map.merge(Map.new(opts))
+      |> encode_all_integer_opts()
+
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    {:ok, _txhash} = Transaction.send(backend, txmap)
+  end
+
+  defp encode_constructor_params(types, args) do
+    args
+    |> ABI.TypeEncoder.encode_raw(types)
+    # NOTE: we're not using `to_hex` because the `0x` will be appended to the bytecode already
+    |> Base.encode16(case: :lower)
+  end
+
+  defp encode_all_integer_opts(opts) do
+    opts
+    |> Enum.filter(fn {_k, v} -> is_integer(v) end)
+    |> Enum.into(opts, fn {k, v} -> {k, Encoding.to_hex(v)} end)
   end
 end
