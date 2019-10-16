@@ -189,8 +189,8 @@ defmodule OMG.Eth.DevHelpers do
     unlock_if_possible(account_enc)
 
     params = %{from: faucet, to: account_enc, value: to_hex(initial_funds)}
-    backend = String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
-    {:ok, tx_fund} = Transaction.send(backend, params)
+
+    {:ok, tx_fund} = Transaction.send(backend(), params)
 
     case Keyword.get(opts, :timeout) do
       nil -> WaitFor.eth_receipt(tx_fund, @about_4_blocks_time)
@@ -211,6 +211,6 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   defp backend() do
-    String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
+    Application.fetch_env!(:omg_eth, :eth_node)
   end
 end

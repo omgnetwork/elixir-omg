@@ -52,6 +52,6 @@ defmodule OMG.Eth.DevNode do
   end
 
   defp backend() do
-    String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
+    Application.fetch_env!(:omg_eth, :eth_node)
   end
 end

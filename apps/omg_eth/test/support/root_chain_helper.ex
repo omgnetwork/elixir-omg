@@ -58,8 +58,10 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
     output_guard_preimage = ""
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
 
     TransactionHelper.contract_transact(
+      backend,
       from,
       contract,
       "startStandardExit((uint192,bytes,bytes,bytes))",
@@ -76,8 +78,10 @@ defmodule OMG.Eth.RootChainHelper do
 
     opts = Keyword.merge(defaults, opts)
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
 
     TransactionHelper.contract_transact(
+      backend,
       from,
       contract,
       "piggybackInFlightExit(bytes,uint8)",
@@ -95,7 +99,8 @@ defmodule OMG.Eth.RootChainHelper do
       |> Keyword.put(:value, value)
 
     contract = Config.maybe_fetch_addr!(contract, :eth_vault)
-    TransactionHelper.contract_transact(from, contract, "deposit(bytes)", [tx_bytes], opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    TransactionHelper.contract_transact(backend, from, contract, "deposit(bytes)", [tx_bytes], opts)
   end
 
   def deposit_from(tx, from, contract \\ %{}, opts \\ []) do
@@ -103,7 +108,8 @@ defmodule OMG.Eth.RootChainHelper do
     opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :erc20_vault)
-    TransactionHelper.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    TransactionHelper.contract_transact(backend, from, contract, "deposit(bytes)", [tx], opts)
   end
 
   def add_token(token, contract \\ %{}, opts \\ []) do
@@ -111,8 +117,8 @@ defmodule OMG.Eth.RootChainHelper do
 
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
-
-    TransactionHelper.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    TransactionHelper.contract_transact(backend, from_hex(from), contract, "addToken(address)", [token], opts)
   end
 
   def challenge_exit(
@@ -141,17 +147,19 @@ defmodule OMG.Eth.RootChainHelper do
        optional_bytes, optional_bytes}
     ]
 
-    TransactionHelper.contract_transact(from, contract, signature, args, opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
   def init_authority(from \\ nil, contract \\ %{}, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_init)
+    defaults = Keyword.put(@tx_defaults, :gas, @gas_init)
     opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
 
-    TransactionHelper.contract_transact(from, contract, "initAuthority()", [], opts)
+    TransactionHelper.contract_transact(backend, from, contract, "initAuthority()", [], opts)
   end
 
   def in_flight_exit(
@@ -173,7 +181,9 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
     args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
-    TransactionHelper.contract_transact(from, contract, signature, args, opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+
+    TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
   def process_exits(token, top_exit_id, exits_to_process, from, contract \\ %{}, opts \\ []) do
@@ -182,7 +192,9 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     signature = "processExits(address,uint160,uint256)"
     args = [token, top_exit_id, exits_to_process]
-    TransactionHelper.contract_transact(from, contract, signature, args, opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+
+    TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
@@ -214,7 +226,9 @@ defmodule OMG.Eth.RootChainHelper do
       competing_sig
     ]
 
-    TransactionHelper.contract_transact(from, contract, signature, args, opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+
+    TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
   def respond_to_non_canonical_challenge(
@@ -232,8 +246,9 @@ defmodule OMG.Eth.RootChainHelper do
     signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
 
     args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
 
-    TransactionHelper.contract_transact(from, contract, signature, args, opts)
+    TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
@@ -261,7 +276,9 @@ defmodule OMG.Eth.RootChainHelper do
       spending_tx_sig
     ]
 
-    TransactionHelper.contract_transact(from, contract, signature, args, opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+
+    TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
@@ -291,7 +308,9 @@ defmodule OMG.Eth.RootChainHelper do
       spending_tx_sig
     ]
 
-    TransactionHelper.contract_transact(from, contract, signature, args, opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+
+    TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
   def has_token(token, contract \\ %{}) do

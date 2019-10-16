@@ -33,18 +33,27 @@ defmodule OMG.Eth.Token do
     opts = @tx_defaults |> Keyword.put(:gas, @gas_token_ops) |> Keyword.merge(opts)
 
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
-    TransactionHelper.contract_transact(Encoding.from_hex(from), token, "mint(address,uint256)", [owner, amount], opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+
+    TransactionHelper.contract_transact(
+      backend,
+      Encoding.from_hex(from),
+      token,
+      "mint(address,uint256)",
+      [owner, amount],
+      opts
+    )
   end
 
   def transfer(from, owner, amount, token, opts \\ []) do
     opts = @tx_defaults |> Keyword.put(:gas, @gas_token_ops) |> Keyword.merge(opts)
-
-    TransactionHelper.contract_transact(from, token, "transfer(address,uint256)", [owner, amount], opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    TransactionHelper.contract_transact(backend, from, token, "transfer(address,uint256)", [owner, amount], opts)
   end
 
   def approve(from, spender, amount, token, opts \\ []) do
     opts = @tx_defaults |> Keyword.put(:gas, @gas_token_ops) |> Keyword.merge(opts)
-
-    TransactionHelper.contract_transact(from, token, "approve(address,uint256)", [spender, amount], opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    TransactionHelper.contract_transact(backend, from, token, "approve(address,uint256)", [spender, amount], opts)
   end
 end

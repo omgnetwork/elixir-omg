@@ -26,7 +26,7 @@ defmodule Eth.Blockchain.Transaction.Signature do
   """
 
   alias Eth.Blockchain.BitHelper
-  alias Eth.Blockchain.Transaction
+  alias Eth.Blockchain.Transaction.Hash
 
   @type private_key :: <<_::256>>
   @type hash_v :: integer()
@@ -43,49 +43,21 @@ defmodule Eth.Blockchain.Transaction.Signature do
 
   ## Examples
 
-      iex> Blockchain.Transaction.Signature.sign_transaction(%Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 5, init: <<1>>}, <<1::256>>)
-      %Blockchain.Transaction{data: <<>>, gas_limit: 7, gas_price: 6, init: <<1>>, nonce: 5, r: 97037709922803580267279977200525583527127616719646548867384185721164615918250, s: 31446571475787755537574189222065166628755695553801403547291726929250860527755, to: "", v: 27, value: 5}
+      iex> Eth.Blockchain.Transaction.Signature.sign_transaction(%Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 5, init: <<1>>}, <<1::256>>)
+      %Eth.Blockchain.Transaction{data: <<>>, gas_limit: 7, gas_price: 6, init: <<1>>, nonce: 5, r: 97037709922803580267279977200525583527127616719646548867384185721164615918250, s: 31446571475787755537574189222065166628755695553801403547291726929250860527755, to: "", v: 27, value: 5}
 
-      iex> Blockchain.Transaction.Signature.sign_transaction(%Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 5, init: <<1>>}, <<1::256>>, 1)
-      %Blockchain.Transaction{data: <<>>, gas_limit: 7, gas_price: 6, init: <<1>>, nonce: 5, r: 25739987953128435966549144317523422635562973654702886626580606913510283002553, s: 41423569377768420285000144846773344478964141018753766296386430811329935846420, to: "", v: 38, value: 5}
+      iex> Eth.Blockchain.Transaction.Signature.sign_transaction(%Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 5, init: <<1>>}, <<1::256>>, 1)
+      %Eth.Blockchain.Transaction{data: <<>>, gas_limit: 7, gas_price: 6, init: <<1>>, nonce: 5, r: 25739987953128435966549144317523422635562973654702886626580606913510283002553, s: 41423569377768420285000144846773344478964141018753766296386430811329935846420, to: "", v: 38, value: 5}
   """
   @spec sign_transaction(Blockchain.Transaction.t(), private_key, integer() | nil) ::
           Blockchain.Transaction.t()
   def sign_transaction(trx, private_key, chain_id \\ nil) do
     {v, r, s} =
       trx
-      |> transaction_hash(chain_id)
+      |> Hash.transaction_hash(chain_id)
       |> sign_hash(private_key, chain_id)
 
     %{trx | v: v, r: r, s: s}
-  end
-
-  ~S"""
-  Returns a hash of a given transaction according to the
-  formula defined in Eq.(214) and Eq.(215) of the Yellow Paper.
-
-  Note: As per EIP-155 (https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md),
-        we will append the chain-id and nil elements to the serialized transaction.
-
-  ## Examples
-
-      iex> Blockchain.Transaction.Signature.transaction_hash(%Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 5, init: <<1>>})
-      <<127, 113, 209, 76, 19, 196, 2, 206, 19, 198, 240, 99, 184, 62, 8, 95, 9, 122, 135, 142, 51, 22, 61, 97, 70, 206, 206, 39, 121, 54, 83, 27>>
-
-      iex> Blockchain.Transaction.Signature.transaction_hash(%Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<1>>, value: 5, data: <<1>>})
-      <<225, 195, 128, 181, 3, 211, 32, 231, 34, 10, 166, 198, 153, 71, 210, 118, 51, 117, 22, 242, 87, 212, 229, 37, 71, 226, 150, 160, 50, 203, 127, 180>>
-
-      iex> Blockchain.Transaction.Signature.transaction_hash(%Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<1>>, value: 5, data: <<1>>}, 1)
-      <<132, 79, 28, 4, 212, 58, 235, 38, 66, 211, 167, 102, 36, 58, 229, 88, 238, 251, 153, 23, 121, 163, 212, 64, 83, 111, 200, 206, 54, 43, 112, 53>>
-  """
-
-  @spec transaction_hash(Blockchain.Transaction.t(), integer() | nil) :: BitHelper.keccak_hash()
-  defp transaction_hash(trx, chain_id) do
-    Transaction.serialize(trx, false)
-    # See EIP-155
-    |> Kernel.++(if chain_id, do: [chain_id |> :binary.encode_unsigned(), <<>>, <<>>], else: [])
-    |> ExRLP.encode()
-    |> BitHelper.kec()
   end
 
   @doc """
@@ -95,20 +67,20 @@ defmodule Eth.Blockchain.Transaction.Signature do
 
   ## Examples
 
-    iex> Blockchain.Transaction.Signature.sign_hash(<<2::256>>, <<1::256>>)
+    iex> Eth.Blockchain.Transaction.Signature.sign_hash(<<2::256>>, <<1::256>>)
     {28,
      38938543279057362855969661240129897219713373336787331739561340553100525404231,
      23772455091703794797226342343520955590158385983376086035257995824653222457926}
 
-    iex> Blockchain.Transaction.Signature.sign_hash(<<5::256>>, <<1::256>>)
+    iex> Eth.Blockchain.Transaction.Signature.sign_hash(<<5::256>>, <<1::256>>)
     {27,
      74927840775756275467012999236208995857356645681540064312847180029125478834483,
      56037731387691402801139111075060162264934372456622294904359821823785637523849}
 
-    iex> data = "ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080" |> BitHelper.from_hex
-    iex> hash = data |> BitHelper.kec
-    iex> private_key = "4646464646464646464646464646464646464646464646464646464646464646" |> BitHelper.from_hex
-    iex> Blockchain.Transaction.Signature.sign_hash(hash, private_key, 1)
+    iex> data = Base.decode16!("ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080", case: :lower)
+    iex> hash = Eth.Blockchain.BitHelper.kec(data)
+    iex> private_key = Base.decode16!("4646464646464646464646464646464646464646464646464646464646464646", case: :lower)
+    iex> Eth.Blockchain.Transaction.Signature.sign_hash(hash, private_key, 1)
     { 37, 18515461264373351373200002665853028612451056578545711640558177340181847433846, 46948507304638947509940763649030358759909902576025900602547168820602576006531 }
   """
   @spec sign_hash(BitHelper.keccak_hash(), private_key, integer() | nil) ::

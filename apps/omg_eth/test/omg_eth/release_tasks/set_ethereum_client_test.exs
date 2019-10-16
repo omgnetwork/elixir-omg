@@ -51,19 +51,19 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
     :ok = SetEthereumClient.init([])
     "url" = Application.get_env(:ethereumex, :url)
     "ws_url" = Application.get_env(:omg_eth, :ws_url)
-    "geth" = Application.get_env(@app, :eth_node)
+    :geth = Application.get_env(@app, :eth_node)
 
     :ok = System.put_env("ETH_NODE", "parity")
     :ok = SetEthereumClient.init([])
     "url" = Application.get_env(:ethereumex, :url)
     "ws_url" = Application.get_env(:omg_eth, :ws_url)
-    "parity" = Application.get_env(@app, :eth_node)
+    :parity = Application.get_env(@app, :eth_node)
 
     :ok = System.put_env("ETH_NODE", "infura")
     :ok = SetEthereumClient.init([])
     "url" = Application.get_env(:ethereumex, :url)
     "ws_url" = Application.get_env(:omg_eth, :ws_url)
-    "infura" = Application.get_env(@app, :eth_node)
+    :infura = Application.get_env(@app, :eth_node)
     # cleanup
     :ok = System.delete_env("ETHEREUM_WS_RPC_URL")
     :ok = System.delete_env("ETHEREUM_RPC_URL")

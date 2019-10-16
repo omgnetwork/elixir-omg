@@ -78,7 +78,7 @@ defmodule OMG.Eth.Librarian do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
-    backend = String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
     {:ok, _txhash} = Transaction.send(backend, txmap)
   end
 

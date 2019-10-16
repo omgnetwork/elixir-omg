@@ -112,7 +112,7 @@ defmodule OMG.Eth do
   def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
-    backend = String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
     SubmitBlock.submit(backend, hash, nonce, gas_price, from, contract)
   end
 
