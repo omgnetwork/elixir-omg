@@ -478,6 +478,10 @@ defmodule OMG.ChildChain.BlockQueue.Core do
         _ = Logger.info("Submitted #{inspect(submission)} at: #{inspect(txhash)}")
         :ok
 
+        {:error, %{"code" => -32_000, "message" => "insufficient funds for gas * price + value"}}
+        _ = log_insuficcent_gas(submission)
+        :ok
+
       {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
         _ = log_known_tx(submission)
         :ok
@@ -508,6 +512,10 @@ defmodule OMG.ChildChain.BlockQueue.Core do
       {:error, %{"code" => -32_010, "message" => "Transaction nonce is too low." <> _}} ->
         process_nonce_too_low(submission, newest_mined_blknum)
     end
+  end
+
+  defp log_insuficcent_gas(submission) do
+    Logger.debug("Submission #{inspect(submission)} has insufficient gas")
   end
 
   defp log_known_tx(submission) do
