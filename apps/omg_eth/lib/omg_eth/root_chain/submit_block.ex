@@ -16,7 +16,7 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
   @moduledoc """
   Interface to contract block submission.
   """
-  alias OMG.Eth.Blockchain.Transaction.PrivateKey
+  alias OMG.Eth.Blockchain.PrivateKey
   alias OMG.Eth.Encoding
   alias OMG.Eth.Transaction
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Blockchain.Transaction.PrivateKey do
+defmodule OMG.Eth.Blockchain.PrivateKey do
   @moduledoc """
   Extracts private key from environment
   """
