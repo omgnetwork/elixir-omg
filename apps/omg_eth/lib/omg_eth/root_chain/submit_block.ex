@@ -51,18 +51,18 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
   @spec contract_transact(atom(), address, address, binary, [any], keyword) :: {:ok, hash()} | {:error, any}
   defp contract_transact(:infura = backend, _from, to, signature, args, opts) do
     abi_encoded_data = encode_tx_data(signature, args)
-    [nonce: nonce, gasPrice: gas_price, value: 0, gas: 100_000] = opts
+    [nonce: nonce, gasPrice: gas_price, value: value, gas: gas_limit] = opts
     private_key = PrivateKey.get()
 
     transaction_data =
       %OMG.Eth.Blockchain.Transaction{
         data: abi_encoded_data,
-        gas_limit: 100_000,
+        gas_limit: gas_limit,
         gas_price: gas_price,
         init: <<>>,
         nonce: nonce,
         to: to,
-        value: 0
+        value: value
       }
       |> OMG.Eth.Blockchain.Transaction.Signature.sign_transaction(private_key)
       |> OMG.Eth.Blockchain.Transaction.serialize()
