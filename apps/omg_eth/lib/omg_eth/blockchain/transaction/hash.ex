@@ -43,13 +43,13 @@ defmodule OMG.Eth.Blockchain.Transaction.Hash do
 
   ## Examples
 
-      iex> Eth.Blockchain.Transaction.Hash.transaction_hash(%Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 5, init: <<1>>})
+      iex> OMG.Eth.Blockchain.Transaction.Hash.transaction_hash(%OMG.Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 5, init: <<1>>})
       <<127, 113, 209, 76, 19, 196, 2, 206, 19, 198, 240, 99, 184, 62, 8, 95, 9, 122, 135, 142, 51, 22, 61, 97, 70, 206, 206, 39, 121, 54, 83, 27>>
 
-      iex> Eth.Blockchain.Transaction.Hash.transaction_hash(%Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<1>>, value: 5, data: <<1>>})
+      iex> OMG.Eth.Blockchain.Transaction.Hash.transaction_hash(%OMG.Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<1>>, value: 5, data: <<1>>})
       <<225, 195, 128, 181, 3, 211, 32, 231, 34, 10, 166, 198, 153, 71, 210, 118, 51, 117, 22, 242, 87, 212, 229, 37, 71, 226, 150, 160, 50, 203, 127, 180>>
 
-      iex> Eth.Blockchain.Transaction.Hash.transaction_hash(%Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<1>>, value: 5, data: <<1>>}, 1)
+      iex> OMG.Eth.Blockchain.Transaction.Hash.transaction_hash(%OMG.Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<1>>, value: 5, data: <<1>>}, 1)
       <<132, 79, 28, 4, 212, 58, 235, 38, 66, 211, 167, 102, 36, 58, 229, 88, 238, 251, 153, 23, 121, 163, 212, 64, 83, 111, 200, 206, 54, 43, 112, 53>>
   """
 
@@ -69,12 +69,12 @@ defmodule OMG.Eth.Blockchain.Transaction.Hash do
 
   ## Examples
 
-    iex> Eth.Blockchain.Transaction.Signature.sign_hash(<<2::256>>, <<1::256>>)
+    iex> OMG.Eth.Blockchain.Transaction.Signature.sign_hash(<<2::256>>, <<1::256>>)
     {28,
      38938543279057362855969661240129897219713373336787331739561340553100525404231,
      23772455091703794797226342343520955590158385983376086035257995824653222457926}
 
-    iex> Eth.Blockchain.Transaction.Signature.sign_hash(<<5::256>>, <<1::256>>)
+    iex> OMG.Eth.Blockchain.Transaction.Signature.sign_hash(<<5::256>>, <<1::256>>)
     {27,
      74927840775756275467012999236208995857356645681540064312847180029125478834483,
      56037731387691402801139111075060162264934372456622294904359821823785637523849}
@@ -82,7 +82,7 @@ defmodule OMG.Eth.Blockchain.Transaction.Hash do
     iex> data = Base.decode16!("ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080", case: :lower)
     iex> hash = Eth.Blockchain.BitHelper.kec(data)
     iex> private_key = Base.decode16!("4646464646464646464646464646464646464646464646464646464646464646", case: :lower)
-    iex> Eth.Blockchain.Transaction.Signature.sign_hash(hash, private_key, 1)
+    iex> OMG.Eth.Blockchain.Transaction.Signature.sign_hash(hash, private_key, 1)
     { 37, 18515461264373351373200002665853028612451056578545711640558177340181847433846, 46948507304638947509940763649030358759909902576025900602547168820602576006531 }
   """
   @spec sign_hash(BitHelper.keccak_hash(), private_key, integer() | nil) ::

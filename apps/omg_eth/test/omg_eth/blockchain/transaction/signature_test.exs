@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Eth.Blockchain.Transaction.SignatureTest do
+defmodule OMG.Eth.Blockchain.Transaction.SignatureTest do
   use ExUnit.Case, async: true
-  doctest Eth.Blockchain.Transaction.Signature
+  doctest OMG.Eth.Blockchain.Transaction.Signature
 end

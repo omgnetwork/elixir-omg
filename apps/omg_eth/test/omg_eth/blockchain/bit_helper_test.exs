@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Eth.Blockchain.BitHelperTest do
+defmodule OMG.Eth.Blockchain.BitHelperTest do
   use ExUnit.Case, async: true
-  doctest Eth.Blockchain.BitHelper
+  doctest OMG.Eth.Blockchain.BitHelper
 end
