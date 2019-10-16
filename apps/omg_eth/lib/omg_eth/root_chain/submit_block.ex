@@ -16,9 +16,9 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
   @moduledoc """
   Interface to contract block submission.
   """
+  alias OMG.Eth.Blockchain.Transaction.PrivateKey
   alias OMG.Eth.Encoding
   alias OMG.Eth.Transaction
-  alias OMG.Eth.Blockchain.Transaction.PrivateKey
 
   @type address :: <<_::160>>
   @type hash :: <<_::256>>

@@ -69,20 +69,20 @@ defmodule OMG.Eth.Blockchain.Transaction.Hash do
 
   ## Examples
 
-    iex> OMG.Eth.Blockchain.Transaction.Signature.sign_hash(<<2::256>>, <<1::256>>)
+    iex> OMG.Eth.Blockchain.Transaction.Hash.sign_hash(<<2::256>>, <<1::256>>)
     {28,
      38938543279057362855969661240129897219713373336787331739561340553100525404231,
      23772455091703794797226342343520955590158385983376086035257995824653222457926}
 
-    iex> OMG.Eth.Blockchain.Transaction.Signature.sign_hash(<<5::256>>, <<1::256>>)
+    iex> OMG.Eth.Blockchain.Transaction.Hash.sign_hash(<<5::256>>, <<1::256>>)
     {27,
      74927840775756275467012999236208995857356645681540064312847180029125478834483,
      56037731387691402801139111075060162264934372456622294904359821823785637523849}
 
     iex> data = Base.decode16!("ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080", case: :lower)
-    iex> hash = Eth.Blockchain.BitHelper.kec(data)
+    iex> hash = OMG.Eth.Blockchain.BitHelper.kec(data)
     iex> private_key = Base.decode16!("4646464646464646464646464646464646464646464646464646464646464646", case: :lower)
-    iex> OMG.Eth.Blockchain.Transaction.Signature.sign_hash(hash, private_key, 1)
+    iex> OMG.Eth.Blockchain.Transaction.Hash.sign_hash(hash, private_key, 1)
     { 37, 18515461264373351373200002665853028612451056578545711640558177340181847433846, 46948507304638947509940763649030358759909902576025900602547168820602576006531 }
   """
   @spec sign_hash(BitHelper.keccak_hash(), private_key, integer() | nil) ::

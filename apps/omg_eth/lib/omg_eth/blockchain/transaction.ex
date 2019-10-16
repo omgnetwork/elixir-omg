@@ -62,7 +62,7 @@ defmodule OMG.Eth.Blockchain.Transaction do
 
   ## Examples
 
-      iex> OMG.Transaction.serialize(%OMG.Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<1::160>>, value: 8, v: 27, r: 9, s: 10, data: "hi"})
+      iex> OMG.Eth.Blockchain.Transaction.serialize(%OMG.Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<1::160>>, value: 8, v: 27, r: 9, s: 10, data: "hi"})
       [<<5>>, <<6>>, <<7>>, <<1::160>>, <<8>>, "hi", <<27>>, <<9>>, <<10>>]
 
       iex> OMG.Eth.Blockchain.Transaction.serialize(%OMG.Eth.Blockchain.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 8, v: 27, r: 9, s: 10, init: <<1, 2, 3>>})

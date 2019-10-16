@@ -27,7 +27,6 @@ defmodule OMG.Eth.Blockchain.Transaction.PrivateKey do
   defp maybe_hex(hex_data, type \\ :raw)
   defp maybe_hex(nil, _), do: nil
   defp maybe_hex(hex_data, :raw), do: load_raw_hex(hex_data)
-  defp maybe_hex(hex_data, :integer), do: load_hex(hex_data)
 
   @spec load_raw_hex(String.t()) :: binary()
   defp load_raw_hex("0x" <> hex_data), do: load_raw_hex(hex_data)
@@ -38,7 +37,4 @@ defmodule OMG.Eth.Blockchain.Transaction.PrivateKey do
   defp load_raw_hex(hex_data) do
     Base.decode16!(hex_data, case: :mixed)
   end
-
-  @spec load_hex(String.t()) :: non_neg_integer()
-  defp load_hex(hex_data), do: hex_data |> load_raw_hex |> :binary.decode_unsigned()
 end
