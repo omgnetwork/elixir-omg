@@ -24,6 +24,7 @@ defmodule OMG.Eth.Transaction do
   For geth, account must be unlocked externally.
   If using parity, account passphrase must be provided directly or via config.
   """
+  @spec send(:infura, binary(), OMG.Eth.send_transaction_opts()) :: {:ok, OMG.Eth.hash()} | {:error, any()}
   @spec send(atom(), map(), OMG.Eth.send_transaction_opts()) :: {:ok, OMG.Eth.hash()} | {:error, any()}
   def send(backend, txmap, opts \\ []) do
     transact(backend, txmap, opts)

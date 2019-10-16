@@ -71,7 +71,6 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
     Transaction.send(backend, "0x" <> transaction_data)
   end
 
-  @spec contract_transact(atom(), address, address, binary, [any], keyword) :: {:ok, hash()} | {:error, any}
   defp contract_transact(backend, from, to, signature, args, opts) do
     data = encode_tx_data(signature, args)
 

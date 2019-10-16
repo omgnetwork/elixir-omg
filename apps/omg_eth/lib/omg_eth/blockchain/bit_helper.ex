@@ -59,7 +59,7 @@ defmodule Eth.Blockchain.BitHelper do
       iex>  Eth.Blockchain.BitHelper.encode_unsigned(5_000_000)
       <<76, 75, 64>>
   """
-  @spec encode_unsigned(number()) :: binary()
+  @spec encode_unsigned(non_neg_integer()) :: binary()
   def encode_unsigned(0), do: <<>>
   def encode_unsigned(n), do: :binary.encode_unsigned(n)
 end
