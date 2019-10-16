@@ -86,6 +86,7 @@ defmodule Eth.Blockchain.Transaction.Signature do
   @spec sign_hash(BitHelper.keccak_hash(), private_key, integer() | nil) ::
           {hash_v, hash_r, hash_s}
   def sign_hash(hash, private_key, chain_id \\ nil) do
+    private_key = maybe_hex(private_key)
     {:ok, <<r::size(256), s::size(256)>>, recovery_id} =
       :libsecp256k1.ecdsa_sign_compact(hash, private_key, :default, <<>>)
 
@@ -99,4 +100,23 @@ defmodule Eth.Blockchain.Transaction.Signature do
 
     {recovery_id, r, s}
   end
+
+  @spec maybe_hex(String.t() | nil) :: binary() | nil
+  def maybe_hex(hex_data, type \\ :raw)
+  def maybe_hex(nil, _), do: nil
+  def maybe_hex(hex_data, :raw), do: load_raw_hex(hex_data)
+  def maybe_hex(hex_data, :integer), do: load_hex(hex_data)
+
+  @spec load_raw_hex(String.t()) :: binary()
+  def load_raw_hex("0x" <> hex_data), do: load_raw_hex(hex_data)
+
+  def load_raw_hex(hex_data) when Integer.is_odd(byte_size(hex_data)),
+    do: load_raw_hex("0" <> hex_data)
+
+  def load_raw_hex(hex_data) do
+    Base.decode16!(hex_data, case: :mixed)
+  end
+
+  @spec load_hex(String.t()) :: non_neg_integer()
+  def load_hex(hex_data), do: hex_data |> load_raw_hex |> :binary.decode_unsigned()
 end
