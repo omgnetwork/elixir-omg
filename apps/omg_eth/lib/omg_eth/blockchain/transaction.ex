@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Eth.Blockchain.Transaction do
-  alias Eth.Blockchain.BitHelper
+defmodule OMG.Eth.Blockchain.Transaction do
+  alias OMG.Eth.Blockchain.BitHelper
 
   @moduledoc """
   This module encodes the transaction object, defined in Section 4.3

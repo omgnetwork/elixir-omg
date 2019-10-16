@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Eth.Blockchain.Transaction.Hash do
+defmodule OMG.Eth.Blockchain.Transaction.Hash do
   @moduledoc """
   Defines helper functions for signing and getting the signature
   of a transaction, as defined in Appendix F of the Yellow Paper.
@@ -25,9 +25,15 @@ defmodule Eth.Blockchain.Transaction.Hash do
   Extracted from: https://github.com/exthereum/blockchain
   """
 
-  alias Eth.Blockchain.BitHelper
-  alias Eth.Blockchain.Transaction
+  alias OMG.Eth.Blockchain.BitHelper
+  alias OMG.Eth.Blockchain.Transaction
 
+  @base_recovery_id 27
+  @base_recovery_id_eip_155 35
+  @type private_key :: <<_::256>>
+  @type hash_v :: integer()
+  @type hash_r :: integer()
+  @type hash_s :: integer()
   @doc """
   Returns a hash of a given transaction according to the
   formula defined in Eq.(214) and Eq.(215) of the Yellow Paper.
@@ -54,5 +60,45 @@ defmodule Eth.Blockchain.Transaction.Hash do
     |> Kernel.++(if chain_id, do: [:binary.encode_unsigned(chain_id), <<>>, <<>>], else: [])
     |> ExRLP.encode()
     |> BitHelper.kec()
+  end
+
+  @doc """
+  Returns a ECDSA signature (v,r,s) for a given hashed value.
+
+  This implementes Eq.(207) of the Yellow Paper.
+
+  ## Examples
+
+    iex> Eth.Blockchain.Transaction.Signature.sign_hash(<<2::256>>, <<1::256>>)
+    {28,
+     38938543279057362855969661240129897219713373336787331739561340553100525404231,
+     23772455091703794797226342343520955590158385983376086035257995824653222457926}
+
+    iex> Eth.Blockchain.Transaction.Signature.sign_hash(<<5::256>>, <<1::256>>)
+    {27,
+     74927840775756275467012999236208995857356645681540064312847180029125478834483,
+     56037731387691402801139111075060162264934372456622294904359821823785637523849}
+
+    iex> data = Base.decode16!("ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080", case: :lower)
+    iex> hash = Eth.Blockchain.BitHelper.kec(data)
+    iex> private_key = Base.decode16!("4646464646464646464646464646464646464646464646464646464646464646", case: :lower)
+    iex> Eth.Blockchain.Transaction.Signature.sign_hash(hash, private_key, 1)
+    { 37, 18515461264373351373200002665853028612451056578545711640558177340181847433846, 46948507304638947509940763649030358759909902576025900602547168820602576006531 }
+  """
+  @spec sign_hash(BitHelper.keccak_hash(), private_key, integer() | nil) ::
+          {hash_v, hash_r, hash_s}
+  def sign_hash(hash, private_key, chain_id \\ nil) do
+    {:ok, <<r::size(256), s::size(256)>>, recovery_id} =
+      :libsecp256k1.ecdsa_sign_compact(hash, private_key, :default, <<>>)
+
+    # Fork Ψ EIP-155
+    recovery_id =
+      if chain_id do
+        chain_id * 2 + @base_recovery_id_eip_155 + recovery_id
+      else
+        @base_recovery_id + recovery_id
+      end
+
+    {recovery_id, r, s}
   end
 end
