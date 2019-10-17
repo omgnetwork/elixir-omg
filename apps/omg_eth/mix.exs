@@ -28,6 +28,7 @@ defmodule OMG.Eth.MixProject do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:prod), do: ["lib"]
+  defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(_), do: ["lib", "test/support"]
 
   defp deps do
@@ -78,12 +79,12 @@ defmodule OMG.Eth.MixProject do
       # Umbrella
       {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},
+      {:omg_utils, in_umbrella: true},
       # TEST ONLY
       {:exexec,
        git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
       {:websockex, "~> 0.4.2"},
-      {:omg_utils, in_umbrella: true},
       # Used for mocking websocket servers
       {:plug_cowboy, "~> 1.0", only: [:dev, :test]}
     ]

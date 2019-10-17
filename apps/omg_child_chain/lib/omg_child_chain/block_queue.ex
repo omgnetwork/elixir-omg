@@ -179,7 +179,7 @@ defmodule OMG.ChildChain.BlockQueue do
     defp submit(%Core.BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price} = submission) do
       _ = Logger.debug("Submitting: #{inspect(submission)}")
 
-      submit_result = OMG.Eth.RootChain.submit_block(hash, nonce, gas_price)
+      submit_result = Eth.submit_block(hash, nonce, gas_price)
       {:ok, newest_mined_blknum} = Eth.RootChain.get_mined_child_block()
 
       final_result = Core.process_submit_result(submission, submit_result, newest_mined_blknum)
@@ -196,7 +196,7 @@ defmodule OMG.ChildChain.BlockQueue do
     defp log_init_error(fields) do
       config = Eth.Diagnostics.get_child_chain_config()
       fields = Keyword.update!(fields, :known_hashes, fn hashes -> Enum.map(hashes, &Encoding.to_hex/1) end)
-      diagnostic = fields |> Enum.into(%{config: config})
+      diagnostic = Enum.into(fields, %{config: config})
 
       _ =
         Logger.error(

@@ -17,6 +17,7 @@ defmodule OMG.Eth.Defaults do
   Internal defaults of non-production critical calls to `OMG.Eth.RootChain` and `OMG.Eth.Token`.
 
   Don't ever use this for `OMG.Eth.RootChain.submit_block/5` or any other production related code.
+  Don't ever use this for `OMG.Eth.submit_block/5` or any other production related code.
   """
 
   alias OMG.Eth.Encoding
@@ -25,8 +26,7 @@ defmodule OMG.Eth.Defaults do
   @lots_of_gas 5_712_388
   @gas_price 1_000_000_000
 
-  def tx_defaults do
-    [value: 0, gasPrice: @gas_price, gas: @lots_of_gas]
-    |> Enum.map(fn {k, v} -> {k, Encoding.to_hex(v)} end)
+  def tx_defaults() do
+    Enum.map([value: 0, gasPrice: @gas_price, gas: @lots_of_gas], fn {k, v} -> {k, Encoding.to_hex(v)} end)
   end
 end

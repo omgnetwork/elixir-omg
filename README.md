@@ -41,7 +41,7 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
          * [Watcher configuration - :omg_watcher app](#watcher-configuration---omg_watcher-app)
          * [OMG.DB configuration - :omg_db app](#omgdb-configuration---omg_db-app)
          * [OMG.Eth configuration - :omg_eth app](#omgeth-configuration---omg_eth-app)
-   * ["geth" | "parity"](#geth--parity)
+   * ["geth" | "parity" | "infura"](#geth--parity)
       * [Contracts](#contracts)
          * [Installing dependencies and compiling contracts](#installing-dependencies-and-compiling-contracts)
    * [Testing &amp; development](#testing--development)
@@ -372,7 +372,7 @@ All binary entries are expected in hex-encoded, `0x`-prefixed.
 
 * **`txhash_contract`** - the Ethereum-transaction hash holding the deployment of the root chain contract
 
-* **`eth_node`** - the Ethereum client which is used: `"geth" | "parity"`.
+* **`eth_node`** - the Ethereum client which is used: `"geth" | "parity" or "infura"`.
 
 * **`node_logging_in_debug`** - whether the output of the Ethereum node being run in integration test should be printed to `:debug` level logs.
 If you set this to false, remember to set the logging level to `:debug` to see the logs
