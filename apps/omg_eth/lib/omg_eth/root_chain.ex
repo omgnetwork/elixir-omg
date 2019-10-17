@@ -22,6 +22,7 @@ defmodule OMG.Eth.RootChain do
   alias OMG.Eth
   alias OMG.Eth.Config
 
+  require Logger
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
@@ -271,7 +272,9 @@ defmodule OMG.Eth.RootChain do
       _ -> :ok
     end
   rescue
-    _ -> {:error, :root_chain_contract_not_available}
+    error ->
+      _ = Logger.error("The call to contract_ready failed with: #{inspect(error)}")
+      {:error, :root_chain_contract_not_available}
   end
 
   # TODO - missing description + could this be moved to a statefull process?
