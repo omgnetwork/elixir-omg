@@ -50,7 +50,7 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
 
   @spec contract_transact(atom(), address, address, binary, [any], keyword) :: {:ok, hash()} | {:error, any}
   defp contract_transact(:infura = backend, _from, to, signature, args, opts) do
-    abi_encoded_data = encode_tx_data(signature, args)
+    abi_encoded_data = ABI.encode(signature, args)
     [nonce: nonce, gasPrice: gas_price, value: value, gas: gas_limit] = opts
     private_key = PrivateKey.get()
 
