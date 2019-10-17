@@ -6,8 +6,6 @@ help:
 	@echo ""
 	@echo "- \`make docker-start-cluster\` - start everything for you, but if there are no local images \c"
 	@echo "for Watcher and Child chain tagged with latest they will get pulled from our repository."
-	@echo "- \`make docker-start-cluster-with-infura\` - start everything but connect to Infura \c"
-	@echo "instead of your own local geth network."
 	@echo "- \`make docker-watcher && make docker-child_chain\` - use your own image containers \c"
 	@echo "for Watcher and Child Chain"
 	@echo "- \`make docker-update-watcher\` or \`make docker-update-child_chain\` - \c"
@@ -212,9 +210,6 @@ docker-update-child_chain:
 	docker stop elixir-omg_childchain_1
 	$(MAKE) docker-child_chain
 	docker-compose up childchain
-
-docker-start-cluster-with-infura:
-	docker-compose -f docker-compose.yml -f docker-compose-infura.yml up
 
 docker-start-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-deployer watcher childchain
