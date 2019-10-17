@@ -69,7 +69,6 @@ jobs:
   barebuild:
     executor: metal
     environment:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
     steps:
       - checkout
@@ -171,7 +170,6 @@ jobs:
   sobelow:
     executor: builder_pg
     environment:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
@@ -291,7 +289,6 @@ jobs:
   integration_tests:
     executor: builder_pg_geth
     environment:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
