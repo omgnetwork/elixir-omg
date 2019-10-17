@@ -16,6 +16,7 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
   @moduledoc """
   Interface to contract block submission.
   """
+  alias OMG.Eth.Blockchain.PrivateKey
   alias OMG.Eth.Encoding
   alias OMG.Eth.Transaction
 
@@ -51,10 +52,10 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
   defp contract_transact(:infura = backend, _from, to, signature, args, opts) do
     abi_encoded_data = encode_tx_data(signature, args)
     [nonce: nonce, gasPrice: gas_price, value: 0, gas: 100_000] = opts
-    private_key = System.get_env("PRIVATE_KEY")
+    private_key = PrivateKey.get()
 
     transaction_data =
-      %Eth.Blockchain.Transaction{
+      %OMG.Eth.Blockchain.Transaction{
         data: abi_encoded_data,
         gas_limit: 100_000,
         gas_price: gas_price,
@@ -63,8 +64,8 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
         to: to,
         value: 0
       }
-      |> Eth.Blockchain.Transaction.Signature.sign_transaction(private_key)
-      |> Eth.Blockchain.Transaction.serialize()
+      |> OMG.Eth.Blockchain.Transaction.Signature.sign_transaction(private_key)
+      |> OMG.Eth.Blockchain.Transaction.serialize()
       |> ExRLP.encode()
       |> Base.encode16(case: :lower)
 
