@@ -1,0 +1,34 @@
+version: "2.1"
+services:
+  plasma-deployer:
+    environment:
+      - CLIENT_TYPE=infura
+      - INFURA_URL=https://rinkeby.infura.io/v3
+      - USE_EXISTING_AUTHORITY_ADDRESS=true
+      - ETH_CLIENT_HOST=https://rinkeby.infura.io/v3/<infura_api_key>
+      - INFURA_API_KEY=<infura_api_key>
+      - DEPLOYER_ADDRESS=<deployer_address>
+      - AUTHORITY_ADDRESS=<authority_address>
+      - DEPLOYER_PRIVATEKEY=<deployer_privkey>
+      - MAINTAINER_PRIVATEKEY=<maintainer_privkey>
+      - AUTHORITY_PRIVATEKEY=<authority_privkey>
+    # Takes roughly 10 minutes to deploy all contracts, so check every minute up to 15 minutes
+    healthcheck:
+      interval: 60s
+      timeout: 10s
+      retries: 15
+
+  childchain:
+    environment:
+      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<infura_api_key>
+      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/<infura_api_key>
+
+  watcher:
+    environment:
+      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<infura_api_key>
+      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/<infura_api_key>
+
+  geth:
+    # We don't need geth but docker-compose doesn't support overrides to remove or disable a service
+    # So here we set `--dev.period 0` to minimize resource utilization.
+    entrypoint: /bin/sh -c "apk add curl && geth --dev --dev.period 0 --rpc --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545"
