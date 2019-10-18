@@ -16,7 +16,8 @@ services:
       retries: 5
 
   plasma-deployer:
-    image: omisego/plasma-deployer:c7266b7
+    # plasma-deployer points to fb7109a9e823b998c20484deac8609cda425218a, which is a branch of 7b8a2643568556c1d126749724666bc37edc8141
+    image: omisego/plasma-deployer:3314a71
     environment:
       - ETH_CLIENT_HOST=geth
     ports:
