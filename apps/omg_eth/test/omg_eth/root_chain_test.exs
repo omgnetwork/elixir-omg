@@ -100,7 +100,7 @@ defmodule OMG.Eth.RootChainTest do
 
   test "submit_block/1 submits a block to the contract", %{contract: contract} do
     use_cassette "ganache/submit_block", match_requests_on: [:request_body] do
-      block =
+      response =
         RootChain.submit_block(
           <<234::256>>,
           1,
@@ -109,20 +109,19 @@ defmodule OMG.Eth.RootChainTest do
           contract
         )
 
-      assert {:ok, _} = DevHelpers.transact_sync!(block)
+      assert {:ok, _} = DevHelpers.transact_sync!(response)
     end
   end
 
   # TODO achiurizo
   #
   # ganache complaining about invalid output encoding
-  @tag :skip
   test "get_deposits/3 returns deposit events", %{contract: contract} do
-    use_cassette "ganache/get_deposits" do
+    use_cassette "ganache/get_deposits", match_requests_on: [:request_body] do
       # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
       # payment marker, no inputs, one output, metadata
       tx =
-        [<<1>>, [], [[contract.authority_address, @eth, 1]], <<0::256>>]
+        [<<1>>, [], [[<<1>>, contract.authority_address, @eth, 1]], <<0::256>>]
         |> ExRLP.encode()
 
       {:ok, tx_hash} =
