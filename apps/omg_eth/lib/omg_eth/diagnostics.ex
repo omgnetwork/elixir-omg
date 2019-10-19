@@ -21,8 +21,9 @@ defmodule OMG.Eth.Diagnostics do
   Gets an excerpt of the application's configuration describing which child chain (contract address etc.) are we
   talking to
   """
-  def get_child_chain_config do
-    Application.get_all_env(:omg_eth) |> Keyword.take([:contract_addr, :authority_addr, :txhash_contract])
+  def get_child_chain_config() do
+    config = Application.get_all_env(:omg_eth)
+    Keyword.take(config, [:contract_addr, :authority_addr, :txhash_contract])
   end
 
   @doc """
@@ -30,9 +31,8 @@ defmodule OMG.Eth.Diagnostics do
 
   Designed so that it never throws, so is safe to use in error recovery code, logging etc.
   """
-  def get_node_diagnostics do
-    ["personal_listWallets", "admin_nodeInfo", "parity_enode"]
-    |> Enum.into(%{}, &get_node_diagnostic/1)
+  def get_node_diagnostics() do
+    Enum.into(["personal_listWallets", "admin_nodeInfo", "parity_enode"], %{}, &get_node_diagnostic/1)
   end
 
   defp get_node_diagnostic(rpc_call_name) when is_binary(rpc_call_name) do

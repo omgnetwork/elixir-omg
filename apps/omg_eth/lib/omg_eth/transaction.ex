@@ -17,28 +17,39 @@ defmodule OMG.Eth.Transaction do
   An interface to Ethereum client transact function.
   """
   require Logger
-  import OMG.Eth.Encoding, only: [from_hex: 1]
+  alias OMG.Eth.Encoding
 
   @doc """
   Send transaction to be singed by a key managed by Ethereum node, geth or parity.
   For geth, account must be unlocked externally.
   If using parity, account passphrase must be provided directly or via config.
   """
-  @spec send(map(), OMG.Eth.send_transaction_opts()) :: {:ok, OMG.Eth.hash()} | {:error, any()}
-  def send(txmap, opts \\ []) do
-    backend = String.to_existing_atom(Application.fetch_env!(:omg_eth, :eth_node))
+  @spec send(:infura, binary(), OMG.Eth.send_transaction_opts()) :: {:ok, OMG.Eth.hash()} | {:error, any()}
+  @spec send(atom(), map(), OMG.Eth.send_transaction_opts()) :: {:ok, OMG.Eth.hash()} | {:error, any()}
+  def send(backend, txmap, opts \\ []) do
+    transact(backend, txmap, opts)
+  end
 
-    case backend do
-      :geth ->
-        with {:ok, receipt_enc} <- Ethereumex.HttpClient.eth_send_transaction(txmap), do: {:ok, from_hex(receipt_enc)}
+  defp transact(:geth, txmap, _opts) do
+    case Ethereumex.HttpClient.eth_send_transaction(txmap) do
+      {:ok, receipt_enc} -> {:ok, Encoding.from_hex(receipt_enc)}
+      other -> other
+    end
+  end
 
-      :parity ->
-        with {:ok, passphrase} <- get_signer_passphrase(txmap.from),
-             opts = Keyword.merge([passphrase: passphrase], opts),
-             params = [txmap, Keyword.get(opts, :passphrase, "")],
-             {:ok, receipt_enc} <- Ethereumex.HttpClient.request("personal_sendTransaction", params, []) do
-          {:ok, from_hex(receipt_enc)}
-        end
+  defp transact(:infura, transaction_data, _opts) do
+    case Ethereumex.HttpClient.eth_send_raw_transaction(transaction_data) do
+      {:ok, receipt_enc} -> {:ok, Encoding.from_hex(receipt_enc)}
+      other -> other
+    end
+  end
+
+  defp transact(:parity, txmap, opts) do
+    with {:ok, passphrase} <- get_signer_passphrase(txmap.from),
+         opts = Keyword.merge([passphrase: passphrase], opts),
+         params = [txmap, Keyword.get(opts, :passphrase, "")],
+         {:ok, receipt_enc} <- Ethereumex.HttpClient.request("personal_sendTransaction", params, []) do
+      {:ok, Encoding.from_hex(receipt_enc)}
     end
   end
 
