@@ -18,32 +18,36 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
+  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
   use OMG.Utils.LoggerExt
 
-  @moduletag :wrappers
   @moduletag :common
-  setup_all(_) do
+
+  setup do
     _ = Application.ensure_all_started(:omg_bus)
+    vcr_path = Path.join(__DIR__, "../fixtures/vcr_cassettes")
+    ExVCR.Config.cassette_library_dir(vcr_path)
     :ok
   end
 
-  @tag fixtures: [:eth_node]
   test "that worker can subscribe to different events and receive events" do
-    listen_to = ["newHeads", "newPendingTransactions"]
+    use_cassette "ganache/subscription_worker" do
+      listen_to = ["newHeads", "newPendingTransactions"]
 
-    Enum.each(
-      listen_to,
-      fn listen ->
-        params = [listen_to: listen, ws_url: Application.get_env(:omg_eth, :ws_url)]
-        _ = SubscriptionWorker.start_link([{:event_bus, OMG.Bus} | params])
-        :ok = OMG.Bus.subscribe(listen, link: true)
-        event = String.to_atom(listen)
+      Enum.each(
+        listen_to,
+        fn listen ->
+          params = [listen_to: listen, ws_url: Application.get_env(:omg_eth, :ws_url)]
+          _ = SubscriptionWorker.start_link([{:event_bus, OMG.Bus} | params])
+          :ok = OMG.Bus.subscribe(listen, link: true)
+          event = String.to_atom(listen)
 
-        receive do
-          {:internal_event_bus, ^event, _message} ->
-            assert true
+          receive do
+            {:internal_event_bus, ^event, _message} ->
+              assert true
+          end
         end
-      end
-    )
+      )
+    end
   end
 end
