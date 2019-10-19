@@ -22,8 +22,11 @@ defmodule OMG.Eth.WaitFor do
   def eth_rpc do
     f = fn ->
       case Ethereumex.HttpClient.eth_syncing() do
-        {:ok, false} -> {:ok, :ready}
-        _ -> :repeat
+        {:ok, false} ->
+          {:ok, :ready}
+
+        _ ->
+          :repeat
       end
     end
 

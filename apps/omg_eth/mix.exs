@@ -84,6 +84,7 @@ defmodule OMG.Eth.MixProject do
       {:exexec,
        git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
+      {:exvcr, "~> 0.10", only: :test},
       {:websockex, "~> 0.4.2"},
       # Used for mocking websocket servers
       {:plug_cowboy, "~> 1.0", only: [:dev, :test]}

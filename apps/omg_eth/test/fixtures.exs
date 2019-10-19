@@ -24,13 +24,23 @@ defmodule OMG.Eth.Fixtures do
   deffixture eth_node do
     {:ok, exit_fn} = Eth.DevNode.start()
     on_exit(exit_fn)
+    # NOTE: The request_body will send an incrementing request "id" in each body.
+    #
+    # see: https://github.com/mana-ethereum/ethereumex/blob/649075208d2af663b9aac262b153021e960c4df8/lib/ethereumex/client/base_client.ex#L503
+    #
+    # The problem is the fixtures would send a first request out(this request). When you remove the fixtures,
+    # Ethereumex thinks we are sending the first request, missing the matching cassettes by request_body.
+    # So, we reset the counter so the cassettes can reply correctly without the fixtures:
+    :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
     :ok
   end
 
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    %{} = Eth.DevHelpers.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
+    contract = Eth.DevHelpers.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
+    :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
+    contract
   end
 
   deffixture token(root_chain_contract_config) do
@@ -45,7 +55,7 @@ defmodule OMG.Eth.Fixtures do
     {:ok, false} = Eth.RootChainHelper.has_token(token_addr)
     {:ok, _} = token_addr |> Eth.RootChainHelper.add_token() |> Eth.DevHelpers.transact_sync!()
     {:ok, true} = Eth.RootChainHelper.has_token(token_addr)
-
+    :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
     token_addr
   end
 
@@ -68,6 +78,7 @@ defmodule OMG.Eth.Fixtures do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
+    :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
     :ok
   end
 end
