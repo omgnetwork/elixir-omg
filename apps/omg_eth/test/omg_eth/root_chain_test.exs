@@ -98,21 +98,6 @@ defmodule OMG.Eth.RootChainTest do
     end
   end
 
-  test "submit_block/1 submits a block to the contract", %{contract: contract} do
-    use_cassette "ganache/submit_block", match_requests_on: [:request_body] do
-      response =
-        RootChain.submit_block(
-          <<234::256>>,
-          1,
-          20_000_000_000,
-          contract.authority_address,
-          contract
-        )
-
-      assert {:ok, _} = DevHelpers.transact_sync!(response)
-    end
-  end
-
   # TODO achiurizo
   #
   # ganache complaining about invalid output encoding
