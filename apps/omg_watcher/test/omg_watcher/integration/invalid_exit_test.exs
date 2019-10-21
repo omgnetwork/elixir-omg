@@ -56,11 +56,11 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {:ok, %{"status" => "0x1"}} =
       Eth.RootChainHelper.start_exit(tx_utxo_pos, txbytes, proof, alice.addr)
-      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     {:ok, %{"status" => "0x1"}} =
       Eth.RootChainHelper.start_exit(deposit_utxo_pos, deposit_txbytes, deposit_proof, alice.addr)
-      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name, %Event.InvalidExit{}.name], @timeout)
 
@@ -76,7 +76,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
                challenge["sig"],
                alice.addr
              )
-             |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+             |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     # challenge standard exits from deposits
     challenge_exit_deposit = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
@@ -90,7 +90,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
                challenge_exit_deposit["sig"],
                alice.addr
              )
-             |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+             |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     IntegrationTest.wait_for_byzantine_events([], @timeout)
   end
@@ -126,7 +126,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         proof,
         alice.addr
       )
-      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     # Here we're manually submitting invalid block to the root chain
     # NOTE: this **must** come after `start_exit` is mined (see just above) but still not later than
@@ -171,7 +171,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         proof,
         alice.addr
       )
-      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
   end

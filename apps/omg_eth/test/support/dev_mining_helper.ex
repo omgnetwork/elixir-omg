@@ -49,7 +49,7 @@ defmodule OMG.Eth.Test.Support.DevMiningHelper do
     data = %{from: addr, to: addr, value: Encoding.to_hex(1)}
 
     OMG.Eth.Transaction.send(backend(), data, passphrase: passphrase)
-    |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+    |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
   end
 
   defp create_tick_account() do
@@ -57,14 +57,14 @@ defmodule OMG.Eth.Test.Support.DevMiningHelper do
     account_priv_enc = Base.encode16(tick_acc.priv)
     passphrase = "dev.period"
 
-    {:ok, addr} = OMG.Eth.Test.Support.DevHelpers.create_account_from_secret(backend(), account_priv_enc, passphrase)
+    {:ok, addr} = OMG.Eth.Test.Support.DevHelper.create_account_from_secret(backend(), account_priv_enc, passphrase)
 
     {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
 
     data = %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
 
     OMG.Eth.Transaction.send(backend(), data, passphrase: "")
-    |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+    |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     {:ok, addr, passphrase}
   end

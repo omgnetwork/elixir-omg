@@ -62,7 +62,7 @@ defmodule OMG.RootChainCoordinatorTest do
         strategy: :one_for_one
       )
 
-    {:ok, _} = OMG.Eth.Test.Support.DevHelpers.import_unlock_fund(alice)
+    {:ok, _} = OMG.Eth.Test.Support.DevHelper.import_unlock_fund(alice)
     assert 1 = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
     assert_receive([%{amount: 10}])

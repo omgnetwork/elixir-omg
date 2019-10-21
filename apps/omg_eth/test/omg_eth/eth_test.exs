@@ -23,7 +23,7 @@ defmodule OMG.EthTest do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.Test.Support.DevHelpers
+  alias OMG.Eth.Test.Support.DevHelper
   alias OMG.Eth.Encoding
 
   use ExUnit.Case, async: false
@@ -82,7 +82,7 @@ defmodule OMG.EthTest do
           contract
         )
 
-      assert {:ok, _} = DevHelpers.transact_sync!(response)
+      assert {:ok, _} = DevHelper.transact_sync!(response)
     end
   end
 end

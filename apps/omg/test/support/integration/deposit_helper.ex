@@ -30,7 +30,7 @@ defmodule OMG.Test.Support.Integration.DepositHelper do
       Transaction.Payment.new([], [{to, @eth, value}])
       |> Transaction.raw_txbytes()
       |> Eth.RootChainHelper.deposit(value, to)
-      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     process_deposit(receipt)
   end
@@ -38,13 +38,13 @@ defmodule OMG.Test.Support.Integration.DepositHelper do
   def deposit_to_child_chain(to, value, token_addr) when is_binary(token_addr) and byte_size(token_addr) == 20 do
     contract_addr = Config.maybe_fetch_addr!(nil, :erc20_vault)
 
-    {:ok, _} = Eth.Token.approve(to, contract_addr, value, token_addr) |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+    {:ok, _} = Eth.Token.approve(to, contract_addr, value, token_addr) |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     {:ok, receipt} =
       Transaction.Payment.new([], [{to, token_addr, value}])
       |> Transaction.raw_txbytes()
       |> Eth.RootChainHelper.deposit_from(to)
-      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     process_deposit(receipt)
   end
@@ -58,7 +58,7 @@ defmodule OMG.Test.Support.Integration.DepositHelper do
 
   defp wait_deposit_recognized(deposit_eth_height) do
     post_event_block_finality = deposit_eth_height + Application.fetch_env!(:omg, :deposit_finality_margin)
-    {:ok, _} = OMG.Eth.Test.Support.DevHelpers.wait_for_root_chain_block(post_event_block_finality + 1)
+    {:ok, _} = OMG.Eth.Test.Support.DevHelper.wait_for_root_chain_block(post_event_block_finality + 1)
     # sleeping until the deposit is spendable
     Process.sleep(Application.fetch_env!(:omg, :ethereum_events_check_interval_ms) * 2)
     :ok

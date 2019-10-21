@@ -95,7 +95,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         proof,
         alice.addr
       )
-      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     # Here we're waiting for child chain and watcher to process the exits
     IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
@@ -115,7 +115,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         proof,
         alice.addr
       )
-      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     :ok = IntegrationTest.process_exits(token, alice)
     :ok = IntegrationTest.process_exits(@eth, alice)
@@ -198,11 +198,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         proof,
         alice.addr
       )
-      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     # Here we're waiting for passing of margin of slow validator(m_sv)
     exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
-    OMG.Eth.Test.Support.DevHelpers.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
+    OMG.Eth.Test.Support.DevHelper.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
 
     # checking if both machines and humans learn about the byzantine condition
     assert TestHelper.capture_log(fn ->

@@ -28,8 +28,8 @@ eth = Eth.RootChain.eth_pseudo_address()
 
 bob_enc = Encoding.to_hex(bob.addr)
 
-{:ok, _} = OMG.Eth.Test.Support.DevHelpers.import_unlock_fund(alice)
-{:ok, _} = OMG.Eth.Test.Support.DevHelpers.import_unlock_fund(bob)
+{:ok, _} = OMG.Eth.Test.Support.DevHelper.import_unlock_fund(alice)
+{:ok, _} = OMG.Eth.Test.Support.DevHelper.import_unlock_fund(bob)
 
 # sends deposit transactions _to Ethereum_
 # we need to uncover the height at which the deposit went through on the root chain
@@ -107,7 +107,7 @@ Jason.decode!()
     composed_exit["txbytes"] |> Encoding.from_hex(),
     composed_exit["proof"] |> Encoding.from_hex(),
     bob.addr
-  ) |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+  ) |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
 # see the invalid exit report & challenge
 
@@ -127,7 +127,7 @@ Jason.decode!()
     challenge["input_index"],
     challenge["sig"] |> Encoding.from_hex(),
     alice.addr
-  ) |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+  ) |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
 # 4/ let's introduce a delay into the process of getting child block contents from the child chain server
 

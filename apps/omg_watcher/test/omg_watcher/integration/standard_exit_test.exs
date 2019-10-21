@@ -68,7 +68,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
         proof,
         alice.addr
       )
-      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
 
     :ok = IntegrationTest.process_exits(@eth, alice)
 

@@ -39,7 +39,7 @@ defmodule OMG.Eth.WaitFor do
   NOTE: `eth_receipt` takes txhash as raw decoded binary, like the rest of Eth APIs, but binaries in the receipt
   returned are in `0xhex-style`
 
-  This is low-level, consider using `|> OMG.Eth.Test.Support.DevHelpers.transact_sync!()` for eth-transactions' syncronicity in tests
+  This is low-level, consider using `|> OMG.Eth.Test.Support.DevHelper.transact_sync!()` for eth-transactions' syncronicity in tests
   """
   def eth_receipt(txhash, timeout \\ 15_000) do
     f = fn ->
