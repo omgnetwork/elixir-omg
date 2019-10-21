@@ -58,7 +58,7 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
 
   # TODO achiurizo
   #
-  # break this out into a shared module? 
+  # break this out into a shared module?
   # hack exvcr to read from Websocketex?
   defmodule WebSockexServerMock do
     use Plug.Router
