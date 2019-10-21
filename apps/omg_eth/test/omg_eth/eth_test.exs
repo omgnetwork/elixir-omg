@@ -41,7 +41,6 @@ defmodule OMG.EthTest do
     #
     # this is a hack to ensure we reset the counter to 0 despite
     # the fixtures now resetting the counter.
-    :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
 
     contract = %{
       # NOTE: achiurizo

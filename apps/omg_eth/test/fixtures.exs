@@ -31,7 +31,7 @@ defmodule OMG.Eth.Fixtures do
     # The problem is the fixtures would send a first request out(this request). When you remove the fixtures,
     # Ethereumex thinks we are sending the first request, missing the matching cassettes by request_body.
     # So, we reset the counter so the cassettes can reply correctly without the fixtures:
-    :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
+
     :ok
   end
 
@@ -39,7 +39,7 @@ defmodule OMG.Eth.Fixtures do
     :ok = eth_node
 
     contract = Eth.DevHelpers.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
-    :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
+
     contract
   end
 
@@ -55,7 +55,7 @@ defmodule OMG.Eth.Fixtures do
     {:ok, false} = Eth.RootChainHelper.has_token(token_addr)
     {:ok, _} = token_addr |> Eth.RootChainHelper.add_token() |> Eth.DevHelpers.transact_sync!()
     {:ok, true} = Eth.RootChainHelper.has_token(token_addr)
-    :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
+
     token_addr
   end
 
@@ -78,7 +78,6 @@ defmodule OMG.Eth.Fixtures do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
-    :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
     :ok
   end
 end
