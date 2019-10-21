@@ -59,7 +59,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert {:ok, %{"blknum" => spend_token_child_block}} = submit_transaction(token_tx)
 
     post_spend_child_block = spend_token_child_block + @interval
-    {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block)
+    {:ok, _} = OMG.Eth.Test.Support.DevHelpers.wait_for_next_child_block(post_spend_child_block)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(spend_child_block)
@@ -84,7 +84,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
 
     post_spend_child_block2 = spend_child_block2 + @interval
-    {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block2)
+    {:ok, _} = OMG.Eth.Test.Support.DevHelpers.wait_for_next_child_block(post_spend_child_block2)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.RootChain.get_child_chain(spend_child_block2)
@@ -112,11 +112,11 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
                proof,
                alice.addr
              )
-             |> Eth.DevHelpers.transact_sync!()
+             |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
 
     # check if the utxo is no longer available
     exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
-    {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
+    {:ok, _} = OMG.Eth.Test.Support.DevHelpers.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
 
     invalid_raw_tx = Transaction.Payment.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
     invalid_tx = invalid_raw_tx |> OMG.TestHelper.sign_encode([alice.priv])
@@ -133,7 +133,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     {:ok, %{"blknum" => blknum, "txindex" => txindex}} = tx |> Transaction.Signed.encode() |> submit_transaction()
 
     post_spend_child_block = blknum + @interval
-    {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block)
+    {:ok, _} = OMG.Eth.Test.Support.DevHelpers.wait_for_next_child_block(post_spend_child_block)
 
     # create transaction & data for in-flight exit, start in-flight exit
     %Transaction.Signed{sigs: in_flight_tx_sigs} =
@@ -150,10 +150,10 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
         Enum.join(in_flight_tx_sigs),
         alice.addr
       )
-      |> Eth.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
 
     exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+    OMG.Eth.Test.Support.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     # check that output of 1st transaction was spend by in-flight exit
     tx_double_spend = OMG.TestHelper.create_encoded([{blknum, txindex, 0, alice}], @eth, [{alice, 2}, {alice, 3}])
@@ -179,16 +179,16 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
         Enum.join(sigs),
         alice.addr
       )
-      |> Eth.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
 
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+    OMG.Eth.Test.Support.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     # piggyback only to the first transaction's output & wait for finalization
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChainHelper.piggyback_in_flight_exit(in_flight_tx2_rawbytes, 4, alice.addr)
-      |> Eth.DevHelpers.transact_sync!()
+      |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
 
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+    OMG.Eth.Test.Support.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     # check that deposit & 1st, piggybacked output are spent, 2nd output is not
     deposit_double_spend =

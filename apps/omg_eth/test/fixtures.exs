@@ -22,7 +22,7 @@ defmodule OMG.Eth.Fixtures do
   alias OMG.Eth.Encoding
 
   deffixture eth_node do
-    {:ok, exit_fn} = Eth.DevNode.start()
+    {:ok, exit_fn} = OMG.Eth.Test.Support.DevNode.start()
     on_exit(exit_fn)
     # NOTE: The request_body will send an incrementing request "id" in each body.
     #
@@ -38,7 +38,7 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    contract = Eth.DevHelpers.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
+    contract = OMG.Eth.Test.Support.DevHelpers.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
     :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
     contract
   end
@@ -53,7 +53,7 @@ defmodule OMG.Eth.Fixtures do
 
     # ensuring that the root chain contract handles token_addr
     {:ok, false} = Eth.RootChainHelper.has_token(token_addr)
-    {:ok, _} = token_addr |> Eth.RootChainHelper.add_token() |> Eth.DevHelpers.transact_sync!()
+    {:ok, _} = token_addr |> Eth.RootChainHelper.add_token() |> OMG.Eth.Test.Support.DevHelpers.transact_sync!()
     {:ok, true} = Eth.RootChainHelper.has_token(token_addr)
     :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
     token_addr

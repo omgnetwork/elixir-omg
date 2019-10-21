@@ -14,7 +14,7 @@
 
 defmodule OMG.Eth.RootChainTest do
   alias OMG.Eth
-  alias OMG.Eth.DevHelpers
+  alias OMG.Eth.Test.Support.DevHelpers
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
   alias OMG.Eth.RootChainHelper

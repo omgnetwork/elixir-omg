@@ -23,7 +23,7 @@ defmodule OMG.EthTest do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.DevHelpers
+  alias OMG.Eth.Test.Support.DevHelpers
   alias OMG.Eth.Encoding
 
   use ExUnit.Case, async: false

@@ -54,7 +54,7 @@ defmodule OMG.PerformanceTest do
   } do
     ntxs = 3000
     senders = [alice, bob]
-    Enum.each(senders, &Eth.DevHelpers.import_unlock_fund/1)
+    Enum.each(senders, &OMG.Eth.Test.Support.DevHelpers.import_unlock_fund/1)
 
     assert :ok = OMG.Performance.start_extended_perftest(ntxs, senders, contract.contract_addr, %{destdir: destdir})
 

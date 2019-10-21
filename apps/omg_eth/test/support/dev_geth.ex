@@ -64,7 +64,7 @@ defmodule OMG.Eth.DevGeth do
       if Application.get_env(:omg_eth, :node_logging_in_debug) do
         %Task{} =
           fn ->
-            geth_out |> Enum.each(&OMG.Eth.DevNode.default_logger/1)
+            geth_out |> Enum.each(&OMG.Eth.Test.Support.DevNode.default_logger/1)
           end
           |> Task.async()
       end
@@ -73,6 +73,6 @@ defmodule OMG.Eth.DevGeth do
   end
 
   defp wait_for_geth_start(geth_out) do
-    OMG.Eth.DevNode.wait_for_start(geth_out, "IPC endpoint opened", 15_000)
+    OMG.Eth.Test.Support.DevNode.wait_for_start(geth_out, "IPC endpoint opened", 15_000)
   end
 end

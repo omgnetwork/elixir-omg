@@ -23,7 +23,7 @@ alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Eth.RootChain.eth_pseudo_address()
 
-{:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
+{:ok, alice_enc} = OMG.Eth.Test.Support.DevHelpers.import_unlock_fund(alice)
 
 child_chain_url = "localhost:9656"
 watcher_url = "localhost:7434"

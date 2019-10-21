@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.DevHelpers do
+defmodule OMG.Eth.Test.Support.DevHelpers do
   @moduledoc """
   Helpers used when setting up development environment and test fixtures, related to contracts and ethereum.
   Run against `geth --dev` and similar.

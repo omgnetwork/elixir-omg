@@ -125,7 +125,7 @@ defmodule OMG.Eth.Deployer do
     {types, args} = Enum.unzip(types_args)
 
     do_deploy_contract(from, bytecode, types, args, opts)
-    |> Eth.DevHelpers.deploy_sync!()
+    |> OMG.Eth.Test.Support.DevHelpers.deploy_sync!()
   end
 
   defp get_bytecode!(path_project_root, contract_name) do

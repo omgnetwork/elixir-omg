@@ -96,7 +96,7 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
 
   defp generate_user(opts) do
     user = OMG.TestHelper.generate_entity()
-    {:ok, _user} = Eth.DevHelpers.import_unlock_fund(user, opts)
+    {:ok, _user} = OMG.Eth.Test.Support.DevHelpers.import_unlock_fund(user, opts)
     user
   end
 

@@ -34,7 +34,7 @@ defmodule OMG.DependencyConformance.SignatureTest do
   @token TestHelper.generate_entity().addr
 
   setup_all do
-    {:ok, exit_fn} = Eth.DevNode.start()
+    {:ok, exit_fn} = OMG.Eth.Test.Support.DevNode.start()
 
     root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
