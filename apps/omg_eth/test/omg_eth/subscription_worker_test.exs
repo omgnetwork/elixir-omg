@@ -15,6 +15,8 @@
 defmodule OMG.Eth.SubscriptionWorkerTest do
   @moduledoc false
   alias OMG.Eth.SubscriptionWorker
+  alias __MODULE__.WebSockexMockTestSocket
+  alias __MODULE__.WebSockexServerMock
 
   use ExUnit.Case, async: false
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
@@ -23,30 +25,121 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
   @moduletag :common
 
   setup do
+    _ = Agent.start_link(fn -> 55_555 end, name: :port_holder)
+    {:ok, {server_ref, websocket_url}} = WebSockexServerMock.start()
     _ = Application.ensure_all_started(:omg_bus)
-    vcr_path = Path.join(__DIR__, "../fixtures/vcr_cassettes")
-    ExVCR.Config.cassette_library_dir(vcr_path)
+    _ = Application.put_env(:omg_eth, :ws_url, websocket_url)
+
+    on_exit(fn ->
+      _ = WebSockexServerMock.shutdown(server_ref)
+    end)
+
     :ok
   end
 
   test "that worker can subscribe to different events and receive events" do
-    use_cassette "ganache/subscription_worker" do
-      listen_to = ["newHeads", "newPendingTransactions"]
+    listen_to = ["newHeads", "newPendingTransactions"]
 
-      Enum.each(
-        listen_to,
-        fn listen ->
-          params = [listen_to: listen, ws_url: Application.get_env(:omg_eth, :ws_url)]
-          _ = SubscriptionWorker.start_link([{:event_bus, OMG.Bus} | params])
-          :ok = OMG.Bus.subscribe(listen, link: true)
-          event = String.to_atom(listen)
+    Enum.each(
+      listen_to,
+      fn listen ->
+        params = [listen_to: listen, ws_url: Application.get_env(:omg_eth, :ws_url)]
+        _ = SubscriptionWorker.start_link([{:event_bus, OMG.Bus} | params])
+        :ok = OMG.Bus.subscribe(listen, link: true)
+        event = String.to_atom(listen)
 
-          receive do
-            {:internal_event_bus, ^event, _message} ->
-              assert true
-          end
+        receive do
+          {:internal_event_bus, ^event, _message} ->
+            assert true
         end
-      )
+      end
+    )
+  end
+
+  # TODO achiurizo
+  #
+  # break this out into a shared module? 
+  # hack exvcr to read from Websocketex?
+  defmodule WebSockexServerMock do
+    use Plug.Router
+
+    plug(:match)
+    plug(:dispatch)
+
+    match _ do
+      send_resp(conn, 200, "Hello from plug")
     end
+
+    def start() do
+      ref = make_ref()
+      port = Agent.get_and_update(:port_holder, fn state -> {state, state + 1} end)
+      websocket_url = start_server(port, ref)
+      {:ok, {ref, websocket_url}}
+    end
+
+    def restart("ws://localhost:" <> <<port::bytes-size(5)>> <> "/ws" = websocket_url) do
+      ref = make_ref()
+      opts = [dispatch: dispatch(), port: String.to_integer(port), ref: ref]
+      :ok = wait_until_restart(opts, 100)
+      {:ok, {ref, websocket_url}}
+    end
+
+    def shutdown(ref) do
+      Plug.Adapters.Cowboy.shutdown(ref)
+    end
+
+    defp dispatch do
+      [{:_, [{"/ws", WebSockexMockTestSocket, []}]}]
+    end
+
+    defp start_server(port, ref) do
+      opts = [dispatch: dispatch(), port: port, ref: ref]
+
+      case Plug.Adapters.Cowboy.http(__MODULE__, [], opts) do
+        {:error, :eaddrinuse} ->
+          start_server(Agent.get_and_update(:port_holder, fn state -> {state, state + 1} end), ref)
+
+        {:ok, _} ->
+          "ws://localhost:#{port}/ws"
+      end
+    end
+
+    defp wait_until_restart(opts, 0), do: Plug.Adapters.Cowboy.http(__MODULE__, [], opts)
+
+    defp wait_until_restart(opts, index) do
+      case Plug.Adapters.Cowboy.http(__MODULE__, [], opts) do
+        {:ok, _} ->
+          :ok
+
+        {:error, :eaddrinuse} ->
+          Process.sleep(10)
+          wait_until_restart(opts, index - 1)
+      end
+    end
+  end
+
+  defmodule WebSockexMockTestSocket do
+    @behaviour :cowboy_websocket_handler
+
+    def init(_, _req, _) do
+      {:upgrade, :protocol, :cowboy_websocket}
+    end
+
+    def terminate(_, _, _), do: :ok
+
+    def websocket_init(_, req, _) do
+      {:ok, req, %{}}
+    end
+
+    def websocket_terminate(_, _, _) do
+      :ok
+    end
+
+    def websocket_handle({:text, _body}, req, state) do
+      response = Jason.encode!(%{"params" => %{"result" => %{"number" => "0x77be11", "hash" => "0x1234"}}})
+      {:reply, {:text, response}, req, state}
+    end
+
+    def websocket_info(_, req, state), do: {:ok, req, state}
   end
 end
