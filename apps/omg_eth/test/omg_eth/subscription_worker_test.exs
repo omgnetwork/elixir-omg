@@ -32,6 +32,7 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
 
     on_exit(fn ->
       _ = WebSockexServerMock.shutdown(server_ref)
+      _ = Process.sleep(10)
     end)
 
     :ok
