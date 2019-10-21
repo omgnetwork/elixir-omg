@@ -19,7 +19,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   use OMG.ChildChain.Integration.Fixtures
   use Plug.Test
 
-  alias OMG.Eth
+  alias OMG.Eth.RootChain
+  alias OMG.Eth.RootChainHelper
   alias OMG.Eth.Test.Support.DevHelper
   alias OMG.State.Transaction
   alias OMG.Watcher.Event
@@ -29,7 +30,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   alias OMG.Test.Support.Integration.DepositHelper
 
   @timeout 40_000
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth RootChain.eth_pseudo_address()
 
   @moduletag :integration
   @moduletag :watcher
@@ -74,26 +75,26 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     {:ok, %{"status" => "0x1"}} = exit_in_flight(tx_submit1, alice)
 
     txbytes1 = Transaction.raw_txbytes(tx_submit1)
-    {:ok, ife_id} = OMG.Eth.RootChain.get_in_flight_exit_id(txbytes1)
+    {:ok, ife_id} = RootChain.get_in_flight_exit_id(txbytes1)
     # sanity check
-    {:ok, {_, _, 0, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
+    {:ok, {_, _, 0, _, _}} = RootChain.get_in_flight_exit(ife_id)
 
     # PB 1
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.piggyback_in_flight_exit(Transaction.raw_txbytes(tx_submit1), 5, bob.addr)
+      RootChainHelper.piggyback_in_flight_exit(Transaction.raw_txbytes(tx_submit1), 5, bob.addr)
       |> DevHelper.transact_sync!()
 
     # PB 2
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.piggyback_in_flight_exit(Transaction.raw_txbytes(tx_submit1), 1, bob.addr)
+      RootChainHelper.piggyback_in_flight_exit(Transaction.raw_txbytes(tx_submit1), 1, bob.addr)
       |> DevHelper.transact_sync!()
 
     # sanity check
-    {:ok, {_, _, exitmap, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
+    {:ok, {_, _, exitmap, _, _}} = RootChain.get_in_flight_exit(ife_id)
     assert exitmap != 0
     # IFE tx 3
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.in_flight_exit(
+      RootChainHelper.in_flight_exit(
         in_flight_tx["in_flight_tx"],
         in_flight_tx["input_txs"],
         in_flight_tx["input_txs_inclusion_proofs"],
@@ -122,7 +123,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert %{"in_flight_txbytes" => ^txbytes_raw1} = proof1 = TestHelper.get_input_challenge_data(txbytes_raw1, 1)
     # challenge piggybacks
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.challenge_in_flight_exit_input_spent(
+      RootChainHelper.challenge_in_flight_exit_input_spent(
         proof1["in_flight_txbytes"],
         proof1["in_flight_input_index"],
         proof1["spending_txbytes"],
@@ -133,7 +134,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> DevHelper.transact_sync!()
 
     # sanity check
-    {:ok, {_, _, exitmap1, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
+    {:ok, {_, _, exitmap1, _, _}} = RootChain.get_in_flight_exit(ife_id)
     assert exitmap1 != exitmap
     assert exitmap1 != 0
 
@@ -147,7 +148,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
            } = TestHelper.get_output_challenge_data(txbytes_raw1, 1)
 
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.challenge_in_flight_exit_output_spent(
+      RootChainHelper.challenge_in_flight_exit_output_spent(
         txbytes_raw1,
         in_flight_output_pos,
         in_flight_proof,
@@ -159,7 +160,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> DevHelper.transact_sync!()
 
     # observe the result - piggybacks are gone
-    assert {:ok, {_, _, 0, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
+    assert {:ok, {_, _, 0, _, _}} = RootChain.get_in_flight_exit(ife_id)
   end
 
   @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
@@ -186,7 +187,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
     {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
     # sanity check in-flight exit has started on root chain, wait for finality
-    assert {:ok, [_, _]} = OMG.Eth.RootChain.get_in_flight_exit_starts(0, ife_eth_height)
+    assert {:ok, [_, _]} = RootChain.get_in_flight_exit_starts(0, ife_eth_height)
 
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     DevHelper.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
@@ -219,7 +220,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert proof != ""
 
     {:ok, %{"status" => "0x1", "blockNumber" => challenge_eth_height}} =
-      OMG.Eth.RootChainHelper.challenge_in_flight_exit_not_canonical(
+      RootChainHelper.challenge_in_flight_exit_not_canonical(
         get_competitor_response["in_flight_txbytes"],
         get_competitor_response["in_flight_input_index"],
         get_competitor_response["competing_txbytes"],
@@ -262,7 +263,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
     {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
     # sanity check in-flight exit has started on root chain, wait for finality
-    assert {:ok, [_, _]} = OMG.Eth.RootChain.get_in_flight_exit_starts(0, ife_eth_height)
+    assert {:ok, [_, _]} = RootChain.get_in_flight_exit_starts(0, ife_eth_height)
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     DevHelper.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
 
@@ -278,7 +279,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     %{sigs: [competing_sig | _]} = tx2
 
     {:ok, %{"status" => "0x1", "blockNumber" => challenge_eth_height}} =
-      OMG.Eth.RootChainHelper.challenge_in_flight_exit_not_canonical(
+      RootChainHelper.challenge_in_flight_exit_not_canonical(
         raw_tx1_bytes,
         0,
         raw_tx2_bytes,
@@ -306,7 +307,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     get_prove_canonical_response = TestHelper.get_prove_canonical(raw_tx1_bytes)
 
     {:ok, %{"status" => "0x1", "blockNumber" => response_eth_height}} =
-      OMG.Eth.RootChainHelper.respond_to_non_canonical_challenge(
+      RootChainHelper.respond_to_non_canonical_challenge(
         get_prove_canonical_response["in_flight_txbytes"],
         get_prove_canonical_response["in_flight_tx_pos"],
         get_prove_canonical_response["in_flight_proof"],
@@ -360,7 +361,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   end
 
   defp exit_in_flight(get_in_flight_exit_response, exiting_user) do
-    OMG.Eth.RootChainHelper.in_flight_exit(
+    RootChainHelper.in_flight_exit(
       get_in_flight_exit_response["in_flight_tx"],
       get_in_flight_exit_response["input_txs"],
       get_in_flight_exit_response["input_txs_inclusion_proofs"],
@@ -380,7 +381,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     raw_tx_bytes = raw_tx |> Transaction.raw_txbytes()
 
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.piggyback_in_flight_exit(raw_tx_bytes, output, output_owner.addr)
+      RootChainHelper.piggyback_in_flight_exit(raw_tx_bytes, output, output_owner.addr)
       |> DevHelper.transact_sync!()
 
     :ok = IntegrationTest.process_exits(@eth, output_owner)

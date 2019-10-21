@@ -14,10 +14,10 @@
 
 defmodule OMG.Eth.RootChainTest do
   alias OMG.Eth
-  alias OMG.Eth.Test.Support.DevHelper
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
   alias OMG.Eth.RootChainHelper
+  alias OMG.Eth.Test.Support.DevHelper
 
   use ExUnit.Case, async: false
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney

@@ -18,7 +18,6 @@ defmodule OMG.Eth.WaitFor do
   """
 
   alias OMG.Eth.Encoding
-  alias OMG.Eth.Test.Support.DevHelper
 
   def eth_rpc do
     f = fn ->

@@ -18,11 +18,15 @@ defmodule OMG.Eth.Fixtures do
   """
   use ExUnitFixtures.FixtureModule
 
-  alias OMG.Eth
+  alias OMG.Eth.Deployer
   alias OMG.Eth.Encoding
+  alias OMG.Eth.RootChain
+  alias OMG.Eth.RootChainHelper
+  alias OMG.Eth.Test.Support.DevHelper
+  alias OMG.Eth.Test.Support.DevNode
 
   deffixture eth_node do
-    {:ok, exit_fn} = OMG.Eth.Test.Support.DevNode.start()
+    {:ok, exit_fn} = DevNode.start()
     on_exit(exit_fn)
     # NOTE: The request_body will send an incrementing request "id" in each body.
     #
@@ -38,7 +42,7 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    contract = OMG.Eth.Test.Support.DevHelper.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
+    contract = DevHelper.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
     :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
     contract
   end
@@ -49,18 +53,18 @@ defmodule OMG.Eth.Fixtures do
     root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
-    {:ok, _, token_addr} = Eth.Deployer.create_new("ERC20Mintable", root_path, Encoding.from_hex(addr), [])
+    {:ok, _, token_addr} = Deployer.create_new("ERC20Mintable", root_path, Encoding.from_hex(addr), [])
 
     # ensuring that the root chain contract handles token_addr
-    {:ok, false} = Eth.RootChainHelper.has_token(token_addr)
-    {:ok, _} = token_addr |> Eth.RootChainHelper.add_token() |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
-    {:ok, true} = Eth.RootChainHelper.has_token(token_addr)
+    {:ok, false} = RootChainHelper.has_token(token_addr)
+    {:ok, _} = token_addr |> RootChainHelper.add_token() |> DevHelper.transact_sync!()
+    {:ok, true} = RootChainHelper.has_token(token_addr)
     :ets.insert(:rpc_requests_counter, {:rpc_counter, 0})
     token_addr
   end
 
   deffixture root_chain_contract_config(contract) do
-    contract_addr = Eth.RootChain.contract_map_to_hex(contract.contract_addr)
+    contract_addr = RootChain.contract_map_to_hex(contract.contract_addr)
     Application.put_env(:omg_eth, :contract_addr, contract_addr, persistent: true)
     Application.put_env(:omg_eth, :authority_addr, Encoding.to_hex(contract.authority_addr), persistent: true)
     Application.put_env(:omg_eth, :txhash_contract, Encoding.to_hex(contract.txhash_contract), persistent: true)
