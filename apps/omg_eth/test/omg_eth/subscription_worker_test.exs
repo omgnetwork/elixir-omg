@@ -28,11 +28,12 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
     _ = Agent.start_link(fn -> 55_555 end, name: :port_holder)
     {:ok, {server_ref, websocket_url}} = WebSockexServerMock.start()
     _ = Application.ensure_all_started(:omg_bus)
+    ws_url = Application.get_env(:omg_eth, :ws_url)
     _ = Application.put_env(:omg_eth, :ws_url, websocket_url)
 
     on_exit(fn ->
       _ = WebSockexServerMock.shutdown(server_ref)
-      _ = Process.sleep(10)
+      _ = Application.put_env(:omg_eth, :ws_url, ws_url)
     end)
 
     :ok
