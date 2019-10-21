@@ -24,7 +24,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias OMG.Block
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
-  alias OMG.Integration.DepositHelper
+  alias OMG.Test.Support.Integration.DepositHelper
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo

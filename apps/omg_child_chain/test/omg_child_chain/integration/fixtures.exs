@@ -21,7 +21,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
   alias OMG.Eth
   alias OMG.TestHelper
 
-  import OMG.Integration.DepositHelper
+  import OMG.Test.Support.Integration.DepositHelper
 
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)

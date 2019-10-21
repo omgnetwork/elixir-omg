@@ -14,7 +14,7 @@ Run a developer's Child chain server, Watcher, and start IEx REPL with code and 
 alias OMG.Eth
 alias OMG.Crypto
 alias OMG.DevCrypto
-alias OMG.Integration.DepositHelper
+alias OMG.Test.Support.Integration.DepositHelper
 alias OMG.State.Transaction
 alias OMG.TestHelper
 alias OMG.Eth.Encoding
