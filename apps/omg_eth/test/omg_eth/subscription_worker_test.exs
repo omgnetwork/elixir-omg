@@ -14,9 +14,9 @@
 
 defmodule OMG.Eth.SubscriptionWorkerTest do
   @moduledoc false
-  alias OMG.Eth.SubscriptionWorker
   alias __MODULE__.WebSockexMockTestSocket
   alias __MODULE__.WebSockexServerMock
+  alias OMG.Eth.SubscriptionWorker
 
   use ExUnit.Case, async: false
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
