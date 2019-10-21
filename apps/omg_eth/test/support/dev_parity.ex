@@ -24,6 +24,7 @@ defmodule OMG.Eth.Test.Support.DevParity do
   require Logger
 
   alias OMG.Eth
+  alias OMG.Eth.Test.Support.DevMiningHelper
 
   def start do
     {:ok, _} = Application.ensure_all_started(:briefly)
@@ -39,7 +40,7 @@ defmodule OMG.Eth.Test.Support.DevParity do
       )
 
     {:ok, :ready} = Eth.WaitFor.eth_rpc()
-    {:ok, dev_period} = OMG.Eth.Test.Support.DevMiningHelper.start()
+    {:ok, dev_period} = DevMiningHelper.start()
 
     on_exit = fn ->
       Process.exit(dev_period, :kill)

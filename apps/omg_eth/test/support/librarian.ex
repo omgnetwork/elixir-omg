@@ -19,6 +19,7 @@ defmodule OMG.Eth.Librarian do
 
   alias OMG.Eth
   alias OMG.Eth.Encoding
+  alias OMG.Eth.Test.Support.DevHelper
   alias OMG.Eth.Transaction
 
   @tx_defaults Eth.Defaults.tx_defaults()
@@ -60,7 +61,7 @@ defmodule OMG.Eth.Librarian do
     names
     |> Enum.map(&get_bytecode!(path_project_root, &1))
     |> Enum.map(&deploy(&1, from, gas))
-    |> Enum.map(&OMG.Eth.Test.Support.DevHelper.deploy_sync!/1)
+    |> Enum.map(&DevHelper.deploy_sync!/1)
     |> Enum.map(fn {:ok, _txhash, lib} -> lib end)
   end
 

@@ -22,6 +22,7 @@ defmodule OMG.RootChainCoordinatorTest do
   use OMG.DB.Fixtures
   use OMG.Eth.Fixtures
 
+  alias OMG.Eth.Test.Support.DevHelper
   alias OMG.Test.Support.Integration.DepositHelper
 
   @moduletag :integration
@@ -62,7 +63,7 @@ defmodule OMG.RootChainCoordinatorTest do
         strategy: :one_for_one
       )
 
-    {:ok, _} = OMG.Eth.Test.Support.DevHelper.import_unlock_fund(alice)
+    {:ok, _} = DevHelper.import_unlock_fund(alice)
     assert 1 = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
     assert_receive([%{amount: 10}])

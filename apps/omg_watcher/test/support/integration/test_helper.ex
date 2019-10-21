@@ -18,6 +18,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   """
 
   alias OMG.Eth
+  alias OMG.Eth.Test.Support.DevHelper
   alias OMG.State
   alias OMG.Utxo
 
@@ -68,7 +69,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   """
   def wait_for_exit_processing(exit_eth_height, timeout \\ 5_000) do
     exit_finality = Application.fetch_env!(:omg_watcher, :exit_finality_margin) + 1
-    OMG.Eth.Test.Support.DevHelper.wait_for_root_chain_block(exit_eth_height + exit_finality, timeout)
+    DevHelper.wait_for_root_chain_block(exit_eth_height + exit_finality, timeout)
     # wait some more to ensure exit is processed
     Process.sleep(Application.fetch_env!(:omg, :ethereum_events_check_interval_ms) * 2)
   end
@@ -79,7 +80,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
     Process.sleep(2 * exit_period_ms)
 
     {:ok, %{"status" => "0x1", "blockNumber" => process_eth_height, "logs" => logs}} =
-      OMG.Eth.RootChainHelper.process_exits(token, 0, 1, user.addr) |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
+      OMG.Eth.RootChainHelper.process_exits(token, 0, 1, user.addr) |> DevHelper.transact_sync!()
 
     # status 0x1 doesn't yet mean much. To smoke test the success of the processing (exits actually processed) we
     # take a look at the logs. Single entry means no logs were processed (it is the `ProcessedExitsNum`, that always
@@ -88,7 +89,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
 
     # to have the new event fully acknowledged by the services, wait the finality margin
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
-    OMG.Eth.Test.Support.DevHelper.wait_for_root_chain_block(process_eth_height + exit_finality_margin + 1)
+    DevHelper.wait_for_root_chain_block(process_eth_height + exit_finality_margin + 1)
     # just a little more to ensure events are recognized by services
     check_interval_ms = Application.fetch_env!(:omg, :ethereum_events_check_interval_ms)
     Process.sleep(3 * check_interval_ms)

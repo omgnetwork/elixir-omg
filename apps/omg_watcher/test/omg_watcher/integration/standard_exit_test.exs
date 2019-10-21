@@ -21,6 +21,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   use Phoenix.ChannelTest
 
   alias OMG.Eth
+  alias OMG.Eth.Test.Support.DevHelper
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
   alias OMG.Watcher.Event
@@ -68,7 +69,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
         proof,
         alice.addr
       )
-      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
+      |> DevHelper.transact_sync!()
 
     :ok = IntegrationTest.process_exits(@eth, alice)
 

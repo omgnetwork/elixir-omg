@@ -27,6 +27,7 @@ defmodule OMG.Watcher.Fixtures do
   alias FakeServer.Agents.EnvAgent
   alias FakeServer.HTTP.Server
   alias OMG.Crypto
+  alias OMG.Eth.Test.Support.DevHelper
   alias OMG.Watcher
   alias OMG.Watcher.DB
   alias Watcher.TestHelper
@@ -40,7 +41,7 @@ defmodule OMG.Watcher.Fixtures do
     config_file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-      #{OMG.Eth.Test.Support.DevHelper.create_conf_file(contract)}
+      #{DevHelper.create_conf_file(contract)}
 
       config :omg_db, path: "#{db_path}"
       # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level

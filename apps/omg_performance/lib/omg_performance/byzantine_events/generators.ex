@@ -20,6 +20,7 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
 
   alias OMG.Eth
   alias OMG.Eth.RootChain
+  alias OMG.Eth.Test.Support.DevHelper
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
@@ -96,7 +97,7 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
 
   defp generate_user(opts) do
     user = OMG.TestHelper.generate_entity()
-    {:ok, _user} = OMG.Eth.Test.Support.DevHelper.import_unlock_fund(user, opts)
+    {:ok, _user} = DevHelper.import_unlock_fund(user, opts)
     user
   end
 
