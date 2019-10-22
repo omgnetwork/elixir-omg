@@ -34,7 +34,7 @@ defmodule OMG.Eth.MixProject do
   defp deps do
     [
       {:ex_abi, "~> 0.2.1"},
-      {:ethereumex, "~> 0.5.4"},
+      {:ethereumex, "~> 0.5.5"},
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
