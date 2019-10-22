@@ -24,14 +24,6 @@ defmodule OMG.Eth.Fixtures do
   deffixture eth_node do
     {:ok, exit_fn} = Eth.DevNode.start()
     on_exit(exit_fn)
-    # NOTE: The request_body will send an incrementing request "id" in each body.
-    #
-    # see: https://github.com/mana-ethereum/ethereumex/blob/649075208d2af663b9aac262b153021e960c4df8/lib/ethereumex/client/base_client.ex#L503
-    #
-    # The problem is the fixtures would send a first request out(this request). When you remove the fixtures,
-    # Ethereumex thinks we are sending the first request, missing the matching cassettes by request_body.
-    # So, we reset the counter so the cassettes can reply correctly without the fixtures:
-
     :ok
   end
 

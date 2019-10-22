@@ -36,11 +36,6 @@ defmodule OMG.EthTest do
     vcr_path = Path.join(__DIR__, "../fixtures/vcr_cassettes")
     ExVCR.Config.cassette_library_dir(vcr_path)
 
-    # NOTE achiurizo
-    #
-    # this is a hack to ensure we reset the counter to 0 despite
-    # the fixtures now resetting the counter.
-
     contract = %{
       # NOTE: achiurizo
       # this has changed with ALD(see plasma-contrats deploy of plasma_framework)
