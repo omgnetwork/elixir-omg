@@ -19,7 +19,7 @@ alias OMG.Eth
 alias OMG.DevCrypto
 alias OMG.State.Transaction
 alias OMG.TestHelper
-alias OMG.Test.Support.Integration.DepositHelper
+alias Support.Integration.DepositHelper
 alias OMG.Eth.Encoding
 
 alice = TestHelper.generate_entity()

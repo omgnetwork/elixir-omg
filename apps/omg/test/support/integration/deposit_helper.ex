@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Test.Support.Integration.DepositHelper do
+defmodule Support.Integration.DepositHelper do
   @moduledoc """
   Common helper functions that are useful when integration-testing the child chain and watcher requiring deposits
   """

@@ -22,7 +22,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
   alias OMG.TestHelper
   alias Support.DevHelper
 
-  import OMG.Test.Support.Integration.DepositHelper
+  import Support.Integration.DepositHelper
 
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)
