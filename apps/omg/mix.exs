@@ -26,7 +26,6 @@ defmodule OMG.MixProject do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:prod), do: ["lib"]
-  defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(_), do: ["lib", "test/support"]
 
   defp deps do

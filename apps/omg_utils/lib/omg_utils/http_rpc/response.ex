@@ -109,18 +109,7 @@ defmodule OMG.Utils.HttpRPC.Response do
   # not the most beatuful way of doing this but
   # because our "response serializer" is in utils there's no other way
   defp add_version(response) do
-    vsn =
-      case :code.is_loaded(OMG.ChildChainRPC) do
-        {:file, _} ->
-          {:ok, vsn} = :application.get_key(:omg_child_chain_rpc, :vsn)
-
-          vsn
-
-        _ ->
-          {:ok, vsn} = :application.get_key(:omg_watcher_rpc, :vsn)
-
-          vsn
-      end
+    vsn = []
 
     Map.merge(response, %{version: List.to_string(vsn) <> "+" <> @sha})
   end
