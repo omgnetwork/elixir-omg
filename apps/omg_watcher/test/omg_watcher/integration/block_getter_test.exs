@@ -27,11 +27,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use Phoenix.ChannelTest
 
   alias OMG.Eth
-  alias Support.DevHelper
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher
   alias OMG.WatcherRPC.Web.Channel
+  alias Support.DevHelper
   alias Watcher.Event
   alias Watcher.Integration.TestHelper, as: IntegrationTest
   alias Watcher.TestHelper

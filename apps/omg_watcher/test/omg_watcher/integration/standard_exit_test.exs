@@ -21,12 +21,12 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   use Phoenix.ChannelTest
 
   alias OMG.Eth
-  alias Support.DevHelper
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
+  alias Support.DevHelper
 
   require Utxo
 

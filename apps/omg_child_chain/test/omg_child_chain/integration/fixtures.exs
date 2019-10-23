@@ -19,8 +19,8 @@ defmodule OMG.ChildChain.Integration.Fixtures do
   use OMG.DB.Fixtures
 
   alias OMG.Eth
-  alias Support.DevHelper
   alias OMG.TestHelper
+  alias Support.DevHelper
 
   import OMG.Test.Support.Integration.DepositHelper
 

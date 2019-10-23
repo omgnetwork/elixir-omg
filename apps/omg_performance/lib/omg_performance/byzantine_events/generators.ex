@@ -20,10 +20,10 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
 
   alias OMG.Eth
   alias OMG.Eth.RootChain
-  alias Support.DevHelper
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
+  alias Support.DevHelper
 
   require Utxo
 

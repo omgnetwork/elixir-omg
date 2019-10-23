@@ -18,9 +18,9 @@ defmodule OMG.Watcher.Integration.TestHelper do
   """
 
   alias OMG.Eth
-  alias Support.DevHelper
   alias OMG.State
   alias OMG.Utxo
+  alias Support.DevHelper
 
   require Utxo
   import OMG.Watcher.TestHelper

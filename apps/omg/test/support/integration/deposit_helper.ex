@@ -19,8 +19,8 @@ defmodule OMG.Test.Support.Integration.DepositHelper do
 
   alias OMG.Eth
   alias OMG.Eth.Config
-  alias Support.DevHelper
   alias OMG.State.Transaction
+  alias Support.DevHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

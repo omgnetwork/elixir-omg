@@ -20,9 +20,9 @@ defmodule OMG.DependencyConformance.SignatureTest do
 
   alias OMG.DevCrypto
   alias OMG.Eth
-  alias Support.DevNode
   alias OMG.State.Transaction
   alias OMG.TestHelper
+  alias Support.DevNode
 
   use ExUnit.Case, async: false
 
