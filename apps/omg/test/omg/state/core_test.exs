@@ -259,11 +259,11 @@ defmodule OMG.State.CoreTest do
   end
 
   test "extract_initial_state function returns error when passed last deposit as :not_found" do
-    assert {:error, :last_deposit_not_found} = Core.extract_initial_state([], 0, :not_found, @interval)
+    assert {:error, :last_deposit_not_found} = Core.extract_initial_state(0, :not_found, @interval)
   end
 
   test "extract_initial_state function returns error when passed top block number as :not_found" do
-    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, 0, @interval)
+    assert {:error, :top_block_number_not_found} = Core.extract_initial_state(:not_found, 0, @interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]

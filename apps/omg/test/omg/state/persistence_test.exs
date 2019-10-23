@@ -164,10 +164,8 @@ defmodule OMG.State.PersistenceTest do
     {:ok, last_deposit_query_result} = OMG.DB.get_single_value(:last_deposit_child_blknum, db_pid)
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
 
-    {:ok, state} =
-      Core.extract_initial_state(utxos_query_result, height_query_result, last_deposit_query_result, @interval)
-
-    state
+    {:ok, state} = Core.extract_initial_state(height_query_result, last_deposit_query_result, @interval)
+    Core.with_utxos(state, utxos_query_result)
   end
 
   defp persist_deposit(state, deposits, db_pid) do
