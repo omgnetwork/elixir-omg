@@ -51,7 +51,8 @@ defmodule OMG.StateTest do
   @tag fixtures: [:alice, :standalone_state_server]
   test "can execute various calls on OMG.State, one happy path only", %{alice: alice} do
     # deposits, transactions, utxo existence
-    assert {:ok, _} = State.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}])
+    assert {:ok, db_updates} = State.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}])
+    :ok = OMG.DB.multi_update(db_updates)
     assert true == State.utxo_exists?(Utxo.position(1, 0, 0))
 
     assert {:ok, _} = State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]), :no_fees_required)
@@ -60,8 +61,10 @@ defmodule OMG.StateTest do
     assert {blknum, _} = State.get_status()
     assert :ok = State.form_block()
     # exits, with invalid ones
-    assert {:ok, _db, _} = State.exit_utxos([Utxo.position(blknum, 0, 0)])
+    assert {:ok, db_updates2, _} = State.exit_utxos([Utxo.position(blknum, 0, 0)])
+    :ok = OMG.DB.multi_update(db_updates2)
     # close block
-    assert {:ok, _db} = State.close_block(123)
+    assert {:ok, db_updates3} = State.close_block(123)
+    :ok = OMG.DB.multi_update(db_updates3)
   end
 end

@@ -39,7 +39,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   setup do
     {:ok, processor_empty} = Core.init([], [], [])
     {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
-    {:ok, state_empty} = State.Core.extract_initial_state([], 0, child_block_interval)
+    {:ok, state_empty} = State.Core.extract_initial_state(0, child_block_interval)
 
     {:ok, %{alice: TestHelper.generate_entity(), processor_empty: processor_empty, state_empty: state_empty}}
   end

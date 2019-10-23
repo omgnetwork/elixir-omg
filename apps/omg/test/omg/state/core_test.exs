@@ -261,7 +261,7 @@ defmodule OMG.State.CoreTest do
   end
 
   test "extract_initial_state function returns error when passed top block number as :not_found" do
-    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, @interval)
+    assert {:error, :top_block_number_not_found} = Core.extract_initial_state(:not_found, @interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]

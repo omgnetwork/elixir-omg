@@ -18,7 +18,7 @@ defmodule OMG.State.Core do
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
 
-  defstruct [:height, :utxos, pending_txs: [], tx_index: 0, utxo_db_updates: []]
+  defstruct [:height, utxos: %{}, pending_txs: [], tx_index: 0, utxo_db_updates: []]
 
   alias OMG.Block
   alias OMG.Crypto
@@ -99,30 +99,24 @@ defmodule OMG.State.Core do
   Recovers the ledger's state from data delivered by the `OMG.DB`
   """
   @spec extract_initial_state(
-          utxos_query_result :: [list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})],
           height_query_result :: non_neg_integer() | :not_found,
           child_block_interval :: pos_integer()
         ) :: {:ok, t()} | {:error, :top_block_number_not_found}
-  def extract_initial_state(utxos_query_result, height_query_result, child_block_interval)
-      when is_list(utxos_query_result) and is_integer(height_query_result) and is_integer(child_block_interval) do
-    # extract height, last deposit height and utxos from query result
-    height = height_query_result + child_block_interval
-
-    state = %__MODULE__{
-      height: height,
-      utxos: UtxoSet.init(utxos_query_result)
-    }
+  def extract_initial_state(height_query_result, child_block_interval)
+      when is_integer(height_query_result) and is_integer(child_block_interval) do
+    state = %__MODULE__{height: height_query_result + child_block_interval}
 
     {:ok, state}
   end
 
-  def extract_initial_state(
-        _utxos_query_result,
-        :not_found,
-        _child_block_interval
-      ) do
+  def extract_initial_state(:not_found, _child_block_interval) do
     {:error, :top_block_number_not_found}
   end
+
+  @spec with_utxos(t(), list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})) :: t()
+  # FIXME: the merge should probably be done by UtxoSet
+  def with_utxos(%Core{utxos: utxos} = state, utxos_query_result),
+    do: %{state | utxos: Map.merge(utxos, UtxoSet.init(utxos_query_result))}
 
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
