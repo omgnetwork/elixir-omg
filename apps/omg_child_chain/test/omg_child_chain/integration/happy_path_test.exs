@@ -25,10 +25,10 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
   alias OMG.State.Transaction
-  alias Support.Integration.DepositHelper
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias Support.DevHelper
+  alias Support.Integration.DepositHelper
   require OMG.Utxo
 
   @moduletag :integration

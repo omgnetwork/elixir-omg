@@ -61,9 +61,9 @@ defmodule OMG.Performance do
 
   alias OMG.Crypto
   alias OMG.Performance.ByzantineEvents
-  alias Support.Integration.DepositHelper
   alias OMG.TestHelper
   alias OMG.Utxo
+  alias Support.Integration.DepositHelper
 
   require Utxo
 
