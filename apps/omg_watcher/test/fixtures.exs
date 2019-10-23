@@ -27,7 +27,7 @@ defmodule OMG.Watcher.Fixtures do
   alias FakeServer.Agents.EnvAgent
   alias FakeServer.HTTP.Server
   alias OMG.Crypto
-  alias OMG.Eth.Test.Support.DevHelper
+  alias Support.DevHelper
   alias OMG.Watcher
   alias OMG.Watcher.DB
   alias Watcher.TestHelper

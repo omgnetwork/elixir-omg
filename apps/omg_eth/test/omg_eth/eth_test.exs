@@ -24,7 +24,7 @@ defmodule OMG.EthTest do
 
   alias OMG.Eth
   alias OMG.Eth.Encoding
-  alias OMG.Eth.Test.Support.DevHelper
+  alias Support.DevHelper
 
   use ExUnit.Case, async: false
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Test.Support.DevMiningHelper do
+defmodule Support.DevMiningHelper do
   @moduledoc """
   Sends small tx every second, causing Ethereum node in `--dev` mode to create new blocks.
   Basically helps to simulate behavior of `geth --dev --dev.period 1`. Useful with parity.
@@ -21,7 +21,7 @@ defmodule OMG.Eth.Test.Support.DevMiningHelper do
   alias OMG.Crypto
   alias OMG.DevCrypto
   alias OMG.Eth.Encoding
-  alias OMG.Eth.Test.Support.DevHelper
+  alias Support.DevHelper
 
   @devperiod_ms 1000
 

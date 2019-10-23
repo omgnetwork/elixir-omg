@@ -21,7 +21,7 @@ defmodule OMG.PerformanceTest do
 
   use OMG.Utils.LoggerExt
 
-  alias OMG.Eth.Test.Support.DevHelper
+  alias Support.DevHelper
 
   @moduletag :integration
   @moduletag :common

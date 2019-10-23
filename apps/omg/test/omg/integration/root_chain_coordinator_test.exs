@@ -22,7 +22,7 @@ defmodule OMG.RootChainCoordinatorTest do
   use OMG.DB.Fixtures
   use OMG.Eth.Fixtures
 
-  alias OMG.Eth.Test.Support.DevHelper
+  alias Support.DevHelper
   alias OMG.Test.Support.Integration.DepositHelper
 
   @moduletag :integration

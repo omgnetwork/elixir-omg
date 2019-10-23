@@ -20,7 +20,7 @@ defmodule OMG.DependencyConformance.SignatureTest do
 
   alias OMG.DevCrypto
   alias OMG.Eth
-  alias OMG.Eth.Test.Support.DevNode
+  alias Support.DevNode
   alias OMG.State.Transaction
   alias OMG.TestHelper
 

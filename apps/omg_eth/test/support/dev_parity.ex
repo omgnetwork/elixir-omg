@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Test.Support.DevParity do
+defmodule Support.DevParity do
   @moduledoc """
   Helper module for deployment of contracts to dev parity.
   """
@@ -24,7 +24,7 @@ defmodule OMG.Eth.Test.Support.DevParity do
   require Logger
 
   alias OMG.Eth
-  alias OMG.Eth.Test.Support.DevMiningHelper
+  alias Support.DevMiningHelper
 
   def start do
     {:ok, _} = Application.ensure_all_started(:briefly)
@@ -71,7 +71,7 @@ defmodule OMG.Eth.Test.Support.DevParity do
       if Application.get_env(:omg_eth, :node_logging_in_debug) do
         %Task{} =
           fn ->
-            parity_out |> Enum.each(&OMG.Eth.Test.Support.DevNode.default_logger/1)
+            parity_out |> Enum.each(&Support.DevNode.default_logger/1)
           end
           |> Task.async()
       end
@@ -80,6 +80,6 @@ defmodule OMG.Eth.Test.Support.DevParity do
   end
 
   defp wait_for_parity_start(parity_out) do
-    OMG.Eth.Test.Support.DevNode.wait_for_start(parity_out, "Public node URL", 15_000)
+    Support.DevNode.wait_for_start(parity_out, "Public node URL", 15_000)
   end
 end

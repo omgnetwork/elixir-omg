@@ -19,7 +19,7 @@ defmodule OMG.Eth.Librarian do
 
   alias OMG.Eth
   alias OMG.Eth.Encoding
-  alias OMG.Eth.Test.Support.DevHelper
+  alias Support.DevHelper
   alias OMG.Eth.Transaction
 
   @tx_defaults Eth.Defaults.tx_defaults()

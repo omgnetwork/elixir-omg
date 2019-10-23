@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Test.Support.DevNode do
+defmodule Support.DevNode do
   @moduledoc """
   Common library for running geth and parity in dev mode.
   """
@@ -27,7 +27,7 @@ defmodule OMG.Eth.Test.Support.DevNode do
   end
 
   defp start(:parity) do
-    OMG.Eth.Test.Support.DevParity.start()
+    Support.DevParity.start()
   end
 
   def wait_for_start(outstream, look_for, timeout, logger_fn \\ &default_logger/1) do

@@ -85,7 +85,7 @@ From the root dir of `elixir-omg`:
 mix compile
 mix run --no-start -e \
  '
-   contents = OMG.Eth.Test.Support.DevHelper.prepare_env!() |> OMG.Eth.Test.Support.DevHelper.create_conf_file()
+   contents = Support.DevHelper.prepare_env!() |> Support.DevHelper.create_conf_file()
    "~/config.exs" |> Path.expand() |> File.write!(contents)
  '
 ```

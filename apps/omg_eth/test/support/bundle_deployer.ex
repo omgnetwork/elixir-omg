@@ -176,7 +176,7 @@ defmodule OMG.Eth.BundleDeployer do
         [@payment_tx_marker, payment_exit_game_addr, @morevp_protocol_marker],
         transact_opts
       )
-      |> OMG.Eth.Test.Support.DevHelper.transact_sync!()
+      |> Support.DevHelper.transact_sync!()
 
     assert_count_of_mined_transactions(deployer_addr, transactions_before, 28)
 

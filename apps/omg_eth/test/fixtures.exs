@@ -22,8 +22,8 @@ defmodule OMG.Eth.Fixtures do
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
   alias OMG.Eth.RootChainHelper
-  alias OMG.Eth.Test.Support.DevHelper
-  alias OMG.Eth.Test.Support.DevNode
+  alias Support.DevHelper
+  alias Support.DevNode
 
   deffixture eth_node do
     {:ok, exit_fn} = DevNode.start()
