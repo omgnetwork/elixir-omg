@@ -18,7 +18,7 @@ defmodule OMG.Eth.Fixtures do
   """
   use ExUnitFixtures.FixtureModule
 
-  alias OMG.Eth.Deployer
+  alias Support.Deployer
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
   alias OMG.Eth.RootChainHelper

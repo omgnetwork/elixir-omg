@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Deployer do
+defmodule Support.Deployer do
   @moduledoc """
   Handling of contract deployments - intended only for testing and `:dev` environment
   """
