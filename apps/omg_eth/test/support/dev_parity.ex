@@ -71,7 +71,7 @@ defmodule Support.DevParity do
       if Application.get_env(:omg_eth, :node_logging_in_debug) do
         %Task{} =
           fn ->
-           Enum.each(parity_out, &Support.DevNode.default_logger/1)
+            Enum.each(parity_out, &Support.DevNode.default_logger/1)
           end
           |> Task.async()
       end
