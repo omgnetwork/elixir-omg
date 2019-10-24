@@ -3,7 +3,8 @@ in_flight_exit.get_data:
     tags:
       - InFlightExit
     summary: Gets exit data for an in-flight exit.
-    description: Exit data are arguments to `startInFlightExit` root chain contract function.
+    description: >
+      Exit data are arguments to `startInFlightExit` root chain contract function.
     operationId: in_flight_exit_get_data
     requestBody:
       $ref: 'request_bodies.yaml#/InFlightExitTxBytesBodySchema'
@@ -11,7 +12,7 @@ in_flight_exit.get_data:
       200:
         $ref: 'responses.yaml#/GetInFlightExitDataResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
 
 in_flight_exit.get_competitor:
   post:
@@ -21,12 +22,25 @@ in_flight_exit.get_competitor:
     description: Note that if the competing transaction has not been put into a block `competing_tx_pos` and `competing_proof` will not be returned.
     operationId: in_flight_exit_get_competitor
     requestBody:
-      $ref: 'request_bodies.yaml#/InFlightExitTxBytesBodySchema'
+      description: In-flight transaction bytes body
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              txbytes:
+                type: string
+                format: binary
+            required:
+              - txbytes
+            example:
+              txbytes: '0xf3170101c0940000...'
     responses:
       200:
         $ref: 'responses.yaml#/GetCompetitorResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
 
 in_flight_exit.prove_canonical:
   post:
@@ -36,12 +50,25 @@ in_flight_exit.prove_canonical:
     description: To respond to a challenge to an in-flight exit, this proves that the transaction has been put into a block (and therefore is canonical).
     operationId: in_flight_exit_prove_canonical
     requestBody:
-      $ref: 'request_bodies.yaml#/InFlightExitTxBytesBodySchema'
+      description: In-flight transaction bytes body
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              txbytes:
+                type: string
+                format: binary
+            required:
+              - txbytes
+            example:
+              txbytes: '0xf3170101c0940000...'
     responses:
       200:
         $ref: 'responses.yaml#/ProveCanonicalResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
 
 in_flight_exit.get_input_challenge_data:
   post:
@@ -56,7 +83,7 @@ in_flight_exit.get_input_challenge_data:
       200:
         $ref: 'responses.yaml#/InputChallengeDataResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
 
 in_flight_exit.get_output_challenge_data:
   post:
@@ -71,4 +98,4 @@ in_flight_exit.get_output_challenge_data:
       200:
         $ref: 'responses.yaml#/OutputChallengeDataResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
