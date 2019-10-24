@@ -23,7 +23,6 @@ defmodule OMG.Eth.DevGeth do
 
   require Logger
 
-  alias OMG.Eth
   alias Support.WaitFor
 
   def start do

@@ -23,7 +23,6 @@ defmodule Support.DevParity do
 
   require Logger
 
-  alias OMG.Eth
   alias Support.DevMiningHelper
   alias Support.WaitFor
 

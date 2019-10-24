@@ -30,12 +30,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher
+  alias OMG.Watcher.Event
+  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.TestHelper
   alias OMG.WatcherRPC.Web.Channel
   alias Support.DevHelper
   alias Support.RootChainHelper
-  alias Watcher.Event
-  alias Watcher.Integration.TestHelper, as: IntegrationTest
-  alias Watcher.TestHelper
 
   require Utxo
 

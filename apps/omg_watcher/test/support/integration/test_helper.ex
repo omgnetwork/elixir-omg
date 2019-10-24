@@ -17,7 +17,6 @@ defmodule OMG.Watcher.Integration.TestHelper do
   Common helper functions that are useful when integration-testing the watcher
   """
 
-  alias OMG.Eth
   alias OMG.State
   alias OMG.Utxo
   alias Support.DevHelper
