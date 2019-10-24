@@ -21,6 +21,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   alias OMG.State
   alias OMG.Utxo
   alias Support.DevHelper
+  alias Support.WaitFor
 
   require Utxo
   import OMG.Watcher.TestHelper
@@ -58,7 +59,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
 
   defp wait_for(func, timeout) do
     fn ->
-      Eth.WaitFor.repeat_until_ok(func)
+      WaitFor.repeat_until_ok(func)
     end
     |> Task.async()
     |> Task.await(timeout)

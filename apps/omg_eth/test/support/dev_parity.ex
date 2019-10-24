@@ -25,6 +25,7 @@ defmodule Support.DevParity do
 
   alias OMG.Eth
   alias Support.DevMiningHelper
+  alias Support.WaitFor
 
   def start do
     {:ok, _} = Application.ensure_all_started(:briefly)
@@ -39,7 +40,7 @@ defmodule Support.DevParity do
         } 2>&1"
       )
 
-    {:ok, :ready} = Eth.WaitFor.eth_rpc()
+    {:ok, :ready} = WaitFor.eth_rpc()
     {:ok, dev_period} = DevMiningHelper.start()
 
     on_exit = fn ->

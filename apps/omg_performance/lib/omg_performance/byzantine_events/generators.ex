@@ -24,6 +24,7 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
   alias Support.DevHelper
+  alias Support.WaitFor
 
   require Utxo
 
@@ -103,7 +104,7 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
 
   defp get_block!(blknum, child_chain_url) do
     {:ok, block} =
-      Eth.WaitFor.repeat_until_ok(fn ->
+      WaitFor.repeat_until_ok(fn ->
         with {:ok, {block_hash, _timestamp}} <- RootChain.get_child_chain(blknum) do
           Client.get_block(block_hash, child_chain_url)
         else

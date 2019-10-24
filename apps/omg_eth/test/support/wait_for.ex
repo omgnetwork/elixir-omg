@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.WaitFor do
+defmodule Support.WaitFor do
   @moduledoc """
   Generic wait_for_* utils, styled after web3 counterparts
   """

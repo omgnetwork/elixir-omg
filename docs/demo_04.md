@@ -15,6 +15,7 @@ alias OMG.Eth
 alias OMG.Crypto
 alias OMG.DevCrypto
 alias Support.Integration.DepositHelper
+alias Support.WaitFor
 alias OMG.State.Transaction
 alias OMG.TestHelper
 alias OMG.Eth.Encoding
@@ -73,7 +74,7 @@ in_flight_tx_bytes =
     get_in_flight_exit_response["in_flight_tx_sigs"] |> Encoding.from_hex(),
     alice.addr
   )
-{:ok, _} = Eth.WaitFor.eth_receipt(txhash)
+{:ok, _} = WaitFor.eth_receipt(txhash)
 
 # querying Ethereum for in-flight exits should return the initiated in-flight exit
 {:ok, eth_height} = OMG.Eth.get_ethereum_height()

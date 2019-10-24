@@ -24,6 +24,7 @@ defmodule OMG.Eth.DevGeth do
   require Logger
 
   alias OMG.Eth
+  alias Support.WaitFor
 
   def start do
     {:ok, _} = Application.ensure_all_started(:briefly)
@@ -36,7 +37,7 @@ defmodule OMG.Eth.DevGeth do
         "geth --dev --dev.period=1 --ws --wsorigins='*' --rpc --rpcapi=personal,eth,web3,admin --datadir #{homedir} 2>&1"
       )
 
-    {:ok, :ready} = Eth.WaitFor.eth_rpc()
+    {:ok, :ready} = WaitFor.eth_rpc()
 
     on_exit = fn -> stop(geth_pid) end
 
