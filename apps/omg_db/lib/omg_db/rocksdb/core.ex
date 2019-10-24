@@ -34,6 +34,8 @@ if Code.ensure_loaded?(:rocksdb) do
       utxo: "utxoi",
       # watcher and child chain
       exit_info: "exiti",
+      # watcher and child chain
+      mempool_tx: "mempo",
       # watcher only
       in_flight_exit_info: "infle",
       # watcher only
@@ -83,6 +85,7 @@ if Code.ensure_loaded?(:rocksdb) do
     defp key_for_item(:block, %{hash: hash} = _block), do: key(:block, hash)
     defp key_for_item(:utxo, {position, _utxo}), do: key(:utxo, position)
     defp key_for_item(:spend, {position, _blknum}), do: key(:spend, position)
+    defp key_for_item(:mempool_tx, {tx_index, _tx}), do: key(:mempool_tx, tx_index)
     defp key_for_item(:exit_info, {position, _exit_info}), do: key(:exit_info, position)
     defp key_for_item(:in_flight_exit_info, {position, _info}), do: key(:in_flight_exit_info, position)
     defp key_for_item(:competitor_info, {position, _info}), do: key(:competitor_info, position)

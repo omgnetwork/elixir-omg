@@ -259,11 +259,11 @@ defmodule OMG.State.CoreTest do
   end
 
   test "extract_initial_state function returns error when passed last deposit as :not_found" do
-    assert {:error, :last_deposit_not_found} = Core.extract_initial_state(0, :not_found, @interval)
+    assert {:error, :last_deposit_not_found} = Core.extract_initial_state(0, :not_found, [], @interval)
   end
 
   test "extract_initial_state function returns error when passed top block number as :not_found" do
-    assert {:error, :top_block_number_not_found} = Core.extract_initial_state(:not_found, 0, @interval)
+    assert {:error, :top_block_number_not_found} = Core.extract_initial_state(:not_found, 0, [], @interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -729,10 +729,11 @@ defmodule OMG.State.CoreTest do
     assert {@blknum1, true} = Core.get_status(state)
 
     # when we execute a tx it isn't at the beginning
-    {:ok, _, state} =
+    state =
       state
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), :no_fees_required)
+      |> success?
 
     assert {@blknum1, false} = Core.get_status(state)
 
@@ -827,7 +828,7 @@ defmodule OMG.State.CoreTest do
   end
 
   defp success?(result) do
-    assert {:ok, _, state} = result
+    assert {:ok, _, state, _} = result
     state
   end
 

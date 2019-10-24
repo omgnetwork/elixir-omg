@@ -18,7 +18,7 @@ defmodule OMG.State.Core do
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
 
-  defstruct [:height, :last_deposit_child_blknum, utxos: %{}, pending_txs: [], tx_index: 0, utxo_db_updates: []]
+  defstruct [:height, :last_deposit_child_blknum, utxos: %{}, pending_txs: [], tx_index: 0]
 
   alias OMG.Block
   alias OMG.Crypto
@@ -39,10 +39,7 @@ defmodule OMG.State.Core do
           last_deposit_child_blknum: non_neg_integer(),
           utxos: utxos,
           pending_txs: list(Transaction.Recovered.t()),
-          tx_index: non_neg_integer(),
-          # NOTE: that this list is being build reverse, in some cases it may matter. It is reversed just before
-          #       it leaves this module in `form_block/3`
-          utxo_db_updates: list(db_update())
+          tx_index: non_neg_integer()
         }
 
   @type deposit() :: %{
@@ -103,19 +100,28 @@ defmodule OMG.State.Core do
   @spec extract_initial_state(
           height_query_result :: non_neg_integer() | :not_found,
           last_deposit_child_blknum_query_result :: non_neg_integer() | :not_found,
+          list({non_neg_integer, Transaction.Signed.tx_bytes()}),
           child_block_interval :: pos_integer()
         ) :: {:ok, t()} | {:error, :last_deposit_not_found | :top_block_number_not_found}
   def extract_initial_state(
         height_query_result,
         last_deposit_child_blknum_query_result,
+        pending_txs,
         child_block_interval
       )
-      when is_integer(height_query_result) and
-             is_integer(last_deposit_child_blknum_query_result) and is_integer(child_block_interval) do
+      when is_integer(height_query_result) and is_integer(last_deposit_child_blknum_query_result) and
+             is_list(pending_txs) and is_integer(child_block_interval) do
     # extract height, last deposit height and utxos from query result
     height = height_query_result + child_block_interval
 
-    state = %__MODULE__{height: height, last_deposit_child_blknum: last_deposit_child_blknum_query_result}
+    state = %__MODULE__{
+      height: height,
+      last_deposit_child_blknum: last_deposit_child_blknum_query_result,
+      # FIXME: this shouldn't receive recovered txs but recover here
+      pending_txs: pending_txs,
+      # FIXME: when the txs extracting function gets moved here from state.ex, this might be optimized
+      tx_index: length(pending_txs)
+    }
 
     {:ok, state}
   end
@@ -123,6 +129,7 @@ defmodule OMG.State.Core do
   def extract_initial_state(
         _height_query_result,
         :not_found,
+        _pending_txs,
         _child_block_interval
       ) do
     {:error, :last_deposit_not_found}
@@ -131,6 +138,7 @@ defmodule OMG.State.Core do
   def extract_initial_state(
         :not_found,
         _last_deposit_child_blknum_query_result,
+        _pending_txs,
         _child_block_interval
       ) do
     {:error, :top_block_number_not_found}
@@ -156,10 +164,9 @@ defmodule OMG.State.Core do
 
     case Validator.can_apply_spend(state, tx, fees) do
       true ->
-        {:ok, {tx_hash, state.height, state.tx_index},
-         state
-         |> apply_spend(tx)
-         |> add_pending_tx(tx)}
+        {state2, utxo_db_updates} = apply_spend(state, tx)
+        {new_state, mempool_db_updates} = add_pending_tx(state2, tx)
+        {:ok, {tx_hash, state.height, state.tx_index}, new_state, utxo_db_updates ++ mempool_db_updates}
 
       {{:error, _reason}, _state} = error ->
         error
@@ -202,7 +209,7 @@ defmodule OMG.State.Core do
   def form_block(
         child_block_interval,
         eth_height \\ nil,
-        %Core{pending_txs: reversed_txs, height: height, utxo_db_updates: reversed_utxo_db_updates} = state
+        %Core{pending_txs: reversed_txs, height: height} = state
       ) do
     txs = Enum.reverse(reversed_txs)
 
@@ -220,14 +227,20 @@ defmodule OMG.State.Core do
     db_updates_block = {:put, :block, Block.to_db_value(block)}
     db_updates_top_block_number = {:put, :child_top_block_number, height}
 
-    db_updates = [db_updates_top_block_number, db_updates_block | reversed_utxo_db_updates] |> Enum.reverse()
+    # for now we're just flushing the mempool, which is kinda expensive, there's likely better things to do (like turn
+    # into a block)
+    # FIXME: rethink
+    # FIXME: write persistence tests for the flushing mechanism
+    db_updates_flush_mempool =
+      txs |> Enum.with_index() |> Enum.map(&elem(&1, 1)) |> Enum.map(&{:delete, :mempool_tx, &1})
+
+    db_updates = [db_updates_top_block_number, db_updates_block | db_updates_flush_mempool] |> Enum.reverse()
 
     new_state = %Core{
       state
       | tx_index: 0,
         height: height + child_block_interval,
-        pending_txs: [],
-        utxo_db_updates: []
+        pending_txs: []
     }
 
     {:ok, {block, event_triggers, db_updates}, new_state}
@@ -353,16 +366,17 @@ defmodule OMG.State.Core do
     {height, is_beginning}
   end
 
-  defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, %Transaction.Recovered{} = new_tx) do
-    %Core{
-      state
-      | tx_index: tx_index + 1,
-        pending_txs: [new_tx | pending_txs]
-    }
+  defp add_pending_tx(
+         %Core{pending_txs: pending_txs, tx_index: tx_index} = state,
+         %Transaction.Recovered{} = new_tx
+       ) do
+    mempool_db_updates = [{:put, :mempool_tx, {tx_index, new_tx.signed_tx_bytes}}]
+
+    {%Core{state | tx_index: tx_index + 1, pending_txs: [new_tx | pending_txs]}, mempool_db_updates}
   end
 
   defp apply_spend(
-         %Core{height: blknum, tx_index: tx_index, utxos: utxos, utxo_db_updates: db_updates} = state,
+         %Core{height: blknum, tx_index: tx_index, utxos: utxos} = state,
          %Transaction.Recovered{signed_tx: %{raw_tx: tx}}
        ) do
     {spent_input_pointers, new_utxos_map} = get_effects(tx, blknum, tx_index)
@@ -372,7 +386,7 @@ defmodule OMG.State.Core do
     spent_blknum_updates =
       spent_input_pointers |> Enum.map(&{:put, :spend, {InputPointer.Protocol.to_db_key(&1), blknum}})
 
-    %Core{state | utxos: new_utxos, utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates}
+    {%Core{state | utxos: new_utxos}, new_db_updates ++ spent_blknum_updates}
   end
 
   # Effects of a payment transaction - spends all inputs and creates all outputs

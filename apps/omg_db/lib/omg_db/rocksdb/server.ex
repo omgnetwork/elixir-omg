@@ -93,6 +93,7 @@ if Code.ensure_loaded?(:rocksdb) do
 
     def handle_call({:exit_info, utxo_pos}, _from, state), do: do_exit_info(utxo_pos, state)
     def handle_call({:spent_blknum, utxo_pos}, _from, state), do: do_spent_blknum(utxo_pos, state)
+    def handle_call({:mempool_tx, tx_index}, _from, state), do: do_mempool_tx(tx_index, state)
 
     # WARNING, terminate below will be called only if :trap_exit is set to true
     def terminate(_reason, %__MODULE__{db_ref: db_ref}), do: :ok = :rocksdb.close(db_ref)
@@ -179,6 +180,16 @@ if Code.ensure_loaded?(:rocksdb) do
         |> Core.key(utxo_pos)
         |> get(state)
         |> Core.decode_value(:spend)
+
+      {:reply, result, state}
+    end
+
+    defp do_mempool_tx(tx_index, state) do
+      result =
+        :mempool_tx
+        |> Core.key(tx_index)
+        |> get(state)
+        |> Core.decode_value(:mempool_tx)
 
       {:reply, result, state}
     end

@@ -39,7 +39,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   setup do
     {:ok, processor_empty} = Core.init([], [], [])
     {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
-    {:ok, state_empty} = State.Core.extract_initial_state(0, 0, child_block_interval)
+    {:ok, state_empty} = State.Core.extract_initial_state(0, 0, [], child_block_interval)
 
     {:ok, %{alice: TestHelper.generate_entity(), processor_empty: processor_empty, state_empty: state_empty}}
   end
@@ -142,7 +142,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     assert Utxo.position(1, 0, 0) not in spends_to_get
 
     # spend and see that Core now requests the relevant utxo checks and spends to get
-    {:ok, _, state} = State.Core.exec(state, comp, %{@eth => 0})
+    {:ok, _, state, _} = State.Core.exec(state, comp, %{@eth => 0})
     {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
 
     assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
@@ -164,7 +164,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     # canonical
     ife_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, {tx_hash1, _, _}, state} = State.Core.exec(state, ife_exit_tx1, %{@eth => 0})
+    {:ok, {tx_hash1, _, _}, state, _} = State.Core.exec(state, ife_exit_tx1, %{@eth => 0})
     {:ok, _, state} = State.Core.form_block(1000, state)
     ife_id1 = 1
 

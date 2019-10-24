@@ -36,6 +36,7 @@ defmodule OMG.DB do
   @callback competitors_info() :: {:ok, list(term)}
   @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}) :: {:ok, map} | {:error, atom}
   @callback spent_blknum(utxo_pos_db_t()) :: {:ok, pos_integer} | {:error, atom}
+  @callback mempool_tx(non_neg_integer) :: {:ok, binary} | :not_found
   @callback block_hashes(integer()) :: list()
   @callback last_deposit_child_blknum() :: list()
   @callback child_top_block_number() :: {:ok, non_neg_integer()}
@@ -52,6 +53,7 @@ defmodule OMG.DB do
   @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}, GenServer.server()) ::
               {:ok, map} | {:error, atom}
   @callback spent_blknum(utxo_pos_db_t(), GenServer.server()) :: {:ok, pos_integer} | {:error, atom}
+  @callback mempool_tx(non_neg_integer, GenServer.server()) :: {:ok, binary} | :not_found
   @callback block_hashes(integer(), GenServer.server()) :: list()
   @callback last_deposit_child_blknum(GenServer.server()) :: list()
   @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()}
@@ -66,6 +68,7 @@ defmodule OMG.DB do
                       competitors_info: 1,
                       exit_info: 2,
                       spent_blknum: 2,
+                      mempool_tx: 2,
                       block_hashes: 2,
                       last_deposit_child_blknum: 1,
                       child_top_block_number: 1
@@ -116,6 +119,9 @@ defmodule OMG.DB do
 
   def spent_blknum(utxo_pos), do: driver().spent_blknum(utxo_pos)
   def spent_blknum(utxo_pos, server), do: driver().spent_blknum(utxo_pos, server)
+
+  def mempool_tx(tx_index), do: driver().mempool_tx(tx_index)
+  def mempool_tx(tx_index, server), do: driver().mempool_tx(tx_index, server)
 
   def block_hashes(block_numbers_to_fetch), do: driver().block_hashes(block_numbers_to_fetch)
   def block_hashes(block_numbers_to_fetch, server), do: driver().block_hashes(block_numbers_to_fetch, server)

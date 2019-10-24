@@ -102,6 +102,11 @@ if Code.ensure_loaded?(:rocksdb) do
       GenServer.call(server_name, {:spent_blknum, utxo_pos})
     end
 
+    @spec mempool_tx(non_neg_integer(), atom) :: {:ok, binary} | :not_found
+    def mempool_tx(tx_index, server_name \\ @server_name) do
+      GenServer.call(server_name, {:mempool_tx, tx_index})
+    end
+
     def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
       GenServer.call(server_name, {:block_hashes, block_numbers_to_fetch})
     end

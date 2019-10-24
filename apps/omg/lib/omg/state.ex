@@ -93,10 +93,10 @@ defmodule OMG.State do
     # until we've processed history.
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, last_deposit_query_result} = DB.get_single_value(:last_deposit_child_blknum)
-    {:ok, [height_query_result, last_deposit_query_result], {:continue, :setup}}
+    {:ok, [height_query_result, last_deposit_query_result, pending_txs_from_db()], {:continue, :setup}}
   end
 
-  def handle_continue(:setup, [height_query_result, last_deposit_query_result]) do
+  def handle_continue(:setup, [height_query_result, last_deposit_query_result, pending_txs]) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     {:ok, state} =
@@ -104,6 +104,7 @@ defmodule OMG.State do
              Core.extract_initial_state(
                height_query_result,
                last_deposit_query_result,
+               pending_txs,
                child_block_interval
              ) do
         _ =
@@ -147,18 +148,12 @@ defmodule OMG.State do
     # FIXME: what if utxo is not found? it must be handled properly and tested
     |> Core.with_utxos(utxos_query_result)
     |> Core.exec(tx, fees)
-    # FIXME must write pending txs to disk every time an exec goes through. Form block must flush those
-    #       think how to read them back for full block accountability on fail-overs and upgrades
-    #       IDEA: write pending tx on every `exec` and keep it in state too. On every `form_block`,
-    #             check in-memory pending state:
-    #             If it's empty, then read from DB (it's a failover, so I've not been in the master)
-    #             If it isn't empty, just use it, (normal operation, I've been in the master)
     # FIXME cleany, cleany
     |> case do
-      {:ok, tx_result, %Core{utxo_db_updates: db_updates} = new_state} ->
+      {:ok, tx_result, new_state, db_updates} ->
         :ok = DB.multi_update(db_updates)
         # FIXME move elsewhere?
-        {:reply, {:ok, tx_result}, %Core{new_state | utxo_db_updates: []}}
+        {:reply, {:ok, tx_result}, new_state}
 
       {tx_result, new_state} ->
         {:reply, tx_result, new_state}
@@ -246,6 +241,22 @@ defmodule OMG.State do
   defp do_form_block(state, eth_height \\ nil) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
     Core.form_block(child_block_interval, eth_height, state)
+  end
+
+  defp pending_txs_from_db() do
+    Stream.iterate(0, &(&1 + 1))
+    |> Enum.reduce_while([], &pending_tx_from_db/2)
+
+    # NOTE: no |> Enum.reverse() here, because pending_txs are expected to be held in reverse anyway
+  end
+
+  defp pending_tx_from_db(tx_index, txs) do
+    tx_index
+    |> DB.mempool_tx()
+    |> case do
+      :not_found -> {:halt, txs}
+      {:ok, {^tx_index, tx}} -> {:cont, [Transaction.Recovered.recover_from!(tx) | txs]}
+    end
   end
 
   defp publish_block_to_event_bus(block, event_triggers) do

@@ -49,7 +49,7 @@ defmodule OMG.State.PersistenceTest do
        %{alice: alice, db_pid: db_pid, state_empty: state} do
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
+    |> persist_exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]), db_pid)
     |> persist_form(db_pid)
   end
 
@@ -58,8 +58,8 @@ defmodule OMG.State.PersistenceTest do
        %{alice: alice, db_pid: db_pid, bob: bob, state_empty: state} do
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
-    |> exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{bob, 10}]))
+    |> persist_exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), db_pid)
+    |> persist_exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{bob, 10}]), db_pid)
     |> persist_form(db_pid)
 
     assert [] = persisted_standard_exitable_utxos(alice, db_pid)
@@ -82,7 +82,7 @@ defmodule OMG.State.PersistenceTest do
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
     |> persist_deposit([%{owner: bob.addr, currency: @eth, amount: 20, blknum: 2}], db_pid)
-    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
+    |> persist_exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), db_pid)
     |> persist_form(db_pid)
   end
 
@@ -95,7 +95,7 @@ defmodule OMG.State.PersistenceTest do
 
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
+    |> persist_exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]), db_pid)
     |> persist_form(db_pid)
     |> persist_exit_utxos(utxo_positions, db_pid)
   end
@@ -110,7 +110,7 @@ defmodule OMG.State.PersistenceTest do
 
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-    |> exec(tx)
+    |> persist_exec(tx, db_pid)
     |> persist_form(db_pid)
     |> persist_exit_utxos(utxo_pos_exits_in_flight, db_pid)
     |> persist_exit_utxos(utxo_pos_exits_piggyback, db_pid)
@@ -133,7 +133,7 @@ defmodule OMG.State.PersistenceTest do
        %{alice: alice, db_pid: db_pid, state_empty: state} do
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]))
+    |> persist_exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]), db_pid)
     |> persist_form(db_pid)
   end
 
@@ -144,7 +144,7 @@ defmodule OMG.State.PersistenceTest do
 
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-    |> exec(tx)
+    |> persist_exec(tx, db_pid)
     |> persist_form(db_pid)
 
     assert {:ok, [hash]} = OMG.DB.block_hashes([@blknum1], db_pid)
@@ -164,8 +164,27 @@ defmodule OMG.State.PersistenceTest do
     {:ok, last_deposit_query_result} = OMG.DB.get_single_value(:last_deposit_child_blknum, db_pid)
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
 
-    {:ok, state} = Core.extract_initial_state(height_query_result, last_deposit_query_result, @interval)
+    {:ok, state} =
+      Core.extract_initial_state(height_query_result, last_deposit_query_result, pending_txs_from_db(db_pid), @interval)
+
     Core.with_utxos(state, utxos_query_result)
+  end
+
+  # FIXME: dry with state.ex, or actually let's have most of it gets split and moved into Core and into DB layer
+  defp pending_txs_from_db(db_pid) do
+    Stream.iterate(0, &(&1 + 1))
+    |> Enum.reduce_while([], &pending_tx_from_db(&1, &2, db_pid))
+
+    # NOTE: no |> Enum.reverse() here, because pending_txs are expected to be held in reverse anyway
+  end
+
+  defp pending_tx_from_db(tx_index, txs, db_pid) do
+    tx_index
+    |> OMG.DB.mempool_tx(db_pid)
+    |> case do
+      :not_found -> {:halt, txs}
+      {:ok, {^tx_index, tx}} -> {:cont, [Transaction.Recovered.recover_from!(tx) | txs]}
+    end
   end
 
   defp persist_deposit(state, deposits, db_pid) do
@@ -183,9 +202,9 @@ defmodule OMG.State.PersistenceTest do
     persist_common(state, db_updates, db_pid)
   end
 
-  defp exec(state, tx) do
-    assert {:ok, _, state} = Core.exec(state, tx, :no_fees_required)
-    state
+  defp persist_exec(state, tx, db_pid) do
+    assert {:ok, _, state, db_updates} = Core.exec(state, tx, :no_fees_required)
+    persist_common(state, db_updates, db_pid)
   end
 
   defp persisted_standard_exitable_utxos(address, db_pid) do
