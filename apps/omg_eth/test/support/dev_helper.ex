@@ -20,7 +20,8 @@ defmodule Support.DevHelper do
 
   alias OMG.Eth
   alias OMG.Eth.Transaction
-  alias OMG.Eth.WaitFor
+  alias Support.BundleDeployer
+  alias Support.WaitFor
   import Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   require Logger
@@ -47,7 +48,7 @@ defmodule Support.DevHelper do
          {:ok, authority} <- create_and_fund_authority_addr(opts),
          {:ok, deployer_addr} <- get_deployer_address(opts),
          {:ok, txhash_contract, contracts_map} <-
-           Eth.BundleDeployer.deploy_all(root_path, deployer_addr, authority, exit_period_seconds) do
+           BundleDeployer.deploy_all(root_path, deployer_addr, authority, exit_period_seconds) do
       %{
         contract_addr: contracts_map,
         txhash_contract: txhash_contract,

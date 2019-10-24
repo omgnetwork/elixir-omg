@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.BundleDeployer do
+defmodule Support.BundleDeployer do
   @moduledoc """
   Convenience module that performs the entire root chain contract suite (plasma framework + exit games) deployment for
   tests
