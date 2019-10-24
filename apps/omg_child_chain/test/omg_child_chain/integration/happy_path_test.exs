@@ -1,6 +1,6 @@
 # Copyright 2019 OmiseGO Pte Ltd
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+ootChaised under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -28,6 +28,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias Support.DevHelper
+  alias Support.RootChainHelper
   alias Support.Integration.DepositHelper
   require OMG.Utxo
 
@@ -107,7 +108,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     raw_txbytes = Transaction.raw_txbytes(raw_tx2)
 
     assert {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-             Eth.RootChainHelper.start_exit(
+             RootChainHelper.start_exit(
                encoded_utxo_pos,
                raw_txbytes,
                proof,
@@ -144,7 +145,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChainHelper.in_flight_exit(
+      RootChainHelper.in_flight_exit(
         in_flight_tx |> Transaction.raw_txbytes(),
         get_input_txs([tx, tx]),
         proof <> proof,
@@ -173,7 +174,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     deposit_tx = OMG.TestHelper.create_signed([], @eth, [{alice, 10}])
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChainHelper.in_flight_exit(
+      RootChainHelper.in_flight_exit(
         in_flight_tx2_rawbytes,
         get_input_txs([deposit_tx]),
         Block.inclusion_proof([Transaction.Signed.encode(deposit_tx)], 0),
@@ -186,7 +187,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     # piggyback only to the first transaction's output & wait for finalization
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChainHelper.piggyback_in_flight_exit(in_flight_tx2_rawbytes, 4, alice.addr)
+      RootChainHelper.piggyback_in_flight_exit(in_flight_tx2_rawbytes, 4, alice.addr)
       |> DevHelper.transact_sync!()
 
     DevHelper.wait_for_root_chain_block(eth_height + exiters_finality_margin)

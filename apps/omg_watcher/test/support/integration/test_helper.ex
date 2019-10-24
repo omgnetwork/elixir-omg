@@ -22,6 +22,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   alias OMG.Utxo
   alias Support.DevHelper
   alias Support.WaitFor
+  alias Support.RootChainHelper
 
   require Utxo
   import OMG.Watcher.TestHelper
@@ -81,7 +82,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
     Process.sleep(2 * exit_period_ms)
 
     {:ok, %{"status" => "0x1", "blockNumber" => process_eth_height, "logs" => logs}} =
-      OMG.Eth.RootChainHelper.process_exits(token, 0, 1, user.addr) |> DevHelper.transact_sync!()
+      RootChainHelper.process_exits(token, 0, 1, user.addr) |> DevHelper.transact_sync!()
 
     # status 0x1 doesn't yet mean much. To smoke test the success of the processing (exits actually processed) we
     # take a look at the logs. Single entry means no logs were processed (it is the `ProcessedExitsNum`, that always

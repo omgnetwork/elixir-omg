@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.RootChainHelper do
+defmodule Support.RootChainHelper do
   @moduledoc """
     Helper functions for RootChain.
   """

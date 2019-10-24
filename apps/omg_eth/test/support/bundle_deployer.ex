@@ -19,8 +19,9 @@ defmodule Support.BundleDeployer do
   """
 
   alias OMG.Eth
-  alias Support.Deployer
   alias OMG.Eth.TransactionHelper
+  alias Support.Deployer
+  alias Support.RootChainHelper
 
   use OMG.Utils.LoggerExt
 
@@ -53,7 +54,7 @@ defmodule Support.BundleDeployer do
     {:ok, txhash, plasma_framework_addr} =
       Deployer.create_new("PlasmaFramework", root_path, deployer_addr, exit_period_seconds: exit_period_seconds)
 
-    {:ok, _} = Eth.RootChainHelper.init_authority(authority, %{plasma_framework: plasma_framework_addr})
+    {:ok, _} = RootChainHelper.init_authority(authority, %{plasma_framework: plasma_framework_addr})
     {:ok, _, eth_deposit_verifier_addr} = Deployer.create_new("EthDepositVerifier", root_path, deployer_addr, [])
     {:ok, _, erc20_deposit_verifier_addr} = Deployer.create_new("Erc20DepositVerifier", root_path, deployer_addr, [])
 

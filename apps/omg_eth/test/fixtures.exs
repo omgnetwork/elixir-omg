@@ -18,12 +18,12 @@ defmodule OMG.Eth.Fixtures do
   """
   use ExUnitFixtures.FixtureModule
 
-  alias Support.Deployer
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
-  alias OMG.Eth.RootChainHelper
+  alias Support.Deployer
   alias Support.DevHelper
   alias Support.DevNode
+  alias Support.RootChainHelper
 
   deffixture eth_node do
     {:ok, exit_fn} = DevNode.start()

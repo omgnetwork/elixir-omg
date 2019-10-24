@@ -21,6 +21,7 @@ defmodule Support.Integration.DepositHelper do
   alias OMG.Eth.Config
   alias OMG.State.Transaction
   alias Support.DevHelper
+  alias Support.RootChainHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -30,7 +31,7 @@ defmodule Support.Integration.DepositHelper do
     {:ok, receipt} =
       Transaction.Payment.new([], [{to, @eth, value}])
       |> Transaction.raw_txbytes()
-      |> Eth.RootChainHelper.deposit(value, to)
+      |> RootChainHelper.deposit(value, to)
       |> DevHelper.transact_sync!()
 
     process_deposit(receipt)
@@ -44,7 +45,7 @@ defmodule Support.Integration.DepositHelper do
     {:ok, receipt} =
       Transaction.Payment.new([], [{to, token_addr, value}])
       |> Transaction.raw_txbytes()
-      |> Eth.RootChainHelper.deposit_from(to)
+      |> RootChainHelper.deposit_from(to)
       |> DevHelper.transact_sync!()
 
     process_deposit(receipt)
@@ -54,7 +55,7 @@ defmodule Support.Integration.DepositHelper do
     deposit_eth_height
     |> wait_deposit_recognized()
 
-    Eth.RootChainHelper.deposit_blknum_from_receipt(receipt)
+    RootChainHelper.deposit_blknum_from_receipt(receipt)
   end
 
   defp wait_deposit_recognized(deposit_eth_height) do

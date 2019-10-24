@@ -15,12 +15,13 @@ Run a developer's Child chain server, Watcher and start IEx REPL with code and c
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OMG.Eth
 alias OMG.DevCrypto
+alias OMG.Eth
+alias OMG.Eth.Encoding
 alias OMG.State.Transaction
 alias OMG.TestHelper
 alias Support.Integration.DepositHelper
-alias OMG.Eth.Encoding
+alias Support.RootChainHelper
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
@@ -102,7 +103,7 @@ tx2 =
 Jason.decode!()
 
 {:ok, txhash} =
-  Eth.RootChainHelper.start_exit(
+  RootChainHelper.start_exit(
     composed_exit["utxo_pos"],
     composed_exit["txbytes"] |> Encoding.from_hex(),
     composed_exit["proof"] |> Encoding.from_hex(),
@@ -120,7 +121,7 @@ Jason.decode!()
   Jason.decode!()
 
 {:ok, txhash} =
-  Eth.RootChainHelper.challenge_exit(
+  RootChainHelper.challenge_exit(
     challenge["exit_id"],
     challenge["exiting_tx"] |> Encoding.from_hex(),
     challenge["txbytes"] |> Encoding.from_hex(),

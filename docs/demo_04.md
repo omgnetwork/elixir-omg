@@ -16,6 +16,7 @@ alias OMG.Crypto
 alias OMG.DevCrypto
 alias Support.Integration.DepositHelper
 alias Support.WaitFor
+alias Support.RootChainHelper
 alias OMG.State.Transaction
 alias OMG.TestHelper
 alias OMG.Eth.Encoding
@@ -67,7 +68,7 @@ in_flight_tx_bytes =
 
 # call root chain function that initiates in-flight exit
 {:ok, txhash} =
-  OMG.Eth.RootChainHelper.in_flight_exit(
+  RootChainHelper.in_flight_exit(
     get_in_flight_exit_response["in_flight_tx"] |> Encoding.from_hex(),
     get_in_flight_exit_response["input_txs"] |> Encoding.from_hex(),
     get_in_flight_exit_response["input_txs_inclusion_proofs"] |> Encoding.from_hex(),

@@ -27,6 +27,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
   alias Support.DevHelper
+  alias Support.RootChainHelper
 
   require Utxo
 
@@ -63,7 +64,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
     } = TestHelper.get_exit_data(tx_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1"}} =
-      Eth.RootChainHelper.start_exit(
+      RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,

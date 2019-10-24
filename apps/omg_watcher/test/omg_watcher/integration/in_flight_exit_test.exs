@@ -20,12 +20,12 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   use Plug.Test
 
   alias OMG.Eth.RootChain
-  alias OMG.Eth.RootChainHelper
   alias OMG.State.Transaction
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
   alias Support.DevHelper
+  alias Support.RootChainHelper
 
   alias Support.Integration.DepositHelper
 

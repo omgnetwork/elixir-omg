@@ -16,7 +16,7 @@ defmodule OMG.Eth.RootChainTest do
   alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
-  alias OMG.Eth.RootChainHelper
+  alias Support.RootChainHelper
   alias Support.DevHelper
 
   use ExUnit.Case, async: false
