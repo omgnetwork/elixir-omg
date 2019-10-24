@@ -21,8 +21,8 @@ defmodule OMG.Watcher.Integration.TestHelper do
   alias OMG.State
   alias OMG.Utxo
   alias Support.DevHelper
-  alias Support.WaitFor
   alias Support.RootChainHelper
+  alias Support.WaitFor
 
   require Utxo
   import OMG.Watcher.TestHelper
