@@ -18,7 +18,6 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   Streams transactions, utxo positions and blocks using data from Watcher.
   """
 
-  alias OMG.Eth
   alias OMG.Eth.RootChain
   alias OMG.State.Transaction
   alias OMG.Utxo

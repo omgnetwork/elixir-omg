@@ -50,7 +50,6 @@ defmodule OMG.Performance.ByzantineEvents do
 
   use OMG.Utils.LoggerExt
 
-  alias OMG.Eth
   alias OMG.Performance.ByzantineEvents.DoSExitWorker
   alias OMG.Performance.HttpRPC.WatcherClient
   alias Support.WaitFor
