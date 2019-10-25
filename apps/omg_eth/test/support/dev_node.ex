@@ -19,8 +19,7 @@ defmodule OMG.Eth.DevNode do
   require Logger
 
   def start do
-    OMG.Eth.backend()
-    |> start()
+    start(backend())
   end
 
   defp start(:geth) do
@@ -50,5 +49,9 @@ defmodule OMG.Eth.DevNode do
   def default_logger(line) do
     _ = Logger.debug("eth node: " <> line)
     line
+  end
+
+  defp backend() do
+    Application.fetch_env!(:omg_eth, :eth_node)
   end
 end

@@ -3,7 +3,8 @@ use Mix.Config
 # bumping these timeouts into infinity - let's rely on test timeouts rather than these
 config :ethereumex,
   url: "http://localhost:8545",
-  http_options: [recv_timeout: :infinity]
+  http_options: [recv_timeout: :infinity],
+  id_reset: true
 
 config :omg_eth,
   # Needed for test only to have some value of address when `:contract_address` is not set explicitly
@@ -18,4 +19,4 @@ config :omg_eth,
   # this is useful because `mix test` and `mix coveralls --umbrella` have different views on the root dir when testing
   umbrella_root_dir: Path.join(__DIR__, "../../.."),
   ws_url: "ws://localhost:8546/ws",
-  eth_node: "geth"
+  eth_node: :geth

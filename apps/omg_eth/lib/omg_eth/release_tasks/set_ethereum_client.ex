@@ -62,9 +62,10 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   defp validate_rpc_client_type(_value, default),
     do: default
 
-  defp to_rpc_client_type("GETH"), do: "geth"
-  defp to_rpc_client_type("PARITY"), do: "parity"
-  defp to_rpc_client_type(_), do: exit("You need to choose between geth or parity.")
+  defp to_rpc_client_type("GETH"), do: :geth
+  defp to_rpc_client_type("PARITY"), do: :parity
+  defp to_rpc_client_type("INFURA"), do: :infura
+  defp to_rpc_client_type(_), do: exit("You need to choose between geth, parity or infura.")
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default

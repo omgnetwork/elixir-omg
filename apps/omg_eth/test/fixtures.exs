@@ -30,7 +30,9 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    %{} = Eth.DevHelpers.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
+    contract = Eth.DevHelpers.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
+
+    contract
   end
 
   deffixture token(root_chain_contract_config) do

@@ -47,14 +47,14 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   } do
     raw_tx = Transaction.Payment.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 3}], <<0::256>>)
 
-    tx = raw_tx |> OMG.TestHelper.sign_encode([alice.priv])
+    tx = OMG.TestHelper.sign_encode(raw_tx, [alice.priv])
     # spend the deposit
     assert {:ok, %{"blknum" => spend_child_block}} = submit_transaction(tx)
 
     token_raw_tx =
       Transaction.Payment.new([{token_deposit_blknum, 0, 0}], [{bob.addr, token, 8}, {alice.addr, token, 2}])
 
-    token_tx = token_raw_tx |> OMG.TestHelper.sign_encode([alice.priv])
+    token_tx = OMG.TestHelper.sign_encode(token_raw_tx, [alice.priv])
     # spend the token deposit
     assert {:ok, %{"blknum" => spend_token_child_block}} = submit_transaction(token_tx)
 

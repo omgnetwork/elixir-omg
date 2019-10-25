@@ -19,6 +19,7 @@ defmodule OMG.Eth.Librarian do
 
   alias OMG.Eth
   alias OMG.Eth.Encoding
+  alias OMG.Eth.Transaction
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
@@ -64,9 +65,34 @@ defmodule OMG.Eth.Librarian do
   end
 
   defp deploy(bytecode, from, gas) do
-    opts = @tx_defaults |> Keyword.put(:gas, gas)
+    opts = Keyword.put(@tx_defaults, :gas, gas)
 
-    {:ok, _txhash} = Eth.deploy_contract(from, bytecode, [], [], opts)
+    {:ok, _txhash} = deploy_contract(from, bytecode, [], [], opts)
+  end
+
+  def deploy_contract(addr, bytecode, types, args, opts) do
+    enc_args = encode_constructor_params(types, args)
+
+    txmap =
+      %{from: Encoding.to_hex(addr), data: bytecode <> enc_args}
+      |> Map.merge(Map.new(opts))
+      |> encode_all_integer_opts()
+
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    {:ok, _txhash} = Transaction.send(backend, txmap)
+  end
+
+  defp encode_all_integer_opts(opts) do
+    opts
+    |> Enum.filter(fn {_k, v} -> is_integer(v) end)
+    |> Enum.into(opts, fn {k, v} -> {k, Encoding.to_hex(v)} end)
+  end
+
+  defp encode_constructor_params(types, args) do
+    args
+    |> ABI.TypeEncoder.encode_raw(types)
+    # NOTE: we're not using `to_hex` because the `0x` will be appended to the bytecode already
+    |> Base.encode16(case: :lower)
   end
 
   # given a name of the contract/lib and a list of `{lib_name, lib_address}` tuples, will provide linked bytecode
