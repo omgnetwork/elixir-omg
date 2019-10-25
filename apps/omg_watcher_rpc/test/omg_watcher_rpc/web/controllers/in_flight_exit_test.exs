@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
 
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "getting in-flight exits" do

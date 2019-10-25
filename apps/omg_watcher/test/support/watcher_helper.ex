@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.TestHelper do
+defmodule Support.WatcherHelper do
   @moduledoc """
   Module provides common testing functions used by App's tests.
   """

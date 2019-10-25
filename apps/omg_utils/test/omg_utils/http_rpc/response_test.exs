@@ -18,7 +18,7 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   @cleaned_tx %{
     blknum: nil,

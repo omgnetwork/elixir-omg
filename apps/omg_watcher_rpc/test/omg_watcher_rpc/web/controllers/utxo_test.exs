@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
   use OMG.Watcher.Fixtures
 
   alias OMG.Utxo
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()

@@ -18,7 +18,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
 
   use OMG.Fixtures
   use OMG.Watcher.Fixtures
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   setup do
     {:ok, apps} = Application.ensure_all_started(:omg_status)

@@ -23,11 +23,10 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   alias OMG.State.Transaction
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper
   alias Support.DevHelper
-  alias Support.RootChainHelper
-
   alias Support.Integration.DepositHelper
+  alias Support.RootChainHelper
+  alias Support.WatcherHelper
 
   @timeout 40_000
   @eth RootChain.eth_pseudo_address()

@@ -22,7 +22,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   require Utxo
 

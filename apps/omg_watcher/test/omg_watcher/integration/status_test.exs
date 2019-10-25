@@ -15,7 +15,7 @@
 defmodule OMG.Watcher.Integration.StatusTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   @moduletag :integration
   @moduletag :watcher

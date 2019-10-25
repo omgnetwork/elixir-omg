@@ -23,7 +23,7 @@ defmodule OMG.Watcher.Eventer.CoreTest do
   alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Eventer
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   require Utxo
 

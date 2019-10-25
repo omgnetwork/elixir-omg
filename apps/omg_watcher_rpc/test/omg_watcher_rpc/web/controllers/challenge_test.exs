@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
 
   alias OMG.Utxo
   alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   require Utxo
 

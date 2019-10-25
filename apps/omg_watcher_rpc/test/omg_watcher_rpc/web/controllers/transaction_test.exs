@@ -22,7 +22,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias OMG.TestHelper, as: Test
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   require OMG.State.Transaction.Payment
 

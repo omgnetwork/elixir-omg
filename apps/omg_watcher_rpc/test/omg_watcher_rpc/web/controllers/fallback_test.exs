@@ -17,7 +17,7 @@ defmodule OMG.WatcherRPC.Web.Controller.FallbackTest do
   use ExUnit.Case, async: false
   use OMG.Watcher.Fixtures
 
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "returns error for non existing method" do

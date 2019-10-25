@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   @moduletag :integration
   @moduletag :watcher

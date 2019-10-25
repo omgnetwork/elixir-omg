@@ -29,8 +29,8 @@ defmodule OMG.Watcher.Fixtures do
   alias OMG.Crypto
   alias OMG.Watcher
   alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
   alias Support.DevHelper
+  alias Support.WatcherHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

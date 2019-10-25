@@ -24,7 +24,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   alias Support.WaitFor
 
   require Utxo
-  import OMG.Watcher.TestHelper
+  import Support.WatcherHelper
 
   def wait_for_byzantine_events(event_names, timeout) do
     fn ->
