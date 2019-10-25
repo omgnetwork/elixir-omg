@@ -183,7 +183,8 @@ defmodule OMG.Eth.BundleDeployer do
       Eth.RootChainHelper.add_exit_queue(1, @eth, %{plasma_framework: plasma_framework_addr})
       |> Eth.DevHelpers.transact_sync!()
 
-    assert_count_of_mined_transactions(deployer_addr, transactions_before, 29)
+    expected_count_of_transactions = 29
+    assert_count_of_mined_transactions(deployer_addr, transactions_before, expected_count_of_transactions)
 
     {:ok, txhash,
      %{

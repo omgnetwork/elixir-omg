@@ -22,7 +22,7 @@ defmodule OMG.Utils.HttpRPC.EncodingTest do
              Enum.map(["0xdeadbeef", "0xDEADBEEF", "0xDeadBeeF"], &Encoding.from_hex/1)
   end
 
-  test "doesn't decode invalid hex" do
+  test "doesn't decode hex without '0x' prefix" do
     assert {:error, :invalid_hex} == Encoding.from_hex("deadbeef")
   end
 

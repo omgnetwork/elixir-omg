@@ -93,6 +93,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           is_active: boolean()
         }
 
+  @doc """
+  Creates a new instance of the key-value pair for the respective `InFlightExitInfo`, from the Ethereum event map
+  """
+  @spec new_kv(map(), {tuple(), non_neg_integer()}) :: t()
   def new_kv(
         %{
           eth_height: eth_height,

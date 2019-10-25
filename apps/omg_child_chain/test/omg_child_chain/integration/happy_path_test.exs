@@ -124,7 +124,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   end
 
   @tag fixtures: [:alice, :omg_child_chain, :alice_deposits]
-  test "check that unspent funds can be exited exited with in-flight exits",
+  test "check that unspent funds can be exited with in-flight exits",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     # create transaction, submit, wait for block publication
     tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])

@@ -49,6 +49,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
         [{alice, 5}, {bob, 15}]
       )
 
+    submitted_txbytes = Transaction.raw_txbytes(submitted_tx)
+
     # To create in-flight exit watcher needs to have available utxos in his state,
     # otherwise the watcher state indicates that there is no need to do an in-flight exit.
     competing_ife =
@@ -68,17 +70,17 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     {:ok, %{"status" => "0x1"}} = exit_in_flight(submitted_tx, alice)
 
     # sanity check
-    {:ok, ife_id} = submitted_tx |> Transaction.raw_txbytes() |> OMG.Eth.RootChain.get_in_flight_exit_id()
+    {:ok, ife_id} = OMG.Eth.RootChain.get_in_flight_exit_id(submitted_txbytes)
     {:ok, {_, _, 0, _, _, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
 
     # PB 1
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.piggyback_in_flight_exit_on_output(Transaction.raw_txbytes(submitted_tx), 1, bob.addr)
+      OMG.Eth.RootChainHelper.piggyback_in_flight_exit_on_output(submitted_txbytes, 1, bob.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     # PB 2
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChainHelper.piggyback_in_flight_exit_on_input(Transaction.raw_txbytes(submitted_tx), 1, bob.addr)
+      OMG.Eth.RootChainHelper.piggyback_in_flight_exit_on_input(submitted_txbytes, 1, bob.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     # sanity check
@@ -104,8 +106,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
            } = TestHelper.success?("/status.get")
 
     # ask for proofs
-    submitted_txbytes = submitted_tx |> Transaction.raw_txbytes()
-
     assert %{"in_flight_txbytes" => ^submitted_txbytes} =
              proof1 = TestHelper.get_input_challenge_data(submitted_txbytes, 1)
 
@@ -248,12 +248,12 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
              "blknum" => blknum,
              "txindex" => 0,
              "txhash" => <<_::256>>
-           } = TestHelper.submit(tx1 |> Transaction.Signed.encode())
+           } = tx1 |> Transaction.Signed.encode() |> TestHelper.submit()
 
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
-    raw_tx1_bytes = tx1 |> Transaction.raw_txbytes()
-    raw_tx2_bytes = tx2 |> Transaction.raw_txbytes()
+    raw_tx1_bytes = Transaction.raw_txbytes(tx1)
+    raw_tx2_bytes = Transaction.raw_txbytes(tx2)
 
     {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
     {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
@@ -272,11 +272,13 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     # we're unable to get the invalid challenge using `in_flight_exit.get_competitor`!
     # ...so we need to stich it together from some pieces we have:
     %{sigs: [competing_sig | _]} = tx2
+    competing_tx_input_txbytes = Transaction.Payment.new([], [{alice.addr, @eth, 10}]) |> Transaction.raw_txbytes()
+    competing_tx_input_utxo_pos = Utxo.position(deposit_blknum, 0, 0) |> Utxo.Position.encode()
 
     {:ok, %{"status" => "0x1", "blockNumber" => challenge_eth_height}} =
       OMG.Eth.RootChainHelper.challenge_in_flight_exit_not_canonical(
-        Transaction.Payment.new([], [{alice.addr, @eth, 10}]) |> Transaction.raw_txbytes(),
-        Utxo.position(deposit_blknum, 0, 0) |> Utxo.Position.encode(),
+        competing_tx_input_txbytes,
+        competing_tx_input_utxo_pos,
         raw_tx1_bytes,
         0,
         raw_tx2_bytes,
@@ -327,7 +329,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
     ife1 = tx |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
 
-    %{"blknum" => blknum} = TestHelper.submit(tx |> Transaction.Signed.encode())
+    %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> TestHelper.submit()
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
     _ = exit_in_flight_and_wait_for_ife(ife1, alice)
@@ -401,7 +403,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   end
 
   defp piggyback_and_process_exits(%Transaction.Signed{raw_tx: raw_tx}, index, piggyback_type, output_owner) do
-    raw_tx_bytes = raw_tx |> Transaction.raw_txbytes()
+    raw_tx_bytes = Transaction.raw_txbytes(raw_tx)
 
     {:ok, %{"status" => "0x1"}} =
       case piggyback_type do

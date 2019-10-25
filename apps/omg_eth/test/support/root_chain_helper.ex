@@ -54,7 +54,7 @@ defmodule OMG.Eth.RootChainHelper do
     opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     output_guard_preimage = ""
     backend = Application.fetch_env!(:omg_eth, :eth_node)
 
@@ -91,7 +91,7 @@ defmodule OMG.Eth.RootChainHelper do
 
     opts = defaults |> Keyword.merge(opts)
 
-    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     optional_bytes = ""
 
     contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
@@ -145,7 +145,7 @@ defmodule OMG.Eth.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
     opts = Keyword.merge(defaults, opts)
 
-    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     optional_bytes = ""
     optional_uint = 0
 
@@ -190,7 +190,7 @@ defmodule OMG.Eth.RootChainHelper do
 
     opts = Keyword.merge(defaults, opts)
 
-    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     optional_bytes_array = List.duplicate("", Enum.count(input_txs))
     # NOTE: this in particular will go away, since separate specification of input tx types isn't necessary
     # c.f.: https://github.com/omisego/plasma-contracts/issues/338
@@ -243,7 +243,7 @@ defmodule OMG.Eth.RootChainHelper do
     signature =
       "challengeInFlightExitNotCanonical((bytes,uint256,bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes))"
 
-    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     optional_bytes = ""
 
     args = [
@@ -296,7 +296,7 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "challengeInFlightExitInputSpent((bytes,uint16,bytes,uint16,bytes,bytes,uint256,bytes))"
 
-    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     optional_bytes = ""
 
     args = [
@@ -327,7 +327,7 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "challengeInFlightExitOutputSpent((bytes,bytes,uint256,bytes,uint16,bytes,bytes))"
 
-    # NOTE: hardcoded for now, we're speaking to a particular exit game so this is fixed
+    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     optional_bytes = ""
 
     args = [

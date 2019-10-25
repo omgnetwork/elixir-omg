@@ -91,6 +91,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   defp find_input_data(tx) do
     tx
     |> Transaction.get_inputs()
+    # reversing to preserve the order of inputs, the `reduce_while` builds 3 lists by prepending
     |> Enum.reverse()
     |> Enum.reduce_while({:ok, {[], [], []}}, &find_single_input_data/2)
   end

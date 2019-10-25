@@ -18,7 +18,7 @@ defmodule OMG.EthereumEventListener do
   """
 
   alias OMG.EthereumEventListener.Core
-  alias OMG.EthereumEventListener.Groomer
+  alias OMG.EthereumEventListener.Preprocessor
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
 
@@ -123,7 +123,7 @@ defmodule OMG.EthereumEventListener do
 
     {:ok, db_updates_from_callback} =
       events
-      |> Enum.map(&Groomer.apply/1)
+      |> Enum.map(&Preprocessor.apply/1)
       |> callbacks.process_events_callback.()
 
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)

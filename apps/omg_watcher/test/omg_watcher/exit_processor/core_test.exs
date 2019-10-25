@@ -151,10 +151,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "reports piggybacked inputs/outputs when getting ifes",
          %{processor_empty: processor, transactions: [tx | _]} do
       txhash = Transaction.raw_txhash(tx)
-      processor = processor |> start_ife_from(tx)
+      processor = start_ife_from(processor, tx)
       assert [%{piggybacked_inputs: [], piggybacked_outputs: []}] = Core.get_active_in_flight_exits(processor)
 
-      processor = processor |> piggyback_ife_from(txhash, 0, :input)
+      processor = piggyback_ife_from(processor, txhash, 0, :input)
       assert [%{piggybacked_inputs: [0], piggybacked_outputs: []}] = Core.get_active_in_flight_exits(processor)
 
       processor = processor |> piggyback_ife_from(txhash, 0, :output) |> piggyback_ife_from(txhash, 1, :output)

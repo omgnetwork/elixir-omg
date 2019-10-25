@@ -19,7 +19,7 @@ defmodule OMG.Eth.RootChain do
   Handles sending transactions and fetching events.
 
   Should remain simple and not contain any business logic, except being aware of the RootChain contract(s) APIs.
-  For business-logic rich processing of Ethereum events see `OMG.EthereumEventListener.Groomer`
+  For business-logic rich processing of Ethereum events see `OMG.EthereumEventListener.Preprocessor`
   """
 
   alias OMG.Eth
@@ -93,7 +93,8 @@ defmodule OMG.Eth.RootChain do
       {:uint, 64},
       {:uint, 256},
       {:uint, 256},
-      # NOTE: there are these two more fields in the return but they can be ommitted???
+      # NOTE: there are these two more fields in the return but they can be ommitted,
+      #       both have withdraw_data_struct type
       # withdraw_data_struct,
       # withdraw_data_struct,
       :address,

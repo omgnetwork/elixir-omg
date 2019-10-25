@@ -216,6 +216,12 @@ defmodule OMG.State.Core do
     {:ok, {block, event_triggers, db_updates}, new_state}
   end
 
+  @doc """
+  Processes a deposit event, introducing a UTXO into the ledger's state. From then on it is spendable on the child chain
+
+  **NOTE** this expects that each deposit event is fed to here exactly once, so this must be ensured elsewhere.
+           There's no double-checking of this constraint done here.
+  """
   @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}
   def deposit(deposits, %Core{utxos: utxos} = state) do
     new_utxos_map = deposits |> Enum.into(%{}, &deposit_to_utxo/1)
@@ -374,10 +380,13 @@ defmodule OMG.State.Core do
     |> hd()
   end
 
-  # if looking for an input of the piggyback, we won't find it like this (by creating tx that is), and we don't care
-  defp find_utxo_matching_piggyback(%{omg_data: %{piggyback_type: :input}}, %Core{}),
-    do: nil
-
-  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex}, %Core{utxos: utxos}),
-    do: UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
+  # We're looking for a UTXO that a piggyback of an in-flight IFE is referencing.
+  # This is useful when trying to do something with the outputs that are piggybacked (like exit them), without their
+  # position.
+  # Only relevant for output piggybacks
+  defp find_utxo_matching_piggyback(
+         %{omg_data: %{piggyback_type: :output}, tx_hash: tx_hash, output_index: oindex},
+         %Core{utxos: utxos}
+       ),
+       do: UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
 end

@@ -12,20 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.EthereumEventListener.Groomer do
+defmodule OMG.EthereumEventListener.Preprocessor do
   @moduledoc """
   Handles various business-logic specific processing of ethereum events
   """
 
   @doc """
-  Applies the grooming procedure to the event received from `OMG.Eth`
+  Applies the preprocessing procedure to the event received from `OMG.Eth`
   """
   @spec apply(%{required(:event_signature) => binary(), optional(any()) => any()}) :: map()
   def apply(%{event_signature: "InFlightExitInput" <> _} = raw_event),
-    do: Map.update(raw_event, :omg_data, %{piggyback_type: :input}, &Map.put(&1, :piggyback_type, :input))
+    do: expand_omg_data_with(raw_event, :piggyback_type, :input)
 
   def apply(%{event_signature: "InFlightExitOutput" <> _} = raw_event),
-    do: Map.update(raw_event, :omg_data, %{piggyback_type: :output}, &Map.put(&1, :piggyback_type, :output))
+    do: expand_omg_data_with(raw_event, :piggyback_type, :output)
 
   def apply(%{event_signature: signature} = other_event) when is_binary(signature), do: other_event
+
+  # expands (or creates if missing) the special field in the event (`:omg_data`) which holds the specific results of
+  # preprocessing in additional fields
+  defp expand_omg_data_with(event, key, value),
+    do: Map.update(event, :omg_data, %{key => value}, &Map.put(&1, key, value))
 end
