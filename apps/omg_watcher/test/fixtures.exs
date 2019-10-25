@@ -157,7 +157,7 @@ defmodule OMG.Watcher.Fixtures do
     _ = Application.load(:omg_watcher_rpc)
 
     on_exit(fn ->
-      TestHelper.wait_for_process(pid)
+      WatcherHelper.wait_for_process(pid)
       :ok
     end)
   end
@@ -176,7 +176,7 @@ defmodule OMG.Watcher.Fixtures do
     :ok = SQL.Sandbox.checkout(DB.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
-      TestHelper.wait_for_process(pid)
+      WatcherHelper.wait_for_process(pid)
       :ok
     end)
   end
