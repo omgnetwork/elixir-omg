@@ -138,15 +138,16 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, [logs_eth, logs_erc20] |> Enum.concat() |> Enum.map(&decode_deposit/1)}
   end
 
-  # FIXME: move to new spot
   @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_address_t) ::
           {:ok, [in_flight_exit_piggybacked_event]}
   def get_piggybacks(block_from, block_to, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "InFlightExitPiggybacked(address,bytes32,uint8)"
+    input_signature = "InFlightExitInputPiggybacked(address,bytes32,uint16)"
+    output_signature = "InFlightExitOutputPiggybacked(address,bytes32,uint16)"
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, &decode_piggybacked/1)}
+    with {:ok, ilogs} <- Eth.get_ethereum_events(block_from, block_to, input_signature, contract),
+         {:ok, ologs} <- Eth.get_ethereum_events(block_from, block_to, output_signature, contract),
+         do: {:ok, ilogs |> Enum.concat(ologs) |> Enum.map(&decode_piggybacked/1)}
   end
 
   @doc """
@@ -207,18 +208,6 @@ defmodule OMG.Eth.RootChain do
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_in_flight_exit_challenge_responded/1)}
-  end
-
-  @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) ::
-          {:ok, [in_flight_exit_piggybacked_event]}
-  def get_piggybacks(block_from, block_to, contract \\ %{}) do
-    contract = maybe_fetch_addr!(contract, :payment_exit_game)
-    input_signature = "InFlightExitInputPiggybacked(address,bytes32,uint16)"
-    output_signature = "InFlightExitOutputPiggybacked(address,bytes32,uint16)"
-
-    with {:ok, ilogs} <- Eth.get_ethereum_events(block_from, block_to, input_signature, contract),
-         {:ok, ologs} <- Eth.get_ethereum_events(block_from, block_to, output_signature, contract),
-         do: {:ok, ilogs |> Enum.concat(ologs) |> Enum.map(&decode_piggybacked/1)}
   end
 
   @doc """
@@ -417,12 +406,6 @@ defmodule OMG.Eth.RootChain do
     {:ok, result}
   end
 
-  # FIXME: move to new spot
-  defp authority(contract) do
-    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    Eth.call_contract(contract, "operator()", [], [:address])
-  end
-
   defp decode_piggyback_challenged(log) do
     non_indexed_keys = [:tx_hash, :output_index]
     non_indexed_key_types = [{:bytes, 32}, {:uint, 16}]
@@ -526,7 +509,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp authority(contract) do
-    contract = maybe_fetch_addr!(contract, :plasma_framework)
+    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "operator()", [], [:address])
   end
 end

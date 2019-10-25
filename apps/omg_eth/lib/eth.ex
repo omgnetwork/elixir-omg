@@ -261,5 +261,6 @@ defmodule OMG.Eth do
     # just copy `event_signature` over, if it's present (could use tidying up)
     |> Map.put_new(:event_signature, event[:event_signature])
   end
+
   defp put_signature(events, signature), do: Enum.map(events, &Map.put(&1, :event_signature, signature))
 end

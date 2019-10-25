@@ -94,11 +94,12 @@ defmodule OMG.Eth.RootChainHelper do
     # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     optional_bytes = ""
 
-    contract = RootChain.maybe_fetch_addr!(contract, :payment_exit_game)
+    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
     signature = "piggybackInFlightExitOnOutput((bytes,uint16,bytes))"
     args = [{in_flight_tx, output_index, optional_bytes}]
-    Eth.contract_transact(from, contract, signature, args, opts)
+    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
   def deposit(tx_bytes, value, from, contract \\ %{}, opts \\ []) do
@@ -129,7 +130,15 @@ defmodule OMG.Eth.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
     backend = Application.fetch_env!(:omg_eth, :eth_node)
-    TransactionHelper.contract_transact(backend, from_hex(from), contract, "addExitQueue(uint256, address)", [vault_id, token], opts)
+
+    TransactionHelper.contract_transact(
+      backend,
+      from_hex(from),
+      contract,
+      "addExitQueue(uint256, address)",
+      [vault_id, token],
+      opts
+    )
   end
 
   def challenge_exit(
