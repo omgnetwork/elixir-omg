@@ -18,7 +18,7 @@ defmodule OMG.State.Core do
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
 
-  defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0, utxo_db_updates: []]
+  defstruct [:height, :utxos, pending_txs: [], tx_index: 0, utxo_db_updates: []]
 
   alias OMG.Block
   alias OMG.Crypto
@@ -36,7 +36,6 @@ defmodule OMG.State.Core do
 
   @type t() :: %__MODULE__{
           height: non_neg_integer(),
-          last_deposit_child_blknum: non_neg_integer(),
           utxos: utxos,
           pending_txs: list(Transaction.Recovered.t()),
           tx_index: non_neg_integer(),
@@ -85,7 +84,6 @@ defmodule OMG.State.Core do
           {:put, :utxo, {Utxo.Position.db_t(), map()}}
           | {:delete, :utxo, Utxo.Position.db_t()}
           | {:put, :child_top_block_number, pos_integer()}
-          | {:put, :last_deposit_child_blknum, pos_integer()}
           | {:put, :block, Block.db_t()}
 
   @type exitable_utxos :: %{
@@ -103,23 +101,15 @@ defmodule OMG.State.Core do
   @spec extract_initial_state(
           utxos_query_result :: [list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})],
           height_query_result :: non_neg_integer() | :not_found,
-          last_deposit_child_blknum_query_result :: non_neg_integer() | :not_found,
           child_block_interval :: pos_integer()
-        ) :: {:ok, t()} | {:error, :last_deposit_not_found | :top_block_number_not_found}
-  def extract_initial_state(
-        utxos_query_result,
-        height_query_result,
-        last_deposit_child_blknum_query_result,
-        child_block_interval
-      )
-      when is_list(utxos_query_result) and is_integer(height_query_result) and
-             is_integer(last_deposit_child_blknum_query_result) and is_integer(child_block_interval) do
+        ) :: {:ok, t()} | {:error, :top_block_number_not_found}
+  def extract_initial_state(utxos_query_result, height_query_result, child_block_interval)
+      when is_list(utxos_query_result) and is_integer(height_query_result) and is_integer(child_block_interval) do
     # extract height, last deposit height and utxos from query result
     height = height_query_result + child_block_interval
 
     state = %__MODULE__{
       height: height,
-      last_deposit_child_blknum: last_deposit_child_blknum_query_result,
       utxos: UtxoSet.init(utxos_query_result)
     }
 
@@ -128,17 +118,7 @@ defmodule OMG.State.Core do
 
   def extract_initial_state(
         _utxos_query_result,
-        _height_query_result,
         :not_found,
-        _child_block_interval
-      ) do
-    {:error, :last_deposit_not_found}
-  end
-
-  def extract_initial_state(
-        _utxos_query_result,
-        :not_found,
-        _last_deposit_child_blknum_query_result,
         _child_block_interval
       ) do
     {:error, :top_block_number_not_found}
@@ -236,30 +216,25 @@ defmodule OMG.State.Core do
     {:ok, {block, event_triggers, db_updates}, new_state}
   end
 
-  @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}
-  def deposit(deposits, %Core{utxos: utxos, last_deposit_child_blknum: last_deposit_child_blknum} = state) do
-    deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_child_blknum))
+  @doc """
+  Processes a deposit event, introducing a UTXO into the ledger's state. From then on it is spendable on the child chain
 
+  **NOTE** this expects that each deposit event is fed to here exactly once, so this must be ensured elsewhere.
+           There's no double-checking of this constraint done here.
+  """
+  @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}
+  def deposit(deposits, %Core{utxos: utxos} = state) do
     new_utxos_map = deposits |> Enum.into(%{}, &deposit_to_utxo/1)
     new_utxos = UtxoSet.apply_effects(utxos, [], new_utxos_map)
-    db_updates_new_utxos = UtxoSet.db_updates([], new_utxos_map)
+    db_updates = UtxoSet.db_updates([], new_utxos_map)
 
     event_triggers =
       deposits
       |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
 
-    last_deposit_child_blknum = get_last_deposit_child_blknum(deposits, last_deposit_child_blknum)
-
-    db_updates = db_updates_new_utxos ++ last_deposit_child_blknum_db_update(deposits, last_deposit_child_blknum)
-
     _ = if deposits != [], do: Logger.info("Recognized deposits #{inspect(deposits)}")
 
-    new_state = %Core{
-      state
-      | utxos: new_utxos,
-        last_deposit_child_blknum: last_deposit_child_blknum
-    }
-
+    new_state = %Core{state | utxos: new_utxos}
     {:ok, {event_triggers, db_updates}, new_state}
   end
 
@@ -405,22 +380,13 @@ defmodule OMG.State.Core do
     |> hd()
   end
 
-  defp get_last_deposit_child_blknum([] = _deposits, current_height), do: current_height
-
-  defp get_last_deposit_child_blknum(deposits, _current_height),
-    do:
-      deposits
-      |> Enum.max_by(& &1.blknum)
-      |> Map.get(:blknum)
-
-  defp last_deposit_child_blknum_db_update([] = deposits, _last_deposit_child_blknum), do: deposits
-
-  defp last_deposit_child_blknum_db_update(_deposits, last_deposit_child_blknum),
-    do: [{:put, :last_deposit_child_blknum, last_deposit_child_blknum}]
-
-  defp find_utxo_matching_piggyback(%{tx_hash: tx_hash, output_index: oindex}, %Core{utxos: utxos}) do
-    # oindex in contract is 0-7 where 4-7 are outputs
-    oindex = oindex - 4
-    UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
-  end
+  # We're looking for a UTXO that a piggyback of an in-flight IFE is referencing.
+  # This is useful when trying to do something with the outputs that are piggybacked (like exit them), without their
+  # position.
+  # Only relevant for output piggybacks
+  defp find_utxo_matching_piggyback(
+         %{omg_data: %{piggyback_type: :output}, tx_hash: tx_hash, output_index: oindex},
+         %Core{utxos: utxos}
+       ),
+       do: UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
 end

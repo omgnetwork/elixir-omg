@@ -106,10 +106,6 @@ if Code.ensure_loaded?(:rocksdb) do
       GenServer.call(server_name, {:block_hashes, block_numbers_to_fetch})
     end
 
-    def last_deposit_child_blknum(server_name \\ @server_name) do
-      GenServer.call(server_name, :last_deposit_child_blknum)
-    end
-
     def child_top_block_number(server_name \\ @server_name) do
       GenServer.call(server_name, :child_top_block_number)
     end

@@ -70,7 +70,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    :ok = IntegrationTest.process_exits(@eth, alice)
+    :ok = IntegrationTest.process_exits(1, @eth, alice)
 
     expected_event =
       %Event.ExitFinalized{

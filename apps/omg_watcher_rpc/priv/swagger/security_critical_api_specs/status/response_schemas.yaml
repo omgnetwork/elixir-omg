@@ -15,7 +15,8 @@ StatusResponseSchema:
         last_mined_child_block_number: 11000
         last_seen_eth_block_timestamp: 1558535190
         last_seen_eth_block_number: 4427041
-        contract_addr: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
+        contract_addr:
+          plasma_framework: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
         eth_syncing: true
         byzantine_events:
         -
