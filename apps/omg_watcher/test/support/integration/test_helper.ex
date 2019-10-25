@@ -22,13 +22,13 @@ defmodule OMG.Watcher.Integration.TestHelper do
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WaitFor
+  alias Support.WatcherHelper
 
   require Utxo
-  import Support.WatcherHelper
 
   def wait_for_byzantine_events(event_names, timeout) do
     fn ->
-      %{"byzantine_events" => emitted_events} = success?("/status.get")
+      %{"byzantine_events" => emitted_events} = WatcherHelper.success?("/status.get")
       emitted_event_names = Enum.map(emitted_events, &String.to_atom(&1["event"]))
 
       all_events =
