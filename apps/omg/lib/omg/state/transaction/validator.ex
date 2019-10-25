@@ -33,7 +33,7 @@ defmodule OMG.State.Transaction.Validator do
           | :fees_not_covered
           | :input_utxo_ahead_of_state
           | :too_many_transactions_in_block
-          | :unauthorized_spent
+          | :unauthorized_spend
           | :utxo_not_found
 
   @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
@@ -74,12 +74,12 @@ defmodule OMG.State.Transaction.Validator do
 
   # Checks the outputs spent by this transaction have been authorized by correct witnesses
   @spec authorized?(list(Output.Protocol.t()), list(Transaction.Witness.t()), Transaction.Protocol.t()) ::
-          :ok | {:error, :unauthorized_spent}
+          :ok | {:error, :unauthorized_spend}
   defp authorized?(outputs_spent, witnesses, raw_tx) do
     outputs_spent
     |> Enum.with_index()
     |> Enum.map(fn {output_spent, idx} -> OMG.Output.Protocol.can_spend?(output_spent, witnesses[idx], raw_tx) end)
     |> Enum.all?()
-    |> if(do: :ok, else: {:error, :unauthorized_spent})
+    |> if(do: :ok, else: {:error, :unauthorized_spend})
   end
 end
