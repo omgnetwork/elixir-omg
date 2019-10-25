@@ -83,13 +83,13 @@ install_linux_rocksdb(){
 install_darwin_deps(){
     fancy_echo "Installing dependencies via brew"
     brew bundle --file=- <<EOF
+tap "ethereum/ethereum"
 brew "automake"
 brew "autoconf"
 brew "gmp"
 brew "libtool"
 brew "cmake"
 brew "rocksdb"
-brew "tap ethereum/ethereum"
 brew "solidity"
 EOF
 }
