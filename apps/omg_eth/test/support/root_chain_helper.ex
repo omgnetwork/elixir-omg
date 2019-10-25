@@ -171,7 +171,7 @@ defmodule OMG.Eth.RootChainHelper do
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
-  def init_authority(from \\ nil, contract \\ %{}, opts \\ []) do
+  def activate_child_chain(from \\ nil, contract \\ %{}, opts \\ []) do
     defaults = Keyword.put(@tx_defaults, :gas, @gas_init)
     opts = Keyword.merge(defaults, opts)
 
@@ -179,7 +179,7 @@ defmodule OMG.Eth.RootChainHelper do
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
     backend = Application.fetch_env!(:omg_eth, :eth_node)
 
-    TransactionHelper.contract_transact(backend, from, contract, "initAuthority()", [], opts)
+    TransactionHelper.contract_transact(backend, from, contract, "activateChildChain()", [], opts)
   end
 
   def in_flight_exit(
@@ -201,16 +201,13 @@ defmodule OMG.Eth.RootChainHelper do
 
     # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     optional_bytes_array = List.duplicate("", Enum.count(input_txs))
-    # NOTE: this in particular will go away, since separate specification of input tx types isn't necessary
-    # c.f.: https://github.com/omisego/plasma-contracts/issues/338
-    input_tx_types = List.duplicate(1, Enum.count(input_txs))
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "startInFlightExit((bytes,bytes[],uint256[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[]))"
+    signature = "startInFlightExit((bytes,bytes[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[]))"
 
     args = [
-      {in_flight_tx, input_txs, input_tx_types, input_utxos_pos, optional_bytes_array, input_txs_inclusion_proofs,
-       optional_bytes_array, in_flight_tx_sigs, optional_bytes_array}
+      {in_flight_tx, input_txs, input_utxos_pos, optional_bytes_array, input_txs_inclusion_proofs, optional_bytes_array,
+       in_flight_tx_sigs, optional_bytes_array}
     ]
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)

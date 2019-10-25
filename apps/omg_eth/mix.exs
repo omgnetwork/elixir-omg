@@ -39,7 +39,7 @@ defmodule OMG.Eth.MixProject do
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
         branch: "master",
-        sparse: "contracts/",
+        sparse: "plasma_framework/contracts/",
         compile:
           contracts_compile("plasma_contracts", [
             "plasma_framework/contracts/src/framework/PlasmaFramework.sol",

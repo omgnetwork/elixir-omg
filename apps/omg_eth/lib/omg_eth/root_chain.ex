@@ -384,12 +384,11 @@ defmodule OMG.Eth.RootChain do
 
   defp prepare_in_flight_exit_started(logs) do
     args = [:args]
-    types = ["(bytes,bytes[],uint256[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[])"]
+    types = ["(bytes,bytes[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[])"]
 
     tuple_arg_names = [
       :in_flight_tx,
       :input_txs,
-      :input_tx_types,
       :input_utxos_pos,
       :output_guard_preimages_for_inputs,
       :input_inclusion_proofs,
@@ -510,6 +509,6 @@ defmodule OMG.Eth.RootChain do
 
   defp authority(contract) do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    Eth.call_contract(contract, "operator()", [], [:address])
+    Eth.call_contract(contract, "authority()", [], [:address])
   end
 end

@@ -40,8 +40,20 @@ defmodule OMG.Eth.Deployer do
     |> deploy_contract(from, gas, opts)
   end
 
-  def create_new("PlasmaFramework" = name, path_project_root, from, [exit_period_seconds: exit_period_seconds], opts) do
-    args = [{{:uint, 256}, exit_period_seconds}, {{:uint, 256}, 2}, {{:uint, 256}, 1}]
+  def create_new(
+        "PlasmaFramework" = name,
+        path_project_root,
+        from,
+        [exit_period_seconds: exit_period_seconds, authority: authority, maintainer: maintainer],
+        opts
+      ) do
+    args = [
+      {{:uint, 256}, exit_period_seconds},
+      {{:uint, 256}, 2},
+      {{:uint, 256}, 1},
+      {:address, authority},
+      {:address, maintainer}
+    ]
 
     get_bytecode!(path_project_root, name)
     |> deploy_contract(from, @gas_contract_rootchain, args, opts)

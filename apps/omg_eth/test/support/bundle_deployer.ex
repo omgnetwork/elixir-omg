@@ -53,9 +53,13 @@ defmodule OMG.Eth.BundleDeployer do
     transactions_before = get_transaction_count(deployer_addr)
 
     {:ok, txhash, plasma_framework_addr} =
-      Deployer.create_new("PlasmaFramework", root_path, deployer_addr, exit_period_seconds: exit_period_seconds)
+      Deployer.create_new("PlasmaFramework", root_path, deployer_addr,
+        exit_period_seconds: exit_period_seconds,
+        authority: authority,
+        maintainer: deployer_addr
+      )
 
-    {:ok, _} = Eth.RootChainHelper.init_authority(authority, %{plasma_framework: plasma_framework_addr})
+    {:ok, _} = Eth.RootChainHelper.activate_child_chain(authority, %{plasma_framework: plasma_framework_addr})
     {:ok, _, eth_deposit_verifier_addr} = Deployer.create_new("EthDepositVerifier", root_path, deployer_addr, [])
     {:ok, _, erc20_deposit_verifier_addr} = Deployer.create_new("Erc20DepositVerifier", root_path, deployer_addr, [])
 
