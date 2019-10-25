@@ -28,5 +28,6 @@ defmodule OMG.Bus.MixProject do
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:prod), do: ["lib"]
   defp elixirc_paths(_), do: ["lib", "test/support"]
+
   defp deps, do: [{:phoenix_pubsub, "~> 1.0"}]
 end
