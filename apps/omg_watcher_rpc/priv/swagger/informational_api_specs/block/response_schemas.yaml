@@ -1,6 +1,6 @@
 BlocksAllResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -17,7 +17,7 @@ BlocksAllResponseSchema:
 
 BlockResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
