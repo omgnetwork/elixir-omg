@@ -267,6 +267,18 @@ init:
 #  find .git/hooks -type l -exec rm {} \;
 #  find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
 
+###
+### SWAGGER openapi
+###
+security_critical_api_specs:
+	swagger-combine apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs/swagger.yaml --debug --dereference -o apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml
+
+informational_api_specs:
+	swagger-combine apps/omg_watcher_rpc/priv/swagger/informational_api_specs/swagger.yaml --debug --dereference -o apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml
+
+operator_api_specs:
+	swagger-combine apps/omg_watcher_rpc/priv/swagger/informational_api_specs/swagger.yaml --debug --dereference -o apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml
+
 ### UTILS
 OSFLAG := ''
 UNAME_S := $(shell uname -s)
