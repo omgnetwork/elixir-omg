@@ -22,8 +22,6 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculatorTest do
   alias OMG.ChildChain.BlockQueue.GasPriceCalculator
   alias OMG.ChildChain.BlockQueue.GasPriceAdjustment
 
-  @child_block_interval 1000
-
   doctest OMG.ChildChain.BlockQueue.GasPriceCalculator
 
   describe "adjust_gas_price/1" do
@@ -38,8 +36,9 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculatorTest do
       }
 
       assert GasPriceCalculator.adjust_gas_price(state) == %{
-        state | gas_price_adj_params: %GasPriceAdjustment{last_block_mined: {8, 10_000}}
-      }
+               state
+               | gas_price_adj_params: %GasPriceAdjustment{last_block_mined: {8, 10_000}}
+             }
     end
 
     test "returns the passed state when the parent height is inferior or equal to the last checked height" do
@@ -90,10 +89,11 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculatorTest do
       }
 
       assert GasPriceCalculator.adjust_gas_price(state) == %{
-        state |
-          gas_price_to_use: 2_000, # 1_000 * 2
-          last_parent_height: 10
-      }
+               state
+               | # 1_000 * 2
+                 gas_price_to_use: 2_000,
+                 last_parent_height: 10
+             }
     end
 
     # gas price #2: lowering factor when not (blocks needs to be mined, eth blocks gap filled, and no new blocks mined)
@@ -114,13 +114,11 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculatorTest do
       }
 
       assert GasPriceCalculator.adjust_gas_price(state) == %{
-        state |
-          gas_price_to_use: 900,
-          last_parent_height: 10
-      }
+               state
+               | gas_price_to_use: 900,
+                 last_parent_height: 10
+             }
     end
-
-    # gas price #4: last_checked_mined_block_num < mined_child_block_num -> {parent_height, mined_child_block_num}
 
     # gas price #3: max gas price defined in adjustment
     test "sets the max gas price (1_000) when lower than the raising factor * the given gas price to use (1_200)" do
@@ -139,16 +137,41 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculatorTest do
       }
 
       assert GasPriceCalculator.adjust_gas_price(state) == %{
-        state |
-          gas_price_to_use: 1000,
-          last_parent_height: 10,
-          gas_price_adj_params: %GasPriceAdjustment{
-            max_gas_price: 1_000,
-            last_block_mined: {8, 8_000}
-          }
-      }
+               state
+               | gas_price_to_use: 1000,
+                 last_parent_height: 10,
+                 gas_price_adj_params: %GasPriceAdjustment{
+                   max_gas_price: 1_000,
+                   last_block_mined: {8, 8_000}
+                 }
+             }
     end
 
+    # gas price #4: last_checked_mined_block_num < mined_child_block_num -> {parent_height, mined_child_block_num}
+    test "sets the max_gas_price and updates last_block_mined" do
+      state = %{
+        blocks: get_blocks(10),
+        formed_child_block_num: 10_000,
+        mined_child_block_num: 9_000,
+        child_block_interval: 1_000,
+        parent_height: 9,
+        last_parent_height: 8,
+        gas_price_to_use: 1_000,
+        gas_price_adj_params: %GasPriceAdjustment{
+          max_gas_price: 10_000,
+          last_block_mined: {8, 8_000}
+        }
+      }
 
+      assert GasPriceCalculator.adjust_gas_price(state) == %{
+               state
+               | gas_price_to_use: 900,
+                 last_parent_height: 9,
+                 gas_price_adj_params: %GasPriceAdjustment{
+                   max_gas_price: 10_000,
+                   last_block_mined: {9, 9_000}
+                 }
+             }
+    end
   end
 end

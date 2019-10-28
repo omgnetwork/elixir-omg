@@ -14,7 +14,7 @@
 
 defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
   @moduledoc """
-
+  Contains the functions handling gas price calculations for block submission.
   """
 
   alias OMG.ChildChain.BlockQueue
@@ -25,11 +25,41 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
   use OMG.Utils.LoggerExt
 
   @zero_bytes32 <<0::size(256)>>
-
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
-  # Updates gas price to use basing on :calculate_gas_price function, updates current parent height
-  # and last mined child block number in the state which used by gas price calculations
+  @doc ~S"""
+  Updates gas price to use basing on :calculate_gas_price function, updates current parent height
+  and last mined child block number in the state which used by gas price calculations.
+
+  ## Examples
+
+      iex> GasPriceCalculator.adjust_gas_price(%{
+      ...>   blocks: get_blocks(10),
+      ...>   formed_child_block_num: 10_000,
+      ...>   mined_child_block_num: 9_000,
+      ...>   child_block_interval: 1_000,
+      ...>   parent_height: 9,
+      ...>   last_parent_height: 8,
+      ...>   gas_price_to_use: 1_000,
+      ...>   gas_price_adj_params: %GasPriceAdjustment{
+      ...>     max_gas_price: 10_000,
+      ...>     last_block_mined: {8, 8_000}
+      ...>   }
+      ...> })
+      %{
+        blocks: get_blocks(10),
+        formed_child_block_num: 10_000,
+        mined_child_block_num: 9_000,
+        child_block_interval: 1_000,
+        parent_height: 9,
+        last_parent_height: 9,
+        gas_price_to_use: 900,
+        gas_price_adj_params: %GasPriceAdjustment{
+          max_gas_price: 10_000,
+          last_block_mined: {9, 9_000}
+        }
+      }
+  """
   @spec adjust_gas_price(BlockQueueState.t()) :: BlockQueueState.t()
   def adjust_gas_price(
         %{
@@ -45,23 +75,23 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
     }
   end
 
-  def adjust_gas_price(%{
-    blocks: blocks,
-    formed_child_block_num: formed_child_block_num,
-    mined_child_block_num: mined_child_block_num,
-    child_block_interval: child_block_interval,
-    parent_height: parent_height,
-    last_parent_height: last_parent_height,
-    gas_price_to_use: gas_price_to_use
-  } = state) do
+  def adjust_gas_price(
+        %{
+          blocks: blocks,
+          formed_child_block_num: formed_child_block_num,
+          mined_child_block_num: mined_child_block_num,
+          child_block_interval: child_block_interval,
+          parent_height: parent_height,
+          last_parent_height: last_parent_height,
+          gas_price_to_use: gas_price_to_use
+        } = state
+      ) do
     case parent_height <= last_parent_height ||
            !Enum.find(blocks, BlockQueueSubmitter.pending_mining_filter_func(state)) do
       true ->
-        IO.inspect("returning super early")
         state
 
       false ->
-        IO.inspect(1)
         new_gas_price = calculate_gas_price(state)
         _ = Logger.debug("using new gas price '#{inspect(new_gas_price)}'")
 
@@ -84,7 +114,6 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
          } = state
        ) do
     if last_checked_mined_block_num < mined_child_block_num do
-      IO.inspect("returning early")
       %{
         state
         | gas_price_adj_params:
@@ -104,9 +133,6 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
            gas_price_adj_params: %GasPriceAdjustment{max_gas_price: max_gas_price}
          } = state
        ) do
-    IO.inspect("abc")
-    IO.inspect(max_gas_price)
-    IO.inspect(Kernel.round(calculate_multiplier(state) * gas_price_to_use))
     Kernel.min(
       max_gas_price,
       Kernel.round(calculate_multiplier(state) * gas_price_to_use)
@@ -129,13 +155,9 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceCalculator do
     with true <- blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num),
          true <- eth_blocks_gap_filled?(parent_height, last_checked_parent_height, eth_gap_without_child_blocks),
          false <- new_blocks_mined?(mined_child_block_num, last_checked_mined_block_num) do
-      IO.inspect("Raising factor")
-      IO.inspect(gas_price_raising_factor)
       gas_price_raising_factor
     else
       _ ->
-        IO.inspect("lowering factor")
-        IO.inspect(gas_price_lowering_factor)
         gas_price_lowering_factor
     end
   end
