@@ -22,7 +22,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias OMG.TestHelper, as: Test
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   require OMG.State.Transaction.Payment
 
@@ -40,7 +40,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
         txhash_enc = Encoding.to_hex(txhash)
 
         assert %{"block" => %{"blknum" => ^blknum}, "txhash" => ^txhash_enc, "txindex" => ^txindex} =
-                 TestHelper.success?("transaction.get", %{id: txhash_enc})
+                 WatcherHelper.success?("transaction.get", %{id: txhash_enc})
       end)
     end
 
@@ -100,7 +100,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "txbytes" => txbytes,
                "txindex" => ^txindex,
                "metadata" => ^metadata
-             } = TestHelper.success?("transaction.get", %{"id" => txhash})
+             } = WatcherHelper.success?("transaction.get", %{"id" => txhash})
 
       assert {:ok, _} = Encoding.from_hex(txbytes)
     end
@@ -134,7 +134,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "outputs" => [%{"amount" => 1}, %{"amount" => 2}, %{"amount" => 3}, %{"amount" => 4}],
                "txhash" => ^txhash,
                "txindex" => 1
-             } = TestHelper.success?("transaction.get", %{"id" => txhash})
+             } = WatcherHelper.success?("transaction.get", %{"id" => txhash})
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -145,7 +145,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "object" => "error",
                "code" => "transaction:not_found",
                "description" => "Transaction doesn't exist for provided search criteria"
-             } == TestHelper.no_success?("transaction.get", %{"id" => txhash})
+             } == WatcherHelper.no_success?("transaction.get", %{"id" => txhash})
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -160,7 +160,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "validator" => "{:length, 32}"
                  }
                }
-             } == TestHelper.no_success?("transaction.get", %{"id" => "0x50e901b98fe3389e32d56166a13a88208b03ea75"})
+             } == WatcherHelper.no_success?("transaction.get", %{"id" => "0x50e901b98fe3389e32d56166a13a88208b03ea75"})
     end
   end
 
@@ -376,7 +376,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    %{"currency" => ^not_eth_enc, "value" => 9}
                  ]
                }
-             ] = TestHelper.success?("transaction.all")
+             ] = WatcherHelper.success?("transaction.all")
     end
 
     @tag fixtures: [:initial_blocks]
@@ -497,7 +497,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       "success" => true,
       "data" => data,
       "data_paging" => paging
-    } = TestHelper.rpc_call("transaction.all", body, 200)
+    } = WatcherHelper.rpc_call("transaction.all", body, 200)
 
     {data, paging}
   end
@@ -525,7 +525,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "validator" => ":hex"
                  }
                }
-             } == TestHelper.no_success?("transaction.submit", %{"transaction" => hex_without_0x})
+             } == WatcherHelper.no_success?("transaction.submit", %{"transaction" => hex_without_0x})
     end
 
     @tag fixtures: [:alice, :phoenix_ecto_sandbox]
@@ -536,7 +536,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "code" => "submit:duplicate_inputs",
                "description" => nil,
                "object" => "error"
-             } == TestHelper.no_success?("transaction.submit", %{"transaction" => Encoding.to_hex(signed_bytes)})
+             } == WatcherHelper.no_success?("transaction.submit", %{"transaction" => Encoding.to_hex(signed_bytes)})
     end
   end
 
@@ -583,7 +583,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "validator" => ":map"
                  }
                }
-             } == TestHelper.no_success?("transaction.submit_typed", req_without_domain)
+             } == WatcherHelper.no_success?("transaction.submit_typed", req_without_domain)
 
       req_without_message = Map.drop(typed_data_request, ["message"])
 
@@ -597,7 +597,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "validator" => ":map"
                  }
                }
-             } == TestHelper.no_success?("transaction.submit_typed", req_without_message)
+             } == WatcherHelper.no_success?("transaction.submit_typed", req_without_message)
 
       req_without_sigs = Map.drop(typed_data_request, ["signatures"])
 
@@ -611,7 +611,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "validator" => ":list"
                  }
                }
-             } == TestHelper.no_success?("transaction.submit_typed", req_without_sigs)
+             } == WatcherHelper.no_success?("transaction.submit_typed", req_without_sigs)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :typed_data_request]
@@ -627,7 +627,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  "Signatures should correspond to inputs owner. When all non-empty inputs has the same owner, " <>
                    "signatures should be duplicated.",
                "object" => "error"
-             } == TestHelper.no_success?("transaction.submit_typed", too_little_sigs)
+             } == WatcherHelper.no_success?("transaction.submit_typed", too_little_sigs)
 
       # Providing 2 non-zero inputs & 4 signatures
       too_many_sigs =
@@ -639,7 +639,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "description" =>
                  "Number of non-empty inputs should match signatures count. Remove redundant signatures.",
                "object" => "error"
-             } == TestHelper.no_success?("transaction.submit_typed", too_many_sigs)
+             } == WatcherHelper.no_success?("transaction.submit_typed", too_many_sigs)
     end
   end
 
@@ -696,7 +696,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                ]
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => alice_addr,
@@ -727,7 +727,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                ]
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -779,7 +779,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                ]
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -802,7 +802,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "result" => "complete",
                "transactions" => [%{"txbytes" => tx_hex}]
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -831,7 +831,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "result" => "intermediate",
                "transactions" => transactions
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -858,7 +858,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "result" => "intermediate",
                "transactions" => [transaction]
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -887,7 +887,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "result" => "complete",
                "transactions" => [%{"txbytes" => tx_hex}]
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -921,7 +921,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "result" => "complete",
                "transactions" => [%{"txbytes" => tx_hex}]
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -954,7 +954,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "result" => "intermediate",
                "transactions" => transactions
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -989,7 +989,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "description" => "Account balance is too low to satisfy the payment.",
                "messages" => [%{"token" => @eth_hex, "missing" => payment + fee - balance}]
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -1013,7 +1013,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "description" => "Account balance is too low to satisfy the payment.",
                "messages" => [%{"token" => @eth_hex, "missing" => payment + fee}]
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(bob.addr),
@@ -1043,7 +1043,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                ]
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -1064,7 +1064,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "code" => "transaction.create:too_many_outputs",
                "description" => "Total number of payments + change + fees exceed maximum allowed outputs."
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -1089,7 +1089,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "result" => "complete",
                "transactions" => [%{"txbytes" => tx_hex}]
              } =
-               TestHelper.success?(
+               WatcherHelper.success?(
                  "transaction.create",
                  %{
                    "owner" => alice_addr,
@@ -1106,7 +1106,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     defp balance_in_token(address, token) do
       currency = Encoding.to_hex(token)
 
-      TestHelper.get_balance(address)
+      WatcherHelper.get_balance(address)
       |> Enum.find_value(0, fn
         %{"currency" => ^currency, "amount" => amount} -> amount
         _ -> false
@@ -1116,7 +1116,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     defp max_amount_spendable_in_single_tx(address, token) do
       currency = Encoding.to_hex(token)
 
-      TestHelper.get_utxos(address)
+      WatcherHelper.get_utxos(address)
       |> Stream.filter(&(&1["currency"] == currency))
       |> Enum.sort_by(& &1["amount"], &>=/2)
       |> Stream.take(Transaction.Payment.max_inputs())
@@ -1154,7 +1154,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "code" => "transaction.create:empty_transaction",
                "description" => "Requested payment transfers no funds."
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{"owner" => alice_addr, "payments" => [], "fee" => %{"amount" => 0, "currency" => @eth_hex}}
                )
@@ -1175,7 +1175,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                }
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{
                    "owner" => alice_addr,
@@ -1198,7 +1198,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  "validation_error" => %{"parameter" => "payments", "validator" => "{:too_many_payments, 4}"}
                }
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{
                    "owner" => alice_addr,
@@ -1221,7 +1221,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                }
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{"owner" => "not-a-hex"}
                )
@@ -1240,7 +1240,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                }
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -1264,7 +1264,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                }
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -1287,7 +1287,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                }
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
@@ -1310,7 +1310,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                }
              } ==
-               TestHelper.no_success?(
+               WatcherHelper.no_success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),

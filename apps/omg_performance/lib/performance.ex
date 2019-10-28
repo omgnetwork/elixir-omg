@@ -60,10 +60,10 @@ defmodule OMG.Performance do
   use OMG.Utils.LoggerExt
 
   alias OMG.Crypto
-  alias OMG.Integration.DepositHelper
   alias OMG.Performance.ByzantineEvents
   alias OMG.TestHelper
   alias OMG.Utxo
+  alias Support.Integration.DepositHelper
 
   require Utxo
 

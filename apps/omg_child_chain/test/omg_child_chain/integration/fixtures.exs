@@ -20,8 +20,8 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
   alias OMG.Eth
   alias OMG.TestHelper
-
-  import OMG.Integration.DepositHelper
+  alias Support.DevHelper
+  alias Support.Integration.DepositHelper
 
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)
@@ -68,11 +68,11 @@ defmodule OMG.ChildChain.Integration.Fixtures do
   defp prepare_deposits(alice, token_addr) do
     some_value = 10
 
-    {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
+    {:ok, _} = DevHelper.import_unlock_fund(alice)
 
-    deposit_blknum = deposit_to_child_chain(alice.addr, some_value)
-    {:ok, _} = Eth.Token.mint(alice.addr, some_value, token_addr) |> Eth.DevHelpers.transact_sync!()
-    token_deposit_blknum = deposit_to_child_chain(alice.addr, some_value, token_addr)
+    deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value)
+    {:ok, _} = Eth.Token.mint(alice.addr, some_value, token_addr) |> DevHelper.transact_sync!()
+    token_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value, token_addr)
 
     {deposit_blknum, token_deposit_blknum}
   end

@@ -21,7 +21,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   require Utxo
 
@@ -42,7 +42,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
                  "input_utxos_pos" => input_utxos_pos,
                  "input_txs_inclusion_proofs" => proofs,
                  "in_flight_tx_sigs" => sigs
-               } = TestHelper.get_in_flight_exit(in_flight_signed_txbytes)
+               } = WatcherHelper.get_in_flight_exit(in_flight_signed_txbytes)
 
         input_txs = Enum.map(input_txs, &Transaction.decode!/1)
 
@@ -100,13 +100,13 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
       assert %{
                "code" => "in_flight_exit:tx_for_input_not_found",
                "description" => "No transaction that created input."
-             } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
+             } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
     end
 
     @tag fixtures: [:web_endpoint]
     test "behaves well if input malformed" do
       assert %{"code" => "get_in_flight_exit:malformed_transaction"} =
-               TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x00"})
+               WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x00"})
     end
 
     @tag fixtures: [:web_endpoint]
@@ -120,12 +120,12 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
                    "validator" => ":hex"
                  }
                }
-             } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "tx"})
+             } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "tx"})
 
       assert %{
                "code" => "get_in_flight_exit:malformed_transaction_rlp",
                "object" => "error"
-             } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x1234"})
+             } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x1234"})
     end
   end
 end

@@ -15,13 +15,13 @@ alias OMG.Eth
 alias OMG.DevCrypto
 alias OMG.State.Transaction
 alias OMG.TestHelper
-alias OMG.Integration.DepositHelper
+alias Support.Integration.DepositHelper
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Eth.RootChain.eth_pseudo_address()
 
-{:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
+{:ok, _} = Support.DevHelper.import_unlock_fund(alice)
 
 child_chain_url = "localhost:9656"
 

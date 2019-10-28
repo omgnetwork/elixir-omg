@@ -23,8 +23,8 @@ defmodule OMG.EthTest do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.DevHelpers
   alias OMG.Eth.Encoding
+  alias Support.DevHelper
 
   use ExUnit.Case, async: false
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
@@ -76,7 +76,7 @@ defmodule OMG.EthTest do
           contract
         )
 
-      assert {:ok, _} = DevHelpers.transact_sync!(response)
+      assert {:ok, _} = DevHelper.transact_sync!(response)
     end
   end
 end

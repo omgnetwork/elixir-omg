@@ -14,10 +14,10 @@
 
 defmodule OMG.Eth.RootChainTest do
   alias OMG.Eth
-  alias OMG.Eth.DevHelpers
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
-  alias OMG.Eth.RootChainHelper
+  alias Support.DevHelper
+  alias Support.RootChainHelper
 
   use ExUnit.Case, async: false
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
@@ -104,7 +104,7 @@ defmodule OMG.Eth.RootChainTest do
 
       {:ok, tx_hash} =
         RootChainHelper.deposit(tx, 1, contract.authority_address, contract)
-        |> DevHelpers.transact_sync!()
+        |> DevHelper.transact_sync!()
 
       {:ok, height} = Eth.get_ethereum_height()
 

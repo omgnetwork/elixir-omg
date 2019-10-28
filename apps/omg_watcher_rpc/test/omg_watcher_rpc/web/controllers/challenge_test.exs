@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
 
   alias OMG.Utxo
   alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   require Utxo
 
@@ -48,7 +48,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
       "utxo_pos" => _utxo_pos,
       "sig" => _sig,
       "txbytes" => _txbytes
-    } = TestHelper.success?("utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})
+    } = WatcherHelper.success?("utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})
   end
 
   @tag skip: true
@@ -59,7 +59,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
     %{
       "code" => "challenge:invalid",
       "description" => "The challenge of particular exit is invalid because provided utxo is not spent"
-    } = TestHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})
+    } = WatcherHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
@@ -74,12 +74,12 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
                  "validator" => ":integer"
                }
              }
-           } == TestHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => "1200000120000"})
+           } == WatcherHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => "1200000120000"})
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles too low utxo position inputs" do
     assert %{"object" => "error", "code" => "get_utxo_challenge:encoded_utxo_position_too_low"} =
-             TestHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => 1000})
+             WatcherHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => 1000})
   end
 end

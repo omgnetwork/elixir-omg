@@ -29,7 +29,7 @@ defmodule OMG.Performance.Fixtures do
     config_file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-    #{OMG.Eth.DevHelpers.create_conf_file(contract)}
+    #{Support.DevHelper.create_conf_file(contract)}
 
     config :omg_db, path: "#{db_path}"
     # this causes the inner test watcher server process to log debug. To see these logs adjust test's log level

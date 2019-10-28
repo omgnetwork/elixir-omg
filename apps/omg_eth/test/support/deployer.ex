@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Deployer do
+defmodule Support.Deployer do
   @moduledoc """
   Handling of contract deployments - intended only for testing and `:dev` environment
   """
@@ -137,7 +137,7 @@ defmodule OMG.Eth.Deployer do
     {types, args} = Enum.unzip(types_args)
 
     do_deploy_contract(from, bytecode, types, args, opts)
-    |> Eth.DevHelpers.deploy_sync!()
+    |> Support.DevHelper.deploy_sync!()
   end
 
   defp get_bytecode!(path_project_root, contract_name) do

@@ -22,6 +22,8 @@ defmodule OMG.DependencyConformance.SignatureTest do
   alias OMG.Eth
   alias OMG.State.Transaction
   alias OMG.TestHelper
+  alias Support.Deployer
+  alias Support.DevNode
 
   use ExUnit.Case, async: false
 
@@ -34,13 +36,12 @@ defmodule OMG.DependencyConformance.SignatureTest do
   @token TestHelper.generate_entity().addr
 
   setup_all do
-    {:ok, exit_fn} = Eth.DevNode.start()
+    {:ok, exit_fn} = DevNode.start()
 
     root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
-    {:ok, _, signtest_addr} =
-      Eth.Deployer.create_new("PaymentEip712LibMock", root_path, Eth.Encoding.from_hex(addr), [])
+    {:ok, _, signtest_addr} = Deployer.create_new("PaymentEip712LibMock", root_path, Eth.Encoding.from_hex(addr), [])
 
     # impose our testing signature contract wrapper (mock) as the validating contract, which normally would be
     # plasma framework

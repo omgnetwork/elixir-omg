@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.BundleDeployer do
+defmodule Support.BundleDeployer do
   @moduledoc """
   Convenience module that performs the entire root chain contract suite (plasma framework + exit games) deployment for
   tests
   """
 
   alias OMG.Eth
-  alias OMG.Eth.Deployer
   alias OMG.Eth.TransactionHelper
+  alias Support.Deployer
+  alias Support.RootChainHelper
 
   use OMG.Utils.LoggerExt
 
@@ -59,7 +60,7 @@ defmodule OMG.Eth.BundleDeployer do
         maintainer: deployer_addr
       )
 
-    {:ok, _} = Eth.RootChainHelper.activate_child_chain(authority, %{plasma_framework: plasma_framework_addr})
+    {:ok, _} = RootChainHelper.activate_child_chain(authority, %{plasma_framework: plasma_framework_addr})
     {:ok, _, eth_deposit_verifier_addr} = Deployer.create_new("EthDepositVerifier", root_path, deployer_addr, [])
     {:ok, _, erc20_deposit_verifier_addr} = Deployer.create_new("Erc20DepositVerifier", root_path, deployer_addr, [])
 
@@ -184,8 +185,8 @@ defmodule OMG.Eth.BundleDeployer do
       )
 
     {:ok, _} =
-      Eth.RootChainHelper.add_exit_queue(1, @eth, %{plasma_framework: plasma_framework_addr})
-      |> Eth.DevHelpers.transact_sync!()
+      RootChainHelper.add_exit_queue(1, @eth, %{plasma_framework: plasma_framework_addr})
+      |> Support.DevHelper.transact_sync!()
 
     expected_count_of_transactions = 29
     assert_count_of_mined_transactions(deployer_addr, transactions_before, expected_count_of_transactions)

@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
   use OMG.Watcher.Fixtures
 
   alias OMG.Utxo
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -31,7 +31,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
              "description" => "Utxo was spent or does not exist.",
              "object" => "error"
            } ==
-             TestHelper.no_success?("utxo.get_exit_data", %{
+             WatcherHelper.no_success?("utxo.get_exit_data", %{
                "utxo_pos" => Utxo.position(7001, 1, 0) |> Utxo.Position.encode()
              })
   end
@@ -43,7 +43,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
              "description" => "Utxo was spent or does not exist.",
              "object" => "error"
            } ==
-             TestHelper.no_success?("utxo.get_exit_data", %{
+             WatcherHelper.no_success?("utxo.get_exit_data", %{
                "utxo_pos" => Utxo.position(7000, 1, 0) |> Utxo.Position.encode()
              })
   end
@@ -64,7 +64,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
       "utxo_pos" => _utxo_pos,
       "txbytes" => _txbytes,
       "proof" => proof
-    } = TestHelper.get_exit_data(1000, 0, 0)
+    } = WatcherHelper.get_exit_data(1000, 0, 0)
 
     assert <<_proof::bytes-size(512)>> = proof
   end
@@ -77,7 +77,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
              "object" => "error",
              "code" => "exit:invalid",
              "description" => "Utxo was spent or does not exist."
-           } = TestHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
+           } = WatcherHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
   end
 
   @tag fixtures: [:blocks_inserter, :alice]
@@ -108,7 +108,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
         "txindex" => 1,
         "oindex" => 0
       }
-    ] = TestHelper.get_utxos(alice.addr) |> Enum.filter(&match?(%{"blknum" => ^blknum}, &1))
+    ] = WatcherHelper.get_utxos(alice.addr) |> Enum.filter(&match?(%{"blknum" => ^blknum}, &1))
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
@@ -123,12 +123,12 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
                  "validator" => ":integer"
                }
              }
-           } == TestHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => "1200000120000"})
+           } == WatcherHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => "1200000120000"})
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles too low utxo position inputs" do
     assert %{"object" => "error", "code" => "get_utxo_exit:encoded_utxo_position_too_low"} =
-             TestHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => 1000})
+             WatcherHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => 1000})
   end
 end
