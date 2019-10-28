@@ -245,7 +245,7 @@ defmodule OMG.State.CoreTest do
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
     |> do_deposit(bob, %{amount: 20, currency: @eth, blknum: 2})
     |> Core.exec(create_recovered([{1, 0, 0, bob}, {2, 0, 0, alice}], @eth, [{bob, 10}]), :no_fees_required)
-    |> fail?(:unauthorized_spent)
+    |> fail?(:unauthorized_spend)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -278,10 +278,10 @@ defmodule OMG.State.CoreTest do
   test "can't spend other people's funds", %{alice: alice, bob: bob, state_alice_deposit: state} do
     state
     |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{bob, 8}, {alice, 3}]), :no_fees_required)
-    |> fail?(:unauthorized_spent)
+    |> fail?(:unauthorized_spend)
     |> same?(state)
     |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{alice, 10}]), :no_fees_required)
-    |> fail?(:unauthorized_spent)
+    |> fail?(:unauthorized_spend)
     |> same?(state)
   end
 
@@ -294,10 +294,10 @@ defmodule OMG.State.CoreTest do
 
     state
     |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, bob}], @eth, []), :no_fees_required)
-    |> fail?(:unauthorized_spent)
+    |> fail?(:unauthorized_spend)
     |> same?(state)
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}, {@blknum1, 0, 1, alice}], @eth, []), :no_fees_required)
-    |> fail?(:unauthorized_spent)
+    |> fail?(:unauthorized_spend)
     |> same?(state)
 
     state
