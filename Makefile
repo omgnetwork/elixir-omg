@@ -271,13 +271,13 @@ init:
 ### SWAGGER openapi
 ###
 security_critical_api_specs:
-	swagger-combine apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs/swagger.yaml --debug --dereference -o apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml
+	swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs/swagger.yaml
 
 informational_api_specs:
-	swagger-combine apps/omg_watcher_rpc/priv/swagger/informational_api_specs/swagger.yaml --debug --dereference -o apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml
+	swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/informational_api_specs/swagger.yaml
 
 operator_api_specs:
-	swagger-combine apps/omg_watcher_rpc/priv/swagger/informational_api_specs/swagger.yaml --debug --dereference -o apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml
+	swagger-cli bundle -r -t yaml -o apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml apps/omg_child_chain_rpc/priv/swagger/operator_api_specs/swagger.yaml
 
 ### UTILS
 OSFLAG := ''
