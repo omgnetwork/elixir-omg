@@ -30,31 +30,26 @@ defmodule OMG.Crypto do
   @type domain_separator_t() :: <<_::256>> | nil
 
   @doc """
-  Produces a cryptographic digest of a message.
+  Produces a KECCAK digest for the message.
+
+  see https://hexdocs.pm/exth_crypto/ExthCrypto.Hash.html#kec/0
+
+  ## Example
+
+    iex> OMG.Crypto.hash("omg!")
+    <<241, 85, 204, 147, 187, 239, 139, 133, 69, 248, 239, 233, 219, 51, 189, 54,
+      171, 76, 106, 229, 69, 102, 203, 7, 21, 134, 230, 92, 23, 209, 187, 12>>
   """
   @spec hash(binary) :: hash_t()
-  def hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+  def hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
 
   @doc """
-  Recovers address of signer from binary-encoded signature.
+  Recovers the address of the signer from a binary-encoded signature.
   """
   @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt | binary}
   def recover_address(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
-    with {:ok, pub} <- recover_public(digest, packed_signature) do
+    with {:ok, pub} <- Signature.recover_public(digest, packed_signature) do
       generate_address(pub)
-    end
-  end
-
-  @doc """
-  Recovers public key of signer from binary-encoded signature and chain id.
-  Chain id parameter can be ignored when signature was created without it.
-  """
-  @spec recover_public(<<_::256>>, sig_t) :: {:ok, <<_::512>>} | {:error, :signature_corrupt | binary}
-  def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
-    {v, r, s} = unpack_signature(packed_signature)
-
-    with {:ok, _pub} = result <- Signature.recover_public(digest, v, r, s) do
-      result
     else
       {:error, "Recovery id invalid 0-3"} -> {:error, :signature_corrupt}
       other -> other
@@ -68,12 +63,5 @@ defmodule OMG.Crypto do
   def generate_address(<<pub::binary-size(64)>>) do
     <<_::binary-size(12), address::binary-size(20)>> = hash(pub)
     {:ok, address}
-  end
-
-  # private
-
-  # Unpack 65-bytes binary signature into {v,r,s} tuple.
-  defp unpack_signature(<<r::integer-size(256), s::integer-size(256), v::integer-size(8)>>) do
-    {v, r, s}
   end
 end

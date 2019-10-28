@@ -31,6 +31,7 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   """
 
   alias OMG.State.Transaction
+  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -52,7 +53,9 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
           in_flight_input_index: 0..3,
           spending_txbytes: Transaction.tx_bytes(),
           spending_input_index: 0..3,
-          spending_sig: <<_::520>>
+          spending_sig: <<_::520>>,
+          input_tx: Transaction.tx_bytes(),
+          input_utxo_pos: Utxo.Position.t()
         }
 
   @type output_challenge_data :: %{
@@ -191,7 +194,9 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
       in_flight_input_index: input_index,
       spending_txbytes: Transaction.raw_txbytes(proof.known_tx.signed_tx),
       spending_input_index: proof.known_spent_index,
-      spending_sig: Enum.at(proof.known_tx.signed_tx.sigs, proof.known_spent_index)
+      spending_sig: Enum.at(proof.known_tx.signed_tx.sigs, proof.known_spent_index),
+      input_tx: Enum.at(ife.input_txs, input_index),
+      input_utxo_pos: Enum.at(ife.input_utxos_pos, input_index)
     }
   end
 

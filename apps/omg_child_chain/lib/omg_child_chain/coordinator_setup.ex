@@ -12,9 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Transaction.Markers do
+defmodule OMG.ChildChain.CoordinatorSetup do
   @moduledoc """
-  Collection of binary markers to decode the transaction type
+   The setup of `OMG.RootChainCoordinator` for the child chain server - configures the relations between different
+   event listeners
   """
-  def payment, do: <<188, 97, 78>>
+
+  def coordinator_setup() do
+    deposit_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin)
+
+    %{
+      depositor: [finality_margin: deposit_finality_margin],
+      exiter: [waits_for: :depositor, finality_margin: 0],
+      in_flight_exit: [waits_for: :depositor, finality_margin: 0],
+      piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
+    }
+  end
 end

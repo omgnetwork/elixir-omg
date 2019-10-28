@@ -29,7 +29,7 @@ config :sentry,
   tags: %{
     application: nil,
     eth_network: nil,
-    eth_node: "geth"
+    eth_node: :geth
   }
 
 import_config "#{Mix.env()}.exs"

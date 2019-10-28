@@ -104,9 +104,10 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
   defp validate_rpc_client_type(_value, default),
     do: default
 
-  defp to_rpc_client_type("GETH"), do: "geth"
-  defp to_rpc_client_type("PARITY"), do: "parity"
-  defp to_rpc_client_type(_), do: exit("ETH_NODE must be either GETH or PARITY.")
+  defp to_rpc_client_type("GETH"), do: :geth
+  defp to_rpc_client_type("PARITY"), do: :parity
+  defp to_rpc_client_type("INFURA"), do: :infura
+  defp to_rpc_client_type(_), do: exit("ETH_NODE must be either GETH, PARITY or INFURA.")
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default

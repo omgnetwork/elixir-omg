@@ -22,8 +22,6 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   alias OMG.Utils.HttpRPC.Validator.Base
   import OMG.Utils.HttpRPC.Validator.Base
 
-  @empty_metadata <<0::256>>
-
   @doc """
   Parses and validates request body for /transaction.submit_typed`
   """
@@ -43,8 +41,6 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
          inputs when is_list(inputs) <- parse_inputs(msg),
          outputs when is_list(outputs) <- parse_outputs(msg),
          {:ok, metadata} <- expect(msg, "metadata", :hash) do
-      metadata = if metadata == @empty_metadata, do: nil, else: metadata
-
       {:ok, Transaction.Payment.new(inputs, outputs, metadata)}
     end
   end
@@ -88,6 +84,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
 
     0..(Transaction.Payment.max_inputs() - 1)
     |> Enum.map(fn i -> expect(message, "input#{i}", map: &parse_input/1) end)
+    |> Enum.reject(&empty_input?/1)
     |> all_success_or_error()
   end
 
@@ -106,6 +103,13 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
 
     0..(Transaction.Payment.max_outputs() - 1)
     |> Enum.map(fn i -> expect(message, "output#{i}", map: &parse_output/1) end)
+    |> Enum.reject(&empty_output?/1)
     |> all_success_or_error()
   end
+
+  # we do not longer pad with empty so we need to filter here, because typed data still require exact 4 in/outputs
+  defp empty_input?({:ok, {0, 0, 0}}), do: true
+  defp empty_input?(_input), do: false
+  defp empty_output?({:ok, {_owner, _currency, 0}}), do: true
+  defp empty_output?(_output), do: false
 end

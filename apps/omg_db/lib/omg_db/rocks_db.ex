@@ -73,6 +73,10 @@ if Code.ensure_loaded?(:rocksdb) do
       GenServer.call(server_name, :utxos, @ten_minutes)
     end
 
+    def utxo(utxo_pos, server_name \\ @server_name) do
+      GenServer.call(server_name, {:utxo, utxo_pos})
+    end
+
     def exit_infos(server_name \\ @server_name) do
       _ = Logger.info("Reading exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
       GenServer.call(server_name, :exit_infos, @one_minute)
@@ -100,10 +104,6 @@ if Code.ensure_loaded?(:rocksdb) do
 
     def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
       GenServer.call(server_name, {:block_hashes, block_numbers_to_fetch})
-    end
-
-    def last_deposit_child_blknum(server_name \\ @server_name) do
-      GenServer.call(server_name, :last_deposit_child_blknum)
     end
 
     def child_top_block_number(server_name \\ @server_name) do

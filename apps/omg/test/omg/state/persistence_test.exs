@@ -20,6 +20,7 @@ defmodule OMG.State.PersistenceTest do
   use OMG.DB.RocksDBCase, async: true
 
   alias OMG.Block
+  alias OMG.InputPointer
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -61,8 +62,18 @@ defmodule OMG.State.PersistenceTest do
     |> exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{bob, 10}]))
     |> persist_form(db_pid)
 
-    persist_standard_exitable_utxos(alice, [], db_pid)
-    persist_standard_exitable_utxos(bob, [%{amount: 10, blknum: @blknum1}], db_pid)
+    assert [] = persisted_standard_exitable_utxos(alice, db_pid)
+    assert [%{amount: 10, blknum: @blknum1}] = persisted_standard_exitable_utxos(bob, db_pid)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "utxos are persisted and can be fetched from db",
+       %{alice: alice, db_pid: db_pid, state_empty: state} do
+    state
+    |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
+
+    db_key = OMG.InputPointer.Protocol.to_db_key(Utxo.position(1, 0, 0))
+    assert {:ok, {^db_key, %{output: %{amount: 20}}}} = OMG.DB.utxo(db_key, db_pid)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -95,7 +106,10 @@ defmodule OMG.State.PersistenceTest do
     tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
-    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.raw_txhash(tx), output_index: 4}]
+
+    utxo_pos_exits_piggyback = [
+      %{tx_hash: Transaction.raw_txhash(tx), output_index: 0, omg_data: %{piggyback_type: :output}}
+    ]
 
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
@@ -142,17 +156,17 @@ defmodule OMG.State.PersistenceTest do
     %Block{number: @blknum1, transactions: [block_tx], hash: ^hash} = Block.from_db_value(db_block)
 
     assert {:ok, tx} == Transaction.Recovered.recover_from(block_tx)
-    assert {:ok, 1000} == OMG.DB.spent_blknum({1, 0, 0}, db_pid)
+
+    assert {:ok, 1000} ==
+             tx |> Transaction.get_inputs() |> hd() |> InputPointer.Protocol.to_db_key() |> OMG.DB.spent_blknum(db_pid)
   end
 
   # mimics `&OMG.State.init/1`
   defp state_from(db_pid) do
     {:ok, height_query_result} = OMG.DB.get_single_value(:child_top_block_number, db_pid)
-    {:ok, last_deposit_query_result} = OMG.DB.get_single_value(:last_deposit_child_blknum, db_pid)
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
 
-    {:ok, state} =
-      Core.extract_initial_state(utxos_query_result, height_query_result, last_deposit_query_result, @interval)
+    {:ok, state} = Core.extract_initial_state(utxos_query_result, height_query_result, @interval)
 
     state
   end
@@ -177,16 +191,9 @@ defmodule OMG.State.PersistenceTest do
     state
   end
 
-  defp persist_standard_exitable_utxos(address, expected_utxos, db_pid) do
+  defp persisted_standard_exitable_utxos(address, db_pid) do
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
-
-    address_utxos = Core.standard_exitable_utxos(utxos_query_result, address.addr)
-    assert length(expected_utxos) == length(address_utxos)
-
-    Enum.zip(address_utxos, expected_utxos)
-    |> Enum.map(fn {utxo, expected_utxo} ->
-      assert Map.merge(utxo, expected_utxo) == utxo
-    end)
+    Core.standard_exitable_utxos(utxos_query_result, address.addr)
   end
 
   defp persist_common(state, db_updates, db_pid) do

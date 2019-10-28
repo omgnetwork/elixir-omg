@@ -47,7 +47,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
   @deposit_input2 {@deposit_blknum2, 0, 0}
 
-  @exit_id 123
+  @exit_id 1
 
   setup do
     {:ok, empty} = Core.init([], [], [])
@@ -60,7 +60,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       ife_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [])
       processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice) |> start_ife_from(ife_tx)
 
-      assert {:ok, %ExitProcessor.Request{se_creating_blocks_to_get: [], se_spending_blocks_to_get: []}} =
+      assert {:ok, %ExitProcessor.Request{se_spending_blocks_to_get: []}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
                |> Core.determine_standard_challenge_queries(processor)
     end
@@ -69,8 +69,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
          %{alice: alice, processor_empty: processor} do
       processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice)
 
-      assert {:ok,
-              %ExitProcessor.Request{se_creating_blocks_to_get: [], se_spending_blocks_to_get: [@utxo_pos_deposit]}} =
+      assert {:ok, %ExitProcessor.Request{se_spending_blocks_to_get: [@utxo_pos_deposit]}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
                |> Core.determine_standard_challenge_queries(processor)
     end
@@ -80,7 +79,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       ife_tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [])
       processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice) |> start_ife_from(ife_tx)
 
-      assert {:ok, %ExitProcessor.Request{se_creating_blocks_to_get: [@blknum], se_spending_blocks_to_get: []}} =
+      assert {:ok, %ExitProcessor.Request{se_spending_blocks_to_get: []}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
                |> Core.determine_standard_challenge_queries(processor)
     end
@@ -89,8 +88,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
          %{alice: alice, processor_empty: processor} do
       processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice)
 
-      assert {:ok,
-              %ExitProcessor.Request{se_creating_blocks_to_get: [@blknum], se_spending_blocks_to_get: [@utxo_pos_tx]}} =
+      assert {:ok, %ExitProcessor.Request{se_spending_blocks_to_get: [@utxo_pos_tx]}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
                |> Core.determine_standard_challenge_queries(processor)
     end
@@ -103,49 +101,41 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     end
   end
 
-  describe "Core.determine_exit_txbytes" do
-    test "produces valid exit txbytes for exits from deposits",
+  describe "Core.create_challenge" do
+    test "returns a deposit exiting_tx as part of the challenge response",
          %{alice: alice, processor_empty: processor} do
-      tx = Transaction.Payment.new([], [{alice.addr, @eth, 10}])
-      deposit_txbytes = Transaction.raw_txbytes(tx)
-      processor = processor |> start_se_from(tx, @utxo_pos_deposit)
+      exiting_tx = TestHelper.create_recovered([], [{alice, @eth, 10}])
+      processor = processor |> start_se_from(exiting_tx, @utxo_pos_deposit)
 
-      assert %ExitProcessor.Request{se_exit_id_to_get: ^deposit_txbytes} =
-               %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
-               |> Core.determine_exit_txbytes(processor)
+      recovered_spend = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+      {txbytes, _alice_sig} = get_bytes_sig(recovered_spend)
+      {exiting_txbytes, _} = get_bytes_sig(exiting_tx)
+
+      assert {:ok, %{exiting_tx: ^exiting_txbytes, txbytes: ^txbytes}} =
+               %ExitProcessor.Request{
+                 se_exiting_pos: @utxo_pos_deposit,
+                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)]
+               }
+               |> Core.create_challenge(processor)
     end
 
-    test "produces valid exit txbytes for exits from txs in child blocks",
+    test "returns a block exiting_tx as part of the challenge response",
          %{alice: alice, processor_empty: processor} do
-      creating_recovered = TestHelper.create_recovered([{@deposit_blknum2, 0, 0, alice}], @eth, [{alice, 10}])
-      creating_txbytes = Transaction.raw_txbytes(creating_recovered)
-      processor = processor |> start_se_from(creating_recovered, @utxo_pos_tx)
+      exiting_tx = TestHelper.create_recovered([Tuple.append(@deposit_input2, alice)], [{alice, @eth, 10}])
+      processor = processor |> start_se_from(exiting_tx, @utxo_pos_tx)
 
-      assert %ExitProcessor.Request{se_exit_id_to_get: ^creating_txbytes} =
+      recovered_spend = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [{alice, 10}])
+      {txbytes, _alice_sig} = get_bytes_sig(recovered_spend)
+      {exiting_txbytes, _} = get_bytes_sig(exiting_tx)
+
+      assert {:ok, %{exiting_tx: ^exiting_txbytes, txbytes: ^txbytes}} =
                %ExitProcessor.Request{
                  se_exiting_pos: @utxo_pos_tx,
-                 se_creating_blocks_result: [Block.hashed_txs_at([creating_recovered], @blknum)]
+                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @late_blknum)]
                }
-               |> Core.determine_exit_txbytes(processor)
+               |> Core.create_challenge(processor)
     end
 
-    test "crashes if asked to produce exit txbytes when creating block not found or db response empty",
-         %{alice: alice, processor_empty: processor} do
-      processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice)
-
-      assert_raise(MatchError, fn ->
-        %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx, se_creating_blocks_result: []}
-        |> Core.determine_exit_txbytes(processor)
-      end)
-
-      assert_raise(MatchError, fn ->
-        %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx, se_creating_blocks_result: [:not_found]}
-        |> Core.determine_exit_txbytes(processor)
-      end)
-    end
-  end
-
-  describe "Core.create_challenge" do
     test "creates challenge: deposit utxo double spent in IFE",
          %{alice: alice, processor_empty: processor} do
       ife_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [])
@@ -153,7 +143,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice) |> start_ife_from(ife_tx)
 
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^txbytes, sig: ^alice_sig}} =
-               %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit, se_exit_id_result: @exit_id}
+               %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
                |> Core.create_challenge(processor)
     end
 
@@ -167,8 +157,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^txbytes, sig: ^alice_sig}} =
                %ExitProcessor.Request{
                  se_exiting_pos: @utxo_pos_deposit,
-                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)],
-                 se_exit_id_result: @exit_id
+                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)]
                }
                |> Core.create_challenge(processor)
     end
@@ -181,7 +170,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice) |> start_ife_from(ife_tx)
 
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^txbytes, sig: ^alice_sig}} =
-               %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx, se_exit_id_result: @exit_id}
+               %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
                |> Core.create_challenge(processor)
     end
 
@@ -195,8 +184,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^txbytes, sig: ^alice_sig}} =
                %ExitProcessor.Request{
                  se_exiting_pos: @utxo_pos_tx,
-                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)],
-                 se_exit_id_result: @exit_id
+                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)]
                }
                |> Core.create_challenge(processor)
     end
@@ -212,8 +200,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^txbytes, sig: ^alice_sig}} =
                %ExitProcessor.Request{
                  se_exiting_pos: @utxo_pos_tx,
-                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)],
-                 se_exit_id_result: @exit_id
+                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)]
                }
                |> Core.create_challenge(processor)
     end
@@ -239,8 +226,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
         assert {:ok, %{exit_id: @exit_id, input_index: ^expected_index, txbytes: ^txbytes, sig: ^alice_sig}} =
                  %ExitProcessor.Request{
                    se_exiting_pos: @utxo_pos_tx,
-                   se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)],
-                   se_exit_id_result: @exit_id
+                   se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)]
                  }
                  |> Core.create_challenge(processor)
       end)
@@ -266,8 +252,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
         assert {:ok, %{exit_id: @exit_id, input_index: 1, txbytes: ^txbytes, sig: ^second_sig}} =
                  %ExitProcessor.Request{
                    se_exiting_pos: @utxo_pos_tx,
-                   se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)],
-                   se_exit_id_result: @exit_id
+                   se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend], @blknum)]
                  }
                  |> Core.create_challenge(processor)
       end)
@@ -285,8 +270,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^txbytes, sig: ^alice_sig}} =
                %ExitProcessor.Request{
                  se_exiting_pos: @utxo_pos_tx,
-                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend, recovered_spend2], @blknum)],
-                 se_exit_id_result: @exit_id
+                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend, recovered_spend2], @blknum)]
                }
                |> Core.create_challenge(processor)
     end
@@ -301,8 +285,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^txbytes, sig: ^alice_sig}} =
                %ExitProcessor.Request{
                  se_exiting_pos: @utxo_pos_tx,
-                 se_spending_blocks_result: [Block.hashed_txs_at([ife_tx], @blknum)],
-                 se_exit_id_result: @exit_id
+                 se_spending_blocks_result: [Block.hashed_txs_at([ife_tx], @blknum)]
                }
                |> Core.create_challenge(processor)
 
@@ -314,8 +297,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^block_txbytes, sig: ^alice_sig2}} =
                %ExitProcessor.Request{
                  se_exiting_pos: @utxo_pos_tx,
-                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend2], @blknum)],
-                 se_exit_id_result: @exit_id
+                 se_spending_blocks_result: [Block.hashed_txs_at([recovered_spend2], @blknum)]
                }
                |> Core.create_challenge(processor)
     end
@@ -325,19 +307,11 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice)
 
       assert {:error, :utxo_not_spent} =
-               %ExitProcessor.Request{
-                 se_exiting_pos: @utxo_pos_tx,
-                 se_spending_blocks_result: [],
-                 se_exit_id_result: @exit_id
-               }
+               %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx, se_spending_blocks_result: []}
                |> Core.create_challenge(processor)
 
       assert {:error, :utxo_not_spent} =
-               %ExitProcessor.Request{
-                 se_exiting_pos: @utxo_pos_tx,
-                 se_spending_blocks_result: [:not_found],
-                 se_exit_id_result: @exit_id
-               }
+               %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx, se_spending_blocks_result: [:not_found]}
                |> Core.create_challenge(processor)
     end
   end
@@ -482,18 +456,16 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     test "can process challenged exits", %{processor_empty: processor, alice: alice} do
       # see the contract and `Eth.RootChain.get_standard_exit/1` for some explanation why like this
       # this is what an exit looks like after a challenge
-      zero_status = {0, 0, 0, 0}
+      zero_status = {false, 0, 0, 0, 0, 0}
       standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
       processor = processor |> start_se_from(standard_exit_tx, @utxo_pos_deposit2, status: zero_status)
 
       # sanity
-      assert %ExitProcessor.Request{utxos_to_check: [_]} =
-               Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
-
-      {processor, _} = processor |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos_deposit2)}])
-
       assert %ExitProcessor.Request{utxos_to_check: []} =
                Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
+
+      # pinning because challenge shouldn't change the already challenged exit in the processor
+      {^processor, _} = processor |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos_deposit2)}])
     end
   end
 

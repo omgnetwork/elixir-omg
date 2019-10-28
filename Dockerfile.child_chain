@@ -50,8 +50,12 @@ RUN set -xe \
  && chown "${uid}:${gid}" "/app" \
  && chmod +x /child_chain_entrypoint
 
-ARG release_version
+#rocksdb from builder image to deployer image
+RUN mkdir -p /usr/local/rocksdb/lib
+RUN mkdir /usr/local/rocksdb/include
+COPY --from=omisegoimages/elixir-omg-builder:stable-20190928 /usr/local/rocksdb/ /usr/local/rocksdb/
 
+ARG release_version
 ADD _build/prod/rel/child_chain/releases/${release_version}/child_chain.tar.gz /app
 RUN chown -R "${uid}:${gid}" /app
 WORKDIR /app

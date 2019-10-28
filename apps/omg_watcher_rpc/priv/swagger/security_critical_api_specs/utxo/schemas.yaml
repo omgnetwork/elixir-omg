@@ -13,6 +13,9 @@ GetUtxoChallengeSchema:
     txbytes:
       type: string
       format: binary
+    exiting_tx:
+      type: string
+      format: binary
 
 GetUtxoExitSchema:
   type: object
@@ -24,8 +27,5 @@ GetUtxoExitSchema:
       type: string
       format: binary
     proof:
-      type: string
-      format: binary
-    sigs:
       type: string
       format: binary

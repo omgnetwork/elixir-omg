@@ -249,21 +249,19 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
-  test "ignores deposits from blocks not higher than the block with the last previously received deposit", %{
-    alice: alice,
-    bob: bob,
-    state_empty: state
-  } do
-    assert {:ok, _, state} = Core.deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 2}], state)
-    assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: @eth, amount: 20, blknum: 1}], state)
-  end
-
-  test "extract_initial_state function returns error when passed last deposit as :not_found" do
-    assert {:error, :last_deposit_not_found} = Core.extract_initial_state([], 0, :not_found, @interval)
+  test "deposits can arrive in any order; `OMG.State.Core` doesn't care about this",
+       %{alice: alice, bob: bob, state_empty: state} do
+    state
+    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
+    |> do_deposit(bob, %{amount: 20, currency: @eth, blknum: 1})
+    |> Core.exec(create_recovered([{2, 0, 0, alice}], @eth, [{bob, 10}]), :no_fees_required)
+    |> success?
+    |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{alice, 20}]), :no_fees_required)
+    |> success?
   end
 
   test "extract_initial_state function returns error when passed top block number as :not_found" do
-    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, 0, @interval)
+    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, @interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -311,7 +309,7 @@ defmodule OMG.State.CoreTest do
   test "can't spend spent", %{alice: alice, bob: bob, state_alice_deposit: state} do
     transactions = [
       create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]),
-      create_recovered([{1, 0, 0, alice}, {0, 0, 0, %{priv: <<>>, addr: nil}}], @eth, [{bob, 7}, {alice, 3}])
+      create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}])
     ]
 
     for first <- transactions,
@@ -368,6 +366,31 @@ defmodule OMG.State.CoreTest do
       |> form_block_check()
 
     Core.exec(state, recovered, :no_fees_required) |> fail?(:utxo_not_found) |> same?(state)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  test "can't double spend chained txs", %{alice: alice, bob: bob, state_alice_deposit: state} do
+    recovered = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+    recovered2 = create_recovered([{1000, 0, 0, bob}], @eth, [{bob, 7}])
+
+    state
+    |> Core.exec(recovered, :no_fees_required)
+    |> success?
+    |> Core.exec(recovered2, :no_fees_required)
+    |> success?
+    |> Core.exec(recovered2, :no_fees_required)
+    |> fail?(:utxo_not_found)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  test "can't spend own output", %{bob: bob, state_alice_deposit: state} do
+    # The transaction here is designed so that it would spend its own output. Sanity checking first
+    {1000, true} = Core.get_status(state)
+    recovered2 = create_recovered([{1000, 0, 0, bob}], @eth, [{bob, 7}])
+
+    state
+    |> Core.exec(recovered2, :no_fees_required)
+    |> fail?(:utxo_not_found)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -485,8 +508,8 @@ defmodule OMG.State.CoreTest do
 
     # precomputed fixed hash to check compliance with hashing algo
     assert block_hash ==
-             <<238, 68, 225, 4, 149, 14, 135, 132, 193, 116, 149, 228, 35, 73, 60, 84, 2, 111, 165, 84, 24, 11, 187,
-               202, 5, 124, 17, 118, 188, 78, 29, 237>>
+             <<218, 153, 13, 247, 52, 151, 31, 191, 14, 98, 96, 181, 113, 239, 1, 101, 78, 189, 159, 121, 97, 13, 89,
+               190, 182, 145, 161, 208, 25, 188, 28, 194>>
 
     # Check that contents of the block can be recovered again to original txs
     assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)
@@ -576,7 +599,11 @@ defmodule OMG.State.CoreTest do
              |> Enum.map(&Utxo.Position.encode/1)
              |> Core.exit_utxos(state)
 
-    piggybacks = [%{tx_hash: tx_hash, output_index: 4}, %{tx_hash: tx_hash, output_index: 5}]
+    piggybacks = [
+      %{tx_hash: tx_hash, output_index: 0, omg_data: %{piggyback_type: :output}},
+      %{tx_hash: tx_hash, output_index: 1, omg_data: %{piggyback_type: :output}}
+    ]
+
     assert exit_utxos_response_reference == Core.exit_utxos(piggybacks, state)
   end
 
@@ -617,7 +644,11 @@ defmodule OMG.State.CoreTest do
     state = state |> Core.exec(tx, :no_fees_required) |> success?
 
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
-    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.raw_txhash(tx), output_index: 4}]
+
+    utxo_pos_exits_piggyback = [
+      %{tx_hash: Transaction.raw_txhash(tx), output_index: 0, omg_data: %{piggyback_type: :output}}
+    ]
+
     expected_position = Utxo.position(@blknum1, 0, 0)
 
     assert {:ok, {[], {[], _}}, ^state} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
@@ -666,7 +697,7 @@ defmodule OMG.State.CoreTest do
 
   @tag fixtures: [:state_empty]
   test "notifies about invalid in-flight exit", %{state_empty: state} do
-    piggyback = %{tx_hash: 1, output_index: 5}
+    piggyback = %{tx_hash: 1, output_index: 1, omg_data: %{piggyback_type: :output}}
 
     assert {:ok, {[], {[], [^piggyback]}}, ^state} = Core.exit_utxos([piggyback], state)
   end
@@ -718,16 +749,6 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :state_empty]
-  test "Output can have a zero value; can't be used as input though", %{alice: alice, state_empty: state} do
-    state
-    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}, {alice, 0}]), :no_fees_required)
-    |> success?
-    |> Core.exec(create_recovered([{1000, 0, 1, alice}], @eth, [{alice, 0}]), :no_fees_required)
-    |> fail?(:utxo_not_found)
-  end
-
-  @tag fixtures: [:alice, :state_empty]
   test "Output with zero value does not change oindex of other outputs", %{alice: alice, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
@@ -735,17 +756,6 @@ defmodule OMG.State.CoreTest do
     |> success?
     |> Core.exec(create_recovered([{1000, 0, 1, alice}], @eth, [{alice, 1}]), :no_fees_required)
     |> success?
-  end
-
-  @tag fixtures: [:alice, :state_alice_deposit]
-  test "Output with zero value will not be written to DB", %{alice: alice, state_alice_deposit: state} do
-    state =
-      state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]), :no_fees_required)
-      |> success?
-
-    {:ok, {_, _, db_updates}, _} = form_block_check(state)
-    assert [] = Enum.filter(db_updates, &match?({:put, :utxo, _}, &1))
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -792,36 +802,33 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :carol]
-  test "getting user utxos from utxos_query_result", %{
-    alice: %{addr: alice},
-    bob: bob,
-    carol: carol
-  } do
+  test "getting user utxos from utxos_query_result",
+       %{alice: alice, bob: bob, carol: carol} do
     utxos_query_result = [
-      {{1000, 0, 0}, %{amount: 1, currency: @eth, owner: alice}},
-      {{2000, 1, 1}, %{amount: 2, currency: @eth, owner: bob}},
-      {{1000, 2, 0}, %{amount: 3, currency: @not_eth, owner: alice}},
-      {{1000, 3, 1}, %{amount: 4, currency: @eth, owner: alice}},
-      {{1000, 4, 0}, %{amount: 5, currency: @eth, owner: bob}}
+      {{1000, 0, 0}, %{output: %{amount: 1, currency: @eth, owner: alice.addr}, creating_txhash: "nil"}},
+      {{2000, 1, 1}, %{output: %{amount: 2, currency: @eth, owner: bob.addr}, creating_txhash: "nil"}},
+      {{1000, 2, 0}, %{output: %{amount: 3, currency: @not_eth, owner: alice.addr}, creating_txhash: "nil"}},
+      {{1000, 3, 1}, %{output: %{amount: 4, currency: @eth, owner: alice.addr}, creating_txhash: "nil"}},
+      {{1000, 4, 0}, %{output: %{amount: 5, currency: @eth, owner: bob.addr}, creating_txhash: "nil"}}
     ]
 
-    assert [] == Core.standard_exitable_utxos(utxos_query_result, carol)
+    assert [] == Core.standard_exitable_utxos(utxos_query_result, carol.addr)
 
     assert MapSet.equal?(
              MapSet.new([
-               %{blknum: 1000, txindex: 0, oindex: 0, owner: alice, currency: @eth, amount: 1},
-               %{blknum: 1000, txindex: 2, oindex: 0, owner: alice, currency: @not_eth, amount: 3},
-               %{blknum: 1000, txindex: 3, oindex: 1, owner: alice, currency: @eth, amount: 4}
+               %{blknum: 1000, txindex: 0, oindex: 0, owner: alice.addr, currency: @eth, amount: 1},
+               %{blknum: 1000, txindex: 2, oindex: 0, owner: alice.addr, currency: @not_eth, amount: 3},
+               %{blknum: 1000, txindex: 3, oindex: 1, owner: alice.addr, currency: @eth, amount: 4}
              ]),
-             MapSet.new(Core.standard_exitable_utxos(utxos_query_result, alice))
+             MapSet.new(Core.standard_exitable_utxos(utxos_query_result, alice.addr))
            )
 
     assert Map.equal?(
              MapSet.new([
-               %{blknum: 1000, txindex: 4, oindex: 0, owner: bob, currency: @eth, amount: 5},
-               %{blknum: 2000, txindex: 1, oindex: 1, owner: bob, currency: @eth, amount: 2}
+               %{blknum: 1000, txindex: 4, oindex: 0, owner: bob.addr, currency: @eth, amount: 5},
+               %{blknum: 2000, txindex: 1, oindex: 1, owner: bob.addr, currency: @eth, amount: 2}
              ]),
-             MapSet.new(Core.standard_exitable_utxos(utxos_query_result, bob))
+             MapSet.new(Core.standard_exitable_utxos(utxos_query_result, bob.addr))
            )
   end
 

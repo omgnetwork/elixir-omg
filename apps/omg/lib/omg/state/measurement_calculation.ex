@@ -35,13 +35,23 @@ defmodule OMG.State.MeasurementCalculation do
 
   defp unique_users(utxos) do
     utxos
-    |> Enum.map(fn {_, %OMG.Utxo{owner: owner}} -> owner end)
+    |> Enum.map(fn {_, %OMG.Utxo{output: output}} -> output end)
+    # NOTE: we're counting only outputs that define an owner, so that this remains an owner-counting metric.
+    #       For anything, where the owner isn't well defined, careful rethinking would be required
+    |> Enum.map(&Map.get(&1, :owner))
+    |> Enum.filter(& &1)
     |> Enum.uniq()
     |> Enum.count()
   end
 
   defp balance(utxos) do
-    Enum.reduce(utxos, %{}, fn {_, %{currency: currency, amount: amount}}, acc ->
+    utxos
+    |> Enum.map(fn {_, %OMG.Utxo{output: output}} -> output end)
+    # NOTE: we're counting only outputs that define a currency and amount, so that this remains a balance-counting
+    #       metric. For anything, where the balance isn't well defined, careful rethinking would be required
+    |> Enum.map(&{Map.get(&1, :currency), Map.get(&1, :amount, 0)})
+    |> Enum.filter(fn {currency, _} -> currency end)
+    |> Enum.reduce(%{}, fn {currency, amount}, acc ->
       Map.update(acc, currency, amount, &(&1 + amount))
     end)
   end

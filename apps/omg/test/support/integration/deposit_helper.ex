@@ -18,6 +18,7 @@ defmodule OMG.Integration.DepositHelper do
   """
 
   alias OMG.Eth
+  alias OMG.Eth.Config
   alias OMG.State.Transaction
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -35,7 +36,7 @@ defmodule OMG.Integration.DepositHelper do
   end
 
   def deposit_to_child_chain(to, value, token_addr) when is_binary(token_addr) and byte_size(token_addr) == 20 do
-    contract_addr = Eth.Encoding.from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract_addr = Config.maybe_fetch_addr!(nil, :erc20_vault)
 
     {:ok, _} = Eth.Token.approve(to, contract_addr, value, token_addr) |> Eth.DevHelpers.transact_sync!()
 

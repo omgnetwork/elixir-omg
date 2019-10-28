@@ -33,8 +33,8 @@ deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
 # create and prepare transaction for signing
 tx =
-  Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
-  DevCrypto.sign([alice.priv, <<>>]) |>
+  Transaction.Payment.new([{deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
+  DevCrypto.sign([alice.priv]) |>
   Transaction.Signed.encode() |>
   OMG.Utils.HttpRPC.Encoding.to_hex()
 

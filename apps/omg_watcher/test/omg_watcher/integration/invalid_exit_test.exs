@@ -66,11 +66,11 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     # after the notification has been received, a challenged is composed and sent
     challenge = TestHelper.get_exit_challenge(first_tx_blknum, 0, 0)
-    assert {:ok, {alice.addr, @eth, 10, tx_utxo_pos}} == Eth.RootChain.get_standard_exit(challenge["exit_id"])
 
     assert {:ok, %{"status" => "0x1"}} =
              OMG.Eth.RootChainHelper.challenge_exit(
                challenge["exit_id"],
+               challenge["exiting_tx"],
                challenge["txbytes"],
                challenge["input_index"],
                challenge["sig"],
@@ -78,26 +78,19 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
              )
              |> Eth.DevHelpers.transact_sync!()
 
-    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} == Eth.RootChain.get_standard_exit(challenge["exit_id"])
-
     # challenge standard exits from deposits
     challenge_exit_deposit = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
-
-    assert {:ok, {alice.addr, @eth, 10, deposit_utxo_pos}} ==
-             Eth.RootChain.get_standard_exit(challenge_exit_deposit["exit_id"])
 
     assert {:ok, %{"status" => "0x1"}} =
              OMG.Eth.RootChainHelper.challenge_exit(
                challenge_exit_deposit["exit_id"],
+               challenge_exit_deposit["exiting_tx"],
                challenge_exit_deposit["txbytes"],
                challenge_exit_deposit["input_index"],
                challenge_exit_deposit["sig"],
                alice.addr
              )
              |> Eth.DevHelpers.transact_sync!()
-
-    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} ==
-             Eth.RootChain.get_standard_exit(challenge_exit_deposit["exit_id"])
 
     IntegrationTest.wait_for_byzantine_events([], @timeout)
   end
@@ -138,7 +131,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     # Here we're manually submitting invalid block to the root chain
     # NOTE: this **must** come after `start_exit` is mined (see just above) but still not later than
     #       `sla_margin` after exit start, hence the `config/test.exs` entry for the margin is rather high
-    {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
+    {:ok, _} = Eth.submit_block(bad_block_hash, 2, 1)
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
   end
@@ -158,7 +151,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {_, nonce} = get_next_blknum_nonce(tx_blknum)
 
-    {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, nonce, 20_000_000_000)
+    {:ok, _txhash} = Eth.submit_block(<<0::256>>, nonce, 20_000_000_000)
 
     # checking if both machines and humans learn about the byzantine condition
     assert capture_log(fn ->

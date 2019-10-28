@@ -19,8 +19,8 @@ defmodule OMG.Eth.DevHelpers do
   """
 
   alias OMG.Eth
+  alias OMG.Eth.Transaction
   alias OMG.Eth.WaitFor
-
   import Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   require Logger
@@ -43,15 +43,16 @@ defmodule OMG.Eth.DevHelpers do
     opts = Keyword.merge([root_path: "./"], opts)
     %{root_path: root_path} = Enum.into(opts, %{})
 
-    exit_period_seconds = get_exit_period(exit_period_seconds)
-
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
          {:ok, authority} <- create_and_fund_authority_addr(opts),
          {:ok, deployer_addr} <- get_deployer_address(opts),
-         {:ok, txhash, contract_addr} <- Eth.Deployer.create_new(OMG.Eth.RootChain, root_path, deployer_addr),
-         {:ok, _} <-
-           Eth.RootChainHelper.init(exit_period_seconds, authority, contract_addr) |> Eth.DevHelpers.transact_sync!() do
-      %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
+         {:ok, txhash_contract, contracts_map} <-
+           Eth.BundleDeployer.deploy_all(root_path, deployer_addr, authority, exit_period_seconds) do
+      %{
+        contract_addr: contracts_map,
+        txhash_contract: txhash_contract,
+        authority_addr: authority
+      }
     else
       {:error, :econnrefused} = error ->
         Logger.error("It seems that Ethereum instance is not running. Check README.md")
@@ -63,10 +64,12 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
+    contract_addr = Eth.RootChain.contract_map_to_hex(contract_addr)
+
     """
     use Mix.Config
     config :omg_eth,
-      contract_addr: #{inspect(to_hex(contract_addr))},
+      contract_addr: #{inspect(contract_addr)},
       txhash_contract: #{inspect(to_hex(txhash))},
       authority_addr: #{inspect(to_hex(authority_addr))}
     """
@@ -79,7 +82,7 @@ defmodule OMG.Eth.DevHelpers do
   def import_unlock_fund(%{priv: account_priv}, opts \\ []) do
     account_priv_enc = Base.encode16(account_priv)
 
-    {:ok, account_enc} = create_account_from_secret(OMG.Eth.backend(), account_priv_enc, @passphrase)
+    {:ok, account_enc} = create_account_from_secret(backend(), account_priv_enc, @passphrase)
     {:ok, _} = fund_address_from_faucet(account_enc, opts)
 
     {:ok, from_hex(account_enc)}
@@ -91,8 +94,32 @@ defmodule OMG.Eth.DevHelpers do
   """
   @spec transact_sync!({:ok, Eth.hash()}) :: {:ok, map}
   def transact_sync!({:ok, txhash} = _transaction_submission_result) when byte_size(txhash) == 32 do
-    {:ok, %{"status" => "0x1"} = result} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
-    {:ok, result |> Map.update!("blockNumber", &int_from_hex(&1))}
+    {:ok, _} =
+      txhash
+      |> WaitFor.eth_receipt(@about_4_blocks_time)
+      |> case do
+        {:ok, %{"status" => "0x1"} = receipt} -> {:ok, receipt |> Map.update!("blockNumber", &int_from_hex(&1))}
+        {:ok, %{"status" => "0x0"} = receipt} -> {:error, receipt |> Map.put("reason", get_reason(txhash))}
+        other -> other
+      end
+  end
+
+  # gets the `revert` reason for a failed transaction by txhash
+  # based on https://gist.github.com/gluk64/fdea559472d957f1138ed93bcbc6f78a
+  defp get_reason(txhash) do
+    # we get the exact transaction details
+    {:ok, tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(to_hex(txhash))
+    # we use them (with minor tweak) to be called on the Ethereum client at the exact block of the original call
+    {:ok, call_result} = tx |> Map.put("data", tx["input"]) |> Ethereumex.HttpClient.eth_call(tx["blockNumber"])
+
+    # this call result is hex decoded and then additionally decoded with ABI, should yield a readable ascii-string
+    if call_result == "0x", do: "out of gas, reason is 0x", else: call_result |> from_hex() |> abi_decode_reason()
+  end
+
+  defp abi_decode_reason(result) do
+    bytes_to_throw_away = 2 * 32 + 4
+    # trimming the 4-byte function selector, 32 byte size of size and 32 byte size
+    result |> binary_part(bytes_to_throw_away, byte_size(result) - bytes_to_throw_away) |> String.trim(<<0>>)
   end
 
   @doc """
@@ -100,7 +127,9 @@ defmodule OMG.Eth.DevHelpers do
   """
   @spec deploy_sync!({:ok, Eth.hash()}) :: {:ok, Eth.hash(), Eth.address()}
   def deploy_sync!({:ok, txhash} = transaction_submission_result) do
-    {:ok, %{"contractAddress" => contract, "status" => "0x1"}} = transact_sync!(transaction_submission_result)
+    {:ok, %{"contractAddress" => contract, "status" => "0x1", "gasUsed" => _gas_used}} =
+      transact_sync!(transaction_submission_result)
+
     {:ok, txhash, from_hex(contract)}
   end
 
@@ -148,12 +177,6 @@ defmodule OMG.Eth.DevHelpers do
     end
   end
 
-  defp get_exit_period(nil) do
-    Application.fetch_env!(:omg_eth, :exit_period_seconds)
-  end
-
-  defp get_exit_period(exit_period), do: exit_period
-
   defp fund_address_from_faucet(account_enc, opts) do
     {:ok, [default_faucet | _]} = Ethereumex.HttpClient.eth_accounts()
     defaults = [faucet: default_faucet, initial_funds: @one_hundred_eth]
@@ -166,7 +189,8 @@ defmodule OMG.Eth.DevHelpers do
     unlock_if_possible(account_enc)
 
     params = %{from: faucet, to: account_enc, value: to_hex(initial_funds)}
-    {:ok, tx_fund} = OMG.Eth.send_transaction(params)
+
+    {:ok, tx_fund} = Transaction.send(backend(), params)
 
     case Keyword.get(opts, :timeout) do
       nil -> WaitFor.eth_receipt(tx_fund, @about_4_blocks_time)
@@ -175,7 +199,7 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   defp unlock_if_possible(account_enc) do
-    unlock_if_possible(account_enc, OMG.Eth.backend())
+    unlock_if_possible(account_enc, backend())
   end
 
   defp unlock_if_possible(account_enc, :geth) do
@@ -184,5 +208,9 @@ defmodule OMG.Eth.DevHelpers do
 
   defp unlock_if_possible(_account_enc, :parity) do
     :dont_bother_will_use_personal_sendTransaction
+  end
+
+  defp backend() do
+    Application.fetch_env!(:omg_eth, :eth_node)
   end
 end

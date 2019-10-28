@@ -28,11 +28,11 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
 
     with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
-      _ = Logger.debug("Child chain rpc post #{inspect(addr)} completed successfully")
+      _ = Logger.debug("rpc post #{inspect(addr)} completed successfully")
       response
     else
       err ->
-        _ = Logger.warn("Child chain rpc post #{inspect(addr)} failed with #{inspect(err)}")
+        _ = Logger.warn("rpc post #{inspect(addr)} failed with #{inspect(err)}")
         err
     end
   end
@@ -44,10 +44,7 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
   def get_response_body(%HTTPoison.Response{status_code: 200, body: body}) do
     with {:ok, response} <- Jason.decode(body),
          %{"success" => true, "data" => data} <- response do
-      {
-        :ok,
-        convert_keys_to_atoms(data)
-      }
+      {:ok, convert_keys_to_atoms(data)}
     else
       %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
       match_err -> {:error, {:malformed_response, match_err}}
@@ -58,6 +55,9 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
     do: {:error, {:server_error, error}}
 
   def get_response_body(error), do: {:error, {:client_error, error}}
+
+  defp convert_keys_to_atoms(data) when is_list(data),
+    do: Enum.map(data, &convert_keys_to_atoms/1)
 
   defp convert_keys_to_atoms(data) when is_map(data) do
     data

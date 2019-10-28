@@ -15,8 +15,8 @@
 defmodule OMG.Watcher.UtxoExit.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
-  use OMG.Fixtures
 
+  alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
@@ -25,82 +25,103 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  test "getting exit data returns error when there is no deposit" do
-    assert {:error, :no_deposit_for_given_blknum} == Core.compose_deposit_exit(nil, Utxo.position(1003, 0, 0))
+  setup do
+    alice = TestHelper.generate_entity()
+    %{alice: alice}
   end
 
-  @tag fixtures: [:alice]
-  test "creating deposit exit", %{alice: alice} do
-    position = Utxo.position(1000, 0, 0)
-    encode_utxo = position |> Utxo.Position.encode()
+  describe "compose_deposit_standard_exit/1" do
+    test "creates deposit exit", %{alice: alice} do
+      position = Utxo.position(1003, 0, 0)
+      encode_utxo = position |> Utxo.Position.encode()
 
-    assert {:ok,
-            %{
-              utxo_pos: ^encode_utxo,
-              txbytes: _txbytes,
-              proof: _proof
-            }} =
-             Core.compose_deposit_exit(
-               %{
-                 amount: 10,
-                 currency: OMG.Eth.zero_address(),
-                 owner: alice.addr
-               },
-               position
-             )
-  end
+      fake_utxo_db_kv =
+        {OMG.InputPointer.Protocol.to_db_key(position),
+         Utxo.to_db_value(%Utxo{
+           output: %OMG.Output.FungibleMoreVPToken{
+             amount: 10,
+             currency: @eth,
+             owner: alice.addr
+           }
+         })}
 
-  @tag fixtures: [:alice]
-  test "compose output exit", %{alice: alice} do
-    tx_encode = fn number ->
-      TestHelper.create_encoded([{1_000, number, 0, alice}], @eth, [{alice, 10}])
+      assert {:ok,
+              %{
+                utxo_pos: ^encode_utxo,
+                txbytes: txbytes,
+                proof: proof
+              }} = Core.compose_deposit_standard_exit({:ok, fake_utxo_db_kv})
+
+      assert [%{amount: 10}] = txbytes |> Transaction.decode!() |> Transaction.get_outputs()
+      assert byte_size(proof) == 32 * 16
     end
 
-    tx_exit = tx_encode.(30)
-    tx_exit_raw_tx_bytes = Transaction.Signed.decode!(tx_exit) |> Transaction.raw_txbytes()
-
-    position = Utxo.position(3, 0, 1)
-    encode_utxo = position |> Utxo.Position.encode()
-
-    assert {:ok,
-            %{
-              proof: _proof,
-              sigs: _sig,
-              txbytes: ^tx_exit_raw_tx_bytes,
-              utxo_pos: ^encode_utxo
-            }} =
-             Core.compose_output_exit(
-               [
-                 %{txindex: 2, txbytes: tx_encode.(20)},
-                 %{txindex: 1, txbytes: tx_encode.(10)},
-                 %{txindex: 0, txbytes: tx_exit},
-                 %{txindex: 3, txbytes: tx_encode.(0)}
-               ],
-               position
-             )
+    test "fails to create deposit exit when UTXO missing in DB" do
+      assert {:error, :no_deposit_for_given_blknum} = Core.compose_deposit_standard_exit(:not_found)
+    end
   end
 
-  test "getting exit data returns error when there is no utxo" do
-    assert {:error, :utxo_not_found} == Core.compose_output_exit([], Utxo.position(1_000, 1, 2))
-  end
+  describe "compose_utxo_exit/2" do
+    test "composes output exit from tx inside a block", %{alice: alice} do
+      blknum = 4000
+      tx_exit = TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])
+      tx_exit_raw_tx_bytes = Transaction.raw_txbytes(tx_exit)
+      position = Utxo.position(blknum, 1, 0)
+      encode_utxo = position |> Utxo.Position.encode()
 
-  @tag fixtures: [:alice]
-  test "return utxo when in blknum in utxos map", %{alice: %{addr: alice_addr}} do
-    assert %{amount: 7, currency: @eth, owner: alice_addr} ==
-             Core.get_deposit_utxo(
-               {:ok,
-                Map.new(Enum.map(1..20, fn a -> {{a, 0, 0}, %{amount: a, currency: @eth, owner: alice_addr}} end))},
-               Utxo.position(7, 0, 0)
-             )
-  end
+      block =
+        [
+          TestHelper.create_recovered([{1_000, 2, 0, alice}], @eth, [{alice, 10}]),
+          tx_exit,
+          TestHelper.create_recovered([{1_000, 3, 0, alice}], @eth, [{alice, 10}])
+        ]
+        |> Block.hashed_txs_at(blknum)
+        |> Block.to_db_value()
 
-  @tag fixtures: [:alice]
-  test "return nil when in blknum not in utxos map", %{alice: alice} do
-    assert nil ==
-             Core.get_deposit_utxo(
-               {:ok,
-                Map.new(Enum.map(1..20, fn a -> {{a, 0, 0}, %{amount: a, currency: @eth, owner: alice.addr}} end))},
-               Utxo.position(42, 0, 0)
-             )
+      assert {:ok,
+              %{
+                proof: proof,
+                txbytes: ^tx_exit_raw_tx_bytes,
+                utxo_pos: ^encode_utxo
+              }} = Core.compose_block_standard_exit(block, position)
+
+      # hash byte_size * merkle tree depth
+      assert byte_size(proof) == 32 * 16
+    end
+
+    test "doesn't find utxo for the output exit, tx position exceeding the block tx count", %{alice: alice} do
+      blknum = 4000
+      position = Utxo.position(blknum, 1, 0)
+
+      block =
+        [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]
+        |> Block.hashed_txs_at(blknum)
+        |> Block.to_db_value()
+
+      assert {:error, :utxo_not_found} = Core.compose_block_standard_exit(block, position)
+    end
+
+    test "doesn't find utxo for the output exit, output position exceeding the output count", %{alice: alice} do
+      blknum = 4000
+      position = Utxo.position(blknum, 0, 3)
+
+      block =
+        [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]
+        |> Block.hashed_txs_at(blknum)
+        |> Block.to_db_value()
+
+      assert {:error, :utxo_not_found} = Core.compose_block_standard_exit(block, position)
+    end
+
+    test "throws when composing output exit, mismatch blknum and utxo pos (should never occur)", %{alice: alice} do
+      position = Utxo.position(3000, 0, 0)
+
+      block =
+        [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]
+        |> Block.hashed_txs_at(4000)
+        |> Block.to_db_value()
+
+      assert_raise MatchError, fn -> Core.compose_block_standard_exit(block, position) end
+    end
   end
 end

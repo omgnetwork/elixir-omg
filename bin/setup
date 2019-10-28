@@ -8,7 +8,7 @@ fancy_echo() {
 }
 
 install_linux_deps() {
-  local LINUX_DEPS="automake autoconf autogen libtool gcc curl cmake gnupg"
+  local LINUX_DEPS="automake autoconf autogen libtool gcc curl cmake gnupg liblz4-dev libsnappy-dev librocksdb-dev"
   local flavor=`grep "^ID=" /etc/os-release | cut -d"=" -f 2`
   echo $flavor
   case $flavor in
@@ -26,8 +26,8 @@ install_linux_deps() {
 }
 
 install_linux_solc(){
-  echo "Installing Solc v0.4.25"
-  wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-static-linux \
+  echo "Installing Solc v0.5.11"
+  wget https://github.com/ethereum/solidity/releases/download/v0.5.11/solc-static-linux \
   && chmod +x solc-static-linux \
   && mv solc-static-linux solc  \
   && sudo install -m0755 solc /usr/local/bin/solc
@@ -62,14 +62,35 @@ install_linux_geth(){
   && rm -r gethDownload
 }
 
+install_linux_rocksdb(){
+  echo "Installing Rocksdb v6.2.2"
+  mkdir tmp_rocksdb \
+  && cd tmp_rocksdb \
+  && git clone https://github.com/facebook/rocksdb.git \
+  && cd rocksdb  \
+  && git checkout v6.2.2 \
+  && make shared_lib \
+  && sudo mkdir -p /usr/local/rocksdb/lib \
+  && sudo mkdir -p /usr/local/rocksdb/include \
+  && sudo cp -P librocksdb.so* /usr/local/rocksdb/lib \
+  && sudo cp -P /usr/local/rocksdb/lib/librocksdb.so* /usr/lib/ \
+  && sudo cp -rP include /usr/local/rocksdb/ \
+  && sudo cp -rP include/* /usr/include/ \
+  && cd ../../ \
+  && rm -rf tmp_rocksdb
+}
+
 install_darwin_deps(){
     fancy_echo "Installing dependencies via brew"
     brew bundle --file=- <<EOF
+tap "ethereum/ethereum"
 brew "automake"
 brew "autoconf"
 brew "gmp"
 brew "libtool"
 brew "cmake"
+brew "rocksdb"
+brew "solidity"
 EOF
 }
 
@@ -81,6 +102,7 @@ install_deps() {
       install_linux_deps
       install_linux_solc
       install_linux_geth
+      install_linux_rocksdb
       if [ -z "$CIRCLE_SHA1" ]; then
         install_linux_postgres
       else

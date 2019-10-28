@@ -43,9 +43,6 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   # (i.e. those not checked are assumed to be present)
   def only_utxos_checked_and_missing(utxo_positions, utxo_exists?) do
     # the default value below is true, so that the assumption is that utxo not checked is **present**
-    # TODO: rather inefficient, but no as inefficient as the nested `filter` calls in searching for competitors
-    #       consider optimizing using `MapSet`
-
     Enum.filter(utxo_positions, fn utxo_pos -> !Map.get(utxo_exists?, utxo_pos, true) end)
   end
 

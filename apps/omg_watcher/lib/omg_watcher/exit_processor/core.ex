@@ -44,21 +44,44 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   import OMG.Watcher.ExitProcessor.Tools
 
   require Utxo
-  require Transaction
+  require Transaction.Payment
 
   use OMG.Utils.LoggerExt
 
   @default_sla_margin 10
   @zero_address OMG.Eth.zero_address()
 
-  @type contract_piggyback_offset_t() :: 0..7
+  @max_inputs Transaction.Payment.max_inputs()
+  @max_outputs Transaction.Payment.max_outputs()
 
-  defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}, competitors: %{}]
+  @type new_in_flight_exit_status_t() :: {tuple(), pos_integer()}
+
+  @type piggyback_input_index_t() :: 0..unquote(@max_inputs - 1)
+  @type piggyback_output_index_t() :: 0..unquote(@max_outputs - 1)
+
+  @type new_piggyback_input_event_t() :: %{
+          tx_hash: Transaction.tx_hash(),
+          output_index: piggyback_input_index_t(),
+          omg_data: %{piggyback_type: :input}
+        }
+  @type new_piggyback_output_event_t() :: %{
+          tx_hash: Transaction.tx_hash(),
+          output_index: piggyback_output_index_t(),
+          omg_data: %{piggyback_type: :output}
+        }
+
+  @type new_piggyback_event_t() :: new_piggyback_input_event_t() | new_piggyback_output_event_t()
+
+  defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}, exit_ids: %{}, competitors: %{}]
 
   @type t :: %__MODULE__{
           sla_margin: non_neg_integer(),
           exits: %{Utxo.Position.t() => ExitInfo.t()},
           in_flight_exits: %{Transaction.tx_hash() => InFlightExitInfo.t()},
+          # NOTE: maps only standard exit_ids to the natural keys of standard exits (input pointers/utxo_pos)
+          #       rethink the approach to the keys in the data structures - how to manage exit_ids? should the contract
+          #       serve more data (e.g. input pointers/tx hashes) where it would normally only serve exit_ids?
+          exit_ids: %{non_neg_integer() => Utxo.Position.t()},
           competitors: %{Transaction.tx_hash() => CompetitorInfo.t()}
         }
 
@@ -85,14 +108,20 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           sla_margin :: non_neg_integer
         ) :: {:ok, t()}
   def init(db_exits, db_in_flight_exits, db_competitors, sla_margin \\ @default_sla_margin) do
+    exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
+    exit_ids = exits |> Enum.into(%{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
+
     {:ok,
      %__MODULE__{
-       exits: db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new(),
+       exits: exits,
        in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
+       exit_ids: exit_ids,
        competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
        sla_margin: sla_margin
      }}
   end
+
+  def exit_key_by_exit_id(%__MODULE__{exit_ids: exit_ids}, exit_id), do: exit_ids[exit_id]
 
   @doc """
   Add new exits from Ethereum events into tracked state.
@@ -108,7 +137,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {:error, :unexpected_events}
   end
 
-  def new_exits(%__MODULE__{exits: exits} = state, new_exits, exit_contract_statuses) do
+  def new_exits(%__MODULE__{exits: exits, exit_ids: exit_ids} = state, new_exits, exit_contract_statuses) do
     new_exits_kv_pairs =
       new_exits
       |> Enum.zip(exit_contract_statuses)
@@ -119,7 +148,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     db_updates = new_exits_kv_pairs |> Enum.map(&ExitInfo.make_db_update/1)
     new_exits_map = Map.new(new_exits_kv_pairs)
 
-    {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates}
+    new_exit_ids_map =
+      new_exits_map |> Enum.into(%{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
+
+    {%{state | exits: Map.merge(exits, new_exits_map), exit_ids: Map.merge(exit_ids, new_exit_ids_map)}, db_updates}
   end
 
   defdelegate finalize_exits(state, validities), to: ExitProcessor.Finalizations
@@ -129,9 +161,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec challenge_exits(t(), list(map)) :: {t(), list}
   def challenge_exits(%__MODULE__{exits: exits} = state, challenges) do
     challenged_positions = get_positions_from_events(challenges)
-    state = %{state | exits: Map.drop(exits, challenged_positions)}
-    db_updates = delete_positions(challenged_positions)
-    {state, db_updates}
+
+    new_exits_kv_pairs =
+      exits
+      |> Map.take(challenged_positions)
+      |> Enum.into(%{}, fn {utxo_pos, exit_info} -> {utxo_pos, %ExitInfo{exit_info | is_active: false}} end)
+
+    new_state = %{state | exits: Map.merge(exits, new_exits_kv_pairs)}
+    db_updates = new_exits_kv_pairs |> Enum.map(&ExitInfo.make_db_update/1)
+    {new_state, db_updates}
   end
 
   defp get_positions_from_events(exits) do
@@ -139,14 +177,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode!(utxo_pos) end)
   end
 
-  defp delete_positions(utxo_positions),
-    do: utxo_positions |> Enum.map(&{:delete, :exit_info, Utxo.Position.to_db_key(&1)})
-
-  # TODO: syncing problem (look new exits)
   @doc """
-   Add new in flight exits from Ethereum events into tracked state.
+  Add new in flight exits from Ethereum events into tracked state.
   """
-  @spec new_in_flight_exits(t(), list(map()), list(map())) :: {t(), list()} | {:error, :unexpected_events}
+  @spec new_in_flight_exits(t(), list(map()), list(new_in_flight_exit_status_t())) ::
+          {t(), list()} | {:error, :unexpected_events}
   def new_in_flight_exits(state, new_ifes_events, contract_statuses)
 
   def new_in_flight_exits(_state, new_ifes_events, contract_statuses)
@@ -177,16 +212,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
     Add piggybacks from Ethereum events into tracked state.
   """
-  @spec new_piggybacks(t(), [%{tx_hash: Transaction.tx_hash(), output_index: contract_piggyback_offset_t()}]) ::
-          {t(), list()}
+  @spec new_piggybacks(t(), list(new_piggyback_event_t())) :: {t(), list()}
   def new_piggybacks(%__MODULE__{} = state, piggyback_events) when is_list(piggyback_events) do
-    consume_events(state, piggyback_events, :output_index, &InFlightExitInfo.piggyback/2)
+    event_field_f = fn event -> {event[:omg_data][:piggyback_type], event[:output_index]} end
+    consume_events(state, piggyback_events, event_field_f, &InFlightExitInfo.piggyback/2)
   end
 
   @spec new_ife_challenges(t(), [map()]) :: {t(), list()}
   def new_ife_challenges(%__MODULE__{} = state, challenges_events) do
     {updated_state, ife_db_updates} =
-      consume_events(state, challenges_events, :competitor_position, &InFlightExitInfo.challenge/2)
+      consume_events(state, challenges_events, & &1[:competitor_position], &InFlightExitInfo.challenge/2)
 
     {updated_state2, competitors_db_updates} = append_new_competitors(updated_state, challenges_events)
     {updated_state2, competitors_db_updates ++ ife_db_updates}
@@ -201,12 +236,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec respond_to_in_flight_exits_challenges(t(), [map()]) :: {t(), list()}
   def respond_to_in_flight_exits_challenges(%__MODULE__{} = state, responds_events) do
-    consume_events(state, responds_events, :challenge_position, &InFlightExitInfo.respond_to_challenge/2)
+    consume_events(state, responds_events, & &1[:challenge_position], &InFlightExitInfo.respond_to_challenge/2)
   end
 
   @spec challenge_piggybacks(t(), [map()]) :: {t(), list()}
   def challenge_piggybacks(%__MODULE__{} = state, challenges) do
-    consume_events(state, challenges, :output_index, &InFlightExitInfo.challenge_piggyback/2)
+    event_field_f = fn event -> {event[:omg_data][:piggyback_type], event[:output_index]} end
+    consume_events(state, challenges, event_field_f, &InFlightExitInfo.challenge_piggyback/2)
   end
 
   # produces new state and some db_updates based on
@@ -214,8 +250,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   #   - name of that other field
   #   - a function operating on a single IFE structure and that fields value
   # Leverages the fact, that operating on various IFE-related events follows the same pattern
-  defp consume_events(%__MODULE__{} = state, events, event_field, ife_f) do
-    processing_f = process_reducing_events_f(event_field, ife_f)
+  defp consume_events(%__MODULE__{} = state, events, event_field_f, ife_f) do
+    processing_f = process_reducing_events_f(event_field_f, ife_f)
     {updated_state, updated_ife_keys} = Enum.reduce(events, {state, MapSet.new()}, processing_f)
     db_updates = ife_db_updates(updated_state, updated_ife_keys)
     {updated_state, db_updates}
@@ -225,10 +261,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   # using the value of a different field from the event, returning updated state and mapset of modified keys.
   # Pseudocode:
   # `event |> get IFE by tx_hash |> ife_f.(event[event_field])`
-  defp process_reducing_events_f(event_field, ife_f) do
+  defp process_reducing_events_f(event_field_f, ife_f) do
     fn event, {%__MODULE__{in_flight_exits: ifes} = state, updated_ife_keys} ->
       tx_hash = event.tx_hash
-      event_field_value = event[event_field]
+      event_field_value = event_field_f.(event)
       updated_ife = ifes |> Map.fetch!(tx_hash) |> ife_f.(event_field_value)
 
       updated_state = %{state | in_flight_exits: Map.put(ifes, tx_hash, updated_ife)}
@@ -252,8 +288,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.filter(&InFlightExitInfo.should_be_seeked_in_blocks?/1)
+      |> Enum.filter(&InFlightExitInfo.is_relevant?(&1, blknum_now))
       |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
-      |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
       |> :lists.usort()
 
     %{request | ife_input_utxos_to_check: ife_input_positions}
@@ -272,14 +308,20 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp do_determine_utxo_existence_to_get(%__MODULE__{in_flight_exits: ifes} = state, blknum_now) do
-    standard_exits_pos = StandardExit.exiting_positions(state)
+    standard_exits_pos =
+      StandardExit.exiting_positions(state)
+      |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
 
-    active_ifes = ifes |> Map.values() |> Enum.filter(& &1.is_active)
-    ife_inputs_pos = active_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
-    ife_outputs_pos = active_ifes |> Enum.flat_map(&InFlightExitInfo.get_piggybacked_outputs_positions/1)
+    active_relevant_ifes =
+      ifes
+      |> Map.values()
+      |> Enum.filter(& &1.is_active)
+      |> Enum.filter(&InFlightExitInfo.is_relevant?(&1, blknum_now))
+
+    ife_inputs_pos = active_relevant_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
+    ife_outputs_pos = active_relevant_ifes |> Enum.flat_map(&InFlightExitInfo.get_piggybacked_outputs_positions/1)
 
     (ife_outputs_pos ++ ife_inputs_pos ++ standard_exits_pos)
-    |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 and blknum < blknum_now end)
     |> :lists.usort()
   end
 
@@ -435,7 +477,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defdelegate get_output_challenge_data(request, state, txbytes, output_index), to: ExitProcessor.Piggyback
 
   defdelegate determine_standard_challenge_queries(request, state), to: ExitProcessor.StandardExit
-  defdelegate determine_exit_txbytes(request, state), to: ExitProcessor.StandardExit
   defdelegate create_challenge(request, state), to: ExitProcessor.StandardExit
 
   @spec get_ifes_to_piggyback(t()) :: list(InFlightExitInfo.t())

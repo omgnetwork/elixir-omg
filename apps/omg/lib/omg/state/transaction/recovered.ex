@@ -20,8 +20,8 @@ defmodule OMG.State.Transaction.Recovered do
   `Transaction.Recovered` represents a transaction that can be sent to `OMG.State.exec/1`
   """
 
+  alias OMG.Output
   alias OMG.State.Transaction
-  alias OMG.State.Transaction.OutputPredicateProtocol
   alias OMG.Utxo
 
   require Utxo
@@ -71,11 +71,11 @@ defmodule OMG.State.Transaction.Recovered do
   end
 
   # Checks the inputs spent by this transaction have been authorized by correct witnesses
-  @spec authorized?(t(), list()) :: :ok | {:error, :unauthorized_spent}
-  defp authorized?(%__MODULE__{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses}, input_utxos) do
-    input_utxos
+  @spec authorized?(t(), list(Output.Protocol.t())) :: :ok | {:error, :unauthorized_spent}
+  defp authorized?(%__MODULE__{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses}, outputs_spent) do
+    outputs_spent
     |> Enum.with_index()
-    |> Enum.map(fn {input_utxo, idx} -> OutputPredicateProtocol.can_spend?(witnesses[idx], input_utxo, raw_tx) end)
+    |> Enum.map(fn {output_spent, idx} -> OMG.Output.Protocol.can_spend?(output_spent, witnesses[idx], raw_tx) end)
     |> Enum.all?()
     |> if(do: :ok, else: {:error, :unauthorized_spent})
   end
@@ -87,10 +87,10 @@ defmodule OMG.State.Transaction.Recovered do
 
   Calls into the particular output predicate protocols' code and into transaction protocol
   """
-  @spec can_apply?(t(), list(Utxo.t())) :: {:ok, map()} | {:error, :unauthorized_spent | atom}
-  def can_apply?(%Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}} = tx, input_utxos) do
-    with :ok <- authorized?(tx, input_utxos),
-         do: Transaction.Protocol.can_apply?(raw_tx, input_utxos)
+  @spec can_apply?(t(), list(Output.Protocol.t())) :: {:ok, map()} | {:error, :unauthorized_spent | atom}
+  def can_apply?(%Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}} = tx, outputs_spent) do
+    with :ok <- authorized?(tx, outputs_spent),
+         do: Transaction.Protocol.can_apply?(raw_tx, outputs_spent)
   end
 
   @spec recover_from_struct(Transaction.Signed.t(), tx_bytes()) :: {:ok, t()} | {:error, recover_tx_error()}

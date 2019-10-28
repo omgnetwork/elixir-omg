@@ -34,7 +34,6 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @late_blknum 10_000
-  @exit_id 1
 
   describe "sanity checks" do
     test "can process empty challenges and responses", %{processor_empty: empty, processor_filled: filled} do
@@ -502,7 +501,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
     test "by not asking for utxo spends concerning non-active ifes",
          %{processor_empty: processor, transactions: [tx | _]} do
-      processor = processor |> start_ife_from(tx, status: {0, @exit_id})
+      processor = processor |> start_ife_from(tx, status: :inactive)
 
       assert %{utxos_to_check: []} =
                %ExitProcessor.Request{blknum_now: @late_blknum} |> Core.determine_utxo_existence_to_get(processor)
@@ -511,14 +510,34 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
     test "by not asking for utxo existence concerning finalized ifes",
          %{processor_empty: processor, transactions: [tx | _]} do
       tx_hash = Transaction.raw_txhash(tx)
-      piggybacks = [%{tx_hash: tx_hash, output_index: 1}, %{tx_hash: tx_hash, output_index: 2}]
       ife_id = 123
-      {processor, _} = processor |> start_ife_from(tx, status: {1, ife_id}) |> Core.new_piggybacks(piggybacks)
-      finalizations = [%{in_flight_exit_id: ife_id, output_index: 1}, %{in_flight_exit_id: ife_id, output_index: 2}]
+
+      processor =
+        processor
+        |> start_ife_from(tx, exit_id: ife_id)
+        |> piggyback_ife_from(tx_hash, 1, :input)
+        |> piggyback_ife_from(tx_hash, 2, :input)
+
+      finalizations = [
+        %{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}},
+        %{in_flight_exit_id: ife_id, output_index: 2, omg_data: %{piggyback_type: :input}}
+      ]
+
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, finalizations, %{})
 
       assert %{utxos_to_check: []} =
                %ExitProcessor.Request{blknum_now: @late_blknum} |> Core.determine_utxo_existence_to_get(processor)
+    end
+
+    test "returns input txs and input utxo positions for canonicity challenges",
+         %{processor_filled: processor, transactions: [tx | _], competing_tx: comp} do
+      txbytes = txbytes(tx)
+      processor = processor |> start_ife_from(comp)
+
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+
+      assert {:ok, %{input_tx: "input_tx", input_utxo_pos: Utxo.position(1, 0, 0)}} =
+               Core.get_competitor_for_ife(request, processor, txbytes)
     end
 
     test "by not asking for spends on no ifes",

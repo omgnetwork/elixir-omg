@@ -14,4 +14,4 @@ account.get_exitable_utxos:
       200:
         $ref: 'responses.yaml#/AccountUtxoResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'

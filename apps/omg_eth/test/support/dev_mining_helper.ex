@@ -18,6 +18,8 @@ defmodule OMG.Eth.DevMiningHelper do
   Basically helps to simulate behavior of `geth --dev --dev.period 1`. Useful with parity.
   """
 
+  alias OMG.Crypto
+  alias OMG.DevCrypto
   alias OMG.Eth.Encoding
 
   @devperiod_ms 1000
@@ -44,45 +46,38 @@ defmodule OMG.Eth.DevMiningHelper do
   end
 
   defp mine(addr, passphrase) do
-    %{from: addr, to: addr, value: Encoding.to_hex(1)}
-    |> OMG.Eth.send_transaction(passphrase: passphrase)
+    data = %{from: addr, to: addr, value: Encoding.to_hex(1)}
+
+    OMG.Eth.Transaction.send(backend(), data, passphrase: passphrase)
     |> OMG.Eth.DevHelpers.transact_sync!()
   end
 
-  defp create_tick_account do
+  defp create_tick_account() do
     tick_acc = generate_entity()
     account_priv_enc = Base.encode16(tick_acc.priv)
     passphrase = "dev.period"
 
-    {:ok, addr} = OMG.Eth.DevHelpers.create_account_from_secret(OMG.Eth.backend(), account_priv_enc, passphrase)
+    {:ok, addr} = OMG.Eth.DevHelpers.create_account_from_secret(backend(), account_priv_enc, passphrase)
 
     {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
 
-    %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
-    |> OMG.Eth.send_transaction(passphrase: "")
+    data = %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
+
+    OMG.Eth.Transaction.send(backend(), data, passphrase: "")
     |> OMG.Eth.DevHelpers.transact_sync!()
 
     {:ok, addr, passphrase}
   end
 
-  defp generate_entity do
-    priv = :crypto.strong_rand_bytes(32)
-    {:ok, <<4::integer-size(8), pub::binary>>} = get_public_key(priv)
-    {:ok, addr} = generate_address(pub)
-    %{priv: priv, addr: addr}
+  defp generate_entity() do
+    # lausy way of getting around circular dependency between omg_eth and omg
+    {:ok, priv} = apply(DevCrypto, :generate_private_key, [])
+    {:ok, pub} = apply(DevCrypto, :generate_public_key, [priv])
+    {:ok, address} = apply(Crypto, :generate_address, [pub])
+    %{priv: priv, addr: address}
   end
 
-  defp generate_address(<<pub::binary-size(64)>>) do
-    <<_::binary-size(12), address::binary-size(20)>> = hash(pub)
-    {:ok, address}
-  end
-
-  defp hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
-
-  defp get_public_key(private_key) do
-    case :libsecp256k1.ec_pubkey_create(private_key, :uncompressed) do
-      {:ok, public_key} -> {:ok, public_key}
-      {:error, reason} -> {:error, to_string(reason)}
-    end
+  defp backend() do
+    Application.fetch_env!(:omg_eth, :eth_node)
   end
 end

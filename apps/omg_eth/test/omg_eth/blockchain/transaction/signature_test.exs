@@ -12,17 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Transaction.OutputPredicateProtocol do
-  @moduledoc """
-  Code allowing outputs being spent by txs to be unlocked.
-
-  Intended to be called in stateful validation
-  """
-
-  @doc """
-  True if a particular witness can unlock a particular output to be spent, given being put in a particular transaction
-  """
-  def can_spend?(witness, output_spent, _raw_tx) when is_binary(witness) do
-    output_spent.owner == witness
-  end
+defmodule OMG.Eth.Blockchain.Transaction.SignatureTest do
+  use ExUnit.Case, async: true
+  doctest OMG.Eth.Blockchain.Transaction.Signature
 end

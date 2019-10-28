@@ -19,14 +19,13 @@ defmodule OMG.WatcherRPC.Web.Controller.Status do
   """
 
   use OMG.WatcherRPC.Web, :controller
-
-  alias OMG.Watcher.API
+  plug(OMG.WatcherRPC.Plugs.Health)
+  alias OMG.Watcher.API.Status
 
   @doc """
   Gets plasma network and Watcher status
   """
   def get_status(conn, _params) do
-    API.Status.get_status()
-    |> api_response(conn, :status)
+    api_response(Status.get_status(), conn, :status)
   end
 end

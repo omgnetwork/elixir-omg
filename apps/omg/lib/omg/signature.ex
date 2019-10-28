@@ -41,6 +41,17 @@ defmodule OMG.Signature do
 
   This implements Eq.(208) of the Yellow Paper, adapted from https://stackoverflow.com/a/20000007
 
+  ## Example
+
+    iex(1)> OMG.Signature.recover_public(<<2::256>>,
+    ...(1)>     28,
+    ...(1)>     38_938_543_279_057_362_855_969_661_240_129_897_219_713_373_336_787_331_739_561_340_553_100_525_404_231,
+    ...(1)>     23_772_455_091_703_794_797_226_342_343_520_955_590_158_385_983_376_086_035_257_995_824_653_222_457_926
+    ...(1)>     )
+    {:ok,
+     <<121, 190, 102, 126, 249, 220, 187, 172, 85, 160, 98, 149, 206, 135, 11, 7, 2, 155, 252, 219, 45, 206, 40,
+       217, 89, 242, 129, 91, 22, 248, 23, 152, 72, 58, 218, 119, 38, 163, 196, 101, 93, 164, 251, 252, 14, 17,
+       8, 168, 253, 23, 180, 72, 166, 133, 84, 25, 156, 71, 208, 143, 251, 16, 212, 184>>}
   """
   @spec recover_public(keccak_hash(), hash_v, hash_r, hash_s, integer() | nil) ::
           {:ok, public_key} | {:error, String.t()}
@@ -61,6 +72,27 @@ defmodule OMG.Signature do
       {:ok, <<_byte::8, public_key::binary()>>} -> {:ok, public_key}
       {:error, reason} -> {:error, to_string(reason)}
     end
+  end
+
+  @doc """
+  Recovers a public key from a signed hash.
+
+  This implements Eq.(208) of the Yellow Paper, adapted from https://stackoverflow.com/a/20000007
+
+  ## Example
+
+    iex(1)> OMG.Signature.recover_public(<<2::256>>, <<168, 39, 110, 198, 11, 113, 141, 8, 168, 151, 22, 210, 198, 150, 24, 111, 23,
+    ...(1)>         173, 42, 122, 59, 152, 143, 224, 214, 70, 96, 204, 31, 173, 154, 198, 97, 94,
+    ...(1)>         203, 172, 169, 136, 182, 131, 11, 106, 54, 190, 96, 128, 227, 222, 248, 231,
+    ...(1)>         75, 254, 141, 233, 113, 49, 74, 28, 189, 73, 249, 32, 89, 165, 27>>)
+    {:ok,
+      <<233, 102, 200, 175, 51, 251, 139, 85, 204, 181, 94, 133, 233, 88, 251, 156,
+        123, 157, 146, 192, 53, 73, 125, 213, 245, 12, 143, 102, 54, 70, 126, 35, 34,
+        167, 2, 255, 248, 68, 210, 117, 183, 156, 4, 185, 77, 27, 53, 239, 10, 57,
+        140, 63, 81, 87, 133, 241, 241, 210, 250, 35, 76, 232, 2, 153>>}
+  """
+  def recover_public(hash, <<r::integer-size(256), s::integer-size(256), v::integer-size(8)>>, chain_id \\ nil) do
+    recover_public(hash, v, r, s, chain_id)
   end
 
   @spec uses_chain_id?(hash_v) :: boolean()

@@ -49,8 +49,8 @@ watcher_url = "localhost:7434"
 
 # create and prepare transaction for signing
 tx =
-  Transaction.new([{alice_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
-  DevCrypto.sign([alice.priv, <<>>]) |>
+  Transaction.Payment.new([{alice_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
+  DevCrypto.sign([alice.priv]) |>
   Transaction.Signed.encode() |>
   OMG.Utils.HttpRPC.Encoding.to_hex()
 
@@ -65,6 +65,10 @@ tx =
 # see the Watcher getting a 1-txs block
 
 # 2/ Using the Watcher
+
+~c(echo '{}' | http POST #{watcher_url}/transaction.all) |>
+:os.cmd() |>
+Jason.decode!()
 
 # we grabbed the first transaction hash as returned by the Child chain server's API (response to `http`'s request)
 
@@ -87,7 +91,7 @@ exiting_utxopos = OMG.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum,
   Jason.decode!()
 
 tx2 =
-  Transaction.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
+  Transaction.Payment.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   OMG.Utils.HttpRPC.Encoding.to_hex()
@@ -98,13 +102,16 @@ tx2 =
 Jason.decode!()
 
 {:ok, txhash} =
-  Eth. RootChainHelper.start_exit(
+  Eth.RootChainHelper.start_exit(
     composed_exit["utxo_pos"],
     composed_exit["txbytes"] |> Encoding.from_hex(),
     composed_exit["proof"] |> Encoding.from_hex(),
     bob.addr
-  )
-Eth.WaitFor.eth_receipt(txhash)
+  ) |> Eth.DevHelpers.transact_sync!()
+
+# see the invalid exit report & challenge
+
+~c(echo '{}' | http POST #{watcher_url}/status.get) |>  :os.cmd() |>  Poison.decode!()
 
 %{"data" => challenge} =
   ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_challenge_data) |>
@@ -113,14 +120,14 @@ Eth.WaitFor.eth_receipt(txhash)
   Jason.decode!()
 
 {:ok, txhash} =
-  OMG.Eth.RootChainHelper.challenge_exit(
+  Eth.RootChainHelper.challenge_exit(
     challenge["exit_id"],
+    challenge["exiting_tx"] |> Encoding.from_hex(),
     challenge["txbytes"] |> Encoding.from_hex(),
     challenge["input_index"],
     challenge["sig"] |> Encoding.from_hex(),
     alice.addr
-  )
-{:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash)
+  ) |> Eth.DevHelpers.transact_sync!()
 
 # 4/ let's introduce a delay into the process of getting child block contents from the child chain server
 

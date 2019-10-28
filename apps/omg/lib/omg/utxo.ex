@@ -17,16 +17,14 @@ defmodule OMG.Utxo do
   Manipulates a single unspent transaction output (UTXO) held be the child chain state.
   """
 
-  alias OMG.Crypto
+  alias OMG.Output
   alias OMG.State.Transaction
 
-  defstruct [:owner, :currency, :amount, :creating_txhash]
+  defstruct [:output, :creating_txhash]
 
   @type t() :: %__MODULE__{
-          creating_txhash: Transaction.tx_hash(),
-          owner: Crypto.address_t(),
-          currency: Crypto.address_t(),
-          amount: non_neg_integer()
+          output: Output.Protocol.t(),
+          creating_txhash: Transaction.tx_hash()
         }
 
   @doc """
@@ -59,14 +57,32 @@ defmodule OMG.Utxo do
   end
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
-  def to_db_value(%__MODULE__{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash})
-      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_nil_or_binary(creating_txhash) do
-    %{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash}
+  def to_db_value(%__MODULE__{output: output, creating_txhash: creating_txhash})
+      when is_nil_or_binary(creating_txhash) do
+    %{creating_txhash: creating_txhash}
+    |> Map.put(:output, OMG.Output.Protocol.to_db_value(output))
   end
 
+  def from_db_value(%{output: output, creating_txhash: creating_txhash})
+      when is_nil_or_binary(creating_txhash) do
+    value = %{
+      output: OMG.Output.from_db_value(output),
+      creating_txhash: creating_txhash
+    }
+
+    struct!(__MODULE__, value)
+  end
+
+  # Reading from old db format, only `OMG.Output.FungibleMoreVPToken`
   def from_db_value(%{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash})
-      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_nil_or_binary(creating_txhash) do
-    value = %{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash}
+      when is_nil_or_binary(creating_txhash) do
+    output = %{owner: owner, currency: currency, amount: amount}
+
+    value = %{
+      output: OMG.Output.FungibleMoreVPToken.from_db_value(output),
+      creating_txhash: creating_txhash
+    }
+
     struct!(__MODULE__, value)
   end
 end

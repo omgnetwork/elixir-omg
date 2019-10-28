@@ -18,7 +18,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   require Logger
 
   @app :omg_eth
-  @error "Set ETHEREUM_NETWORK to RINKEBY or LOCALCHAIN, *_TXHASH_CONTRACT, *_AUTHORITY_ADDRESS and *_CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
+  @error "Set ETHEREUM_NETWORK to RINKEBY or LOCALCHAIN, *_TXHASH_CONTRACT, *_AUTHORITY_ADDRESS and *_CONTRACT_ADDRESS_* environment variables or CONTRACT_EXCHANGER_URL."
 
   @doc """
   The contract values can currently come either from ENV variables for deployments in
@@ -52,15 +52,25 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           end
 
         %{
-          "authority_addr" => authority_address,
-          "contract_addr" => contract_address,
-          "txhash_contract" => txhash_contract
-        } = Jason.decode!(body)
+          authority_address: authority_address,
+          erc20_vault: erc20_vault,
+          eth_vault: eth_vault,
+          payment_exit_game: payment_exit_game,
+          plasma_framework: plasma_framework,
+          plasma_framework_tx_hash: txhash_contract
+        } = Jason.decode!(body, keys: :atoms!)
 
         exit_period_seconds =
           validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
 
-        update_configuration(txhash_contract, authority_address, contract_address, exit_period_seconds)
+        contract_addresses = %{
+          plasma_framework: plasma_framework,
+          eth_vault: eth_vault,
+          erc20_vault: erc20_vault,
+          payment_exit_game: payment_exit_game
+        }
+
+        update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
 
       {_, via_env} when is_binary(via_env) ->
         :ok = apply_static_settings(via_env)
@@ -85,20 +95,31 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
     txhash_contract = get_env(network <> "_TXHASH_CONTRACT")
     authority_address = get_env(network <> "_AUTHORITY_ADDRESS")
-    contract_address = get_env(network <> "_CONTRACT_ADDRESS")
+    env_contract_address_plasma_framework = get_env(network <> "_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    env_contract_address_eth_vault = get_env(network <> "_CONTRACT_ADDRESS_ETH_VAULT")
+    env_contract_address_erc20_vault = get_env(network <> "_CONTRACT_ADDRESS_ERC20_VAULT")
+    env_contract_address_payment_exit_game = get_env(network <> "_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+
+    contract_addresses = %{
+      plasma_framework: env_contract_address_plasma_framework,
+      eth_vault: env_contract_address_eth_vault,
+      erc20_vault: env_contract_address_erc20_vault,
+      payment_exit_game: env_contract_address_payment_exit_game
+    }
 
     exit_period_seconds =
       validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
 
-    update_configuration(txhash_contract, authority_address, contract_address, exit_period_seconds)
+    update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
   end
 
-  defp update_configuration(txhash_contract, authority_address, contract_address, exit_period_seconds)
+  defp update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
        when is_binary(txhash_contract) and
-              is_binary(authority_address) and is_binary(contract_address) and is_integer(exit_period_seconds) do
+              is_binary(authority_address) and is_map(contract_addresses) and is_integer(exit_period_seconds) do
+    contract_addresses = Enum.into(contract_addresses, %{}, fn {name, addr} -> {name, String.downcase(addr)} end)
     :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
     :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
-    :ok = Application.put_env(@app, :contract_addr, String.downcase(contract_address), persistent: true)
+    :ok = Application.put_env(@app, :contract_addr, contract_addresses, persistent: true)
     :ok = Application.put_env(@app, :exit_period_seconds, exit_period_seconds)
   end
 

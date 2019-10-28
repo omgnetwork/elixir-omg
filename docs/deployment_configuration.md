@@ -8,7 +8,7 @@
 - "EXIT_PERIOD_SECONDS" - defaults to `604800`
 - "ETHEREUM_RPC_URL" - address of Geth or Parity instance *mandatory*
 - "ETHEREUM_WS_RPC_URL" - address of Geth or Parity instance with websocket flags *mandatory*
-- "ETH_NODE" - Geth or Parity *mandatory*
+- "ETH_NODE" - Geth, Parity or Infura *mandatory*
 - "SENTRY_DSN" - if not set, Sentry is disabled
 - "DD_HOSTNAME" - Datadog hostname
 - "DD_PORT" - Datadog agent UDP port for metrics
@@ -29,9 +29,12 @@ We allow a static configuration or a dynamic one, served as a http endpoint (one
 - "CONTRACT_EXCHANGER_URL" - a server that can serve JSON in form of
 ```
 {
-  "authority_addr": "<authority_address>",
-  "contract_addr": "<contract_address>",
-  "txhash_contract": "<txhash_contract>"
+  "plasma_framework_tx_hash":"<plasma_framework_tx_hash>",
+  "plasma_framework":"<plasma_framework>",
+  "eth_vault":"<eth_vault>",
+  "erc20_vault":"<erc20_vault>",
+  "payment_exit_game":"<payment_exit_game>",
+  "authority_address":"<authority_address>"
 }
 ```
 Static configuration
@@ -39,11 +42,32 @@ Static configuration
 - "ETHEREUM_NETWORK" - RINKEBY or LOCALNETWORK
 - "RINKEBY_TXHASH_CONTRACT"
 - "RINKEBY_AUTHORITY_ADDRESS"
-- "RINKEBY_CONTRACT_ADDRESS"
+- "RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK"
+- "RINKEBY_CONTRACT_ADDRESS_ETH_VAULT
+- "RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT
+- "RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"
+
 or
+
 - "LOCALNETWORK_TXHASH_CONTRACT"
 - "LOCALNETWORK_AUTHORITY_ADDRESS"
-- "LOCALNETWORK_CONTRACT_ADDRESS"
+- "LOCALNETWORK_CONTRACT_ADDRESS_PLASMA_FRAMEWORK"
+- "LOCALNETWORK_CONTRACT_ADDRESS_ETH_VAULT
+- "LOCALNETWORK_CONTRACT_ADDRESS_ERC20_VAULT
+- "LOCALNETWORK_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"
+
+***Required contract addresses***
+
+The contract addresses that are required to be included in the `contract_addr` field (or `_CONTRACT_ADDRESS` JSON) are:
+
+```
+{
+  "plasma_framework": "...",
+  "eth_vault": "...",
+  "erc20_vault": "...",
+  "payment_exit_game": "..."
+}
+```
 
 ***Watcher only***
 

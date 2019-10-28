@@ -44,12 +44,24 @@ defmodule OMG.Performance do
   It is caused by using `procs: :all` in options. So far we're not using `:erlang.trace/3` in our code,
   so it has been ignored. Otherwise it's easy to reproduce and report if anyone has the nerve
   (github.com/erlang/otp and the JIRA it points you to).
+
+  ## start_standard_exit_perftest runs test that fetches standard exit data from the Watcher
+  ## standard_exit_perftest is run on testnet make sure you followed instruction in `README.md` and `get`, `omg_childchain` & `omg_watcher` are running.
+
+  ```
+  mix run --no-start -e 'OMG.Performance.start_standard_exit_perftest([%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], 3, "0xbc5f ...")'
+  ```
+
+  ## Parameters passed are: 1. list of senders, 2. number of users that fetching exits in parallel, 3. contract address
+  With default options, number of transactions sent to the network is 10 times the senders count per each sender
+  Number of exiting utxo is total number of transactions, each exiting user ask for the same utxo set, but mixes the order.
   """
 
   use OMG.Utils.LoggerExt
 
   alias OMG.Crypto
   alias OMG.Integration.DepositHelper
+  alias OMG.Performance.ByzantineEvents
   alias OMG.TestHelper
   alias OMG.Utxo
 
@@ -139,6 +151,44 @@ defmodule OMG.Performance do
     cleanup_extended_perftest(started_apps)
   end
 
+  @doc """
+  Starts with extended perftest to populate network with transactions.
+  Then with a given `exit_users` start fetching exit data from Watcher.
+  """
+  @spec start_standard_exit_perftest(list(TestHelper.entity()), pos_integer(), Crypto.address_t(), map()) :: %{
+          opts: map(),
+          statistics: [ByzantineEvents.stats_t()]
+        }
+  def start_standard_exit_perftest(spenders, exiting_users, contract_addr, opts \\ %{}) do
+    # in case number of txs to send wasn't set, provides defaults
+    spenders_count = length(spenders)
+    ntx_to_send = 10 * spenders_count
+
+    opts =
+      opts
+      |> Map.put_new(:spenders_count, spenders_count)
+      |> Map.put_new(:ntx_to_send, ntx_to_send)
+      |> Map.put_new(:exits_per_user, ntx_to_send * spenders_count)
+
+    :ok = start_extended_perftest(opts.ntx_to_send, spenders, contract_addr, opts)
+
+    # wait before asking watcher about exit data
+    ByzantineEvents.watcher_synchronize()
+
+    _ =
+      Logger.info(
+        "Std exit perftest with #{spenders_count * ntx_to_send} txs in the network, Watcher synced, fetching #{
+          opts.exits_per_user
+        } exit data with #{exiting_users} users."
+      )
+
+    exit_positions = setup_standard_exit_perftest(opts)
+
+    statistics = ByzantineEvents.start_dos_get_exits(exit_positions, exiting_users)
+
+    %{opts: opts, statistics: statistics}
+  end
+
   # Hackney is http-client httpoison's dependency.
   # We start omg_child_chain app that will will start omg_child_chain_rpc
   # (because of it's dependency when mix env == test).
@@ -167,7 +217,6 @@ defmodule OMG.Performance do
   # Instead, we start the artificial `BlockCreator`
   defp start_simple_perftest_chain(opts) do
     children = [
-      {OMG.ChildChainRPC.Plugs.Health, []},
       {OMG.ChildChainRPC.Web.Endpoint, []},
       {OMG.State, []},
       {OMG.ChildChain.FreshBlocks, []},
@@ -189,7 +238,7 @@ defmodule OMG.Performance do
     Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)
     Application.put_env(:ethereumex, :url, opts[:geth])
 
-    Application.put_env(:omg_eth, :contract_addr, OMG.Eth.Encoding.to_hex(contract_addr))
+    Application.put_env(:omg_eth, :contract_addr, OMG.Eth.RootChain.contract_map_to_hex(contract_addr))
 
     {:ok, started_apps}
   end
@@ -209,6 +258,28 @@ defmodule OMG.Performance do
   defp cleanup_extended_perftest(started_apps) do
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     :ok
+  end
+
+  @spec setup_standard_exit_perftest(map()) :: map()
+  defp setup_standard_exit_perftest(opts) do
+    exit_for = Map.get(opts, :exit_for)
+
+    utxos =
+      case exit_for do
+        %{addr: addr} ->
+          addr
+          |> ByzantineEvents.get_exitable_utxos()
+          |> Enum.map(& &1.utxo_pos)
+          |> Enum.shuffle()
+          |> Enum.take(opts.exits_per_user)
+
+        nil ->
+          utxo_positions_stream = ByzantineEvents.Generators.stream_utxo_positions()
+          Enum.take(utxo_positions_stream, opts.exits_per_user)
+      end
+
+    _ = Logger.debug("Get #{length(utxos)} utxos for exit, for user: #{Map.get(exit_for || %{}, :addr, "<no user>")}")
+    utxos
   end
 
   @spec run({pos_integer(), list(), %{atom => any()}, boolean()}) :: :ok

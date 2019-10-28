@@ -23,13 +23,15 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     @moduledoc """
     Represents a challenge to a standard exit as returned by the `ExitProcessor`
     """
-    defstruct [:exit_id, :txbytes, :input_index, :sig]
+    @enforce_keys [:exit_id, :exiting_tx, :txbytes, :input_index, :sig]
+    defstruct @enforce_keys
 
     alias OMG.Crypto
     alias OMG.State.Transaction
 
     @type t() :: %__MODULE__{
             exit_id: pos_integer(),
+            exiting_tx: Transaction.tx_bytes(),
             txbytes: Transaction.tx_bytes(),
             input_index: non_neg_integer(),
             sig: Crypto.sig_t()
@@ -86,53 +88,17 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   @doc """
   Determines the utxo-creating and utxo-spending blocks to get from `OMG.DB`
   `se_spending_blocks_to_get` are requested by the UTXO position they spend
-  `se_creating_blocks_to_get` are requested by blknum
   """
   @spec determine_standard_challenge_queries(ExitProcessor.Request.t(), Core.t()) ::
           {:ok, ExitProcessor.Request.t()} | {:error, :exit_not_found}
   def determine_standard_challenge_queries(
-        %ExitProcessor.Request{se_exiting_pos: Utxo.position(creating_blknum, _, _) = exiting_pos} = request,
+        %ExitProcessor.Request{se_exiting_pos: Utxo.position(_, _, _) = exiting_pos} = request,
         %Core{exits: exits} = state
       ) do
     with {:ok, _exit_info} <- get_exit(exits, exiting_pos) do
       spending_blocks_to_get = if get_ife_based_on_utxo(exiting_pos, state), do: [], else: [exiting_pos]
-      creating_blocks_to_get = if Utxo.Position.is_deposit?(exiting_pos), do: [], else: [creating_blknum]
-
-      {:ok,
-       %ExitProcessor.Request{
-         request
-         | se_spending_blocks_to_get: spending_blocks_to_get,
-           se_creating_blocks_to_get: creating_blocks_to_get
-       }}
+      {:ok, %ExitProcessor.Request{request | se_spending_blocks_to_get: spending_blocks_to_get}}
     end
-  end
-
-  @doc """
-  Determines the txbytes of the particular transaction related to the SE - aka "output tx" - which creates the exiting
-  utxo
-  """
-  @spec determine_exit_txbytes(ExitProcessor.Request.t(), Core.t()) ::
-          ExitProcessor.Request.t()
-  def determine_exit_txbytes(
-        %ExitProcessor.Request{se_exiting_pos: exiting_pos, se_creating_blocks_result: creating_blocks_result} =
-          request,
-        %Core{exits: exits}
-      )
-      when not is_nil(exiting_pos) do
-    exit_id_to_get_by_txbytes =
-      if Utxo.Position.is_deposit?(exiting_pos) do
-        %ExitInfo{owner: owner, currency: currency, amount: amount} = exits[exiting_pos]
-        Transaction.Payment.new([], [{owner, currency, amount}])
-      else
-        [%Block{transactions: transactions}] = creating_blocks_result
-        Utxo.position(_, txindex, _) = exiting_pos
-
-        {:ok, signed_bytes} = Enum.fetch(transactions, txindex)
-        Transaction.Signed.decode!(signed_bytes)
-      end
-      |> Transaction.raw_txbytes()
-
-    %ExitProcessor.Request{request | se_exit_id_to_get: exit_id_to_get_by_txbytes}
   end
 
   @doc """
@@ -141,15 +107,11 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   @spec create_challenge(ExitProcessor.Request.t(), Core.t()) ::
           {:ok, Challenge.t()} | {:error, :utxo_not_spent}
   def create_challenge(
-        %ExitProcessor.Request{
-          se_exiting_pos: exiting_pos,
-          se_spending_blocks_result: spending_blocks_result,
-          se_exit_id_result: exit_id
-        },
+        %ExitProcessor.Request{se_exiting_pos: exiting_pos, se_spending_blocks_result: spending_blocks_result},
         %Core{exits: exits} = state
       )
-      when not is_nil(exiting_pos) and not is_nil(exit_id) do
-    %ExitInfo{owner: owner} = exits[exiting_pos]
+      when not is_nil(exiting_pos) do
+    %ExitInfo{owner: owner, exit_id: exit_id, exiting_txbytes: exiting_txbytes} = exits[exiting_pos]
     ife_result = get_ife_based_on_utxo(exiting_pos, state)
 
     with {:ok, spending_tx_or_block} <- ensure_challengeable(spending_blocks_result, ife_result) do
@@ -160,6 +122,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
        %Challenge{
          exit_id: exit_id,
          input_index: input_index,
+         exiting_tx: exiting_txbytes,
          txbytes: challenging_signed |> Transaction.raw_txbytes(),
          sig: find_sig!(challenging_signed, owner)
        }}
