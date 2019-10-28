@@ -245,25 +245,23 @@ defmodule OMG.State.CoreTest do
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
     |> do_deposit(bob, %{amount: 20, currency: @eth, blknum: 2})
     |> Core.exec(create_recovered([{1, 0, 0, bob}, {2, 0, 0, alice}], @eth, [{bob, 10}]), :no_fees_required)
-    |> fail?(:unauthorized_spent)
+    |> fail?(:unauthorized_spend)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
-  test "ignores deposits from blocks not higher than the block with the last previously received deposit", %{
-    alice: alice,
-    bob: bob,
-    state_empty: state
-  } do
-    assert {:ok, _, state} = Core.deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 2}], state)
-    assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: @eth, amount: 20, blknum: 1}], state)
-  end
-
-  test "extract_initial_state function returns error when passed last deposit as :not_found" do
-    assert {:error, :last_deposit_not_found} = Core.extract_initial_state([], 0, :not_found, @interval)
+  test "deposits can arrive in any order; `OMG.State.Core` doesn't care about this",
+       %{alice: alice, bob: bob, state_empty: state} do
+    state
+    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
+    |> do_deposit(bob, %{amount: 20, currency: @eth, blknum: 1})
+    |> Core.exec(create_recovered([{2, 0, 0, alice}], @eth, [{bob, 10}]), :no_fees_required)
+    |> success?
+    |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{alice, 20}]), :no_fees_required)
+    |> success?
   end
 
   test "extract_initial_state function returns error when passed top block number as :not_found" do
-    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, 0, @interval)
+    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, @interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -280,10 +278,10 @@ defmodule OMG.State.CoreTest do
   test "can't spend other people's funds", %{alice: alice, bob: bob, state_alice_deposit: state} do
     state
     |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{bob, 8}, {alice, 3}]), :no_fees_required)
-    |> fail?(:unauthorized_spent)
+    |> fail?(:unauthorized_spend)
     |> same?(state)
     |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{alice, 10}]), :no_fees_required)
-    |> fail?(:unauthorized_spent)
+    |> fail?(:unauthorized_spend)
     |> same?(state)
   end
 
@@ -296,10 +294,10 @@ defmodule OMG.State.CoreTest do
 
     state
     |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, bob}], @eth, []), :no_fees_required)
-    |> fail?(:unauthorized_spent)
+    |> fail?(:unauthorized_spend)
     |> same?(state)
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}, {@blknum1, 0, 1, alice}], @eth, []), :no_fees_required)
-    |> fail?(:unauthorized_spent)
+    |> fail?(:unauthorized_spend)
     |> same?(state)
 
     state
@@ -601,7 +599,11 @@ defmodule OMG.State.CoreTest do
              |> Enum.map(&Utxo.Position.encode/1)
              |> Core.exit_utxos(state)
 
-    piggybacks = [%{tx_hash: tx_hash, output_index: 4}, %{tx_hash: tx_hash, output_index: 5}]
+    piggybacks = [
+      %{tx_hash: tx_hash, output_index: 0, omg_data: %{piggyback_type: :output}},
+      %{tx_hash: tx_hash, output_index: 1, omg_data: %{piggyback_type: :output}}
+    ]
+
     assert exit_utxos_response_reference == Core.exit_utxos(piggybacks, state)
   end
 
@@ -642,7 +644,11 @@ defmodule OMG.State.CoreTest do
     state = state |> Core.exec(tx, :no_fees_required) |> success?
 
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
-    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.raw_txhash(tx), output_index: 4}]
+
+    utxo_pos_exits_piggyback = [
+      %{tx_hash: Transaction.raw_txhash(tx), output_index: 0, omg_data: %{piggyback_type: :output}}
+    ]
+
     expected_position = Utxo.position(@blknum1, 0, 0)
 
     assert {:ok, {[], {[], _}}, ^state} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
@@ -691,7 +697,7 @@ defmodule OMG.State.CoreTest do
 
   @tag fixtures: [:state_empty]
   test "notifies about invalid in-flight exit", %{state_empty: state} do
-    piggyback = %{tx_hash: 1, output_index: 5}
+    piggyback = %{tx_hash: 1, output_index: 1, omg_data: %{piggyback_type: :output}}
 
     assert {:ok, {[], {[], [^piggyback]}}, ^state} = Core.exit_utxos([piggyback], state)
   end

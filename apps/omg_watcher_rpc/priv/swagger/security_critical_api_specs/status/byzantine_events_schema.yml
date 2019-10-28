@@ -1,0 +1,139 @@
+components:
+  schemas:
+    invalid_exit:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [invalid_exit]
+        details:
+          type: object
+          properties:
+            eth_height:
+              type: integer
+            utxo_pos:
+              type: integer
+            owner:
+              type: string
+            currency:
+              type: string
+            amount:
+              type: integer
+    unchallenged_exit:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [unchallenged_exit]
+        details:
+          type: object
+          properties:
+            eth_height:
+              type: integer
+            utxo_pos:
+              type: integer
+            owner:
+              type: string
+            currency:
+              type: string
+            amount:
+              type: integer
+    invalid_block:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [invalid_block]
+        details:
+          type: object
+          properties:
+            blknum:
+              type: integer
+            blockhash:
+              type: string
+            error_type:
+              type: string
+              enum: [tx_execution, incorrect_hash]
+    block_withholding:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [block_withholding]
+        details:
+          type: object
+          properties:
+            hash:
+              type: string
+            blknum:
+              type: string
+    noncanonical_ife:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [noncanonical_ife]
+        details:
+          type: object
+          properties:
+            txbytes:
+              type: string
+    invalid_ife_challenge:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [invalid_ife_challenge]
+        details:
+          type: object
+          properties:
+            txbytes:
+              type: string
+    piggyback_available:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [piggyback_available]
+        details:
+          type: object
+          properties:
+            txbytes:
+              type: string
+            available_outputs:
+              type: array
+              items:
+                type: object
+                properties:
+                  index:
+                    type: integer
+                  address:
+                    type: string
+            available_inputs:
+              type: array
+              items:
+                type: object
+                properties:
+                  index:
+                    type: integer
+                  address:
+                    type: string
+    invalid_piggyback:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [invalid_piggyback]
+        details:
+          type: object
+          properties:
+            txbytes:
+              type: string
+            inputs:
+              type: array
+              items:
+                type: integer
+            outputs:
+              type: array
+              items:
+                type: integer

@@ -28,7 +28,7 @@ This document presents current way of stateless and stateful validation of
 2. Checking correctness of input positions
     * if the input is from the future block then `{:error, :input_utxo_ahead_of_state}`
     * if the input does not exists then `{:error, :utxo_not_found}`
-    * if the owner of input does not match with spender then `{:error, :unauthorized_spent}`
+    * if the owner of input does not match with spender then `{:error, :unauthorized_spend}`
 3. Checking if the amounts from the provided inputs adds up.
     * if not then `{:error, :amounts_do_not_add_up}`
 4. (if in child chain server tx submission pipeline): see if the transaction pays the correct fee.

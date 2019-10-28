@@ -51,8 +51,6 @@ defmodule OMG.Watcher.ExitProcessor.Case do
     in_flight_exit_events =
       transactions |> Enum.zip([2, 4]) |> Enum.map(fn {tx, eth_height} -> ife_event(tx, eth_height: eth_height) end)
 
-    contract_ife_statuses = 1..length(transactions) |> Enum.map(fn i -> {i, i} end)
-
     ife_tx_hashes = transactions |> Enum.map(&Transaction.raw_txhash/1)
 
     processor_filled =
@@ -60,7 +58,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
       |> Enum.zip([1, 4])
       |> Enum.reduce(processor_empty, fn {tx, idx}, processor ->
         # use the idx as both two distinct ethereum heights and two distinct exit_ids arriving from the root chain
-        processor |> start_ife_from(tx, eth_height: idx, status: {1, idx})
+        start_ife_from(processor, tx, eth_height: idx, exit_id: idx)
       end)
 
     {:ok,
@@ -73,7 +71,6 @@ defmodule OMG.Watcher.ExitProcessor.Case do
        unrelated_tx: unrelated_tx,
        processor_empty: processor_empty,
        in_flight_exit_events: in_flight_exit_events,
-       contract_ife_statuses: contract_ife_statuses,
        ife_tx_hashes: ife_tx_hashes,
        processor_filled: processor_filled,
        invalid_piggyback_on_input:
@@ -89,7 +86,11 @@ defmodule OMG.Watcher.ExitProcessor.Case do
       ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], 3000)]
     }
 
-    state = state |> start_ife_from(competing_tx) |> piggyback_ife_from(ife_id, 0) |> Core.find_ifes_in_blocks(request)
+    state =
+      state
+      |> start_ife_from(competing_tx)
+      |> piggyback_ife_from(ife_id, 0, :input)
+      |> Core.find_ifes_in_blocks(request)
 
     %{
       state: state,
@@ -120,7 +121,11 @@ defmodule OMG.Watcher.ExitProcessor.Case do
     }
 
     # 3. stuff happens in the contract; output #4 is a double-spend; #5 is OK
-    state = state |> piggyback_ife_from(ife_id, 4) |> piggyback_ife_from(ife_id, 5) |> Core.find_ifes_in_blocks(request)
+    state =
+      state
+      |> piggyback_ife_from(ife_id, 0, :output)
+      |> piggyback_ife_from(ife_id, 1, :output)
+      |> Core.find_ifes_in_blocks(request)
 
     %{
       state: state,

@@ -69,10 +69,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
 
     test "in flight exits sanity checks",
-         %{processor_empty: state, in_flight_exit_events: events, contract_ife_statuses: statuses} do
+         %{processor_empty: state, in_flight_exit_events: events} do
       assert {state, []} == Core.new_in_flight_exits(state, [], [])
       assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, Enum.slice(events, 0, 1), [])
-      assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, [], Enum.slice(statuses, 0, 1))
+      assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, [], [{:anything, 1}])
     end
 
     test "knows exits by exit_id the moment they start",
@@ -117,8 +117,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   describe "active SE/IFE listing (only IFEs for now)" do
     test "properly processes new in flight exits, returns all of them on request",
-         %{processor_empty: processor, in_flight_exit_events: events, contract_ife_statuses: statuses} do
+         %{processor_empty: processor, in_flight_exit_events: events} do
       assert [] == Core.get_active_in_flight_exits(processor)
+      # some statuses as received from the contract
+      statuses = [{active_ife_status(), 1}, {active_ife_status(), 2}]
 
       {processor, _} = Core.new_in_flight_exits(processor, events, statuses)
       ifes_response = Core.get_active_in_flight_exits(processor)
@@ -149,16 +151,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "reports piggybacked inputs/outputs when getting ifes",
          %{processor_empty: processor, transactions: [tx | _]} do
       txhash = Transaction.raw_txhash(tx)
-      processor = processor |> start_ife_from(tx)
+      processor = start_ife_from(processor, tx)
       assert [%{piggybacked_inputs: [], piggybacked_outputs: []}] = Core.get_active_in_flight_exits(processor)
 
-      processor = piggyback_ife_from(processor, txhash, 0)
-
+      processor = piggyback_ife_from(processor, txhash, 0, :input)
       assert [%{piggybacked_inputs: [0], piggybacked_outputs: []}] = Core.get_active_in_flight_exits(processor)
 
-      {processor, _} =
-        Core.new_piggybacks(processor, [%{tx_hash: txhash, output_index: 4}, %{tx_hash: txhash, output_index: 5}])
-
+      processor = processor |> piggyback_ife_from(txhash, 0, :output) |> piggyback_ife_from(txhash, 1, :output)
       assert [%{piggybacked_inputs: [0], piggybacked_outputs: [0, 1]}] = Core.get_active_in_flight_exits(processor)
     end
 

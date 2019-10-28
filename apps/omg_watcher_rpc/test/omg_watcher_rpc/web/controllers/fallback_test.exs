@@ -25,6 +25,6 @@ defmodule OMG.WatcherRPC.Web.Controller.FallbackTest do
              "object" => "error",
              "code" => "operation:not_found",
              "description" => "Operation cannot be found. Check request URL."
-           } == TestHelper.no_success?("no_such.endpoint", %{})
+           } == WatcherHelper.no_success?("no_such.endpoint", %{})
   end
 end
