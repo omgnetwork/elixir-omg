@@ -32,6 +32,7 @@ paths:
         content:
           application/json:
             schema:
+              title: address_parameter
               type: object
               properties:
                 address:
@@ -149,6 +150,7 @@ paths:
         content:
           application/json:
             schema:
+              title: address_parameter
               type: object
               properties:
                 address:
@@ -283,6 +285,7 @@ paths:
         content:
           application/json:
             schema:
+              title: all_transaction_parameter
               type: object
               properties:
                 address:
@@ -469,6 +472,7 @@ paths:
         content:
           application/json:
             schema:
+              title: all_transaction_parameter
               type: object
               properties:
                 address:

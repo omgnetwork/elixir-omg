@@ -4,6 +4,7 @@ AddressBodySchema:
   content:
     application/json:
       schema:
+        title: 'address_parameter'
         type: object
         properties:
           address:

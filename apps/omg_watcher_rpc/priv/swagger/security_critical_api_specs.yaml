@@ -468,6 +468,7 @@ paths:
         content:
           application/json:
             schema:
+              title: account_address_parameter
               type: object
               properties:
                 address:
@@ -604,6 +605,7 @@ paths:
         content:
           application/json:
             schema:
+              title: uxto_parameter
               type: object
               properties:
                 utxo_pos:
@@ -731,6 +733,7 @@ paths:
         content:
           application/json:
             schema:
+              title: uxto_parameter
               type: object
               properties:
                 utxo_pos:
@@ -850,6 +853,7 @@ paths:
         content:
           application/json:
             schema:
+              title: submit_transaction_parameter
               type: object
               properties:
                 transaction:
@@ -969,6 +973,7 @@ paths:
         content:
           application/json:
             schema:
+              title: in_flight_exit_parameter
               type: object
               properties:
                 txbytes:
@@ -1370,6 +1375,7 @@ paths:
         content:
           application/json:
             schema:
+              title: in_flight_exit_challenge_parameter
               type: object
               properties:
                 txbytes:
@@ -1510,6 +1516,7 @@ paths:
         content:
           application/json:
             schema:
+              title: in_flight_exit_output_challenge_parameter
               type: object
               properties:
                 txbytes:

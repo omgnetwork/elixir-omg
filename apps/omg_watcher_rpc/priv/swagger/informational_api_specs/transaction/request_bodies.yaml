@@ -3,6 +3,7 @@ GetAllTransactionsBodySchema:
   content:
     application/json:
       schema:
+        title: 'all_transaction_parameter'
         type: object
         properties:
           address:
@@ -172,6 +173,7 @@ GetTransactionByPosBodySchema:
   content:
     application/json:
       schema:
+        title: 'transaction_position_parameter'
         type: object
         properties:
           blknum:
