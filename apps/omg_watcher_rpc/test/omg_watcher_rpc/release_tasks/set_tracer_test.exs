@@ -19,6 +19,15 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracerTest do
 
   @app :omg_watcher_rpc
   @configuration_old Application.get_env(@app, Tracer)
+  setup do
+    on_exit(fn ->
+      # configuration is global state so we reset it to known values in case
+      # it got fiddled before
+      :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
+    end)
+
+    :ok
+  end
 
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("DD_DISABLED", "TRUE")
@@ -48,12 +57,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracerTest do
 
   test "if exit is thrown when faulty configuration is used" do
     :ok = System.put_env("DD_DISABLED", "TRUEeee")
-
-    try do
-      :ok = SetTracer.init([])
-    catch
-      :exit, _ ->
-        :ok = System.delete_env("DD_DISABLED")
-    end
+    catch_exit(SetTracer.init([]))
+    :ok = System.delete_env("DD_DISABLED")
   end
 end
