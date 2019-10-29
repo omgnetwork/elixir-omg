@@ -46,8 +46,8 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
       listen_to,
       fn listen ->
         params = [listen_to: listen, ws_url: Application.get_env(:omg_eth, :ws_url)]
-        _ = SubscriptionWorker.start_link([{:event_bus, OMG.Bus} | params])
         :ok = OMG.Bus.subscribe(listen, link: true)
+        _ = SubscriptionWorker.start_link([{:event_bus, OMG.Bus} | params])
         event = String.to_atom(listen)
 
         receive do
