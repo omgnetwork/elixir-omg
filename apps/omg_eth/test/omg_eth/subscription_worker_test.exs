@@ -99,7 +99,7 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
 
       case Plug.Adapters.Cowboy.http(__MODULE__, [], opts) do
         {:error, :eaddrinuse} ->
-          start_server(Agent.get_and_update(:port_holder, fn state -> {state, state + 1} end), ref)
+          start_server(Agent.get_and_update(:subscription_port_holder, fn state -> {state, state + 1} end), ref)
 
         {:ok, _} ->
           "ws://localhost:#{port}/ws"
