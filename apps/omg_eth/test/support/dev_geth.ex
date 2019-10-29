@@ -23,7 +23,7 @@ defmodule OMG.Eth.DevGeth do
 
   require Logger
 
-  alias OMG.Eth
+  alias Support.WaitFor
 
   def start do
     {:ok, _} = Application.ensure_all_started(:briefly)
@@ -36,7 +36,7 @@ defmodule OMG.Eth.DevGeth do
         "geth --dev --dev.period=1 --ws --wsorigins='*' --rpc --rpcapi=personal,eth,web3,admin --datadir #{homedir} 2>&1"
       )
 
-    {:ok, :ready} = Eth.WaitFor.eth_rpc()
+    {:ok, :ready} = WaitFor.eth_rpc()
 
     on_exit = fn -> stop(geth_pid) end
 
@@ -64,7 +64,7 @@ defmodule OMG.Eth.DevGeth do
       if Application.get_env(:omg_eth, :node_logging_in_debug) do
         %Task{} =
           fn ->
-            geth_out |> Enum.each(&OMG.Eth.DevNode.default_logger/1)
+            Enum.each(geth_out, &Support.DevNode.default_logger/1)
           end
           |> Task.async()
       end
@@ -73,6 +73,6 @@ defmodule OMG.Eth.DevGeth do
   end
 
   defp wait_for_geth_start(geth_out) do
-    OMG.Eth.DevNode.wait_for_start(geth_out, "IPC endpoint opened", 15_000)
+    Support.DevNode.wait_for_start(geth_out, "IPC endpoint opened", 15_000)
   end
 end

@@ -20,7 +20,6 @@ defmodule OMG.State.Transaction.Recovered do
   `Transaction.Recovered` represents a transaction that can be sent to `OMG.State.exec/1`
   """
 
-  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -68,29 +67,6 @@ defmodule OMG.State.Transaction.Recovered do
   def recover_from!(encoded_signed_tx) do
     {:ok, recovered} = Transaction.Recovered.recover_from(encoded_signed_tx)
     recovered
-  end
-
-  # Checks the inputs spent by this transaction have been authorized by correct witnesses
-  @spec authorized?(t(), list(Output.Protocol.t())) :: :ok | {:error, :unauthorized_spent}
-  defp authorized?(%__MODULE__{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses}, outputs_spent) do
-    outputs_spent
-    |> Enum.with_index()
-    |> Enum.map(fn {output_spent, idx} -> OMG.Output.Protocol.can_spend?(output_spent, witnesses[idx], raw_tx) end)
-    |> Enum.all?()
-    |> if(do: :ok, else: {:error, :unauthorized_spent})
-  end
-
-  @doc """
-  True if a transaction can be applied, given a set of input UTXOs is present in the ledger.
-
-  Returns the fees that this transaction is paying, mapped by currency
-
-  Calls into the particular output predicate protocols' code and into transaction protocol
-  """
-  @spec can_apply?(t(), list(Output.Protocol.t())) :: {:ok, map()} | {:error, :unauthorized_spent | atom}
-  def can_apply?(%Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}} = tx, outputs_spent) do
-    with :ok <- authorized?(tx, outputs_spent),
-         do: Transaction.Protocol.can_apply?(raw_tx, outputs_spent)
   end
 
   @spec recover_from_struct(Transaction.Signed.t(), tx_bytes()) :: {:ok, t()} | {:error, recover_tx_error()}

@@ -15,15 +15,17 @@
 defmodule OMG.State.Transaction.Validator do
   @moduledoc """
   Provides functions for stateful transaction validation for transaction processing in OMG.State.Core.
-
   """
 
   @maximum_block_size 65_536
+
   alias OMG.Fees
+  alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.UtxoSet
   alias OMG.Utxo
+
   require Utxo
 
   @type exec_error ::
@@ -31,18 +33,23 @@ defmodule OMG.State.Transaction.Validator do
           | :fees_not_covered
           | :input_utxo_ahead_of_state
           | :too_many_transactions_in_block
-          | :unauthorized_spent
+          | :unauthorized_spend
           | :utxo_not_found
 
   @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
           true | {{:error, exec_error()}, Core.t()}
-  def can_apply_spend(%Core{utxos: utxos} = state, %Transaction.Recovered{} = tx, fees) do
+  def can_apply_spend(
+        %Core{utxos: utxos} = state,
+        %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses} = tx,
+        fees
+      ) do
     inputs = Transaction.get_inputs(tx)
 
     with :ok <- validate_block_size(state),
          :ok <- inputs_not_from_future_block?(state, inputs),
          {:ok, outputs_spent} <- UtxoSet.get_by_inputs(utxos, inputs),
-         {:ok, implicit_paid_fee_by_currency} <- Transaction.Recovered.can_apply?(tx, outputs_spent),
+         :ok <- authorized?(outputs_spent, witnesses, raw_tx),
+         {:ok, implicit_paid_fee_by_currency} <- Transaction.Protocol.can_apply?(raw_tx, outputs_spent),
          true <- Fees.covered?(implicit_paid_fee_by_currency, fees) || {:error, :fees_not_covered} do
       true
     else
@@ -63,5 +70,16 @@ defmodule OMG.State.Transaction.Validator do
       |> Enum.all?(fn Utxo.position(input_blknum, _, _) -> blknum >= input_blknum end)
 
     if no_utxo_from_future_block, do: :ok, else: {:error, :input_utxo_ahead_of_state}
+  end
+
+  # Checks the outputs spent by this transaction have been authorized by correct witnesses
+  @spec authorized?(list(Output.Protocol.t()), list(Transaction.Witness.t()), Transaction.Protocol.t()) ::
+          :ok | {:error, :unauthorized_spend}
+  defp authorized?(outputs_spent, witnesses, raw_tx) do
+    outputs_spent
+    |> Enum.with_index()
+    |> Enum.map(fn {output_spent, idx} -> OMG.Output.Protocol.can_spend?(output_spent, witnesses[idx], raw_tx) end)
+    |> Enum.all?()
+    |> if(do: :ok, else: {:error, :unauthorized_spend})
   end
 end

@@ -50,9 +50,9 @@ defmodule OMG.Performance.ByzantineEvents do
 
   use OMG.Utils.LoggerExt
 
-  alias OMG.Eth
   alias OMG.Performance.ByzantineEvents.DoSExitWorker
   alias OMG.Performance.HttpRPC.WatcherClient
+  alias Support.WaitFor
 
   @type stats_t :: %{
           span_ms: non_neg_integer(),
@@ -97,7 +97,7 @@ defmodule OMG.Performance.ByzantineEvents do
   end
 
   def watcher_synchronize(watcher_url \\ @watcher_url) do
-    Eth.WaitFor.repeat_until_ok(fn -> watcher_synchronized?(watcher_url) end)
+    WaitFor.repeat_until_ok(fn -> watcher_synchronized?(watcher_url) end)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031

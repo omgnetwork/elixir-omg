@@ -4,6 +4,7 @@ InFlightExitTxBytesBodySchema:
   content:
     application/json:
       schema:
+        title: 'InFlightExitTxBytesBodySchema'
         type: object
         properties:
           txbytes:
@@ -20,6 +21,7 @@ InFlightExitInputChallengeDataBodySchema:
   content:
     application/json:
       schema:
+        title: 'InFlightExitInputChallengeDataBodySchema'
         type: object
         properties:
           txbytes:
@@ -41,6 +43,7 @@ InFlightExitOutputChallengeDataBodySchema:
   content:
     application/json:
       schema:
+        title: 'InFlightExitOutputChallengeDataBodySchema'
         type: object
         properties:
           txbytes:

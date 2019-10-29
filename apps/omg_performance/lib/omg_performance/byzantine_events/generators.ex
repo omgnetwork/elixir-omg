@@ -18,11 +18,12 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   Streams transactions, utxo positions and blocks using data from Watcher.
   """
 
-  alias OMG.Eth
   alias OMG.Eth.RootChain
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
+  alias Support.DevHelper
+  alias Support.WaitFor
 
   require Utxo
 
@@ -96,13 +97,13 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
 
   defp generate_user(opts) do
     user = OMG.TestHelper.generate_entity()
-    {:ok, _user} = Eth.DevHelpers.import_unlock_fund(user, opts)
+    {:ok, _user} = DevHelper.import_unlock_fund(user, opts)
     user
   end
 
   defp get_block!(blknum, child_chain_url) do
     {:ok, block} =
-      Eth.WaitFor.repeat_until_ok(fn ->
+      WaitFor.repeat_until_ok(fn ->
         with {:ok, {block_hash, _timestamp}} <- RootChain.get_child_chain(blknum) do
           Client.get_block(block_hash, child_chain_url)
         else

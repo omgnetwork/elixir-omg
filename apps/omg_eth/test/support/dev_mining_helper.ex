@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.DevMiningHelper do
+defmodule Support.DevMiningHelper do
   @moduledoc """
   Sends small tx every second, causing Ethereum node in `--dev` mode to create new blocks.
   Basically helps to simulate behavior of `geth --dev --dev.period 1`. Useful with parity.
@@ -21,6 +21,7 @@ defmodule OMG.Eth.DevMiningHelper do
   alias OMG.Crypto
   alias OMG.DevCrypto
   alias OMG.Eth.Encoding
+  alias Support.DevHelper
 
   @devperiod_ms 1000
 
@@ -49,7 +50,7 @@ defmodule OMG.Eth.DevMiningHelper do
     data = %{from: addr, to: addr, value: Encoding.to_hex(1)}
 
     OMG.Eth.Transaction.send(backend(), data, passphrase: passphrase)
-    |> OMG.Eth.DevHelpers.transact_sync!()
+    |> DevHelper.transact_sync!()
   end
 
   defp create_tick_account() do
@@ -57,14 +58,14 @@ defmodule OMG.Eth.DevMiningHelper do
     account_priv_enc = Base.encode16(tick_acc.priv)
     passphrase = "dev.period"
 
-    {:ok, addr} = OMG.Eth.DevHelpers.create_account_from_secret(backend(), account_priv_enc, passphrase)
+    {:ok, addr} = DevHelper.create_account_from_secret(backend(), account_priv_enc, passphrase)
 
     {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
 
     data = %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
 
     OMG.Eth.Transaction.send(backend(), data, passphrase: "")
-    |> OMG.Eth.DevHelpers.transact_sync!()
+    |> DevHelper.transact_sync!()
 
     {:ok, addr, passphrase}
   end

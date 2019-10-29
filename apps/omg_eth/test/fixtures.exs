@@ -18,13 +18,17 @@ defmodule OMG.Eth.Fixtures do
   """
   use ExUnitFixtures.FixtureModule
 
-  alias OMG.Eth
   alias OMG.Eth.Encoding
+  alias OMG.Eth.RootChain
+  alias Support.Deployer
+  alias Support.DevHelper
+  alias Support.DevNode
+  alias Support.RootChainHelper
 
   @test_erc20_vault_id 2
 
   deffixture eth_node do
-    {:ok, exit_fn} = Eth.DevNode.start()
+    {:ok, exit_fn} = DevNode.start()
     on_exit(exit_fn)
     :ok
   end
@@ -32,8 +36,7 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    contract = Eth.DevHelpers.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
-
+    contract = DevHelper.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
     contract
   end
 
@@ -43,18 +46,18 @@ defmodule OMG.Eth.Fixtures do
     root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
-    {:ok, _, token_addr} = Eth.Deployer.create_new("ERC20Mintable", root_path, Encoding.from_hex(addr), [])
+    {:ok, _, token_addr} = Deployer.create_new("ERC20Mintable", root_path, Encoding.from_hex(addr), [])
 
     # ensuring that the root chain contract handles token_addr
-    {:ok, false} = Eth.RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
-    {:ok, _} = Eth.RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr) |> Eth.DevHelpers.transact_sync!()
-    {:ok, true} = Eth.RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
+    {:ok, false} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
+    {:ok, _} = RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr) |> DevHelper.transact_sync!()
+    {:ok, true} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
 
     token_addr
   end
 
   deffixture root_chain_contract_config(contract) do
-    contract_addr = Eth.RootChain.contract_map_to_hex(contract.contract_addr)
+    contract_addr = RootChain.contract_map_to_hex(contract.contract_addr)
     Application.put_env(:omg_eth, :contract_addr, contract_addr, persistent: true)
     Application.put_env(:omg_eth, :authority_addr, Encoding.to_hex(contract.authority_addr), persistent: true)
     Application.put_env(:omg_eth, :txhash_contract, Encoding.to_hex(contract.txhash_contract), persistent: true)

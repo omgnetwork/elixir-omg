@@ -18,7 +18,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
 
   use OMG.Fixtures
   use OMG.Watcher.Fixtures
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   setup do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
@@ -37,6 +37,6 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
   ### covered in OMG.Utils.HttpRPC.ResponseTest
   @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
   test "if the controller returns the correct result when there's no alarms raised", _ do
-    assert [] == TestHelper.success?("alarm.get")
+    assert [] == WatcherHelper.success?("alarm.get")
   end
 end
