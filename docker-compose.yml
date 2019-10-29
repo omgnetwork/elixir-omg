@@ -44,6 +44,12 @@ services:
     depends_on:
       geth:
         condition: service_healthy
+    restart: always
+    healthcheck:
+      test: curl plasma-deployer:8000/contracts
+      interval: 30s
+      timeout: 1s
+      retries: 5
 
   geth:
     image: ethereum/client-go:v1.8.27
