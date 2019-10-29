@@ -53,7 +53,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
         Keyword.get(Application.get_env(@app, OMG.WatcherRPC.Web.Endpoint)[:http], :port)
       )
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: PORT Value: #{inspect(port)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: PORT Value: #{inspect(port)}.")
     {:port, port}
   end
 
@@ -64,7 +64,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
         Keyword.get(Application.get_env(@app, OMG.WatcherRPC.Web.Endpoint)[:url], :host)
       )
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: HOSTNAME Value: #{inspect(hostname)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: HOSTNAME Value: #{inspect(hostname)}.")
     {:host, hostname}
   end
 

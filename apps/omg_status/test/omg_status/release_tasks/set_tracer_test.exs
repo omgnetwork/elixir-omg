@@ -21,6 +21,17 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   @configuration_old Application.get_env(@app, Tracer)
   @configuration_old_statix Application.get_all_env(:statix)
   @configuration_old_spandex_datadog Application.get_all_env(:spandex_datadog)
+  setup do
+    on_exit(fn ->
+      # configuration is global state so we reset it to known values in case
+      # it got fiddled before
+      :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
+      :ok = Application.put_env(@app, :statix, @configuration_old_statix, persistent: true)
+      :ok = Application.put_env(@app, :spandex_datadog, @configuration_old_spandex_datadog, persistent: true)
+    end)
+
+    :ok
+  end
 
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("DD_DISABLED", "TRUE")
@@ -128,13 +139,8 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
 
   test "if exit is thrown when faulty configuration is used" do
     :ok = System.put_env("DD_DISABLED", "TRUEeee")
-
-    try do
-      :ok = SetTracer.init([])
-    catch
-      :exit, _ ->
-        :ok = System.delete_env("DD_DISABLED")
-    end
+    catch_exit(SetTracer.init([]))
+    :ok = System.delete_env("DD_DISABLED")
   end
 
   defp application do

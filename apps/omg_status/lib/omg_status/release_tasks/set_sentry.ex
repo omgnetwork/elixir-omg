@@ -62,7 +62,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
 
   defp get_app_env do
     env = validate_string(get_env("APP_ENV"), Application.get_env(@app, :environment_name))
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
     env
   end
 
@@ -73,7 +73,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
         Application.get_env(@app, :server_name)
       )
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: HOSTNAME, server_name Value: #{inspect(hostname)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: HOSTNAME, server_name Value: #{inspect(hostname)}.")
     hostname
   end
 
@@ -84,14 +84,14 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
         _ -> :child_chain
       end
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: application Value: #{inspect(app)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: application Value: #{inspect(app)}.")
 
     app
   end
 
   defp get_rpc_client_type do
     rpc_client_type = validate_rpc_client_type(get_env("ETH_NODE"), Application.get_env(@app, :tags)[:eth_node])
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: ETH_NODE Value: #{inspect(rpc_client_type)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: ETH_NODE Value: #{inspect(rpc_client_type)}.")
 
     rpc_client_type
   end
