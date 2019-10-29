@@ -1,4 +1,4 @@
-version: "2.1"
+version: "2.3"
 services:
   postgres:
     image: postgres:9.6.13-alpine
@@ -47,9 +47,10 @@ services:
     restart: always
     healthcheck:
       test: curl plasma-deployer:8000/contracts
-      interval: 30s
-      timeout: 1s
-      retries: 5
+      interval: 80s
+      timeout: 15s
+      retries: 60
+      start_period: 2m
 
   geth:
     image: ethereum/client-go:v1.8.27
@@ -111,12 +112,12 @@ services:
     image: omisego/watcher:latest
     command: "full_local"
     environment:
-      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000
+      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000/contracts
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
+      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - APP_ENV=local_development_watcher
