@@ -3,6 +3,7 @@ GetAllTransactionsBodySchema:
   content:
     application/json:
       schema:
+        title: 'GetAllTransactionsBodySchema'
         type: object
         properties:
           address:
@@ -35,6 +36,7 @@ CreateTransactionsBodySchema:
   content:
     application/json:
       schema:
+        title: 'CreateTransactionsBodySchema'
         type: object
         properties:
           owner:
@@ -94,6 +96,7 @@ GetTransactionBodySchema:
   content:
     application/json:
       schema:
+        title: 'GetTransactionBodySchema'
         type: object
         properties:
           id:
@@ -110,6 +113,7 @@ TransactionSubmitTypedBodySchema:
   content:
     application/json:
       schema:
+        title: 'TransactionSubmitTypedBodySchema'
         allOf:
         - $ref: 'schemas.yaml#/Eip712SignRequestSchema'
         - type: object
@@ -172,6 +176,7 @@ GetTransactionByPosBodySchema:
   content:
     application/json:
       schema:
+        title: 'GetTransactionByPosBodySchema'
         type: object
         properties:
           blknum:
