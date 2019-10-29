@@ -66,8 +66,9 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   Blocks are streamed form child chain rpc if not provided.
   """
   @spec stream_transactions([OMG.Block.t()]) :: [binary()]
-  def stream_transactions(blocks \\ stream_blocks()) do
+  def stream_transactions(blocks \\ nil) do
     blocks
+    |> if(do: blocks, else: stream_blocks())
     |> Stream.map(& &1.transactions)
     |> Stream.concat()
   end
@@ -77,9 +78,10 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
   Blocks are streamed form child chain rpc if not provided.
   """
   @spec stream_utxo_positions([OMG.Block.t()]) :: [non_neg_integer()]
-  def stream_utxo_positions(blocks \\ stream_blocks()) do
+  def stream_utxo_positions(blocks \\ nil, opts \\ []) do
     blocks
-    |> Stream.map(&to_utxo_position_list(&1))
+    |> if(do: blocks, else: stream_blocks())
+    |> Stream.map(&to_utxo_position_list(&1, opts))
     |> Stream.concat()
   end
 
@@ -101,6 +103,7 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
     user
   end
 
+  # FIXME: why the repeat & waitfor?
   defp get_block!(blknum, child_chain_url) do
     {:ok, block} =
       WaitFor.repeat_until_ok(fn ->
@@ -114,19 +117,22 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
     block
   end
 
-  defp to_utxo_position_list(block) do
+  defp to_utxo_position_list(block, opts) do
     block.transactions
     |> Stream.with_index()
     |> Stream.map(fn {tx, index} ->
-      transaction_to_output_positions(tx, block.number, index)
+      transaction_to_output_positions(tx, block.number, index, opts)
     end)
     |> Stream.concat()
   end
 
-  defp transaction_to_output_positions(tx, blknum, txindex) do
+  defp transaction_to_output_positions(tx, blknum, txindex, opts) do
+    filtered_address = opts[:owned_by]
+
     tx
     |> Transaction.Recovered.recover_from!()
     |> Transaction.get_outputs()
+    |> Enum.filter(&(is_nil(filtered_address) || &1.owner == filtered_address))
     |> Enum.with_index()
     |> Enum.map(fn {_, oindex} ->
       utxo_pos = Utxo.position(blknum, txindex, oindex)

@@ -9,9 +9,6 @@ Run a developer's Child chain server, Watcher, and start IEx REPL with code and 
 config :omg,
   deposit_finality_margin: 1,
   ethereum_status_check_interval_ms: 100
-
-config :omg_child_chain,
-  exiters_finality_margin: 2,
 ```
 Otherwise one might experience a long wait before the child chain allows the deposits to be spent (which every invocation of `start_extended_perftest` waits for).
 
@@ -27,7 +24,7 @@ Run `iex -S mix run --no-start --config ~/config.exs` and inside REPL do:
 alias OMG.Eth
 alias OMG.TestHelper
 
-contract_addr = Application.fetch_env!(:omg_eth, :contract_addr) |> Eth.Encoding.from_hex()
+contract_addr = Application.fetch_env!(:omg_eth, :contract_addr) |> Eth.RootChain.contract_map_from_hex()
 
 # defaults
 opts = [initial_funds: trunc(:math.pow(10, 18)) * 1]
@@ -49,7 +46,7 @@ generate = fn ->
   alice
 end
 
-alices = 1..5 |> Enum.map(fn _ -> Task.async(generate) end) |> Enum.map(& Task.await(&1, :infinity))
+alices = 1..16 |> Enum.map(fn _ -> Task.async(generate) end) |> Enum.map(& Task.await(&1, :infinity))
 ### START DEMO HERE
 
 OMG.Performance.start_extended_perftest(10_000, alices, contract_addr)

@@ -50,9 +50,13 @@ defmodule OMG.Performance.ByzantineEvents do
 
   use OMG.Utils.LoggerExt
 
-  alias OMG.Performance.ByzantineEvents.DoSExitWorker
+  alias OMG.Performance.ByzantineEvents.Workers
   alias OMG.Performance.HttpRPC.WatcherClient
   alias Support.WaitFor
+
+  alias OMG.Utxo
+
+  require Utxo
 
   @type stats_t :: %{
           span_ms: non_neg_integer(),
@@ -73,10 +77,74 @@ defmodule OMG.Performance.ByzantineEvents do
   def start_dos_get_exits(positions, dos_users, watcher_url \\ @watcher_url) do
     1..dos_users
     |> Enum.map(fn _ ->
-      exit_fn = DoSExitWorker.get_exits_fun(positions, watcher_url)
+      # FIXME: why do we even need to do this concurently ???
+      exit_fn = Workers.get_exit_data_worker(positions, watcher_url)
       Task.async(exit_fn)
     end)
     |> Enum.map(&compute_std_exits_statistics/1)
+  end
+
+  def start_many_exits(positions, owner_address, watcher_url \\ @watcher_url) do
+    exit_fn = Workers.get_exit_data_worker(positions, watcher_url)
+    task = Task.async(exit_fn)
+    {_time, exits} = Task.await(task, :infinity)
+    # FIXME: all uses of valid_exit_data should go. We also shouldn't "compute statistics". Let's fail on failure and
+    #        figure out time it took to get the response only
+    true = Enum.all?(exits, &valid_exit_data/1) || {:error, :not_all_exit_data_successful, Enum.zip(positions, exits)}
+
+    exits
+    |> Enum.map(fn {:ok, composed_exit} ->
+      result =
+        Support.RootChainHelper.start_exit(
+          composed_exit.utxo_pos,
+          composed_exit.txbytes,
+          composed_exit.proof,
+          owner_address
+        )
+
+      # FIXME: nicen
+      {:ok, _} = Task.start(fn -> result |> Support.DevHelper.transact_sync!() end)
+      result
+    end)
+    |> List.last()
+    |> Support.DevHelper.transact_sync!()
+  end
+
+  def get_byzantine_events(event_name, watcher_url \\ @watcher_url) do
+    {:ok, status_response} = WatcherClient.get_status(watcher_url)
+
+    status_response
+    |> Access.get(:byzantine_events)
+    |> Enum.filter(&(&1["event"] == event_name))
+  end
+
+  def get_challenge_data(positions, watcher_url \\ @watcher_url) do
+    positions
+    |> Enum.map(fn position ->
+      WatcherClient.get_exit_challenge(position, watcher_url)
+    end)
+  end
+
+  def challenge_many_exits(challenge_responses, challenger_address, watcher_url \\ @watcher_url) do
+    challenge_responses
+    # FIXME: move the :ok pattern match elsewhere (same with exits)
+    |> Enum.map(fn {:ok, challenge} ->
+      result =
+        Support.RootChainHelper.challenge_exit(
+          challenge.exit_id,
+          challenge.exiting_tx,
+          challenge.txbytes,
+          challenge.input_index,
+          challenge.sig,
+          challenger_address
+        )
+
+      # FIXME: nicen dry etc
+      {:ok, _} = Task.start(fn -> result |> Support.DevHelper.transact_sync!() end)
+      result
+    end)
+    |> List.last()
+    |> Support.DevHelper.transact_sync!()
   end
 
   @doc """
@@ -122,6 +190,7 @@ defmodule OMG.Performance.ByzantineEvents do
   # This function is prepared to be called in `WaitFor.repeat_until_ok`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
   defp watcher_synchronized?(watcher_url) do
+    # FIXME: why the with/else? this shouldn't fail!
     with {:ok, status} <- WatcherClient.get_status(watcher_url) do
       watcher_synchronized_to_mined_block?(status)
     else

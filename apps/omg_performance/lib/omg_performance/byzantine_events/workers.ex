@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.ByzantineEvents.DoSExitWorker do
+defmodule OMG.Performance.ByzantineEvents.Workers do
   @moduledoc """
   Contains a functions performing specified task (e.g. standard exit) that can be run in parallel by `ByzantineEvents`
   """
@@ -20,16 +20,14 @@ defmodule OMG.Performance.ByzantineEvents.DoSExitWorker do
   alias OMG.Performance.HttpRPC.WatcherClient
 
   @doc """
-  Returns a worker function that fetches all exits data in random order
+  Returns a worker function that fetches all exits data in random order and a time it took to run
   """
-  def get_exits_fun(exit_positions, watcher_url) do
-    worker = fn exit_positions ->
-      Enum.map(exit_positions, &get_exit_data(&1, watcher_url))
-    end
-
+  def get_exit_data_worker(exit_positions, watcher_url) do
     fn ->
-      exit_positions = Enum.shuffle(exit_positions)
-      :timer.tc(fn -> worker.(exit_positions) end)
+      # FIXME: what about shuffling?
+      shuffled_exit_positions = exit_positions
+      # shuffled_exit_positions = Enum.shuffle(exit_positions)
+      :timer.tc(fn -> Enum.map(shuffled_exit_positions, &get_exit_data(&1, watcher_url)) end)
     end
   end
 

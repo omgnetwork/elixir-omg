@@ -45,6 +45,12 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   def get_exitable_utxos(address, url) when is_binary(address) and byte_size(address) == @address_bytes_size,
     do: call(%{address: Encoding.to_hex(address)}, "account.get_exitable_utxos", url)
 
+  def get_exit_challenge(utxo_pos, url) do
+    %{utxo_pos: utxo_pos}
+    |> call("utxo.get_challenge_data", url)
+    |> decode_response()
+  end
+
   defp call(params, path, url),
     do: Adapter.rpc_post(params, path, url) |> Adapter.get_response_body()
 
@@ -54,6 +60,19 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
        proof: decode16!(proof),
        txbytes: decode16!(txbytes),
        utxo_pos: utxo_pos
+     }}
+  end
+
+  defp decode_response(
+         {:ok, %{exiting_tx: exiting_tx, txbytes: txbytes, sig: sig, exit_id: exit_id, input_index: input_index}}
+       ) do
+    {:ok,
+     %{
+       exit_id: exit_id,
+       input_index: input_index,
+       exiting_tx: decode16!(exiting_tx),
+       txbytes: decode16!(txbytes),
+       sig: decode16!(sig)
      }}
   end
 

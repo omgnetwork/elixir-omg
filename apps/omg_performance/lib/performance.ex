@@ -46,7 +46,8 @@ defmodule OMG.Performance do
   (github.com/erlang/otp and the JIRA it points you to).
 
   ## start_standard_exit_perftest runs test that fetches standard exit data from the Watcher
-  ## standard_exit_perftest is run on testnet make sure you followed instruction in `README.md` and `get`, `omg_childchain` & `omg_watcher` are running.
+  ## standard_exit_perftest is run on testnet make sure you followed instruction in `README.md` and `geth`,
+  ## `omg_childchain` & `omg_watcher` are running.
 
   ```
   mix run --no-start -e 'OMG.Performance.start_standard_exit_perftest([%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], 3, "0xbc5f ...")'
@@ -146,6 +147,7 @@ defmodule OMG.Performance do
 
     utxos = create_utxos_for_extended_perftest(spenders, ntx_to_send)
 
+    # FIXME: the way the profile option is handled is super messy - clean this
     run({ntx_to_send, utxos, opts, false})
 
     cleanup_extended_perftest(started_apps)
