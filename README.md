@@ -339,6 +339,7 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 After this margin passes, every invalid exit is deemed a critical failure of the child chain (`unchallenged_exit`).
 Such event will prompt a mass exit and stop processing new blocks.
 See [exit validation documentation](docs/exit_validation.md) for details.
+Override using the `EXIT_PROCESSOR_SLA_MARGIN` system environment variable.
 
 * **`maximum_block_withholding_time_ms`** - for how long the Watcher will tolerate failures to get a submitted child chain block, before reporting a block withholding attack and stopping
 

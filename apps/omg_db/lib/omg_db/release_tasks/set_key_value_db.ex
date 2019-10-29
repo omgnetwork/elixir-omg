@@ -34,7 +34,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
           path
       end
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
     :ok
   end
 

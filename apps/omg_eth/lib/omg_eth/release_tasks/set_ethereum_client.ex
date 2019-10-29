@@ -36,7 +36,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
 
   defp get_ethereum_rpc_url do
     url = validate_string(get_env("ETHEREUM_RPC_URL"), Application.get_env(:ethereumex, :url))
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: ETHEREUM_RPC_URL Value: #{inspect(url)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: ETHEREUM_RPC_URL Value: #{inspect(url)}.")
 
     url
   end
@@ -44,14 +44,14 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   defp get_ethereum_ws_rpc_url do
     url = validate_string(get_env("ETHEREUM_WS_RPC_URL"), Application.get_env(@app, :ws_url))
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: ETHEREUM_WS_RPC_URL Value: #{inspect(url)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: ETHEREUM_WS_RPC_URL Value: #{inspect(url)}.")
 
     url
   end
 
   defp get_rpc_client_type do
     rpc_client_type = validate_rpc_client_type(get_env("ETH_NODE"), Application.get_env(@app, :eth_node))
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: ETH_NODE Value: #{inspect(rpc_client_type)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: ETH_NODE Value: #{inspect(rpc_client_type)}.")
 
     rpc_client_type
   end

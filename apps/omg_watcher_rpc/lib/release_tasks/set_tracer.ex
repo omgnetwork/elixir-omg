@@ -35,13 +35,13 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
         Application.get_env(@app, OMG.WatcherRPC.Tracer)[:disabled?]
       )
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
   end
 
   defp get_app_env do
     env = validate_string(get_env("APP_ENV"), Application.get_env(@app, OMG.WatcherRPC.Tracer)[:env])
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
     env
   end
 
