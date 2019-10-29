@@ -32,6 +32,7 @@ paths:
         content:
           application/json:
             schema:
+              title: AddressBodySchema
               type: object
               properties:
                 address:
@@ -149,6 +150,7 @@ paths:
         content:
           application/json:
             schema:
+              title: AddressBodySchema
               type: object
               properties:
                 address:
@@ -283,6 +285,7 @@ paths:
         content:
           application/json:
             schema:
+              title: GetAllTransactionsBodySchema
               type: object
               properties:
                 address:
@@ -469,6 +472,7 @@ paths:
         content:
           application/json:
             schema:
+              title: GetAllTransactionsBodySchema
               type: object
               properties:
                 address:
@@ -656,6 +660,7 @@ paths:
         content:
           application/json:
             schema:
+              title: CreateTransactionsBodySchema
               type: object
               properties:
                 owner:
@@ -1144,6 +1149,7 @@ paths:
         content:
           application/json:
             schema:
+              title: GetTransactionBodySchema
               type: object
               properties:
                 id:
@@ -1362,6 +1368,7 @@ paths:
         content:
           application/json:
             schema:
+              title: TransactionSubmitTypedBodySchema
               allOf:
                 - type: object
                   properties:
