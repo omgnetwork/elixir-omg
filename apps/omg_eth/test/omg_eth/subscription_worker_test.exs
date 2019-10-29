@@ -25,7 +25,7 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
   @moduletag :common
 
   setup do
-    _ = Agent.start_link(fn -> 55_556 end, name: :subscription_port_holder)
+    _ = Agent.start_link(fn -> 66_666 end, name: :subscription_port_holder)
     {:ok, {server_ref, websocket_url}} = WebSockexServerMock.start()
     _ = Application.ensure_all_started(:omg_bus)
     ws_url = Application.get_env(:omg_eth, :ws_url)
