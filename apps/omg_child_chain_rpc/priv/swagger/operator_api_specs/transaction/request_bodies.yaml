@@ -4,7 +4,7 @@ TransactionSubmitBodySchema:
   content:
     application/json:
       schema:
-        title: 'transaction_parameter'
+        title: 'TransactionSubmitBodySchema'
         type: object
         properties:
           transaction:

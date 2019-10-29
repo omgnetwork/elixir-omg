@@ -4,7 +4,7 @@ AllBlocksBodySchema:
   content:
     application/json:
       schema:
-        title: 'block_range_parameter'
+        title: 'AllBlocksBodySchema'
         type: object
         properties:
           from_blknum:
@@ -24,7 +24,7 @@ GetBlockBodySchema:
   content:
     application/json:
       schema:
-        title: 'plasma_block_parameter'
+        title: 'GetBlockBodySchema'
         type: object
         properties:
           id:

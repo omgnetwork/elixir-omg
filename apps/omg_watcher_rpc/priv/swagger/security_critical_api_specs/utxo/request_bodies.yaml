@@ -4,7 +4,7 @@ UtxoPositionBodySchema:
   content:
     application/json:
       schema:
-        title: 'uxto_parameter'
+        title: 'UtxoPositionBodySchema'
         type: object
         properties:
           utxo_pos:

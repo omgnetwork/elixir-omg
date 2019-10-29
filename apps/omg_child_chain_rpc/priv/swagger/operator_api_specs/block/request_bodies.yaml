@@ -4,7 +4,7 @@ GetBlockBodySchema:
   content:
     application/json:
       schema:
-        title: 'block_parameter'
+        title: 'GetBlockBodySchema'
         type: object
         properties:
           hash:

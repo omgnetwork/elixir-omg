@@ -32,7 +32,7 @@ paths:
         content:
           application/json:
             schema:
-              title: transaction_parameter
+              title: TransactionSubmitBodySchema
               type: object
               properties:
                 transaction:
@@ -150,7 +150,7 @@ paths:
         content:
           application/json:
             schema:
-              title: block_parameter
+              title: GetBlockBodySchema
               type: object
               properties:
                 hash:
