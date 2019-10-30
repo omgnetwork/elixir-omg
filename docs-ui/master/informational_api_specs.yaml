@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   version: 1.0.0
-  title: Watcher's Informational API
+  title: Watchers Informational API
   description: |
     API specification of the Watcher's Informational Service
     Error codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
@@ -32,6 +32,7 @@ paths:
         content:
           application/json:
             schema:
+              title: AddressBodySchema
               type: object
               properties:
                 address:
@@ -149,6 +150,7 @@ paths:
         content:
           application/json:
             schema:
+              title: AddressBodySchema
               type: object
               properties:
                 address:
@@ -283,6 +285,7 @@ paths:
         content:
           application/json:
             schema:
+              title: GetAllTransactionsBodySchema
               type: object
               properties:
                 address:
@@ -469,6 +472,7 @@ paths:
         content:
           application/json:
             schema:
+              title: GetAllTransactionsBodySchema
               type: object
               properties:
                 address:
@@ -656,6 +660,7 @@ paths:
         content:
           application/json:
             schema:
+              title: CreateTransactionsBodySchema
               type: object
               properties:
                 owner:
@@ -1144,6 +1149,7 @@ paths:
         content:
           application/json:
             schema:
+              title: GetTransactionBodySchema
               type: object
               properties:
                 id:
@@ -1362,6 +1368,7 @@ paths:
         content:
           application/json:
             schema:
+              title: TransactionSubmitTypedBodySchema
               allOf:
                 - type: object
                   properties:

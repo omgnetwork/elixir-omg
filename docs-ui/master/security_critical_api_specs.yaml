@@ -87,8 +87,12 @@ paths:
                             type: integer
                             format: int64
                           contract_addr:
-                            type: string
-                            format: binary
+                            type: object
+                            additionalProperties: true
+                            properties:
+                              plasma_framework:
+                                type: string
+                                format: binary
                           eth_syncing:
                             type: boolean
                           byzantine_events:
@@ -300,7 +304,8 @@ paths:
                         last_mined_child_block_number: 11000
                         last_seen_eth_block_timestamp: 1558535190
                         last_seen_eth_block_number: 4427041
-                        contract_addr: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
+                        contract_addr:
+                          plasma_framework: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
                         eth_syncing: true
                         byzantine_events:
                           - event: invalid_exit
@@ -463,6 +468,7 @@ paths:
         content:
           application/json:
             schema:
+              title: AddressBodySchema
               type: object
               properties:
                 address:
@@ -599,6 +605,7 @@ paths:
         content:
           application/json:
             schema:
+              title: UtxoPositionBodySchema
               type: object
               properties:
                 utxo_pos:
@@ -650,12 +657,16 @@ paths:
                           txbytes:
                             type: string
                             format: binary
+                          exiting_tx:
+                            type: string
+                            format: binary
                     example:
                       data:
                         exit_id: 1.7176118930141594e+45
                         input_index: 0
                         sig: 0x6bfb9b2dbe32...
                         txbytes: 0x3eb6ae5b06f3...
+                        exiting_tx: 0x6d6bda6bd6d6...
         '500':
           description: Returns an internal server error
           content:
@@ -722,6 +733,7 @@ paths:
         content:
           application/json:
             schema:
+              title: UtxoPositionBodySchema
               type: object
               properties:
                 utxo_pos:
@@ -768,9 +780,6 @@ paths:
                             type: string
                             format: binary
                           proof:
-                            type: string
-                            format: binary
-                          sigs:
                             type: string
                             format: binary
                     example:
@@ -844,6 +853,7 @@ paths:
         content:
           application/json:
             schema:
+              title: TransactionSubmitBodySchema
               type: object
               properties:
                 transaction:
@@ -963,6 +973,7 @@ paths:
         content:
           application/json:
             schema:
+              title: InFlightExitTxBytesBodySchema
               type: object
               properties:
                 txbytes:
@@ -1006,20 +1017,36 @@ paths:
                             type: string
                             format: binary
                           input_txs:
-                            type: string
-                            format: binary
+                            type: array
+                            items:
+                              type: string
+                              format: binary
                           input_txs_inclusion_proofs:
-                            type: string
-                            format: binary
+                            type: array
+                            items:
+                              type: string
+                              format: binary
                           in_flight_tx_sigs:
-                            type: string
-                            format: binary
+                            type: array
+                            items:
+                              type: string
+                              format: binary
+                          input_utxos_pos:
+                            type: array
+                            items:
+                              type: integer
+                              format: int256
                     example:
                       data:
                         in_flight_tx: 0xf3170101c0940000...
-                        input_txs: 0xa3470101c0940000...
-                        input_txs_inclusion_proofs: 0xcedb8b31d1e4...
-                        in_flight_tx_sigs: 0x6bfb9b2dbe32...
+                        input_txs:
+                          - 0xa3470101c0940000...
+                        input_txs_inclusion_proofs:
+                          - 0xcedb8b31d1e4...
+                        in_flight_tx_sigs:
+                          - 0x6bfb9b2dbe32...
+                        input_utxos_pos:
+                          - 300010002001
         '500':
           description: Returns an internal server error
           content:
@@ -1146,6 +1173,12 @@ paths:
                           competing_proof:
                             type: string
                             format: binary
+                          input_tx:
+                            type: string
+                            format: binary
+                          input_utxo_pos:
+                            type: integer
+                            format: int256
                     example:
                       data:
                         in_flight_txbytes: 0xf3170101c0940000...
@@ -1155,6 +1188,8 @@ paths:
                         competing_sig: 0xa3470101c0940000...
                         competing_tx_pos: 26000003920000
                         competing_proof: 0xcedb8b31d1e4...
+                        input_tx: 0xaaa70101c0940000...
+                        input_utxo_pos: 300010002001
         '500':
           description: Returns an internal server error
           content:
@@ -1340,6 +1375,7 @@ paths:
         content:
           application/json:
             schema:
+              title: InFlightExitInputChallengeDataBodySchema
               type: object
               properties:
                 txbytes:
@@ -1399,6 +1435,12 @@ paths:
                           spending_sig:
                             type: string
                             format: binary
+                          input_tx:
+                            type: string
+                            format: binary
+                          input_utxo_pos:
+                            type: integer
+                            format: int256
                     example:
                       data:
                         in_flight_txbytes: 0xf3170101c0940000...
@@ -1406,6 +1448,8 @@ paths:
                         spending_txbytes: 0x5df13a6bee20000...
                         spending_input_index: 1
                         spending_sig: 0xa3470101c0940000...
+                        input_tx: 0xaaa70101c0940000...
+                        input_utxo_pos: 300010002001
         '500':
           description: Returns an internal server error
           content:
@@ -1472,6 +1516,7 @@ paths:
         content:
           application/json:
             schema:
+              title: InFlightExitOutputChallengeDataBodySchema
               type: object
               properties:
                 txbytes:
