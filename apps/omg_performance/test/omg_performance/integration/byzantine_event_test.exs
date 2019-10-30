@@ -62,7 +62,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> Enum.take(20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 
-    OMG.Watcher.Integration.TestHelper.wait_for_exit_processing(last_exit_height)
+    :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
     # assert that we can call this testing function reliably and that there are no invalid exits
     assert [] = ByzantineEvents.get_byzantine_events("invalid_exit")
   end
@@ -79,7 +79,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> Enum.take(20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 
-    OMG.Watcher.Integration.TestHelper.wait_for_exit_processing(last_exit_height)
+    :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
     # assert that we can call this testing function reliably and that there are some invalid exits there in fact
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_exit")) > 10
   end
@@ -96,7 +96,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> Enum.take(20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 
-    OMG.Watcher.Integration.TestHelper.wait_for_exit_processing(last_exit_height)
+    :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
 
     utxos_to_challenge = ByzantineEvents.get_byzantine_events("invalid_exit") |> Enum.map(& &1["details"]["utxo_pos"])
 
@@ -117,7 +117,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> Enum.take(20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 
-    OMG.Watcher.Integration.TestHelper.wait_for_exit_processing(last_exit_height)
+    :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
 
     # assert we can process the many challenges and get status then
     {:ok, %{"status" => "0x1", "blockNumber" => last_challenge_height}} =
@@ -126,7 +126,8 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> ByzantineEvents.get_challenge_data()
       |> ByzantineEvents.challenge_many_exits(alice.addr)
 
-    OMG.Watcher.Integration.TestHelper.wait_for_exit_processing(last_challenge_height)
+    :ok = ByzantineEvents.watcher_synchronize(last_challenge_height)
+
     assert [] = ByzantineEvents.get_byzantine_events("invalid_exit")
   end
 end

@@ -164,8 +164,9 @@ defmodule OMG.Performance.ByzantineEvents do
     utxos
   end
 
-  def watcher_synchronize(watcher_url \\ @watcher_url) do
-    WaitFor.repeat_until_ok(fn -> watcher_synchronized?(watcher_url) end)
+  # FIXME: nicen the optional arguments here
+  def watcher_synchronize(root_chain_height \\ nil, watcher_url \\ @watcher_url) do
+    WaitFor.repeat_until_ok(fn -> watcher_synchronized?(root_chain_height, watcher_url) end)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
@@ -189,13 +190,24 @@ defmodule OMG.Performance.ByzantineEvents do
 
   # This function is prepared to be called in `WaitFor.repeat_until_ok`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
-  defp watcher_synchronized?(watcher_url) do
+  defp watcher_synchronized?(root_chain_height, watcher_url) do
     # FIXME: why the with/else? this shouldn't fail!
-    with {:ok, status} <- WatcherClient.get_status(watcher_url) do
-      watcher_synchronized_to_mined_block?(status)
+    with {:ok, status} <- WatcherClient.get_status(watcher_url),
+         # FIXME: nicen this, the waitfor function expects some weird output for some reason, so we're conforming
+         {:ok, _} = response <- watcher_synchronized_to_mined_block?(status),
+         true <- root_chain_synced?(root_chain_height, status) do
+      response
     else
       _ -> :repeat
     end
+  end
+
+  defp root_chain_synced?(nil, _), do: true
+
+  defp root_chain_synced?(root_chain_height, status) do
+    status
+    |> Access.get(:services_synced_heights)
+    |> Enum.all?(&(&1["height"] >= root_chain_height))
   end
 
   defp watcher_synchronized_to_mined_block?(%{
