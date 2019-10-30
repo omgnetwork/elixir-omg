@@ -11,7 +11,7 @@ block.all:
       200:
         $ref: 'responses.yaml#/BlocksAllResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
 block.get:
   post:
     tags:
@@ -25,4 +25,4 @@ block.get:
       200:
         $ref: 'responses.yaml#/BlockResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'

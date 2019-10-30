@@ -45,7 +45,7 @@ opts = Keyword.put(opts, :initial_funds, trunc(:math.pow(10, 18) * initial_funds
 generate = fn ->
   alice = TestHelper.generate_entity()
 
-  {:ok, _alice_enc} = Eth.DevHelpers.import_unlock_fund(alice, opts)
+  {:ok, _alice_enc} = Support.DevHelper.import_unlock_fund(alice, opts)
   alice
 end
 

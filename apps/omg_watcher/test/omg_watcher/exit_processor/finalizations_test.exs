@@ -18,9 +18,11 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
   """
   use OMG.Watcher.ExitProcessor.Case, async: true
 
+  alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
+  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo
@@ -43,23 +45,100 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
   end
 
   describe "determining utxos that are exited by finalization" do
-    test "returns utxos that should be spent when exit finalizes",
-         %{processor_empty: processor, transactions: [tx1 | [tx2 | _]]} do
+    test "signals all included txs' outputs as exiting when piggybacked output exits",
+         %{processor_empty: processor, transactions: [tx1 | _]} do
+      ife_id1 = 1
+      tx_hash1 = Transaction.raw_txhash(tx1)
+      tx1_blknum = 3000
+
+      # both IFE txs are inlcuded in one of the blocks and picked up by the `ExitProcessor`
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1], tx1_blknum)]
+      }
+
+      processor =
+        processor
+        |> start_ife_from(tx1, exit_id: ife_id1)
+        |> piggyback_ife_from(tx_hash1, 0, :input)
+        |> piggyback_ife_from(tx_hash1, 1, :input)
+        |> piggyback_ife_from(tx_hash1, 0, :output)
+        |> piggyback_ife_from(tx_hash1, 1, :output)
+        |> Core.find_ifes_in_blocks(request)
+
+      finalizations = [
+        %{in_flight_exit_id: ife_id1, output_index: 0, omg_data: %{piggyback_type: :output}},
+        %{in_flight_exit_id: ife_id1, output_index: 1, omg_data: %{piggyback_type: :output}}
+      ]
+
+      ife_id1 = <<ife_id1::192>>
+
+      tx1_first_output = Utxo.position(tx1_blknum, 0, 0)
+      tx1_second_output = Utxo.position(tx1_blknum, 0, 1)
+
+      assert {:ok, %{^ife_id1 => [^tx1_first_output, ^tx1_second_output]}} =
+               Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+    end
+
+    test "doesn't signal non-included txs' outputs as exiting when piggybacked output exits",
+         %{processor_empty: processor, transactions: [tx1 | _]} do
+      ife_id1 = 2
+      tx_hash1 = Transaction.raw_txhash(tx1)
+
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: []
+      }
+
+      processor =
+        processor
+        |> start_ife_from(tx1, exit_id: ife_id1)
+        |> piggyback_ife_from(tx_hash1, 0, :output)
+        |> piggyback_ife_from(tx_hash1, 1, :output)
+        |> Core.find_ifes_in_blocks(request)
+
+      finalizations = [
+        %{in_flight_exit_id: ife_id1, output_index: 0, omg_data: %{piggyback_type: :output}},
+        %{in_flight_exit_id: ife_id1, output_index: 1, omg_data: %{piggyback_type: :output}}
+      ]
+
+      ife_id1 = <<ife_id1::192>>
+
+      assert {:ok, %{^ife_id1 => []}} =
+               Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+    end
+
+    test "returns utxos that should be spent when exit finalizes, two ifes combined",
+         %{processor_empty: processor, transactions: [tx1, tx2 | _]} do
       ife_id1 = 1
       ife_id2 = 2
       tx_hash1 = Transaction.raw_txhash(tx1)
       tx_hash2 = Transaction.raw_txhash(tx2)
+      tx2_blknum = 3000
+
+      # both IFE txs are inlcuded in one of the blocks and picked up by the `ExitProcessor`
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1, tx2], tx2_blknum)]
+      }
 
       processor =
         processor
-        |> start_ife_from(tx1, status: {1, ife_id1})
-        |> start_ife_from(tx2, status: {1, ife_id2})
-        |> piggyback_ife_from(tx_hash1, 0)
-        |> piggyback_ife_from(tx_hash1, 1)
-        |> piggyback_ife_from(tx_hash2, 4)
-        |> piggyback_ife_from(tx_hash2, 5)
+        |> start_ife_from(tx1, exit_id: ife_id1)
+        |> start_ife_from(tx2, exit_id: ife_id2)
+        |> Core.find_ifes_in_blocks(request)
+        |> piggyback_ife_from(tx_hash1, 0, :input)
+        |> piggyback_ife_from(tx_hash1, 1, :input)
+        |> piggyback_ife_from(tx_hash2, 0, :output)
+        |> piggyback_ife_from(tx_hash2, 1, :output)
 
-      finalizations = [%{in_flight_exit_id: ife_id1, output_index: 0}, %{in_flight_exit_id: ife_id2, output_index: 4}]
+      finalizations = [
+        %{in_flight_exit_id: ife_id1, output_index: 0, omg_data: %{piggyback_type: :input}},
+        %{in_flight_exit_id: ife_id2, output_index: 0, omg_data: %{piggyback_type: :output}}
+      ]
 
       assert {:ok, %{}} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, [])
 
@@ -67,15 +146,14 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
       ife_id2 = <<ife_id2::192>>
 
       tx1_first_input = tx1 |> Transaction.get_inputs() |> hd()
-      ife1_exits = {[tx1_first_input], []}
-      ife2_exits = {[], [%{tx_hash: tx_hash2, output_index: 4}]}
+      tx2_first_output = Utxo.position(tx2_blknum, 1, 0)
 
-      assert {:ok, %{^ife_id1 => ^ife1_exits, ^ife_id2 => ^ife2_exits}} =
+      assert {:ok, %{^ife_id1 => [^tx1_first_input], ^ife_id2 => [^tx2_first_output]}} =
                Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
     end
 
     test "fails when unknown in-flight exit is being finalized", %{processor_empty: processor} do
-      finalization = %{in_flight_exit_id: @exit_id, output_index: 1}
+      finalization = %{in_flight_exit_id: @exit_id, output_index: 1, omg_data: %{piggyback_type: :input}}
 
       {:unknown_in_flight_exit, unknown_exits} =
         Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, [finalization])
@@ -90,13 +168,15 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
-        |> piggyback_ife_from(tx_hash, 1)
+        |> start_ife_from(tx, exit_id: ife_id)
+        |> piggyback_ife_from(tx_hash, 1, :input)
 
-      finalization1 = %{in_flight_exit_id: ife_id, output_index: 1}
-      finalization2 = %{in_flight_exit_id: ife_id, output_index: 2}
+      finalization1 = %{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}}
+      finalization2 = %{in_flight_exit_id: ife_id, output_index: 2, omg_data: %{piggyback_type: :input}}
 
-      expected_unknown_piggybacks = [%{in_flight_exit_id: <<ife_id::192>>, output_index: 2}]
+      expected_unknown_piggybacks = [
+        %{in_flight_exit_id: <<ife_id::192>>, output_index: 2, omg_data: %{piggyback_type: :input}}
+      ]
 
       {:unknown_piggybacks, ^expected_unknown_piggybacks} =
         Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, [finalization1, finalization2])
@@ -111,15 +191,23 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
-        |> piggyback_ife_from(tx_hash, 0)
-        |> piggyback_ife_from(tx_hash, 1)
+        |> start_ife_from(tx, exit_id: ife_id)
+        |> piggyback_ife_from(tx_hash, 0, :input)
+        |> piggyback_ife_from(tx_hash, 1, :input)
 
       assert {:ok, processor, [{:put, :in_flight_exit_info, _}]} =
-               Core.finalize_in_flight_exits(processor, [%{in_flight_exit_id: ife_id, output_index: 0}], %{})
+               Core.finalize_in_flight_exits(
+                 processor,
+                 [%{in_flight_exit_id: ife_id, output_index: 0, omg_data: %{piggyback_type: :input}}],
+                 %{}
+               )
 
       assert {:ok, _, [{:put, :in_flight_exit_info, _}]} =
-               Core.finalize_in_flight_exits(processor, [%{in_flight_exit_id: ife_id, output_index: 1}], %{})
+               Core.finalize_in_flight_exits(
+                 processor,
+                 [%{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}}],
+                 %{}
+               )
     end
 
     test "exits piggybacked transaction outputs",
@@ -129,16 +217,16 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
-        |> piggyback_ife_from(tx_hash, 4)
-        |> piggyback_ife_from(tx_hash, 5)
+        |> start_ife_from(tx, exit_id: ife_id)
+        |> piggyback_ife_from(tx_hash, 0, :output)
+        |> piggyback_ife_from(tx_hash, 1, :output)
 
       assert {:ok, _, [{:put, :in_flight_exit_info, _}]} =
                Core.finalize_in_flight_exits(
                  processor,
                  [
-                   %{in_flight_exit_id: ife_id, output_index: 5},
-                   %{in_flight_exit_id: ife_id, output_index: 4}
+                   %{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :output}},
+                   %{in_flight_exit_id: ife_id, output_index: 0, omg_data: %{piggyback_type: :output}}
                  ],
                  %{}
                )
@@ -151,17 +239,25 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
-        |> piggyback_ife_from(tx_hash, 1)
-        |> piggyback_ife_from(tx_hash, 2)
+        |> start_ife_from(tx, exit_id: ife_id)
+        |> piggyback_ife_from(tx_hash, 1, :input)
+        |> piggyback_ife_from(tx_hash, 2, :input)
 
       {:ok, processor, _} =
-        Core.finalize_in_flight_exits(processor, [%{in_flight_exit_id: ife_id, output_index: 1}], %{})
+        Core.finalize_in_flight_exits(
+          processor,
+          [%{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}}],
+          %{}
+        )
 
       [_] = Core.get_active_in_flight_exits(processor)
 
       {:ok, processor, _} =
-        Core.finalize_in_flight_exits(processor, [%{in_flight_exit_id: ife_id, output_index: 2}], %{})
+        Core.finalize_in_flight_exits(
+          processor,
+          [%{in_flight_exit_id: ife_id, output_index: 2, omg_data: %{piggyback_type: :input}}],
+          %{}
+        )
 
       assert [] == Core.get_active_in_flight_exits(processor)
     end
@@ -173,10 +269,10 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
-        |> piggyback_ife_from(tx_hash, 1)
+        |> start_ife_from(tx, exit_id: ife_id)
+        |> piggyback_ife_from(tx_hash, 1, :input)
 
-      finalization = %{in_flight_exit_id: ife_id, output_index: 1}
+      finalization = %{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}}
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization], %{})
       {:ok, ^processor, []} = Core.finalize_in_flight_exits(processor, [finalization], %{})
     end
@@ -190,17 +286,17 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx1, status: {1, ife_id1})
-        |> start_ife_from(tx2, status: {1, ife_id2})
-        |> piggyback_ife_from(tx_hash1, 1)
+        |> start_ife_from(tx1, exit_id: ife_id1)
+        |> start_ife_from(tx2, exit_id: ife_id2)
+        |> piggyback_ife_from(tx_hash1, 1, :input)
 
-      finalization = %{in_flight_exit_id: ife_id1, output_index: 1}
+      finalization = %{in_flight_exit_id: ife_id1, output_index: 1, omg_data: %{piggyback_type: :input}}
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization], %{})
       [%{txhash: ^tx_hash2}] = Core.get_active_in_flight_exits(processor)
     end
 
     test "fails when unknown in-flight exit is being finalized", %{processor_empty: processor} do
-      finalization = %{in_flight_exit_id: @exit_id, output_index: 1}
+      finalization = %{in_flight_exit_id: @exit_id, output_index: 1, omg_data: %{piggyback_type: :input}}
 
       {:unknown_in_flight_exit, unknown_exits} = Core.finalize_in_flight_exits(processor, [finalization], %{})
       assert unknown_exits == MapSet.new([<<@exit_id::192>>])
@@ -213,13 +309,15 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       processor =
         processor
-        |> start_ife_from(tx, status: {1, ife_id})
-        |> piggyback_ife_from(tx_hash, 1)
+        |> start_ife_from(tx, exit_id: ife_id)
+        |> piggyback_ife_from(tx_hash, 1, :input)
 
-      finalization1 = %{in_flight_exit_id: ife_id, output_index: 1}
-      finalization2 = %{in_flight_exit_id: ife_id, output_index: 2}
+      finalization1 = %{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}}
+      finalization2 = %{in_flight_exit_id: ife_id, output_index: 2, omg_data: %{piggyback_type: :input}}
 
-      expected_unknown_piggybacks = [%{in_flight_exit_id: <<ife_id::192>>, output_index: 2}]
+      expected_unknown_piggybacks = [
+        %{in_flight_exit_id: <<ife_id::192>>, output_index: 2, omg_data: %{piggyback_type: :input}}
+      ]
 
       {:unknown_piggybacks, ^expected_unknown_piggybacks} =
         Core.finalize_in_flight_exits(processor, [finalization1, finalization2], %{})

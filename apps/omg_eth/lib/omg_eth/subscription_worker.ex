@@ -59,13 +59,14 @@ defmodule OMG.Eth.SubscriptionWorker do
     {:ok, opts}
   end
 
+  # sobelow_skip ["DOS.StringToAtom"]
   @doc false
   @impl true
   def handle_frame({:text, msg}, state) do
     {:ok, decoded} = Jason.decode(msg)
     listen_to = Keyword.fetch!(state, :listen_to)
     event_bus = Keyword.fetch!(state, :event_bus)
-    :ok = apply(event_bus, :broadcast, [listen_to, {String.to_existing_atom(listen_to), decoded}])
+    :ok = apply(event_bus, :broadcast, [listen_to, {String.to_atom(listen_to), decoded}])
     {:ok, state}
   end
 end

@@ -138,7 +138,7 @@ defmodule OMG.Eth do
           topics: ["#{topic}"]
         })
 
-      {:ok, filter_not_removed(logs)}
+      {:ok, logs |> filter_not_removed() |> put_signature(signature)}
     catch
       _ -> {:error, :failed_to_get_ethereum_events}
     end
@@ -223,6 +223,24 @@ defmodule OMG.Eth do
     if unpack_tuple_args, do: parse_tuple_args(call_data_raw, unpack_tuple_args), else: call_data_raw
   end
 
+  @doc """
+  Enrichs the decoded log data from the Eth node, by getting the respective transaction's function call to the contract
+  and dissecting it using the name, args and argument types as specified. The call data is put under `:call_data`.
+
+  Passes on the optional arguments into `Eth.get_call_data`
+  """
+  @spec log_with_call_data(
+          %{required(:root_chain_txhash) => binary, optional(atom) => any},
+          binary,
+          list(atom),
+          list(binary),
+          keyword()
+        ) :: map()
+  def log_with_call_data(log, function_name, args, types, opts \\ []) do
+    call_data = get_call_data(log.root_chain_txhash, function_name, args, types, opts)
+    Map.put(log, :call_data, call_data)
+  end
+
   # interprets an argument called `args` in the call_data (arguments) and reinterprets the arguments according to names
   # given
   defp parse_tuple_args(call_data, tuple_arg_names) do
@@ -230,18 +248,19 @@ defmodule OMG.Eth do
     tuple_arg_names |> Enum.zip(tuple_args) |> Map.new()
   end
 
-  defp common_parse_event(result, %{
-         "blockNumber" => eth_height,
-         "transactionHash" => root_chain_txhash,
-         "logIndex" => log_index
-       }) do
-    Map.merge(
-      result,
-      %{
-        eth_height: int_from_hex(eth_height),
-        root_chain_txhash: from_hex(root_chain_txhash),
-        log_index: int_from_hex(log_index)
-      }
-    )
+  # here we merge the result of event parsing so far (holding the fields)
+  defp common_parse_event(
+         result,
+         %{"blockNumber" => eth_height, "transactionHash" => root_chain_txhash, "logIndex" => log_index} = event
+       ) do
+    # NOTE: we're using `put_new` here, because `merge` would allow us to overwrite data fields in case of conflict
+    result
+    |> Map.put_new(:eth_height, int_from_hex(eth_height))
+    |> Map.put_new(:root_chain_txhash, from_hex(root_chain_txhash))
+    |> Map.put_new(:log_index, int_from_hex(log_index))
+    # just copy `event_signature` over, if it's present (could use tidying up)
+    |> Map.put_new(:event_signature, event[:event_signature])
   end
+
+  defp put_signature(events, signature), do: Enum.map(events, &Map.put(&1, :event_signature, signature))
 end

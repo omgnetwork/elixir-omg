@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Integration.DepositHelper do
+defmodule Support.Integration.DepositHelper do
   @moduledoc """
   Common helper functions that are useful when integration-testing the child chain and watcher requiring deposits
   """
@@ -20,6 +20,8 @@ defmodule OMG.Integration.DepositHelper do
   alias OMG.Eth
   alias OMG.Eth.Config
   alias OMG.State.Transaction
+  alias Support.DevHelper
+  alias Support.RootChainHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -29,8 +31,8 @@ defmodule OMG.Integration.DepositHelper do
     {:ok, receipt} =
       Transaction.Payment.new([], [{to, @eth, value}])
       |> Transaction.raw_txbytes()
-      |> Eth.RootChainHelper.deposit(value, to)
-      |> Eth.DevHelpers.transact_sync!()
+      |> RootChainHelper.deposit(value, to)
+      |> DevHelper.transact_sync!()
 
     process_deposit(receipt)
   end
@@ -38,13 +40,13 @@ defmodule OMG.Integration.DepositHelper do
   def deposit_to_child_chain(to, value, token_addr) when is_binary(token_addr) and byte_size(token_addr) == 20 do
     contract_addr = Config.maybe_fetch_addr!(nil, :erc20_vault)
 
-    {:ok, _} = Eth.Token.approve(to, contract_addr, value, token_addr) |> Eth.DevHelpers.transact_sync!()
+    {:ok, _} = Eth.Token.approve(to, contract_addr, value, token_addr) |> DevHelper.transact_sync!()
 
     {:ok, receipt} =
       Transaction.Payment.new([], [{to, token_addr, value}])
       |> Transaction.raw_txbytes()
-      |> Eth.RootChainHelper.deposit_from(to)
-      |> Eth.DevHelpers.transact_sync!()
+      |> RootChainHelper.deposit_from(to)
+      |> DevHelper.transact_sync!()
 
     process_deposit(receipt)
   end
@@ -53,12 +55,12 @@ defmodule OMG.Integration.DepositHelper do
     deposit_eth_height
     |> wait_deposit_recognized()
 
-    Eth.RootChainHelper.deposit_blknum_from_receipt(receipt)
+    RootChainHelper.deposit_blknum_from_receipt(receipt)
   end
 
   defp wait_deposit_recognized(deposit_eth_height) do
     post_event_block_finality = deposit_eth_height + Application.fetch_env!(:omg, :deposit_finality_margin)
-    {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(post_event_block_finality + 1)
+    {:ok, _} = DevHelper.wait_for_root_chain_block(post_event_block_finality + 1)
     # sleeping until the deposit is spendable
     Process.sleep(Application.fetch_env!(:omg, :ethereum_events_check_interval_ms) * 2)
     :ok

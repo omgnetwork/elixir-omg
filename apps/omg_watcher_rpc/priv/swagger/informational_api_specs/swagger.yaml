@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   version: '1.0.0'
-  title: Watcher's Informational API
+  title: Watchers Informational API
   description: >
     API specification of the Watcher's Informational Service
 

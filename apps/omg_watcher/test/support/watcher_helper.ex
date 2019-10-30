@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.TestHelper do
+defmodule Support.WatcherHelper do
   @moduledoc """
   Module provides common testing functions used by App's tests.
   """
@@ -89,21 +89,28 @@ defmodule OMG.Watcher.TestHelper do
   @spec decode16(map(), list()) :: map()
   def decode16(data, keys) do
     keys
-    |> Enum.filter(&Map.has_key?(data, &1))
-    |> Enum.into(
-      %{},
-      fn key ->
-        value = data[key]
-
-        with true <- is_binary(value),
-             {:ok, bin} <- Encoding.from_hex(value) do
-          {key, bin}
-        else
-          _ -> {key, value}
-        end
-      end
-    )
+    |> Enum.into(%{}, &decode16_for_key(data, &1))
     |> (&Map.merge(data, &1)).()
+  end
+
+  defp decode16_for_key(data, key) do
+    case data[key] do
+      value when is_binary(value) ->
+        {key, decode_binary!(value)}
+
+      value when is_list(value) ->
+        bin_list =
+          value
+          |> Enum.map(&Encoding.from_hex/1)
+          |> Enum.map(fn {:ok, bin} -> bin end)
+
+        {key, bin_list}
+    end
+  end
+
+  defp decode_binary!(value) do
+    {:ok, bin} = Encoding.from_hex(value)
+    bin
   end
 
   def get_balance(address, token) do
@@ -132,7 +139,7 @@ defmodule OMG.Watcher.TestHelper do
 
   def get_exit_data(encoded_position) do
     data = success?("utxo.get_exit_data", %{utxo_pos: encoded_position})
-    decode16(data, ["txbytes", "proof", "sigs"])
+    decode16(data, ["txbytes", "proof"])
   end
 
   def get_exit_challenge(blknum, txindex, oindex) do
@@ -152,7 +159,7 @@ defmodule OMG.Watcher.TestHelper do
   def get_in_flight_exit_competitors(transaction) do
     competitor_data = success?("in_flight_exit.get_competitor", %{txbytes: Encoding.to_hex(transaction)})
 
-    decode16(competitor_data, ["in_flight_txbytes", "competing_txbytes", "competing_sig", "competing_proof"])
+    decode16(competitor_data, ["in_flight_txbytes", "competing_txbytes", "competing_sig", "competing_proof", "input_tx"])
   end
 
   def get_prove_canonical(transaction) do
@@ -176,10 +183,9 @@ defmodule OMG.Watcher.TestHelper do
 
     decode16(proof_data, [
       "in_flight_txbytes",
-      "in_flight_input_index",
       "spending_txbytes",
-      "spending_input_index",
-      "spending_sig"
+      "spending_sig",
+      "input_tx"
     ])
   end
 
@@ -192,10 +198,8 @@ defmodule OMG.Watcher.TestHelper do
 
     decode16(proof_data, [
       "in_flight_txbytes",
-      "in_flight_output_pos",
       "in_flight_proof",
       "spending_txbytes",
-      "spending_input_index",
       "spending_sig"
     ])
   end

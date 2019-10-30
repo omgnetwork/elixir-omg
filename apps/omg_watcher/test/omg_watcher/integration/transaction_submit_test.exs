@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   @moduletag :integration
   @moduletag :watcher
@@ -69,7 +69,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
           "typed_data" => typed_data
         }
       ]
-    } = TestHelper.success?("transaction.create", order)
+    } = WatcherHelper.success?("transaction.create", order)
 
     signature =
       sign_hash
@@ -83,7 +83,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
     assert %{
              "blknum" => tx_blknum,
              "txindex" => tx_index
-           } = TestHelper.success?("transaction.submit_typed", typed_data_signed)
+           } = WatcherHelper.success?("transaction.submit_typed", typed_data_signed)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -93,6 +93,6 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
                "txindex" => ^tx_index,
                "amount" => ^alice_to_bob
              }
-           ] = TestHelper.get_utxos(bob.addr)
+           ] = WatcherHelper.get_utxos(bob.addr)
   end
 end

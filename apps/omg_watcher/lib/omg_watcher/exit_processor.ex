@@ -248,8 +248,8 @@ defmodule OMG.Watcher.ExitProcessor do
         events,
         fn %{call_data: %{in_flight_tx: bytes}} ->
           {:ok, contract_ife_id} = Eth.RootChain.get_in_flight_exit_id(bytes)
-          {:ok, {timestamp, _, _, _, _}} = Eth.RootChain.get_in_flight_exit(contract_ife_id)
-          {timestamp, contract_ife_id}
+          {:ok, status} = Eth.RootChain.get_in_flight_exit(contract_ife_id)
+          {status, contract_ife_id}
         end
       )
 
@@ -303,15 +303,19 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:finalize_in_flight_exits, finalizations}, _from, state) do
     _ = if not Enum.empty?(finalizations), do: Logger.info("Recognized ife finalizations: #{inspect(finalizations)}")
 
-    {:ok, exits} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state, finalizations)
+    # necessary, so that the processor knows the current state of inclusion of exiting IFE txs
+    state2 = update_with_ife_txs_from_blocks(state)
+
+    {:ok, exiting_positions} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state2, finalizations)
 
     # NOTE: it's not straightforward to track from utxo position returned when exiting utxo in State to ife id
     # See issue #671 https://github.com/omisego/elixir-omg/issues/671
-    {invalidities, state_db_updates} = Enum.reduce(exits, {%{}, []}, &collect_invalidities_and_state_db_updates/2)
+    {invalidities, state_db_updates} =
+      Enum.reduce(exiting_positions, {%{}, []}, &collect_invalidities_and_state_db_updates/2)
 
-    {:ok, state, db_updates} = Core.finalize_in_flight_exits(state, finalizations, invalidities)
+    {:ok, state3, db_updates} = Core.finalize_in_flight_exits(state2, finalizations, invalidities)
 
-    {:reply, {:ok, state_db_updates ++ db_updates}, state}
+    {:reply, {:ok, state_db_updates ++ db_updates}, state3}
   end
 
   def handle_call(:check_validity, _from, state) do
@@ -469,22 +473,17 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp collect_invalidities_and_state_db_updates(
-         {ife_id, {input_exits, output_exits}},
+         {ife_id, exiting_positions},
          {invalidities_by_ife_id, state_db_updates}
        ) do
-    # we can't call `State.exit_utxos(input_exits ++ output_exits)`
-    # because the types of these enumerable items are distinct
-    {:ok, input_exits_state_updates, {_, input_invalidities}} = State.exit_utxos(input_exits)
-    {:ok, output_exits_state_updates, {_, output_invalidities}} = State.exit_utxos(output_exits)
-
-    exit_invalidities = input_invalidities ++ output_invalidities
+    {:ok, exits_state_updates, {_, invalidities}} = State.exit_utxos(exiting_positions)
 
     _ =
-      if not Enum.empty?(exit_invalidities),
-        do: Logger.warn("Invalid in-flight exit finalization: #{inspect(exit_invalidities)}")
+      if not Enum.empty?(invalidities), do: Logger.warn("Invalid in-flight exit finalization: #{inspect(invalidities)}")
 
-    invalidities_by_ife_id = Map.put(invalidities_by_ife_id, ife_id, exit_invalidities)
-    state_db_updates = input_exits_state_updates ++ output_exits_state_updates ++ state_db_updates
+    invalidities_by_ife_id = Map.put(invalidities_by_ife_id, ife_id, invalidities)
+    state_db_updates = exits_state_updates ++ state_db_updates
+
     {invalidities_by_ife_id, state_db_updates}
   end
 end

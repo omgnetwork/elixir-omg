@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.WaitFor do
+defmodule Support.WaitFor do
   @moduledoc """
   Generic wait_for_* utils, styled after web3 counterparts
   """
@@ -22,8 +22,11 @@ defmodule OMG.Eth.WaitFor do
   def eth_rpc do
     f = fn ->
       case Ethereumex.HttpClient.eth_syncing() do
-        {:ok, false} -> {:ok, :ready}
-        _ -> :repeat
+        {:ok, false} ->
+          {:ok, :ready}
+
+        _ ->
+          :repeat
       end
     end
 
@@ -36,7 +39,7 @@ defmodule OMG.Eth.WaitFor do
   NOTE: `eth_receipt` takes txhash as raw decoded binary, like the rest of Eth APIs, but binaries in the receipt
   returned are in `0xhex-style`
 
-  This is low-level, consider using `|> Eth.DevHelpers.transact_sync!()` for eth-transactions' syncronicity in tests
+  This is low-level, consider using `|> Support.DevHelper.transact_sync!()` for eth-transactions' syncronicity in tests
   """
   def eth_receipt(txhash, timeout \\ 15_000) do
     f = fn ->

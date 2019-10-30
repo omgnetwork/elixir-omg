@@ -17,7 +17,7 @@ defmodule OMG.WatcherRPC.Web.Controller.FallbackTest do
   use ExUnit.Case, async: false
   use OMG.Watcher.Fixtures
 
-  alias OMG.Watcher.TestHelper
+  alias Support.WatcherHelper
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "returns error for non existing method" do
@@ -25,6 +25,6 @@ defmodule OMG.WatcherRPC.Web.Controller.FallbackTest do
              "object" => "error",
              "code" => "operation:not_found",
              "description" => "Operation cannot be found. Check request URL."
-           } == TestHelper.no_success?("no_such.endpoint", %{})
+           } == WatcherHelper.no_success?("no_such.endpoint", %{})
   end
 end

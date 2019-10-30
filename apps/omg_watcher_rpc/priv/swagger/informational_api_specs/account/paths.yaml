@@ -10,7 +10,7 @@ account.get_balance:
       200:
         $ref: 'responses.yaml#/AccountBalanceResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
 
 account.get_utxos:
   post:
@@ -24,7 +24,7 @@ account.get_utxos:
       200:
         $ref: 'responses.yaml#/AccountUtxoResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
 
 # This is served by transaction's controller, referencing there for definitions
 account.get_transactions:
@@ -39,4 +39,4 @@ account.get_transactions:
       200:
         $ref: '../transaction/responses.yaml#/GetAllTransactionsResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'

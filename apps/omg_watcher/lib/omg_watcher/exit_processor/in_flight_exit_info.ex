@@ -27,15 +27,14 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   require Transaction.Payment
 
   @max_inputs Transaction.Payment.max_inputs()
+  @max_outputs Transaction.Payment.max_outputs()
+  @inputs_index_range 0..(@max_inputs - 1)
+  @outputs_index_range 0..(@max_outputs - 1)
+
+  @type combined_index_t() :: {:input, 0..unquote(@max_inputs - 1)} | {:output, 0..unquote(@max_outputs - 1)}
 
   # TODO: divide into inputs and outputs: prevent contract's implementation from leaking into watcher
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247926222
-  @exit_map_index_range Range.new(0, @max_inputs * 2 - 1)
-
-  @inputs_index_range Range.new(0, @max_inputs - 1)
-  @outputs_index_range Range.new(@max_inputs, @max_inputs * 2 - 1)
-
-  @max_number_of_inputs Enum.count(@inputs_index_range)
 
   @enforce_keys [
     :tx,
@@ -53,12 +52,11 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     :contract_id,
     :oldest_competitor,
     :eth_height,
+    :input_txs,
+    :input_utxos_pos,
     :relevant_from_blknum,
-    # piggybacking
-    exit_map:
-      @exit_map_index_range
-      |> Enum.map(&{&1, %{is_piggybacked: false, is_finalized: false}})
-      |> Map.new(),
+    # piggybacking & finalization
+    exit_map: Map.new(),
     is_canonical: true,
     is_active: true
   ]
@@ -67,6 +65,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @type tx_index() :: non_neg_integer()
 
   @type ife_contract_id() :: <<_::192>>
+
+  @type exit_map_t() :: %{
+          {:input | :output, non_neg_integer()} => %{
+            is_piggybacked: boolean(),
+            is_finalized: boolean()
+          }
+        }
 
   @type t :: %__MODULE__{
           tx: Transaction.Signed.t(),
@@ -80,29 +85,41 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           contract_id: ife_contract_id(),
           oldest_competitor: Utxo.Position.t() | nil,
           eth_height: pos_integer(),
+          input_txs: list(Transaction.Protocol.t()),
+          input_utxos_pos: list(Utxo.Position.t()),
           relevant_from_blknum: pos_integer(),
-          exit_map: %{
-            non_neg_integer() => %{
-              is_piggybacked: boolean(),
-              is_finalized: boolean()
-            }
-          },
+          exit_map: exit_map_t(),
           is_canonical: boolean(),
           is_active: boolean()
         }
 
+  @doc """
+  Creates a new instance of the key-value pair for the respective `InFlightExitInfo`, from the Ethereum event map
+  """
+  @spec new_kv(map(), {tuple(), non_neg_integer()}) :: t()
   def new_kv(
-        %{eth_height: eth_height, call_data: %{in_flight_tx: tx_bytes, in_flight_tx_sigs: signatures}},
-        {timestamp, contract_ife_id} = contract_status
+        %{
+          eth_height: eth_height,
+          call_data: %{
+            in_flight_tx: tx_bytes,
+            in_flight_tx_sigs: signatures,
+            input_txs: input_txs,
+            input_utxos_pos: input_utxos_pos
+          }
+        },
+        {contract_status, contract_ife_id}
       ) do
     do_new(tx_bytes, signatures, contract_status,
       contract_id: <<contract_ife_id::192>>,
-      timestamp: timestamp,
-      eth_height: eth_height
+      eth_height: eth_height,
+      input_txs: input_txs,
+      input_utxos_pos: Enum.map(input_utxos_pos, &Utxo.Position.decode!/1)
     )
   end
 
   defp do_new(tx_bytes, tx_signatures, contract_status, fields) do
+    {timestamp, is_active} = parse_contract_in_flight_exit_status(contract_status)
+
     with {:ok, tx} <- prepare_tx(tx_bytes, tx_signatures) do
       # NOTE: in case of using output_id as the input pointer, getting the youngest will be entirely different
       Utxo.position(youngest_input_blknum, _, _) =
@@ -114,22 +131,22 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       fields =
         fields
         |> Keyword.put_new(:tx, tx)
-        |> Keyword.put_new(:is_active, parse_contract_in_flight_exit_status(contract_status))
+        |> Keyword.put_new(:is_active, is_active)
         |> Keyword.put_new(:relevant_from_blknum, youngest_input_blknum)
+        |> Keyword.put_new(:timestamp, timestamp)
 
       {Transaction.raw_txhash(tx), struct!(__MODULE__, fields)}
     end
   end
 
+  defp parse_contract_in_flight_exit_status({_, timestamp, _, _, _, _, _}), do: {timestamp, timestamp != 0}
+
   defp prepare_tx(tx_bytes, tx_signatures) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
-      chopped_sigs = for <<chunk::size(65)-unit(8) <- tx_signatures>>, do: <<chunk::size(65)-unit(8)>>
-      tx = %Transaction.Signed{raw_tx: raw_tx, sigs: chopped_sigs}
+      tx = %Transaction.Signed{raw_tx: raw_tx, sigs: tx_signatures}
       {:ok, tx}
     end
   end
-
-  defp parse_contract_in_flight_exit_status({timestamp, _contract_id}), do: timestamp != 0
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
   def make_db_update(
@@ -141,6 +158,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
            contract_id: contract_id,
            oldest_competitor: oldest_competitor,
            eth_height: eth_height,
+           input_txs: input_txs,
+           input_utxos_pos: input_utxos_pos,
            relevant_from_blknum: relevant_from_blknum,
            exit_map: exit_map,
            is_canonical: is_canonical,
@@ -148,7 +167,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
          }}
       )
       when is_binary(contract_id) and
-             is_integer(timestamp) and is_integer(eth_height) and is_integer(relevant_from_blknum) and
+             is_integer(timestamp) and is_integer(eth_height) and is_list(input_txs) and is_list(input_utxos_pos) and
+             is_integer(relevant_from_blknum) and
              is_map(exit_map) and is_boolean(is_canonical) and is_boolean(is_active) do
     :ok = assert_utxo_pos_type(tx_pos)
     :ok = assert_utxo_pos_type(oldest_competitor)
@@ -160,6 +180,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       contract_id: contract_id,
       oldest_competitor: oldest_competitor,
       eth_height: eth_height,
+      input_txs: input_txs,
+      input_utxos_pos: input_utxos_pos,
       relevant_from_blknum: relevant_from_blknum,
       exit_map: exit_map,
       is_canonical: is_canonical,
@@ -175,42 +197,40 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   defp assert_utxo_pos_type(nil), do: :ok
 
-  def from_db_kv(
-        {ife_hash,
-         %{
-           tx: signed_tx_map,
-           tx_pos: tx_pos,
-           timestamp: timestamp,
-           contract_id: contract_id,
-           oldest_competitor: oldest_competitor,
-           eth_height: eth_height,
-           relevant_from_blknum: relevant_from_blknum,
-           exit_map: exit_map,
-           is_canonical: is_canonical,
-           is_active: is_active
-         }}
-      )
-      when is_map(signed_tx_map) and is_binary(contract_id) and
-             is_integer(timestamp) and is_integer(eth_height) and is_integer(relevant_from_blknum) and
-             is_map(exit_map) and is_boolean(is_canonical) and is_boolean(is_active) do
-    :ok = assert_utxo_pos_type(tx_pos)
-    :ok = assert_utxo_pos_type(oldest_competitor)
+  def from_db_kv({ife_hash, fields}) do
+    # TODO: this got really horrible. Instead of tidying up/maintaining maybe go `Ecto` and use `Ecto.x` facilities
+    #       on this here and elsewhere
+    assert_types(fields, [:tx_pos, :oldest_competitor], fn value -> :ok = assert_utxo_pos_type(value) end)
+    assert_types(fields, [:tx, :exit_map], fn value -> true = is_map(value) end)
+    assert_types(fields, [:contract_id], fn value -> true = is_binary(value) end)
+    assert_types(fields, [:timestamp, :eth_height, :relevant_from_blknum], fn value -> true = is_integer(value) end)
+    assert_types(fields, [:input_txs, :input_utxos_pos], fn value -> true = is_list(value) end)
+    assert_types(fields, [:is_canonical, :is_active], fn value -> true = is_boolean(value) end)
 
     # mapping is used in case of changes in data structure
     ife_map = %{
-      tx: from_db_signed_tx(signed_tx_map),
-      contract_tx_pos: tx_pos,
-      timestamp: timestamp,
-      contract_id: contract_id,
-      oldest_competitor: oldest_competitor,
-      eth_height: eth_height,
-      relevant_from_blknum: relevant_from_blknum,
-      exit_map: exit_map,
-      is_canonical: is_canonical,
-      is_active: is_active
+      tx: from_db_signed_tx(fields[:tx]),
+      contract_tx_pos: fields[:tx_pos],
+      timestamp: fields[:timestamp],
+      contract_id: fields[:contract_id],
+      oldest_competitor: fields[:oldest_competitor],
+      eth_height: fields[:eth_height],
+      input_txs: fields[:input_txs],
+      input_utxos_pos: fields[:input_utxos_pos],
+      relevant_from_blknum: fields[:relevant_from_blknum],
+      exit_map: fields[:exit_map],
+      is_canonical: fields[:is_canonical],
+      is_active: fields[:is_active]
     }
 
     {ife_hash, struct!(__MODULE__, ife_map)}
+  end
+
+  defp assert_types(fields, keys, assertion) do
+    fields
+    |> Map.take(keys)
+    |> Map.values()
+    |> Enum.each(assertion)
   end
 
   # NOTE: non-private because `CompetitorInfo` holds `Transaction.Signed` objects too
@@ -234,13 +254,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     %{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
-  @spec piggyback(t(), non_neg_integer()) :: t() | {:error, :non_existent_exit | :cannot_piggyback}
+  @spec piggyback(t(), combined_index_t()) :: t() | {:error, :non_existent_exit | :cannot_piggyback}
   def piggyback(ife, index)
 
-  def piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @exit_map_index_range do
-    with exit <- Map.get(exit_map, index),
+  def piggyback(%__MODULE__{exit_map: exit_map} = ife, combined_index) when is_tuple(combined_index) do
+    with exit <- exit_map_get(exit_map, combined_index),
          {:ok, updated_exit} <- piggyback_exit(exit) do
-      %{ife | exit_map: Map.put(exit_map, index, updated_exit)}
+      %{ife | exit_map: Map.put(exit_map, combined_index, updated_exit)}
     end
   end
 
@@ -266,9 +286,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @exit_map_index_range do
-    %{is_piggybacked: true, is_finalized: false} = Map.get(exit_map, index)
-    %{ife | exit_map: Map.replace!(exit_map, index, %{is_piggybacked: false, is_finalized: false})}
+  @spec challenge_piggyback(t(), combined_index_t()) :: t()
+  def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, combined_index) when is_tuple(combined_index) do
+    %{is_piggybacked: true, is_finalized: false} = exit_map_get(exit_map, combined_index)
+    %{ife | exit_map: Map.replace!(exit_map, combined_index, %{is_piggybacked: false, is_finalized: false})}
   end
 
   @spec respond_to_challenge(t(), Utxo.Position.t()) ::
@@ -287,21 +308,21 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def respond_to_challenge(%__MODULE__{}, _), do: {:error, :cannot_respond}
 
-  @spec finalize(t(), non_neg_integer()) :: {:ok, t()} | :unknown_output_index
-  def finalize(%__MODULE__{exit_map: exit_map} = ife, output_index) do
-    case Map.get(exit_map, output_index) do
+  @spec finalize(t(), combined_index_t()) :: {:ok, t()} | :unknown_output_index
+  def finalize(%__MODULE__{exit_map: exit_map} = ife, combined_index) when is_tuple(combined_index) do
+    case exit_map_get(exit_map, combined_index) do
       nil ->
         :unknown_output_index
 
       output_exit ->
         output_exit = %{output_exit | is_finalized: true}
-        exit_map = Map.put(exit_map, output_index, output_exit)
+        exit_map = Map.put(exit_map, combined_index, output_exit)
         ife = %{ife | exit_map: exit_map}
 
         is_active =
           exit_map
           |> Map.keys()
-          |> Enum.any?(fn output_index -> is_active?(ife, output_index) end)
+          |> Enum.any?(&is_active?(ife, &1))
 
         ife = %{ife | is_active: is_active}
         {:ok, ife}
@@ -311,29 +332,27 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]
   def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
 
-  def get_piggybacked_outputs_positions(%__MODULE__{
-        tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _},
-        exit_map: exit_map
-      }) do
+  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _}} = ife) do
     @outputs_index_range
-    |> Enum.filter(&exit_map[&1].is_piggybacked)
-    |> Enum.map(&Utxo.position(blknum, txindex, &1 - @max_number_of_inputs))
+    |> Enum.filter(&is_output_piggybacked?(ife, &1))
+    |> Enum.map(&Utxo.position(blknum, txindex, &1))
   end
 
-  def is_piggybacked?(%__MODULE__{exit_map: map}, index) when is_integer(index) do
-    with {:ok, exit} <- Map.fetch(map, index) do
-      Map.get(exit, :is_piggybacked)
+  @spec is_piggybacked?(t(), combined_index_t()) :: boolean()
+  def is_piggybacked?(%__MODULE__{exit_map: map}, combined_index) when is_tuple(combined_index) do
+    if exit = exit_map_get(map, combined_index) do
+      Map.get(exit, :is_piggybacked, false)
     else
-      :error -> false
+      false
     end
   end
 
   def is_input_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_inputs do
-    is_piggybacked?(ife, index)
+    is_piggybacked?(ife, {:input, index})
   end
 
-  def is_output_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_inputs do
-    is_piggybacked?(ife, index + @max_inputs)
+  def is_output_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_outputs do
+    is_piggybacked?(ife, {:output, index})
   end
 
   def indexed_piggybacks_by_ife(%__MODULE__{tx: tx} = ife, :input) do
@@ -359,25 +378,26 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def piggybacked_inputs(ife) do
     @inputs_index_range
-    |> Enum.filter(&is_piggybacked?(ife, &1))
+    |> Enum.filter(&is_input_piggybacked?(ife, &1))
   end
 
   def piggybacked_outputs(ife) do
     @outputs_index_range
-    |> Enum.filter(&is_piggybacked?(ife, &1))
-    |> Enum.map(&(&1 - @max_inputs))
+    |> Enum.filter(&is_output_piggybacked?(ife, &1))
   end
 
-  def is_finalized?(%__MODULE__{exit_map: map}, index) do
-    with {:ok, exit} <- Map.fetch(map, index) do
-      Map.get(exit, :is_finalized)
+  @spec is_finalized?(t(), combined_index_t()) :: boolean()
+  def is_finalized?(%__MODULE__{exit_map: map}, combined_index) do
+    if exit = exit_map_get(map, combined_index) do
+      Map.get(exit, :is_finalized, false)
     else
-      :error -> false
+      false
     end
   end
 
-  def is_active?(%__MODULE__{} = ife, index) do
-    is_piggybacked?(ife, index) and !is_finalized?(ife, index)
+  @spec is_active?(t(), combined_index_t()) :: boolean()
+  def is_active?(%__MODULE__{} = ife, combined_index) do
+    is_piggybacked?(ife, combined_index) and !is_finalized?(ife, combined_index)
   end
 
   def activate(%__MODULE__{} = ife) do
@@ -437,4 +457,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
+
+  @spec exit_map_get(exit_map_t(), combined_index_t()) :: %{is_piggybacked: boolean(), is_finalized: boolean()}
+  defp exit_map_get(exit_map, {type, index} = combined_index)
+       when (type == :input and index < @max_inputs) or (type == :output and index < @max_outputs),
+       do: Map.get(exit_map, combined_index, %{is_piggybacked: false, is_finalized: false})
 end

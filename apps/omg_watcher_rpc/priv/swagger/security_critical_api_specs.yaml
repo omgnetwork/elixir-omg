@@ -1,0 +1,1642 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Watcher security-critical API
+  description: |
+    API specification of the Watcher's security-critical Service
+    Error codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
+  contact:
+    name: OmiseGO
+    email: omisego@omisego.co
+  license:
+    name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
+    url: 'https://omisego.network/'
+tags:
+  - name: Status
+    description: Status of the child chain.
+    externalDocs:
+      description: Byzantine events description
+      url: 'https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events'
+  - name: Account
+    description: Account related API.
+  - name: UTXO
+    description: UTXO related API.
+  - name: Transaction
+    description: Transaction related API.
+  - name: InFlightExit
+    description: InFlightExit related API.
+servers:
+  - url: 'https://watcher.ari.omg.network/'
+  - url: 'http://localhost:7434/'
+paths:
+  /status.get:
+    post:
+      tags:
+        - Status
+      summary: Returns information about the current state of the child chain and the watcher.
+      description: |
+        The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity. The user must call the `/status.get` endpoint periodically to check. Any situation that requires the user to either exit or challenge an invalid exit will be included in the `byzantine_events` field.
+      operationId: status_get
+      responses:
+        '200':
+          description: Returns the status of the watcher
+          content:
+            application/json:
+              schema:
+                description: The response schema for a status
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: The object schema for a status
+                        properties:
+                          last_validated_child_block_timestamp:
+                            type: integer
+                            format: int64
+                          last_validated_child_block_number:
+                            type: integer
+                            format: int64
+                          last_mined_child_block_timestamp:
+                            type: integer
+                            format: int64
+                          last_mined_child_block_number:
+                            type: integer
+                            format: int64
+                          last_seen_eth_block_timestamp:
+                            type: integer
+                            format: int64
+                          last_seen_eth_block_number:
+                            type: integer
+                            format: int64
+                          contract_addr:
+                            type: object
+                            additionalProperties: true
+                            properties:
+                              plasma_framework:
+                                type: string
+                                format: binary
+                          eth_syncing:
+                            type: boolean
+                          byzantine_events:
+                            type: array
+                            items:
+                              anyOf:
+                                - type: object
+                                  properties:
+                                    event:
+                                      type: string
+                                      enum:
+                                        - invalid_exit
+                                    details:
+                                      type: object
+                                      properties:
+                                        eth_height:
+                                          type: integer
+                                        utxo_pos:
+                                          type: integer
+                                        owner:
+                                          type: string
+                                        currency:
+                                          type: string
+                                        amount:
+                                          type: integer
+                                - type: object
+                                  properties:
+                                    event:
+                                      type: string
+                                      enum:
+                                        - unchallenged_exit
+                                    details:
+                                      type: object
+                                      properties:
+                                        eth_height:
+                                          type: integer
+                                        utxo_pos:
+                                          type: integer
+                                        owner:
+                                          type: string
+                                        currency:
+                                          type: string
+                                        amount:
+                                          type: integer
+                                - type: object
+                                  properties:
+                                    event:
+                                      type: string
+                                      enum:
+                                        - invalid_block
+                                    details:
+                                      type: object
+                                      properties:
+                                        blknum:
+                                          type: integer
+                                        blockhash:
+                                          type: string
+                                        error_type:
+                                          type: string
+                                          enum:
+                                            - tx_execution
+                                            - incorrect_hash
+                                - type: object
+                                  properties:
+                                    event:
+                                      type: string
+                                      enum:
+                                        - block_withholding
+                                    details:
+                                      type: object
+                                      properties:
+                                        hash:
+                                          type: string
+                                        blknum:
+                                          type: string
+                                - type: object
+                                  properties:
+                                    event:
+                                      type: string
+                                      enum:
+                                        - noncanonical_ife
+                                    details:
+                                      type: object
+                                      properties:
+                                        txbytes:
+                                          type: string
+                                - type: object
+                                  properties:
+                                    event:
+                                      type: string
+                                      enum:
+                                        - invalid_ife_challenge
+                                    details:
+                                      type: object
+                                      properties:
+                                        txbytes:
+                                          type: string
+                                - type: object
+                                  properties:
+                                    event:
+                                      type: string
+                                      enum:
+                                        - piggyback_available
+                                    details:
+                                      type: object
+                                      properties:
+                                        txbytes:
+                                          type: string
+                                        available_outputs:
+                                          type: array
+                                          items:
+                                            type: object
+                                            properties:
+                                              index:
+                                                type: integer
+                                              address:
+                                                type: string
+                                        available_inputs:
+                                          type: array
+                                          items:
+                                            type: object
+                                            properties:
+                                              index:
+                                                type: integer
+                                              address:
+                                                type: string
+                                - type: object
+                                  properties:
+                                    event:
+                                      type: string
+                                      enum:
+                                        - invalid_piggyback
+                                    details:
+                                      type: object
+                                      properties:
+                                        txbytes:
+                                          type: string
+                                        inputs:
+                                          type: array
+                                          items:
+                                            type: integer
+                                        outputs:
+                                          type: array
+                                          items:
+                                            type: integer
+                          in_flight_txs:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                txhash:
+                                  type: string
+                                txbytes:
+                                  type: string
+                                input_addresses:
+                                  type: array
+                                  items:
+                                    type: string
+                                ouput_addresses:
+                                  type: array
+                                  items:
+                                    type: string
+                          in_flight_exits:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                txhash:
+                                  type: string
+                                txbytes:
+                                  type: string
+                                eth_height:
+                                  type: integer
+                                piggybacked_inputs:
+                                  type: array
+                                  items:
+                                    type: integer
+                                piggybacked_outputs:
+                                  type: array
+                                  items:
+                                    type: integer
+                          services_synced_heights:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                service:
+                                  type: string
+                                height:
+                                  type: integer
+                                  format: int256
+                        required:
+                          - last_validated_child_block_timestamp
+                          - last_validated_child_block_number
+                          - last_mined_child_block_timestamp
+                          - last_mined_child_block_number
+                          - last_seen_eth_block_timestamp
+                          - last_seen_eth_block_number
+                          - contract_addr
+                          - eth_syncing
+                          - byzantine_events
+                          - in_flight_txs
+                          - in_flight_exits
+                    example:
+                      data:
+                        last_validated_child_block_timestamp: 1558535130
+                        last_validated_child_block_number: 10000
+                        last_mined_child_block_timestamp: 1558535190
+                        last_mined_child_block_number: 11000
+                        last_seen_eth_block_timestamp: 1558535190
+                        last_seen_eth_block_number: 4427041
+                        contract_addr:
+                          plasma_framework: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
+                        eth_syncing: true
+                        byzantine_events:
+                          - event: invalid_exit
+                            details:
+                              eth_height: 615440
+                              utxo_pos: 10000000010000000
+                              owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                              currency: '0x0000000000000000000000000000000000000000'
+                              amount: 100
+                          - event: unchallenged_exit
+                            details:
+                              eth_height: 615440
+                              utxo_pos: 10000000010000000
+                              owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                              currency: '0x0000000000000000000000000000000000000000'
+                              amount: 100
+                          - event: invalid_block
+                            details:
+                              blockhash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                              blknum: 10000
+                              error_type: tx_execution
+                          - event: block_withholding
+                            details:
+                              hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                              blknum: 10000
+                          - event: noncanonical_ife
+                            details:
+                              txbytes: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                          - event: invalid_ife_challenge
+                            details:
+                              txbytes: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                          - event: piggyback_available
+                            details:
+                              txbytes: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                              available_outputs:
+                                - index: 0
+                                  address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                                - index: '1,'
+                                  address: '0x488f85743ef16cfb1f8d4dd1dfc74c51dc496434'
+                              available_inputs:
+                                - index: 0
+                                  address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                          - event: invalid_piggyback
+                            details:
+                              txbytes: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                              inputs:
+                                - 1
+                              outputs:
+                                - 0
+                        in_flight_txs:
+                          - txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'
+                            txbytes: 0x3eb6ae5b06f3...
+                            input_addresses:
+                              - 0x1234...
+                            ouput_addresses:
+                              - 0x1234...
+                              - 0x7890...
+                        in_flight_exits:
+                          - txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                            txbytes: 0xf3170101c094...
+                            eth_height: 615441
+                            piggybacked_inputs:
+                              - 1
+                            piggybacked_outputs:
+                              - 0
+                              - 1
+                        services_synced_heights:
+                          - service: block_getter
+                            height: 4427041
+                          - service: challenges_responds_processor
+                            height: 4427029
+                          - service: competitor_processor
+                            height: 4427029
+                          - service: convenience_deposit_processor
+                            height: 4427031
+                          - service: convenience_exit_processor
+                            height: 4427029
+                          - service: depositor
+                            height: 4427031
+                          - service: exit_challenger
+                            height: 4427029
+                          - service: exit_finalizer
+                            height: 4427029
+                          - service: exit_processor
+                            height: 4427029
+                          - service: ife_exit_finalizer
+                            height: 4427029
+                          - service: in_flight_exit_processor
+                            height: 4427029
+                          - service: piggyback_challenges_processor
+                            height: 4427029
+                          - service: piggyback_processor
+                            height: 4427029
+                          - service: root_chain_height
+                            height: 4427041
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /account.get_exitable_utxos:
+    post:
+      tags:
+        - Account
+      summary: Gets all utxos belonging to the given address.
+      description: |
+        **Note:** this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API's [Account - Get Utxos](http://TODO) instead. This version is provided in case the Informational API is not available.
+      operationId: account_get_exitable_utxos
+      requestBody:
+        description: HEX-encoded address of the account
+        required: true
+        content:
+          application/json:
+            schema:
+              title: AddressBodySchema
+              type: object
+              properties:
+                address:
+                  type: string
+                  format: binary
+              required:
+                - address
+              example:
+                address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+      responses:
+        '200':
+          description: Account utxos succcessful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            blknum:
+                              type: integer
+                              format: int64
+                            txindex:
+                              type: integer
+                              format: int16
+                            oindex:
+                              type: integer
+                              format: int8
+                            utxo_pos:
+                              type: integer
+                              format: int256
+                            owner:
+                              type: string
+                              format: binary
+                            currency:
+                              type: string
+                              format: binary
+                            amount:
+                              type: integer
+                              format: int256
+                    example:
+                      data:
+                        - blknum: 123000
+                          txindex: 111
+                          oindex: 0
+                          utxo_pos: 123000001110000
+                          owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                          currency: '0x0000000000000000000000000000000000000000'
+                          amount: 10
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /utxo.get_challenge_data:
+    post:
+      tags:
+        - UTXO
+      summary: Gets challenge data for a given utxo exit.
+      description: Gets challenge data for a given utxo exit.
+      operationId: utxo_get_challenge_data
+      requestBody:
+        description: 'Utxo position (encoded as single integer, the way contract represents them)'
+        required: true
+        content:
+          application/json:
+            schema:
+              title: UtxoPositionBodySchema
+              type: object
+              properties:
+                utxo_pos:
+                  type: integer
+                  format: int256
+              required:
+                - utxo_pos
+              example:
+                utxo_pos: 10000000010000000
+      responses:
+        '200':
+          description: Utxo challenge successful response
+          content:
+            application/json:
+              schema:
+                description: The response schema for utxo challenge data
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          exit_id:
+                            type: integer
+                            format: int192
+                          input_index:
+                            type: integer
+                            format: int8
+                          sig:
+                            type: string
+                            format: binary
+                          txbytes:
+                            type: string
+                            format: binary
+                          exiting_tx:
+                            type: string
+                            format: binary
+                    example:
+                      data:
+                        exit_id: 1.7176118930141594e+45
+                        input_index: 0
+                        sig: 0x6bfb9b2dbe32...
+                        txbytes: 0x3eb6ae5b06f3...
+                        exiting_tx: 0x6d6bda6bd6d6...
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /utxo.get_exit_data:
+    post:
+      tags:
+        - UTXO
+      summary: Gets exit data for a given utxo.
+      description: Gets exit data for a given utxo.
+      operationId: utxo_get_exit_data
+      requestBody:
+        description: 'Utxo position (encoded as single integer, the way contract represents them)'
+        required: true
+        content:
+          application/json:
+            schema:
+              title: UtxoPositionBodySchema
+              type: object
+              properties:
+                utxo_pos:
+                  type: integer
+                  format: int256
+              required:
+                - utxo_pos
+              example:
+                utxo_pos: 10000000010000000
+      responses:
+        '200':
+          description: Utxo exit successful response
+          content:
+            application/json:
+              schema:
+                description: The response schema for utxo exit data
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          utxo_pos:
+                            type: integer
+                            format: int256
+                          txbytes:
+                            type: string
+                            format: binary
+                          proof:
+                            type: string
+                            format: binary
+                    example:
+                      data:
+                        proof: 0xcedb8b31d1e4...
+                        txbytes: 0x3eb6ae5b06f3...
+                        utxo_pos: 10000000010000000
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /transaction.submit:
+    post:
+      tags:
+        - Transaction
+      summary: Sends transaction to Child chain.
+      description: 'Watcher passes signed transaction to the child chain only if it''s secure, e.g. Watcher is fully synced, all operator blocks have been verified, transaction doesn''t spend funds not yet mined...'
+      operationId: submit
+      requestBody:
+        description: Signed transaction RLP-encoded to bytes and HEX-encoded to string
+        required: true
+        content:
+          application/json:
+            schema:
+              title: TransactionSubmitBodySchema
+              type: object
+              properties:
+                transaction:
+                  type: string
+                  format: binary
+              required:
+                - transaction
+              example:
+                transaction: 0xf8d083015ba98080808080940000...
+      responses:
+        '200':
+          description: Transaction submission successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          blknum:
+                            type: integer
+                            format: int64
+                          txindex:
+                            type: integer
+                            format: int16
+                          txhash:
+                            type: string
+                            format: binary
+                    example:
+                      data:
+                        blknum: 123000
+                        txindex: 111
+                        txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /in_flight_exit.get_data:
+    post:
+      tags:
+        - InFlightExit
+      summary: Gets exit data for an in-flight exit.
+      description: |
+        Exit data are arguments to `startInFlightExit` root chain contract function.
+      operationId: in_flight_exit_get_data
+      requestBody:
+        description: In-flight transaction bytes body
+        required: true
+        content:
+          application/json:
+            schema:
+              title: InFlightExitTxBytesBodySchema
+              type: object
+              properties:
+                txbytes:
+                  type: string
+                  format: binary
+              required:
+                - txbytes
+              example:
+                txbytes: 0xf3170101c0940000...
+      responses:
+        '200':
+          description: Get in-flight exit successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: The object schema for an in flight exit
+                        properties:
+                          in_flight_tx:
+                            type: string
+                            format: binary
+                          input_txs:
+                            type: array
+                            items:
+                              type: string
+                              format: binary
+                          input_txs_inclusion_proofs:
+                            type: array
+                            items:
+                              type: string
+                              format: binary
+                          in_flight_tx_sigs:
+                            type: array
+                            items:
+                              type: string
+                              format: binary
+                          input_utxos_pos:
+                            type: array
+                            items:
+                              type: integer
+                              format: int256
+                    example:
+                      data:
+                        in_flight_tx: 0xf3170101c0940000...
+                        input_txs:
+                          - 0xa3470101c0940000...
+                        input_txs_inclusion_proofs:
+                          - 0xcedb8b31d1e4...
+                        in_flight_tx_sigs:
+                          - 0x6bfb9b2dbe32...
+                        input_utxos_pos:
+                          - 300010002001
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /in_flight_exit.get_competitor:
+    post:
+      tags:
+        - InFlightExit
+      summary: Returns a competitor to an in-flight exit.
+      description: Note that if the competing transaction has not been put into a block `competing_tx_pos` and `competing_proof` will not be returned.
+      operationId: in_flight_exit_get_competitor
+      requestBody:
+        description: In-flight transaction bytes body
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                txbytes:
+                  type: string
+                  format: binary
+              required:
+                - txbytes
+              example:
+                txbytes: 0xf3170101c0940000...
+      responses:
+        '200':
+          description: Get competitor successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: The object schema for a competitor
+                        properties:
+                          in_flight_txbytes:
+                            type: string
+                            format: binary
+                          in_flight_input_index:
+                            type: integer
+                            format: int8
+                          competing_txbytes:
+                            type: string
+                            format: binary
+                          competing_input_index:
+                            type: integer
+                            format: int8
+                          competing_sig:
+                            type: string
+                            format: binary
+                          competing_tx_pos:
+                            type: integer
+                            format: int256
+                          competing_proof:
+                            type: string
+                            format: binary
+                          input_tx:
+                            type: string
+                            format: binary
+                          input_utxo_pos:
+                            type: integer
+                            format: int256
+                    example:
+                      data:
+                        in_flight_txbytes: 0xf3170101c0940000...
+                        in_flight_input_index: 1
+                        competing_txbytes: 0x5df13a6bee20000...
+                        competing_input_index: 1
+                        competing_sig: 0xa3470101c0940000...
+                        competing_tx_pos: 26000003920000
+                        competing_proof: 0xcedb8b31d1e4...
+                        input_tx: 0xaaa70101c0940000...
+                        input_utxo_pos: 300010002001
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /in_flight_exit.prove_canonical:
+    post:
+      tags:
+        - InFlightExit
+      summary: Proves transaction is canonical.
+      description: 'To respond to a challenge to an in-flight exit, this proves that the transaction has been put into a block (and therefore is canonical).'
+      operationId: in_flight_exit_prove_canonical
+      requestBody:
+        description: In-flight transaction bytes body
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                txbytes:
+                  type: string
+                  format: binary
+              required:
+                - txbytes
+              example:
+                txbytes: 0xf3170101c0940000...
+      responses:
+        '200':
+          description: Prove canonical successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: The object schema for a canonical proof
+                        properties:
+                          in_flight_txbytes:
+                            type: string
+                            format: binary
+                          in_flight_tx_pos:
+                            type: integer
+                            format: int256
+                          in_flight_proof:
+                            type: string
+                            format: binary
+                    example:
+                      data:
+                        in_flight_txbytes: 0xf3170101c0940000...
+                        in_flight_tx_pos: 26000003920000
+                        in_flight_proof: 0xcedb8b31d1e4...
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /in_flight_exit.get_input_challenge_data:
+    post:
+      tags:
+        - InFlightExit
+      summary: Gets the data to challenge an invalid input piggybacked on an in-flight exit.
+      description: 'To respond to invalid piggybacked input in non-canonical in-flight transaction provides data needed to challenge it, e.g. transaction that spent this input and signature.'
+      operationId: in_flight_exit_get_input_challenge_data
+      requestBody:
+        description: In-flight transaction bytes and invalid input index
+        required: true
+        content:
+          application/json:
+            schema:
+              title: InFlightExitInputChallengeDataBodySchema
+              type: object
+              properties:
+                txbytes:
+                  type: string
+                  format: binary
+                input_index:
+                  type: integer
+                  format: int8
+              required:
+                - txbytes
+                - input_index
+              example:
+                txbytes: 0xf3170101c0940000...
+                input_index: 1
+      responses:
+        '200':
+          description: Get input challenge successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: The object schema for an input challenge data
+                        properties:
+                          in_flight_txbytes:
+                            type: string
+                            format: binary
+                          in_flight_input_index:
+                            type: integer
+                            format: int8
+                          spending_txbytes:
+                            type: string
+                            format: binary
+                          spending_input_index:
+                            type: integer
+                            format: int8
+                          spending_sig:
+                            type: string
+                            format: binary
+                          input_tx:
+                            type: string
+                            format: binary
+                          input_utxo_pos:
+                            type: integer
+                            format: int256
+                    example:
+                      data:
+                        in_flight_txbytes: 0xf3170101c0940000...
+                        in_flight_input_index: 1
+                        spending_txbytes: 0x5df13a6bee20000...
+                        spending_input_index: 1
+                        spending_sig: 0xa3470101c0940000...
+                        input_tx: 0xaaa70101c0940000...
+                        input_utxo_pos: 300010002001
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /in_flight_exit.get_output_challenge_data:
+    post:
+      tags:
+        - InFlightExit
+      summary: Gets the data to challenge an invalid output piggybacked on an in-flight exit.
+      description: 'To respond to invalid piggybacked output in canonical in-flight transaction provides data needed to challenge it, e.g. in-flight transaction inclusion proof, transaction that spent this output and signature.'
+      operationId: in_flight_exit_get_output_challenge_data
+      requestBody:
+        description: In-flight transaction bytes and invalid output index
+        required: true
+        content:
+          application/json:
+            schema:
+              title: InFlightExitOutputChallengeDataBodySchema
+              type: object
+              properties:
+                txbytes:
+                  type: string
+                  format: binary
+                output_index:
+                  type: integer
+                  format: int8
+              required:
+                - txbytes
+                - output_index
+              example:
+                txbytes: 0xf3170101c0940000...
+                output_index: 0
+      responses:
+        '200':
+          description: Get output challenge successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: The object schema for an output challenge data
+                        properties:
+                          in_flight_txbytes:
+                            type: string
+                            format: binary
+                          in_flight_output_pos:
+                            type: integer
+                            format: int256
+                          in_flight_proof:
+                            type: string
+                            format: binary
+                          spending_txbytes:
+                            type: string
+                            format: binary
+                          spending_input_index:
+                            type: integer
+                            format: int8
+                          spending_sig:
+                            type: string
+                            format: binary
+                    example:
+                      data:
+                        in_flight_txbytes: 0xf3170101c0940000...
+                        in_flight_output_pos: 21000634002
+                        in_flight_proof: 0xcedb8b31d1e4...
+                        spending_txbytes: 0x5df13a6bee20000...
+                        spending_input_index: 1
+                        spending_sig: 0xa3470101c0940000...
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason

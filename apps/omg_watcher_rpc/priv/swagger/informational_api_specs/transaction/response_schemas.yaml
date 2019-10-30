@@ -1,6 +1,6 @@
 GetAllTransactionsResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseListResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseListResponseSchema'
   - type: object
     properties:
       data:
@@ -13,7 +13,7 @@ GetAllTransactionsResponseSchema:
           page:
             type: integer
             format: int32
-            default: 1            
+            default: 1
           limit:
             type: integer
             format: int32
@@ -39,7 +39,7 @@ GetAllTransactionsResponseSchema:
 
 CreateTransactionResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -133,19 +133,19 @@ CreateTransactionResponseSchema:
                 verifyingContract: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
                 version: '1'
               message:
-                input0: 
+                input0:
                   blknum: 123000
                   txindex: 111
                   oindex: 0
-                input1: 
+                input1:
                   blknum: 277000
                   txindex: 2340
                   oindex: 3
-                input2: 
+                input2:
                   blknum: 0
                   txindex: 0
                   oindex: 0
-                input3: 
+                input3:
                   blknum: 0
                   txindex: 0
                   oindex: 0
@@ -170,7 +170,7 @@ CreateTransactionResponseSchema:
 
 GetTransactionResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:

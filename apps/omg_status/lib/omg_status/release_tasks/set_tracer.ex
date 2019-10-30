@@ -54,38 +54,38 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
         Application.get_env(:omg_status, Tracer)[:disabled?]
       )
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
   end
 
   defp get_app_env do
     env = validate_string(get_env("APP_ENV"), Application.get_env(@app, Tracer)[:env])
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
     env
   end
 
   defp get_dd_hostname(default) do
     dd_hostname = validate_string(get_env("DD_HOSTNAME"), default)
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DD_HOSTNAME Value: #{inspect(dd_hostname)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_HOSTNAME Value: #{inspect(dd_hostname)}.")
     dd_hostname
   end
 
   defp get_dd_port(default) do
     dd_port = validate_integer(get_env("DD_PORT"), default)
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DD_PORT Value: #{inspect(dd_port)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_PORT Value: #{inspect(dd_port)}.")
     dd_port
   end
 
   defp get_dd_spandex_port(default) do
     dd_spandex_port = validate_integer(get_env("DD_APM_PORT"), default)
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: DD_APM_PORT Value: #{inspect(dd_spandex_port)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_APM_PORT Value: #{inspect(dd_spandex_port)}.")
     dd_spandex_port
   end
 
   def get_batch_size do
     batch_size = validate_integer(get_env("BATCH_SIZE"), Application.get_env(:spandex_datadog, :batch_size))
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: BATCH_SIZE Value: #{inspect(batch_size)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: BATCH_SIZE Value: #{inspect(batch_size)}.")
     batch_size
   end
 
@@ -96,7 +96,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
         Application.get_env(:spandex_datadog, :sync_threshold)
       )
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: SYNC_THRESHOLD Value: #{inspect(sync_threshold)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: SYNC_THRESHOLD Value: #{inspect(sync_threshold)}.")
     sync_threshold
   end
 

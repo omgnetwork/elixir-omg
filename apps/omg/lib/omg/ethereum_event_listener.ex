@@ -18,6 +18,7 @@ defmodule OMG.EthereumEventListener do
   """
 
   alias OMG.EthereumEventListener.Core
+  alias OMG.EthereumEventListener.Preprocessor
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
 
@@ -119,7 +120,12 @@ defmodule OMG.EthereumEventListener do
       |> Core.get_events(sync_height)
 
     :ok = :telemetry.execute([:process, __MODULE__], %{events: events}, core)
-    {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
+
+    {:ok, db_updates_from_callback} =
+      events
+      |> Enum.map(&Preprocessor.apply/1)
+      |> callbacks.process_events_callback.()
+
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
     :ok = RootChainCoordinator.check_in(height_to_check_in, core.service_name)
 

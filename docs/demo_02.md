@@ -15,12 +15,13 @@ Run a developer's Child chain server, Watcher and start IEx REPL with code and c
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OMG.Eth
 alias OMG.DevCrypto
+alias OMG.Eth
+alias OMG.Eth.Encoding
 alias OMG.State.Transaction
 alias OMG.TestHelper
-alias OMG.Integration.DepositHelper
-alias OMG.Eth.Encoding
+alias Support.Integration.DepositHelper
+alias Support.RootChainHelper
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
@@ -28,8 +29,8 @@ eth = Eth.RootChain.eth_pseudo_address()
 
 bob_enc = Encoding.to_hex(bob.addr)
 
-{:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
-{:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
+{:ok, _} = Support.DevHelper.import_unlock_fund(alice)
+{:ok, _} = Support.DevHelper.import_unlock_fund(bob)
 
 # sends deposit transactions _to Ethereum_
 # we need to uncover the height at which the deposit went through on the root chain
@@ -102,12 +103,12 @@ tx2 =
 Jason.decode!()
 
 {:ok, txhash} =
-  Eth.RootChainHelper.start_exit(
+  RootChainHelper.start_exit(
     composed_exit["utxo_pos"],
     composed_exit["txbytes"] |> Encoding.from_hex(),
     composed_exit["proof"] |> Encoding.from_hex(),
     bob.addr
-  ) |> Eth.DevHelpers.transact_sync!()
+  ) |> Support.DevHelper.transact_sync!()
 
 # see the invalid exit report & challenge
 
@@ -120,14 +121,14 @@ Jason.decode!()
   Jason.decode!()
 
 {:ok, txhash} =
-  Eth.RootChainHelper.challenge_exit(
+  RootChainHelper.challenge_exit(
     challenge["exit_id"],
     challenge["exiting_tx"] |> Encoding.from_hex(),
     challenge["txbytes"] |> Encoding.from_hex(),
     challenge["input_index"],
     challenge["sig"] |> Encoding.from_hex(),
     alice.addr
-  ) |> Eth.DevHelpers.transact_sync!()
+  ) |> Support.DevHelper.transact_sync!()
 
 # 4/ let's introduce a delay into the process of getting child block contents from the child chain server
 

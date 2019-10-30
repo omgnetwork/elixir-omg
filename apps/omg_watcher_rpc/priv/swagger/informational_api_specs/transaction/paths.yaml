@@ -14,7 +14,7 @@ transaction.all:
       200:
         $ref: 'responses.yaml#/GetAllTransactionsResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
 
 transaction.create:
     post:
@@ -31,7 +31,7 @@ transaction.create:
         200:
           $ref: 'responses.yaml#/CreateTransactionResponse'
         500:
-          $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+          $ref: '../../shared/responses.yaml#/InternalServerError'
 
 transaction.get:
   post:
@@ -45,7 +45,7 @@ transaction.get:
       200:
         $ref: 'responses.yaml#/GetTransactionResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
 
 transaction.submit_typed:
   post:
@@ -53,8 +53,8 @@ transaction.submit_typed:
       - Transaction
     summary: Sends EIP-712 formatted transaction to Child chain.
     description: >
-        Request to this method is the same as to Web3 `eth_signTypedData` with additional `signatures` array. 
-        The `/transaction.create` `typed_data` field can be used to prepare transaction. The same conditions 
+        Request to this method is the same as to Web3 `eth_signTypedData` with additional `signatures` array.
+        The `/transaction.create` `typed_data` field can be used to prepare transaction. The same conditions
         are met as with security-critical `/transaction.submit`
     operationId: submit_typed
     requestBody:
@@ -63,7 +63,7 @@ transaction.submit_typed:
       200:
         $ref: '../../security_critical_api_specs/transaction/responses.yaml#/TransactionSubmitResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'
 
 transaction.get_by_position:
   post:
@@ -78,4 +78,4 @@ transaction.get_by_position:
       200:
         $ref: 'responses.yaml#/GetTransactionResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'

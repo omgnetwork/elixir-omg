@@ -106,7 +106,10 @@ defmodule OMG.State.PersistenceTest do
     tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
-    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.raw_txhash(tx), output_index: 4}]
+
+    utxo_pos_exits_piggyback = [
+      %{tx_hash: Transaction.raw_txhash(tx), output_index: 0, omg_data: %{piggyback_type: :output}}
+    ]
 
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
@@ -161,11 +164,9 @@ defmodule OMG.State.PersistenceTest do
   # mimics `&OMG.State.init/1`
   defp state_from(db_pid) do
     {:ok, height_query_result} = OMG.DB.get_single_value(:child_top_block_number, db_pid)
-    {:ok, last_deposit_query_result} = OMG.DB.get_single_value(:last_deposit_child_blknum, db_pid)
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
 
-    {:ok, state} =
-      Core.extract_initial_state(utxos_query_result, height_query_result, last_deposit_query_result, @interval)
+    {:ok, state} = Core.extract_initial_state(utxos_query_result, height_query_result, @interval)
 
     state
   end

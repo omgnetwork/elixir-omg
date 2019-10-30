@@ -12,4 +12,4 @@ status.get:
       200:
         $ref: 'responses.yaml#/StatusResponse'
       500:
-        $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/responses.yaml#/InternalServerError'
+        $ref: '../../shared/responses.yaml#/InternalServerError'

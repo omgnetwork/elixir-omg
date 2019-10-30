@@ -30,10 +30,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher
+  alias OMG.Watcher.Event
+  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.WatcherRPC.Web.Channel
-  alias Watcher.Event
-  alias Watcher.Integration.TestHelper, as: IntegrationTest
-  alias Watcher.TestHelper
+  alias Support.DevHelper
+  alias Support.RootChainHelper
+  alias Support.WatcherHelper
 
   require Utxo
 
@@ -54,29 +56,29 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     # utxo from deposit should be available
     assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =
-             TestHelper.get_utxos(alice.addr)
+             WatcherHelper.get_utxos(alice.addr)
 
     # start spending and exiting to see if watcher integrates all the pieces
     {:ok, _, _socket} =
       subscribe_and_join(
         socket(OMG.WatcherRPC.Web.Socket),
         Channel.Transfer,
-        TestHelper.create_topic("transfer", Encoding.to_hex(alice.addr))
+        WatcherHelper.create_topic("transfer", Encoding.to_hex(alice.addr))
       )
 
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
-    %{"blknum" => block_nr} = TestHelper.submit(tx)
+    %{"blknum" => block_nr} = WatcherHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
 
-    assert [%{"blknum" => ^block_nr}] = TestHelper.get_utxos(bob.addr)
+    assert [%{"blknum" => ^block_nr}] = WatcherHelper.get_utxos(bob.addr)
 
     assert [
              %{"blknum" => ^token_deposit_blknum},
              %{"blknum" => ^block_nr}
-           ] = TestHelper.get_utxos(alice.addr)
+           ] = WatcherHelper.get_utxos(alice.addr)
 
-    assert TestHelper.get_utxos(alice.addr) == TestHelper.get_exitable_utxos(alice.addr)
+    assert WatcherHelper.get_utxos(alice.addr) == WatcherHelper.get_exitable_utxos(alice.addr)
 
     # only checking integration of the events here, contents of events tested elsewhere
     assert_push("address_received", %{})
@@ -86,42 +88,42 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
       "proof" => proof
-    } = TestHelper.get_exit_data(block_nr, 0, 0)
+    } = WatcherHelper.get_exit_data(block_nr, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-      Eth.RootChainHelper.start_exit(
+      RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,
         alice.addr
       )
-      |> Eth.DevHelpers.transact_sync!()
+      |> DevHelper.transact_sync!()
 
     # Here we're waiting for child chain and watcher to process the exits
     IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
-    assert [%{"blknum" => ^token_deposit_blknum}] = TestHelper.get_utxos(alice.addr)
+    assert [%{"blknum" => ^token_deposit_blknum}] = WatcherHelper.get_utxos(alice.addr)
     # finally alice exits her token deposit
     %{
       "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
       "proof" => proof
-    } = TestHelper.get_exit_data(token_deposit_blknum, 0, 0)
+    } = WatcherHelper.get_exit_data(token_deposit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1"}} =
-      Eth.RootChainHelper.start_exit(
+      RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,
         alice.addr
       )
-      |> Eth.DevHelpers.transact_sync!()
+      |> DevHelper.transact_sync!()
 
-    :ok = IntegrationTest.process_exits(token, alice)
-    :ok = IntegrationTest.process_exits(@eth, alice)
+    :ok = IntegrationTest.process_exits(2, token, alice)
+    :ok = IntegrationTest.process_exits(1, @eth, alice)
 
-    assert TestHelper.get_utxos(alice.addr) == TestHelper.get_exitable_utxos(alice.addr)
-    assert [] == TestHelper.get_utxos(alice.addr)
+    assert WatcherHelper.get_utxos(alice.addr) == WatcherHelper.get_exitable_utxos(alice.addr)
+    assert [] == WatcherHelper.get_utxos(alice.addr)
   end
 
   @tag fixtures: [:watcher, :test_server]
@@ -137,7 +139,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     )
 
     # checking if both machines and humans learn about the byzantine condition
-    assert TestHelper.capture_log(fn ->
+    assert WatcherHelper.capture_log(fn ->
              {:ok, _txhash} = Eth.submit_block(different_hash, 1, 20_000_000_000)
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
            end) =~ inspect({:error, :incorrect_hash})
@@ -161,7 +163,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     invalid_block_hash = block_with_incorrect_transaction.hash
 
     # checking if both machines and humans learn about the byzantine condition
-    assert TestHelper.capture_log(fn ->
+    assert WatcherHelper.capture_log(fn ->
              {:ok, _txhash} = Eth.submit_block(invalid_block_hash, 1, 20_000_000_000)
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
            end) =~ inspect(:tx_execution)
@@ -171,7 +173,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => exit_blknum} = TestHelper.submit(tx)
+    %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
 
     # Here we're preparing invalid block
     bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
@@ -189,29 +191,29 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = TestHelper.get_exit_data(exit_blknum, 0, 0)
+    } = WatcherHelper.get_exit_data(exit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChainHelper.start_exit(
+      RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,
         alice.addr
       )
-      |> Eth.DevHelpers.transact_sync!()
+      |> DevHelper.transact_sync!()
 
     # Here we're waiting for passing of margin of slow validator(m_sv)
     exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
+    DevHelper.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
 
     # checking if both machines and humans learn about the byzantine condition
-    assert TestHelper.capture_log(fn ->
+    assert WatcherHelper.capture_log(fn ->
              # Here we're manually submitting invalid block to the root chain
              {:ok, _} = Eth.submit_block(bad_block_hash, 2, 1)
              IntegrationTest.wait_for_byzantine_events([%Event.UnchallengedExit{}.name], @timeout)
            end) =~ inspect(:unchallenged_exit)
 
     # we should still be able to challenge this "unchallenged exit" - just smoke testing the endpoint, details elsewhere
-    TestHelper.get_exit_challenge(exit_blknum, 0, 0)
+    WatcherHelper.get_exit_challenge(exit_blknum, 0, 0)
   end
 end

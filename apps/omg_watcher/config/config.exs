@@ -14,7 +14,7 @@ config :omg_watcher,
   namespace: OMG.Watcher,
   ecto_repos: [OMG.Watcher.DB.Repo],
   # 23 hours worth of blocks - this is how long the child chain server has to block spends from exiting utxos
-  exit_processor_sla_margin: {:system, "EXIT_PROCESSOR_SLA_MARGIN", 23 * 60 * 4, {String, :to_integer}},
+  exit_processor_sla_margin: 23 * 60 * 4,
   maximum_block_withholding_time_ms: 1_200_000,
   block_getter_loops_interval_ms: 500,
   maximum_number_of_unapplied_blocks: 50,

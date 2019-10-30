@@ -1,6 +1,6 @@
 GetInFlightExitDataResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -9,13 +9,18 @@ GetInFlightExitDataResponseSchema:
     example:
       data:
         in_flight_tx: '0xf3170101c0940000...'
-        input_txs: '0xa3470101c0940000...'
-        input_txs_inclusion_proofs : '0xcedb8b31d1e4...'
-        in_flight_tx_sigs : '0x6bfb9b2dbe32...'
+        input_txs:
+        - '0xa3470101c0940000...'
+        input_txs_inclusion_proofs:
+        - '0xcedb8b31d1e4...'
+        in_flight_tx_sigs:
+        - '0x6bfb9b2dbe32...'
+        input_utxos_pos:
+        - 300010002001
 
 GetCompetitorResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -30,10 +35,12 @@ GetCompetitorResponseSchema:
         competing_sig: '0xa3470101c0940000...'
         competing_tx_pos: 26000003920000
         competing_proof: '0xcedb8b31d1e4...'
+        input_tx: '0xaaa70101c0940000...'
+        input_utxo_pos: 300010002001
 
 ProveCanonicalResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -47,7 +54,7 @@ ProveCanonicalResponseSchema:
 
 InputChallengeDataResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -60,10 +67,12 @@ InputChallengeDataResponseSchema:
         spending_txbytes: '0x5df13a6bee20000...'
         spending_input_index: 1
         spending_sig: '0xa3470101c0940000...'
+        input_tx: '0xaaa70101c0940000...'
+        input_utxo_pos: 300010002001
 
 OutputChallengeDataResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:

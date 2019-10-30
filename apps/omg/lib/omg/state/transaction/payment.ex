@@ -64,7 +64,7 @@ defmodule OMG.State.Transaction.Payment do
   ```
   """
   @spec new(
-          list({pos_integer, pos_integer, 0..3}),
+          list({pos_integer, pos_integer, 0..unquote(@max_outputs - 1)}),
           list({Crypto.address_t(), currency(), pos_integer}),
           Transaction.metadata()
         ) :: t()

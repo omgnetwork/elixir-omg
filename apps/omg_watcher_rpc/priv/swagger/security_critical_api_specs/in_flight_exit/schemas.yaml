@@ -5,14 +5,25 @@ InFlightExitDataSchema:
       type: string
       format: binary
     input_txs:
-      type: string
-      format: binary
+      type: array
+      items:
+        type: string
+        format: binary
     input_txs_inclusion_proofs:
-      type: string
-      format: binary
+      type: array
+      items:
+        type: string
+        format: binary
     in_flight_tx_sigs:
-      type: string
-      format: binary
+      type: array
+      items:
+        type: string
+        format: binary
+    input_utxos_pos:
+      type: array
+      items:
+        type: integer
+        format: int256
 
 CompetitorSchema:
   description: The object schema for a competitor
@@ -38,6 +49,12 @@ CompetitorSchema:
     competing_proof:
       type: string
       format: binary
+    input_tx:
+      type: string
+      format: binary
+    input_utxo_pos:
+      type: integer
+      format: int256
 
 ProveCanonicalSchema:
   description: The object schema for a canonical proof
@@ -71,6 +88,12 @@ InputChallengeDataSchema:
     spending_sig:
       type: string
       format: binary
+    input_tx:
+      type: string
+      format: binary
+    input_utxo_pos:
+      type: integer
+      format: int256
 
 OutputChallengeDataSchema:
   description: The object schema for an output challenge data

@@ -1,7 +1,7 @@
 StatusResponseSchema:
   description: The response schema for a status
   allOf:
-  - $ref: '../../../../../omg_child_chain_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -15,17 +15,66 @@ StatusResponseSchema:
         last_mined_child_block_number: 11000
         last_seen_eth_block_timestamp: 1558535190
         last_seen_eth_block_number: 4427041
-        contract_addr: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
+        contract_addr:
+          plasma_framework: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
         eth_syncing: true
         byzantine_events:
         -
-          event: invalid_exit
+          event: "invalid_exit"
           details:
             eth_height: 615440
             utxo_pos: 10000000010000000
-            owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
-            currency: '0x0000000000000000000000000000000000000000'
+            owner: "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
+            currency: "0x0000000000000000000000000000000000000000"
             amount: 100
+        -
+          event: "unchallenged_exit"
+          details:
+            eth_height: 615440
+            utxo_pos: 10000000010000000
+            owner: "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
+            currency: "0x0000000000000000000000000000000000000000"
+            amount: 100
+        -
+          event: "invalid_block"
+          details:
+            blockhash: "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec"
+            blknum: 10000
+            error_type: "tx_execution"
+        -
+          event: "block_withholding"
+          details:
+            hash: "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec"
+            blknum: 10000
+        -
+          event: "noncanonical_ife"
+          details:
+            txbytes: "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec"
+        -
+          event: "invalid_ife_challenge"
+          details:
+            txbytes: "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec"
+        -
+          event: "piggyback_available"
+          details:
+            txbytes: "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec"
+            available_outputs:
+            -
+              index: 0
+              address: "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
+            -
+              index: 1,
+              address: "0x488f85743ef16cfb1f8d4dd1dfc74c51dc496434"
+            available_inputs:
+            -
+              index: 0
+              address: "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
+        -
+          event: "invalid_piggyback"
+          details:
+            txbytes: "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec"
+            inputs: [1]
+            outputs: [0]
         in_flight_txs:
         -
           txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'

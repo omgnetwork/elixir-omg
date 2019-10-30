@@ -24,10 +24,12 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias OMG.Block
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
-  alias OMG.Integration.DepositHelper
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
+  alias Support.DevHelper
+  alias Support.Integration.DepositHelper
+  alias Support.RootChainHelper
   require OMG.Utxo
 
   @moduletag :integration
@@ -59,7 +61,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert {:ok, %{"blknum" => spend_token_child_block}} = submit_transaction(token_tx)
 
     post_spend_child_block = spend_token_child_block + @interval
-    {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block)
+    {:ok, _} = DevHelper.wait_for_next_child_block(post_spend_child_block)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(spend_child_block)
@@ -84,7 +86,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
 
     post_spend_child_block2 = spend_child_block2 + @interval
-    {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block2)
+    {:ok, _} = DevHelper.wait_for_next_child_block(post_spend_child_block2)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.RootChain.get_child_chain(spend_child_block2)
@@ -106,54 +108,56 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     raw_txbytes = Transaction.raw_txbytes(raw_tx2)
 
     assert {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-             Eth.RootChainHelper.start_exit(
+             RootChainHelper.start_exit(
                encoded_utxo_pos,
                raw_txbytes,
                proof,
                alice.addr
              )
-             |> Eth.DevHelpers.transact_sync!()
+             |> DevHelper.transact_sync!()
 
     # check if the utxo is no longer available
     exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
-    {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
+    {:ok, _} = DevHelper.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
 
     invalid_raw_tx = Transaction.Payment.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
     invalid_tx = invalid_raw_tx |> OMG.TestHelper.sign_encode([alice.priv])
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(invalid_tx)
   end
 
-  # TODO: unskip, IFEs don't work yet
-  @tag :skip
   @tag fixtures: [:alice, :omg_child_chain, :alice_deposits]
-  test "check that unspent funds can be exited exited with in-flight exits",
+  test "check that unspent funds can be exited with in-flight exits",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     # create transaction, submit, wait for block publication
     tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     {:ok, %{"blknum" => blknum, "txindex" => txindex}} = tx |> Transaction.Signed.encode() |> submit_transaction()
 
     post_spend_child_block = blknum + @interval
-    {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block)
+    {:ok, _} = DevHelper.wait_for_next_child_block(post_spend_child_block)
 
     # create transaction & data for in-flight exit, start in-flight exit
     %Transaction.Signed{sigs: in_flight_tx_sigs} =
       in_flight_tx =
       OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
 
-    proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], 0)
+    proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], txindex)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChainHelper.in_flight_exit(
-        in_flight_tx |> Transaction.raw_txbytes(),
+      RootChainHelper.in_flight_exit(
+        Transaction.raw_txbytes(in_flight_tx),
         get_input_txs([tx, tx]),
-        proof <> proof,
-        Enum.join(in_flight_tx_sigs),
+        [
+          Utxo.Position.encode(Utxo.position(blknum, txindex, 0)),
+          Utxo.Position.encode(Utxo.position(blknum, txindex, 1))
+        ],
+        [proof, proof],
+        in_flight_tx_sigs,
         alice.addr
       )
-      |> Eth.DevHelpers.transact_sync!()
+      |> DevHelper.transact_sync!()
 
     exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+    DevHelper.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     # check that output of 1st transaction was spend by in-flight exit
     tx_double_spend = OMG.TestHelper.create_encoded([{blknum, txindex, 0, alice}], @eth, [{alice, 2}, {alice, 3}])
@@ -164,31 +168,33 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     %Transaction.Signed{sigs: sigs} =
       in_flight_tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
-    {:ok, %{"blknum" => blknum}} = submit_transaction(in_flight_tx2 |> Transaction.Signed.encode())
+    {:ok, %{"blknum" => blknum}} = in_flight_tx2 |> Transaction.Signed.encode() |> submit_transaction()
 
-    in_flight_tx2_rawbytes = in_flight_tx2 |> Transaction.raw_txbytes()
+    in_flight_tx2_rawbytes = Transaction.raw_txbytes(in_flight_tx2)
 
     # create exit data for tx spending deposit & start in-flight exit
     deposit_tx = OMG.TestHelper.create_signed([], @eth, [{alice, 10}])
+    proof = Block.inclusion_proof([Transaction.Signed.encode(deposit_tx)], 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChainHelper.in_flight_exit(
+      RootChainHelper.in_flight_exit(
         in_flight_tx2_rawbytes,
         get_input_txs([deposit_tx]),
-        Block.inclusion_proof([Transaction.Signed.encode(deposit_tx)], 0),
-        Enum.join(sigs),
+        [Utxo.Position.encode(Utxo.position(deposit_blknum, 0, 0))],
+        [proof],
+        sigs,
         alice.addr
       )
-      |> Eth.DevHelpers.transact_sync!()
+      |> DevHelper.transact_sync!()
 
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+    DevHelper.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     # piggyback only to the first transaction's output & wait for finalization
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChainHelper.piggyback_in_flight_exit(in_flight_tx2_rawbytes, 4, alice.addr)
-      |> Eth.DevHelpers.transact_sync!()
+      RootChainHelper.piggyback_in_flight_exit_on_output(in_flight_tx2_rawbytes, 0, alice.addr)
+      |> DevHelper.transact_sync!()
 
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+    DevHelper.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     # check that deposit & 1st, piggybacked output are spent, 2nd output is not
     deposit_double_spend =
@@ -220,9 +226,5 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     }
   end
 
-  defp get_input_txs(txs) do
-    txs
-    |> Enum.map(&(Transaction.raw_txbytes(&1) |> ExRLP.decode()))
-    |> ExRLP.encode()
-  end
+  defp get_input_txs(txs), do: Enum.map(txs, &Transaction.raw_txbytes/1)
 end

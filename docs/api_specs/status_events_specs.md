@@ -65,7 +65,7 @@ An invalid block has been added to the chain. User should exit.
     "event": "block_withholding",
     "details": {
         "hash"  : "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
-        "blknum"  : 10000,
+        "blknum"  : 10000
     }
 }
 ```

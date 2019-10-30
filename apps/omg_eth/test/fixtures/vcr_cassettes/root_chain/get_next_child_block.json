@@ -1,0 +1,28 @@
+[
+  {
+    "request": {
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"data\":\"0x4ca8714f\",\"to\":\"0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7\"},\"latest\"]}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "method": "post",
+      "options": {
+        "recv_timeout": "infinity",
+        "pool": "default"
+      },
+      "request_body": "",
+      "url": "http://localhost:8545"
+    },
+    "response": {
+      "binary": false,
+      "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x00000000000000000000000000000000000000000000000000000000000003e8\"}\n",
+      "headers": {
+        "Content-Type": "application/json",
+        "Date": "Sun, 06 Oct 2019 00:55:12 GMT",
+        "Content-Length": "103"
+      },
+      "status_code": 200,
+      "type": "ok"
+    }
+  }
+]

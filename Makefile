@@ -66,7 +66,7 @@ all: clean build-child_chain-prod build-watcher-prod
 
 WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-9a75a07"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20191024"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -298,6 +298,18 @@ init:
 #init:
 #  find .git/hooks -type l -exec rm {} \;
 #  find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
+
+###
+### SWAGGER openapi
+###
+security_critical_api_specs:
+	swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs/swagger.yaml
+
+informational_api_specs:
+	swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/informational_api_specs/swagger.yaml
+
+operator_api_specs:
+	swagger-cli bundle -r -t yaml -o apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml apps/omg_child_chain_rpc/priv/swagger/operator_api_specs/swagger.yaml
 
 ### UTILS
 OSFLAG := ''

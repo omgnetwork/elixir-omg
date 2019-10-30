@@ -44,14 +44,33 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   import OMG.Watcher.ExitProcessor.Tools
 
   require Utxo
-  require Transaction
+  require Transaction.Payment
 
   use OMG.Utils.LoggerExt
 
   @default_sla_margin 10
   @zero_address OMG.Eth.zero_address()
 
-  @type contract_piggyback_offset_t() :: 0..7
+  @max_inputs Transaction.Payment.max_inputs()
+  @max_outputs Transaction.Payment.max_outputs()
+
+  @type new_in_flight_exit_status_t() :: {tuple(), pos_integer()}
+
+  @type piggyback_input_index_t() :: 0..unquote(@max_inputs - 1)
+  @type piggyback_output_index_t() :: 0..unquote(@max_outputs - 1)
+
+  @type new_piggyback_input_event_t() :: %{
+          tx_hash: Transaction.tx_hash(),
+          output_index: piggyback_input_index_t(),
+          omg_data: %{piggyback_type: :input}
+        }
+  @type new_piggyback_output_event_t() :: %{
+          tx_hash: Transaction.tx_hash(),
+          output_index: piggyback_output_index_t(),
+          omg_data: %{piggyback_type: :output}
+        }
+
+  @type new_piggyback_event_t() :: new_piggyback_input_event_t() | new_piggyback_output_event_t()
 
   defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}, exit_ids: %{}, competitors: %{}]
 
@@ -59,8 +78,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           sla_margin: non_neg_integer(),
           exits: %{Utxo.Position.t() => ExitInfo.t()},
           in_flight_exits: %{Transaction.tx_hash() => InFlightExitInfo.t()},
-          # TODO intended to store both SE and IFE keys by `exit_id`. Not sure, reconsider this when doing IFEs
-          exit_ids: %{non_neg_integer() => Utxo.Position.t() | Transaction.tx_hash()},
+          # NOTE: maps only standard exit_ids to the natural keys of standard exits (input pointers/utxo_pos)
+          #       rethink the approach to the keys in the data structures - how to manage exit_ids? should the contract
+          #       serve more data (e.g. input pointers/tx hashes) where it would normally only serve exit_ids?
+          exit_ids: %{non_neg_integer() => Utxo.Position.t()},
           competitors: %{Transaction.tx_hash() => CompetitorInfo.t()}
         }
 
@@ -159,7 +180,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Add new in flight exits from Ethereum events into tracked state.
   """
-  @spec new_in_flight_exits(t(), list(map()), list(map())) :: {t(), list()} | {:error, :unexpected_events}
+  @spec new_in_flight_exits(t(), list(map()), list(new_in_flight_exit_status_t())) ::
+          {t(), list()} | {:error, :unexpected_events}
   def new_in_flight_exits(state, new_ifes_events, contract_statuses)
 
   def new_in_flight_exits(_state, new_ifes_events, contract_statuses)
@@ -190,16 +212,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
     Add piggybacks from Ethereum events into tracked state.
   """
-  @spec new_piggybacks(t(), [%{tx_hash: Transaction.tx_hash(), output_index: contract_piggyback_offset_t()}]) ::
-          {t(), list()}
+  @spec new_piggybacks(t(), list(new_piggyback_event_t())) :: {t(), list()}
   def new_piggybacks(%__MODULE__{} = state, piggyback_events) when is_list(piggyback_events) do
-    consume_events(state, piggyback_events, :output_index, &InFlightExitInfo.piggyback/2)
+    event_field_f = fn event -> {event[:omg_data][:piggyback_type], event[:output_index]} end
+    consume_events(state, piggyback_events, event_field_f, &InFlightExitInfo.piggyback/2)
   end
 
   @spec new_ife_challenges(t(), [map()]) :: {t(), list()}
   def new_ife_challenges(%__MODULE__{} = state, challenges_events) do
     {updated_state, ife_db_updates} =
-      consume_events(state, challenges_events, :competitor_position, &InFlightExitInfo.challenge/2)
+      consume_events(state, challenges_events, & &1[:competitor_position], &InFlightExitInfo.challenge/2)
 
     {updated_state2, competitors_db_updates} = append_new_competitors(updated_state, challenges_events)
     {updated_state2, competitors_db_updates ++ ife_db_updates}
@@ -214,12 +236,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec respond_to_in_flight_exits_challenges(t(), [map()]) :: {t(), list()}
   def respond_to_in_flight_exits_challenges(%__MODULE__{} = state, responds_events) do
-    consume_events(state, responds_events, :challenge_position, &InFlightExitInfo.respond_to_challenge/2)
+    consume_events(state, responds_events, & &1[:challenge_position], &InFlightExitInfo.respond_to_challenge/2)
   end
 
   @spec challenge_piggybacks(t(), [map()]) :: {t(), list()}
   def challenge_piggybacks(%__MODULE__{} = state, challenges) do
-    consume_events(state, challenges, :output_index, &InFlightExitInfo.challenge_piggyback/2)
+    event_field_f = fn event -> {event[:omg_data][:piggyback_type], event[:output_index]} end
+    consume_events(state, challenges, event_field_f, &InFlightExitInfo.challenge_piggyback/2)
   end
 
   # produces new state and some db_updates based on
@@ -227,8 +250,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   #   - name of that other field
   #   - a function operating on a single IFE structure and that fields value
   # Leverages the fact, that operating on various IFE-related events follows the same pattern
-  defp consume_events(%__MODULE__{} = state, events, event_field, ife_f) do
-    processing_f = process_reducing_events_f(event_field, ife_f)
+  defp consume_events(%__MODULE__{} = state, events, event_field_f, ife_f) do
+    processing_f = process_reducing_events_f(event_field_f, ife_f)
     {updated_state, updated_ife_keys} = Enum.reduce(events, {state, MapSet.new()}, processing_f)
     db_updates = ife_db_updates(updated_state, updated_ife_keys)
     {updated_state, db_updates}
@@ -238,10 +261,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   # using the value of a different field from the event, returning updated state and mapset of modified keys.
   # Pseudocode:
   # `event |> get IFE by tx_hash |> ife_f.(event[event_field])`
-  defp process_reducing_events_f(event_field, ife_f) do
+  defp process_reducing_events_f(event_field_f, ife_f) do
     fn event, {%__MODULE__{in_flight_exits: ifes} = state, updated_ife_keys} ->
       tx_hash = event.tx_hash
-      event_field_value = event[event_field]
+      event_field_value = event_field_f.(event)
       updated_ife = ifes |> Map.fetch!(tx_hash) |> ife_f.(event_field_value)
 
       updated_state = %{state | in_flight_exits: Map.put(ifes, tx_hash, updated_ife)}

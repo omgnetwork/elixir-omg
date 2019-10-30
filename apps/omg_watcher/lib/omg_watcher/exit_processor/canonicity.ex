@@ -48,6 +48,8 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   use OMG.Utils.LoggerExt
 
   @type competitor_data_t :: %{
+          input_txbytes: binary(),
+          input_utxo_pos: Utxo.Position.t(),
           in_flight_txbytes: binary(),
           in_flight_input_index: non_neg_integer(),
           competing_txbytes: binary(),
@@ -110,7 +112,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
          {:ok, double_spend} <- get_competitor(known_txs_by_input, ife.tx),
          %DoubleSpend{known_tx: %KnownTx{utxo_pos: utxo_pos}} = double_spend,
          true <- check_viable_competitor(ife, utxo_pos),
-         do: {:ok, prepare_competitor_response(double_spend, ife.tx, blocks)}
+         do: {:ok, prepare_competitor_response(double_spend, ife, blocks)}
   end
 
   @doc """
@@ -132,13 +134,15 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
            known_spent_index: competing_input_index,
            known_tx: %KnownTx{signed_tx: known_signed_tx, utxo_pos: known_tx_utxo_pos}
          },
-         signed_ife_tx,
+         %InFlightExitInfo{tx: signed_ife_tx} = ife,
          blocks
        ) do
     {:ok, input_witnesses} = Transaction.Signed.get_witnesses(signed_ife_tx)
     owner = input_witnesses[in_flight_input_index]
 
     %{
+      input_tx: Enum.at(ife.input_txs, in_flight_input_index),
+      input_utxo_pos: Enum.at(ife.input_utxos_pos, in_flight_input_index),
       in_flight_txbytes: signed_ife_tx |> Transaction.raw_txbytes(),
       in_flight_input_index: in_flight_input_index,
       competing_txbytes: known_signed_tx |> Transaction.raw_txbytes(),

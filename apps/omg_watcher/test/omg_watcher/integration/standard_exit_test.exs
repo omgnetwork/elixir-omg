@@ -25,7 +25,9 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper
+  alias Support.DevHelper
+  alias Support.RootChainHelper
+  alias Support.WatcherHelper
 
   require Utxo
 
@@ -47,11 +49,11 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
       subscribe_and_join(
         socket(OMG.WatcherRPC.Web.Socket),
         OMG.WatcherRPC.Web.Channel.Exit,
-        TestHelper.create_topic("exit", Eth.Encoding.to_hex(alice.addr))
+        WatcherHelper.create_topic("exit", Eth.Encoding.to_hex(alice.addr))
       )
 
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => tx_blknum} = TestHelper.submit(tx)
+    %{"blknum" => tx_blknum} = WatcherHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -59,18 +61,18 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = TestHelper.get_exit_data(tx_blknum, 0, 0)
+    } = WatcherHelper.get_exit_data(tx_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1"}} =
-      Eth.RootChainHelper.start_exit(
+      RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
         proof,
         alice.addr
       )
-      |> Eth.DevHelpers.transact_sync!()
+      |> DevHelper.transact_sync!()
 
-    :ok = IntegrationTest.process_exits(@eth, alice)
+    :ok = IntegrationTest.process_exits(1, @eth, alice)
 
     expected_event =
       %Event.ExitFinalized{

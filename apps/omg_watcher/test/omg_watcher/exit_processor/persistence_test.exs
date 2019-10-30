@@ -119,7 +119,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
       Transaction.Payment.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
     ]
 
-    contract_statuses = [{1, @non_zero_exit_id}, {0, @zero_exit_id}]
+    contract_statuses = [{active_ife_status(), @non_zero_exit_id}, {inactive_ife_status(), @zero_exit_id}]
 
     processor
     |> persist_new_ifes(txs, [[alice.priv], [alice.priv, carol.priv]], contract_statuses, db_pid)
@@ -141,8 +141,12 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
       }
     }
 
-    piggybacks1 = [%{tx_hash: hash, output_index: 0}, %{tx_hash: hash, output_index: 4}]
-    piggybacks2 = [%{tx_hash: hash, output_index: 5}]
+    piggybacks1 = [
+      %{tx_hash: hash, output_index: 0, omg_data: %{piggyback_type: :input}},
+      %{tx_hash: hash, output_index: 0, omg_data: %{piggyback_type: :output}}
+    ]
+
+    piggybacks2 = [%{tx_hash: hash, output_index: 1, omg_data: %{piggyback_type: :output}}]
 
     processor
     |> persist_new_ifes([tx], [[alice.priv]], db_pid)
@@ -159,18 +163,25 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     tx = Transaction.Payment.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
     hash = Transaction.raw_txhash(tx)
 
-    piggybacks1 = [%{tx_hash: hash, output_index: 0}, %{tx_hash: hash, output_index: 4}]
-    piggybacks2 = [%{tx_hash: hash, output_index: 5}]
+    piggybacks1 = [
+      %{tx_hash: hash, output_index: 0, omg_data: %{piggyback_type: :input}},
+      %{tx_hash: hash, output_index: 0, omg_data: %{piggyback_type: :output}}
+    ]
+
+    piggybacks2 = [%{tx_hash: hash, output_index: 1, omg_data: %{piggyback_type: :output}}]
 
     processor
     |> persist_new_ifes([tx], [[alice.priv]], db_pid)
     |> persist_new_piggybacks(piggybacks1, db_pid)
     |> persist_new_piggybacks(piggybacks2, db_pid)
-    |> persist_finalize_ifes([%{in_flight_exit_id: @non_zero_exit_id, output_index: 0}], db_pid)
+    |> persist_finalize_ifes(
+      [%{in_flight_exit_id: @non_zero_exit_id, output_index: 0, omg_data: %{piggyback_type: :input}}],
+      db_pid
+    )
     |> persist_finalize_ifes(
       [
-        %{in_flight_exit_id: @non_zero_exit_id, output_index: 4},
-        %{in_flight_exit_id: @non_zero_exit_id, output_index: 5}
+        %{in_flight_exit_id: @non_zero_exit_id, output_index: 0, omg_data: %{piggyback_type: :output}},
+        %{in_flight_exit_id: @non_zero_exit_id, output_index: 1, omg_data: %{piggyback_type: :output}}
       ],
       db_pid
     )
@@ -216,7 +227,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
       |> Enum.map(fn {tx, keys} -> {tx, DevCrypto.sign(tx, keys)} end)
       |> Enum.map(fn {tx, signed_tx} -> ife_event(tx, sigs: signed_tx.sigs) end)
 
-    statuses = statuses || List.duplicate({1, @non_zero_exit_id}, length(in_flight_exit_events))
+    statuses = statuses || List.duplicate({active_ife_status(), @non_zero_exit_id}, length(in_flight_exit_events))
     {processor, db_updates} = Core.new_in_flight_exits(processor, in_flight_exit_events, statuses)
     persist_common(processor, db_updates, db_pid)
   end

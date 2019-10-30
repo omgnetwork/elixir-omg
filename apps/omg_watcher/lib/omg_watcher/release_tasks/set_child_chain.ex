@@ -27,7 +27,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetChildChain do
   defp get_app_env do
     child_chain_url = validate_string(get_env("CHILD_CHAIN_URL"), Application.get_env(@app, :child_chain_url))
 
-    _ = Logger.warn("CONFIGURATION: App: #{@app} Key: CHILD_CHAIN_URL Value: #{inspect(child_chain_url)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: CHILD_CHAIN_URL Value: #{inspect(child_chain_url)}.")
     child_chain_url
   end
 

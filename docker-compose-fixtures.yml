@@ -1,0 +1,22 @@
+version: "3.4"
+services:
+  ganache:
+    image: trufflesuite/ganache-cli:latest
+    command: ganache-cli -d -e 100000 -m "myth like bonus scare over problem client lizard pioneer submit female collect"
+    ports:
+      - "8545:8545"
+      - "8546:8545"
+  plasma-contracts:
+    build:
+      context: .
+      dockerfile: plasma-contract.Dockerfile
+    command: /bin/sh -c "cd /home/node/plasma-contracts/plasma_framework && npx truffle migrate --network local"
+    environment:
+      - ETH_CLIENT_HOST=ganache
+      - ETH_CLIENT_PORT=8545
+      - MIN_EXIT_PERIOD=20
+      - DEPLOYER_ADDRESS=0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0
+      - DEPLOYER_PRIVATEKEY=0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1
+      - USE_EXISTING_AUTHORITY_ADDRESS=1
+      - AUTHORITY_ADDRESS=0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b
+      - AUTHORITY_PRIVATEKEY=0x6370fd033278c143179d81c5526140625662b8daa446c22ee2d73db3707e620c

@@ -29,7 +29,8 @@ defmodule OMG.Watcher.Fixtures do
   alias OMG.Crypto
   alias OMG.Watcher
   alias OMG.Watcher.DB
-  alias Watcher.TestHelper
+  alias Support.DevHelper
+  alias Support.WatcherHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -40,7 +41,7 @@ defmodule OMG.Watcher.Fixtures do
     config_file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-      #{OMG.Eth.DevHelpers.create_conf_file(contract)}
+      #{DevHelper.create_conf_file(contract)}
 
       config :omg_db, path: "#{db_path}"
       # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level
@@ -156,7 +157,7 @@ defmodule OMG.Watcher.Fixtures do
     _ = Application.load(:omg_watcher_rpc)
 
     on_exit(fn ->
-      TestHelper.wait_for_process(pid)
+      WatcherHelper.wait_for_process(pid)
       :ok
     end)
   end
@@ -175,7 +176,7 @@ defmodule OMG.Watcher.Fixtures do
     :ok = SQL.Sandbox.checkout(DB.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
-      TestHelper.wait_for_process(pid)
+      WatcherHelper.wait_for_process(pid)
       :ok
     end)
   end

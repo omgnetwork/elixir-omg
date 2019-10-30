@@ -15,10 +15,8 @@
 defmodule OMG.Utils.HttpRPC.ResponseTest do
   use ExUnit.Case, async: true
 
-  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
 
   @cleaned_tx %{
     blknum: nil,
@@ -157,49 +155,6 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
 
     # meta-key is removed from sanitized response
     assert response |> Map.get(:skip_hex_encode) |> is_nil()
-  end
-
-  test "decode16: decodes only specified fields" do
-    expected_map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
-
-    encoded_map = expected_map |> Response.sanitize()
-    decoded_map = TestHelper.decode16(encoded_map, ["key_2"])
-
-    assert decoded_map["key_1"] == expected_map["key_1"] |> Encoding.to_hex()
-    assert decoded_map["key_2"] == expected_map["key_2"]
-    assert decoded_map["key_3"] == expected_map["key_3"] |> Encoding.to_hex()
-  end
-
-  test "decode16: called with empty map returns empty map" do
-    assert %{} == TestHelper.decode16(%{}, ["key_2"])
-    assert %{} == TestHelper.decode16(%{}, [])
-  end
-
-  test "decode16: decodes all up/down/mixed case values" do
-    assert %{
-             "key_1" => <<222, 173, 190, 239>>,
-             "key_2" => <<222, 173, 190, 239>>,
-             "key_3" => <<222, 173, 190, 239>>
-           } ==
-             TestHelper.decode16(
-               %{
-                 "key_1" => "0xdeadbeef",
-                 "key_2" => "0xDEADBEEF",
-                 "key_3" => "0xDeadBeeF"
-               },
-               ["key_1", "key_2", "key_3"]
-             )
-  end
-
-  test "decode16: is safe and don't process not hex-encoded values" do
-    expected = %{
-      "not_bin1" => 0,
-      "not_bin2" => :atom,
-      "not_hex" => "string",
-      "not_value" => nil
-    }
-
-    assert expected == TestHelper.decode16(expected, ["not_bin1", "not_bin2", "not_hex", "not_value", "not_exists"])
   end
 
   defp unload_ecto do

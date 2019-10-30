@@ -45,7 +45,7 @@ gcloud auth activate-service-account --key-file="$GCPFILE"
 gcloud config set project "$GCP_ACCOUNT_ID"
 gcloud config set compute/zone ${GCP_ZONE}
 gcloud container clusters get-credentials ${GCP_CLUSTER_DEVELOPMENT}
-image_tag="$(printf "%s" "$CIRCLE_SHA1" | head -c 8)"
+image_tag="$(printf "%s" "$CIRCLE_SHA1" | head -c 7)"
 if [ "$DEPLOY" = "watcher" ]; then
 
     kubectl set image statefulset watcher watcher=omisego/watcher:${image_tag}

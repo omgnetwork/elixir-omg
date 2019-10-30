@@ -33,12 +33,14 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
   @exit_id 1
 
   describe "sanity checks" do
-    test "throwing when unknown piggyback events arrive", %{processor_filled: state, ife_tx_hashes: [ife_id | _]} do
-      catch_error(Core.new_piggybacks(state, [%{tx_hash: 0, output_index: 0}]))
-      catch_error(Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 8}]))
+    test "throwing when unknown piggyback events arrive", %{processor_filled: processor, ife_tx_hashes: [ife_id | _]} do
+      non_existent_exit_id = <<0>>
+      index_beyond_bound = 4
+      catch_error(piggyback_ife_from(processor, non_existent_exit_id, 0, :input))
+      catch_error(piggyback_ife_from(processor, ife_id, index_beyond_bound, :output))
       # cannot piggyback twice the same output
-      {updated_state, [_]} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
-      catch_error(Core.new_piggybacks(updated_state, [%{tx_hash: ife_id, output_index: 0}]))
+      updated_processor = piggyback_ife_from(processor, ife_id, 0, :input)
+      catch_error(piggyback_ife_from(updated_processor, ife_id, 0, :input))
     end
 
     test "can process empty piggybacks and challenges", %{processor_empty: empty, processor_filled: filled} do
@@ -47,16 +49,33 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       {^empty, []} = Core.challenge_piggybacks(empty, [])
       {^filled, []} = Core.challenge_piggybacks(filled, [])
     end
+
+    test "can process new piggybacks in batch", %{processor_filled: processor, ife_tx_hashes: [tx_hash1, tx_hash2]} do
+      updated_processor =
+        processor
+        |> piggyback_ife_from(tx_hash1, 0, :input)
+        |> piggyback_ife_from(tx_hash2, 0, :input)
+
+      assert {^updated_processor, _} =
+               Core.new_piggybacks(processor, [
+                 %{tx_hash: tx_hash1, output_index: 0, omg_data: %{piggyback_type: :input}},
+                 %{tx_hash: tx_hash2, output_index: 0, omg_data: %{piggyback_type: :input}}
+               ])
+    end
   end
 
   test "forgets challenged piggybacks",
        %{processor_filled: processor, ife_tx_hashes: [tx_hash1, tx_hash2]} do
-    {processor, _} =
-      Core.new_piggybacks(processor, [%{tx_hash: tx_hash1, output_index: 0}, %{tx_hash: tx_hash2, output_index: 0}])
+    processor =
+      processor
+      |> piggyback_ife_from(tx_hash1, 0, :input)
+      |> piggyback_ife_from(tx_hash2, 0, :input)
 
     # sanity: there are some piggybacks after piggybacking, to be removed later
     assert [%{piggybacked_inputs: [_]}, %{piggybacked_inputs: [_]}] = Core.get_active_in_flight_exits(processor)
-    {processor, _} = Core.challenge_piggybacks(processor, [%{tx_hash: tx_hash1, output_index: 0}])
+
+    {processor, _} =
+      Core.challenge_piggybacks(processor, [%{tx_hash: tx_hash1, output_index: 0, omg_data: %{piggyback_type: :input}}])
 
     assert [%{txhash: ^tx_hash1, piggybacked_inputs: []}, %{piggybacked_inputs: [0]}] =
              Core.get_active_in_flight_exits(processor)
@@ -65,7 +84,10 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
   test "can open and challenge two piggybacks at one call",
        %{processor_filled: processor, ife_tx_hashes: [tx_hash1, tx_hash2]} do
-    events = [%{tx_hash: tx_hash1, output_index: 0}, %{tx_hash: tx_hash2, output_index: 0}]
+    events = [
+      %{tx_hash: tx_hash1, output_index: 0, omg_data: %{piggyback_type: :input}},
+      %{tx_hash: tx_hash2, output_index: 0, omg_data: %{piggyback_type: :input}}
+    ]
 
     {processor, _} = Core.new_piggybacks(processor, events)
     # sanity: there are some piggybacks after piggybacking, to be removed later
@@ -164,7 +186,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
          %{alice: alice, processor_empty: processor} do
       tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [])
       tx_hash = Transaction.raw_txhash(tx)
-      processor = processor |> start_ife_from(tx) |> piggyback_ife_from(tx_hash, 0)
+      processor = processor |> start_ife_from(tx) |> piggyback_ife_from(tx_hash, 0, :input)
 
       assert {:ok,
               [
@@ -181,8 +203,8 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
          %{alice: alice, processor_empty: processor} do
       tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [])
       tx_hash = Transaction.raw_txhash(tx)
-      processor = processor |> start_ife_from(tx) |> piggyback_ife_from(tx_hash, 0)
-      finalization = %{in_flight_exit_id: @exit_id, output_index: 0}
+      processor = processor |> start_ife_from(tx) |> piggyback_ife_from(tx_hash, 0, :input)
+      finalization = %{in_flight_exit_id: @exit_id, output_index: 0, omg_data: %{piggyback_type: :input}}
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization], %{})
 
       assert {:ok, []} =
@@ -241,7 +263,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
          %{processor_filled: state, transactions: [tx | _], competing_tx: comp, ife_tx_hashes: [ife_id | _]} do
       txbytes = txbytes(tx)
       {comp_txbytes, other_sig} = {txbytes(comp), sig(comp, 1)}
-      state = state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 0)
+      state = state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 0, :input)
       request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
@@ -270,7 +292,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
         blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
 
-      state = state |> piggyback_ife_from(ife_id, 0) |> Core.find_ifes_in_blocks(request)
+      state = state |> piggyback_ife_from(ife_id, 0, :input) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -302,7 +324,8 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       }
 
       # 3. stuff happens in the contract
-      state = state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 4) |> Core.find_ifes_in_blocks(request)
+      state =
+        state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 0, :output) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -341,7 +364,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       }
 
       # 3. stuff happens in the contract
-      state = state |> piggyback_ife_from(ife_id, 4) |> Core.find_ifes_in_blocks(request)
+      state = state |> piggyback_ife_from(ife_id, 0, :output) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -376,7 +399,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
         blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
 
-      state = state |> piggyback_ife_from(ife_id, 5) |> Core.find_ifes_in_blocks(request)
+      state = state |> piggyback_ife_from(ife_id, 1, :output) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [1]}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -411,7 +434,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
         blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
 
-      state = state |> piggyback_ife_from(ife_id, 5) |> Core.find_ifes_in_blocks(request)
+      state = state |> piggyback_ife_from(ife_id, 1, :output) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [1]}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -447,7 +470,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
         blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
 
-      state = state |> piggyback_ife_from(ife_id, 4) |> Core.find_ifes_in_blocks(request)
+      state = state |> piggyback_ife_from(ife_id, 0, :output) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -474,7 +497,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
         blocks_result: [Block.hashed_txs_at([comp], 4000)]
       }
 
-      state = state |> piggyback_ife_from(ife_id, 1) |> Core.find_ifes_in_blocks(request)
+      state = state |> piggyback_ife_from(ife_id, 1, :input) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, []} = check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
     end
@@ -494,7 +517,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
         blocks_result: [Block.hashed_txs_at([comp], 4000)]
       }
 
-      state = state |> piggyback_ife_from(ife_id, 5) |> Core.find_ifes_in_blocks(request)
+      state = state |> piggyback_ife_from(ife_id, 1, :output) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, []} = check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
     end
@@ -507,7 +530,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], 3000)]
       }
 
-      state = state |> piggyback_ife_from(ife_id, 4) |> Core.find_ifes_in_blocks(request)
+      state = state |> piggyback_ife_from(ife_id, 0, :output) |> Core.find_ifes_in_blocks(request)
 
       # now zero out the prior result to make a sanity check of well-behaving wrt. to the database results
       request = %{request | blocks_result: [], ife_input_spending_blocks_result: nil}
@@ -534,22 +557,23 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
       }
 
-      state = state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 0) |> Core.find_ifes_in_blocks(request)
+      state =
+        state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 0, :input) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
 
-      state = state |> piggyback_ife_from(ife_id, 1)
+      state = state |> piggyback_ife_from(ife_id, 1, :input)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: []}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
 
-      state = state |> piggyback_ife_from(ife_id, 4)
+      state = state |> piggyback_ife_from(ife_id, 0, :output)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: [0]}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
 
-      state = state |> piggyback_ife_from(ife_id, 5)
+      state = state |> piggyback_ife_from(ife_id, 1, :output)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: [0, 1]}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -574,6 +598,17 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
               }} = Core.get_output_challenge_data(request, state, txbytes, 0)
 
       assert_proof_sound(inclusion_proof)
+    end
+
+    test "returns input txs and input utxo positions for invalid input piggyback challenges",
+         %{processor_filled: state, transactions: [tx | _], competing_tx: comp, ife_tx_hashes: [ife_id | _]} do
+      txbytes = txbytes(tx)
+      state = state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 0, :input)
+
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+
+      assert {:ok, %{input_tx: "input_tx", input_utxo_pos: Utxo.position(1, 0, 0)}} =
+               Core.get_input_challenge_data(request, state, txbytes, 0)
     end
   end
 

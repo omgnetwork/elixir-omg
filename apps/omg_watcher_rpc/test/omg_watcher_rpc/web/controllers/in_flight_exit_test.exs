@@ -20,41 +20,45 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
 
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Watcher.TestHelper
+  alias OMG.Utxo
+  alias Support.WatcherHelper
+
+  require Utxo
+
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "getting in-flight exits" do
     @tag fixtures: [:web_endpoint, :db_initialized, :bob, :alice]
     test "returns properly formatted in-flight exit data", %{bob: bob, alice: alice} do
       test_in_flight_exit_data = fn inputs, expected_input_txs ->
-        in_flight_txbytes =
-          inputs
-          |> OMG.TestHelper.create_encoded(@eth, [{bob, 100}])
-          |> Encoding.to_hex()
-
+        in_flight_signed_txbytes = OMG.TestHelper.create_encoded(inputs, @eth, [{bob, 100}])
         # `2 + ` for prepending `0x` in HEX encoded binaries
-        proofs_size = 2 + 1024 * length(inputs)
-        sigs_size = 2 + 130 * length(inputs)
+        in_flight_raw_txbytes = in_flight_signed_txbytes |> Transaction.Signed.decode!() |> Transaction.raw_txbytes()
 
         # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
         assert %{
-                 "in_flight_tx" => _in_flight_tx,
+                 "in_flight_tx" => ^in_flight_raw_txbytes,
                  "input_txs" => input_txs,
-                 # encoded proofs, 1024 bytes each
-                 "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
-                 # encoded signatures, 130 bytes each
-                 "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
-               } = TestHelper.success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
+                 "input_utxos_pos" => input_utxos_pos,
+                 "input_txs_inclusion_proofs" => proofs,
+                 "in_flight_tx_sigs" => sigs
+               } = WatcherHelper.get_in_flight_exit(in_flight_signed_txbytes)
 
-        {:ok, input_txs} = Encoding.from_hex(input_txs)
+        input_txs = Enum.map(input_txs, &Transaction.decode!/1)
 
-        input_txs =
-          input_txs
-          |> ExRLP.decode()
-          |> Enum.filter(&(&1 != ""))
-          |> Enum.map(&ExRLP.encode/1)
-          |> Enum.map(&Transaction.decode!/1)
+        assert Enum.count(input_txs) == Enum.count(inputs)
+        assert Enum.count(input_utxos_pos) == Enum.count(inputs)
+        assert Enum.count(proofs) == Enum.count(inputs)
+        assert Enum.count(sigs) == Enum.count(inputs)
 
+        input_utxos_pos
+        |> Enum.map(&Utxo.Position.decode!/1)
+        |> Enum.zip(inputs)
+        # assert true because we just want to pattern match both positions against each other
+        |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), {blknum, txindex, oindex, _}} -> assert true end)
+
+        Enum.each(proofs, fn proof -> assert byte_size(proof) == 16 * 32 end)
+        Enum.each(sigs, fn sig -> assert byte_size(sig) == 65 end)
         assert input_txs == expected_input_txs
       end
 
@@ -96,13 +100,13 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
       assert %{
                "code" => "in_flight_exit:tx_for_input_not_found",
                "description" => "No transaction that created input."
-             } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
+             } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
     end
 
     @tag fixtures: [:web_endpoint]
     test "behaves well if input malformed" do
       assert %{"code" => "get_in_flight_exit:malformed_transaction"} =
-               TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x00"})
+               WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x00"})
     end
 
     @tag fixtures: [:web_endpoint]
@@ -116,12 +120,12 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
                    "validator" => ":hex"
                  }
                }
-             } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "tx"})
+             } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "tx"})
 
       assert %{
                "code" => "get_in_flight_exit:malformed_transaction_rlp",
                "object" => "error"
-             } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x1234"})
+             } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x1234"})
     end
   end
 end

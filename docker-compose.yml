@@ -1,10 +1,10 @@
-version: "2.1"
+version: "2.3"
 services:
   postgres:
     image: postgres:9.6.13-alpine
     restart: always
     ports:
-      - "5433:5432"
+      - "5432:5432"
     environment:
       POSTGRES_USER: omisego_dev
       POSTGRES_PASSWORD: omisego_dev
@@ -16,27 +16,54 @@ services:
       retries: 5
 
   plasma-deployer:
-    # plasma-deployer points to fb7109a9e823b998c20484deac8609cda425218a, which is a branch of 7b8a2643568556c1d126749724666bc37edc8141
-    image: omisego/plasma-deployer:3314a71
-    environment:
-      - ETH_CLIENT_HOST=geth
+    build:
+      context: .
+      dockerfile: plasma-contract.Dockerfile
+    command:
+      - /bin/sh
+      - -c
+      - |
+          apk add --update curl
+          cd /home/node/plasma-contracts/plasma_framework
+          npx truffle migrate --network infura
+          cd build
+          echo '{"contracts":' > db.json && cat outputs.json >> db.json && echo '}' >> db.json
+          npx json-server -w db.json -p 8000 -H 0.0.0.0
     ports:
       - "8000:8000"
     expose:
       - "8000"
-    restart: always
-    healthcheck:
-      test: curl plasma-deployer:8000
-      interval: 30s
-      timeout: 1s
-      retries: 5
+    environment:
+      # DEPLOYER_PRIVATEKEY is the geth dev account initially funded address
+      - DEPLOYER_PRIVATEKEY=d885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce
+      - MAINTAINER_PRIVATEKEY=6f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807
+      - AUTHORITY_PRIVATEKEY=7f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807
+      - INFURA_URL=http://geth:8545
+      - INFURA_API_KEY=
+      - MIN_EXIT_PERIOD=20
     depends_on:
       geth:
         condition: service_healthy
+    restart: always
+    healthcheck:
+      test: curl plasma-deployer:8000/contracts
+      interval: 80s
+      timeout: 15s
+      retries: 60
+      start_period: 2m
 
   geth:
     image: ethereum/client-go:v1.8.27
-    entrypoint: /bin/sh -c "apk add curl && geth --miner.gastarget 7500000 --miner.gasprice "10" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 --ws --wsaddr 0.0.0.0 --wsorigins='*'"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+          apk add --update curl
+          # Add account to geth dev
+          mkdir -p /tmp/geth-dev
+          echo '{"address":"6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d","crypto":{"cipher":"aes-128-ctr","ciphertext":"1adf32e70f22f7e775255b4e6aa0bb0b9338402f8ee2470b6c2ffce9d7d54918","cipherparams":{"iv":"38103d2e38263399e79884f8448172b0"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"eac5b9eee7c6cdf6557f9d84d02294801fd5d6ad67df6ec25a8fcb4dc0011e72"},"mac":"42bc14b9b00ef8387b46feb3f8599ffee82e50442b9d305ef7bfc0e9480566da"},"id":"8ba88812-cef4-44e7-888e-de40b8881120","version":3}' > /tmp/geth-dev/UTC--2019-10-29T05-54-49.573595611Z--6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d
+          # Starts geth
+          geth --miner.gastarget 7500000 --miner.gasprice "10" --dev --dev.period 1 --keystore=/tmp/geth-dev --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 --ws --wsaddr 0.0.0.0 --wsorigins='*'
     ports:
       - "8545:8545"
       - "8546:8546"
@@ -54,7 +81,7 @@ services:
     command: "full_local"
     environment:
       - EXIT_PERIOD_SECONDS=86400
-      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000
+      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000/contracts
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
@@ -85,12 +112,12 @@ services:
     image: omisego/watcher:latest
     command: "full_local"
     environment:
-      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000
+      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000/contracts
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
+      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - APP_ENV=local_development_watcher

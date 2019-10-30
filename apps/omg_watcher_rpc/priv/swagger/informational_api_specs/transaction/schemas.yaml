@@ -77,7 +77,7 @@ TransactionSchema:
 
 Eip712DomainSchema:
   type: object
-  properties: 
+  properties:
     name:
       type: string
     salt:
@@ -155,7 +155,7 @@ Eip712MsgTransactionSchema:
 
 Eip712SignRequestSchema:
   type: object
-  properties: 
+  properties:
     types:
       type: object
       properties:
@@ -201,7 +201,7 @@ CreateTransactionSchema:
           inputs:
             type: array
             items:
-              - $ref: '#/TransactionOutputSchema'  
+              $ref: '#/TransactionOutputSchema'
           outputs:
             type: array
             items:
@@ -212,7 +212,7 @@ CreateTransactionSchema:
                   format: int256
                 currency:
                   type: string
-                  format: binary                
+                  format: binary
                 owner:
                   type: string
                   format: binary
@@ -227,12 +227,12 @@ CreateTransactionSchema:
                 format: binary
           metadata:
             type: string
-            format: binary 
+            format: binary
           txbytes:
             type: string
             format: binary
           sign_hash:
             type: string
-            format: binary 
+            format: binary
           typed_data:
             $ref: '#/Eip712SignRequestSchema'

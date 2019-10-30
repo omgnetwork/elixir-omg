@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Deployer do
+defmodule Support.Deployer do
   @moduledoc """
   Handling of contract deployments - intended only for testing and `:dev` environment
   """
@@ -40,8 +40,20 @@ defmodule OMG.Eth.Deployer do
     |> deploy_contract(from, gas, opts)
   end
 
-  def create_new("PlasmaFramework" = name, path_project_root, from, [exit_period_seconds: exit_period_seconds], opts) do
-    args = [{{:uint, 256}, exit_period_seconds}, {{:uint, 256}, 2}, {{:uint, 256}, 1}]
+  def create_new(
+        "PlasmaFramework" = name,
+        path_project_root,
+        from,
+        [exit_period_seconds: exit_period_seconds, authority: authority, maintainer: maintainer],
+        opts
+      ) do
+    args = [
+      {{:uint, 256}, exit_period_seconds},
+      {{:uint, 256}, 2},
+      {{:uint, 256}, 1},
+      {:address, authority},
+      {:address, maintainer}
+    ]
 
     get_bytecode!(path_project_root, name)
     |> deploy_contract(from, @gas_contract_rootchain, args, opts)
@@ -74,8 +86,8 @@ defmodule OMG.Eth.Deployer do
         from,
         [
           plasma_framework: plasma_framework,
-          eth_vault: eth_vault,
-          erc20_vault: erc20_vault,
+          eth_vault_id: eth_vault_id,
+          erc20_vault_id: erc20_vault_id,
           output_guard_handler: output_guard_handler,
           spending_condition: spending_condition,
           payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier,
@@ -86,8 +98,8 @@ defmodule OMG.Eth.Deployer do
       ) do
     args = [
       {:address, plasma_framework},
-      {:address, eth_vault},
-      {:address, erc20_vault},
+      {{:uint, 256}, eth_vault_id},
+      {{:uint, 256}, erc20_vault_id},
       {:address, output_guard_handler},
       {:address, spending_condition},
       {:address, payment_transaction_state_transition_verifier},
@@ -125,7 +137,7 @@ defmodule OMG.Eth.Deployer do
     {types, args} = Enum.unzip(types_args)
 
     do_deploy_contract(from, bytecode, types, args, opts)
-    |> Eth.DevHelpers.deploy_sync!()
+    |> Support.DevHelper.deploy_sync!()
   end
 
   defp get_bytecode!(path_project_root, contract_name) do

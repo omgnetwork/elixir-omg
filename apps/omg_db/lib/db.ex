@@ -37,7 +37,6 @@ defmodule OMG.DB do
   @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}) :: {:ok, map} | {:error, atom}
   @callback spent_blknum(utxo_pos_db_t()) :: {:ok, pos_integer} | {:error, atom}
   @callback block_hashes(integer()) :: list()
-  @callback last_deposit_child_blknum() :: list()
   @callback child_top_block_number() :: {:ok, non_neg_integer()}
 
   # callbacks useful for injecting a specific server implementation
@@ -53,7 +52,6 @@ defmodule OMG.DB do
               {:ok, map} | {:error, atom}
   @callback spent_blknum(utxo_pos_db_t(), GenServer.server()) :: {:ok, pos_integer} | {:error, atom}
   @callback block_hashes(integer(), GenServer.server()) :: list()
-  @callback last_deposit_child_blknum(GenServer.server()) :: list()
   @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()}
   @optional_callbacks child_spec: 1,
                       initiation_multiupdate: 1,
@@ -67,7 +65,6 @@ defmodule OMG.DB do
                       exit_info: 2,
                       spent_blknum: 2,
                       block_hashes: 2,
-                      last_deposit_child_blknum: 1,
                       child_top_block_number: 1
 
   def start_link(args), do: driver().start_link(args)
@@ -120,8 +117,6 @@ defmodule OMG.DB do
   def block_hashes(block_numbers_to_fetch), do: driver().block_hashes(block_numbers_to_fetch)
   def block_hashes(block_numbers_to_fetch, server), do: driver().block_hashes(block_numbers_to_fetch, server)
 
-  def last_deposit_child_blknum, do: driver().last_deposit_child_blknum()
-
   def child_top_block_number, do: driver().child_top_block_number
 
   def get_single_value(parameter_name), do: driver().get_single_value(parameter_name)
@@ -134,8 +129,6 @@ defmodule OMG.DB do
     [
       # child chain - used at block forming
       :child_top_block_number,
-      # watcher and child chain
-      :last_deposit_child_blknum,
       # watcher
       :last_block_getter_eth_height,
       # watcher and child chain

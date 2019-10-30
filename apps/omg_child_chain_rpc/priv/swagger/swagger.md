@@ -32,11 +32,13 @@ When you are done editing the different spec files, you need to generate the fin
 
 In order to do this you need to have the following installed and available:
   - [node.js](https://nodejs.org/en/download/package-manager/)
-  - [swagger-combine](https://www.npmjs.com/package/swagger-combine). Install using: `npm install -g swagger-combine`.
+  - [swagger-cli](https://www.npmjs.com/package/swagger-cli). Install using: `npm install -g swagger-cli`
+  - [openapi-generator](https://github.com/OpenAPITools/openapi-generator). Install using: `https://github.com/OpenAPITools/openapi-generator`
 
 Then you need to run the following commands to generate the final spec.
 
 
 ```
-swagger-combine apps/omg_child_chain_rpc/priv/swagger/operator_api_specs/swagger.yaml -o apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml
+swagger-cli bundle -r -t yaml -o apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml apps/omg_child_chain_rpc/priv/swagger/operator_api_specs/swagger.yaml
+openapitools/openapi-generator-cli validate -i apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml
 ```

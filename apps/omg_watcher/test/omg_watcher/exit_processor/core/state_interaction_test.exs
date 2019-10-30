@@ -39,7 +39,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   setup do
     {:ok, processor_empty} = Core.init([], [], [])
     {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
-    {:ok, state_empty} = State.Core.extract_initial_state([], 0, 0, child_block_interval)
+    {:ok, state_empty} = State.Core.extract_initial_state([], 0, child_block_interval)
 
     {:ok, %{alice: TestHelper.generate_entity(), processor_empty: processor_empty, state_empty: state_empty}}
   end
@@ -142,7 +142,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     assert Utxo.position(1, 0, 0) not in spends_to_get
 
     # spend and see that Core now requests the relevant utxo checks and spends to get
-    {:ok, _, state} = State.Core.exec(state, comp, %{@eth => 0})
+    {:ok, _, state} = State.Core.exec(state, comp, :no_fees_required)
     {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
 
     assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
@@ -157,61 +157,103 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   test "can work with State to exit utxos from in-flight transactions",
        %{processor_empty: processor, state_empty: state, alice: alice} do
-    state =
-      state
-      |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> TestHelper.do_deposit(alice, %{amount: 20, currency: @eth, blknum: 2})
-
-    # canonical
+    # canonical & included
     ife_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, {tx_hash1, _, _}, state} = State.Core.exec(state, ife_exit_tx1, %{@eth => 0})
-    {:ok, _, state} = State.Core.form_block(1000, state)
     ife_id1 = 1
-
     # non-canonical
     ife_exit_tx2 = TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{alice, 20}])
     tx_hash2 = State.Transaction.raw_txhash(ife_exit_tx2)
     ife_id2 = 2
 
-    {processor, _} =
-      processor
-      |> start_ife_from(ife_exit_tx1, status: {1, ife_id1})
-      |> start_ife_from(ife_exit_tx2, status: {1, ife_id2})
-      |> Core.new_piggybacks([%{tx_hash: tx_hash1, output_index: 4}, %{tx_hash: tx_hash2, output_index: 0}])
+    {:ok, {tx_hash1, _, _}, state} =
+      state
+      |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+      |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
+      |> State.Core.exec(ife_exit_tx1, :no_fees_required)
 
-    finalizations = [%{in_flight_exit_id: ife_id1, output_index: 4}, %{in_flight_exit_id: ife_id2, output_index: 0}]
+    {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
+
+    request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: [block]}
+
+    processor =
+      processor
+      |> start_ife_from(ife_exit_tx1, exit_id: ife_id1)
+      |> start_ife_from(ife_exit_tx2, exit_id: ife_id2)
+      |> piggyback_ife_from(tx_hash1, 0, :output)
+      |> piggyback_ife_from(tx_hash2, 0, :input)
+      |> Core.find_ifes_in_blocks(request)
+
+    finalizations = [
+      %{in_flight_exit_id: ife_id1, output_index: 0, omg_data: %{piggyback_type: :output}},
+      %{in_flight_exit_id: ife_id2, output_index: 0, omg_data: %{piggyback_type: :input}}
+    ]
 
     ife_id1 = <<ife_id1::192>>
     ife_id2 = <<ife_id2::192>>
 
-    {:ok, %{^ife_id1 => {_input_exits1, output_exits1}, ^ife_id2 => {input_exits2, _output_exits2}}} =
+    {:ok, %{^ife_id1 => exiting_positions1, ^ife_id2 => exiting_positions2}} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
-    assert {:ok, {[{:delete, :utxo, _}], {[Utxo.position(1000, 0, 0)], []}}, _} =
-             State.Core.exit_utxos(output_exits1, state)
-
-    assert {:ok, {[{:delete, :utxo, _}], {[Utxo.position(2, 0, 0)], []}}, _} =
-             State.Core.exit_utxos(input_exits2, state)
+    assert {:ok,
+            {[{:delete, :utxo, _}, {:delete, :utxo, _}], {[Utxo.position(1000, 0, 0), Utxo.position(2, 0, 0)], []}},
+            _} = State.Core.exit_utxos(exiting_positions1 ++ exiting_positions2, state)
   end
 
-  test "acts on invalidities reported when exiting utxos in State",
+  test "tolerates piggybacked outputs exiting if they're concerning non-included IFE txs",
        %{processor_empty: processor, state_empty: state, alice: alice} do
     ife_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     tx_hash = State.Transaction.raw_txhash(ife_exit_tx)
     ife_id = 1
 
-    {processor, _} =
-      processor
-      |> start_ife_from(ife_exit_tx, status: {1, ife_id})
-      |> Core.new_piggybacks([%{tx_hash: tx_hash, output_index: 4}])
+    # ife tx cannot be found in blocks, hence `ife_input_spending_blocks_result: []`
+    request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: []}
 
-    finalizations = [%{in_flight_exit_id: ife_id, output_index: 4}]
+    processor =
+      processor
+      |> start_ife_from(ife_exit_tx, exit_id: ife_id)
+      |> piggyback_ife_from(tx_hash, 0, :output)
+      |> Core.find_ifes_in_blocks(request)
+
+    finalizations = [%{in_flight_exit_id: ife_id, output_index: 0, omg_data: %{piggyback_type: :output}}]
     ife_id = <<ife_id::192>>
 
-    {:ok, %{^ife_id => {_input_exits, output_exits}}} =
+    {:ok, %{^ife_id => exiting_positions}} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
-    {:ok, {_, {[], [_] = invalidities}}, _} = State.Core.exit_utxos(output_exits, state)
+    {:ok, {_, {[], [] = invalidities}}, _} = State.Core.exit_utxos(exiting_positions, state)
+
+    assert {:ok, processor, [_]} = Core.finalize_in_flight_exits(processor, finalizations, %{ife_id => invalidities})
+    assert [] = Core.get_active_in_flight_exits(processor)
+  end
+
+  test "acts on invalidities reported when exiting utxos in State",
+       %{processor_empty: processor, state_empty: state, alice: alice} do
+    # canonical & included
+    ife_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    # double-spending the piggybacked ouptut
+    spending_tx = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 10}])
+    ife_id = 1
+
+    state = TestHelper.do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
+    {:ok, {tx_hash, _, _}, state} = State.Core.exec(state, ife_exit_tx, :no_fees_required)
+    {:ok, {_, _, _}, state} = State.Core.exec(state, spending_tx, :no_fees_required)
+    {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
+
+    request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: [block]}
+
+    processor =
+      processor
+      |> start_ife_from(ife_exit_tx, exit_id: ife_id)
+      |> piggyback_ife_from(tx_hash, 0, :output)
+      |> Core.find_ifes_in_blocks(request)
+
+    finalizations = [%{in_flight_exit_id: ife_id, output_index: 0, omg_data: %{piggyback_type: :output}}]
+    ife_id = <<ife_id::192>>
+
+    {:ok, %{^ife_id => exiting_positions}} =
+      Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+
+    {:ok, {_, {[], [_] = invalidities}}, _} = State.Core.exit_utxos(exiting_positions, state)
 
     assert {:ok, processor, [_]} = Core.finalize_in_flight_exits(processor, finalizations, %{ife_id => invalidities})
     assert [_] = Core.get_active_in_flight_exits(processor)

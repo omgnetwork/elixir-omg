@@ -14,7 +14,9 @@ Run a developer's Child chain server, Watcher, and start IEx REPL with code and 
 alias OMG.Eth
 alias OMG.Crypto
 alias OMG.DevCrypto
-alias OMG.Integration.DepositHelper
+alias Support.Integration.DepositHelper
+alias Support.WaitFor
+alias Support.RootChainHelper
 alias OMG.State.Transaction
 alias OMG.TestHelper
 alias OMG.Eth.Encoding
@@ -23,7 +25,7 @@ alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Eth.RootChain.eth_pseudo_address()
 
-{:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
+{:ok, alice_enc} = Support.DevHelper.import_unlock_fund(alice)
 
 child_chain_url = "localhost:9656"
 watcher_url = "localhost:7434"
@@ -66,14 +68,14 @@ in_flight_tx_bytes =
 
 # call root chain function that initiates in-flight exit
 {:ok, txhash} =
-  OMG.Eth.RootChainHelper.in_flight_exit(
+  RootChainHelper.in_flight_exit(
     get_in_flight_exit_response["in_flight_tx"] |> Encoding.from_hex(),
     get_in_flight_exit_response["input_txs"] |> Encoding.from_hex(),
     get_in_flight_exit_response["input_txs_inclusion_proofs"] |> Encoding.from_hex(),
     get_in_flight_exit_response["in_flight_tx_sigs"] |> Encoding.from_hex(),
     alice.addr
   )
-{:ok, _} = Eth.WaitFor.eth_receipt(txhash)
+{:ok, _} = WaitFor.eth_receipt(txhash)
 
 # querying Ethereum for in-flight exits should return the initiated in-flight exit
 {:ok, eth_height} = OMG.Eth.get_ethereum_height()

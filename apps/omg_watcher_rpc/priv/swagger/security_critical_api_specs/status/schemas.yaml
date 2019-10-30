@@ -21,16 +21,62 @@ StatusSchema:
       type: integer
       format: int64
     contract_addr:
-      type: string
-      format: binary
+      type: object
+      additionalProperties: true
+      properties:
+        plasma_framework:
+          type: string
+          format: binary
     eth_syncing:
       type: boolean
     byzantine_events:
       type: array
+      items:
+        anyOf:
+          - $ref: 'byzantine_events_schema.yml#/components/schemas/invalid_exit'
+          - $ref: 'byzantine_events_schema.yml#/components/schemas/unchallenged_exit'
+          - $ref: 'byzantine_events_schema.yml#/components/schemas/invalid_block'
+          - $ref: 'byzantine_events_schema.yml#/components/schemas/block_withholding'
+          - $ref: 'byzantine_events_schema.yml#/components/schemas/noncanonical_ife'
+          - $ref: 'byzantine_events_schema.yml#/components/schemas/invalid_ife_challenge'
+          - $ref: 'byzantine_events_schema.yml#/components/schemas/piggyback_available'
+          - $ref: 'byzantine_events_schema.yml#/components/schemas/invalid_piggyback'
     in_flight_txs:
       type: array
+      items:
+        type: object
+        properties:
+          txhash:
+            type: string
+          txbytes:
+            type: string
+          input_addresses:
+            type: array
+            items:
+              type: string
+          ouput_addresses:
+            type: array
+            items:
+              type: string
     in_flight_exits:
       type: array
+      items:
+        type: object
+        properties:
+          txhash:
+            type: string
+          txbytes:
+            type: string
+          eth_height:
+            type: integer
+          piggybacked_inputs:
+            type: array
+            items:
+              type: integer
+          piggybacked_outputs:
+            type: array
+            items:
+              type: integer
     services_synced_heights:
       type: array
       items:
