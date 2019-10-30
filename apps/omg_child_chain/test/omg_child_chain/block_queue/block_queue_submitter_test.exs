@@ -20,6 +20,7 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueSubmitterTest do
   import ExUnit.CaptureLog
   import OMG.ChildChain.BlockTestHelper
 
+  alias OMG.ChildChain.BlockQueue.BlockQueueCore
   alias OMG.ChildChain.BlockQueue.BlockQueueSubmitter
   alias OMG.ChildChain.BlockQueue.BlockSubmission
 
@@ -39,15 +40,6 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueSubmitterTest do
   @transaction_nonce_too_low %{"code" => -32_010, "message" => "Transaction nonce is too low."}
 
   doctest OMG.ChildChain.BlockQueue.BlockQueueSubmitter
-
-  defp get_submission(hash \\ "hash_1000", num \\ 10) do
-    %BlockSubmission{
-      hash: hash,
-      nonce: 1,
-      gas_price: 1,
-      num: num
-    }
-  end
 
   describe "pending_mining_filter_func/1" do
     test "returns a function that can be used to gets blocks between mined_child_block_num + interval and formed_child_block_num " do
@@ -85,6 +77,22 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueSubmitterTest do
                mined_child_block_num: 6_000,
                child_block_interval: @child_block_interval
              }) == get_blocks_list(10, 7)
+    end
+
+    test "recovers after restart to proper mined height" do
+      assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] =
+               [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
+               |> recover_state(7000)
+               |> elem(1)
+               |> BlockQueueSubmitter.get_blocks_to_submit()
+    end
+
+    test "recovers after restart even when only empty blocks were mined" do
+      assert [%{hash: "0", nonce: 8}, %{hash: "0", nonce: 9}] =
+               [{5000, "0"}, {6000, "0"}, {7000, "0"}, {8000, "0"}, {9000, "0"}]
+               |> recover_state(7000, "0")
+               |> elem(1)
+               |> BlockQueueSubmitter.get_blocks_to_submit()
     end
   end
 

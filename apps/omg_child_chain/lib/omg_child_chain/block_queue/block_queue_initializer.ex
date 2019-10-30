@@ -22,6 +22,18 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueInitializer do
 
   alias OMG.Eth.Encoding
 
+  @type init_config_t() :: %{
+          parent_height: pos_integer(),
+          mined_child_block_num: pos_integer(),
+          chain_start_parent_height: pos_integer(),
+          child_block_interval: pos_integer(),
+          finality_threshold: pos_integer(),
+          minimal_enqueue_block_gap: pos_integer(),
+          known_hashes: list(String.t()),
+          top_mined_hash: String.t(),
+          last_enqueued_block_at_height: pos_integer()
+        }
+
   # def new, do: {:ok, %__MODULE__{blocks: Map.new()}}
 
   # @spec new(keyword) ::

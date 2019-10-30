@@ -12,19 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.BlockQueue.CoreTest do
+defmodule OMG.ChildChain.BlockQueue.BlockQueueCoreTest do
   @moduledoc false
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureLog
+  import OMG.ChildChain.BlockTestHelper
 
+  alias OMG.ChildChain.BlockQueue.BlockSubmission
   alias OMG.ChildChain.BlockQueue.BlockQueueCore
-
   alias OMG.ChildChain.BlockQueue.BlockQueueInitializer
   alias OMG.ChildChain.BlockQueue.BlockQueueSubmitter
   alias OMG.ChildChain.BlockQueue.BlockQueueState
-  alias OMG.ChildChain.BlockQueue.BlockQueueQueuer
+  alias OMG.ChildChain.BlockQueue.GasPriceAdjustment
+
+  alias OMG.ChildChain.FakeRootChain
+
+  alias OMG.Block
+
+  doctest OMG.ChildChain.BlockQueue.BlockQueueCore
 
   @child_block_interval 1000
 
@@ -69,62 +76,332 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     state
   end
 
-  @doc """
-  Create the block_queue new state with non-initial parameters like it was recovered from db after restart / crash
-  If top_mined_hash parameter is ommited it will be generated from mined_child_block_num
-  """
-  def recover(known_hashes, mined_child_block_num, top_mined_hash \\ nil) do
-    top_mined_hash = top_mined_hash || "#{Kernel.inspect(trunc(mined_child_block_num / 1000))}"
+  describe "init/1" do
+    test "recovers properly for fresh world state" do
+      {:ok, queue} =
+        BlockQueueCore.init(%{
+          mined_child_block_num: 0,
+          known_hashes: [],
+          top_mined_hash: <<0::size(256)>>,
+          parent_height: 10,
+          child_block_interval: 1000,
+          chain_start_parent_height: 1,
+          minimal_enqueue_block_gap: 1,
+          finality_threshold: 12,
+          last_enqueued_block_at_height: 0
+        })
 
-    BlockQueueCore.init(%{
-      parent_height: 10,
-      mined_child_block_num: mined_child_block_num,
-      chain_start_parent_height: 1,
-      child_block_interval: @child_block_interval,
-      finality_threshold: 12,
-      minimal_enqueue_block_gap: 1,
-      known_hashes: known_hashes,
-      top_mined_hash: top_mined_hash,
-      last_enqueued_block_at_height: 0
-    })
-  end
-
-  describe "Block queue." do
-    test "Requests correct block range on initialization" do
-      assert [] == BlockQueueInitializer.child_block_nums_to_init_with(0, 0, @child_block_interval, 0)
-      assert [] == BlockQueueInitializer.child_block_nums_to_init_with(0, 9, @child_block_interval, 0)
-      assert [1000] == BlockQueueInitializer.child_block_nums_to_init_with(0, 1000, @child_block_interval, 0)
-
-      assert [1000, 2000, 3000] ==
-               BlockQueueInitializer.child_block_nums_to_init_with(0, 3000, @child_block_interval, 0)
-
-      assert [100, 200, 300, 400] == BlockQueueInitializer.child_block_nums_to_init_with(0, 400, 100, 0)
-      assert [2000, 3000] == BlockQueueInitializer.child_block_nums_to_init_with(2000, 3000, @child_block_interval, 0)
+      assert [] == BlockQueueSubmitter.get_blocks_to_submit(queue)
     end
 
-    test "Requests correct block range on initialization, non-zero finality threshold" do
-      assert [] == BlockQueueInitializer.child_block_nums_to_init_with(0, 0, @child_block_interval, 2)
-      assert [] == BlockQueueInitializer.child_block_nums_to_init_with(0, 9, @child_block_interval, 2)
-      assert [1000] == BlockQueueInitializer.child_block_nums_to_init_with(0, 1000, @child_block_interval, 2)
+    test "recovers if there are blocks in db but none in root chain" do
+      assert {:ok, state} = recover_state([{1000, "1"}], 0, <<0::size(256)>>)
 
-      assert [1000, 2000, 3000] ==
-               BlockQueueInitializer.child_block_nums_to_init_with(0, 3000, @child_block_interval, 2)
+      assert [%{hash: "1", nonce: 1}] = BlockQueueSubmitter.get_blocks_to_submit(state)
 
-      assert [2000, 3000, 4000, 5000] ==
-               BlockQueueInitializer.child_block_nums_to_init_with(4000, 5000, @child_block_interval, 2)
-    end
-
-    test "Recovers after restart to proper mined height" do
-      assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] =
-               [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
-               |> recover(7000)
-               |> elem(1)
+      assert [%{hash: "1", nonce: 1}, %{hash: "2", nonce: 2}] =
+               state
+               |> BlockQueueCore.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 0)
                |> BlockQueueSubmitter.get_blocks_to_submit()
     end
 
-    test "Recovers after restart and talking to an un-synced geth" do
-      # imagine restart after geth is nuked and hasn't caught up
-      # testing against a disaster scenario where `BlockQueue` would start pushing old blocks again
+    test "recovers after restart and is able to process more blocks" do
+      assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}, %{hash: "10", nonce: 10}] =
+               [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
+               |> recover_state(7000)
+               |> elem(1)
+               |> BlockQueueCore.enqueue_block(%{hash: "10", number: 10 * @child_block_interval}, 0)
+               |> BlockQueueSubmitter.get_blocks_to_submit()
+    end
+
+    test "fails to recover if DB is corrupted" do
+      assert {:error, :mined_blknum_not_found_in_db} == recover_state([{5000, "5"}, {6000, "6"}], 7000)
+    end
+
+    test "does not recover if is contract is ahead of db" do
+      assert {:error, :contract_ahead_of_db} ==
+               BlockQueueCore.init(%{
+                 mined_child_block_num: 0,
+                 known_hashes: [],
+                 top_mined_hash: <<1::size(256)>>,
+                 parent_height: 10,
+                 child_block_interval: 1000,
+                 chain_start_parent_height: 1,
+                 minimal_enqueue_block_gap: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
+               })
+    end
+
+    test "does not recover if mined hash doesn't match with hash in db" do
+      assert {:error, :hashes_dont_match} ==
+               BlockQueueCore.init(%{
+                 mined_child_block_num: 1000,
+                 known_hashes: [{1000, <<2::size(256)>>}],
+                 top_mined_hash: <<1::size(256)>>,
+                 parent_height: 10,
+                 child_block_interval: 1000,
+                 chain_start_parent_height: 1,
+                 minimal_enqueue_block_gap: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
+               })
+    end
+
+    test "does not recover if mined block number doesn't match with db" do
+      assert {:error, :mined_blknum_not_found_in_db} ==
+               BlockQueueCore.init(%{
+                 mined_child_block_num: 2000,
+                 known_hashes: [{1000, <<1::size(256)>>}],
+                 top_mined_hash: <<2::size(256)>>,
+                 parent_height: 10,
+                 child_block_interval: 1000,
+                 chain_start_parent_height: 1,
+                 minimal_enqueue_block_gap: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
+               })
+    end
+  end
+
+  describe "sync_with_ethereum/2" do
+    @tag :basic
+    @tag fixtures: [:empty]
+    test "produces child block numbers as expected", %{empty: empty} do
+      assert {:do_not_form_block, queue} =
+               empty
+               |> BlockQueueCore.sync_with_ethereum(%{
+                 ethereum_height: 1,
+                 mined_child_block_num: 0,
+                 is_empty_block: false
+               })
+
+      assert {:do_form_block, _} =
+               queue
+               |> BlockQueueCore.sync_with_ethereum(%{
+                 ethereum_height: 2,
+                 mined_child_block_num: 0,
+                 is_empty_block: false
+               })
+    end
+
+    @tag fixtures: [:empty]
+    test "removes old blocks after the finality_threshold has been reached", %{empty: empty} do
+      long_length = 1_000
+      short_length = 4
+
+      # make chains where no child blocks ever get mined to bloat the object
+      long = make_chain(empty, long_length)
+      long_size = long |> size()
+
+      empty_size = empty |> size()
+      one_block_size = (make_chain(empty, 1) |> size()) - empty_size
+
+      # sanity check if we haven't removed blocks to early
+      assert long_size - empty_size >= one_block_size * long_length
+
+      # here we suddenly mine the child blocks and the remove should happen
+      long_mined_size =
+        long
+        |> BlockQueueCore.sync_with_ethereum(%{
+          ethereum_height: long_length,
+          mined_child_block_num: (long_length - short_length) * 1000,
+          is_empty_block: false
+        })
+        |> elem(1)
+        |> size()
+
+      assert long_mined_size - empty_size < (short_length + empty.finality_threshold + 1) * one_block_size
+    end
+
+    # TODO: rewrite these tests to not use the internal `gas_price_adj_params` field - ask for submissions via public
+    #       interface instead
+    @tag fixtures: [:empty]
+    test "initializes with empty state sets the gas information", %{empty: empty} do
+      {:do_not_form_block, state} =
+        empty
+        |> BlockQueueCore.sync_with_ethereum(%{
+          ethereum_height: 1,
+          mined_child_block_num: 0,
+          is_empty_block: false
+        })
+
+      gas_params = state.gas_price_adj_params
+      assert gas_params != nil
+      assert {1, 0} == gas_params.last_block_mined
+    end
+
+    @tag fixtures: [:empty_with_gas_params]
+    test "does not change the gas params when ethereum height didn't change", %{
+      empty_with_gas_params: empty_with_gas_params
+    } do
+      state = empty_with_gas_params
+
+      current_height = state.parent_height
+      current_price = state.gas_price_to_use
+      current_params = state.gas_price_adj_params
+
+      {:do_not_form_block, newstate} =
+        state
+        |> BlockQueueCore.sync_with_ethereum(%{
+          ethereum_height: 1,
+          mined_child_block_num: 0,
+          is_empty_block: false
+        })
+
+      assert current_height == newstate.parent_height
+      assert current_price == newstate.gas_price_to_use
+      assert current_params == newstate.gas_price_adj_params
+    end
+
+    @tag fixtures: [:empty_with_gas_params]
+    test "lowers the gas price when ethereum blocks gap isn't filled", %{empty_with_gas_params: empty_with_gas_params} do
+      state =
+        empty_with_gas_params |> BlockQueueCore.enqueue_block(%{hash: <<0>>, number: 6 * @child_block_interval}, 1)
+
+      current_price = state.gas_price_to_use
+
+      {:do_not_form_block, newstate} =
+        state
+        |> BlockQueueCore.sync_with_ethereum(%{
+          ethereum_height: 2,
+          mined_child_block_num: 0,
+          is_empty_block: false
+        })
+
+      assert current_price > newstate.gas_price_to_use
+
+      # assert the actual gas price based on parameters value - test could fail if params or calculation will change
+      assert 90 == newstate.gas_price_to_use
+    end
+
+    @tag fixtures: [:empty_with_gas_params]
+    test "raises the gas price when ethereum blocks gap is filled", %{empty_with_gas_params: empty_with_gas_params} do
+      state = empty_with_gas_params
+      current_price = state.gas_price_to_use
+      eth_gap = state.gas_price_adj_params.eth_gap_without_child_blocks
+
+      {:do_form_block, newstate} =
+        state
+        |> BlockQueueCore.enqueue_block(%{hash: <<0>>, number: 6 * @child_block_interval}, 1)
+        |> BlockQueueCore.sync_with_ethereum(%{
+          ethereum_height: 1 + eth_gap,
+          mined_child_block_num: 0,
+          is_empty_block: false
+        })
+
+      assert current_price < newstate.gas_price_to_use
+
+      # assert the actual gas price based on parameters value - test could fail if params or calculation will change
+      assert 200 == newstate.gas_price_to_use
+    end
+
+    @tag fixtures: [:empty_with_gas_params]
+    test "does not raise the gas price above the limit", %{empty_with_gas_params: state} do
+      expected_max_price = 5 * state.gas_price_to_use
+      gas_params = %{state.gas_price_adj_params | gas_price_raising_factor: 10, max_gas_price: expected_max_price}
+
+      state =
+        %{state | gas_price_adj_params: gas_params}
+        |> BlockQueueCore.enqueue_block(%{hash: <<0>>, number: 6 * @child_block_interval}, 1)
+
+      # Despite Ethereum height changing multiple times, gas price does not grow since no new blocks are mined
+      Enum.reduce(4..100, state, fn eth_height, state ->
+        {_, state} =
+          BlockQueueCore.sync_with_ethereum(state, %{
+            ethereum_height: eth_height,
+            mined_child_block_num: 2 * @child_block_interval,
+            is_empty_block: false
+          })
+
+        assert expected_max_price == state.gas_price_to_use
+        state
+      end)
+    end
+  end
+
+  describe "enqueue_block/3" do
+    @tag fixtures: [:empty]
+    test "emits a new block ASAP", %{empty: empty} do
+      assert [%{hash: "2", nonce: 2}] =
+               empty
+               |> BlockQueueCore.sync_with_ethereum(%{
+                 ethereum_height: 0,
+                 mined_child_block_num: 1000,
+                 is_empty_block: false
+               })
+               |> elem(1)
+               |> BlockQueueCore.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 0)
+               |> BlockQueueSubmitter.get_blocks_to_submit()
+    end
+
+    @tag fixtures: [:empty]
+    test "produces child blocks that aren't repeated, if none are enqueued", %{empty: empty} do
+      assert {:do_form_block, queue} =
+               empty
+               |> BlockQueueCore.sync_with_ethereum(%{
+                 ethereum_height: 2,
+                 mined_child_block_num: 0,
+                 is_empty_block: false
+               })
+
+      assert {:do_not_form_block, _} =
+               queue
+               |> BlockQueueCore.sync_with_ethereum(%{
+                 ethereum_height: 3,
+                 mined_child_block_num: 0,
+                 is_empty_block: false
+               })
+    end
+
+    @tag fixtures: [:empty]
+    test "does not enqueue block when number of enqueued block does not match expected block number", %{empty: empty} do
+      {:error, :unexpected_block_number} =
+        BlockQueueCore.enqueue_block(empty, %{hash: "1", number: 2 * @child_block_interval}, 0)
+    end
+
+    @tag fixtures: [:empty]
+    test "produces blocks submission requests that have nonces in order", %{empty: empty} do
+      assert [_, %{nonce: 2}] =
+               empty
+               |> BlockQueueCore.sync_with_ethereum(%{
+                 ethereum_height: 0,
+                 mined_child_block_num: 0,
+                 is_empty_block: false
+               })
+               |> elem(1)
+               |> BlockQueueCore.enqueue_block(%{hash: "1", number: @child_block_interval}, 0)
+               |> BlockQueueCore.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 0)
+               |> BlockQueueSubmitter.get_blocks_to_submit()
+    end
+  end
+
+  describe "submit_blocks/1" do
+    @tag fixtures: [:empty]
+    test "gets blocks to submit and submits them", %{empty: empty} do
+      state =
+        empty
+        |> BlockQueueCore.sync_with_ethereum(%{
+          ethereum_height: 0,
+          mined_child_block_num: 0,
+          is_empty_block: false
+        })
+        |> elem(1)
+        |> BlockQueueCore.enqueue_block(%{hash: "success", number: @child_block_interval}, 0)
+        |> BlockQueueCore.enqueue_block(%{hash: "success", number: 2 * @child_block_interval}, 0)
+
+      assert BlockQueueCore.submit_blocks(state, FakeRootChain) == :ok
+    end
+  end
+
+  # The tests below are all semi-integration tests and
+  # interact with multiple modules from the BlockQueue
+  # system
+  describe "block queue (semi-integration)" do
+    test "recovers after restart and talking to an un-synced geth" do
+      # imagine restart after geth is nuked and hasn't caught up testing
+      # against a disaster scenario where `BlockQueue` would start pushing
+      # old blocks again
       finality_threshold = 12
       mined_blknum = 6000
 
@@ -165,157 +442,8 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] = new_state |> BlockQueueSubmitter.get_blocks_to_submit()
     end
 
-    test "Recovers after restart even when only empty blocks were mined" do
-      assert [%{hash: "0", nonce: 8}, %{hash: "0", nonce: 9}] =
-               [{5000, "0"}, {6000, "0"}, {7000, "0"}, {8000, "0"}, {9000, "0"}]
-               |> recover(7000, "0")
-               |> elem(1)
-               |> BlockQueueSubmitter.get_blocks_to_submit()
-    end
-
-    test "Recovers properly for fresh world state" do
-      {:ok, queue} =
-        BlockQueueCore.init(%{
-          mined_child_block_num: 0,
-          known_hashes: [],
-          top_mined_hash: <<0::size(256)>>,
-          parent_height: 10,
-          child_block_interval: 1000,
-          chain_start_parent_height: 1,
-          minimal_enqueue_block_gap: 1,
-          finality_threshold: 12,
-          last_enqueued_block_at_height: 0
-        })
-
-      assert [] == queue |> BlockQueueSubmitter.get_blocks_to_submit()
-    end
-
-    test "Won't recover if is contract is ahead of db" do
-      assert {:error, :contract_ahead_of_db} ==
-               BlockQueueCore.init(%{
-                 mined_child_block_num: 0,
-                 known_hashes: [],
-                 top_mined_hash: <<1::size(256)>>,
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 chain_start_parent_height: 1,
-                 minimal_enqueue_block_gap: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
-               })
-    end
-
-    test "Won't recover if mined hash doesn't match with hash in db" do
-      assert {:error, :hashes_dont_match} ==
-               BlockQueueCore.init(%{
-                 mined_child_block_num: 1000,
-                 known_hashes: [{1000, <<2::size(256)>>}],
-                 top_mined_hash: <<1::size(256)>>,
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 chain_start_parent_height: 1,
-                 minimal_enqueue_block_gap: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
-               })
-    end
-
-    test "Won't recover if mined block number doesn't match with db" do
-      assert {:error, :mined_blknum_not_found_in_db} ==
-               BlockQueueCore.init(%{
-                 mined_child_block_num: 2000,
-                 known_hashes: [{1000, <<1::size(256)>>}],
-                 top_mined_hash: <<2::size(256)>>,
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 chain_start_parent_height: 1,
-                 minimal_enqueue_block_gap: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
-               })
-    end
-
-    test "Will recover if there are blocks in db but none in root chain" do
-      assert {:ok, state} = recover([{1000, "1"}], 0, <<0::size(256)>>)
-      assert [%{hash: "1", nonce: 1}] = BlockQueueSubmitter.get_blocks_to_submit(state)
-
-      assert [%{hash: "1", nonce: 1}, %{hash: "2", nonce: 2}] =
-               BlockQueueQueuer.enqueue_block(state, %{hash: "2", number: 2 * @child_block_interval}, 0)
-               |> BlockQueueSubmitter.get_blocks_to_submit()
-    end
-
-    test "Recovers after restart and is able to process more blocks" do
-      assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}, %{hash: "10", nonce: 10}] =
-               [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
-               |> recover(7000)
-               |> elem(1)
-               |> BlockQueueQueuer.enqueue_block(%{hash: "10", number: 10 * @child_block_interval}, 0)
-               |> BlockQueueSubmitter.get_blocks_to_submit()
-    end
-
-    test "Recovery will fail if DB is corrupted" do
-      assert {:error, :mined_blknum_not_found_in_db} == recover([{5000, "5"}, {6000, "6"}], 7000)
-    end
-
-    test "No submitBlock will be sent until properly initialized" do
-      catch_error(BlockQueueSubmitter.get_blocks_to_submit(BlockQueueCore.init_state()))
-    end
-
     @tag fixtures: [:empty]
-    test "A new block is emitted ASAP", %{empty: empty} do
-      assert [%{hash: "2", nonce: 2}] =
-               empty
-               |> BlockQueueCore.sync_with_ethereum(%{
-                 ethereum_height: 0,
-                 mined_child_block_num: 1000,
-                 is_empty_block: false
-               })
-               |> elem(1)
-               |> BlockQueueQueuer.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 0)
-               |> BlockQueueSubmitter.get_blocks_to_submit()
-    end
-
-    @tag :basic
-    @tag fixtures: [:empty]
-    test "Produced child block numbers to form are as expected", %{empty: empty} do
-      assert {:do_not_form_block, queue} =
-               empty
-               |> BlockQueueCore.sync_with_ethereum(%{
-                 ethereum_height: 1,
-                 mined_child_block_num: 0,
-                 is_empty_block: false
-               })
-
-      assert {:do_form_block, _} =
-               queue
-               |> BlockQueueCore.sync_with_ethereum(%{
-                 ethereum_height: 2,
-                 mined_child_block_num: 0,
-                 is_empty_block: false
-               })
-    end
-
-    @tag fixtures: [:empty]
-    test "Produced child blocks to form aren't repeated, if none are enqueued", %{empty: empty} do
-      assert {:do_form_block, queue} =
-               empty
-               |> BlockQueueCore.sync_with_ethereum(%{
-                 ethereum_height: 2,
-                 mined_child_block_num: 0,
-                 is_empty_block: false
-               })
-
-      assert {:do_not_form_block, _} =
-               queue
-               |> BlockQueueCore.sync_with_ethereum(%{
-                 ethereum_height: 3,
-                 mined_child_block_num: 0,
-                 is_empty_block: false
-               })
-    end
-
-    @tag fixtures: [:empty]
-    test "Ethereum updates and enqueues can go interleaved", %{empty: empty} do
+    test "handles interleaved Ethereum updates and enqueues", %{empty: empty} do
       # no enqueue after set_ethereum_status(1) so don't form block
       assert {:do_not_form_block, queue} =
                empty
@@ -339,7 +467,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
       assert {:do_form_block, queue} =
                queue
-               |> BlockQueueQueuer.enqueue_block(%{hash: "1", number: @child_block_interval}, 0)
+               |> BlockQueueCore.enqueue_block(%{hash: "1", number: @child_block_interval}, 0)
                |> BlockQueueCore.sync_with_ethereum(%{
                  ethereum_height: 4,
                  mined_child_block_num: 0,
@@ -356,7 +484,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
       assert {:do_form_block, _queue} =
                queue
-               |> BlockQueueQueuer.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 0)
+               |> BlockQueueCore.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 0)
                |> BlockQueueCore.sync_with_ethereum(%{
                  ethereum_height: 6,
                  mined_child_block_num: 0,
@@ -366,7 +494,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     # NOTE: theoretically the back off is ver hard to get - testing if this rare occasion doesn't make the state weird
     @tag fixtures: [:empty]
-    test "Ethereum updates can back off and jump independent from enqueues", %{empty: empty} do
+    test "handle Ethereum updates backing off and jumping independently from enqueues", %{empty: empty} do
       # no enqueue after BlockQueueCore.sync_with_ethereum(2) so don't form block
       assert {:do_not_form_block, queue} =
                empty
@@ -390,7 +518,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
       assert {:do_form_block, queue} =
                queue
-               |> BlockQueueQueuer.enqueue_block(%{hash: "1", number: @child_block_interval}, 0)
+               |> BlockQueueCore.enqueue_block(%{hash: "1", number: @child_block_interval}, 0)
                |> BlockQueueCore.sync_with_ethereum(%{
                  ethereum_height: 3,
                  mined_child_block_num: 0,
@@ -399,7 +527,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
       assert {:do_not_form_block, queue} =
                queue
-               |> BlockQueueQueuer.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 1)
+               |> BlockQueueCore.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 1)
                |> BlockQueueCore.sync_with_ethereum(%{
                  ethereum_height: 2,
                  mined_child_block_num: 0,
@@ -416,28 +544,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     end
 
     @tag fixtures: [:empty]
-    test "Block is not enqueued when number of enqueued block does not match expected block number", %{empty: empty} do
-      {:error, :unexpected_block_number} =
-        BlockQueueQueuer.enqueue_block(empty, %{hash: "1", number: 2 * @child_block_interval}, 0)
-    end
-
-    @tag fixtures: [:empty]
-    test "Produced blocks submission requests have nonces in order", %{empty: empty} do
-      assert [_, %{nonce: 2}] =
-               empty
-               |> BlockQueueCore.sync_with_ethereum(%{
-                 ethereum_height: 0,
-                 mined_child_block_num: 0,
-                 is_empty_block: false
-               })
-               |> elem(1)
-               |> BlockQueueQueuer.enqueue_block(%{hash: "1", number: @child_block_interval}, 0)
-               |> BlockQueueQueuer.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 0)
-               |> BlockQueueSubmitter.get_blocks_to_submit()
-    end
-
-    @tag fixtures: [:empty]
-    test "Block generation is driven by last enqueued block Ethereum height and if block is empty or not", %{
+    test "generates blocks by last enqueued block Ethereum height and if block is empty or not", %{
       empty: empty
     } do
       %BlockQueueState{minimal_enqueue_block_gap: minimal_enqueue_block_gap, parent_height: parent_height} = empty
@@ -468,7 +575,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
       assert {:do_not_form_block, queue} =
                queue
-               |> BlockQueueQueuer.enqueue_block(%{hash: "1", number: @child_block_interval}, parent_height)
+               |> BlockQueueCore.enqueue_block(%{hash: "1", number: @child_block_interval}, parent_height)
                |> BlockQueueCore.sync_with_ethereum(%{
                  ethereum_height: parent_height,
                  mined_child_block_num: 0,
@@ -485,7 +592,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
       assert {:do_not_form_block, _} =
                queue
-               |> BlockQueueQueuer.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, parent_height + 2)
+               |> BlockQueueCore.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, parent_height + 2)
                |> BlockQueueCore.sync_with_ethereum(%{
                  ethereum_height: parent_height + 2,
                  mined_child_block_num: 0,
@@ -494,7 +601,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     end
 
     @tag fixtures: [:empty]
-    test "Smoke test", %{empty: empty} do
+    test "runs a smoke test", %{empty: empty} do
       assert {:do_not_form_block, queue} =
                empty
                |> BlockQueueCore.sync_with_ethereum(%{
@@ -503,11 +610,11 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                  is_empty_block: false
                })
                |> elem(1)
-               |> BlockQueueQueuer.enqueue_block(%{hash: "1", number: 1 * @child_block_interval}, 0)
-               |> BlockQueueQueuer.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 1)
-               |> BlockQueueQueuer.enqueue_block(%{hash: "3", number: 3 * @child_block_interval}, 2)
-               |> BlockQueueQueuer.enqueue_block(%{hash: "4", number: 4 * @child_block_interval}, 3)
-               |> BlockQueueQueuer.enqueue_block(%{hash: "5", number: 5 * @child_block_interval}, 4)
+               |> BlockQueueCore.enqueue_block(%{hash: "1", number: 1 * @child_block_interval}, 0)
+               |> BlockQueueCore.enqueue_block(%{hash: "2", number: 2 * @child_block_interval}, 1)
+               |> BlockQueueCore.enqueue_block(%{hash: "3", number: 3 * @child_block_interval}, 2)
+               |> BlockQueueCore.enqueue_block(%{hash: "4", number: 4 * @child_block_interval}, 3)
+               |> BlockQueueCore.enqueue_block(%{hash: "5", number: 5 * @child_block_interval}, 4)
                |> BlockQueueCore.sync_with_ethereum(%{
                  ethereum_height: 3,
                  mined_child_block_num: 2000,
@@ -517,142 +624,15 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert [%{hash: "3", nonce: 3}, %{hash: "4", nonce: 4}, %{hash: "5", nonce: 5}] =
                queue |> BlockQueueSubmitter.get_blocks_to_submit()
     end
-
-    # helper function makes a chain that have size blocks
-    defp make_chain(base, size) do
-      if size > 0,
-        do:
-          1..size
-          |> Enum.reduce(base, fn hash, state ->
-            BlockQueueQueuer.enqueue_block(state, %{hash: hash, number: hash * @child_block_interval}, hash)
-          end),
-        else: base
-    end
-
-    def size(state) do
-      state |> :erlang.term_to_binary() |> byte_size()
-    end
-
-    @tag fixtures: [:empty]
-    test "Old blocks are removed, but only after finality_threshold", %{empty: empty} do
-      long_length = 1_000
-      short_length = 4
-
-      # make chains where no child blocks ever get mined to bloat the object
-      long = make_chain(empty, long_length)
-      long_size = long |> size()
-
-      empty_size = empty |> size()
-      one_block_size = (make_chain(empty, 1) |> size()) - empty_size
-
-      # sanity check if we haven't removed blocks to early
-      assert long_size - empty_size >= one_block_size * long_length
-
-      # here we suddenly mine the child blocks and the remove should happen
-      long_mined_size =
-        long
-        |> BlockQueueCore.sync_with_ethereum(%{
-          ethereum_height: long_length,
-          mined_child_block_num: (long_length - short_length) * 1000,
-          is_empty_block: false
-        })
-        |> elem(1)
-        |> size()
-
-      assert long_mined_size - empty_size < (short_length + empty.finality_threshold + 1) * one_block_size
-    end
   end
 
-  describe "Adjusting gas price" do
-    # TODO: rewrite these tests to not use the internal `gas_price_adj_params` field - ask for submissions via public
-    #       interface instead
-
-    @tag fixtures: [:empty]
-    test "Calling with empty state will initailize gas information", %{empty: empty} do
-      {:do_not_form_block, state} =
-        empty
-        |> BlockQueueCore.sync_with_ethereum(%{
-          ethereum_height: 1,
-          mined_child_block_num: 0,
-          is_empty_block: false
-        })
-
-      gas_params = state.gas_price_adj_params
-      assert gas_params != nil
-      assert {1, 0} == gas_params.last_block_mined
-    end
-
-    @tag fixtures: [:empty_with_gas_params]
-    test "Calling with current ethereum height doesn't change the gas params", %{
-      empty_with_gas_params: empty_with_gas_params
-    } do
-      state = empty_with_gas_params
-
-      current_height = state.parent_height
-      current_price = state.gas_price_to_use
-      current_params = state.gas_price_adj_params
-
-      {:do_not_form_block, newstate} =
-        state
-        |> BlockQueueCore.sync_with_ethereum(%{
-          ethereum_height: 1,
-          mined_child_block_num: 0,
-          is_empty_block: false
-        })
-
-      assert current_height == newstate.parent_height
-      assert current_price == newstate.gas_price_to_use
-      assert current_params == newstate.gas_price_adj_params
-    end
-
-    @tag fixtures: [:empty_with_gas_params]
-    test "Gas price is lowered when ethereum blocks gap isn't filled", %{empty_with_gas_params: empty_with_gas_params} do
-      state =
-        empty_with_gas_params |> BlockQueueQueuer.enqueue_block(%{hash: <<0>>, number: 6 * @child_block_interval}, 1)
-
-      current_price = state.gas_price_to_use
-
-      {:do_not_form_block, newstate} =
-        state
-        |> BlockQueueCore.sync_with_ethereum(%{
-          ethereum_height: 2,
-          mined_child_block_num: 0,
-          is_empty_block: false
-        })
-
-      assert current_price > newstate.gas_price_to_use
-
-      # assert the actual gas price based on parameters value - test could fail if params or calculation will change
-      assert 90 == newstate.gas_price_to_use
-    end
-
-    @tag fixtures: [:empty_with_gas_params]
-    test "Gas price is raised when ethereum blocks gap is filled", %{empty_with_gas_params: empty_with_gas_params} do
-      state = empty_with_gas_params
-      current_price = state.gas_price_to_use
-      eth_gap = state.gas_price_adj_params.eth_gap_without_child_blocks
-
-      {:do_form_block, newstate} =
-        state
-        |> BlockQueueQueuer.enqueue_block(%{hash: <<0>>, number: 6 * @child_block_interval}, 1)
-        |> BlockQueueCore.sync_with_ethereum(%{
-          ethereum_height: 1 + eth_gap,
-          mined_child_block_num: 0,
-          is_empty_block: false
-        })
-
-      assert current_price < newstate.gas_price_to_use
-
-      # assert the actual gas price based on parameters value - test could fail if params or calculation will change
-      assert 200 == newstate.gas_price_to_use
-    end
-
+  describe "gas price adjustments (semi-integration)" do
     @tag fixtures: [:empty_with_gas_params]
     test "Gas price is lowered and then raised when ethereum blocks gap gets filled", %{
       empty_with_gas_params: empty_with_gas_params
     } do
       state =
-        empty_with_gas_params |> BlockQueueQueuer.enqueue_block(%{hash: <<6>>, number: 6 * @child_block_interval}, 1)
+        empty_with_gas_params |> BlockQueueCore.enqueue_block(%{hash: <<6>>, number: 6 * @child_block_interval}, 1)
 
       gas_params = %{state.gas_price_adj_params | eth_gap_without_child_blocks: 3}
       state1 = %{state | gas_price_adj_params: gas_params}
@@ -666,7 +646,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
         })
 
       assert state.gas_price_to_use > state2.gas_price_to_use
-      state2 = state2 |> BlockQueueQueuer.enqueue_block(%{hash: <<6>>, number: 7 * @child_block_interval}, 1)
+      state2 = state2 |> BlockQueueCore.enqueue_block(%{hash: <<6>>, number: 7 * @child_block_interval}, 1)
 
       {:do_form_block, state3} =
         state2
@@ -691,29 +671,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     end
 
     @tag fixtures: [:empty_with_gas_params]
-    test "Gas price calculation cannot be raised above limit", %{empty_with_gas_params: state} do
-      expected_max_price = 5 * state.gas_price_to_use
-      gas_params = %{state.gas_price_adj_params | gas_price_raising_factor: 10, max_gas_price: expected_max_price}
-
-      state =
-        %{state | gas_price_adj_params: gas_params}
-        |> BlockQueueQueuer.enqueue_block(%{hash: <<0>>, number: 6 * @child_block_interval}, 1)
-
-      # Despite Ethereum height changing multiple times, gas price does not grow since no new blocks are mined
-      Enum.reduce(4..100, state, fn eth_height, state ->
-        {_, state} =
-          BlockQueueCore.sync_with_ethereum(state, %{
-            ethereum_height: eth_height,
-            mined_child_block_num: 2 * @child_block_interval,
-            is_empty_block: false
-          })
-
-        assert expected_max_price == state.gas_price_to_use
-        state
-      end)
-    end
-
-    @tag fixtures: [:empty_with_gas_params]
     test "Gas price doesn't change if no new blocks are formed, and is lowered the moment there's one",
          %{empty_with_gas_params: state} do
       expected_price = state.gas_price_to_use
@@ -735,7 +692,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
       {_, state} =
         state
-        |> BlockQueueQueuer.enqueue_block(%{hash: <<0>>, number: next_blknum}, 1)
+        |> BlockQueueCore.enqueue_block(%{hash: <<0>>, number: next_blknum}, 1)
         |> BlockQueueCore.sync_with_ethereum(%{
           ethereum_height: 1000,
           mined_child_block_num: current_blknum,
@@ -746,10 +703,10 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     end
   end
 
-  describe "Processing submission results from geth" do
+  describe "submission results from Geth (semi-integration)" do
     test "everything might be ok" do
       [submission] =
-        recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
+        recover_state([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
 
       # no change in mined blknum
       assert :ok = BlockQueueSubmitter.process_submit_result({:ok, <<0::160>>}, submission, 1000)
@@ -760,7 +717,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "benign reports / warnings from geth" do
       [submission] =
-        recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
+        recover_state([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
 
       # no change in mined blknum
       assert :ok = BlockQueueSubmitter.process_submit_result(@known_transaction_response, submission, 1000)
@@ -770,7 +727,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "benign nonce too low error - related to our tx being mined, since the mined blknum advanced" do
       [submission] =
-        recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
+        recover_state([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
 
       assert :ok = BlockQueueSubmitter.process_submit_result(@nonce_too_low_response, submission, 1000)
       assert :ok = BlockQueueSubmitter.process_submit_result(@nonce_too_low_response, submission, 2000)
@@ -778,7 +735,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "real nonce too low error" do
       [submission] =
-        recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
+        recover_state([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
 
       # the new mined child block number is not the one we submitted, so we expect an error an error log
       assert capture_log(fn ->
@@ -794,7 +751,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "other fatal errors" do
       [submission] =
-        recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
+        recover_state([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> BlockQueueSubmitter.get_blocks_to_submit()
 
       # the new mined child block number is not the one we submitted, so we expect an error an error log
       assert capture_log(fn ->
@@ -820,7 +777,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
           state
         end)
 
-      state = state |> BlockQueueQueuer.enqueue_block(%{hash: <<0>>, number: 6 * @child_block_interval}, 1)
+      state = state |> BlockQueueCore.enqueue_block(%{hash: <<0>>, number: 6 * @child_block_interval}, 1)
 
       {_, state} =
         BlockQueueCore.sync_with_ethereum(state, %{
@@ -841,7 +798,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
         Enum.reduce(6..20, state, fn child_number, state ->
           {_, state} =
             state
-            |> BlockQueueQueuer.enqueue_block(%{hash: <<0>>, number: child_number * @child_block_interval}, 1)
+            |> BlockQueueCore.enqueue_block(%{hash: <<0>>, number: child_number * @child_block_interval}, 1)
             |> BlockQueueCore.sync_with_ethereum(%{
               ethereum_height: eth_height,
               mined_child_block_num: 0,
@@ -876,9 +833,9 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       gas_price = state.gas_price_to_use
 
       state
-      |> BlockQueueQueuer.enqueue_block(%{hash: <<0>>, number: 6 * @child_block_interval}, 1)
-      |> BlockQueueQueuer.enqueue_block(%{hash: <<0>>, number: 7 * @child_block_interval}, 1)
-      |> BlockQueueQueuer.enqueue_block(%{hash: <<0>>, number: 8 * @child_block_interval}, 1)
+      |> BlockQueueCore.enqueue_block(%{hash: <<0>>, number: 6 * @child_block_interval}, 1)
+      |> BlockQueueCore.enqueue_block(%{hash: <<0>>, number: 7 * @child_block_interval}, 1)
+      |> BlockQueueCore.enqueue_block(%{hash: <<0>>, number: 8 * @child_block_interval}, 1)
 
       Enum.reduce(80..(eth_height - 1), state, fn eth_height, state ->
         {_, state} =

@@ -56,6 +56,7 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueCore do
 
   the gas price is lowered by a factor of 0.9 ('OMG.ChildChain.BlockQueue.GasPriceAdjustment.gas_price_lowering_factor')
   """
+  use OMG.Utils.LoggerExt
 
   alias OMG.ChildChain.BlockQueue.BlockQueueEthSync
   alias OMG.ChildChain.BlockQueue.BlockQueueInitializer
@@ -63,29 +64,117 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueCore do
   alias OMG.ChildChain.BlockQueue.BlockQueueSubmitter
   alias OMG.ChildChain.BlockQueue.BlockQueueQueuer
   alias OMG.ChildChain.BlockQueue.GasPriceCalculator
-
-  alias OMG.DB
-
   alias OMG.ChildChain.FreshBlocks
 
   alias OMG.Eth.Encoding
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
 
-  use OMG.Utils.LoggerExt
+  alias OMG.Block
+  alias OMG.DB
 
-  @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
+  @doc ~S"""
+  Initializes a block queue state to a new state or to its last known state.
 
-  def init do
-    init(load_init_config())
-  end
+  Defaults to load_init_config/0 below to load all the needed
+  values from the application config and the database. A config
+  with specific values can also be passed if needed.
 
-  def init(config) do
+  ## Examples
+
+    iex> BlockQueueCore.init(
+    ...> %{
+    ...>   parent_height: 10,
+    ...>   mined_child_block_num: 1000,
+    ...>   chain_start_parent_height: 1,
+    ...>   child_block_interval: 1000,
+    ...>   finality_threshold: 1,
+    ...>   minimal_enqueue_block_gap: 1,
+    ...>   known_hashes: [{1000, "hash_1000"}],
+    ...>   top_mined_hash: "hash_1000",
+    ...>   last_enqueued_block_at_height: 8
+    ...> })
+    {:ok, %BlockQueueState{
+      blocks: %{
+        1000 => %BlockSubmission{hash: "hash_1000", nonce: 1, num: 1000}
+      },
+      mined_child_block_num: 1000,
+      known_hashes: [{1000, "hash_1000"}],
+      top_mined_hash: "hash_1000",
+      parent_height: 10,
+      child_block_interval: 1000,
+      chain_start_parent_height: 1,
+      minimal_enqueue_block_gap: 1,
+      finality_threshold: 1,
+      last_enqueued_block_at_height: 8,
+      formed_child_block_num: 1000
+    }}
+  """
+  @spec init(BlockQueueCore.init_config_t()) :: {:ok, BlockQueueState.t()} | {:error, atom}
+  def init(config \\ load_init_config()) do
     config
     |> BlockQueueInitializer.init()
     |> enqueue_existing_blocks()
   end
 
+  @doc ~S"""
+  Updates the block queue state with the latest data from the rootchain,
+  and returns if a new block should be formed or not.
+
+  ## Examples
+
+    iex> BlockQueueCore.sync_with_ethereum(
+    ...> %BlockQueueState{
+    ...>   blocks: %{
+    ...>     1000 => %BlockSubmission{hash: "hash_1000", nonce: 1, num: 1000},
+    ...>     2000 => %BlockSubmission{hash: "hash_2000", nonce: 2, num: 2000}
+    ...>   },
+    ...>   mined_child_block_num: 1000,
+    ...>   known_hashes: [{1000, "hash_1000"}],
+    ...>   top_mined_hash: "hash_1000",
+    ...>   parent_height: 7,
+    ...>   child_block_interval: 1000,
+    ...>   chain_start_parent_height: 1,
+    ...>   minimal_enqueue_block_gap: 1,
+    ...>   finality_threshold: 1,
+    ...>   last_enqueued_block_at_height: 7,
+    ...>   formed_child_block_num: 1000
+    ...> },
+    ...> %{
+    ...>   ethereum_height: 9,
+    ...>   mined_child_block_num: 1000,
+    ...>   is_empty_block: false
+    ...> })
+    {:do_form_block, %BlockQueueState{
+      blocks: %{
+        1000 => %BlockSubmission{hash: "hash_1000", nonce: 1, num: 1000},
+        2000 => %BlockSubmission{hash: "hash_2000", nonce: 2, num: 2000, gas_price: nil}
+      },
+      mined_child_block_num: 1000,
+      known_hashes: [{1000, "hash_1000"}],
+      top_mined_hash: "hash_1000",
+      parent_height: 9,
+      child_block_interval: 1000,
+      chain_start_parent_height: 1,
+      minimal_enqueue_block_gap: 1,
+      finality_threshold: 1,
+      last_enqueued_block_at_height: 7,
+      wait_for_enqueue: true,
+      formed_child_block_num: 1000,
+      gas_price_adj_params: %GasPriceAdjustment{
+        eth_gap_without_child_blocks: 2,
+        gas_price_lowering_factor: 0.9,
+        gas_price_raising_factor: 2.0,
+        max_gas_price: 20000000000,
+        last_block_mined: {9, 1000}
+      }
+    }}
+  """
+  @spec sync_with_ethereum(BlockQueueState.t(), %{
+          required(:ethereum_height) => pos_integer(),
+          required(:mined_child_block_num) => pos_integer(),
+          required(:is_empty_block) => bool()
+        }) :: {:do_form_block, BlockQueueState.t()} | {:do_not_form_block, BlockQueueState.t()} | {:error, atom}
   def sync_with_ethereum(state, %{
         ethereum_height: ethereum_height,
         mined_child_block_num: mined_child_block_num,
@@ -101,40 +190,92 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueCore do
     |> BlockQueueEthSync.form_block_or_skip(is_empty_block)
   end
 
-  # TTODO: fix spec
-  # @spec enqueue_block(Core.t(), BlockQueue.hash(), BlockQueue.plasma_block_num(), pos_integer()) ::
-  #         Core.t() | {:error, :unexpected_block_number}
-  # TODO: Use block struct?
+  @doc ~S"""
+  Relies on BlockQueueQueuer to add the block to the queue state if valid.
+
+  ## Examples
+
+      iex> BlockQueueCore.enqueue_block(
+      ...> %{
+      ...>   formed_child_block_num: 1000,
+      ...>   child_block_interval: 1000,
+      ...>   blocks: %{},
+      ...>   wait_for_enqueue: nil,
+      ...>   last_enqueued_block_at_height: nil
+      ...> },
+      ...> %Block{hash: "hash", number: 2000},
+      ...> 10
+      ...> )
+      %{
+        formed_child_block_num: 2000,
+        wait_for_enqueue: false,
+        last_enqueued_block_at_height: 10,
+        child_block_interval: 1000,
+        blocks: %{
+          2000 => %BlockSubmission{hash: "hash", nonce: 2, num: 2000}
+        }
+      }
+
+  """
+  @spec enqueue_block(
+          BlockQueueState.t(),
+          %{
+            required(:hash) => BlockQueue.hash(),
+            required(:number) => BlockQueue.plasma_block_num()
+          },
+          pos_integer()
+        ) :: BlockQueueState.t() | {:error, :unexpected_block_number}
+  # TODO: change to block
   def enqueue_block(state, %{number: number, hash: hash} = block, parent_height) do
     _ = Logger.info("Enqueuing block num '#{inspect(number)}', hash '#{inspect(Encoding.to_hex(hash))}'")
 
     BlockQueueQueuer.enqueue_block(state, block, parent_height)
   end
 
-  # @spec submit_blocks_or_skip(BlockQueueState.t()) :: :ok
-  def submit_blocks(%{} = state) do
+  @doc ~S"""
+  Relies on BlockQueueSubmitter to get the list of blocks to submit,
+  and submit each block in sequence.
+
+  ## Examples
+
+      iex> BlockQueueCore.submit_blocks(
+      ...> %{
+      ...>   blocks: %{
+      ...>     1000 => %BlockSubmission{hash: "hash_1000", nonce: 1, num: 1000},
+      ...>     2000 => %BlockSubmission{hash: "hash_2000", nonce: 2, num: 2000}
+      ...>   },
+      ...>   formed_child_block_num: 10_000,
+      ...>   gas_price_to_use: 1,
+      ...>   mined_child_block_num: 6_000,
+      ...>   child_block_interval: 1000
+      ...> })
+      :ok
+
+  """
+  @spec submit_blocks(BlockQueueState.t()) :: :ok
+  def submit_blocks(%{} = state, chain \\ RootChain) do
     state
     |> BlockQueueSubmitter.get_blocks_to_submit()
     |> Enum.each(fn block ->
-      BlockQueueSubmitter.submit(block)
+      BlockQueueSubmitter.submit(block, chain)
     end)
   end
 
   # When restarting, we don't actually know what was the state of submission process to Ethereum.
   # Some blocks might have been submitted and lost/rejected/reorged by Ethereum in the mean time.
-  # To properly restart the process we get last blocks known to DB and split them into mined
+  # To properly restart the process, we get the last blocks known to DB and split them into mined
   # blocks (might still need tracking!) and blocks not yet submitted.
 
   # NOTE: handles both the case when there aren't any hashes in database and there are
   @spec enqueue_existing_blocks(BlockQueueState.t()) ::
-          {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
+          {:ok, BlockQueueState.t()}
+          | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
   defp enqueue_existing_blocks(state) do
     case BlockQueueQueuer.enqueue_existing_blocks(state) do
       {:ok, state} ->
         {:ok, state}
 
       {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
-        # TODO: Log error
         _ =
           BlockQueueLogger.log(
             :init_error,
@@ -149,6 +290,16 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueCore do
       other ->
         other
     end
+  end
+
+  @spec get_check_interval() :: pos_integer()
+  def get_check_interval do
+    Application.fetch_env!(:omg_child_chain, :block_queue_eth_height_check_interval_ms)
+  end
+
+  @spec get_metrics_interval() :: pos_integer()
+  def get_metrics_interval do
+    Application.fetch_env!(:omg_child_chain, :metrics_collection_interval)
   end
 
   defp load_init_config do
@@ -186,13 +337,5 @@ defmodule OMG.ChildChain.BlockQueue.BlockQueueCore do
         # TODO: Log?
         error
     end
-  end
-
-  def get_check_interval do
-    Application.fetch_env!(:omg_child_chain, :block_queue_eth_height_check_interval_ms)
-  end
-
-  def get_metrics_interval do
-    Application.fetch_env!(:omg_child_chain, :metrics_collection_interval)
   end
 end
