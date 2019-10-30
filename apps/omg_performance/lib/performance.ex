@@ -157,10 +157,7 @@ defmodule OMG.Performance do
   Starts with extended perftest to populate network with transactions.
   Then with a given `exit_users` start fetching exit data from Watcher.
   """
-  @spec start_standard_exit_perftest(list(TestHelper.entity()), pos_integer(), Crypto.address_t(), map()) :: %{
-          opts: map(),
-          statistics: [ByzantineEvents.stats_t()]
-        }
+  # FIXME specs
   def start_standard_exit_perftest(spenders, exiting_users, contract_addr, opts \\ %{}) do
     # in case number of txs to send wasn't set, provides defaults
     spenders_count = length(spenders)
@@ -186,7 +183,8 @@ defmodule OMG.Performance do
 
     exit_positions = setup_standard_exit_perftest(opts)
 
-    statistics = ByzantineEvents.start_dos_get_exits(exit_positions, exiting_users)
+    # FIXME: these aren't statistics
+    statistics = ByzantineEvents.get_many_standard_exits(exit_positions)
 
     %{opts: opts, statistics: statistics}
   end

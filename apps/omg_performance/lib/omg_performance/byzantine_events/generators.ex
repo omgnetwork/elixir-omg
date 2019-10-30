@@ -103,17 +103,9 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
     user
   end
 
-  # FIXME: why the repeat & waitfor?
   defp get_block!(blknum, child_chain_url) do
-    {:ok, block} =
-      WaitFor.repeat_until_ok(fn ->
-        with {:ok, {block_hash, _timestamp}} <- RootChain.get_child_chain(blknum) do
-          Client.get_block(block_hash, child_chain_url)
-        else
-          _ -> :repeat
-        end
-      end)
-
+    {:ok, {block_hash, _timestamp}} = RootChain.get_child_chain(blknum)
+    {:ok, block} = Client.get_block(block_hash, child_chain_url)
     block
   end
 
