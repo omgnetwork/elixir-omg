@@ -1,13 +1,10 @@
 openapi: 3.0.0
 info:
   version: 1.0.0
-  title: Watcher's Informational API
-  description: >
+  title: Watchers Informational API
+  description: |
     API specification of the Watcher's Informational Service
-
-    Error codes are available in
-    [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description)
-    format.
+    Error codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
   contact:
     name: OmiseGO
     email: omisego@omisego.co
@@ -29,12 +26,13 @@ paths:
         - Account
       summary: Returns the balance of each currency for the given account address.
       operationId: account_get_balance
-      requestBody: &ref_1
+      requestBody:
         description: HEX-encoded address of the account
         required: true
         content:
           application/json:
             schema:
+              title: AddressBodySchema
               type: object
               properties:
                 address:
@@ -51,8 +49,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - &ref_0
-                    description: The response schema for a successful operation
+                  - description: The response schema for a successful operation
                     type: object
                     properties:
                       version:
@@ -88,14 +85,30 @@ paths:
                           amount: 20
                         - currency: '0x0000000000000000000000000000000000000000'
                           amount: 1000000000
-        '500': &ref_2
+        '500':
           description: Returns an internal server error
           content:
             application/json:
               schema:
                 description: The response schema for an error
                 allOf:
-                  - *ref_0
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
                   - type: object
                     properties:
                       data:
@@ -131,7 +144,22 @@ paths:
         - Account
       summary: Gets all utxos belonging to the given address.
       operationId: account_get_utxos
-      requestBody: *ref_1
+      requestBody:
+        description: HEX-encoded address of the account
+        required: true
+        content:
+          application/json:
+            schema:
+              title: AddressBodySchema
+              type: object
+              properties:
+                address:
+                  type: string
+                  format: binary
+              required:
+                - address
+              example:
+                address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
       responses:
         '200':
           description: Account utxos succcessful response
@@ -139,7 +167,23 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_0
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
                   - type: object
                     properties:
                       data:
@@ -177,18 +221,71 @@ paths:
                           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                           currency: '0x0000000000000000000000000000000000000000'
                           amount: 10
-        '500': *ref_2
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /account.get_transactions:
     post:
       tags:
         - Account
       summary: Gets a list of transactions for given account address.
       operationId: account_get_transactions
-      requestBody: &ref_3
+      requestBody:
         description: 'Account address, block number and other criteria'
         content:
           application/json:
             schema:
+              title: GetAllTransactionsBodySchema
               type: object
               properties:
                 address:
@@ -210,13 +307,12 @@ paths:
                   default: 200
               example:
                 address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
-                metadata: >-
-                  0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
+                metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                 blknum: 68290000
                 limit: 100
                 page: 2
       responses:
-        '200': &ref_4
+        '200':
           description: Transactions succcessful response
           content:
             application/json:
@@ -248,7 +344,7 @@ paths:
                         items:
                           type: object
                           properties:
-                            block: &ref_7
+                            block:
                               type: object
                               properties:
                                 timestamp:
@@ -298,48 +394,265 @@ paths:
                       data:
                         - block:
                             timestamp: 1540365586
-                            hash: >-
-                              0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec
+                            hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
                             eth_height: 97424
                             blknum: 68290000
                           txindex: 0
-                          txhash: >-
-                            0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
-                          metadata: >-
-                            0x00000000000000000000000000000000000000000000000000000048656c6c6f
+                          txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                          metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                           results:
                             - currency: '0x0000000000000000000000000000000000000000'
                               value: 20000000
                       data_paging:
                         page: 1
                         limit: 200
-        '500': *ref_2
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /transaction.all:
     post:
       tags:
         - Transaction
       summary: Gets all transactions (can be limited with various filters).
-      description: >
-        Digests the details of the transaction, by listing the value of outputs,
-        aggregated by currency. Intended to be used when presenting the little
-        details about multiple transactions. For all details queries to
-        `/transaction.get` should be made using the transaction's hash provided.
+      description: |
+        Digests the details of the transaction, by listing the value of outputs, aggregated by currency. Intended to be used when presenting the little details about multiple transactions. For all details queries to `/transaction.get` should be made using the transaction's hash provided.
       operationId: transactions_all
-      requestBody: *ref_3
+      requestBody:
+        description: 'Account address, block number and other criteria'
+        content:
+          application/json:
+            schema:
+              title: GetAllTransactionsBodySchema
+              type: object
+              properties:
+                address:
+                  type: string
+                  format: binary
+                blknum:
+                  type: integer
+                  format: int64
+                metadata:
+                  type: string
+                  format: binary
+                page:
+                  type: integer
+                  format: int32
+                  default: 1
+                limit:
+                  type: integer
+                  format: int32
+                  default: 200
+              example:
+                address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                blknum: 68290000
+                limit: 100
+                page: 2
       responses:
-        '200': *ref_4
-        '500': *ref_2
+        '200':
+          description: Transactions succcessful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful list operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: array
+                        items:
+                          type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: []
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            block:
+                              type: object
+                              properties:
+                                timestamp:
+                                  type: integer
+                                  format: int64
+                                hash:
+                                  type: string
+                                  format: binary
+                                eth_height:
+                                  type: integer
+                                  format: int64
+                                blknum:
+                                  type: integer
+                                  format: int64
+                            txindex:
+                              type: integer
+                              format: int16
+                            txhash:
+                              type: string
+                              format: binary
+                            metadata:
+                              type: string
+                              format: binary
+                            results:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  currency:
+                                    type: string
+                                    format: binary
+                                  value:
+                                    type: integer
+                                    format: int256
+                      data_paging:
+                        type: object
+                        properties:
+                          page:
+                            type: integer
+                            format: int32
+                            default: 1
+                          limit:
+                            type: integer
+                            format: int32
+                            default: 200
+                    example:
+                      data:
+                        - block:
+                            timestamp: 1540365586
+                            hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                            eth_height: 97424
+                            blknum: 68290000
+                          txindex: 0
+                          txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                          metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
+                          results:
+                            - currency: '0x0000000000000000000000000000000000000000'
+                              value: 20000000
+                      data_paging:
+                        page: 1
+                        limit: 200
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /transaction.create:
     post:
       tags:
         - Transaction
-      summary: >-
-        Finds an optimal way to construct a transaction spending particular
-        amount.
-      description: >
-        Given token, amount and spender, finds spender's inputs sufficient to
-        perform a payment. If also provided with receiver's address, creates and
-        encodes a transaction.
+      summary: Finds an optimal way to construct a transaction spending particular amount.
+      description: |
+        Given token, amount and spender, finds spender's inputs sufficient to perform a payment. If also provided with receiver's address, creates and encodes a transaction.
       operationId: createTransaction
       requestBody:
         description: The description of transaction to be crafted.
@@ -347,6 +660,7 @@ paths:
         content:
           application/json:
             schema:
+              title: CreateTransactionsBodySchema
               type: object
               properties:
                 owner:
@@ -397,8 +711,7 @@ paths:
                 fee:
                   amount: 5
                   currency: '0x0000000000000000000000000000000000000000'
-                metadata: >-
-                  0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
+                metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
       responses:
         '200':
           description: Transaction create successful response
@@ -406,7 +719,23 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_0
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
                   - type: object
                     properties:
                       data:
@@ -425,30 +754,29 @@ paths:
                                 inputs:
                                   type: array
                                   items:
-                                    - &ref_8
-                                      type: object
-                                      properties:
-                                        blknum:
-                                          type: integer
-                                          format: int64
-                                        txindex:
-                                          type: integer
-                                          format: int16
-                                        oindex:
-                                          type: integer
-                                          format: int8
-                                        utxo_pos:
-                                          type: integer
-                                          format: int256
-                                        owner:
-                                          type: string
-                                          format: binary
-                                        currency:
-                                          type: string
-                                          format: binary
-                                        amount:
-                                          type: integer
-                                          format: int256
+                                    type: object
+                                    properties:
+                                      blknum:
+                                        type: integer
+                                        format: int64
+                                      txindex:
+                                        type: integer
+                                        format: int16
+                                      oindex:
+                                        type: integer
+                                        format: int8
+                                      utxo_pos:
+                                        type: integer
+                                        format: int256
+                                      owner:
+                                        type: string
+                                        format: binary
+                                      currency:
+                                        type: string
+                                        format: binary
+                                      amount:
+                                        type: integer
+                                        format: int256
                                 outputs:
                                   type: array
                                   items:
@@ -481,7 +809,7 @@ paths:
                                 sign_hash:
                                   type: string
                                   format: binary
-                                typed_data: &ref_9
+                                typed_data:
                                   type: object
                                   properties:
                                     types:
@@ -531,7 +859,7 @@ paths:
                                     message:
                                       type: object
                                       properties:
-                                        input0: &ref_5
+                                        input0:
                                           type: object
                                           properties:
                                             blknum:
@@ -543,10 +871,43 @@ paths:
                                             oindex:
                                               type: integer
                                               format: int8
-                                        input1: *ref_5
-                                        input2: *ref_5
-                                        input3: *ref_5
-                                        output0: &ref_6
+                                        input1:
+                                          type: object
+                                          properties:
+                                            blknum:
+                                              type: integer
+                                              format: int64
+                                            txindex:
+                                              type: integer
+                                              format: int16
+                                            oindex:
+                                              type: integer
+                                              format: int8
+                                        input2:
+                                          type: object
+                                          properties:
+                                            blknum:
+                                              type: integer
+                                              format: int64
+                                            txindex:
+                                              type: integer
+                                              format: int16
+                                            oindex:
+                                              type: integer
+                                              format: int8
+                                        input3:
+                                          type: object
+                                          properties:
+                                            blknum:
+                                              type: integer
+                                              format: int64
+                                            txindex:
+                                              type: integer
+                                              format: int16
+                                            oindex:
+                                              type: integer
+                                              format: int8
+                                        output0:
                                           type: object
                                           properties:
                                             owner:
@@ -558,9 +919,42 @@ paths:
                                             amount:
                                               type: integer
                                               format: int256
-                                        output1: *ref_6
-                                        output2: *ref_6
-                                        output3: *ref_6
+                                        output1:
+                                          type: object
+                                          properties:
+                                            owner:
+                                              type: string
+                                              format: binary
+                                            currency:
+                                              type: string
+                                              format: binary
+                                            amount:
+                                              type: integer
+                                              format: int256
+                                        output2:
+                                          type: object
+                                          properties:
+                                            owner:
+                                              type: string
+                                              format: binary
+                                            currency:
+                                              type: string
+                                              format: binary
+                                            amount:
+                                              type: integer
+                                              format: int256
+                                        output3:
+                                          type: object
+                                          properties:
+                                            owner:
+                                              type: string
+                                              format: binary
+                                            currency:
+                                              type: string
+                                              format: binary
+                                            amount:
+                                              type: integer
+                                              format: int256
                                         metadata:
                                           type: string
                                           format: binary
@@ -603,11 +997,9 @@ paths:
                             fee:
                               amount: 5
                               currency: '0x0000000000000000000000000000000000000000'
-                            metadata: >-
-                              0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
+                            metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                             txbytes: 0x5df13a6bee20000...
-                            sign_hash: >-
-                              0x7851b951edb0b9e88f0fc80e83461f71d0f4b1d4e44fae7d25a5d4ab6adc5d3d
+                            sign_hash: '0x7851b951edb0b9e88f0fc80e83461f71d0f4b1d4e44fae7d25a5d4ab6adc5d3d'
                             typed_data:
                               types:
                                 EIP712Domain:
@@ -655,8 +1047,7 @@ paths:
                               primaryType: Transaction
                               domain:
                                 name: OMG Network
-                                salt: >-
-                                  0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83
+                                salt: '0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83'
                                 verifyingContract: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
                                 version: '1'
                               message:
@@ -692,9 +1083,60 @@ paths:
                                   owner: '0x0000000000000000000000000000000000000000'
                                   currency: '0x0000000000000000000000000000000000000000'
                                   amount: 0
-                                metadata: >-
-                                  0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
-        '500': *ref_2
+                                metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /transaction.get:
     post:
       tags:
@@ -707,6 +1149,7 @@ paths:
         content:
           application/json:
             schema:
+              title: GetTransactionBodySchema
               type: object
               properties:
                 id:
@@ -715,8 +1158,7 @@ paths:
               required:
                 - id
               example:
-                id: >-
-                  0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
+                id: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
       responses:
         '200':
           description: Transaction details succcessful response
@@ -724,7 +1166,23 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_0
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
                   - type: object
                     properties:
                       data:
@@ -742,25 +1200,82 @@ paths:
                           txbytes:
                             type: string
                             format: binary
-                          block: *ref_7
+                          block:
+                            type: object
+                            properties:
+                              timestamp:
+                                type: integer
+                                format: int64
+                              hash:
+                                type: string
+                                format: binary
+                              eth_height:
+                                type: integer
+                                format: int64
+                              blknum:
+                                type: integer
+                                format: int64
                           inputs:
                             type: array
-                            items: *ref_8
+                            items:
+                              type: object
+                              properties:
+                                blknum:
+                                  type: integer
+                                  format: int64
+                                txindex:
+                                  type: integer
+                                  format: int16
+                                oindex:
+                                  type: integer
+                                  format: int8
+                                utxo_pos:
+                                  type: integer
+                                  format: int256
+                                owner:
+                                  type: string
+                                  format: binary
+                                currency:
+                                  type: string
+                                  format: binary
+                                amount:
+                                  type: integer
+                                  format: int256
                           outputs:
                             type: array
-                            items: *ref_8
+                            items:
+                              type: object
+                              properties:
+                                blknum:
+                                  type: integer
+                                  format: int64
+                                txindex:
+                                  type: integer
+                                  format: int16
+                                oindex:
+                                  type: integer
+                                  format: int8
+                                utxo_pos:
+                                  type: integer
+                                  format: int256
+                                owner:
+                                  type: string
+                                  format: binary
+                                currency:
+                                  type: string
+                                  format: binary
+                                amount:
+                                  type: integer
+                                  format: int256
                     example:
                       data:
                         txindex: 5113
-                        txhash: >-
-                          0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21
-                        metadata: >-
-                          0x00000000000000000000000000000000000000000000000000000048656c6c6f
+                        txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                        metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                         txbytes: 0x5df13a6bee20000...
                         block:
                           timestamp: 1540365586
-                          hash: >-
-                            0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec
+                          hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
                           eth_height: 97424
                           blknum: 68290000
                         inputs:
@@ -786,17 +1301,66 @@ paths:
                             owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                             currency: '0x0000000000000000000000000000000000000000'
                             amount: 7
-        '500': *ref_2
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /transaction.submit_typed:
     post:
       tags:
         - Transaction
       summary: Sends EIP-712 formatted transaction to Child chain.
-      description: >
-        Request to this method is the same as to Web3 `eth_signTypedData` with
-        additional `signatures` array.  The `/transaction.create` `typed_data`
-        field can be used to prepare transaction. The same conditions  are met
-        as with security-critical `/transaction.submit`
+      description: |
+        Request to this method is the same as to Web3 `eth_signTypedData` with additional `signatures` array. The `/transaction.create` `typed_data` field can be used to prepare transaction. The same conditions are met as with security-critical `/transaction.submit`
       operationId: submit_typed
       requestBody:
         description: Transaction as for `eth_signTypedData` along with signatures
@@ -804,8 +1368,166 @@ paths:
         content:
           application/json:
             schema:
+              title: TransactionSubmitTypedBodySchema
               allOf:
-                - *ref_9
+                - type: object
+                  properties:
+                    types:
+                      type: object
+                      properties:
+                        EIP712Domain:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              type:
+                                type: string
+                        additionalProperties:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              type:
+                                type: string
+                            required:
+                              - name
+                              - type
+                    primaryType:
+                      type: string
+                    domain:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        salt:
+                          type: string
+                          format: binary
+                        verifyingContract:
+                          type: string
+                          format: binary
+                        version:
+                          type: string
+                      required:
+                        - name
+                        - salt
+                        - verifyingContract
+                        - version
+                    message:
+                      type: object
+                      properties:
+                        input0:
+                          type: object
+                          properties:
+                            blknum:
+                              type: integer
+                              format: int64
+                            txindex:
+                              type: integer
+                              format: int16
+                            oindex:
+                              type: integer
+                              format: int8
+                        input1:
+                          type: object
+                          properties:
+                            blknum:
+                              type: integer
+                              format: int64
+                            txindex:
+                              type: integer
+                              format: int16
+                            oindex:
+                              type: integer
+                              format: int8
+                        input2:
+                          type: object
+                          properties:
+                            blknum:
+                              type: integer
+                              format: int64
+                            txindex:
+                              type: integer
+                              format: int16
+                            oindex:
+                              type: integer
+                              format: int8
+                        input3:
+                          type: object
+                          properties:
+                            blknum:
+                              type: integer
+                              format: int64
+                            txindex:
+                              type: integer
+                              format: int16
+                            oindex:
+                              type: integer
+                              format: int8
+                        output0:
+                          type: object
+                          properties:
+                            owner:
+                              type: string
+                              format: binary
+                            currency:
+                              type: string
+                              format: binary
+                            amount:
+                              type: integer
+                              format: int256
+                        output1:
+                          type: object
+                          properties:
+                            owner:
+                              type: string
+                              format: binary
+                            currency:
+                              type: string
+                              format: binary
+                            amount:
+                              type: integer
+                              format: int256
+                        output2:
+                          type: object
+                          properties:
+                            owner:
+                              type: string
+                              format: binary
+                            currency:
+                              type: string
+                              format: binary
+                            amount:
+                              type: integer
+                              format: int256
+                        output3:
+                          type: object
+                          properties:
+                            owner:
+                              type: string
+                              format: binary
+                            currency:
+                              type: string
+                              format: binary
+                            amount:
+                              type: integer
+                              format: int256
+                        metadata:
+                          type: string
+                          format: binary
+                      required:
+                        - input0
+                        - input1
+                        - input2
+                        - input3
+                        - output0
+                        - output1
+                        - output2
+                        - output3
+                        - metadata
                 - type: object
                   properties:
                     signatures:
@@ -820,8 +1542,7 @@ paths:
                   example:
                     domain:
                       name: OMG Network
-                      salt: >-
-                        0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83
+                      salt: '0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83'
                       verifyingContract: '0x44de0ec539b8c4a4b530c78620fe8320167f2f74'
                       version: '1'
                     message:
@@ -857,8 +1578,7 @@ paths:
                         owner: '0x0000000000000000000000000000000000000000'
                         currency: '0x0000000000000000000000000000000000000000'
                         amount: 0
-                      metadata: >-
-                        0x0000000000000000000000000000000000000000000000000000000000000000
+                      metadata: '0x0000000000000000000000000000000000000000000000000000000000000000'
                     signatures:
                       - 0x6bfb9b2dbe32...
       responses:
@@ -868,7 +1588,23 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_0
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
                   - type: object
                     properties:
                       data:
@@ -887,6 +1623,57 @@ paths:
                       data:
                         blknum: 123000
                         txindex: 111
-                        txhash: >-
-                          0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d
-        '500': *ref_2
+                        txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason

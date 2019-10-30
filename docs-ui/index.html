@@ -38,8 +38,9 @@
     <script>
     window.onload = function() {
       // Begin Swagger UI call region
+      var file_name = document.getElementsByClassName("download-url-input")[0].value;
       const ui = SwaggerUIBundle({
-        url: "master/operator_api_specs.yaml",
+        url: "https://raw.githubusercontent.com/omisego/elixir-omg/gh-pages/docs-ui/" + file_name,
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [
