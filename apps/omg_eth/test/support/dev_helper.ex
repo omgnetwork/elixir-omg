@@ -91,11 +91,13 @@ defmodule Support.DevHelper do
   Use with contract-transacting functions that return {:ok, txhash}, e.g. `Eth.Token.mint`, for synchronous waiting
   for mining of a successful result
   """
-  @spec transact_sync!({:ok, Eth.hash()}) :: {:ok, map}
-  def transact_sync!({:ok, txhash} = _transaction_submission_result) when byte_size(txhash) == 32 do
+  @spec transact_sync!({:ok, Eth.hash()}, keyword()) :: {:ok, map}
+  def transact_sync!({:ok, txhash} = _transaction_submission_result, opts \\ []) when byte_size(txhash) == 32 do
+    timeout = Keyword.get(opts, :timeout, @about_4_blocks_time)
+
     {:ok, _} =
       txhash
-      |> WaitFor.eth_receipt(@about_4_blocks_time)
+      |> WaitFor.eth_receipt(timeout)
       |> case do
         {:ok, %{"status" => "0x1"} = receipt} -> {:ok, receipt |> Map.update!("blockNumber", &int_from_hex(&1))}
         {:ok, %{"status" => "0x0"} = receipt} -> {:error, receipt |> Map.put("reason", get_reason(txhash))}

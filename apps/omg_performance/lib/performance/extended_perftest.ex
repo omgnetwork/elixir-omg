@@ -21,6 +21,8 @@ defmodule OMG.Performance.ExtendedPerftest do
 
   require Utxo
 
+  @make_deposit_timeout 600_000
+
   @doc """
   Runs test with {ntx_to_send} transactions for each {spenders}.
   Initial deposits for each account will be made on passed {contract_addr}.
@@ -39,7 +41,7 @@ defmodule OMG.Performance.ExtendedPerftest do
     _ =
       Logger.info(
         "Number of spenders: #{inspect(length(spenders))}, number of tx to send per spender: #{inspect(ntx_to_send)}" <>
-          ", #{inspect(length(spenders) * length(ntx_to_send))} txs in total"
+          ", #{inspect(length(spenders) * ntx_to_send)} txs in total"
       )
 
     defaults = %{destdir: "."}
@@ -70,7 +72,8 @@ defmodule OMG.Performance.ExtendedPerftest do
     end
 
     accounts
-    |> Task.async_stream(depositing_f)
+    # NOTE: infinity doesn't work, hence the large number
+    |> Task.async_stream(depositing_f, timeout: @make_deposit_timeout, max_concurrency: 10_000)
     |> Enum.map(fn {:ok, result} -> result end)
   end
 end

@@ -36,9 +36,10 @@ defmodule OMG.Performance.ByzantineEventsTest do
   @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
   test "can provide timing of response when asking for exit data", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
+    alice = Enum.at(spenders, 0)
+
     :ok = Performance.ExtendedPerftest.start(100, spenders, %{randomized: false, destdir: destdir})
     :ok = ByzantineEvents.watcher_synchronize()
-    alice = Enum.at(spenders, 0)
 
     ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
     |> ByzantineEvents.get_many_standard_exits()
@@ -47,9 +48,10 @@ defmodule OMG.Performance.ByzantineEventsTest do
   @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
   test "can provide timing of status.get under many valid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
+    alice = Enum.at(spenders, 0)
+
     :ok = Performance.ExtendedPerftest.start(100, spenders, %{randomized: false, destdir: destdir})
     :ok = ByzantineEvents.watcher_synchronize()
-    alice = Enum.at(spenders, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
@@ -64,9 +66,10 @@ defmodule OMG.Performance.ByzantineEventsTest do
   @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
   test "can provide timing of status.get under many valid/invalid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
+    alice = Enum.at(spenders, 0)
+
     :ok = Performance.ExtendedPerftest.start(100, spenders, %{randomized: true, destdir: destdir})
     :ok = ByzantineEvents.watcher_synchronize()
-    alice = Enum.at(spenders, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
@@ -81,9 +84,10 @@ defmodule OMG.Performance.ByzantineEventsTest do
   @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
   test "can provide timing of challenging", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
+    alice = Enum.at(spenders, 0)
+
     :ok = Performance.ExtendedPerftest.start(100, spenders, %{randomized: true, destdir: destdir})
     :ok = ByzantineEvents.watcher_synchronize()
-    alice = Enum.at(spenders, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
@@ -104,9 +108,10 @@ defmodule OMG.Performance.ByzantineEventsTest do
   @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
   test "can provide timing of status.get under many challenged SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
+    alice = Enum.at(spenders, 0)
+
     :ok = Performance.ExtendedPerftest.start(100, spenders, %{randomized: true, destdir: destdir})
     :ok = ByzantineEvents.watcher_synchronize()
-    alice = Enum.at(spenders, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)

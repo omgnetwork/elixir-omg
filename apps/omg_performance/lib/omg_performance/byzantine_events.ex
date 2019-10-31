@@ -137,11 +137,14 @@ defmodule OMG.Performance.ByzantineEvents do
     _ = Logger.info("Watcher synchronized")
   end
 
-  def get_byzantine_events(event_name) do
+  def get_byzantine_events() do
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
     {:ok, status_response} = WatcherClient.get_status(watcher_url)
-
     status_response
+  end
+
+  def get_byzantine_events(event_name) do
+    get_byzantine_events()
     |> Access.get(:byzantine_events)
     |> Enum.filter(&(&1["event"] == event_name))
     |> postprocess_byzantine_events(event_name)
@@ -158,7 +161,10 @@ defmodule OMG.Performance.ByzantineEvents do
     enumberable
     |> Enum.map(transaction_function)
     # NOTE: infinity doesn't work, hence the large number
-    |> Task.async_stream(&Support.DevHelper.transact_sync!/1, max_concurrency: 10_000)
+    |> Task.async_stream(&Support.DevHelper.transact_sync!(&1, timeout: :infinity),
+      timeout: :infinity,
+      max_concurrency: 10_000
+    )
     |> Enum.map(fn {:ok, result} -> result end)
     |> List.last()
   end

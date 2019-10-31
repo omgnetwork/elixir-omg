@@ -25,6 +25,8 @@ defmodule OMG.Performance.Generators do
 
   require Utxo
 
+  @generate_user_timeout 600_000
+
   @doc """
   Creates addresses with private keys and funds them with given `initial_funds` on geth.
   """
@@ -33,7 +35,7 @@ defmodule OMG.Performance.Generators do
     # FIXME: document :faucet and :initial_funds based on demo_03 and remove this demo (doc here, in tests and in
     #        dev helpers)
     1..size
-    |> Task.async_stream(fn _ -> generate_user(opts) end)
+    |> Task.async_stream(fn _ -> generate_user(opts) end, timeout: @generate_user_timeout)
     |> Enum.map(fn {:ok, result} -> result end)
   end
 

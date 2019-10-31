@@ -60,6 +60,21 @@ defmodule OMG.Performance do
   Number of exiting utxo is total number of transactions, each exiting user ask for the same utxo set, but mixes the order.
   """
 
+  defmacro __using__(_opt) do
+    quote do
+      alias OMG.Performance
+      alias OMG.Performance.ByzantineEvents
+      alias OMG.Performance.ExtendedPerftest
+      alias OMG.Performance.Generators
+
+      import Performance, only: [timeit: 1]
+      require Performance
+
+      use OMG.Utils.LoggerExt
+      :ok
+    end
+  end
+
   # FIXME docs
   # FIXME map to keyword for opts everywhere
   def init(opts \\ %{}) do
@@ -94,5 +109,14 @@ defmodule OMG.Performance do
     :ok = Application.put_env(:omg_watcher, :child_chain_url, opts[:child_chain_url])
 
     :ok
+  end
+
+  defmacro timeit(call) do
+    quote do
+      {duration, result} = :timer.tc(fn -> unquote(call) end)
+      duration_s = duration / 1_000_000
+      _ = Logger.info("Lasted #{inspect(duration_s)} seconds")
+      result
+    end
   end
 end
