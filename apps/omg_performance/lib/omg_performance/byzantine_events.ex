@@ -57,14 +57,13 @@ defmodule OMG.Performance.ByzantineEvents do
 
   require Utxo
 
-  @watcher_url Application.get_env(:omg_performance, :watcher_url)
-
   @doc """
   For given utxo positions shuffle them and ask the watcher for exit data
   """
   # FIXME specs
-  # FIXME: revisit the passing around of watcher_url - is there any occasion where we'd need to overide this?
-  def get_many_standard_exits(exit_positions, watcher_url \\ @watcher_url) do
+  def get_many_standard_exits(exit_positions) do
+    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
+
     exit_positions
     |> Enum.shuffle()
     |> Enum.map(&WatcherClient.get_exit_data(&1, watcher_url))
@@ -74,10 +73,10 @@ defmodule OMG.Performance.ByzantineEvents do
   @doc """
   # FIXME do doc here
   """
-  def start_many_exits(exit_positions, owner_address, watcher_url \\ @watcher_url) do
+  def start_many_exits(exit_positions, owner_address) do
     # FIXME: tidy this: do we provide it from the outside as with challenges?
     exit_positions
-    |> get_many_standard_exits(watcher_url)
+    |> get_many_standard_exits()
     |> Enum.map(fn composed_exit ->
       result =
         Support.RootChainHelper.start_exit(
@@ -95,7 +94,8 @@ defmodule OMG.Performance.ByzantineEvents do
     |> Support.DevHelper.transact_sync!()
   end
 
-  def get_byzantine_events(event_name, watcher_url \\ @watcher_url) do
+  def get_byzantine_events(event_name) do
+    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
     {:ok, status_response} = WatcherClient.get_status(watcher_url)
 
     status_response
@@ -106,14 +106,18 @@ defmodule OMG.Performance.ByzantineEvents do
   @doc """
   For given utxo positions shuffle them and ask the watcher for challenge data. All positions must be invalid exits
   """
-  def get_many_se_challenges(positions, watcher_url \\ @watcher_url) do
+  def get_many_se_challenges(positions) do
+    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
+
     positions
     |> Enum.shuffle()
     |> Enum.map(&WatcherClient.get_exit_challenge(&1, watcher_url))
     |> only_successes()
   end
 
-  def challenge_many_exits(challenge_responses, challenger_address, watcher_url \\ @watcher_url) do
+  def challenge_many_exits(challenge_responses, challenger_address) do
+    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
+
     challenge_responses
     |> Enum.map(fn challenge ->
       result =
@@ -137,16 +141,18 @@ defmodule OMG.Performance.ByzantineEvents do
   @doc """
   Fetches utxo positions for a given user's address
   """
-  @spec get_exitable_utxos(binary(), watcher_url: binary()) :: [non_neg_integer()]
-  def get_exitable_utxos(entities, watcher_url \\ @watcher_url)
+  @spec get_exitable_utxos(binary()) :: [non_neg_integer()]
+  def get_exitable_utxos(entities)
 
-  def get_exitable_utxos(addr, watcher_url) when is_binary(addr) do
+  def get_exitable_utxos(addr) when is_binary(addr) do
+    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
     {:ok, utxos} = WatcherClient.get_exitable_utxos(addr, watcher_url)
     Enum.map(utxos, & &1.utxo_pos)
   end
 
   # FIXME: nicen the optional arguments here
-  def watcher_synchronize(root_chain_height \\ nil, watcher_url \\ @watcher_url) do
+  def watcher_synchronize(root_chain_height \\ nil) do
+    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
     _ = Logger.info("Waiting for the watcher to synchronize")
     WaitFor.repeat_until_ok(fn -> watcher_synchronized?(root_chain_height, watcher_url) end)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher

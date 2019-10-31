@@ -26,10 +26,6 @@ defmodule OMG.Performance.Generators do
 
   require Utxo
 
-  # FIXME: get rid of this and the overidability. Just read this from the env in runtime and done. This would make
-  #        overides of the url from system env break, geez...
-  @child_chain_url Application.get_env(:omg_watcher, :child_chain_url)
-
   @doc """
   Creates addresses with private keys and funds them with given `initial_funds` on geth.
   """
@@ -55,8 +51,9 @@ defmodule OMG.Performance.Generators do
   @doc """
   Streams blocks from child chain rpc starting from the first block.
   """
-  @spec stream_blocks(child_chain_url: binary()) :: [OMG.Block.t()]
-  def stream_blocks(child_chain_url \\ @child_chain_url) do
+  @spec stream_blocks() :: [OMG.Block.t()]
+  def stream_blocks() do
+    child_chain_url = Application.fetch_env!(:omg_watcher, :child_chain_url)
     {:ok, interval} = RootChain.get_child_block_interval()
 
     Stream.map(
@@ -92,8 +89,9 @@ defmodule OMG.Performance.Generators do
   @doc """
   Gets a mined block at random. Block is fetch from child chain rpc.
   """
-  @spec random_block(child_chain_url: binary()) :: OMG.Block.t()
-  def random_block(child_chain_url \\ @child_chain_url) do
+  @spec random_block() :: OMG.Block.t()
+  def random_block() do
+    child_chain_url = Application.fetch_env!(:omg_watcher, :child_chain_url)
     {:ok, interval} = RootChain.get_child_block_interval()
     {:ok, mined_block} = RootChain.get_mined_child_block()
     # interval <= blknum <= mined_block
