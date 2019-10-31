@@ -12,32 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.PerformanceTest do
-  use ExUnitFixtures
+defmodule OMG.Performance.SimplePerftestTest do
   use ExUnit.Case, async: false
-  use OMG.ChildChain.Integration.Fixtures
 
   import ExUnit.CaptureIO
 
-  use OMG.Utils.LoggerExt
-
   alias OMG.Performance
-  alias OMG.Performance.Generators
 
   @moduletag :integration
   @moduletag :common
 
-  # FIXME: see below - how do I setup for both contract and non-contract instances of the test (split test?)
   setup do
     :ok = Performance.init()
-    {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
-    {:ok, %{destdir: destdir}}
-  end
-
-  # FIXME: try to turn into setup (no fixture)
-  deffixture perf_test(contract) do
-    %{contract_addr: contract_addr} = contract
-    :ok = Performance.init(%{contract_addr: contract_addr})
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     {:ok, %{destdir: destdir}}
   end
@@ -45,22 +31,10 @@ defmodule OMG.PerformanceTest do
   test "Smoke test - run start_simple_perf and see if it doesn't crash", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
-    assert :ok = Performance.start_simple_perftest(ntxs, nsenders, %{destdir: destdir})
+    assert :ok = Performance.SimplePerftest.start(ntxs, nsenders, %{destdir: destdir})
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)
-  end
-
-  @tag fixtures: [:perf_test, :omg_child_chain]
-  @tag timeout: 120_000
-  test "Smoke test - run start_extended_perf and see if it doesn't crash", %{perf_test: {:ok, %{destdir: destdir}}} do
-    ntxs = 3000
-    senders = Generators.generate_users(2)
-
-    assert :ok = Performance.start_extended_perftest(ntxs, senders, %{destdir: destdir})
-
-    assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
-    smoke_test_statistics(Path.join(destdir, perf_result), ntxs * length(senders))
   end
 
   test "Smoke test - run start_simple_perf and see if it doesn't crash - with profiling", %{destdir: destdir} do
@@ -69,7 +43,7 @@ defmodule OMG.PerformanceTest do
 
     fprof_io =
       capture_io(fn ->
-        assert :ok = Performance.start_simple_perftest(ntxs, nsenders, %{destdir: destdir, profile: true})
+        assert :ok = Performance.SimplePerftest.start(ntxs, nsenders, %{destdir: destdir, profile: true})
       end)
 
     assert fprof_io =~ "Done!"
@@ -82,7 +56,7 @@ defmodule OMG.PerformanceTest do
   test "Smoke test - run start_simple_perf and see if it doesn't crash - overiding block creation", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
-    assert :ok = Performance.start_simple_perftest(ntxs, nsenders, %{destdir: destdir, block_every_ms: 3000})
+    assert :ok = Performance.SimplePerftest.start(ntxs, nsenders, %{destdir: destdir, block_every_ms: 3000})
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)
