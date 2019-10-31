@@ -176,7 +176,7 @@ defmodule OMG.Performance.SenderManager do
   # omg_performance is not part of the application deployment bundle. It's used only for testing.
   # sobelow_skip ["Traversal"]
   defp write_stats(%{destdir: destdir} = state) do
-    destfile = Path.join(destdir, "perf_result_#{:os.system_time(:seconds)}_stats.json")
+    destfile = Path.join(destdir, "perf_result_stats_#{:os.system_time(:seconds)}.json")
 
     stats = analyze(state)
     :ok = File.write(destfile, Jason.encode!(stats))

@@ -28,7 +28,7 @@ defmodule OMG.Performance.Runner do
     :fprof.apply(&OMG.Performance.Runner.run/1, [{ntx_to_send, utxos, opts, opts[:profile]}], procs: [:all])
     :fprof.profile()
 
-    destfile = Path.join(opts[:destdir], "perf_result_#{:os.system_time(:seconds)}_profiling")
+    destfile = Path.join(opts[:destdir], "perf_result_profiling_#{:os.system_time(:seconds)}")
 
     [callers: true, sort: :own, totals: true, details: true, dest: String.to_charlist(destfile)]
     |> :fprof.analyse()

@@ -26,15 +26,12 @@ defmodule OMG.PerformanceTest do
   @moduletag :integration
   @moduletag :common
 
-  deffixture destdir do
+  setup do
     {:ok, _} = Application.ensure_all_started(:briefly)
-
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
-
-    destdir
+    {:ok, %{destdir: destdir}}
   end
 
-  @tag fixtures: [:destdir]
   test "Smoke test - run start_simple_perf and see if it doesn't crash", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
@@ -44,7 +41,7 @@ defmodule OMG.PerformanceTest do
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)
   end
 
-  @tag fixtures: [:destdir, :contract, :omg_child_chain, :alice, :bob]
+  @tag fixtures: [:contract, :omg_child_chain, :alice, :bob]
   @tag timeout: 120_000
   test "Smoke test - run start_extended_perf and see if it doesn't crash", %{
     destdir: destdir,
@@ -62,7 +59,6 @@ defmodule OMG.PerformanceTest do
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * length(senders))
   end
 
-  @tag fixtures: [:destdir]
   test "Smoke test - run start_simple_perf and see if it doesn't crash - with profiling", %{destdir: destdir} do
     ntxs = 3
     nsenders = 2
@@ -74,23 +70,15 @@ defmodule OMG.PerformanceTest do
 
     assert fprof_io =~ "Done!"
 
-    assert ["perf_result" <> _, "perf_result" <> _] = result_files = File.ls!(destdir)
-
-    prof_results = Enum.find(result_files, fn name -> String.contains?(name, "profiling") end)
-    perf_results = Enum.find(result_files, fn name -> String.contains?(name, "stats") end)
-
-    assert String.contains?(File.read!(Path.join(destdir, prof_results)), "%% Analysis results:\n{")
-
+    assert ["perf_result" <> _ = prof_results, "perf_result" <> _ = perf_results] = Enum.sort(File.ls!(destdir))
+    smoke_test_profiling(Path.join(destdir, prof_results))
     smoke_test_statistics(Path.join(destdir, perf_results), ntxs * nsenders)
   end
 
-  @tag fixtures: [:destdir]
   test "Smoke test - run start_simple_perf and see if it doesn't crash - overiding block creation", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
     assert :ok = OMG.Performance.start_simple_perftest(ntxs, nsenders, %{destdir: destdir, block_every_ms: 3000})
-
-    assert ["perf_result" <> _] = File.ls!(destdir)
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)
@@ -105,5 +93,9 @@ defmodule OMG.PerformanceTest do
       |> Enum.sum()
 
     assert txs_count == expected_txs
+  end
+
+  defp smoke_test_profiling(path) do
+    String.contains?(File.read!(path), "%% Analysis results:\n{")
   end
 end

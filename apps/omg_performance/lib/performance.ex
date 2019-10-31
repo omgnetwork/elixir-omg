@@ -45,6 +45,8 @@ defmodule OMG.Performance do
   so it has been ignored. Otherwise it's easy to reproduce and report if anyone has the nerve
   (github.com/erlang/otp and the JIRA it points you to).
 
+  # FIXME this function was removed, re-edit the docs here
+
   ## start_standard_exit_perftest runs test that fetches standard exit data from the Watcher
   ## standard_exit_perftest is run on testnet make sure you followed instruction in `README.md` and `geth`,
   ## `omg_childchain` & `omg_watcher` are running.
@@ -61,7 +63,6 @@ defmodule OMG.Performance do
   use OMG.Utils.LoggerExt
 
   alias OMG.Crypto
-  alias OMG.Performance.ByzantineEvents
   alias OMG.TestHelper
   alias OMG.Utxo
   alias Support.Integration.DepositHelper
@@ -86,7 +87,7 @@ defmodule OMG.Performance do
   def start_simple_perftest(ntx_to_send, nspenders, opts \\ %{}) do
     _ =
       Logger.info(
-        "PerfTest number of spenders: #{inspect(nspenders)}, number of tx to send per spender: #{inspect(ntx_to_send)}."
+        "Number of spenders: #{inspect(nspenders)}, number of tx to send per spender: #{inspect(ntx_to_send)}."
       )
 
     url =
@@ -127,9 +128,8 @@ defmodule OMG.Performance do
   def start_extended_perftest(ntx_to_send, spenders, contract_addr, opts \\ %{}) do
     _ =
       Logger.info(
-        "PerfTest number of spenders: #{inspect(length(spenders))}, number of tx to send per spender: #{
-          inspect(ntx_to_send)
-        }."
+        "Number of spenders: #{inspect(length(spenders))}, number of tx to send per spender: #{inspect(ntx_to_send)}" <>
+          ", #{inspect(length(spenders) * length(ntx_to_send))} txs in total"
       )
 
     url =
@@ -151,42 +151,6 @@ defmodule OMG.Performance do
     run({ntx_to_send, utxos, opts, false})
 
     cleanup_extended_perftest(started_apps)
-  end
-
-  @doc """
-  Starts with extended perftest to populate network with transactions.
-  Then with a given `exit_users` start fetching exit data from Watcher.
-  """
-  # FIXME specs
-  def start_standard_exit_perftest(spenders, exiting_users, contract_addr, opts \\ %{}) do
-    # in case number of txs to send wasn't set, provides defaults
-    spenders_count = length(spenders)
-    ntx_to_send = 10 * spenders_count
-
-    opts =
-      opts
-      |> Map.put_new(:spenders_count, spenders_count)
-      |> Map.put_new(:ntx_to_send, ntx_to_send)
-      |> Map.put_new(:exits_per_user, ntx_to_send * spenders_count)
-
-    :ok = start_extended_perftest(opts.ntx_to_send, spenders, contract_addr, opts)
-
-    # wait before asking watcher about exit data
-    ByzantineEvents.watcher_synchronize()
-
-    _ =
-      Logger.info(
-        "Std exit perftest with #{spenders_count * ntx_to_send} txs in the network, Watcher synced, fetching #{
-          opts.exits_per_user
-        } exit data with #{exiting_users} users."
-      )
-
-    exit_positions = setup_standard_exit_perftest(opts)
-
-    # FIXME: these aren't statistics
-    statistics = ByzantineEvents.get_many_standard_exits(exit_positions)
-
-    %{opts: opts, statistics: statistics}
   end
 
   # Hackney is http-client httpoison's dependency.
@@ -230,9 +194,7 @@ defmodule OMG.Performance do
   @spec setup_extended_perftest(map(), Crypto.address_t()) :: {:ok, list}
   defp setup_extended_perftest(opts, contract_addr) do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
-
-    # hackney is http-client httpoison's dependency
-    started_apps = ensure_all_started([:hackney])
+    {:ok, _} = Application.ensure_all_started(:hackney)
 
     Application.put_env(:ethereumex, :request_timeout, :infinity)
     Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)
@@ -240,7 +202,7 @@ defmodule OMG.Performance do
 
     Application.put_env(:omg_eth, :contract_addr, OMG.Eth.RootChain.contract_map_to_hex(contract_addr))
 
-    {:ok, started_apps}
+    {:ok, []}
   end
 
   @spec cleanup_simple_perftest(list(), pid) :: :ok
@@ -248,6 +210,7 @@ defmodule OMG.Performance do
     :ok = Supervisor.stop(simple_perftest_chain)
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
 
+    # FIXME at the very end, try removing this line and removing all the many ensure_all_starteds on briefly. WTF
     _ = Application.stop(:briefly)
 
     Application.put_env(:omg_db, :path, nil)
@@ -258,28 +221,6 @@ defmodule OMG.Performance do
   defp cleanup_extended_perftest(started_apps) do
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     :ok
-  end
-
-  @spec setup_standard_exit_perftest(map()) :: map()
-  defp setup_standard_exit_perftest(opts) do
-    exit_for = Map.get(opts, :exit_for)
-
-    utxos =
-      case exit_for do
-        %{addr: addr} ->
-          addr
-          |> ByzantineEvents.get_exitable_utxos()
-          |> Enum.map(& &1.utxo_pos)
-          |> Enum.shuffle()
-          |> Enum.take(opts.exits_per_user)
-
-        nil ->
-          utxo_positions_stream = ByzantineEvents.Generators.stream_utxo_positions()
-          Enum.take(utxo_positions_stream, opts.exits_per_user)
-      end
-
-    _ = Logger.debug("Get #{length(utxos)} utxos for exit, for user: #{Map.get(exit_for || %{}, :addr, "<no user>")}")
-    utxos
   end
 
   @spec run({pos_integer(), list(), %{atom => any()}, boolean()}) :: :ok
