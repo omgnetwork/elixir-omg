@@ -213,7 +213,7 @@ defmodule OMG.Performance.SenderServer do
         oindex: oindex,
         amount: amount
       },
-      child_chain_url: Map.get(opts, :child_chain_url),
+      child_chain_url: Application.fetch_env!(:omg_watcher, :child_chain_url),
       randomized: Map.get(opts, :randomized, true)
     }
   end

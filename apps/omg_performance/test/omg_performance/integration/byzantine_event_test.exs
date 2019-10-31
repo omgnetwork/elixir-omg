@@ -25,17 +25,18 @@ defmodule OMG.Performance.ByzantineEventsTest do
   @moduletag :integration
   @moduletag timeout: 180_000
 
-  setup do
-    {:ok, _} = Application.ensure_all_started(:briefly)
+  # FIXME: try to turn into setup (no fixture)
+  deffixture perf_test(contract) do
+    %{contract_addr: contract_addr} = contract
+    :ok = Performance.init(%{contract_addr: contract_addr})
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     {:ok, %{destdir: destdir}}
   end
 
-  @tag fixtures: [:contract, :child_chain, :omg_watcher]
-  test "can provide timing of response when asking for exit data",
-       %{contract: %{contract_addr: contract_addr}, destdir: destdir} do
+  @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
+  test "can provide timing of response when asking for exit data", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
-    :ok = Performance.start_extended_perftest(100, spenders, contract_addr, %{randomized: false, destdir: destdir})
+    :ok = Performance.start_extended_perftest(100, spenders, %{randomized: false, destdir: destdir})
     :ok = ByzantineEvents.watcher_synchronize()
     alice = Enum.at(spenders, 0)
 
@@ -45,11 +46,10 @@ defmodule OMG.Performance.ByzantineEventsTest do
     |> ByzantineEvents.get_many_standard_exits()
   end
 
-  @tag fixtures: [:contract, :child_chain, :omg_watcher]
-  test "can provide timing of status.get under many valid SEs",
-       %{contract: %{contract_addr: contract_addr}, destdir: destdir} do
+  @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
+  test "can provide timing of status.get under many valid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
-    :ok = Performance.start_extended_perftest(100, spenders, contract_addr, %{randomized: false, destdir: destdir})
+    :ok = Performance.start_extended_perftest(100, spenders, %{randomized: false, destdir: destdir})
     :ok = ByzantineEvents.watcher_synchronize()
     alice = Enum.at(spenders, 0)
 
@@ -65,11 +65,10 @@ defmodule OMG.Performance.ByzantineEventsTest do
     assert [] = ByzantineEvents.get_byzantine_events("invalid_exit")
   end
 
-  @tag fixtures: [:contract, :child_chain, :omg_watcher]
-  test "can provide timing of status.get under many valid/invalid SEs",
-       %{contract: %{contract_addr: contract_addr}, destdir: destdir} do
+  @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
+  test "can provide timing of status.get under many valid/invalid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
-    :ok = Performance.start_extended_perftest(100, spenders, contract_addr, %{randomized: true, destdir: destdir})
+    :ok = Performance.start_extended_perftest(100, spenders, %{randomized: true, destdir: destdir})
     :ok = ByzantineEvents.watcher_synchronize()
     alice = Enum.at(spenders, 0)
 
@@ -83,11 +82,10 @@ defmodule OMG.Performance.ByzantineEventsTest do
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_exit")) > 10
   end
 
-  @tag fixtures: [:contract, :child_chain, :omg_watcher]
-  test "can provide timing of challenging",
-       %{contract: %{contract_addr: contract_addr}, destdir: destdir} do
+  @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
+  test "can provide timing of challenging", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
-    :ok = Performance.start_extended_perftest(100, spenders, contract_addr, %{randomized: true, destdir: destdir})
+    :ok = Performance.start_extended_perftest(100, spenders, %{randomized: true, destdir: destdir})
     :ok = ByzantineEvents.watcher_synchronize()
     alice = Enum.at(spenders, 0)
 
@@ -105,11 +103,10 @@ defmodule OMG.Performance.ByzantineEventsTest do
     assert [_ | _] = ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
   end
 
-  @tag fixtures: [:contract, :child_chain, :omg_watcher]
-  test "can provide timing of status.get under many challenged SEs",
-       %{contract: %{contract_addr: contract_addr}, destdir: destdir} do
+  @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
+  test "can provide timing of status.get under many challenged SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
-    :ok = Performance.start_extended_perftest(100, spenders, contract_addr, %{randomized: true, destdir: destdir})
+    :ok = Performance.start_extended_perftest(100, spenders, %{randomized: true, destdir: destdir})
     :ok = ByzantineEvents.watcher_synchronize()
     alice = Enum.at(spenders, 0)
 

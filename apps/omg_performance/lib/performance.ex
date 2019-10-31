@@ -71,6 +71,42 @@ defmodule OMG.Performance do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
+  # FIXME docs
+  # FIXME map to keyword for opts everywhere
+  def init(opts \\ %{}) do
+    {:ok, _} = Application.ensure_all_started(:briefly)
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
+    {:ok, _} = Application.ensure_all_started(:hackney)
+    {:ok, _} = Application.ensure_all_started(:cowboy)
+
+    child_chain_url =
+      System.get_env("CHILD_CHAIN_URL") || Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
+
+    ethereum_rpc_url =
+      System.get_env("ETHEREUM_RPC_URL") || Application.get_env(:ethereumex, :url, "http://localhost:8545")
+
+    defaults = %{
+      ethereum_rpc_url: ethereum_rpc_url,
+      child_chain_url: child_chain_url,
+      contract_addr: nil
+    }
+
+    opts = Map.merge(defaults, opts)
+
+    :ok = Application.put_env(:ethereumex, :request_timeout, :infinity)
+    :ok = Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)
+    :ok = Application.put_env(:ethereumex, :url, opts[:ethereum_rpc_url])
+
+    :ok =
+      if opts[:contract_addr],
+        do: Application.put_env(:omg_eth, :contract_addr, OMG.Eth.RootChain.contract_map_to_hex(opts[:contract_addr])),
+        else: :ok
+
+    :ok = Application.put_env(:omg_watcher, :child_chain_url, opts[:child_chain_url])
+
+    :ok
+  end
+
   @doc """
   start_simple_perf runs test with {ntx_to_send} tx for each {nspenders} senders with given options.
 
@@ -90,10 +126,7 @@ defmodule OMG.Performance do
         "Number of spenders: #{inspect(nspenders)}, number of tx to send per spender: #{inspect(ntx_to_send)}."
       )
 
-    url =
-      System.get_env("CHILD_CHAIN_URL") || Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
-
-    defaults = %{destdir: ".", profile: false, block_every_ms: 2000, child_chain_url: url}
+    defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
     opts = Map.merge(defaults, opts)
 
     {:ok, started_apps, simple_perftest_chain} = setup_simple_perftest(opts)
@@ -122,35 +155,23 @@ defmodule OMG.Performance do
   @spec start_extended_perftest(
           pos_integer(),
           list(TestHelper.entity()),
-          Crypto.address_t(),
           map()
         ) :: :ok
-  def start_extended_perftest(ntx_to_send, spenders, contract_addr, opts \\ %{}) do
+  def start_extended_perftest(ntx_to_send, spenders, opts \\ %{}) do
     _ =
       Logger.info(
         "Number of spenders: #{inspect(length(spenders))}, number of tx to send per spender: #{inspect(ntx_to_send)}" <>
           ", #{inspect(length(spenders) * length(ntx_to_send))} txs in total"
       )
 
-    url =
-      System.get_env("CHILD_CHAIN_URL") || Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
-
-    defaults = %{
-      destdir: ".",
-      geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545",
-      child_chain_url: url
-    }
+    defaults = %{destdir: "."}
 
     opts = Map.merge(defaults, opts)
-
-    {:ok, started_apps} = setup_extended_perftest(opts, contract_addr)
 
     utxos = create_utxos_for_extended_perftest(spenders, ntx_to_send)
 
     # FIXME: the way the profile option is handled is super messy - clean this
     run({ntx_to_send, utxos, opts, false})
-
-    cleanup_extended_perftest(started_apps)
   end
 
   # Hackney is http-client httpoison's dependency.
@@ -162,14 +183,13 @@ defmodule OMG.Performance do
 
   @spec setup_simple_perftest(map()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
-    {:ok, _} = Application.ensure_all_started(:briefly)
-    {:ok, dbdir} = Briefly.create(directory: true, prefix: "rocksdb")
+    {:ok, dbdir} = Briefly.create(directory: true, prefix: "perftest_db")
     Application.put_env(:omg_db, :path, dbdir, persistent: true)
     _ = Logger.info("Perftest rocksdb path: #{inspect(dbdir)}")
 
     :ok = OMG.DB.init()
 
-    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_bus])
+    started_apps = ensure_all_started([:omg_db, :omg_bus])
     {:ok, simple_perftest_chain} = start_simple_perftest_chain(opts)
 
     {:ok, started_apps, simple_perftest_chain}
@@ -191,35 +211,15 @@ defmodule OMG.Performance do
     Supervisor.start_link(children, strategy: :one_for_one)
   end
 
-  @spec setup_extended_perftest(map(), Crypto.address_t()) :: {:ok, list}
-  defp setup_extended_perftest(opts, contract_addr) do
-    {:ok, _} = Application.ensure_all_started(:ethereumex)
-    {:ok, _} = Application.ensure_all_started(:hackney)
-
-    Application.put_env(:ethereumex, :request_timeout, :infinity)
-    Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)
-    Application.put_env(:ethereumex, :url, opts[:geth])
-
-    Application.put_env(:omg_eth, :contract_addr, OMG.Eth.RootChain.contract_map_to_hex(contract_addr))
-
-    {:ok, []}
-  end
-
   @spec cleanup_simple_perftest(list(), pid) :: :ok
   defp cleanup_simple_perftest(started_apps, simple_perftest_chain) do
     :ok = Supervisor.stop(simple_perftest_chain)
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
 
-    # FIXME at the very end, try removing this line and removing all the many ensure_all_starteds on briefly. WTF
-    _ = Application.stop(:briefly)
+    # FIXME at the very end, try removing all the many ensure_all_starteds on briefly. WTF
+    # _ = Application.stop(:briefly)
 
     Application.put_env(:omg_db, :path, nil)
-    :ok
-  end
-
-  @spec cleanup_extended_perftest([]) :: :ok
-  defp cleanup_extended_perftest(started_apps) do
-    started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     :ok
   end
 
