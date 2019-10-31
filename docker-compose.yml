@@ -15,17 +15,17 @@ services:
       timeout: 3s
       retries: 5
 
-  plasma-deployer:
+  plasma-contracts:
     build:
       context: .
-      dockerfile: plasma-contract.Dockerfile
+      dockerfile: Dockerfile.plasma_contracts
     command:
       - /bin/sh
       - -c
       - |
           apk add --update curl
           cd /home/node/plasma-contracts/plasma_framework
-          npx truffle migrate --network infura
+          npx truffle migrate --network remote
           cd build
           echo '{"contracts":' > db.json && cat outputs.json >> db.json && echo '}' >> db.json
           npx json-server -w db.json -p 8000 -H 0.0.0.0
@@ -38,15 +38,14 @@ services:
       - DEPLOYER_PRIVATEKEY=d885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce
       - MAINTAINER_PRIVATEKEY=6f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807
       - AUTHORITY_PRIVATEKEY=7f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807
-      - INFURA_URL=http://geth:8545
-      - INFURA_API_KEY=
+      - REMOTE_URL=http://geth:8545
       - MIN_EXIT_PERIOD=20
     depends_on:
       geth:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: curl plasma-deployer:8000/contracts
+      test: curl plasma-contracts:8000/contracts
       interval: 80s
       timeout: 15s
       retries: 60
@@ -81,7 +80,7 @@ services:
     command: "full_local"
     environment:
       - EXIT_PERIOD_SECONDS=86400
-      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000/contracts
+      - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
@@ -103,7 +102,7 @@ services:
       timeout: 1s
       retries: 5
     depends_on:
-      plasma-deployer:
+      plasma-contracts:
         condition: service_healthy
       geth:
         condition: service_healthy
@@ -112,7 +111,7 @@ services:
     image: omisego/watcher:latest
     command: "full_local"
     environment:
-      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000/contracts
+      - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
@@ -135,7 +134,7 @@ services:
       timeout: 1s
       retries: 5
     depends_on:
-      plasma-deployer:
+      plasma-contracts:
         condition: service_healthy
       childchain:
         condition: service_healthy

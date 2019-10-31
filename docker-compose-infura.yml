@@ -1,19 +1,13 @@
-version: "2.1"
+version: "2.3"
 services:
-  plasma-deployer:
+  plasma-contracts:
     environment:
-      - CLIENT_TYPE=infura
-      - INFURA_URL=https://rinkeby.infura.io/v3
-      - USE_EXISTING_AUTHORITY_ADDRESS=true
-      - ETH_CLIENT_HOST=https://rinkeby.infura.io/v3/<infura_api_key>
-      - INFURA_API_KEY=<infura_api_key>
-      - DEPLOYER_ADDRESS=<deployer_address>
-      - AUTHORITY_ADDRESS=<authority_address>
+      - REMOTE_URL=https://rinkeby.infura.io/v3/<infura_api_key>
       - DEPLOYER_PRIVATEKEY=<deployer_privkey>
       - MAINTAINER_PRIVATEKEY=<maintainer_privkey>
       - AUTHORITY_PRIVATEKEY=<authority_privkey>
-    # Takes roughly 10 minutes to deploy all contracts, so check every minute up to 15 minutes
     healthcheck:
+      # Takes roughly 10 minutes to deploy all contracts, so check every minute up to 15 minutes
       interval: 60s
       timeout: 10s
       retries: 15
