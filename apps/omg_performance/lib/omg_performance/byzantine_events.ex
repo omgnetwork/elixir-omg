@@ -75,34 +75,15 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   def start_many_exits(exit_datas, owner_address) do
     exit_datas
-    |> Enum.map(fn composed_exit ->
-      result =
-        Support.RootChainHelper.start_exit(
-          composed_exit.utxo_pos,
-          composed_exit.txbytes,
-          composed_exit.proof,
-          owner_address
-        )
-
-      # FIXME: nicen
-      {:ok, _} = Task.start(fn -> result |> Support.DevHelper.transact_sync!() end)
-      result
+    |> map_contract_transaction(fn composed_exit ->
+      Support.RootChainHelper.start_exit(
+        composed_exit.utxo_pos,
+        composed_exit.txbytes,
+        composed_exit.proof,
+        owner_address
+      )
     end)
-    |> List.last()
-    |> Support.DevHelper.transact_sync!()
   end
-
-  def get_byzantine_events(event_name) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-    {:ok, status_response} = WatcherClient.get_status(watcher_url)
-
-    status_response
-    |> Access.get(:byzantine_events)
-    |> Enum.filter(&(&1["event"] == event_name))
-    |> postprocess_byzantine_events(event_name)
-  end
-
-  defp postprocess_byzantine_events(events, "invalid_exit"), do: Enum.map(events, & &1["details"]["utxo_pos"])
 
   @doc """
   For given utxo positions shuffle them and ask the watcher for challenge data. All positions must be invalid exits
@@ -118,30 +99,23 @@ defmodule OMG.Performance.ByzantineEvents do
 
   def challenge_many_exits(challenge_responses, challenger_address) do
     challenge_responses
-    |> Enum.map(fn challenge ->
-      result =
-        Support.RootChainHelper.challenge_exit(
-          challenge.exit_id,
-          challenge.exiting_tx,
-          challenge.txbytes,
-          challenge.input_index,
-          challenge.sig,
-          challenger_address
-        )
-
-      # FIXME: nicen dry etc
-      {:ok, _} = Task.start(fn -> result |> Support.DevHelper.transact_sync!() end)
-      result
+    |> map_contract_transaction(fn challenge ->
+      Support.RootChainHelper.challenge_exit(
+        challenge.exit_id,
+        challenge.exiting_tx,
+        challenge.txbytes,
+        challenge.input_index,
+        challenge.sig,
+        challenger_address
+      )
     end)
-    |> List.last()
-    |> Support.DevHelper.transact_sync!()
   end
 
   @doc """
   Fetches utxo positions for a given user's address.
 
   Options:
-    - :take - if not nil, will limit to this much results
+    - :take - if not nil, will limit to this many results
   """
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
@@ -163,7 +137,31 @@ defmodule OMG.Performance.ByzantineEvents do
     _ = Logger.info("Watcher synchronized")
   end
 
+  def get_byzantine_events(event_name) do
+    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
+    {:ok, status_response} = WatcherClient.get_status(watcher_url)
+
+    status_response
+    |> Access.get(:byzantine_events)
+    |> Enum.filter(&(&1["event"] == event_name))
+    |> postprocess_byzantine_events(event_name)
+  end
+
+  defp postprocess_byzantine_events(events, "invalid_exit"), do: Enum.map(events, & &1["details"]["utxo_pos"])
+
   defp only_successes(responses), do: Enum.map(responses, fn {:ok, response} -> response end)
+
+  # this allows one to map a contract-transacting function over a collection nicely.
+  # It initiates all the transactions concurrently. Then it waits on all of them to mine successfully.
+  # Returns the last receipt result, so you can synchronize on the block number returned (and the entire bundle of txs)
+  defp map_contract_transaction(enumberable, transaction_function) do
+    enumberable
+    |> Enum.map(transaction_function)
+    # NOTE: infinity doesn't work, hence the large number
+    |> Task.async_stream(&Support.DevHelper.transact_sync!/1, max_concurrency: 10_000)
+    |> Enum.map(fn {:ok, result} -> result end)
+    |> List.last()
+  end
 
   # This function is prepared to be called in `WaitFor.repeat_until_ok`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block

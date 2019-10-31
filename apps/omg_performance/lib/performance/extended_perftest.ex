@@ -66,12 +66,11 @@ defmodule OMG.Performance.ExtendedPerftest do
   defp make_deposits(value, accounts) do
     depositing_f = fn account ->
       deposit_blknum = DepositHelper.deposit_to_child_chain(account.addr, value)
-
       {:ok, account, deposit_blknum, value}
     end
 
     accounts
-    |> Enum.map(&Task.async(fn -> depositing_f.(&1) end))
-    |> Enum.map(fn task -> Task.await(task, :infinity) end)
+    |> Task.async_stream(depositing_f)
+    |> Enum.map(fn {:ok, result} -> result end)
   end
 end

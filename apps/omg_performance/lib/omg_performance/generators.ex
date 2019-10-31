@@ -30,21 +30,11 @@ defmodule OMG.Performance.Generators do
   """
   @spec generate_users(non_neg_integer, [Keyword.t()]) :: [OMG.TestHelper.entity()]
   def generate_users(size, opts \\ []) do
-    # FIXME: use task async streams
     # FIXME: document :faucet and :initial_funds based on demo_03 and remove this demo (doc here, in tests and in
     #        dev helpers)
-    async_generate_user = fn _ -> Task.async(fn -> generate_user(opts) end) end
-
-    async_generate_users_chunk = fn chunk ->
-      chunk
-      |> Enum.map(async_generate_user)
-      |> Enum.map(&Task.await(&1, :infinity))
-    end
-
     1..size
-    |> Enum.chunk_every(10)
-    |> Enum.map(async_generate_users_chunk)
-    |> List.flatten()
+    |> Task.async_stream(fn _ -> generate_user(opts) end)
+    |> Enum.map(fn {:ok, result} -> result end)
   end
 
   @doc """
@@ -67,7 +57,7 @@ defmodule OMG.Performance.Generators do
 
   Options:
     - :use_blocks - if not nil, will use this as the stream of blocks, otherwise streams from child chain rpc
-    - :take - if not nil, will limit to this much results
+    - :take - if not nil, will limit to this many results
   """
   @spec stream_transactions([OMG.Block.t()]) :: [binary()]
   def stream_transactions(opts \\ []) do
@@ -85,7 +75,7 @@ defmodule OMG.Performance.Generators do
 
   Options:
     - :use_blocks - if not nil, will use this as the stream of blocks, otherwise streams from child chain rpc
-    - :take - if not nil, will limit to this much results
+    - :take - if not nil, will limit to this many results
   """
   @spec stream_utxo_positions(keyword()) :: [non_neg_integer()]
   def stream_utxo_positions(opts \\ []) do
