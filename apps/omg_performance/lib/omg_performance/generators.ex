@@ -22,7 +22,6 @@ defmodule OMG.Performance.Generators do
   alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
   alias Support.DevHelper
-  alias Support.WaitFor
 
   require Utxo
 
@@ -65,25 +64,37 @@ defmodule OMG.Performance.Generators do
   @doc """
   Streams rlp-encoded transactions from a given blocks.
   Blocks are streamed form child chain rpc if not provided.
+
+  Options:
+    - :use_blocks - if not nil, will use this as the stream of blocks, otherwise streams from child chain rpc
+    - :take - if not nil, will limit to this much results
   """
   @spec stream_transactions([OMG.Block.t()]) :: [binary()]
-  def stream_transactions(blocks \\ nil) do
-    blocks
-    |> if(do: blocks, else: stream_blocks())
-    |> Stream.map(& &1.transactions)
-    |> Stream.concat()
+  def stream_transactions(opts \\ []) do
+    transactions =
+      opts[:use_blocks]
+      |> if(do: opts[:use_blocks], else: stream_blocks())
+      |> Stream.flat_map(& &1.transactions)
+
+    if opts[:take], do: Enum.take(transactions, opts[:take]), else: transactions
   end
 
   @doc """
   Streams encoded output position from all transactions from a given blocks.
   Blocks are streamed form child chain rpc if not provided.
+
+  Options:
+    - :use_blocks - if not nil, will use this as the stream of blocks, otherwise streams from child chain rpc
+    - :take - if not nil, will limit to this much results
   """
-  @spec stream_utxo_positions([OMG.Block.t()]) :: [non_neg_integer()]
-  def stream_utxo_positions(blocks \\ nil, opts \\ []) do
-    blocks
-    |> if(do: blocks, else: stream_blocks())
-    |> Stream.map(&to_utxo_position_list(&1, opts))
-    |> Stream.concat()
+  @spec stream_utxo_positions(keyword()) :: [non_neg_integer()]
+  def stream_utxo_positions(opts \\ []) do
+    utxo_positions =
+      opts[:use_blocks]
+      |> if(do: opts[:use_blocks], else: stream_blocks())
+      |> Stream.flat_map(&to_utxo_position_list(&1, opts))
+
+    if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
   end
 
   @doc """
@@ -114,10 +125,9 @@ defmodule OMG.Performance.Generators do
   defp to_utxo_position_list(block, opts) do
     block.transactions
     |> Stream.with_index()
-    |> Stream.map(fn {tx, index} ->
+    |> Stream.flat_map(fn {tx, index} ->
       transaction_to_output_positions(tx, block.number, index, opts)
     end)
-    |> Stream.concat()
   end
 
   defp transaction_to_output_positions(tx, blknum, txindex, opts) do

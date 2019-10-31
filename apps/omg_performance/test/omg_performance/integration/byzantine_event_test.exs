@@ -40,8 +40,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     :ok = ByzantineEvents.watcher_synchronize()
     alice = Enum.at(spenders, 0)
 
-    ByzantineEvents.get_exitable_utxos(alice.addr)
-    |> Enum.take(20)
+    ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
     |> ByzantineEvents.get_many_standard_exits()
   end
 
@@ -52,10 +51,8 @@ defmodule OMG.Performance.ByzantineEventsTest do
     :ok = ByzantineEvents.watcher_synchronize()
     alice = Enum.at(spenders, 0)
 
-    # FIXME: maybe let's do the &1.utxo_pos for get_exitable_utxos right away (and also allow to Enum.take there maybe?)
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
-      ByzantineEvents.get_exitable_utxos(alice.addr)
-      |> Enum.take(20)
+      ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
@@ -71,8 +68,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     alice = Enum.at(spenders, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
-      Generators.stream_utxo_positions(nil, owned_by: alice.addr)
-      |> Enum.take(20)
+      Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
@@ -88,17 +84,18 @@ defmodule OMG.Performance.ByzantineEventsTest do
     alice = Enum.at(spenders, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
-      Generators.stream_utxo_positions(nil, owned_by: alice.addr)
-      |> Enum.take(20)
+      Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
 
-    utxos_to_challenge = ByzantineEvents.get_byzantine_events("invalid_exit") |> Enum.map(& &1["details"]["utxo_pos"])
+    utxos_to_challenge = ByzantineEvents.get_byzantine_events("invalid_exit")
 
     # assert that we can call this testing function reliably
-    # FIXME: expand the assertion somehow? introduce `:ok` responses?
-    assert [_ | _] = ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
+    assert challenges = ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
+
+    assert Enum.count(challenges) == Enum.count(utxos_to_challenge)
+    assert Enum.count(utxos_to_challenge) > 10
   end
 
   @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
@@ -109,8 +106,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     alice = Enum.at(spenders, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
-      Generators.stream_utxo_positions(nil, owned_by: alice.addr)
-      |> Enum.take(20)
+      Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
@@ -118,7 +114,6 @@ defmodule OMG.Performance.ByzantineEventsTest do
     # assert we can process the many challenges and get status then
     {:ok, %{"status" => "0x1", "blockNumber" => last_challenge_height}} =
       ByzantineEvents.get_byzantine_events("invalid_exit")
-      |> Enum.map(& &1["details"]["utxo_pos"])
       |> ByzantineEvents.get_many_se_challenges()
       |> ByzantineEvents.challenge_many_exits(alice.addr)
 

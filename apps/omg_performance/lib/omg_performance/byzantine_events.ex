@@ -101,7 +101,10 @@ defmodule OMG.Performance.ByzantineEvents do
     status_response
     |> Access.get(:byzantine_events)
     |> Enum.filter(&(&1["event"] == event_name))
+    |> postprocess_byzantine_events(event_name)
   end
+
+  defp postprocess_byzantine_events(events, "invalid_exit"), do: Enum.map(events, & &1["details"]["utxo_pos"])
 
   @doc """
   For given utxo positions shuffle them and ask the watcher for challenge data. All positions must be invalid exits
@@ -139,15 +142,17 @@ defmodule OMG.Performance.ByzantineEvents do
   end
 
   @doc """
-  Fetches utxo positions for a given user's address
-  """
-  @spec get_exitable_utxos(binary()) :: [non_neg_integer()]
-  def get_exitable_utxos(entities)
+  Fetches utxo positions for a given user's address.
 
-  def get_exitable_utxos(addr) when is_binary(addr) do
+  Options:
+    - :take - if not nil, will limit to this much results
+  """
+  def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
     {:ok, utxos} = WatcherClient.get_exitable_utxos(addr, watcher_url)
-    Enum.map(utxos, & &1.utxo_pos)
+    utxo_positions = Enum.map(utxos, & &1.utxo_pos)
+
+    if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
   end
 
   # FIXME: nicen the optional arguments here
