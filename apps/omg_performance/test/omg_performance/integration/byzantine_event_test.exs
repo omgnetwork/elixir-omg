@@ -41,7 +41,6 @@ defmodule OMG.Performance.ByzantineEventsTest do
     alice = Enum.at(spenders, 0)
 
     ByzantineEvents.get_exitable_utxos(alice.addr)
-    |> Enum.map(& &1.utxo_pos)
     |> Enum.take(20)
     |> ByzantineEvents.get_many_standard_exits()
   end
@@ -56,7 +55,6 @@ defmodule OMG.Performance.ByzantineEventsTest do
     # FIXME: maybe let's do the &1.utxo_pos for get_exitable_utxos right away (and also allow to Enum.take there maybe?)
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       ByzantineEvents.get_exitable_utxos(alice.addr)
-      |> Enum.map(& &1.utxo_pos)
       |> Enum.take(20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 

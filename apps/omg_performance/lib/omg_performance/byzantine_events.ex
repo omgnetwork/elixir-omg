@@ -135,20 +135,14 @@ defmodule OMG.Performance.ByzantineEvents do
   end
 
   @doc """
-  Fetches utxo positions for a given users list.
+  Fetches utxo positions for a given user's address
   """
-  @spec get_exitable_utxos([%{addr: binary()}], watcher_url: binary()) :: [non_neg_integer()]
+  @spec get_exitable_utxos(binary(), watcher_url: binary()) :: [non_neg_integer()]
   def get_exitable_utxos(entities, watcher_url \\ @watcher_url)
 
-  def get_exitable_utxos(users, watcher_url) when is_list(users),
-    do: Enum.map(users, &get_exitable_utxos(&1, watcher_url)) |> Enum.concat()
-
-  def get_exitable_utxos(%{addr: addr}, watcher_url) when is_binary(addr),
-    do: get_exitable_utxos(addr, watcher_url)
-
-  def get_exitable_utxos(addr, watcher_url) do
+  def get_exitable_utxos(addr, watcher_url) when is_binary(addr) do
     {:ok, utxos} = WatcherClient.get_exitable_utxos(addr, watcher_url)
-    utxos
+    Enum.map(utxos, & &1.utxo_pos)
   end
 
   # FIXME: nicen the optional arguments here
