@@ -20,7 +20,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
   alias OMG.Performance
   alias OMG.Performance.ByzantineEvents
-  alias OMG.Performance.ByzantineEvents.Generators
+  alias OMG.Performance.Generators
 
   @moduletag :integration
   @moduletag timeout: 180_000
@@ -73,7 +73,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     alice = Enum.at(spenders, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
-      ByzantineEvents.Generators.stream_utxo_positions(nil, owned_by: alice.addr)
+      Generators.stream_utxo_positions(nil, owned_by: alice.addr)
       |> Enum.take(20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 
@@ -90,7 +90,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     alice = Enum.at(spenders, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
-      ByzantineEvents.Generators.stream_utxo_positions(nil, owned_by: alice.addr)
+      Generators.stream_utxo_positions(nil, owned_by: alice.addr)
       |> Enum.take(20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 
@@ -111,7 +111,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     alice = Enum.at(spenders, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
-      ByzantineEvents.Generators.stream_utxo_positions(nil, owned_by: alice.addr)
+      Generators.stream_utxo_positions(nil, owned_by: alice.addr)
       |> Enum.take(20)
       |> ByzantineEvents.start_many_exits(alice.addr)
 

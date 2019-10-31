@@ -25,7 +25,7 @@ defmodule OMG.Performance.ByzantineEvents do
   ```
   mix run --no-start -e \
     '
-      OMG.Performance.ByzantineEvents.Generators.stream_utxo_positions() |>
+      OMG.Performance.Generators.stream_utxo_positions() |>
       Enum.take(10) |> OMG.Performance.ByzantineEvents.get_many_standard_exits(3)
     '
   ```

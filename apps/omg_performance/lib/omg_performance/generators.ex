@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.ByzantineEvents.Generators do
+defmodule OMG.Performance.Generators do
   @moduledoc """
-  Provides helper functions to generate spenders for perftest,
-  Streams transactions, utxo positions and blocks using data from Watcher.
+  Provides helper functions to generate bundles of various useful entities for performance tests
   """
 
   alias OMG.Eth.RootChain
@@ -27,6 +26,8 @@ defmodule OMG.Performance.ByzantineEvents.Generators do
 
   require Utxo
 
+  # FIXME: get rid of this and the overidability. Just read this from the env in runtime and done. This would make
+  #        overides of the url from system env break, geez...
   @child_chain_url Application.get_env(:omg_watcher, :child_chain_url)
 
   @doc """

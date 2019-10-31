@@ -22,7 +22,7 @@ defmodule OMG.PerformanceTest do
   use OMG.Utils.LoggerExt
 
   alias OMG.Performance
-  alias Support.DevHelper
+  alias OMG.Performance.Generators
 
   @moduletag :integration
   @moduletag :common
@@ -51,13 +51,11 @@ defmodule OMG.PerformanceTest do
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)
   end
 
-  @tag fixtures: [:perf_test, :omg_child_chain, :alice, :bob]
+  @tag fixtures: [:perf_test, :omg_child_chain]
   @tag timeout: 120_000
-  test "Smoke test - run start_extended_perf and see if it doesn't crash",
-       %{perf_test: {:ok, %{destdir: destdir}}, alice: alice, bob: bob} do
+  test "Smoke test - run start_extended_perf and see if it doesn't crash", %{perf_test: {:ok, %{destdir: destdir}}} do
     ntxs = 3000
-    senders = [alice, bob]
-    Enum.each(senders, &DevHelper.import_unlock_fund/1)
+    senders = Generators.generate_users(2)
 
     assert :ok = Performance.start_extended_perftest(ntxs, senders, %{destdir: destdir})
 
