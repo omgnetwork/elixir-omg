@@ -53,6 +53,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
+      |> ByzantineEvents.get_many_standard_exits()
       |> ByzantineEvents.start_many_exits(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
@@ -69,6 +70,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
+      |> ByzantineEvents.get_many_standard_exits()
       |> ByzantineEvents.start_many_exits(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
@@ -85,6 +87,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
+      |> ByzantineEvents.get_many_standard_exits()
       |> ByzantineEvents.start_many_exits(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
@@ -107,6 +110,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
+      |> ByzantineEvents.get_many_standard_exits()
       |> ByzantineEvents.start_many_exits(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(last_exit_height)

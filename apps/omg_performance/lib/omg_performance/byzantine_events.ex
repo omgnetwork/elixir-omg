@@ -73,10 +73,8 @@ defmodule OMG.Performance.ByzantineEvents do
   @doc """
   # FIXME do doc here
   """
-  def start_many_exits(exit_positions, owner_address) do
-    # FIXME: tidy this: do we provide it from the outside as with challenges?
-    exit_positions
-    |> get_many_standard_exits()
+  def start_many_exits(exit_datas, owner_address) do
+    exit_datas
     |> Enum.map(fn composed_exit ->
       result =
         Support.RootChainHelper.start_exit(
@@ -119,8 +117,6 @@ defmodule OMG.Performance.ByzantineEvents do
   end
 
   def challenge_many_exits(challenge_responses, challenger_address) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-
     challenge_responses
     |> Enum.map(fn challenge ->
       result =
