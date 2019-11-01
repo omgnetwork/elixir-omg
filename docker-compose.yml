@@ -134,6 +134,7 @@ services:
       interval: 30s
       timeout: 1s
       retries: 5
+      start_period: 30s
     depends_on:
       plasma-deployer:
         condition: service_healthy
