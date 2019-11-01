@@ -49,8 +49,8 @@ services:
       test: curl plasma-deployer:8000/contracts
       interval: 80s
       timeout: 15s
-      retries: 60
-      start_period: 2m
+      retries: 120
+      start_period: 4m
 
   geth:
     image: ethereum/client-go:v1.8.27
@@ -134,6 +134,7 @@ services:
       interval: 30s
       timeout: 1s
       retries: 5
+      start_period: 30s
     depends_on:
       plasma-deployer:
         condition: service_healthy
