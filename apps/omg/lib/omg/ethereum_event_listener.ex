@@ -119,6 +119,7 @@ defmodule OMG.EthereumEventListener do
       |> maybe_update_event_cache(callbacks.get_ethereum_events_callback)
       |> Core.get_events(sync_height)
 
+    :ok = OMG.Bus.direct_local_broadcast(Atom.to_string(core.service_name), {:sync_height, events})
     :ok = :telemetry.execute([:process, __MODULE__], %{events: events}, core)
 
     {:ok, db_updates_from_callback} =

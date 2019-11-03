@@ -37,96 +37,118 @@ defmodule OMG.Watcher.SyncSupervisor do
   end
 
   defp children() do
+    convenience_children() ++
+      [
+        %{
+          id: OMG.Watcher.BlockGetter.Supervisor,
+          start: {OMG.Watcher.BlockGetter.Supervisor, :start_link, []},
+          restart: :permanent,
+          type: :supervisor
+        },
+        {OMG.RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
+        EthereumEventListener.prepare_child(
+          service_name: :depositor,
+          synced_height_update_key: :last_depositor_eth_height,
+          get_events_callback: &Eth.RootChain.get_deposits/2,
+          process_events_callback: &OMG.State.deposit/1
+        ),
+        {Watcher.ExitProcessor, []},
+        EthereumEventListener.prepare_child(
+          service_name: :exit_processor,
+          synced_height_update_key: :last_exit_processor_eth_height,
+          get_events_callback: &Eth.RootChain.get_standard_exits/2,
+          process_events_callback: &Watcher.ExitProcessor.new_exits/1
+        ),
+        EthereumEventListener.prepare_child(
+          service_name: :exit_finalizer,
+          synced_height_update_key: :last_exit_finalizer_eth_height,
+          get_events_callback: &Eth.RootChain.get_finalizations/2,
+          process_events_callback: &Watcher.ExitProcessor.finalize_exits/1
+        ),
+        EthereumEventListener.prepare_child(
+          service_name: :exit_challenger,
+          synced_height_update_key: :last_exit_challenger_eth_height,
+          get_events_callback: &Eth.RootChain.get_challenges/2,
+          process_events_callback: &Watcher.ExitProcessor.challenge_exits/1
+        ),
+        EthereumEventListener.prepare_child(
+          service_name: :in_flight_exit_processor,
+          synced_height_update_key: :last_in_flight_exit_processor_eth_height,
+          get_events_callback: &Eth.RootChain.get_in_flight_exit_starts/2,
+          process_events_callback: &Watcher.ExitProcessor.new_in_flight_exits/1
+        ),
+        EthereumEventListener.prepare_child(
+          service_name: :piggyback_processor,
+          synced_height_update_key: :last_piggyback_processor_eth_height,
+          get_events_callback: &Eth.RootChain.get_piggybacks/2,
+          process_events_callback: &Watcher.ExitProcessor.piggyback_exits/1
+        ),
+        EthereumEventListener.prepare_child(
+          service_name: :competitor_processor,
+          synced_height_update_key: :last_competitor_processor_eth_height,
+          get_events_callback: &Eth.RootChain.get_in_flight_exit_challenges/2,
+          process_events_callback: &Watcher.ExitProcessor.new_ife_challenges/1
+        ),
+        EthereumEventListener.prepare_child(
+          service_name: :challenges_responds_processor,
+          synced_height_update_key: :last_challenges_responds_processor_eth_height,
+          get_events_callback: &Eth.RootChain.get_responds_to_in_flight_exit_challenges/2,
+          process_events_callback: &Watcher.ExitProcessor.respond_to_in_flight_exits_challenges/1
+        ),
+        EthereumEventListener.prepare_child(
+          service_name: :piggyback_challenges_processor,
+          synced_height_update_key: :last_piggyback_challenges_processor_eth_height,
+          get_events_callback: &Eth.RootChain.get_piggybacks_challenges/2,
+          process_events_callback: &Watcher.ExitProcessor.challenge_piggybacks/1
+        ),
+        EthereumEventListener.prepare_child(
+          service_name: :ife_exit_finalizer,
+          synced_height_update_key: :last_ife_exit_finalizer_eth_height,
+          get_events_callback: &Eth.RootChain.get_in_flight_exit_finalizations/2,
+          process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
+        )
+      ]
+  end
+
+  defp convenience_children() do
     [
       %{
-        id: OMG.Watcher.BlockGetter.Supervisor,
-        start: {OMG.Watcher.BlockGetter.Supervisor, :start_link, []},
+        id: PocEventHandler.InfoAPI.ExitProcessor,
+        start: {OMG.Watcher.PocEventHandler, :start_link, [:exit_processor]},
         restart: :permanent,
-        type: :supervisor
+        type: :worker
       },
-      {OMG.RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
-      EthereumEventListener.prepare_child(
-        service_name: :depositor,
-        synced_height_update_key: :last_depositor_eth_height,
-        get_events_callback: &Eth.RootChain.get_deposits/2,
-        process_events_callback: &OMG.State.deposit/1
-      ),
-      # this instance of the listener sends deposits to be consumed by the convenience API
-      EthereumEventListener.prepare_child(
-        service_name: :convenience_deposit_processor,
-        synced_height_update_key: :last_convenience_deposit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_deposits/2,
-        process_events_callback: fn deposits ->
-          Watcher.DB.EthEvent.insert_deposits!(deposits)
-          {:ok, []}
-        end
-      ),
-      {Watcher.ExitProcessor, []},
-      EthereumEventListener.prepare_child(
-        service_name: :exit_processor,
-        synced_height_update_key: :last_exit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_standard_exits/2,
-        process_events_callback: &Watcher.ExitProcessor.new_exits/1
-      ),
-      # this instance of the listener sends exits to be consumed by the convenience API
-      # we shouldn't use :exit_processor for this, as it has different waiting semantics (waits more)
-      EthereumEventListener.prepare_child(
-        service_name: :convenience_exit_processor,
-        synced_height_update_key: :last_convenience_exit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_standard_exits/2,
-        process_events_callback: fn exits ->
-          exits |> Watcher.DB.EthEvent.insert_exits!()
-          {:ok, []}
-        end
-      ),
-      EthereumEventListener.prepare_child(
-        service_name: :exit_finalizer,
-        synced_height_update_key: :last_exit_finalizer_eth_height,
-        get_events_callback: &Eth.RootChain.get_finalizations/2,
-        process_events_callback: &Watcher.ExitProcessor.finalize_exits/1
-      ),
-      EthereumEventListener.prepare_child(
-        service_name: :exit_challenger,
-        synced_height_update_key: :last_exit_challenger_eth_height,
-        get_events_callback: &Eth.RootChain.get_challenges/2,
-        process_events_callback: &Watcher.ExitProcessor.challenge_exits/1
-      ),
-      EthereumEventListener.prepare_child(
-        service_name: :in_flight_exit_processor,
-        synced_height_update_key: :last_in_flight_exit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_in_flight_exit_starts/2,
-        process_events_callback: &Watcher.ExitProcessor.new_in_flight_exits/1
-      ),
-      EthereumEventListener.prepare_child(
-        service_name: :piggyback_processor,
-        synced_height_update_key: :last_piggyback_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_piggybacks/2,
-        process_events_callback: &Watcher.ExitProcessor.piggyback_exits/1
-      ),
-      EthereumEventListener.prepare_child(
-        service_name: :competitor_processor,
-        synced_height_update_key: :last_competitor_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_in_flight_exit_challenges/2,
-        process_events_callback: &Watcher.ExitProcessor.new_ife_challenges/1
-      ),
-      EthereumEventListener.prepare_child(
-        service_name: :challenges_responds_processor,
-        synced_height_update_key: :last_challenges_responds_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_responds_to_in_flight_exit_challenges/2,
-        process_events_callback: &Watcher.ExitProcessor.respond_to_in_flight_exits_challenges/1
-      ),
-      EthereumEventListener.prepare_child(
-        service_name: :piggyback_challenges_processor,
-        synced_height_update_key: :last_piggyback_challenges_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_piggybacks_challenges/2,
-        process_events_callback: &Watcher.ExitProcessor.challenge_piggybacks/1
-      ),
-      EthereumEventListener.prepare_child(
-        service_name: :ife_exit_finalizer,
-        synced_height_update_key: :last_ife_exit_finalizer_eth_height,
-        get_events_callback: &Eth.RootChain.get_in_flight_exit_finalizations/2,
-        process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
-      )
+      %{
+        id: PocEventHandler.InfoAPI.Depositor,
+        start: {OMG.Watcher.PocEventHandler, :start_link, [:depositor]},
+        restart: :permanent,
+        type: :worker
+      }
+      # {OMG.Watcher.PocEventHandler, [:exit_processor]},
+      # {OMG.Watcher.PocEventHandler, [:depositor]}
+      # we don't need these anymore because data is being published with OMG Bus
+
+      # # this instance of the listener sends exits to be consumed by the convenience API
+      # # we shouldn't use :exit_processor for this, as it has different waiting semantics (waits more)
+      # EthereumEventListener.prepare_child(
+      #   service_name: :convenience_exit_processor,
+      #   synced_height_update_key: :last_convenience_exit_processor_eth_height,
+      #   get_events_callback: &Eth.RootChain.get_standard_exits/2,
+      #   process_events_callback: fn exits ->
+      #     Watcher.DB.EthEvent.insert_exits!(exits)
+      #     {:ok, []}
+      #   end
+      # ),
+      # # this instance of the listener sends deposits to be consumed by the convenience API
+      # EthereumEventListener.prepare_child(
+      #   service_name: :convenience_deposit_processor,
+      #   synced_height_update_key: :last_convenience_deposit_processor_eth_height,
+      #   get_events_callback: &Eth.RootChain.get_deposits/2,
+      #   process_events_callback: fn deposits ->
+      #     Watcher.DB.EthEvent.insert_deposits!(deposits)
+      #     {:ok, []}
+      #   end
+      # )
     ]
   end
 end
