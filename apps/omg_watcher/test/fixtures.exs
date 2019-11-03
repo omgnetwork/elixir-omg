@@ -273,22 +273,20 @@ defmodule OMG.Watcher.Fixtures do
   defp ensure_web_started(module, function, args, 0), do: apply(module, function, args)
 
   defp ensure_web_started(module, function, args, counter) do
-    try do
-      {:ok, pid} = apply(module, function, args)
-      {:ok, pid}
-    rescue
-      e in MatchError ->
-        %MatchError{
-          term:
-            {:error,
+    {:ok, pid} = apply(module, function, args)
+    {:ok, pid}
+  rescue
+    e in MatchError ->
+      %MatchError{
+        term:
+          {:error,
+           {:shutdown,
+            {:failed_to_start_child, {:ranch_listener_sup, OMG.WatcherRPC.Web.Endpoint.HTTP},
              {:shutdown,
-              {:failed_to_start_child, {:ranch_listener_sup, OMG.WatcherRPC.Web.Endpoint.HTTP},
-               {:shutdown,
-                {:failed_to_start_child, :ranch_acceptors_sup,
-                 {:listen_error, OMG.WatcherRPC.Web.Endpoint.HTTP, :eaddrinuse}}}}}}
-        } = e
+              {:failed_to_start_child, :ranch_acceptors_sup,
+               {:listen_error, OMG.WatcherRPC.Web.Endpoint.HTTP, :eaddrinuse}}}}}}
+      } = e
 
-        ensure_web_started(module, function, args, counter - 1)
-    end
+      ensure_web_started(module, function, args, counter - 1)
   end
 end
