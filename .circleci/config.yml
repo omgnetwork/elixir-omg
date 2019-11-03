@@ -361,8 +361,6 @@ jobs:
     steps:
       - checkout
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
-      - run: lsof /var/lib/dpkg/lock | awk '{print $2}' | tail -n+2 || true
-      - run: sudo kill $(lsof /var/lib/dpkg/lock | awk '{print $2}' | tail -n+2) || true
       - run:
           name: Start geth, postgres and plasma-deployer
           command: make start-services
@@ -391,12 +389,11 @@ jobs:
             asdf global elixir 1.8.2
             mix local.rebar --force &&
             mix local.hex --force &&
-            sudo lsof /var/lib/dpkg/lock || true &&
-            sudo kill $(lsof /var/lib/dpkg/lock | awk '{print $2}' | tail -n+2) || true
+            sudo killall dpkg || true &&
             sudo rm /var/lib/dpkg/lock || true &&
             sudo rm /var/cache/apt/archives/lock || true &&
             sudo dpkg --configure -a || true &&
-            ./bin/setup
+            ./bin/setup &&
             make deps-elixir-omg &&
             TERM=xterm-256color make start-child_chain OVERRIDING_START=start &&
             TERM=xterm-256color make start-watcher OVERRIDING_START=start
