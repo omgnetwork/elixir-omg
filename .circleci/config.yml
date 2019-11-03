@@ -361,6 +361,7 @@ jobs:
     steps:
       - checkout
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+      - run: lsof /var/lib/dpkg/lock | awk '{print $2}' | tail -n+2 || true
       - run: sudo kill $(lsof /var/lib/dpkg/lock | awk '{print $2}' | tail -n+2) || true
       - run:
           name: Start geth, postgres and plasma-deployer
