@@ -351,12 +351,15 @@ jobs:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME="omisego/child_chain"
       - run: make docker-watcher WATCHER_IMAGE_NAME="omisego/watcher"
+      - run: docker-compose pull
       - run: docker-compose up -d
       - run: sh .circleci/status.sh
 
   test_barebone_release:
     machine:
       image: circleci/classic:201808-01
+    environment:
+      TERM: xterm-256color
     steps:
       - checkout
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
@@ -394,8 +397,8 @@ jobs:
             sudo dpkg --configure -a || true &&
             ./bin/setup &&
             make deps-elixir-omg &&
-            TERM=xterm-256color make start-child_chain OVERRIDING_START=start &&
-            TERM=xterm-256color make start-watcher OVERRIDING_START=start
+            make start-child_chain OVERRIDING_START=start &&
+            make start-watcher OVERRIDING_START=start
           no_output_timeout: 2400
       - run: docker ps
       - run: ps axww | grep watcher
