@@ -352,8 +352,7 @@ jobs:
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME="omisego/child_chain"
       - run: make docker-watcher WATCHER_IMAGE_NAME="omisego/watcher"
       - run: docker-compose up -d
-      - run: sleep 60;
-      - run: make get-alarms
+      - run: sh .circleci/status.sh
 
   test_barebone_release:
     machine:
