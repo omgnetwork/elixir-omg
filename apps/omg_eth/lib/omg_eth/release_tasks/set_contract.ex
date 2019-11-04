@@ -48,7 +48,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
             {:ok, %{body: body}} = HTTPoison.get(exchanger)
             body
           rescue
-            _ -> exit("CONTRACT_EXCHANGER_URL #{exchanger} is not reachable")
+            reason -> exit("CONTRACT_EXCHANGER_URL #{exchanger} is not reachable because of #{inspect(reason)}")
           end
 
         %{
