@@ -2,15 +2,13 @@ version: "2.3"
 services:
   plasma-contracts:
     environment:
+      # The private keys are likely different from the main docker-compose.yml:
+      #   1. DEPLOYER_PRIVATEKEY needs to have enough ETH on the REMOTE_URL network
+      #   2. AUTHORITY_PRIVATEKEY needs to have nonce=0 on the REMOTE_URL network
       - REMOTE_URL=https://rinkeby.infura.io/v3/<infura_api_key>
       - DEPLOYER_PRIVATEKEY=<deployer_privkey>
       - MAINTAINER_PRIVATEKEY=<maintainer_privkey>
       - AUTHORITY_PRIVATEKEY=<authority_privkey>
-    healthcheck:
-      # Takes roughly 10 minutes to deploy all contracts, so check every minute up to 15 minutes
-      interval: 60s
-      timeout: 10s
-      retries: 15
 
   childchain:
     environment:
