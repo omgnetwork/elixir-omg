@@ -16,7 +16,9 @@ services:
       retries: 5
 
   plasma-contracts:
-    image: omisegoimages/elixir-omg-tester-plasma-deployer:dev-f104c41
+    build:
+      context: .
+      dockerfile: Dockerfile.plasma_contracts
     command:
       - /bin/sh
       - -c
