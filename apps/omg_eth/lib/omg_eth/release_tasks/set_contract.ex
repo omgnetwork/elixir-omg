@@ -60,8 +60,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           plasma_framework_tx_hash: txhash_contract
         } = Jason.decode!(body, keys: :atoms!)
 
-        exit_period_seconds =
-          validate_integer(get_env("MIN_EXIT_PERIOD"), Application.get_env(@app, :exit_period_seconds))
+        exit_period_seconds = validate_integer(get_env("MIN_EXIT_PERIOD"), Application.get_env(@app, :min_exit_period))
 
         contract_addresses = %{
           plasma_framework: plasma_framework,
@@ -107,8 +106,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       payment_exit_game: env_contract_address_payment_exit_game
     }
 
-    exit_period_seconds =
-      validate_integer(get_env("MIN_EXIT_PERIOD"), Application.get_env(@app, :exit_period_seconds))
+    exit_period_seconds = validate_integer(get_env("MIN_EXIT_PERIOD"), Application.get_env(@app, :min_exit_period))
 
     update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
   end
@@ -120,7 +118,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
     :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
     :ok = Application.put_env(@app, :contract_addr, contract_addresses, persistent: true)
-    :ok = Application.put_env(@app, :exit_period_seconds, exit_period_seconds)
+    :ok = Application.put_env(@app, :min_exit_period, exit_period_seconds)
   end
 
   defp update_configuration(_, _, _, _), do: exit(@error)

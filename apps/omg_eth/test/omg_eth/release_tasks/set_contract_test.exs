@@ -65,7 +65,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
     :ok = SetContract.init([])
-    22 = Application.get_env(@app, :exit_period_seconds)
+    22 = Application.get_env(@app, :min_exit_period)
 
     :ok = Process.send(pid, :stop, [])
     :ok = System.delete_env("ETHEREUM_NETWORK")
@@ -188,7 +188,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
     :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
     :ok = SetContract.init([])
-    22 = Application.get_env(@app, :exit_period_seconds)
+    22 = Application.get_env(@app, :min_exit_period)
 
     :ok = System.delete_env("ETHEREUM_NETWORK")
     :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
@@ -209,7 +209,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
     :ok = System.put_env("MIN_EXIT_PERIOD", "2222")
     :ok = SetContract.init([])
-    2222 = Application.get_env(@app, :exit_period_seconds)
+    2222 = Application.get_env(@app, :min_exit_period)
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     @contract_addresses_value = Application.get_env(@app, :contract_addr)
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)

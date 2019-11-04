@@ -55,7 +55,7 @@ defmodule Support.BundleDeployer do
 
     {:ok, txhash, plasma_framework_addr} =
       Deployer.create_new("PlasmaFramework", root_path, deployer_addr,
-        exit_period_seconds: exit_period_seconds,
+        min_exit_period: exit_period_seconds,
         authority: authority,
         maintainer: deployer_addr
       )
@@ -219,7 +219,7 @@ defmodule Support.BundleDeployer do
   end
 
   defp get_exit_period(nil) do
-    Application.fetch_env!(:omg_eth, :exit_period_seconds)
+    Application.fetch_env!(:omg_eth, :min_exit_period)
   end
 
   defp get_exit_period(exit_period), do: exit_period

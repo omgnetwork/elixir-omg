@@ -44,7 +44,7 @@ defmodule Support.Deployer do
         "PlasmaFramework" = name,
         path_project_root,
         from,
-        [exit_period_seconds: exit_period_seconds, authority: authority, maintainer: maintainer],
+        [min_exit_period: exit_period_seconds, authority: authority, maintainer: maintainer],
         opts
       ) do
     args = [
