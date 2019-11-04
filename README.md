@@ -382,7 +382,7 @@ If you set this to false, remember to set the logging level to `:debug` to see t
 
 * **`child_block_interval`** - mirror of contract configuration `uint256 constant public CHILD_BLOCK_INTERVAL` from `RootChain.sol`
 
-* **`exit_period_seconds`** - mirror of contract configuration `uint256 public minExitPeriod`
+* **`min_exit_period`** - mirror of contract configuration `uint256 public minExitPeriod`
 
 * **`ethereum_client_warning_time_ms`** - queries for event logs made to the Ethereum node lasting more than this will emit a `:warn`-level log
 
