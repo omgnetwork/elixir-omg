@@ -25,7 +25,7 @@ services:
       - |
           apk add --update curl
           cd /home/node/plasma-contracts/plasma_framework
-          npx truffle migrate --network infura
+          npx truffle migrate --network remote
           cd build
           echo '{"contracts":' > db.json && cat outputs.json >> db.json && echo '}' >> db.json
           npx json-server -w db.json -p 8000 -H 0.0.0.0
@@ -38,8 +38,7 @@ services:
       - DEPLOYER_PRIVATEKEY=d885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce
       - MAINTAINER_PRIVATEKEY=6f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807
       - AUTHORITY_PRIVATEKEY=7f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807
-      - INFURA_URL=http://geth:8545
-      - INFURA_API_KEY=
+      - REMOTE_URL=http://geth:8545
       - MIN_EXIT_PERIOD=20
     depends_on:
       geth:
