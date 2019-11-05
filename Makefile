@@ -1,5 +1,5 @@
 MAKEFLAGS += --silent
-OVERRIDING_START=foreground
+OVERRIDING_START ?= foreground
 help:
 	@echo "Dont Fear the Makefile"
 	@echo "*DOCKER DEVELOPMENT*:"
