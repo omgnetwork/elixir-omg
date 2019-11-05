@@ -145,7 +145,7 @@ defmodule Support.DevHelper do
       if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
     end
 
-    fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
+    WaitFor.ok(f, timeout)
   end
 
   def wait_for_next_child_block(blknum, timeout \\ 10_000, contract \\ nil) do
@@ -155,7 +155,7 @@ defmodule Support.DevHelper do
       if next_num < blknum, do: :repeat, else: {:ok, next_num}
     end
 
-    fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
+    WaitFor.ok(f, timeout)
   end
 
   def create_account_from_secret(:ganache, secret, passphrase),

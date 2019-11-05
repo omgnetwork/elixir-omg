@@ -179,7 +179,7 @@ defmodule OMG.Performance.ByzantineEvents do
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
 
     _ = Logger.info("Waiting for the watcher to synchronize")
-    {:ok, _} = WaitFor.repeat_until_ok(fn -> watcher_synchronized?(root_chain_height, watcher_url) end)
+    :ok = WaitFor.ok(fn -> watcher_synchronized?(root_chain_height, watcher_url) end, :infinity)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
@@ -226,14 +226,14 @@ defmodule OMG.Performance.ByzantineEvents do
     |> List.last()
   end
 
-  # This function is prepared to be called in `WaitFor.repeat_until_ok`.
+  # This function is prepared to be called in `WaitFor.ok`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
   defp watcher_synchronized?(root_chain_height, watcher_url) do
     {:ok, status} = WatcherClient.get_status(watcher_url)
-    # FIXME: nicen this, the waitfor function expects some weird output for some reason, so we're conforming
-    with {:ok, _} = response <- watcher_synchronized_to_mined_block?(status),
+
+    with true <- watcher_synchronized_to_mined_block?(status),
          true <- root_chain_synced?(root_chain_height, status) do
-      response
+      :ok
     else
       _ -> :repeat
     end
@@ -254,8 +254,8 @@ defmodule OMG.Performance.ByzantineEvents do
        when last_mined_child_block_number == last_validated_child_block_number and
               last_mined_child_block_number > 0 do
     _ = Logger.debug("Synced to blknum: #{last_validated_child_block_number}")
-    {:ok, last_validated_child_block_number}
+    true
   end
 
-  defp watcher_synchronized_to_mined_block?(_), do: :repeat
+  defp watcher_synchronized_to_mined_block?(_), do: false
 end

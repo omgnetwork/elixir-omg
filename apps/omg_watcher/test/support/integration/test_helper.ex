@@ -40,7 +40,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
         do: {:ok, emitted_event_names},
         else: :repeat
     end
-    |> wait_for(timeout)
+    |> WaitFor.ok(timeout)
   end
 
   def wait_for_block_fetch(block_nr, timeout) do
@@ -50,19 +50,11 @@ defmodule OMG.Watcher.Integration.TestHelper do
         do: :repeat,
         else: {:ok, block_nr}
     end
-    |> wait_for(timeout)
+    |> WaitFor.ok(timeout)
 
     # write to db seems to be async and wait_for_block_fetch would return too early, so sleep
     # leverage `block` events if they get implemented
     Process.sleep(100)
-  end
-
-  defp wait_for(func, timeout) do
-    fn ->
-      WaitFor.repeat_until_ok(func)
-    end
-    |> Task.async()
-    |> Task.await(timeout)
   end
 
   @doc """
