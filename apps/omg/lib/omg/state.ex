@@ -230,7 +230,7 @@ defmodule OMG.State do
     |> Transaction.get_inputs()
     |> Enum.reject(&Core.utxo_exists?(&1, state))
     |> Enum.map(&utxo_from_db/1)
-    |> Enum.reject(&(:utxo_not_found == &1))
+    |> Enum.reject(&(:not_found == &1))
   end
 
   defp utxo_from_db(input_pointer) do

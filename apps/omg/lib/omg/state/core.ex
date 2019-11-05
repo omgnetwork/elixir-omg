@@ -113,7 +113,7 @@ defmodule OMG.State.Core do
     {:error, :top_block_number_not_found}
   end
 
-  @spec with_utxos(t(), list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})) :: t()
+  @spec with_utxos(t(), UtxoSet.query_result_t()) :: t()
   def with_utxos(%Core{utxos: utxos} = state, utxos_query_result),
     do: %{state | utxos: UtxoSet.merge_with_query_result(utxos, utxos_query_result)}
 
@@ -146,7 +146,7 @@ defmodule OMG.State.Core do
           state :: t(),
           tx :: Transaction.Recovered.t(),
           fees :: Fees.fee_t(),
-          list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})
+          UtxoSet.query_result_t()
         ) ::
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
           | {{:error, Validator.exec_error()}, t()}
@@ -160,7 +160,7 @@ defmodule OMG.State.Core do
     Filter user utxos from db response.
     It may take a while for a large response from db
   """
-  @spec standard_exitable_utxos(list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()}), Crypto.address_t()) ::
+  @spec standard_exitable_utxos(UtxoSet.query_result_t(), Crypto.address_t()) ::
           list(exitable_utxos)
   def standard_exitable_utxos(utxos_query_result, address) do
     utxos_query_result

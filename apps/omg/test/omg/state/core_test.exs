@@ -21,8 +21,8 @@ defmodule OMG.State.CoreTest do
   use ExUnit.Case, async: true
 
   alias OMG.Block
-  alias OMG.InputPointer
   alias OMG.Fees
+  alias OMG.InputPointer
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.Utxo
