@@ -26,7 +26,7 @@ defmodule OMG.Performance.ExtendedPerftestTest do
   @moduletag :integration
   @moduletag :common
 
-  # FIXME: try to turn into setup (no fixture)
+  # NOTE: still bound to fixtures :(, because of the child chain setup, but this will go eventually, so leaving as is
   deffixture perf_test(contract) do
     %{contract_addr: contract_addr} = contract
     :ok = Performance.init(contract_addr: contract_addr)

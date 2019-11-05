@@ -27,7 +27,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
   @moduletag :integration
   @moduletag timeout: 180_000
 
-  # FIXME: try to turn into setup (no fixture)
+  # NOTE: still bound to fixtures :(, because of the child chain setup, but this will go eventually, so leaving as is
   deffixture perf_test(contract) do
     %{contract_addr: contract_addr} = contract
     :ok = Performance.init(contract_addr: contract_addr)
