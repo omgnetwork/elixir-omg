@@ -116,9 +116,6 @@ defmodule OMG.Performance.SimplePerftest do
     :ok = Supervisor.stop(simple_perftest_chain)
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
 
-    # FIXME at the very end, try removing all the many ensure_all_starteds on briefly. WTF
-    # _ = Application.stop(:briefly)
-
     :ok = Application.put_env(:omg_db, :path, nil)
     :ok
   end

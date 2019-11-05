@@ -38,7 +38,7 @@ defmodule OMG.DB.MixProject do
       #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
       #       OMG-373 (Elixir 1.8) should fix this
       # TEST ONLY
-      {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
+      {:briefly, "~> 0.3.0", only: [:dev, :test]},
       {:telemetry, "~> 0.4.0"},
       {:omg_utils, in_umbrella: true}
     ]
