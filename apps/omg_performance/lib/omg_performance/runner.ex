@@ -22,10 +22,9 @@ defmodule OMG.Performance.Runner do
   @doc """
   Runs below :run function with :fprof profiler. Profiler analysis is written to the temp file.
   """
-  @spec run({pos_integer(), list(), map(), boolean()}) :: {:ok, String.t()}
-  def run({ntx_to_send, utxos, opts, profile}) when profile do
-    opts = %{opts | profile: false}
-    :fprof.apply(&OMG.Performance.Runner.run/1, [{ntx_to_send, utxos, opts, opts[:profile]}], procs: [:all])
+  @spec run({pos_integer(), list(), map(), profile :: boolean()}) :: {:ok, String.t()}
+  def run({ntx_to_send, utxos, opts, true}) do
+    :fprof.apply(&OMG.Performance.Runner.run/1, [{ntx_to_send, utxos, opts, false}], procs: [:all])
     :fprof.profile()
 
     destfile = Path.join(opts[:destdir], "perf_result_profiling_#{:os.system_time(:seconds)}")
@@ -39,7 +38,7 @@ defmodule OMG.Performance.Runner do
   @doc """
   Foreach user runs n submit_transaction requests to the chain server. Requests are done sequentially.
   """
-  def run({ntx_to_send, utxos, opts, _profile}) do
+  def run({ntx_to_send, utxos, opts, false}) do
     {duration, _result} =
       :timer.tc(fn ->
         # fire async transaction senders

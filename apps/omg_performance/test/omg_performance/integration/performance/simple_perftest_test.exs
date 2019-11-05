@@ -35,7 +35,7 @@ defmodule OMG.Performance.SimplePerftestTest do
   test "Smoke test - run start_simple_perf and see if it doesn't crash", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
-    assert :ok = Performance.SimplePerftest.start(ntxs, nsenders, %{destdir: destdir})
+    assert :ok = Performance.SimplePerftest.start(ntxs, nsenders, destdir: destdir)
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)
@@ -47,7 +47,7 @@ defmodule OMG.Performance.SimplePerftestTest do
 
     fprof_io =
       capture_io(fn ->
-        assert :ok = Performance.SimplePerftest.start(ntxs, nsenders, %{destdir: destdir, profile: true})
+        assert :ok = Performance.SimplePerftest.start(ntxs, nsenders, destdir: destdir, profile: true)
       end)
 
     assert fprof_io =~ "Done!"
@@ -60,7 +60,7 @@ defmodule OMG.Performance.SimplePerftestTest do
   test "Smoke test - run start_simple_perf and see if it doesn't crash - overiding block creation", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
-    assert :ok = Performance.SimplePerftest.start(ntxs, nsenders, %{destdir: destdir, block_every_ms: 3000})
+    assert :ok = Performance.SimplePerftest.start(ntxs, nsenders, destdir: destdir, block_every_ms: 3000)
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)

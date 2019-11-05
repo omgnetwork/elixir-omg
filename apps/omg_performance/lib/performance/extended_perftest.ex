@@ -43,7 +43,7 @@ defmodule OMG.Performance.ExtendedPerftest do
 
   Performance.init()
   spenders = Generators.generate_users(2)
-  Performance.ExtendedPerftest.start(100, spenders, %{destdir: destdir})
+  Performance.ExtendedPerftest.start(100, spenders, destdir: destdir)
   ```
 
   The results are going to be waiting for you in a file within `destdir` and will be logged.
@@ -53,17 +53,17 @@ defmodule OMG.Performance.ExtendedPerftest do
     - :randomized - whether the non-change outputs of the txs sent out will be random or equal to sender (if `false`),
       defaults to `true`
   """
-  @spec start(pos_integer(), list(TestHelper.entity()), map()) :: :ok
-  def start(ntx_to_send, spenders, opts \\ %{}) do
+  @spec start(pos_integer(), list(TestHelper.entity()), keyword()) :: :ok
+  def start(ntx_to_send, spenders, opts \\ []) do
     _ =
       Logger.info(
         "Number of spenders: #{inspect(length(spenders))}, number of tx to send per spender: #{inspect(ntx_to_send)}" <>
           ", #{inspect(length(spenders) * ntx_to_send)} txs in total"
       )
 
-    defaults = %{destdir: "."}
+    defaults = [destdir: "."]
 
-    opts = Map.merge(defaults, opts)
+    opts = Keyword.merge(defaults, opts)
 
     utxos = create_deposits(spenders, ntx_to_send)
 

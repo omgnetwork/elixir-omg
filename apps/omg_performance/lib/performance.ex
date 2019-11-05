@@ -57,15 +57,14 @@ defmodule OMG.Performance do
   ## Examples
 
     iex> use OMG.Performance
-    iex> Performance.init(%{watcher_url: "http://elsewhere:7434"})
+    iex> Performance.init(watcher_url: "http://elsewhere:7434")
     :ok
     iex> Application.get_env(:omg_watcher, :child_chain_url)
     "http://localhost:9656"
     iex> Application.get_env(:omg_performance, :watcher_url)
     "http://elsewhere:7434"
   """
-  # FIXME map to keyword for opts everywhere
-  def init(opts \\ %{}) do
+  def init(opts \\ []) do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, _} = Application.ensure_all_started(:hackney)
@@ -80,14 +79,14 @@ defmodule OMG.Performance do
     watcher_url =
       System.get_env("WATCHER_URL") || Application.get_env(:omg_performance, :watcher_url, "http://localhost:7434")
 
-    defaults = %{
+    defaults = [
       ethereum_rpc_url: ethereum_rpc_url,
       child_chain_url: child_chain_url,
       watcher_url: watcher_url,
       contract_addr: nil
-    }
+    ]
 
-    opts = Map.merge(defaults, opts)
+    opts = Keyword.merge(defaults, opts)
 
     :ok = Application.put_env(:ethereumex, :request_timeout, :infinity)
     :ok = Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)

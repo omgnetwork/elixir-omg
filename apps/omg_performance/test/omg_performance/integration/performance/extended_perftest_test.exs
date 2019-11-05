@@ -29,7 +29,7 @@ defmodule OMG.Performance.ExtendedPerftestTest do
   # FIXME: try to turn into setup (no fixture)
   deffixture perf_test(contract) do
     %{contract_addr: contract_addr} = contract
-    :ok = Performance.init(%{contract_addr: contract_addr})
+    :ok = Performance.init(contract_addr: contract_addr)
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     {:ok, %{destdir: destdir}}
   end
@@ -40,7 +40,7 @@ defmodule OMG.Performance.ExtendedPerftestTest do
     ntxs = 3000
     senders = Generators.generate_users(2)
 
-    assert :ok = Performance.ExtendedPerftest.start(ntxs, senders, %{destdir: destdir})
+    assert :ok = Performance.ExtendedPerftest.start(ntxs, senders, destdir: destdir)
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * length(senders))

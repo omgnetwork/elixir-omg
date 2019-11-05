@@ -30,7 +30,7 @@ defmodule OMG.Performance.ByzantineEvents do
 
   You probably want to prefill the child chain with transactions, see `OMG.Performance.ExtendedPerftest` or just:
   ```
-  Performance.ExtendedPerftest.start(10_000, 16, %{randomized: false})
+  Performance.ExtendedPerftest.start(10_000, 16, randomized: false)
   ```
   (`randomized: false` is useful to test massive honest-standard-exiting, since it will create many unspent UTXOs for
   each of the spenders)

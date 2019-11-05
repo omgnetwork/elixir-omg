@@ -30,7 +30,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
   # FIXME: try to turn into setup (no fixture)
   deffixture perf_test(contract) do
     %{contract_addr: contract_addr} = contract
-    :ok = Performance.init(%{contract_addr: contract_addr})
+    :ok = Performance.init(contract_addr: contract_addr)
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     {:ok, %{destdir: destdir}}
   end
@@ -40,7 +40,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = Performance.ExtendedPerftest.start(100, spenders, %{randomized: false, destdir: destdir})
+    :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: false, destdir: destdir)
     :ok = ByzantineEvents.watcher_synchronize()
 
     ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
@@ -52,7 +52,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = Performance.ExtendedPerftest.start(100, spenders, %{randomized: false, destdir: destdir})
+    :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: false, destdir: destdir)
     :ok = ByzantineEvents.watcher_synchronize()
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
@@ -70,7 +70,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = Performance.ExtendedPerftest.start(100, spenders, %{randomized: true, destdir: destdir})
+    :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: true, destdir: destdir)
     :ok = ByzantineEvents.watcher_synchronize()
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
@@ -88,7 +88,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = Performance.ExtendedPerftest.start(100, spenders, %{randomized: true, destdir: destdir})
+    :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: true, destdir: destdir)
     :ok = ByzantineEvents.watcher_synchronize()
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
@@ -112,7 +112,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = Performance.ExtendedPerftest.start(100, spenders, %{randomized: true, destdir: destdir})
+    :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: true, destdir: destdir)
     :ok = ByzantineEvents.watcher_synchronize()
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =

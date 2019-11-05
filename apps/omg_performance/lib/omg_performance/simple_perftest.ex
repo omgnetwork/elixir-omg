@@ -61,15 +61,15 @@ defmodule OMG.Performance.SimplePerftest do
     so it has been ignored. Otherwise it's easy to reproduce and report
     (github.com/erlang/otp and the JIRA it points you to).
   """
-  @spec start(pos_integer(), pos_integer(), map()) :: :ok
-  def start(ntx_to_send, nspenders, opts \\ %{}) do
+  @spec start(pos_integer(), pos_integer(), keyword()) :: :ok
+  def start(ntx_to_send, nspenders, opts \\ []) do
     _ =
       Logger.info(
         "Number of spenders: #{inspect(nspenders)}, number of tx to send per spender: #{inspect(ntx_to_send)}."
       )
 
-    defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
-    opts = Map.merge(defaults, opts)
+    defaults = [destdir: ".", profile: false, block_every_ms: 2000]
+    opts = Keyword.merge(defaults, opts)
 
     {:ok, started_apps, simple_perftest_chain} = setup_simple_perftest(opts)
 
@@ -82,7 +82,7 @@ defmodule OMG.Performance.SimplePerftest do
     cleanup_simple_perftest(started_apps, simple_perftest_chain)
   end
 
-  @spec setup_simple_perftest(map()) :: {:ok, list, pid}
+  @spec setup_simple_perftest(keyword()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "perftest_db")
     Application.put_env(:omg_db, :path, dbdir, persistent: true)
