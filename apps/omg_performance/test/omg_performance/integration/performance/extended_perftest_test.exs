@@ -34,7 +34,7 @@ defmodule OMG.Performance.ExtendedPerftestTest do
     {:ok, %{destdir: destdir}}
   end
 
-  @tag fixtures: [:perf_test, :omg_child_chain]
+  @tag fixtures: [:perf_test, :in_beam_child_chain]
   @tag timeout: 120_000
   test "Smoke test - run start_extended_perf and see if it doesn't crash", %{perf_test: {:ok, %{destdir: destdir}}} do
     ntxs = 3000

@@ -35,7 +35,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     {:ok, %{destdir: destdir}}
   end
 
-  @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
+  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
   test "can provide timing of response when asking for exit data", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
@@ -47,7 +47,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     |> ByzantineEvents.get_many_standard_exits()
   end
 
-  @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
+  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
   test "can provide timing of status.get under many valid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
@@ -65,7 +65,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     assert [] = ByzantineEvents.get_byzantine_events("invalid_exit")
   end
 
-  @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
+  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
   test "can provide timing of status.get under many valid/invalid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
@@ -83,7 +83,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_exit")) > 10
   end
 
-  @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
+  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
   test "can provide timing of challenging", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
@@ -107,7 +107,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     assert Enum.count(challenge_responses) > 10
   end
 
-  @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
+  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
   test "can provide timing of status.get under many challenged SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
