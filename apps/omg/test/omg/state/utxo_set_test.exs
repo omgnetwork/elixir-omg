@@ -65,6 +65,33 @@ defmodule OMG.State.UtxoSetTest do
     end
   end
 
+  describe "merge_with_query_result/2" do
+    test "overwrites existing entries", %{alice: alice, db_query_result: db_query_result, utxo_set: utxo_set} do
+      new_output =
+        create_recovered([], [{alice, @eth, 100}])
+        |> Transaction.get_outputs()
+        |> Enum.map(&%Utxo{output: &1, creating_txhash: <<1>>})
+        |> Kernel.hd()
+
+      db_output = Utxo.to_db_value(new_output)
+      {db_key, _} = hd(db_query_result)
+      key = InputPointer.from_db_key(db_key)
+
+      # replace utxo with existing key
+      expected_utxo_set = Map.put(utxo_set, key, new_output)
+
+      assert expected_utxo_set == UtxoSet.merge_with_query_result(utxo_set, [{db_key, db_output}])
+    end
+
+    test "merge into empty map", %{db_query_result: db_query_result, utxo_set: utxo_set} do
+      assert utxo_set == UtxoSet.merge_with_query_result(%{}, db_query_result)
+    end
+
+    test "merge with empty query results", %{db_query_result: db_query_result, utxo_set: utxo_set} do
+      assert utxo_set == UtxoSet.merge_with_query_result(utxo_set, [])
+    end
+  end
+
   describe "get_by_inputs/2" do
     test "will get all by inputs in input order", %{inputs: inputs, utxo_set: utxo_set} do
       {:ok, result1} = UtxoSet.get_by_inputs(utxo_set, inputs)

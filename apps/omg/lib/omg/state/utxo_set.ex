@@ -41,6 +41,11 @@ defmodule OMG.State.UtxoSet do
     end)
   end
 
+  @spec merge_with_query_result(t(), list(tuple())) :: t()
+  def merge_with_query_result(utxos, utxos_query_result) do
+    Map.merge(utxos, init(utxos_query_result))
+  end
+
   @doc """
   Provides the outputs that are pointed by `inputs` provided
   """

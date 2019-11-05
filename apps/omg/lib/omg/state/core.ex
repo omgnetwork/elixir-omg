@@ -114,9 +114,8 @@ defmodule OMG.State.Core do
   end
 
   @spec with_utxos(t(), list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})) :: t()
-  # FIXME: the merge should probably be done by UtxoSet
   def with_utxos(%Core{utxos: utxos} = state, utxos_query_result),
-    do: %{state | utxos: Map.merge(utxos, UtxoSet.init(utxos_query_result))}
+    do: %{state | utxos: UtxoSet.merge_with_query_result(utxos, utxos_query_result)}
 
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
