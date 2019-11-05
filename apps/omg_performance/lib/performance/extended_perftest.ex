@@ -69,7 +69,7 @@ defmodule OMG.Performance.ExtendedPerftest do
 
     # FIXME: the way the profile option is handled is super messy - clean this here and in simple perftest
     #        actually, profiling makes no sense here, so maybe un-allowit
-    {:ok, data} = OMG.Performance.Runner.run({ntx_to_send, utxos, opts, false})
+    {:ok, data} = OMG.Performance.Runner.run(ntx_to_send, utxos, opts, false)
     _ = Logger.info("#{inspect(data)}")
   end
 

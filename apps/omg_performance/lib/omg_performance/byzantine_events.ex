@@ -179,7 +179,7 @@ defmodule OMG.Performance.ByzantineEvents do
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
 
     _ = Logger.info("Waiting for the watcher to synchronize")
-    WaitFor.repeat_until_ok(fn -> watcher_synchronized?(root_chain_height, watcher_url) end)
+    {:ok, _} = WaitFor.repeat_until_ok(fn -> watcher_synchronized?(root_chain_height, watcher_url) end)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031

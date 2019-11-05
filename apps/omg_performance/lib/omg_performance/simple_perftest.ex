@@ -76,7 +76,7 @@ defmodule OMG.Performance.SimplePerftest do
     spenders = create_spenders(nspenders)
     utxos = create_deposits(spenders, ntx_to_send)
 
-    {:ok, data} = OMG.Performance.Runner.run({ntx_to_send, utxos, opts, opts[:profile]})
+    {:ok, data} = OMG.Performance.Runner.run(ntx_to_send, utxos, opts, opts[:profile])
     _ = Logger.info("#{inspect(data)}")
 
     cleanup_simple_perftest(started_apps, simple_perftest_chain)
@@ -120,7 +120,7 @@ defmodule OMG.Performance.SimplePerftest do
     # FIXME at the very end, try removing all the many ensure_all_starteds on briefly. WTF
     # _ = Application.stop(:briefly)
 
-    Application.put_env(:omg_db, :path, nil)
+    :ok = Application.put_env(:omg_db, :path, nil)
     :ok
   end
 
@@ -138,15 +138,28 @@ defmodule OMG.Performance.SimplePerftest do
     |> Enum.map(fn _nspender -> TestHelper.generate_entity() end)
   end
 
-  @spec create_deposits(list(TestHelper.entity()), pos_integer()) :: list()
+  @spec create_deposits(list(TestHelper.entity()), pos_integer()) :: list(map())
   defp create_deposits(spenders, ntx_to_send) do
     spenders
     |> Enum.with_index(1)
-    |> Enum.map(fn {spender, index} ->
-      {:ok, _} = OMG.State.deposit([%{owner: spender.addr, currency: @eth, amount: ntx_to_send, blknum: index}])
+    |> Enum.map(&create_deposit(&1, ntx_to_send))
+  end
 
-      utxo_pos = Utxo.position(index, 0, 0) |> Utxo.Position.encode()
-      %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send}
-    end)
+  defp create_deposit({spender, index}, ntx_to_send) do
+    {:ok, _} =
+      OMG.State.deposit([
+        %{
+          # these two are irrelevant
+          root_chain_txhash: <<0::256>>,
+          log_index: 0,
+          owner: spender.addr,
+          currency: @eth,
+          amount: ntx_to_send,
+          blknum: index
+        }
+      ])
+
+    utxo_pos = Utxo.position(index, 0, 0) |> Utxo.Position.encode()
+    %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send}
   end
 end
