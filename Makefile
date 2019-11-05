@@ -222,7 +222,11 @@ docker-update-child_chain:
 	docker-compose up childchain
 
 docker-start-cluster-with-infura:
-	docker-compose -f docker-compose.yml -f docker-compose-infura.yml up
+	if [ -f ./docker-compose.override.yml ]; then \
+		docker-compose -f docker-compose.yml -f docker-compose-infura.yml -f docker-compose.override.yml up; \
+	else \
+		echo "Starting infura requires overriding docker-compose-infura.yml values in a docker-compose.override.yml"; \
+	fi
 
 docker-start-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-deployer watcher childchain
