@@ -142,6 +142,20 @@ defmodule OMG.State.Core do
     end
   end
 
+  @spec exec_db_queries(
+          state :: t(),
+          tx :: Transaction.Recovered.t(),
+          fees :: Fees.fee_t(),
+          list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})
+        ) ::
+          {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
+          | {{:error, Validator.exec_error()}, t()}
+  def exec_db_queries(%Core{} = state, tx, fees, utxos_query_result) do
+    state
+    |> with_utxos(utxos_query_result)
+    |> exec(tx, fees)
+  end
+
   @doc """
     Filter user utxos from db response.
     It may take a while for a large response from db

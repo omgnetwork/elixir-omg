@@ -34,14 +34,15 @@ defmodule OMG.State.UtxoSet do
 
   @type t() :: %{InputPointer.Protocol.t() => Utxo.t()}
 
-  @spec init(list(tuple())) :: t()
+  @spec init(list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})) :: t()
   def init(utxos_query_result) do
     Enum.into(utxos_query_result, %{}, fn {db_input_pointer, db_utxo} ->
       {InputPointer.from_db_key(db_input_pointer), Utxo.from_db_value(db_utxo)}
     end)
   end
 
-  @spec merge_with_query_result(t(), list(tuple())) :: t()
+  # FIXME: extract into type list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()}) :: query_result ?
+  @spec merge_with_query_result(t(), list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})) :: t()
   def merge_with_query_result(utxos, utxos_query_result) do
     Map.merge(utxos, init(utxos_query_result))
   end

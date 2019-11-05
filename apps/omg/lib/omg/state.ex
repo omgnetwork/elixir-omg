@@ -128,22 +128,10 @@ defmodule OMG.State do
   Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
   """
   def handle_call({:exec, tx, fees}, _from, state) do
-    utxos_query_result =
-      tx |> Transaction.get_inputs() |> Enum.reject(&Core.utxo_exists?(&1, state)) |> Enum.map(&utxo_from_db/1)
+    utxos_query_result = load_necessary_utxos_from_db(state, tx)
 
     state
-    # FIXME: put the above logic into a `Core.get_exec_db_queries` w/ unit tests
-    # FIXME: testy, testy
-    # FIXME: what if utxo is not found? it must be handled properly and tested
-    |> Core.with_utxos(utxos_query_result)
-    |> Core.exec(tx, fees)
-    # FIXME must write pending txs to disk every time an exec goes through. Form block must flush those
-    #       think how to read them back for full block accountability on fail-overs and upgrades
-    #       IDEA: write pending tx on every `exec` and keep it in state too. On every `form_block`,
-    #             check in-memory pending state:
-    #             If it's empty, then read from DB (it's a failover, so I've not been in the master)
-    #             If it isn't empty, just use it, (normal operation, I've been in the master)
-    # FIXME cleany, cleany
+    |> Core.exec_db_queries(tx, fees, utxos_query_result)
     |> case do
       {:ok, tx_result, %Core{utxo_db_updates: db_updates} = new_state} ->
         :ok = DB.multi_update(db_updates)
@@ -153,12 +141,6 @@ defmodule OMG.State do
       {tx_result, new_state} ->
         {:reply, tx_result, new_state}
     end
-  end
-
-  # FIXME: move
-  defp utxo_from_db(input_pointer) do
-    {:ok, utxo_kv} = DB.utxo(InputPointer.Protocol.to_db_key(input_pointer))
-    utxo_kv
   end
 
   @doc """
@@ -241,5 +223,18 @@ defmodule OMG.State do
   defp publish_block_to_event_bus(block, event_triggers) do
     :ok = OMG.Bus.broadcast("events", {:preprocess_emit_events, event_triggers})
     :ok = OMG.Bus.direct_local_broadcast("blocks", {:enqueue_block, block})
+  end
+
+  defp load_necessary_utxos_from_db(state, tx) do
+    tx
+    |> Transaction.get_inputs()
+    |> Enum.reject(&Core.utxo_exists?(&1, state))
+    |> Enum.map(&utxo_from_db/1)
+    |> Enum.reject(&(:utxo_not_found == &1))
+  end
+
+  defp utxo_from_db(input_pointer) do
+    with {:ok, utxo_kv} <- DB.utxo(InputPointer.Protocol.to_db_key(input_pointer)),
+         do: utxo_kv
   end
 end

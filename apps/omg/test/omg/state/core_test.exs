@@ -21,6 +21,7 @@ defmodule OMG.State.CoreTest do
   use ExUnit.Case, async: true
 
   alias OMG.Block
+  alias OMG.InputPointer
   alias OMG.Fees
   alias OMG.State.Core
   alias OMG.State.Transaction
@@ -47,6 +48,52 @@ defmodule OMG.State.CoreTest do
     |> success?
     |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{bob, 3}]), :no_fees_required)
     |> success?
+  end
+
+  describe "State with lazily loaded utxo set" do
+    @tag fixtures: [:alice, :state_empty]
+    test "transaction input is missing in state", %{alice: alice, state_empty: state} do
+      tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+
+      state
+      |> Core.exec_db_queries(tx, :no_fees_required, [])
+      |> fail?(:utxo_not_found)
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "all transaction utxos are loaded", %{alice: alice, bob: bob, state_empty: state} do
+      tx = create_recovered([{1000, 0, 0, alice}, {1000, 1, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+
+      query_result = prepare_db_results([{alice, 5}, {alice, 5}])
+
+      state
+      |> Core.exec_db_queries(tx, :no_fees_required, query_result)
+      |> success?()
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "transaction utxos are mixed in state and db", %{alice: alice, bob: bob, state_empty: state} do
+      tx = create_recovered([{1000, 0, 0, alice}, {1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+
+      query_result = prepare_db_results([{alice, 8}])
+
+      state
+      |> do_deposit(alice, %{amount: 2, currency: @eth, blknum: 1})
+      |> Core.exec_db_queries(tx, :no_fees_required, query_result)
+      |> success?()
+    end
+
+    defp prepare_db_results(outputs) do
+      create_recovered([], @eth, outputs)
+      |> Transaction.get_outputs()
+      |> Enum.with_index()
+      |> Enum.map(fn {output, index} ->
+        {
+          InputPointer.Protocol.to_db_key(Utxo.position(1000, index, 0)),
+          Utxo.to_db_value(%Utxo{output: output, creating_txhash: <<index>>})
+        }
+      end)
+    end
   end
 
   describe "Transaction amounts and fees" do
