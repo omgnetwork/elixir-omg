@@ -21,18 +21,18 @@ help:
 	@echo "BARE METAL DEVELOPMENT:"
 	@echo "-----------------------------"
 	@echo "ATTENTION ATTENTION ATTENTION"
-	@echo "This presumes you want to run geth, plasma-deployer and postgres as containers \c"
+	@echo "This presumes you want to run geth, plasma-contracts and postgres as containers \c"
 	@echo "but Watcher and Child Chain bare metal."
 	@echo "-----------------------------"
 	@echo ""
 	@echo "You will need four terminal windows."
 	@echo ""
-	@echo "1. In the first one, start geth, postgres and plasma-deployer:"
+	@echo "1. In the first one, start geth, postgres and plasma-contracts:"
 	@echo ""
 	@echo "    make start-services"
 	@echo ""
 	@echo "In case one of the containers is faulty, restart it by running the command again. \c"
-	@echo "Usually it's plasma-deployer."
+	@echo "Usually it's plasma-contracts."
 	@echo ""
 	@echo "2. In the second terminal window, run:"
 	@echo ""
@@ -229,7 +229,7 @@ docker-start-cluster-with-infura:
 	fi
 
 docker-start-cluster-with-datadog:
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-deployer watcher childchain
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-contracts watcher childchain
 
 docker-stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
@@ -238,10 +238,10 @@ docker-stop-cluster-with-datadog:
 ### barebone stuff
 ###
 start-services:
-	docker-compose up geth postgres plasma-deployer
+	docker-compose up geth postgres plasma-contracts
 
-prune-plasma-deployer:
-	docker rmi -f $(docker images --format '{{.Repository}}:{{.Tag}}' | grep elixir-omg_plasma-deployer:latest)
+prune-plasma-contracts:
+	docker rmi -f $(docker images --format '{{.Repository}}:{{.Tag}}' | grep elixir-omg_plasma-contracts:latest)
 
 start-child_chain:
 	set -e; . ./bin/variables; \
