@@ -20,11 +20,31 @@ defmodule OMG.Performance.Runner do
   use OMG.Utils.LoggerExt
 
   @doc """
-  Runs below :run function with :fprof profiler. Profiler analysis is written to the temp file.
+  Kicks off the sending of the transactions, with or without profiling depending on the `profile` arg
+
+  Foreach user runs n submit_transaction requests to the chain server. Requests are done sequentially for every user
   """
-  @spec run(pos_integer(), list(), keyword(), profile :: boolean()) :: {:ok, String.t()}
-  def run(ntx_to_send, utxos, opts, true) do
-    :fprof.apply(&OMG.Performance.Runner.run/4, [ntx_to_send, utxos, opts, false], procs: [:all])
+  @spec run(pos_integer(), list(), keyword(), profile :: boolean()) :: :ok
+  def run(ntx_to_send, utxos, opts, true), do: do_profiled_run(ntx_to_send, utxos, opts)
+  def run(ntx_to_send, utxos, opts, false), do: do_run(ntx_to_send, utxos, opts)
+
+  defp do_run(ntx_to_send, utxos, opts) do
+    {duration, _result} =
+      :timer.tc(fn ->
+        # fire async transaction senders
+        manager = OMG.Performance.SenderManager.start_link_all_senders(ntx_to_send, utxos, opts)
+
+        # Wait all senders do their job, checker will stop when it happens and stops itself
+        wait_for(manager)
+      end)
+
+    _ = Logger.info("{ total_runtime_in_ms: #{inspect(round(duration / 1000))} }")
+
+    :ok
+  end
+
+  defp do_profiled_run(ntx_to_send, utxos, opts) do
+    :fprof.apply(&do_run/3, [ntx_to_send, utxos, opts], procs: [:all])
     :fprof.profile()
 
     destfile = Path.join(opts[:destdir], "perf_result_profiling_#{:os.system_time(:seconds)}")
@@ -32,23 +52,9 @@ defmodule OMG.Performance.Runner do
     [callers: true, sort: :own, totals: true, details: true, dest: String.to_charlist(destfile)]
     |> :fprof.analyse()
 
-    {:ok, "The :fprof output written to #{destfile}."}
-  end
+    _ = Logger.info("The :fprof output written to #{inspect(destfile)}.")
 
-  @doc """
-  Foreach user runs n submit_transaction requests to the chain server. Requests are done sequentially.
-  """
-  def run(ntx_to_send, utxos, opts, false) do
-    {duration, _result} =
-      :timer.tc(fn ->
-        # fire async transaction senders
-        manager = OMG.Performance.SenderManager.start_link_all_senders(ntx_to_send, utxos, opts)
-
-        # Wait all senders do thier job, checker will stop when it happens and stops itself
-        wait_for(manager)
-      end)
-
-    {:ok, "{ total_runtime_in_ms: #{round(duration / 1000)} }"}
+    :ok
   end
 
   # Waits until all sender processes ends sending Tx and deregister themselves from the registry

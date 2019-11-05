@@ -76,8 +76,7 @@ defmodule OMG.Performance.SimplePerftest do
     spenders = create_spenders(nspenders)
     utxos = create_deposits(spenders, ntx_to_send)
 
-    {:ok, data} = OMG.Performance.Runner.run(ntx_to_send, utxos, opts, opts[:profile])
-    _ = Logger.info("#{inspect(data)}")
+    :ok = OMG.Performance.Runner.run(ntx_to_send, utxos, opts, opts[:profile])
 
     cleanup_simple_perftest(started_apps, simple_perftest_chain)
   end
