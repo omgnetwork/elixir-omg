@@ -78,7 +78,11 @@ defmodule Support.DevHelper do
 
   @doc """
   Will take a map with eth-account information (from &generate_entity/0) and then
-  import priv key->unlock->fund with lots of ether on that account
+  import priv key->unlock->fund with test ETH on that account
+
+  Options:
+    - :faucet - the address to send the test ETH from, assumed to be unlocked and have the necessary funds
+    - :initial_funds_wei - the amount of test ETH that will be granted to every generated user
   """
   def import_unlock_fund(%{priv: account_priv}, opts \\ []) do
     {:ok, account_enc} = create_account_from_secret(backend(), account_priv, @passphrase)
@@ -184,16 +188,16 @@ defmodule Support.DevHelper do
 
   defp fund_address_from_faucet(account_enc, opts) do
     {:ok, [default_faucet | _]} = Ethereumex.HttpClient.eth_accounts()
-    defaults = [faucet: default_faucet, initial_funds: @one_hundred_eth]
+    defaults = [faucet: default_faucet, initial_funds_wei: @one_hundred_eth]
 
-    %{faucet: faucet, initial_funds: initial_funds} =
+    %{faucet: faucet, initial_funds_wei: initial_funds_wei} =
       defaults
       |> Keyword.merge(opts)
       |> Enum.into(%{})
 
     unlock_if_possible(account_enc)
 
-    params = %{from: faucet, to: account_enc, value: to_hex(initial_funds)}
+    params = %{from: faucet, to: account_enc, value: to_hex(initial_funds_wei)}
 
     {:ok, tx_fund} = Transaction.send(backend(), params)
 

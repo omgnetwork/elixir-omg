@@ -13,11 +13,15 @@
 # limitations under the License.
 
 defmodule OMG.Performance.SimplePerftestTest do
+  @moduledoc """
+  Simple smoke testing of the performance test
+  """
+
   use ExUnit.Case, async: false
 
   import ExUnit.CaptureIO
 
-  alias OMG.Performance
+  use OMG.Performance
 
   @moduletag :integration
   @moduletag :common

@@ -13,6 +13,11 @@
 # limitations under the License.
 
 defmodule OMG.Performance.SimplePerftest do
+  @moduledoc """
+  The simple performance tests runs the critical transaction processing chunk of the child chain.
+
+  This allows to easily test the critical path of processing transactions, and profile it using `:fprof`.
+  """
   use OMG.Utils.LoggerExt
 
   alias OMG.TestHelper
@@ -23,16 +28,38 @@ defmodule OMG.Performance.SimplePerftest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @doc """
-  Runs test with {ntx_to_send} tx for each {nspenders} senders with given options.
+  Runs test with `ntx_to_send` txs for each of the `nspenders` senders with given options.
+  The test is run on a local limited child chain app instance, not doing any Ethereum connectivity-related activities.
+  The child chain is setup and torn down as part of the test invocation.
 
-  Default options:
+  ## Usage
+
+  From an `iex -S mix run --no-start` shell
+
   ```
-  %{
-    destdir: ".", # directory where the results will be put
-    profile: false,
-    block_every_ms: 2000 # how often do you want the tester to force a block being formed
-  }
+  use OMG.Performance
+
+  Performance.SimplePerftest.start(50, 16)
   ```
+
+  The results are going to be waiting for you in a file within `destdir` and will be logged.
+
+  Options:
+    - :destdir - directory where the results will be put, relative to `pwd`, defaults to `"."`
+    - :profile - if `true`, a `:fprof` will profile the test run, defaults to `false`
+    - :block_every_ms - how often should the artificial block creation be triggered, defaults to `2000`
+    - :randomized - whether the non-change outputs of the txs sent out will be random or equal to sender (if `false`),
+      defaults to `true`
+
+    **NOTE**:
+
+    With `profile: :fprof` it will print a warning:
+    ```
+    Warning: {erlang, trace, 3} called in "<0.514.0>" - trace may become corrupt!
+    ```
+    It is caused by using `procs: :all` in options. So far we're not using `:erlang.trace/3` in our code,
+    so it has been ignored. Otherwise it's easy to reproduce and report
+    (github.com/erlang/otp and the JIRA it points you to).
   """
   @spec start(pos_integer(), pos_integer(), map()) :: :ok
   def start(ntx_to_send, nspenders, opts \\ %{}) do

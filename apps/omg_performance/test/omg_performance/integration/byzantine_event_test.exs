@@ -13,14 +13,16 @@
 # limitations under the License.
 
 defmodule OMG.Performance.ByzantineEventsTest do
+  @moduledoc """
+  Simple smoke testing of the performance test
+  """
+
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.ChildChain.Integration.Fixtures
   use OMG.Watcher.Fixtures
 
-  alias OMG.Performance
-  alias OMG.Performance.ByzantineEvents
-  alias OMG.Performance.Generators
+  use OMG.Performance
 
   @moduletag :integration
   @moduletag timeout: 180_000
@@ -58,7 +60,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> ByzantineEvents.get_many_standard_exits()
       |> ByzantineEvents.start_many_exits(alice.addr)
 
-    :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
     # assert that we can call this testing function reliably and that there are no invalid exits
     assert [] = ByzantineEvents.get_byzantine_events("invalid_exit")
   end
@@ -76,7 +78,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> ByzantineEvents.get_many_standard_exits()
       |> ByzantineEvents.start_many_exits(alice.addr)
 
-    :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
     # assert that we can call this testing function reliably and that there are some invalid exits there in fact
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_exit")) > 10
   end
@@ -94,15 +96,15 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> ByzantineEvents.get_many_standard_exits()
       |> ByzantineEvents.start_many_exits(alice.addr)
 
-    :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
 
     utxos_to_challenge = ByzantineEvents.get_byzantine_events("invalid_exit")
 
     # assert that we can call this testing function reliably
-    assert challenges = ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
+    assert challenge_responses = ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
 
-    assert Enum.count(challenges) == Enum.count(utxos_to_challenge)
-    assert Enum.count(utxos_to_challenge) > 10
+    assert Enum.count(challenge_responses) == Enum.count(utxos_to_challenge)
+    assert Enum.count(challenge_responses) > 10
   end
 
   @tag fixtures: [:perf_test, :child_chain, :omg_watcher]
@@ -118,7 +120,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> ByzantineEvents.get_many_standard_exits()
       |> ByzantineEvents.start_many_exits(alice.addr)
 
-    :ok = ByzantineEvents.watcher_synchronize(last_exit_height)
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
 
     # assert we can process the many challenges and get status then
     {:ok, %{"status" => "0x1", "blockNumber" => last_challenge_height}} =
@@ -126,7 +128,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> ByzantineEvents.get_many_se_challenges()
       |> ByzantineEvents.challenge_many_exits(alice.addr)
 
-    :ok = ByzantineEvents.watcher_synchronize(last_challenge_height)
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_challenge_height)
 
     assert [] = ByzantineEvents.get_byzantine_events("invalid_exit")
   end

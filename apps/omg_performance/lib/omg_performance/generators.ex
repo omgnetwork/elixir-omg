@@ -28,12 +28,14 @@ defmodule OMG.Performance.Generators do
   @generate_user_timeout 600_000
 
   @doc """
-  Creates addresses with private keys and funds them with given `initial_funds` on geth.
+  Creates addresses with private keys and funds them with given `initial_funds_wei` on geth.
+
+  Options:
+    - :faucet - the address to send the test ETH from, assumed to be unlocked and have the necessary funds
+    - :initial_funds_wei - the amount of test ETH that will be granted to every generated user
   """
   @spec generate_users(non_neg_integer, [Keyword.t()]) :: [OMG.TestHelper.entity()]
   def generate_users(size, opts \\ []) do
-    # FIXME: document :faucet and :initial_funds based on demo_03 and remove this demo (doc here, in tests and in
-    #        dev helpers)
     1..size
     |> Task.async_stream(fn _ -> generate_user(opts) end, timeout: @generate_user_timeout)
     |> Enum.map(fn {:ok, result} -> result end)

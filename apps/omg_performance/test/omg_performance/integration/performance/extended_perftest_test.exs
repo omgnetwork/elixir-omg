@@ -13,12 +13,15 @@
 # limitations under the License.
 
 defmodule OMG.Performance.ExtendedPerftestTest do
+  @moduledoc """
+  Simple smoke testing of the performance test
+  """
+
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.ChildChain.Integration.Fixtures
 
-  alias OMG.Performance
-  alias OMG.Performance.Generators
+  use OMG.Performance
 
   @moduletag :integration
   @moduletag :common

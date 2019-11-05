@@ -13,6 +13,12 @@
 # limitations under the License.
 
 defmodule OMG.Performance.ExtendedPerftest do
+  @moduledoc """
+  This performance test allows to send out many transactions to a child chain instance of choice.
+
+  See `OMG.Performance` for configuration within the `iex` shell using `Performance.init()`
+  """
+
   use OMG.Utils.LoggerExt
 
   alias OMG.TestHelper
@@ -24,17 +30,28 @@ defmodule OMG.Performance.ExtendedPerftest do
   @make_deposit_timeout 600_000
 
   @doc """
-  Runs test with {ntx_to_send} transactions for each {spenders}.
-  Initial deposits for each account will be made on passed {contract_addr}.
+  Runs test with `ntx_to_send` transactions for each of `spenders` provided.
+  The spenders should be provided in the form as given by `OMG.Performance.Generators.generate_users`, and must be
+  funded on the root chain. The test invocation will do the deposits on the child chain.
 
-  Default options:
+  ## Usage
+
+  Once you have your Ethereum node and a child chain running, from a configured `iex -S mix run --no-start` shell
+
   ```
-  %{
-    destdir: ".", # directory where the results will be put
-    geth: System.get_env("ETHEREUM_RPC_URL"),
-    child_chain: "http://localhost:9656"
-  }
+  use OMG.Performance
+
+  Performance.init()
+  spenders = Generators.generate_users(2)
+  Performance.ExtendedPerftest.start(100, spenders, %{destdir: destdir})
   ```
+
+  The results are going to be waiting for you in a file within `destdir` and will be logged.
+
+  Options:
+    - :destdir - directory where the results will be put, relative to `pwd`, defaults to `"."`
+    - :randomized - whether the non-change outputs of the txs sent out will be random or equal to sender (if `false`),
+      defaults to `true`
   """
   @spec start(pos_integer(), list(TestHelper.entity()), map()) :: :ok
   def start(ntx_to_send, spenders, opts \\ %{}) do

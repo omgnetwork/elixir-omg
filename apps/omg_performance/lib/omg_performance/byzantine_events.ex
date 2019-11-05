@@ -14,38 +14,26 @@
 
 defmodule OMG.Performance.ByzantineEvents do
   @moduledoc """
-  OMG network child chain server byzantine event test entrypoint. Setup and runs performance byzantine tests.
+  OMG network child chain server byzantine event test entrypoint. Runs performance byzantine tests.
 
-  # Usage
+  ## Usage
 
-  See functions in this module for options available
-
-  ## get_many_standard_exits runs a test to get exit data for given 10 positions for 3 users
-
-  ```
-  mix run --no-start -e \
-    '
-      OMG.Performance.Generators.stream_utxo_positions() |>
-      Enum.take(10) |> OMG.Performance.ByzantineEvents.get_many_standard_exits(3)
-    '
-  ```
-
-  __ASSUMPTIONS:__
-  This test should be run on testnet filled with transactions make sure you followed instructions in `docs/demo_05.md`
-  and `geth`, `omg_child_chain` and `omg_watcher` are running; and watcher is fully synced.
-
-  Expected result of running the above command should looks like:
+  To setup, once you have your Ethereum node and a child chain running, from a configured `iex -S mix run --no-start`
+  shell do:
 
   ```
-  [
-    %{span_ms: 232000, corrects_count: 10, errors_count: 0},
-    %{span_ms: 221500, corrects_count: 10, errors_count: 0},
-    %{span_ms: 219900, corrects_count: 10, errors_count: 0},
-  ]
+  use OMG.Performance
+
+  Performance.init()
+  spenders = Generators.generate_users(2)
   ```
 
-  where the sum of `corrects_count + errors_count` should equal to `length(positions)`.
-  If all passed position was unspent there should be no errors.
+  You probably want to prefill the child chain with transactions, see `OMG.Performance.ExtendedPerftest` or just:
+  ```
+  Performance.ExtendedPerftest.start(10_000, 16, %{randomized: false})
+  ```
+  (`randomized: false` is useful to test massive honest-standard-exiting, since it will create many unspent UTXOs for
+  each of the spenders)
   """
 
   use OMG.Utils.LoggerExt
@@ -59,8 +47,27 @@ defmodule OMG.Performance.ByzantineEvents do
 
   @doc """
   For given utxo positions shuffle them and ask the watcher for exit data
+
+  ## Usage
+
+  On top of the generic setup (see above) do:
+
+  ```
+  alice = Enum.at(spenders, 0)
+
+  :ok = ByzantineEvents.watcher_synchronize()
+
+  utxo_positions = ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
+  exit_datas = timeit ByzantineEvents.get_many_standard_exits(utxo_positions)
+  ```
+
+  NOTE this uses unspent UTXOs creating valid exits for `alice`. For invalid exits do
+
+  ```
+  utxo_positions = Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
+  ```
   """
-  # FIXME specs
+  @spec get_many_standard_exits(list(pos_integer())) :: list(map())
   def get_many_standard_exits(exit_positions) do
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
 
@@ -71,11 +78,16 @@ defmodule OMG.Performance.ByzantineEvents do
   end
 
   @doc """
-  # FIXME do doc here
+  For given standard exit datas (maps received from the Watcher) start all the exits in the root chain contract.
+
+  Will use `owner_address` to start the exits so this address must own all the supplied UTXOs to exit.
+
+  Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
+  the receipt of the last transaction sent out.
   """
+  @spec start_many_exits(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
   def start_many_exits(exit_datas, owner_address) do
-    exit_datas
-    |> map_contract_transaction(fn composed_exit ->
+    map_contract_transaction(exit_datas, fn composed_exit ->
       Support.RootChainHelper.start_exit(
         composed_exit.utxo_pos,
         composed_exit.txbytes,
@@ -87,7 +99,19 @@ defmodule OMG.Performance.ByzantineEvents do
 
   @doc """
   For given utxo positions shuffle them and ask the watcher for challenge data. All positions must be invalid exits
+
+  ## Usage
+
+  Having some invalid exits out there (see above), last of which started at `last_exit_height`, do:
+
+  ```
+  :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
+  utxos_to_challenge = timeit ByzantineEvents.get_byzantine_events("invalid_exit")
+  challenge_responses = timeit ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
+  ```
+
   """
+  @spec get_many_se_challenges(list(pos_integer())) :: list(map())
   def get_many_se_challenges(positions) do
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
 
@@ -97,9 +121,17 @@ defmodule OMG.Performance.ByzantineEvents do
     |> only_successes()
   end
 
+  @doc """
+  For given challenges (maps received from the Watcher) challenge all the invalid exits in the root chain contract.
+
+  Will use `challenger_address`, which can be any well-funded address.
+
+  Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
+  the receipt of the last transaction sent out.
+  """
+  @spec challenge_many_exits(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
   def challenge_many_exits(challenge_responses, challenger_address) do
-    challenge_responses
-    |> map_contract_transaction(fn challenge ->
+    map_contract_transaction(challenge_responses, fn challenge ->
       Support.RootChainHelper.challenge_exit(
         challenge.exit_id,
         challenge.exiting_tx,
@@ -114,9 +146,18 @@ defmodule OMG.Performance.ByzantineEvents do
   @doc """
   Fetches utxo positions for a given user's address.
 
+  ## Usage
+
+  On top of the generic setup (see above) do:
+
+  ```
+  timeit ByzantineEvents.get_exitable_utxos(alice.addr)
+  ```
+
   Options:
     - :take - if not nil, will limit to this many results
   """
+  @spec get_exitable_utxos(OMG.Crypto.address_t(), keyword()) :: list(pos_integer())
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
     {:ok, utxos} = WatcherClient.get_exitable_utxos(addr, watcher_url)
@@ -125,9 +166,18 @@ defmodule OMG.Performance.ByzantineEvents do
     if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
   end
 
-  # FIXME: nicen the optional arguments here
-  def watcher_synchronize(root_chain_height \\ nil) do
+  @doc """
+  Blocks the caller until the watcher configured reports to be fully synced up (both child chain blocks and eth events)
+
+  Options:
+    - :root_chain_height - if not `nil`, in addition to synchronizing to current top mined child chain block, it will
+      sync up till all the Watcher's services report at at least this Ethereum height
+  """
+  @spec watcher_synchronize(keyword()) :: :ok
+  def watcher_synchronize(opts \\ []) do
+    root_chain_height = Keyword.get(opts, :root_chain_height, nil)
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
+
     _ = Logger.info("Waiting for the watcher to synchronize")
     WaitFor.repeat_until_ok(fn -> watcher_synchronized?(root_chain_height, watcher_url) end)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
@@ -137,15 +187,22 @@ defmodule OMG.Performance.ByzantineEvents do
     _ = Logger.info("Watcher synchronized")
   end
 
+  @doc """
+  Gets all the byzantine events from the Watcher
+  """
+  @spec get_byzantine_events() :: list(map())
   def get_byzantine_events() do
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
     {:ok, status_response} = WatcherClient.get_status(watcher_url)
-    status_response
+    status_response[:byzantine_events]
   end
 
+  @doc """
+  Gets byzantine events of a particular flavor from the Watcher
+  """
+  @spec get_byzantine_events(String.t()) :: list(map())
   def get_byzantine_events(event_name) do
     get_byzantine_events()
-    |> Access.get(:byzantine_events)
     |> Enum.filter(&(&1["event"] == event_name))
     |> postprocess_byzantine_events(event_name)
   end
