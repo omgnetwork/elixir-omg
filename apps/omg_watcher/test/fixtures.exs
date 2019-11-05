@@ -145,14 +145,7 @@ defmodule OMG.Watcher.Fixtures do
       nil
     )
 
-    {:ok, pid} =
-      Supervisor.start_link(
-        [
-          %{id: OMG.WatcherRPC.Web.Endpoint, start: {OMG.WatcherRPC.Web.Endpoint, :start_link, []}, type: :supervisor}
-        ],
-        strategy: :one_for_one,
-        name: Watcher.Endpoint
-      )
+    {:ok, pid} = ensure_web_started(OMG.WatcherRPC.Web.Endpoint, :start_link, [], 100)
 
     _ = Application.load(:omg_watcher_rpc)
 
@@ -273,5 +266,31 @@ defmodule OMG.Watcher.Fixtures do
     recovered_txs
     |> Enum.with_index()
     |> Enum.map(fn {recovered_tx, txindex} -> {blknum, txindex, recovered_tx.tx_hash, recovered_tx} end)
+  end
+
+  defp ensure_web_started(module, function, args, counter) do
+    _ = Process.flag(:trap_exit, true)
+    do_ensure_web_started(module, function, args, counter)
+  end
+
+  defp do_ensure_web_started(module, function, args, 0), do: apply(module, function, args)
+
+  defp do_ensure_web_started(module, function, args, counter) do
+    {:ok, _pid} = result = apply(module, function, args)
+    result
+  rescue
+    e in MatchError ->
+      %MatchError{
+        term:
+          {:error,
+           {:shutdown,
+            {:failed_to_start_child, {:ranch_listener_sup, OMG.WatcherRPC.Web.Endpoint.HTTP},
+             {:shutdown,
+              {:failed_to_start_child, :ranch_acceptors_sup,
+               {:listen_error, OMG.WatcherRPC.Web.Endpoint.HTTP, :eaddrinuse}}}}}}
+      } = e
+
+      :ok = Process.sleep(5)
+      ensure_web_started(module, function, args, counter - 1)
   end
 end

@@ -16,9 +16,7 @@ services:
       retries: 5
 
   plasma-contracts:
-    build:
-      context: .
-      dockerfile: Dockerfile.plasma_contracts
+    image: omisegoimages/elixir-omg-tester-plasma-deployer:dev-247d0e3
     command:
       - /bin/sh
       - -c
@@ -49,7 +47,7 @@ services:
       interval: 80s
       timeout: 15s
       retries: 120
-      start_period: 4m
+      start_period: 5m
 
   geth:
     image: ethereum/client-go:v1.8.27
@@ -101,6 +99,7 @@ services:
       interval: 30s
       timeout: 1s
       retries: 5
+      start_period: 30s
     depends_on:
       plasma-contracts:
         condition: service_healthy

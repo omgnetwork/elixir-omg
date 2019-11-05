@@ -1,4 +1,5 @@
 MAKEFLAGS += --silent
+OVERRIDING_START ?= foreground
 help:
 	@echo "Dont Fear the Makefile"
 	@echo ""
@@ -205,7 +206,10 @@ docker-push: docker
 
 ###OTHER
 docker-start-cluster:
-	docker-compose up
+	docker-compose build --no-cache && docker-compose up
+
+docker-stop-cluster:
+	docker-compose down
 
 docker-update-watcher:
 	docker stop elixir-omg_watcher_1
@@ -232,6 +236,9 @@ docker-stop-cluster-with-datadog:
 start-services:
 	docker-compose up geth postgres plasma-deployer
 
+prune-plasma-deployer:
+	docker rmi -f $(docker images --format '{{.Repository}}:{{.Tag}}' | grep elixir-omg_plasma-deployer:latest)
+
 start-child_chain:
 	set -e; . ./bin/variables; \
 	echo "Building Child Chain" && \
@@ -240,7 +247,7 @@ start-child_chain:
 	echo "Init Child Chain DB" && \
 	_build/dev/rel/child_chain/bin/child_chain init_key_value_db && \
 	echo "Init Child Chain DB DONE" && \
-	_build/dev/rel/child_chain/bin/child_chain foreground
+	_build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
 	set -e; . ./bin/variables; \
@@ -253,7 +260,7 @@ start-watcher:
 	_build/dev/rel/watcher/bin/watcher init_postgresql_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	_build/dev/rel/watcher/bin/watcher foreground
+	_build/dev/rel/watcher/bin/watcher $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
