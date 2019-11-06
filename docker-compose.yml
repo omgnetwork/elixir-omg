@@ -15,7 +15,7 @@ services:
       timeout: 3s
       retries: 5
 
-  plasma-deployer:
+  plasma-contracts:
     image: omisegoimages/elixir-omg-tester-plasma-deployer:dev-247d0e3
     command:
       - /bin/sh
@@ -43,7 +43,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: curl plasma-deployer:8000/contracts
+      test: curl plasma-contracts:8000/contracts
       interval: 80s
       timeout: 15s
       retries: 120
@@ -78,7 +78,7 @@ services:
     command: "full_local"
     environment:
       - EXIT_PERIOD_SECONDS=86400
-      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000/contracts
+      - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
@@ -101,7 +101,7 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      plasma-deployer:
+      plasma-contracts:
         condition: service_healthy
       geth:
         condition: service_healthy
@@ -110,7 +110,7 @@ services:
     image: omisego/watcher:latest
     command: "full_local"
     environment:
-      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000/contracts
+      - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
@@ -134,7 +134,7 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      plasma-deployer:
+      plasma-contracts:
         condition: service_healthy
       childchain:
         condition: service_healthy

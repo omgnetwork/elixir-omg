@@ -48,6 +48,7 @@ env/
 
 # Docker
 src/
+docker-compose.override.yml
 
 # Sobelow
 .sobelow
