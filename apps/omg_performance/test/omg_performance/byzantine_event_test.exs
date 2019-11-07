@@ -48,6 +48,17 @@ defmodule OMG.Performance.ByzantineEventsTest do
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
+  test "can provide timing of response when asking for IFE data", %{perf_test: {:ok, %{destdir: destdir}}} do
+    spenders = Generators.generate_users(2)
+
+    :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: false, destdir: destdir)
+    :ok = ByzantineEvents.watcher_synchronize()
+
+    Generators.stream_transactions(take: 20)
+    |> ByzantineEvents.get_many_ifes()
+  end
+
+  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
   test "can provide timing of status.get under many valid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
@@ -62,7 +73,25 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
     # assert that we can call this testing function reliably and that there are no invalid exits
-    assert [] = ByzantineEvents.get_byzantine_events("invalid_exit")
+    assert [] = ByzantineEvents.get_byzantine_events()
+  end
+
+  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
+  test "can provide timing of status.get under many valid IFEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+    spenders = Generators.generate_users(2)
+    alice = Enum.at(spenders, 0)
+
+    :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: false, destdir: destdir)
+    :ok = ByzantineEvents.watcher_synchronize()
+
+    {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
+      Generators.stream_transactions(take: 20)
+      |> ByzantineEvents.get_many_ifes()
+      |> ByzantineEvents.start_many_ifes(alice.addr)
+
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
+    # assert that we can call this testing function reliably and that there are no invalid exits
+    assert [] = ByzantineEvents.get_byzantine_events()
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]

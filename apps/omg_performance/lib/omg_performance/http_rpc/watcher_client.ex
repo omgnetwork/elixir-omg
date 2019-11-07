@@ -39,6 +39,16 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
       |> decode_response()
 
   @doc """
+  Gets standard exit data from Watcher's RPC
+  """
+  @spec get_in_flight_exit(binary(), binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
+  def get_in_flight_exit(transaction, url),
+    do:
+      %{txbytes: Encoding.to_hex(transaction)}
+      |> call("in_flight_exit.get_data", url)
+      |> decode_response()
+
+  @doc """
   Gets utxo for given address from Watcher's RPC
   """
   @spec get_exitable_utxos(OMG.Crypto.address_t(), binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
@@ -54,29 +64,36 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   defp call(params, path, url),
     do: Adapter.rpc_post(params, path, url) |> Adapter.get_response_body()
 
-  defp decode_response({:ok, %{proof: proof, txbytes: txbytes, utxo_pos: utxo_pos}}) do
-    {:ok,
-     %{
-       proof: decode16!(proof),
-       txbytes: decode16!(txbytes),
-       utxo_pos: utxo_pos
-     }}
-  end
-
   defp decode_response(
-         {:ok, %{exiting_tx: exiting_tx, txbytes: txbytes, sig: sig, exit_id: exit_id, input_index: input_index}}
+         {:ok,
+          %{
+            in_flight_tx: in_flight_tx,
+            input_txs: input_txs,
+            input_txs_inclusion_proofs: input_txs_inclusion_proofs,
+            in_flight_tx_sigs: in_flight_tx_sigs
+          } = response}
        ) do
     {:ok,
      %{
-       exit_id: exit_id,
-       input_index: input_index,
-       exiting_tx: decode16!(exiting_tx),
-       txbytes: decode16!(txbytes),
-       sig: decode16!(sig)
+       response
+       | in_flight_tx: decode16!(in_flight_tx),
+         input_txs: decode16!(input_txs),
+         input_txs_inclusion_proofs: decode16!(input_txs_inclusion_proofs),
+         in_flight_tx_sigs: decode16!(in_flight_tx_sigs)
      }}
   end
 
+  defp decode_response({:ok, %{proof: proof, txbytes: txbytes} = response}) do
+    {:ok, %{response | proof: decode16!(proof), txbytes: decode16!(txbytes)}}
+  end
+
+  defp decode_response({:ok, %{exiting_tx: exiting_tx, txbytes: txbytes, sig: sig} = response}) do
+    {:ok, %{response | exiting_tx: decode16!(exiting_tx), txbytes: decode16!(txbytes), sig: decode16!(sig)}}
+  end
+
   defp decode_response(error), do: error
+
+  defp decode16!(hexlist) when is_list(hexlist), do: Enum.map(hexlist, &decode16!/1)
 
   defp decode16!(hexstr) do
     {:ok, bin} = Encoding.from_hex(hexstr)

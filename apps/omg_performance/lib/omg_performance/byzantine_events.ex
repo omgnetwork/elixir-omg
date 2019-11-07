@@ -39,6 +39,7 @@ defmodule OMG.Performance.ByzantineEvents do
   use OMG.Utils.LoggerExt
 
   alias OMG.Performance.HttpRPC.WatcherClient
+  alias OMG.State.Transaction
   alias Support.WaitFor
 
   alias OMG.Utxo
@@ -93,6 +94,72 @@ defmodule OMG.Performance.ByzantineEvents do
         composed_exit.txbytes,
         composed_exit.proof,
         owner_address
+      )
+    end)
+  end
+
+  # FIXME docs specs
+  @doc """
+  For given utxo positions shuffle them and ask the watcher for exit data
+
+  ## Usage
+
+  On top of the generic setup (see above) do:
+
+  ```
+  alice = Enum.at(spenders, 0)
+
+  :ok = ByzantineEvents.watcher_synchronize()
+
+  utxo_positions = ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
+  exit_datas = timeit ByzantineEvents.get_many_standard_exits(utxo_positions)
+  ```
+
+  NOTE this uses unspent UTXOs creating valid exits for `alice`. For invalid exits do
+
+  ```
+  utxo_positions = Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
+  ```
+  """
+  @spec get_many_ifes(list(Transaction.Signed.tx_bytes())) :: list(map())
+  def get_many_ifes(txs) do
+    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
+
+    txs
+    |> Stream.filter(&no_deposit_spends?/1)
+    |> Enum.shuffle()
+    |> Enum.map(&WatcherClient.get_in_flight_exit(&1, watcher_url))
+    |> only_successes()
+  end
+
+  # FIXME: whoops, we cannot open IFEs from included txs spending deposits. When fixed, remove this filter
+  defp no_deposit_spends?(txbytes) do
+    txbytes
+    |> Transaction.Signed.decode!()
+    |> Transaction.get_inputs()
+    |> Enum.any?(&Utxo.Position.is_deposit?/1)
+    |> Kernel.not()
+  end
+
+  # FIXME docsspecs
+  @doc """
+  For given standard exit datas (maps received from the Watcher) start all the exits in the root chain contract.
+
+  Will use `owner_address` to start the exits so this address must own all the supplied UTXOs to exit.
+
+  Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
+  the receipt of the last transaction sent out.
+  """
+  @spec start_many_ifes(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
+  def start_many_ifes(ife_datas, user_address) do
+    map_contract_transaction(ife_datas, fn ife ->
+      Support.RootChainHelper.in_flight_exit(
+        ife.in_flight_tx,
+        ife.input_txs,
+        ife.input_utxos_pos,
+        ife.input_txs_inclusion_proofs,
+        ife.in_flight_tx_sigs,
+        user_address
       )
     end)
   end
