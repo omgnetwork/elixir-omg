@@ -30,6 +30,9 @@ defmodule OMG.Eth.Transaction do
     transact(backend, txmap, opts)
   end
 
+  # ganache works the same as geth in this aspect
+  defp transact(:ganache, txmap, opts), do: transact(:geth, txmap, opts)
+
   defp transact(:geth, txmap, _opts) do
     case Ethereumex.HttpClient.eth_send_transaction(txmap) do
       {:ok, receipt_enc} -> {:ok, Encoding.from_hex(receipt_enc)}

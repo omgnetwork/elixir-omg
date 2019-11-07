@@ -507,6 +507,16 @@ defmodule OMG.ChildChain.BlockQueue.Core do
       # parity specific error for nonce-too-low
       {:error, %{"code" => -32_010, "message" => "Transaction nonce is too low." <> _}} ->
         process_nonce_too_low(submission, newest_mined_blknum)
+
+      # ganache has this error, but these are valid nonce_too_low errors, that just don't make any sense
+      # `process_nonce_too_low/2` would mark it as a genuine failure and crash the BlockQueue :(
+      # however, everything seems to just work regardless, things get retried and mined eventually
+      # NOTE: we decide to degrade the severity to warn and continue, considering it's just `ganache`
+      {:error, %{"code" => -32000, "data" => %{"stack" => "n: the tx doesn't have the correct nonce" <> _}}} = error ->
+        # runtime sanity check if we're actually running `ganache`, if we aren't and we're here, we must crash
+        :ganache = Application.fetch_env!(:omg_eth, :eth_node)
+        _ = Logger.warn(inspect(error))
+        :ok
     end
   end
 

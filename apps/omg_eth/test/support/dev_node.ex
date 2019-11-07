@@ -30,6 +30,13 @@ defmodule Support.DevNode do
     Support.DevParity.start()
   end
 
+  defp start(:ganache) do
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
+    # we won't start ganache for the testing user, so we want to warn in case this was expected
+    false = Application.get_env(:omg_eth, :run_test_eth_dev_node) && {:error, :ganache_must_be_already_started}
+    {:ok, fn -> :ok end}
+  end
+
   def wait_for_start(outstream, look_for, timeout, logger_fn \\ &default_logger/1) do
     # Monitors the stdout coming out of a process for signal of successful startup
     waiting_task_function = fn ->
