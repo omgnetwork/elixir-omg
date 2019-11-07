@@ -81,9 +81,7 @@ defmodule Support.DevHelper do
   import priv key->unlock->fund with lots of ether on that account
   """
   def import_unlock_fund(%{priv: account_priv}, opts \\ []) do
-    account_priv_enc = Base.encode16(account_priv)
-
-    {:ok, account_enc} = create_account_from_secret(backend(), account_priv_enc, @passphrase)
+    {:ok, account_enc} = create_account_from_secret(backend(), account_priv, @passphrase)
     {:ok, _} = fund_address_from_faucet(account_enc, opts)
 
     {:ok, from_hex(account_enc)}
@@ -154,16 +152,20 @@ defmodule Support.DevHelper do
     fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
   end
 
-  def create_account_from_secret(:geth, secret, passphrase) do
-    {:ok, _} = Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], [])
-  end
+  def create_account_from_secret(:ganache, secret, passphrase),
+    do: do_create_account_from_secret("personal_importRawKey", Eth.Encoding.to_hex(secret), passphrase)
 
-  def create_account_from_secret(:parity, secret, passphrase) when byte_size(secret) == 64 do
-    secret = secret |> Base.decode16!(case: :upper) |> Eth.Encoding.to_hex()
-    {:ok, _} = Ethereumex.HttpClient.request("parity_newAccountFromSecret", [secret, passphrase], [])
-  end
+  def create_account_from_secret(:geth, secret, passphrase),
+    do: do_create_account_from_secret("personal_importRawKey", Base.encode16(secret), passphrase)
+
+  def create_account_from_secret(:parity, secret, passphrase) when byte_size(secret) == 64,
+    do: do_create_account_from_secret("parity_newAccountFromSecret", Eth.Encoding.to_hex(secret), passphrase)
 
   # private
+
+  defp do_create_account_from_secret(method_name, secret, passphrase) do
+    {:ok, _} = Ethereumex.HttpClient.request(method_name, [secret, passphrase], [])
+  end
 
   # returns well-funded faucet address for contract deployment or first address returned from node otherwise
   defp get_deployer_address(opts) do
@@ -202,6 +204,9 @@ defmodule Support.DevHelper do
   defp unlock_if_possible(account_enc) do
     unlock_if_possible(account_enc, backend())
   end
+
+  # ganache works the same as geth in this aspect
+  defp unlock_if_possible(account_enc, :ganache), do: unlock_if_possible(account_enc, :geth)
 
   defp unlock_if_possible(account_enc, :geth) do
     {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [account_enc, @passphrase, 0], [])

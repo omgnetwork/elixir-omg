@@ -373,7 +373,9 @@ All binary entries are expected in hex-encoded, `0x`-prefixed.
 
 * **`txhash_contract`** - the Ethereum-transaction hash holding the deployment of the root chain contract
 
-* **`eth_node`** - the Ethereum client which is used: `"geth" | "parity" or "infura"`.
+* **`eth_node`** - the Ethereum client which is used: `"geth" | "parity" | "infura" | "ganache"`.
+Use `"ganache"` for tests only, also note that you must run `ganache-cli` yourself (e.g. using the provided `docker-compose-fixtures.yml` file).
+When setting to `"ganache"`, set also `run_test_eth_dev_node` to `false`, to prevent tests from setting up the dev Ethereum node themselves.
 
 * **`node_logging_in_debug`** - whether the output of the Ethereum node being run in integration test should be printed to `:debug` level logs.
 If you set this to false, remember to set the logging level to `:debug` to see the logs

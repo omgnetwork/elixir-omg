@@ -44,8 +44,8 @@ defmodule OMG.Watcher.Fixtures do
       #{DevHelper.create_conf_file(contract)}
 
       config :omg_db, path: "#{db_path}"
-      # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level
-      config :logger, level: :debug
+      # this causes the inner test child chain server process to log info. To see these logs adjust test's log level
+      config :logger, level: :info
       config :omg_child_chain, fee_specs_file_name: "#{fee_file}"
     """)
     |> File.close()
@@ -78,10 +78,9 @@ defmodule OMG.Watcher.Fixtures do
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
       Exexec.run_link(child_chain_mix_cmd, exexec_opts_for_mix)
 
-    fn ->
-      child_chain_out |> Enum.each(&log_output("child_chain", &1))
-    end
-    |> Task.async()
+    wait_for_start(child_chain_out, "Running OMG.ChildChainRPC.Web.Endpoint", 20_000, &log_output("child_chain", &1))
+
+    Task.async(fn -> Enum.each(child_chain_out, &log_output("child_chain", &1)) end)
 
     on_exit(fn ->
       # NOTE see DevGeth.stop/1 for details
@@ -106,6 +105,23 @@ defmodule OMG.Watcher.Fixtures do
       File.rm(config_file_path)
       File.rm_rf(db_path)
     end)
+
+    :ok
+  end
+
+  # NOTE: we could dry or do sth about this (copied from Support.DevNode), but this might be removed soon altogether
+  defp wait_for_start(outstream, look_for, timeout, logger_fn) do
+    # Monitors the stdout coming out of a process for signal of successful startup
+    waiting_task_function = fn ->
+      outstream
+      |> Stream.map(logger_fn)
+      |> Stream.take_while(fn line -> not String.contains?(line, look_for) end)
+      |> Enum.to_list()
+    end
+
+    waiting_task_function
+    |> Task.async()
+    |> Task.await(timeout)
 
     :ok
   end

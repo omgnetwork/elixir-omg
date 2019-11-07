@@ -2,7 +2,7 @@ version: "3.4"
 services:
   ganache:
     image: trufflesuite/ganache-cli:latest
-    command: ganache-cli -d -e 100000 -m "myth like bonus scare over problem client lizard pioneer submit female collect"
+    command: ganache-cli -b 0.1 -d -e 100000 -m "myth like bonus scare over problem client lizard pioneer submit female collect"
     ports:
       - "8545:8545"
       - "8546:8545"
