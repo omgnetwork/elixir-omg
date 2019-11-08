@@ -338,6 +338,31 @@ informational_api_specs:
 operator_api_specs:
 	swagger-cli bundle -r -t yaml -o apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml apps/omg_child_chain_rpc/priv/swagger/operator_api_specs/swagger.yaml
 
+###
+### Diagnostics report
+###
+
+diagnostics:
+	echo "---------- START OF DIAGNOSTICS REPORT ----------"
+	echo "\n---------- CHILDCHAIN LOGS ----------"
+	docker-compose logs childchain
+	echo "\n---------- WATCHER LOGS ----------"
+	docker-compose logs watcher
+	echo "\n---------- PLASMA CONTRACTS ----------"
+	curl -s localhost:8000/contracts | echo "Could not retrieve the deployed plasma contracts."
+	echo "\n---------- GIT ----------"
+	echo "Git commit: $(git rev-parse HEAD)"
+	git status
+	echo "\n---------- DOCKER-COMPOSE CONTAINERS ----------"
+	docker-compose ps
+	echo "\n---------- DOCKER CONTAINERS ----------"
+	docker ps
+	echo "\n---------- DOCKER IMAGES ----------"
+	docker image ls
+	echo "\n ---------- END OF DIAGNOSTICS REPORT ----------"
+
+.PHONY: diagnostics
+
 ### UTILS
 OSFLAG := ''
 UNAME_S := $(shell uname -s)
