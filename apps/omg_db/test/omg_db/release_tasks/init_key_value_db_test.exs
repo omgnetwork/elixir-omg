@@ -28,7 +28,6 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
   end
 
   test "init works and DB starts" do
-    {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
     :ok = SetKeyValueDB.init([])
@@ -41,7 +40,6 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
   end
 
   test "can't init non empty dir" do
-    {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
     :ok = SetKeyValueDB.init([])
@@ -54,7 +52,6 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
 
   test "if init isn't called, DB doesn't start" do
     _ = Application.stop(:omg_db)
-    {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
     :ok = SetKeyValueDB.init([])

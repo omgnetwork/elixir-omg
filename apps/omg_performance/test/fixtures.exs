@@ -22,8 +22,7 @@ defmodule OMG.Performance.Fixtures do
   use OMG.ChildChain.Integration.Fixtures
   use OMG.Utils.LoggerExt
 
-  deffixture omg_watcher(contract) do
-    {:ok, _} = Application.ensure_all_started(:briefly)
+  deffixture mix_based_watcher(contract) do
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
 

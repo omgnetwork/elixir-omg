@@ -78,7 +78,11 @@ defmodule Support.DevHelper do
 
   @doc """
   Will take a map with eth-account information (from &generate_entity/0) and then
-  import priv key->unlock->fund with lots of ether on that account
+  import priv key->unlock->fund with test ETH on that account
+
+  Options:
+    - :faucet - the address to send the test ETH from, assumed to be unlocked and have the necessary funds
+    - :initial_funds_wei - the amount of test ETH that will be granted to every generated user
   """
   def import_unlock_fund(%{priv: account_priv}, opts \\ []) do
     {:ok, account_enc} = create_account_from_secret(backend(), account_priv, @passphrase)
@@ -91,11 +95,13 @@ defmodule Support.DevHelper do
   Use with contract-transacting functions that return {:ok, txhash}, e.g. `Eth.Token.mint`, for synchronous waiting
   for mining of a successful result
   """
-  @spec transact_sync!({:ok, Eth.hash()}) :: {:ok, map}
-  def transact_sync!({:ok, txhash} = _transaction_submission_result) when byte_size(txhash) == 32 do
+  @spec transact_sync!({:ok, Eth.hash()}, keyword()) :: {:ok, map}
+  def transact_sync!({:ok, txhash} = _transaction_submission_result, opts \\ []) when byte_size(txhash) == 32 do
+    timeout = Keyword.get(opts, :timeout, @about_4_blocks_time)
+
     {:ok, _} =
       txhash
-      |> WaitFor.eth_receipt(@about_4_blocks_time)
+      |> WaitFor.eth_receipt(timeout)
       |> case do
         {:ok, %{"status" => "0x1"} = receipt} -> {:ok, receipt |> Map.update!("blockNumber", &int_from_hex(&1))}
         {:ok, %{"status" => "0x0"} = receipt} -> {:error, receipt |> Map.put("reason", get_reason(txhash))}
@@ -139,7 +145,7 @@ defmodule Support.DevHelper do
       if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
     end
 
-    fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
+    WaitFor.ok(f, timeout)
   end
 
   def wait_for_next_child_block(blknum, timeout \\ 10_000, contract \\ nil) do
@@ -149,7 +155,7 @@ defmodule Support.DevHelper do
       if next_num < blknum, do: :repeat, else: {:ok, next_num}
     end
 
-    fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
+    WaitFor.ok(f, timeout)
   end
 
   def create_account_from_secret(:ganache, secret, passphrase),
@@ -182,16 +188,16 @@ defmodule Support.DevHelper do
 
   defp fund_address_from_faucet(account_enc, opts) do
     {:ok, [default_faucet | _]} = Ethereumex.HttpClient.eth_accounts()
-    defaults = [faucet: default_faucet, initial_funds: @one_hundred_eth]
+    defaults = [faucet: default_faucet, initial_funds_wei: @one_hundred_eth]
 
-    %{faucet: faucet, initial_funds: initial_funds} =
+    %{faucet: faucet, initial_funds_wei: initial_funds_wei} =
       defaults
       |> Keyword.merge(opts)
       |> Enum.into(%{})
 
     unlock_if_possible(account_enc)
 
-    params = %{from: faucet, to: account_enc, value: to_hex(initial_funds)}
+    params = %{from: faucet, to: account_enc, value: to_hex(initial_funds_wei)}
 
     {:ok, tx_fund} = Transaction.send(backend(), params)
 

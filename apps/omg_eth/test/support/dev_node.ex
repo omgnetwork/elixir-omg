@@ -31,7 +31,6 @@ defmodule Support.DevNode do
   end
 
   defp start(:ganache) do
-    {:ok, _} = Application.ensure_all_started(:ethereumex)
     # we won't start ganache for the testing user, so we want to warn in case this was expected
     false = Application.get_env(:omg_eth, :run_test_eth_dev_node) && {:error, :ganache_must_be_already_started}
     {:ok, fn -> :ok end}

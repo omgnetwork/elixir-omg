@@ -26,7 +26,6 @@ defmodule OMG.Eth.RootChainTest do
   @moduletag :common
 
   setup do
-    {:ok, _} = Application.ensure_all_started(:ethereumex)
     vcr_path = Path.join(__DIR__, "../fixtures/vcr_cassettes")
     ExVCR.Config.cassette_library_dir(vcr_path)
 

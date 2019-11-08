@@ -40,7 +40,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  @tag fixtures: [:watcher, :stable_alice, :child_chain, :token, :stable_alice_deposits]
+  @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits]
   test "exit finalizes", %{
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}

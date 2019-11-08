@@ -35,7 +35,7 @@ defmodule OMG.Performance.SenderManager do
   @doc """
   Starts the sender's manager process
   """
-  @spec start_link_all_senders(pos_integer(), list(), map()) :: pid
+  @spec start_link_all_senders(pos_integer(), list(), keyword()) :: pid
   def start_link_all_senders(ntx_to_send, utxos, opts) do
     {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, utxos, opts}, name: __MODULE__)
     mypid
@@ -44,7 +44,7 @@ defmodule OMG.Performance.SenderManager do
   @doc """
   Starts sender processes
   """
-  @spec init({pos_integer(), list(), map()}) :: {:ok, map()}
+  @spec init({pos_integer(), list(), keyword()}) :: {:ok, map()}
   def init({ntx_to_send, utxos, opts}) do
     Process.flag(:trap_exit, true)
     _ = Logger.debug("init called with utxos: #{inspect(length(utxos))}, ntx_to_send: #{inspect(ntx_to_send)}")
@@ -71,7 +71,7 @@ defmodule OMG.Performance.SenderManager do
        block_times: [],
        goal: ntx_to_send,
        start_time: System.monotonic_time(:millisecond),
-       destdir: Map.get(opts, :destdir),
+       destdir: opts[:destdir],
        initial_blknums: initial_blknums
      }}
   end
@@ -176,7 +176,7 @@ defmodule OMG.Performance.SenderManager do
   # omg_performance is not part of the application deployment bundle. It's used only for testing.
   # sobelow_skip ["Traversal"]
   defp write_stats(%{destdir: destdir} = state) do
-    destfile = Path.join(destdir, "perf_result_#{:os.system_time(:seconds)}_stats.json")
+    destfile = Path.join(destdir, "perf_result_stats_#{:os.system_time(:seconds)}.json")
 
     stats = analyze(state)
     :ok = File.write(destfile, Jason.encode!(stats))
