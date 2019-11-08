@@ -1,0 +1,46 @@
+[
+  {
+    "request": {
+      "body": "",
+      "headers": [],
+      "method": "get",
+      "options": [],
+      "request_body": "",
+      "url": "http://localhost:9009"
+    },
+    "response": {
+      "binary": false,
+      "body": "{\"authority_address\":\"authority_address_value\",\"erc20_vault\":\"erc20_vault_value\",\"eth_vault\":\"eth_vault_value\",\"payment_exit_game\":\"payment_exit_game_value\",\"plasma_framework\":\"0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7\",\"plasma_framework_tx_hash\":\"txhash_contract_value\"}",
+      "headers": [],
+      "status_code": 200,
+      "type": "ok"
+    }
+  },
+  {
+    "request": {
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"data\":\"0xd4a2b4ef\",\"to\":\"0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7\"},\"latest\"]}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "method": "post",
+      "options": {
+        "recv_timeout": "infinity",
+        "pool": "default"
+      },
+      "request_body": "",
+      "url": "http://localhost:8545"
+    },
+    "response": {
+      "binary": false,
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"0x0000000000000000000000000000000000000000000000000000000000000258\"}",
+      "headers": {
+        "Content-Type": "application/json",
+        "Date": "Fri, 08 Nov 2019 21:50:59 GMT",
+        "Connection": "keep-alive",
+        "Transfer-Encoding": "chunked"
+      },
+      "status_code": 200,
+      "type": "ok"
+    }
+  }
+]
