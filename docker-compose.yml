@@ -41,7 +41,7 @@ services:
       - MAINTAINER_PRIVATEKEY=6f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807 # 0x59695413678e19d7d490893810a8ac9fe6cb0f5c
       - AUTHORITY_PRIVATEKEY=7f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807 # 0xc0f780dfc35075979b0def588d999225b7ecc56f
       - REMOTE_URL=http://geth:8545
-      - MIN_EXIT_PERIOD_SECONDS=20
+      - MIN_EXIT_PERIOD=20
     depends_on:
       geth:
         condition: service_healthy
@@ -93,7 +93,6 @@ services:
     image: omisego/child_chain:latest
     command: "full_local"
     environment:
-      - MIN_EXIT_PERIOD_SECONDS=86400
       - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000/contracts
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546

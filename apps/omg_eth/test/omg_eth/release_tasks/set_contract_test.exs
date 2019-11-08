@@ -223,7 +223,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
       :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
       :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
       :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
-      :ok = System.put_env("MIN_EXIT_PERIOD_SECONDS", "2222")
+
       :ok = SetContract.init([])
       600 = Application.get_env(@app, :min_exit_period_seconds)
       "authority_address_value" = Application.get_env(@app, :authority_addr)
@@ -236,7 +236,6 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
       :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
       :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
       :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
-      :ok = System.delete_env("MIN_EXIT_PERIOD_SECONDS")
     end
   end
 
