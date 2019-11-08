@@ -19,9 +19,9 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   """
 
   alias OMG.Block
+  alias OMG.Utils.HttpRPC.ClientAdapter
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utils.HttpRPC.Response
-  alias OMG.Watcher.HttpRPC.Adapter
   alias OMG.Watcher.Integration.TestServer
 
   @doc """
@@ -43,8 +43,8 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
         else
           {:ok, block} =
             %{hash: req_hash}
-            |> Adapter.rpc_post("block.get", context.real_addr)
-            |> Adapter.get_response_body()
+            |> ClientAdapter.rpc_post("block.get", context.real_addr)
+            |> ClientAdapter.get_response_body()
 
           TestServer.make_response(block)
         end

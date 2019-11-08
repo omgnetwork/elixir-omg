@@ -17,86 +17,131 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   Provides access to Watcher's RPC API
   """
 
+  alias OMG.Utils.HttpRPC.ClientAdapter
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Watcher.HttpRPC.Adapter
+  alias OMG.Utxo
 
-  @address_bytes_size 20
+  require Utxo
 
-  @doc """
-  Gets Watcher status
-  """
-  @spec get_status(binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
-  def get_status(url), do: call(%{}, "status.get", url)
+  #
+  # TODO: here begins a big fat copy paster from `watcher_helper.ex` - do sth about this later
+  #
+  def get_balance(address, token) do
+    encoded_token = Encoding.to_hex(token)
 
-  @doc """
-  Gets standard exit data from Watcher's RPC
-  """
-  @spec get_exit_data(non_neg_integer(), binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
-  def get_exit_data(encoded_position, url),
-    do:
-      %{utxo_pos: encoded_position}
-      |> call("utxo.get_exit_data", url)
-      |> decode_response()
-
-  @doc """
-  Gets standard exit data from Watcher's RPC
-  """
-  @spec get_in_flight_exit(binary(), binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
-  def get_in_flight_exit(transaction, url),
-    do:
-      %{txbytes: Encoding.to_hex(transaction)}
-      |> call("in_flight_exit.get_data", url)
-      |> decode_response()
-
-  @doc """
-  Gets utxo for given address from Watcher's RPC
-  """
-  @spec get_exitable_utxos(OMG.Crypto.address_t(), binary()) :: OMG.Watcher.HttpRPC.Client.response_t()
-  def get_exitable_utxos(address, url) when is_binary(address) and byte_size(address) == @address_bytes_size,
-    do: call(%{address: Encoding.to_hex(address)}, "account.get_exitable_utxos", url)
-
-  def get_exit_challenge(utxo_pos, url) do
-    %{utxo_pos: utxo_pos}
-    |> call("utxo.get_challenge_data", url)
-    |> decode_response()
+    address
+    |> get_balance()
+    |> Enum.find(%{"amount" => 0}, fn %{"currency" => currency} -> encoded_token == currency end)
+    |> Map.get("amount")
   end
+
+  def get_utxos(address) do
+    success?("/account.get_utxos", %{:address => Encoding.to_hex(address)})
+  end
+
+  def get_exitable_utxos(address) do
+    success?("/account.get_exitable_utxos", %{:address => Encoding.to_hex(address)})
+  end
+
+  def get_balance(address) do
+    success?("/account.get_balance", %{:address => Encoding.to_hex(address)})
+  end
+
+  def get_exit_data(blknum, txindex, oindex),
+    do: get_exit_data(Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)))
+
+  def get_exit_data(encoded_position) do
+    data = success?("utxo.get_exit_data", %{utxo_pos: encoded_position})
+    decode_response(data, [:txbytes, :proof])
+  end
+
+  def get_exit_challenge(utxo_pos) do
+    data = success?("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
+
+    decode_response(data, [:exiting_tx, :txbytes, :sig])
+  end
+
+  def get_in_flight_exit(transaction) do
+    exit_data = success?("in_flight_exit.get_data", %{txbytes: Encoding.to_hex(transaction)})
+
+    decode_response(exit_data, [:in_flight_tx, :input_txs, :input_txs_inclusion_proofs, :in_flight_tx_sigs])
+  end
+
+  def get_in_flight_exit_competitors(transaction) do
+    competitor_data = success?("in_flight_exit.get_competitor", %{txbytes: Encoding.to_hex(transaction)})
+
+    decode_response(competitor_data, [
+      :in_flight_txbytes,
+      :competing_txbytes,
+      :competing_sig,
+      :competing_proof,
+      :input_tx
+    ])
+  end
+
+  def get_prove_canonical(transaction) do
+    competitor_data = success?("in_flight_exit.prove_canonical", %{txbytes: Encoding.to_hex(transaction)})
+
+    decode_response(competitor_data, [:in_flight_txbytes, :in_flight_proof])
+  end
+
+  def submit(transaction) do
+    submission_info = success?("transaction.submit", %{transaction: Encoding.to_hex(transaction)})
+
+    decode_response(submission_info, ["txhash"])
+  end
+
+  def get_input_challenge_data(transaction, input_index) do
+    proof_data =
+      success?("in_flight_exit.get_input_challenge_data", %{
+        txbytes: Encoding.to_hex(transaction),
+        input_index: input_index
+      })
+
+    decode_response(proof_data, [
+      :in_flight_txbytes,
+      :spending_txbytes,
+      :spending_sig,
+      :input_tx
+    ])
+  end
+
+  def get_output_challenge_data(transaction, output_index) do
+    proof_data =
+      success?("in_flight_exit.get_output_challenge_data", %{
+        txbytes: Encoding.to_hex(transaction),
+        output_index: output_index
+      })
+
+    decode_response(proof_data, [
+      :in_flight_txbytes,
+      :in_flight_proof,
+      :spending_txbytes,
+      :spending_sig
+    ])
+  end
+
+  # here ends the copy-paste
+  #
+
+  # some functions that I added, following the copy-pasted convention above
+
+  def get_status() do
+    success?("status.get", %{})
+  end
+
+  # here are some copy-paste-related functions to get it off the ground
+  # FIXME: we're not asserting success here, rename
+  defp success?(path, body) do
+    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
+    {:ok, data} = call(body, path, watcher_url)
+  end
+
+  # end those functions here
 
   defp call(params, path, url),
-    do: Adapter.rpc_post(params, path, url) |> Adapter.get_response_body()
+    do: ClientAdapter.rpc_post(params, path, url) |> ClientAdapter.get_response_body()
 
-  defp decode_response(
-         {:ok,
-          %{
-            in_flight_tx: in_flight_tx,
-            input_txs: input_txs,
-            input_txs_inclusion_proofs: input_txs_inclusion_proofs,
-            in_flight_tx_sigs: in_flight_tx_sigs
-          } = response}
-       ) do
-    {:ok,
-     %{
-       response
-       | in_flight_tx: decode16!(in_flight_tx),
-         input_txs: decode16!(input_txs),
-         input_txs_inclusion_proofs: decode16!(input_txs_inclusion_proofs),
-         in_flight_tx_sigs: decode16!(in_flight_tx_sigs)
-     }}
-  end
-
-  defp decode_response({:ok, %{proof: proof, txbytes: txbytes} = response}) do
-    {:ok, %{response | proof: decode16!(proof), txbytes: decode16!(txbytes)}}
-  end
-
-  defp decode_response({:ok, %{exiting_tx: exiting_tx, txbytes: txbytes, sig: sig} = response}) do
-    {:ok, %{response | exiting_tx: decode16!(exiting_tx), txbytes: decode16!(txbytes), sig: decode16!(sig)}}
-  end
-
-  defp decode_response(error), do: error
-
-  defp decode16!(hexlist) when is_list(hexlist), do: Enum.map(hexlist, &decode16!/1)
-
-  defp decode16!(hexstr) do
-    {:ok, bin} = Encoding.from_hex(hexstr)
-    bin
-  end
+  defp decode_response({:ok, response}, keys), do: {:ok, ClientAdapter.decode16(response, keys)}
+  defp decode_response(other, _), do: other
 end

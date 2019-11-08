@@ -17,8 +17,8 @@ defmodule OMG.Watcher.HttpRPC.Client do
   Provides functions to communicate with Child Chain API
   """
 
+  alias OMG.Utils.HttpRPC.ClientAdapter
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Watcher.HttpRPC.Adapter
 
   require Logger
 
@@ -41,7 +41,7 @@ defmodule OMG.Watcher.HttpRPC.Client do
   def submit(tx, url), do: call(%{transaction: Encoding.to_hex(tx)}, "transaction.submit", url)
 
   defp call(params, path, url),
-    do: Adapter.rpc_post(params, path, url) |> Adapter.get_response_body() |> decode_response()
+    do: ClientAdapter.rpc_post(params, path, url) |> ClientAdapter.get_response_body() |> decode_response()
 
   # Translates response's body to known elixir structure, either block or tx submission response or error.
   defp decode_response({:ok, %{transactions: transactions, blknum: number, hash: hash}}) do

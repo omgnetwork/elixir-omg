@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.HttpRPC.Adapter do
+defmodule OMG.Utils.HttpRPC.ClientAdapter do
   @moduledoc """
-  Provides functions to communicate with Child Chain API
+  Provides utility functions to communicate with HTTP RPC APIs in Clients
   """
+
+  alias OMG.Utils.HttpRPC.Encoding
 
   require Logger
 
@@ -55,6 +57,36 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
     do: {:error, {:server_error, error}}
 
   def get_response_body(error), do: {:error, {:client_error, error}}
+
+  @doc """
+  Decodes specified keys in map from hex to binary
+  """
+  @spec decode16(map(), list()) :: map()
+  def decode16(data, keys) do
+    keys
+    |> Enum.into(%{}, &decode16_for_key(data, &1))
+    |> (&Map.merge(data, &1)).()
+  end
+
+  defp decode16_for_key(data, key) do
+    case data[key] do
+      value when is_binary(value) ->
+        {key, decode_binary!(value)}
+
+      value when is_list(value) ->
+        bin_list =
+          value
+          |> Enum.map(&Encoding.from_hex/1)
+          |> Enum.map(fn {:ok, bin} -> bin end)
+
+        {key, bin_list}
+    end
+  end
+
+  defp decode_binary!(value) do
+    {:ok, bin} = Encoding.from_hex(value)
+    bin
+  end
 
   defp convert_keys_to_atoms(data) when is_list(data),
     do: Enum.map(data, &convert_keys_to_atoms/1)

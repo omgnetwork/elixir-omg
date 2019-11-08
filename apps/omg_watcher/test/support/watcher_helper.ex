@@ -17,6 +17,7 @@ defmodule Support.WatcherHelper do
   Module provides common testing functions used by App's tests.
   """
   alias ExUnit.CaptureLog
+  alias OMG.Utils.HttpRPC.ClientAdapter
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
 
@@ -83,36 +84,6 @@ defmodule Support.WatcherHelper do
 
   def create_topic(main_topic, subtopic), do: main_topic <> ":" <> subtopic
 
-  @doc """
-  Decodes specified keys in map from hex to binary
-  """
-  @spec decode16(map(), list()) :: map()
-  def decode16(data, keys) do
-    keys
-    |> Enum.into(%{}, &decode16_for_key(data, &1))
-    |> (&Map.merge(data, &1)).()
-  end
-
-  defp decode16_for_key(data, key) do
-    case data[key] do
-      value when is_binary(value) ->
-        {key, decode_binary!(value)}
-
-      value when is_list(value) ->
-        bin_list =
-          value
-          |> Enum.map(&Encoding.from_hex/1)
-          |> Enum.map(fn {:ok, bin} -> bin end)
-
-        {key, bin_list}
-    end
-  end
-
-  defp decode_binary!(value) do
-    {:ok, bin} = Encoding.from_hex(value)
-    bin
-  end
-
   def get_balance(address, token) do
     encoded_token = Encoding.to_hex(token)
 
@@ -139,7 +110,7 @@ defmodule Support.WatcherHelper do
 
   def get_exit_data(encoded_position) do
     data = success?("utxo.get_exit_data", %{utxo_pos: encoded_position})
-    decode16(data, ["txbytes", "proof"])
+    ClientAdapter.decode16(data, ["txbytes", "proof"])
   end
 
   def get_exit_challenge(blknum, txindex, oindex) do
@@ -147,31 +118,37 @@ defmodule Support.WatcherHelper do
 
     data = success?("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
 
-    decode16(data, ["exiting_tx", "txbytes", "sig"])
+    ClientAdapter.decode16(data, ["exiting_tx", "txbytes", "sig"])
   end
 
   def get_in_flight_exit(transaction) do
     exit_data = success?("in_flight_exit.get_data", %{txbytes: Encoding.to_hex(transaction)})
 
-    decode16(exit_data, ["in_flight_tx", "input_txs", "input_txs_inclusion_proofs", "in_flight_tx_sigs"])
+    ClientAdapter.decode16(exit_data, ["in_flight_tx", "input_txs", "input_txs_inclusion_proofs", "in_flight_tx_sigs"])
   end
 
   def get_in_flight_exit_competitors(transaction) do
     competitor_data = success?("in_flight_exit.get_competitor", %{txbytes: Encoding.to_hex(transaction)})
 
-    decode16(competitor_data, ["in_flight_txbytes", "competing_txbytes", "competing_sig", "competing_proof", "input_tx"])
+    ClientAdapter.decode16(competitor_data, [
+      "in_flight_txbytes",
+      "competing_txbytes",
+      "competing_sig",
+      "competing_proof",
+      "input_tx"
+    ])
   end
 
   def get_prove_canonical(transaction) do
     competitor_data = success?("in_flight_exit.prove_canonical", %{txbytes: Encoding.to_hex(transaction)})
 
-    decode16(competitor_data, ["in_flight_txbytes", "in_flight_proof"])
+    ClientAdapter.decode16(competitor_data, ["in_flight_txbytes", "in_flight_proof"])
   end
 
   def submit(transaction) do
     submission_info = success?("transaction.submit", %{transaction: Encoding.to_hex(transaction)})
 
-    decode16(submission_info, ["txhash"])
+    ClientAdapter.decode16(submission_info, ["txhash"])
   end
 
   def get_input_challenge_data(transaction, input_index) do
@@ -181,7 +158,7 @@ defmodule Support.WatcherHelper do
         input_index: input_index
       })
 
-    decode16(proof_data, [
+    ClientAdapter.decode16(proof_data, [
       "in_flight_txbytes",
       "spending_txbytes",
       "spending_sig",
@@ -196,7 +173,7 @@ defmodule Support.WatcherHelper do
         output_index: output_index
       })
 
-    decode16(proof_data, [
+    ClientAdapter.decode16(proof_data, [
       "in_flight_txbytes",
       "in_flight_proof",
       "spending_txbytes",

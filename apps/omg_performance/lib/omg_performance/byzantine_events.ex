@@ -70,11 +70,9 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec get_many_standard_exits(list(pos_integer())) :: list(map())
   def get_many_standard_exits(exit_positions) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-
     exit_positions
     |> Enum.shuffle()
-    |> Enum.map(&WatcherClient.get_exit_data(&1, watcher_url))
+    |> Enum.map(&WatcherClient.get_exit_data/1)
     |> only_successes()
   end
 
@@ -123,12 +121,10 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec get_many_ifes(list(Transaction.Signed.tx_bytes())) :: list(map())
   def get_many_ifes(txs) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-
     txs
     |> Stream.filter(&no_deposit_spends?/1)
     |> Enum.shuffle()
-    |> Enum.map(&WatcherClient.get_in_flight_exit(&1, watcher_url))
+    |> Enum.map(&WatcherClient.get_in_flight_exit/1)
     |> only_successes()
   end
 
@@ -180,11 +176,9 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec get_many_se_challenges(list(pos_integer())) :: list(map())
   def get_many_se_challenges(positions) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-
     positions
     |> Enum.shuffle()
-    |> Enum.map(&WatcherClient.get_exit_challenge(&1, watcher_url))
+    |> Enum.map(&WatcherClient.get_exit_challenge/1)
     |> only_successes()
   end
 
@@ -226,8 +220,7 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec get_exitable_utxos(OMG.Crypto.address_t(), keyword()) :: list(pos_integer())
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-    {:ok, utxos} = WatcherClient.get_exitable_utxos(addr, watcher_url)
+    {:ok, utxos} = WatcherClient.get_exitable_utxos(addr)
     utxo_positions = Enum.map(utxos, & &1.utxo_pos)
 
     if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
@@ -243,10 +236,9 @@ defmodule OMG.Performance.ByzantineEvents do
   @spec watcher_synchronize(keyword()) :: :ok
   def watcher_synchronize(opts \\ []) do
     root_chain_height = Keyword.get(opts, :root_chain_height, nil)
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
 
     _ = Logger.info("Waiting for the watcher to synchronize")
-    :ok = WaitFor.ok(fn -> watcher_synchronized?(root_chain_height, watcher_url) end, :infinity)
+    :ok = WaitFor.ok(fn -> watcher_synchronized?(root_chain_height) end, :infinity)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
@@ -259,8 +251,7 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec get_byzantine_events() :: list(map())
   def get_byzantine_events() do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-    {:ok, status_response} = WatcherClient.get_status(watcher_url)
+    {:ok, status_response} = WatcherClient.get_status()
     status_response[:byzantine_events]
   end
 
@@ -295,8 +286,8 @@ defmodule OMG.Performance.ByzantineEvents do
 
   # This function is prepared to be called in `WaitFor.ok`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
-  defp watcher_synchronized?(root_chain_height, watcher_url) do
-    {:ok, status} = WatcherClient.get_status(watcher_url)
+  defp watcher_synchronized?(root_chain_height) do
+    {:ok, status} = WatcherClient.get_status()
 
     with true <- watcher_synchronized_to_mined_block?(status),
          true <- root_chain_synced?(root_chain_height, status) do
