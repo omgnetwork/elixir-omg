@@ -61,6 +61,9 @@ defmodule OMG.Performance.Generators do
 
   Options:
     - :use_blocks - if not nil, will use this as the stream of blocks, otherwise streams from child chain rpc
+    - :no_deposit_spends - if true, will limit only to transactions that do ont spend deposits (see function with the
+      same name for explanation)
+    - :sent_by - if not nil, will limit to txs sent
     - :take - if not nil, will limit to this many results
   """
   @spec stream_transactions([OMG.Block.t()]) :: [binary()]
@@ -70,7 +73,28 @@ defmodule OMG.Performance.Generators do
       |> if(do: opts[:use_blocks], else: stream_blocks())
       |> Stream.flat_map(& &1.transactions)
 
+    transactions =
+      if(opts[:no_deposit_spends],
+        do: Stream.filter(transactions, &no_deposit_spends?/1),
+        else: transactions
+      )
+
+    transactions =
+      if(opts[:sent_by],
+        do: Stream.filter(transactions, &is_sent_by?(&1, opts[:sent_by])),
+        else: transactions
+      )
+
     if opts[:take], do: Enum.take(transactions, opts[:take]), else: transactions
+  end
+
+  # FIXME: whoops, we cannot open IFEs from included txs spending deposits. When fixed, remove this filter
+  defp no_deposit_spends?(txbytes) do
+    txbytes
+    |> Transaction.Signed.decode!()
+    |> Transaction.get_inputs()
+    |> Enum.any?(&Utxo.Position.is_deposit?/1)
+    |> Kernel.not()
   end
 
   @doc """
@@ -102,6 +126,18 @@ defmodule OMG.Performance.Generators do
     # interval <= blknum <= mined_block
     blknum = :rand.uniform(div(mined_block, interval)) * interval
     get_block!(blknum, child_chain_url)
+  end
+
+  defp is_sent_by?(txbytes, address) do
+    %Transaction.Recovered{witnesses: witnesses} = tx = Transaction.Recovered.recover_from!(txbytes)
+    # runtime assertion if we're not using this for non-Payment txs. The next line might not work if witnesses are
+    # not addresses
+    %Transaction.Payment{} = tx.signed_tx.raw_tx
+
+    witnesses
+    |> Map.values()
+    |> Enum.uniq()
+    |> Kernel.==([address])
   end
 
   defp generate_user(opts) do

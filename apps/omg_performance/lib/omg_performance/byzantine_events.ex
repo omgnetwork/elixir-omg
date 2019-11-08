@@ -46,6 +46,8 @@ defmodule OMG.Performance.ByzantineEvents do
 
   require Utxo
 
+  @unique_metadata OMG.Crypto.hash("something outstandingly unique")
+
   @doc """
   For given utxo positions shuffle them and ask the watcher for exit data
 
@@ -122,19 +124,9 @@ defmodule OMG.Performance.ByzantineEvents do
   @spec get_many_ifes(list(Transaction.Signed.tx_bytes())) :: list(map())
   def get_many_ifes(txs) do
     txs
-    |> Stream.filter(&no_deposit_spends?/1)
     |> Enum.shuffle()
     |> Enum.map(&WatcherClient.get_in_flight_exit/1)
     |> only_successes()
-  end
-
-  # FIXME: whoops, we cannot open IFEs from included txs spending deposits. When fixed, remove this filter
-  defp no_deposit_spends?(txbytes) do
-    txbytes
-    |> Transaction.Signed.decode!()
-    |> Transaction.get_inputs()
-    |> Enum.any?(&Utxo.Position.is_deposit?/1)
-    |> Kernel.not()
   end
 
   # FIXME docsspecs
@@ -155,6 +147,59 @@ defmodule OMG.Performance.ByzantineEvents do
         ife.input_utxos_pos,
         ife.input_txs_inclusion_proofs,
         ife.in_flight_tx_sigs,
+        user_address
+      )
+    end)
+  end
+
+  # FIXME docs specs
+  @doc """
+  For given utxo positions shuffle them and ask the watcher for exit data
+
+  ## Usage
+
+  On top of the generic setup (see above) do:
+
+  ```
+  alice = Enum.at(spenders, 0)
+
+  :ok = ByzantineEvents.watcher_synchronize()
+
+  utxo_positions = ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
+  exit_datas = timeit ByzantineEvents.get_many_standard_exits(utxo_positions)
+  ```
+
+  NOTE this uses unspent UTXOs creating valid exits for `alice`. For invalid exits do
+
+  ```
+  utxo_positions = Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
+  ```
+  """
+  @spec get_many_input_piggybacks(list(Transaction.Signed.tx_bytes()), keyword()) :: list(map())
+  def get_many_input_piggybacks(txs, opts \\ []) do
+    output_index = Keyword.get(opts, :output_index, 0)
+
+    txs
+    |> Enum.shuffle()
+    |> Enum.map(&Transaction.Signed.decode!/1)
+    |> Enum.map(&%{raw_txbytes: Transaction.raw_txbytes(&1), output_index: output_index})
+  end
+
+  # FIXME docsspecs
+  @doc """
+  For given standard exit datas (maps received from the Watcher) start all the exits in the root chain contract.
+
+  Will use `owner_address` to start the exits so this address must own all the supplied UTXOs to exit.
+
+  Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
+  the receipt of the last transaction sent out.
+  """
+  @spec start_many_input_piggybacks(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
+  def start_many_input_piggybacks(piggyback_datas, user_address) do
+    map_contract_transaction(piggyback_datas, fn piggyback ->
+      Support.RootChainHelper.piggyback_in_flight_exit_on_input(
+        piggyback.raw_txbytes,
+        piggyback.output_index,
         user_address
       )
     end)
@@ -226,6 +271,15 @@ defmodule OMG.Performance.ByzantineEvents do
     if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
   end
 
+  # FIXMEspecsdocs
+  def mutate_txs(txs, signers_priv_keys) do
+    txs
+    |> Stream.map(&Transaction.Signed.decode!/1)
+    |> Stream.map(fn %Transaction.Signed{raw_tx: raw_tx} -> %{raw_tx | metadata: @unique_metadata} end)
+    |> Stream.map(&OMG.DevCrypto.sign(&1, signers_priv_keys))
+    |> Stream.map(&Transaction.Signed.encode/1)
+  end
+
   @doc """
   Blocks the caller until the watcher configured reports to be fully synced up (both child chain blocks and eth events)
 
@@ -266,6 +320,9 @@ defmodule OMG.Performance.ByzantineEvents do
   end
 
   defp postprocess_byzantine_events(events, "invalid_exit"), do: Enum.map(events, & &1["details"]["utxo_pos"])
+  defp postprocess_byzantine_events(events, "non_canonical_ife"), do: Enum.map(events, & &1["details"]["txbytes"])
+  defp postprocess_byzantine_events(events, "invalid_piggyback"), do: Enum.map(events, & &1["details"]["txbytes"])
+  defp postprocess_byzantine_events(events, "piggyback_available"), do: Enum.map(events, & &1["details"]["txbytes"])
 
   defp only_successes(responses), do: Enum.map(responses, fn {:ok, response} -> response end)
 

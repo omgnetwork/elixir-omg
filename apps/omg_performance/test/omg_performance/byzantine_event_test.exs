@@ -85,7 +85,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     :ok = ByzantineEvents.watcher_synchronize()
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
-      Generators.stream_transactions(take: 20)
+      Generators.stream_transactions(take: 20, no_deposit_spends: true)
       |> ByzantineEvents.get_many_ifes()
       |> ByzantineEvents.start_many_ifes(alice.addr)
 
@@ -110,6 +110,37 @@ defmodule OMG.Performance.ByzantineEventsTest do
     :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
     # assert that we can call this testing function reliably and that there are some invalid exits there in fact
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_exit")) > 10
+  end
+
+  # FIXME: add a test for just timing getting piggyback data for honest users
+
+  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
+  test "can provide timing of status.get under many input-invalid IFEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+    spenders = Generators.generate_users(2)
+    alice = Enum.at(spenders, 0)
+
+    :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: false, destdir: destdir)
+    :ok = ByzantineEvents.watcher_synchronize()
+
+    transactions =
+      Generators.stream_transactions(sent_by: alice.addr, take: 5, no_deposit_spends: true)
+      |> ByzantineEvents.mutate_txs([alice.priv])
+
+    {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
+      transactions
+      |> ByzantineEvents.get_many_ifes()
+      |> ByzantineEvents.start_many_ifes(alice.addr)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => last_piggyback_height}} =
+      transactions
+      |> ByzantineEvents.get_many_input_piggybacks()
+      |> ByzantineEvents.start_many_input_piggybacks(alice.addr)
+
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: max(last_exit_height, last_piggyback_height))
+    # assert that we can call this testing function reliably and that there are some invalid exits there in fact
+    assert Enum.count(ByzantineEvents.get_byzantine_events("non_canonical_ife")) == 5
+    assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_piggyback")) == 5
+    assert Enum.count(ByzantineEvents.get_byzantine_events("piggyback_available")) == 5
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
