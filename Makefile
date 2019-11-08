@@ -346,7 +346,7 @@ diagnostics:
 	echo "\n---------- PLASMA CONTRACTS ----------"
 	curl -s localhost:8000/contracts | echo "Could not retrieve the deployed plasma contracts."
 	echo "\n---------- GIT ----------"
-	echo "Git commit: $(git rev-parse HEAD)"
+	echo "Git commit: $$(git rev-parse HEAD)"
 	git status
 	echo "\n---------- DOCKER-COMPOSE CONTAINERS ----------"
 	docker-compose ps
