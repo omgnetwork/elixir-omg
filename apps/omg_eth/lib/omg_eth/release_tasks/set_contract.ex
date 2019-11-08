@@ -60,7 +60,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           plasma_framework_tx_hash: txhash_contract
         } = Jason.decode!(body, keys: :atoms!)
 
-        min_exit_period = validate_integer(get_env("MIN_EXIT_PERIOD"), Application.get_env(@app, :min_exit_period))
+        min_exit_period_seconds =
+          validate_integer(get_env("MIN_EXIT_PERIOD"), Application.get_env(@app, :min_exit_period_seconds))
 
         contract_addresses = %{
           plasma_framework: plasma_framework,
@@ -69,7 +70,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           payment_exit_game: payment_exit_game
         }
 
-        update_configuration(txhash_contract, authority_address, contract_addresses, min_exit_period)
+        update_configuration(txhash_contract, authority_address, contract_addresses, min_exit_period_seconds)
 
       {_, via_env} when is_binary(via_env) ->
         :ok = apply_static_settings(via_env)
@@ -106,19 +107,20 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       payment_exit_game: env_contract_address_payment_exit_game
     }
 
-    min_exit_period = validate_integer(get_env("MIN_EXIT_PERIOD"), Application.get_env(@app, :min_exit_period))
+    min_exit_period_seconds =
+      validate_integer(get_env("MIN_EXIT_PERIOD"), Application.get_env(@app, :min_exit_period_seconds))
 
-    update_configuration(txhash_contract, authority_address, contract_addresses, min_exit_period)
+    update_configuration(txhash_contract, authority_address, contract_addresses, min_exit_period_seconds)
   end
 
-  defp update_configuration(txhash_contract, authority_address, contract_addresses, min_exit_period)
+  defp update_configuration(txhash_contract, authority_address, contract_addresses, min_exit_period_seconds)
        when is_binary(txhash_contract) and
-              is_binary(authority_address) and is_map(contract_addresses) and is_integer(min_exit_period) do
+              is_binary(authority_address) and is_map(contract_addresses) and is_integer(min_exit_period_seconds) do
     contract_addresses = Enum.into(contract_addresses, %{}, fn {name, addr} -> {name, String.downcase(addr)} end)
     :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
     :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
     :ok = Application.put_env(@app, :contract_addr, contract_addresses, persistent: true)
-    :ok = Application.put_env(@app, :min_exit_period, min_exit_period)
+    :ok = Application.put_env(@app, :min_exit_period_seconds, min_exit_period_seconds)
   end
 
   defp update_configuration(_, _, _, _), do: exit(@error)

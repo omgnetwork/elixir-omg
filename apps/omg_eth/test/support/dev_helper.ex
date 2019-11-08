@@ -40,7 +40,7 @@ defmodule Support.DevHelper do
 
    - `root_path` should point to `elixir-omg` root or wherever where `./_build/contracts` holds the compiled contracts
   """
-  def prepare_env!(opts \\ [], min_exit_period \\ nil) do
+  def prepare_env!(opts \\ [], min_exit_period_secods \\ nil) do
     opts = Keyword.merge([root_path: "./"], opts)
     %{root_path: root_path} = Enum.into(opts, %{})
 
@@ -48,7 +48,7 @@ defmodule Support.DevHelper do
          {:ok, authority} <- create_and_fund_authority_addr(opts),
          {:ok, deployer_addr} <- get_deployer_address(opts),
          {:ok, txhash_contract, contracts_map} <-
-           BundleDeployer.deploy_all(root_path, deployer_addr, authority, min_exit_period) do
+           BundleDeployer.deploy_all(root_path, deployer_addr, authority, min_exit_period_secods) do
       %{
         contract_addr: contracts_map,
         txhash_contract: txhash_contract,

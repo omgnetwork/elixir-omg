@@ -4,4 +4,4 @@ config :ethereumex,
   http_options: [recv_timeout: 60_000]
 
 config :omg_eth,
-  min_exit_period: 10 * 60
+  min_exit_period_seconds: 10 * 60

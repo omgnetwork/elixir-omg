@@ -46,8 +46,8 @@ defmodule Support.BundleDeployer do
 
   import Eth.Encoding, only: [to_hex: 1, int_from_hex: 1]
 
-  def deploy_all(root_path, deployer_addr, authority, min_exit_period \\ nil) do
-    min_exit_period = get_exit_period(min_exit_period)
+  def deploy_all(root_path, deployer_addr, authority, min_exit_period_seconds \\ nil) do
+    min_exit_period_seconds = get_exit_period(min_exit_period_seconds)
 
     transact_opts = Keyword.put(@tx_defaults, :gas, @gas_init_tx)
 
@@ -55,7 +55,7 @@ defmodule Support.BundleDeployer do
 
     {:ok, txhash, plasma_framework_addr} =
       Deployer.create_new("PlasmaFramework", root_path, deployer_addr,
-        min_exit_period: min_exit_period,
+        min_exit_period_seconds: min_exit_period_seconds,
         authority: authority,
         maintainer: deployer_addr
       )
@@ -219,7 +219,7 @@ defmodule Support.BundleDeployer do
   end
 
   defp get_exit_period(nil) do
-    Application.fetch_env!(:omg_eth, :min_exit_period)
+    Application.fetch_env!(:omg_eth, :min_exit_period_seconds)
   end
 
   defp get_exit_period(exit_period), do: exit_period
