@@ -175,14 +175,15 @@ defmodule OMG.Performance.ByzantineEvents do
   utxo_positions = Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
   ```
   """
-  @spec get_many_input_piggybacks(list(Transaction.Signed.tx_bytes()), keyword()) :: list(map())
-  def get_many_input_piggybacks(txs, opts \\ []) do
+  @spec get_many_piggybacks(list(Transaction.Signed.tx_bytes()), keyword()) :: list(map())
+  def get_many_piggybacks(txs, opts \\ []) do
     output_index = Keyword.get(opts, :output_index, 0)
+    type = Keyword.get(opts, :piggyback_type, :input)
 
     txs
     |> Enum.shuffle()
     |> Enum.map(&Transaction.Signed.decode!/1)
-    |> Enum.map(&%{raw_txbytes: Transaction.raw_txbytes(&1), output_index: output_index})
+    |> Enum.map(&%{raw_txbytes: Transaction.raw_txbytes(&1), output_index: output_index, piggyback_type: type})
   end
 
   # FIXME docsspecs
@@ -194,14 +195,24 @@ defmodule OMG.Performance.ByzantineEvents do
   Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
   the receipt of the last transaction sent out.
   """
-  @spec start_many_input_piggybacks(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
-  def start_many_input_piggybacks(piggyback_datas, user_address) do
+  @spec start_many_piggybacks(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
+  def start_many_piggybacks(piggyback_datas, user_address) do
     map_contract_transaction(piggyback_datas, fn piggyback ->
-      Support.RootChainHelper.piggyback_in_flight_exit_on_input(
-        piggyback.raw_txbytes,
-        piggyback.output_index,
-        user_address
-      )
+      case piggyback.piggyback_type do
+        :input ->
+          Support.RootChainHelper.piggyback_in_flight_exit_on_input(
+            piggyback.raw_txbytes,
+            piggyback.output_index,
+            user_address
+          )
+
+        :output ->
+          Support.RootChainHelper.piggyback_in_flight_exit_on_output(
+            piggyback.raw_txbytes,
+            piggyback.output_index,
+            user_address
+          )
+      end
     end)
   end
 
