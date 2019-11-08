@@ -20,6 +20,8 @@ defmodule Support.WaitFor do
   alias OMG.Eth.Encoding
   alias __MODULE__
 
+  use OMG.Utils.LoggerExt
+
   def eth_rpc(timeout \\ 10_000) do
     f = fn ->
       case Ethereumex.HttpClient.eth_syncing() do
@@ -67,15 +69,10 @@ defmodule Support.WaitFor do
   defp repeat_until_ok(f) do
     Process.sleep(100)
 
-    try do
-      case f.() do
-        :ok = return -> return
-        {:ok, _} = return -> return
-        _ -> repeat_until_ok(f)
-      end
-    catch
-      _something -> repeat_until_ok(f)
-      :error, {:badmatch, _} = _error -> repeat_until_ok(f)
+    case f.() do
+      :ok = return -> return
+      {:ok, _} = return -> return
+      _ -> repeat_until_ok(f)
     end
   end
 end
