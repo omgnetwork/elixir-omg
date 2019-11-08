@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Fixtures do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  deffixture child_chain(contract, fee_file) do
+  deffixture mix_based_child_chain(contract, fee_file) do
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
 
@@ -131,7 +131,7 @@ defmodule OMG.Watcher.Fixtures do
     line
   end
 
-  deffixture watcher(db_initialized, root_chain_contract_config) do
+  deffixture in_beam_watcher(db_initialized, root_chain_contract_config) do
     :ok = db_initialized
     :ok = root_chain_contract_config
 

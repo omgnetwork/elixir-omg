@@ -29,7 +29,7 @@ defmodule Support.RootChainHelper do
   @type optional_addr_t() :: <<_::160>> | nil
 
   @gas_add_exit_queue 800_000
-  @gas_start_exit 1_000_000
+  @gas_start_exit 400_000
   @gas_challenge_exit 300_000
   @gas_deposit 180_000
   @gas_deposit_from 250_000

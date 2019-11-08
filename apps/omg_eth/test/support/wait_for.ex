@@ -18,8 +18,9 @@ defmodule Support.WaitFor do
   """
 
   alias OMG.Eth.Encoding
+  alias __MODULE__
 
-  def eth_rpc do
+  def eth_rpc(timeout \\ 10_000) do
     f = fn ->
       case Ethereumex.HttpClient.eth_syncing() do
         {:ok, false} ->
@@ -30,9 +31,7 @@ defmodule Support.WaitFor do
       end
     end
 
-    fn -> repeat_until_ok(f) end
-    |> Task.async()
-    |> Task.await(10_000)
+    WaitFor.ok(f, timeout)
   end
 
   @doc """
@@ -52,18 +51,25 @@ defmodule Support.WaitFor do
       end
     end
 
+    WaitFor.ok(f, timeout)
+  end
+
+  # Repeats f until f returns {:ok, ...}, :ok OR exception is raised (see :erlang.exit, :erlang.error) OR timeout
+  # after `timeout` milliseconds specified
+  #
+  # Simple throws and :badmatch are treated as signals to repeat
+  def ok(f, timeout \\ 5_000) do
     fn -> repeat_until_ok(f) end
     |> Task.async()
     |> Task.await(timeout)
   end
 
-  # Repeats fun until fun returns {:ok, ...} OR exception is raised (see :erlang.exit, :erlang.error)
-  # Simple throws and :badmatch are treated as signals to repeat
-  def repeat_until_ok(f) do
+  defp repeat_until_ok(f) do
     Process.sleep(100)
 
     try do
       case f.() do
+        :ok = return -> return
         {:ok, _} = return -> return
         _ -> repeat_until_ok(f)
       end

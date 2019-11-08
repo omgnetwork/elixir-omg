@@ -14,3 +14,4 @@
 
 ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
 ExUnit.start()
+{:ok, _} = Application.ensure_all_started(:ethereumex)

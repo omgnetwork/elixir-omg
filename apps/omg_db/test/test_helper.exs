@@ -16,3 +16,5 @@ ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
 ExUnitFixtures.start()
 ExUnitFixtures.load_fixture_files()
 ExUnit.start()
+
+{:ok, _} = Application.ensure_all_started(:briefly)

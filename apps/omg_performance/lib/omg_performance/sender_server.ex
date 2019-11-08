@@ -67,7 +67,7 @@ defmodule OMG.Performance.SenderServer do
   @doc """
   Starts the process.
   """
-  @spec start_link({pos_integer(), map(), pos_integer()}) :: {:ok, pid}
+  @spec start_link({pos_integer(), map(), pos_integer(), keyword()}) :: {:ok, pid}
   def start_link(args) do
     GenServer.start_link(__MODULE__, args)
   end
@@ -77,9 +77,16 @@ defmodule OMG.Performance.SenderServer do
   Assumptions:
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
+
+  Options:
+    - :randomized - whether the non-change outputs of the txs sent out will be random or equal to sender (if `false`),
+      defaults to `true`
   """
-  @spec init({pos_integer(), map(), pos_integer(), map()}) :: {:ok, state()}
+  @spec init({pos_integer(), map(), pos_integer(), keyword()}) :: {:ok, state()}
   def init({seqnum, utxo, ntx_to_send, opts}) do
+    defaults = [randomized: true]
+    opts = Keyword.merge(defaults, opts)
+
     _ =
       Logger.debug(
         "[#{inspect(seqnum)}] init called with utxo: #{inspect(utxo)} and requests: '#{inspect(ntx_to_send)}'"
@@ -198,7 +205,7 @@ defmodule OMG.Performance.SenderServer do
   end
 
   #   Generates module's initial state
-  @spec init_state(pos_integer(), map(), pos_integer(), map()) :: __MODULE__.state()
+  @spec init_state(pos_integer(), map(), pos_integer(), keyword()) :: __MODULE__.state()
   defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send, opts) do
     Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode!(utxo_pos)
 
@@ -213,8 +220,8 @@ defmodule OMG.Performance.SenderServer do
         oindex: oindex,
         amount: amount
       },
-      child_chain_url: Map.get(opts, :child_chain_url),
-      randomized: Map.get(opts, :randomized, true)
+      child_chain_url: Application.fetch_env!(:omg_watcher, :child_chain_url),
+      randomized: Keyword.get(opts, :randomized)
     }
   end
 

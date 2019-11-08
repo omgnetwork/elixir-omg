@@ -49,7 +49,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @moduletag timeout: 100_000
 
   @tag timeout: 200_000
-  @tag fixtures: [:watcher, :child_chain, :alice, :bob, :alice_deposits, :token]
+  @tag fixtures: [:in_beam_watcher, :mix_based_child_chain, :alice, :bob, :alice_deposits, :token]
   test "get the blocks from child chain after sending a transaction and start exit",
        %{alice: alice, bob: bob, token: token, alice_deposits: {deposit_blknum, token_deposit_blknum}} do
     token_addr = Encoding.to_hex(token)
@@ -126,7 +126,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert [] == WatcherHelper.get_utxos(alice.addr)
   end
 
-  @tag fixtures: [:watcher, :test_server]
+  @tag fixtures: [:in_beam_watcher, :test_server]
   test "hash of returned block does not match hash submitted to the root chain", %{test_server: context} do
     different_hash = <<0::256>>
     block_with_incorrect_hash = %{OMG.Block.hashed_txs_at([], 1000) | hash: different_hash}
@@ -145,7 +145,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
            end) =~ inspect({:error, :incorrect_hash})
   end
 
-  @tag fixtures: [:watcher, :alice, :test_server]
+  @tag fixtures: [:in_beam_watcher, :alice, :test_server]
   test "bad transaction with not existing utxo, detected by interactions with State", %{
     alice: alice,
     test_server: context
@@ -169,7 +169,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
            end) =~ inspect(:tx_execution)
   end
 
-  @tag fixtures: [:watcher, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
+  @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])

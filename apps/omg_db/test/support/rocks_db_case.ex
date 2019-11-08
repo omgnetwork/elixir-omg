@@ -15,19 +15,12 @@
 defmodule OMG.DB.RocksDBCase do
   @moduledoc """
   Defines the useful common setup for all `...PersistenceTests`:
-   - starts temporary file handler `:briefly`
-   - creates temp dir with that
+   - creates temp dir with `briefly`
    - initializes the low-level LevelDB storage and starts the test DB server
   """
 
   use ExUnit.CaseTemplate
   alias OMG.DB.RocksDB.Server
-
-  setup_all do
-    {:ok, _} = Application.ensure_all_started(:briefly)
-
-    :ok
-  end
 
   setup %{test: test_name} do
     {:ok, dir} = Briefly.create(directory: true)
