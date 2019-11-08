@@ -39,6 +39,7 @@ defmodule OMG.Performance.ByzantineEvents do
   use OMG.Utils.LoggerExt
 
   alias OMG.Performance.HttpRPC.WatcherClient
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.State.Transaction
   alias Support.WaitFor
 
@@ -260,6 +261,123 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
+  # FIXME docsspecs x2
+  @doc """
+  For given utxo positions shuffle them and ask the watcher for challenge data. All positions must be invalid exits
+
+  ## Usage
+
+  Having some invalid exits out there (see above), last of which started at `last_exit_height`, do:
+
+  ```
+  :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
+  utxos_to_challenge = timeit ByzantineEvents.get_byzantine_events("invalid_exit")
+  challenge_responses = timeit ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
+  ```
+
+  """
+  @spec get_many_non_canonical_proofs(list(Transaction.txbytes())) :: list(map())
+  def get_many_non_canonical_proofs(txs) do
+    txs
+    |> Enum.shuffle()
+    |> Enum.map(&WatcherClient.get_in_flight_exit_competitors/1)
+    |> only_successes()
+  end
+
+  # FIXME specsdocs, document all the heavy assumptions
+  @spec get_many_invalid_non_canonical_proofs(list(Transaction.Signed.txbytes()), list(Transaction.Signed.txbytes())) ::
+          list(map())
+  def get_many_invalid_non_canonical_proofs(in_flight_txs, competitor_txs) do
+    competitor_txs
+    |> Enum.map(&WatcherClient.get_in_flight_exit/1)
+    |> only_successes()
+    |> Enum.zip(in_flight_txs)
+    |> Enum.map(fn {mutated_tx_ife_data, txbytes} ->
+      tx = OMG.State.Transaction.Signed.decode!(txbytes)
+
+      %{
+        competing_input_index: 0,
+        competing_proof: <<>>,
+        competing_sig: Enum.at(mutated_tx_ife_data.in_flight_tx_sigs, 0),
+        competing_tx_pos: 0,
+        competing_txbytes: mutated_tx_ife_data.in_flight_tx,
+        in_flight_input_index: 0,
+        in_flight_txbytes: OMG.State.Transaction.raw_txbytes(tx),
+        input_tx: Enum.at(mutated_tx_ife_data.input_txs, 0),
+        input_utxo_pos: Enum.at(mutated_tx_ife_data.input_utxos_pos, 0)
+      }
+    end)
+  end
+
+  @doc """
+  For given challenges (maps received from the Watcher) challenge all the invalid exits in the root chain contract.
+
+  Will use `challenger_address`, which can be any well-funded address.
+
+  Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
+  the receipt of the last transaction sent out.
+  """
+  @spec prove_many_non_canonical(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
+  def prove_many_non_canonical(challenge_responses, challenger_address) do
+    map_contract_transaction(challenge_responses, fn challenge ->
+      Support.RootChainHelper.challenge_in_flight_exit_not_canonical(
+        challenge.input_tx,
+        challenge.input_utxo_pos,
+        challenge.in_flight_txbytes,
+        challenge.in_flight_input_index,
+        challenge.competing_txbytes,
+        challenge.competing_input_index,
+        challenge.competing_tx_pos,
+        challenge.competing_proof,
+        challenge.competing_sig,
+        challenger_address
+      )
+    end)
+  end
+
+  # FIXME docsspecs x2
+  @doc """
+  For given utxo positions shuffle them and ask the watcher for challenge data. All positions must be invalid exits
+
+  ## Usage
+
+  Having some invalid exits out there (see above), last of which started at `last_exit_height`, do:
+
+  ```
+  :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
+  utxos_to_challenge = timeit ByzantineEvents.get_byzantine_events("invalid_exit")
+  challenge_responses = timeit ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
+  ```
+
+  """
+  @spec get_many_canonicity_responses(list(Transaction.txbytes())) :: list(map())
+  def get_many_canonicity_responses(txs) do
+    txs
+    |> Enum.shuffle()
+    |> Enum.map(&WatcherClient.get_prove_canonical/1)
+    |> only_successes()
+  end
+
+  @doc """
+  For given challenges (maps received from the Watcher) challenge all the invalid exits in the root chain contract.
+
+  Will use `challenger_address`, which can be any well-funded address.
+
+  Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
+  the receipt of the last transaction sent out.
+  """
+  @spec send_many_canonicity_responses(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
+  def send_many_canonicity_responses(response_responses, responder_address) do
+    map_contract_transaction(response_responses, fn response ->
+      Support.RootChainHelper.respond_to_non_canonical_challenge(
+        response.in_flight_txbytes,
+        response.in_flight_tx_pos,
+        response.in_flight_proof,
+        responder_address
+      )
+    end)
+  end
+
   @doc """
   Fetches utxo positions for a given user's address.
 
@@ -285,10 +403,10 @@ defmodule OMG.Performance.ByzantineEvents do
   # FIXMEspecsdocs
   def mutate_txs(txs, signers_priv_keys) do
     txs
-    |> Stream.map(&Transaction.Signed.decode!/1)
-    |> Stream.map(fn %Transaction.Signed{raw_tx: raw_tx} -> %{raw_tx | metadata: @unique_metadata} end)
-    |> Stream.map(&OMG.DevCrypto.sign(&1, signers_priv_keys))
-    |> Stream.map(&Transaction.Signed.encode/1)
+    |> Enum.map(&Transaction.Signed.decode!/1)
+    |> Enum.map(fn %Transaction.Signed{raw_tx: raw_tx} -> %{raw_tx | metadata: @unique_metadata} end)
+    |> Enum.map(&OMG.DevCrypto.sign(&1, signers_priv_keys))
+    |> Enum.map(&Transaction.Signed.encode/1)
   end
 
   @doc """
@@ -331,9 +449,30 @@ defmodule OMG.Performance.ByzantineEvents do
   end
 
   defp postprocess_byzantine_events(events, "invalid_exit"), do: Enum.map(events, & &1["details"]["utxo_pos"])
-  defp postprocess_byzantine_events(events, "non_canonical_ife"), do: Enum.map(events, & &1["details"]["txbytes"])
-  defp postprocess_byzantine_events(events, "invalid_piggyback"), do: Enum.map(events, & &1["details"]["txbytes"])
-  defp postprocess_byzantine_events(events, "piggyback_available"), do: Enum.map(events, & &1["details"]["txbytes"])
+  # FIXME: the decode should be elsewhere I think. Or at least nicen/refactor
+  defp postprocess_byzantine_events(events, "non_canonical_ife"),
+    do:
+      Enum.map(events, & &1["details"]["txbytes"])
+      |> Enum.map(&Encoding.from_hex/1)
+      |> Enum.map(fn {:ok, result} -> result end)
+
+  defp postprocess_byzantine_events(events, "invalid_ife_challenge"),
+    do:
+      Enum.map(events, & &1["details"]["txbytes"])
+      |> Enum.map(&Encoding.from_hex/1)
+      |> Enum.map(fn {:ok, result} -> result end)
+
+  defp postprocess_byzantine_events(events, "invalid_piggyback"),
+    do:
+      Enum.map(events, & &1["details"]["txbytes"])
+      |> Enum.map(&Encoding.from_hex/1)
+      |> Enum.map(fn {:ok, result} -> result end)
+
+  defp postprocess_byzantine_events(events, "piggyback_available"),
+    do:
+      Enum.map(events, & &1["details"]["txbytes"])
+      |> Enum.map(&Encoding.from_hex/1)
+      |> Enum.map(fn {:ok, result} -> result end)
 
   defp only_successes(responses), do: Enum.map(responses, fn {:ok, response} -> response end)
 
