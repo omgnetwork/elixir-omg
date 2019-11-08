@@ -234,6 +234,22 @@ docker-start-cluster-with-datadog:
 docker-stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
+# Stops the running docker-compose environment and delete all related containers,
+# orphan networks, orphan images and build cache.
+docker-nuke:
+  docker-compose down
+  docker system prune --all
+
+# IEx into the docker watcher
+docker-remote-watcher:
+   docker-compose exec watcher /watcher_entrypoint bin/watcher remote_console
+
+# IEx into the docker childchain
+docker-remote-childchain:
+   docker-compose exec childchain /child_chain_entrypoint bin/child_chain remote_console
+
+.PHONY: docker-nuke docker-remote-watcher docker-remote-childchain
+
 ###
 ### barebone stuff
 ###
