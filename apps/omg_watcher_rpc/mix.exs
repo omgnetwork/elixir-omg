@@ -40,7 +40,8 @@ defmodule OMG.WatcherRPC.Mixfile do
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
       {:omg_utils, in_umbrella: true},
-      {:omg_watcher, in_umbrella: true}
+      {:omg_watcher, in_umbrella: true},
+      {:omg_watcher_security, in_umbrella: true}
     ]
   end
 end
