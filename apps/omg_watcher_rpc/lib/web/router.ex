@@ -27,10 +27,15 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/account.get_utxos", Controller.Account, :get_utxos)
     post("/account.get_exitable_utxos", Controller.Account, :get_exitable_utxos)
 
+    # security
     post("/in_flight_exit.get_data", Controller.InFlightExit, :get_in_flight_exit)
+    # security
     post("/in_flight_exit.get_competitor", Controller.InFlightExit, :get_competitor)
+    # security
     post("/in_flight_exit.prove_canonical", Controller.InFlightExit, :prove_canonical)
+    # security
     post("/in_flight_exit.get_input_challenge_data", Controller.InFlightExit, :get_input_challenge_data)
+    # security
     post("/in_flight_exit.get_output_challenge_data", Controller.InFlightExit, :get_output_challenge_data)
 
     post("/transaction.all", Controller.Transaction, :get_transactions)
@@ -39,9 +44,12 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/transaction.submit_typed", Controller.Transaction, :submit_typed)
     post("/transaction.create", Controller.Transaction, :create)
 
+    # security
     post("/utxo.get_exit_data", Controller.Utxo, :get_utxo_exit)
+    # security
     post("/utxo.get_challenge_data", Controller.Challenge, :get_utxo_challenge)
 
+    # security
     post("/status.get", Controller.Status, :get_status)
     post("/alarm.get", Controller.Alarm, :get_alarms)
 

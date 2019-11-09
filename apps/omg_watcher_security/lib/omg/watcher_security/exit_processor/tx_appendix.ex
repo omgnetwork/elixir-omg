@@ -12,23 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Controller.Utxo do
+defmodule OMG.WatcherSecurity.ExitProcessor.TxAppendix do
   @moduledoc """
-  Operations related to utxo.
-  Modify the state in the database.
+  Part of the exit processor serving as the API to the transaction appendix
+
+  Transaction appendix (TxAppendix) serves the transactions that were witnessed, but aren't included in the blocks
   """
 
-  use OMG.WatcherRPC.Web, :controller
+  alias OMG.WatcherSecurity.ExitProcessor
 
-  alias OMG.Utxo
-  alias OMG.WatcherSecurity.API
-
-  def get_utxo_exit(conn, params) do
-    with {:ok, utxo_pos} <- expect(params, "utxo_pos", :pos_integer),
-         {:ok, utxo} <- Utxo.Position.decode(utxo_pos) do
-      utxo
-      |> API.Utxo.compose_utxo_exit()
-      |> api_response(conn, :utxo_exit)
-    end
+  def get_all(%ExitProcessor.Core{in_flight_exits: ifes, competitors: competitors}) do
+    ifes
+    |> Map.values()
+    |> Stream.concat(Map.values(competitors))
+    |> Stream.map(&Map.get(&1, :tx))
   end
 end

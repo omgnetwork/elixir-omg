@@ -352,9 +352,6 @@ Override using the `EXIT_PROCESSOR_SLA_MARGIN` system environment variable.
 * **`block_getter_reorg_margin`** - the margin considered by `OMG.Watcher.BlockGetter` when searching for recent child chain block submission events.
 This is driving the process of determining the height and particular event related to the submission of a particular child chain block
 
-* **`convenience_api_mode`** - whether Convenience API should be started for the Watcher.
-This setting is usually set by running the `Mix.Tasks.Xomg.Watcher.Start` with the appropriate flag.
-
 ### `OMG.DB` configuration - `:omg_db` app
 
 * **`path`** - path to the directory holding the LevelDB data store

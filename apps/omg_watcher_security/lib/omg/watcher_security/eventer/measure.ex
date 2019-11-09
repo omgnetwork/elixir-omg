@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Controller.Utxo do
+defmodule OMG.WatcherSecurity.Eventer.Measure do
   @moduledoc """
-  Operations related to utxo.
-  Modify the state in the database.
+  Counting business metrics sent to Datadog
   """
 
-  use OMG.WatcherRPC.Web, :controller
+  import OMG.Status.Metric.Event, only: [name: 1]
+  alias OMG.Status.Metric.Datadog
 
-  alias OMG.Utxo
-  alias OMG.WatcherSecurity.API
+  @supported_events [[:process, OMG.Watcher.Eventer]]
+  def supported_events, do: @supported_events
 
-  def get_utxo_exit(conn, params) do
-    with {:ok, utxo_pos} <- expect(params, "utxo_pos", :pos_integer),
-         {:ok, utxo} <- Utxo.Position.decode(utxo_pos) do
-      utxo
-      |> API.Utxo.compose_utxo_exit()
-      |> api_response(conn, :utxo_exit)
-    end
+  def handle_event([:process, OMG.WatcherSecurity.Eventer], _state, _metadata, _config) do
+    value =
+      self()
+      |> Process.info(:message_queue_len)
+      |> elem(1)
+
+    _ = Datadog.gauge(name(:eventer_message_queue_len), value)
   end
 end

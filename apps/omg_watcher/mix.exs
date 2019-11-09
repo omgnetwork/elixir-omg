@@ -21,7 +21,6 @@ defmodule OMG.Watcher.Mixfile do
   def application do
     [
       mod: {OMG.Watcher.Application, []},
-      start_phases: [{:attach_telemetry, []}],
       extra_applications: [:logger, :runtime_tools, :telemetry]
     ]
   end
@@ -44,11 +43,8 @@ defmodule OMG.Watcher.Mixfile do
        git: "https://github.com/omisego/spandex.git", branch: "fix_dialyzer_in_macro", override: true},
       {:distillery, "~> 2.1", runtime: false},
       # UMBRELLA
-      {:omg_bus, in_umbrella: true},
-      {:omg, in_umbrella: true},
+
       {:omg_status, in_umbrella: true},
-      {:omg_db, in_umbrella: true},
-      {:omg_eth, in_umbrella: true},
       {:omg_utils, in_umbrella: true},
 
       # TEST ONLY

@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Challenge do
   use OMG.WatcherRPC.Web, :controller
 
   alias OMG.Utxo
-  alias OMG.Watcher.API
+  alias OMG.WatcherSecurity.API
 
   @doc """
   Challenges exits

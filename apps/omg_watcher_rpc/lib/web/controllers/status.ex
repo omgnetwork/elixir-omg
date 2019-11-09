@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Status do
 
   use OMG.WatcherRPC.Web, :controller
   plug(OMG.WatcherRPC.Plugs.Health)
-  alias OMG.Watcher.API.Status
+  alias OMG.WatcherSecurity.API.Status
 
   @doc """
   Gets plasma network and Watcher status

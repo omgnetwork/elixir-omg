@@ -20,7 +20,6 @@ config :omg_watcher,
   maximum_number_of_unapplied_blocks: 50,
   exit_finality_margin: 12,
   block_getter_reorg_margin: 200,
-  convenience_api_mode: false,
   metrics_collection_interval: 60_000
 
 # Configures the endpoint

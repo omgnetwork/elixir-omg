@@ -27,7 +27,6 @@ defmodule Mix.Tasks.Xomg.Watcher.Start do
   @shortdoc "Starts the watcher. See Mix.Tasks.Watcher for possible options"
 
   def run(["--convenience" | args]) do
-    Application.put_env(:omg_watcher, :convenience_api_mode, true, persistent: true)
     start_watcher(args)
   end
 

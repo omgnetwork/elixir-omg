@@ -46,43 +46,6 @@ defmodule OMG.Watcher.Application do
     Supervisor.start_link(children, opts)
   end
 
-  def start_phase(:attach_telemetry, :normal, _phase_args) do
-    handlers = [
-      [
-        "spandex-query-tracer",
-        [[:omg, :watcher, :db, :repo, :query]],
-        &SpandexEcto.TelemetryAdapter.handle_event/4,
-        nil
-      ],
-      [
-        "measure-watcher-eventer",
-        OMG.Watcher.Eventer.Measure.supported_events(),
-        &OMG.Watcher.Eventer.Measure.handle_event/4,
-        nil
-      ],
-      ["measure-state", OMG.State.Measure.supported_events(), &OMG.State.Measure.handle_event/4, nil],
-      [
-        "measure-blockgetter",
-        OMG.Watcher.BlockGetter.Measure.supported_events(),
-        &OMG.Watcher.BlockGetter.Measure.handle_event/4,
-        nil
-      ],
-      [
-        "measure-ethereum-event-listener",
-        OMG.EthereumEventListener.Measure.supported_events(),
-        &OMG.EthereumEventListener.Measure.handle_event/4,
-        nil
-      ]
-    ]
-
-    Enum.each(handlers, fn handler ->
-      case apply(:telemetry, :attach_many, handler) do
-        :ok -> :ok
-        {:error, :already_exists} -> :ok
-      end
-    end)
-  end
-
   # Only set once during bootup. cookie value retrieved from ENV.
   # sobelow_skip ["DOS.StringToAtom"]
   defp set_cookie(cookie) when is_binary(cookie) do
