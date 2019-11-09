@@ -4,10 +4,10 @@ This `gh-pages` branch is intended specifically to contain GH Project's page.
 
 
 * Child chain API
-[Master](https://omisego.github.io/elixir-omg/docs-ui/?url=master/operator_api_specs.yaml) | [0.1](https://omisego.github.io/elixir-omg/docs-ui/?url=0.1/operator_api_specs.yaml) | [0.2](https://omisego.github.io/elixir-omg/docs-ui/?url=0.2/operator_api_specs.yaml)
+[Master](https://developer.omisego.co/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=master%2Foperator_api_specs) | [0.1](https://developer.omisego.co/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=0.1%2Foperator_api_specs) | [0.2](https://developer.omisego.co/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=0.2%2Foperator_api_specs)
 
 * Watcher's Security-critical API
-[Master](https://omisego.github.io/elixir-omg/docs-ui/?url=master/security_critical_api_specs.yaml) | [0.1](https://omisego.github.io/elixir-omg/docs-ui/?url=0.1/security_critical_api_specs.yaml) | [0.2](https://omisego.github.io/elixir-omg/docs-ui/?url=0.2/security_critical_api_specs.yaml)
+[Master](https://developer.omisego.co/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=master%2Fsecurity_critical_api_specs) | [0.1](https://developer.omisego.co/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=0.1%2Fsecurity_critical_api_specs) | [0.2](https://developer.omisego.co/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=0.2%2Fsecurity_critical_api_specs)
 
 * Watcher's informational API
-[Master](https://omisego.github.io/elixir-omg/docs-ui/?url=master/informational_api_specs.yaml) | [0.1](https://omisego.github.io/elixir-omg/docs-ui/?url=0.1/informational_api_specs.yaml) | [0.2](https://omisego.github.io/elixir-omg/docs-ui/?url=0.2/informational_api_specs.yaml)
+[Master](https://developer.omisego.co/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=master%2Finformational_api_specs) | [0.1](https://developer.omisego.co/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=0.1%2Finformational_api_specs) | [0.2](https://developer.omisego.co/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=0.2%2Finformational_api_specs)
