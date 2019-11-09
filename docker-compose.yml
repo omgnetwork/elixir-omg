@@ -93,7 +93,7 @@ services:
     image: omisego/child_chain:latest
     command: "full_local"
     environment:
-      - CONTRACT_EXCHANGER_URL=http://plasma-deployer:8000/contracts
+      - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
