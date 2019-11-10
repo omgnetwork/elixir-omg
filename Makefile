@@ -66,6 +66,7 @@ list:
 all: clean build-child_chain-prod build-watcher-prod
 
 WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
+WATCHER_INFORMATIONAL_IMAGE_NAME      ?= "omisego/watcher_informational:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20191024"
 IMAGE_BUILD_DIR ?= $(PWD)
@@ -130,6 +131,9 @@ build-child_chain-dev: deps-elixir-omg
 build-watcher-prod: deps-elixir-omg
 	$(ENV_PROD) mix do compile, distillery.release --name watcher --verbose
 
+build-watcher-informational-prod: deps-elixir-omg
+	$(ENV_PROD) mix do compile, distillery.release --name watcher_informational --verbose
+
 build-watcher-dev: deps-elixir-omg
 	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --verbose
 
@@ -183,6 +187,15 @@ docker-watcher-prod:
 		$(IMAGE_BUILDER) \
 		-c "cd /app && make build-watcher-prod"
 
+docker-watcher-informational-prod:
+	docker run --rm -it \
+		-v $(PWD):/app \
+		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
+		-u root \
+		--entrypoint /bin/sh \
+		$(IMAGE_BUILDER) \
+		-c "cd /app && make build-watcher-informational-prod"
+
 docker-child_chain-build:
 	docker build -f Dockerfile.child_chain \
 		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
@@ -197,7 +210,15 @@ docker-watcher-build:
 		-t $(WATCHER_IMAGE_NAME) \
 		.
 
+docker-watcher-informational-build:
+	docker build -f Dockerfile.watcher_informational \
+		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
+		--cache-from $(WATCHER_INFORMATIONAL_IMAGE_NAME) \
+		-t $(WATCHER_INFORMATIONAL_IMAGE_NAME) \
+		.
+
 docker-watcher: docker-watcher-prod docker-watcher-build
+docker-watcher-informational: docker-watcher-informational-prod docker-watcher-informational-build
 docker-child_chain: docker-child_chain-prod docker-child_chain-build
 
 docker-push: docker
@@ -246,25 +267,37 @@ prune-plasma-contracts:
 start-child_chain:
 	set -e; . ./bin/variables; \
 	echo "Building Child Chain" && \
-	make build-child_chain-dev && \
-	rm -f ./_build/dev/rel/child_chain/var/sys.config || true && \
+	make build-child_chain-prod && \
+	rm -f ./_build/prod/rel/child_chain/var/sys.config || true && \
 	echo "Init Child Chain DB" && \
-	_build/dev/rel/child_chain/bin/child_chain init_key_value_db && \
+	_build/prod/rel/child_chain/bin/child_chain init_key_value_db && \
 	echo "Init Child Chain DB DONE" && \
-	_build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START)
+	_build/prod/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
 	set -e; . ./bin/variables; \
 	echo "Building Watcher" && \
-	make build-watcher-dev && \
+	make build-watcher-prod && \
 	echo "Potential cleanup" && \
-	rm -f ./_build/dev/rel/watcher/var/sys.config || true && \
+	rm -f ./_build/prod/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-	_build/dev/rel/watcher/bin/watcher init_key_value_db && \
-	_build/dev/rel/watcher/bin/watcher init_postgresql_db && \
+	_build/prod/rel/watcher/bin/watcher init_key_value_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	_build/dev/rel/watcher/bin/watcher $(OVERRIDING_START)
+	_build/prod/rel/watcher/bin/watcher $(OVERRIDING_START)
+
+start-watcher-inf:
+	set -e; . ./bin/variables; \
+	echo "Building Watcher" && \
+	make build-watcher-informational-prod && \
+	echo "Potential cleanup" && \
+	rm -f ./_build/prod/rel/watcher_informational/var/sys.config || true && \
+	echo "Init Watcher DBs" && \
+	_build/prod/rel/watcher_informational/bin/watcher_informational init_key_value_db && \
+	_build/prod/rel/watcher_informational/bin/watcher_informational init_postgresql_db && \
+	echo "Init Watcher DBs DONE" && \
+	echo "Run Watcher" && \
+	_build/prod/rel/watcher_informational/bin/watcher_informational $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
@@ -289,6 +322,10 @@ remote-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain remote_console
 
 remote-watcher:
+	set -e; . ./bin/variables && \
+	_build/dev/rel/watcher/bin/watcher remote_console
+
+remote-watcher-informational:
 	set -e; . ./bin/variables && \
 	_build/dev/rel/watcher/bin/watcher remote_console
 

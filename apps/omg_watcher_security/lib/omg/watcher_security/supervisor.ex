@@ -21,9 +21,9 @@ defmodule OMG.WatcherSecurity.Supervisor do
   use OMG.Utils.LoggerExt
 
   alias OMG.Status.Alert.Alarm
-  alias OMG.WatcherSecurity
   alias OMG.WatcherSecurity.Monitor
   alias OMG.WatcherSecurity.SyncSupervisor
+  alias OMG.WatcherSecurity.Eventer
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -44,7 +44,7 @@ defmodule OMG.WatcherSecurity.Supervisor do
          ]
        ]},
       # Start workers
-      {WatcherSecurity.Eventer, []}
+      {Eventer, []}
     ]
 
     opts = [strategy: :one_for_one]

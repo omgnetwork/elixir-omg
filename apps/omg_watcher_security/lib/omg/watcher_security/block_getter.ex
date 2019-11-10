@@ -30,7 +30,7 @@ defmodule OMG.WatcherSecurity.BlockGetter do
   alias OMG.WatcherSecurity.BlockGetter.BlockApplication
   alias OMG.WatcherSecurity.BlockGetter.Core
   alias OMG.WatcherSecurity.BlockGetter.Status
-  alias OMG.Watcher.DB
+  #  alias OMG.Watcher.DB
   alias OMG.WatcherSecurity.ExitProcessor
   alias OMG.WatcherSecurity.HttpRPC.Client
 
@@ -63,12 +63,17 @@ defmodule OMG.WatcherSecurity.BlockGetter do
     # while top block number is a block that has been formed (they differ by the interval)
     child_top_block_number = current_block_height - child_block_interval
 
-    last_persisted_block = DB.Block.get_max_blknum()
+    # DB.Block.get_max_blknum()
+    last_persisted_block = 0
 
     # how many eth blocks backward can change during an reorg
-    block_getter_reorg_margin = Application.fetch_env!(:omg_watcher, :block_getter_reorg_margin)
-    maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
-    maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
+    block_getter_reorg_margin = Application.fetch_env!(:omg_watcher_security, :block_getter_reorg_margin)
+
+    maximum_block_withholding_time_ms =
+      Application.fetch_env!(:omg_watcher_security, :maximum_block_withholding_time_ms)
+
+    maximum_number_of_unapplied_blocks =
+      Application.fetch_env!(:omg_watcher_security, :maximum_number_of_unapplied_blocks)
 
     # TODO rethink posible solutions see issue #724
     # if we do not wait here, `ExitProcessor.check_validity()` may timeouts,
@@ -99,7 +104,11 @@ defmodule OMG.WatcherSecurity.BlockGetter do
     :ok = update_status(state)
 
     {:ok, _} =
-      :timer.send_interval(Application.fetch_env!(:omg_watcher, :metrics_collection_interval), self(), :send_metrics)
+      :timer.send_interval(
+        Application.fetch_env!(:omg_watcher_security, :metrics_collection_interval),
+        self(),
+        :send_metrics
+      )
 
     _ = Logger.info("Started #{inspect(__MODULE__)}, synced_height: #{inspect(synced_height)}")
 
@@ -111,9 +120,11 @@ defmodule OMG.WatcherSecurity.BlockGetter do
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
       {:ok, state} ->
-        block_application
-        |> Core.ensure_block_imported_once(state)
-        |> Enum.each(&DB.Transaction.update_with/1)
+        # block_application
+        # |> Core.ensure_block_imported_once(state)
+        # |> Enum.each(&DB.Transaction.update_with/1)
+        IO.inspect("sending off %{inspect(block_application)}")
+        :ok = OMG.Bus.direct_local_broadcast("block.get", {:insert_block, block_application})
 
         {:noreply, state, {:continue, {:apply_block_step, :run_block_download_task, block_application}}}
 
@@ -275,19 +286,19 @@ defmodule OMG.WatcherSecurity.BlockGetter do
   end
 
   defp schedule_sync_height do
-    Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
+    Application.fetch_env!(:omg_watcher_security, :block_getter_loops_interval_ms)
     |> :timer.send_after(self(), :sync)
   end
 
   defp schedule_producer do
-    Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
+    Application.fetch_env!(:omg_watcher_security, :block_getter_loops_interval_ms)
     |> :timer.send_after(self(), :producer)
   end
 
   @spec download_block(pos_integer()) :: Core.validate_download_response_result_t()
   defp download_block(requested_number) do
     {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
-    child_chain_url = Application.get_env(:omg_watcher, :child_chain_url)
+    child_chain_url = Application.get_env(:omg_watcher_security, :child_chain_url)
     response = Client.get_block(requested_hash, child_chain_url)
 
     Core.validate_download_response(

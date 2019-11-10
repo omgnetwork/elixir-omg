@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
+defmodule OMG.WatcherSecurity.ReleaseTasks.SetExitProcessorSLAMargin do
   @moduledoc false
   use Distillery.Releases.Config.Provider
   require Logger
-  @app :omg_watcher
+  @app :omg_watcher_security
 
   @impl Provider
 

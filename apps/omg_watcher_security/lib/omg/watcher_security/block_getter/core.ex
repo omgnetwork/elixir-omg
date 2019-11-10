@@ -581,36 +581,36 @@ defmodule OMG.WatcherSecurity.BlockGetter.Core do
     set_chain_status(state, :error)
   end
 
-  @doc """
-  Ensures the same block will not be send into WatcherDB again.
+  # @doc """
+  # Ensures the same block will not be send into WatcherDB again.
 
-  Statefull validity keeps track of consumed blocks in separate than WatcherDB database. These databases
-  can get out of sync, and then we don't want to send already consumed blocks which could not succeed due
-  key constraints on WatcherDB.
-  """
-  @spec ensure_block_imported_once(BlockApplication.t(), t()) :: [OMG.Watcher.DB.Transaction.mined_block()]
-  def ensure_block_imported_once(block, %__MODULE__{last_block_persisted_from_prev_run: last_persisted_block}),
-    do: do_ensure_block_imported_once(block, last_persisted_block)
+  # Statefull validity keeps track of consumed blocks in separate than WatcherDB database. These databases
+  # can get out of sync, and then we don't want to send already consumed blocks which could not succeed due
+  # key constraints on WatcherDB.
+  # """
+  # @spec ensure_block_imported_once(BlockApplication.t(), t()) :: [OMG.Watcher.DB.Transaction.mined_block()]
+  # def ensure_block_imported_once(block, %__MODULE__{last_block_persisted_from_prev_run: last_persisted_block}),
+  #   do: do_ensure_block_imported_once(block, last_persisted_block)
 
-  defp do_ensure_block_imported_once(block, nil), do: [to_mined_block(block)]
+  # defp do_ensure_block_imported_once(block, nil), do: [to_mined_block(block)]
 
-  defp do_ensure_block_imported_once(%BlockApplication{number: number}, last_persisted_block)
-       when number <= last_persisted_block,
-       do: []
+  # defp do_ensure_block_imported_once(%BlockApplication{number: number}, last_persisted_block)
+  #      when number <= last_persisted_block,
+  #      do: []
 
-  defp do_ensure_block_imported_once(block, _), do: [to_mined_block(block)]
+  # defp do_ensure_block_imported_once(block, _), do: [to_mined_block(block)]
 
-  # The purpose of this function is to ensure contract between block_getter and db code
-  @spec to_mined_block(BlockApplication.t()) :: OMG.Watcher.DB.Transaction.mined_block()
-  defp to_mined_block(%BlockApplication{} = block) do
-    %{
-      eth_height: block.eth_height,
-      blknum: block.number,
-      blkhash: block.hash,
-      timestamp: block.timestamp,
-      transactions: block.transactions
-    }
-  end
+  # # The purpose of this function is to ensure contract between block_getter and db code
+  # @spec to_mined_block(BlockApplication.t()) :: OMG.Watcher.DB.Transaction.mined_block()
+  # defp to_mined_block(%BlockApplication{} = block) do
+  #   %{
+  #     eth_height: block.eth_height,
+  #     blknum: block.number,
+  #     blkhash: block.hash,
+  #     timestamp: block.timestamp,
+  #     transactions: block.transactions
+  #   }
+  # end
 
   defp add_distinct_event(%__MODULE__{events: events} = state, event) do
     if Enum.member?(events, event),

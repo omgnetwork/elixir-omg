@@ -34,7 +34,7 @@ defmodule OMG.WatcherSecurity.API.Transaction do
   """
   @spec submit(Transaction.Signed.t()) :: Client.response_t() | {:error, atom()}
   def submit(%Transaction.Signed{} = signed_tx) do
-    url = Application.get_env(:omg_watcher, :child_chain_url)
+    url = Application.get_env(:omg_watcher_security, :child_chain_url)
 
     signed_tx
     |> Transaction.Signed.encode()

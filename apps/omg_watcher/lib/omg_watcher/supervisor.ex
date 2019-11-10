@@ -78,7 +78,8 @@ defmodule OMG.Watcher.Supervisor do
          ]
        ]},
       # Start workers
-      {Watcher.Eventer, []}
+      # {Watcher.Eventer, []},
+      {OMG.Watcher.BlockApplicationConsumer, []}
     ]
 
     opts = [strategy: :one_for_one]

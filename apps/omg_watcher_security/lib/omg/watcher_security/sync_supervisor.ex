@@ -51,7 +51,7 @@ defmodule OMG.WatcherSecurity.SyncSupervisor do
         get_events_callback: &Eth.RootChain.get_deposits/2,
         process_events_callback: &OMG.State.deposit/1
       ),
-      {Watcher.ExitProcessor, []},
+      {WatcherSecurity.ExitProcessor, []},
       EthereumEventListener.prepare_child(
         service_name: :exit_processor,
         synced_height_update_key: :last_exit_processor_eth_height,

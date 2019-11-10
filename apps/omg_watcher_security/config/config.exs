@@ -1,6 +1,8 @@
 # This file is responsible for configuring your application
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
+# child chain url
+config :omg_watcher_security, child_chain_url: "http://localhost:9656"
 
 config :omg_watcher_security,
   # 23 hours worth of blocks - this is how long the child chain server has to block spends from exiting utxos
@@ -11,3 +13,9 @@ config :omg_watcher_security,
   exit_finality_margin: 12,
   block_getter_reorg_margin: 200,
   metrics_collection_interval: 60_000
+
+config :omg_watcher_security, OMG.WatcherSecurity.Tracer,
+  service: :omg_watcher_security,
+  adapter: SpandexDatadog.Adapter,
+  disabled?: true,
+  type: :omg_watcher_security

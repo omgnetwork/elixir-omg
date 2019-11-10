@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Eventer do
+defmodule OMG.WatcherSecurity.Eventer do
   @moduledoc """
   Imperative shell for handling events, which are exposed to the client of the Watcher application.
   All handling of event triggers that are processed, transformed into events and pushed to the internal EventBus where they get consumed by Phoenix Eventer module.
@@ -22,7 +22,7 @@ defmodule OMG.Watcher.Eventer do
   See `OMG.EventerAPI` for the API to the GenServer
   """
 
-  alias OMG.Watcher.Eventer.Core
+  alias OMG.WatcherSecurity.Eventer.Core
 
   require Logger
   ### Client
@@ -60,6 +60,7 @@ defmodule OMG.Watcher.Eventer do
     {:noreply, state}
   end
 
+  # sending events to OMG.WatcherRPC.BroadcastEvent
   defp do_broadcast(event_triggers) do
     OMG.Bus.broadcast("broadcast_event", {:emit_events, event_triggers})
   end

@@ -33,7 +33,7 @@ release :watcher do
   set(
     applications: [
       :runtime_tools,
-      omg_watcher: :permanent,
+      omg_watcher_security: :permanent,
       omg_watcher_rpc: :permanent,
       omg: :permanent,
       omg_status: :permanent,
@@ -52,10 +52,53 @@ release :watcher do
       {OMG.WatcherRPC.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Status.ReleaseTasks.SetSentry, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Status.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Watcher.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.WatcherSecurity.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.WatcherSecurity.ReleaseTasks.SetExitProcessorSLAMargin, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.WatcherSecurity.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+    ]
+  )
+
+  set(
+    commands: [
+      init_key_value_db: "rel/commands/init_key_value_db.sh"
+    ]
+  )
+end
+
+release :watcher_informational do
+  set(version: current_version(:omg_child_chain) <> "+" <> sha)
+
+  set(vm_args: "rel/vm.args")
+
+  set(
+    applications: [
+      :runtime_tools,
+      omg_watcher: :permanent,
+      omg_watcher_security: :permanent,
+      omg_watcher_rpc: :permanent,
+      omg: :permanent,
+      omg_status: :permanent,
+      omg_db: :permanent,
+      omg_eth: :permanent,
+      omg_bus: :permanent
+    ]
+  )
+
+  set(
+    config_providers: [
+      {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.Eth.ReleaseTasks.SetEthereumClient, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.WatcherRPC.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.Status.ReleaseTasks.SetSentry, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.Status.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Watcher.ReleaseTasks.SetDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.Watcher.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Watcher.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+      {OMG.WatcherSecurity.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.WatcherSecurity.ReleaseTasks.SetExitProcessorSLAMargin, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.WatcherSecurity.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
     ]
   )
 

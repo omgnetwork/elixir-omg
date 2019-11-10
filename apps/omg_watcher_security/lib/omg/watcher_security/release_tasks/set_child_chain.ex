@@ -12,43 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
+defmodule OMG.WatcherSecurity.ReleaseTasks.SetChildChain do
   @moduledoc false
   use Distillery.Releases.Config.Provider
   require Logger
-  @app :omg_db
+  @app :omg_watcher_security
 
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
-
-    path =
-      case get_env("DB_PATH") do
-        root_path when is_binary(root_path) ->
-          {:ok, path} = set_db(root_path)
-          path
-
-        _ ->
-          root_path = Path.join([System.user_home!(), ".omg/data"])
-          {:ok, path} = set_db(root_path)
-          path
-      end
-
-    _ = Logger.info("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
-    :ok
+    :ok = Application.put_env(@app, :child_chain_url, get_app_env(), persistent: true)
   end
 
-  defp set_db(root_path) do
-    app =
-      case Code.ensure_loaded?(OMG.WatcherSecurity) do
-        true -> :watcher
-        _ -> :child_chain
-      end
+  defp get_app_env do
+    child_chain_url = validate_string(get_env("CHILD_CHAIN_URL"), Application.get_env(@app, :child_chain_url))
 
-    path = Path.join([root_path, "#{app}"])
-    :ok = Application.put_env(:omg_db, :path, path, persistent: true)
-    {:ok, path}
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: CHILD_CHAIN_URL Value: #{inspect(child_chain_url)}.")
+    child_chain_url
   end
 
   defp get_env(key), do: System.get_env(key)
+
+  defp validate_string(value, _default) when is_binary(value), do: value
+  defp validate_string(_, default), do: default
 end
