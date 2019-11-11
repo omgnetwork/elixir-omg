@@ -3,7 +3,8 @@ OVERRIDING_START ?= foreground
 help:
 	@echo "Dont Fear the Makefile"
 	@echo ""
-	@echo "DOCKER DEVELOPMENT:"
+	@echo "DOCKER DEVELOPMENT"
+	@echo "------------------"
 	@echo ""
 	@echo "  - \`make docker-start-cluster\`: start everything for you, but if there are no local images \c"
 	@echo "for Watcher and Child chain tagged with latest they will get pulled from our repository."
@@ -18,45 +19,43 @@ help:
 	@echo "  - \`make docker-update-watcher\` or \`make docker-update-child_chain\`: \c"
 	@echo "replaces containers with your code changes for rapid development."
 	@echo ""
-	@echo "BARE METAL DEVELOPMENT:"
-	@echo "-----------------------------"
-	@echo "ATTENTION ATTENTION ATTENTION"
-	@echo "This presumes you want to run geth, plasma-contracts and postgres as containers \c"
-	@echo "but Watcher and Child Chain bare metal."
-	@echo "-----------------------------"
+	@echo "  - \`make docker-nuke\`: wipe docker clean, including containers, images, networks \c"
+	@echo "and build cache"
 	@echo ""
-	@echo "You will need four terminal windows."
+	@echo "  - \`make docker-remote-watcher\`: remote console (IEx-style) into the watcher application."
+	@echo ""
+	@echo "  - \`make docker-remote-childchain\`: remote console (IEx-style) into the childchain application."
+	@echo ""
+	@echo "BARE METAL DEVELOPMENT"
+	@echo "----------------------"
+	@echo
+	@echo "This presumes you want to run geth, plasma-contracts and postgres as containers \c"
+	@echo "but Watcher and Child Chain bare metal. You will need four terminal windows."
 	@echo ""
 	@echo "1. In the first one, start geth, postgres and plasma-contracts:"
-	@echo ""
 	@echo "    make start-services"
 	@echo ""
-	@echo "In case one of the containers is faulty, restart it by running the command again. \c"
+	@echo "   In case one of the containers is faulty, restart it by running the command again. \c"
 	@echo "Usually it's plasma-contracts."
 	@echo ""
 	@echo "2. In the second terminal window, run:"
-	@echo ""
 	@echo "    make start-child_chain"
 	@echo ""
 	@echo "3. In the third terminal window, run:"
-	@echo ""
 	@echo "    make start-watcher"
 	@echo ""
 	@echo "4. Wait until they all boot. And run in the fourth terminal window:"
-	@echo ""
 	@echo "    make get-alarms"
 	@echo ""
 	@echo "If you want to attach yourself to running services, use:"
-	@echo ""
 	@echo "    make remote-child_chain"
-	@echo ""
 	@echo "or"
-	@echo ""
 	@echo "    make remote-watcher"
 	@echo ""
-	@echo "Discover other rules with:"
-	@echo ""
-	@echo "    make list"
+	@echo "MISCELLANEOUS"
+	@echo "-------------"
+	@echo "  - \`make diagnostics\`: generate comprehennsive diagnostics info for troubleshooting"
+	@echo "  - \`make list\`: list all available make targets"
 	@echo ""
 
 .PHONY: list
@@ -234,6 +233,18 @@ docker-start-cluster-with-datadog:
 docker-stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
+docker-nuke:
+	docker-compose down
+	docker system prune --all
+
+docker-remote-watcher:
+	docker-compose exec watcher /watcher_entrypoint bin/watcher remote_console
+
+docker-remote-childchain:
+	docker-compose exec childchain /child_chain_entrypoint bin/child_chain remote_console
+
+.PHONY: docker-nuke docker-remote-watcher docker-remote-childchain
+
 ###
 ### barebone stuff
 ###
@@ -321,6 +332,31 @@ informational_api_specs:
 
 operator_api_specs:
 	swagger-cli bundle -r -t yaml -o apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml apps/omg_child_chain_rpc/priv/swagger/operator_api_specs/swagger.yaml
+
+###
+### Diagnostics report
+###
+
+diagnostics:
+	echo "---------- START OF DIAGNOSTICS REPORT ----------"
+	echo "\n---------- CHILDCHAIN LOGS ----------"
+	docker-compose logs childchain
+	echo "\n---------- WATCHER LOGS ----------"
+	docker-compose logs watcher
+	echo "\n---------- PLASMA CONTRACTS ----------"
+	curl -s localhost:8000/contracts | echo "Could not retrieve the deployed plasma contracts."
+	echo "\n---------- GIT ----------"
+	echo "Git commit: $$(git rev-parse HEAD)"
+	git status
+	echo "\n---------- DOCKER-COMPOSE CONTAINERS ----------"
+	docker-compose ps
+	echo "\n---------- DOCKER CONTAINERS ----------"
+	docker ps
+	echo "\n---------- DOCKER IMAGES ----------"
+	docker image ls
+	echo "\n ---------- END OF DIAGNOSTICS REPORT ----------"
+
+.PHONY: diagnostics
 
 ### UTILS
 OSFLAG := ''
