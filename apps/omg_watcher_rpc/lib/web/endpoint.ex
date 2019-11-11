@@ -17,7 +17,7 @@ defmodule OMG.WatcherRPC.Web.Endpoint do
   use Sentry.Phoenix.Endpoint
 
   # NOTE: one connects to `ws://host:port/socket/websocket` here (the transport is appended)
-  socket("/socket", OMG.WatcherRPC.Web.Socket, websocket: true)
+  socket("/socket", OMG.WatcherRPC.Web.Socket, websocket: false)
 
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)

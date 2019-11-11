@@ -20,10 +20,6 @@ defmodule OMG.WatcherRPC.Web.Socket do
 
   use Phoenix.Socket, log: :debug
 
-  ## Channels
-  channel("transfer:*", OMG.WatcherRPC.Web.Channel.Transfer)
-  channel("exit:*", OMG.WatcherRPC.Web.Channel.Exit)
-
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
   # verification, you can put default assigns into

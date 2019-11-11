@@ -28,7 +28,6 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.Eventer.Core
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.StandardExit
