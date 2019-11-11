@@ -54,12 +54,6 @@ defmodule OMG.Watcher.Application do
         &SpandexEcto.TelemetryAdapter.handle_event/4,
         nil
       ],
-      [
-        "measure-watcher-eventer",
-        OMG.Watcher.Eventer.Measure.supported_events(),
-        &OMG.Watcher.Eventer.Measure.handle_event/4,
-        nil
-      ],
       ["measure-state", OMG.State.Measure.supported_events(), &OMG.State.Measure.handle_event/4, nil],
       [
         "measure-blockgetter",
