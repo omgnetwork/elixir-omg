@@ -18,7 +18,7 @@ defmodule OMG.State.Core do
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
 
-  defstruct [:height, utxos: %{}, pending_txs: [], tx_index: 0, utxo_db_updates: []]
+  defstruct [:height, utxos: %{}, pending_txs: [], tx_index: 0, utxo_db_updates: [], recently_spent: []]
 
   alias OMG.Block
   alias OMG.Crypto
@@ -41,7 +41,10 @@ defmodule OMG.State.Core do
           tx_index: non_neg_integer(),
           # NOTE: that this list is being build reverse, in some cases it may matter. It is reversed just before
           #       it leaves this module in `form_block/3`
-          utxo_db_updates: list(db_update())
+          utxo_db_updates: list(db_update()),
+          # NOTE: because UTXO set is not loaded from DB, in-memory UTXO set contains output from already processed
+          # transaction. Therefore we need to remember the UTXOs spent before block is formed.
+          recently_spent: list(Utxo.Position.t()),
         }
 
   @type deposit() :: %{
@@ -113,9 +116,13 @@ defmodule OMG.State.Core do
     {:error, :top_block_number_not_found}
   end
 
-  @spec with_utxos(t(), UtxoSet.query_result_t()) :: t()
-  def with_utxos(%Core{utxos: utxos} = state, utxos_query_result),
-    do: %{state | utxos: UtxoSet.merge_with_query_result(utxos, utxos_query_result)}
+  @doc """
+  Extends in-memory utxo set with needed utxos loaded from DB
+  """
+  @spec with_utxos(t(), utxos()) :: t()
+  def with_utxos(%Core{utxos: utxos, recently_spent: recently_spent} = state, db_utxos) do
+    %{state | utxos: UtxoSet.merge_with_persisted_set(utxos, db_utxos, recently_spent)}
+  end
 
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
@@ -140,20 +147,6 @@ defmodule OMG.State.Core do
       {{:error, _reason}, _state} = error ->
         error
     end
-  end
-
-  @spec exec_db_queries(
-          state :: t(),
-          tx :: Transaction.Recovered.t(),
-          fees :: Fees.fee_t(),
-          UtxoSet.query_result_t()
-        ) ::
-          {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
-          | {{:error, Validator.exec_error()}, t()}
-  def exec_db_queries(%Core{} = state, tx, fees, utxos_query_result) do
-    state
-    |> with_utxos(utxos_query_result)
-    |> exec(tx, fees)
   end
 
   @doc """
@@ -217,7 +210,8 @@ defmodule OMG.State.Core do
       | tx_index: 0,
         height: height + child_block_interval,
         pending_txs: [],
-        utxo_db_updates: []
+        utxo_db_updates: [],
+        recently_spent: []
     }
 
     {:ok, {block, event_triggers, db_updates}, new_state}
@@ -311,7 +305,8 @@ defmodule OMG.State.Core do
   def exit_utxos([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{utxos: utxos} = state) do
     _ = Logger.info("Recognized exits #{inspect(exiting_utxos)}")
 
-    {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
+    # FIXME: is split important? Can be done in shell
+    {valid, _invalid} = validities = {exiting_utxos, []} # Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
 
     new_utxos = UtxoSet.apply_effects(utxos, valid, %{})
     db_updates = UtxoSet.db_updates(valid, %{})
@@ -321,11 +316,18 @@ defmodule OMG.State.Core do
   end
 
   @doc """
-  Checks if utxo exists
+  Checks whether utxo exists either in UTXO set from DB reduced by recent spends
+  or was just added and exists in in-memory set.
   """
-  @spec utxo_exists?(Utxo.Position.t(), t()) :: boolean()
-  def utxo_exists?(Utxo.position(_blknum, _txindex, _oindex) = utxo_pos, %Core{utxos: utxos}),
-    do: UtxoSet.exists?(utxos, utxo_pos)
+  @spec utxo_exists?(Utxo.Position.t(), t(), utxos()) :: boolean()
+  def utxo_exists?(
+    Utxo.position(_blknum, _txindex, _oindex) = utxo_pos,
+    %Core{utxos: utxos, recently_spent: recently_spent},
+    db_utxos) do
+      utxos
+      |> UtxoSet.merge_with_persisted_set(db_utxos, recently_spent)
+      |> UtxoSet.exists?(utxo_pos)
+  end
 
   @doc """
       Gets the current block's height and whether at the beginning of the block
@@ -345,7 +347,13 @@ defmodule OMG.State.Core do
   end
 
   defp apply_spend(
-         %Core{height: blknum, tx_index: tx_index, utxos: utxos, utxo_db_updates: db_updates} = state,
+         %Core{
+            height: blknum,
+            tx_index: tx_index,
+            utxos: utxos,
+            recently_spent: recently_spent,
+            utxo_db_updates: db_updates
+          } = state,
          %Transaction.Recovered{signed_tx: %{raw_tx: tx}}
        ) do
     {spent_input_pointers, new_utxos_map} = get_effects(tx, blknum, tx_index)
@@ -355,7 +363,11 @@ defmodule OMG.State.Core do
     spent_blknum_updates =
       spent_input_pointers |> Enum.map(&{:put, :spend, {InputPointer.Protocol.to_db_key(&1), blknum}})
 
-    %Core{state | utxos: new_utxos, utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates}
+    %Core{state |
+      utxos: new_utxos,
+      recently_spent: spent_input_pointers ++ recently_spent,
+      utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates
+    }
   end
 
   # Effects of a payment transaction - spends all inputs and creates all outputs

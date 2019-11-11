@@ -128,15 +128,17 @@ defmodule OMG.State do
   Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
   """
   def handle_call({:exec, tx, fees}, _from, state) do
-    utxos_query_result = load_necessary_utxos_from_db(state, tx)
+    db_utxos =
+    tx
+    |> Transaction.get_inputs()
+    |> init_utxos_from_db()
 
     state
-    |> Core.exec_db_queries(tx, fees, utxos_query_result)
+    |> Core.with_utxos(db_utxos)
+    |> Core.exec(tx, fees)
     |> case do
-      {:ok, tx_result, %Core{utxo_db_updates: db_updates} = new_state} ->
-        :ok = DB.multi_update(db_updates)
-        # FIXME move elsewhere?
-        {:reply, {:ok, tx_result}, %Core{new_state | utxo_db_updates: []}}
+      {:ok, tx_result, new_state} ->
+        {:reply, {:ok, tx_result}, new_state}
 
       {tx_result, new_state} ->
         {:reply, tx_result, new_state}
@@ -167,7 +169,8 @@ defmodule OMG.State do
   Tells if utxo exists
   """
   def handle_call({:utxo_exists, utxo}, _from, state) do
-    {:reply, Core.utxo_exists?(utxo, state), state}
+    db_utxos = init_utxos_from_db([utxo])
+    {:reply, Core.utxo_exists?(utxo, state, db_utxos), state}
   end
 
   @doc """
@@ -225,12 +228,12 @@ defmodule OMG.State do
     :ok = OMG.Bus.direct_local_broadcast("blocks", {:enqueue_block, block})
   end
 
-  defp load_necessary_utxos_from_db(state, tx) do
-    tx
-    |> Transaction.get_inputs()
-    |> Enum.reject(&Core.utxo_exists?(&1, state))
+  @spec init_utxos_from_db(list(InputPointer.Protocol.t())) :: UtxoSet.t()
+  defp init_utxos_from_db(utxo_pos_list) do
+    utxo_pos_list
     |> Enum.map(&utxo_from_db/1)
     |> Enum.reject(&(:not_found == &1))
+    |> UtxoSet.init()
   end
 
   defp utxo_from_db(input_pointer) do

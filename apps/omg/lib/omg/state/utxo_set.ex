@@ -42,9 +42,18 @@ defmodule OMG.State.UtxoSet do
     end)
   end
 
+  # FIXME: delete
   @spec merge_with_query_result(t(), query_result_t()) :: t()
   def merge_with_query_result(utxos, utxos_query_result) do
     Map.merge(utxos, init(utxos_query_result))
+  end
+
+  # FIXME: check apply effects bellow
+  @spec merge_with_persisted_set(t(), t(), list(InputPointer.Protocol.t())) :: t()
+  def merge_with_persisted_set(utxos, persisted_utxos, spends) do
+    persisted_utxos
+    |> Map.drop(spends)
+    |> Map.merge(utxos)
   end
 
   @doc """
