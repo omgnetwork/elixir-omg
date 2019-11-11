@@ -158,6 +158,7 @@ jobs:
             - rel/
             - VERSION
             - .git
+            - Makefile
 
   lint:
     executor: builder_pg
@@ -350,9 +351,59 @@ jobs:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME="omisego/child_chain"
       - run: make docker-watcher WATCHER_IMAGE_NAME="omisego/watcher"
+      - run: docker-compose pull
       - run: docker-compose up -d
-      - run: sleep 60;
-      - run: make get-alarms
+      - run: sh .circleci/status.sh
+
+  test_barebone_release:
+    machine:
+      image: circleci/classic:201808-01
+    environment:
+      TERM: xterm-256color
+    steps:
+      - checkout
+      - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+      - run:
+          name: Start geth, postgres and plasma-deployer
+          command: make start-services
+          background: true
+      - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+      - run:
+          command: |
+            git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.7.4
+            echo -e '\n. $HOME/.asdf/asdf.sh' >> ~/.bash_profile
+            echo -e '\n. $HOME/.asdf/completions/asdf.bash' >> ~/.bash_profile
+            source ~/.bash_profile
+            asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
+            asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
+            asdf install erlang 21.0
+          no_output_timeout: 2400
+      - run: |
+          source ~/.bash_profile
+          asdf install elixir 1.8.2
+      - run: |
+          source ~/.bash_profile
+          asdf global erlang 21.0
+      - run:
+          command: |
+            echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+            source ~/.bash_profile
+            asdf global elixir 1.8.2
+            mix local.rebar --force &&
+            mix local.hex --force &&
+            sudo killall dpkg || true &&
+            sudo rm /var/lib/dpkg/lock || true &&
+            sudo rm /var/cache/apt/archives/lock || true &&
+            sudo dpkg --configure -a || true &&
+            ./bin/setup &&
+            make deps-elixir-omg &&
+            make start-child_chain OVERRIDING_START=start &&
+            make start-watcher OVERRIDING_START=start
+          no_output_timeout: 2400
+      - run: docker ps
+      - run: ps axww | grep watcher
+      - run: ps axww | grep child_chain
+      - run: sh .circleci/status.sh
 
   publish_child_chain:
     executor: metal_child_chain
@@ -510,6 +561,8 @@ workflows:
       - common_coveralls_and_integration_tests:
           requires: [build]
       - test_docker_compose_release:
+          requires: [build]
+      - test_barebone_release:
           requires: [build]
       - lint:
           requires: [build]

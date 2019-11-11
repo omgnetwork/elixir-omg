@@ -19,4 +19,5 @@ config :omg_eth,
   # this is useful because `mix test` and `mix coveralls --umbrella` have different views on the root dir when testing
   umbrella_root_dir: Path.join(__DIR__, "../../.."),
   ws_url: "ws://localhost:8546/ws",
-  eth_node: :geth
+  eth_node: :geth,
+  run_test_eth_dev_node: true

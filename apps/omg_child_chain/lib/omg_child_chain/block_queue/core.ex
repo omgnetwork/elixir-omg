@@ -472,50 +472,116 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   # TODO: consider moving this logic to separate module
   @spec process_submit_result(BlockSubmission.t(), submit_result_t(), BlockSubmission.plasma_block_num()) ::
           :ok | {:error, atom}
-  def process_submit_result(submission, submit_result, newest_mined_blknum) do
-    case submit_result do
-      {:ok, txhash} ->
-        _ = Logger.info("Submitted #{inspect(submission)} at: #{inspect(txhash)}")
-        :ok
+  def process_submit_result(submission, submit_result, newest_mined_blknum)
 
-      {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
-        _ = log_known_tx(submission)
-        :ok
+  def process_submit_result(submission, {:ok, txhash}, _newest_mined_blknum) do
+    log_success(submission, txhash)
+    :ok
+  end
 
-      # parity error code for duplicated tx
-      {:error, %{"code" => -32_010, "message" => "Transaction with the same hash was already imported."}} ->
-        _ = log_known_tx(submission)
-        :ok
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}},
+        _newest_mined_blknum
+      ) do
+    log_known_tx(submission)
+    :ok
+  end
 
-      {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
-        _ = log_low_replacement_price(submission)
-        :ok
+  # parity error code for duplicated tx
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_010, "message" => "Transaction with the same hash was already imported."}},
+        _newest_mined_blknum
+      ) do
+    log_known_tx(submission)
+    :ok
+  end
 
-      # parity version
-      {:error, %{"code" => -32_010, "message" => "Transaction gas price is too low. There is another" <> _}} ->
-        _ = log_low_replacement_price(submission)
-        :ok
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}},
+        _newest_mined_blknum
+      ) do
+    log_low_replacement_price(submission)
+    :ok
+  end
 
-      {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}} ->
-        diagnostic = prepare_diagnostic(submission, newest_mined_blknum)
-        _ = Logger.error("It seems that authority account is locked: #{inspect(diagnostic)}. Check README.md")
-        {:error, :account_locked}
+  # parity version
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_010, "message" => "Transaction gas price is too low. There is another" <> _}},
+        _newest_mined_blknum
+      ) do
+    log_low_replacement_price(submission)
+    :ok
+  end
 
-      {:error, %{"code" => -32_000, "message" => "nonce too low"}} ->
-        process_nonce_too_low(submission, newest_mined_blknum)
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}},
+        newest_mined_blknum
+      ) do
+    diagnostic = prepare_diagnostic(submission, newest_mined_blknum)
+    log_locked(diagnostic)
+    {:error, :account_locked}
+  end
 
-      # parity specific error for nonce-too-low
-      {:error, %{"code" => -32_010, "message" => "Transaction nonce is too low." <> _}} ->
-        process_nonce_too_low(submission, newest_mined_blknum)
-    end
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "nonce too low"}},
+        newest_mined_blknum
+      ) do
+    process_nonce_too_low(submission, newest_mined_blknum)
+  end
+
+  # parity specific error for nonce-too-low
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_010, "message" => "Transaction nonce is too low." <> _}},
+        newest_mined_blknum
+      ) do
+    process_nonce_too_low(submission, newest_mined_blknum)
+  end
+
+  # ganache has this error, but these are valid nonce_too_low errors, that just don't make any sense
+  # `process_nonce_too_low/2` would mark it as a genuine failure and crash the BlockQueue :(
+  # however, everything seems to just work regardless, things get retried and mined eventually
+  # NOTE: we decide to degrade the severity to warn and continue, considering it's just `ganache`
+  def process_submit_result(
+        _submission,
+        {:error, %{"code" => -32_000, "data" => %{"stack" => "n: the tx doesn't have the correct nonce" <> _}}} = error,
+        _newest_mined_blknum
+      ) do
+    log_ganache_nonce_too_low(error)
+    :ok
+  end
+
+  defp log_ganache_nonce_too_low(error) do
+    # runtime sanity check if we're actually running `ganache`, if we aren't and we're here, we must crash
+    :ganache = Application.fetch_env!(:omg_eth, :eth_node)
+    _ = Logger.warn(inspect(error))
+    :ok
+  end
+
+  defp log_success(submission, txhash) do
+    _ = Logger.info("Submitted #{inspect(submission)} at: #{inspect(txhash)}")
+    :ok
   end
 
   defp log_known_tx(submission) do
-    Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
+    _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
+    :ok
   end
 
   defp log_low_replacement_price(submission) do
-    Logger.debug("Submission #{inspect(submission)} is known, but with higher price - ignored")
+    _ = Logger.debug("Submission #{inspect(submission)} is known, but with higher price - ignored")
+    :ok
+  end
+
+  defp log_locked(diagnostic) do
+    _ = Logger.error("It seems that authority account is locked: #{inspect(diagnostic)}. Check README.md")
+    :ok
   end
 
   defp process_nonce_too_low(%BlockSubmission{num: blknum} = submission, newest_mined_blknum) do

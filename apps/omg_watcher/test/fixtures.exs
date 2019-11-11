@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Fixtures do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  deffixture child_chain(contract, fee_file) do
+  deffixture mix_based_child_chain(contract, fee_file) do
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
 
@@ -44,8 +44,8 @@ defmodule OMG.Watcher.Fixtures do
       #{DevHelper.create_conf_file(contract)}
 
       config :omg_db, path: "#{db_path}"
-      # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level
-      config :logger, level: :debug
+      # this causes the inner test child chain server process to log info. To see these logs adjust test's log level
+      config :logger, level: :info
       config :omg_child_chain, fee_specs_file_name: "#{fee_file}"
     """)
     |> File.close()
@@ -78,10 +78,9 @@ defmodule OMG.Watcher.Fixtures do
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
       Exexec.run_link(child_chain_mix_cmd, exexec_opts_for_mix)
 
-    fn ->
-      child_chain_out |> Enum.each(&log_output("child_chain", &1))
-    end
-    |> Task.async()
+    wait_for_start(child_chain_out, "Running OMG.ChildChainRPC.Web.Endpoint", 20_000, &log_output("child_chain", &1))
+
+    Task.async(fn -> Enum.each(child_chain_out, &log_output("child_chain", &1)) end)
 
     on_exit(fn ->
       # NOTE see DevGeth.stop/1 for details
@@ -110,12 +109,29 @@ defmodule OMG.Watcher.Fixtures do
     :ok
   end
 
+  # NOTE: we could dry or do sth about this (copied from Support.DevNode), but this might be removed soon altogether
+  defp wait_for_start(outstream, look_for, timeout, logger_fn) do
+    # Monitors the stdout coming out of a process for signal of successful startup
+    waiting_task_function = fn ->
+      outstream
+      |> Stream.map(logger_fn)
+      |> Stream.take_while(fn line -> not String.contains?(line, look_for) end)
+      |> Enum.to_list()
+    end
+
+    waiting_task_function
+    |> Task.async()
+    |> Task.await(timeout)
+
+    :ok
+  end
+
   defp log_output(prefix, line) do
     Logger.debug("#{prefix}: " <> line)
     line
   end
 
-  deffixture watcher(db_initialized, root_chain_contract_config) do
+  deffixture in_beam_watcher(db_initialized, root_chain_contract_config) do
     :ok = db_initialized
     :ok = root_chain_contract_config
 
@@ -145,14 +161,7 @@ defmodule OMG.Watcher.Fixtures do
       nil
     )
 
-    {:ok, pid} =
-      Supervisor.start_link(
-        [
-          %{id: OMG.WatcherRPC.Web.Endpoint, start: {OMG.WatcherRPC.Web.Endpoint, :start_link, []}, type: :supervisor}
-        ],
-        strategy: :one_for_one,
-        name: Watcher.Endpoint
-      )
+    {:ok, pid} = ensure_web_started(OMG.WatcherRPC.Web.Endpoint, :start_link, [], 100)
 
     _ = Application.load(:omg_watcher_rpc)
 
@@ -273,5 +282,31 @@ defmodule OMG.Watcher.Fixtures do
     recovered_txs
     |> Enum.with_index()
     |> Enum.map(fn {recovered_tx, txindex} -> {blknum, txindex, recovered_tx.tx_hash, recovered_tx} end)
+  end
+
+  defp ensure_web_started(module, function, args, counter) do
+    _ = Process.flag(:trap_exit, true)
+    do_ensure_web_started(module, function, args, counter)
+  end
+
+  defp do_ensure_web_started(module, function, args, 0), do: apply(module, function, args)
+
+  defp do_ensure_web_started(module, function, args, counter) do
+    {:ok, _pid} = result = apply(module, function, args)
+    result
+  rescue
+    e in MatchError ->
+      %MatchError{
+        term:
+          {:error,
+           {:shutdown,
+            {:failed_to_start_child, {:ranch_listener_sup, OMG.WatcherRPC.Web.Endpoint.HTTP},
+             {:shutdown,
+              {:failed_to_start_child, :ranch_acceptors_sup,
+               {:listen_error, OMG.WatcherRPC.Web.Endpoint.HTTP, :eaddrinuse}}}}}}
+      } = e
+
+      :ok = Process.sleep(5)
+      ensure_web_started(module, function, args, counter - 1)
   end
 end

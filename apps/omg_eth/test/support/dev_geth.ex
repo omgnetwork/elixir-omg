@@ -26,9 +26,6 @@ defmodule OMG.Eth.DevGeth do
   alias Support.WaitFor
 
   def start do
-    {:ok, _} = Application.ensure_all_started(:briefly)
-    {:ok, _} = Application.ensure_all_started(:erlexec)
-    {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, homedir} = Briefly.create(directory: true)
 
     geth_pid =
@@ -62,11 +59,7 @@ defmodule OMG.Eth.DevGeth do
 
     _ =
       if Application.get_env(:omg_eth, :node_logging_in_debug) do
-        %Task{} =
-          fn ->
-            Enum.each(geth_out, &Support.DevNode.default_logger/1)
-          end
-          |> Task.async()
+        %Task{} = Task.async(fn -> Enum.each(geth_out, &Support.DevNode.default_logger/1) end)
       end
 
     geth_proc

@@ -35,8 +35,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   describe "getting transaction by id" do
     @tag fixtures: [:initial_blocks]
     test "verifies all inserted transactions available to get", %{initial_blocks: initial_blocks} do
-      initial_blocks
-      |> Enum.each(fn {blknum, txindex, txhash, _recovered_tx} ->
+      Enum.each(initial_blocks, fn {blknum, txindex, txhash, _recovered_tx} ->
         txhash_enc = Encoding.to_hex(txhash)
 
         assert %{"block" => %{"blknum" => ^blknum}, "txhash" => ^txhash_enc, "txindex" => ^txindex} =

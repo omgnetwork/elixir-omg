@@ -1,33 +1,63 @@
 MAKEFLAGS += --silent
+OVERRIDING_START ?= foreground
 help:
 	@echo "Dont Fear the Makefile"
-	@echo "*DOCKER DEVELOPMENT*:"
-	@echo "make docker-start-cluster - will start everything for you, but if there are no local images"
+	@echo ""
+	@echo "DOCKER DEVELOPMENT:"
+	@echo ""
+	@echo "  - \`make docker-start-cluster\`: start everything for you, but if there are no local images \c"
 	@echo "for Watcher and Child chain tagged with latest they will get pulled from our repository."
-	@echo "If you want to use your own image containers for Watcher and Child Chain"
-	@echo "use make docker-watcher && make docker-child_chain."
-	@echo "For rapid development that replaces containers with your code changes"
-	@echo "one can use make docker-update-watcher or make docker-update-child_chain."
+	@echo ""
+	@echo "  - \`make docker-start-cluster-with-infura\`: start everything but connect to Infura \c"
+	@echo "instead of your own local geth network. Note: you will need to configure the environment \c"
+	@echo "variables defined in docker-compose-infura.yml"
+	@echo ""
+	@echo "  - \`make docker-watcher && make docker-child_chain\`: use your own image containers \c"
+	@echo "for Watcher and Child Chain"
+	@echo ""
+	@echo "  - \`make docker-update-watcher\` or \`make docker-update-child_chain\`: \c"
+	@echo "replaces containers with your code changes for rapid development."
+	@echo ""
 	@echo "BARE METAL DEVELOPMENT:"
-	@echo "ATTENTION ATTENTION ATTENTION"
 	@echo "-----------------------------"
-	@echo "This presumes you want to run geth, plasma-deployer and postgres as containers"
+	@echo "ATTENTION ATTENTION ATTENTION"
+	@echo "This presumes you want to run geth, plasma-contracts and postgres as containers \c"
 	@echo "but Watcher and Child Chain bare metal."
+	@echo "-----------------------------"
+	@echo ""
 	@echo "You will need four terminal windows."
-	@echo "In the first one run:"
-	@echo "make start-services"
-	@echo "This will start geth, postgres and plasma-deployer. In case on of the containers is faulty, restart it by running the command again. Usually it's plasma-deployer."
-	@echo "In the second terminal window, run:"
-	@echo "make start-child_chain"
-	@echo "In the third terminal window, run:"
-	@echo "make start-watcher"
-	@echo "Wait until they all boot. And run in the fourth terminal window"
-	@echo "make get-alarms"
-	@echo "If you want to attach yourself to running services, use"
-	@echo "make remote-child_chain"
-	@echo "or make remote-watcher"
-	@echo "Discover other rules with"
-	@echo "make list"
+	@echo ""
+	@echo "1. In the first one, start geth, postgres and plasma-contracts:"
+	@echo ""
+	@echo "    make start-services"
+	@echo ""
+	@echo "In case one of the containers is faulty, restart it by running the command again. \c"
+	@echo "Usually it's plasma-contracts."
+	@echo ""
+	@echo "2. In the second terminal window, run:"
+	@echo ""
+	@echo "    make start-child_chain"
+	@echo ""
+	@echo "3. In the third terminal window, run:"
+	@echo ""
+	@echo "    make start-watcher"
+	@echo ""
+	@echo "4. Wait until they all boot. And run in the fourth terminal window:"
+	@echo ""
+	@echo "    make get-alarms"
+	@echo ""
+	@echo "If you want to attach yourself to running services, use:"
+	@echo ""
+	@echo "    make remote-child_chain"
+	@echo ""
+	@echo "or"
+	@echo ""
+	@echo "    make remote-watcher"
+	@echo ""
+	@echo "Discover other rules with:"
+	@echo ""
+	@echo "    make list"
+	@echo ""
 
 .PHONY: list
 list:
@@ -176,7 +206,10 @@ docker-push: docker
 
 ###OTHER
 docker-start-cluster:
-	docker-compose up
+	docker-compose build --no-cache && docker-compose up
+
+docker-stop-cluster:
+	docker-compose down
 
 docker-update-watcher:
 	docker stop elixir-omg_watcher_1
@@ -188,8 +221,15 @@ docker-update-child_chain:
 	$(MAKE) docker-child_chain
 	docker-compose up childchain
 
+docker-start-cluster-with-infura:
+	if [ -f ./docker-compose.override.yml ]; then \
+		docker-compose -f docker-compose.yml -f docker-compose-infura.yml -f docker-compose.override.yml up; \
+	else \
+		echo "Starting infura requires overriding docker-compose-infura.yml values in a docker-compose.override.yml"; \
+	fi
+
 docker-start-cluster-with-datadog:
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-deployer watcher childchain
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-contracts watcher childchain
 
 docker-stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
@@ -198,7 +238,10 @@ docker-stop-cluster-with-datadog:
 ### barebone stuff
 ###
 start-services:
-	docker-compose up geth postgres plasma-deployer
+	docker-compose up geth postgres plasma-contracts
+
+prune-plasma-contracts:
+	docker rmi -f $(docker images --format '{{.Repository}}:{{.Tag}}' | grep elixir-omg_plasma-contracts:latest)
 
 start-child_chain:
 	set -e; . ./bin/variables; \
@@ -208,7 +251,7 @@ start-child_chain:
 	echo "Init Child Chain DB" && \
 	_build/dev/rel/child_chain/bin/child_chain init_key_value_db && \
 	echo "Init Child Chain DB DONE" && \
-	_build/dev/rel/child_chain/bin/child_chain foreground
+	_build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
 	set -e; . ./bin/variables; \
@@ -221,7 +264,7 @@ start-watcher:
 	_build/dev/rel/watcher/bin/watcher init_postgresql_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	_build/dev/rel/watcher/bin/watcher foreground
+	_build/dev/rel/watcher/bin/watcher $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \

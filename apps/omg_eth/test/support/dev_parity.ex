@@ -27,9 +27,6 @@ defmodule Support.DevParity do
   alias Support.WaitFor
 
   def start do
-    {:ok, _} = Application.ensure_all_started(:briefly)
-    {:ok, _} = Application.ensure_all_started(:erlexec)
-    {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, homedir} = Briefly.create(directory: true)
 
     parity_pid =

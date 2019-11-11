@@ -40,7 +40,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
 
-  @tag fixtures: [:alice, :bob, :omg_child_chain, :token, :alice_deposits]
+  @tag fixtures: [:alice, :bob, :in_beam_child_chain, :token, :alice_deposits]
   test "deposit, spend, restart, exit etc works fine", %{
     alice: alice,
     bob: bob,
@@ -125,7 +125,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(invalid_tx)
   end
 
-  @tag fixtures: [:alice, :omg_child_chain, :alice_deposits]
+  @tag fixtures: [:alice, :in_beam_child_chain, :alice_deposits]
   test "check that unspent funds can be exited with in-flight exits",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     # create transaction, submit, wait for block publication

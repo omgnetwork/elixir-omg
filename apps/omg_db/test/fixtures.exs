@@ -19,7 +19,6 @@ defmodule OMG.DB.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   deffixture db_initialized do
-    {:ok, briefly} = Application.ensure_all_started(:briefly)
     db_path = Briefly.create!(directory: true)
     Application.put_env(:omg_db, :path, db_path, persistent: true)
 
@@ -30,7 +29,7 @@ defmodule OMG.DB.Fixtures do
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
 
-      (briefly ++ started_apps)
+      started_apps
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
