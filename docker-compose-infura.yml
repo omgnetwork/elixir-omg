@@ -14,6 +14,7 @@ services:
     environment:
       - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<infura_api_key>
       - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/<infura_api_key>
+      - PRIVATE_KEY=${AUTHORITY_PRIVATEKEY}
 
   watcher:
     environment:
