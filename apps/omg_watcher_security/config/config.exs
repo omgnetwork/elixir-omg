@@ -12,7 +12,8 @@ config :omg_watcher_security,
   maximum_number_of_unapplied_blocks: 50,
   exit_finality_margin: 12,
   block_getter_reorg_margin: 200,
-  metrics_collection_interval: 60_000
+  metrics_collection_interval: 60_000,
+  umbrella_root_dir: Path.join(__DIR__, "../../..")
 
 config :omg_watcher_security, OMG.WatcherSecurity.Tracer,
   service: :omg_watcher_security,

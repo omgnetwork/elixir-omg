@@ -12,25 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
+defmodule OMG.WatcherSecurity.ExitProcessor.CanonicityTest do
   @moduledoc """
   Test of the logic of exit processor - detecting conditions related to canonicity game and challenging them:
     - competitors
     - invalid competitors
   """
-  use OMG.Watcher.ExitProcessor.Case, async: true
+  use OMG.WatcherSecurity.ExitProcessor.Case, async: true
 
   alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.WatcherSecurity.Event
+  alias OMG.WatcherSecurity.ExitProcessor
+  alias OMG.WatcherSecurity.ExitProcessor.Core
 
   require Utxo
 
-  import OMG.Watcher.ExitProcessor.TestHelper
+  import OMG.WatcherSecurity.ExitProcessor.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @late_blknum 10_000

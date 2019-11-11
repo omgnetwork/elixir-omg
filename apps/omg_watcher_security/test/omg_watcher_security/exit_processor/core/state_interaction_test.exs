@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
+defmodule OMG.WatcherSecurity.ExitProcessor.Core.StateInteractionTest do
   @moduledoc """
   Test talking to OMG.State.Core
   """
@@ -21,13 +21,14 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   alias OMG.State
   alias OMG.TestHelper
   alias OMG.Utxo
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.WatcherSecurity.Event
+  alias OMG.WatcherSecurity.ExitProcessor
+  alias OMG.WatcherSecurity.ExitProcessor.Core
 
   require Utxo
 
-  import OMG.Watcher.ExitProcessor.TestHelper
+  import OMG.WatcherSecurity.ExitProcessor.TestHelper,
+    only: [start_se_from: 3, start_se_from: 4, start_ife_from: 2, start_ife_from: 3, piggyback_ife_from: 4]
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -49,7 +50,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
+    processor = start_se_from(processor, standard_exit_tx, @utxo_pos1)
 
     assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_position}]} =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
@@ -61,7 +62,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   test "exits of utxos that couldn't have been seen created yet never excite events",
        %{processor_empty: processor, state_empty: state, alice: alice} do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, Utxo.position(@late_blknum, 0, 0))
+    processor = start_se_from(processor, standard_exit_tx, Utxo.position(@late_blknum, 0, 0))
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @early_blknum}
@@ -101,7 +102,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     state = state_empty |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
 
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
+    processor = start_se_from(processor, standard_exit_tx, @utxo_pos1)
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}

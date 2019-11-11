@@ -120,7 +120,6 @@ defmodule OMG.EthereumEventListener do
       |> Core.get_events(sync_height)
 
     :ok = :telemetry.execute([:process, __MODULE__], %{events: events}, core)
-    IO.inspect("yolo events #{inspect(events)}")
 
     {:ok, db_updates_from_callback} =
       events

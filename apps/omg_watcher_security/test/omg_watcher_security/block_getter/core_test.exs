@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.BlockGetter.CoreTest do
+defmodule OMG.WatcherSecurity.BlockGetter.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
   use OMG.Fixtures
   use Plug.Test
 
   alias OMG.Block
-  alias OMG.Watcher.BlockGetter.BlockApplication
-  alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.Event
+  alias OMG.WatcherSecurity.BlockGetter.BlockApplication
+  alias OMG.WatcherSecurity.BlockGetter.Core
+  alias OMG.WatcherSecurity.Event
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -727,48 +727,52 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
          do: state
   end
 
+  # NOT Watcher Security concern
   describe "WatcherDB idempotency:" do
-    test "prevents older or block with the same blknum as previously consumed" do
-      state = init_state(last_persisted_block: 3000)
+    #
+    # NOT Watcher Security concern
+    #
+    # test "prevents older or block with the same blknum as previously consumed" do
+    #   state = init_state(last_persisted_block: 3000)
 
-      assert [] == Core.ensure_block_imported_once(%BlockApplication{number: 2000}, state)
-      assert [] == Core.ensure_block_imported_once(%BlockApplication{number: 3000}, state)
-    end
+    #   assert [] == Core.ensure_block_imported_once(%BlockApplication{number: 2000}, state)
+    #   assert [] == Core.ensure_block_imported_once(%BlockApplication{number: 3000}, state)
+    # end
+    #
+    # test "allows newer blocks to get consumed" do
+    #   state = init_state(last_persisted_block: 3000)
 
-    test "allows newer blocks to get consumed" do
-      state = init_state(last_persisted_block: 3000)
+    #   assert [
+    #            %{
+    #              eth_height: 1,
+    #              blknum: 4000,
+    #              blkhash: <<0::256>>,
+    #              timestamp: 0,
+    #              transactions: []
+    #            }
+    #          ] ==
+    #            Core.ensure_block_imported_once(
+    #              %BlockApplication{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0, eth_height: 1},
+    #              state
+    #            )
+    # end
 
-      assert [
-               %{
-                 eth_height: 1,
-                 blknum: 4000,
-                 blkhash: <<0::256>>,
-                 timestamp: 0,
-                 transactions: []
-               }
-             ] ==
-               Core.ensure_block_imported_once(
-                 %BlockApplication{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0, eth_height: 1},
-                 state
-               )
-    end
+    # test "do not hold blocks when not properly initialized or DB empty" do
+    #   state = init_state()
 
-    test "do not hold blocks when not properly initialized or DB empty" do
-      state = init_state()
-
-      assert [
-               %{
-                 eth_height: 1,
-                 blknum: 4000,
-                 blkhash: <<0::256>>,
-                 timestamp: 0,
-                 transactions: []
-               }
-             ] ==
-               Core.ensure_block_imported_once(
-                 %BlockApplication{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0, eth_height: 1},
-                 state
-               )
-    end
+    #   assert [
+    #            %{
+    #              eth_height: 1,
+    #              blknum: 4000,
+    #              blkhash: <<0::256>>,
+    #              timestamp: 0,
+    #              transactions: []
+    #            }
+    #          ] ==
+    #            Core.ensure_block_imported_once(
+    #              %BlockApplication{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0, eth_height: 1},
+    #              state
+    #            )
+    # end
   end
 end

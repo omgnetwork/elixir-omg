@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Support.WatcherHelper do
+defmodule Support.WatcherSecurityHelper do
   @moduledoc """
   Module provides common testing functions used by App's tests.
   """
@@ -24,7 +24,6 @@ defmodule Support.WatcherHelper do
 
   import ExUnit.Assertions
   use Phoenix.ConnTest
-
   @endpoint OMG.WatcherRPC.Web.Endpoint
 
   def wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do

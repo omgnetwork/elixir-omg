@@ -17,5 +17,5 @@ defmodule OMG.WatcherSecurity.Tracer do
   Trace Ecto requests and reports information to Datadog via Spandex
   """
 
-  use Spandex.Tracer, otp_app: :omg_watcher
+  use Spandex.Tracer, otp_app: :omg_watcher_security
 end

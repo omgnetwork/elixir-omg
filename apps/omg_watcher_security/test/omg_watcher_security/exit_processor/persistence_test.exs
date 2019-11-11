@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
+defmodule OMG.WatcherSecurity.ExitProcessor.PersistenceTest do
   @moduledoc """
   Test focused on the persistence bits of `OMG.Watcher.ExitProcessor.Core`.
 
@@ -25,11 +25,11 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   alias OMG.DevCrypto
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.WatcherSecurity.ExitProcessor.Core
 
   require Utxo
 
-  import OMG.Watcher.ExitProcessor.TestHelper
+  import OMG.WatcherSecurity.ExitProcessor.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

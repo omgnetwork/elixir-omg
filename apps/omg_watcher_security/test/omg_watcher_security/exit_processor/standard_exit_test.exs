@@ -12,24 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
+defmodule OMG.WatcherSecurity.ExitProcessor.StandardExitTest do
   @moduledoc """
   Test of the logic of exit processor, in the area of standard exits
   """
 
-  use OMG.Watcher.ExitProcessor.Case, async: true
+  use OMG.WatcherSecurity.ExitProcessor.Case, async: true
 
   alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.WatcherSecurity.Event
+  alias OMG.WatcherSecurity.ExitProcessor
+  alias OMG.WatcherSecurity.ExitProcessor.Core
 
   require Utxo
 
-  import OMG.Watcher.ExitProcessor.TestHelper
+  import OMG.WatcherSecurity.ExitProcessor.TestHelper,
+    only: [start_ife_from: 2, start_se_from: 3, start_se_from: 4, check_validity_filtered: 3]
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

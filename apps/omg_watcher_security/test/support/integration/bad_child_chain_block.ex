@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.BadChildChainServer do
+defmodule OMG.WatcherSecurity.Integration.BadChildChainServer do
   @moduledoc """
     Module useful for creating integration tests where we want to simulate byzantine child chain server
     which is returning a bad block for a particular block hash.
@@ -21,8 +21,8 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   alias OMG.Block
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utils.HttpRPC.Response
-  alias OMG.Watcher.HttpRPC.Adapter
-  alias OMG.Watcher.Integration.TestServer
+  alias OMG.WatcherSecurity.HttpRPC.Adapter
+  alias OMG.WatcherSecurity.Integration.TestServer
 
   @doc """
   Adds a route to TestServer which responded with prepared bad block when asked for known hash

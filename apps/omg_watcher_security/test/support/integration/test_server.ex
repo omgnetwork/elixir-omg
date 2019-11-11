@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.TestServer do
+defmodule OMG.WatcherSecurity.Integration.TestServer do
   @moduledoc """
   Helper functions to provide behavior to FakeServer without using FakeServer defined macros.
   Use with :test_server fixture which provides context variables
@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Integration.TestServer do
   function when fake response is needed.
   """
   def with_route(%{fake_addr: fake_addr, server_id: server_id} = _context, path, response_block) do
-    Application.put_env(:omg_watcher, :child_chain_url, fake_addr)
+    Application.put_env(:omg_watcher_security, :child_chain_url, fake_addr)
     env = EnvAgent.get_env(server_id)
     _ = EnvAgent.save_env(server_id, %FakeServer.Env{env | routes: [path | env.routes]})
     Server.add_response(server_id, path, response_block)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.BlockGetterTest do
+defmodule OMG.WatcherSecurity.Integration.BlockGetterTest do
   @moduledoc """
   This test is intended to be the major smoke/integration test of the Watcher
 
@@ -22,6 +22,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
+  # TODO get this removed WTF
   use OMG.ChildChain.Integration.Fixtures
   use Plug.Test
   use Phoenix.ChannelTest
@@ -29,10 +30,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
-  alias OMG.Watcher
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.WatcherRPC.Web.Channel
+  alias OMG.WatcherSecurity
+  alias OMG.WatcherSecurity.Event
+  alias OMG.WatcherSecurity.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
@@ -120,7 +120,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     block_with_incorrect_hash = %{OMG.Block.hashed_txs_at([], 1000) | hash: different_hash}
 
     # from now on the child chain server is broken until end of test
-    Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
+    OMG.WatcherSecurity.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
       context,
       block_with_incorrect_hash,
       different_hash
@@ -128,9 +128,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     # checking if both machines and humans learn about the byzantine condition
     assert WatcherHelper.capture_log(fn ->
-             {:ok, _txhash} = Eth.submit_block(different_hash, 1, 20_000_000_000)
-             IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
-           end) =~ inspect({:error, :incorrect_hash})
+    {:ok, _txhash} = Eth.submit_block(different_hash, 1, 20_000_000_000)
+    IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
+     end) =~ inspect({:error, :incorrect_hash})
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :test_server]
@@ -143,7 +143,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     block_with_incorrect_transaction = OMG.Block.hashed_txs_at([recovered], 1000)
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
+    OMG.WatcherSecurity.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
       context,
       block_with_incorrect_transaction
     )
@@ -171,7 +171,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+    OMG.WatcherSecurity.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 
@@ -191,7 +191,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       |> DevHelper.transact_sync!()
 
     # Here we're waiting for passing of margin of slow validator(m_sv)
-    exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
+    exit_processor_sla_margin = Application.fetch_env!(:omg_watcher_security, :exit_processor_sla_margin)
     DevHelper.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
 
     # checking if both machines and humans learn about the byzantine condition
