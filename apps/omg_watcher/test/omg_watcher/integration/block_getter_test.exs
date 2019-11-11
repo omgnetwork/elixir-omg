@@ -58,14 +58,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =
              WatcherHelper.get_utxos(alice.addr)
 
-    # start spending and exiting to see if watcher integrates all the pieces
-    {:ok, _, _socket} =
-      subscribe_and_join(
-        socket(OMG.WatcherRPC.Web.Socket),
-        Channel.Transfer,
-        WatcherHelper.create_topic("transfer", Encoding.to_hex(alice.addr))
-      )
-
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     %{"blknum" => block_nr} = WatcherHelper.submit(tx)
 
@@ -79,10 +71,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
            ] = WatcherHelper.get_utxos(alice.addr)
 
     assert WatcherHelper.get_utxos(alice.addr) == WatcherHelper.get_exitable_utxos(alice.addr)
-
-    # only checking integration of the events here, contents of events tested elsewhere
-    assert_push("address_received", %{})
-    assert_push("address_spent", %{})
 
     %{
       "utxo_pos" => utxo_pos,

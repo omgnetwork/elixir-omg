@@ -17,7 +17,7 @@ defmodule OMG.Watcher.EventConsumer do
     receives blocks from blockgetter and inserts them
   """
   require Logger
-  ### Client
+  alias OMG.Watcher.DB.EthEvent
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -37,7 +37,7 @@ defmodule OMG.Watcher.EventConsumer do
   def handle_info({:internal_event_bus, :data, data}, state) do
     IO.inspect(data)
     # all exits here!
-    Watcher.DB.EthEvent.insert_exits!(data)
+    EthEvent.insert_exits!(data)
     {:noreply, state}
   end
 end

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.TestHelper do
+defmodule OMG.WatcherSecurity.ExitProcessor.TestHelper do
   @moduledoc """
   Common utilities to manipulate the `ExitProcessor`
   """
@@ -21,7 +21,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.WatcherSecurity.ExitProcessor.Core
 
   require Utxo
 

@@ -19,11 +19,7 @@ defmodule OMG.Watcher.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
-
-  alias OMG.Status.Alert.Alarm
   alias OMG.Watcher
-
-  alias OMG.Watcher.SyncSupervisor
 
   if Mix.env() == :test do
     defmodule Sandbox do
