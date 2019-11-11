@@ -22,7 +22,7 @@ defmodule OMG.Watcher.Supervisor do
 
   alias OMG.Status.Alert.Alarm
   alias OMG.Watcher
-  alias OMG.Watcher.Monitor
+
   alias OMG.Watcher.SyncSupervisor
 
   if Mix.env() == :test do
@@ -65,21 +65,9 @@ defmodule OMG.Watcher.Supervisor do
       ] ++ @children_run_after_repo
 
     children = [
-      {Monitor,
-       [
-         Alarm,
-         [
-           %{
-             id: SyncSupervisor,
-             start: {SyncSupervisor, :start_link, []},
-             restart: :permanent,
-             type: :supervisor
-           }
-         ]
-       ]},
-      # Start workers
-      # {Watcher.Eventer, []},
-      {OMG.Watcher.BlockApplicationConsumer, []}
+      {OMG.Watcher.BlockApplicationConsumer, []},
+      {OMG.Watcher.DepositConsumer, []},
+      {OMG.Watcher.EventConsumer, []}
     ]
 
     opts = [strategy: :one_for_one]
