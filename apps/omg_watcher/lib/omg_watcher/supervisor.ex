@@ -76,9 +76,7 @@ defmodule OMG.Watcher.Supervisor do
              type: :supervisor
            }
          ]
-       ]},
-      # Start workers
-      {Watcher.Eventer, []}
+       ]}
     ]
 
     opts = [strategy: :one_for_one]
