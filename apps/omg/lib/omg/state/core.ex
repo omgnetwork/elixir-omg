@@ -121,7 +121,7 @@ defmodule OMG.State.Core do
   """
   @spec with_utxos(t(), utxos()) :: t()
   def with_utxos(%Core{utxos: utxos, recently_spent: recently_spent} = state, db_utxos) do
-    %{state | utxos: UtxoSet.merge_with_persisted_set(utxos, db_utxos, recently_spent)}
+    %{state | utxos: UtxoSet.apply_effects(utxos, recently_spent, db_utxos)}
   end
 
   @doc """
@@ -325,7 +325,7 @@ defmodule OMG.State.Core do
     %Core{utxos: utxos, recently_spent: recently_spent},
     db_utxos) do
       utxos
-      |> UtxoSet.merge_with_persisted_set(db_utxos, recently_spent)
+      |> UtxoSet.apply_effects(recently_spent, db_utxos)
       |> UtxoSet.exists?(utxo_pos)
   end
 
