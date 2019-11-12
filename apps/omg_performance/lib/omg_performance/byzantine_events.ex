@@ -48,6 +48,7 @@ defmodule OMG.Performance.ByzantineEvents do
   require Utxo
 
   @unique_metadata OMG.Crypto.hash("something outstandingly unique")
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @doc """
   For given utxo positions shuffle them and ask the watcher for exit data
@@ -131,6 +132,17 @@ defmodule OMG.Performance.ByzantineEvents do
   end
 
   # FIXME docsspecs
+  # FIXME not sure if this approach is nice at all, depends on test helper and all...
+  @spec get_many_new_txs(list(pos_integer()), OMG.TestHelper.entity()) :: list(Transaction.Signed.tx_bytes())
+  def get_many_new_txs(encoded_utxo_positions, owner) do
+    Enum.map(encoded_utxo_positions, fn utxo_pos ->
+      Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode!(utxo_pos)
+      # FIXME: for now it's not possible, but maybe revisit this and make this transaction hold multiple outputs?
+      OMG.TestHelper.create_encoded([{blknum, txindex, oindex, owner}], @eth, [{owner, 1}])
+    end)
+  end
+
+  # FIXME docsspecs
   @doc """
   For given standard exit datas (maps received from the Watcher) start all the exits in the root chain contract.
 
@@ -185,6 +197,15 @@ defmodule OMG.Performance.ByzantineEvents do
     |> Enum.shuffle()
     |> Enum.map(&Transaction.Signed.decode!/1)
     |> Enum.map(&%{raw_txbytes: Transaction.raw_txbytes(&1), output_index: output_index, piggyback_type: type})
+  end
+
+  # FIXME specsdocs
+  def get_many_piggybacks_from_available(available_entries) do
+    Enum.flat_map(available_entries, fn {txbytes, inputs, outputs} ->
+      input_piggybacks = Enum.map(inputs, &%{raw_txbytes: txbytes, output_index: &1, piggyback_type: :input})
+      output_piggybacks = Enum.map(outputs, &%{raw_txbytes: txbytes, output_index: &1, piggyback_type: :output})
+      Enum.concat(input_piggybacks, output_piggybacks)
+    end)
   end
 
   # FIXME docsspecs
@@ -378,6 +399,70 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
+  # FIXME docsspecs x2
+  @doc """
+  For given utxo positions shuffle them and ask the watcher for challenge data. All positions must be invalid exits
+
+  ## Usage
+
+  Having some invalid exits out there (see above), last of which started at `last_exit_height`, do:
+
+  ```
+  :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
+  utxos_to_challenge = timeit ByzantineEvents.get_byzantine_events("invalid_exit")
+  challenge_responses = timeit ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
+  ```
+
+  """
+  @spec get_many_piggyback_challenges(list({Transaction.txbytes(), list(non_neg_integer), list(non_neg_integer)})) ::
+          list(map())
+  def get_many_piggyback_challenges(piggybacks) do
+    piggybacks
+    |> Enum.shuffle()
+    |> Enum.flat_map(fn {tx, inputs, outputs} ->
+      input_challenges = Enum.map(inputs, &WatcherClient.get_input_challenge_data(tx, &1))
+      output_challenges = Enum.map(outputs, &WatcherClient.get_output_challenge_data(tx, &1))
+      Enum.concat(input_challenges, output_challenges)
+    end)
+    |> only_successes()
+  end
+
+  @doc """
+  For given challenges (maps received from the Watcher) challenge all the invalid exits in the root chain contract.
+
+  Will use `challenger_address`, which can be any well-funded address.
+
+  Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
+  the receipt of the last transaction sent out.
+  """
+  @spec challenge_many_piggybacks(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
+  def challenge_many_piggybacks(challenge_responses, challenger_address) do
+    map_contract_transaction(challenge_responses, fn challenge ->
+      if Map.has_key?(challenge, :in_flight_proof),
+        do:
+          Support.RootChainHelper.challenge_in_flight_exit_output_spent(
+            challenge.in_flight_txbytes,
+            challenge.in_flight_output_pos,
+            challenge.in_flight_proof,
+            challenge.spending_txbytes,
+            challenge.spending_input_index,
+            challenge.spending_sig,
+            challenger_address
+          ),
+        else:
+          Support.RootChainHelper.challenge_in_flight_exit_input_spent(
+            challenge.in_flight_txbytes,
+            challenge.in_flight_input_index,
+            challenge.spending_txbytes,
+            challenge.spending_input_index,
+            challenge.spending_sig,
+            challenge.input_tx,
+            challenge.input_utxo_pos,
+            challenger_address
+          )
+    end)
+  end
+
   @doc """
   Fetches utxo positions for a given user's address.
 
@@ -449,7 +534,7 @@ defmodule OMG.Performance.ByzantineEvents do
   end
 
   defp postprocess_byzantine_events(events, "invalid_exit"), do: Enum.map(events, & &1["details"]["utxo_pos"])
-  # FIXME: the decode should be elsewhere I think. Or at least nicen/refactor
+  # FIXME: the decode should be elsewhere I think. Or at least nicen/refactor all the clauses!!! this is a mess
   defp postprocess_byzantine_events(events, "non_canonical_ife"),
     do:
       Enum.map(events, & &1["details"]["txbytes"])
@@ -462,17 +547,22 @@ defmodule OMG.Performance.ByzantineEvents do
       |> Enum.map(&Encoding.from_hex/1)
       |> Enum.map(fn {:ok, result} -> result end)
 
-  defp postprocess_byzantine_events(events, "invalid_piggyback"),
-    do:
-      Enum.map(events, & &1["details"]["txbytes"])
-      |> Enum.map(&Encoding.from_hex/1)
-      |> Enum.map(fn {:ok, result} -> result end)
-
   defp postprocess_byzantine_events(events, "piggyback_available"),
     do:
-      Enum.map(events, & &1["details"]["txbytes"])
-      |> Enum.map(&Encoding.from_hex/1)
-      |> Enum.map(fn {:ok, result} -> result end)
+      Enum.map(
+        events,
+        &{&1["details"]["txbytes"], &1["details"]["available_inputs"], &1["details"]["available_outputs"]}
+      )
+      |> Enum.map(fn {tx, inputs, outputs} ->
+        {Encoding.from_hex(tx), Enum.map(inputs, & &1["index"]), Enum.map(outputs, & &1["index"])}
+      end)
+      |> Enum.map(fn {{:ok, result}, inputs, outputs} -> {result, inputs, outputs} end)
+
+  defp postprocess_byzantine_events(events, "invalid_piggyback"),
+    do:
+      Enum.map(events, &{&1["details"]["txbytes"], &1["details"]["inputs"], &1["details"]["outputs"]})
+      |> Enum.map(fn {tx, inputs, outputs} -> {Encoding.from_hex(tx), inputs, outputs} end)
+      |> Enum.map(fn {{:ok, result}, inputs, outputs} -> {result, inputs, outputs} end)
 
   defp only_successes(responses), do: Enum.map(responses, fn {:ok, response} -> response end)
 

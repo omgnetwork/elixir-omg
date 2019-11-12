@@ -54,7 +54,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: false, destdir: destdir)
     :ok = ByzantineEvents.watcher_synchronize()
 
-    Generators.stream_transactions(take: 20)
+    Generators.stream_transactions(take: 20, no_deposit_spends: true)
     |> ByzantineEvents.get_many_ifes()
   end
 
@@ -77,7 +77,8 @@ defmodule OMG.Performance.ByzantineEventsTest do
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of status.get under many valid IFEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of status.get under many valid IFEs for included txs",
+       %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
@@ -112,10 +113,36 @@ defmodule OMG.Performance.ByzantineEventsTest do
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_exit")) > 10
   end
 
-  # FIXME: add a test for just timing getting piggyback data for honest users
+  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
+  test "can provide timing of operations under many valid IFEs for non-included txs",
+       %{perf_test: {:ok, %{destdir: destdir}}} do
+    spenders = Generators.generate_users(2)
+    alice = Enum.at(spenders, 0)
+
+    :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: false, destdir: destdir)
+    :ok = ByzantineEvents.watcher_synchronize()
+
+    {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
+      ByzantineEvents.get_exitable_utxos(alice.addr, take: 5)
+      |> ByzantineEvents.get_many_new_txs(alice)
+      |> ByzantineEvents.get_many_ifes()
+      |> ByzantineEvents.start_many_ifes(alice.addr)
+
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
+    # assert that we can call this testing function reliably
+    assert Enum.count(ByzantineEvents.get_byzantine_events("piggyback_available")) == 5
+
+    {:ok, %{"status" => "0x1", "blockNumber" => last_piggyback_height}} =
+      ByzantineEvents.get_byzantine_events("piggyback_available")
+      |> ByzantineEvents.get_many_piggybacks_from_available()
+      |> ByzantineEvents.start_many_piggybacks(alice.addr)
+
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_piggyback_height)
+    assert Enum.count(ByzantineEvents.get_byzantine_events("piggyback_available")) == 0
+  end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of status.get under many input-invalid IFEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of operations under many input-invalid IFEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
@@ -140,42 +167,19 @@ defmodule OMG.Performance.ByzantineEventsTest do
     # assert that we can call this testing function reliably and that there are some invalid exits there in fact
     assert Enum.count(ByzantineEvents.get_byzantine_events("non_canonical_ife")) == 5
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_piggyback")) == 5
-    assert Enum.count(ByzantineEvents.get_byzantine_events("piggyback_available")) == 5
-  end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of status.get under many challenged non-canonical IFEs - valid challenges",
-       %{perf_test: {:ok, %{destdir: destdir}}} do
-    spenders = Generators.generate_users(2)
-    alice = Enum.at(spenders, 0)
-
-    :ok = Performance.ExtendedPerftest.start(100, spenders, randomized: false, destdir: destdir)
-    :ok = ByzantineEvents.watcher_synchronize()
-
-    transactions = Generators.stream_transactions(sent_by: alice.addr, take: 5, no_deposit_spends: true)
-
-    # valid/canonical/included ifes first
-    {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height1}} =
-      transactions
-      |> ByzantineEvents.get_many_ifes()
-      |> ByzantineEvents.start_many_ifes(alice.addr)
-
-    # non canonical mutations second
-    {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height2}} =
-      transactions
-      |> ByzantineEvents.mutate_txs([alice.priv])
-      |> ByzantineEvents.get_many_ifes()
-      |> ByzantineEvents.start_many_ifes(alice.addr)
-
-    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: max(last_exit_height1, last_exit_height2))
+    {:ok, %{"status" => "0x1", "blockNumber" => last_pb_challenge_height}} =
+      ByzantineEvents.get_byzantine_events("invalid_piggyback")
+      |> ByzantineEvents.get_many_piggyback_challenges()
+      |> ByzantineEvents.challenge_many_piggybacks(alice.addr)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_challenge_height}} =
       ByzantineEvents.get_byzantine_events("non_canonical_ife")
       |> ByzantineEvents.get_many_non_canonical_proofs()
       |> ByzantineEvents.prove_many_non_canonical(alice.addr)
 
-    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_challenge_height)
-
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: max(last_pb_challenge_height, last_challenge_height))
+    assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_piggyback")) == 0
     assert Enum.count(ByzantineEvents.get_byzantine_events("non_canonical_ife")) == 0
   end
 
@@ -217,7 +221,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
   # FIXME: similar: make a test for timing the system under many valid output piggybacks (just piggyback on 1st output)
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of status.get under many output-invalid IFEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of operations under many output-invalid IFEs", %{perf_test: {:ok, %{destdir: destdir}}} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
@@ -239,6 +243,14 @@ defmodule OMG.Performance.ByzantineEventsTest do
     :ok = ByzantineEvents.watcher_synchronize(root_chain_height: max(last_exit_height, last_piggyback_height))
     # assert that we can call this testing function reliably and that there are some invalid exits there in fact
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_piggyback")) == 5
+
+    {:ok, %{"status" => "0x1", "blockNumber" => last_challenge_height}} =
+      ByzantineEvents.get_byzantine_events("invalid_piggyback")
+      |> ByzantineEvents.get_many_piggyback_challenges()
+      |> ByzantineEvents.challenge_many_piggybacks(alice.addr)
+
+    :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_challenge_height)
+    assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_piggyback")) == 0
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
