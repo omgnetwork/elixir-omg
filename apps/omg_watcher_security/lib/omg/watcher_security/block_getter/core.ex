@@ -74,7 +74,6 @@ defmodule OMG.WatcherSecurity.BlockGetter.Core do
     :last_applied_block,
     :num_of_highest_block_being_downloaded,
     :number_of_blocks_being_downloaded,
-    :last_block_persisted_from_prev_run,
     :unapplied_blocks,
     :potential_block_withholdings,
     :config,
@@ -87,7 +86,6 @@ defmodule OMG.WatcherSecurity.BlockGetter.Core do
           last_applied_block: non_neg_integer,
           num_of_highest_block_being_downloaded: non_neg_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
-          last_block_persisted_from_prev_run: non_neg_integer,
           unapplied_blocks: %{non_neg_integer => BlockApplication.t()},
           potential_block_withholdings: %{
             non_neg_integer => PotentialWithholding.t()
@@ -140,7 +138,6 @@ defmodule OMG.WatcherSecurity.BlockGetter.Core do
         child_block_interval,
         synced_height,
         block_getter_reorg_margin,
-        last_persisted_block,
         state_at_block_beginning,
         exit_processor_results,
         opts \\ []
@@ -153,7 +150,6 @@ defmodule OMG.WatcherSecurity.BlockGetter.Core do
           last_applied_block: block_number,
           num_of_highest_block_being_downloaded: block_number,
           number_of_blocks_being_downloaded: 0,
-          last_block_persisted_from_prev_run: last_persisted_block,
           unapplied_blocks: %{},
           potential_block_withholdings: %{},
           config:
@@ -580,37 +576,6 @@ defmodule OMG.WatcherSecurity.BlockGetter.Core do
     _ = Logger.warn("Chain invalid when taking exits into account, because of #{inspect(error)}")
     set_chain_status(state, :error)
   end
-
-  # @doc """
-  # Ensures the same block will not be send into WatcherDB again.
-
-  # Statefull validity keeps track of consumed blocks in separate than WatcherDB database. These databases
-  # can get out of sync, and then we don't want to send already consumed blocks which could not succeed due
-  # key constraints on WatcherDB.
-  # """
-  # @spec ensure_block_imported_once(BlockApplication.t(), t()) :: [OMG.Watcher.DB.Transaction.mined_block()]
-  # def ensure_block_imported_once(block, %__MODULE__{last_block_persisted_from_prev_run: last_persisted_block}),
-  #   do: do_ensure_block_imported_once(block, last_persisted_block)
-
-  # defp do_ensure_block_imported_once(block, nil), do: [to_mined_block(block)]
-
-  # defp do_ensure_block_imported_once(%BlockApplication{number: number}, last_persisted_block)
-  #      when number <= last_persisted_block,
-  #      do: []
-
-  # defp do_ensure_block_imported_once(block, _), do: [to_mined_block(block)]
-
-  # # The purpose of this function is to ensure contract between block_getter and db code
-  # @spec to_mined_block(BlockApplication.t()) :: OMG.Watcher.DB.Transaction.mined_block()
-  # defp to_mined_block(%BlockApplication{} = block) do
-  #   %{
-  #     eth_height: block.eth_height,
-  #     blknum: block.number,
-  #     blkhash: block.hash,
-  #     timestamp: block.timestamp,
-  #     transactions: block.transactions
-  #   }
-  # end
 
   defp add_distinct_event(%__MODULE__{events: events} = state, event) do
     if Enum.member?(events, event),

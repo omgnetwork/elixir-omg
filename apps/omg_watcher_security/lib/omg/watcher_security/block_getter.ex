@@ -63,9 +63,6 @@ defmodule OMG.WatcherSecurity.BlockGetter do
     # while top block number is a block that has been formed (they differ by the interval)
     child_top_block_number = current_block_height - child_block_interval
 
-    # DB.Block.get_max_blknum()
-    last_persisted_block = 0
-
     # how many eth blocks backward can change during an reorg
     block_getter_reorg_margin = Application.fetch_env!(:omg_watcher_security, :block_getter_reorg_margin)
 
@@ -87,7 +84,6 @@ defmodule OMG.WatcherSecurity.BlockGetter do
         child_block_interval,
         synced_height,
         block_getter_reorg_margin,
-        last_persisted_block,
         state_at_block_beginning,
         exit_processor_initial_results,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
