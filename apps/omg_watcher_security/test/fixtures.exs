@@ -109,7 +109,6 @@ defmodule OMG.WatcherSecurity.Fixtures do
     :ok
   end
 
-
   defp wait_for_start(outstream, look_for, timeout, logger_fn) do
     # Monitors the stdout coming out of a process for signal of successful startup
     waiting_task_function = fn ->

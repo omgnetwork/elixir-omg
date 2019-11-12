@@ -128,9 +128,9 @@ defmodule OMG.WatcherSecurity.Integration.BlockGetterTest do
 
     # checking if both machines and humans learn about the byzantine condition
     assert WatcherHelper.capture_log(fn ->
-    {:ok, _txhash} = Eth.submit_block(different_hash, 1, 20_000_000_000)
-    IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
-     end) =~ inspect({:error, :incorrect_hash})
+             {:ok, _txhash} = Eth.submit_block(different_hash, 1, 20_000_000_000)
+             IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
+           end) =~ inspect({:error, :incorrect_hash})
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :test_server]
