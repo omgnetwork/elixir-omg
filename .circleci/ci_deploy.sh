@@ -42,9 +42,7 @@ trap 'rm -f $GCPFILE' 0 1 2 3 6 14 15
 echo "$GCP_KEY_FILE" | base64 -d > "$GCPFILE"
 
 gcloud auth activate-service-account --key-file="$GCPFILE"
-gcloud config set project "$GCP_ACCOUNT_ID"
-gcloud config set compute/zone ${GCP_ZONE}
-gcloud container clusters get-credentials ${GCP_CLUSTER_DEVELOPMENT}
+gcloud beta container clusters get-credentials ${GCP_CLUSTER_DEVELOPMENT} --region ${GCP_REGION} --project ${GCP_PROJECT}
 image_tag="$(printf "%s" "$CIRCLE_SHA1" | head -c 7)"
 if [ "$DEPLOY" = "watcher" ]; then
 
