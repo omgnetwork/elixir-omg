@@ -44,7 +44,7 @@ defmodule OMG.State.Core do
           utxo_db_updates: list(db_update()),
           # NOTE: because UTXO set is not loaded from DB, in-memory UTXO set contains output from already processed
           # transaction. Therefore we need to remember the UTXOs spent before block is formed.
-          recently_spent: list(Utxo.Position.t()),
+          recently_spent: list(Utxo.Position.t())
         }
 
   @type deposit() :: %{
@@ -306,7 +306,8 @@ defmodule OMG.State.Core do
     _ = Logger.info("Recognized exits #{inspect(exiting_utxos)}")
 
     # FIXME: is split important? Can be done in shell
-    {valid, _invalid} = validities = {exiting_utxos, []} # Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
+    # Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
+    {valid, _invalid} = validities = {exiting_utxos, []}
 
     new_utxos = UtxoSet.apply_effects(utxos, valid, %{})
     db_updates = UtxoSet.db_updates(valid, %{})
@@ -321,12 +322,13 @@ defmodule OMG.State.Core do
   """
   @spec utxo_exists?(Utxo.Position.t(), t(), utxos()) :: boolean()
   def utxo_exists?(
-    Utxo.position(_blknum, _txindex, _oindex) = utxo_pos,
-    %Core{utxos: utxos, recently_spent: recently_spent},
-    db_utxos) do
-      utxos
-      |> UtxoSet.apply_effects(recently_spent, db_utxos)
-      |> UtxoSet.exists?(utxo_pos)
+        Utxo.position(_blknum, _txindex, _oindex) = utxo_pos,
+        %Core{utxos: utxos, recently_spent: recently_spent},
+        db_utxos
+      ) do
+    utxos
+    |> UtxoSet.apply_effects(recently_spent, db_utxos)
+    |> UtxoSet.exists?(utxo_pos)
   end
 
   @doc """
@@ -348,12 +350,12 @@ defmodule OMG.State.Core do
 
   defp apply_spend(
          %Core{
-            height: blknum,
-            tx_index: tx_index,
-            utxos: utxos,
-            recently_spent: recently_spent,
-            utxo_db_updates: db_updates
-          } = state,
+           height: blknum,
+           tx_index: tx_index,
+           utxos: utxos,
+           recently_spent: recently_spent,
+           utxo_db_updates: db_updates
+         } = state,
          %Transaction.Recovered{signed_tx: %{raw_tx: tx}}
        ) do
     {spent_input_pointers, new_utxos_map} = get_effects(tx, blknum, tx_index)
@@ -363,10 +365,11 @@ defmodule OMG.State.Core do
     spent_blknum_updates =
       spent_input_pointers |> Enum.map(&{:put, :spend, {InputPointer.Protocol.to_db_key(&1), blknum}})
 
-    %Core{state |
-      utxos: new_utxos,
-      recently_spent: spent_input_pointers ++ recently_spent,
-      utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates
+    %Core{
+      state
+      | utxos: new_utxos,
+        recently_spent: spent_input_pointers ++ recently_spent,
+        utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates
     }
   end
 

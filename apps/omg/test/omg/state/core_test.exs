@@ -50,7 +50,54 @@ defmodule OMG.State.CoreTest do
     |> success?
   end
 
-  describe "State with lazily loaded utxo set" do
+  describe "Applying transactions on lazy loaded utxo set" do
+    @tag fixtures: [:alice, :state_empty]
+    test "transaction input is missing in state", %{alice: alice, state_empty: state} do
+      tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+
+      state
+      |> Core.with_utxos(%{})
+      |> Core.exec(tx, :no_fees_required)
+      |> fail?(:utxo_not_found)
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "all transaction inputs are merged from db", %{alice: alice, bob: bob, state_empty: state} do
+      tx = create_recovered([{1000, 0, 0, alice}, {1000, 1, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+
+      db_utxos =
+        [
+          {1000, 0, 0, alice, @eth, 5},
+          {1000, 1, 0, alice, @eth, 5}
+        ]
+        |> Enum.into(%{}, &to_utxos/1)
+
+      state
+      |> Core.with_utxos(db_utxos)
+      |> Core.exec(tx, :no_fees_required)
+      |> success?()
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "transaction utxos are mixed in state and db", %{alice: alice, bob: bob, state_empty: state} do
+      tx = create_recovered([{1000, 0, 0, alice}, {1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+
+      db_utxos =
+        [{1000, 0, 0, alice, @eth, 8}]
+        |> Enum.into(%{}, &to_utxos/1)
+
+      state
+      |> do_deposit(alice, %{amount: 2, currency: @eth, blknum: 1})
+      |> Core.with_utxos(db_utxos)
+      |> Core.exec(tx, :no_fees_required)
+      |> success?()
+    end
+
+    defp to_utxos({blknum, txindex, oindex, owner, currency, amount}),
+      do: {
+        Utxo.position(blknum, txindex, oindex),
+        %Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner.addr}}
+      }
   end
 
   describe "Transaction amounts and fees" do

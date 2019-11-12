@@ -129,9 +129,9 @@ defmodule OMG.State do
   """
   def handle_call({:exec, tx, fees}, _from, state) do
     db_utxos =
-    tx
-    |> Transaction.get_inputs()
-    |> init_utxos_from_db()
+      tx
+      |> Transaction.get_inputs()
+      |> init_utxos_from_db()
 
     state
     |> Core.with_utxos(db_utxos)
