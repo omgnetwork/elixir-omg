@@ -23,7 +23,7 @@ defmodule OMG.WatcherSecurity.Integration.TestHelper do
   alias Support.RootChainHelper
   alias Support.WaitFor
   alias Support.WatcherSecurityHelper
-  @endpoint OMG.WatcherRPC.Web.Endpoint
+
   require Utxo
 
   def wait_for_byzantine_events(event_names, timeout) do

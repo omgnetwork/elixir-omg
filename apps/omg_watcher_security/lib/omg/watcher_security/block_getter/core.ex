@@ -128,7 +128,6 @@ defmodule OMG.WatcherSecurity.BlockGetter.Core do
           pos_integer,
           non_neg_integer,
           non_neg_integer,
-          non_neg_integer,
           boolean,
           ExitProcessor.Core.check_validity_result_t(),
           Keyword.t()
