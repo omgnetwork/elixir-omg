@@ -5,20 +5,21 @@ services:
       # The private keys are likely different from the main docker-compose.yml:
       #   1. DEPLOYER_PRIVATEKEY needs to have enough ETH on the REMOTE_URL network
       #   2. AUTHORITY_PRIVATEKEY needs to have nonce=0 on the REMOTE_URL network
-      - REMOTE_URL=https://rinkeby.infura.io/v3/<infura_api_key>
-      - DEPLOYER_PRIVATEKEY=<deployer_privkey>
-      - MAINTAINER_PRIVATEKEY=<maintainer_privkey>
-      - AUTHORITY_PRIVATEKEY=<authority_privkey>
+      - REMOTE_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
+      - DEPLOYER_PRIVATEKEY=${DEPLOYER_PRIVATEKEY}
+      - MAINTAINER_PRIVATEKEY=${MAINTAINER_PRIVATEKEY}
+      - AUTHORITY_PRIVATEKEY=${AUTHORITY_PRIVATEKEY}
 
   childchain:
     environment:
-      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<infura_api_key>
-      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/<infura_api_key>
+      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
+      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/${INFURA_API_KEY}
+      - PRIVATE_KEY=${AUTHORITY_PRIVATEKEY}
 
   watcher:
     environment:
-      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/<infura_api_key>
-      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/<infura_api_key>
+      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
+      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/${INFURA_API_KEY}
 
   geth:
     # We don't need geth but docker-compose doesn't support overrides to remove or disable a service

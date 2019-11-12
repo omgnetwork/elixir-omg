@@ -54,7 +54,7 @@ help:
 	@echo ""
 	@echo "MISCELLANEOUS"
 	@echo "-------------"
-	@echo "  - \`make diagnostics\`: generate comprehennsive diagnostics info for troubleshooting"
+	@echo "  - \`make diagnostics\`: generate comprehensive diagnostics info for troubleshooting"
 	@echo "  - \`make list\`: list all available make targets"
 	@echo ""
 
