@@ -43,7 +43,7 @@ defmodule OMG.Performance.ExtendedPerftest do
 
   Performance.init()
   spenders = Generators.generate_users(2)
-  Performance.ExtendedPerftest.start(100, spenders, destdir: destdir)
+  Performance.ExtendedPerftest.start(100, spenders)
   ```
 
   The results are going to be waiting for you in a file within `destdir` and will be logged.

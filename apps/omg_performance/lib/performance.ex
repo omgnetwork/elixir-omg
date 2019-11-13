@@ -23,6 +23,7 @@ defmodule OMG.Performance do
       alias OMG.Performance.ByzantineEvents
       alias OMG.Performance.ExtendedPerftest
       alias OMG.Performance.Generators
+      alias OMG.Performance.HttpRPC.WatcherClient
 
       import Performance, only: [timeit: 1]
       require Performance

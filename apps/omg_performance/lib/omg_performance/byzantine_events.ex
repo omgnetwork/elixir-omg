@@ -569,16 +569,28 @@ defmodule OMG.Performance.ByzantineEvents do
   # this allows one to map a contract-transacting function over a collection nicely.
   # It initiates all the transactions concurrently. Then it waits on all of them to mine successfully.
   # Returns the last receipt result, so you can synchronize on the block number returned (and the entire bundle of txs)
-  defp map_contract_transaction(enumberable, transaction_function) do
-    enumberable
-    |> Enum.map(transaction_function)
-    # NOTE: infinity doesn't work, hence the large number
-    |> Task.async_stream(&Support.DevHelper.transact_sync!(&1, timeout: :infinity),
-      timeout: :infinity,
-      max_concurrency: 10_000
-    )
-    |> Enum.map(fn {:ok, result} -> result end)
-    |> List.last()
+  defp map_contract_transaction(enumerable, transaction_function) do
+    transaction_function_results = Enum.map(enumerable, transaction_function)
+    {:ok, supervisor} = Task.Supervisor.start_link(name: OMG.Performance.ByzantineEvents.TaskSupervisor)
+
+    try do
+      Task.Supervisor.async_stream_nolink(
+        supervisor,
+        transaction_function_results,
+        &Support.DevHelper.transact_sync!(&1, timeout: :infinity),
+        timeout: :infinity,
+        # NOTE: infinity doesn't work for `:max_concurrency`, hence the large number
+        max_concurrency: 10_000
+      )
+      |> Enum.map(fn {:ok, result} -> result end)
+      |> List.last()
+    rescue
+      reason ->
+        _ = Logger.warn("Some transactions might have failed: #{inspect(reason)}, stopping Task.Supervisor")
+        reason
+    after
+      :ok = Supervisor.stop(supervisor)
+    end
   end
 
   # This function is prepared to be called in `WaitFor.ok`.
