@@ -161,7 +161,11 @@ defmodule OMG.State do
   Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
   """
   def handle_call({:exit_utxos, utxos}, _from, state) do
-    {:ok, {db_updates, validities}, new_state} = Core.exit_utxos(utxos, state)
+    exiting_utxos = Core.get_exiting_utxos(utxos, state)
+
+    db_utxos = init_utxos_from_db(exiting_utxos)
+
+    {:ok, {db_updates, validities}, new_state} = Core.exit_utxos(exiting_utxos, state, db_utxos)
 
     {:reply, {:ok, db_updates, validities}, new_state}
   end

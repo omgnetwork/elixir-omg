@@ -240,7 +240,7 @@ defmodule OMG.State.Core do
   end
 
   @doc """
-  Spends exited utxos. Accepts either
+  Gets exitable utxo positions. Accepts either
    - a list of utxo positions (decoded)
    - a list of utxo positions (encoded)
    - a list of full exit infos containing the utxo positions
@@ -251,28 +251,22 @@ defmodule OMG.State.Core do
   NOTE: It is done like this to accommodate different clients of this function as they can either be
   bare `EthereumEventListener` or `ExitProcessor`. Hence different forms it can get the exiting utxos delivered
   """
-  @spec exit_utxos(exiting_utxos :: exiting_utxos_t(), state :: t()) ::
-          {:ok, {[db_update], validities_t()}, new_state :: t()}
-  # empty list of whatever to bypass typing
-  def exit_utxos([], %Core{} = state), do: {:ok, {[], {[], []}}, state}
+  @spec get_exiting_utxos(exiting_utxos_t(), t()) :: list(Utxo.Position.t())
+  def get_exiting_utxos(exit_infos, state)
 
   # list of full exit infos (from events) containing the utxo positions
-  def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
-    exit_infos |> Enum.map(& &1.utxo_pos) |> exit_utxos(state)
-  end
+  def get_exiting_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{}), do: Enum.map(exit_infos, & &1.utxo_pos)
 
   # list of full exit events (from ethereum listeners)
-  def exit_utxos([%{call_data: %{utxo_pos: _}} | _] = exit_infos, %Core{} = state) do
-    exit_infos |> Enum.map(& &1.call_data) |> exit_utxos(state)
-  end
+  def get_exiting_utxos([%{call_data: %{utxo_pos: _}} | _] = exit_infos, %Core{}),
+    do: Enum.map(exit_infos, & &1.call_data)
 
   # list of utxo positions (encoded)
-  def exit_utxos([encoded_utxo_pos | _] = exit_infos, %Core{} = state) when is_integer(encoded_utxo_pos) do
-    exit_infos |> Enum.map(&Utxo.Position.decode!/1) |> exit_utxos(state)
-  end
+  def get_exiting_utxos([encoded_utxo_pos | _] = exit_infos, %Core{}) when is_integer(encoded_utxo_pos),
+    do: Enum.map(exit_infos, &Utxo.Position.decode!/1)
 
   # list of IFE input/output piggybacked events
-  def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do
+  def get_exiting_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{}) do
     _ = Logger.info("Recognized exits from IFE starts #{inspect(in_flight_txs)}")
 
     in_flight_txs
@@ -280,38 +274,50 @@ defmodule OMG.State.Core do
       {:ok, tx} = Transaction.decode(tx_bytes)
       Transaction.get_inputs(tx)
     end)
-    |> exit_utxos(state)
   end
 
   # list of IFE input piggybacked events (they're ignored)
-  def exit_utxos([%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggybacks, state) do
+  def get_exiting_utxos([%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggybacks, %Core{}) do
     _ = Logger.info("Ignoring input piggybacks #{inspect(piggybacks)}")
-    {:ok, {[], {[], []}}, state}
+    []
   end
 
   # list of IFE output piggybacked events. This is used by the child chain only. `OMG.Watcher.ExitProcessor` figures out
   # the utxo positions to exit on its own
-  def exit_utxos([%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggybacks, state) do
+  def get_exiting_utxos([%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggybacks, %Core{} = state) do
     _ = Logger.info("Recognized exits from piggybacks #{inspect(piggybacks)}")
 
     piggybacks
     |> Enum.map(&find_utxo_matching_piggyback(&1, state))
-    |> Enum.filter(& &1)
+    |> Enum.filter(fn utxo -> utxo != nil end)
     |> Enum.map(fn {position, _} -> position end)
-    |> exit_utxos(state)
   end
 
   # list of utxo positions (decoded)
-  def exit_utxos([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{utxos: utxos} = state) do
+  def get_exiting_utxos([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{}), do: exiting_utxos
+
+  @doc """
+  Spends exited utxos.
+  """
+  @spec exit_utxos(exiting_utxos :: list(Utxo.Position.t()), state :: t(), utxos_from_db :: utxos()) ::
+          {:ok, {[db_update], validities_t()}, new_state :: t()}
+  def exit_utxos([], %Core{} = state, _db_utxos), do: {:ok, {[], {[], []}}, state}
+
+  def exit_utxos(
+        [Utxo.position(_, _, _) | _] = exiting_utxos,
+        %Core{utxos: utxos, recently_spent: recently_spent} = state,
+        db_utxos
+      ) do
     _ = Logger.info("Recognized exits #{inspect(exiting_utxos)}")
 
-    # FIXME: is split important? Can be done in shell
-    # Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
-    {valid, _invalid} = validities = {exiting_utxos, []}
+    # NOTE: extending state with db's utxos once, to not merge it on every `utxo_exists?` call
+    extended_state = with_utxos(state, db_utxos)
+    {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, extended_state, %{}))
 
     new_utxos = UtxoSet.apply_effects(utxos, valid, %{})
+    new_spends = Enum.concat(recently_spent, valid)
     db_updates = UtxoSet.db_updates(valid, %{})
-    new_state = %{state | utxos: new_utxos}
+    new_state = %{state | utxos: new_utxos, recently_spent: new_spends}
 
     {:ok, {db_updates, validities}, new_state}
   end
