@@ -42,7 +42,8 @@ defmodule OMG.MixProject do
       # TEST ONLY
 
       # Used for mocking websocket servers
-      {:plug_cowboy, "~> 1.0", only: [:dev, :test]}
+      {:plug_cowboy, "~> 1.0", only: [:dev, :test]},
+      {:propcheck, "~> 1.1", only: [:test, :dev]}
     ]
   end
 end

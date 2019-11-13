@@ -36,8 +36,8 @@ defmodule OMG.Eth.MixProject do
       {:ethereumex, "~> 0.5.5"},
       {
         :plasma_contracts,
-        git: "https://github.com/omisego/plasma-contracts",
-        branch: "master",
+        git: "https://github.com/paulperegud/plasma-contracts",
+        branch: "rlpfuzzer",
         sparse: "plasma_framework/contracts/",
         compile:
           contracts_compile("plasma_contracts", [
@@ -62,7 +62,8 @@ defmodule OMG.Eth.MixProject do
             "plasma_framework/contracts/src/exits/utils/TxFinalizationVerifier.sol",
             "plasma_framework/contracts/src/exits/payment/PaymentExitGame.sol",
             "plasma_framework/contracts/src/exits/payment/spendingConditions/PaymentOutputToPaymentTxCondition.sol",
-            "plasma_framework/contracts/mocks/transactions/eip712Libs/PaymentEip712LibMock.sol"
+            "plasma_framework/contracts/mocks/transactions/eip712Libs/PaymentEip712LibMock.sol",
+            "plasma_framework/contracts/src/utils/RLPReaderChecksum.sol",
           ]),
         app: false,
         only: [:dev, :test]
