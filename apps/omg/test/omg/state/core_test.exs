@@ -22,7 +22,6 @@ defmodule OMG.State.CoreTest do
 
   alias OMG.Block
   alias OMG.Fees
-  alias OMG.InputPointer
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -50,7 +49,7 @@ defmodule OMG.State.CoreTest do
     |> success?
   end
 
-  describe "Applying transactions on lazy loaded utxo set" do
+  describe "Lazy loaded utxo set" do
     @tag fixtures: [:alice, :state_empty]
     test "transaction input is missing in state", %{alice: alice, state_empty: state} do
       tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
@@ -65,12 +64,7 @@ defmodule OMG.State.CoreTest do
     test "all transaction inputs are merged from db", %{alice: alice, bob: bob, state_empty: state} do
       tx = create_recovered([{1000, 0, 0, alice}, {1000, 1, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
 
-      db_utxos =
-        [
-          {1000, 0, 0, alice, @eth, 5},
-          {1000, 1, 0, alice, @eth, 5}
-        ]
-        |> Enum.into(%{}, &to_utxos/1)
+      db_utxos = to_utxos([{1000, 0, 0, alice, @eth, 5}, {1000, 1, 0, alice, @eth, 5}])
 
       state
       |> Core.with_utxos(db_utxos)
@@ -79,12 +73,10 @@ defmodule OMG.State.CoreTest do
     end
 
     @tag fixtures: [:alice, :bob, :state_empty]
-    test "transaction utxos are mixed in state and db", %{alice: alice, bob: bob, state_empty: state} do
+    test "transaction utxos are mixed in memory and db", %{alice: alice, bob: bob, state_empty: state} do
       tx = create_recovered([{1000, 0, 0, alice}, {1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
 
-      db_utxos =
-        [{1000, 0, 0, alice, @eth, 8}]
-        |> Enum.into(%{}, &to_utxos/1)
+      db_utxos = to_utxos([{1000, 0, 0, alice, @eth, 8}])
 
       state
       |> do_deposit(alice, %{amount: 2, currency: @eth, blknum: 1})
@@ -92,6 +84,97 @@ defmodule OMG.State.CoreTest do
       |> Core.exec(tx, :no_fees_required)
       |> success?()
     end
+
+    @tag fixtures: [:alice, :bob, :state_alice_deposit]
+    test "spending utxo that resist in memory - double spend impossible",
+         %{alice: alice, bob: bob, state_alice_deposit: state} do
+      tx = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+
+      state
+      |> Core.exec(tx, :no_fees_required)
+      |> success?()
+      |> Core.exec(tx, :no_fees_required)
+      |> fail?(:utxo_not_found)
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "spending utxo that resist in db - double spend impossible",
+         %{alice: alice, bob: bob, state_empty: state} do
+      tx = create_recovered([{1000, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+
+      db_utxos = to_utxos([{1000, 0, 0, alice, @eth, 10}])
+
+      state
+      |> Core.with_utxos(db_utxos)
+      |> Core.exec(tx, :no_fees_required)
+      |> success?()
+      # this is important - state is extended before applying tx
+      |> Core.with_utxos(db_utxos)
+      |> Core.exec(tx, :no_fees_required)
+      |> fail?(:utxo_not_found)
+    end
+
+    @tag fixtures: [:state_alice_deposit]
+    test "extending state with same utxos does not change it", %{state_alice_deposit: state} do
+      db_utxos = state.utxos
+
+      state
+      |> Core.with_utxos(db_utxos)
+      |> same?(state)
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "extending state partially", %{alice: alice, bob: bob, state_empty: state} do
+      fst_utxo = to_utxos([{1000, 0, 0, alice, @eth, 6}])
+      snd_utxo = to_utxos([{1000, 5, 0, alice, @eth, 6}])
+
+      tx = create_recovered([{1000, 0, 0, alice}, {1000, 5, 0, alice}], @eth, [{bob, 10}])
+
+      state
+      |> Core.with_utxos(fst_utxo)
+      |> Core.exec(tx, :no_fees_required)
+      |> fail?(:utxo_not_found)
+      |> Core.with_utxos(snd_utxo)
+      |> Core.exec(tx, :no_fees_required)
+      |> success?()
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "recent spends are stored regardless state extension", %{alice: alice, bob: bob, state_empty: state} do
+      init_state = do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
+      tx1 = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}])
+
+      {:ok, _, state1} = Core.exec(init_state, tx1, :no_fees_required)
+
+      assert %Core{recently_spent: [Utxo.position(1, 0, 0)]} = state1
+
+      db_utxos = to_utxos([{1000, 0, 0, bob, @not_eth, 100}])
+      tx2 = create_recovered([{1000, 0, 0, bob}], @not_eth, [{alice, 10}, {bob, 90}])
+
+      {:ok, _, state2} =
+        state1
+        |> Core.with_utxos(db_utxos)
+        |> Core.exec(tx2, :no_fees_required)
+
+      assert %Core{recently_spent: [Utxo.position(1000, 0, 0), Utxo.position(1, 0, 0)]} = state2
+    end
+
+    @tag fixtures: [:alice, :bob, :state_alice_deposit]
+    test "form block drops recent spends", %{alice: alice, bob: bob, state_alice_deposit: state} do
+      tx = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}])
+
+      {:ok, _, state1} =
+        state
+        |> Core.exec(tx, :no_fees_required)
+
+      assert %Core{recently_spent: [Utxo.position(1, 0, 0)]} = state1
+
+      {:ok, _, state2} = form_block_check(state1)
+
+      assert %Core{recently_spent: []} = state2
+    end
+
+    defp to_utxos(utxos) when is_list(utxos), do: Enum.into(utxos, %{}, &to_utxos/1)
 
     defp to_utxos({blknum, txindex, oindex, owner, currency, amount}),
       do: {

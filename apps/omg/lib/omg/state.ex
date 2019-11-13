@@ -25,6 +25,7 @@ defmodule OMG.State do
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
+  alias OMG.State.UtxoSet
   alias OMG.Utxo
 
   use GenServer
