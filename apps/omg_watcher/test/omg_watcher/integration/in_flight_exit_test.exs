@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
+defmodule OMG.Watcher.Integration.InFlightExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
@@ -22,12 +22,12 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
   alias OMG.Eth.RootChain
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.WatcherInformational.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.Event
+  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.Integration.DepositHelper
   alias Support.RootChainHelper
-  alias Support.WatcherInformationalHelper
+  alias Support.WatcherHelper
 
   require Utxo
 
@@ -58,15 +58,15 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
     competing_ife =
       OMG.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 5}])
       |> Transaction.Signed.encode()
-      |> WatcherInformationalHelper.get_in_flight_exit()
+      |> WatcherHelper.get_in_flight_exit()
 
     # Submit tx 1
-    %{"blknum" => blknum} = submitted_tx |> Transaction.Signed.encode() |> WatcherInformationalHelper.submit()
+    %{"blknum" => blknum} = submitted_tx |> Transaction.Signed.encode() |> WatcherHelper.submit()
 
     # Submit another tx spending that tx's output
     OMG.TestHelper.create_signed([{blknum, 0, 1, bob}], @eth, [{alice, 2}, {alice, 3}])
     |> Transaction.Signed.encode()
-    |> WatcherInformationalHelper.submit()
+    |> WatcherHelper.submit()
 
     # now, start the "main" IFE we're going to piggyback on
     {:ok, %{"status" => "0x1"}} = exit_in_flight(submitted_tx, alice)
@@ -105,11 +105,11 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
                # only piggyback_available for tx2 is present, tx1 is included in block and does not spawn that event
                %{"event" => "piggyback_available"}
              ]
-           } = WatcherInformationalHelper.success?("/status.get")
+           } = WatcherHelper.success?("/status.get")
 
     # ask for proofs
     assert %{"in_flight_txbytes" => ^submitted_txbytes} =
-             proof1 = WatcherInformationalHelper.get_input_challenge_data(submitted_txbytes, 1)
+             proof1 = WatcherHelper.get_input_challenge_data(submitted_txbytes, 1)
 
     # challenge piggybacks
     {:ok, %{"status" => "0x1"}} =
@@ -137,7 +137,7 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
              "spending_txbytes" => spending_txbytes,
              "spending_input_index" => spending_input_index,
              "spending_sig" => spending_sig
-           } = WatcherInformationalHelper.get_output_challenge_data(submitted_txbytes, 1)
+           } = WatcherHelper.get_output_challenge_data(submitted_txbytes, 1)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_challenge_eth_height}} =
       RootChainHelper.challenge_in_flight_exit_output_spent(
@@ -159,7 +159,7 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
     DevHelper.wait_for_root_chain_block(last_challenge_eth_height + exit_finality_margin + 1)
 
     assert %{"byzantine_events" => [%{"event" => "non_canonical_ife"}, %{"event" => "piggyback_available"}]} =
-             WatcherInformationalHelper.success?("/status.get")
+             WatcherHelper.success?("/status.get")
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
@@ -170,10 +170,10 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
     tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
 
-    ife1 = tx1 |> Transaction.Signed.encode() |> WatcherInformationalHelper.get_in_flight_exit()
-    ife2 = tx2 |> Transaction.Signed.encode() |> WatcherInformationalHelper.get_in_flight_exit()
+    ife1 = tx1 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
+    ife2 = tx2 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
 
-    assert %{"blknum" => blknum} = tx1 |> Transaction.Signed.encode() |> WatcherInformationalHelper.submit()
+    assert %{"blknum" => blknum} = tx1 |> Transaction.Signed.encode() |> WatcherHelper.submit()
 
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
@@ -199,17 +199,17 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
                %{"event" => "non_canonical_ife"},
                %{"event" => "piggyback_available"}
              ]
-           } = WatcherInformationalHelper.success?("/status.get")
+           } = WatcherHelper.success?("/status.get")
 
     # Check if IFE is recognized as IFE by watcher (kept separate from the above for readability)
-    assert %{"in_flight_exits" => [%{}, %{}]} = WatcherInformationalHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [%{}, %{}]} = WatcherHelper.success?("/status.get")
 
     ###
     # CANONICITY GAME
     ###
 
     assert %{"competing_tx_pos" => id, "competing_proof" => proof} =
-             get_competitor_response = WatcherInformationalHelper.get_in_flight_exit_competitors(raw_tx2_bytes)
+             get_competitor_response = WatcherHelper.get_in_flight_exit_competitors(raw_tx2_bytes)
 
     assert id > 0
     assert proof != ""
@@ -232,7 +232,7 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
     DevHelper.wait_for_root_chain_block(challenge_eth_height + exit_finality_margin + 1)
 
     # vanishing of `non_canonical_ife` event
-    assert %{"byzantine_events" => [%{"event" => "piggyback_available"}]} = WatcherInformationalHelper.success?("/status.get")
+    assert %{"byzantine_events" => [%{"event" => "piggyback_available"}]} = WatcherHelper.success?("/status.get")
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
@@ -243,14 +243,14 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
     tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
 
-    ife1 = tx1 |> Transaction.Signed.encode() |> WatcherInformationalHelper.get_in_flight_exit()
-    ife2 = tx2 |> Transaction.Signed.encode() |> WatcherInformationalHelper.get_in_flight_exit()
+    ife1 = tx1 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
+    ife2 = tx2 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
 
     assert %{
              "blknum" => blknum,
              "txindex" => 0,
              "txhash" => <<_::256>>
-           } = tx1 |> Transaction.Signed.encode() |> WatcherInformationalHelper.submit()
+           } = tx1 |> Transaction.Signed.encode() |> WatcherHelper.submit()
 
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
@@ -302,10 +302,10 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
                %{"event" => "invalid_ife_challenge"},
                %{"event" => "piggyback_available"}
              ]
-           } = WatcherInformationalHelper.success?("/status.get")
+           } = WatcherHelper.success?("/status.get")
 
     # now included IFE transaction tx1 is challenged and non-canonical, let's respond
-    get_prove_canonical_response = WatcherInformationalHelper.get_prove_canonical(raw_tx1_bytes)
+    get_prove_canonical_response = WatcherHelper.get_prove_canonical(raw_tx1_bytes)
 
     {:ok, %{"status" => "0x1", "blockNumber" => response_eth_height}} =
       RootChainHelper.respond_to_non_canonical_challenge(
@@ -320,7 +320,7 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
 
     # dissapearing of `invalid_ife_challenge` event
     assert %{"byzantine_events" => [%{"event" => "non_canonical_ife"}, %{"event" => "piggyback_available"}]} =
-             WatcherInformationalHelper.success?("/status.get")
+             WatcherHelper.success?("/status.get")
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
@@ -329,18 +329,18 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
     DevHelper.import_unlock_fund(bob)
 
     tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
-    ife1 = tx |> Transaction.Signed.encode() |> WatcherInformationalHelper.get_in_flight_exit()
+    ife1 = tx |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
 
-    %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> WatcherInformationalHelper.submit()
+    %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> WatcherHelper.submit()
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
     _ = exit_in_flight_and_wait_for_ife(ife1, alice)
 
-    assert %{"in_flight_exits" => [%{}]} = WatcherInformationalHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [%{}]} = WatcherHelper.success?("/status.get")
 
     _ = piggyback_and_process_exits(tx, 1, :output, bob)
 
-    assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherInformationalHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherHelper.success?("/status.get")
   end
 
   # NOTE: if https://github.com/omisego/elixir-omg/issues/994 is taken care of, this behavior will change, see comments
@@ -354,7 +354,7 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
     _ = exit_in_flight_and_wait_for_ife(tx, alice)
     piggyback_and_process_exits(tx, 1, :output, bob)
 
-    assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherInformationalHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherHelper.success?("/status.get")
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
@@ -363,26 +363,26 @@ defmodule OMG.WatcherInformational.Integration.InFlightExitTest do
     DevHelper.import_unlock_fund(bob)
 
     tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
-    ife1 = tx |> Transaction.Signed.encode() |> WatcherInformationalHelper.get_in_flight_exit()
+    ife1 = tx |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
 
-    %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> WatcherInformationalHelper.submit()
+    %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> WatcherHelper.submit()
     invalidating_tx = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 5}])
-    %{"blknum" => invalidating_blknum} = WatcherInformationalHelper.submit(invalidating_tx)
+    %{"blknum" => invalidating_blknum} = WatcherHelper.submit(invalidating_tx)
     IntegrationTest.wait_for_block_fetch(invalidating_blknum, @timeout)
 
     _ = exit_in_flight_and_wait_for_ife(ife1, alice)
 
     # checking if both machines and humans learn about the byzantine condition
-    assert WatcherInformationalHelper.capture_log(fn ->
+    assert WatcherHelper.capture_log(fn ->
              _ = piggyback_and_process_exits(tx, 0, :output, alice)
            end) =~ "Invalid in-flight exit finalization"
 
-    assert %{"in_flight_exits" => [_], "byzantine_events" => byzantine_events} = WatcherInformationalHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [_], "byzantine_events" => byzantine_events} = WatcherHelper.success?("/status.get")
     assert [%{"event" => "invalid_piggyback"}] = Enum.filter(byzantine_events, &(&1["event"] != "piggyback_available"))
   end
 
   defp exit_in_flight(%Transaction.Signed{} = tx, exiting_user) do
-    get_in_flight_exit_response = tx |> Transaction.Signed.encode() |> WatcherInformationalHelper.get_in_flight_exit()
+    get_in_flight_exit_response = tx |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
     exit_in_flight(get_in_flight_exit_response, exiting_user)
   end
 

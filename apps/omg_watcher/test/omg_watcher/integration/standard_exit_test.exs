@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInformational.Integration.StandardExitTest do
+defmodule OMG.Watcher.Integration.StandardExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
@@ -21,10 +21,10 @@ defmodule OMG.WatcherInformational.Integration.StandardExitTest do
   use Plug.Test
 
   alias OMG.Utxo
-  alias OMG.WatcherInformational.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
-  alias Support.WatcherInformationalHelper
+  alias Support.WatcherHelper
 
   require Utxo
 
@@ -41,7 +41,7 @@ defmodule OMG.WatcherInformational.Integration.StandardExitTest do
     stable_alice_deposits: {deposit_blknum, _}
   } do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => tx_blknum} = WatcherInformationalHelper.submit(tx)
+    %{"blknum" => tx_blknum} = WatcherHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -49,7 +49,7 @@ defmodule OMG.WatcherInformational.Integration.StandardExitTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = WatcherInformationalHelper.get_exit_data(tx_blknum, 0, 0)
+    } = WatcherHelper.get_exit_data(tx_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1"}} =
       DevHelper.transact_sync!(RootChainHelper.start_exit(utxo_pos, txbytes, proof, alice.addr))

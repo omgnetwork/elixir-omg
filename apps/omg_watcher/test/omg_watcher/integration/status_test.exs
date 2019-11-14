@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInformational.Integration.StatusTest do
+defmodule OMG.Watcher.Integration.StatusTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  alias Support.WatcherInformationalHelper
+  alias Support.WatcherHelper
 
   @moduletag :integration
   @moduletag :watcher
@@ -34,7 +34,7 @@ defmodule OMG.WatcherInformational.Integration.StatusTest do
              "in_flight_exits" => [],
              "contract_addr" => contract_addr,
              "services_synced_heights" => services_synced_heights
-           } = WatcherInformationalHelper.success?("status.get")
+           } = WatcherHelper.success?("status.get")
 
     assert is_integer(eth_height_now)
     assert is_integer(eth_timestamp_now)

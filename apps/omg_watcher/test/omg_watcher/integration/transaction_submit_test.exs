@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInformational.Integration.TransactionSubmitTest do
+defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   @moduledoc """
   Tests thin-client scenario:
   Assuming funded address
@@ -33,8 +33,8 @@ defmodule OMG.WatcherInformational.Integration.TransactionSubmitTest do
   alias OMG.DevCrypto
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.WatcherInformational.Integration.TestHelper, as: IntegrationTest
-  alias Support.WatcherInformationalHelper
+  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias Support.WatcherHelper
 
   @moduletag :integration
   @moduletag :watcher
@@ -69,7 +69,7 @@ defmodule OMG.WatcherInformational.Integration.TransactionSubmitTest do
           "typed_data" => typed_data
         }
       ]
-    } = WatcherInformationalHelper.success?("transaction.create", order)
+    } = WatcherHelper.success?("transaction.create", order)
 
     signature =
       sign_hash
@@ -83,7 +83,7 @@ defmodule OMG.WatcherInformational.Integration.TransactionSubmitTest do
     assert %{
              "blknum" => tx_blknum,
              "txindex" => tx_index
-           } = WatcherInformationalHelper.success?("transaction.submit_typed", typed_data_signed)
+           } = WatcherHelper.success?("transaction.submit_typed", typed_data_signed)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -93,6 +93,6 @@ defmodule OMG.WatcherInformational.Integration.TransactionSubmitTest do
                "txindex" => ^tx_index,
                "amount" => ^alice_to_bob
              }
-           ] = WatcherInformationalHelper.get_utxos(bob.addr)
+           ] = WatcherHelper.get_utxos(bob.addr)
   end
 end

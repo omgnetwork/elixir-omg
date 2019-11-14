@@ -31,6 +31,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher.Event
+  alias OMG.Watcher.Integration.BadChildChainServer
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
@@ -118,7 +119,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     block_with_incorrect_hash = %{OMG.Block.hashed_txs_at([], 1000) | hash: different_hash}
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
+    BadChildChainServer.prepare_route_to_inject_bad_block(
       context,
       block_with_incorrect_hash,
       different_hash
@@ -141,7 +142,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     block_with_incorrect_transaction = OMG.Block.hashed_txs_at([recovered], 1000)
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
+    BadChildChainServer.prepare_route_to_inject_bad_block(
       context,
       block_with_incorrect_transaction
     )
@@ -169,7 +170,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+    BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 

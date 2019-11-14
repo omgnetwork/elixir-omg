@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInformational.Integration.InvalidExitTest do
+defmodule OMG.Watcher.Integration.InvalidExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
@@ -21,12 +21,12 @@ defmodule OMG.WatcherInformational.Integration.InvalidExitTest do
 
   alias OMG.Eth
   alias OMG.Utxo
-  alias OMG.WatcherInformational
-  alias OMG.WatcherInformational.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.Integration.BadChildChainServer
+  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.Event
   alias Support.DevHelper
   alias Support.RootChainHelper
-  alias Support.WatcherInformationalHelper
+  alias Support.WatcherHelper
 
   require Utxo
 
@@ -45,18 +45,18 @@ defmodule OMG.WatcherInformational.Integration.InvalidExitTest do
     stable_alice_deposits: {deposit_blknum, _}
   } do
     %{"txbytes" => deposit_txbytes, "proof" => deposit_proof, "utxo_pos" => deposit_utxo_pos} =
-      WatcherInformationalHelper.get_exit_data(deposit_blknum, 0, 0)
+      WatcherHelper.get_exit_data(deposit_blknum, 0, 0)
 
     %{"blknum" => first_tx_blknum} =
-      OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}]) |> WatcherInformationalHelper.submit()
+      OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}]) |> WatcherHelper.submit()
 
     %{"blknum" => second_tx_blknum} =
-      OMG.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 10}]) |> WatcherInformationalHelper.submit()
+      OMG.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 10}]) |> WatcherHelper.submit()
 
     IntegrationTest.wait_for_block_fetch(second_tx_blknum, @timeout)
 
     %{"txbytes" => txbytes, "proof" => proof, "utxo_pos" => tx_utxo_pos} =
-      WatcherInformationalHelper.get_exit_data(first_tx_blknum, 0, 0)
+      WatcherHelper.get_exit_data(first_tx_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1"}} =
       RootChainHelper.start_exit(tx_utxo_pos, txbytes, proof, alice.addr)
@@ -69,7 +69,7 @@ defmodule OMG.WatcherInformational.Integration.InvalidExitTest do
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name, %Event.InvalidExit{}.name], @timeout)
 
     # after the notification has been received, a challenged is composed and sent
-    challenge = WatcherInformationalHelper.get_exit_challenge(first_tx_blknum, 0, 0)
+    challenge = WatcherHelper.get_exit_challenge(first_tx_blknum, 0, 0)
 
     assert {:ok, %{"status" => "0x1"}} =
              RootChainHelper.challenge_exit(
@@ -83,7 +83,7 @@ defmodule OMG.WatcherInformational.Integration.InvalidExitTest do
              |> DevHelper.transact_sync!()
 
     # challenge standard exits from deposits
-    challenge_exit_deposit = WatcherInformationalHelper.get_exit_challenge(deposit_blknum, 0, 0)
+    challenge_exit_deposit = WatcherHelper.get_exit_challenge(deposit_blknum, 0, 0)
 
     assert {:ok, %{"status" => "0x1"}} =
              RootChainHelper.challenge_exit(
@@ -103,7 +103,7 @@ defmodule OMG.WatcherInformational.Integration.InvalidExitTest do
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => exit_blknum} = WatcherInformationalHelper.submit(tx)
+    %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
 
     # Here we're preparing invalid block
     bad_block_number = 2_000
@@ -113,7 +113,7 @@ defmodule OMG.WatcherInformational.Integration.InvalidExitTest do
       bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    WatcherInformational.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+    BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 
@@ -121,7 +121,7 @@ defmodule OMG.WatcherInformational.Integration.InvalidExitTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = WatcherInformationalHelper.get_exit_data(exit_blknum, 0, 0)
+    } = WatcherHelper.get_exit_data(exit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
       RootChainHelper.start_exit(
@@ -146,10 +146,10 @@ defmodule OMG.WatcherInformational.Integration.InvalidExitTest do
     stable_alice_deposits: {deposit_blknum, _}
   } do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => deposit_blknum} = WatcherInformationalHelper.submit(tx)
+    %{"blknum" => deposit_blknum} = WatcherHelper.submit(tx)
 
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => tx_blknum, "txhash" => _tx_hash} = WatcherInformationalHelper.submit(tx)
+    %{"blknum" => tx_blknum, "txhash" => _tx_hash} = WatcherHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -166,7 +166,7 @@ defmodule OMG.WatcherInformational.Integration.InvalidExitTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = WatcherInformationalHelper.get_exit_data(deposit_blknum, 0, 0)
+    } = WatcherHelper.get_exit_data(deposit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
       RootChainHelper.start_exit(

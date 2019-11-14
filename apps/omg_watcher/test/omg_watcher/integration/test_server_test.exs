@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInformational.Integration.TestServerTest do
+defmodule OMG.Watcher.Integration.TestServerTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.WatcherInformational.HttpRPC.Client
-  alias OMG.WatcherInformational.Integration.TestServer
+  alias OMG.Watcher.HttpRPC.Client
+  alias OMG.Watcher.Integration.TestServer
 
   @expected_block_hash <<0::256>>
 
