@@ -27,8 +27,6 @@ defmodule OMG.WatcherSecurity.Fixtures do
   alias FakeServer.HTTP.Server
   alias Support.DevHelper
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
-
   deffixture mix_based_child_chain(contract, fee_file) do
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
