@@ -64,9 +64,10 @@ list:
 
 all: clean build-child_chain-prod build-watcher-prod
 
-WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
-WATCHER_INFORMATIONAL_IMAGE_NAME      ?= "omisego/watcher_informational:latest"
-CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
+WATCHER_IMAGE_NAME               ?= "omisego/watcher:latest"
+WATCHER_INFORMATIONAL_IMAGE_NAME ?= "omisego/watcher_informational:latest"
+CHILD_CHAIN_IMAGE_NAME           ?= "omisego/child_chain:latest"
+
 IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20191024"
 IMAGE_BUILD_DIR ?= $(PWD)
 
