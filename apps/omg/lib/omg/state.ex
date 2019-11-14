@@ -86,15 +86,10 @@ defmodule OMG.State do
   ### Server
 
   @doc """
-  Start processing state using the database entries
+  Initializes the state. UTXO set is not loaded now.
   """
   def init(:ok) do
-    # Get data essential for the State and Blockgetter.
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
-    {:ok, [height_query_result], {:continue, :setup}}
-  end
-
-  def handle_continue(:setup, [height_query_result]) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     {:ok, state} =
@@ -114,7 +109,7 @@ defmodule OMG.State do
           other
       end
 
-    {:noreply, state}
+    {:ok, state}
   end
 
   def handle_info(:send_metrics, state) do

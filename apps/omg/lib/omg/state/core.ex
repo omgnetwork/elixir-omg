@@ -99,7 +99,7 @@ defmodule OMG.State.Core do
         }
 
   @doc """
-  Recovers the ledger's state from data delivered by the `OMG.DB`
+  Initializes the state from the values stored in `OMG.DB`
   """
   @spec extract_initial_state(
           height_query_result :: non_neg_integer() | :not_found,
@@ -179,6 +179,7 @@ defmodule OMG.State.Core do
    - generates triggers for events
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
+   - clears `recently_spent` list
   """
   @spec form_block(pos_integer(), pos_integer() | nil, state :: t()) ::
           {:ok, {Block.t(), [tx_event], [db_update]}, new_state :: t()}
