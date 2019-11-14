@@ -64,7 +64,7 @@ defmodule OMG.State.CoreTest do
     test "all transaction inputs are merged from db", %{alice: alice, bob: bob, state_empty: state} do
       tx = create_recovered([{1000, 0, 0, alice}, {1000, 1, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
 
-      db_utxos = to_utxos([{1000, 0, 0, alice, @eth, 5}, {1000, 1, 0, alice, @eth, 5}])
+      db_utxos = make_utxos([{1000, 0, 0, alice, @eth, 5}, {1000, 1, 0, alice, @eth, 5}])
 
       state
       |> Core.with_utxos(db_utxos)
@@ -76,7 +76,7 @@ defmodule OMG.State.CoreTest do
     test "transaction utxos are mixed in memory and db", %{alice: alice, bob: bob, state_empty: state} do
       tx = create_recovered([{1000, 0, 0, alice}, {1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
 
-      db_utxos = to_utxos([{1000, 0, 0, alice, @eth, 8}])
+      db_utxos = make_utxos([{1000, 0, 0, alice, @eth, 8}])
 
       state
       |> do_deposit(alice, %{amount: 2, currency: @eth, blknum: 1})
@@ -102,7 +102,7 @@ defmodule OMG.State.CoreTest do
          %{alice: alice, bob: bob, state_empty: state} do
       tx = create_recovered([{1000, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
 
-      db_utxos = to_utxos([{1000, 0, 0, alice, @eth, 10}])
+      db_utxos = make_utxos([{1000, 0, 0, alice, @eth, 10}])
 
       state
       |> Core.with_utxos(db_utxos)
@@ -125,8 +125,8 @@ defmodule OMG.State.CoreTest do
 
     @tag fixtures: [:alice, :bob, :state_empty]
     test "extending state partially", %{alice: alice, bob: bob, state_empty: state} do
-      fst_utxo = to_utxos([{1000, 0, 0, alice, @eth, 6}])
-      snd_utxo = to_utxos([{1000, 5, 0, alice, @eth, 6}])
+      fst_utxo = make_utxos([{1000, 0, 0, alice, @eth, 6}])
+      snd_utxo = make_utxos([{1000, 5, 0, alice, @eth, 6}])
 
       tx = create_recovered([{1000, 0, 0, alice}, {1000, 5, 0, alice}], @eth, [{bob, 10}])
 
@@ -148,7 +148,7 @@ defmodule OMG.State.CoreTest do
 
       assert %Core{recently_spent: [Utxo.position(1, 0, 0)]} = state1
 
-      db_utxos = to_utxos([{1000, 0, 0, bob, @not_eth, 100}])
+      db_utxos = make_utxos([{1000, 0, 0, bob, @not_eth, 100}])
       tx2 = create_recovered([{1000, 0, 0, bob}], @not_eth, [{alice, 10}, {bob, 90}])
 
       {:ok, _, state2} =
@@ -173,14 +173,6 @@ defmodule OMG.State.CoreTest do
 
       assert %Core{recently_spent: []} = state2
     end
-
-    defp to_utxos(utxos) when is_list(utxos), do: Enum.into(utxos, %{}, &to_utxos/1)
-
-    defp to_utxos({blknum, txindex, oindex, owner, currency, amount}),
-      do: {
-        Utxo.position(blknum, txindex, oindex),
-        %Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner.addr}}
-      }
   end
 
   describe "Transaction amounts and fees" do
@@ -703,46 +695,41 @@ defmodule OMG.State.CoreTest do
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @blknum1}]}, _} = form_block_check(state)
   end
 
-  @tag fixtures: [:alice, :state_alice_deposit]
-  test "exits utxos given in various forms", %{alice: alice, state_alice_deposit: state} do
-    # this test checks whether all ways of calling `exit_utxos/1` work on par
+  @tag fixtures: [:alice, :state_alice_deposit, :state_empty]
+  test "given exit infos in various forms translates to utxo positions",
+       %{alice: alice, state_alice_deposit: state, state_empty: state_empty} do
+    # this test checks whether all ways of calling `get_exiting_utxos/2` translates to given exiting utxo positions
     # this is _very important_ to support all clients of that functions, whose inputs come in different flavors
-    %Transaction.Recovered{tx_hash: tx_hash} = tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
-    empty_db_utxos = %{}
-
-    state =
-      state
-      |> Core.exec(tx, :no_fees_required)
-      |> success?
-
     utxo_pos_exits = [Utxo.position(@blknum1, 0, 0), Utxo.position(@blknum1, 0, 1)]
 
-    exit_utxos_response_reference = utxo_pos_exits |> Core.exit_utxos(state, empty_db_utxos)
-
-    assert exit_utxos_response_reference ==
+    assert utxo_pos_exits ==
              utxo_pos_exits
              |> Enum.map(&%{call_data: %{utxo_pos: Utxo.Position.encode(&1)}})
-             |> Core.get_exiting_utxos(state)
-             |> Core.exit_utxos(state, empty_db_utxos)
+             |> Core.get_exiting_utxos(state_empty)
 
-    assert exit_utxos_response_reference ==
+    assert utxo_pos_exits ==
              utxo_pos_exits
              |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)})
-             |> Core.get_exiting_utxos(state)
-             |> Core.exit_utxos(state, empty_db_utxos)
+             |> Core.get_exiting_utxos(state_empty)
 
-    assert exit_utxos_response_reference ==
+    assert utxo_pos_exits ==
              utxo_pos_exits
              |> Enum.map(&Utxo.Position.encode/1)
-             |> Core.get_exiting_utxos(state)
-             |> Core.exit_utxos(state, empty_db_utxos)
+             |> Core.get_exiting_utxos(state_empty)
+
+    %Transaction.Recovered{tx_hash: tx_hash} = tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
     piggybacks = [
       %{tx_hash: tx_hash, output_index: 0, omg_data: %{piggyback_type: :output}},
       %{tx_hash: tx_hash, output_index: 1, omg_data: %{piggyback_type: :output}}
     ]
 
-    assert exit_utxos_response_reference == piggybacks |> Core.get_exiting_utxos(state) |> Core.exit_utxos(state, %{})
+    state =
+      state
+      |> Core.exec(tx, :no_fees_required)
+      |> success?
+
+    assert utxo_pos_exits == Core.get_exiting_utxos(piggybacks, state)
   end
 
   @tag fixtures: [:alice, :state_alice_deposit]
@@ -771,6 +758,31 @@ defmodule OMG.State.CoreTest do
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :no_fees_required)
     |> fail?(:utxo_not_found)
     |> same?(state_after_exit)
+    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{alice, 3}]), :no_fees_required)
+    |> fail?(:utxo_not_found)
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "spends utxo from db when exiting", %{alice: alice, state_empty: state} do
+    amount_1 = 7
+    amount_2 = 3
+
+    db_utxos = make_utxos([{@blknum1, 0, 0, alice, @eth, amount_1}, {@blknum1, 0, 1, alice, @eth, amount_2}])
+
+    utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
+    utxo_pos_exit_2 = Utxo.position(@blknum1, 0, 1)
+    utxo_pos_exits = [utxo_pos_exit_1, utxo_pos_exit_2]
+
+    assert {:ok, {[_ | _], {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}}, state_after_exit} =
+             Core.exit_utxos(utxo_pos_exits, state, db_utxos)
+
+    # Note: `Core.exit_utxos` call does not delete utxos from db, so they will be fetched until db update
+    extended_state = Core.with_utxos(state_after_exit, db_utxos)
+
+    extended_state
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :no_fees_required)
+    |> fail?(:utxo_not_found)
+    |> same?(extended_state)
     |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{alice, 3}]), :no_fees_required)
     |> fail?(:utxo_not_found)
   end
@@ -878,6 +890,20 @@ defmodule OMG.State.CoreTest do
       |> success?
 
     assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state, empty_db_utxos)
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "tells if utxo exists in db-extended state", %{alice: alice, state_empty: state} do
+    db_utxos = make_utxos([{1, 0, 0, alice, @eth, 10}])
+    assert Core.utxo_exists?(Utxo.position(1, 0, 0), state, db_utxos)
+
+    state =
+      state
+      |> Core.with_utxos(db_utxos)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), :no_fees_required)
+      |> success?
+
+    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state, db_utxos)
   end
 
   @tag fixtures: [:state_empty]
@@ -1032,4 +1058,12 @@ defmodule OMG.State.CoreTest do
 
     result
   end
+
+  defp make_utxos(utxos) when is_list(utxos), do: Enum.into(utxos, %{}, &to_utxos/1)
+
+  defp to_utxos({blknum, txindex, oindex, owner, currency, amount}),
+    do: {
+      Utxo.position(blknum, txindex, oindex),
+      %Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner.addr}}
+    }
 end
