@@ -68,9 +68,9 @@ defmodule OMG.Watcher.Integration.TestHelper do
   end
 
   def process_exits(vault_id, token, user) do
-    exit_period_ms = Application.fetch_env!(:omg_eth, :exit_period_seconds) * 1000
+    min_exit_period_ms = Application.fetch_env!(:omg_eth, :min_exit_period_seconds) * 1000
     # enough to wait out the exit period on the contract
-    Process.sleep(2 * exit_period_ms)
+    Process.sleep(2 * min_exit_period_ms)
 
     {:ok, %{"status" => "0x1", "blockNumber" => process_eth_height, "logs" => logs}} =
       RootChainHelper.process_exits(vault_id, token, 0, 1, user.addr) |> Support.DevHelper.transact_sync!()

@@ -19,7 +19,6 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   # TODO REMOVE childchain fixtures in watcher
   use OMG.ChildChain.Integration.Fixtures
   use Plug.Test
-  use Phoenix.ChannelTest
 
   alias OMG.Utxo
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest

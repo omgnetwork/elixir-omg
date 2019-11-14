@@ -16,14 +16,18 @@ services:
       retries: 5
 
   plasma-contracts:
-    image: omisegoimages/elixir-omg-tester-plasma-deployer:dev-247d0e3
+    image: omisegoimages/elixir-omg-tester-plasma-deployer:stable-20191105
     command:
       - /bin/sh
       - -c
       - |
           apk add --update curl
           cd /home/node/plasma-contracts/plasma_framework
-          npx truffle migrate --network remote
+          # Fix block gas limit issue by retrying truffle migration up to 5 times
+          for i in 1 2 3 4 5; do \
+            echo 'Running truffle migration attempt #$${i}'
+            npx truffle migrate --network remote command && break; \
+          done
           cd build
           echo '{"contracts":' > db.json && cat outputs.json >> db.json && echo '}' >> db.json
           npx json-server -w db.json -p 8000 -H 0.0.0.0
@@ -44,9 +48,9 @@ services:
     restart: always
     healthcheck:
       test: curl plasma-contracts:8000/contracts
-      interval: 80s
+      interval: 60s
       timeout: 15s
-      retries: 120
+      retries: 10
       start_period: 5m
 
   geth:
@@ -89,7 +93,6 @@ services:
     image: omisego/child_chain:latest
     command: "full_local"
     environment:
-      - EXIT_PERIOD_SECONDS=86400
       - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546

@@ -17,6 +17,9 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   use Distillery.Releases.Config.Provider
   require Logger
 
+  alias OMG.Eth
+  alias OMG.Eth.Encoding
+
   @app :omg_eth
   @error "Set ETHEREUM_NETWORK to RINKEBY or LOCALCHAIN, *_TXHASH_CONTRACT, *_AUTHORITY_ADDRESS and *_CONTRACT_ADDRESS_* environment variables or CONTRACT_EXCHANGER_URL."
 
@@ -31,6 +34,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
+    _ = Application.ensure_all_started(:ethereumex)
     exchanger = get_env("CONTRACT_EXCHANGER_URL")
     via_env = get_env("ETHEREUM_NETWORK")
 
@@ -60,8 +64,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           plasma_framework_tx_hash: txhash_contract
         } = Jason.decode!(body, keys: :atoms!)
 
-        exit_period_seconds =
-          validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
+        min_exit_period_seconds = get_min_exit_period(plasma_framework)
 
         contract_addresses = %{
           plasma_framework: plasma_framework,
@@ -70,7 +73,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           payment_exit_game: payment_exit_game
         }
 
-        update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
+        update_configuration(txhash_contract, authority_address, contract_addresses, min_exit_period_seconds)
 
       {_, via_env} when is_binary(via_env) ->
         :ok = apply_static_settings(via_env)
@@ -107,26 +110,31 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       payment_exit_game: env_contract_address_payment_exit_game
     }
 
-    exit_period_seconds =
-      validate_integer(get_env("EXIT_PERIOD_SECONDS"), Application.get_env(@app, :exit_period_seconds))
+    min_exit_period_seconds = get_min_exit_period(env_contract_address_plasma_framework)
 
-    update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
+    update_configuration(txhash_contract, authority_address, contract_addresses, min_exit_period_seconds)
   end
 
-  defp update_configuration(txhash_contract, authority_address, contract_addresses, exit_period_seconds)
+  defp update_configuration(txhash_contract, authority_address, contract_addresses, min_exit_period_seconds)
        when is_binary(txhash_contract) and
-              is_binary(authority_address) and is_map(contract_addresses) and is_integer(exit_period_seconds) do
+              is_binary(authority_address) and is_map(contract_addresses) and is_integer(min_exit_period_seconds) do
     contract_addresses = Enum.into(contract_addresses, %{}, fn {name, addr} -> {name, String.downcase(addr)} end)
     :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
     :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
     :ok = Application.put_env(@app, :contract_addr, contract_addresses, persistent: true)
-    :ok = Application.put_env(@app, :exit_period_seconds, exit_period_seconds)
+    :ok = Application.put_env(@app, :min_exit_period_seconds, min_exit_period_seconds)
   end
 
   defp update_configuration(_, _, _, _), do: exit(@error)
 
-  defp get_env(key), do: System.get_env(key)
+  defp get_min_exit_period(nil), do: exit(@error)
 
-  defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
-  defp validate_integer(_, default), do: default
+  defp get_min_exit_period(plasma_framework_contract) do
+    {:ok, min_exit_period} =
+      Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "minExitPeriod()", [], [{:uint, 256}])
+
+    min_exit_period
+  end
+
+  defp get_env(key), do: System.get_env(key)
 end

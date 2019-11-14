@@ -86,8 +86,8 @@ release :watcher_informational do
 
   set(
     config_providers: [
-      {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.WatcherRPC.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
@@ -130,8 +130,8 @@ release :child_chain do
 
   set(
     config_providers: [
-      {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.ChildChainRPC.ReleaseTasks.SetEndpoint, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.ChildChainRPC.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
