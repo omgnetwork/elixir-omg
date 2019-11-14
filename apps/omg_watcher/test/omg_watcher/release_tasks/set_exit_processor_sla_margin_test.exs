@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherSecurity.ReleaseTasks.SetExitProcessorSLAMarginTest do
+defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMarginTest do
   use ExUnit.Case, async: false
 
-  alias OMG.WatcherSecurity.ReleaseTasks.SetExitProcessorSLAMargin
-  @app :omg_watcher_security
+  alias OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin
+  @app :omg_watcher
   @configuration_old Application.get_env(@app, :exit_processor_sla_margin)
 
   setup do

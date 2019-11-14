@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExit do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.WatcherSecurity.API
+  alias OMG.Watcher.API
 
   @doc """
   For a given transaction provided in params,

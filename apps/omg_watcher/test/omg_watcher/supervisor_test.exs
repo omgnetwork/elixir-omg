@@ -21,7 +21,7 @@ defmodule OMG.Watcher.SupervisorTest do
 
   alias OMG.RootChainCoordinator.Core
 
-  @setup OMG.WatcherSecurity.CoordinatorSetup.coordinator_setup()
+  @setup OMG.Watcher.CoordinatorSetup.coordinator_setup()
   @pid @setup
        |> Map.keys()
        |> Enum.with_index(1)

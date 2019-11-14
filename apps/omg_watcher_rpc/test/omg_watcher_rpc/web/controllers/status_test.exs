@@ -18,6 +18,6 @@ defmodule OMG.WatcherRPC.Web.Controller.StatusTest do
 
   @moduletag :integration
   @moduletag :watcher
-  # a test in OMG.Watcher.Integration.StatusTest fully tests the controller,
+  # a test in OMG.WatcherInformational.Integration.StatusTest fully tests the controller,
   # but it needs whole system setup so it's declared as integration test
 end

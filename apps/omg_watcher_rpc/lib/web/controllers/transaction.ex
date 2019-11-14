@@ -20,9 +20,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   use OMG.WatcherRPC.Web, :controller
 
   alias OMG.State.Transaction
-  alias OMG.Watcher.API.Transaction, as: InformationalApiTransaction
+  alias OMG.WatcherInformational.API.Transaction, as: InfoApiTransaction
   alias OMG.WatcherRPC.Web.Validator
-  alias OMG.WatcherSecurity.API.Transaction, as: SecurityApiTransaction
+  alias OMG.Watcher.API.Transaction, as: SecurityApiTransaction
 
   @doc """
   Retrieves a specific transaction by id.
@@ -30,7 +30,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   def get_transaction(conn, params) do
     with {:ok, id} <- expect(params, "id", :hash) do
       id
-      |> InformationalApiTransaction.get()
+      |> InfoApiTransaction.get()
       |> api_response(conn, :transaction)
     end
   end
@@ -40,7 +40,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   """
   def get_transactions(conn, params) do
     with {:ok, constraints} <- Validator.Constraints.parse(params) do
-      InformationalApiTransaction.get_transactions(constraints)
+      InfoApiTransaction.get_transactions(constraints)
       |> api_response(conn, :transactions)
     end
   end
@@ -73,8 +73,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   """
   def create(conn, params) do
     with {:ok, order} <- Validator.Order.parse(params) do
-      InformationalApiTransaction.create(order)
-      |> InformationalApiTransaction.include_typed_data()
+      InfoApiTransaction.create(order)
+      |> InfoApiTransaction.include_typed_data()
       |> api_response(conn, :create)
     end
   end
@@ -82,7 +82,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   # Provides extra validation (recover_from) and passes transaction to API layer
   defp submit_tx_inf(txbytes, conn) do
     with {:ok, %Transaction.Recovered{signed_tx: signed_tx}} <- Transaction.Recovered.recover_from(txbytes) do
-      InformationalApiTransaction.submit(signed_tx)
+      InfoApiTransaction.submit(signed_tx)
       |> api_response(conn, :submission)
     end
   end

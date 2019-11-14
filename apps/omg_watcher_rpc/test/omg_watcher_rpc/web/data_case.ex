@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DataCase do
+defmodule OMG.WatcherRPC.DataCase do
   @moduledoc """
   This module defines the setup for tests requiring
   access to the application's data layer.
@@ -32,20 +32,20 @@ defmodule OMG.Watcher.DataCase do
 
   using do
     quote do
-      alias OMG.Watcher.DB
+      alias OMG.WatcherInformational.DB
 
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import OMG.Watcher.DataCase
+      import OMG.WatcherRPC.DataCase
     end
   end
 
   setup tags do
-    :ok = SQL.Sandbox.checkout(OMG.Watcher.DB.Repo)
+    :ok = SQL.Sandbox.checkout(OMG.WatcherInformational.DB.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.DB.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(OMG.WatcherInformational.DB.Repo, {:shared, self()})
     end
 
     :ok

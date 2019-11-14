@@ -12,15 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.start()
 ExUnit.start()
-
-{:ok, _} = Application.ensure_all_started(:httpoison)
-{:ok, _} = Application.ensure_all_started(:fake_server)
-
-Mix.Task.run("ecto.create", ~w(--quiet))
-Mix.Task.run("ecto.migrate", ~w(--quiet))
-
-{:ok, _} = Application.ensure_all_started(:briefly)
-{:ok, _} = Application.ensure_all_started(:erlexec)

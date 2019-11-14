@@ -186,14 +186,14 @@ docker-watcher-prod:
 		$(IMAGE_BUILDER) \
 		-c "cd /app && make build-watcher-prod"
 
-docker-watcher-informational-prod:
+docker-watcher_informational-prod:
 	docker run --rm -it \
 		-v $(PWD):/app \
 		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && make build-watcher-informational-prod"
+		-c "cd /app && make build-watcher_informational-prod"
 
 docker-child_chain-build:
 	docker build -f Dockerfile.child_chain \
