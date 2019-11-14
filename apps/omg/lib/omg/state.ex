@@ -89,10 +89,7 @@ defmodule OMG.State do
   Start processing state using the database entries
   """
   def init(:ok) do
-    # Get data essential for the State and Blockgetter. And it takes a while. TODO - measure it!
-    # Our approach is simply blocking the supervision boot tree
-    # until we've processed history.
-    # TODO(pnowosie): Above comment?
+    # Get data essential for the State and Blockgetter.
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, [height_query_result], {:continue, :setup}}
   end

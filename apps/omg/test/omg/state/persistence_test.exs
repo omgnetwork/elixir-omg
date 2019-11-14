@@ -23,6 +23,7 @@ defmodule OMG.State.PersistenceTest do
   alias OMG.InputPointer
   alias OMG.State.Core
   alias OMG.State.Transaction
+  alias OMG.State.UtxoSet
   alias OMG.Utxo
 
   import OMG.TestHelper
@@ -167,7 +168,7 @@ defmodule OMG.State.PersistenceTest do
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
 
     {:ok, state} = Core.extract_initial_state(height_query_result, @interval)
-    Core.with_utxos(state, utxos_query_result)
+    Core.with_utxos(state, UtxoSet.init(utxos_query_result))
   end
 
   defp persist_deposit(state, deposits, db_pid) do
@@ -180,8 +181,8 @@ defmodule OMG.State.PersistenceTest do
     persist_common(state, db_updates, db_pid)
   end
 
-  defp persist_exit_utxos(state, utxo_positions, db_pid) do
-    assert {:ok, {db_updates, _}, state} = utxo_positions |> Core.exit_utxos(state)
+  defp persist_exit_utxos(state, exit_infos, db_pid) do
+    assert {:ok, {db_updates, _}, state} = exit_infos |> Core.get_exiting_utxos(state) |> Core.exit_utxos(state, %{})
     persist_common(state, db_updates, db_pid)
   end
 
@@ -197,7 +198,10 @@ defmodule OMG.State.PersistenceTest do
 
   defp persist_common(state, db_updates, db_pid) do
     assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    assert state == state_from(db_pid)
+    assert drop_recently_spent(state) == state_from(db_pid)
     state
   end
+
+  # NOTE: `recently_spent` is in-memory property of the %Core{}, which isn't persisted so it can't be recovered from db
+  defp drop_recently_spent(state), do: %Core{state | recently_spent: []}
 end

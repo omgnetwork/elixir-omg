@@ -708,6 +708,7 @@ defmodule OMG.State.CoreTest do
     # this test checks whether all ways of calling `exit_utxos/1` work on par
     # this is _very important_ to support all clients of that functions, whose inputs come in different flavors
     %Transaction.Recovered{tx_hash: tx_hash} = tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+    empty_db_utxos = %{}
 
     state =
       state
@@ -716,29 +717,32 @@ defmodule OMG.State.CoreTest do
 
     utxo_pos_exits = [Utxo.position(@blknum1, 0, 0), Utxo.position(@blknum1, 0, 1)]
 
-    exit_utxos_response_reference = utxo_pos_exits |> Core.exit_utxos(state)
+    exit_utxos_response_reference = utxo_pos_exits |> Core.exit_utxos(state, empty_db_utxos)
 
     assert exit_utxos_response_reference ==
              utxo_pos_exits
              |> Enum.map(&%{call_data: %{utxo_pos: Utxo.Position.encode(&1)}})
-             |> Core.exit_utxos(state)
+             |> Core.get_exiting_utxos(state)
+             |> Core.exit_utxos(state, empty_db_utxos)
 
     assert exit_utxos_response_reference ==
              utxo_pos_exits
              |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)})
-             |> Core.exit_utxos(state)
+             |> Core.get_exiting_utxos(state)
+             |> Core.exit_utxos(state, empty_db_utxos)
 
     assert exit_utxos_response_reference ==
              utxo_pos_exits
              |> Enum.map(&Utxo.Position.encode/1)
-             |> Core.exit_utxos(state)
+             |> Core.get_exiting_utxos(state)
+             |> Core.exit_utxos(state, empty_db_utxos)
 
     piggybacks = [
       %{tx_hash: tx_hash, output_index: 0, omg_data: %{piggyback_type: :output}},
       %{tx_hash: tx_hash, output_index: 1, omg_data: %{piggyback_type: :output}}
     ]
 
-    assert exit_utxos_response_reference == Core.exit_utxos(piggybacks, state)
+    assert exit_utxos_response_reference == piggybacks |> Core.get_exiting_utxos(state) |> Core.exit_utxos(state, %{})
   end
 
   @tag fixtures: [:alice, :state_alice_deposit]
@@ -746,6 +750,7 @@ defmodule OMG.State.CoreTest do
     # persistence tested in-depth elsewhere
     amount_1 = 7
     amount_2 = 3
+    empty_db_utxos = %{}
 
     state =
       state
@@ -760,7 +765,7 @@ defmodule OMG.State.CoreTest do
     utxo_pos_exits = [utxo_pos_exit_1, utxo_pos_exit_2]
 
     assert {:ok, {[_ | _], {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}}, state_after_exit} =
-             Core.exit_utxos(utxo_pos_exits, state)
+             Core.exit_utxos(utxo_pos_exits, state, empty_db_utxos)
 
     state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :no_fees_required)
@@ -773,6 +778,7 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :state_alice_deposit]
   test "removed utxo after piggyback from available utxo", %{alice: alice, state_alice_deposit: state} do
     # persistence tested in-depth elsewhere
+    empty_db_utxos = %{}
     tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
     state = state |> Core.exec(tx, :no_fees_required) |> success?
@@ -785,10 +791,15 @@ defmodule OMG.State.CoreTest do
 
     expected_position = Utxo.position(@blknum1, 0, 0)
 
-    assert {:ok, {[], {[], _}}, ^state} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
+    assert {:ok, {[], {[], _}}, ^state} =
+             utxo_pos_exits_in_flight
+             |> Core.get_exiting_utxos(state)
+             |> Core.exit_utxos(state, empty_db_utxos)
 
     assert {:ok, {[_ | _], {[^expected_position], []}}, state_after_exit} =
-             Core.exit_utxos(utxo_pos_exits_piggyback, state)
+             utxo_pos_exits_piggyback
+             |> Core.get_exiting_utxos(state)
+             |> Core.exit_utxos(state, empty_db_utxos)
 
     state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :no_fees_required)
@@ -801,6 +812,8 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :state_alice_deposit]
   test "removed in-flight inputs from available utxo", %{alice: alice, state_alice_deposit: state} do
     # persistence tested in-depth elsewhere
+    empty_db_utxos = %{}
+
     state =
       state
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}]), :no_fees_required)
@@ -811,8 +824,10 @@ defmodule OMG.State.CoreTest do
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
     expected_position = Utxo.position(@blknum1, 0, 0)
 
+    exiting_utxos = Core.get_exiting_utxos(utxo_pos_exits_in_flight, state)
+
     assert {:ok, {[_ | _], {[^expected_position], _}}, state_after_exit} =
-             Core.exit_utxos(utxo_pos_exits_in_flight, state)
+             Core.exit_utxos(exiting_utxos, state, empty_db_utxos)
 
     state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :no_fees_required)
@@ -826,34 +841,43 @@ defmodule OMG.State.CoreTest do
   test "notifies about invalid utxo exiting", %{state_empty: state} do
     utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
 
-    assert {:ok, {[], {[], [^utxo_pos_exit_1]}}, ^state} = Core.exit_utxos([utxo_pos_exit_1], state)
+    assert {:ok, {[], {[], [^utxo_pos_exit_1]}}, ^state} = Core.exit_utxos([utxo_pos_exit_1], state, %{})
   end
 
   @tag fixtures: [:state_alice_deposit]
   test "ignores a piggyback of a non-included tx's outout", %{state_alice_deposit: state} do
     piggyback_event = %{tx_hash: 1, output_index: 0, omg_data: %{piggyback_type: :output}}
-    assert {:ok, {[], {[], []}}, ^state} = Core.exit_utxos([piggyback_event], state)
+
+    assert {:ok, {[], {[], []}}, ^state} =
+             [piggyback_event]
+             |> Core.get_exiting_utxos(state)
+             |> Core.exit_utxos(state)
   end
 
   @tag fixtures: [:state_alice_deposit]
   test "ignores on exiting, when input piggybacks are detected", %{state_alice_deposit: state} do
     piggyback_event = %{tx_hash: 1, output_index: 0, omg_data: %{piggyback_type: :input}}
-    assert {:ok, {[], {[], []}}, ^state} = Core.exit_utxos([piggyback_event], state)
+
+    assert {:ok, {[], {[], []}}, ^state} =
+             [piggyback_event]
+             |> Core.get_exiting_utxos(state)
+             |> Core.exit_utxos(state)
   end
 
   @tag fixtures: [:alice, :state_empty]
   test "tells if utxo exists", %{alice: alice, state_empty: state} do
-    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
+    empty_db_utxos = %{}
+    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state, empty_db_utxos)
 
     state = state |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    assert Core.utxo_exists?(Utxo.position(1, 0, 0), state)
+    assert Core.utxo_exists?(Utxo.position(1, 0, 0), state, empty_db_utxos)
 
     state =
       state
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), :no_fees_required)
       |> success?
 
-    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
+    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state, empty_db_utxos)
   end
 
   @tag fixtures: [:state_empty]

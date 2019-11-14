@@ -42,8 +42,8 @@ defmodule OMG.State.Core do
           # NOTE: that this list is being build reverse, in some cases it may matter. It is reversed just before
           #       it leaves this module in `form_block/3`
           utxo_db_updates: list(db_update()),
-          # NOTE: because UTXO set is not loaded from DB, in-memory UTXO set contains output from already processed
-          # transaction. Therefore we need to remember the UTXOs spent before block is formed.
+          # NOTE: because UTXO set is not loaded from DB entirely, we need to remember the UTXOs spent in already
+          # processed transaction before they get removed from DB on form_block.
           recently_spent: list(Utxo.Position.t())
         }
 
@@ -254,12 +254,15 @@ defmodule OMG.State.Core do
   @spec get_exiting_utxos(exiting_utxos_t(), t()) :: list(Utxo.Position.t())
   def get_exiting_utxos(exit_infos, state)
 
+  def get_exiting_utxos([], %Core{}), do: []
+
   # list of full exit infos (from events) containing the utxo positions
-  def get_exiting_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{}), do: Enum.map(exit_infos, & &1.utxo_pos)
+  def get_exiting_utxos([%{utxo_pos: _} | _] = exit_infos, state),
+    do: exit_infos |> Enum.map(& &1.utxo_pos) |> get_exiting_utxos(state)
 
   # list of full exit events (from ethereum listeners)
-  def get_exiting_utxos([%{call_data: %{utxo_pos: _}} | _] = exit_infos, %Core{}),
-    do: Enum.map(exit_infos, & &1.call_data)
+  def get_exiting_utxos([%{call_data: %{utxo_pos: _}} | _] = exit_infos, state),
+    do: exit_infos |> Enum.map(& &1.call_data) |> get_exiting_utxos(state)
 
   # list of utxo positions (encoded)
   def get_exiting_utxos([encoded_utxo_pos | _] = exit_infos, %Core{}) when is_integer(encoded_utxo_pos),
