@@ -14,8 +14,6 @@
 
 defmodule OMG.Watcher do
   @moduledoc """
-  Watcher is responsible for syncing and validating the child chain, and providing a secure interface to it.
-
-  For details see [here](README.md) and [here](docs/tesuji_blockchain_design.md)
+  Watcher is responsible for the non-security-critical part of the Watcher.
   """
 end
