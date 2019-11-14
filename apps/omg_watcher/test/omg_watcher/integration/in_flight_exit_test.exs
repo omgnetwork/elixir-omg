@@ -22,7 +22,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   alias OMG.Eth.RootChain
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.Event
+  alias OMG.WatcherSecurity.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.Integration.DepositHelper

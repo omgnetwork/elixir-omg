@@ -21,7 +21,7 @@ defmodule OMG.Watcher.SupervisorTest do
 
   alias OMG.RootChainCoordinator.Core
 
-  @setup OMG.Watcher.CoordinatorSetup.coordinator_setup()
+  @setup OMG.WatcherSecurity.CoordinatorSetup.coordinator_setup()
   @pid @setup
        |> Map.keys()
        |> Enum.with_index(1)
@@ -42,26 +42,19 @@ defmodule OMG.Watcher.SupervisorTest do
 
   @tag fixtures: [:state]
   test "syncs services correctly", %{state: state} do
-    # NOTE: this assumes some finality margines embedded in `config/test.exs`. Consider refactoring if these
+    # NOTE: this assumes some finality margins embedded in `config/test.exs`. Consider refactoring if these
     #       needs to change and break this test, instead of modifying this test!
 
     # start - only depositor and getter allowed to move
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:depositor])
     assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:exit_processor])
     assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:in_flight_exit_processor])
-    assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:convenience_deposit_processor])
     assert %{sync_height: 1, root_chain_height: 10} = Core.get_synced_info(state, @pid[:block_getter])
 
     # depositor advances
     assert {:ok, state} = Core.check_in(state, @pid[:depositor], 9, :depositor)
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:exit_processor])
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:in_flight_exit_processor])
-    assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:convenience_deposit_processor])
-
-    # convenience depositor advances allowing to put blocks into Postgres via `BlockGetter`
-    assert %{sync_height: 1, root_chain_height: 10} = Core.get_synced_info(state, @pid[:block_getter])
-    assert {:ok, state} = Core.check_in(state, @pid[:convenience_deposit_processor], 9, :convenience_deposit_processor)
-    assert %{sync_height: 10, root_chain_height: 10} = Core.get_synced_info(state, @pid[:block_getter])
 
     # exit_processor advances
     assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:exit_challenger])
@@ -85,17 +78,14 @@ defmodule OMG.Watcher.SupervisorTest do
 
     # BlockGetter advances
     assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:exit_finalizer])
-    assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:convenience_exit_processor])
     assert %{sync_height: 0, root_chain_height: 9} = Core.get_synced_info(state, @pid[:ife_exit_finalizer])
     assert {:ok, state} = Core.check_in(state, @pid[:block_getter], 10, :block_getter)
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:exit_finalizer])
-    assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:convenience_exit_processor])
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:ife_exit_finalizer])
 
     # root chain advances
     assert {:ok, state} = Core.update_root_chain_height(state, 100)
     assert %{sync_height: 9, root_chain_height: 99} = Core.get_synced_info(state, @pid[:exit_finalizer])
-    assert %{sync_height: 9, root_chain_height: 99} = Core.get_synced_info(state, @pid[:convenience_exit_processor])
     assert %{sync_height: 9, root_chain_height: 99} = Core.get_synced_info(state, @pid[:ife_exit_finalizer])
     assert %{sync_height: 99, root_chain_height: 99} = Core.get_synced_info(state, @pid[:depositor])
     assert %{sync_height: 10, root_chain_height: 100} = Core.get_synced_info(state, @pid[:block_getter])

@@ -30,7 +30,6 @@ defmodule OMG.WatcherSecurity.Integration.BlockGetterTest do
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
-  alias OMG.WatcherSecurity
   alias OMG.WatcherSecurity.Event
   alias OMG.WatcherSecurity.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
@@ -41,7 +40,6 @@ defmodule OMG.WatcherSecurity.Integration.BlockGetterTest do
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @endpoint OMG.WatcherRPC.Web.Endpoint
 
   @moduletag :integration
   @moduletag :watcher

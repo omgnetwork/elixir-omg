@@ -23,14 +23,9 @@ defmodule OMG.WatcherSecurity.Fixtures do
   use OMG.ChildChain.Integration.Fixtures
   use OMG.Utils.LoggerExt
 
-  alias Ecto.Adapters.SQL
   alias FakeServer.Agents.EnvAgent
   alias FakeServer.HTTP.Server
-  alias OMG.Crypto
-  alias OMG.Watcher
-  alias OMG.Watcher.DB
   alias Support.DevHelper
-  alias Support.WatcherHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

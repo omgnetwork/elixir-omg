@@ -22,8 +22,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.Eth
   alias OMG.Utxo
   alias OMG.Watcher
-  alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.WatcherSecurity.Event
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper

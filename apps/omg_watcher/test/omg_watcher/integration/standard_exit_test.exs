@@ -21,10 +21,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.Eth
-  alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
-  alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper

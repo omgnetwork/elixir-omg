@@ -705,7 +705,6 @@ defmodule OMG.WatcherSecurity.BlockGetter.CoreTest do
         interval: 1_000,
         synced_height: 1,
         block_getter_reorg_margin: 5,
-        last_persisted_block: nil,
         state_at_beginning: true,
         exit_processor_results: {:ok, []},
         init_opts: []
@@ -719,7 +718,6 @@ defmodule OMG.WatcherSecurity.BlockGetter.CoreTest do
              init_params.interval,
              init_params.synced_height,
              init_params.block_getter_reorg_margin,
-             init_params.last_persisted_block,
              init_params.state_at_beginning,
              init_params.exit_processor_results,
              init_params.init_opts

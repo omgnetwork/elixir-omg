@@ -20,3 +20,5 @@ config :omg_watcher_security, OMG.WatcherSecurity.Tracer,
   adapter: SpandexDatadog.Adapter,
   disabled?: true,
   type: :omg_watcher_security
+
+import_config "#{Mix.env()}.exs"

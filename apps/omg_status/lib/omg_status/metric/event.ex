@@ -16,8 +16,6 @@ defmodule OMG.Status.Metric.Event do
   @services [
     :challenges_responds_processor,
     :competitor_processor,
-    :convenience_deposit_processor,
-    :convenience_exit_processor,
     :depositor,
     :exit_challenger,
     :exit_finalizer,
@@ -86,9 +84,7 @@ defmodule OMG.Status.Metric.Event do
   defp events_name(:in_flight_exit), do: "in_flight_exit_ethereum_events"
   defp events_name(:piggyback), do: "piggyback_ethereum_events"
   defp events_name(:exiter), do: "exiter_ethereum_events"
-  defp events_name(:convenience_deposit_processor), do: "convenience_deposit_processor_ethereum_events"
   defp events_name(:exit_processor), do: "exit_processor_ethereum_events"
-  defp events_name(:convenience_exit_processor), do: "convenience_exit_processor_ethereum_events"
   defp events_name(:exit_finalizer), do: "exit_finalizer_ethereum_events"
   defp events_name(:exit_challenger), do: "exit_challenger_ethereum_events"
   defp events_name(:in_flight_exit_processor), do: "in_flight_exit_processor_ethereum_events"
@@ -102,9 +98,7 @@ defmodule OMG.Status.Metric.Event do
   defp message_queue_len_name(:in_flight_exit), do: "in_flight_exit_message_queue_len"
   defp message_queue_len_name(:piggyback), do: "piggyback_message_queue_len"
   defp message_queue_len_name(:exiter), do: "exiter_message_queue_len"
-  defp message_queue_len_name(:convenience_deposit_processor), do: "convenience_deposit_processor_message_queue_len"
   defp message_queue_len_name(:exit_processor), do: "exit_processor_message_queue_len"
-  defp message_queue_len_name(:convenience_exit_processor), do: "convenience_exit_processor_message_queue_len"
   defp message_queue_len_name(:exit_finalizer), do: "exit_finalizer_message_queue_len"
   defp message_queue_len_name(:exit_challenger), do: "exit_challenger_message_queue_len"
   defp message_queue_len_name(:in_flight_exit_processor), do: "in_flight_exit_processor_message_queue_len"

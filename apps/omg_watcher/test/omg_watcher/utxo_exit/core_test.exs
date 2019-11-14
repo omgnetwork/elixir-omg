@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.UtxoExit.CoreTest do
+defmodule OMG.WatcherSecurity.UtxoExit.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
@@ -20,7 +20,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
-  alias OMG.Watcher.UtxoExit.Core
+  alias OMG.WatcherSecurity.UtxoExit.Core
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()

@@ -116,10 +116,6 @@ defmodule OMG.WatcherSecurity.BlockGetter do
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
       {:ok, state} ->
-        # block_application
-        # |> Core.ensure_block_imported_once(state)
-        # |> Enum.each(&DB.Transaction.update_with/1)
-        IO.inspect("sending off %{inspect(block_application)}")
         :ok = OMG.Bus.direct_local_broadcast("block.get", {:insert_block, block_application})
 
         {:noreply, state, {:continue, {:apply_block_step, :run_block_download_task, block_application}}}

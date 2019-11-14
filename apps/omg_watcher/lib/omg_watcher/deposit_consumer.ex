@@ -35,9 +35,7 @@ defmodule OMG.Watcher.DepositConsumer do
   end
 
   def handle_info({:internal_event_bus, :data, data}, state) do
-    IO.inspect(data)
-
-    OMG.Watcher.DB.EthEvent.insert_deposits!(data)
+    _ = OMG.Watcher.DB.EthEvent.insert_deposits!(data)
     {:noreply, state}
   end
 end

@@ -35,9 +35,8 @@ defmodule OMG.Watcher.EventConsumer do
   end
 
   def handle_info({:internal_event_bus, :data, data}, state) do
-    IO.inspect(data)
     # all exits here!
-    EthEvent.insert_exits!(data)
+    _ = EthEvent.insert_exits!(data)
     {:noreply, state}
   end
 end

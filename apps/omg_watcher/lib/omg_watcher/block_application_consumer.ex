@@ -18,6 +18,7 @@ defmodule OMG.Watcher.BlockApplicationConsumer do
   """
   alias OMG.Watcher.DB.Transaction
   require Logger
+
   ### Client
 
   def start_link(_args) do
@@ -35,15 +36,13 @@ defmodule OMG.Watcher.BlockApplicationConsumer do
     {:ok, %{}}
   end
 
+  # Listens for blocks and insert them to the WatcherDB.
   def handle_info({:internal_event_bus, :insert_block, block_application}, state) do
-    IO.inspect(block_application)
-
-    o =
+    _ =
       block_application
       |> to_mined_block()
       |> Transaction.update_with()
 
-    IO.inspect(o)
     {:noreply, state}
   end
 
