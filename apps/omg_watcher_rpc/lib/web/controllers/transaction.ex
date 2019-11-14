@@ -20,9 +20,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   use OMG.WatcherRPC.Web, :controller
 
   alias OMG.State.Transaction
+  alias OMG.Watcher.API.Transaction, as: SecurityApiTransaction
   alias OMG.WatcherInformational.API.Transaction, as: InfoApiTransaction
   alias OMG.WatcherRPC.Web.Validator
-  alias OMG.Watcher.API.Transaction, as: SecurityApiTransaction
 
   @doc """
   Retrieves a specific transaction by id.
