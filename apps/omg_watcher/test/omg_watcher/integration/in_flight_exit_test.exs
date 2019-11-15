@@ -155,7 +155,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert {:ok, {_, _, 0, _, _, _, _}} = RootChain.get_in_flight_exit(ife_id)
 
     # observe the byzantine events gone
-    exit_finality_margin = Application.fetch_env!(:omg_watcher_informational, :exit_finality_margin)
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     DevHelper.wait_for_root_chain_block(last_challenge_eth_height + exit_finality_margin + 1)
 
     assert %{"byzantine_events" => [%{"event" => "non_canonical_ife"}, %{"event" => "piggyback_available"}]} =
@@ -184,7 +184,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     # sanity check in-flight exit has started on root chain, wait for finality
     assert {:ok, [_, _]} = RootChain.get_in_flight_exit_starts(0, ife_eth_height)
 
-    exit_finality_margin = Application.fetch_env!(:omg_watcher_informational, :exit_finality_margin)
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     DevHelper.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
 
     ###
@@ -261,7 +261,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
     # sanity check in-flight exit has started on root chain, wait for finality
     assert {:ok, [_, _]} = RootChain.get_in_flight_exit_starts(0, ife_eth_height)
-    exit_finality_margin = Application.fetch_env!(:omg_watcher_informational, :exit_finality_margin)
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     DevHelper.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
 
     # EVENTS DETECTION (tested in the other test, skipping)
@@ -400,7 +400,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
   defp exit_in_flight_and_wait_for_ife(tx, exiting_user) do
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} = exit_in_flight(tx, exiting_user)
-    exit_finality_margin = Application.fetch_env!(:omg_watcher_informational, :exit_finality_margin)
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     DevHelper.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
   end
 
