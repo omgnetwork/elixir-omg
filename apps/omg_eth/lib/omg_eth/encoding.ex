@@ -50,4 +50,33 @@ defmodule OMG.Eth.Encoding do
     {return, ""} = Integer.parse(encoded, 16)
     return
   end
+
+  @doc """
+  Encodes a list of parameters to be used as smart contract constuctor arguments.
+  """
+  @spec encode_constructor_params(list()) :: String.t()
+  def encode_constructor_params(types_args) do
+    {types, args} = reduce_constructor_params(types_args)
+
+    args
+    |> ABI.TypeEncoder.encode_raw(types)
+    # NOTE: we're not using `to_hex` because the `0x` will be appended to the bytecode already
+    |> Base.encode16(case: :lower)
+  end
+
+  def reduce_constructor_params(types_args) do
+    {types, args} =
+      Enum.reduce(types_args, {[], []}, fn item, {types, args} ->
+        case item do
+          {:tuple, elements} ->
+            {tuple_types, tuple_args} = reduce_constructor_params(elements)
+            {[{:tuple, tuple_types} | types], [List.to_tuple(tuple_args) | args]}
+
+          {arg, type} ->
+            {[type | types], [arg | args]}
+        end
+      end)
+
+    {Enum.reverse(types), Enum.reverse(args)}
+  end
 end
