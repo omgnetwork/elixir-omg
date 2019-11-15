@@ -12,21 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.EncodingTest do
+defmodule OMG.Eth.Encoding.ContractConstructorTest do
   use ExUnit.Case, async: true
 
-  alias OMG.Eth.Encoding
+  alias OMG.Eth.Encoding.ContractConstructor
 
   @moduletag :common
 
-  doctest Encoding
+  doctest ContractConstructor
 
-  describe "encode_constructor_params/1" do
-    test "encoding an empty list of params returns an empty string" do
-      assert Encoding.encode_constructor_params([]) == ""
+  describe "extract_params/1" do
+    test "returns a tuple with empty lists when given an empty list" do
+      encoded = ContractConstructor.extract_params([])
+      assert encoded == {[], []}
     end
 
-    test "returns a valid base16 string when given a list of elementary types" do
+    test "returns the correct list of types and values when given a list of elementary types" do
       params = [
         {:address, "0x1234"},
         {{:uint, 256}, 1000},
@@ -34,11 +35,12 @@ defmodule OMG.Eth.EncodingTest do
         {:bool, true}
       ]
 
-      encoded = Encoding.encode_constructor_params(params)
+      encoded = ContractConstructor.extract_params(params)
 
-      # This function mainly does encoding via `Elixir.Base` and `ABI.TypeEncoder`,
-      # so we'll assert just the expected format, but not the content.
-      assert {:ok, _} = Base.decode16(encoded, case: :lower)
+      assert encoded == {
+               [:address, {:uint, 256}, {:uint, 256}, :bool],
+               ["0x1234", 1000, 2000, true]
+             }
     end
 
     test "returns the correct list of types and values when given a list with one tuple" do
@@ -51,11 +53,12 @@ defmodule OMG.Eth.EncodingTest do
          ]}
       ]
 
-      encoded = Encoding.encode_constructor_params(params)
+      encoded = ContractConstructor.extract_params(params)
 
-      # This function mainly does encoding via `Elixir.Base` and `ABI.TypeEncoder`,
-      # so we'll assert just the expected format, but not the content.
-      assert {:ok, _} = Base.decode16(encoded, case: :lower)
+      assert encoded == {
+               [{:tuple, [:address, {:uint, 256}, :bool]}],
+               [{"0x1234", 1000, true}]
+             }
     end
 
     test "returns the correct list of types and values when given a list of tuples" do
@@ -73,11 +76,12 @@ defmodule OMG.Eth.EncodingTest do
          ]}
       ]
 
-      encoded = Encoding.encode_constructor_params(params)
+      encoded = ContractConstructor.extract_params(params)
 
-      # This function mainly does encoding via `Elixir.Base` and `ABI.TypeEncoder`,
-      # so we'll assert just the expected format, but not the content.
-      assert {:ok, _} = Base.decode16(encoded, case: :lower)
+      assert encoded == {
+               [{:tuple, [:address, {:uint, 256}, :bool]}, {:tuple, [{:uint, 128}, :bool]}],
+               [{"0x1234", 1000, true}, {2000, false}]
+             }
     end
   end
 end

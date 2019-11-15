@@ -18,6 +18,8 @@ defmodule OMG.Eth.Encoding do
   For use in `OMG.Eth` and `OMG.Eth.DevHelper`
   """
 
+  alias OMG.Eth.Encoding.ContractConstructor
+
   @doc """
   Ethereum JSONRPC and Ethereumex' specific encoding and decoding of binaries and ints
 
@@ -54,35 +56,27 @@ defmodule OMG.Eth.Encoding do
   @doc """
   Encodes a list of smart contract constructor parameters into a base16 encoded-ABI that
   solidity expects.
+
+  ## Examples
+
+      iex> OMG.Eth.Encoding.encode_constructor_params([
+      ...>   {{:uint, 8}, 255},
+      ...> ])
+      "00000000000000000000000000000000000000000000000000000000000000ff"
+
+      iex> OMG.Eth.Encoding.encode_constructor_params([
+      ...>   {{:uint, 8}, 255},
+      ...>   {:string, "hello"},
+      ...> ])
+      "00000000000000000000000000000000000000000000000000000000000000ff000000000000000000000000000000000000000000000000000000000000000568656c6c6f000000000000000000000000000000000000000000000000000000"
   """
   @spec encode_constructor_params(list()) :: String.t()
   def encode_constructor_params(types_args) do
-    {types, args} = reduce_constructor_params(types_args)
+    {types, args} = ContractConstructor.extract_params(types_args)
 
     args
     |> ABI.TypeEncoder.encode_raw(types)
     # NOTE: we're not using `to_hex` because the `0x` will be appended to the bytecode already
     |> Base.encode16(case: :lower)
-  end
-
-  @doc """
-  Reduces a list of smart contract constructor parameters into a tuple of types list
-  and values list, so that it can be passed into `ABI.TypeEncoder.encode_raw/1`.
-  """
-  @spec reduce_constructor_params(list()) :: {list(), list()}
-  def reduce_constructor_params(types_args) do
-    {types, args} =
-      Enum.reduce(types_args, {[], []}, fn item, {types, args} ->
-        case item do
-          {:tuple, elements} ->
-            {tuple_types, tuple_args} = reduce_constructor_params(elements)
-            {[{:tuple, tuple_types} | types], [List.to_tuple(tuple_args) | args]}
-
-          {type, arg} ->
-            {[type | types], [arg | args]}
-        end
-      end)
-
-    {Enum.reverse(types), Enum.reverse(args)}
   end
 end
