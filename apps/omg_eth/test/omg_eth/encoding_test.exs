@@ -41,11 +41,12 @@ defmodule OMG.Eth.EncodingTest do
 
     test "returns the correct list of types and values when given a list with one tuple" do
       params = [
-        {:tuple, [
-          {:address, "0x1234"},
-          {{:uint, 256}, 1000},
-          {:bool, true},
-        ]}
+        {:tuple,
+         [
+           {:address, "0x1234"},
+           {{:uint, 256}, 1000},
+           {:bool, true}
+         ]}
       ]
 
       encoded = Encoding.encode_constructor_params(params)
@@ -57,15 +58,17 @@ defmodule OMG.Eth.EncodingTest do
 
     test "returns the correct list of types and values when given a list of tuples" do
       params = [
-        {:tuple, [
-          {:address, "0x1234"},
-          {{:uint, 256}, 1000},
-          {:bool, true},
-        ]},
-        {:tuple, [
-          {{:uint, 128}, 2000},
-          {:bool, false},
-        ]}
+        {:tuple,
+         [
+           {:address, "0x1234"},
+           {{:uint, 256}, 1000},
+           {:bool, true}
+         ]},
+        {:tuple,
+         [
+           {{:uint, 128}, 2000},
+           {:bool, false}
+         ]}
       ]
 
       encoded = Encoding.encode_constructor_params(params)
@@ -93,47 +96,50 @@ defmodule OMG.Eth.EncodingTest do
       encoded = Encoding.reduce_constructor_params(params)
 
       assert encoded == {
-        [:address, {:uint, 256}, {:uint, 256}, :bool],
-        ["0x1234", 1000, 2000, true]
-      }
+               [:address, {:uint, 256}, {:uint, 256}, :bool],
+               ["0x1234", 1000, 2000, true]
+             }
     end
 
     test "returns the correct list of types and values when given a list with one tuple" do
       params = [
-        {:tuple, [
-          {:address, "0x1234"},
-          {{:uint, 256}, 1000},
-          {:bool, true},
-        ]}
+        {:tuple,
+         [
+           {:address, "0x1234"},
+           {{:uint, 256}, 1000},
+           {:bool, true}
+         ]}
       ]
 
       encoded = Encoding.reduce_constructor_params(params)
 
       assert encoded == {
-        [{:tuple, [:address, {:uint, 256}, :bool]}],
-        [{"0x1234", 1000, true}]
-      }
+               [{:tuple, [:address, {:uint, 256}, :bool]}],
+               [{"0x1234", 1000, true}]
+             }
     end
 
     test "returns the correct list of types and values when given a list of tuples" do
       params = [
-        {:tuple, [
-          {:address, "0x1234"},
-          {{:uint, 256}, 1000},
-          {:bool, true},
-        ]},
-        {:tuple, [
-          {{:uint, 128}, 2000},
-          {:bool, false},
-        ]}
+        {:tuple,
+         [
+           {:address, "0x1234"},
+           {{:uint, 256}, 1000},
+           {:bool, true}
+         ]},
+        {:tuple,
+         [
+           {{:uint, 128}, 2000},
+           {:bool, false}
+         ]}
       ]
 
       encoded = Encoding.reduce_constructor_params(params)
 
       assert encoded == {
-        [{:tuple, [:address, {:uint, 256}, :bool]}, {:tuple, [{:uint, 128}, :bool]}],
-        [{"0x1234", 1000, true}, {2000, false}]
-      }
+               [{:tuple, [:address, {:uint, 256}, :bool]}, {:tuple, [{:uint, 128}, :bool]}],
+               [{"0x1234", 1000, true}, {2000, false}]
+             }
     end
   end
 end

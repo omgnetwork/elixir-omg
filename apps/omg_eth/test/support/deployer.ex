@@ -147,23 +147,24 @@ defmodule Support.Deployer do
           payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier,
           tx_finalization_verifier: tx_finalization_verifier,
           tx_type: tx_type,
-          safe_gas_stipend: safe_gas_stipend,
+          safe_gas_stipend: safe_gas_stipend
         ],
         opts
       ) do
     args = [
       # This 2-element tuple represents the `PaymentExitGame.PaymentExitGameArgs` solidity struct.
-      {:tuple, [
-        {:address, plasma_framework},
-        {{:uint, 256}, eth_vault_id},
-        {{:uint, 256}, erc20_vault_id},
-        {:address, output_guard_handler},
-        {:address, spending_condition},
-        {:address, payment_transaction_state_transition_verifier},
-        {:address, tx_finalization_verifier},
-        {{:uint, 256}, tx_type},
-        {{:uint, 256}, safe_gas_stipend}
-      ]}
+      {:tuple,
+       [
+         {:address, plasma_framework},
+         {{:uint, 256}, eth_vault_id},
+         {{:uint, 256}, erc20_vault_id},
+         {:address, output_guard_handler},
+         {:address, spending_condition},
+         {:address, payment_transaction_state_transition_verifier},
+         {:address, tx_finalization_verifier},
+         {{:uint, 256}, tx_type},
+         {{:uint, 256}, safe_gas_stipend}
+       ]}
     ]
 
     Eth.Librarian.link_for!(name, path_project_root, from)
