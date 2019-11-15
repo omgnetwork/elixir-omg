@@ -8,6 +8,12 @@ config :omg_watcher_informational, OMG.WatcherInformational.DB.Repo,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
   url: "postgres://omisego_dev:omisego_dev@localhost:5432/omisego_test"
 
+config :omg_watcher_informational,
+  # an entry to fix a common reference path to the root directory of the umbrella project
+  # this is useful because `mix test` and `mix coveralls --umbrella` have different views
+  # on the root dir when testing
+  umbrella_root_dir: Path.join(__DIR__, "../../..")
+
 config :omg_watcher_informational, OMG.WatcherInformational.Tracer,
   disabled?: true,
   env: "test"
