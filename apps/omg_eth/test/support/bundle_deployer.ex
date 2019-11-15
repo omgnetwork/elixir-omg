@@ -61,14 +61,17 @@ defmodule Support.BundleDeployer do
       )
 
     {:ok, _} = RootChainHelper.activate_child_chain(authority, %{plasma_framework: plasma_framework_addr})
-    {:ok, _, eth_deposit_verifier_addr} = Deployer.create_new("EthDepositVerifier", root_path, deployer_addr, [])
-    {:ok, _, erc20_deposit_verifier_addr} = Deployer.create_new("Erc20DepositVerifier", root_path, deployer_addr, [])
+
+    {:ok, _, eth_deposit_verifier_addr} =
+      Deployer.create_new("EthDepositVerifier", root_path, deployer_addr, transaction_type: nil, output_type: nil)
+
+    {:ok, _, erc20_deposit_verifier_addr} = Deployer.create_new("Erc20DepositVerifier", root_path, deployer_addr, transaction_type: nil, output_type: nil)
 
     {:ok, _, eth_vault_addr} =
-      Deployer.create_new("EthVault", root_path, deployer_addr, plasma_framework: plasma_framework_addr)
+      Deployer.create_new("EthVault", root_path, deployer_addr, plasma_framework: plasma_framework_addr, safe_gas_stipend: 2300)
 
     {:ok, _, erc20_vault_addr} =
-      Deployer.create_new("Erc20Vault", root_path, deployer_addr, plasma_framework: plasma_framework_addr)
+      Deployer.create_new("Erc20Vault", root_path, deployer_addr, plasma_framework: plasma_framework_addr, safe_gas_stipend: 2300)
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
 
