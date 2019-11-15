@@ -9,9 +9,9 @@ config :omg_watcher_informational, OMG.WatcherInformational.DB.Repo,
   url: "postgres://omisego_dev:omisego_dev@localhost:5432/omisego_test"
 
 config :omg_watcher_informational,
-  # an entry to fix a common reference path to the root directory of the umbrella project
-  # this is useful because `mix test` and `mix coveralls --umbrella` have different views
-  # on the root dir when testing
+  # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory
+  # of the umbrella project. This is useful because `mix test` and `mix coveralls --umbrella`
+  # have different views on the root dir when testing.
   umbrella_root_dir: Path.join(__DIR__, "../../..")
 
 config :omg_watcher_informational, OMG.WatcherInformational.Tracer,

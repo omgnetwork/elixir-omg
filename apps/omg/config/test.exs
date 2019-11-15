@@ -5,6 +5,7 @@ config :omg,
   ethereum_events_check_interval_ms: 10,
   coordinator_eth_height_check_interval_ms: 10,
   environment: :test,
-  # an entry to fix a common reference path to the root directory of the umbrella project
-  # this is useful because `mix test` and `mix coveralls --umbrella` have different views on the root dir when testing
+  # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory
+  # of the umbrella project. This is useful because `mix test` and `mix coveralls --umbrella`
+  # have different views on the root dir when testing.
   umbrella_root_dir: Path.join(__DIR__, "../../..")

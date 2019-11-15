@@ -11,9 +11,9 @@ config :omg_watcher,
   # actually fakes block withholding to test something
   maximum_block_withholding_time_ms: 1_000,
   exit_finality_margin: 1,
-  # an entry to fix a common reference path to the root directory of the umbrella project
-  # this is useful because `mix test` and `mix coveralls --umbrella` have different views
-  # on the root dir when testing
+  # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory
+  # of the umbrella project. This is useful because `mix test` and `mix coveralls --umbrella`
+  # have different views on the root dir when testing.
   umbrella_root_dir: Path.join(__DIR__, "../../..")
 
 config :omg_watcher, OMG.Watcher.Tracer,
