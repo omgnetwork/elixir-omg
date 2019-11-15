@@ -65,11 +65,9 @@ defmodule OMG.Watcher.BlockGetter do
     # how many eth blocks backward can change during an reorg
     block_getter_reorg_margin = Application.fetch_env!(:omg_watcher, :block_getter_reorg_margin)
 
-    maximum_block_withholding_time_ms =
-      Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
+    maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
 
-    maximum_number_of_unapplied_blocks =
-      Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
+    maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
     # TODO rethink posible solutions see issue #724
     # if we do not wait here, `ExitProcessor.check_validity()` may timeouts,

@@ -28,7 +28,8 @@ defmodule OMG.WatcherInformational.ReleaseTasks.SetTracer do
   end
 
   defp get_dd_disabled do
-    dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, OMG.WatcherInformational.Tracer)[:disabled?])
+    dd_disabled? =
+      validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, OMG.WatcherInformational.Tracer)[:disabled?])
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
