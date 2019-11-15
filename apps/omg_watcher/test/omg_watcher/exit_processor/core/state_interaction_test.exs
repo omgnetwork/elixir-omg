@@ -82,7 +82,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     # exits invalidly finalize and continue/start emitting events and complain
     {:ok, {_, two_spend}, state_after_spend} =
-      [1, 2] |> Enum.map(&Core.exit_key_by_exit_id(processor, &1)) |> State.Core.exit_utxos(state, %{})
+      [1, 2] |> Enum.map(&Core.exit_key_by_exit_id(processor, &1)) |> State.Core.exit_utxos(state)
 
     # finalizing here - note that without `finalize_exits`, we would just get a single invalid exit event
     # with - we get 3, because we include the invalidly finalized on which will hurt forever
@@ -117,8 +117,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              |> Core.check_validity(processor)
 
     # exit validly finalizes and continues to not emit any events
-    {:ok, {_, spends}, _} =
-      [1] |> Enum.map(&Core.exit_key_by_exit_id(processor, &1)) |> State.Core.exit_utxos(state, %{})
+    {:ok, {_, spends}, _} = [1] |> Enum.map(&Core.exit_key_by_exit_id(processor, &1)) |> State.Core.exit_utxos(state)
 
     assert {processor, _, [{:put, :exit_info, {{2, 0, 0}, _}}]} = Core.finalize_exits(processor, spends)
 
@@ -196,11 +195,9 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     {:ok, %{^ife_id1 => exiting_positions1, ^ife_id2 => exiting_positions2}} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
-    empty_db_utxos = %{}
-
     assert {:ok,
             {[{:delete, :utxo, _}, {:delete, :utxo, _}], {[Utxo.position(1000, 0, 0), Utxo.position(2, 0, 0)], []}},
-            _} = State.Core.exit_utxos(exiting_positions1 ++ exiting_positions2, state, empty_db_utxos)
+            _} = State.Core.exit_utxos(exiting_positions1 ++ exiting_positions2, state)
   end
 
   test "tolerates piggybacked outputs exiting if they're concerning non-included IFE txs",
@@ -224,8 +221,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     {:ok, %{^ife_id => exiting_positions}} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
-    empty_db_utxos = %{}
-    {:ok, {_, {[], [] = invalidities}}, _} = State.Core.exit_utxos(exiting_positions, state, empty_db_utxos)
+    {:ok, {_, {[], [] = invalidities}}, _} = State.Core.exit_utxos(exiting_positions, state)
 
     assert {:ok, processor, [_]} = Core.finalize_in_flight_exits(processor, finalizations, %{ife_id => invalidities})
     assert [] = Core.get_active_in_flight_exits(processor)
@@ -258,14 +254,13 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     {:ok, %{^ife_id => exiting_positions}} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
-    empty_db_utxos = %{}
-    {:ok, {_, {[], [_] = invalidities}}, _} = State.Core.exit_utxos(exiting_positions, state, empty_db_utxos)
+    {:ok, {_, {[], [_] = invalidities}}, _} = State.Core.exit_utxos(exiting_positions, state)
 
     assert {:ok, processor, [_]} = Core.finalize_in_flight_exits(processor, finalizations, %{ife_id => invalidities})
     assert [_] = Core.get_active_in_flight_exits(processor)
   end
 
   defp mock_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request, state) do
-    %{request | utxo_exists_result: positions |> Enum.map(&State.Core.utxo_exists?(&1, state, %{}))}
+    %{request | utxo_exists_result: positions |> Enum.map(&State.Core.utxo_exists?(&1, state))}
   end
 end

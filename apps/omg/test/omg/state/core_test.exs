@@ -50,6 +50,30 @@ defmodule OMG.State.CoreTest do
   end
 
   describe "Lazy loaded utxo set" do
+    @tag fixtures: [:alice, :bob, :state_alice_deposit]
+    test "applies utxos with recent spends to check whether utxo should be fetched from db",
+         %{alice: alice, bob: bob, state_alice_deposit: state} do
+      # make some utxos
+      state =
+        state
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 6}, {bob, 2}, {alice, 2}]), :no_fees_required)
+        |> success?()
+        |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{bob, 3}, {alice, 3}]), :no_fees_required)
+        |> success?()
+
+      deposit_pos = Utxo.position(1, 0, 0)
+      assert Core.utxo_processed?(deposit_pos, state) == true
+
+      spend_pos = Utxo.position(1000, 0, 0)
+      assert Core.utxo_processed?(spend_pos, state) == true
+
+      known_pos = [Utxo.position(1000, 0, 2), Utxo.position(1000, 1, 1)]
+      assert Enum.map(known_pos, &Core.utxo_processed?(&1, state)) == [true, true]
+
+      unknown_pos = [Utxo.position(1000, 2, 0), Utxo.position(1000, 1, 2)]
+      assert Enum.map(unknown_pos, &Core.utxo_processed?(&1, state)) == [false, false]
+    end
+
     @tag fixtures: [:alice, :state_empty]
     test "transaction input is missing in state", %{alice: alice, state_empty: state} do
       tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
@@ -97,23 +121,6 @@ defmodule OMG.State.CoreTest do
       |> fail?(:utxo_not_found)
     end
 
-    @tag fixtures: [:alice, :bob, :state_empty]
-    test "spending utxo that resist in db - double spend impossible",
-         %{alice: alice, bob: bob, state_empty: state} do
-      tx = create_recovered([{1000, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
-
-      db_utxos = make_utxos([{1000, 0, 0, alice, @eth, 10}])
-
-      state
-      |> Core.with_utxos(db_utxos)
-      |> Core.exec(tx, :no_fees_required)
-      |> success?()
-      # this is important - state is extended before applying tx
-      |> Core.with_utxos(db_utxos)
-      |> Core.exec(tx, :no_fees_required)
-      |> fail?(:utxo_not_found)
-    end
-
     @tag fixtures: [:state_alice_deposit]
     test "extending state with same utxos does not change it", %{state_alice_deposit: state} do
       db_utxos = state.utxos
@@ -146,7 +153,8 @@ defmodule OMG.State.CoreTest do
 
       {:ok, _, state1} = Core.exec(init_state, tx1, :no_fees_required)
 
-      assert %Core{recently_spent: [Utxo.position(1, 0, 0)]} = state1
+      %Core{recently_spent: spent1} = state1
+      assert MapSet.equal?(spent1, MapSet.new([Utxo.position(1, 0, 0)]))
 
       db_utxos = make_utxos([{1000, 0, 0, bob, @not_eth, 100}])
       tx2 = create_recovered([{1000, 0, 0, bob}], @not_eth, [{alice, 10}, {bob, 90}])
@@ -156,22 +164,25 @@ defmodule OMG.State.CoreTest do
         |> Core.with_utxos(db_utxos)
         |> Core.exec(tx2, :no_fees_required)
 
-      assert %Core{recently_spent: [Utxo.position(1000, 0, 0), Utxo.position(1, 0, 0)]} = state2
+      %Core{recently_spent: spent2} = state2
+      assert MapSet.equal?(spent2, MapSet.new([Utxo.position(1000, 0, 0), Utxo.position(1, 0, 0)]))
     end
 
     @tag fixtures: [:alice, :bob, :state_alice_deposit]
     test "form block drops recent spends", %{alice: alice, bob: bob, state_alice_deposit: state} do
       tx = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}])
+      expected_spends = MapSet.new([Utxo.position(1, 0, 0)])
 
       {:ok, _, state1} =
         state
         |> Core.exec(tx, :no_fees_required)
 
-      assert %Core{recently_spent: [Utxo.position(1, 0, 0)]} = state1
+      assert %Core{recently_spent: ^expected_spends} = state1
 
       {:ok, _, state2} = form_block_check(state1)
 
-      assert %Core{recently_spent: []} = state2
+      empty_mapset = MapSet.new()
+      assert %Core{recently_spent: ^empty_mapset} = state2
     end
   end
 
@@ -737,7 +748,6 @@ defmodule OMG.State.CoreTest do
     # persistence tested in-depth elsewhere
     amount_1 = 7
     amount_2 = 3
-    empty_db_utxos = %{}
 
     state =
       state
@@ -752,7 +762,7 @@ defmodule OMG.State.CoreTest do
     utxo_pos_exits = [utxo_pos_exit_1, utxo_pos_exit_2]
 
     assert {:ok, {[_ | _], {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}}, state_after_exit} =
-             Core.exit_utxos(utxo_pos_exits, state, empty_db_utxos)
+             Core.exit_utxos(utxo_pos_exits, state)
 
     state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :no_fees_required)
@@ -768,21 +778,18 @@ defmodule OMG.State.CoreTest do
     amount_2 = 3
 
     db_utxos = make_utxos([{@blknum1, 0, 0, alice, @eth, amount_1}, {@blknum1, 0, 1, alice, @eth, amount_2}])
+    extended_state = Core.with_utxos(state, db_utxos)
 
     utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
     utxo_pos_exit_2 = Utxo.position(@blknum1, 0, 1)
     utxo_pos_exits = [utxo_pos_exit_1, utxo_pos_exit_2]
 
     assert {:ok, {[_ | _], {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}}, state_after_exit} =
-             Core.exit_utxos(utxo_pos_exits, state, db_utxos)
+             Core.exit_utxos(utxo_pos_exits, extended_state)
 
-    # Note: `Core.exit_utxos` call does not delete utxos from db, so they will be fetched until db update
-    extended_state = Core.with_utxos(state_after_exit, db_utxos)
-
-    extended_state
+    state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :no_fees_required)
     |> fail?(:utxo_not_found)
-    |> same?(extended_state)
     |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{alice, 3}]), :no_fees_required)
     |> fail?(:utxo_not_found)
   end
@@ -790,7 +797,6 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :state_alice_deposit]
   test "removed utxo after piggyback from available utxo", %{alice: alice, state_alice_deposit: state} do
     # persistence tested in-depth elsewhere
-    empty_db_utxos = %{}
     tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
     state = state |> Core.exec(tx, :no_fees_required) |> success?
@@ -806,12 +812,12 @@ defmodule OMG.State.CoreTest do
     assert {:ok, {[], {[], _}}, ^state} =
              utxo_pos_exits_in_flight
              |> Core.get_exiting_utxos(state)
-             |> Core.exit_utxos(state, empty_db_utxos)
+             |> Core.exit_utxos(state)
 
     assert {:ok, {[_ | _], {[^expected_position], []}}, state_after_exit} =
              utxo_pos_exits_piggyback
              |> Core.get_exiting_utxos(state)
-             |> Core.exit_utxos(state, empty_db_utxos)
+             |> Core.exit_utxos(state)
 
     state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :no_fees_required)
@@ -824,8 +830,6 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :state_alice_deposit]
   test "removed in-flight inputs from available utxo", %{alice: alice, state_alice_deposit: state} do
     # persistence tested in-depth elsewhere
-    empty_db_utxos = %{}
-
     state =
       state
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}]), :no_fees_required)
@@ -838,8 +842,7 @@ defmodule OMG.State.CoreTest do
 
     exiting_utxos = Core.get_exiting_utxos(utxo_pos_exits_in_flight, state)
 
-    assert {:ok, {[_ | _], {[^expected_position], _}}, state_after_exit} =
-             Core.exit_utxos(exiting_utxos, state, empty_db_utxos)
+    assert {:ok, {[_ | _], {[^expected_position], _}}, state_after_exit} = Core.exit_utxos(exiting_utxos, state)
 
     state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :no_fees_required)
@@ -853,7 +856,7 @@ defmodule OMG.State.CoreTest do
   test "notifies about invalid utxo exiting", %{state_empty: state} do
     utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
 
-    assert {:ok, {[], {[], [^utxo_pos_exit_1]}}, ^state} = Core.exit_utxos([utxo_pos_exit_1], state, %{})
+    assert {:ok, {[], {[], [^utxo_pos_exit_1]}}, ^state} = Core.exit_utxos([utxo_pos_exit_1], state)
   end
 
   @tag fixtures: [:state_alice_deposit]
@@ -878,32 +881,30 @@ defmodule OMG.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "tells if utxo exists", %{alice: alice, state_empty: state} do
-    empty_db_utxos = %{}
-    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state, empty_db_utxos)
+    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
 
     state = state |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    assert Core.utxo_exists?(Utxo.position(1, 0, 0), state, empty_db_utxos)
+    assert Core.utxo_exists?(Utxo.position(1, 0, 0), state)
 
     state =
       state
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), :no_fees_required)
       |> success?
 
-    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state, empty_db_utxos)
+    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
   end
 
   @tag fixtures: [:alice, :state_empty]
   test "tells if utxo exists in db-extended state", %{alice: alice, state_empty: state} do
-    db_utxos = make_utxos([{1, 0, 0, alice, @eth, 10}])
-    assert Core.utxo_exists?(Utxo.position(1, 0, 0), state, db_utxos)
+    state = Core.with_utxos(state, make_utxos([{1, 0, 0, alice, @eth, 10}]))
+    assert Core.utxo_exists?(Utxo.position(1, 0, 0), state)
 
     state =
       state
-      |> Core.with_utxos(db_utxos)
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), :no_fees_required)
       |> success?
 
-    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state, db_utxos)
+    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
   end
 
   @tag fixtures: [:state_empty]
@@ -1059,9 +1060,9 @@ defmodule OMG.State.CoreTest do
     result
   end
 
-  defp make_utxos(utxos) when is_list(utxos), do: Enum.into(utxos, %{}, &to_utxos/1)
+  defp make_utxos(utxos) when is_list(utxos), do: Enum.into(utxos, %{}, &to_utxo_kv/1)
 
-  defp to_utxos({blknum, txindex, oindex, owner, currency, amount}),
+  defp to_utxo_kv({blknum, txindex, oindex, owner, currency, amount}),
     do: {
       Utxo.position(blknum, txindex, oindex),
       %Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner.addr}}

@@ -162,7 +162,7 @@ defmodule OMG.State.PersistenceTest do
              tx |> Transaction.get_inputs() |> hd() |> InputPointer.Protocol.to_db_key() |> OMG.DB.spent_blknum(db_pid)
   end
 
-  # mimics `&OMG.State.init/1`
+  # loads the state from DB including UTXO set`
   defp state_from(db_pid) do
     {:ok, height_query_result} = OMG.DB.get_single_value(:child_top_block_number, db_pid)
     {:ok, utxos_query_result} = OMG.DB.utxos(db_pid)
@@ -182,7 +182,7 @@ defmodule OMG.State.PersistenceTest do
   end
 
   defp persist_exit_utxos(state, exit_infos, db_pid) do
-    assert {:ok, {db_updates, _}, state} = exit_infos |> Core.get_exiting_utxos(state) |> Core.exit_utxos(state, %{})
+    assert {:ok, {db_updates, _}, state} = exit_infos |> Core.get_exiting_utxos(state) |> Core.exit_utxos(state)
     persist_common(state, db_updates, db_pid)
   end
 
@@ -203,5 +203,5 @@ defmodule OMG.State.PersistenceTest do
   end
 
   # NOTE: `recently_spent` is in-memory property of the %Core{}, which isn't persisted so it can't be recovered from db
-  defp drop_recently_spent(state), do: %Core{state | recently_spent: []}
+  defp drop_recently_spent(state), do: %Core{state | recently_spent: MapSet.new()}
 end

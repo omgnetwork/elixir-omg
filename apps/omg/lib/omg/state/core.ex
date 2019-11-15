@@ -18,7 +18,7 @@ defmodule OMG.State.Core do
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
 
-  defstruct [:height, utxos: %{}, pending_txs: [], tx_index: 0, utxo_db_updates: [], recently_spent: []]
+  defstruct [:height, utxos: %{}, pending_txs: [], tx_index: 0, utxo_db_updates: [], recently_spent: MapSet.new()]
 
   alias OMG.Block
   alias OMG.Crypto
@@ -44,7 +44,7 @@ defmodule OMG.State.Core do
           utxo_db_updates: list(db_update()),
           # NOTE: because UTXO set is not loaded from DB entirely, we need to remember the UTXOs spent in already
           # processed transaction before they get removed from DB on form_block.
-          recently_spent: list(Utxo.Position.t())
+          recently_spent: MapSet.t(Utxo.Position.t())
         }
 
   @type deposit() :: %{
@@ -117,11 +117,21 @@ defmodule OMG.State.Core do
   end
 
   @doc """
+  Tell whether utxo position was created or spend by current state.
+  It's an optimization as there is no need to ask DB of known utxos
+  """
+  @spec utxo_processed?(Utxo.Position.t(), t()) :: boolean()
+  def utxo_processed?(utxo_pos, %Core{utxos: utxos, recently_spent: recently_spent}) do
+    Map.has_key?(utxos, utxo_pos) or MapSet.member?(recently_spent, utxo_pos)
+  end
+
+  @doc """
   Extends in-memory utxo set with needed utxos loaded from DB
+  See also: State.init_utxos_from_db/2
   """
   @spec with_utxos(t(), utxos()) :: t()
-  def with_utxos(%Core{utxos: utxos, recently_spent: recently_spent} = state, db_utxos) do
-    %{state | utxos: UtxoSet.apply_effects(utxos, recently_spent, db_utxos)}
+  def with_utxos(%Core{utxos: utxos} = state, db_utxos) do
+    %{state | utxos: UtxoSet.apply_effects(utxos, [], db_utxos)}
   end
 
   @doc """
@@ -179,7 +189,7 @@ defmodule OMG.State.Core do
    - generates triggers for events
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
-   - clears `recently_spent` list
+   - clears `recently_spent` collection
   """
   @spec form_block(pos_integer(), pos_integer() | nil, state :: t()) ::
           {:ok, {Block.t(), [tx_event], [db_update]}, new_state :: t()}
@@ -212,7 +222,7 @@ defmodule OMG.State.Core do
         height: height + child_block_interval,
         pending_txs: [],
         utxo_db_updates: [],
-        recently_spent: []
+        recently_spent: MapSet.new()
     }
 
     {:ok, {block, event_triggers, db_updates}, new_state}
@@ -302,24 +312,22 @@ defmodule OMG.State.Core do
 
   @doc """
   Spends exited utxos.
+  Note: state passed here is already extended with DB.
   """
-  @spec exit_utxos(exiting_utxos :: list(Utxo.Position.t()), state :: t(), utxos_from_db :: utxos()) ::
+  @spec exit_utxos(exiting_utxos :: list(Utxo.Position.t()), state :: t()) ::
           {:ok, {[db_update], validities_t()}, new_state :: t()}
-  def exit_utxos([], %Core{} = state, _db_utxos), do: {:ok, {[], {[], []}}, state}
+  def exit_utxos([], %Core{} = state), do: {:ok, {[], {[], []}}, state}
 
   def exit_utxos(
         [Utxo.position(_, _, _) | _] = exiting_utxos,
-        %Core{utxos: utxos, recently_spent: recently_spent} = state,
-        db_utxos
+        %Core{utxos: utxos, recently_spent: recently_spent} = state
       ) do
     _ = Logger.info("Recognized exits #{inspect(exiting_utxos)}")
 
-    # NOTE: extending state with db's utxos once, to not merge it on every `utxo_exists?` call
-    extended_state = with_utxos(state, db_utxos)
-    {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, extended_state, %{}))
+    {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
 
     new_utxos = UtxoSet.apply_effects(utxos, valid, %{})
-    new_spends = Enum.concat(recently_spent, valid)
+    new_spends = MapSet.union(recently_spent, MapSet.new(valid))
     db_updates = UtxoSet.db_updates(valid, %{})
     new_state = %{state | utxos: new_utxos, recently_spent: new_spends}
 
@@ -327,17 +335,12 @@ defmodule OMG.State.Core do
   end
 
   @doc """
-  Checks whether utxo exists either in UTXO set from DB reduced by recent spends
-  or was just added and exists in in-memory set.
+  Checks whether utxo exists in UTXO set.
+  Note: state passed here is already extended with DB.
   """
-  @spec utxo_exists?(Utxo.Position.t(), t(), utxos()) :: boolean()
-  def utxo_exists?(
-        Utxo.position(_blknum, _txindex, _oindex) = utxo_pos,
-        %Core{utxos: utxos, recently_spent: recently_spent},
-        db_utxos
-      ) do
+  @spec utxo_exists?(Utxo.Position.t(), t()) :: boolean()
+  def utxo_exists?(Utxo.position(_blknum, _txindex, _oindex) = utxo_pos, %Core{utxos: utxos}) do
     utxos
-    |> UtxoSet.apply_effects(recently_spent, db_utxos)
     |> UtxoSet.exists?(utxo_pos)
   end
 
@@ -378,7 +381,7 @@ defmodule OMG.State.Core do
     %Core{
       state
       | utxos: new_utxos,
-        recently_spent: spent_input_pointers ++ recently_spent,
+        recently_spent: MapSet.union(recently_spent, MapSet.new(spent_input_pointers)),
         utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates
     }
   end
