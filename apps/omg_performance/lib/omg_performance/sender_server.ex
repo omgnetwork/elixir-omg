@@ -52,7 +52,9 @@ defmodule OMG.Performance.SenderServer do
     :last_tx,
     :child_chain_url,
     # tells whether recipients of the transactions should be random addresses (default) or self.
-    :randomized
+    :randomized,
+    # if not `nil` tells the sender to wait this much before sending a tx
+    :throttle_ms
   ]
 
   @opaque state :: %__MODULE__{
@@ -61,7 +63,8 @@ defmodule OMG.Performance.SenderServer do
             spender: map,
             last_tx: LastTx.t(),
             child_chain_url: binary(),
-            randomized: boolean()
+            randomized: boolean(),
+            throttle_ms: nil | non_neg_integer()
           }
 
   @doc """
@@ -81,10 +84,11 @@ defmodule OMG.Performance.SenderServer do
   Options:
     - :randomized - whether the non-change outputs of the txs sent out will be random or equal to sender (if `false`),
       defaults to `true`
+    - :throttle_ms - if provided, will wait this much before submitting the next tx
   """
   @spec init({pos_integer(), map(), pos_integer(), keyword()}) :: {:ok, state()}
   def init({seqnum, utxo, ntx_to_send, opts}) do
-    defaults = [randomized: true]
+    defaults = [randomized: true, throttle_ms: nil]
     opts = Keyword.merge(defaults, opts)
 
     _ =
@@ -122,10 +126,18 @@ defmodule OMG.Performance.SenderServer do
     {:noreply, newstate}
   end
 
-  defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx, randomized: randomized}) do
+  defp prepare_new_tx(%__MODULE__{
+         seqnum: seqnum,
+         spender: spender,
+         last_tx: last_tx,
+         randomized: randomized,
+         throttle_ms: throttle_ms
+       }) do
     to_spend = 1
     newamount = last_tx.amount - to_spend
     recipient = if randomized, do: TestHelper.generate_entity(), else: spender
+
+    if throttle_ms, do: Process.sleep(throttle_ms)
 
     _ =
       Logger.debug(
@@ -221,7 +233,8 @@ defmodule OMG.Performance.SenderServer do
         amount: amount
       },
       child_chain_url: Application.fetch_env!(:omg_watcher, :child_chain_url),
-      randomized: Keyword.get(opts, :randomized)
+      randomized: Keyword.get(opts, :randomized),
+      throttle_ms: Keyword.get(opts, :throttle_ms)
     }
   end
 

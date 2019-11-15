@@ -52,6 +52,7 @@ defmodule OMG.Performance.ExtendedPerftest do
     - :destdir - directory where the results will be put, relative to `pwd`, defaults to `"."`
     - :randomized - whether the non-change outputs of the txs sent out will be random or equal to sender (if `false`),
       defaults to `true`
+    - :throttle_ms - if provided, will wait this much before submitting the next tx
   """
   @spec start(pos_integer(), list(TestHelper.entity()), keyword()) :: :ok
   def start(ntx_to_send, spenders, opts \\ []) do

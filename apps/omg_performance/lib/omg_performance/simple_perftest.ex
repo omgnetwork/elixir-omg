@@ -50,6 +50,7 @@ defmodule OMG.Performance.SimplePerftest do
     - :block_every_ms - how often should the artificial block creation be triggered, defaults to `2000`
     - :randomized - whether the non-change outputs of the txs sent out will be random or equal to sender (if `false`),
       defaults to `true`
+    - :throttle_ms - if provided, will wait this much before submitting the next tx
 
     **NOTE**:
 
