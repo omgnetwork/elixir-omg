@@ -62,7 +62,7 @@ defmodule Support.RootChainHelper do
       backend,
       from,
       contract,
-      "startStandardExit((uint192,bytes,bytes,bytes))",
+      "startStandardExit((uint256,bytes,bytes,bytes))",
       [{utxo_pos, tx_bytes, output_guard_preimage, proof}],
       opts
     )

@@ -358,7 +358,7 @@ defmodule OMG.Eth.RootChain do
 
   defp prepare_exit_started(logs) do
     args = [:args]
-    types = ["(uint192,bytes,bytes,bytes)"]
+    types = ["(uint256,bytes,bytes,bytes)"]
     tuple_arg_names = [:utxo_pos, :output_tx, :output_guard_preimage, :output_tx_inclusion_proof]
 
     exits =
