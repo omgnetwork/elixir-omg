@@ -33,20 +33,20 @@ defmodule OMG.Eth.Encoding.ContractConstructor do
         ["0x1234", 1000, true]
       }
   """
-  @spec extract_params(list(tuple())) :: {list(), list()}
-  def extract_params(types_args) do
-    {types, args} =
-      Enum.reduce(types_args, {[], []}, fn item, {types, args} ->
+  @spec extract_params(types_values :: [tuple()]) :: {types :: [term()], values :: [term()]}
+  def extract_params(types_values) do
+    {types, values} =
+      Enum.reduce(types_values, {[], []}, fn item, {types, values} ->
         case item do
           {:tuple, elements} ->
-            {tuple_types, tuple_args} = extract_params(elements)
-            {[{:tuple, tuple_types} | types], [List.to_tuple(tuple_args) | args]}
+            {tuple_types, tuple_values} = extract_params(elements)
+            {[{:tuple, tuple_types} | types], [List.to_tuple(tuple_values) | values]}
 
           {type, arg} ->
-            {[type | types], [arg | args]}
+            {[type | types], [arg | values]}
         end
       end)
 
-    {Enum.reverse(types), Enum.reverse(args)}
+    {Enum.reverse(types), Enum.reverse(values)}
   end
 end

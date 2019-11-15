@@ -70,11 +70,11 @@ defmodule OMG.Eth.Encoding do
       ...> ])
       "00000000000000000000000000000000000000000000000000000000000000ff000000000000000000000000000000000000000000000000000000000000000568656c6c6f000000000000000000000000000000000000000000000000000000"
   """
-  @spec encode_constructor_params(list()) :: String.t()
-  def encode_constructor_params(types_args) do
-    {types, args} = ContractConstructor.extract_params(types_args)
+  @spec encode_constructor_params(types_values :: [tuple()]) :: abi_base16_encoded :: binary()
+  def encode_constructor_params(types_values) do
+    {types, values} = ContractConstructor.extract_params(types_values)
 
-    args
+    values
     |> ABI.TypeEncoder.encode_raw(types)
     # NOTE: we're not using `to_hex` because the `0x` will be appended to the bytecode already
     |> Base.encode16(case: :lower)
