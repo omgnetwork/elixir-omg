@@ -52,7 +52,8 @@ defmodule OMG.Eth.Encoding do
   end
 
   @doc """
-  Encodes a list of parameters to be used as smart contract constuctor arguments.
+  Encodes a list of smart contract constructor parameters into a base16 encoded-ABI that
+  solidity expects.
   """
   @spec encode_constructor_params(list()) :: String.t()
   def encode_constructor_params(types_args) do
@@ -64,6 +65,11 @@ defmodule OMG.Eth.Encoding do
     |> Base.encode16(case: :lower)
   end
 
+  @doc """
+  Reduces a list of smart contract constructor parameters into a tuple of types list
+  and values list, so that it can be passed into `ABI.TypeEncoder.encode_raw/1`.
+  """
+  @spec reduce_constructor_params(list()) :: {list(), list()}
   def reduce_constructor_params(types_args) do
     {types, args} =
       Enum.reduce(types_args, {[], []}, fn item, {types, args} ->
@@ -72,7 +78,7 @@ defmodule OMG.Eth.Encoding do
             {tuple_types, tuple_args} = reduce_constructor_params(elements)
             {[{:tuple, tuple_types} | types], [List.to_tuple(tuple_args) | args]}
 
-          {arg, type} ->
+          {type, arg} ->
             {[type | types], [arg | args]}
         end
       end)

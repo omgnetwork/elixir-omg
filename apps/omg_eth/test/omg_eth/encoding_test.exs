@@ -17,63 +17,122 @@ defmodule OMG.Eth.EncodingTest do
 
   alias OMG.Eth.Encoding
 
+  @moduletag :common
+
   describe "encode_constructor_params/1" do
-    test "encodes an empty list of params correctly" do
-      encoded = Encoding.encode_constructor_params([])
-      assert encoded == {[], []}
+    test "encoding an empty list of params returns an empty string" do
+      assert Encoding.encode_constructor_params([]) == ""
     end
 
-    test "encodes a list of types and arguments correctly" do
+    test "returns a valid base16 string when given a list of elementary types" do
       params = [
         {:address, "0x1234"},
         {{:uint, 256}, 1000},
         {{:uint, 256}, 2000},
-        {:bool, 1}
+        {:bool, true}
       ]
 
       encoded = Encoding.encode_constructor_params(params)
 
-      assert encoded == {
-        [:address, {:uint, 256}, {:uint, 256}, :bool],
-        ["0x1234", 1000, 2000, 1]
-      }
+      # This function mainly does encoding via `Elixir.Base` and `ABI.TypeEncoder`,
+      # so we'll assert just the expected format, but not the content.
+      assert {:ok, _} = Base.decode16(encoded, case: :lower)
     end
 
-    test "encodes a list with one tuple correctly" do
+    test "returns the correct list of types and values when given a list with one tuple" do
       params = [
         {:tuple, [
           {:address, "0x1234"},
           {{:uint, 256}, 1000},
-          {:bool, 1},
+          {:bool, true},
         ]}
       ]
 
       encoded = Encoding.encode_constructor_params(params)
 
-      assert encoded == {
-        [{:tuple, [:address, {:uint, 256}, :bool]}],
-        [{"0x1234", 1000, 1}]
-      }
+      # This function mainly does encoding via `Elixir.Base` and `ABI.TypeEncoder`,
+      # so we'll assert just the expected format, but not the content.
+      assert {:ok, _} = Base.decode16(encoded, case: :lower)
     end
 
-    test "encodes a list of tuple correctly" do
+    test "returns the correct list of types and values when given a list of tuples" do
       params = [
         {:tuple, [
           {:address, "0x1234"},
           {{:uint, 256}, 1000},
-          {:bool, 1},
+          {:bool, true},
         ]},
         {:tuple, [
           {{:uint, 128}, 2000},
-          {:bool, 0},
+          {:bool, false},
         ]}
       ]
 
       encoded = Encoding.encode_constructor_params(params)
 
+      # This function mainly does encoding via `Elixir.Base` and `ABI.TypeEncoder`,
+      # so we'll assert just the expected format, but not the content.
+      assert {:ok, _} = Base.decode16(encoded, case: :lower)
+    end
+  end
+
+  describe "reduce_constructor_params/1" do
+    test "returns a tuple of empty lists when given an empty list" do
+      encoded = Encoding.reduce_constructor_params([])
+      assert encoded == {[], []}
+    end
+
+    test "returns the correct list of types and values when given a list of elementary types" do
+      params = [
+        {:address, "0x1234"},
+        {{:uint, 256}, 1000},
+        {{:uint, 256}, 2000},
+        {:bool, true}
+      ]
+
+      encoded = Encoding.reduce_constructor_params(params)
+
+      assert encoded == {
+        [:address, {:uint, 256}, {:uint, 256}, :bool],
+        ["0x1234", 1000, 2000, true]
+      }
+    end
+
+    test "returns the correct list of types and values when given a list with one tuple" do
+      params = [
+        {:tuple, [
+          {:address, "0x1234"},
+          {{:uint, 256}, 1000},
+          {:bool, true},
+        ]}
+      ]
+
+      encoded = Encoding.reduce_constructor_params(params)
+
+      assert encoded == {
+        [{:tuple, [:address, {:uint, 256}, :bool]}],
+        [{"0x1234", 1000, true}]
+      }
+    end
+
+    test "returns the correct list of types and values when given a list of tuples" do
+      params = [
+        {:tuple, [
+          {:address, "0x1234"},
+          {{:uint, 256}, 1000},
+          {:bool, true},
+        ]},
+        {:tuple, [
+          {{:uint, 128}, 2000},
+          {:bool, false},
+        ]}
+      ]
+
+      encoded = Encoding.reduce_constructor_params(params)
+
       assert encoded == {
         [{:tuple, [:address, {:uint, 256}, :bool]}, {:tuple, [{:uint, 128}, :bool]}],
-        [{"0x1234", 1000, 1}, {2000, 0}]
+        [{"0x1234", 1000, true}, {2000, false}]
       }
     end
   end
