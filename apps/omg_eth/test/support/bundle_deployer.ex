@@ -80,13 +80,13 @@ defmodule Support.BundleDeployer do
     {:ok, _, eth_vault_addr} =
       Deployer.create_new("EthVault", root_path, deployer_addr,
         plasma_framework: plasma_framework_addr,
-        safe_gas_stipend: 2300
+        safe_gas_stipend: @safe_gas_stipend
       )
 
     {:ok, _, erc20_vault_addr} =
       Deployer.create_new("Erc20Vault", root_path, deployer_addr,
         plasma_framework: plasma_framework_addr,
-        safe_gas_stipend: 2300
+        safe_gas_stipend: @safe_gas_stipend
       )
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
