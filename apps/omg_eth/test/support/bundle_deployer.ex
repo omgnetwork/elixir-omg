@@ -40,7 +40,10 @@ defmodule Support.BundleDeployer do
   @morevp_protocol_marker 2
   @eth_vault_number 1
   @erc20_vault_number 2
-  #
+
+  # Same `safe_gas_stipend` value as `safeGasStipend` in plasma contracts' config.
+  # See: https://github.com/omisego/plasma-contracts/blob/master/plasma_framework/config.js#L18
+  @safe_gas_stipend 2300
 
   @eth Eth.RootChain.eth_pseudo_address()
 
@@ -154,7 +157,8 @@ defmodule Support.BundleDeployer do
         spending_condition: spending_condition_registry_addr,
         payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier_addr,
         tx_finalization_verifier: tx_finalization_verifier_addr,
-        tx_type: @payment_tx_marker
+        tx_type: @payment_tx_marker,
+        safe_gas_stipend: @safe_gas_stipend
       )
 
     {:ok, _, payment_output_to_payment_tx_condition_addr} =
