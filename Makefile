@@ -3,6 +3,14 @@ OVERRIDING_START ?= foreground
 help:
 	@echo "Dont Fear the Makefile"
 	@echo ""
+	@echo "PRE-LUMPHINI"
+	@echo "------------------"
+	@echo
+	@echo "If you want to connect to an existing network (Pre-Lumphini) with a Watcher \c"
+	@echo "and validate transactions. Run:"
+	@echo "  - \`make start-pre-lumphini-watcher\` \c"
+	@echo ""
+	@echo
 	@echo "DOCKER DEVELOPMENT"
 	@echo "------------------"
 	@echo ""
@@ -161,6 +169,10 @@ changelog:
 
 .PHONY: changelog
 
+###
+start-pre-lumphini-watcher:
+	docker-compose -f docker-compose-watcher.yml up
+###
 #
 # Docker
 #
