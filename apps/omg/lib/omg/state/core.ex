@@ -282,24 +282,22 @@ defmodule OMG.State.Core do
     |> exit_utxos(state)
   end
 
-  # list of IFE input/output piggybacked events
-  def exit_utxos([%{tx_hash: _} | _] = piggybacks, state) do
+  # list of IFE input piggybacked events (they're ignored)
+  def exit_utxos([%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggybacks, state) do
+    _ = Logger.info("Ignoring input piggybacks #{inspect(piggybacks)}")
+    {:ok, {[], {[], []}}, state}
+  end
+
+  # list of IFE output piggybacked events. This is used by the child chain only. `OMG.Watcher.ExitProcessor` figures out
+  # the utxo positions to exit on its own
+  def exit_utxos([%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggybacks, state) do
     _ = Logger.info("Recognized exits from piggybacks #{inspect(piggybacks)}")
 
-    {piggybacks_of_unknown_utxos, piggybacks_of_known_utxos} =
-      piggybacks
-      |> Enum.map(&find_utxo_matching_piggyback(&1, state))
-      |> Enum.zip(piggybacks)
-      |> Enum.split_with(fn {utxo, _} -> utxo == nil end)
-
-    {:ok, {db_updates, {valid, invalid}}, state} =
-      piggybacks_of_known_utxos
-      |> Enum.map(fn {{position, _}, _} -> position end)
-      |> exit_utxos(state)
-
-    {_unknown_piggybacks_positions, unknown_piggybacks} = Enum.unzip(piggybacks_of_unknown_utxos)
-
-    {:ok, {db_updates, {valid, invalid ++ unknown_piggybacks}}, state}
+    piggybacks
+    |> Enum.map(&find_utxo_matching_piggyback(&1, state))
+    |> Enum.filter(& &1)
+    |> Enum.map(fn {position, _} -> position end)
+    |> exit_utxos(state)
   end
 
   # list of utxo positions (decoded)

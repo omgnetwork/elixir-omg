@@ -209,6 +209,41 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert {:ok, _} = submit_transaction(second_output_spend)
   end
 
+  @tag fixtures: [:alice, :in_beam_child_chain, :alice_deposits]
+  test "check in-flight exit input piggybacking is ignored by the child chain",
+       %{alice: alice, alice_deposits: {deposit_blknum, _}} do
+    # create transaction, submit, wait for block publication
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}])
+    {:ok, %{"blknum" => blknum, "txindex" => txindex}} = tx |> Transaction.Signed.encode() |> submit_transaction()
+
+    %Transaction.Signed{sigs: in_flight_tx_sigs} =
+      in_flight_tx = OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}], @eth, [{alice, 5}])
+
+    proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], 0)
+
+    {:ok, %{"status" => "0x1"}} =
+      RootChainHelper.in_flight_exit(
+        Transaction.raw_txbytes(in_flight_tx),
+        get_input_txs([tx]),
+        [Utxo.Position.encode(Utxo.position(blknum, txindex, 0))],
+        [proof],
+        in_flight_tx_sigs,
+        alice.addr
+      )
+      |> DevHelper.transact_sync!()
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      in_flight_tx
+      |> Transaction.raw_txbytes()
+      |> RootChainHelper.piggyback_in_flight_exit_on_input(0, alice.addr)
+      |> DevHelper.transact_sync!()
+
+    exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
+    DevHelper.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+    # sanity check everything still lives
+    assert {:error, %{"code" => "submit:utxo_not_found"}} = tx |> Transaction.Signed.encode() |> submit_transaction()
+  end
+
   defp submit_transaction(tx) do
     TestHelper.rpc_call(:post, "/transaction.submit", %{transaction: Encoding.to_hex(tx)})
     |> get_body_data()
