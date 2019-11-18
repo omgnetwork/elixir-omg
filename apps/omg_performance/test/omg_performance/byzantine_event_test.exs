@@ -151,7 +151,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     transactions =
       Generators.stream_transactions(sent_by: alice.addr, take: 5, no_deposit_spends: true)
-      |> ByzantineEvents.mutate_txs([alice.priv])
+      |> ByzantineEvents.Mutations.mutate_txs([alice.priv])
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       transactions
@@ -193,7 +193,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
     :ok = ByzantineEvents.watcher_synchronize()
 
     transactions = Generators.stream_transactions(sent_by: alice.addr, take: 5, no_deposit_spends: true)
-    mutated_transactions = ByzantineEvents.mutate_txs(transactions, [alice.priv])
+    mutated_transactions = ByzantineEvents.Mutations.mutate_txs(transactions, [alice.priv])
 
     {:ok, %{"status" => "0x1"}} =
       transactions
@@ -217,8 +217,6 @@ defmodule OMG.Performance.ByzantineEventsTest do
     :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_response_height)
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_ife_challenge")) == 0
   end
-
-  # FIXME: similar: make a test for timing the system under many valid output piggybacks (just piggyback on 1st output)
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
   test "can provide timing of operations under many output-invalid IFEs", %{perf_test: {:ok, %{destdir: destdir}}} do

@@ -39,16 +39,10 @@ defmodule OMG.Performance.ByzantineEvents do
   use OMG.Utils.LoggerExt
 
   alias OMG.Performance.HttpRPC.WatcherClient
+  alias OMG.Performance.ByzantineEvents.TransactionCreator
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.State.Transaction
   alias Support.WaitFor
-
-  alias OMG.Utxo
-
-  require Utxo
-
-  @unique_metadata OMG.Crypto.hash("something outstandingly unique")
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @doc """
   For given utxo positions shuffle them and ask the watcher for exit data
@@ -66,7 +60,7 @@ defmodule OMG.Performance.ByzantineEvents do
   exit_datas = timeit ByzantineEvents.get_many_standard_exits(utxo_positions)
   ```
 
-  NOTE this uses unspent UTXOs creating valid exits for `alice`. For invalid exits do
+  **NOTE** this uses unspent UTXOs creating valid exits for `alice`. For invalid exits do
 
   ```
   utxo_positions = Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
@@ -100,9 +94,8 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
-  # FIXME docs specs
   @doc """
-  For given utxo positions shuffle them and ask the watcher for exit data
+  For given transactions shuffle them and ask the watcher for IFE data
 
   ## Usage
 
@@ -110,18 +103,25 @@ defmodule OMG.Performance.ByzantineEvents do
 
   ```
   alice = Enum.at(spenders, 0)
-
   :ok = ByzantineEvents.watcher_synchronize()
 
-  utxo_positions = ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
-  exit_datas = timeit ByzantineEvents.get_many_standard_exits(utxo_positions)
+  transactions =
+    ByzantineEvents.get_exitable_utxos(alice.addr, take: 5) \
+    |> ByzantineEvents.get_many_new_txs(alice)
+
+  ife_datas = timeit ByzantineEvents.get_many_ifes(transactions)
   ```
 
-  NOTE this uses unspent UTXOs creating valid exits for `alice`. For invalid exits do
+  **NOTE** this uses unspent UTXOs creating valid IFEs for `alice`. For invalid IFEs (double-spent inputs) do
 
+  transactions =
+    Generators.stream_transactions(sent_by: alice.addr, take: 50, no_deposit_spends: true) \
+    |> ByzantineEvents.Mutations.mutate_txs([alice.priv])
+
+  ife_datas = timeit ByzantineEvents.get_many_ifes(transactions)
   ```
-  utxo_positions = Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
-  ```
+
+  This will IFE using mutated versions of included txs, the IFEs will be non-canonical
   """
   @spec get_many_ifes(list(Transaction.Signed.tx_bytes())) :: list(map())
   def get_many_ifes(txs) do
@@ -131,22 +131,28 @@ defmodule OMG.Performance.ByzantineEvents do
     |> only_successes()
   end
 
-  # FIXME docsspecs
-  # FIXME not sure if this approach is nice at all, depends on test helper and all...
-  @spec get_many_new_txs(list(pos_integer()), OMG.TestHelper.entity()) :: list(Transaction.Signed.tx_bytes())
-  def get_many_new_txs(encoded_utxo_positions, owner) do
-    Enum.map(encoded_utxo_positions, fn utxo_pos ->
-      Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode!(utxo_pos)
-      # FIXME: for now it's not possible, but maybe revisit this and make this transaction hold multiple outputs?
-      OMG.TestHelper.create_encoded([{blknum, txindex, oindex, owner}], @eth, [{owner, 1}])
-    end)
-  end
-
-  # FIXME docsspecs
   @doc """
-  For given standard exit datas (maps received from the Watcher) start all the exits in the root chain contract.
+  For given utxo positions, craft some more transactions from the `owner`. Transactions return follow the same format
+  as `OMG.Performance.Generators.stream_transactions` and are ready to push to `get_many_ifes`
 
-  Will use `owner_address` to start the exits so this address must own all the supplied UTXOs to exit.
+  ## Usage
+
+  On top of the generic setup (see above) do:
+
+  ```
+  transactions =
+    ByzantineEvents.get_exitable_utxos(alice.addr, take: 5) \
+    |> ByzantineEvents.get_many_new_txs(alice)
+  ```
+  """
+  @spec get_many_new_txs(list(pos_integer()), OMG.TestHelper.entity()) :: list(Transaction.Signed.tx_bytes())
+  def get_many_new_txs(encoded_utxo_positions, user),
+    do: Enum.map(encoded_utxo_positions, &TransactionCreator.spend_utxo_by(&1, user.addr, user.priv, 1))
+
+  @doc """
+  For given IFE datas (maps received from the Watcher) start all the exits in the root chain contract.
+
+  Will use `user_address` to start the exits, it can be any funded address.
 
   Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
   the receipt of the last transaction sent out.
@@ -165,28 +171,23 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
-  # FIXME docs specs
   @doc """
-  For given utxo positions shuffle them and ask the watcher for exit data
+  For given transactions shuffle them and ask the watcher for piggyback data (inputs or outputs)
 
   ## Usage
 
-  On top of the generic setup (see above) do:
+  On top of the generic setup, with many IFEs started by `alice` from `transactions` (see above) do:
+
+  NOTE this uses inputs/outputs of the provided transactions, so the piggybacks' validity will depend on what txs those
+  are
 
   ```
-  alice = Enum.at(spenders, 0)
-
-  :ok = ByzantineEvents.watcher_synchronize()
-
-  utxo_positions = ByzantineEvents.get_exitable_utxos(alice.addr, take: 20)
-  exit_datas = timeit ByzantineEvents.get_many_standard_exits(utxo_positions)
+  piggyback_datas = ByzantineEvents.get_many_piggybacks(transactions)
   ```
 
-  NOTE this uses unspent UTXOs creating valid exits for `alice`. For invalid exits do
+  For a nicer way to start _valid_ piggybacks see `get_many_piggybacks_from_available`
 
-  ```
-  utxo_positions = Generators.stream_utxo_positions(owned_by: alice.addr, take: 20)
-  ```
+  **NOTE** no point in timing it, it doesn't ask the watcher as the piggyback data is trivial to obtain
   """
   @spec get_many_piggybacks(list(Transaction.Signed.tx_bytes()), keyword()) :: list(map())
   def get_many_piggybacks(txs, opts \\ []) do
@@ -199,7 +200,21 @@ defmodule OMG.Performance.ByzantineEvents do
     |> Enum.map(&%{raw_txbytes: Transaction.raw_txbytes(&1), output_index: output_index, piggyback_type: type})
   end
 
-  # FIXME specsdocs
+  @doc """
+  For given replies from `status.get` ("piggyback_available" field), asks the watcher for piggyback data (all)
+
+  ## Usage
+
+  On top of the generic setup, with many IFEs started by `alice` from `transactions` (see above) do:
+
+  ```
+  available = ByzantineEvents.get_byzantine_events("piggyback_available")
+  piggyback_datas = ByzantineEvents.get_many_piggybacks_from_available(available)
+  ```
+
+  **NOTE** no point in timing it, it doesn't ask the watcher as the piggyback data is trivial to obtain
+  """
+  @spec get_many_piggybacks_from_available(list(map())) :: list(map())
   def get_many_piggybacks_from_available(available_entries) do
     Enum.flat_map(available_entries, fn {txbytes, inputs, outputs} ->
       input_piggybacks = Enum.map(inputs, &%{raw_txbytes: txbytes, output_index: &1, piggyback_type: :input})
@@ -208,11 +223,10 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
-  # FIXME docsspecs
   @doc """
-  For given standard exit datas (maps received from the Watcher) start all the exits in the root chain contract.
+  For given piggyback datas (maps received from the Watcher) piggyback in the root chain contract.
 
-  Will use `owner_address` to start the exits so this address must own all the supplied UTXOs to exit.
+  Will use `user_address` to start the exits, it can be any funded address.
 
   Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
   the receipt of the last transaction sent out.
@@ -250,7 +264,6 @@ defmodule OMG.Performance.ByzantineEvents do
   utxos_to_challenge = timeit ByzantineEvents.get_byzantine_events("invalid_exit")
   challenge_responses = timeit ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
   ```
-
   """
   @spec get_many_se_challenges(list(pos_integer())) :: list(map())
   def get_many_se_challenges(positions) do
@@ -282,20 +295,19 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
-  # FIXME docsspecs x2
   @doc """
-  For given utxo positions shuffle them and ask the watcher for challenge data. All positions must be invalid exits
+  For given transactions shuffle them and ask the watcher for IFE challenge data. All transactions must ones that were
+  used to start non-canonical IFEs with viable competitors known
 
   ## Usage
 
-  Having some invalid exits out there (see above), last of which started at `last_exit_height`, do:
+  Having some challengable IFEs out there (see above), last of which started at `last_exit_height`, do:
 
   ```
   :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
-  utxos_to_challenge = timeit ByzantineEvents.get_byzantine_events("invalid_exit")
-  challenge_responses = timeit ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
+  to_challenge = timeit ByzantineEvents.get_byzantine_events("non_canonical_ife")
+  challenge_responses = timeit ByzantineEvents.get_many_non_canonical_proofs(to_challenge)
   ```
-
   """
   @spec get_many_non_canonical_proofs(list(Transaction.txbytes())) :: list(map())
   def get_many_non_canonical_proofs(txs) do
@@ -305,7 +317,27 @@ defmodule OMG.Performance.ByzantineEvents do
     |> only_successes()
   end
 
-  # FIXME specsdocs, document all the heavy assumptions
+  @doc """
+  For given transactions shuffle them and ask the watcher for invalid-IFE challenge data. Returns whatever
+  `get_many_non_canonical_proofs/1` returns and takes in a collection of IFE txs, but has a bunch of caveats:
+    - caller must provide a matching collection of transactions that are competitors to the IFE txs
+    - the double-spent inputs must always be on position 0 in all the transactions, both IFE txs and competitors given
+    - **NOTE** this hackingly uses the `get_in_flight_exit` call, in order to easly get to the input txs data
+
+  Observe, that this is a quite limited helper, covering for something that the Watcher doesn't support, being a
+  byzantine action - opening invalid IFE challenges; hence the hackiness.
+
+  ## Usage
+
+  Having some IFEs out there (see above), last of which started at `last_exit_height`, do:
+
+  ```
+  :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
+  mutated_transactions = ByzantineEvents.Mutations.mutate_txs(transactions, [alice.priv])
+  to_challenge = timeit ByzantineEvents.get_many_invalid_non_canonical_proofs(transactions, mutated_transactions)
+  challenge_responses = timeit ByzantineEvents.get_many_non_canonical_proofs(to_challenge)
+  ```
+  """
   @spec get_many_invalid_non_canonical_proofs(list(Transaction.Signed.txbytes()), list(Transaction.Signed.txbytes())) ::
           list(map())
   def get_many_invalid_non_canonical_proofs(in_flight_txs, competitor_txs) do
@@ -356,22 +388,21 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
-  # FIXME docsspecs x2
   @doc """
-  For given utxo positions shuffle them and ask the watcher for challenge data. All positions must be invalid exits
+  For given transactions shuffle them and ask the watcher for responses to invalid IFE challenges. All transactions must
+  ones that were used to start a canonical IFEs with invalid competitors being used to challenge canonicity.
 
   ## Usage
 
-  Having some invalid exits out there (see above), last of which started at `last_exit_height`, do:
+  Having some badly challenged IFEs out there (see above), last of which started at `last_exit_height`, do:
 
   ```
   :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
-  utxos_to_challenge = timeit ByzantineEvents.get_byzantine_events("invalid_exit")
-  challenge_responses = timeit ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
+  to_challenge = timeit ByzantineEvents.get_byzantine_events("invalid_ife_challenge")
+  challenge_responses = timeit ByzantineEvents.get_many_canonicity_responses(to_challenge)
   ```
-
   """
-  @spec get_many_canonicity_responses(list(Transaction.txbytes())) :: list(map())
+  @spec get_many_canonicity_responses(list(Transaction.Signed.txbytes())) :: list(map())
   def get_many_canonicity_responses(txs) do
     txs
     |> Enum.shuffle()
@@ -399,20 +430,19 @@ defmodule OMG.Performance.ByzantineEvents do
     end)
   end
 
-  # FIXME docsspecs x2
   @doc """
-  For given utxo positions shuffle them and ask the watcher for challenge data. All positions must be invalid exits
+  For given a collection of `{transaction, invalid_input_ids, invalid_output_ids}` shuffle them and ask the watcher for
+  corresponding piggyback challenges. All transactions must ones that were used to start IFEs having invalid piggybacks
 
   ## Usage
 
-  Having some invalid exits out there (see above), last of which started at `last_exit_height`, do:
+  Having some challengable piggybacks out there (see above), last of which started at `last_exit_height`, do:
 
   ```
   :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
-  utxos_to_challenge = timeit ByzantineEvents.get_byzantine_events("invalid_exit")
-  challenge_responses = timeit ByzantineEvents.get_many_se_challenges(utxos_to_challenge)
+  to_challenge = timeit ByzantineEvents.get_byzantine_events("invalid_piggyback")
+  challenge_responses = timeit ByzantineEvents.get_many_non_canonical_proofs(to_challenge)
   ```
-
   """
   @spec get_many_piggyback_challenges(list({Transaction.txbytes(), list(non_neg_integer), list(non_neg_integer)})) ::
           list(map())
@@ -471,7 +501,7 @@ defmodule OMG.Performance.ByzantineEvents do
   On top of the generic setup (see above) do:
 
   ```
-  timeit ByzantineEvents.get_exitable_utxos(alice.addr)
+  utxo_positions = timeit ByzantineEvents.get_exitable_utxos(alice.addr)
   ```
 
   Options:
@@ -483,15 +513,6 @@ defmodule OMG.Performance.ByzantineEvents do
     utxo_positions = Enum.map(utxos, & &1.utxo_pos)
 
     if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
-  end
-
-  # FIXMEspecsdocs
-  def mutate_txs(txs, signers_priv_keys) do
-    txs
-    |> Enum.map(&Transaction.Signed.decode!/1)
-    |> Enum.map(fn %Transaction.Signed{raw_tx: raw_tx} -> %{raw_tx | metadata: @unique_metadata} end)
-    |> Enum.map(&OMG.DevCrypto.sign(&1, signers_priv_keys))
-    |> Enum.map(&Transaction.Signed.encode/1)
   end
 
   @doc """

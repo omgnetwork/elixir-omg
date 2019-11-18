@@ -88,7 +88,8 @@ defmodule OMG.Performance.Generators do
     if opts[:take], do: Enum.take(transactions, opts[:take]), else: transactions
   end
 
-  # FIXME: whoops, we cannot open IFEs from included txs spending deposits. When fixed, remove this filter
+  # NOTE: whoops, we cannot open IFEs from included txs spending deposits. When fixed, remove this filter
+  #       https://github.com/omisego/elixir-omg/issues/1128
   defp no_deposit_spends?(txbytes) do
     txbytes
     |> Transaction.Signed.decode!()
