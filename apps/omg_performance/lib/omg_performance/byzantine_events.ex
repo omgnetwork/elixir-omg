@@ -547,40 +547,37 @@ defmodule OMG.Performance.ByzantineEvents do
   @spec get_byzantine_events(String.t()) :: list(map())
   def get_byzantine_events(event_name) do
     get_byzantine_events()
-    |> Enum.filter(&(&1["event"] == event_name))
+    |> Enum.filter(&(&1.event == event_name))
     |> postprocess_byzantine_events(event_name)
   end
 
-  defp postprocess_byzantine_events(events, "invalid_exit"), do: Enum.map(events, & &1["details"]["utxo_pos"])
-  # FIXME: the decode should be elsewhere I think. Or at least nicen/refactor all the clauses!!! this is a mess
-  defp postprocess_byzantine_events(events, "non_canonical_ife"),
-    do:
-      Enum.map(events, & &1["details"]["txbytes"])
-      |> Enum.map(&Encoding.from_hex/1)
-      |> Enum.map(fn {:ok, result} -> result end)
+  defp postprocess_byzantine_events(events, "invalid_exit"), do: Enum.map(events, & &1.details.utxo_pos)
 
-  defp postprocess_byzantine_events(events, "invalid_ife_challenge"),
-    do:
-      Enum.map(events, & &1["details"]["txbytes"])
-      |> Enum.map(&Encoding.from_hex/1)
-      |> Enum.map(fn {:ok, result} -> result end)
+  defp postprocess_byzantine_events(events, canonicity_related_event_name)
+       when canonicity_related_event_name in ["non_canonical_ife", "invalid_ife_challenge"] do
+    events
+    |> Enum.map(& &1.details.txbytes)
+    |> Enum.map(&from_hex!/1)
+  end
 
-  defp postprocess_byzantine_events(events, "piggyback_available"),
-    do:
-      Enum.map(
-        events,
-        &{&1["details"]["txbytes"], &1["details"]["available_inputs"], &1["details"]["available_outputs"]}
-      )
-      |> Enum.map(fn {tx, inputs, outputs} ->
-        {Encoding.from_hex(tx), Enum.map(inputs, & &1["index"]), Enum.map(outputs, & &1["index"])}
-      end)
-      |> Enum.map(fn {{:ok, result}, inputs, outputs} -> {result, inputs, outputs} end)
+  defp postprocess_byzantine_events(events, "piggyback_available") do
+    events
+    |> Enum.map(&{&1.details.txbytes, &1.details.available_inputs, &1.details.available_outputs})
+    |> Enum.map(fn {tx, inputs, outputs} ->
+      {from_hex!(tx), Enum.map(inputs, & &1.index), Enum.map(outputs, & &1.index)}
+    end)
+  end
 
-  defp postprocess_byzantine_events(events, "invalid_piggyback"),
-    do:
-      Enum.map(events, &{&1["details"]["txbytes"], &1["details"]["inputs"], &1["details"]["outputs"]})
-      |> Enum.map(fn {tx, inputs, outputs} -> {Encoding.from_hex(tx), inputs, outputs} end)
-      |> Enum.map(fn {{:ok, result}, inputs, outputs} -> {result, inputs, outputs} end)
+  defp postprocess_byzantine_events(events, "invalid_piggyback") do
+    events
+    |> Enum.map(&{&1.details.txbytes, &1.details.inputs, &1.details.outputs})
+    |> Enum.map(fn {tx, inputs, outputs} -> {from_hex!(tx), inputs, outputs} end)
+  end
+
+  defp from_hex!(hex) do
+    {:ok, result} = Encoding.from_hex(hex)
+    result
+  end
 
   # this allows one to map a contract-transacting function over a collection nicely.
   # It initiates all the transactions concurrently. Then it waits on all of them to mine successfully.

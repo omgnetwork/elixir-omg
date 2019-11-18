@@ -93,7 +93,9 @@ defmodule OMG.Utils.HttpRPC.ClientAdapter do
 
   defp convert_keys_to_atoms(data) when is_map(data) do
     data
-    |> Stream.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
+    |> Stream.map(fn {k, v} -> {String.to_existing_atom(k), convert_keys_to_atoms(v)} end)
     |> Map.new()
   end
+
+  defp convert_keys_to_atoms(other_data), do: other_data
 end
