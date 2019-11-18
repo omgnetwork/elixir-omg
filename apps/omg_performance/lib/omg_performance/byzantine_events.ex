@@ -71,7 +71,6 @@ defmodule OMG.Performance.ByzantineEvents do
     exit_positions
     |> Enum.shuffle()
     |> Enum.map(&WatcherClient.get_exit_data/1)
-    |> only_successes()
   end
 
   @doc """
@@ -128,7 +127,6 @@ defmodule OMG.Performance.ByzantineEvents do
     txs
     |> Enum.shuffle()
     |> Enum.map(&WatcherClient.get_in_flight_exit/1)
-    |> only_successes()
   end
 
   @doc """
@@ -270,7 +268,6 @@ defmodule OMG.Performance.ByzantineEvents do
     positions
     |> Enum.shuffle()
     |> Enum.map(&WatcherClient.get_exit_challenge/1)
-    |> only_successes()
   end
 
   @doc """
@@ -314,7 +311,6 @@ defmodule OMG.Performance.ByzantineEvents do
     txs
     |> Enum.shuffle()
     |> Enum.map(&WatcherClient.get_in_flight_exit_competitors/1)
-    |> only_successes()
   end
 
   @doc """
@@ -343,7 +339,6 @@ defmodule OMG.Performance.ByzantineEvents do
   def get_many_invalid_non_canonical_proofs(in_flight_txs, competitor_txs) do
     competitor_txs
     |> Enum.map(&WatcherClient.get_in_flight_exit/1)
-    |> only_successes()
     |> Enum.zip(in_flight_txs)
     |> Enum.map(fn {mutated_tx_ife_data, txbytes} ->
       tx = OMG.State.Transaction.Signed.decode!(txbytes)
@@ -407,7 +402,6 @@ defmodule OMG.Performance.ByzantineEvents do
     txs
     |> Enum.shuffle()
     |> Enum.map(&WatcherClient.get_prove_canonical/1)
-    |> only_successes()
   end
 
   @doc """
@@ -454,7 +448,6 @@ defmodule OMG.Performance.ByzantineEvents do
       output_challenges = Enum.map(outputs, &WatcherClient.get_output_challenge_data(tx, &1))
       Enum.concat(input_challenges, output_challenges)
     end)
-    |> only_successes()
   end
 
   @doc """
@@ -509,8 +502,10 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec get_exitable_utxos(OMG.Crypto.address_t(), keyword()) :: list(pos_integer())
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
-    {:ok, utxos} = WatcherClient.get_exitable_utxos(addr)
-    utxo_positions = Enum.map(utxos, & &1.utxo_pos)
+    utxo_positions =
+      addr
+      |> WatcherClient.get_exitable_utxos()
+      |> Enum.map(& &1.utxo_pos)
 
     if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
   end
@@ -540,8 +535,7 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec get_byzantine_events() :: list(map())
   def get_byzantine_events() do
-    {:ok, status_response} = WatcherClient.get_status()
-    status_response[:byzantine_events]
+    WatcherClient.get_status()[:byzantine_events]
   end
 
   @doc """
@@ -585,8 +579,6 @@ defmodule OMG.Performance.ByzantineEvents do
       |> Enum.map(fn {tx, inputs, outputs} -> {Encoding.from_hex(tx), inputs, outputs} end)
       |> Enum.map(fn {{:ok, result}, inputs, outputs} -> {result, inputs, outputs} end)
 
-  defp only_successes(responses), do: Enum.map(responses, fn {:ok, response} -> response end)
-
   # this allows one to map a contract-transacting function over a collection nicely.
   # It initiates all the transactions concurrently. Then it waits on all of them to mine successfully.
   # Returns the last receipt result, so you can synchronize on the block number returned (and the entire bundle of txs)
@@ -617,7 +609,7 @@ defmodule OMG.Performance.ByzantineEvents do
   # This function is prepared to be called in `WaitFor.ok`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
   defp watcher_synchronized?(root_chain_height) do
-    {:ok, status} = WatcherClient.get_status()
+    status = WatcherClient.get_status()
 
     with true <- watcher_synchronized_to_mined_block?(status),
          true <- root_chain_synced?(root_chain_height, status) do

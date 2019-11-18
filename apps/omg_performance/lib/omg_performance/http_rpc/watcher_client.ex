@@ -14,7 +14,15 @@
 
 defmodule OMG.Performance.HttpRPC.WatcherClient do
   @moduledoc """
-  Provides access to Watcher's RPC API
+  Provides access to Watcher's RPC API, as required by the `OMG.Performance` tool
+
+
+  TODO: This module includes a big fat copy paster from `Support.WatcherHelper` - do sth about this later
+  We need an exact set of functionalities from the `omg_performance`'s Watcher client, but they're executed
+  differently, because in here we're calling the Watcher's API on a slightly different level (full HTTP stack)
+  Differences:
+   - atoms not strings as keys
+   - don't have the many helpers to assert `success?`/`no_success?` etc., success is always expected
   """
 
   alias OMG.Utils.HttpRPC.ClientAdapter
@@ -23,9 +31,9 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
 
   require Utxo
 
-  #
-  # TODO: here begins a big fat copy paster from `watcher_helper.ex` - do sth about this later
-  #
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_balance(address, token) do
     encoded_token = Encoding.to_hex(token)
 
@@ -35,42 +43,66 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
     |> Map.get("amount")
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_utxos(address) do
-    success?("/account.get_utxos", %{:address => Encoding.to_hex(address)})
+    call("/account.get_utxos", %{:address => Encoding.to_hex(address)})
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_exitable_utxos(address) do
-    success?("/account.get_exitable_utxos", %{:address => Encoding.to_hex(address)})
+    call("/account.get_exitable_utxos", %{:address => Encoding.to_hex(address)})
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_balance(address) do
-    success?("/account.get_balance", %{:address => Encoding.to_hex(address)})
+    call("/account.get_balance", %{:address => Encoding.to_hex(address)})
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_exit_data(blknum, txindex, oindex),
     do: get_exit_data(Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)))
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_exit_data(encoded_position) do
-    data = success?("utxo.get_exit_data", %{utxo_pos: encoded_position})
-    decode_response(data, [:txbytes, :proof])
+    data = call("utxo.get_exit_data", %{utxo_pos: encoded_position})
+    ClientAdapter.decode16(data, [:txbytes, :proof])
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_exit_challenge(utxo_pos) do
-    data = success?("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
+    data = call("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
 
-    decode_response(data, [:exiting_tx, :txbytes, :sig])
+    ClientAdapter.decode16(data, [:exiting_tx, :txbytes, :sig])
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_in_flight_exit(transaction) do
-    exit_data = success?("in_flight_exit.get_data", %{txbytes: Encoding.to_hex(transaction)})
+    exit_data = call("in_flight_exit.get_data", %{txbytes: Encoding.to_hex(transaction)})
 
-    decode_response(exit_data, [:in_flight_tx, :input_txs, :input_txs_inclusion_proofs, :in_flight_tx_sigs])
+    ClientAdapter.decode16(exit_data, [:in_flight_tx, :input_txs, :input_txs_inclusion_proofs, :in_flight_tx_sigs])
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_in_flight_exit_competitors(transaction) do
-    competitor_data = success?("in_flight_exit.get_competitor", %{txbytes: Encoding.to_hex(transaction)})
+    competitor_data = call("in_flight_exit.get_competitor", %{txbytes: Encoding.to_hex(transaction)})
 
-    decode_response(competitor_data, [
+    ClientAdapter.decode16(competitor_data, [
       :in_flight_txbytes,
       :competing_txbytes,
       :competing_sig,
@@ -79,26 +111,35 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
     ])
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_prove_canonical(transaction) do
-    competitor_data = success?("in_flight_exit.prove_canonical", %{txbytes: Encoding.to_hex(transaction)})
+    competitor_data = call("in_flight_exit.prove_canonical", %{txbytes: Encoding.to_hex(transaction)})
 
-    decode_response(competitor_data, [:in_flight_txbytes, :in_flight_proof])
+    ClientAdapter.decode16(competitor_data, [:in_flight_txbytes, :in_flight_proof])
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def submit(transaction) do
-    submission_info = success?("transaction.submit", %{transaction: Encoding.to_hex(transaction)})
+    submission_info = call("transaction.submit", %{transaction: Encoding.to_hex(transaction)})
 
-    decode_response(submission_info, ["txhash"])
+    ClientAdapter.decode16(submission_info, ["txhash"])
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_input_challenge_data(transaction, input_index) do
     proof_data =
-      success?("in_flight_exit.get_input_challenge_data", %{
+      call("in_flight_exit.get_input_challenge_data", %{
         txbytes: Encoding.to_hex(transaction),
         input_index: input_index
       })
 
-    decode_response(proof_data, [
+    ClientAdapter.decode16(proof_data, [
       :in_flight_txbytes,
       :spending_txbytes,
       :spending_sig,
@@ -106,14 +147,17 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
     ])
   end
 
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_output_challenge_data(transaction, output_index) do
     proof_data =
-      success?("in_flight_exit.get_output_challenge_data", %{
+      call("in_flight_exit.get_output_challenge_data", %{
         txbytes: Encoding.to_hex(transaction),
         output_index: output_index
       })
 
-    decode_response(proof_data, [
+    ClientAdapter.decode16(proof_data, [
       :in_flight_txbytes,
       :in_flight_proof,
       :spending_txbytes,
@@ -121,27 +165,16 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
     ])
   end
 
-  # here ends the copy-paste
-  #
-
-  # some functions that I added, following the copy-pasted convention above
-
+  @doc """
+  Copied from `Support.WatcherHelper`, see moduledoc
+  """
   def get_status() do
-    success?("status.get", %{})
+    call("status.get", %{})
   end
 
-  # here are some copy-paste-related functions to get it off the ground
-  # FIXME: we're not asserting success here, rename
-  defp success?(path, body) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-    {:ok, data} = call(body, path, watcher_url)
+  defp call(path, body) do
+    url = Application.fetch_env!(:omg_performance, :watcher_url)
+    {:ok, response} = ClientAdapter.rpc_post(body, path, url) |> ClientAdapter.get_response_body()
+    response
   end
-
-  # end those functions here
-
-  defp call(params, path, url),
-    do: ClientAdapter.rpc_post(params, path, url) |> ClientAdapter.get_response_body()
-
-  defp decode_response({:ok, response}, keys), do: {:ok, ClientAdapter.decode16(response, keys)}
-  defp decode_response(other, _), do: other
 end

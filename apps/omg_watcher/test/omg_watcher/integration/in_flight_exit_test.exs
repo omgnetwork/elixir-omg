@@ -105,7 +105,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
                # only piggyback_available for tx2 is present, tx1 is included in block and does not spawn that event
                %{"event" => "piggyback_available"}
              ]
-           } = WatcherHelper.success?("/status.get")
+           } = WatcherHelper.get_status()
 
     # ask for proofs
     assert %{"in_flight_txbytes" => ^submitted_txbytes} =
@@ -159,7 +159,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     DevHelper.wait_for_root_chain_block(last_challenge_eth_height + exit_finality_margin + 1)
 
     assert %{"byzantine_events" => [%{"event" => "non_canonical_ife"}, %{"event" => "piggyback_available"}]} =
-             WatcherHelper.success?("/status.get")
+             WatcherHelper.get_status()
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
@@ -199,10 +199,10 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
                %{"event" => "non_canonical_ife"},
                %{"event" => "piggyback_available"}
              ]
-           } = WatcherHelper.success?("/status.get")
+           } = WatcherHelper.get_status()
 
     # Check if IFE is recognized as IFE by watcher (kept separate from the above for readability)
-    assert %{"in_flight_exits" => [%{}, %{}]} = WatcherHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [%{}, %{}]} = WatcherHelper.get_status()
 
     ###
     # CANONICITY GAME
@@ -232,7 +232,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     DevHelper.wait_for_root_chain_block(challenge_eth_height + exit_finality_margin + 1)
 
     # vanishing of `non_canonical_ife` event
-    assert %{"byzantine_events" => [%{"event" => "piggyback_available"}]} = WatcherHelper.success?("/status.get")
+    assert %{"byzantine_events" => [%{"event" => "piggyback_available"}]} = WatcherHelper.get_status()
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
@@ -302,7 +302,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
                %{"event" => "invalid_ife_challenge"},
                %{"event" => "piggyback_available"}
              ]
-           } = WatcherHelper.success?("/status.get")
+           } = WatcherHelper.get_status()
 
     # now included IFE transaction tx1 is challenged and non-canonical, let's respond
     get_prove_canonical_response = WatcherHelper.get_prove_canonical(raw_tx1_bytes)
@@ -320,7 +320,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     # dissapearing of `invalid_ife_challenge` event
     assert %{"byzantine_events" => [%{"event" => "non_canonical_ife"}, %{"event" => "piggyback_available"}]} =
-             WatcherHelper.success?("/status.get")
+             WatcherHelper.get_status()
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
@@ -336,11 +336,11 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     _ = exit_in_flight_and_wait_for_ife(ife1, alice)
 
-    assert %{"in_flight_exits" => [%{}]} = WatcherHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [%{}]} = WatcherHelper.get_status()
 
     _ = piggyback_and_process_exits(tx, 1, :output, bob)
 
-    assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherHelper.get_status()
   end
 
   # NOTE: if https://github.com/omisego/elixir-omg/issues/994 is taken care of, this behavior will change, see comments
@@ -354,7 +354,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     _ = exit_in_flight_and_wait_for_ife(tx, alice)
     piggyback_and_process_exits(tx, 1, :output, bob)
 
-    assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherHelper.get_status()
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
@@ -377,7 +377,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
              _ = piggyback_and_process_exits(tx, 0, :output, alice)
            end) =~ "Invalid in-flight exit finalization"
 
-    assert %{"in_flight_exits" => [_], "byzantine_events" => byzantine_events} = WatcherHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [_], "byzantine_events" => byzantine_events} = WatcherHelper.get_status()
     assert [%{"event" => "invalid_piggyback"}] = Enum.filter(byzantine_events, &(&1["event"] != "piggyback_available"))
   end
 

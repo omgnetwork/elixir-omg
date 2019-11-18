@@ -181,6 +181,10 @@ defmodule Support.WatcherHelper do
     ])
   end
 
+  def get_status() do
+    success?("/status.get")
+  end
+
   def capture_log(function, max_waiting_ms \\ 2_000) do
     CaptureLog.capture_log(fn ->
       logs = CaptureLog.capture_log(fn -> function.() end)
