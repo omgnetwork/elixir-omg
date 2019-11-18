@@ -21,6 +21,12 @@ defmodule OMG.Watcher.ExitProcessor.TxAppendix do
 
   alias OMG.Watcher.ExitProcessor
 
+  @doc """
+  Enumerable of `Transaction.Signed.t()`
+  """
+  @type t() :: Enumerable.t()
+
+  @spec get_all(ExitProcessor.Core.t()) :: t()
   def get_all(%ExitProcessor.Core{in_flight_exits: ifes, competitors: competitors}) do
     ifes
     |> Map.values()
