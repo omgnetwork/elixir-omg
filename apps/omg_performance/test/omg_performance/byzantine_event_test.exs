@@ -138,7 +138,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> ByzantineEvents.start_many_piggybacks(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_piggyback_height)
-    assert Enum.count(ByzantineEvents.get_byzantine_events("piggyback_available")) == 0
+    assert Enum.empty?(ByzantineEvents.get_byzantine_events("piggyback_available"))
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
@@ -179,8 +179,8 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> ByzantineEvents.prove_many_non_canonical(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(root_chain_height: max(last_pb_challenge_height, last_challenge_height))
-    assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_piggyback")) == 0
-    assert Enum.count(ByzantineEvents.get_byzantine_events("non_canonical_ife")) == 0
+    assert Enum.empty?(ByzantineEvents.get_byzantine_events("invalid_piggyback"))
+    assert Enum.empty?(ByzantineEvents.get_byzantine_events("non_canonical_ife"))
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
@@ -215,7 +215,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> ByzantineEvents.send_many_canonicity_responses(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_response_height)
-    assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_ife_challenge")) == 0
+    assert Enum.empty?(ByzantineEvents.get_byzantine_events("invalid_ife_challenge"))
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
@@ -248,7 +248,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
       |> ByzantineEvents.challenge_many_piggybacks(alice.addr)
 
     :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_challenge_height)
-    assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_piggyback")) == 0
+    assert Enum.empty?(ByzantineEvents.get_byzantine_events("invalid_piggyback"))
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]

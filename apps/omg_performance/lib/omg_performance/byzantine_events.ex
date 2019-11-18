@@ -38,10 +38,10 @@ defmodule OMG.Performance.ByzantineEvents do
 
   use OMG.Utils.LoggerExt
 
-  alias OMG.Performance.HttpRPC.WatcherClient
   alias OMG.Performance.ByzantineEvents.TransactionCreator
-  alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Performance.HttpRPC.WatcherClient
   alias OMG.State.Transaction
+  alias OMG.Utils.HttpRPC.Encoding
   alias Support.WaitFor
 
   @doc """
@@ -306,7 +306,7 @@ defmodule OMG.Performance.ByzantineEvents do
   challenge_responses = timeit ByzantineEvents.get_many_non_canonical_proofs(to_challenge)
   ```
   """
-  @spec get_many_non_canonical_proofs(list(Transaction.txbytes())) :: list(map())
+  @spec get_many_non_canonical_proofs(list(Transaction.tx_bytes())) :: list(map())
   def get_many_non_canonical_proofs(txs) do
     txs
     |> Enum.shuffle()
@@ -334,7 +334,10 @@ defmodule OMG.Performance.ByzantineEvents do
   challenge_responses = timeit ByzantineEvents.get_many_non_canonical_proofs(to_challenge)
   ```
   """
-  @spec get_many_invalid_non_canonical_proofs(list(Transaction.Signed.txbytes()), list(Transaction.Signed.txbytes())) ::
+  @spec get_many_invalid_non_canonical_proofs(
+          list(Transaction.Signed.tx_bytes()),
+          list(Transaction.Signed.tx_bytes())
+        ) ::
           list(map())
   def get_many_invalid_non_canonical_proofs(in_flight_txs, competitor_txs) do
     competitor_txs
@@ -397,7 +400,7 @@ defmodule OMG.Performance.ByzantineEvents do
   challenge_responses = timeit ByzantineEvents.get_many_canonicity_responses(to_challenge)
   ```
   """
-  @spec get_many_canonicity_responses(list(Transaction.Signed.txbytes())) :: list(map())
+  @spec get_many_canonicity_responses(list(Transaction.Signed.tx_bytes())) :: list(map())
   def get_many_canonicity_responses(txs) do
     txs
     |> Enum.shuffle()
@@ -438,7 +441,7 @@ defmodule OMG.Performance.ByzantineEvents do
   challenge_responses = timeit ByzantineEvents.get_many_non_canonical_proofs(to_challenge)
   ```
   """
-  @spec get_many_piggyback_challenges(list({Transaction.txbytes(), list(non_neg_integer), list(non_neg_integer)})) ::
+  @spec get_many_piggyback_challenges(list({Transaction.tx_bytes(), list(non_neg_integer), list(non_neg_integer)})) ::
           list(map())
   def get_many_piggyback_challenges(piggybacks) do
     piggybacks
