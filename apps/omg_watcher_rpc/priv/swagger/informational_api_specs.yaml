@@ -1684,6 +1684,24 @@ paths:
         - Fees
       summary: This endpoint retrieves the list of fee tokens currently supported by the childchain and the current amount needed to perform a transaction.
       operationId: fees_all
+      requestBody:
+        description: 'An optional array of currencies to filter, raises an error if one of the currencies is not supported.'
+        required: false
+        content:
+          application/json:
+            schema:
+              title: FeesAllBodySchema
+              type: object
+              properties:
+                currencies:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+              example:
+                currencies:
+                  - '0x0000000000000000000000000000000000000000'
+                  - '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
       responses:
         '200':
           description: List of all supported fees response
