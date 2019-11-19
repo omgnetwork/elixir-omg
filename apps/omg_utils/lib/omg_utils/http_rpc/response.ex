@@ -106,23 +106,28 @@ defmodule OMG.Utils.HttpRPC.Response do
       data: data
     }
 
-  # not the most beatuful way of doing this but
-  # because our "response serializer" is in utils there's no other way
   defp add_version(response) do
-    vsn =
-      case :code.is_loaded(OMG.ChildChainRPC) do
-        {:file, _} ->
-          {:ok, vsn} = :application.get_key(:omg_child_chain_rpc, :vsn)
+    vsn = get_vsn()
+    Map.merge(response, %{version: vsn <> "+" <> @sha})
+  end
 
-          vsn
+  # not the most beatuful way of doing this but
+  # because our "response serializer" is in utils there's no other way  defp get_vsn() do
+  # Rescuing because if this is executed outside of a release (e.g. in a `mix` context) it will fail on `get_key`
+  defp get_vsn() do
+    :code.is_loaded(OMG.ChildChainRPC)
+    |> case do
+      {:file, _} ->
+        {:ok, vsn} = :application.get_key(:omg_child_chain_rpc, :vsn)
+        vsn
 
-        _ ->
-          {:ok, vsn} = :application.get_key(:omg_watcher_rpc, :vsn)
-
-          vsn
-      end
-
-    Map.merge(response, %{version: List.to_string(vsn) <> "+" <> @sha})
+      _ ->
+        {:ok, vsn} = :application.get_key(:omg_watcher_rpc, :vsn)
+        vsn
+    end
+    |> List.to_string()
+  rescue
+    MatchError -> "unspecified"
   end
 
   # Not the most "beautiful way", but I'm just referencing

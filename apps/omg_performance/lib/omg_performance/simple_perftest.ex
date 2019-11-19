@@ -39,6 +39,7 @@ defmodule OMG.Performance.SimplePerftest do
   ```
   use OMG.Performance
 
+  Performance.init()
   Performance.SimplePerftest.start(50, 16)
   ```
 

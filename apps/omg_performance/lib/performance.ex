@@ -29,6 +29,11 @@ defmodule OMG.Performance do
       require Performance
 
       use OMG.Utils.LoggerExt
+
+      {:ok, _} = Application.ensure_all_started(:briefly)
+      {:ok, _} = Application.ensure_all_started(:hackney)
+      {:ok, _} = Application.ensure_all_started(:cowboy)
+
       :ok
     end
   end
@@ -66,10 +71,7 @@ defmodule OMG.Performance do
     "http://elsewhere:7434"
   """
   def init(opts \\ []) do
-    {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, _} = Application.ensure_all_started(:ethereumex)
-    {:ok, _} = Application.ensure_all_started(:hackney)
-    {:ok, _} = Application.ensure_all_started(:cowboy)
 
     ethereum_rpc_url =
       System.get_env("ETHEREUM_RPC_URL") || Application.get_env(:ethereumex, :url, "http://localhost:8545")
@@ -80,11 +82,16 @@ defmodule OMG.Performance do
     watcher_url =
       System.get_env("WATCHER_URL") || Application.get_env(:omg_performance, :watcher_url, "http://localhost:7434")
 
+    # Needed here to have some value of address when `:contract_address` is not set explicitly
+    # required by the EIP-712 struct hash code
+    contract_addr =
+      Application.get_env(:omg_eth, :contract_addr, %{plasma_framework: "0x0000000000000000000000000000000000000001"})
+
     defaults = [
       ethereum_rpc_url: ethereum_rpc_url,
       child_chain_url: child_chain_url,
       watcher_url: watcher_url,
-      contract_addr: nil
+      contract_addr: OMG.Eth.RootChain.contract_map_from_hex(contract_addr)
     ]
 
     opts = Keyword.merge(defaults, opts)
@@ -92,12 +99,7 @@ defmodule OMG.Performance do
     :ok = Application.put_env(:ethereumex, :request_timeout, :infinity)
     :ok = Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)
     :ok = Application.put_env(:ethereumex, :url, opts[:ethereum_rpc_url])
-
-    :ok =
-      if opts[:contract_addr],
-        do: Application.put_env(:omg_eth, :contract_addr, OMG.Eth.RootChain.contract_map_to_hex(opts[:contract_addr])),
-        else: :ok
-
+    :ok = Application.put_env(:omg_eth, :contract_addr, OMG.Eth.RootChain.contract_map_to_hex(opts[:contract_addr]))
     :ok = Application.put_env(:omg_watcher, :child_chain_url, opts[:child_chain_url])
     :ok = Application.put_env(:omg_performance, :watcher_url, opts[:watcher_url])
 
