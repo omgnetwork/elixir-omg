@@ -24,14 +24,14 @@ defmodule OMG.MerkleTest do
     test "creates merkle proofs based on list of values and index" do
       # We don't want to be testing the underlying library here,
       # we just want to ensure that our code calling it always
-      # return the same result
+      # returns the same result
       values = ["abc", "def", "ghi"]
 
       proof_1 = Merkle.create_tx_proof(values, 1)
       proof_2 = Merkle.create_tx_proof(values, 2)
 
       assert proof_1 != proof_2
-      assert "6162639621ddbb2d2631190" <> _ = Base.encode16(proof_1, case: :lower)
+      assert "4e03657aea45a94fc7d47ba8" <> _ = Base.encode16(proof_1, case: :lower)
     end
   end
 
@@ -44,7 +44,7 @@ defmodule OMG.MerkleTest do
         |> Merkle.hash()
         |> Base.encode16(case: :lower)
 
-      assert proof == "5886d20993731f68ff6bc6b175f58aa2bddc09512eabe761aaf62ab57c086066"
+      assert proof == "df6516e961a63fc1409d52953a83ebab129738891b064f0bc4b2a9eab03a413f"
     end
   end
 end

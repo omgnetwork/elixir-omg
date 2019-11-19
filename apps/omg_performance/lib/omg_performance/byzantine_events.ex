@@ -183,7 +183,7 @@ defmodule OMG.Performance.ByzantineEvents do
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
-    Process.sleep(2000)
+    Process.sleep(4000)
     _ = Logger.info("Watcher synchronized")
   end
 
