@@ -148,7 +148,7 @@ defmodule OMG.State.Core do
   Tell whether utxo position was created or spend by current state.
   It's an optimization as there is no need to ask DB of known utxos
   """
-  @spec utxo_processed?(Utxo.Position.t(), t()) :: boolean()
+  @spec utxo_processed?(InputPointer.Protocol.t(), t()) :: boolean()
   def utxo_processed?(utxo_pos, %Core{utxos: utxos, recently_spent: recently_spent}) do
     Map.has_key?(utxos, utxo_pos) or MapSet.member?(recently_spent, utxo_pos)
   end

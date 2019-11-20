@@ -63,6 +63,16 @@ defmodule OMG.State.UtxoSetTest do
                |> UtxoSet.init()
                |> UtxoSet.get_by_inputs(inputs)
     end
+
+    test "ignores db query possible not_founds",
+         %{inputs: inputs, outputs: outputs, db_query_result: db_query_result} do
+      db_results_with_missings = Enum.intersperse(db_query_result, :not_found)
+
+      assert {:ok, ^outputs} =
+               db_results_with_missings
+               |> UtxoSet.init()
+               |> UtxoSet.get_by_inputs(inputs)
+    end
   end
 
   describe "get_by_inputs/2" do

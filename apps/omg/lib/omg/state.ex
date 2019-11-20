@@ -229,12 +229,12 @@ defmodule OMG.State do
     :ok = OMG.Bus.direct_local_broadcast("blocks", {:enqueue_block, block})
   end
 
-  # @spec init_utxos_from_db(list(InputPointer.Protocol.t()), t()) :: UtxoSet.t()
+  @spec init_utxos_from_db(list(InputPointer.Protocol.t()), Core.t()) :: UtxoSet.t()
   defp init_utxos_from_db(utxo_pos_list, state) do
     utxo_pos_list
     |> Stream.reject(&Core.utxo_processed?(&1, state))
-    |> Stream.map(&utxo_from_db/1)
-    |> Stream.filter(&is_input_pointer?/1)
+    |> Enum.map(&utxo_from_db/1)
+    |> Enum.filter(&is_input_pointer?/1)
     |> UtxoSet.init()
   end
 
