@@ -173,9 +173,7 @@ defmodule OMG.State.CoreTest do
       tx = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}])
       expected_spends = MapSet.new([Utxo.position(1, 0, 0)])
 
-      {:ok, _, state1} =
-        state
-        |> Core.exec(tx, :no_fees_required)
+      {:ok, _, state1} = Core.exec(state, tx, :no_fees_required)
 
       assert %Core{recently_spent: ^expected_spends} = state1
 

@@ -340,8 +340,7 @@ defmodule OMG.State.Core do
   """
   @spec utxo_exists?(Utxo.Position.t(), t()) :: boolean()
   def utxo_exists?(Utxo.position(_blknum, _txindex, _oindex) = utxo_pos, %Core{utxos: utxos}) do
-    utxos
-    |> UtxoSet.exists?(utxo_pos)
+    UtxoSet.exists?(utxos, utxo_pos)
   end
 
   @doc """

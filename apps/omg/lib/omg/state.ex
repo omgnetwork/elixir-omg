@@ -242,10 +242,10 @@ defmodule OMG.State do
       {:ok, utxo_kv} ->
         utxo_kv
 
-      :not_found ->
+      response ->
+        # only unsuccessful, acceptable response is not_found, crash otherwise
+        :not_found = response
         nil
-
-        # error cases intentionally not handled here
     end
   end
 end
