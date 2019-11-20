@@ -86,6 +86,7 @@ defmodule OMG.Watcher.DB.Transaction do
     |> query_get_by_address(address)
     |> query_get_by(constraints)
     |> DB.Repo.all()
+    |> IO.inspect(label: "Txns: ")
     |> Paginator.set_data(paginator)
   end
 
@@ -97,7 +98,11 @@ defmodule OMG.Watcher.DB.Transaction do
       order_by: [desc: :blknum, desc: :txindex],
       limit: ^limit,
       offset: ^offset,
-      preload: [:block, :outputs]
+      preload: [
+        :block,
+        inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
+        outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
+      ]
     )
   end
 
