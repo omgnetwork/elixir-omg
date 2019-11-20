@@ -103,7 +103,7 @@ Each instance of either Child Chain Server or Watcher should have it's own insta
 
 Database necessary to properly ensure validity and availability of blocks and transactions
 
-- it is read by `OMG.State` to discover the UTXO set on restart
+- it is read by `OMG.State`  on restart to discover the current block number and Ethereum height, UTXO set is lazily loaded
 - it is read by many other processes to discover where they left off, on restart
 - it is used for the Watcher's security critical features to access exits info and blocks
 

@@ -714,17 +714,17 @@ defmodule OMG.State.CoreTest do
     assert utxo_pos_exits ==
              utxo_pos_exits
              |> Enum.map(&%{call_data: %{utxo_pos: Utxo.Position.encode(&1)}})
-             |> Core.get_exiting_utxos(state_empty)
+             |> Core.get_exiting_utxo_positions(state_empty)
 
     assert utxo_pos_exits ==
              utxo_pos_exits
              |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)})
-             |> Core.get_exiting_utxos(state_empty)
+             |> Core.get_exiting_utxo_positions(state_empty)
 
     assert utxo_pos_exits ==
              utxo_pos_exits
              |> Enum.map(&Utxo.Position.encode/1)
-             |> Core.get_exiting_utxos(state_empty)
+             |> Core.get_exiting_utxo_positions(state_empty)
 
     %Transaction.Recovered{tx_hash: tx_hash} = tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
@@ -738,7 +738,7 @@ defmodule OMG.State.CoreTest do
       |> Core.exec(tx, :no_fees_required)
       |> success?
 
-    assert utxo_pos_exits == Core.get_exiting_utxos(piggybacks, state)
+    assert utxo_pos_exits == Core.get_exiting_utxo_positions(piggybacks, state)
   end
 
   @tag fixtures: [:alice, :state_alice_deposit]
@@ -809,12 +809,12 @@ defmodule OMG.State.CoreTest do
 
     assert {:ok, {[], {[], _}}, ^state} =
              utxo_pos_exits_in_flight
-             |> Core.get_exiting_utxos(state)
+             |> Core.get_exiting_utxo_positions(state)
              |> Core.exit_utxos(state)
 
     assert {:ok, {[_ | _], {[^expected_position], []}}, state_after_exit} =
              utxo_pos_exits_piggyback
-             |> Core.get_exiting_utxos(state)
+             |> Core.get_exiting_utxo_positions(state)
              |> Core.exit_utxos(state)
 
     state_after_exit
@@ -838,7 +838,7 @@ defmodule OMG.State.CoreTest do
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
     expected_position = Utxo.position(@blknum1, 0, 0)
 
-    exiting_utxos = Core.get_exiting_utxos(utxo_pos_exits_in_flight, state)
+    exiting_utxos = Core.get_exiting_utxo_positions(utxo_pos_exits_in_flight, state)
 
     assert {:ok, {[_ | _], {[^expected_position], _}}, state_after_exit} = Core.exit_utxos(exiting_utxos, state)
 
@@ -863,7 +863,7 @@ defmodule OMG.State.CoreTest do
 
     assert {:ok, {[], {[], []}}, ^state} =
              [piggyback_event]
-             |> Core.get_exiting_utxos(state)
+             |> Core.get_exiting_utxo_positions(state)
              |> Core.exit_utxos(state)
   end
 
@@ -873,7 +873,7 @@ defmodule OMG.State.CoreTest do
 
     assert {:ok, {[], {[], []}}, ^state} =
              [piggyback_event]
-             |> Core.get_exiting_utxos(state)
+             |> Core.get_exiting_utxo_positions(state)
              |> Core.exit_utxos(state)
   end
 

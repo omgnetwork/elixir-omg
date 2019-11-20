@@ -29,8 +29,9 @@ defmodule OMG.State do
   alias OMG.Utxo
 
   use GenServer
-
   use OMG.Utils.LoggerExt
+
+  require Utxo
 
   @type exec_error :: Validator.exec_error()
 
@@ -153,7 +154,7 @@ defmodule OMG.State do
   Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
   """
   def handle_call({:exit_utxos, utxos}, _from, state) do
-    exiting_utxos = Core.get_exiting_utxos(utxos, state)
+    exiting_utxos = Core.get_exiting_utxo_positions(utxos, state)
 
     db_utxos = init_utxos_from_db(exiting_utxos, state)
     state = Core.with_utxos(state, db_utxos)
@@ -233,19 +234,16 @@ defmodule OMG.State do
     utxo_pos_list
     |> Stream.reject(&Core.utxo_processed?(&1, state))
     |> Stream.map(&utxo_from_db/1)
-    |> Stream.filter(& &1)
+    |> Stream.filter(&is_input_pointer?/1)
     |> UtxoSet.init()
   end
 
   defp utxo_from_db(input_pointer) do
-    case DB.utxo(InputPointer.Protocol.to_db_key(input_pointer)) do
-      {:ok, utxo_kv} ->
-        utxo_kv
-
-      response ->
-        # only unsuccessful, acceptable response is not_found, crash otherwise
-        :not_found = response
-        nil
-    end
+    # `DB` query can return `:not_found` which is filtered out by following `is_input_pointer?`
+    with {:ok, utxo_kv} <- DB.utxo(InputPointer.Protocol.to_db_key(input_pointer)),
+         do: utxo_kv
   end
+
+  defp is_input_pointer?({{:input_pointer, _, _}, _}), do: true
+  defp is_input_pointer?(_not_found_or_error), do: false
 end

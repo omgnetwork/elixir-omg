@@ -16,6 +16,34 @@ defmodule OMG.State.Core do
   @moduledoc """
   The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
+
+  We experienced long startup times on large UTXO set, which in some case caused timeouts and lethal `OMG.State`
+  restart loop. To mitigate this issue we introduced loading UTXO set on demand (see GH#1103) instead of full load
+  on process startup.
+
+  During OMG.State startup no UTXOs are fetched from DB, which is no longer blocking significantly.
+  Then during each of 6 utxo-related operations (see below) UTXO set is extended with UTXOs from DB to ensure operation
+  behavior hasn't been changed.
+
+  Transaction processing is populating the in-memory UTXO set and once block is formed newly created UTXO are inserted
+  to DB, but are also kept in process State. Service restart looses all UTXO created by transactions processed in
+  the current block.
+
+  Operations that require full ledger information are:
+  - utxo_exists?
+  - exec
+  - form_block (and `close_block`)
+  - deposit
+  - exit_utxos
+
+  These operations assume that passed `state` contains sufficient UTXO information to proceed. Therefore the utxos
+  that in-memory state is unawares of are fetched from the `OMG.DB` and then merge into state.
+  As not every operation updates `OMG.DB` immediately additional `recently_spent` collection was added to in-memory
+  state to defend against double spends in transactions within the same block.
+
+  After block is formed `OMG.DB` contains full information up to the current block so we could waste in-memory
+  info about utxos and spends. If the process gets restarted before form_block all mempool transactions along with
+  created and spent utxos are lost and the ledger state basically resets to the previous block.
   """
 
   defstruct [:height, utxos: %{}, pending_txs: [], tx_index: 0, utxo_db_updates: [], recently_spent: MapSet.new()]
@@ -262,25 +290,25 @@ defmodule OMG.State.Core do
   NOTE: It is done like this to accommodate different clients of this function as they can either be
   bare `EthereumEventListener` or `ExitProcessor`. Hence different forms it can get the exiting utxos delivered
   """
-  @spec get_exiting_utxos(exiting_utxos_t(), t()) :: list(Utxo.Position.t())
-  def get_exiting_utxos(exit_infos, state)
+  @spec get_exiting_utxo_positions(exiting_utxos_t(), t()) :: list(Utxo.Position.t())
+  def get_exiting_utxo_positions(exit_infos, state)
 
-  def get_exiting_utxos([], %Core{}), do: []
+  def get_exiting_utxo_positions([], %Core{}), do: []
 
   # list of full exit infos (from events) containing the utxo positions
-  def get_exiting_utxos([%{utxo_pos: _} | _] = exit_infos, state),
-    do: exit_infos |> Enum.map(& &1.utxo_pos) |> get_exiting_utxos(state)
+  def get_exiting_utxo_positions([%{utxo_pos: _} | _] = exit_infos, state),
+    do: exit_infos |> Enum.map(& &1.utxo_pos) |> get_exiting_utxo_positions(state)
 
   # list of full exit events (from ethereum listeners)
-  def get_exiting_utxos([%{call_data: %{utxo_pos: _}} | _] = exit_infos, state),
-    do: exit_infos |> Enum.map(& &1.call_data) |> get_exiting_utxos(state)
+  def get_exiting_utxo_positions([%{call_data: %{utxo_pos: _}} | _] = exit_infos, state),
+    do: exit_infos |> Enum.map(& &1.call_data) |> get_exiting_utxo_positions(state)
 
   # list of utxo positions (encoded)
-  def get_exiting_utxos([encoded_utxo_pos | _] = exit_infos, %Core{}) when is_integer(encoded_utxo_pos),
+  def get_exiting_utxo_positions([encoded_utxo_pos | _] = exit_infos, %Core{}) when is_integer(encoded_utxo_pos),
     do: Enum.map(exit_infos, &Utxo.Position.decode!/1)
 
   # list of IFE input/output piggybacked events
-  def get_exiting_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{}) do
+  def get_exiting_utxo_positions([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{}) do
     _ = Logger.info("Recognized exits from IFE starts #{inspect(in_flight_txs)}")
 
     in_flight_txs
@@ -291,14 +319,17 @@ defmodule OMG.State.Core do
   end
 
   # list of IFE input piggybacked events (they're ignored)
-  def get_exiting_utxos([%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggybacks, %Core{}) do
+  def get_exiting_utxo_positions([%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggybacks, %Core{}) do
     _ = Logger.info("Ignoring input piggybacks #{inspect(piggybacks)}")
     []
   end
 
   # list of IFE output piggybacked events. This is used by the child chain only. `OMG.Watcher.ExitProcessor` figures out
   # the utxo positions to exit on its own
-  def get_exiting_utxos([%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggybacks, %Core{} = state) do
+  def get_exiting_utxo_positions(
+        [%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggybacks,
+        %Core{} = state
+      ) do
     _ = Logger.info("Recognized exits from piggybacks #{inspect(piggybacks)}")
 
     piggybacks
@@ -308,7 +339,7 @@ defmodule OMG.State.Core do
   end
 
   # list of utxo positions (decoded)
-  def get_exiting_utxos([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{}), do: exiting_utxos
+  def get_exiting_utxo_positions([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{}), do: exiting_utxos
 
   @doc """
   Spends exited utxos.
