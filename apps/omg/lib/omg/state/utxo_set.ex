@@ -38,14 +38,10 @@ defmodule OMG.State.UtxoSet do
   @spec init(query_result_t()) :: t()
   def init(utxos_query_result) do
     utxos_query_result
-    |> Enum.flat_map(fn
-      :not_found ->
-        []
-
-      {db_input_pointer, db_utxo} ->
-        [{InputPointer.from_db_key(db_input_pointer), Utxo.from_db_value(db_utxo)}]
+    |> Enum.reject(&(&1 == :not_found))
+    |> Enum.into(%{}, fn {db_input_pointer, db_utxo} ->
+      {InputPointer.from_db_key(db_input_pointer), Utxo.from_db_value(db_utxo)}
     end)
-    |> Map.new()
   end
 
   @doc """

@@ -234,7 +234,6 @@ defmodule OMG.State do
     utxo_pos_list
     |> Stream.reject(&Core.utxo_processed?(&1, state))
     |> Enum.map(&utxo_from_db/1)
-    |> Enum.filter(&is_input_pointer?/1)
     |> UtxoSet.init()
   end
 
@@ -243,7 +242,4 @@ defmodule OMG.State do
     with {:ok, utxo_kv} <- DB.utxo(InputPointer.Protocol.to_db_key(input_pointer)),
          do: utxo_kv
   end
-
-  defp is_input_pointer?({{:input_pointer, _, _}, _}), do: true
-  defp is_input_pointer?(_not_found_or_error), do: false
 end

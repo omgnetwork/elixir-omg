@@ -26,7 +26,8 @@ defmodule OMG.State.Core do
   behavior hasn't been changed.
 
   Transaction processing is populating the in-memory UTXO set and once block is formed newly created UTXO are inserted
-  to DB, but are also kept in process State. Service restart looses all UTXO created by transactions processed in
+  to DB, but are also kept in process State. Service restart looses all UTXO created by transactions processed as well
+  as mempool transactions therefore DB content stays block-by-block consistent.
   the current block.
 
   Operations that require full ledger information are:
@@ -36,8 +37,8 @@ defmodule OMG.State.Core do
   - deposit
   - exit_utxos
 
-  These operations assume that passed `state` contains sufficient UTXO information to proceed. Therefore the utxos
-  that in-memory state is unawares of are fetched from the `OMG.DB` and then merge into state.
+  These operations assume that passed `OMG.State.Core` struct instance contains sufficient UTXO information to proceed.
+  Therefore the UTXOs that in-memory state is unaware of are fetched from the `OMG.DB` and then merged into state.
   As not every operation updates `OMG.DB` immediately additional `recently_spent` collection was added to in-memory
   state to defend against double spends in transactions within the same block.
 

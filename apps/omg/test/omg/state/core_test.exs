@@ -110,7 +110,7 @@ defmodule OMG.State.CoreTest do
     end
 
     @tag fixtures: [:alice, :bob, :state_alice_deposit]
-    test "spending utxo that resist in memory - double spend impossible",
+    test "spending utxo that resides in memory - double spend impossible",
          %{alice: alice, bob: bob, state_alice_deposit: state} do
       tx = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
 
@@ -121,9 +121,10 @@ defmodule OMG.State.CoreTest do
       |> fail?(:utxo_not_found)
     end
 
-    @tag fixtures: [:state_alice_deposit]
-    test "extending state with same utxos does not change it", %{state_alice_deposit: state} do
-      db_utxos = state.utxos
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "extending state with same utxos does not change it", %{alice: alice, bob: bob, state_empty: state} do
+      db_utxos = make_utxos([{1000, 0, 0, alice, @eth, 8}, {1000, 0, 1, bob, @eth, 2}])
+      state = Core.with_utxos(state, db_utxos)
 
       state
       |> Core.with_utxos(db_utxos)
@@ -132,55 +133,18 @@ defmodule OMG.State.CoreTest do
 
     @tag fixtures: [:alice, :bob, :state_empty]
     test "extending state partially", %{alice: alice, bob: bob, state_empty: state} do
-      fst_utxo = make_utxos([{1000, 0, 0, alice, @eth, 6}])
-      snd_utxo = make_utxos([{1000, 5, 0, alice, @eth, 6}])
+      db_utxos1 = make_utxos([{1000, 0, 0, alice, @eth, 6}])
+      db_utxos2 = make_utxos([{1000, 5, 0, alice, @eth, 6}])
 
       tx = create_recovered([{1000, 0, 0, alice}, {1000, 5, 0, alice}], @eth, [{bob, 10}])
 
       state
-      |> Core.with_utxos(fst_utxo)
+      |> Core.with_utxos(db_utxos1)
       |> Core.exec(tx, :no_fees_required)
       |> fail?(:utxo_not_found)
-      |> Core.with_utxos(snd_utxo)
+      |> Core.with_utxos(db_utxos2)
       |> Core.exec(tx, :no_fees_required)
       |> success?()
-    end
-
-    @tag fixtures: [:alice, :bob, :state_empty]
-    test "recent spends are stored regardless state extension", %{alice: alice, bob: bob, state_empty: state} do
-      init_state = do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
-      tx1 = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}])
-
-      {:ok, _, state1} = Core.exec(init_state, tx1, :no_fees_required)
-
-      %Core{recently_spent: spent1} = state1
-      assert MapSet.equal?(spent1, MapSet.new([Utxo.position(1, 0, 0)]))
-
-      db_utxos = make_utxos([{1000, 0, 0, bob, @not_eth, 100}])
-      tx2 = create_recovered([{1000, 0, 0, bob}], @not_eth, [{alice, 10}, {bob, 90}])
-
-      {:ok, _, state2} =
-        state1
-        |> Core.with_utxos(db_utxos)
-        |> Core.exec(tx2, :no_fees_required)
-
-      %Core{recently_spent: spent2} = state2
-      assert MapSet.equal?(spent2, MapSet.new([Utxo.position(1000, 0, 0), Utxo.position(1, 0, 0)]))
-    end
-
-    @tag fixtures: [:alice, :bob, :state_alice_deposit]
-    test "form block drops recent spends", %{alice: alice, bob: bob, state_alice_deposit: state} do
-      tx = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}])
-      expected_spends = MapSet.new([Utxo.position(1, 0, 0)])
-
-      {:ok, _, state1} = Core.exec(state, tx, :no_fees_required)
-
-      assert %Core{recently_spent: ^expected_spends} = state1
-
-      {:ok, _, state2} = form_block_check(state1)
-
-      empty_mapset = MapSet.new()
-      assert %Core{recently_spent: ^empty_mapset} = state2
     end
   end
 
@@ -707,8 +671,8 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :state_alice_deposit, :state_empty]
   test "given exit infos in various forms translates to utxo positions",
        %{alice: alice, state_alice_deposit: state, state_empty: state_empty} do
-    # this test checks whether all ways of calling `get_exiting_utxos/2` translates to given exiting utxo positions
-    # this is _very important_ to support all clients of that functions, whose inputs come in different flavors
+    # this test checks whether all ways of calling `get_exiting_utxo_positions/2` translates
+    # to given exiting utxo positions
     utxo_pos_exits = [Utxo.position(@blknum1, 0, 0), Utxo.position(@blknum1, 0, 1)]
 
     assert utxo_pos_exits ==
