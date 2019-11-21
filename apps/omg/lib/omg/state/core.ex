@@ -28,7 +28,6 @@ defmodule OMG.State.Core do
   Transaction processing is populating the in-memory UTXO set and once block is formed newly created UTXO are inserted
   to DB, but are also kept in process State. Service restart looses all UTXO created by transactions processed as well
   as mempool transactions therefore DB content stays block-by-block consistent.
-  the current block.
 
   Operations that require full ledger information are:
   - utxo_exists?
@@ -73,7 +72,7 @@ defmodule OMG.State.Core do
           utxo_db_updates: list(db_update()),
           # NOTE: because UTXO set is not loaded from DB entirely, we need to remember the UTXOs spent in already
           # processed transaction before they get removed from DB on form_block.
-          recently_spent: MapSet.t(Utxo.Position.t())
+          recently_spent: MapSet.t(InputPointer.Protocol.t())
         }
 
   @type deposit() :: %{
@@ -146,8 +145,7 @@ defmodule OMG.State.Core do
   end
 
   @doc """
-  Tell whether utxo position was created or spend by current state.
-  It's an optimization as there is no need to ask DB of known utxos
+  Tell whether utxo position was created or spent by current state.
   """
   @spec utxo_processed?(InputPointer.Protocol.t(), t()) :: boolean()
   def utxo_processed?(utxo_pos, %Core{utxos: utxos, recently_spent: recently_spent}) do
