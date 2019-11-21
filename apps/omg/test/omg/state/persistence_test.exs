@@ -214,7 +214,6 @@ defmodule OMG.State.PersistenceTest do
   end
 
   defp make_deposits(list) do
-    list
     Enum.map(list, fn %{owner: owner, currency: currency, amount: amount, blknum: blknum} ->
       %{
         root_chain_txhash: <<blknum::256>>,
@@ -229,10 +228,10 @@ defmodule OMG.State.PersistenceTest do
 
   defp restart_state() do
     GenServer.stop(OMG.State)
-    WaitFor.ok(fn -> if(GenServer.whereis(OMG.State), do: :ok) end)
 
-    assert OMG.State |> GenServer.whereis() |> Kernel.is_pid()
+    WaitFor.ok(fn -> if(GenServer.whereis(OMG.State), do: :ok) end)
     _ = Logger.info("OMG.State restarted")
+
     :ok
   end
 end

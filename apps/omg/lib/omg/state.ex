@@ -125,7 +125,7 @@ defmodule OMG.State do
     db_utxos =
       tx
       |> Transaction.get_inputs()
-      |> init_utxos_from_db(state)
+      |> fetch_utxos_from_db(state)
 
     state
     |> Core.with_utxos(db_utxos)
@@ -154,9 +154,9 @@ defmodule OMG.State do
   Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
   """
   def handle_call({:exit_utxos, utxos}, _from, state) do
-    exiting_utxos = Core.get_exiting_utxo_positions(utxos, state)
+    exiting_utxos = Core.extract_exiting_utxo_positions(utxos, state)
 
-    db_utxos = init_utxos_from_db(exiting_utxos, state)
+    db_utxos = fetch_utxos_from_db(exiting_utxos, state)
     state = Core.with_utxos(state, db_utxos)
 
     {:ok, {db_updates, validities}, new_state} = Core.exit_utxos(exiting_utxos, state)
@@ -168,7 +168,7 @@ defmodule OMG.State do
   Tells if utxo exists
   """
   def handle_call({:utxo_exists, utxo}, _from, state) do
-    db_utxos = init_utxos_from_db([utxo], state)
+    db_utxos = fetch_utxos_from_db([utxo], state)
     new_state = Core.with_utxos(state, db_utxos)
 
     {:reply, Core.utxo_exists?(utxo, new_state), new_state}
@@ -229,8 +229,8 @@ defmodule OMG.State do
     :ok = OMG.Bus.direct_local_broadcast("blocks", {:enqueue_block, block})
   end
 
-  @spec init_utxos_from_db(list(InputPointer.Protocol.t()), Core.t()) :: UtxoSet.t()
-  defp init_utxos_from_db(utxo_pos_list, state) do
+  @spec fetch_utxos_from_db(list(InputPointer.Protocol.t()), Core.t()) :: UtxoSet.t()
+  defp fetch_utxos_from_db(utxo_pos_list, state) do
     utxo_pos_list
     |> Stream.reject(&Core.utxo_processed?(&1, state))
     |> Enum.map(&utxo_from_db/1)

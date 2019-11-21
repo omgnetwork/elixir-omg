@@ -278,7 +278,7 @@ defmodule OMG.State.Core do
   end
 
   @doc """
-  Gets exitable utxo positions. Accepts either
+  Retrieves exitable utxo positions from variety of exit events. Accepts either
    - a list of utxo positions (decoded)
    - a list of utxo positions (encoded)
    - a list of full exit infos containing the utxo positions
@@ -289,25 +289,25 @@ defmodule OMG.State.Core do
   NOTE: It is done like this to accommodate different clients of this function as they can either be
   bare `EthereumEventListener` or `ExitProcessor`. Hence different forms it can get the exiting utxos delivered
   """
-  @spec get_exiting_utxo_positions(exiting_utxos_t(), t()) :: list(Utxo.Position.t())
-  def get_exiting_utxo_positions(exit_infos, state)
+  @spec extract_exiting_utxo_positions(exiting_utxos_t(), t()) :: list(Utxo.Position.t())
+  def extract_exiting_utxo_positions(exit_infos, state)
 
-  def get_exiting_utxo_positions([], %Core{}), do: []
+  def extract_exiting_utxo_positions([], %Core{}), do: []
 
   # list of full exit infos (from events) containing the utxo positions
-  def get_exiting_utxo_positions([%{utxo_pos: _} | _] = exit_infos, state),
-    do: exit_infos |> Enum.map(& &1.utxo_pos) |> get_exiting_utxo_positions(state)
+  def extract_exiting_utxo_positions([%{utxo_pos: _} | _] = exit_infos, state),
+    do: exit_infos |> Enum.map(& &1.utxo_pos) |> extract_exiting_utxo_positions(state)
 
   # list of full exit events (from ethereum listeners)
-  def get_exiting_utxo_positions([%{call_data: %{utxo_pos: _}} | _] = exit_infos, state),
-    do: exit_infos |> Enum.map(& &1.call_data) |> get_exiting_utxo_positions(state)
+  def extract_exiting_utxo_positions([%{call_data: %{utxo_pos: _}} | _] = exit_infos, state),
+    do: exit_infos |> Enum.map(& &1.call_data) |> extract_exiting_utxo_positions(state)
 
   # list of utxo positions (encoded)
-  def get_exiting_utxo_positions([encoded_utxo_pos | _] = exit_infos, %Core{}) when is_integer(encoded_utxo_pos),
+  def extract_exiting_utxo_positions([encoded_utxo_pos | _] = exit_infos, %Core{}) when is_integer(encoded_utxo_pos),
     do: Enum.map(exit_infos, &Utxo.Position.decode!/1)
 
   # list of IFE input/output piggybacked events
-  def get_exiting_utxo_positions([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{}) do
+  def extract_exiting_utxo_positions([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{}) do
     _ = Logger.info("Recognized exits from IFE starts #{inspect(in_flight_txs)}")
 
     in_flight_txs
@@ -318,14 +318,14 @@ defmodule OMG.State.Core do
   end
 
   # list of IFE input piggybacked events (they're ignored)
-  def get_exiting_utxo_positions([%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggybacks, %Core{}) do
+  def extract_exiting_utxo_positions([%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggybacks, %Core{}) do
     _ = Logger.info("Ignoring input piggybacks #{inspect(piggybacks)}")
     []
   end
 
   # list of IFE output piggybacked events. This is used by the child chain only. `OMG.Watcher.ExitProcessor` figures out
   # the utxo positions to exit on its own
-  def get_exiting_utxo_positions(
+  def extract_exiting_utxo_positions(
         [%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggybacks,
         %Core{} = state
       ) do
@@ -338,7 +338,7 @@ defmodule OMG.State.Core do
   end
 
   # list of utxo positions (decoded)
-  def get_exiting_utxo_positions([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{}), do: exiting_utxos
+  def extract_exiting_utxo_positions([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{}), do: exiting_utxos
 
   @doc """
   Spends exited utxos.
