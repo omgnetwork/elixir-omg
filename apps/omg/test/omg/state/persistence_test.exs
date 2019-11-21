@@ -215,7 +215,7 @@ defmodule OMG.State.PersistenceTest do
 
   defp make_deposits(list) do
     list
-    |> Enum.map(fn %{owner: owner, currency: currency, amount: amount, blknum: blknum} ->
+    Enum.map(list, fn %{owner: owner, currency: currency, amount: amount, blknum: blknum} ->
       %{
         root_chain_txhash: <<blknum::256>>,
         log_index: 0,
