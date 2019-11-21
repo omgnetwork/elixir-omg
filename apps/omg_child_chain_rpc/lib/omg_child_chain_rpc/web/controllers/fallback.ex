@@ -22,7 +22,12 @@ defmodule OMG.ChildChainRPC.Web.Controller.Fallback do
 
   alias OMG.Utils.HttpRPC.Error
 
-  @errors %{}
+  @errors %{
+    currency_fee_not_supported: %{
+      code: "fee:currency_fee_not_supported",
+      description: "One of the given currency is not supported as a fee for the moment."
+    }
+  }
 
   def call(conn, Route.NotFound),
     do: json(conn, Error.serialize("operation:not_found", "Operation cannot be found. Check request URL."))

@@ -67,4 +67,40 @@ defmodule OMG.Fees do
       false -> fee_map
     end
   end
+
+  def to_api_format(fees) do
+    Enum.map(fees, fn {currency,
+                       %{
+                         amount: amount,
+                         pegged_currency: pegged_currency,
+                         pegged_amount: pegged_amount,
+                         pegged_stu: pegged_stu,
+                         updated_at: updated_at
+                       }} ->
+      %{
+        currency: currency,
+        amount: amount,
+        pegged_currency: {:skip_hex_encode, pegged_currency},
+        pegged_amount: pegged_amount,
+        pegged_subunit_to_unit: pegged_stu,
+        updated_at: {:skip_hex_encode, updated_at}
+      }
+    end)
+  end
+
+  # empty list = no filter
+  def filter_fees(fees, []), do: {:ok, fees}
+
+  def filter_fees(fees, desired_currencies) do
+    try do
+      filterred_fees =
+        Enum.into(desired_currencies, %{}, fn currency ->
+          {currency, Map.fetch!(fees, currency)}
+        end)
+
+      {:ok, filterred_fees}
+    rescue
+      _error -> {:error, :currency_fee_not_supported}
+    end
+  end
 end

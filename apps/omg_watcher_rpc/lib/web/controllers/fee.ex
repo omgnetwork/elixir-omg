@@ -12,22 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Web.Router do
-  use OMG.ChildChainRPC.Web, :router
+defmodule OMG.WatcherRPC.Web.Controller.Fee do
+  @moduledoc """
+  Operations related to fees.
+  """
 
-  pipeline :api do
-    plug(:accepts, ["json"])
-  end
+  use OMG.WatcherRPC.Web, :controller
 
-  scope "/", OMG.ChildChainRPC.Web do
-    pipe_through(:api)
+  alias OMG.Watcher.HttpRPC.Client
 
-    post("/block.get", Controller.Block, :get_block)
-    post("/transaction.submit", Controller.Transaction, :submit)
-    post("/alarm.get", Controller.Alarm, :get_alarms)
-    post("/fees.all", Controller.Fee, :get_all)
-
-    # NOTE: This *has to* be the last route, catching all unhandled paths
-    match(:*, "/*path", Controller.Fallback, Route.NotFound)
+  def get_all(conn, params) do
+    with child_chain_url <- Application.get_env(:omg_watcher, :child_chain_url),
+         {:ok, fees} <- Client.get_fees(params, child_chain_url) do
+      api_response([skip_hex_encode: fees], conn, :all_fees)
+    end
   end
 end

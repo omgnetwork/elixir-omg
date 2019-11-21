@@ -12,22 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Web.Router do
-  use OMG.ChildChainRPC.Web, :router
+defmodule OMG.ChildChainRPC.Web.View.Fee do
+  @moduledoc """
+  The Fee view for rendering json
+  """
 
-  pipeline :api do
-    plug(:accepts, ["json"])
-  end
+  alias OMG.Utils.HttpRPC.Response
 
-  scope "/", OMG.ChildChainRPC.Web do
-    pipe_through(:api)
-
-    post("/block.get", Controller.Block, :get_block)
-    post("/transaction.submit", Controller.Transaction, :submit)
-    post("/alarm.get", Controller.Alarm, :get_alarms)
-    post("/fees.all", Controller.Fee, :get_all)
-
-    # NOTE: This *has to* be the last route, catching all unhandled paths
-    match(:*, "/*path", Controller.Fallback, Route.NotFound)
+  def render("all_fees.json", %{response: result}) do
+    Response.serialize(result)
   end
 end

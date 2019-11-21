@@ -56,6 +56,13 @@ defmodule OMG.ChildChain do
   @spec get_alarms() :: {:ok, Alarm.raw_t()}
   def get_alarms, do: {:ok, Alarm.all()}
 
+  def get_filtered_fees(currencies) do
+    with {:ok, fees} <- FeeServer.transaction_fees(),
+         {:ok, filter_fees} <- Fees.filter_fees(fees, currencies) do
+      {:ok, Fees.to_api_format(filter_fees)}
+    end
+  end
+
   defp result_with_logging(result) do
     _ = Logger.debug(" resulted with #{inspect(result)}")
     result

@@ -39,28 +39,74 @@ defmodule OMG.ChildChain.FeeParser do
     end
   end
 
-  defp parse_fee_spec(%{"flat_fee" => fee, "token" => token}) do
+  defp parse_fee_spec(%{
+         "amount" => fee,
+         "token" => token,
+         "pegged_amount" => pegged_amount,
+         "pegged_currency" => pegged_currency,
+         "pegged_subunit_to_unit" => pegged_stu,
+         "updated_at" => updated_at
+       }) do
     # defensive code against user input
-    with {:ok, fee} <- validate_fee(fee),
-         {:ok, addr} <- decode_address(token) do
-      %{token: addr, flat_fee: fee}
+    with {:ok, fee} <- validate_positive_amount(fee, :invalid_fee),
+         {:ok, addr} <- decode_address(token),
+         {:ok, pegged_amount} <- validate_positive_amount(pegged_amount, :invalid_pegged_amount),
+         {:ok, pegged_currency} <- validate_pegged_currency(pegged_currency),
+         {:ok, pegged_stu} <- validate_positive_amount(pegged_stu, :invalid_pegged_subunit_to_unit),
+         {:ok, updated_at} <- validate_updated_at(updated_at) do
+      %{
+        token: addr,
+        amount: fee,
+        pegged_amount: pegged_amount,
+        pegged_currency: pegged_currency,
+        pegged_stu: pegged_stu,
+        updated_at: updated_at
+      }
     end
   end
 
   defp parse_fee_spec(_), do: {:error, :invalid_fee_spec}
 
-  defp validate_fee(fee) when is_integer(fee) and fee >= 0, do: {:ok, fee}
-  defp validate_fee(_fee), do: {:error, :invalid_fee}
+  defp validate_positive_amount(amount, _error) when is_integer(amount) and amount >= 0, do: {:ok, amount}
+  defp validate_positive_amount(_amount, error), do: {:error, error}
+
+  defp validate_pegged_currency(pegged_currency) when is_binary(pegged_currency), do: {:ok, pegged_currency}
+  defp validate_pegged_currency(_pegged_currency), do: {:error, :invalid_pegged_currency}
+
+  defp validate_updated_at(updated_at) do
+    case DateTime.from_iso8601(updated_at) do
+      {:ok, %DateTime{} = date_time, _} -> {:ok, date_time}
+      _ -> {:error, :invalid_timestamp}
+    end
+  end
 
   defp spec_reducer({:error, _} = error, {errors, token_fee_map, spec_index}),
     # most errors can be detected parsing particular record
     do: {[{error, spec_index} | errors], token_fee_map, spec_index + 1}
 
-  defp spec_reducer(%{token: token, flat_fee: fee}, {errors, token_fee_map, spec_index}) do
+  defp spec_reducer(
+         %{
+           token: token,
+           amount: fee,
+           pegged_amount: pegged_amount,
+           pegged_currency: pegged_currency,
+           pegged_stu: pegged_stu,
+           updated_at: updated_at
+         },
+         {errors, token_fee_map, spec_index}
+       ) do
     # checks whether token was specified before
     if Map.has_key?(token_fee_map, token),
       do: {[{{:error, :duplicate_token}, spec_index} | errors], token_fee_map, spec_index + 1},
-      else: {errors, Map.put(token_fee_map, token, fee), spec_index + 1}
+      else:
+        {errors,
+         Map.put(token_fee_map, token, %{
+           amount: fee,
+           pegged_amount: pegged_amount,
+           pegged_currency: pegged_currency,
+           pegged_stu: pegged_stu,
+           updated_at: updated_at
+         }), spec_index + 1}
   end
 
   defp handle_parser_output({[], fee_specs}) do
