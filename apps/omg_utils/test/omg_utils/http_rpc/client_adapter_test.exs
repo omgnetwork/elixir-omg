@@ -24,7 +24,7 @@ defmodule OMG.Utils.HttpRPC.ClientAdapterTest do
       expected_map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
 
       encoded_map = expected_map |> Response.sanitize()
-      decoded_map = ClientAdapter.decode16(encoded_map, ["key_2"])
+      decoded_map = ClientAdapter.decode16!(encoded_map, ["key_2"])
 
       assert decoded_map["key_1"] == expected_map["key_1"] |> Encoding.to_hex()
       assert decoded_map["key_2"] == expected_map["key_2"]
@@ -32,7 +32,7 @@ defmodule OMG.Utils.HttpRPC.ClientAdapterTest do
     end
 
     test "called with empty map returns empty map" do
-      assert %{} == ClientAdapter.decode16(%{}, [])
+      assert %{} == ClientAdapter.decode16!(%{}, [])
     end
 
     test "decodes all up/down/mixed case values" do
@@ -41,7 +41,7 @@ defmodule OMG.Utils.HttpRPC.ClientAdapterTest do
                "key_2" => <<222, 173, 190, 239>>,
                "key_3" => <<222, 173, 190, 239>>
              } ==
-               ClientAdapter.decode16(
+               ClientAdapter.decode16!(
                  %{
                    "key_1" => "0xdeadbeef",
                    "key_2" => "0xDEADBEEF",
@@ -60,28 +60,28 @@ defmodule OMG.Utils.HttpRPC.ClientAdapterTest do
       }
 
       assert_raise CaseClauseError, fn ->
-        ClientAdapter.decode16(expected, ["not_bin1"])
+        ClientAdapter.decode16!(expected, ["not_bin1"])
       end
 
       assert_raise CaseClauseError, fn ->
-        ClientAdapter.decode16(expected, ["not_bin2"])
+        ClientAdapter.decode16!(expected, ["not_bin2"])
       end
 
       assert_raise MatchError, fn ->
-        ClientAdapter.decode16(expected, ["not_hex"])
+        ClientAdapter.decode16!(expected, ["not_hex"])
       end
 
       assert_raise CaseClauseError, fn ->
-        ClientAdapter.decode16(expected, ["not_value"])
+        ClientAdapter.decode16!(expected, ["not_value"])
       end
 
       assert_raise CaseClauseError, fn ->
-        ClientAdapter.decode16(expected, ["not_exists"])
+        ClientAdapter.decode16!(expected, ["not_exists"])
       end
     end
 
     test "decodes lists" do
-      assert %{"list" => ["\v", <<4>>]} = ClientAdapter.decode16(%{"list" => ["0x0B", "0x04"]}, ["list"])
+      assert %{"list" => ["\v", <<4>>]} = ClientAdapter.decode16!(%{"list" => ["0x0B", "0x04"]}, ["list"])
     end
   end
 end

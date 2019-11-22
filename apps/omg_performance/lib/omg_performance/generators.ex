@@ -61,9 +61,9 @@ defmodule OMG.Performance.Generators do
 
   Options:
     - :use_blocks - if not nil, will use this as the stream of blocks, otherwise streams from child chain rpc
-    - :no_deposit_spends - if true, will limit only to transactions that do ont spend deposits (see function with the
+    - :no_deposit_spends - if true, will limit only to transactions that do not spend deposits (see function with the
       same name for explanation)
-    - :sent_by - if not nil, will limit to txs sent
+    - :sent_by - if not nil, will limit to txs sent by this particular address
     - :take - if not nil, will limit to this many results
   """
   @spec stream_transactions([OMG.Block.t()]) :: [binary()]

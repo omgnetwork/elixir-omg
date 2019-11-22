@@ -17,7 +17,9 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   Provides access to Watcher's RPC API, as required by the `OMG.Performance` tool
 
 
-  TODO: This module includes a big fat copy paster from `Support.WatcherHelper` - do sth about this later
+  NOTE: This module includes a big fat copy paster from `Support.WatcherHelper`, but since requirements are different,
+        we're allowing a separate implenentation.
+
   We need an exact set of functionalities from the `omg_performance`'s Watcher client, but they're executed
   differently, because in here we're calling the Watcher's API on a slightly different level (full HTTP stack)
   Differences:
@@ -75,7 +77,7 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   """
   def get_exit_data(encoded_position) do
     data = call("utxo.get_exit_data", %{utxo_pos: encoded_position})
-    ClientAdapter.decode16(data, [:txbytes, :proof])
+    ClientAdapter.decode16!(data, [:txbytes, :proof])
   end
 
   @doc """
@@ -84,7 +86,7 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   def get_exit_challenge(utxo_pos) do
     data = call("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
 
-    ClientAdapter.decode16(data, [:exiting_tx, :txbytes, :sig])
+    ClientAdapter.decode16!(data, [:exiting_tx, :txbytes, :sig])
   end
 
   @doc """
@@ -93,7 +95,7 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   def get_in_flight_exit(transaction) do
     exit_data = call("in_flight_exit.get_data", %{txbytes: Encoding.to_hex(transaction)})
 
-    ClientAdapter.decode16(exit_data, [:in_flight_tx, :input_txs, :input_txs_inclusion_proofs, :in_flight_tx_sigs])
+    ClientAdapter.decode16!(exit_data, [:in_flight_tx, :input_txs, :input_txs_inclusion_proofs, :in_flight_tx_sigs])
   end
 
   @doc """
@@ -102,7 +104,7 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   def get_in_flight_exit_competitors(transaction) do
     competitor_data = call("in_flight_exit.get_competitor", %{txbytes: Encoding.to_hex(transaction)})
 
-    ClientAdapter.decode16(competitor_data, [
+    ClientAdapter.decode16!(competitor_data, [
       :in_flight_txbytes,
       :competing_txbytes,
       :competing_sig,
@@ -117,7 +119,7 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   def get_prove_canonical(transaction) do
     competitor_data = call("in_flight_exit.prove_canonical", %{txbytes: Encoding.to_hex(transaction)})
 
-    ClientAdapter.decode16(competitor_data, [:in_flight_txbytes, :in_flight_proof])
+    ClientAdapter.decode16!(competitor_data, [:in_flight_txbytes, :in_flight_proof])
   end
 
   @doc """
@@ -126,7 +128,7 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   def submit(transaction) do
     submission_info = call("transaction.submit", %{transaction: Encoding.to_hex(transaction)})
 
-    ClientAdapter.decode16(submission_info, ["txhash"])
+    ClientAdapter.decode16!(submission_info, ["txhash"])
   end
 
   @doc """
@@ -139,7 +141,7 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
         input_index: input_index
       })
 
-    ClientAdapter.decode16(proof_data, [
+    ClientAdapter.decode16!(proof_data, [
       :in_flight_txbytes,
       :spending_txbytes,
       :spending_sig,
@@ -157,7 +159,7 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
         output_index: output_index
       })
 
-    ClientAdapter.decode16(proof_data, [
+    ClientAdapter.decode16!(proof_data, [
       :in_flight_txbytes,
       :in_flight_proof,
       :spending_txbytes,

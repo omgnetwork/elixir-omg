@@ -28,12 +28,12 @@ defmodule OMG.Performance.ByzantineEvents.TransactionCreator do
   @doc """
   Provided a utxo position, produce any spending transaction
   """
+  def spend_utxo_by(encoded_utxo_pos, recipient_address, sender_priv_key, amount) when is_integer(encoded_utxo_pos),
+    do: spend_utxo_by(Utxo.Position.decode!(encoded_utxo_pos), recipient_address, sender_priv_key, amount)
+
   def spend_utxo_by(Utxo.position(blknum, txindex, oindex), recipient_address, sender_priv_key, amount) do
     Transaction.Payment.new([{blknum, txindex, oindex}], [{recipient_address, @eth, amount}])
     |> DevCrypto.sign([sender_priv_key])
     |> Transaction.Signed.encode()
   end
-
-  def spend_utxo_by(encoded_utxo_pos, recipient_address, sender_priv_key, amount),
-    do: spend_utxo_by(Utxo.Position.decode!(encoded_utxo_pos), recipient_address, sender_priv_key, amount)
 end

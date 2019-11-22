@@ -61,17 +61,17 @@ defmodule OMG.Utils.HttpRPC.ClientAdapter do
   @doc """
   Decodes specified keys in map from hex to binary
   """
-  @spec decode16(map(), list()) :: map()
-  def decode16(data, keys) do
+  @spec decode16!(map(), list()) :: map()
+  def decode16!(data, keys) do
     keys
-    |> Enum.into(%{}, &decode16_for_key(data, &1))
+    |> Enum.into(%{}, &decode16_for_key!(data, &1))
     |> (&Map.merge(data, &1)).()
   end
 
-  defp decode16_for_key(data, key) do
+  defp decode16_for_key!(data, key) do
     case data[key] do
       value when is_binary(value) ->
-        {key, decode_binary!(value)}
+        {key, decode16_value!(value)}
 
       value when is_list(value) ->
         bin_list =
@@ -83,7 +83,7 @@ defmodule OMG.Utils.HttpRPC.ClientAdapter do
     end
   end
 
-  defp decode_binary!(value) do
+  defp decode16_value!(value) do
     {:ok, bin} = Encoding.from_hex(value)
     bin
   end
