@@ -22,8 +22,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
-  # TODO get this removed WTF
-  use OMG.ChildChain.Integration.Fixtures
+  use OMG.Watcher.Integration.Fixtures
   use Plug.Test
   use Phoenix.ChannelTest
 
