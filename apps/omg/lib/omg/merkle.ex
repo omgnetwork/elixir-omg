@@ -20,7 +20,7 @@ defmodule OMG.Merkle do
   alias OMG.Crypto
 
   @transaction_merkle_tree_height 16
-  @default_leaf <<0>> |> List.duplicate(32) |> Enum.join()
+  @default_leaf <<0::256>>
 
   # Creates a Merkle proof that transaction under a given transaction index
   # is included in block consisting of hashed transactions
