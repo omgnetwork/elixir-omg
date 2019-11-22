@@ -31,8 +31,7 @@ defmodule OMG.MixProject do
   defp deps do
     [
       {:ex_rlp, "~> 0.5.2"},
-      {:merkle_tree,
-       git: "https://github.com/omisego/merkle_tree.git", branch: "fix_second_preimage_attack", override: true},
+      {:merkle_tree, git: "https://github.com/omisego/merkle_tree.git", branch: "master", override: true},
       {:telemetry, "~> 0.4.0"},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
