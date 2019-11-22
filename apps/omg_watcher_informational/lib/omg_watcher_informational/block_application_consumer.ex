@@ -37,7 +37,7 @@ defmodule OMG.WatcherInformational.BlockApplicationConsumer do
   end
 
   # Listens for blocks and insert them to the WatcherDB.
-  def handle_info({:internal_event_bus, :insert_block, block_application}, state) do
+  def handle_info({:internal_event_bus, :block_received, block_application}, state) do
     _ =
       block_application
       |> to_mined_block()

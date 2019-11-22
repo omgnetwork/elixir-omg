@@ -113,7 +113,7 @@ defmodule OMG.Watcher.BlockGetter do
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
       {:ok, state} ->
-        :ok = OMG.Bus.direct_local_broadcast("block.get", {:insert_block, block_application})
+        :ok = OMG.Bus.direct_local_broadcast("block.get", {:block_received, block_application})
 
         {:noreply, state, {:continue, {:apply_block_step, :run_block_download_task, block_application}}}
 
