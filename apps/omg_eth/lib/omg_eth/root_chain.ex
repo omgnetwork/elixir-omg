@@ -72,12 +72,23 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns exit for a specific utxo. Calls contract method.
 
-  #TODO - can exits accept a list of exits? Look at ExitProcessor.handle_call({:new_exits, new_exits})
   """
-  def get_standard_exit(exit_id, contract \\ %{}) do
+  def get_standard_exit(exit_ids, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    return_fields = [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]
-    Eth.call_contract(contract, "standardExits(uint160)", [exit_id], return_fields)
+
+    return_fields = [
+      {:array, [{:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}}], Enum.count(exit_ids)}
+    ]
+
+    signature = %ABI.FunctionSelector{
+      function: "standardExits",
+      types: [
+        {:array, {:uint, 160}}
+      ],
+      returns: return_fields
+    }
+
+    Eth.call_contract(contract, signature, [exit_ids], return_fields)
   end
 
   @doc """
