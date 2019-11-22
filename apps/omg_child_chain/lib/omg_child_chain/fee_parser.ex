@@ -44,7 +44,7 @@ defmodule OMG.ChildChain.FeeParser do
          "token" => token,
          "pegged_amount" => pegged_amount,
          "pegged_currency" => pegged_currency,
-         "pegged_subunit_to_unit" => pegged_stu,
+         "pegged_subunit_to_unit" => pegged_subunit_to_unit,
          "updated_at" => updated_at
        }) do
     # defensive code against user input
@@ -52,14 +52,15 @@ defmodule OMG.ChildChain.FeeParser do
          {:ok, addr} <- decode_address(token),
          {:ok, pegged_amount} <- validate_positive_amount(pegged_amount, :invalid_pegged_amount),
          {:ok, pegged_currency} <- validate_pegged_currency(pegged_currency),
-         {:ok, pegged_stu} <- validate_positive_amount(pegged_stu, :invalid_pegged_subunit_to_unit),
+         {:ok, pegged_subunit_to_unit} <-
+           validate_positive_amount(pegged_subunit_to_unit, :invalid_pegged_subunit_to_unit),
          {:ok, updated_at} <- validate_updated_at(updated_at) do
       %{
         token: addr,
         amount: fee,
         pegged_amount: pegged_amount,
         pegged_currency: pegged_currency,
-        pegged_stu: pegged_stu,
+        pegged_subunit_to_unit: pegged_subunit_to_unit,
         updated_at: updated_at
       }
     end
@@ -90,7 +91,7 @@ defmodule OMG.ChildChain.FeeParser do
            amount: fee,
            pegged_amount: pegged_amount,
            pegged_currency: pegged_currency,
-           pegged_stu: pegged_stu,
+           pegged_subunit_to_unit: pegged_subunit_to_unit,
            updated_at: updated_at
          },
          {errors, token_fee_map, spec_index}
@@ -104,7 +105,7 @@ defmodule OMG.ChildChain.FeeParser do
            amount: fee,
            pegged_amount: pegged_amount,
            pegged_currency: pegged_currency,
-           pegged_stu: pegged_stu,
+           pegged_subunit_to_unit: pegged_subunit_to_unit,
            updated_at: updated_at
          }), spec_index + 1}
   end

@@ -58,8 +58,8 @@ defmodule OMG.ChildChain do
 
   def get_filtered_fees(currencies) do
     with {:ok, fees} <- FeeServer.transaction_fees(),
-         {:ok, filter_fees} <- Fees.filter_fees(fees, currencies) do
-      {:ok, Fees.to_api_format(filter_fees)}
+         {:ok, filtered_fees} <- Fees.filter_fees(fees, currencies) do
+      {:ok, Fees.to_api_format(filtered_fees)}
     end
   end
 
