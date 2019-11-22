@@ -19,7 +19,6 @@ defmodule OMG.WatcherInformational.DB.Transaction do
   use Ecto.Schema
   use OMG.Utils.LoggerExt
 
-  alias OMG.State.Transaction
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInformational.DB
@@ -27,14 +26,6 @@ defmodule OMG.WatcherInformational.DB.Transaction do
   require Utxo
 
   import Ecto.Query, only: [from: 2, where: 2, where: 3, select: 3, join: 5, distinct: 2]
-
-  @type mined_block() :: %{
-          transactions: [OMG.State.Transaction.Recovered.t()],
-          blknum: pos_integer(),
-          blkhash: <<_::256>>,
-          timestamp: pos_integer(),
-          eth_height: pos_integer()
-        }
 
   @primary_key {:txhash, :binary, []}
   @derive {Phoenix.Param, key: :txhash}
@@ -123,81 +114,6 @@ defmodule OMG.WatcherInformational.DB.Transaction do
 
   def get_by_position(blknum, txindex) do
     DB.Repo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]))
-  end
-
-  @doc """
-  Inserts complete and sorted enumerable of transactions for particular block number
-  """
-  @spec update_with(mined_block()) :: {:ok, any()}
-  def update_with(%{
-        transactions: transactions,
-        blknum: block_number,
-        blkhash: blkhash,
-        timestamp: timestamp,
-        eth_height: eth_height
-      }) do
-    [db_txs, db_outputs, db_inputs] =
-      transactions
-      |> Stream.with_index()
-      |> Enum.reduce([[], [], []], fn {tx, txindex}, acc -> process(tx, block_number, txindex, acc) end)
-
-    current_block = %DB.Block{blknum: block_number, hash: blkhash, timestamp: timestamp, eth_height: eth_height}
-
-    {insert_duration, {:ok, _} = result} =
-      :timer.tc(
-        &DB.Repo.transaction/1,
-        [
-          fn ->
-            {:ok, _} = DB.Repo.insert(current_block)
-            _ = DB.Repo.insert_all_chunked(__MODULE__, db_txs)
-            _ = DB.Repo.insert_all_chunked(DB.TxOutput, db_outputs)
-
-            # inputs are set as spent after outputs are inserted to support spending utxo from the same block
-            DB.TxOutput.spend_utxos(db_inputs)
-          end
-        ]
-      )
-
-    _ = Logger.debug("Block \##{block_number} persisted in WatcherDB, done in #{insert_duration / 1000}ms")
-
-    result
-  end
-
-  @spec process(Transaction.Recovered.t(), pos_integer(), integer(), list()) :: [list()]
-  defp process(
-         %Transaction.Recovered{
-           signed_tx: %Transaction.Signed{raw_tx: %Transaction.Payment{metadata: metadata}} = tx,
-           signed_tx_bytes: signed_tx_bytes
-         },
-         block_number,
-         txindex,
-         [tx_list, output_list, input_list]
-       ) do
-    tx_hash = Transaction.raw_txhash(tx)
-
-    [
-      [create(block_number, txindex, tx_hash, signed_tx_bytes, metadata) | tx_list],
-      DB.TxOutput.create_outputs(block_number, txindex, tx_hash, tx) ++ output_list,
-      DB.TxOutput.create_inputs(tx, tx_hash) ++ input_list
-    ]
-  end
-
-  @spec create(pos_integer(), integer(), binary(), binary(), Transaction.metadata()) ::
-          map()
-  defp create(
-         block_number,
-         txindex,
-         txhash,
-         txbytes,
-         metadata
-       ) do
-    %{
-      txhash: txhash,
-      txbytes: txbytes,
-      blknum: block_number,
-      txindex: txindex,
-      metadata: metadata
-    }
   end
 
   defp filter_constraints(constraints, allowed_constraints) do

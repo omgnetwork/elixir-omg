@@ -33,6 +33,19 @@ defmodule OMG.WatcherInformational.DB.TransactionTest do
   import ExUnit.CaptureLog
 
   @tag fixtures: [:initial_blocks]
+  test "the associated block can be preloaded" do
+    preloaded =
+      DB.Transaction.get_by_position(3000, 1)
+      |> DB.Repo.preload(:block)
+
+    assert %DB.Transaction{
+             blknum: 3000,
+             txindex: 1,
+             block: %DB.Block{blknum: 3000}
+           } = preloaded
+  end
+
+  @tag fixtures: [:initial_blocks]
   test "gets all transactions from a block", %{initial_blocks: initial_blocks} do
     # this test is here to ensure that calls coming from places other than `transaction` controllers are covered
     [tx0, tx1] = DB.Transaction.get_by_blknum(3000)

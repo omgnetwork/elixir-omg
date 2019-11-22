@@ -182,7 +182,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
     [] = WatcherHelper.get_utxos(carol.addr)
 
     # bob spends his utxo to carol
-    DB.Transaction.update_with(%{
+    DB.Block.insert_with_transactions(%{
       transactions: [OMG.TestHelper.create_recovered([{2000, 0, 0, bob}], @eth, [{bob, 49}, {carol, 50}])],
       blknum: 11_000,
       blkhash: <<?#::256>>,
@@ -238,7 +238,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
              "oindex" => 0
            } = utxos |> Enum.find(&(&1["blknum"] < 1000))
 
-    DB.Transaction.update_with(%{
+    DB.Block.insert_with_transactions(%{
       transactions: [OMG.TestHelper.create_recovered([{blknum, 0, 0, bob}], @eth, [{carol, 100}])],
       blknum: 11_000,
       blkhash: <<?#::256>>,

@@ -31,7 +31,7 @@ defmodule OMG.WatcherInformational.DB.TxOutputTest do
 
     big_amount = power_of_2.(256) - 1
 
-    DB.Transaction.update_with(%{
+    DB.Block.insert_with_transactions(%{
       transactions: [OMG.TestHelper.create_recovered([], @eth, [{alice, big_amount}])],
       blknum: 11_000,
       blkhash: <<?#::256>>,

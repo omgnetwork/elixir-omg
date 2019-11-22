@@ -31,7 +31,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   test "challenge data is properly formatted", %{alice: alice} do
     DB.EthEvent.insert_deposits!([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1}])
 
-    DB.Transaction.update_with(%{
+    DB.Block.insert_with_transactions(%{
       transactions: [
         OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
       ],

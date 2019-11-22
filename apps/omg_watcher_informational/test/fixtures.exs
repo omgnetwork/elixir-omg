@@ -173,7 +173,7 @@ defmodule OMG.WatcherInformational.Fixtures do
 
   defp prepare_one_block({blknum, recovered_txs}) do
     {:ok, _} =
-      DB.Transaction.update_with(%{
+      DB.Block.insert_with_transactions(%{
         transactions: recovered_txs,
         blknum: blknum,
         blkhash: "##{blknum}",

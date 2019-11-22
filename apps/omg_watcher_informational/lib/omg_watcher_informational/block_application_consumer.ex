@@ -16,7 +16,7 @@ defmodule OMG.WatcherInformational.BlockApplicationConsumer do
   @moduledoc """
     receives blocks from blockgetter and inserts them
   """
-  alias OMG.WatcherInformational.DB.Transaction
+  alias OMG.WatcherInformational.DB.Block
   require Logger
 
   ### Client
@@ -41,7 +41,7 @@ defmodule OMG.WatcherInformational.BlockApplicationConsumer do
     _ =
       block_application
       |> to_mined_block()
-      |> Transaction.update_with()
+      |> Block.insert_with_transactions()
 
     {:noreply, state}
   end
