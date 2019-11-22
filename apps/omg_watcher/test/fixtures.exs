@@ -19,10 +19,10 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.Eth.Fixtures
   use OMG.Utils.LoggerExt
 
-  alias OMG.Eth
-  alias OMG.TestHelper
   alias FakeServer.Agents.EnvAgent
   alias FakeServer.HTTP.Server
+  alias OMG.Eth
+  alias OMG.TestHelper
   alias Support.DevHelper
 
   deffixture fee_file(token) do
