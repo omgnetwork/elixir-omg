@@ -347,13 +347,21 @@ jobs:
 
   test_docker_compose_release:
     machine:
-      image: circleci/elixir:1.8.2
+      image: circleci/classic:201808-01
     steps:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME="omisego/child_chain"
       - run: make docker-watcher WATCHER_IMAGE_NAME="omisego/watcher"
       - run: docker-compose -f docker-compose.yml -f priv/docker-compose.geth-ganache.yml pull
       - run: docker-compose -f docker-compose.yml -f priv/docker-compose.geth-ganache.yml up -d
+      - run:
+          name: Install Erlang and Elixir
+          command: |
+            set -e
+            wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
+            sudo dpkg -i erlang-solutions_2.0_all.deb
+            sudo apt-get update
+            sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2
       - run: sh .circleci/status.sh
       - run: 
           command: |
