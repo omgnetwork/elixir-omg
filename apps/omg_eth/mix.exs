@@ -37,7 +37,7 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "fix_merkle_tree_lib",
+        branch: "master",
         sparse: "plasma_framework/contracts/",
         compile:
           contracts_compile("plasma_contracts", [
