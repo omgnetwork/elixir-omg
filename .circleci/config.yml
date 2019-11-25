@@ -57,6 +57,12 @@ executors:
     environment:
       WATCHER_IMAGE_NAME: "omisego/watcher"
 
+  metal_watcher_informational:
+    machine: true
+    environment:
+      # Informational watcher reuses the watcher image, which is the full image, for now.
+      WATCHER_INFORMATIONAL_IMAGE_NAME: "omisego/watcher"
+
 commands:
   setup_elixir-omg_workspace:
     description: "Setup workspace"
@@ -185,6 +191,7 @@ jobs:
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_status
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_utils
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher
+      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher_informational
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher_rpc --router apps/omg_watcher_rpc/lib/web/router.ex
 
   child_chain_coveralls_and_integration_tests:
@@ -205,9 +212,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include child_chain --exclude watcher --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include child_chain --exclude watcher --exclude watcher_informational --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude watcher_informational --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -230,9 +237,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher --exclude child_chain --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher --include watcher_informational --exclude child_chain --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include watcher --exclude child_chain --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher --include watcher_informational --exclude child_chain --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -255,9 +262,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude child_chain --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_informational --exclude child_chain --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude child_chain --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_informational --exclude child_chain --exclude test --trace ||
                 # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -351,6 +358,7 @@ jobs:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME="omisego/child_chain"
       - run: make docker-watcher WATCHER_IMAGE_NAME="omisego/watcher"
+      - run: make docker-watcher_informational WATCHER_INFORMATIONAL_IMAGE_NAME="omisego/watcher"
       - run: docker-compose pull
       - run: docker-compose up -d
       - run: sh .circleci/status.sh
@@ -399,9 +407,11 @@ jobs:
             make deps-elixir-omg &&
             make start-child_chain OVERRIDING_START=start &&
             make start-watcher OVERRIDING_START=start
+            make start-watcher_informational OVERRIDING_START=start
           no_output_timeout: 2400
       - run: docker ps
       - run: ps axww | grep watcher
+      - run: ps axww | grep watcher_informational
       - run: ps axww | grep child_chain
       - run: sh .circleci/status.sh
 
@@ -419,17 +429,32 @@ jobs:
       - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
-  deploy_watcher:
-    executor: deploy
-    steps:
-      - checkout
-      - run: DEPLOY=watcher sh .circleci/ci_deploy.sh
+  # Watcher informational is published as watcher for now
+  #
+  # publish_watcher_informational:
+  #   executor: metal_watcher_informational
+  #   steps:
+  #     - checkout
+  #     - run: make docker-watcher_informational WATCHER_INFORMATIONAL_IMAGE_NAME=$WATCHER_INFORMATIONAL_IMAGE_NAME
+  #     - run: IMAGE_NAME=$WATCHER_INFORMATIONAL_IMAGE_NAME sh .circleci/ci_publish.sh
 
   deploy_child_chain:
     executor: deploy
     steps:
       - checkout
       - run: DEPLOY=child_chain sh .circleci/ci_deploy.sh
+
+  deploy_watcher:
+    executor: deploy
+    steps:
+      - checkout
+      - run: DEPLOY=watcher sh .circleci/ci_deploy.sh
+
+  deploy_watcher_informational:
+    executor: deploy
+    steps:
+      - checkout
+      - run: DEPLOY=watcher_informational sh .circleci/ci_deploy.sh
 
   coveralls_merge:
     docker:
@@ -520,6 +545,7 @@ jobs:
             kubectl set image statefulset childchain childchain=$DOCKER_IMAGE
             while true; do if [ "$(kubectl get pods childchain-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
             kubectl set image statefulset watcher watcher=$DOCKER_IMAGE
+            kubectl set image statefulset watcher_informational watcher=$DOCKER_IMAGE
 
 workflows:
   version: 2
@@ -543,7 +569,7 @@ workflows:
     jobs:
       - build
       - notify_services:
-          requires: [deploy_watcher, deploy_child_chain]
+          requires: [deploy_watcher, deploy_watcher_informational, deploy_child_chain]
           filters:
             branches:
               only:
@@ -615,15 +641,35 @@ workflows:
             branches:
               only:
                 - master
+      - publish_watcher_informational:
+          requires:
+            [
+              child_chain_coveralls_and_integration_tests,
+              watcher_coveralls_and_integration_tests,
+              common_coveralls_and_integration_tests,
+              test,
+              dialyzer,
+              lint,
+            ]
+          filters:
+            branches:
+              only:
+                - master
       # Release deploy to development in case of master branch.
       - deploy_child_chain:
-          requires: [publish_child_chain, publish_watcher]
+          requires: [publish_child_chain, publish_watcher, publish_watcher_informational]
           filters:
             branches:
               only:
                 - master
       - deploy_watcher:
-          requires: [publish_child_chain, publish_watcher]
+          requires: [publish_child_chain, publish_watcher, publish_watcher_informational]
+          filters:
+            branches:
+              only:
+                - master
+      - deploy_watcher_informational:
+          requires: [publish_child_chain, publish_watcher, publish_watcher_informational]
           filters:
             branches:
               only:

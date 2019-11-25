@@ -70,10 +70,10 @@ help:
 list:
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
 
-all: clean build-child_chain-prod build-watcher-prod
+all: clean build-child_chain-prod build-watcher-prod build-watcher_informational-prod
 
 WATCHER_IMAGE_NAME               ?= "omisego/watcher:latest"
-WATCHER_INFORMATIONAL_IMAGE_NAME ?= "omisego/watcher_informational:latest"
+WATCHER_INFORMATIONAL_IMAGE_NAME ?= "omisego/watcher:latest"
 CHILD_CHAIN_IMAGE_NAME           ?= "omisego/child_chain:latest"
 
 IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20191024"
@@ -139,11 +139,14 @@ build-child_chain-dev: deps-elixir-omg
 build-watcher-prod: deps-elixir-omg
 	$(ENV_PROD) mix do compile, distillery.release --name watcher --verbose
 
-build-watcher-informational-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, distillery.release --name watcher_informational --verbose
-
 build-watcher-dev: deps-elixir-omg
 	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --verbose
+
+build-watcher_informational-prod: deps-elixir-omg
+	$(ENV_PROD) mix do compile, distillery.release --name watcher_informational --verbose
+
+build-watcher_informational-dev: deps-elixir-omg
+	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_informational --verbose
 
 build-test: deps-elixir-omg
 	$(ENV_TEST) mix compile
@@ -155,16 +158,19 @@ build-test: deps-elixir-omg
 #
 
 test:
-	mix test --include test --exclude common --exclude watcher --exclude child_chain
+	mix test --include test --exclude common --exclude watcher --exclude watcher_informational --exclude child_chain
 
 test-watcher:
-	mix test --include watcher --exclude child_chain --exclude common --exclude test
+	mix test --include watcher --exclude watcher_informational --exclude child_chain --exclude common --exclude test
+
+test-watcher_informational:
+	mix test --include watcher_informational --exclude watcher --exclude child_chain --exclude common --exclude test
 
 test-common:
-	mix test --include common --exclude child_chain --exclude watcher --exclude test
+	mix test --include common --exclude child_chain --exclude watcher --exclude watcher_informational --exclude test
 
 test-child_chain:
-	mix test --include child_chain --exclude common --exclude watcher --exclude test
+	mix test --include child_chain --exclude common --exclude watcher  --exclude watcher_informational --exclude test
 
 #
 # Documentation
@@ -178,6 +184,7 @@ changelog:
 start-pre-lumphini-watcher:
 	docker-compose -f docker-compose-watcher.yml up
 ###
+
 #
 # Docker
 #
@@ -222,7 +229,7 @@ docker-watcher-build:
 		-t $(WATCHER_IMAGE_NAME) \
 		.
 
-docker-watcher-informational-build:
+docker-watcher_informational-build:
 	docker build -f Dockerfile.watcher_informational \
 		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
 		--cache-from $(WATCHER_INFORMATIONAL_IMAGE_NAME) \
@@ -230,12 +237,13 @@ docker-watcher-informational-build:
 		.
 
 docker-watcher: docker-watcher-prod docker-watcher-build
-docker-watcher-informational: docker-watcher-informational-prod docker-watcher-informational-build
+docker-watcher_informational: docker-watcher_informational-prod docker-watcher_informational-build
 docker-child_chain: docker-child_chain-prod docker-child_chain-build
 
 docker-push: docker
 	docker push $(CHILD_CHAIN_IMAGE_NAME)
 	docker push $(WATCHER_IMAGE_NAME)
+	docker push $(WATCHER_INFORMATIONAL_IMAGE_NAME)
 
 ###OTHER
 docker-start-cluster:
@@ -248,6 +256,11 @@ docker-update-watcher:
 	docker stop elixir-omg_watcher_1
 	$(MAKE) docker-watcher
 	docker-compose up watcher
+
+docker-update-watcher_informational:
+	docker stop elixir-omg_watcher_informational_1
+	$(MAKE) docker-watcher_informational
+	docker-compose up watcher_informational
 
 docker-update-child_chain:
 	docker stop elixir-omg_childchain_1
@@ -310,10 +323,10 @@ start-watcher:
 	echo "Run Watcher" && \
 	_build/prod/rel/watcher/bin/watcher $(OVERRIDING_START)
 
-start-watcher-inf:
+start-watcher_informational:
 	set -e; . ./bin/variables; \
 	echo "Building Watcher" && \
-	make build-watcher-informational-prod && \
+	make build-watcher_informational-prod && \
 	echo "Potential cleanup" && \
 	rm -f ./_build/prod/rel/watcher_informational/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
@@ -349,7 +362,7 @@ remote-watcher:
 	set -e; . ./bin/variables && \
 	_build/dev/rel/watcher/bin/watcher remote_console
 
-remote-watcher-informational:
+remote-watcher_informational:
 	set -e; . ./bin/variables && \
 	_build/dev/rel/watcher/bin/watcher remote_console
 
