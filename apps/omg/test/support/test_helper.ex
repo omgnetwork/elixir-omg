@@ -150,7 +150,23 @@ defmodule OMG.TestHelper do
   def write_fee_file(map, file_name) when is_map(map) do
     {:ok, json} =
       map
-      |> Enum.map(fn {"0x" <> _ = k, v} -> %{token: k, flat_fee: v} end)
+      |> Enum.map(fn {"0x" <> _ = token,
+                      %{
+                        amount: amount,
+                        pegged_amount: pegged_amount,
+                        pegged_currency: pegged_currency,
+                        pegged_subunit_to_unit: pegged_subunit_to_unit,
+                        updated_at: updated_at
+                      }} ->
+        %{
+          token: token,
+          amount: amount,
+          pegged_amount: pegged_amount,
+          pegged_currency: pegged_currency,
+          pegged_subunit_to_unit: pegged_subunit_to_unit,
+          updated_at: updated_at
+        }
+      end)
       |> Jason.encode()
 
     write_fee_file(json, file_name)

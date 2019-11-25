@@ -28,7 +28,15 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
   @eth Eth.zero_address()
   @eth_hex Eth.Encoding.to_hex(@eth)
-  @fees %{@eth_hex => 0}
+  @fees %{
+    @eth_hex => %{
+      amount: 0,
+      pegged_amount: 0,
+      pegged_currency: "USD",
+      pegged_subunit_to_unit: 100,
+      updated_at: DateTime.from_unix!(1_546_336_800)
+    }
+  }
 
   setup do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
@@ -60,8 +68,23 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     test "corrupted file does not make server crash", %{fee_file: file_name} do
       {:started, _log, exit_fn} = start_fee_server()
 
-      default_fees = %{@eth => 0}
-      new_fee = 5
+      default_fees = %{
+        @eth => %{
+          amount: 0,
+          pegged_amount: 0,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.from_unix!(1_546_336_800)
+        }
+      }
+
+      new_fee = %{
+        amount: 5,
+        pegged_amount: 1,
+        pegged_currency: "USD",
+        pegged_subunit_to_unit: 100,
+        updated_at: DateTime.from_unix!(1_546_423_200)
+      }
 
       assert {:ok, default_fees} == FeeServer.transaction_fees()
 

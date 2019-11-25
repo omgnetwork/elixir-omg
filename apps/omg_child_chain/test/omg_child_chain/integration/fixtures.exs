@@ -27,7 +27,25 @@ defmodule OMG.ChildChain.Integration.Fixtures do
     # ensuring that the child chain handles the token (esp. fee-wise)
 
     enc_eth = Eth.Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
-    {:ok, path, file_name} = TestHelper.write_fee_file(%{enc_eth => 0, Eth.Encoding.to_hex(token) => 0})
+
+    {:ok, path, file_name} =
+      TestHelper.write_fee_file(%{
+        enc_eth => %{
+          amount: 0,
+          pegged_amount: 0,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.utc_now()
+        },
+        Eth.Encoding.to_hex(token) => %{
+          amount: 0,
+          pegged_amount: 0,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.utc_now()
+        }
+      })
+
     default_file = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
     Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name, persistent: true)
 
