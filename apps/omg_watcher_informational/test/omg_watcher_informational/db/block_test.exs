@@ -92,7 +92,10 @@ defmodule OMG.WatcherInformational.DB.BlockTest do
       assert DB.Repo.get(DB.Block, existing_blknum)
 
       {:error, changeset} = DB.Block.insert_with_transactions(mined_block)
-      assert changeset.errors == [blknum: {"has already been taken", [constraint: :unique, constraint_name: "blocks_pkey"]}]
+
+      assert changeset.errors == [
+               blknum: {"has already been taken", [constraint: :unique, constraint_name: "blocks_pkey"]}
+             ]
     end
   end
 end

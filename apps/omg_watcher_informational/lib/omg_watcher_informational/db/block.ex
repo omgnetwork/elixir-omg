@@ -105,7 +105,8 @@ defmodule OMG.WatcherInformational.DB.Block do
     end
   end
 
-  @spec prepare_db_transactions(State.Transaction.Recovered.t(), pos_integer()) :: {[map()], [%DB.TxOutput{}], [%DB.TxOutput{}]}
+  @spec prepare_db_transactions(State.Transaction.Recovered.t(), pos_integer()) ::
+          {[map()], [%DB.TxOutput{}], [%DB.TxOutput{}]}
   defp prepare_db_transactions(mined_transactions, block_number) do
     mined_transactions
     |> Stream.with_index()
@@ -115,7 +116,9 @@ defmodule OMG.WatcherInformational.DB.Block do
     end)
   end
 
-  @spec prepare_db_transaction(State.Transaction.Recovered.t(), pos_integer(), integer()) :: [{map(), [%DB.TxOutput{}], [%DB.TxOutput{}]}]
+  @spec prepare_db_transaction(State.Transaction.Recovered.t(), pos_integer(), integer()) :: [
+          {map(), [%DB.TxOutput{}], [%DB.TxOutput{}]}
+        ]
   defp prepare_db_transaction(recovered_tx, block_number, txindex) do
     tx = Map.fetch!(recovered_tx, :signed_tx)
     metadata = tx |> Map.fetch!(:raw_tx) |> Map.fetch!(:metadata)
