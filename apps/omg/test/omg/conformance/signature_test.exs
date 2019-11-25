@@ -18,120 +18,84 @@ defmodule OMG.Conformance.SignatureTest do
   by both Elixir signature code and contract signature code.
   """
 
-  alias OMG.Eth
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
+  # FIXME: unimport
+  import Support.Conformance
 
-  use ExUnit.Case, async: false
+  alias OMG.State.Transaction
+
+  use Support.Conformance.Case, async: false
 
   @moduletag :integration
   @moduletag :common
 
-  @alice %{
-    addr: <<215, 32, 17, 47, 111, 72, 20, 47, 149, 226, 138, 242, 35, 254, 141, 212, 16, 22, 155, 182>>,
-    priv:
-      <<170, 145, 170, 111, 112, 29, 60, 152, 73, 136, 133, 220, 101, 57, 32, 144, 174, 192, 102, 193, 186, 145, 231,
-        104, 132, 231, 27, 63, 128, 36, 204, 94>>
-  }
-  @bob %{
-    addr: <<141, 246, 138, 77, 76, 3, 78, 54, 173, 40, 234, 195, 29, 170, 154, 64, 99, 14, 118, 139>>,
-    priv:
-      <<6, 31, 86, 177, 209, 153, 18, 204, 55, 88, 137, 149, 48, 164, 92, 147, 255, 58, 163, 80, 243, 202, 105, 56, 176,
-        216, 149, 207, 188, 96, 160, 87>>
-  }
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @token <<235, 169, 32, 193, 242, 237, 159, 137, 184, 46, 124, 13, 178, 171, 61, 87, 179, 179, 135, 146>>
+  describe "elixir vs solidity conformance test" do
+    test "no inputs test", %{contract: contract} do
+      tx = Transaction.Payment.new([], [{@alice, @eth, 100}])
+      verify(contract, tx)
+    end
 
-  setup_all do
-    {:ok, exit_fn} = Support.DevNode.start()
+    test "signature test - small tx", %{contract: contract} do
+      tx = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
+      verify(contract, tx)
+    end
 
-    contracts = parse_contracts()
-    signtest_addr_hex = contracts["CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK"]
-    :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: signtest_addr_hex})
+    test "signature test - full tx", %{contract: contract} do
+      tx =
+        Transaction.Payment.new(
+          [{1, 0, 0}, {1000, 555, 3}, {2000, 333, 1}, {15_015, 0, 0}],
+          [{@alice, @eth, 100}, {@alice, @token, 50}, {@bob, @token, 75}, {@bob, @eth, 25}]
+        )
 
-    on_exit(fn ->
-      # reverting to the original values from `omg_eth/config/test.exs`
-      :ok =
-        Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: "0x0000000000000000000000000000000000000001"})
+      verify(contract, tx)
+    end
 
-      exit_fn.()
-    end)
+    test "signature test transaction with metadata", %{contract: contract} do
+      {:ok, <<_::256>> = metadata} = DevCrypto.generate_private_key()
 
-    [contract: Eth.Encoding.from_hex(signtest_addr_hex)]
+      tx =
+        Transaction.Payment.new(
+          [{1, 0, 0}, {1000, 555, 3}, {2000, 333, 1}, {15_015, 0, 0}],
+          [{@alice, @eth, 100}, {@alice, @eth, 50}, {@bob, @eth, 75}, {@bob, @eth, 25}],
+          metadata
+        )
+
+      verify(contract, tx)
+    end
+
+    test "signature test, transaction with zero output amount", %{contract: contract} do
+      tx = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}, {<<1::160>>, @zero_address, 0}])
+      verify(contract, tx)
+    end
+
+    test "signature test, transaction with an explicit zero output", %{contract: contract} do
+      tx = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}, {@zero_address, @zero_address, 0}])
+      verify(contract, tx)
+    end
+
+    test "signature test, transaction with an explicit zero input", %{contract: contract} do
+      tx = Transaction.Payment.new([{1, 0, 0}, {0, 0, 0}], [{@alice, @eth, 100}])
+      verify(contract, tx)
+    end
   end
 
-  test "signature with no inputs", context do
-    contract = context[:contract]
-    tx = TestHelper.create_signed([], [{@alice, @eth, 100}])
-    verify(contract, tx)
-  end
+  # FIXME: this might not belong here, technically speaking it could cover the same stuff if put in `plasma_contracts`
+  describe "distinct transactions yield distinct sign hashes" do
+    test "sanity check - different txs hash differently", %{contract: contract} do
+      tx1 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
+      tx2 = Transaction.Payment.new([{2, 0, 0}], [{@alice, @eth, 100}])
+      verify_distinct(contract, tx1, tx2)
+    end
 
-  test "signature for small tx", context do
-    contract = context[:contract]
-    tx = TestHelper.create_signed([{1, 0, 0, @alice}], [{@alice, @eth, 100}])
-    verify(contract, tx)
-  end
+    test "explicit zero input alters sign hash", %{contract: contract} do
+      tx1 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
+      tx2 = Transaction.Payment.new([{1, 0, 0}, {0, 0, 0}], [{@alice, @eth, 100}])
+      verify_distinct(contract, tx1, tx2)
+    end
 
-  test "signature for full tx", context do
-    contract = context[:contract]
-
-    tx =
-      TestHelper.create_signed(
-        [{1, 0, 0, @alice}, {1000, 555, 3, @bob}, {2000, 333, 1, @alice}, {15_015, 0, 0, @bob}],
-        [{@alice, @eth, 100}, {@alice, @token, 50}, {@bob, @token, 75}, {@bob, @eth, 25}]
-      )
-
-    verify(contract, tx)
-  end
-
-  test "signature for a transaction with metadata", context do
-    contract = context[:contract]
-    # metadata gets a random 256 binary assigned
-    <<_::256>> =
-      metadata =
-      <<136, 72, 182, 143, 114, 106, 162, 12, 23, 115, 79, 191, 109, 221, 32, 179, 148, 78, 39, 106, 255, 9, 104, 243,
-        72, 204, 153, 10, 16, 140, 95, 27>>
-
-    tx =
-      TestHelper.create_signed(
-        [{1, 0, 0, @alice}, {1000, 555, 3, @bob}, {2000, 333, 1, @alice}, {15_015, 0, 0, @bob}],
-        @eth,
-        [{@alice, 100}, {@alice, 50}, {@bob, 75}, {@bob, 25}],
-        metadata
-      )
-
-    verify(contract, tx)
-  end
-
-  defp verify(contract, %Transaction.Signed{raw_tx: tx}) do
-    {:ok, solidity_hash} =
-      Eth.call_contract(contract, "hashTx(address,bytes)", [contract, Transaction.raw_txbytes(tx)], [{:bytes, 32}])
-
-    assert solidity_hash == OMG.TypedDataHash.hash_struct(tx)
-  end
-
-  # taken from the plasma-contracts deployment snapshot
-  # this parsing occurs in several places around the codebase
-  defp parse_contracts() do
-    local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
-
-    contract_addreses_path =
-      case File.exists?(local_umbrella_path) do
-        true ->
-          local_umbrella_path
-
-        _ ->
-          # CI/CD
-          Path.join([File.cwd!(), "localchain_contract_addresses.env"])
-      end
-
-    contract_addreses_path
-    |> File.read!()
-    |> String.split("\n", trim: true)
-    |> List.flatten()
-    |> Enum.reduce(%{}, fn line, acc ->
-      [key, value] = String.split(line, "=")
-      Map.put(acc, key, value)
-    end)
+    test "explicit zero outputs alters sign hash", %{contract: contract} do
+      tx1 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
+      tx2 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}, {@zero_address, @zero_address, 0}])
+      verify_distinct(contract, tx1, tx2)
+    end
   end
 end
