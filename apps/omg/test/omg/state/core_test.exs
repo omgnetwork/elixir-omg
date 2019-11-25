@@ -36,8 +36,8 @@ defmodule OMG.State.CoreTest do
   @blknum1 @interval
   @blknum2 @interval * 2
 
-  @empty_block_hash <<119, 106, 49, 219, 52, 161, 160, 167, 202, 175, 134, 44, 255, 223, 255, 23, 137, 41, 127, 250,
-                      220, 56, 11, 211, 211, 146, 129, 211, 64, 171, 211, 173>>
+  @empty_block_hash <<246, 9, 190, 253, 254, 144, 102, 254, 20, 231, 67, 179, 98, 62, 174, 135, 143, 188, 70, 128, 5,
+                      96, 136, 22, 131, 44, 157, 70, 15, 42, 149, 210>>
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
@@ -508,8 +508,8 @@ defmodule OMG.State.CoreTest do
 
     # precomputed fixed hash to check compliance with hashing algo
     assert block_hash ==
-             <<218, 153, 13, 247, 52, 151, 31, 191, 14, 98, 96, 181, 113, 239, 1, 101, 78, 189, 159, 121, 97, 13, 89,
-               190, 182, 145, 161, 208, 25, 188, 28, 194>>
+             <<81, 229, 255, 146, 245, 73, 131, 19, 24, 203, 243, 248, 56, 254, 29, 68, 20, 170, 103, 76, 130, 163, 117,
+               121, 82, 178, 184, 111, 166, 164, 188, 179>>
 
     # Check that contents of the block can be recovered again to original txs
     assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)

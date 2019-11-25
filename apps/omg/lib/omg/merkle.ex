@@ -20,15 +20,14 @@ defmodule OMG.Merkle do
   alias OMG.Crypto
 
   @transaction_merkle_tree_height 16
-  @default_leaf <<0>> |> List.duplicate(32) |> Enum.join() |> Crypto.hash()
+  @default_leaf <<0::256>>
 
   # Creates a Merkle proof that transaction under a given transaction index
   # is included in block consisting of hashed transactions
   @spec create_tx_proof(list(String.t()), non_neg_integer()) :: binary()
-  def create_tx_proof(hashed_txs, txindex) do
-    build(hashed_txs)
+  def create_tx_proof(txs_bytes, txindex) do
+    build(txs_bytes)
     |> prove(txindex)
-    |> (& &1.hashes).()
     |> Enum.reverse()
     |> Enum.join()
   end
@@ -37,22 +36,20 @@ defmodule OMG.Merkle do
   def hash(hashed_txs) do
     MerkleTree.fast_root(hashed_txs,
       hash_function: &Crypto.hash/1,
-      hash_leaves: false,
       height: @transaction_merkle_tree_height,
       default_data_block: @default_leaf
     )
   end
 
-  defp build(hashed_txs) do
-    MerkleTree.build(hashed_txs,
+  defp build(txs_bytes) do
+    MerkleTree.build(txs_bytes,
       hash_function: &Crypto.hash/1,
-      hash_leaves: false,
       height: @transaction_merkle_tree_height,
       default_data_block: @default_leaf
     )
   end
 
-  defp prove(hash, txindex) do
-    MerkleTree.Proof.prove(hash, txindex)
+  defp prove(tx_bytes, txindex) do
+    MerkleTree.Proof.prove(tx_bytes, txindex)
   end
 end
