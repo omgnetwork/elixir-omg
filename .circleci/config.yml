@@ -359,6 +359,10 @@ jobs:
           command: |
             set -e
             wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
+            sudo killall dpkg || true &&
+            sudo rm /var/lib/dpkg/lock || true &&
+            sudo rm /var/cache/apt/archives/lock || true &&
+            sudo dpkg --configure -a || true &&
             sudo dpkg -i erlang-solutions_2.0_all.deb
             sudo apt-get update
             sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2
