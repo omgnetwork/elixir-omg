@@ -130,37 +130,193 @@ defmodule OMG.DependencyConformance.SignatureTest do
       verify(contract, tx)
     end
 
-    @tag :property
-    property "valid tx signhash the same", [1000, :verbose, max_size: 100, constraint_tries: 100_000], %{
-      contract: contract
-    } do
-      input_tuple =
-        let [blknum <- non_neg_integer(), txindex <- non_neg_integer(), oindex <- non_neg_integer()] do
-          {blknum, txindex, oindex}
-        end
+    defp address(), do: union([exactly(<<0::160>>), exactly(<<1::160>>), binary(20)])
+    defp hash(), do: union([exactly(<<0::256>>), exactly(<<1::256>>), binary(32)])
 
-      # FIXME: revisit the case of negative amounts, funny things happen
-      output_tuple =
-        let [owner <- binary(20), currency <- binary(20), amount <- non_neg_integer()] do
-          {owner, currency, amount}
-        end
+    # FIXME: revisit zero inputs, as funny things happen
+    defp input_tuple() do
+      let [blknum <- pos_integer(), txindex <- non_neg_integer(), oindex <- non_neg_integer()] do
+        {blknum, txindex, oindex}
+      end
+    end
 
-      metadata = let(b <- binary(32), do: b)
+    # FIXME: revisit non_neg_integer amount in a different test case
+    # FIXME: revisit the case of negative amounts, funny things happen
+    defp output_tuple() do
+      let [owner <- address(), currency <- address(), amount <- pos_integer()] do
+        {owner, currency, amount}
+      end
+    end
 
-      payment_tx =
-        let [inputs <- list(input_tuple), outputs <- list(output_tuple), meta <- metadata] do
-          Transaction.Payment.new(inputs, outputs, meta)
-        end
+    # FIXME: move the require
+    require Transaction.Payment
 
-      forall tx <- payment_tx do
-        verify(contract, tx)
+    defp valid_inputs_list(),
+      do: such_that(l <- list(input_tuple()), when: length(l) <= Transaction.Payment.max_inputs())
+
+    defp valid_outputs_list(),
+      do: such_that(l <- list(output_tuple()), when: length(l) <= Transaction.Payment.max_outputs())
+
+    defp payment_tx() do
+      let [inputs <- valid_inputs_list(), outputs <- valid_outputs_list(), metadata <- hash()] do
+        Transaction.Payment.new(inputs, outputs, metadata)
       end
     end
 
     @tag :property
-    property "arbitrary binaries don't decode",
+    # FIXME: move the property tests elsewhere, decide how to organize their invocation/tags, tidy timouts
+    @tag timeout: 240_000
+    property "any tx hashes/signhashes the same in all implementations",
              [1000, :verbose, max_size: 100, constraint_tries: 100_000],
              %{contract: contract} do
+      forall tx <- payment_tx() do
+        # FIXME: expand somewhere with verifying the non-signature-related hash, Transaction.raw_txhash
+        verify(contract, tx)
+      end
+    end
+
+    defp mutated_hash(base_hash) do
+      # FIXME: provide more cases
+      OMG.Crypto.hash(base_hash)
+    end
+
+    defp mutated_inputs(inputs) do
+      # FIXME: provide more cases
+      if Enum.empty?(inputs), do: valid_inputs_list(), else: tl(inputs)
+    end
+
+    defp mutated_outputs(outputs) do
+      # FIXME: provide more cases
+      if Enum.empty?(outputs), do: valid_outputs_list(), else: tl(outputs)
+    end
+
+    defp distinct_payment_txs() do
+      proposition_result =
+        let [inputs <- valid_inputs_list(), outputs <- valid_outputs_list(), metadata <- hash()] do
+          tx1 = Transaction.Payment.new(inputs, outputs, metadata)
+
+          tx2 =
+            let [
+              inputs2 <- union([inputs, mutated_inputs(inputs)]),
+              outputs2 <- union([outputs, mutated_outputs(outputs)]),
+              metadata2 <- union([metadata, mutated_hash(metadata)])
+            ] do
+              Transaction.Payment.new(inputs2, outputs2, metadata2)
+            end
+
+          {tx1, tx2}
+        end
+
+      such_that({tx1, tx2} <- proposition_result, when: tx1 != tx2)
+    end
+
+    @tag :property
+    @tag timeout: 240_000
+    property "any 2 different txs hash/signhash differently, regardless of implementation",
+             [1000, :verbose, max_size: 100, constraint_tries: 100_000],
+             %{contract: contract} do
+      forall [{tx1, tx2} <- distinct_payment_txs()] do
+        # FIXME: expand somewhere with verifying the non-signature-related hash, Transaction.raw_txhash
+        verify_distinct(contract, tx1, tx2)
+      end
+    end
+
+    defp injectable_binary() do
+      union([
+        binary(),
+        <<0::8>>,
+        <<1::8>>,
+        <<0::16>>,
+        <<1::16>>,
+        <<0::32>>,
+        <<1::32>>,
+        <<0::128>>,
+        <<1::128>>,
+        <<0::256>>,
+        <<1::256>>
+      ])
+    end
+
+    # FIXME: these mutations used could use improving/extending
+    defp prepend_binary(base_binary) do
+      let(random_binary <- injectable_binary(), do: random_binary <> base_binary)
+    end
+
+    # FIXME: these mutations used could use improving/extending
+    defp apend_binary(base_binary) do
+      let(random_binary <- injectable_binary(), do: base_binary <> random_binary)
+    end
+
+    # FIXME: these mutations used could use improving/extending
+    defp substring_binary(base_binary) do
+      let [index1 <- nat(), index2 <- nat()] do
+        base_length = byte_size(base_binary)
+        from = min(index1, base_length - 1)
+        max_substring_length = max(1, base_length - from)
+        substring_length = max(1, min(index2, max_substring_length))
+
+        binary_part(base_binary, from, substring_length)
+      end
+    end
+
+    # FIXME: these mutations used could use improving/extending
+    defp insert_into_binary(base_binary) do
+      let [index1 <- nat(), random_binary <- injectable_binary()] do
+        base_length = byte_size(base_binary)
+        from = min(index1, base_length - 1)
+        binary_part(base_binary, 0, from) <> random_binary <> binary_part(base_binary, from, base_length - from)
+      end
+    end
+
+    defp mutate_binary(base_binary) do
+      # FIXME: these mutations used could use improving/extending
+      proposition_result =
+        union([
+          prepend_binary(base_binary),
+          apend_binary(base_binary),
+          substring_binary(base_binary),
+          insert_into_binary(base_binary)
+        ])
+
+      such_that(new_binary <- proposition_result, when: new_binary != base_binary)
+    end
+
+    defp inject_extra_binary(base_rlp_items) do
+      let random_binary <- injectable_binary() do
+        base_rlp_items
+        |> List.insert_at(0, random_binary)
+        |> ExRLP.encode()
+      end
+    end
+
+    defp rlp_mutate_binary(base_binary) do
+      # FIXME: these mutations used could use improving/extending
+      base_rlp_items = base_binary |> Transaction.decode!() |> Transaction.Protocol.get_data_for_rlp()
+
+      proposition_result =
+        union([
+          inject_extra_binary(base_rlp_items)
+        ])
+
+      such_that(new_binary <- proposition_result, when: new_binary != base_binary)
+    end
+
+    defp tx_binary_with_mutation() do
+      let [tx1 <- payment_tx()] do
+        tx1_binary = Transaction.raw_txbytes(tx1)
+        {tx1_binary, mutate_binary(tx1_binary)}
+      end
+    end
+
+    defp tx_binary_with_rlp_mutation() do
+      let [tx1 <- payment_tx()] do
+        tx1_binary = Transaction.raw_txbytes(tx1)
+        {tx1_binary, rlp_mutate_binary(tx1_binary)}
+      end
+    end
+
+    defp decoding_errors_the_same(contract, some_binary) do
+      # FIXME: move these two error lists somewhere, after this function has its proper spot
       elixir_decoding_errors = [{:error, :malformed_transaction_rlp}, {:error, :malformed_transaction}]
 
       solidity_decoding_errors = [
@@ -171,9 +327,69 @@ defmodule OMG.DependencyConformance.SignatureTest do
         "Invalid decoded length of RLP item found during counting items in a list"
       ]
 
+      Transaction.decode(some_binary) in elixir_decoding_errors &&
+        (solidity_hash(contract, some_binary) |> get_reason_from_call()) in solidity_decoding_errors
+    end
+
+    # FIXME: better name
+    defp decoding_errors_the_same_rlp_mutated(contract, some_binary) do
+      # FIXME: move these two error lists somewhere, after this function has its proper spot
+      elixir_decoding_errors = [{:error, :malformed_inputs}, {:error, :malformed_transaction}]
+
+      solidity_decoding_errors = [
+        "Item is not a list",
+        "Invalid encoding of transaction",
+        "Decoded RLP length for list is invalid",
+        "Invalid RLP encoding",
+        "Invalid decoded length of RLP item found during counting items in a list"
+      ]
+
+      Transaction.decode(some_binary) in elixir_decoding_errors &&
+        (solidity_hash(contract, some_binary) |> get_reason_from_call()) in solidity_decoding_errors
+    end
+
+    @tag :property
+    property "any crude-mutated tx binary either fails to decode to a transaction object or is recognized as different",
+             [1000, :verbose, max_size: 100, constraint_tries: 100_000],
+             %{contract: contract} do
+      forall {tx1_binary, tx2_binary} <- tx_binary_with_mutation() do
+        decoding_errors_the_same(contract, tx2_binary)
+        # FIXME: return to this - this reasoning must be reworked - how do we phrase the condition here?
+        # ||
+        #           verify_distinct(
+        #             contract,
+        # FIXME: can we ever hope to fall into this clause?
+        #   IO.inspect(Transaction.decode!(tx1_binary)),
+        #   IO.inspect(Transaction.decode!(tx2_binary))
+        # )
+      end
+    end
+
+    @tag :property
+    # FIXME: remove work tag
+    @tag :work
+    property "any rlp-mutated tx binary either fails to decode to a transaction object or is recognized as different",
+             [1000, :verbose, max_size: 100, constraint_tries: 100_000],
+             %{contract: contract} do
+      forall {tx1_binary, tx2_binary} <- tx_binary_with_rlp_mutation() do
+        decoding_errors_the_same_rlp_mutated(contract, tx2_binary)
+        # FIXME: return to this - this reasoning must be reworked - how do we phrase the condition here?
+        # ||
+        #   verify_distinct(
+        #     contract,
+        # FIXME: can we ever hope to fall into this clause?
+        #   IO.inspect(Transaction.decode!(tx1_binary)),
+        #   IO.inspect(Transaction.decode!(tx2_binary))
+        # )
+      end
+    end
+
+    @tag :property
+    property "arbitrary binaries never decode",
+             [1000, :verbose, max_size: 1000],
+             %{contract: contract} do
       forall some_binary <- binary() do
-        Transaction.decode(some_binary) in elixir_decoding_errors &&
-          (solidity_hash(contract, some_binary) |> get_reason_from_call()) in solidity_decoding_errors
+        decoding_errors_the_same(contract, some_binary)
       end
     end
 
