@@ -18,7 +18,7 @@ services:
       - "8546"
       - "8545"
     volumes:
-      - ./tmp/ganache/data:/tmp/data
+      - ./data/ganache/data:/data
     healthcheck:
       test: ping geth:8545 -c 1
       interval: 10s
@@ -32,7 +32,7 @@ services:
       - '0.5'
       - --deterministic 
       - --account_keys_path 
-      - /tmp/data/account_keys.txt
+      - /data/account_keys.txt
       - --defaultBalanceEther 
       - '100000'
       - --unlock 

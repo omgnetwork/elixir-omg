@@ -4,7 +4,7 @@ defmodule Itest.Account do
   """
   use GenServer
   alias Itest.Transactions.Currency
-  @accounts_path "tmp/ganache/data/account_keys.txt"
+  @accounts_path "../data/ganache/data/account_keys.txt"
   @accounts_state '/tmp/used_accounts'
 
   @vault "0x0433420DEE34412B5Bf1e29FBf988aD037cc5Db7"
