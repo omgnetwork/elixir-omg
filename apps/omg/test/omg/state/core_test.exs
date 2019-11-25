@@ -695,11 +695,16 @@ defmodule OMG.State.CoreTest do
     assert {:ok, {[], {[], [^utxo_pos_exit_1]}}, ^state} = Core.exit_utxos([utxo_pos_exit_1], state)
   end
 
-  @tag fixtures: [:state_empty]
-  test "notifies about invalid in-flight exit", %{state_empty: state} do
-    piggyback = %{tx_hash: 1, output_index: 1, omg_data: %{piggyback_type: :output}}
+  @tag fixtures: [:state_alice_deposit]
+  test "ignores a piggyback of a non-included tx's outout", %{state_alice_deposit: state} do
+    piggyback_event = %{tx_hash: 1, output_index: 0, omg_data: %{piggyback_type: :output}}
+    assert {:ok, {[], {[], []}}, ^state} = Core.exit_utxos([piggyback_event], state)
+  end
 
-    assert {:ok, {[], {[], [^piggyback]}}, ^state} = Core.exit_utxos([piggyback], state)
+  @tag fixtures: [:state_alice_deposit]
+  test "ignores on exiting, when input piggybacks are detected", %{state_alice_deposit: state} do
+    piggyback_event = %{tx_hash: 1, output_index: 0, omg_data: %{piggyback_type: :input}}
+    assert {:ok, {[], {[], []}}, ^state} = Core.exit_utxos([piggyback_event], state)
   end
 
   @tag fixtures: [:alice, :state_empty]

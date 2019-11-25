@@ -411,24 +411,47 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       assert {:ok, [%Event.InvalidExit{}]} =
                exit_processor_request
                |> struct!(utxo_exists_result: [false, false, false])
-               |> check_validity_filtered(processor, only: [Event.InvalidExit])
+               |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
     end
-  end
 
-  test "ifes and standard exits don't interfere if all valid",
-       %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
-    standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos_tx) |> start_ife_from(tx)
+    test "ifes and standard exits don't interfere, when standard exit is challenged",
+         %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
+      standard_exit_tx = TestHelper.create_recovered([], @eth, [{alice, 10}])
 
-    assert %{utxos_to_check: [_, Utxo.position(1, 2, 1), @utxo_pos_tx]} =
-             exit_processor_request =
-             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
+      {processor, _} =
+        processor
+        |> start_se_from(standard_exit_tx, @utxo_pos_deposit)
+        |> start_ife_from(tx)
+        |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos_deposit)}])
 
-    assert {:ok, []} =
-             exit_processor_request
-             |> struct!(utxo_exists_result: [true, true, true])
-             |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
+      # doesn't check the challenged SE utxo
+      assert %{utxos_to_check: [_, Utxo.position(1, 2, 1)]} =
+               exit_processor_request =
+               %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+               |> Core.determine_utxo_existence_to_get(processor)
+
+      # doesn't alert on the challenged SE, despite it being a double-spend wrt the IFE
+      assert {:ok, []} =
+               exit_processor_request
+               |> struct!(utxo_exists_result: [false, false])
+               |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
+    end
+
+    test "ifes and standard exits don't interfere if all valid",
+         %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
+      standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+      processor = processor |> start_se_from(standard_exit_tx, @utxo_pos_tx) |> start_ife_from(tx)
+
+      assert %{utxos_to_check: [_, Utxo.position(1, 2, 1), @utxo_pos_tx]} =
+               exit_processor_request =
+               %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+               |> Core.determine_utxo_existence_to_get(processor)
+
+      assert {:ok, []} =
+               exit_processor_request
+               |> struct!(utxo_exists_result: [true, true, true])
+               |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
+    end
   end
 
   describe "challenge events" do

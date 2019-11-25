@@ -76,7 +76,7 @@ defmodule OMG.Eth.RootChain do
   """
   def get_standard_exit(exit_id, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    return_fields = [:bool, {:uint, 192}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]
+    return_fields = [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]
     Eth.call_contract(contract, "standardExits(uint160)", [exit_id], return_fields)
   end
 
@@ -358,7 +358,7 @@ defmodule OMG.Eth.RootChain do
 
   defp prepare_exit_started(logs) do
     args = [:args]
-    types = ["(uint192,bytes,bytes,bytes)"]
+    types = ["(uint256,bytes,bytes,bytes)"]
     tuple_arg_names = [:utxo_pos, :output_tx, :output_guard_preimage, :output_tx_inclusion_proof]
 
     exits =

@@ -56,9 +56,9 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   Gets all utxo positions exiting via active standard exits
   """
   @spec exiting_positions(Core.t()) :: list(Utxo.Position.t())
-  def exiting_positions(%Core{exits: exits}) do
-    exits
-    |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
+  def exiting_positions(%Core{} = state) do
+    state
+    |> active_exits()
     |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
   end
 
@@ -67,15 +67,17 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   """
   @spec get_invalid(Core.t(), %{Utxo.Position.t() => boolean}, pos_integer()) ::
           {%{Utxo.Position.t() => ExitInfo.t()}, %{Utxo.Position.t() => ExitInfo.t()}}
-  def get_invalid(%Core{exits: exits, sla_margin: sla_margin} = state, utxo_exists?, eth_height_now) do
+  def get_invalid(%Core{sla_margin: sla_margin} = state, utxo_exists?, eth_height_now) do
+    active_exits = active_exits(state)
+
     invalid_exit_positions =
-      exits
-      |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
+      active_exits
       |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
       |> only_utxos_checked_and_missing(utxo_exists?)
 
-    exits_invalid_by_ife = get_invalid_exits_based_on_ifes(state)
-    invalid_exits = exits |> Map.take(invalid_exit_positions) |> Enum.concat(exits_invalid_by_ife) |> Enum.uniq()
+    tx_appendix = TxAppendix.get_all(state)
+    exits_invalid_by_ife = get_invalid_exits_based_on_ifes(active_exits, tx_appendix)
+    invalid_exits = active_exits |> Map.take(invalid_exit_positions) |> Enum.concat(exits_invalid_by_ife) |> Enum.uniq()
 
     # get exits which are still invalid and after the SLA margin
     late_invalid_exits =
@@ -138,6 +140,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   @spec get_ife_based_on_utxo(Utxo.Position.t(), Core.t()) :: KnownTx.t() | nil
   defp get_ife_based_on_utxo(Utxo.position(_, _, _) = utxo_pos, %Core{} = state) do
     state
+    |> TxAppendix.get_all()
     |> get_ife_txs_by_spent_input()
     |> Map.get(utxo_pos)
     |> case do
@@ -159,12 +162,11 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   end
 
   # Gets all standard exits invalidated by IFEs exiting their utxo positions
-  @spec get_invalid_exits_based_on_ifes(Core.t()) :: list(%{Utxo.Position.t() => ExitInfo.t()})
-  defp get_invalid_exits_based_on_ifes(%Core{exits: exits} = state) do
-    known_txs_by_input = get_ife_txs_by_spent_input(state)
-
-    exits
-    |> Enum.filter(fn {utxo_pos, _exit_info} -> Map.has_key?(known_txs_by_input, utxo_pos) end)
+  @spec get_invalid_exits_based_on_ifes(%{Utxo.Position.t() => ExitInfo.t()}, TxAppendix.t()) ::
+          list({Utxo.Position.t(), ExitInfo.t()})
+  defp get_invalid_exits_based_on_ifes(active_exits, tx_appendix) do
+    known_txs_by_input = get_ife_txs_by_spent_input(tx_appendix)
+    Enum.filter(active_exits, fn {utxo_pos, _exit_info} -> Map.has_key?(known_txs_by_input, utxo_pos) end)
   end
 
   @spec get_double_spends_by_utxo_pos(Utxo.Position.t(), KnownTx.t()) :: list(DoubleSpend.t())
@@ -172,8 +174,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     # the function used expects positions with an index (either input index or oindex), hence the oindex added
     do: [{utxo_pos, oindex}] |> double_spends_from_known_tx(known_tx)
 
-  defp get_ife_txs_by_spent_input(%Core{} = state) do
-    TxAppendix.get_all(state)
+  defp get_ife_txs_by_spent_input(tx_appendix) do
+    tx_appendix
     |> Enum.map(fn signed -> %KnownTx{signed_tx: signed} end)
     |> KnownTx.group_txs_by_input()
   end
@@ -184,4 +186,10 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
       other -> {:ok, other}
     end
   end
+
+  defp active_exits(%Core{exits: exits}),
+    do:
+      exits
+      |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
+      |> Map.new()
 end

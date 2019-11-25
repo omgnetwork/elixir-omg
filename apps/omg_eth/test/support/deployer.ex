@@ -59,14 +59,68 @@ defmodule Support.Deployer do
     |> deploy_contract(from, @gas_contract_rootchain, args, opts)
   end
 
-  def create_new("EthVault" = name, path_project_root, from, [plasma_framework: plasma_framework], opts) do
+  def create_new(
+        "EthDepositVerifier" = name,
+        path_project_root,
+        from,
+        [transaction_type: transaction_type, output_type: output_type],
+        opts
+      ) do
+    args = [
+      {{:uint, 256}, transaction_type},
+      {{:uint, 256}, output_type}
+    ]
+
     get_bytecode!(path_project_root, name)
-    |> deploy_contract(from, @gas_contract_default, [{:address, plasma_framework}], opts)
+    |> deploy_contract(from, @gas_contract_default, args, opts)
   end
 
-  def create_new("Erc20Vault" = name, path_project_root, from, [plasma_framework: plasma_framework], opts) do
+  def create_new(
+        "Erc20DepositVerifier" = name,
+        path_project_root,
+        from,
+        [transaction_type: transaction_type, output_type: output_type],
+        opts
+      ) do
+    args = [
+      {{:uint, 256}, transaction_type},
+      {{:uint, 256}, output_type}
+    ]
+
     get_bytecode!(path_project_root, name)
-    |> deploy_contract(from, @gas_contract_default, [{:address, plasma_framework}], opts)
+    |> deploy_contract(from, @gas_contract_default, args, opts)
+  end
+
+  def create_new(
+        "EthVault" = name,
+        path_project_root,
+        from,
+        [plasma_framework: plasma_framework, safe_gas_stipend: safe_gas_stipend],
+        opts
+      ) do
+    args = [
+      {:address, plasma_framework},
+      {{:uint, 256}, safe_gas_stipend}
+    ]
+
+    get_bytecode!(path_project_root, name)
+    |> deploy_contract(from, @gas_contract_default, args, opts)
+  end
+
+  def create_new(
+        "Erc20Vault" = name,
+        path_project_root,
+        from,
+        [plasma_framework: plasma_framework, safe_gas_stipend: safe_gas_stipend],
+        opts
+      ) do
+    args = [
+      {:address, plasma_framework},
+      {{:uint, 256}, safe_gas_stipend}
+    ]
+
+    get_bytecode!(path_project_root, name)
+    |> deploy_contract(from, @gas_contract_default, args, opts)
   end
 
   def create_new(
@@ -92,19 +146,25 @@ defmodule Support.Deployer do
           spending_condition: spending_condition,
           payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier,
           tx_finalization_verifier: tx_finalization_verifier,
-          tx_type: tx_type
+          tx_type: tx_type,
+          safe_gas_stipend: safe_gas_stipend
         ],
         opts
       ) do
     args = [
-      {:address, plasma_framework},
-      {{:uint, 256}, eth_vault_id},
-      {{:uint, 256}, erc20_vault_id},
-      {:address, output_guard_handler},
-      {:address, spending_condition},
-      {:address, payment_transaction_state_transition_verifier},
-      {:address, tx_finalization_verifier},
-      {{:uint, 256}, tx_type}
+      # This 2-element tuple represents the `PaymentExitGame.PaymentExitGameArgs` solidity struct.
+      {:tuple,
+       [
+         {:address, plasma_framework},
+         {{:uint, 256}, eth_vault_id},
+         {{:uint, 256}, erc20_vault_id},
+         {:address, output_guard_handler},
+         {:address, spending_condition},
+         {:address, payment_transaction_state_transition_verifier},
+         {:address, tx_finalization_verifier},
+         {{:uint, 256}, tx_type},
+         {{:uint, 256}, safe_gas_stipend}
+       ]}
     ]
 
     Eth.Librarian.link_for!(name, path_project_root, from)
@@ -134,9 +194,7 @@ defmodule Support.Deployer do
     defaults = @tx_defaults |> Keyword.put(:gas, gas_value)
     opts = Keyword.merge(defaults, opts)
 
-    {types, args} = Enum.unzip(types_args)
-
-    do_deploy_contract(from, bytecode, types, args, opts)
+    do_deploy_contract(from, bytecode, types_args, opts)
     |> Support.DevHelper.deploy_sync!()
   end
 
@@ -159,8 +217,8 @@ defmodule Support.Deployer do
     end
   end
 
-  def do_deploy_contract(addr, bytecode, types, args, opts) do
-    enc_args = encode_constructor_params(types, args)
+  def do_deploy_contract(addr, bytecode, types_args, opts) do
+    enc_args = Encoding.encode_constructor_params(types_args)
 
     txmap =
       %{from: Encoding.to_hex(addr), data: bytecode <> enc_args}
@@ -169,13 +227,6 @@ defmodule Support.Deployer do
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
     {:ok, _txhash} = Transaction.send(backend, txmap)
-  end
-
-  defp encode_constructor_params(types, args) do
-    args
-    |> ABI.TypeEncoder.encode_raw(types)
-    # NOTE: we're not using `to_hex` because the `0x` will be appended to the bytecode already
-    |> Base.encode16(case: :lower)
   end
 
   defp encode_all_integer_opts(opts) do

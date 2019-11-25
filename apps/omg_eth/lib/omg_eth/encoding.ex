@@ -18,6 +18,8 @@ defmodule OMG.Eth.Encoding do
   For use in `OMG.Eth` and `OMG.Eth.DevHelper`
   """
 
+  alias OMG.Eth.Encoding.ContractConstructor
+
   @doc """
   Ethereum JSONRPC and Ethereumex' specific encoding and decoding of binaries and ints
 
@@ -49,5 +51,32 @@ defmodule OMG.Eth.Encoding do
   def int_from_hex("0x" <> encoded) do
     {return, ""} = Integer.parse(encoded, 16)
     return
+  end
+
+  @doc """
+  Encodes a list of smart contract constructor parameters into a base16 encoded-ABI that
+  solidity expects.
+
+  ## Examples
+
+      iex> OMG.Eth.Encoding.encode_constructor_params([
+      ...>   {{:uint, 8}, 255},
+      ...> ])
+      "00000000000000000000000000000000000000000000000000000000000000ff"
+
+      iex> OMG.Eth.Encoding.encode_constructor_params([
+      ...>   {{:uint, 8}, 255},
+      ...>   {:string, "hello"},
+      ...> ])
+      "00000000000000000000000000000000000000000000000000000000000000ff000000000000000000000000000000000000000000000000000000000000000568656c6c6f000000000000000000000000000000000000000000000000000000"
+  """
+  @spec encode_constructor_params(types_values :: [tuple()]) :: abi_base16_encoded :: binary()
+  def encode_constructor_params(types_values) do
+    {types, values} = ContractConstructor.extract_params(types_values)
+
+    values
+    |> ABI.TypeEncoder.encode_raw(types)
+    # NOTE: we're not using `to_hex` because the `0x` will be appended to the bytecode already
+    |> Base.encode16(case: :lower)
   end
 end
