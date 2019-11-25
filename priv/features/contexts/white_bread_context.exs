@@ -115,7 +115,6 @@ defmodule WhiteBreadContext do
          alice_ethereum_balance: alice_ethereum_balance
        } = state,
        %{amount: amount} ->
-       IO.inspect alice_account
       gas_wei = state[:standard_exit_total_gas_used] + state[:gas]
       assert_equal(alice_ethereum_balance, alice_initial_balance - gas_wei)
       assert_equal(alice_ethereum_balance, Currency.to_wei(amount) - gas_wei)
