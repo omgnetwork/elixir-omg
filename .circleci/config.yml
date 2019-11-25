@@ -348,8 +348,6 @@ jobs:
   test_docker_compose_release:
     machine:
       image: ubuntu-1604:201903-01
-    environment:
-      TERM: xterm-256color
     steps:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME="omisego/child_chain"
