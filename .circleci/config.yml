@@ -348,6 +348,8 @@ jobs:
   test_docker_compose_release:
     machine:
       image: circleci/classic:201808-01
+    environment:
+      TERM: xterm-256color
     steps:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME="omisego/child_chain"
@@ -363,8 +365,9 @@ jobs:
             sudo rm /var/lib/dpkg/lock || true &&
             sudo rm /var/cache/apt/archives/lock || true &&
             sudo dpkg --configure -a || true &&
-            sudo dpkg -i erlang-solutions_2.0_all.deb
-            sudo apt-get update
+            ./bin/setup &&
+            sudo dpkg -i erlang-solutions_2.0_all.deb  &&
+            sudo apt-get update &&
             sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2-1
       - run: sh .circleci/status.sh
       - run: 
