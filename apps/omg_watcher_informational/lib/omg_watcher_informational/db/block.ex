@@ -18,6 +18,7 @@ defmodule OMG.WatcherInformational.DB.Block do
   """
   use Ecto.Schema
   use OMG.Utils.LoggerExt
+  import Ecto.Changeset
 
   alias OMG.State
   alias OMG.WatcherInformational.DB
@@ -38,8 +39,26 @@ defmodule OMG.WatcherInformational.DB.Block do
     field(:timestamp, :integer)
   end
 
+  defp changeset(block, params) do
+    block
+    |> cast(params, [:blknum, :hash, :timestamp, :eth_height])
+    |> unique_constraint(:blknum, name: :blocks_pkey)
+    |> validate_required([:blknum, :hash, :timestamp, :eth_height])
+    |> validate_number(:blknum, greater_than: 0)
+    |> validate_number(:timestamp, greater_than: 0)
+    |> validate_number(:eth_height, greater_than: 0)
+  end
+
+  @spec get_max_blknum() :: non_neg_integer()
   def get_max_blknum do
     DB.Repo.aggregate(__MODULE__, :max, :blknum)
+  end
+
+  @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  def insert(params) do
+    %__MODULE__{}
+    |> changeset(params)
+    |> DB.Repo.insert()
   end
 
   @doc """
@@ -53,61 +72,65 @@ defmodule OMG.WatcherInformational.DB.Block do
         timestamp: timestamp,
         eth_height: eth_height
       }) do
-    [db_txs, db_outputs, db_inputs] =
-      transactions
-      |> Stream.with_index()
-      |> Enum.reduce([[], [], []], fn {tx, txindex}, acc -> process(tx, block_number, txindex, acc) end)
+    {db_txs, db_outputs, db_inputs} = prepare_db_transactions(transactions, block_number)
+    current_block = %{blknum: block_number, hash: blkhash, timestamp: timestamp, eth_height: eth_height}
 
-    current_block = %DB.Block{blknum: block_number, hash: blkhash, timestamp: timestamp, eth_height: eth_height}
-
-    {insert_duration, {:ok, _} = result} =
+    {insert_duration, result} =
       :timer.tc(
         &DB.Repo.transaction/1,
         [
           fn ->
-            {:ok, _} = DB.Repo.insert(current_block)
-            _ = DB.Repo.insert_all_chunked(DB.Transaction, db_txs)
-            _ = DB.Repo.insert_all_chunked(DB.TxOutput, db_outputs)
-
-            # inputs are set as spent after outputs are inserted to support spending utxo from the same block
-            DB.TxOutput.spend_utxos(db_inputs)
+            with {:ok, block} <- insert(current_block),
+                 :ok <- DB.Repo.insert_all_chunked(DB.Transaction, db_txs),
+                 :ok <- DB.Repo.insert_all_chunked(DB.TxOutput, db_outputs),
+                 # inputs are set as spent after outputs are inserted to support spending utxo from the same block
+                 :ok <- DB.TxOutput.spend_utxos(db_inputs) do
+              block
+            else
+              {:error, changeset} -> DB.Repo.rollback(changeset)
+            end
           end
         ]
       )
 
-    _ = Logger.debug("Block \##{block_number} persisted in WatcherDB, done in #{insert_duration / 1000}ms")
+    case result do
+      {:ok, _} ->
+        _ = Logger.debug("Block \##{block_number} persisted in WatcherDB, done in #{insert_duration / 1000}ms")
+        result
 
-    result
+      {:error, changeset} ->
+        _ = Logger.debug("Block \##{block_number} not persisted in WatcherDB, done in #{insert_duration / 1000}ms")
+        _ = Logger.debug("Error: #{inspect(changeset.errors)}")
+        result
+    end
   end
 
-  @spec process(State.Transaction.Recovered.t(), pos_integer(), integer(), list()) :: [list()]
-  defp process(
-         %State.Transaction.Recovered{
-           signed_tx: %State.Transaction.Signed{raw_tx: %State.Transaction.Payment{metadata: metadata}} = tx,
-           signed_tx_bytes: signed_tx_bytes
-         },
-         block_number,
-         txindex,
-         [tx_list, output_list, input_list]
-       ) do
+  @spec prepare_db_transactions(State.Transaction.Recovered.t(), pos_integer()) :: {[map()], [%DB.TxOutput{}], [%DB.TxOutput{}]}
+  defp prepare_db_transactions(mined_transactions, block_number) do
+    mined_transactions
+    |> Stream.with_index()
+    |> Enum.reduce({[], [], []}, fn {tx, txindex}, {tx_list, output_list, input_list} ->
+      {tx, outputs, inputs} = prepare_db_transaction(tx, block_number, txindex)
+      {[tx | tx_list], outputs ++ output_list, inputs ++ input_list}
+    end)
+  end
+
+  @spec prepare_db_transaction(State.Transaction.Recovered.t(), pos_integer(), integer()) :: [{map(), [%DB.TxOutput{}], [%DB.TxOutput{}]}]
+  defp prepare_db_transaction(recovered_tx, block_number, txindex) do
+    tx = Map.fetch!(recovered_tx, :signed_tx)
+    metadata = tx |> Map.fetch!(:raw_tx) |> Map.fetch!(:metadata)
+    signed_tx_bytes = Map.fetch!(recovered_tx, :signed_tx_bytes)
     tx_hash = State.Transaction.raw_txhash(tx)
 
-    [
-      [create(block_number, txindex, tx_hash, signed_tx_bytes, metadata) | tx_list],
-      DB.TxOutput.create_outputs(block_number, txindex, tx_hash, tx) ++ output_list,
-      DB.TxOutput.create_inputs(tx, tx_hash) ++ input_list
-    ]
+    transaction = create(block_number, txindex, tx_hash, signed_tx_bytes, metadata)
+    outputs = DB.TxOutput.create_outputs(block_number, txindex, tx_hash, tx)
+    inputs = DB.TxOutput.create_inputs(tx, tx_hash)
+
+    {transaction, outputs, inputs}
   end
 
-  @spec create(pos_integer(), integer(), binary(), binary(), State.Transaction.metadata()) ::
-          map()
-  defp create(
-         block_number,
-         txindex,
-         txhash,
-         txbytes,
-         metadata
-       ) do
+  @spec create(pos_integer(), integer(), binary(), binary(), State.Transaction.metadata()) :: map()
+  defp create(block_number, txindex, txhash, txbytes, metadata) do
     %{
       txhash: txhash,
       txbytes: txbytes,
