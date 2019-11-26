@@ -429,14 +429,8 @@ jobs:
       - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
-  # Watcher informational is published as watcher for now
-  #
-  # publish_watcher_informational:
-  #   executor: metal_watcher_informational
-  #   steps:
-  #     - checkout
-  #     - run: make docker-watcher_informational WATCHER_INFORMATIONAL_IMAGE_NAME=$WATCHER_INFORMATIONAL_IMAGE_NAME
-  #     - run: IMAGE_NAME=$WATCHER_INFORMATIONAL_IMAGE_NAME sh .circleci/ci_publish.sh
+  # Note: `publish_watcher_informational` job is not available because the informational watcher
+  # is published with the watcher docker image at least for now (26-Nov-19).
 
   deploy_child_chain:
     executor: deploy
@@ -641,35 +635,25 @@ workflows:
             branches:
               only:
                 - master
-      - publish_watcher_informational:
-          requires:
-            [
-              child_chain_coveralls_and_integration_tests,
-              watcher_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              dialyzer,
-              lint,
-            ]
-          filters:
-            branches:
-              only:
-                - master
+
+      # Note: `publish_watcher_informational` job is not part of the build-deploy workflow here
+      # because the informational watcher is the same docker image as the watcher (26-Nov-19).
+
       # Release deploy to development in case of master branch.
       - deploy_child_chain:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_informational]
+          requires: [publish_child_chain, publish_watcher]
           filters:
             branches:
               only:
                 - master
       - deploy_watcher:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_informational]
+          requires: [publish_child_chain, publish_watcher]
           filters:
             branches:
               only:
                 - master
       - deploy_watcher_informational:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_informational]
+          requires: [publish_child_chain, publish_watcher]
           filters:
             branches:
               only:
