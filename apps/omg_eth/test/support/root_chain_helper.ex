@@ -46,26 +46,17 @@ defmodule Support.RootChainHelper do
   @type in_flight_exit_piggybacked_event() :: %{owner: <<_::160>>, tx_hash: <<_::256>>, output_index: non_neg_integer}
 
   def start_exit(utxo_pos, tx_bytes, proof, from, contract \\ %{}, opts \\ []) do
-    defaults =
-      @tx_defaults
-      |> Keyword.put(:gas, @gas_start_exit)
-      |> Keyword.put(:value, @standard_exit_bond)
-
-    opts = Keyword.merge(defaults, opts)
-
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
-    output_guard_preimage = ""
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
-
-    TransactionHelper.contract_transact(
-      backend,
-      from,
-      contract,
-      "startStandardExit((uint256,bytes,bytes,bytes))",
-      [{utxo_pos, tx_bytes, output_guard_preimage, proof}],
-      opts
-    )
+    from = ExPlasma.Encoding.to_hex(from)
+    contract = ExPlasma.Encoding.to_hex(contract)
+    ExPlasma.Client.start_standard_exit(tx_bytes, %{
+       from: from,
+       gas: @gas_start_exit,
+       proof: proof,
+       to: contract,
+       utxo_pos: utxo_pos,
+       value: @standard_exit_bond
+     })
   end
 
   def piggyback_in_flight_exit_on_input(in_flight_tx, input_index, from, contract \\ %{}, opts \\ []) do

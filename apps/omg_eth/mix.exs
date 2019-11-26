@@ -34,6 +34,7 @@ defmodule OMG.Eth.MixProject do
     [
       {:ex_abi, "~> 0.2.1"},
       {:ethereumex, "~> 0.5.5"},
+      {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git", branch: "achiurizo/typed-data"},
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",

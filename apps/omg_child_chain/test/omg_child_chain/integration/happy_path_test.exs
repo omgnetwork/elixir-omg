@@ -114,6 +114,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
                proof,
                alice.addr
              )
+             |> (fn {:ok, receipt_hash} -> {:ok, ExPlasma.Encoding.to_binary(receipt_hash)} end).()
              |> DevHelper.transact_sync!()
 
     # check if the utxo is no longer available

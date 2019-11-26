@@ -20,4 +20,9 @@ config :omg_eth,
   ws_url: "ws://localhost:8546/ws",
   client_monitor_interval_ms: 10_000
 
+config :ex_plasma,
+  gas: 1_000_000,
+  gas_price: 1_000_000,
+  standard_exit_bond_size: 14_000_000_000_000_000
+
 import_config "#{Mix.env()}.exs"
