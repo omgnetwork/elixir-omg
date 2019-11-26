@@ -86,6 +86,10 @@ defmodule OMG.DBTest do
     assert {:ok, ^item} = DB.utxo({index, index, index}, pid)
   end
 
+  test "utxo is not found by utxo position", %{db_pid: pid} do
+    assert :not_found = DB.utxo({1, 0, 0}, pid)
+  end
+
   test "if multi reading exit infos returns writen results", %{db_dir: _dir, db_pid: pid} do
     db_writes = create_write(:exit_info, pid)
     {:ok, exits} = DB.exit_infos(pid)

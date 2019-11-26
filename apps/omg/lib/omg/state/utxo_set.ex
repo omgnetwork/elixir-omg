@@ -33,10 +33,13 @@ defmodule OMG.State.UtxoSet do
   require Utxo
 
   @type t() :: %{InputPointer.Protocol.t() => Utxo.t()}
+  @type query_result_t() :: list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})
 
-  @spec init(list(tuple())) :: t()
+  @spec init(query_result_t()) :: t()
   def init(utxos_query_result) do
-    Enum.into(utxos_query_result, %{}, fn {db_input_pointer, db_utxo} ->
+    utxos_query_result
+    |> Enum.reject(&(&1 == :not_found))
+    |> Enum.into(%{}, fn {db_input_pointer, db_utxo} ->
       {InputPointer.from_db_key(db_input_pointer), Utxo.from_db_value(db_utxo)}
     end)
   end
