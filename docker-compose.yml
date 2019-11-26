@@ -16,7 +16,7 @@ services:
       retries: 5
 
   plasma-contracts:
-    image: omisegoimages/elixir-omg-tester-plasma-deployer:stable-20191115
+    image: omisegoimages/elixir-omg-tester-plasma-deployer:stable-20191125
     command:
       - /bin/sh
       - -c
@@ -187,4 +187,3 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-
