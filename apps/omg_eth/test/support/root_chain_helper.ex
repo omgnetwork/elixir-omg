@@ -49,7 +49,7 @@ defmodule Support.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     from = ExPlasma.Encoding.to_hex(from)
     contract = ExPlasma.Encoding.to_hex(contract)
-    ExPlasma.Client.start_standard_exit(tx_bytes, %{
+    {:ok, receipt_hash} = ExPlasma.Client.start_standard_exit(tx_bytes, %{
        from: from,
        gas: @gas_start_exit,
        proof: proof,
@@ -57,6 +57,10 @@ defmodule Support.RootChainHelper do
        utxo_pos: utxo_pos,
        value: @standard_exit_bond
      })
+
+    # NB: We need to do this _for now_ so that 
+    # the `DeveHelper.transact_sync!` sync can work.
+    {:ok, ExPlasma.Encoding.to_binary(receipt_hash)}
   end
 
   def piggyback_in_flight_exit_on_input(in_flight_tx, input_index, from, contract \\ %{}, opts \\ []) do

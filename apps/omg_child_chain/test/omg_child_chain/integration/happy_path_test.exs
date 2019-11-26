@@ -113,9 +113,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
                raw_txbytes,
                proof,
                alice.addr
-             )
-             |> (fn {:ok, receipt_hash} -> {:ok, ExPlasma.Encoding.to_binary(receipt_hash)} end).()
-             |> DevHelper.transact_sync!()
+             ) |> DevHelper.transact_sync!()
 
     # check if the utxo is no longer available
     exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
