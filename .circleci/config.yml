@@ -159,6 +159,7 @@ jobs:
             - VERSION
             - .git
             - Makefile
+            - priv
 
   lint:
     executor: builder_pg
@@ -346,14 +347,45 @@ jobs:
 
   test_docker_compose_release:
     machine:
-      image: circleci/classic:201808-01
+      image: ubuntu-1604:201903-01
     steps:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME="omisego/child_chain"
       - run: make docker-watcher WATCHER_IMAGE_NAME="omisego/watcher"
-      - run: docker-compose pull
-      - run: docker-compose up -d
+      - run: docker-compose -f docker-compose.yml -f priv/docker-compose.geth-ganache.yml pull
+      - run: docker-compose -f docker-compose.yml -f priv/docker-compose.geth-ganache.yml up -d
+      - run:
+          name: Install Erlang and Elixir
+          command: |
+            set -e
+            wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
+            sudo killall dpkg || true &&
+            sudo rm /var/lib/dpkg/lock || true &&
+            sudo rm /var/cache/apt/archives/lock || true &&
+            sudo dpkg --configure -a || true &&
+            sudo dpkg -i erlang-solutions_2.0_all.deb  &&
+            sudo apt-get update &&
+            sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2-1
       - run: sh .circleci/status.sh
+      - restore_cache:
+          key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+      - run:
+          name: Run specs
+          command: |
+            cd priv/
+            mix local.hex --force && mix local.rebar --force
+            mix deps.get
+            mix white_bread.run
+            MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
+      - save_cache:
+          key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+          paths:
+            - "priv/deps"
+      - run:
+          name: Credo and formatting
+          command: |
+            cd priv/
+            mix do credo, format --check-formatted --dry-run
 
   test_barebone_release:
     machine:
