@@ -98,16 +98,19 @@ defmodule Support.RootChainHelper do
   end
 
   def deposit(tx_bytes, value, from, contract \\ %{}, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit)
-
-    opts =
-      defaults
-      |> Keyword.merge(opts)
-      |> Keyword.put(:value, value)
-
     contract = Config.maybe_fetch_addr!(contract, :eth_vault)
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
-    TransactionHelper.contract_transact(backend, from, contract, "deposit(bytes)", [tx_bytes], opts)
+    from = ExPlasma.Encoding.to_hex(from)
+    contract = ExPlasma.Encoding.to_hex(contract)
+
+    {:ok, receipt_hash} = ExPlasma.Client.deposit(tx_bytes, %{
+       from: from,
+       to: contract,
+       value: value
+     })
+
+    # NB: We need to do this _for now_ so that 
+    # the `DeveHelper.transact_sync!` sync can work.
+    {:ok, ExPlasma.Encoding.to_binary(receipt_hash)}
   end
 
   def deposit_from(tx, from, contract \\ %{}, opts \\ []) do
