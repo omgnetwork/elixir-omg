@@ -158,6 +158,24 @@ defmodule Support.BundleDeployer do
     {:ok, _, tx_finalization_verifier_addr} =
       Deployer.create_new("TxFinalizationVerifier", root_path, deployer_addr, [])
 
+    IO.inspect("YOLO")
+
+    {:ok, _, _} =
+      Deployer.create_new(
+        "PaymentExitGameArgs",
+        root_path,
+        deployer_addr,
+        plasma_framework: plasma_framework_addr,
+        eth_vault_id: @eth_vault_number,
+        erc20_vault_id: @erc20_vault_number,
+        output_guard_handler: output_guard_handler_registry_addr,
+        spending_condition: spending_condition_registry_addr,
+        payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier_addr,
+        tx_finalization_verifier: tx_finalization_verifier_addr,
+        tx_type: @payment_tx_marker,
+        safe_gas_stipend: @safe_gas_stipend
+      )
+
     {:ok, _, payment_exit_game_addr} =
       Deployer.create_new(
         "PaymentExitGame",

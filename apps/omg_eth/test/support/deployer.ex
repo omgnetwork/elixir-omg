@@ -135,6 +135,43 @@ defmodule Support.Deployer do
   end
 
   def create_new(
+        "PaymentExitGameArgs" = name,
+        path_project_root,
+        from,
+        [
+          plasma_framework: plasma_framework,
+          eth_vault_id: eth_vault_id,
+          erc20_vault_id: erc20_vault_id,
+          output_guard_handler: output_guard_handler,
+          spending_condition: spending_condition,
+          payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier,
+          tx_finalization_verifier: tx_finalization_verifier,
+          tx_type: tx_type,
+          safe_gas_stipend: safe_gas_stipend
+        ],
+        opts
+      ) do
+    args = [
+      # This 2-element tuple represents the `PaymentExitGame.PaymentExitGameArgs` solidity struct.
+      {:tuple,
+       [
+         {:address, plasma_framework},
+         {{:uint, 256}, eth_vault_id},
+         {{:uint, 256}, erc20_vault_id},
+         {:address, output_guard_handler},
+         {:address, spending_condition},
+         {:address, payment_transaction_state_transition_verifier},
+         {:address, tx_finalization_verifier},
+         {{:uint, 256}, tx_type},
+         {{:uint, 256}, safe_gas_stipend}
+       ]}
+    ]
+
+    get_bytecode!(path_project_root, name)
+    |> deploy_contract(from, @gas_contract_payment_exit_game, args, opts)
+  end
+
+  def create_new(
         "PaymentExitGame" = name,
         path_project_root,
         from,
@@ -225,6 +262,7 @@ defmodule Support.Deployer do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
+    IO.inspect(txmap)
     backend = Application.fetch_env!(:omg_eth, :eth_node)
     {:ok, _txhash} = Transaction.send(backend, txmap)
   end
