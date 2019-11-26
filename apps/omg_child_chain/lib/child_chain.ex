@@ -56,6 +56,7 @@ defmodule OMG.ChildChain do
   @spec get_alarms() :: {:ok, Alarm.raw_t()}
   def get_alarms, do: {:ok, Alarm.all()}
 
+  @spec get_filtered_fees(list(String.t())) :: {:ok, map()}
   def get_filtered_fees(currencies) do
     with {:ok, fees} <- FeeServer.transaction_fees(),
          {:ok, filtered_fees} <- Fees.filter_fees(fees, currencies) do
