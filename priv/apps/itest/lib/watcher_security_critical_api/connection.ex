@@ -2,6 +2,7 @@
 # https://openapi-generator.tech
 # Do not edit the class manually.
 if Code.ensure_loaded?(WatcherSecurityCriticalAPI.Connection) do
+  # override Tesla connection module if it exists because it's pointing to localhost
   Code.compiler_options(ignore_module_conflict: true)
 
   defmodule WatcherSecurityCriticalAPI.Connection do

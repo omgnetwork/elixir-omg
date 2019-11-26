@@ -1,4 +1,7 @@
 defmodule WhiteBreadContext do
+  @moduledoc """
+    provides execution environment for White Bread gerkin style tests
+  """
   use WhiteBread.Context
   require Logger
   alias Itest.Transactions.Currency
