@@ -49,16 +49,18 @@ defmodule Support.RootChainHelper do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     from = ExPlasma.Encoding.to_hex(from)
     contract = ExPlasma.Encoding.to_hex(contract)
-    {:ok, receipt_hash} = ExPlasma.Client.start_standard_exit(tx_bytes, %{
-       from: from,
-       gas: @gas_start_exit,
-       proof: proof,
-       to: contract,
-       utxo_pos: utxo_pos,
-       value: @standard_exit_bond
-     })
 
-    # NB: We need to do this _for now_ so that 
+    {:ok, receipt_hash} =
+      ExPlasma.Client.start_standard_exit(tx_bytes, %{
+        from: from,
+        gas: @gas_start_exit,
+        proof: proof,
+        to: contract,
+        utxo_pos: utxo_pos,
+        value: @standard_exit_bond
+      })
+
+    # NB: We need to do this _for now_ so that
     # the `DeveHelper.transact_sync!` sync can work.
     {:ok, ExPlasma.Encoding.to_binary(receipt_hash)}
   end
@@ -102,13 +104,14 @@ defmodule Support.RootChainHelper do
     from = ExPlasma.Encoding.to_hex(from)
     contract = ExPlasma.Encoding.to_hex(contract)
 
-    {:ok, receipt_hash} = ExPlasma.Client.deposit(tx_bytes, %{
-       from: from,
-       to: contract,
-       value: value
-     })
+    {:ok, receipt_hash} =
+      ExPlasma.Client.deposit(tx_bytes, %{
+        from: from,
+        to: contract,
+        value: value
+      })
 
-    # NB: We need to do this _for now_ so that 
+    # NB: We need to do this _for now_ so that
     # the `DeveHelper.transact_sync!` sync can work.
     {:ok, ExPlasma.Encoding.to_binary(receipt_hash)}
   end
