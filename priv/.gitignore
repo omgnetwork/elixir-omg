@@ -34,3 +34,6 @@ elixir-*.tar
 apps/child_chain_api
 apps/watchers_informational_api
 apps/watcher_security_critical_api
+
+#binaries
+priv/openapitools/openapi-generator-cli-*.jar
