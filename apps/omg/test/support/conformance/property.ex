@@ -170,22 +170,44 @@ defmodule Support.Conformance.Property do
     ])
   end
 
-  defp inject_extra_binary(base_rlp_items) do
+  defp inject_extra_item(base_rlp_items) do
     rlp_items_length = length(base_rlp_items)
 
-    let [random_binary <- injectable_binary(), index <- integer(0, rlp_items_length)] do
+    let [new_item <- rlp_item_generator(), index <- integer(0, rlp_items_length)] do
       base_rlp_items
-      |> List.insert_at(index, random_binary)
+      |> List.insert_at(index, new_item)
       |> ExRLP.encode()
     end
   end
+
+  defp recursively_mutate_rlp(base_rlp_items) do
+    let([mutated_rlp <- mutate_sub_rlp(base_rlp_items)], do: ExRLP.encode(mutated_rlp))
+  end
+
+  defp mutate_sub_rlp([]), do: rlp_item_generator()
+
+  defp mutate_sub_rlp(rlp_items) when is_list(rlp_items) do
+    rlp_items_length = length(rlp_items)
+
+    let [index <- integer(0, rlp_items_length - 1)] do
+      to_mutate = Enum.at(rlp_items, index)
+      let([mutated_rlp <- mutate_sub_rlp(to_mutate)], do: List.replace_at(rlp_items, index, mutated_rlp))
+    end
+  end
+
+  defp mutate_sub_rlp(rlp_item) when is_integer(rlp_item) or is_binary(rlp_item), do: rlp_item_generator()
+
+  defp rlp_item_generator(),
+    do: union([injectable_binary(), non_neg_integer(), list(union([injectable_binary(), non_neg_integer()]))])
 
   defp rlp_mutate_binary(base_binary) do
     # FIXME: these mutations used could use improving/extending
     base_rlp_items = base_binary |> Transaction.decode!() |> Transaction.Protocol.get_data_for_rlp()
 
     union([
-      inject_extra_binary(base_rlp_items)
+      # FIXME: reenable or move to a different property?
+      # inject_extra_item(base_rlp_items)
+      recursively_mutate_rlp(base_rlp_items)
     ])
   end
 end

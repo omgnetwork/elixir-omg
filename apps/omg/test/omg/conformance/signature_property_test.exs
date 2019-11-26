@@ -18,6 +18,8 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   Solidity implementations
   """
 
+  alias OMG.State.Transaction
+
   # FIXME: unimport
   import Support.Conformance
   import Support.Conformance.Property
@@ -25,8 +27,6 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   use PropCheck
   use Support.Conformance.Case, async: false
 
-  @moduletag :integration
-  @moduletag :common
   @moduletag :property
   @moduletag timeout: 450_000
 
@@ -69,16 +69,24 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   property "any rlp-mutated tx binary either fails to decode to a transaction object or is recognized as different",
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
-    forall {_tx1_binary, tx2_binary} <- tx_binary_with_rlp_mutation() do
-      decoding_errors_the_same_rlp_mutated(contract, tx2_binary)
-      # FIXME: return to this - this reasoning must be reworked - how do we phrase the condition here?
-      # ||
-      #   verify_distinct(
-      #     contract,
-      # FIXME: can we ever hope to fall into this clause?
-      #   IO.inspect(Transaction.decode!(tx1_binary)),
-      #   IO.inspect(Transaction.decode!(tx2_binary))
-      # )
+    forall {tx1_binary, tx2_binary} <- tx_binary_with_rlp_mutation() do
+      IO.inspect(ExRLP.decode(tx1_binary))
+      IO.inspect(ExRLP.decode(tx2_binary))
+
+      case Transaction.decode(tx2_binary) do
+        {:ok, _} ->
+          verify_distinct(
+            contract,
+            IO.inspect(Transaction.decode!(tx1_binary)),
+            IO.inspect(Transaction.decode!(tx2_binary))
+          )
+
+        {:error, _} ->
+          IO.inspect("errored")
+          true
+          # FIXME
+          # decoding_errors_the_same_rlp_mutated(contract, tx2_binary)
+      end
     end
   end
 
