@@ -58,9 +58,8 @@ s6-env REPLACE_OS_VARS=yes
 ##
 
 ifelse { test $1 == "init_key_value_db" } { /app/bin/watcher $@ }
-ifelse { test $1 == "init_postgresql_db" } { /app/bin/watcher $@ }
 ifelse { test $1 == "full_local" } {
-  /bin/bash -c "/app/bin/watcher init_postgresql_db && /app/bin/watcher init_key_value_db && /app/bin/watcher foreground"
+  /bin/bash -c "/app/bin/watcher init_key_value_db && /app/bin/watcher foreground"
 }
 
 ifelse { test $1 == "foreground" } {

@@ -103,7 +103,7 @@ release :watcher_informational do
 
   set(
     commands: [
-      init_postgresql_db: "rel/commands/watcher/init_postgresql_db.sh",
+      init_postgresql_db: "rel/commands/watcher_informational/init_postgresql_db.sh",
       init_key_value_db: "rel/commands/init_key_value_db.sh"
     ]
   )
