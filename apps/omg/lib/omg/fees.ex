@@ -150,16 +150,12 @@ defmodule OMG.Fees do
   def filter_fees(fees, []), do: {:ok, fees}
 
   def filter_fees(fees, desired_currencies) do
-    try do
-      filtered_fees =
-        Enum.into(desired_currencies, %{}, fn currency ->
-          {currency, Map.fetch!(fees, currency)}
-        end)
-
-      {:ok, filtered_fees}
-    rescue
-      _error -> {:error, :currency_fee_not_supported}
-    end
+    Enum.reduce_while(desired_currencies, {:ok, %{}}, fn (currency, {:ok, filtered_fees}) ->
+      case Map.fetch(fees, currency) do
+        :error -> {:halt, {:error, :currency_fee_not_supported}}
+        {:ok, fee} -> {:cont, {:ok, Map.put(filtered_fees, currency, fee)}}
+      end
+    end)
   end
 
   @doc ~S"""
