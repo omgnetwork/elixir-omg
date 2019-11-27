@@ -384,7 +384,6 @@ jobs:
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME="omisego/child_chain"
       - run: make docker-watcher WATCHER_IMAGE_NAME="omisego/watcher"
       - run: make docker-watcher_informational WATCHER_INFORMATIONAL_IMAGE_NAME="omisego/watcher_informational"
-      - run: docker-compose -f docker-compose.yml -f priv/docker-compose.geth-ganache.yml pull
       - run: docker-compose -f docker-compose.yml -f priv/docker-compose.geth-ganache.yml up -d
       - run:
           name: Install Erlang and Elixir
