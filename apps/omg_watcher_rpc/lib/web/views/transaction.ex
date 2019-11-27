@@ -61,7 +61,9 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
     outputs = Map.fetch!(transaction, :outputs)
 
     transaction
-    |> Map.take([:txindex, :block, :txhash, :metadata])
+    |> Map.take([:txindex, :txhash, :block, :inputs, :outputs, :txbytes, :metadata])
+    |> Map.update!(:inputs, &render_txoutputs/1)
+    |> Map.update!(:outputs, &render_txoutputs/1)
     |> Map.put(:results, digest_outputs(outputs))
   end
 
