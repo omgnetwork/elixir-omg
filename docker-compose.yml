@@ -154,7 +154,7 @@ services:
         condition: service_healthy
 
   watcher_informational:
-    image: omisego/watcher:latest
+    image: omisego/watcher_informational:latest
     command: "full_local"
     environment:
       - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
