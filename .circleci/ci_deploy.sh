@@ -44,10 +44,13 @@ echo "$GCP_KEY_FILE" | base64 -d > "$GCPFILE"
 gcloud auth activate-service-account --key-file="$GCPFILE"
 gcloud beta container clusters get-credentials ${GCP_CLUSTER_DEVELOPMENT} --region ${GCP_REGION} --project ${GCP_PROJECT}
 image_tag="$(printf "%s" "$CIRCLE_SHA1" | head -c 7)"
-if [ "$DEPLOY" = "watcher" ]; then
 
+if [ "$DEPLOY" = "watcher" ]; then
     kubectl set image statefulset watcher watcher=omisego/watcher:${image_tag}
     while true; do if [ "$(kubectl get pods watcher-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
+elif [ "$DEPLOY" = "watcher_informational" ]; then
+    kubectl set image statefulset watcher_informational watcher_informational=omisego/watcher_informational:${image_tag}
+    while true; do if [ "$(kubectl get pods watcher_informational-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
 else
     kubectl set image statefulset childchain childchain=omisego/child_chain:${image_tag}
     while true; do if [ "$(kubectl get pods childchain-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done

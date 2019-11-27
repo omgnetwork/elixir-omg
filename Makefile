@@ -21,16 +21,20 @@ help:
 	@echo "instead of your own local geth network. Note: you will need to configure the environment \c"
 	@echo "variables defined in docker-compose-infura.yml"
 	@echo ""
-	@echo "  - \`make docker-watcher && make docker-child_chain\`: use your own image containers \c"
-	@echo "for Watcher and Child Chain"
+	@echo "  - \`make docker-watcher && make docker-watcher_informational && make docker-child_chain\`: \c"
+	@echo "use your own image containers for Watcher, Watcher Informational and Child Chain"
 	@echo ""
-	@echo "  - \`make docker-update-watcher\` or \`make docker-update-child_chain\`: \c"
-	@echo "replaces containers with your code changes for rapid development."
+	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher-informational\` or \c"
+	@echo "\`make docker-update-child_chain\`: replaces containers with your code changes\c"
+	@echo "for rapid development."
 	@echo ""
 	@echo "  - \`make docker-nuke\`: wipe docker clean, including containers, images, networks \c"
-	@echo "and build cache"
+	@echo "and build cache."
 	@echo ""
 	@echo "  - \`make docker-remote-watcher\`: remote console (IEx-style) into the watcher application."
+	@echo ""
+	@echo "  - \`make docker-remote-watcher_informational\`: remote console (IEx-style) into the \c"
+	@echo "watcher_informational application."
 	@echo ""
 	@echo "  - \`make docker-remote-childchain\`: remote console (IEx-style) into the childchain application."
 	@echo ""
@@ -73,7 +77,7 @@ list:
 all: clean build-child_chain-prod build-watcher-prod build-watcher_informational-prod
 
 WATCHER_IMAGE_NAME               ?= "omisego/watcher:latest"
-WATCHER_INFORMATIONAL_IMAGE_NAME ?= "omisego/watcher:latest"
+WATCHER_INFORMATIONAL_IMAGE_NAME ?= "omisego/watcher_informational:latest"
 CHILD_CHAIN_IMAGE_NAME           ?= "omisego/child_chain:latest"
 
 IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20191024"
@@ -275,7 +279,7 @@ docker-start-cluster-with-infura:
 	fi
 
 docker-start-cluster-with-datadog:
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-contracts watcher childchain
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-contracts watcher watcher_informational childchain
 
 docker-stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
@@ -287,10 +291,13 @@ docker-nuke:
 docker-remote-watcher:
 	docker-compose exec watcher /watcher_entrypoint bin/watcher remote_console
 
+docker-remote-watcher_informational:
+	docker-compose exec watcher_informational /watcher_informational_entrypoint bin/watcher_informational remote_console
+
 docker-remote-childchain:
 	docker-compose exec childchain /child_chain_entrypoint bin/child_chain remote_console
 
-.PHONY: docker-nuke docker-remote-watcher docker-remote-childchain
+.PHONY: docker-nuke docker-remote-watcher docker-remote-watcher_informational docker-remote-childchain
 
 ###
 ### barebone stuff
@@ -348,10 +355,19 @@ update-watcher:
 	set -e; . ./bin/variables && \
 	exec _build/dev/rel/watcher/bin/watcher foreground &
 
+update-watcher_informational:
+	_build/dev/rel/watcher_informational/bin/watcher_informational stop ; \
+	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_informational --silent && \
+	set -e; . ./bin/variables && \
+	exec _build/dev/rel/watcher_informational/bin/watcher_informational foreground &
+
 stop-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop
 
 stop-watcher:
+	_build/dev/rel/watcher/bin/watcher stop
+
+stop-watcher_informational:
 	_build/dev/rel/watcher/bin/watcher stop
 
 remote-child_chain:
@@ -364,7 +380,7 @@ remote-watcher:
 
 remote-watcher_informational:
 	set -e; . ./bin/variables && \
-	_build/dev/rel/watcher/bin/watcher remote_console
+	_build/dev/rel/watcher_informational/bin/watcher_informational remote_console
 
 get-alarms:
 	echo "Child Chain alarms" ; \
@@ -373,7 +389,7 @@ get-alarms:
 	curl -s -X POST http://localhost:7434/alarm.get
 
 cluster-stop:
-	${MAKE} stop-watcher ; ${MAKE} stop-child_chain ; docker-compose down
+	${MAKE} stop-watcher ; ${MAKE} stop-watcher_informational ; ${MAKE} stop-child_chain ; docker-compose down
 
 ### git setup
 init:
@@ -406,6 +422,8 @@ diagnostics:
 	docker-compose logs childchain
 	echo "\n---------- WATCHER LOGS ----------"
 	docker-compose logs watcher
+	echo "\n---------- WATCHER_INFORMATIONAL LOGS ----------"
+	docker-compose logs watcher_informational
 	echo "\n---------- PLASMA CONTRACTS ----------"
 	curl -s localhost:8000/contracts | echo "Could not retrieve the deployed plasma contracts."
 	echo "\n---------- GIT ----------"
