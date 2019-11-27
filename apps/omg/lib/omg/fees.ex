@@ -202,21 +202,14 @@ defmodule OMG.Fees do
   """
   @spec to_api_format(fee_t()) :: list(map())
   def to_api_format(fees) do
-    Enum.map(fees, fn {currency,
-                       %{
-                         amount: amount,
-                         pegged_currency: pegged_currency,
-                         pegged_amount: pegged_amount,
-                         pegged_subunit_to_unit: pegged_subunit_to_unit,
-                         updated_at: updated_at
-                       }} ->
+    Enum.map(fees, fn {currency, fee} ->
       %{
         currency: currency,
-        amount: amount,
-        pegged_currency: {:skip_hex_encode, pegged_currency},
-        pegged_amount: pegged_amount,
-        pegged_subunit_to_unit: pegged_subunit_to_unit,
-        updated_at: {:skip_hex_encode, updated_at}
+        amount: fee.amount,
+        pegged_currency: {:skip_hex_encode, fee.pegged_currency},
+        pegged_amount: fee.pegged_amount,
+        pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
+        updated_at: {:skip_hex_encode, fee.updated_at}
       }
     end)
   end
