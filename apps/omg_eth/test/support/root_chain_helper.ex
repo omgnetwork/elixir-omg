@@ -362,4 +362,30 @@ defmodule Support.RootChainHelper do
 
     deposit_blknum
   end
+
+  # --- ex_plasma refactor ---
+
+  # about 4 Ethereum blocks on "realistic" networks, use to timeout synchronous operations in demos on testnets
+  # NOTE: such timeout works only in dev setting; on mainnet one must track its transactions carefully
+  @about_4_blocks_time 60_000
+
+  def ex_deposit(owner: owner, amount: amount) do
+    %ExPlasma.Transaction.Utxo{owner: owner, amount: amount, currency: OMG.Eth.RootChain.eth_pseudo_address()}
+    |> ExPlasma.Transactions.Deposit.new()
+    |> ExPlasma.Client.deposit()
+  end
+
+  defp ex_await_transaction(result_tuple, counter \\ 6)
+
+  defp ex_await_transaction({:ok, receipt_hash}, counter) do
+  end
+
+  defp do_await_transaction(receipt_hash, status, counter) do
+    {:ok, receipt} = Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash)
+
+    unless receipt && receipt["status"] == status do
+      Process.sleep(@about_4_blocks_time)
+      do_await_transaction(receipt_hash, status, counter - 1)
+    end
+  end
 end
