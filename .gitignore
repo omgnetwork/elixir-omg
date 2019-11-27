@@ -55,3 +55,8 @@ docker-compose.override.yml
 
 #ganache end2ned
 data/
+
+#generated applications and source
+priv/apps/child_chain_api
+priv/apps/watchers_informational_api
+priv/apps/watcher_security_critical_api
