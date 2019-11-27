@@ -26,7 +26,7 @@ environment :prod do
 end
 
 release :watcher do
-  set(version: current_version(:omg_child_chain) <> "+" <> sha)
+  set(version: current_version(:omg_watcher) <> "+" <> sha)
 
   set(vm_args: "rel/vm.args")
 
@@ -66,7 +66,7 @@ release :watcher do
 end
 
 release :watcher_informational do
-  set(version: current_version(:omg_child_chain) <> "+" <> sha)
+  set(version: current_version(:omg_watcher_informational) <> "+" <> sha)
 
   set(vm_args: "rel/vm.args")
 
