@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
 
   alias Support.WatcherHelper
 
-  describe "submitting binary-encoded transaction" do
+  describe "get_all/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "fees.all endpoint rejects request without parameter" do
       missing_param = %{}
