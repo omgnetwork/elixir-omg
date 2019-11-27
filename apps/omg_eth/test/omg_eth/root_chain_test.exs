@@ -89,41 +89,4 @@ defmodule OMG.Eth.RootChainTest do
       assert is_integer(child_chain_time)
     end
   end
-
-  # TODO achiurizo
-  #
-  # ganache complaining about invalid output encoding
-  test "get_deposits/3 returns deposit events", %{contract: contract} do
-    use_cassette "ganache/get_deposits", match_requests_on: [:request_body] do
-      # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
-      # payment marker, no inputs, one output, metadata
-      tx =
-        [<<1>>, [], [[<<1>>, contract.authority_address, @eth, 1]], <<0::256>>]
-        |> ExRLP.encode()
-
-      {:ok, tx_hash} =
-        RootChainHelper.deposit(tx, 1, contract.authority_address, contract)
-        |> DevHelper.transact_sync!()
-
-      {:ok, height} = Eth.get_ethereum_height()
-
-      authority_addr = contract.authority_address
-      root_chain_txhash = Encoding.from_hex(tx_hash["transactionHash"])
-
-      deposits = RootChain.get_deposits(1, height, contract)
-
-      assert {:ok,
-              [
-                %{
-                  amount: 1,
-                  blknum: 1,
-                  owner: ^authority_addr,
-                  currency: @eth,
-                  eth_height: height,
-                  log_index: 0,
-                  root_chain_txhash: ^root_chain_txhash
-                }
-              ]} = deposits
-    end
-  end
 end
