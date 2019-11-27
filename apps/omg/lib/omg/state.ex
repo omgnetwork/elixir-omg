@@ -21,14 +21,17 @@ defmodule OMG.State do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Fees
+  alias OMG.InputPointer
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
+  alias OMG.State.UtxoSet
   alias OMG.Utxo
 
   use GenServer
-
   use OMG.Utils.LoggerExt
+
+  require Utxo
 
   @type exec_error :: Validator.exec_error()
 
@@ -84,27 +87,14 @@ defmodule OMG.State do
   ### Server
 
   @doc """
-  Start processing state using the database entries
+  Initializes the state. UTXO set is not loaded now.
   """
   def init(:ok) do
-    # Get data essential for the State and Blockgetter. And it takes a while. TODO - measure it!
-    # Our approach is simply blocking the supervision boot tree
-    # until we've processed history.
-    {:ok, utxos_query_result} = DB.utxos()
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
-    {:ok, [utxos_query_result, height_query_result], {:continue, :setup}}
-  end
-
-  def handle_continue(:setup, [utxos_query_result, height_query_result]) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     {:ok, state} =
-      with {:ok, _data} = result <-
-             Core.extract_initial_state(
-               utxos_query_result,
-               height_query_result,
-               child_block_interval
-             ) do
+      with {:ok, _data} = result <- Core.extract_initial_state(height_query_result, child_block_interval) do
         _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{height_query_result}}")
 
         {:ok, _} =
@@ -120,7 +110,7 @@ defmodule OMG.State do
           other
       end
 
-    {:noreply, state}
+    {:ok, state}
   end
 
   def handle_info(:send_metrics, state) do
@@ -132,7 +122,15 @@ defmodule OMG.State do
   Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
   """
   def handle_call({:exec, tx, fees}, _from, state) do
-    case Core.exec(state, tx, fees) do
+    db_utxos =
+      tx
+      |> Transaction.get_inputs()
+      |> fetch_utxos_from_db(state)
+
+    state
+    |> Core.with_utxos(db_utxos)
+    |> Core.exec(tx, fees)
+    |> case do
       {:ok, tx_result, new_state} ->
         {:reply, {:ok, tx_result}, new_state}
 
@@ -156,7 +154,12 @@ defmodule OMG.State do
   Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
   """
   def handle_call({:exit_utxos, utxos}, _from, state) do
-    {:ok, {db_updates, validities}, new_state} = Core.exit_utxos(utxos, state)
+    exiting_utxos = Core.extract_exiting_utxo_positions(utxos, state)
+
+    db_utxos = fetch_utxos_from_db(exiting_utxos, state)
+    state = Core.with_utxos(state, db_utxos)
+
+    {:ok, {db_updates, validities}, new_state} = Core.exit_utxos(exiting_utxos, state)
 
     {:reply, {:ok, db_updates, validities}, new_state}
   end
@@ -165,7 +168,10 @@ defmodule OMG.State do
   Tells if utxo exists
   """
   def handle_call({:utxo_exists, utxo}, _from, state) do
-    {:reply, Core.utxo_exists?(utxo, state), state}
+    db_utxos = fetch_utxos_from_db([utxo], state)
+    new_state = Core.with_utxos(state, db_utxos)
+
+    {:reply, Core.utxo_exists?(utxo, new_state), new_state}
   end
 
   @doc """
@@ -221,5 +227,19 @@ defmodule OMG.State do
   defp publish_block_to_event_bus(block, event_triggers) do
     :ok = OMG.Bus.broadcast("events", {:preprocess_emit_events, event_triggers})
     :ok = OMG.Bus.direct_local_broadcast("blocks", {:enqueue_block, block})
+  end
+
+  @spec fetch_utxos_from_db(list(InputPointer.Protocol.t()), Core.t()) :: UtxoSet.t()
+  defp fetch_utxos_from_db(utxo_pos_list, state) do
+    utxo_pos_list
+    |> Stream.reject(&Core.utxo_processed?(&1, state))
+    |> Enum.map(&utxo_from_db/1)
+    |> UtxoSet.init()
+  end
+
+  defp utxo_from_db(input_pointer) do
+    # `DB` query can return `:not_found` which is filtered out by following `is_input_pointer?`
+    with {:ok, utxo_kv} <- DB.utxo(InputPointer.Protocol.to_db_key(input_pointer)),
+         do: utxo_kv
   end
 end
