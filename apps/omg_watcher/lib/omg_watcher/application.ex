@@ -46,12 +46,6 @@ defmodule OMG.Watcher.Application do
 
   def start_phase(:attach_telemetry, :normal, _phase_args) do
     handlers = [
-      [
-        "spandex-query-tracer",
-        [[:omg, :watcher, :db, :repo, :query]],
-        &SpandexEcto.TelemetryAdapter.handle_event/4,
-        nil
-      ],
       ["measure-state", OMG.State.Measure.supported_events(), &OMG.State.Measure.handle_event/4, nil],
       [
         "measure-blockgetter",
