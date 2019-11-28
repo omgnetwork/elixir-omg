@@ -103,15 +103,12 @@ defmodule Itest.Poller do
             Process.sleep(@sleep_retry_sec)
             pull_balance_until_amount(address, amount, counter - 1)
 
-          [data] ->
-            case data["amount"] do
-              ^amount ->
-                data
+          [%{"amount" => ^amount} = data] ->
+            data
 
-              _ ->
-                Process.sleep(@sleep_retry_sec)
-                pull_balance_until_amount(address, amount, counter - 1)
-            end
+          [_data] ->
+            Process.sleep(@sleep_retry_sec)
+            pull_balance_until_amount(address, amount, counter - 1)
         end
 
       _ ->

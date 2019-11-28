@@ -6,9 +6,9 @@ defmodule Itest.Client do
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Deposit
   alias Itest.Transactions.Encoding
-  alias WatchersInformationalAPI.Connection, as: WatcherInformational
   alias WatchersInformationalAPI.Api.Account
   alias WatchersInformationalAPI.Api.Transaction
+  alias WatchersInformationalAPI.Connection, as: WatcherInformational
   alias WatchersInformationalAPI.Model.AddressBodySchema1
   alias WatchersInformationalAPI.Model.CreateTransactionsBodySchema
   alias WatchersInformationalAPI.Model.TransactionCreateFee
