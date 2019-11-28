@@ -94,6 +94,7 @@ release :watcher_informational do
       {OMG.Status.ReleaseTasks.SetSentry, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Status.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Watcher.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.WatcherInformational.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Watcher.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.WatcherInformational.ReleaseTasks.SetDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
