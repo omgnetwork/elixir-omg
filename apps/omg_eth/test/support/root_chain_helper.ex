@@ -127,16 +127,22 @@ defmodule Support.RootChainHelper do
   end
 
   def add_exit_queue(vault_id, token, contract \\ %{}, opts \\ []) do
-    from = opts[:from] || Application.fetch_env!(:omg_eth, :authority_addr)
+    {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = ExPlasma.Encoding.to_hex(contract)
     opts = Keyword.merge(opts, [
       from: from,
       to: contract,
-      gas: @gas_exit_queue
+      gas: @gas_add_exit_queue
     ])
 
+    IO.inspect(opts, limit: :infinity)
     # TODO: Double check how they are passing contract in in that ONE spot.
-    ExPlasma.Client.add_exit_queue(vault_id, token, opts)
+    {:ok, receipt_hash} = ExPlasma.Client.add_exit_queue(vault_id, token, opts)
+
+    # NB: We need to do this _for now_ so that
+    # the `DeveHelper.transact_sync!` sync can work.
+    {:ok, ExPlasma.Encoding.to_binary(receipt_hash)}
   end
 
   def challenge_exit(
