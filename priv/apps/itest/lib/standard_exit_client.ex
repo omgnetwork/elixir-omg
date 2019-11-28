@@ -8,10 +8,10 @@ defmodule Itest.StandardExitClient do
   alias Itest.Transactions.PaymentType
   alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1
-  alias WatchersInformationalAPI.Api.Account
+  alias WatchersInformationalAPI.Connection, as: WatcherInformational
   alias WatchersInformationalAPI.Model.AddressBodySchema1
 
-  import Itest.Poller, only: [wait_on_receipt_confirmed: 2]
+  import Itest.Poller, only: [wait_on_receipt_confirmed: 2, pull_api_until_successful: 4]
 
   require Logger
 
@@ -53,13 +53,24 @@ defmodule Itest.StandardExitClient do
 
   defp get_utxo(%__MODULE__{address: address} = se) do
     payload = %AddressBodySchema1{address: address}
-    {:ok, response} = Account.account_get_utxos(Watcher.new(), payload)
+
+    {:ok, response} =
+      pull_api_until_successful(
+        WatchersInformationalAPI.Api.Account,
+        :account_get_utxos,
+        WatcherInformational.new(),
+        payload
+      )
+
     %{se | utxo: hd(Poison.decode!(response.body, as: %{"data" => [%Utxo{}]})["data"])}
   end
 
   defp get_exit_data(%__MODULE__{utxo: %Utxo{utxo_pos: utxo_pos}} = se) do
     payload = %UtxoPositionBodySchema1{utxo_pos: utxo_pos}
-    {:ok, response} = WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_exit_data(Watcher.new(), payload)
+
+    {:ok, response} =
+      pull_api_until_successful(WatcherSecurityCriticalAPI.Api.UTXO, :utxo_get_exit_data, Watcher.new(), payload)
+
     %{se | exit_data: Poison.decode!(response.body, as: %{"data" => %Itest.ApiModel.ExitData{}})["data"]}
   end
 

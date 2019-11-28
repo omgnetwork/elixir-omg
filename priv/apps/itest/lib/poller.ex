@@ -13,17 +13,57 @@ defmodule Itest.Poller do
   @sleep_retry_sec 5_000
   @retry_count 60
 
+  def pull_api_until_successful(module, function, connection, payload),
+    do: pull_api_until_successful(module, function, connection, payload, @retry_count)
+
+  @doc """
+    API:: If we're trying to transact with UTXOs that were not recognized *yet*
+  """
   def submit_typed(typed_data_signed), do: submit_typed(typed_data_signed, @retry_count)
+
+  @doc """
+    API:: We pull account balance until we recongnize a change from 0 (which is []) to something
+  """
   def get_balance(address), do: get_balance(address, @retry_count)
-  # amount in WEI!
+
+  @doc """
+    API:: We know exactly what amount in WEI we want to recognize so we aggressively pull until...
+  """
   def pull_balance_until_amount(address, amount), do: pull_balance_until_amount(address, amount, @retry_count)
+
+  @doc """
+    Ethereum:: pull Eth account balance until succeeds. We're solving connection issues with this.
+  """
   def eth_get_balance(address), do: eth_get_balance(address, @retry_count)
 
   @doc """
-  Waits on the receipt status as 'confirmed'
+    Ethereum:: Waits on the receipt status as 'confirmed'
   """
   def wait_on_receipt_confirmed(receipt_hash, counter),
     do: wait_on_receipt_status(receipt_hash, "0x1", counter)
+
+  defp pull_api_until_successful(module, function, connection, payload, 0),
+    do: apply(module, function, [connection, payload])
+
+  defp pull_api_until_successful(module, function, connection, payload, counter) do
+    response = apply(module, function, [connection, payload])
+
+    case response do
+      {:ok, data} ->
+        case Jason.decode!(data.body) do
+          %{"success" => true} ->
+            response
+
+          _ ->
+            Process.sleep(@sleep_retry_sec)
+            pull_api_until_successful(module, function, connection, payload, counter - 1)
+        end
+
+      _ ->
+        Process.sleep(@sleep_retry_sec)
+        pull_api_until_successful(module, function, connection, payload, counter - 1)
+    end
+  end
 
   defp wait_on_receipt_status(receipt_hash, _status, 0), do: get_transaction_receipt(receipt_hash)
 
