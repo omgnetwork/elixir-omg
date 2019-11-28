@@ -32,6 +32,7 @@ services:
       - RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0x51db5309cc89165b5306417b63368acce690355b
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - NODE_HOST=127.0.0.1
+      - PORT=7434
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
       - APP_ENV=localwatcher
@@ -47,7 +48,7 @@ services:
         condition: service_healthy
 
   watcher_informational:
-    image: omisego/watcher:latest
+    image: omisego/watcher_informational:latest
     command: "full_local"
     environment:
       - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
@@ -62,16 +63,15 @@ services:
       - RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0x51db5309cc89165b5306417b63368acce690355b
       - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - NODE_HOST=127.0.0.1
+      - PORT=7534
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
       - APP_ENV=localwatcher_informational
     restart: always
     ports:
-      - "7534:7434"
-    expose:
-      - "7434"
+      - "7534:7534"
     healthcheck:
-      test: curl watcher_informational:7434
+      test: curl watcher_informational:7534
       interval: 5s
       timeout: 3s
       retries: 5

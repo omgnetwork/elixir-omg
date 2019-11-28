@@ -132,6 +132,7 @@ services:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
+      - PORT=7434
       - APP_ENV=local_development_watcher
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
@@ -165,17 +166,18 @@ services:
       - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
+      - PORT=7534
       - APP_ENV=local_development_watcher_informational
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
     restart: always
     ports:
-      - "7534:7434"
+      - "7534:7534"
     expose:
-      - "7434"
+      - "7534"
     healthcheck:
-      test: curl watcher_informational:7434
+      test: curl watcher_informational:7534
       interval: 30s
       timeout: 1s
       retries: 5
