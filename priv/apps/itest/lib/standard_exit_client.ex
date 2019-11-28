@@ -164,6 +164,7 @@ defmodule Itest.StandardExitClient do
   end
 
   defp process_exit(%__MODULE__{address: address} = se) do
+    _ = Logger.info("Will sleep for #{@min_exit_period} to process exit.")
     Process.sleep(@min_exit_period)
 
     # TODO this should use the standard_exit_id instead and figure out
@@ -187,6 +188,26 @@ defmodule Itest.StandardExitClient do
     wait_on_receipt_confirmed(receipt_hash, @retry_count)
 
     %{se | process_exit_receipt_hash: receipt_hash}
+  end
+
+  defp calculate_total_gas_used(
+         %__MODULE__{
+           add_exit_queue_hash: add_exit_queue_hash,
+           process_exit_receipt_hash: process_exit_receipt_hash,
+           start_standard_exit_hash: start_standard_exit_hash
+         } = se
+       ) do
+    _ = Logger.info("Calculating total gas used.")
+    receipt_hashes = [add_exit_queue_hash, process_exit_receipt_hash, start_standard_exit_hash]
+
+    total_gas_used =
+      Enum.reduce(receipt_hashes, 0, fn receipt_hash, acc ->
+        gas = Itest.Gas.get_gas_used(receipt_hash)
+        acc + gas
+      end)
+
+    _ = Logger.info("Calculating total gas used done. Result #{total_gas_used}.")
+    %{se | total_gas_used: total_gas_used}
   end
 
   defp wait_for_exit_queue(%__MODULE__{} = _se, 0), do: exit(1)
@@ -214,23 +235,5 @@ defmodule Itest.StandardExitClient do
     |> Encoding.to_binary()
     |> ABI.TypeDecoder.decode([:bool])
     |> hd()
-  end
-
-  defp calculate_total_gas_used(
-         %__MODULE__{
-           add_exit_queue_hash: add_exit_queue_hash,
-           process_exit_receipt_hash: process_exit_receipt_hash,
-           start_standard_exit_hash: start_standard_exit_hash
-         } = se
-       ) do
-    receipt_hashes = [add_exit_queue_hash, process_exit_receipt_hash, start_standard_exit_hash]
-
-    total_gas_used =
-      Enum.reduce(receipt_hashes, 0, fn receipt_hash, acc ->
-        gas = Itest.Gas.get_gas_used(receipt_hash)
-        acc + gas
-      end)
-
-    %{se | total_gas_used: total_gas_used}
   end
 end
