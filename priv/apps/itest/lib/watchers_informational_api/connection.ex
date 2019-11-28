@@ -10,7 +10,7 @@ if Code.ensure_loaded?(WatchersInformationalAPI.Connection) do
     use Tesla
 
     # Add any middleware here (authentication)
-    plug(Tesla.Middleware.BaseUrl, "http://localhost:7434")
+    plug(Tesla.Middleware.BaseUrl, "http://localhost:7534")
     plug(Tesla.Middleware.Headers, [{"user-agent", "Itest-Elixir"}])
     plug(Tesla.Middleware.EncodeJson, engine: Poison)
 

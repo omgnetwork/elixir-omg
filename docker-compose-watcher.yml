@@ -67,7 +67,7 @@ services:
       - APP_ENV=localwatcher_informational
     restart: always
     ports:
-      - "7435:7434"
+      - "7534:7434"
     expose:
       - "7434"
     healthcheck:
