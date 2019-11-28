@@ -35,7 +35,7 @@ defmodule Itest.StandardExitClient do
 
   @min_exit_period 1_000
 
-  @sleep_retry_sec 1_000
+  @sleep_retry_sec 5_000
   @retry_count 120
 
   def start_standard_exit(address) do

@@ -5,7 +5,7 @@ defmodule Itest.Poller do
 
   require Logger
 
-  @sleep_retry_sec 1_000
+  @sleep_retry_sec 5_000
 
   @doc """
   Waits on the receipt status as 'confirmed'

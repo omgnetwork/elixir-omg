@@ -26,7 +26,7 @@ defmodule Itest.Client do
 
   @gas 180_000
 
-  @sleep_retry_sec 1_000
+  @sleep_retry_sec 5_000
   @retry_count 60
 
   def deposit(amount_in_wei, output_address, vault_address, currency \\ Currency.ether()) do
