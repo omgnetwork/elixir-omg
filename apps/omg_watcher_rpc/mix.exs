@@ -40,7 +40,9 @@ defmodule OMG.WatcherRPC.Mixfile do
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
       {:omg_utils, in_umbrella: true},
-      {:omg_watcher, in_umbrella: true}
+      {:omg_watcher, in_umbrella: true},
+      # UMBRELLA but test only
+      {:omg_watcher_informational, in_umbrella: true, only: [:test]}
     ]
   end
 end
