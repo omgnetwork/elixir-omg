@@ -47,8 +47,6 @@ defmodule Support.RootChainHelper do
 
   def start_exit(utxo_pos, tx_bytes, proof, from, contract \\ %{}, opts \\ []) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    from = ExPlasma.Encoding.to_hex(from)
-    contract = ExPlasma.Encoding.to_hex(contract)
 
     {:ok, receipt_hash} =
       ExPlasma.Client.start_standard_exit(tx_bytes, %{
@@ -60,8 +58,7 @@ defmodule Support.RootChainHelper do
         value: @standard_exit_bond
       })
 
-    # NB: We need to do this _for now_ so that
-    # the `DeveHelper.transact_sync!` sync can work.
+    # NB: need this for `DeveHelper.transact_sync!`
     {:ok, ExPlasma.Encoding.to_binary(receipt_hash)}
   end
 
@@ -101,8 +98,6 @@ defmodule Support.RootChainHelper do
 
   def deposit(tx_bytes, value, from, contract \\ %{}, opts \\ []) do
     contract = Config.maybe_fetch_addr!(contract, :eth_vault)
-    from = ExPlasma.Encoding.to_hex(from)
-    contract = ExPlasma.Encoding.to_hex(contract)
 
     {:ok, receipt_hash} =
       ExPlasma.Client.deposit(tx_bytes, %{
@@ -112,8 +107,7 @@ defmodule Support.RootChainHelper do
         value: value
       })
 
-    # NB: We need to do this _for now_ so that
-    # the `DeveHelper.transact_sync!` sync can work.
+    # NB: need this for `DeveHelper.transact_sync!`
     {:ok, ExPlasma.Encoding.to_binary(receipt_hash)}
   end
 
@@ -129,19 +123,17 @@ defmodule Support.RootChainHelper do
   def add_exit_queue(vault_id, token, contract \\ %{}, opts \\ []) do
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    contract = ExPlasma.Encoding.to_hex(contract)
+
     opts = Keyword.merge(opts, [
       from: from,
       to: contract,
       gas: @gas_add_exit_queue
     ])
 
-    IO.inspect(opts, limit: :infinity)
-    # TODO: Double check how they are passing contract in in that ONE spot.
+    # TODO: Double check passing contract in in that ONE spot.
     {:ok, receipt_hash} = ExPlasma.Client.add_exit_queue(vault_id, token, opts)
 
-    # NB: We need to do this _for now_ so that
-    # the `DeveHelper.transact_sync!` sync can work.
+    # NB: need this for `DeveHelper.transact_sync!`
     {:ok, ExPlasma.Encoding.to_binary(receipt_hash)}
   end
 
@@ -367,31 +359,5 @@ defmodule Support.RootChainHelper do
       |> Enum.map(&RootChain.decode_deposit/1)
 
     deposit_blknum
-  end
-
-  # --- ex_plasma refactor ---
-
-  # about 4 Ethereum blocks on "realistic" networks, use to timeout synchronous operations in demos on testnets
-  # NOTE: such timeout works only in dev setting; on mainnet one must track its transactions carefully
-  @about_4_blocks_time 60_000
-
-  def ex_deposit(owner: owner, amount: amount) do
-    %ExPlasma.Transaction.Utxo{owner: owner, amount: amount, currency: OMG.Eth.RootChain.eth_pseudo_address()}
-    |> ExPlasma.Transactions.Deposit.new()
-    |> ExPlasma.Client.deposit()
-  end
-
-  defp ex_await_transaction(result_tuple, counter \\ 6)
-
-  defp ex_await_transaction({:ok, receipt_hash}, counter) do
-  end
-
-  defp do_await_transaction(receipt_hash, status, counter) do
-    {:ok, receipt} = Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash)
-
-    unless receipt && receipt["status"] == status do
-      Process.sleep(@about_4_blocks_time)
-      do_await_transaction(receipt_hash, status, counter - 1)
-    end
   end
 end
