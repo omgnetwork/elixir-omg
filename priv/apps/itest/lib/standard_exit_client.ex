@@ -51,6 +51,7 @@ defmodule Itest.StandardExitClient do
     |> calculate_total_gas_used()
   end
 
+  # taking the first UTXO from the json array
   defp get_utxo(%__MODULE__{address: address} = se) do
     payload = %AddressBodySchema1{address: address}
 
@@ -62,7 +63,8 @@ defmodule Itest.StandardExitClient do
         payload
       )
 
-    %{se | utxo: hd(Poison.decode!(response.body, as: %{"data" => [%Utxo{}]})["data"])}
+    %{"success" => true} = response = Poison.decode!(response.body)
+    %{se | utxo: to_struct(Utxo, hd(response["data"]))}
   end
 
   defp get_exit_data(%__MODULE__{utxo: %Utxo{utxo_pos: utxo_pos}} = se) do
@@ -71,7 +73,9 @@ defmodule Itest.StandardExitClient do
     {:ok, response} =
       pull_api_until_successful(WatcherSecurityCriticalAPI.Api.UTXO, :utxo_get_exit_data, Watcher.new(), payload)
 
-    %{se | exit_data: Poison.decode!(response.body, as: %{"data" => %Itest.ApiModel.ExitData{}})["data"]}
+    %{"success" => true} = response = Poison.decode!(response.body)
+
+    %{se | exit_data: to_struct(Itest.ApiModel.ExitData, response["data"])}
   end
 
   defp get_exit_game_contract_address(se) do
@@ -246,5 +250,16 @@ defmodule Itest.StandardExitClient do
     |> Encoding.to_binary()
     |> ABI.TypeDecoder.decode([:bool])
     |> hd()
+  end
+
+  def to_struct(kind, attrs) do
+    struct = struct(kind)
+
+    Enum.reduce(Map.to_list(struct), struct, fn {k, _}, acc ->
+      case Map.fetch(attrs, Atom.to_string(k)) do
+        {:ok, v} -> %{acc | k => v}
+        :error -> acc
+      end
+    end)
   end
 end
