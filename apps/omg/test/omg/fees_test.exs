@@ -125,19 +125,4 @@ defmodule OMG.FeesTest do
       assert Fees.filter_fees(@fees, [other_token]) == {:error, :currency_fee_not_supported}
     end
   end
-
-  describe "to_api_format/1" do
-    test "formats the given fees into a suitable map for api response" do
-      assert Fees.to_api_format(@fees) == [
-               @fees[@eth]
-               |> Map.put(:currency, @eth)
-               |> Map.put(:pegged_currency, {:skip_hex_encode, @fees[@eth][:pegged_currency]})
-               |> Map.put(:updated_at, {:skip_hex_encode, @fees[@eth][:updated_at]}),
-               @fees[@not_eth]
-               |> Map.put(:currency, @not_eth)
-               |> Map.put(:pegged_currency, {:skip_hex_encode, @fees[@not_eth][:pegged_currency]})
-               |> Map.put(:updated_at, {:skip_hex_encode, @fees[@not_eth][:updated_at]})
-             ]
-    end
-  end
 end

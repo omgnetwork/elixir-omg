@@ -25,7 +25,8 @@ defmodule OMG.Fees do
 
   use OMG.Utils.LoggerExt
 
-  @type fee_t() :: %{Transaction.Payment.currency() => fee_spec_t()} | :no_fees_required
+  @type fee_t() :: %{Transaction.Payment.currency() => fee_spec_t()}
+  @type optional_fee_t() :: fee_t() | :no_fees_required
   @type fee_spec_t() :: %{
           amount: non_neg_integer,
           pegged_amount: non_neg_integer,
@@ -43,7 +44,7 @@ defmodule OMG.Fees do
       true
 
   """
-  @spec covered?(implicit_paid_fee_by_currency :: map(), fees :: fee_t()) :: boolean()
+  @spec covered?(implicit_paid_fee_by_currency :: map(), fees :: optional_fee_t()) :: boolean()
   def covered?(_, :no_fees_required), do: true
 
   def covered?(implicit_paid_fee_by_currency, fees) do
@@ -98,7 +99,7 @@ defmodule OMG.Fees do
       }
 
   """
-  @spec for_transaction(Transaction.Recovered.t(), fee_t()) :: fee_t()
+  @spec for_transaction(Transaction.Recovered.t(), optional_fee_t()) :: optional_fee_t()
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do
       true -> :no_fees_required
@@ -145,9 +146,10 @@ defmodule OMG.Fees do
       }
 
   """
-  @spec filter_fees(fee_t(), list(String.t())) :: {:ok, fee_t()} | {:error, :currency_fee_not_supported}
+  @spec filter_fees(fee_t(), list(String.t()) | nil) :: {:ok, fee_t()} | {:error, :currency_fee_not_supported}
   # empty list = no filter
   def filter_fees(fees, []), do: {:ok, fees}
+  def filter_fees(fees, nil), do: {:ok, fees}
 
   def filter_fees(fees, desired_currencies) do
     Enum.reduce_while(desired_currencies, {:ok, %{}}, fn currency, {:ok, filtered_fees} ->
@@ -155,62 +157,6 @@ defmodule OMG.Fees do
         :error -> {:halt, {:error, :currency_fee_not_supported}}
         {:ok, fee} -> {:cont, {:ok, Map.put(filtered_fees, currency, fee)}}
       end
-    end)
-  end
-
-  @doc ~S"""
-  Formats the given fees for an api response.
-
-  ## Examples
-
-      iex> OMG.Fees.to_api_format(
-      ...> %{
-      ...>  "eth" => %{
-      ...>    amount: 1,
-      ...>    pegged_amount: 4,
-      ...>    pegged_currency: "USD",
-      ...>    pegged_subunit_to_unit: 100,
-      ...>    updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>  },
-      ...>  "omg" => %{
-      ...>    amount: 3,
-      ...>    pegged_amount: 4,
-      ...>    pegged_currency: "USD",
-      ...>    pegged_subunit_to_unit: 100,
-      ...>    updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>  }
-      ...> })
-      [
-        %{
-          currency: "eth",
-          amount: 1,
-          pegged_amount: 4,
-          pegged_currency: {:skip_hex_encode, "USD"},
-          pegged_subunit_to_unit: 100,
-          updated_at: {:skip_hex_encode, DateTime.from_iso8601("2019-01-01T10:10:00+00:00")}
-        },
-        %{
-          currency: "omg",
-          amount: 3,
-          pegged_amount: 4,
-          pegged_currency: {:skip_hex_encode, "USD"},
-          pegged_subunit_to_unit: 100,
-          updated_at: {:skip_hex_encode, DateTime.from_iso8601("2019-01-01T10:10:00+00:00")}
-        },
-      ]
-
-  """
-  @spec to_api_format(fee_t()) :: list(map())
-  def to_api_format(fees) do
-    Enum.map(fees, fn {currency, fee} ->
-      %{
-        currency: currency,
-        amount: fee.amount,
-        pegged_currency: {:skip_hex_encode, fee.pegged_currency},
-        pegged_amount: fee.pegged_amount,
-        pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
-        updated_at: {:skip_hex_encode, fee.updated_at}
-      }
     end)
   end
 end

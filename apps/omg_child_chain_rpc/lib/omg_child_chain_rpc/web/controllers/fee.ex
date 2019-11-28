@@ -21,12 +21,14 @@ defmodule OMG.ChildChainRPC.Web.Controller.Fee do
   plug(OMG.ChildChainRPC.Plugs.Health)
   alias OMG.ChildChain
 
-  def get_all(conn, params) do
-    with {:ok, currencies} <- expect(params, "currencies", list: &to_currency/1),
-         {:ok, fees} <- ChildChain.get_filtered_fees(currencies) do
-      api_response(fees, conn, :all_fees)
+  def fees_all(conn, params) do
+    with {:ok, currencies} <- expect(params, "currencies", list: &to_currency/1, optional: true),
+         {:ok, filtered_fees} <- ChildChain.get_filtered_fees(currencies) do
+      api_response(filtered_fees, conn, :fees_all)
     end
   end
 
-  defp to_currency(currency_str), do: expect(%{"currency" => currency_str}, "currency", :address)
+  defp to_currency(currency_str) do
+    expect(%{"currency" => currency_str}, "currency", :address)
+  end
 end

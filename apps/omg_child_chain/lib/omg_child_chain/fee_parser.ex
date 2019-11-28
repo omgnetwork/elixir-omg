@@ -48,7 +48,7 @@ defmodule OMG.ChildChain.FeeParser do
          "updated_at" => updated_at
        }) do
     # defensive code against user input
-    with {:ok, fee} <- validate_positive_amount(fee, :invalid_fee),
+    with {:ok, fee} <- validate_fee_amount(fee, :invalid_fee),
          {:ok, addr} <- decode_address(token),
          {:ok, pegged_amount} <- validate_positive_amount(pegged_amount, :invalid_pegged_amount),
          {:ok, pegged_currency} <- validate_pegged_currency(pegged_currency),
@@ -68,7 +68,10 @@ defmodule OMG.ChildChain.FeeParser do
 
   defp parse_fee_spec(_), do: {:error, :invalid_fee_spec}
 
-  defp validate_positive_amount(amount, _error) when is_integer(amount) and amount >= 0, do: {:ok, amount}
+  defp validate_fee_amount(amount, _error) when is_integer(amount) and amount >= 0, do: {:ok, amount}
+  defp validate_fee_amount(_amount, error), do: {:error, error}
+
+  defp validate_positive_amount(amount, _error) when is_integer(amount) and amount > 0, do: {:ok, amount}
   defp validate_positive_amount(_amount, error), do: {:error, error}
 
   defp validate_pegged_currency(pegged_currency) when is_binary(pegged_currency), do: {:ok, pegged_currency}
@@ -87,27 +90,16 @@ defmodule OMG.ChildChain.FeeParser do
 
   defp spec_reducer(
          %{
-           token: token,
-           amount: fee,
-           pegged_amount: pegged_amount,
-           pegged_currency: pegged_currency,
-           pegged_subunit_to_unit: pegged_subunit_to_unit,
-           updated_at: updated_at
-         },
+           token: token
+         } = token_fee,
          {errors, token_fee_map, spec_index}
        ) do
+    token_fee = Map.drop(token_fee, [:token])
+
     # checks whether token was specified before
     if Map.has_key?(token_fee_map, token),
       do: {[{{:error, :duplicate_token}, spec_index} | errors], token_fee_map, spec_index + 1},
-      else:
-        {errors,
-         Map.put(token_fee_map, token, %{
-           amount: fee,
-           pegged_amount: pegged_amount,
-           pegged_currency: pegged_currency,
-           pegged_subunit_to_unit: pegged_subunit_to_unit,
-           updated_at: updated_at
-         }), spec_index + 1}
+      else: {errors, Map.put(token_fee_map, token, token_fee), spec_index + 1}
   end
 
   defp handle_parser_output({[], fee_specs}) do

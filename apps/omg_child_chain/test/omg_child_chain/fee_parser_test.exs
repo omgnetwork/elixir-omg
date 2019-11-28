@@ -27,7 +27,7 @@ defmodule OMG.ChildChain.FeeParserTest do
       {
         "token": "0x0000000000000000000000000000000000000000",
         "amount": 2,
-        "pegged_amount": 0,
+        "pegged_amount": 1,
         "pegged_currency": "USD",
         "pegged_subunit_to_unit": 100,
         "updated_at": "2019-01-01T10:10:00+00:00"
@@ -35,7 +35,7 @@ defmodule OMG.ChildChain.FeeParserTest do
       {
         "token": "0xd26114cd6ee289accf82350c8d8487fedb8a0c07",
         "amount": 0,
-        "pegged_amount": 0,
+        "pegged_amount": 1,
         "pegged_currency": "USD",
         "pegged_subunit_to_unit": 100,
         "updated_at": "2019-01-01T10:10:00+00:00"
@@ -43,7 +43,7 @@ defmodule OMG.ChildChain.FeeParserTest do
       {
         "token": "0xa74476443119a942de498590fe1f2454d7d4ac0d",
         "amount": 4,
-        "pegged_amount": 0,
+        "pegged_amount": 1,
         "pegged_currency": "USD",
         "pegged_subunit_to_unit": 100,
         "updated_at": "2019-01-01T10:10:00+00:00"
@@ -70,7 +70,7 @@ defmodule OMG.ChildChain.FeeParserTest do
       json = ~s([
         {
           "invalid_key": null,
-          "error_reason": "Providing unexpeced map results with :invalid_fee_spec error"
+          "error_reason": "Providing unexpected map results with :invalid_fee_spec error"
         },
         {
           "token": "0x0000000000000000000000000000000000000000",
@@ -111,6 +111,15 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 1,
+          "pegged_amount": 0,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "0 pegged_amount results with :invalid_pegged_amount error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
           "pegged_amount": 1,
           "pegged_currency": 12,
           "pegged_subunit_to_unit": 100,
@@ -131,6 +140,15 @@ defmodule OMG.ChildChain.FeeParserTest do
           "amount": 1,
           "pegged_amount": 1,
           "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 0,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "0 pegged_subunit_to_unit results with :invalid_pegged_subunit_to_unit error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
           "updated_at": "invalid_date",
           "error_reason": "Invalid updated_at results with :invalid_timestamp error"
@@ -144,9 +162,11 @@ defmodule OMG.ChildChain.FeeParserTest do
                 {{:error, :bad_address_encoding}, 3},
                 {{:error, :bad_address_encoding}, 4},
                 {{:error, :invalid_pegged_amount}, 5},
-                {{:error, :invalid_pegged_currency}, 6},
-                {{:error, :invalid_pegged_subunit_to_unit}, 7},
-                {{:error, :invalid_timestamp}, 8}
+                {{:error, :invalid_pegged_amount}, 6},
+                {{:error, :invalid_pegged_currency}, 7},
+                {{:error, :invalid_pegged_subunit_to_unit}, 8},
+                {{:error, :invalid_pegged_subunit_to_unit}, 9},
+                {{:error, :invalid_timestamp}, 10}
               ]} = parse_file_content(json)
     end
 
@@ -156,7 +176,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 1,
-          "pegged_amount": 0,
+          "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
           "updated_at": "2019-01-01T10:10:00+00:00"
@@ -164,7 +184,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 2,
-          "pegged_amount": 0,
+          "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
           "updated_at": "2019-01-01T10:10:00+00:00"

@@ -2,7 +2,7 @@
     { 
         "token": "0x0000000000000000000000000000000000000000", 
         "amount": 0, 
-        "pegged_amount": 0,
+        "pegged_amount": 4,
         "pegged_currency": "USD",
         "pegged_subunit_to_unit": 100,
         "updated_at": "2019-01-01T10:10:00+00:00"

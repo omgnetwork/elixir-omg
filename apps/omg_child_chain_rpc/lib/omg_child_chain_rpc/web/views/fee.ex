@@ -19,7 +19,22 @@ defmodule OMG.ChildChainRPC.Web.View.Fee do
 
   alias OMG.Utils.HttpRPC.Response
 
-  def render("all_fees.json", %{response: result}) do
-    Response.serialize(result)
+  def render("fees_all.json", %{response: fees}) do
+    fees
+    |> to_api_format()
+    |> Response.serialize()
+  end
+
+  defp to_api_format(fees) do
+    Enum.map(fees, fn {currency, fee} ->
+      %{
+        currency: currency,
+        amount: fee.amount,
+        pegged_currency: {:skip_hex_encode, fee.pegged_currency},
+        pegged_amount: fee.pegged_amount,
+        pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
+        updated_at: {:skip_hex_encode, fee.updated_at}
+      }
+    end)
   end
 end

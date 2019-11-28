@@ -20,23 +20,7 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
 
   alias Support.WatcherHelper
 
-  describe "get_all/2" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "fees.all endpoint rejects request without parameter" do
-      missing_param = %{}
-
-      assert %{
-               "object" => "error",
-               "code" => "operation:bad_request",
-               "messages" => %{
-                 "validation_error" => %{
-                   "parameter" => "currencies",
-                   "validator" => ":list"
-                 }
-               }
-             } = WatcherHelper.no_success?("/fees.all", missing_param)
-    end
-
+  describe "fees_all/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "fees.all endpoint rejects request with non list currencies" do
       assert %{

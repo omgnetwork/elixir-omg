@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.View.Fee do
   use OMG.WatcherRPC.Web, :view
   alias OMG.Utils.HttpRPC.Response
 
-  def render("all_fees.json", %{response: fees}) do
-    Response.serialize(fees)
+  def render("fees_all.json", %{response: fees}) do
+    Response.serialize(skip_hex_encode: fees)
   end
 end

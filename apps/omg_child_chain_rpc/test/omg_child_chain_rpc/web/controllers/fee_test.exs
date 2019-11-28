@@ -18,29 +18,32 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
 
   alias OMG.ChildChainRPC.Web.TestHelper
 
-  describe "get_all/2" do
+  setup_all do
+    fee_specs = %{
+      Base.decode16!("0000000000000000000000000000000000000000") => %{
+        amount: 1,
+        pegged_amount: 1,
+        pegged_currency: "USD",
+        pegged_subunit_to_unit: 100,
+        updated_at: DateTime.from_unix!(1_546_336_800)
+      },
+      Base.decode16!("0000000000000000000000000000000000000001") => %{
+        amount: 1,
+        pegged_amount: 1,
+        pegged_currency: "USD",
+        pegged_subunit_to_unit: 100,
+        updated_at: DateTime.from_unix!(1_546_336_800)
+      }
+    }
+
+    _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :public, :named_table])
+    true = :ets.insert(:fees_bucket, [{:fees, fee_specs}])
+    %{}
+  end
+
+  describe "fees_all/2" do
     @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint filters the result when given currencies" do
-      fee_specs = %{
-        Base.decode16!("0000000000000000000000000000000000000000") => %{
-          amount: 1,
-          pegged_amount: 1,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.from_unix!(1_546_336_800)
-        },
-        Base.decode16!("0000000000000000000000000000000000000001") => %{
-          amount: 1,
-          pegged_amount: 1,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.from_unix!(1_546_336_800)
-        }
-      }
-
-      _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :public, :named_table])
-      true = :ets.insert(:fees_bucket, [{:fees, fee_specs}])
-
       assert %{
                "success" => true,
                "data" => [
@@ -58,26 +61,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
 
     @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint does not filter when given empty currencies" do
-      fee_specs = %{
-        Base.decode16!("0000000000000000000000000000000000000000") => %{
-          amount: 1,
-          pegged_amount: 1,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.from_unix!(1_546_336_800)
-        },
-        Base.decode16!("0000000000000000000000000000000000000001") => %{
-          amount: 1,
-          pegged_amount: 1,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.from_unix!(1_546_336_800)
-        }
-      }
-
-      _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :public, :named_table])
-      true = :ets.insert(:fees_bucket, [{:fees, fee_specs}])
-
       assert %{
                "success" => true,
                "data" => [
@@ -102,47 +85,42 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
     end
 
     @tag fixtures: [:phoenix_sandbox]
+    test "fees.all endpoint does not filter without parameter" do
+      missing_param = %{}
+
+      assert %{
+               "success" => true,
+               "data" => [
+                 %{
+                   "amount" => 1,
+                   "currency" => "0x0000000000000000000000000000000000000000",
+                   "pegged_amount" => 1,
+                   "pegged_currency" => "USD",
+                   "pegged_subunit_to_unit" => 100,
+                   "updated_at" => "2019-01-01T10:00:00Z"
+                 },
+                 %{
+                   "amount" => 1,
+                   "currency" => "0x0000000000000000000000000000000000000001",
+                   "pegged_amount" => 1,
+                   "pegged_currency" => "USD",
+                   "pegged_subunit_to_unit" => 100,
+                   "updated_at" => "2019-01-01T10:00:00Z"
+                 }
+               ]
+             } = TestHelper.rpc_call(:post, "/fees.all", missing_param)
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
     test "fees.all returns an error when given unsupported currency" do
-      fee_specs = %{
-        Base.decode16!("0000000000000000000000000000000000000000") => %{
-          amount: 1,
-          pegged_amount: 1,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.from_unix!(1_546_336_800)
-        }
-      }
-
-      _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :public, :named_table])
-      true = :ets.insert(:fees_bucket, [{:fees, fee_specs}])
-
       assert %{
                "success" => false,
                "data" => %{
                  "object" => "error",
                  "code" => "fee:currency_fee_not_supported",
-                 "description" => "One of the given currency is not supported as a fee for the moment."
+                 "description" => "One or more of the given currencies are not supported as a fee-token."
                }
-             } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: ["0x0000000000000000000000000000000000000001"]})
-    end
-
-    @tag fixtures: [:phoenix_sandbox]
-    test "fees.all endpoint rejects request without parameter" do
-      missing_param = %{}
-
-      assert %{
-               "success" => false,
-               "data" => %{
-                 "object" => "error",
-                 "code" => "operation:bad_request",
-                 "messages" => %{
-                   "validation_error" => %{
-                     "parameter" => "currencies",
-                     "validator" => ":list"
-                   }
-                 }
-               }
-             } = TestHelper.rpc_call(:post, "/fees.all", missing_param)
+             } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: ["0x0000000000000000000000000000000000000005"]})
     end
 
     @tag fixtures: [:phoenix_sandbox]

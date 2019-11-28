@@ -45,7 +45,7 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/status.get", Controller.Status, :get_status)
     post("/alarm.get", Controller.Alarm, :get_alarms)
 
-    post("/fees.all", Controller.Fee, :get_all)
+    post("/fees.all", Controller.Fee, :fees_all)
 
     # NOTE: This *has to* be the last route, catching all unhandled paths
     match(:*, "/*path", Controller.Fallback, Route.NotFound)

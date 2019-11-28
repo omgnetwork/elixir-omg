@@ -21,13 +21,15 @@ defmodule OMG.WatcherRPC.Web.Controller.Fee do
 
   alias OMG.Watcher.HttpRPC.Client
 
-  def get_all(conn, params) do
-    with {:ok, _} <- expect(params, "currencies", list: &to_currency/1),
+  def fees_all(conn, params) do
+    with {:ok, _} <- expect(params, "currencies", list: &to_currency/1, optional: true),
          child_chain_url <- Application.get_env(:omg_watcher, :child_chain_url),
          {:ok, fees} <- Client.get_fees(params, child_chain_url) do
-      api_response([skip_hex_encode: fees], conn, :all_fees)
+      api_response(fees, conn, :fees_all)
     end
   end
 
-  defp to_currency(currency_str), do: expect(%{"currency" => currency_str}, "currency", :address)
+  defp to_currency(currency_str) do
+    expect(%{"currency" => currency_str}, "currency", :address)
+  end
 end
