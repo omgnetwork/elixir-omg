@@ -16,7 +16,7 @@ defmodule WhiteBreadContext do
   scenario_timeouts(fn _feature, scenario ->
     case scenario.name do
       "Alice sends Bob funds" -> @default_timeout * 2
-      "Alice starts a Standard Exit" -> @default_timeout * 4
+      "Alice starts a Standard Exit" -> @default_timeout * 3
       _ -> @default_timeout
     end
   end)
@@ -79,11 +79,11 @@ defmodule WhiteBreadContext do
   )
 
   then_(
-    ~r/^Alice should have  "(?<amount>[^"]+)" ETH on the network after finality margin$/,
-    fn %{alice_account: alice_account} = state, %{} ->
+    ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network after finality margin$/,
+    fn %{alice_account: alice_account} = state, %{amount: amount} ->
       Process.sleep(@finality_margin * 500 + 15_000)
 
-      assert [] = Client.get_balance(alice_account, 0)
+      assert [] = Client.get_balance(alice_account, Currency.to_wei(amount))
 
       {:ok, balance} = Client.eth_get_balance(alice_account)
       {balance, ""} = balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
