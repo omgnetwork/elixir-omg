@@ -87,6 +87,9 @@ ENV_DEV         ?= env MIX_ENV=dev
 ENV_TEST        ?= env MIX_ENV=test
 ENV_PROD        ?= env MIX_ENV=prod
 
+WATCHER_PORT ?= 7434
+WATCHER_INFORMATIONAL ?= 7534
+
 #
 # Setting-up
 #
@@ -328,7 +331,7 @@ start-watcher:
 	_build/prod/rel/watcher/bin/watcher init_key_value_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	_build/prod/rel/watcher/bin/watcher $(OVERRIDING_START)
+	PORT=${WATCHER_PORT} _build/prod/rel/watcher/bin/watcher $(OVERRIDING_START)
 
 start-watcher_informational:
 	set -e; . ./bin/variables; \
@@ -341,25 +344,25 @@ start-watcher_informational:
 	_build/prod/rel/watcher_informational/bin/watcher_informational init_postgresql_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	_build/prod/rel/watcher_informational/bin/watcher_informational $(OVERRIDING_START)
+	PORT=${WATCHER_INFORMATIONAL_PORT} _build/prod/rel/watcher_informational/bin/watcher_informational $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
 	$(ENV_DEV) mix do compile, distillery.release dev --name child_chain --silent && \
 	set -e; . ./bin/variables && \
-	exec _build/dev/rel/child_chain/bin/child_chain foreground &
+	exec _build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START) &
 
 update-watcher:
 	_build/dev/rel/watcher/bin/watcher stop ; \
 	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --silent && \
 	set -e; . ./bin/variables && \
-	exec _build/dev/rel/watcher/bin/watcher foreground &
+	exec PORT=${WATCHER_PORT} _build/dev/rel/watcher/bin/watcher $(OVERRIDING_START) &
 
 update-watcher_informational:
 	_build/dev/rel/watcher_informational/bin/watcher_informational stop ; \
 	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_informational --silent && \
 	set -e; . ./bin/variables && \
-	exec _build/dev/rel/watcher_informational/bin/watcher_informational foreground &
+	exec PORT=${WATCHER_INFORMATIONAL_PORT} _build/dev/rel/watcher_informational/bin/watcher_informational $(OVERRIDING_START) &
 
 stop-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop
@@ -386,7 +389,9 @@ get-alarms:
 	echo "Child Chain alarms" ; \
 	curl -s -X POST http://localhost:9656/alarm.get ; \
 	echo "\nWatcher alarms" ; \
-	curl -s -X POST http://localhost:7434/alarm.get
+	curl -s -X POST http://localhost:${WATCHER_PORT}/alarm.get ; \
+	echo "\nWatcherInformational alarms" ; \
+	curl -s -X POST http://localhost:${WATCHER_INFORMATIONAL_PORT}/alarm.get
 
 cluster-stop:
 	${MAKE} stop-watcher ; ${MAKE} stop-watcher_informational ; ${MAKE} stop-child_chain ; docker-compose down
