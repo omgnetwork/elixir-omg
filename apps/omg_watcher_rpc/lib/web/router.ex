@@ -52,6 +52,7 @@ defmodule OMG.WatcherRPC.Web.Router do
 
     # security
     post("/status.get", Controller.Status, :get_status)
+    # security
     post("/alarm.get", Controller.Alarm, :get_alarms)
 
     # NOTE: This *has to* be the last route, catching all unhandled paths

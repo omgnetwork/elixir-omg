@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInformational.API.AlarmTest do
+defmodule OMG.Watcher.API.AlarmTest do
   use ExUnit.Case, async: false
 
-  alias OMG.WatcherInformational.API.Alarm
+  alias OMG.Watcher.API.Alarm
 
   setup %{} do
     {:ok, apps} = Application.ensure_all_started(:omg_status)

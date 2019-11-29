@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Alarm do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.WatcherInformational.API.Alarm
+  alias OMG.Watcher.API.Alarm
 
   def get_alarms(conn, _params) do
     {:ok, alarms} = Alarm.get_alarms()

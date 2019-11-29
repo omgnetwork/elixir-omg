@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInformational.API.Alarm do
+defmodule OMG.Watcher.API.Alarm do
   @moduledoc """
   Watcher alarm API
   """
