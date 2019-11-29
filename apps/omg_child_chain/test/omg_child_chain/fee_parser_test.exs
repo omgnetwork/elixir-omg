@@ -75,7 +75,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": -1,
-          "pegged_amount": 0,
+          "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
           "updated_at": "2019-01-01T10:10:00+00:00",
@@ -84,7 +84,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "this is not HEX",
           "amount": 0,
-          "pegged_amount": 0,
+          "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
           "updated_at": "2019-01-01T10:10:00+00:00",
@@ -93,7 +93,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0123456789abCdeF",
           "amount": 1,
-          "pegged_amount": 0,
+          "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
           "updated_at": "2019-01-01T10:10:00+00:00",

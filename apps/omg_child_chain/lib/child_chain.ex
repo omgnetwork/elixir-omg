@@ -58,9 +58,8 @@ defmodule OMG.ChildChain do
 
   @spec get_filtered_fees(list(String.t()) | nil) :: {:ok, Fees.fee_t()} | {:error, :currency_fee_not_supported}
   def get_filtered_fees(currencies) do
-    with {:ok, fees} <- FeeServer.transaction_fees(),
-         {:ok, filtered_fees} <- Fees.filter_fees(fees, currencies) do
-      {:ok, filtered_fees}
+    with {:ok, fees} <- FeeServer.transaction_fees() do
+      Fees.filter_fees(fees, currencies)
     end
     |> result_with_logging()
   end

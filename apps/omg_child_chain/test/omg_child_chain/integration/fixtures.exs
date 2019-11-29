@@ -32,14 +32,14 @@ defmodule OMG.ChildChain.Integration.Fixtures do
       TestHelper.write_fee_file(%{
         enc_eth => %{
           amount: 0,
-          pegged_amount: 0,
+          pegged_amount: 1,
           pegged_currency: "USD",
           pegged_subunit_to_unit: 100,
           updated_at: DateTime.utc_now()
         },
         Eth.Encoding.to_hex(token) => %{
           amount: 0,
-          pegged_amount: 0,
+          pegged_amount: 1,
           pegged_currency: "USD",
           pegged_subunit_to_unit: 100,
           updated_at: DateTime.utc_now()
