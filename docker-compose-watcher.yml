@@ -43,9 +43,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   watcher_informational:
     image: omisego/watcher_informational:latest
@@ -76,10 +73,6 @@ services:
       timeout: 3s
       retries: 5
     depends_on:
-      plasma-contracts:
-        condition: service_healthy
-      childchain:
-        condition: service_healthy
       postgres:
         condition: service_healthy
 
