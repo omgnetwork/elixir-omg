@@ -20,77 +20,62 @@ defmodule OMG.WatcherRPC.Web.View.TransactionTest do
   alias OMG.Utils.Paginator
   alias OMG.Watcher.DB
   alias OMG.WatcherRPC.Web.View
-  # alias OMG.Utxo
-  # alias Support.WatcherHelper
-  # require Utxo
+  alias OMG.Utxo
 
-  # @eth OMG.Eth.RootChain.eth_pseudo_address()
+  require Utxo
 
-  describe "render/2" do
+  describe "render/2 with transaction.json" do
     @tag fixtures: [:initial_blocks]
-    test "renders transaction.json", %{initial_blocks: initial_blocks} do
-      transaction = initial_blocks.transactions |> IO.inspect() |> Enum.at(0)
+    test "renders the transaction's inputs and outputs" do
+      transaction =
+        1000
+        |> DB.Transaction.get_by_position(1)
+        |> DB.Repo.preload([:inputs, :outputs])
 
-      expected = %{
-        data: %{
-          block: %{
-            blknum: 1000,
-            eth_height: 100_000,
-            hash: "0x00000000000000000000000000000000000000000000000000000000000004d2",
-            timestamp: 1574764345
-          },
-          inputs: [],
-          metadata: "0x00",
-          outputs: [],
-          txbytes: "0x0000000000000000000000000000000000000000000000000000000000000000",
-          txhash: nil,
-          txindex: 1
-        },
-        service_name: "child_chain",
-        success: true,
-        version: "0.3.0+"
-      }
+      rendered = View.Transaction.render("transaction.json", %{response: transaction})
 
-      assert View.Transaction.render("transaction.json", %{response: transaction}) == expected
+      # Asserts all transaction inputs get rendered
+      assert Map.has_key?(rendered.data, :inputs)
+      assert utxos_match_all?(rendered.data.inputs, transaction.inputs)
+
+      # Asserts all transaction outputs get rendered
+      assert Map.has_key?(rendered.data, :outputs)
+      assert utxos_match_all?(rendered.data.outputs, transaction.outputs)
     end
+  end
 
-    test "renders transactions.json", %{initial_blocks: initial_blocks} do
+  describe "render/2 with transactions.json" do
+    @tag fixtures: [:initial_blocks]
+    test "renders the transactions' inputs and outputs" do
+      tx_1 = DB.Transaction.get_by_position(1000, 0) |> DB.Repo.preload([:inputs, :outputs])
+      tx_2 = DB.Transaction.get_by_position(1000, 1) |> DB.Repo.preload([:inputs, :outputs])
+
       paginator = %Paginator{
-        data: [],
+        data: [tx_1, tx_2],
         data_paging: %{
           limit: 10,
           page: 1
         }
       }
 
-      expected = %{
-        data: [
-          %{
-            block: %{
-              blknum: 1000,
-              eth_height: 100_000,
-              hash: "0x00000000000000000000000000000000000000000000000000000000000004d2",
-              timestamp: 1574764345
-            },
-            inputs: [],
-            metadata: "0x00",
-            outputs: [],
-            results: [],
-            txbytes: "0x0000000000000000000000000000000000000000000000000000000000000000",
-            txhash: nil,
-            txindex: 1
-          }
-        ],
-        data_paging: %{
-          limit: 10,
-          page: 1
-        },
-        service_name: "child_chain",
-        success: true,
-        version: "0.3.0+"
-      }
+      rendered = View.Transaction.render("transactions.json", %{response: paginator})
+      [rendered_1, rendered_2] = rendered.data
 
-      assert View.Transaction.render("transactions.json", %{response: paginator}) == expected
+      assert utxos_match_all?(rendered_1.inputs, tx_1.inputs)
+      assert utxos_match_all?(rendered_1.outputs, tx_1.outputs)
+      assert utxos_match_all?(rendered_2.inputs, tx_2.inputs)
+      assert utxos_match_all?(rendered_2.outputs, tx_2.outputs)
     end
+  end
+
+  defp utxos_match_all?(renders, originals) when length(renders) != length(originals), do: false
+
+  defp utxos_match_all?(renders, originals) do
+    original_utxo_positions =
+      Enum.map(originals, fn utxo ->
+        Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex) |> Utxo.Position.encode()
+      end)
+
+    Enum.all?(renders, fn rendered -> rendered.utxo_pos in original_utxo_positions end)
   end
 end
