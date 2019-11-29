@@ -88,7 +88,7 @@ ENV_TEST        ?= env MIX_ENV=test
 ENV_PROD        ?= env MIX_ENV=prod
 
 WATCHER_PORT ?= 7434
-WATCHER_INFORMATIONAL ?= 7534
+WATCHER_INFORMATIONAL_PORT ?= 7534
 
 #
 # Setting-up
