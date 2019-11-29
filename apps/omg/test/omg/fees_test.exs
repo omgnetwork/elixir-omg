@@ -31,6 +31,7 @@ defmodule OMG.FeesTest do
   @fees %{
     @eth => %{
       amount: 1,
+      subunit_to_unit: 1_000_000_000_000_000_000,
       pegged_amount: 4,
       pegged_currency: "USD",
       pegged_subunit_to_unit: 100,
@@ -38,6 +39,7 @@ defmodule OMG.FeesTest do
     },
     @not_eth => %{
       amount: 3,
+      subunit_to_unit: 1000,
       pegged_amount: 4,
       pegged_currency: "USD",
       pegged_subunit_to_unit: 100,

@@ -29,6 +29,7 @@ defmodule OMG.Fees do
   @type optional_fee_t() :: fee_t() | :no_fees_required
   @type fee_spec_t() :: %{
           amount: non_neg_integer,
+          subunit_to_unit: non_neg_integer,
           pegged_amount: non_neg_integer,
           pegged_currency: String.t(),
           pegged_subunit_to_unit: non_neg_integer,
@@ -67,6 +68,7 @@ defmodule OMG.Fees do
       ...> %{
       ...>  "eth" => %{
       ...>    amount: 1,
+      ...>    subunit_to_unit: 1000000000000000000,
       ...>    pegged_amount: 4,
       ...>    pegged_currency: "USD",
       ...>    pegged_subunit_to_unit: 100,
@@ -74,6 +76,7 @@ defmodule OMG.Fees do
       ...>  },
       ...>  "omg" => %{
       ...>    amount: 3,
+      ...>    subunit_to_unit: 1000000000000000000,
       ...>    pegged_amount: 4,
       ...>    pegged_currency: "USD",
       ...>    pegged_subunit_to_unit: 100,
@@ -84,6 +87,7 @@ defmodule OMG.Fees do
       %{
         "eth" => %{
           amount: 1,
+          subunit_to_unit: 1000000000000000000,
           pegged_amount: 4,
           pegged_currency: "USD",
           pegged_subunit_to_unit: 100,
@@ -91,6 +95,7 @@ defmodule OMG.Fees do
         },
         "omg" => %{
           amount: 3,
+          subunit_to_unit: 1000000000000000000,
           pegged_amount: 4,
           pegged_currency: "USD",
           pegged_subunit_to_unit: 100,
@@ -117,6 +122,7 @@ defmodule OMG.Fees do
       ...> %{
       ...>  "eth" => %{
       ...>    amount: 1,
+      ...>    subunit_to_unit: 1000000000000000000,
       ...>    pegged_amount: 4,
       ...>    pegged_currency: "USD",
       ...>    pegged_subunit_to_unit: 100,
@@ -124,6 +130,7 @@ defmodule OMG.Fees do
       ...>  },
       ...>  "omg" => %{
       ...>    amount: 3,
+      ...>    subunit_to_unit: 1000000000000000000,
       ...>    pegged_amount: 4,
       ...>    pegged_currency: "USD",
       ...>    pegged_subunit_to_unit: 100,
@@ -137,6 +144,7 @@ defmodule OMG.Fees do
           "eth" =>
           %{
             amount: 1,
+            subunit_to_unit: 1000000000000000000,
             pegged_amount: 4,
             pegged_currency: "USD",
             pegged_subunit_to_unit: 100,

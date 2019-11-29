@@ -154,6 +154,7 @@ defmodule OMG.TestHelper do
         %{
           token: token,
           amount: fee.amount,
+          subunit_to_unit: fee.subunit_to_unit,
           pegged_amount: fee.pegged_amount,
           pegged_currency: fee.pegged_currency,
           pegged_subunit_to_unit: fee.pegged_subunit_to_unit,

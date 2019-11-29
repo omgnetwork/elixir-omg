@@ -42,6 +42,7 @@ defmodule OMG.ChildChain.FeeParser do
   defp parse_fee_spec(%{
          "amount" => fee,
          "token" => token,
+         "subunit_to_unit" => subunit_to_unit,
          "pegged_amount" => pegged_amount,
          "pegged_currency" => pegged_currency,
          "pegged_subunit_to_unit" => pegged_subunit_to_unit,
@@ -50,6 +51,7 @@ defmodule OMG.ChildChain.FeeParser do
     # defensive code against user input
     with {:ok, fee} <- validate_fee_amount(fee, :invalid_fee),
          {:ok, addr} <- decode_address(token),
+         {:ok, subunit_to_unit} <- validate_positive_amount(subunit_to_unit, :invalid_subunit_to_unit),
          {:ok, pegged_amount} <- validate_positive_amount(pegged_amount, :invalid_pegged_amount),
          {:ok, pegged_currency} <- validate_pegged_currency(pegged_currency),
          {:ok, pegged_subunit_to_unit} <-
@@ -58,6 +60,7 @@ defmodule OMG.ChildChain.FeeParser do
       %{
         token: addr,
         amount: fee,
+        subunit_to_unit: subunit_to_unit,
         pegged_amount: pegged_amount,
         pegged_currency: pegged_currency,
         pegged_subunit_to_unit: pegged_subunit_to_unit,

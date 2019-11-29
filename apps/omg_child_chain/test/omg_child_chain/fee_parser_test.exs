@@ -27,6 +27,7 @@ defmodule OMG.ChildChain.FeeParserTest do
       {
         "token": "0x0000000000000000000000000000000000000000",
         "amount": 2,
+        "subunit_to_unit": 1000000000000000000,
         "pegged_amount": 1,
         "pegged_currency": "USD",
         "pegged_subunit_to_unit": 100,
@@ -35,6 +36,7 @@ defmodule OMG.ChildChain.FeeParserTest do
       {
         "token": "0xd26114cd6ee289accf82350c8d8487fedb8a0c07",
         "amount": 0,
+        "subunit_to_unit": 1000000000000000000,
         "pegged_amount": 1,
         "pegged_currency": "USD",
         "pegged_subunit_to_unit": 100,
@@ -43,6 +45,7 @@ defmodule OMG.ChildChain.FeeParserTest do
       {
         "token": "0xa74476443119a942de498590fe1f2454d7d4ac0d",
         "amount": 4,
+        "subunit_to_unit": 1000000000000000000,
         "pegged_amount": 1,
         "pegged_currency": "USD",
         "pegged_subunit_to_unit": 100,
@@ -75,6 +78,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": -1,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
@@ -84,6 +88,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "this is not HEX",
           "amount": 0,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
@@ -93,6 +98,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0123456789abCdeF",
           "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
@@ -102,6 +108,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": -1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
@@ -111,6 +118,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": 0,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
@@ -120,6 +128,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": 1,
           "pegged_currency": 12,
           "pegged_subunit_to_unit": 100,
@@ -129,6 +138,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": -1,
@@ -138,6 +148,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 0,
@@ -147,11 +158,32 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
           "updated_at": "invalid_date",
           "error_reason": "Invalid updated_at results with :invalid_timestamp error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": -1,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "Negative pegged_amount results with :invalid_subunit_to_unit error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": 0,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "0 pegged_amount results with :invalid_subunit_to_unit error"
         }
       ])
 
@@ -166,7 +198,9 @@ defmodule OMG.ChildChain.FeeParserTest do
                 {{:error, :invalid_pegged_currency}, 7},
                 {{:error, :invalid_pegged_subunit_to_unit}, 8},
                 {{:error, :invalid_pegged_subunit_to_unit}, 9},
-                {{:error, :invalid_timestamp}, 10}
+                {{:error, :invalid_timestamp}, 10},
+                {{:error, :invalid_subunit_to_unit}, 11},
+                {{:error, :invalid_subunit_to_unit}, 12}
               ]} = parse_file_content(json)
     end
 
@@ -176,6 +210,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,
@@ -184,6 +219,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         {
           "token": "0x0000000000000000000000000000000000000000",
           "amount": 2,
+          "subunit_to_unit": 1000000000000000000,
           "pegged_amount": 1,
           "pegged_currency": "USD",
           "pegged_subunit_to_unit": 100,

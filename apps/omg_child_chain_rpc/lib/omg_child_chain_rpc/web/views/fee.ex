@@ -30,6 +30,7 @@ defmodule OMG.ChildChainRPC.Web.View.Fee do
       %{
         currency: currency,
         amount: fee.amount,
+        subunit_to_unit: fee.subunit_to_unit,
         pegged_currency: {:skip_hex_encode, fee.pegged_currency},
         pegged_amount: fee.pegged_amount,
         pegged_subunit_to_unit: fee.pegged_subunit_to_unit,

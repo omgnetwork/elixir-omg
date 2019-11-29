@@ -7,6 +7,9 @@ FeeItemSchema:
     amount:
       type: integer
       format: int256
+    subunit_to_unit: 
+      type: integer
+      format: int256
     pegged_currency:
       type: string
       format: binary

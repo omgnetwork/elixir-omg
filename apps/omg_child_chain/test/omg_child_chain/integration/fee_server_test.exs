@@ -32,6 +32,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     @eth_hex => %{
       amount: 0,
       pegged_amount: 1,
+      subunit_to_unit: 1_000_000_000_000_000_000,
       pegged_currency: "USD",
       pegged_subunit_to_unit: 100,
       updated_at: DateTime.from_unix!(1_546_336_800)
@@ -71,6 +72,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       default_fees = %{
         @eth => %{
           amount: 0,
+          subunit_to_unit: 1_000_000_000_000_000_000,
           pegged_amount: 1,
           pegged_currency: "USD",
           pegged_subunit_to_unit: 100,
@@ -80,9 +82,10 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
       new_fee = %{
         amount: 5,
-        pegged_amount: 1,
-        pegged_currency: "USD",
-        pegged_subunit_to_unit: 100,
+        subunit_to_unit: 100,
+        pegged_amount: 2,
+        pegged_currency: "SOMETHING",
+        pegged_subunit_to_unit: 1000,
         updated_at: DateTime.from_unix!(1_546_423_200)
       }
 

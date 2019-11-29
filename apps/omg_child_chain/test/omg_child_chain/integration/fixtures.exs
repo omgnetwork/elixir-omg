@@ -33,6 +33,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
         enc_eth => %{
           amount: 0,
           pegged_amount: 1,
+          subunit_to_unit: 1_000_000_000_000_000_000,
           pegged_currency: "USD",
           pegged_subunit_to_unit: 100,
           updated_at: DateTime.utc_now()
@@ -40,6 +41,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
         Eth.Encoding.to_hex(token) => %{
           amount: 0,
           pegged_amount: 1,
+          subunit_to_unit: 1_000_000_000_000_000_000,
           pegged_currency: "USD",
           pegged_subunit_to_unit: 100,
           updated_at: DateTime.utc_now()

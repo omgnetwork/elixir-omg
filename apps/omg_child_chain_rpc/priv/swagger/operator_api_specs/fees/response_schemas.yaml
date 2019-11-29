@@ -12,6 +12,7 @@ AllFeesResponseSchema:
       -
         currency: '0x0000000000000000000000000000000000000000'
         amount: 220000000000000
+        subunit_to_unit: 1000000000000000000
         pegged_currency: 'USD'
         pegged_amount: 4
         pegged_subunit_to_unit: 100
@@ -19,6 +20,7 @@ AllFeesResponseSchema:
       -
         currency: '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
         amount: 39260000000000000
+        subunit_to_unit: 1000000000000000000
         pegged_currency: 'USD'
         pegged_amount: 4
         pegged_subunit_to_unit: 100

@@ -22,6 +22,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
     fee_specs = %{
       Base.decode16!("0000000000000000000000000000000000000000") => %{
         amount: 1,
+        subunit_to_unit: 1_000_000_000_000_000_000,
         pegged_amount: 1,
         pegged_currency: "USD",
         pegged_subunit_to_unit: 100,
@@ -29,6 +30,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
       },
       Base.decode16!("0000000000000000000000000000000000000001") => %{
         amount: 1,
+        subunit_to_unit: 1_000_000_000_000_000_000,
         pegged_amount: 1,
         pegged_currency: "USD",
         pegged_subunit_to_unit: 100,
@@ -50,6 +52,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                  %{
                    "amount" => 1,
                    "currency" => "0x0000000000000000000000000000000000000000",
+                   "subunit_to_unit" => 1_000_000_000_000_000_000,
                    "pegged_amount" => 1,
                    "pegged_currency" => "USD",
                    "pegged_subunit_to_unit" => 100,
@@ -67,6 +70,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                  %{
                    "amount" => 1,
                    "currency" => "0x0000000000000000000000000000000000000000",
+                   "subunit_to_unit" => 1_000_000_000_000_000_000,
                    "pegged_amount" => 1,
                    "pegged_currency" => "USD",
                    "pegged_subunit_to_unit" => 100,
@@ -75,6 +79,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                  %{
                    "amount" => 1,
                    "currency" => "0x0000000000000000000000000000000000000001",
+                   "subunit_to_unit" => 1_000_000_000_000_000_000,
                    "pegged_amount" => 1,
                    "pegged_currency" => "USD",
                    "pegged_subunit_to_unit" => 100,
@@ -94,6 +99,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                  %{
                    "amount" => 1,
                    "currency" => "0x0000000000000000000000000000000000000000",
+                   "subunit_to_unit" => 1_000_000_000_000_000_000,
                    "pegged_amount" => 1,
                    "pegged_currency" => "USD",
                    "pegged_subunit_to_unit" => 100,
@@ -102,6 +108,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                  %{
                    "amount" => 1,
                    "currency" => "0x0000000000000000000000000000000000000001",
+                   "subunit_to_unit" => 1_000_000_000_000_000_000,
                    "pegged_amount" => 1,
                    "pegged_currency" => "USD",
                    "pegged_subunit_to_unit" => 100,
