@@ -33,7 +33,7 @@ defmodule OMG.Eth.DevGeth do
     keystore = Path.join([homedir, "/geth/data/keystore"])
     datadir = Path.join([homedir, "/geth/data"])
     :ok = File.write!("/tmp/geth-blank-password", "")
-    geth_pid = launch("geth --syncmode 'fast' --miner.gastarget 7500000 \
+    geth = ~s(geth --syncmode 'fast' --miner.gastarget 7500000 \
             --miner.gastarget 7500000 \
             --nodiscover \
             --maxpeers 0 \
@@ -47,7 +47,8 @@ defmodule OMG.Eth.DevGeth do
             --unlock \"0,1\" \
             --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 \
             --ws --wsaddr 0.0.0.0 --wsorigins='*' \
-            --mine --datadir #{datadir} 2>&1")
+            --mine --datadir #{datadir} 2>&1)
+    geth_pid = launch(geth)
 
     {:ok, :ready} = WaitFor.eth_rpc()
 
