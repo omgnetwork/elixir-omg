@@ -22,7 +22,7 @@ defmodule WhiteBreadContext do
   end)
 
   scenario_starting_state(fn _ ->
-    {:ok, [{alice_account, alice_pkey}, {bob_account, _bob_pkey}]} = Account.take_accounts(2)
+    [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end)
 
