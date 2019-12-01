@@ -74,10 +74,10 @@ defmodule OMG.Eth.DevGeth do
 
     wait_for_geth_start(geth_out)
 
-    # _ =
-    # if Application.get_env(:omg_eth, :node_logging_in_debug) do
-    %Task{} = Task.async(fn -> Enum.each(geth_out, &Support.DevNode.default_logger/1) end)
-    # end
+    _ =
+      if Application.get_env(:omg_eth, :node_logging_in_debug) do
+        %Task{} = Task.async(fn -> Enum.each(geth_out, &Support.DevNode.default_logger/1) end)
+      end
 
     geth_proc
   end

@@ -18,12 +18,9 @@ defmodule OMG.DependencyConformance.SignatureTest do
   by both Elixir signature code and contract signature code.
   """
 
-  alias OMG.DevCrypto
   alias OMG.Eth
   alias OMG.State.Transaction
   alias OMG.TestHelper
-  alias Support.Deployer
-  alias Support.DevNode
 
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
   use ExUnit.Case, async: false
