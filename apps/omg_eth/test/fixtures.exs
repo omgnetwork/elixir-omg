@@ -26,6 +26,7 @@ defmodule OMG.Eth.Fixtures do
   alias Support.RootChainHelper
 
   @test_erc20_vault_id 2
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   deffixture eth_node do
     if Application.get_env(:omg_eth, :run_test_eth_dev_node, true) do
@@ -39,7 +40,26 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    contract = DevHelper.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
+    contract = %{
+      authority_addr: Encoding.from_hex("0xc0f780dfc35075979b0def588d999225b7ecc56f"),
+      contract_addr: %{
+        erc20_vault: Encoding.from_hex("0x04badc20426bc146453c5b879417b25029fa6c73"),
+        eth_vault: Encoding.from_hex("0x0433420dee34412b5bf1e29fbf988ad037cc5db7"),
+        payment_exit_game: Encoding.from_hex("0xe95661547f69b16ac88e5d06813c2e6a2c432048"),
+        plasma_framework: Encoding.from_hex("0xc673e4ffcb8464faff908a6804fe0e635af0ea2f")
+      },
+      txhash_contract: Encoding.from_hex("0xc47317b0de4c6ccc9a9fb858ad3ee858c2ee8ade3aed0fa9bcab7f7dad27fe12")
+    }
+
+    {:ok, true} =
+      Ethereumex.HttpClient.request("personal_unlockAccount", ["0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d", "", 0], [])
+
+    add_exit_queue =
+      RootChainHelper.add_exit_queue(1, @eth, %{
+        plasma_framework: Encoding.from_hex("0xc673e4ffcb8464faff908a6804fe0e635af0ea2f")
+      })
+
+    {:ok, _} = Support.DevHelper.transact_sync!(add_exit_queue)
     contract
   end
 

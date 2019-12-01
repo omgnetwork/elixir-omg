@@ -27,11 +27,27 @@ defmodule OMG.Eth.DevGeth do
 
   def start do
     {:ok, homedir} = Briefly.create(directory: true)
+    snapshot_dir = Path.expand(Path.join([Mix.Project.app_path(), "../../../../", "data/geth/"]))
+    {"", 0} = System.cmd("cp", ["-rf", snapshot_dir, homedir])
 
-    geth_pid =
-      launch(
-        "geth --dev --dev.period=1 --ws --wsorigins='*' --rpc --rpcapi=personal,eth,web3,admin --datadir #{homedir} 2>&1"
-      )
+    keystore = Path.join([homedir, "/geth/data/keystore"])
+    datadir = Path.join([homedir, "/geth/data"])
+    :ok = File.write!("/tmp/geth-blank-password", "")
+    geth_pid = launch("geth --syncmode 'fast' --miner.gastarget 7500000 \
+            --miner.gastarget 7500000 \
+            --nodiscover \
+            --maxpeers 0 \
+            --miner.gasprice \"10\" \
+            --datadir /data/ \
+            --syncmode 'full' \
+            --networkid 1337 \
+            --gasprice '1' \
+            --keystore #{keystore} \
+            --password /tmp/geth-blank-password \
+            --unlock \"0,1\" \
+            --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 \
+            --ws --wsaddr 0.0.0.0 --wsorigins='*' \
+            --mine --datadir #{datadir} 2>&1")
 
     {:ok, :ready} = WaitFor.eth_rpc()
 
@@ -57,10 +73,10 @@ defmodule OMG.Eth.DevGeth do
 
     wait_for_geth_start(geth_out)
 
-    _ =
-      if Application.get_env(:omg_eth, :node_logging_in_debug) do
-        %Task{} = Task.async(fn -> Enum.each(geth_out, &Support.DevNode.default_logger/1) end)
-      end
+    # _ =
+    # if Application.get_env(:omg_eth, :node_logging_in_debug) do
+    %Task{} = Task.async(fn -> Enum.each(geth_out, &Support.DevNode.default_logger/1) end)
+    # end
 
     geth_proc
   end
