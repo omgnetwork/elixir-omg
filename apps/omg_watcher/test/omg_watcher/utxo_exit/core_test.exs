@@ -41,7 +41,8 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
            output: %OMG.Output.FungibleMoreVPToken{
              amount: 10,
              currency: @eth,
-             owner: alice.addr
+             owner: alice.addr,
+             type_marker: <<1>>
            }
          })}
 

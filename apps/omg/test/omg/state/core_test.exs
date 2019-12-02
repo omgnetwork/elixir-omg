@@ -947,12 +947,22 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :bob, :carol]
   test "getting user utxos from utxos_query_result",
        %{alice: alice, bob: bob, carol: carol} do
+    output_marker = <<1>>
+
     utxos_query_result = [
-      {{1000, 0, 0}, %{output: %{amount: 1, currency: @eth, owner: alice.addr}, creating_txhash: "nil"}},
-      {{2000, 1, 1}, %{output: %{amount: 2, currency: @eth, owner: bob.addr}, creating_txhash: "nil"}},
-      {{1000, 2, 0}, %{output: %{amount: 3, currency: @not_eth, owner: alice.addr}, creating_txhash: "nil"}},
-      {{1000, 3, 1}, %{output: %{amount: 4, currency: @eth, owner: alice.addr}, creating_txhash: "nil"}},
-      {{1000, 4, 0}, %{output: %{amount: 5, currency: @eth, owner: bob.addr}, creating_txhash: "nil"}}
+      {{1000, 0, 0},
+       %{output: %{amount: 1, currency: @eth, owner: alice.addr, type_marker: output_marker}, creating_txhash: "nil"}},
+      {{2000, 1, 1},
+       %{output: %{amount: 2, currency: @eth, owner: bob.addr, type_marker: output_marker}, creating_txhash: "nil"}},
+      {{1000, 2, 0},
+       %{
+         output: %{amount: 3, currency: @not_eth, owner: alice.addr, type_marker: output_marker},
+         creating_txhash: "nil"
+       }},
+      {{1000, 3, 1},
+       %{output: %{amount: 4, currency: @eth, owner: alice.addr, type_marker: output_marker}, creating_txhash: "nil"}},
+      {{1000, 4, 0},
+       %{output: %{amount: 5, currency: @eth, owner: bob.addr, type_marker: output_marker}, creating_txhash: "nil"}}
     ]
 
     assert [] == Core.standard_exitable_utxos(utxos_query_result, carol.addr)

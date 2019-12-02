@@ -28,6 +28,7 @@ defmodule OMG.State.Transaction.Payment do
   require Utxo
 
   @zero_metadata <<0::256>>
+  @payment_output_type_marker <<1>>
 
   defstruct [:inputs, :outputs, metadata: @zero_metadata]
 
@@ -95,7 +96,12 @@ defmodule OMG.State.Transaction.Payment do
   defp new_input({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
 
   defp new_output({owner, currency, amount}),
-    do: %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
+    do: %Output.FungibleMoreVPToken{
+      owner: owner,
+      currency: currency,
+      amount: amount,
+      type_marker: @payment_output_type_marker
+    }
 
   defp reconstruct_inputs(inputs_rlp) do
     with {:ok, inputs} <- parse_inputs(inputs_rlp),

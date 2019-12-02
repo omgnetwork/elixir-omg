@@ -23,9 +23,9 @@ defmodule OMG.Output do
   @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
   @type_markers Map.keys(@output_types_modules)
 
-  def dispatching_reconstruct([type_marker | raw_rlp_decoded_chunks]) when type_marker in @type_markers do
+  def dispatching_reconstruct([type_marker | _] = rlp_decoded_data) when type_marker in @type_markers do
     protocol_module = @output_types_modules[type_marker]
-    protocol_module.reconstruct(raw_rlp_decoded_chunks)
+    protocol_module.reconstruct(rlp_decoded_data)
   end
 
   def dispatching_reconstruct(_), do: {:error, :unrecognized_output_type}
