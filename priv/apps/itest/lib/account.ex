@@ -28,16 +28,9 @@ defmodule Itest.Account do
 
   @spec take_accounts(integer()) :: map()
   def take_accounts(number_of_accounts) do
-    #  IO.inspect Task.async(fn -> account() end)
-    # o = 1..number_of_accounts
-    # |> Enum.map(Task.async(fn -> account() end))
-    # |> Enum.map(&Task.await/1)
     1..number_of_accounts
     |> Task.async_stream(fn _ -> account() end, timeout: 60_000, on_timeout: :kill_task)
-    |> Enum.to_list()
-
-    #   IO.inspect o
-    #   o
+    |> Enum.map(fn {:ok, result} -> result end)
   end
 
   defp account() do
