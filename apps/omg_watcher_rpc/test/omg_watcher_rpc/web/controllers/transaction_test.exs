@@ -188,25 +188,27 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  ],
                  "inputs" => [
                    %{
-                    "amount" => _,
-                    "blknum" => _,
-                    "currency" => _,
-                    "oindex" => _,
-                    "owner" => _,
-                    "txindex" => _,
-                    "utxo_pos" => _
-                   } | _
+                     "amount" => _,
+                     "blknum" => _,
+                     "currency" => _,
+                     "oindex" => _,
+                     "owner" => _,
+                     "txindex" => _,
+                     "utxo_pos" => _
+                   }
+                   | _
                  ],
                  "outputs" => [
                    %{
-                    "amount" => _,
-                    "blknum" => _,
-                    "currency" => _,
-                    "oindex" => _,
-                    "owner" => _,
-                    "txindex" => _,
-                    "utxo_pos" => _
-                   } | _
+                     "amount" => _,
+                     "blknum" => _,
+                     "currency" => _,
+                     "oindex" => _,
+                     "owner" => _,
+                     "txindex" => _,
+                     "utxo_pos" => _
+                   }
+                   | _
                  ],
                  "txhash" => ^txhash,
                  "txindex" => ^txindex
