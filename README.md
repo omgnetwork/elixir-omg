@@ -278,8 +278,7 @@ The watcher can be run in one of two modes:
     - this mode will store easily accessible register of all transactions _for a subset of addresses_ (currently, all addresses)
     - this mode will leverage the Postgres-based `WatcherDB` database
 
-**TODO** the distinction between two modes isn't fully implemented yet.
-Use the **security-critical and informational API** always for now.
+In releases, `watcher` refers to the security-critical mode, while `watcher_informational` refers to the security-critical and informational API mode.
 
 ### Using the watcher
 
