@@ -24,7 +24,7 @@ defmodule Support.Deployer do
   @tx_defaults Eth.Defaults.tx_defaults()
 
   @gas_contract_rootchain 5_000_000
-  @gas_contract_default 2_000_000
+  @gas_contract_default 2_500_000
   @gas_contract_payment_exit_game 6_000_000
   @gas_contracts %{"SignatureTest" => 1_590_893, "ERC20Mintable" => 1_590_893}
 

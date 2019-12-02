@@ -1,7 +1,7 @@
 block.get:
   post:
     tags:
-      - ChildChain
+      - Block
     summary: This endpoint retrieves a specific block from child chain by its hash which was published on root chain.
     operationId: block_get
     requestBody:

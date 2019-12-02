@@ -106,6 +106,10 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   def optional({val, _}) when val in [:missing, nil], do: {nil, []}
   def optional(acc), do: acc
 
+  @spec optional({any(), list()}, atom()) :: {any(), list()}
+  def optional({val, _}, true) when val in [:missing, nil], do: {nil, []}
+  def optional(acc, _), do: acc
+
   @spec hex({any(), list()}) :: {any(), list()}
   def hex({_, [_ | _]} = err), do: err
 

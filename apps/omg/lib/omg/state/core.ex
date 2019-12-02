@@ -16,9 +16,37 @@ defmodule OMG.State.Core do
   @moduledoc """
   The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
+
+  We experienced long startup times on large UTXO set, which in some case caused timeouts and lethal `OMG.State`
+  restart loop. To mitigate this issue we introduced loading UTXO set on demand (see GH#1103) instead of full load
+  on process startup.
+
+  During OMG.State startup no UTXOs are fetched from DB, which is no longer blocking significantly.
+  Then during each of 6 utxo-related operations (see below) UTXO set is extended with UTXOs from DB to ensure operation
+  behavior hasn't been changed.
+
+  Transaction processing is populating the in-memory UTXO set and once block is formed newly created UTXO are inserted
+  to DB, but are also kept in process State. Service restart looses all UTXO created by transactions processed as well
+  as mempool transactions therefore DB content stays block-by-block consistent.
+
+  Operations that require full ledger information are:
+  - utxo_exists?
+  - exec
+  - form_block (and `close_block`)
+  - deposit
+  - exit_utxos
+
+  These operations assume that passed `OMG.State.Core` struct instance contains sufficient UTXO information to proceed.
+  Therefore the UTXOs that in-memory state is unaware of are fetched from the `OMG.DB` and then merged into state.
+  As not every operation updates `OMG.DB` immediately additional `recently_spent` collection was added to in-memory
+  state to defend against double spends in transactions within the same block.
+
+  After block is formed `OMG.DB` contains full information up to the current block so we could waste in-memory
+  info about utxos and spends. If the process gets restarted before form_block all mempool transactions along with
+  created and spent utxos are lost and the ledger state basically resets to the previous block.
   """
 
-  defstruct [:height, :utxos, pending_txs: [], tx_index: 0, utxo_db_updates: []]
+  defstruct [:height, utxos: %{}, pending_txs: [], tx_index: 0, utxo_db_updates: [], recently_spent: MapSet.new()]
 
   alias OMG.Block
   alias OMG.Crypto
@@ -41,7 +69,10 @@ defmodule OMG.State.Core do
           tx_index: non_neg_integer(),
           # NOTE: that this list is being build reverse, in some cases it may matter. It is reversed just before
           #       it leaves this module in `form_block/3`
-          utxo_db_updates: list(db_update())
+          utxo_db_updates: list(db_update()),
+          # NOTE: because UTXO set is not loaded from DB entirely, we need to remember the UTXOs spent in already
+          # processed transaction before they get removed from DB on form_block.
+          recently_spent: MapSet.t(InputPointer.Protocol.t())
         }
 
   @type deposit() :: %{
@@ -96,32 +127,38 @@ defmodule OMG.State.Core do
         }
 
   @doc """
-  Recovers the ledger's state from data delivered by the `OMG.DB`
+  Initializes the state from the values stored in `OMG.DB`
   """
   @spec extract_initial_state(
-          utxos_query_result :: [list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})],
           height_query_result :: non_neg_integer() | :not_found,
           child_block_interval :: pos_integer()
         ) :: {:ok, t()} | {:error, :top_block_number_not_found}
-  def extract_initial_state(utxos_query_result, height_query_result, child_block_interval)
-      when is_list(utxos_query_result) and is_integer(height_query_result) and is_integer(child_block_interval) do
-    # extract height, last deposit height and utxos from query result
-    height = height_query_result + child_block_interval
-
-    state = %__MODULE__{
-      height: height,
-      utxos: UtxoSet.init(utxos_query_result)
-    }
+  def extract_initial_state(height_query_result, child_block_interval)
+      when is_integer(height_query_result) and is_integer(child_block_interval) do
+    state = %__MODULE__{height: height_query_result + child_block_interval}
 
     {:ok, state}
   end
 
-  def extract_initial_state(
-        _utxos_query_result,
-        :not_found,
-        _child_block_interval
-      ) do
+  def extract_initial_state(:not_found, _child_block_interval) do
     {:error, :top_block_number_not_found}
+  end
+
+  @doc """
+  Tell whether utxo position was created or spent by current state.
+  """
+  @spec utxo_processed?(InputPointer.Protocol.t(), t()) :: boolean()
+  def utxo_processed?(utxo_pos, %Core{utxos: utxos, recently_spent: recently_spent}) do
+    Map.has_key?(utxos, utxo_pos) or MapSet.member?(recently_spent, utxo_pos)
+  end
+
+  @doc """
+  Extends in-memory utxo set with needed utxos loaded from DB
+  See also: State.init_utxos_from_db/2
+  """
+  @spec with_utxos(t(), utxos()) :: t()
+  def with_utxos(%Core{utxos: utxos} = state, db_utxos) do
+    %{state | utxos: UtxoSet.apply_effects(utxos, [], db_utxos)}
   end
 
   @doc """
@@ -153,7 +190,7 @@ defmodule OMG.State.Core do
     Filter user utxos from db response.
     It may take a while for a large response from db
   """
-  @spec standard_exitable_utxos(list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()}), Crypto.address_t()) ::
+  @spec standard_exitable_utxos(UtxoSet.query_result_t(), Crypto.address_t()) ::
           list(exitable_utxos)
   def standard_exitable_utxos(utxos_query_result, address) do
     utxos_query_result
@@ -179,6 +216,7 @@ defmodule OMG.State.Core do
    - generates triggers for events
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
+   - clears `recently_spent` collection
   """
   @spec form_block(pos_integer(), pos_integer() | nil, state :: t()) ::
           {:ok, {Block.t(), [tx_event], [db_update]}, new_state :: t()}
@@ -210,7 +248,8 @@ defmodule OMG.State.Core do
       | tx_index: 0,
         height: height + child_block_interval,
         pending_txs: [],
-        utxo_db_updates: []
+        utxo_db_updates: [],
+        recently_spent: MapSet.new()
     }
 
     {:ok, {block, event_triggers, db_updates}, new_state}
@@ -239,7 +278,7 @@ defmodule OMG.State.Core do
   end
 
   @doc """
-  Spends exited utxos. Accepts either
+  Retrieves exitable utxo positions from variety of exit events. Accepts either
    - a list of utxo positions (decoded)
    - a list of utxo positions (encoded)
    - a list of full exit infos containing the utxo positions
@@ -250,28 +289,25 @@ defmodule OMG.State.Core do
   NOTE: It is done like this to accommodate different clients of this function as they can either be
   bare `EthereumEventListener` or `ExitProcessor`. Hence different forms it can get the exiting utxos delivered
   """
-  @spec exit_utxos(exiting_utxos :: exiting_utxos_t(), state :: t()) ::
-          {:ok, {[db_update], validities_t()}, new_state :: t()}
-  # empty list of whatever to bypass typing
-  def exit_utxos([], %Core{} = state), do: {:ok, {[], {[], []}}, state}
+  @spec extract_exiting_utxo_positions(exiting_utxos_t(), t()) :: list(Utxo.Position.t())
+  def extract_exiting_utxo_positions(exit_infos, state)
+
+  def extract_exiting_utxo_positions([], %Core{}), do: []
 
   # list of full exit infos (from events) containing the utxo positions
-  def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
-    exit_infos |> Enum.map(& &1.utxo_pos) |> exit_utxos(state)
-  end
+  def extract_exiting_utxo_positions([%{utxo_pos: _} | _] = exit_infos, state),
+    do: exit_infos |> Enum.map(& &1.utxo_pos) |> extract_exiting_utxo_positions(state)
 
   # list of full exit events (from ethereum listeners)
-  def exit_utxos([%{call_data: %{utxo_pos: _}} | _] = exit_infos, %Core{} = state) do
-    exit_infos |> Enum.map(& &1.call_data) |> exit_utxos(state)
-  end
+  def extract_exiting_utxo_positions([%{call_data: %{utxo_pos: _}} | _] = exit_infos, state),
+    do: exit_infos |> Enum.map(& &1.call_data) |> extract_exiting_utxo_positions(state)
 
   # list of utxo positions (encoded)
-  def exit_utxos([encoded_utxo_pos | _] = exit_infos, %Core{} = state) when is_integer(encoded_utxo_pos) do
-    exit_infos |> Enum.map(&Utxo.Position.decode!/1) |> exit_utxos(state)
-  end
+  def extract_exiting_utxo_positions([encoded_utxo_pos | _] = exit_infos, %Core{}) when is_integer(encoded_utxo_pos),
+    do: Enum.map(exit_infos, &Utxo.Position.decode!/1)
 
   # list of IFE input/output piggybacked events
-  def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do
+  def extract_exiting_utxo_positions([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{}) do
     _ = Logger.info("Recognized exits from IFE starts #{inspect(in_flight_txs)}")
 
     in_flight_txs
@@ -279,46 +315,63 @@ defmodule OMG.State.Core do
       {:ok, tx} = Transaction.decode(tx_bytes)
       Transaction.get_inputs(tx)
     end)
-    |> exit_utxos(state)
   end
 
   # list of IFE input piggybacked events (they're ignored)
-  def exit_utxos([%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggybacks, state) do
+  def extract_exiting_utxo_positions([%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggybacks, %Core{}) do
     _ = Logger.info("Ignoring input piggybacks #{inspect(piggybacks)}")
-    {:ok, {[], {[], []}}, state}
+    []
   end
 
   # list of IFE output piggybacked events. This is used by the child chain only. `OMG.Watcher.ExitProcessor` figures out
   # the utxo positions to exit on its own
-  def exit_utxos([%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggybacks, state) do
+  def extract_exiting_utxo_positions(
+        [%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggybacks,
+        %Core{} = state
+      ) do
     _ = Logger.info("Recognized exits from piggybacks #{inspect(piggybacks)}")
 
     piggybacks
     |> Enum.map(&find_utxo_matching_piggyback(&1, state))
-    |> Enum.filter(& &1)
+    |> Enum.filter(fn utxo -> utxo != nil end)
     |> Enum.map(fn {position, _} -> position end)
-    |> exit_utxos(state)
   end
 
   # list of utxo positions (decoded)
-  def exit_utxos([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{utxos: utxos} = state) do
+  def extract_exiting_utxo_positions([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{}), do: exiting_utxos
+
+  @doc """
+  Spends exited utxos.
+  Note: state passed here is already extended with DB.
+  """
+  @spec exit_utxos(exiting_utxos :: list(Utxo.Position.t()), state :: t()) ::
+          {:ok, {[db_update], validities_t()}, new_state :: t()}
+  def exit_utxos([], %Core{} = state), do: {:ok, {[], {[], []}}, state}
+
+  def exit_utxos(
+        [Utxo.position(_, _, _) | _] = exiting_utxos,
+        %Core{utxos: utxos, recently_spent: recently_spent} = state
+      ) do
     _ = Logger.info("Recognized exits #{inspect(exiting_utxos)}")
 
     {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
 
     new_utxos = UtxoSet.apply_effects(utxos, valid, %{})
+    new_spends = MapSet.union(recently_spent, MapSet.new(valid))
     db_updates = UtxoSet.db_updates(valid, %{})
-    new_state = %{state | utxos: new_utxos}
+    new_state = %{state | utxos: new_utxos, recently_spent: new_spends}
 
     {:ok, {db_updates, validities}, new_state}
   end
 
   @doc """
-  Checks if utxo exists
+  Checks whether utxo exists in UTXO set.
+  Note: state passed here is already extended with DB.
   """
   @spec utxo_exists?(Utxo.Position.t(), t()) :: boolean()
-  def utxo_exists?(Utxo.position(_blknum, _txindex, _oindex) = utxo_pos, %Core{utxos: utxos}),
-    do: UtxoSet.exists?(utxos, utxo_pos)
+  def utxo_exists?(Utxo.position(_blknum, _txindex, _oindex) = utxo_pos, %Core{utxos: utxos}) do
+    UtxoSet.exists?(utxos, utxo_pos)
+  end
 
   @doc """
       Gets the current block's height and whether at the beginning of the block
@@ -338,7 +391,13 @@ defmodule OMG.State.Core do
   end
 
   defp apply_spend(
-         %Core{height: blknum, tx_index: tx_index, utxos: utxos, utxo_db_updates: db_updates} = state,
+         %Core{
+           height: blknum,
+           tx_index: tx_index,
+           utxos: utxos,
+           recently_spent: recently_spent,
+           utxo_db_updates: db_updates
+         } = state,
          %Transaction.Recovered{signed_tx: %{raw_tx: tx}}
        ) do
     {spent_input_pointers, new_utxos_map} = get_effects(tx, blknum, tx_index)
@@ -348,7 +407,12 @@ defmodule OMG.State.Core do
     spent_blknum_updates =
       spent_input_pointers |> Enum.map(&{:put, :spend, {InputPointer.Protocol.to_db_key(&1), blknum}})
 
-    %Core{state | utxos: new_utxos, utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates}
+    %Core{
+      state
+      | utxos: new_utxos,
+        recently_spent: MapSet.union(recently_spent, MapSet.new(spent_input_pointers)),
+        utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates
+    }
   end
 
   # Effects of a payment transaction - spends all inputs and creates all outputs

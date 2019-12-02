@@ -39,7 +39,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   setup do
     {:ok, processor_empty} = Core.init([], [], [])
     {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
-    {:ok, state_empty} = State.Core.extract_initial_state([], 0, child_block_interval)
+    {:ok, state_empty} = State.Core.extract_initial_state(0, child_block_interval)
 
     {:ok, %{alice: TestHelper.generate_entity(), processor_empty: processor_empty, state_empty: state_empty}}
   end
@@ -118,6 +118,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     # exit validly finalizes and continues to not emit any events
     {:ok, {_, spends}, _} = [1] |> Enum.map(&Core.exit_key_by_exit_id(processor, &1)) |> State.Core.exit_utxos(state)
+
     assert {processor, _, [{:put, :exit_info, {{2, 0, 0}, _}}]} = Core.finalize_exits(processor, spends)
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
