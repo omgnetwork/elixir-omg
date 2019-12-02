@@ -12,16 +12,19 @@ info:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
     url: 'https://omisego.network/'
 tags:
-  - name: ChildChain
-    description: Plasma operator API.
+  - name: Block
+    description: Block related API.
+  - name: Transaction
+    description: Transaction related API.
+  - name: Fees
+    description: Fees related API.
 servers:
-  - url: 'https://ari.omg.network/'
   - url: 'http://localhost:9656/'
 paths:
   /transaction.submit:
     post:
       tags:
-        - ChildChain
+        - Transaction
       summary: This endpoint submits a signed transaction to the child chain.
       description: |
         Normally you should call the Watcher's Transaction - Submit instead of this. The Watcher's version performs various security and validation checks before submitting the transaction, so is much safer. However, if the Watcher is not available this version exists.
@@ -141,7 +144,7 @@ paths:
   /block.get:
     post:
       tags:
-        - ChildChain
+        - Block
       summary: This endpoint retrieves a specific block from child chain by its hash which was published on root chain.
       operationId: block_get
       requestBody:
@@ -206,6 +209,151 @@ paths:
                         hash: '0x2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f'
                         transactions:
                           - 0xf8d083015ba98080808080940000...
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /fees.all:
+    post:
+      tags:
+        - Fees
+      summary: This endpoint retrieves the list of fee tokens currently supported by the childchain and the current amount needed to perform a transaction.
+      operationId: fees_all
+      requestBody:
+        description: 'An optional array of currencies to filter, raises an error if one of the currencies is not supported.'
+        required: false
+        content:
+          application/json:
+            schema:
+              title: FeesAllBodySchema
+              type: object
+              properties:
+                currencies:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+              example:
+                currencies:
+                  - '0x0000000000000000000000000000000000000000'
+                  - '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
+      responses:
+        '200':
+          description: List of all supported fees response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            currency:
+                              type: string
+                              format: binary
+                            amount:
+                              type: integer
+                              format: int256
+                            subunit_to_unit:
+                              type: integer
+                              format: int256
+                            pegged_currency:
+                              type: string
+                              format: binary
+                            pegged_amount:
+                              type: integer
+                              format: int256
+                            pegged_subunit_to_unit:
+                              type: integer
+                              format: int256
+                            updated_at:
+                              type: string
+                              format: date-time
+                    example:
+                      data:
+                        - currency: '0x0000000000000000000000000000000000000000'
+                          amount: 220000000000000
+                          subunit_to_unit: 1000000000000000000
+                          pegged_currency: USD
+                          pegged_amount: 4
+                          pegged_subunit_to_unit: 100
+                          updated_at: '2019-01-01T10:10:10+00:00'
+                        - currency: '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
+                          amount: 39260000000000000
+                          subunit_to_unit: 1000000000000000000
+                          pegged_currency: USD
+                          pegged_amount: 4
+                          pegged_subunit_to_unit: 100
+                          updated_at: '2019-01-01T10:10:10+00:00'
         '500':
           description: Returns an internal server error
           content:

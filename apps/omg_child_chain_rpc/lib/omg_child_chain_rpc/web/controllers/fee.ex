@@ -12,22 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Web.Router do
-  use OMG.ChildChainRPC.Web, :router
+defmodule OMG.ChildChainRPC.Web.Controller.Fee do
+  @moduledoc """
+  Operations related to fees.
+  """
 
-  pipeline :api do
-    plug(:accepts, ["json"])
+  use OMG.ChildChainRPC.Web, :controller
+  plug(OMG.ChildChainRPC.Plugs.Health)
+  alias OMG.ChildChain
+
+  def fees_all(conn, params) do
+    with {:ok, currencies} <- expect(params, "currencies", list: &to_currency/1, optional: true),
+         {:ok, filtered_fees} <- ChildChain.get_filtered_fees(currencies) do
+      api_response(filtered_fees, conn, :fees_all)
+    end
   end
 
-  scope "/", OMG.ChildChainRPC.Web do
-    pipe_through(:api)
-
-    post("/block.get", Controller.Block, :get_block)
-    post("/transaction.submit", Controller.Transaction, :submit)
-    post("/alarm.get", Controller.Alarm, :get_alarms)
-    post("/fees.all", Controller.Fee, :fees_all)
-
-    # NOTE: This *has to* be the last route, catching all unhandled paths
-    match(:*, "/*path", Controller.Fallback, Route.NotFound)
+  defp to_currency(currency_str) do
+    expect(%{"currency" => currency_str}, "currency", :address)
   end
 end

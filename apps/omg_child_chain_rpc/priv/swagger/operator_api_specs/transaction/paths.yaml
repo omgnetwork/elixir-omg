@@ -1,7 +1,7 @@
 transaction.submit:
   post:
     tags:
-      - ChildChain
+      - Transaction
     summary: This endpoint submits a signed transaction to the child chain.
     description: >
       Normally you should call the Watcher's Transaction - Submit instead of this.
