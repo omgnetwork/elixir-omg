@@ -137,7 +137,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns error for non exsiting transaction" do
+    test "returns error for non existing transaction" do
       txhash = <<0::256>> |> Encoding.to_hex()
 
       assert %{
@@ -185,6 +185,28 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      "currency" => @eth_hex,
                      "value" => value
                    }
+                 ],
+                 "inputs" => [
+                   %{
+                    "amount" => _,
+                    "blknum" => _,
+                    "currency" => _,
+                    "oindex" => _,
+                    "owner" => _,
+                    "txindex" => _,
+                    "utxo_pos" => _
+                   } | _
+                 ],
+                 "outputs" => [
+                   %{
+                    "amount" => _,
+                    "blknum" => _,
+                    "currency" => _,
+                    "oindex" => _,
+                    "owner" => _,
+                    "txindex" => _,
+                    "utxo_pos" => _
+                   } | _
                  ],
                  "txhash" => ^txhash,
                  "txindex" => ^txindex
