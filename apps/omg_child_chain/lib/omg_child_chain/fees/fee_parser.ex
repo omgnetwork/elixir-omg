@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.FeeParser do
+defmodule OMG.ChildChain.Fees.FileParser do
   @moduledoc """
   Transaction's fee validation functions
   """

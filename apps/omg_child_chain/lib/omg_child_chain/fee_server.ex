@@ -15,18 +15,17 @@
 defmodule OMG.ChildChain.FeeServer do
   @moduledoc """
   Maintains current fee rates and tokens in which fees may be paid.
-  Periodically updates fees information from external source (file in omg_child_chain/priv config :omg_child_chain,
-  :fee_specs_file_name) until switched off with config :omg_child_chain, :ignore_fees.
+
+  Periodically updates fees information from an external source (defined in config
+  by fee_adapter) until switched off with config :omg_child_chain, :ignore_fees.
 
   Fee's file parsing and rules of transaction's fee validation are in `OMG.Fees`
   """
-
-  alias OMG.ChildChain.FeeParser
-  alias OMG.Fees
-  alias OMG.Status.Alert.Alarm
-
   use GenServer
   use OMG.Utils.LoggerExt
+
+  alias OMG.Fees
+  alias OMG.Status.Alert.Alarm
 
   @fee_file_check_interval_ms Application.fetch_env!(:omg_child_chain, :fee_file_check_interval_ms)
 
@@ -37,17 +36,22 @@ defmodule OMG.ChildChain.FeeServer do
   def init(args) do
     :ok = ensure_ets_init()
 
+    # This will crash the process by returning {:error, :fee_adapter_not_defined}
+    # if the fee_adapter is not set in the config
+    {:ok, fee_adapter} = get_fee_adapter()
+    args = Keyword.put(args, :fee_adapter, fee_adapter)
+
     args =
       case Application.get_env(:omg_child_chain, :ignore_fees) do
         true ->
           :ok = save_fees(:no_fees_required, 0)
-          _ = Logger.warn("Fee specs from file are ignored.")
+          _ = Logger.warn("Fees are ignored.")
           args
 
         opt when is_nil(opt) or is_boolean(opt) ->
-          :ok = update_fee_spec()
+          :ok = update_fee_specs(fee_adapter)
           interval = Keyword.get(args, :interval_ms, @fee_file_check_interval_ms)
-          {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_spec)
+          {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_specs)
           Keyword.put(args, :tref, tref)
       end
 
@@ -56,48 +60,42 @@ defmodule OMG.ChildChain.FeeServer do
   end
 
   @doc """
-  Returns accepted tokens and amounts in which transaction fees are collected
+  Returns accepted tokens and amounts in which transaction fees are collected.
   """
   @spec transaction_fees() :: {:ok, Fees.fee_t()}
   def transaction_fees do
     {:ok, load_fees()}
   end
 
-  def handle_info(:update_fee_spec, state) do
-    _ =
-      if Application.get_env(:omg_child_chain, :ignore_fees) do
-        _ = Logger.warn("Fee specs from file are ignored. Updates takes no effect.")
-      else
+  def handle_info(:update_fee_specs, state) do
+    case Application.get_env(:omg_child_chain, :ignore_fees) do
+      true ->
+        _ = Logger.warn("Fees are ignored. Updates have no effect.")
+
+      false ->
         alarm = {:invalid_fee_file, Node.self(), __MODULE__}
 
-        case update_fee_spec() do
+        case update_fee_specs(state.fee_adapter) do
           :ok ->
             Alarm.clear(alarm)
 
           _ ->
             Alarm.set(alarm)
         end
-      end
+    end
 
     {:noreply, state}
   end
 
-  # Reads fee specification file if needed and updates :ets state with current fees information
-  # FeeServer is an internal elixir process* that holds child chain's fees per currency.
-  # The operator can change the fees and this is done via a JSON file that iss loaded from disk (path variable).
-  # sobelow_skip ["Traversal"]
-  @spec update_fee_spec() :: :ok | {:error, atom() | [{:error, atom()}, ...]}
-  defp update_fee_spec do
-    path = get_fees()
+  @spec update_fee_specs(module()) :: :ok | {:error, atom() | [{:error, atom()}, ...]}
+  defp update_fee_specs(adapter) do
+    [{:fee_specs_source_updated_at, source_updated_at}] = :ets.lookup(:fees_bucket, :updated_at)
 
-    with {:reload, changed_at} <- should_load_file(path),
-         {:ok, content} <- File.read(path),
-         {:ok, specs} <- FeeParser.parse_file_content(content) do
-      :ok = save_fees(specs, changed_at)
-      _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
-      :ok
-    else
-      {:file_unchanged, _last_change_at} ->
+    case adapter.get_fee_specs(source_updated_at) do
+      {:ok, fee_specs, source_updated_at} ->
+        :ok = save_fees(fee_specs, source_updated_at)
+        _ = Logger.info("Reloaded #{inspect(Enum.count(fee_specs))} fee specs from
+                         #{inspect(adapter)}, changed at #{inspect(source_updated_at)}")
         :ok
 
       error ->
@@ -106,47 +104,36 @@ defmodule OMG.ChildChain.FeeServer do
     end
   end
 
-  defp save_fees(fee_specs, loaded_at) do
-    true = :ets.insert(:fees_bucket, [{:last_loaded, loaded_at}, {:fees, fee_specs}])
+  defp save_fees(fee_specs, last_updated_at) do
+    true =
+      :ets.insert(:fees_bucket, [
+        {:updated_at, :os.system_time(:second)},
+        {:fee_specs_source_updated_at, last_updated_at},
+        {:fees, fee_specs}
+      ])
+
     :ok
   end
 
-  defp load_fees, do: :ets.lookup_element(:fees_bucket, :fees, 2)
-
-  defp should_load_file(path) do
-    loaded = get_last_loaded_file_timestamp()
-    changed = get_file_last_modified_timestamp(path)
-
-    if changed > loaded,
-      do: {:reload, changed},
-      else: {:file_unchanged, loaded}
-  end
-
-  defp get_last_loaded_file_timestamp do
-    [{:last_loaded, timestamp}] = :ets.lookup(:fees_bucket, :last_loaded)
-    # When not matched we prefer immediate crash here as this should never happened
-
-    timestamp
-  end
-
-  defp get_file_last_modified_timestamp(path) do
-    case File.stat(path, time: :posix) do
-      {:ok, %File.Stat{mtime: mtime}} ->
-        mtime
-
-      # possibly wrong path - returns current timestamp to force file reload where file errors are handled
-      _ ->
-        :os.system_time(:second)
-    end
+  defp load_fees do
+    :ets.lookup_element(:fees_bucket, :fees, 2)
   end
 
   defp ensure_ets_init do
     _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :public, :named_table])
 
-    true = :ets.insert(:fees_bucket, {:last_loaded, 0})
+    true = :ets.insert(:fees_bucket, {:updated_at, 0})
     :ok
   end
 
-  defp get_fees,
-    do: "#{:code.priv_dir(:omg_child_chain)}/#{Application.get_env(:omg_child_chain, :fee_specs_file_name)}"
+  defp get_fee_adapter do
+    case Application.get_env(:omg_child_chain, :fee_adapter) do
+      nil ->
+        _ = Logger.error("Fee adapter not defined.")
+        {:error, :fee_adapter_not_defined}
+
+      fee_adapter ->
+        {:ok, fee_adapter}
+    end
+  end
 end

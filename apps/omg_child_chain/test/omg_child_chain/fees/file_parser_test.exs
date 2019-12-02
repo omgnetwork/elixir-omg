@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.FeeParserTest do
+defmodule OMG.ChildChain.FileParserTest do
   @moduledoc false
 
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  import OMG.ChildChain.FeeParser
-
+  alias OMG.ChildChain.Fees.FileParser
   alias OMG.Eth
 
   @fee_config_file ~s(
@@ -58,14 +57,14 @@ defmodule OMG.ChildChain.FeeParserTest do
 
   describe "Parser output:" do
     test "parse valid data is successful" do
-      assert {:ok, fee_map} = parse_file_content(@fee_config_file)
+      assert {:ok, fee_map} = FileParser.parse_file_content(@fee_config_file)
 
       assert Enum.count(fee_map) == 3
       assert fee_map[@eth][:amount] == 2
     end
 
     test "empty fee spec list is parsed correctly" do
-      assert {:ok, %{}} = parse_file_content("[]")
+      assert {:ok, %{}} = FileParser.parse_file_content("[]")
     end
 
     @tag :capture_log
@@ -201,7 +200,7 @@ defmodule OMG.ChildChain.FeeParserTest do
                 {{:error, :invalid_timestamp}, 10},
                 {{:error, :invalid_subunit_to_unit}, 11},
                 {{:error, :invalid_subunit_to_unit}, 12}
-              ]} = parse_file_content(json)
+              ]} = FileParser.parse_file_content(json)
     end
 
     @tag :capture_log
@@ -227,7 +226,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         }
       ])
 
-      assert {:error, [{{:error, :duplicate_token}, 2}]} = parse_file_content(json)
+      assert {:error, [{{:error, :duplicate_token}, 2}]} = FileParser.parse_file_content(json)
     end
   end
 end
