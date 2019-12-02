@@ -12,7 +12,7 @@ defmodule WhiteBreadContext do
   # TODO Fix this, expose via API, also its 12 blocks
   @finality_margin 12
 
-  @default_timeout 30_000
+  @default_timeout 60_000
   scenario_timeouts(fn _feature, scenario ->
     case scenario.name do
       "Alice starts a Standard Exit" -> @default_timeout * 3
