@@ -144,13 +144,23 @@ defmodule OMG.TestHelper do
   @doc """
   Always creates file in the priv/ folder of the application.
   """
-  @spec write_fee_file(%{Crypto.address_t() => non_neg_integer} | binary(), binary() | nil) :: {:ok, binary, binary}
+  @spec write_fee_file(%{Crypto.address_t() => map()} | binary(), binary() | nil) :: {:ok, binary, binary}
   def write_fee_file(fee_map, file_name \\ nil)
 
   def write_fee_file(map, file_name) when is_map(map) do
     {:ok, json} =
       map
-      |> Enum.map(fn {"0x" <> _ = k, v} -> %{token: k, flat_fee: v} end)
+      |> Enum.map(fn {"0x" <> _ = token, fee} ->
+        %{
+          token: token,
+          amount: fee.amount,
+          subunit_to_unit: fee.subunit_to_unit,
+          pegged_amount: fee.pegged_amount,
+          pegged_currency: fee.pegged_currency,
+          pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
+          updated_at: fee.updated_at
+        }
+      end)
       |> Jason.encode()
 
     write_fee_file(json, file_name)

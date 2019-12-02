@@ -29,8 +29,22 @@ defmodule OMG.FeesTest do
   @not_eth <<1::size(160)>>
 
   @fees %{
-    @eth => 1,
-    @not_eth => 3
+    @eth => %{
+      amount: 1,
+      subunit_to_unit: 1_000_000_000_000_000_000,
+      pegged_amount: 4,
+      pegged_currency: "USD",
+      pegged_subunit_to_unit: 100,
+      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+    },
+    @not_eth => %{
+      amount: 3,
+      subunit_to_unit: 1000,
+      pegged_amount: 4,
+      pegged_currency: "USD",
+      pegged_subunit_to_unit: 100,
+      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+    }
   }
 
   describe "covered?/2" do
@@ -96,6 +110,21 @@ defmodule OMG.FeesTest do
         )
 
       assert Fees.for_transaction(transaction, @fees) == :no_fees_required
+    end
+  end
+
+  describe "filter_fees/2" do
+    test "does not filter when an empty list is passed" do
+      assert Fees.filter_fees(@fees, []) == {:ok, @fees}
+    end
+
+    test "filter fees given a list of currencies" do
+      assert Fees.filter_fees(@fees, [@eth]) == {:ok, Map.drop(@fees, [@not_eth])}
+    end
+
+    test "returns an error when given an unsupported currency" do
+      other_token = <<2::160>>
+      assert Fees.filter_fees(@fees, [other_token]) == {:error, :currency_fee_not_supported}
     end
   end
 end

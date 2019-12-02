@@ -14,7 +14,6 @@ info:
     url: 'https://omisego.network/'
 
 servers:
-  - url: https://watcher.ari.omg.network/
   - url: http://localhost:7434/
 
 tags:
@@ -22,6 +21,8 @@ tags:
     description: Account related API.
   - name: Transaction
     description: Transaction related API.
+  - name: Fees
+    description: Fees related API.
   # - name: Block
   #   description: Block related API.
 
@@ -40,6 +41,8 @@ paths:
     $ref: 'transaction/paths.yaml#/transaction.get'
   /transaction.submit_typed:
     $ref: 'transaction/paths.yaml#/transaction.submit_typed'
+  /fees.all:
+    $ref: 'fees/paths.yaml#/fees.all'
   # Coming soon?
   # /transaction.get_by_position:
   #   $ref: 'transaction/paths.yaml#/transaction.get_by_position'

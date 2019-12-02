@@ -16,7 +16,7 @@ services:
       retries: 5
 
   plasma-contracts:
-    image: omisegoimages/elixir-omg-tester-plasma-deployer:stable-20191115
+    image: omisegoimages/elixir-omg-tester-plasma-deployer:stable-20191125
     command:
       - /bin/sh
       - -c
@@ -104,6 +104,7 @@ services:
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
     restart: always
     ports:
       - "9656:9656"
@@ -137,6 +138,7 @@ services:
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
     restart: always
     ports:
       - "7434:7434"
@@ -155,4 +157,3 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-

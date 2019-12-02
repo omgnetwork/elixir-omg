@@ -43,9 +43,9 @@ defmodule OMG.Block do
   @spec hashed_txs_at(list(Transaction.Recovered.t()), non_neg_integer()) :: t()
   def hashed_txs_at(txs, blknum) do
     signed_txs_bytes = Enum.map(txs, & &1.signed_tx_bytes)
-    txs_hashes = Enum.map(txs, &Transaction.raw_txhash/1)
+    txs_bytes = Enum.map(txs, &Transaction.raw_txbytes/1)
 
-    %__MODULE__{hash: Merkle.hash(txs_hashes), transactions: signed_txs_bytes, number: blknum}
+    %__MODULE__{hash: Merkle.hash(txs_bytes), transactions: signed_txs_bytes, number: blknum}
   end
 
   @doc """
@@ -75,12 +75,12 @@ defmodule OMG.Block do
   """
   @spec inclusion_proof(t() | list(Transaction.Signed.tx_bytes()), non_neg_integer()) :: binary()
   def inclusion_proof(transactions, txindex) when is_list(transactions) do
-    txs_hashes =
+    txs_bytes =
       transactions
       |> Enum.map(&Transaction.Signed.decode!/1)
-      |> Enum.map(&Transaction.raw_txhash/1)
+      |> Enum.map(&Transaction.raw_txbytes/1)
 
-    Merkle.create_tx_proof(txs_hashes, txindex)
+    Merkle.create_tx_proof(txs_bytes, txindex)
   end
 
   def inclusion_proof(%__MODULE__{transactions: transactions}, txindex), do: inclusion_proof(transactions, txindex)

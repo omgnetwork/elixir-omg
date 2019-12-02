@@ -58,6 +58,15 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
       assert {:ok, 1_234_567_890} == expect(@params, "int_3", [:integer, :optional])
     end
 
+    test "optional, list" do
+      list = [1, 2, 3]
+      assert {:ok, list} == expect(%{"list" => list}, "list", [:list, :optional])
+      assert {:ok, nil} == expect(%{}, "list", [:list, :optional])
+      assert {:ok, nil} == expect(%{}, "list", list: &(&1 * 2), optional: true)
+      assert {:ok, [2, 4, 6]} == expect(%{"list" => list}, "list", list: &(&1 * 2), optional: true)
+      assert {:error, {:validation_error, "list", :list}} == expect(%{}, "list", list: &(&1 * 2), optional: false)
+    end
+
     test "optional, negative" do
       assert {:error, {:validation_error, "nil", :integer}} == expect(@params, "nil", [:optional, :integer])
     end
