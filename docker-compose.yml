@@ -80,7 +80,7 @@ services:
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
-      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=500
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
     restart: always
     ports:
       - "9656:9656"
@@ -117,7 +117,7 @@ services:
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
-      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=500
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
     restart: always
     ports:
       - "7434:7434"
