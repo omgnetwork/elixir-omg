@@ -15,44 +15,6 @@ services:
       timeout: 3s
       retries: 5
 
-  # plasma-contracts:
-  #   image: omisegoimages/elixir-omg-tester-plasma-deployer:stable-20191125
-  #   command:
-  #     - /bin/sh
-  #     - -c
-  #     - |
-  #         apk add --update curl
-  #         cd /home/node/plasma-contracts/plasma_framework
-  #         # Fix block gas limit issue by retrying truffle migration up to 5 times
-  #         for i in 1 2 3 4 5; do \
-  #           echo 'Running truffle migration attempt #$${i}'
-  #           npx truffle migrate --network remote command && break; \
-  #         done
-  #         cd build
-  #         echo '{"contracts":' > db.json && cat outputs.json >> db.json && echo '}' >> db.json
-  #         npx json-server -w db.json -p 8000 -H 0.0.0.0
-  #   ports:
-  #     - "8000:8000"
-  #   expose:
-  #     - "8000"
-  #   environment:
-  #     # DEPLOYER_PRIVATEKEY is the geth dev account initially funded address
-  #     - DEPLOYER_PRIVATEKEY=d885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce # 0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d
-  #     - MAINTAINER_PRIVATEKEY=6f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807 # 0x59695413678e19d7d490893810a8ac9fe6cb0f5c
-  #     - AUTHORITY_PRIVATEKEY=7f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807 # 0xc0f780dfc35075979b0def588d999225b7ecc56f
-  #     - REMOTE_URL=http://geth:8545
-  #     - MIN_EXIT_PERIOD=20
-  #   depends_on:
-  #     geth:
-  #       condition: service_healthy
-  #   restart: always
-  #   healthcheck:
-  #     test: curl plasma-contracts:8000/contracts
-  #     interval: 60s
-  #     timeout: 15s
-  #     retries: 10
-  #     start_period: 5m
-
   geth:
     image: ethereum/client-go:v1.8.27
     entrypoint:
@@ -66,17 +28,16 @@ services:
           #   2. Configuring the authority's keystore
           #   3. Configuring the keystores' password
           #   4. Unlocking the accounts by their indexes
-          # TODO check if data/geth present else -> geth --datadir /data/ init /data/genesis.json
           echo "" > /tmp/geth-blank-password
           # Starts geth
           
           geth --miner.gastarget 7500000 \
             --miner.gasprice "10" \
-            --datadir /data/ \
+            --datadir data/ \
             --syncmode 'full' \
             --networkid 1337 \
             --gasprice '1' \
-            --keystore=/data/keystore \
+            --keystore=./data/geth/keystore/ \
             --password /tmp/geth-blank-password \
             --unlock "0,1" \
             --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 \
@@ -90,7 +51,7 @@ services:
       - "8546"
       - "8545"
     volumes:
-      - ./data/geth/data:/data
+      - ./data:/data
     healthcheck:
       test: curl geth:8545
       interval: 5s
@@ -101,7 +62,6 @@ services:
     image: omisego/child_chain:latest
     command: "full_local"
     environment:
-      #- CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
       - ETHEREUM_NETWORK=LOCALCHAIN
       - LOCALCHAIN_TXHASH_CONTRACT=0xc47317b0de4c6ccc9a9fb858ad3ee858c2ee8ade3aed0fa9bcab7f7dad27fe12
       - LOCALCHAIN_AUTHORITY_ADDRESS=0xc0f780dfc35075979b0def588d999225b7ecc56f
@@ -131,8 +91,6 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      # plasma-contracts:
-      #   condition: service_healthy
       geth:
         condition: service_healthy
 
@@ -170,8 +128,6 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      # plasma-contracts:
-      #   condition: service_healthy
       childchain:
         condition: service_healthy
 

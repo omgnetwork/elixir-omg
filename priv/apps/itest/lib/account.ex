@@ -9,10 +9,12 @@ defmodule Itest.Account do
 
   @retry_count 60
 
+  # checksummed!!!
   @vault "0x0433420DEE34412B5Bf1e29FBf988aD037cc5Db7"
   def vault(), do: @vault
 
-  @plasma_framework "0x9fA1F748AdEad1F26667a6ddF748669eDB02c70d"
+  # checksummed!!!
+  @plasma_framework "0xC673e4ffcB8464FaFf908A6804FE0e635AF0ea2f"
   def plasma_framework(), do: @plasma_framework
 
   @ether_vault_id 1
@@ -26,7 +28,19 @@ defmodule Itest.Account do
 
   @spec take_accounts(integer()) :: map()
   def take_accounts(number_of_accounts) do
-    Enum.map(1..number_of_accounts, fn(_) ->
+    #  IO.inspect Task.async(fn -> account() end)
+    # o = 1..number_of_accounts
+    # |> Enum.map(Task.async(fn -> account() end))
+    # |> Enum.map(&Task.await/1)
+    1..number_of_accounts
+    |> Task.async_stream(fn _ -> account() end, timeout: 60_000, on_timeout: :kill_task)
+    |> Enum.to_list()
+
+    #   IO.inspect o
+    #   o
+  end
+
+  defp account() do
     tick_acc = generate_entity()
     account_priv_enc = Base.encode16(tick_acc.priv)
     passphrase = "dev.period"
@@ -41,23 +55,19 @@ defmodule Itest.Account do
 
     wait_on_receipt_confirmed(receipt_hash, @retry_count)
 
-        {:ok, true} =
-      Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], [])
+    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], [])
 
     {addr, account_priv_enc}
-    end)
   end
 
-
-
-    defp generate_entity() do
+  defp generate_entity() do
     {:ok, priv} = generate_private_key()
-    {:ok, pub} =  generate_public_key(priv)
+    {:ok, pub} = generate_public_key(priv)
     {:ok, address} = generate_address(pub)
     %{priv: priv, addr: address}
   end
 
-   defp generate_private_key, do: {:ok, :crypto.strong_rand_bytes(32)}
+  defp generate_private_key, do: {:ok, :crypto.strong_rand_bytes(32)}
 
   defp generate_public_key(<<priv::binary-size(32)>>) do
     {:ok, der_pub} = get_public_key(priv)
@@ -79,9 +89,8 @@ defmodule Itest.Account do
   end
 
   defp create_account_from_secret(secret, passphrase) do
-    {:ok, _} = Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], [])
+    Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], [])
   end
 
   defp hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
-
 end

@@ -42,6 +42,9 @@ defmodule Itest.Poller do
   def wait_on_receipt_confirmed(receipt_hash, counter),
     do: wait_on_receipt_status(receipt_hash, "0x1", counter)
 
+  #######################################################################################################
+  ### PRIVATE
+  #######################################################################################################
   defp pull_api_until_successful(module, function, connection, payload, 0),
     do: apply(module, function, [connection, payload])
 
@@ -187,6 +190,15 @@ defmodule Itest.Poller do
 
   defp eth_account_get_balance(address) do
     Ethereumex.HttpClient.eth_get_balance(address)
+  end
+
+  defp account_get_balance(address) do
+    Account.account_get_balance(
+      WatcherInfo.new(),
+      %{
+        address: address
+      }
+    )
   end
 
   defp submit_typed(typed_data_signed, 0), do: execute_submit_typed(typed_data_signed)

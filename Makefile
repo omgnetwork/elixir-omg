@@ -164,6 +164,11 @@ build-test: deps-elixir-omg
 # Testing
 #
 
+init_test:
+	rm -rf data/* 
+	wget https://storage.googleapis.com/circleci-docker-artifacts/data-elixir-omg-tester-plasma-deployer:dev-7c975be.zip -O data/snapshot.zip
+	tar zxf data/snapshot.zip data/
+
 test:
 	mix test --include test --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
 

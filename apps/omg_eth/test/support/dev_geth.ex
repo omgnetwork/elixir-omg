@@ -30,8 +30,8 @@ defmodule OMG.Eth.DevGeth do
     snapshot_dir = Path.expand(Path.join([Mix.Project.app_path(), "../../../../", "data/geth/"]))
     {"", 0} = System.cmd("cp", ["-rf", snapshot_dir, homedir])
 
-    keystore = Path.join([homedir, "/geth/data/keystore"])
-    datadir = Path.join([homedir, "/geth/data"])
+    keystore = Path.join([homedir, "/geth/keystore"])
+    datadir = Path.join([homedir, "/geth"])
     :ok = File.write!("/tmp/geth-blank-password", "")
     geth = ~s(geth --syncmode 'fast' --miner.gastarget 7500000 \
             --miner.gastarget 7500000 \

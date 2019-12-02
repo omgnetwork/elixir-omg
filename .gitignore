@@ -57,3 +57,6 @@ docker-compose.override.yml
 priv/apps/child_chain_api
 priv/apps/watcher_info_api
 priv/apps/watcher_security_critical_api
+
+# gets initialised
+data/
