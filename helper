@@ -1,2 +1,0 @@
-ps axww | grep geth
-kill -INT <geth pid>

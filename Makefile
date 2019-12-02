@@ -312,7 +312,7 @@ docker-remote-childchain:
 ### barebone stuff
 ###
 start-services:
-	docker-compose up geth postgres plasma-contracts
+	docker-compose up geth postgres 
 
 prune-plasma-contracts:
 	docker rmi -f $(docker images --format '{{.Repository}}:{{.Tag}}' | grep elixir-omg_plasma-contracts:latest)

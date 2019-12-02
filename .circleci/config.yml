@@ -450,8 +450,8 @@ jobs:
       - checkout
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
       - run:
-          name: Start geth, postgres and plasma-deployer
-          command: make start-services
+          name: Start geth, postgres and pull in blockchain snapshot
+          command: make init_test && make start-services
           background: true
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
       - run:
