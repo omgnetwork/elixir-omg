@@ -63,7 +63,7 @@ WORKDIR /app
 
 # Watcher app is using PORT environment variable to determine which port to run
 # the application server.
-ENV PORT 7434
+ENV PORT 7534
 
 EXPOSE $PORT
 
