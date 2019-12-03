@@ -51,15 +51,9 @@ defmodule OMG.DependencyConformance.SignatureTest do
   end
 
   setup_all do
-    %{plasma_framework: plasma_framework} = Application.get_env(:omg_eth, :contract_addr)
-    # signtest_addr was recorded with exvcr
     signtest_addr = <<25, 146, 92, 198, 69, 114, 15, 187, 97, 247, 99, 4, 238, 21, 80, 30, 49, 151, 243, 169>>
-    :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: Eth.Encoding.to_hex(signtest_addr)})
-
-    on_exit(fn ->
-      # reverting to the original values from `omg_eth/config/test.exs`
-      Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: plasma_framework})
-    end)
+    # Eth.Encoding.to_hex(signtest_addr)})
+    :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: nil})
 
     [contract: signtest_addr]
   end

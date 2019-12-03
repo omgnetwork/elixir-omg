@@ -58,5 +58,5 @@ priv/apps/child_chain_api
 priv/apps/watcher_info_api
 priv/apps/watcher_security_critical_api
 
-# gets initialised
+# where Geth gets it's snapshot data
 data/

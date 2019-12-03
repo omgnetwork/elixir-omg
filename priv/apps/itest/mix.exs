@@ -28,6 +28,7 @@ defmodule Itest.MixProject do
       {:watcher_info_api, in_umbrella: true},
       {:watcher_security_critical_api, in_umbrella: true},
       {:child_chain_api, in_umbrella: true},
+      {:eip_55, "~> 0.1"},
       {:ethereumex, "~> 0.5.5"},
       {:ex_abi, "~> 0.2.1"},
       {:ex_rlp, "~> 0.5.2"},
