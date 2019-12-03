@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInformational.DepositConsumer do
   @moduledoc """
-    Subscribes to deposit events and inserts them
+  Subscribes to deposit events and inserts them to WatcherInformational.DB.
   """
   require Logger
   ### Client

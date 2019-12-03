@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInformational.BlockApplicationConsumer do
   @moduledoc """
-    receives blocks from blockgetter and inserts them
+  Subscribes for new blocks and inserts them to WatcherInformational.DB.
   """
   alias OMG.WatcherInformational.DB.Block
   require Logger
