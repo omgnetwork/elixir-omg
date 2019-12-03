@@ -41,14 +41,11 @@ help:
 	@echo "BARE METAL DEVELOPMENT"
 	@echo "----------------------"
 	@echo
-	@echo "This presumes you want to run geth, plasma-contracts and postgres as containers \c"
+	@echo "This presumes you want to run geth and postgres as containers \c"
 	@echo "but Watcher and Child Chain bare metal. You will need four terminal windows."
 	@echo ""
-	@echo "1. In the first one, start geth, postgres and plasma-contracts:"
+	@echo "1. In the first one, start geth, postgres:"
 	@echo "    make start-services"
-	@echo ""
-	@echo "   In case one of the containers is faulty, restart it by running the command again. \c"
-	@echo "Usually it's plasma-contracts."
 	@echo ""
 	@echo "2. In the second terminal window, run:"
 	@echo "    make start-child_chain"
@@ -288,7 +285,7 @@ docker-start-cluster-with-infura:
 	fi
 
 docker-start-cluster-with-datadog:
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-contracts watcher watcher_info childchain
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up watcher watcher_info childchain
 
 docker-stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
@@ -313,9 +310,6 @@ docker-remote-childchain:
 ###
 start-services:
 	docker-compose up geth postgres 
-
-prune-plasma-contracts:
-	docker rmi -f $(docker images --format '{{.Repository}}:{{.Tag}}' | grep elixir-omg_plasma-contracts:latest)
 
 start-child_chain:
 	set -e; . ./bin/variables; \
