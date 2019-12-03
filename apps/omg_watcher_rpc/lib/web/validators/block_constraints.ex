@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Validator.Constraints do
+defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
   @moduledoc """
-  Validates `/transaction.all` query parameters
+  Validates `/block.all` query parameters
   """
 
   import OMG.Utils.HttpRPC.Validator.Base
@@ -25,9 +25,6 @@ defmodule OMG.WatcherRPC.Web.Validator.Constraints do
   @spec parse(%{binary() => any()}) :: {:ok, Keyword.t()} | {:error, any()}
   def parse(params) do
     constraints = [
-      address: [:address, :optional],
-      blknum: [:pos_integer, :optional],
-      metadata: [:hash, :optional],
       limit: [:pos_integer, :optional],
       page: [:pos_integer, :optional]
     ]

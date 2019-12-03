@@ -39,7 +39,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   Retrieves a list of transactions
   """
   def get_transactions(conn, params) do
-    with {:ok, constraints} <- Validator.Constraints.parse(params) do
+    with {:ok, constraints} <- Validator.TransactionConstraints.parse(params) do
       InfoApiTransaction.get_transactions(constraints)
       |> api_response(conn, :transactions)
     end
