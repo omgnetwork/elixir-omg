@@ -45,6 +45,7 @@ release :watcher do
 
   set(
     config_providers: [
+      {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
@@ -87,6 +88,7 @@ release :child_chain do
 
   set(
     config_providers: [
+      {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
