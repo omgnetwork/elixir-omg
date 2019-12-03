@@ -99,7 +99,8 @@ defmodule OMG.ChildChain.FeeServer do
         _ = Logger.info("Reloaded #{inspect(Enum.count(fee_specs))} fee specs from
                          #{inspect(adapter)}, changed at #{inspect(source_updated_at)}")
         :ok
-
+      :ok ->
+        :ok
       error ->
         _ = Logger.error("Unable to update fees from file. Reason: #{inspect(error)}")
         error
