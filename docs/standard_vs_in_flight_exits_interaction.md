@@ -29,9 +29,9 @@ An in-flight exit would impact all inputs and outputs of the in-flight exit tran
 
 If any of the in-flight exit input is flagged during `processExit`, that exit would be considered as non-canonical (for more detail on the reasons, see: [this issue](https://github.com/omisego/plasma-contracts/issues/470)). Otherwise, the canonicity would be decided by the canonicity challenge game of the in-flight exit.
 
-If the in-flight exit is considered non-canonical during processing, we flag only the exiting inputs as spend. In other words, if the input is piggybacked, un-challenged and not flagged as spend yet, it would be exited and then be flagged as spend to the `PlasmaFramework`.
+If the in-flight exit is considered non-canonical during processing, we flag only the exiting inputs as spent. In other words, if the input is piggybacked, unchallenged and not flagged as spent yet, it would be exited and then be flagged as spent to the `PlasmaFramework`.
 
-On the other hand, if the in-flight exit is considered canonical, _all_ inputs plus the exiting outputs would be flagged. So if the output is piggybacked, un-challenged, and non flagged as spend yet, it would be exited and then be flagged as spend. Also all inputs would be flagged as well.
+On the other hand, if the in-flight exit is considered canonical, _all_ inputs plus the exiting outputs would be flagged. So if the output is piggybacked, unchallenged, and not flagged as spent yet, it would be exited and then be flagged as spent. Also all inputs would be flagged as well.
 
 We flag all the inputs when canonical because the current interaction game would have some edge cases during data unavailability, operator can try to double spend via IFE. For more detail, see this issue: [here](https://github.com/omisego/plasma-contracts/issues/102). In short, current IFE interactive game design can potentially decide the canonicity differently during data unavailability to the real canonicity when there is full data availability. We mitigate this by using Kelvin's solution of flagging all inputs (see: [this comment](https://github.com/omisego/plasma-contracts/issues/102#issuecomment-495809967)). So even a mismatch canonicity happens, it cannot be double spent.
 
