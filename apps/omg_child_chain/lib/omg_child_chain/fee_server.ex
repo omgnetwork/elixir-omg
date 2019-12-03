@@ -56,6 +56,7 @@ defmodule OMG.ChildChain.FeeServer do
       end
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
+
     {:ok, args}
   end
 
@@ -68,28 +69,29 @@ defmodule OMG.ChildChain.FeeServer do
   end
 
   def handle_info(:update_fee_specs, state) do
-    case Application.get_env(:omg_child_chain, :ignore_fees) do
-      true ->
-        _ = Logger.warn("Fees are ignored. Updates have no effect.")
+    _ =
+      case Application.get_env(:omg_child_chain, :ignore_fees) do
+        true ->
+          _ = Logger.warn("Fees are ignored. Updates have no effect.")
 
-      false ->
-        alarm = {:invalid_fee_file, Node.self(), __MODULE__}
+        _ ->
+          alarm = {:invalid_fee_file, Node.self(), __MODULE__}
 
-        case update_fee_specs(state.fee_adapter) do
-          :ok ->
-            Alarm.clear(alarm)
+          case update_fee_specs(state[:fee_adapter]) do
+            :ok ->
+              Alarm.clear(alarm)
 
-          _ ->
-            Alarm.set(alarm)
-        end
-    end
+            _ ->
+              Alarm.set(alarm)
+          end
+      end
 
     {:noreply, state}
   end
 
   @spec update_fee_specs(module()) :: :ok | {:error, atom() | [{:error, atom()}, ...]}
   defp update_fee_specs(adapter) do
-    [{:fee_specs_source_updated_at, source_updated_at}] = :ets.lookup(:fees_bucket, :updated_at)
+    source_updated_at = :ets.lookup_element(:fees_bucket, :fee_specs_source_updated_at, 2)
 
     case adapter.get_fee_specs(source_updated_at) do
       {:ok, fee_specs, source_updated_at} ->
@@ -122,7 +124,7 @@ defmodule OMG.ChildChain.FeeServer do
   defp ensure_ets_init do
     _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :public, :named_table])
 
-    true = :ets.insert(:fees_bucket, {:updated_at, 0})
+    true = :ets.insert(:fees_bucket, {:fee_specs_source_updated_at, 0})
     :ok
   end
 
