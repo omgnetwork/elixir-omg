@@ -327,6 +327,40 @@ defmodule OMG.State.TransactionTest do
     end
 
     @tag fixtures: [:alice]
+    test "Decoding transaction with shorter/longer address fails", %{alice: alice} do
+      good_tx_rlp_items =
+        TestHelper.create_encoded([], [{alice, <<1::160>>, 10}])
+        |> ExRLP.decode()
+
+      outputs_index_in_rlp = 3
+      [[type, owner, currency, amount]] = Enum.at(good_tx_rlp_items, outputs_index_in_rlp)
+
+      checker = fn bad_output ->
+        assert {:error, :malformed_address} =
+                 good_tx_rlp_items
+                 |> List.replace_at(outputs_index_in_rlp, [bad_output])
+                 |> ExRLP.encode()
+                 |> Transaction.Recovered.recover_from()
+      end
+
+      [
+        [type, binary_part(owner, 1, 19), currency, amount],
+        [type, binary_part(owner, 0, 19), currency, amount],
+        [type, owner, binary_part(currency, 1, 19), amount],
+        [type, owner, binary_part(currency, 0, 19), amount],
+        [type, owner, <<1>>, amount],
+        [type, <<1>>, currency, amount]
+      ]
+      |> Enum.map(checker)
+
+      # sanity check just in case
+      assert {:ok, _} =
+               good_tx_rlp_items
+               |> ExRLP.encode()
+               |> Transaction.Recovered.recover_from()
+    end
+
+    @tag fixtures: [:alice]
     test "Decoding transaction with zero amount in outputs fails ", %{alice: alice} do
       assert {:error, :malformed_outputs} =
                TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{alice, 0}, {alice, 100}])
