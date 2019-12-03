@@ -26,6 +26,7 @@ defmodule Itest.InFlightExitClient do
     :receiver_address,
     :sign_hash,
     :signed_txbytes,
+    :start_in_flight_exit,
     :txbytes
   ]
 
@@ -82,15 +83,14 @@ defmodule Itest.InFlightExitClient do
   end
 
   defp do_in_flight_exit(%{address: address, exit_data: exit_data, exit_game_contract_address: exit_game_contract_address} = se) do
-    in_flight_tx = exit_data["in_flight_tx"]
-    in_flight_tx_sigs = exit_data["in_flight_tx_sigs"]
-    input_txs = exit_data["input_txs"]
-    input_txs_inclusion_proofs = exit_data["input_txs_inclusion_proofs"]
-    input_utxos_pos = exit_data["input_utxos_pos"]
+    in_flight_tx = exit_data["in_flight_tx"] |> Encoding.to_binary()
+    in_flight_tx_sigs = Enum.map(exit_data["in_flight_tx_sigs"], &Encoding.to_binary(&1))
+    input_txs = Enum.map(exit_data["input_txs"], &Encoding.to_binary(&1))
+    input_txs_inclusion_proofs = Enum.map(exit_data["input_txs_inclusion_proofs"], &Encoding.to_binary(&1))
+    input_utxos_pos = Enum.map(exit_data["input_utxos_pos"], &:binary.encode_unsigned(&1))
 
     # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     optional_bytes_array = List.duplicate("", Enum.count(input_txs))
-
 
      values = [
       {in_flight_tx, input_txs, input_utxos_pos, optional_bytes_array, input_txs_inclusion_proofs, optional_bytes_array,
