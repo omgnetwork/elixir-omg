@@ -1,4 +1,4 @@
-defmodule OMG.WatcherInformational.Mixfile do
+defmodule OMG.WatcherInformational.MixProject do
   use Mix.Project
 
   def project do
@@ -25,7 +25,6 @@ defmodule OMG.WatcherInformational.Mixfile do
     ]
   end
 
-  # Specifies which paths to compile per environment.
   defp elixirc_paths(:prod), do: ["lib"]
   defp elixirc_paths(_), do: ["lib", "test/support"]
 
@@ -42,8 +41,8 @@ defmodule OMG.WatcherInformational.Mixfile do
       {:spandex, "~> 2.4",
        git: "https://github.com/omisego/spandex.git", branch: "fix_dialyzer_in_macro", override: true},
       {:distillery, "~> 2.1", runtime: false},
-      # UMBRELLA
 
+      # UMBRELLA
       {:omg_status, in_umbrella: true},
       {:omg_utils, in_umbrella: true},
 
