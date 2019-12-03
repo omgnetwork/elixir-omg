@@ -20,6 +20,7 @@ defmodule OMG.Watcher.Application do
   use Application
 
   def start(_type, _args) do
+    _ = Logger.info("Starting #{inspect(__MODULE__)}")
     start_root_supervisor()
   end
 
