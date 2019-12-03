@@ -80,10 +80,10 @@ defmodule OMG.Watcher.Monitor do
     {:noreply, state}
   end
 
-  # alarm has cleared, we can now begin restarting children
+  # alarm has cleared, we can now begin restarting supervisor child
   def handle_cast(:start_child, state) do
     child = state.child
-    _ = Logger.info("Monitor is restarting children #{inspect(child)} and clearing chain_crash alarm.")
+    _ = Logger.info("Monitor is restarting child #{inspect(child)} and clearing chain_crash alarm.")
 
     _ = state.alarm_module.clear(state.alarm_module.chain_crash(__MODULE__))
     {:noreply, %{state | child: start_child(child)}}

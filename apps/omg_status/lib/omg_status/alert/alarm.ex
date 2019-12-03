@@ -62,11 +62,11 @@ defmodule OMG.Status.Alert.Alarm do
   @spec clear(alarms()) :: :ok | :not_raised
   def clear(alarm), do: do_clear(alarm)
 
-  def clear_all do
+  def clear_all() do
     Enum.each(all(), &:alarm_handler.clear_alarm(&1))
   end
 
-  def all do
+  def all() do
     :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
   end
 

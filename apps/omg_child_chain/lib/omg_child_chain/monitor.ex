@@ -19,6 +19,11 @@ defmodule OMG.ChildChain.Monitor do
   It subscribes to alarms and when an alarm is cleared it restarts it
   children if they're dead.
   """
+
+  def health_checkin() do
+    GenServer.cast(__MODULE__, :health_checkin)
+  end
+
   defmodule Child do
     @moduledoc false
     @type t :: %__MODULE__{
@@ -74,18 +79,24 @@ defmodule OMG.ChildChain.Monitor do
   # There's a supervisor below us that did the needed restarts for it's children
   # so we do not attempt to restart the exit from the supervisor, if the alarm clears, we restart it then.
   # We declare the sytem unhealthy
-  def handle_info({:EXIT, _from, _reason}, state) do
+  def handle_info({:EXIT, _from, reason}, state) do
+    _ = Logger.error("Child Chain supervisor crashed. Reason #{inspect(reason)}")
     state.alarm_module.set(state.alarm_module.chain_crash(__MODULE__))
 
     {:noreply, state}
   end
 
-  # alarm has cleared, we can now begin restarting children
+  # alarm has cleared, we can now begin restarting supervisor child
+  def handle_cast(:health_checkin, state) do
+    _ = state.alarm_module.clear(state.alarm_module.chain_crash(__MODULE__))
+    {:noreply, state}
+  end
+
+  # alarm has cleared, we can now begin restarting supervisor child
   def handle_cast(:start_child, state) do
     child = state.child
-    _ = Logger.info("Monitor is restarting children #{inspect(child)} and clearing chain_crash alarm.")
+    _ = Logger.info("Monitor is restarting child #{inspect(child)} and clearing chain_crash alarm.")
 
-    _ = state.alarm_module.clear(state.alarm_module.chain_crash(__MODULE__))
     {:noreply, %{state | child: start_child(child)}}
   end
 
