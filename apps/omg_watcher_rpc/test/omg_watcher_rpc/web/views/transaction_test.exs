@@ -18,9 +18,9 @@ defmodule OMG.WatcherRPC.Web.View.TransactionTest do
   use OMG.Watcher.Fixtures
 
   alias OMG.Utils.Paginator
+  alias OMG.Utxo
   alias OMG.Watcher.DB
   alias OMG.WatcherRPC.Web.View
-  alias OMG.Utxo
 
   require Utxo
 
