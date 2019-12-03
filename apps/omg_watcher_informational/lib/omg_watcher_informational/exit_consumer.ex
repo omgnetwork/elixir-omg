@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInformational.EventConsumer do
+defmodule OMG.WatcherInformational.ExitConsumer do
   @moduledoc """
-    receives blocks from blockgetter and inserts them
+  Subscribes to exit events and inserts them to WatcherInformational.DB.
   """
   require Logger
   alias OMG.WatcherInformational.DB.EthEvent
@@ -35,7 +35,6 @@ defmodule OMG.WatcherInformational.EventConsumer do
   end
 
   def handle_info({:internal_event_bus, :data, data}, state) do
-    # all exits here!
     _ = EthEvent.insert_exits!(data)
     {:noreply, state}
   end
