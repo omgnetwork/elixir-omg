@@ -24,7 +24,7 @@ help:
 	@echo "  - \`make docker-watcher && make docker-watcher_informational && make docker-child_chain\`: \c"
 	@echo "use your own image containers for Watcher, Watcher Informational and Child Chain"
 	@echo ""
-	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher-informational\` or \c"
+	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_informational\` or \c"
 	@echo "\`make docker-update-child_chain\`: replaces containers with your code changes\c"
 	@echo "for rapid development."
 	@echo ""
