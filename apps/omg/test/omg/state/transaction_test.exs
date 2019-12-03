@@ -291,6 +291,13 @@ defmodule OMG.State.TransactionTest do
     end
 
     @tag fixtures: [:alice]
+    test "Decoding transaction with zero input fails", %{alice: alice} do
+      assert {:error, :malformed_inputs} =
+               TestHelper.create_encoded([{0, 0, 0, alice}], [{alice, @zero_address, 10}])
+               |> Transaction.Recovered.recover_from()
+    end
+
+    @tag fixtures: [:alice]
     test "Decoding transaction with zero amount in outputs fails ", %{alice: alice} do
       assert {:error, :malformed_outputs} =
                TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{alice, 0}, {alice, 100}])

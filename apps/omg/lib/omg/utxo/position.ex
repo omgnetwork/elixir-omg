@@ -57,10 +57,6 @@ defmodule OMG.Utxo.Position do
 
   def decode(encoded) when is_number(encoded), do: {:error, :encoded_utxo_position_too_low}
 
-  @spec non_zero?(t()) :: boolean()
-  def non_zero?(Utxo.position(0, 0, 0)), do: false
-  def non_zero?(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex), do: true
-
   @spec to_db_key(t()) :: db_t()
   def to_db_key(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
     do: {blknum, txindex, oindex}
