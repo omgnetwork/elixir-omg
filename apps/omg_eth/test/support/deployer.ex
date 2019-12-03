@@ -42,7 +42,10 @@ defmodule Support.Deployer do
     {:error, :empty_bytecode_supplied}
   end
 
-  defp deploy_contract(bytecode, from, gas_value, types_args, opts) do
+  defp deploy_contract("0x" <> _ = bytecode, from, gas_value, types_args, opts) do
+    # runtime sanity-check which will fail if the bytecode isn't fully linked
+    true = !String.contains?(bytecode, "$") || {:error, :unlinked_bytecode_supplied}
+
     defaults = @tx_defaults |> Keyword.put(:gas, gas_value)
     opts = Keyword.merge(defaults, opts)
 

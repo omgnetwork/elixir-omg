@@ -41,5 +41,10 @@ defimpl OMG.InputPointer.Protocol, for: Tuple do
 
   @spec get_data_for_rlp(Utxo.Position.t()) :: binary()
   def get_data_for_rlp(Utxo.position(_, _, _) = utxo_pos),
-    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big)
+    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big) |> pad()
+
+  defp pad(unpadded) do
+    padding_bits = (32 - byte_size(unpadded)) * 8
+    <<0::size(padding_bits)>> <> unpadded
+  end
 end

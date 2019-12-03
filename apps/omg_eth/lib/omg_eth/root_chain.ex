@@ -239,9 +239,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   def decode_in_flight_exit_challenge_responded(log) do
-    non_indexed_keys = [:challenger, :tx_hash, :challenge_position]
-    non_indexed_key_types = [:address, {:bytes, 32}, {:uint, 256}]
-    indexed_keys = indexed_keys_types = []
+    non_indexed_keys = [:challenge_position]
+    non_indexed_key_types = [{:uint, 256}]
+    indexed_keys = [:challenger, :tx_hash]
+    indexed_keys_types = [:address, {:bytes, 32}]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -370,10 +371,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_in_flight_exit_started(log) do
-    non_indexed_keys = [:tx_hash]
-    non_indexed_key_types = [{:bytes, 32}]
-    indexed_keys = [:initiator]
-    indexed_keys_types = [:address]
+    non_indexed_keys = []
+    non_indexed_key_types = []
+    indexed_keys = [:initiator, :tx_hash]
+    indexed_keys_types = [:address, {:bytes, 32}]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -406,10 +407,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_piggyback_challenged(log) do
-    non_indexed_keys = [:tx_hash, :output_index]
-    non_indexed_key_types = [{:bytes, 32}, {:uint, 16}]
-    indexed_keys = [:challenger]
-    indexed_keys_types = [:address]
+    non_indexed_keys = [:output_index]
+    non_indexed_key_types = [{:uint, 16}]
+    indexed_keys = [:challenger, :tx_hash]
+    indexed_keys_types = [:address, {:bytes, 32}]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -419,10 +420,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_piggybacked(log) do
-    non_indexed_keys = [:tx_hash, :output_index]
-    non_indexed_key_types = [{:bytes, 32}, {:uint, 16}]
-    indexed_keys = [:owner]
-    indexed_keys_types = [:address]
+    non_indexed_keys = [:output_index]
+    non_indexed_key_types = [{:uint, 16}]
+    indexed_keys = [:owner, :tx_hash]
+    indexed_keys_types = [:address, {:bytes, 32}]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -469,10 +470,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_in_flight_exit_challenged(log) do
-    non_indexed_keys = [:tx_hash, :competitor_position]
-    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
-    indexed_keys = [:challenger]
-    indexed_keys_types = [:address]
+    non_indexed_keys = [:competitor_position]
+    non_indexed_key_types = [{:uint, 256}]
+    indexed_keys = [:challenger, :tx_hash]
+    indexed_keys_types = [:address, {:bytes, 32}]
 
     Eth.parse_events_with_indexed_fields(
       log,
