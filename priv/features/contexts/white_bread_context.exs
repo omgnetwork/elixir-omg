@@ -8,6 +8,7 @@ defmodule WhiteBreadContext do
   alias Itest.Account
   alias Itest.Client
   alias Itest.StandardExitClient
+  alias Itest.InFlightExitClient
 
   # TODO Fix this, expose via API, also its 12 blocks
   @finality_margin 12
@@ -54,7 +55,7 @@ defmodule WhiteBreadContext do
   when_(
     ~r/^Alice sends Bob "(?<amount>[^"]+)" ETH on the network$/,
     fn %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account} = state, %{amount: amount} ->
-      {:ok, [sign_hash, typed_data]} =
+      {:ok, [sign_hash, typed_data, _txbytes]} =
         Client.create_transaction(
           Currency.to_wei(amount),
           alice_account,
@@ -73,6 +74,14 @@ defmodule WhiteBreadContext do
       se = StandardExitClient.start_standard_exit(alice_account)
       state = Map.put_new(state, :standard_exit_total_gas_used, se.total_gas_used)
 
+      {:ok, state}
+    end
+  )
+
+  when_(
+    ~r/^Alice starts an in flight exit on the network$/,
+    fn %{alice_account: alice_account, alice_pkey: alice_key, bob_account: bob_account} = state ->
+      se = InFlightExitClient.start_in_flight_exit(alice_account, alice_key, bob_account)
       {:ok, state}
     end
   )
