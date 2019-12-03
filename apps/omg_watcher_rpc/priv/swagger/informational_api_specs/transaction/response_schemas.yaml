@@ -6,7 +6,7 @@ GetAllTransactionsResponseSchema:
       data:
         type: array
         items:
-          $ref: 'schemas.yaml#/TransactionItemSchema'
+          $ref: 'schemas.yaml#/TransactionSchema'
       data_paging:
         type: object
         properties:
@@ -29,10 +29,33 @@ GetAllTransactionsResponseSchema:
         txindex: 0
         txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
         metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
-        results:
+        txbytes: '0x5df13a6bee20000...'
+        inputs:
         -
+          blknum: 1000
+          txindex: 111
+          oindex: 0
+          utxo_pos: 1000001110000
+          owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
           currency: '0x0000000000000000000000000000000000000000'
-          value: 20000000
+          amount: 20000000
+        outputs:
+        -
+          blknum: 68290000
+          txindex: 5113
+          oindex: 0
+          utxo_pos: 68290000051130000
+          owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
+          currency: '0x0000000000000000000000000000000000000000'
+          amount: 15000000
+        -
+          blknum: 68290000
+          txindex: 5113
+          oindex: 1
+          utxo_pos: 68290000051130001
+          owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+          currency: '0x0000000000000000000000000000000000000000'
+          amount: 5000000
       data_paging:
         page: 1
         limit: 200
