@@ -6,8 +6,6 @@ config :omg_watcher_informational,
   child_chain_url: "http://localhost:9656",
   namespace: OMG.WatcherInformational,
   ecto_repos: [OMG.WatcherInformational.DB.Repo],
-  # 23 hours worth of blocks - this is how long the child chain server has to block spends from exiting utxos
-
   metrics_collection_interval: 60_000
 
 # Configures the endpoint
