@@ -7,7 +7,7 @@ reset_accounts:
 clean:
 	docker-compose down && docker rm -f $$(docker ps -a -q) && docker volume rm $$(docker volume ls -q)
 
-start_deamon_services:
+start_daemon_services:
 	docker-compose -f ../docker-compose.yml -f docker-compose.geth-ganache.yml up -d
 
 generate-security_critical_api_specs:
