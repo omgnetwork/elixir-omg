@@ -76,9 +76,9 @@ list:
 
 all: clean build-child_chain-prod build-watcher-prod build-watcher_info-prod
 
-WATCHER_IMAGE_NAME               ?= "omisego/watcher:latest"
-watcher_info_IMAGE_NAME ?= "omisego/watcher_info:latest"
-CHILD_CHAIN_IMAGE_NAME           ?= "omisego/child_chain:latest"
+WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
+WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
+CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
 IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20191024"
 IMAGE_BUILD_DIR ?= $(PWD)
@@ -88,7 +88,7 @@ ENV_TEST        ?= env MIX_ENV=test
 ENV_PROD        ?= env MIX_ENV=prod
 
 WATCHER_PORT ?= 7434
-watcher_info_PORT ?= 7534
+WATCHER_INFO_PORT ?= 7534
 
 #
 # Setting-up
@@ -239,8 +239,8 @@ docker-watcher-build:
 docker-watcher_info-build:
 	docker build -f Dockerfile.watcher_info \
 		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
-		--cache-from $(watcher_info_IMAGE_NAME) \
-		-t $(watcher_info_IMAGE_NAME) \
+		--cache-from $(WATCHER_INFO_IMAGE_NAME) \
+		-t $(WATCHER_INFO_IMAGE_NAME) \
 		.
 
 docker-watcher: docker-watcher-prod docker-watcher-build
@@ -250,7 +250,7 @@ docker-child_chain: docker-child_chain-prod docker-child_chain-build
 docker-push: docker
 	docker push $(CHILD_CHAIN_IMAGE_NAME)
 	docker push $(WATCHER_IMAGE_NAME)
-	docker push $(watcher_info_IMAGE_NAME)
+	docker push $(WATCHER_INFO_IMAGE_NAME)
 
 ###OTHER
 docker-start-cluster:
@@ -391,7 +391,7 @@ get-alarms:
 	echo "\nWatcher alarms" ; \
 	curl -s -X POST http://localhost:${WATCHER_PORT}/alarm.get ; \
 	echo "\nWatcherInfo alarms" ; \
-	curl -s -X POST http://localhost:${watcher_info_PORT}/alarm.get
+	curl -s -X POST http://localhost:${WATCHER_INFO_PORT}/alarm.get
 
 cluster-stop:
 	${MAKE} stop-watcher ; ${MAKE} stop-watcher_info ; ${MAKE} stop-child_chain ; docker-compose down
@@ -427,7 +427,7 @@ diagnostics:
 	docker-compose logs childchain
 	echo "\n---------- WATCHER LOGS ----------"
 	docker-compose logs watcher
-	echo "\n---------- watcher_info LOGS ----------"
+	echo "\n---------- WATCHER_INFO LOGS ----------"
 	docker-compose logs watcher_info
 	echo "\n---------- PLASMA CONTRACTS ----------"
 	curl -s localhost:8000/contracts | echo "Could not retrieve the deployed plasma contracts."

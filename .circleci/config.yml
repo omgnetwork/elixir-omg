@@ -502,8 +502,8 @@ jobs:
     executor: metal_watcher
     steps:
       - checkout
-      - run: make docker-watcher_info watcher_info_IMAGE_NAME=$WATCHER_IMAGE_NAME
-      - run: IMAGE_NAME=$watcher_info_IMAGE_NAME sh .circleci/ci_publish.sh
+      - run: make docker-watcher_info WATCHER_INFO_IMAGE_NAME=$WATCHER_IMAGE_NAME
+      - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
   deploy_child_chain:
     executor: deploy
