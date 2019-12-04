@@ -16,8 +16,9 @@ defmodule WhiteBreadContext do
   @default_timeout 60_000
   scenario_timeouts(fn _feature, scenario ->
     case scenario.name do
-      "Alice starts a Standard Exit" -> @default_timeout * 3
-      "Alice starts an In Flight Exit" -> @default_timeout * 3
+      "Alice sends Bob funds" -> @default_timeout * 2
+      "Alice starts a Standard Exit" -> @default_timeout * 5
+      "Alice starts an In Flight Exit" -> @default_timeout * 5
       _ -> @default_timeout
     end
   end)
