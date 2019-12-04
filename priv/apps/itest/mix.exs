@@ -34,10 +34,7 @@ defmodule Itest.MixProject do
       {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
       {:poison, "~> 3.0"},
       {:tesla, "~> 1.2"},
-      {:white_bread, "~> 4.5.0", only: [:dev, :test]},
-      {:child_chain_api, in_umbrella: true},
-      {:watcher_security_critical_api, in_umbrella: true},
-      {:watcher_info_api, in_umbrella: true}
+      {:white_bread, "~> 4.5.0", only: [:dev, :test]}
     ]
   end
 end
