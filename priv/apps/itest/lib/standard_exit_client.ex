@@ -8,8 +8,8 @@ defmodule Itest.StandardExitClient do
   alias Itest.Transactions.PaymentType
   alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1
-  alias WatcherInfoAPI.Connection, as: WatcherInfo
-  alias WatcherInfoAPI.Model.AddressBodySchema1
+  alias WatcherInformationalAPI.Connection, as: WatcherInfo
+  alias WatcherInformationalAPI.Model.AddressBodySchema1
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 2, pull_api_until_successful: 4]
 
@@ -57,7 +57,7 @@ defmodule Itest.StandardExitClient do
 
     {:ok, response} =
       pull_api_until_successful(
-        WatcherInfoAPI.Api.Account,
+        WatcherInformationalAPI.Api.Account,
         :account_get_utxos,
         WatcherInfo.new(),
         payload

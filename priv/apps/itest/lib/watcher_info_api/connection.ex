@@ -1,10 +1,10 @@
-if Code.ensure_loaded?(WatcherInfoAPI.Connection) do
+if Code.ensure_loaded?(WatcherInformationalAPI.Connection) do
   # override Tesla connection module if it exists because it's pointing to localhost
   Code.compiler_options(ignore_module_conflict: true)
 
-  defmodule WatcherInfoAPI.Connection do
+  defmodule WatcherInformationalAPI.Connection do
     @moduledoc """
-    Handle Tesla connections for WatcherInfoAPI.
+    Handle Tesla connections for WatcherInformationalAPI.
     """
 
     use Tesla
