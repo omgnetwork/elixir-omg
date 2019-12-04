@@ -17,12 +17,23 @@ defmodule Itest.InFlightExitClient do
   @ife_gas 2_000_000
   @ife_gas_price 1_000_000_000
   @retry_count 120
+  @min_exit_period 1_000
+  @gas_process_exit 5_712_388
+  @gas_process_exit_price 1_000_000_000
+  @gas_add_exit_queue 800_000
+
+  @gas_piggyback 1_000_000
+  @piggyback_bond 28_000_000_000_000_000
 
   defstruct [
+    :add_exit_queue_hash,
     :address,
     :address_key,
     :exit_data,
     :exit_game_contract_address,
+    :exit_id,
+    :piggyback_input_hash,
+    :process_exit_receipt_hash,
     :receiver_address,
     :sign_hash,
     :signed_txbytes,
@@ -34,9 +45,13 @@ defmodule Itest.InFlightExitClient do
     %__MODULE__{address: sender_address, address_key: sender_key, receiver_address: receiver_address}
     |> create_transaction()
     |> sign_transaction()
+    |> add_exit_queue()
     |> get_exit_data()
     |> get_exit_game_contract_address()
     |> do_in_flight_exit()
+    |> get_in_flight_exit_id()
+    |> piggyback_input()
+    |> process_exit()
   end
 
 
@@ -120,5 +135,137 @@ defmodule Itest.InFlightExitClient do
     IO.inspect(receipt_hash)
 
     %{se | start_in_flight_exit: receipt_hash}
+  end
+
+  defp get_in_flight_exit_id(%{exit_data: exit_data, exit_game_contract_address: exit_game_contract_address} = se) do
+    txbytes = exit_data["in_flight_tx"] |> Encoding.to_binary()
+    data = ABI.encode("getInFlightExitId(bytes)", [txbytes])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: exit_game_contract_address, data: Encoding.to_hex(data)})
+    exit_id =
+      result
+      |> Encoding.to_binary()
+      |> ABI.TypeDecoder.decode([{:uint, 128}])
+      |> hd()
+
+    IO.inspect("---- exit id ----")
+    IO.inspect(exit_id)
+
+    %{se | exit_id: exit_id}
+  end
+
+  defp piggyback_input(%{
+    address: address,
+    exit_data: exit_data, 
+    exit_game_contract_address: exit_game_contract_address
+  } = se) do
+
+    Process.sleep(@min_exit_period)
+
+    IO.inspect("---started piggyback ---")
+    in_flight_tx = exit_data["in_flight_tx"] |> Encoding.to_binary()
+
+    data =
+      ABI.encode(
+        "piggybackInFlightExitOnInput((bytes,uint16))",
+        [{in_flight_tx, 0}]
+      )
+
+    txmap = %{
+      from: address,
+      to: exit_game_contract_address,
+      value: Encoding.to_hex(@piggyback_bond),
+      data: Encoding.to_hex(data),
+      gas: Encoding.to_hex(@gas_piggyback)
+    }
+
+    {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    wait_on_receipt_confirmed(receipt_hash, @retry_count)
+
+    IO.inspect(receipt_hash)
+
+    %{se | piggyback_input_hash: receipt_hash}
+  end
+
+  defp process_exit(%__MODULE__{address: address} = se) do
+    Process.sleep(@min_exit_period)
+
+    IO.inspect("attempting process exit...")
+
+    # TODO this should use the standard_exit_id instead and figure out
+    # why this isn't the topExitID on clean slate.
+    data =
+      ABI.encode(
+        "processExits(uint256,address,uint160,uint256)",
+        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), 0, 1]
+      )
+
+    txmap = %{
+      from: address,
+      to: Itest.Account.plasma_framework(),
+      value: Encoding.to_hex(0),
+      data: Encoding.to_hex(data),
+      gas: Encoding.to_hex(@gas_process_exit),
+      gasPrice: Encoding.to_hex(@gas_process_exit_price)
+    }
+
+    {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    wait_on_receipt_confirmed(receipt_hash, @retry_count)
+
+    %{se | process_exit_receipt_hash: receipt_hash}
+  end
+
+  defp add_exit_queue(%__MODULE__{} = se) do
+    if has_exit_queue?() do
+      _ = Logger.info("Exit queue was already added.")
+      se
+    else
+      _ = Logger.info("Exit queue missing. Adding...")
+
+      data =
+        ABI.encode(
+          "addExitQueue(uint256,address)",
+          [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
+        )
+
+      txmap = %{
+        from: se.address,
+        to: Itest.Account.plasma_framework(),
+        value: Encoding.to_hex(0),
+        data: Encoding.to_hex(data),
+        gas: Encoding.to_hex(@gas_add_exit_queue)
+      }
+
+      {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+      wait_on_receipt_confirmed(receipt_hash, @retry_count)
+      wait_for_exit_queue(se, @retry_count)
+      %{se | add_exit_queue_hash: receipt_hash}
+    end
+  end
+
+  defp wait_for_exit_queue(%__MODULE__{} = _se, 0), do: exit(1)
+
+  defp wait_for_exit_queue(%__MODULE__{} = se, counter) do
+    if has_exit_queue?() do
+      se
+    else
+      Process.sleep(@sleep_retry_sec)
+      wait_for_exit_queue(se, counter - 1)
+    end
+  end
+
+  defp has_exit_queue?() do
+    data =
+      ABI.encode(
+        "hasExitQueue(uint256,address)",
+        [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
+      )
+
+    {:ok, receipt_enc} =
+      Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+
+    receipt_enc
+    |> Encoding.to_binary()
+    |> ABI.TypeDecoder.decode([:bool])
+    |> hd()
   end
 end
