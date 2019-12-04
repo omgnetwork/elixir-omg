@@ -56,7 +56,10 @@ defmodule OMG.WatcherInfo.API.Transaction do
   end
 
   @doc """
-  Passes signed transaction to the child chain only if it's secure, e.g.
+  Passes the signed transaction to the child chain.
+
+  Caution: This function is unaware of the child chain's security status, e.g.:
+
   * Watcher is fully synced,
   * all operator blocks have been verified,
   * transaction doesn't spend funds not yet mined
