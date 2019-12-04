@@ -50,7 +50,7 @@ defmodule OMG.Utxo.Position do
   end
 
   @spec decode(number()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
-  def decode(encoded) when is_integer(encoded) and encoded >= @block_offset do
+  def decode(encoded) when is_integer(encoded) and encoded > 0 do
     {blknum, txindex, oindex} = get_position(encoded)
     {:ok, Utxo.position(blknum, txindex, oindex)}
   end

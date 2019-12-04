@@ -298,6 +298,35 @@ defmodule OMG.State.TransactionTest do
     end
 
     @tag fixtures: [:alice]
+    test "Decoding transaction with zero blknum works as long as input non-zero", %{alice: alice} do
+      assert {:ok, _} =
+               TestHelper.create_encoded([{0, 0, 1, alice}], [{alice, @zero_address, 10}])
+               |> Transaction.Recovered.recover_from()
+    end
+
+    @tag fixtures: [:alice]
+    test "Decoding transaction with shorter input fails", %{alice: alice} do
+      good_tx_rlp_items =
+        TestHelper.create_encoded([{1000, 0, 0, alice}], [{alice, @eth, 10}])
+        |> ExRLP.decode()
+
+      inputs_index_in_rlp = 2
+      [input] = Enum.at(good_tx_rlp_items, inputs_index_in_rlp)
+
+      assert {:error, :malformed_inputs} =
+               good_tx_rlp_items
+               |> List.replace_at(inputs_index_in_rlp, [binary_part(input, 1, 31)])
+               |> ExRLP.encode()
+               |> Transaction.Recovered.recover_from()
+
+      # sanity check just in case
+      assert {:ok, _} =
+               good_tx_rlp_items
+               |> ExRLP.encode()
+               |> Transaction.Recovered.recover_from()
+    end
+
+    @tag fixtures: [:alice]
     test "Decoding transaction with zero amount in outputs fails ", %{alice: alice} do
       assert {:error, :malformed_outputs} =
                TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{alice, 0}, {alice, 100}])
