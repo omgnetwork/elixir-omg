@@ -32,7 +32,7 @@ defmodule OMG.WatcherRPC.DataCase do
 
   using do
     quote do
-      alias OMG.WatcherInformational.DB
+      alias OMG.WatcherInfo.DB
 
       import Ecto
       import Ecto.Changeset
@@ -42,10 +42,10 @@ defmodule OMG.WatcherRPC.DataCase do
   end
 
   setup tags do
-    :ok = SQL.Sandbox.checkout(OMG.WatcherInformational.DB.Repo)
+    :ok = SQL.Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(OMG.WatcherInformational.DB.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
     end
 
     :ok

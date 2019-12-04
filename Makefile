@@ -21,10 +21,10 @@ help:
 	@echo "instead of your own local geth network. Note: you will need to configure the environment \c"
 	@echo "variables defined in docker-compose-infura.yml"
 	@echo ""
-	@echo "  - \`make docker-watcher && make docker-watcher_informational && make docker-child_chain\`: \c"
-	@echo "use your own image containers for Watcher, Watcher Informational and Child Chain"
+	@echo "  - \`make docker-watcher && make docker-watcher_info && make docker-child_chain\`: \c"
+	@echo "use your own image containers for Watcher, Watcher Info and Child Chain"
 	@echo ""
-	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_informational\` or \c"
+	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_info\` or \c"
 	@echo "\`make docker-update-child_chain\`: replaces containers with your code changes\c"
 	@echo "for rapid development."
 	@echo ""
@@ -33,8 +33,8 @@ help:
 	@echo ""
 	@echo "  - \`make docker-remote-watcher\`: remote console (IEx-style) into the watcher application."
 	@echo ""
-	@echo "  - \`make docker-remote-watcher_informational\`: remote console (IEx-style) into the \c"
-	@echo "watcher_informational application."
+	@echo "  - \`make docker-remote-watcher_info\`: remote console (IEx-style) into the \c"
+	@echo "watcher_info application."
 	@echo ""
 	@echo "  - \`make docker-remote-childchain\`: remote console (IEx-style) into the childchain application."
 	@echo ""
@@ -74,10 +74,10 @@ help:
 list:
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
 
-all: clean build-child_chain-prod build-watcher-prod build-watcher_informational-prod
+all: clean build-child_chain-prod build-watcher-prod build-watcher_info-prod
 
 WATCHER_IMAGE_NAME               ?= "omisego/watcher:latest"
-WATCHER_INFORMATIONAL_IMAGE_NAME ?= "omisego/watcher_informational:latest"
+watcher_info_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME           ?= "omisego/child_chain:latest"
 
 IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20191024"
@@ -88,7 +88,7 @@ ENV_TEST        ?= env MIX_ENV=test
 ENV_PROD        ?= env MIX_ENV=prod
 
 WATCHER_PORT ?= 7434
-WATCHER_INFORMATIONAL_PORT ?= 7534
+watcher_info_PORT ?= 7534
 
 #
 # Setting-up
@@ -149,11 +149,11 @@ build-watcher-prod: deps-elixir-omg
 build-watcher-dev: deps-elixir-omg
 	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --verbose
 
-build-watcher_informational-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, distillery.release --name watcher_informational --verbose
+build-watcher_info-prod: deps-elixir-omg
+	$(ENV_PROD) mix do compile, distillery.release --name watcher_info --verbose
 
-build-watcher_informational-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_informational --verbose
+build-watcher_info-dev: deps-elixir-omg
+	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_info --verbose
 
 build-test: deps-elixir-omg
 	$(ENV_TEST) mix compile
@@ -165,19 +165,19 @@ build-test: deps-elixir-omg
 #
 
 test:
-	mix test --include test --exclude common --exclude watcher --exclude watcher_informational --exclude child_chain
+	mix test --include test --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
 
 test-watcher:
-	mix test --include watcher --exclude watcher_informational --exclude child_chain --exclude common --exclude test
+	mix test --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test
 
-test-watcher_informational:
-	mix test --include watcher_informational --exclude watcher --exclude child_chain --exclude common --exclude test
+test-watcher_info:
+	mix test --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test
 
 test-common:
-	mix test --include common --exclude child_chain --exclude watcher --exclude watcher_informational --exclude test
+	mix test --include common --exclude child_chain --exclude watcher --exclude watcher_info --exclude test
 
 test-child_chain:
-	mix test --include child_chain --exclude common --exclude watcher  --exclude watcher_informational --exclude test
+	mix test --include child_chain --exclude common --exclude watcher  --exclude watcher_info --exclude test
 
 #
 # Documentation
@@ -213,14 +213,14 @@ docker-watcher-prod:
 		$(IMAGE_BUILDER) \
 		-c "cd /app && make build-watcher-prod"
 
-docker-watcher_informational-prod:
+docker-watcher_info-prod:
 	docker run --rm -it \
 		-v $(PWD):/app \
 		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
-		-c "cd /app && make build-watcher_informational-prod"
+		-c "cd /app && make build-watcher_info-prod"
 
 docker-child_chain-build:
 	docker build -f Dockerfile.child_chain \
@@ -236,21 +236,21 @@ docker-watcher-build:
 		-t $(WATCHER_IMAGE_NAME) \
 		.
 
-docker-watcher_informational-build:
-	docker build -f Dockerfile.watcher_informational \
+docker-watcher_info-build:
+	docker build -f Dockerfile.watcher_info \
 		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
-		--cache-from $(WATCHER_INFORMATIONAL_IMAGE_NAME) \
-		-t $(WATCHER_INFORMATIONAL_IMAGE_NAME) \
+		--cache-from $(watcher_info_IMAGE_NAME) \
+		-t $(watcher_info_IMAGE_NAME) \
 		.
 
 docker-watcher: docker-watcher-prod docker-watcher-build
-docker-watcher_informational: docker-watcher_informational-prod docker-watcher_informational-build
+docker-watcher_info: docker-watcher_info-prod docker-watcher_info-build
 docker-child_chain: docker-child_chain-prod docker-child_chain-build
 
 docker-push: docker
 	docker push $(CHILD_CHAIN_IMAGE_NAME)
 	docker push $(WATCHER_IMAGE_NAME)
-	docker push $(WATCHER_INFORMATIONAL_IMAGE_NAME)
+	docker push $(watcher_info_IMAGE_NAME)
 
 ###OTHER
 docker-start-cluster:
@@ -264,10 +264,10 @@ docker-update-watcher:
 	$(MAKE) docker-watcher
 	docker-compose up watcher
 
-docker-update-watcher_informational:
-	docker stop elixir-omg_watcher_informational_1
-	$(MAKE) docker-watcher_informational
-	docker-compose up watcher_informational
+docker-update-watcher_info:
+	docker stop elixir-omg_watcher_info_1
+	$(MAKE) docker-watcher_info
+	docker-compose up watcher_info
 
 docker-update-child_chain:
 	docker stop elixir-omg_childchain_1
@@ -282,7 +282,7 @@ docker-start-cluster-with-infura:
 	fi
 
 docker-start-cluster-with-datadog:
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-contracts watcher watcher_informational childchain
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-contracts watcher watcher_info childchain
 
 docker-stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
@@ -294,13 +294,13 @@ docker-nuke:
 docker-remote-watcher:
 	docker-compose exec watcher /watcher_entrypoint bin/watcher remote_console
 
-docker-remote-watcher_informational:
-	docker-compose exec watcher_informational /watcher_informational_entrypoint bin/watcher_informational remote_console
+docker-remote-watcher_info:
+	docker-compose exec watcher_info /watcher_info_entrypoint bin/watcher_info remote_console
 
 docker-remote-childchain:
 	docker-compose exec childchain /child_chain_entrypoint bin/child_chain remote_console
 
-.PHONY: docker-nuke docker-remote-watcher docker-remote-watcher_informational docker-remote-childchain
+.PHONY: docker-nuke docker-remote-watcher docker-remote-watcher_info docker-remote-childchain
 
 ###
 ### barebone stuff
@@ -333,18 +333,18 @@ start-watcher:
 	echo "Run Watcher" && \
 	PORT=${WATCHER_PORT} _build/prod/rel/watcher/bin/watcher $(OVERRIDING_START)
 
-start-watcher_informational:
+start-watcher_info:
 	set -e; . ./bin/variables; \
 	echo "Building Watcher" && \
-	make build-watcher_informational-prod && \
+	make build-watcher_info-prod && \
 	echo "Potential cleanup" && \
-	rm -f ./_build/prod/rel/watcher_informational/var/sys.config || true && \
+	rm -f ./_build/prod/rel/watcher_info/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-	_build/prod/rel/watcher_informational/bin/watcher_informational init_key_value_db && \
-	_build/prod/rel/watcher_informational/bin/watcher_informational init_postgresql_db && \
+	_build/prod/rel/watcher_info/bin/watcher_info init_key_value_db && \
+	_build/prod/rel/watcher_info/bin/watcher_info init_postgresql_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	PORT=${WATCHER_INFORMATIONAL_PORT} _build/prod/rel/watcher_informational/bin/watcher_informational $(OVERRIDING_START)
+	PORT=${watcher_info_PORT} _build/prod/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
@@ -358,11 +358,11 @@ update-watcher:
 	set -e; . ./bin/variables && \
 	exec PORT=${WATCHER_PORT} _build/dev/rel/watcher/bin/watcher $(OVERRIDING_START) &
 
-update-watcher_informational:
-	_build/dev/rel/watcher_informational/bin/watcher_informational stop ; \
-	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_informational --silent && \
+update-watcher_info:
+	_build/dev/rel/watcher_info/bin/watcher_info stop ; \
+	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_info --silent && \
 	set -e; . ./bin/variables && \
-	exec PORT=${WATCHER_INFORMATIONAL_PORT} _build/dev/rel/watcher_informational/bin/watcher_informational $(OVERRIDING_START) &
+	exec PORT=${watcher_info_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
 
 stop-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop
@@ -370,7 +370,7 @@ stop-child_chain:
 stop-watcher:
 	_build/dev/rel/watcher/bin/watcher stop
 
-stop-watcher_informational:
+stop-watcher_info:
 	_build/dev/rel/watcher/bin/watcher stop
 
 remote-child_chain:
@@ -381,20 +381,20 @@ remote-watcher:
 	set -e; . ./bin/variables && \
 	_build/dev/rel/watcher/bin/watcher remote_console
 
-remote-watcher_informational:
+remote-watcher_info:
 	set -e; . ./bin/variables && \
-	_build/dev/rel/watcher_informational/bin/watcher_informational remote_console
+	_build/dev/rel/watcher_info/bin/watcher_info remote_console
 
 get-alarms:
 	echo "Child Chain alarms" ; \
 	curl -s -X POST http://localhost:9656/alarm.get ; \
 	echo "\nWatcher alarms" ; \
 	curl -s -X POST http://localhost:${WATCHER_PORT}/alarm.get ; \
-	echo "\nWatcherInformational alarms" ; \
-	curl -s -X POST http://localhost:${WATCHER_INFORMATIONAL_PORT}/alarm.get
+	echo "\nWatcherInfo alarms" ; \
+	curl -s -X POST http://localhost:${watcher_info_PORT}/alarm.get
 
 cluster-stop:
-	${MAKE} stop-watcher ; ${MAKE} stop-watcher_informational ; ${MAKE} stop-child_chain ; docker-compose down
+	${MAKE} stop-watcher ; ${MAKE} stop-watcher_info ; ${MAKE} stop-child_chain ; docker-compose down
 
 ### git setup
 init:
@@ -427,8 +427,8 @@ diagnostics:
 	docker-compose logs childchain
 	echo "\n---------- WATCHER LOGS ----------"
 	docker-compose logs watcher
-	echo "\n---------- WATCHER_INFORMATIONAL LOGS ----------"
-	docker-compose logs watcher_informational
+	echo "\n---------- watcher_info LOGS ----------"
+	docker-compose logs watcher_info
 	echo "\n---------- PLASMA CONTRACTS ----------"
 	curl -s localhost:8000/contracts | echo "Could not retrieve the deployed plasma contracts."
 	echo "\n---------- GIT ----------"

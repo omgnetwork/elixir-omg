@@ -14,7 +14,7 @@ generate-security_critical_api_specs:
 	priv/openapitools/openapi-generator-cli generate -i ../apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml -g elixir -o apps/watcher_security_critical_api
 
 generate-informational_api_specs:
-	priv/openapitools/openapi-generator-cli generate -i ../apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml -g elixir -o apps/watchers_informational_api
+	priv/openapitools/openapi-generator-cli generate -i ../apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml -g elixir -o apps/watcher_info_api
 
 generate-operator_api_specs:
 	priv/openapitools/openapi-generator-cli generate -i ../apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml -g elixir -o apps/child_chain_api
@@ -23,8 +23,8 @@ generate_api_code: generate-security_critical_api_specs generate-informational_a
 
 clean_generate_api_code:
 	rm -rf apps/child_chain_api || true && \
-	rm -rf apps/watchers_informational_api || true && \
-	rm -rf apps/watcher_security_critical_api 
+	rm -rf apps/watcher_info_api || true && \
+	rm -rf apps/watcher_security_critical_api
 
 
 install:

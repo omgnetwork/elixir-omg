@@ -28,7 +28,7 @@ defmodule OMG.WatcherRPC.Web.ConnCase do
   """
 
   alias Ecto.Adapters.SQL
-  alias OMG.WatcherInformational
+  alias OMG.WatcherInfo
   use ExUnit.CaseTemplate
 
   using do
@@ -43,10 +43,10 @@ defmodule OMG.WatcherRPC.Web.ConnCase do
   end
 
   setup tags do
-    :ok = SQL.Sandbox.checkout(OMG.WatcherInformational.DB.Repo)
+    :ok = SQL.Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
 
     unless tags[:async] do
-      SQL.Sandbox.mode(WatcherInformational.DB.Repo, {:shared, self()})
+      SQL.Sandbox.mode(WatcherInfo.DB.Repo, {:shared, self()})
     end
 
     {:ok, conn: Phoenix.ConnTest.build_conn()}

@@ -18,7 +18,7 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   """
 
   alias OMG.Utils.HttpRPC.Validator.Base
-  alias OMG.WatcherInformational.UtxoSelection
+  alias OMG.WatcherInfo.UtxoSelection
   import OMG.Utils.HttpRPC.Validator.Base
 
   @doc """

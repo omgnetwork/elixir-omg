@@ -44,8 +44,8 @@ services:
       timeout: 3s
       retries: 5
 
-  watcher_informational:
-    image: omisego/watcher_informational:latest
+  watcher_info:
+    image: omisego/watcher_info:latest
     command: "full_local"
     environment:
       - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
@@ -63,12 +63,12 @@ services:
       - PORT=7534
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
-      - APP_ENV=localwatcher_informational
+      - APP_ENV=localwatcher_info
     restart: always
     ports:
       - "7534:7534"
     healthcheck:
-      test: curl watcher_informational:7534
+      test: curl watcher_info:7534
       interval: 5s
       timeout: 3s
       retries: 5

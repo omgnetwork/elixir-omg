@@ -16,13 +16,13 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
-  use OMG.WatcherInformational.Fixtures
+  use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
   alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.WatcherInformational.DB
+  alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
 
   require OMG.State.Transaction.Payment

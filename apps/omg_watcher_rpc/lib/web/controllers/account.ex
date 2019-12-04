@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Account do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.WatcherInformational.API.Account
+  alias OMG.WatcherInfo.API.Account
 
   @doc """
   Gets plasma account balance

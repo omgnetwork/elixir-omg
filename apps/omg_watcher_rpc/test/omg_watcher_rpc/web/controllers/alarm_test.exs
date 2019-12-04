@@ -17,7 +17,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
   use ExUnit.Case, async: true
 
   use OMG.Fixtures
-  use OMG.WatcherInformational.Fixtures
+  use OMG.WatcherInfo.Fixtures
   alias Support.WatcherHelper
 
   setup do

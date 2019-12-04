@@ -154,8 +154,8 @@ services:
       childchain:
         condition: service_healthy
 
-  watcher_informational:
-    image: omisego/watcher_informational:latest
+  watcher_info:
+    image: omisego/watcher_info:latest
     command: "full_local"
     environment:
       - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
@@ -167,7 +167,7 @@ services:
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - PORT=7534
-      - APP_ENV=local_development_watcher_informational
+      - APP_ENV=local_development_watcher_info
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
@@ -177,7 +177,7 @@ services:
     expose:
       - "7534"
     healthcheck:
-      test: curl watcher_informational:7534
+      test: curl watcher_info:7534
       interval: 30s
       timeout: 1s
       retries: 5

@@ -32,7 +32,7 @@ elixir-*.tar
 
 #generated applications and source
 apps/child_chain_api
-apps/watchers_informational_api
+apps/watcher_info_api
 apps/watcher_security_critical_api
 
 #binaries

@@ -6,13 +6,13 @@ defmodule Itest.Client do
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Deposit
   alias Itest.Transactions.Encoding
-  alias WatchersInformationalAPI.Api.Account
-  alias WatchersInformationalAPI.Api.Transaction
-  alias WatchersInformationalAPI.Connection, as: WatcherInformational
-  alias WatchersInformationalAPI.Model.AddressBodySchema1
-  alias WatchersInformationalAPI.Model.CreateTransactionsBodySchema
-  alias WatchersInformationalAPI.Model.TransactionCreateFee
-  alias WatchersInformationalAPI.Model.TransactionCreatePayments
+  alias WatcherInfoAPI.Api.Account
+  alias WatcherInfoAPI.Api.Transaction
+  alias WatcherInfoAPI.Connection, as: WatcherInfo
+  alias WatcherInfoAPI.Model.AddressBodySchema1
+  alias WatcherInfoAPI.Model.CreateTransactionsBodySchema
+  alias WatcherInfoAPI.Model.TransactionCreateFee
+  alias WatcherInfoAPI.Model.TransactionCreatePayments
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 2, submit_typed: 1]
 
@@ -53,7 +53,7 @@ defmodule Itest.Client do
       fee: %TransactionCreateFee{amount: 0, currency: Encoding.to_hex(currency)}
     }
 
-    {:ok, response} = Transaction.create_transaction(WatcherInformational.new(), transaction)
+    {:ok, response} = Transaction.create_transaction(WatcherInfo.new(), transaction)
 
     %{
       "result" => "complete",
@@ -81,7 +81,7 @@ defmodule Itest.Client do
 
   def get_utxos(address) do
     payload = %AddressBodySchema1{address: address}
-    {:ok, response} = Account.account_get_utxos(WatcherInformational.new(), payload)
+    {:ok, response} = Account.account_get_utxos(WatcherInfo.new(), payload)
     Poison.decode!(response.body, as: %{"data" => [%Utxo{}]})["data"]
   end
 

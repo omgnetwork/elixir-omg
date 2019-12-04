@@ -16,12 +16,12 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
-  use OMG.WatcherInformational.Fixtures
+  use OMG.WatcherInfo.Fixtures
 
   alias OMG.Crypto
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
-  alias OMG.WatcherInformational.DB
+  alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
 
   require Utxo

@@ -65,7 +65,7 @@ release :watcher do
   )
 end
 
-release :watcher_informational do
+release :watcher_info do
   set(version: current_version(:omg_child_chain) <> "+" <> sha)
 
   set(vm_args: "rel/vm.args")
@@ -74,7 +74,7 @@ release :watcher_informational do
     applications: [
       :runtime_tools,
       omg_watcher: :permanent,
-      omg_watcher_informational: :permanent,
+      omg_watcher_info: :permanent,
       omg_watcher_rpc: :permanent,
       omg: :permanent,
       omg_status: :permanent,
@@ -94,17 +94,17 @@ release :watcher_informational do
       {OMG.Status.ReleaseTasks.SetSentry, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Status.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Watcher.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.WatcherInformational.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.WatcherInfo.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
       {OMG.Watcher.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.WatcherInformational.ReleaseTasks.SetDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.WatcherInformational.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+      {OMG.WatcherInfo.ReleaseTasks.SetDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.WatcherInfo.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
     ]
   )
 
   set(
     commands: [
-      init_postgresql_db: "rel/commands/watcher_informational/init_postgresql_db.sh",
+      init_postgresql_db: "rel/commands/watcher_info/init_postgresql_db.sh",
       init_key_value_db: "rel/commands/init_key_value_db.sh"
     ]
   )

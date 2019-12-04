@@ -15,7 +15,7 @@
 defmodule OMG.WatcherRPC.Web.Controller.FallbackTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.WatcherInformational.Fixtures
+  use OMG.WatcherInfo.Fixtures
 
   alias Support.WatcherHelper
 

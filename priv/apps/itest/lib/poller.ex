@@ -6,9 +6,9 @@ defmodule Itest.Poller do
   require Logger
 
   alias Itest.ApiModel.SubmitTransactionResponse
-  alias WatchersInformationalAPI.Api.Account
-  alias WatchersInformationalAPI.Api.Transaction
-  alias WatchersInformationalAPI.Connection, as: WatcherInformational
+  alias WatcherInfoAPI.Api.Account
+  alias WatcherInfoAPI.Api.Transaction
+  alias WatcherInfoAPI.Connection, as: WatcherInfo
 
   @sleep_retry_sec 5_000
   @retry_count 60
@@ -160,7 +160,7 @@ defmodule Itest.Poller do
 
   defp account_get_balance(address) do
     Account.account_get_balance(
-      WatcherInformational.new(),
+      WatcherInfo.new(),
       %{
         address: address
       }
@@ -206,6 +206,6 @@ defmodule Itest.Poller do
   end
 
   defp execute_submit_typed(typed_data_signed) do
-    Transaction.submit_typed(WatcherInformational.new(), typed_data_signed)
+    Transaction.submit_typed(WatcherInfo.new(), typed_data_signed)
   end
 end
