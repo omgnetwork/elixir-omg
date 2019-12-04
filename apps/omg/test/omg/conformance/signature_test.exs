@@ -62,19 +62,73 @@ defmodule OMG.Conformance.SignatureTest do
       verify(contract, tx)
     end
 
-    test "signature test, transaction with zero output amount", %{contract: contract} do
-      tx = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}, {<<1::160>>, @zero_address, 0}])
-      verify(contract, tx)
+    test "transaction type is a list", %{contract: contract} do
+      good_metadata = <<1::size(32)-unit(8)>>
+      txbytes = ExRLP.encode([[<<1>>], [], [], good_metadata])
+
+      # FIXME: the second array is empty because I don't know yet what contract error to expect
+      #        (b/c now contract accepts)
+      verify_both_error(contract, txbytes, [{:error, :malformed_transaction}], [])
     end
 
-    test "signature test, transaction with an explicit zero output", %{contract: contract} do
-      tx = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}, {@zero_address, @zero_address, 0}])
-      verify(contract, tx)
+    test "output type is a list", %{contract: contract} do
+      # FIXME: remove and change into a pair of pure elixir test and solc test
+      good_address = <<1::size(20)-unit(8)>>
+      good_metadata = <<1::size(32)-unit(8)>>
+      badly_typed_output = [[<<1>>], good_address, good_address, <<1>>]
+      txbytes = ExRLP.encode([<<1>>, [], [badly_typed_output], good_metadata])
+
+      # FIXME: the second array is empty because I don't know yet what contract error to expect
+      #        (b/c now contract accepts)
+      verify_both_error(contract, txbytes, [{:error, :unrecognized_output_type}], [])
     end
 
-    test "signature test, transaction with an explicit zero input", %{contract: contract} do
-      tx = Transaction.Payment.new([{1, 0, 0}, {0, 0, 0}], [{@alice, @eth, 100}])
-      verify(contract, tx)
+    test "amount is a list", %{contract: contract} do
+      # FIXME: remove and change into a pair of pure elixir test and solc test
+      good_address = <<1::size(20)-unit(8)>>
+      good_metadata = <<1::size(32)-unit(8)>>
+      bad_amount_output = [<<1>>, good_address, good_address, [<<1>>]]
+      txbytes = ExRLP.encode([<<1>>, [], [bad_amount_output], good_metadata])
+
+      # FIXME: the second array is empty because I don't know yet what contract error to expect
+      #        (b/c now contract accepts)
+      verify_both_error(contract, txbytes, [{:error, :malformed_outputs}], [])
+    end
+
+    test "address is a list with an address-like length of 21 bytes", %{contract: contract} do
+      # FIXME: remove and change into a pair of pure elixir test and solc test
+      good_address = <<1::size(20)-unit(8)>>
+      good_metadata = <<1::size(32)-unit(8)>>
+
+      bad_address_output = [
+        <<1>>,
+        [<<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>, <<3>>, <<1>>, <<1>>],
+        good_address,
+        <<1>>
+      ]
+
+      txbytes = ExRLP.encode([<<1>>, [], [bad_address_output], good_metadata])
+      # FIXME: the second array is empty because I don't know yet what contract error to expect
+      #        (b/c now contract accepts)
+      verify_both_error(contract, txbytes, [{:error, :malformed_address}], [])
+    end
+
+    test "new", %{contract: contract} do
+      # FIXME: remove and change into a pair of pure elixir test and solc test
+      good_address = <<1::size(20)-unit(8)>>
+      good_metadata = <<1::size(32)-unit(8)>>
+
+      unrecognized_output = [
+        <<2>>,
+        good_address,
+        good_address,
+        <<1>>
+      ]
+
+      txbytes = ExRLP.encode([<<1>>, [], [unrecognized_output], good_metadata])
+      # FIXME: the second array is empty because I don't know yet what contract error to expect
+      #        (b/c now contract accepts)
+      verify_both_error(contract, txbytes, [{:error, :unrecognized_output_type}], [])
     end
   end
 
@@ -86,16 +140,18 @@ defmodule OMG.Conformance.SignatureTest do
       verify_distinct(contract, tx1, tx2)
     end
 
-    test "explicit zero input alters sign hash", %{contract: contract} do
-      tx1 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
-      tx2 = Transaction.Payment.new([{1, 0, 0}, {0, 0, 0}], [{@alice, @eth, 100}])
-      verify_distinct(contract, tx1, tx2)
-    end
+    test "new2", %{contract: contract} do
+      # FIXME: remove and change into a pair of pure elixir test and solc test
+      good_address = <<1::size(20)-unit(8)>>
+      good_metadata = <<1::size(32)-unit(8)>>
+      good_amount = <<1>>
+      bad_amount = <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>
+      txbytes1 = ExRLP.encode([<<1>>, [], [[<<1>>, good_address, good_address, good_amount]], good_metadata])
+      txbytes2 = ExRLP.encode([<<1>>, [], [[<<1>>, good_address, good_address, bad_amount]], good_metadata])
 
-    test "explicit zero outputs alters sign hash", %{contract: contract} do
-      tx1 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
-      tx2 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}, {@zero_address, @zero_address, 0}])
-      verify_distinct(contract, tx1, tx2)
+      # FIXME: the second array is empty because I don't know yet what contract error to expect
+      #        (b/c now contract accepts)
+      verify_distinct(contract, Transaction.decode!(txbytes1), Transaction.decode!(txbytes2))
     end
   end
 end

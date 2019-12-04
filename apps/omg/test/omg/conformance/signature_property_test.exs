@@ -70,8 +70,9 @@ defmodule OMG.Conformance.SignaturePropertyTest do
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
     forall {tx1_binary, tx2_binary} <- tx_binary_with_rlp_mutation() do
-      IO.inspect(ExRLP.decode(tx1_binary))
-      IO.inspect(ExRLP.decode(tx2_binary))
+      # FIXME: remove
+      # IO.inspect(ExRLP.decode(tx1_binary))
+      # IO.inspect(ExRLP.decode(tx2_binary))
 
       case Transaction.decode(tx2_binary) do
         {:ok, _} -> verify_distinct(contract, Transaction.decode!(tx1_binary), Transaction.decode!(tx2_binary))
@@ -89,7 +90,7 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   end
 
   defp decoding_errors_the_same(contract, some_binary) do
-    # FIXME: rebuild the list
+    # FIXME: rebuild the lists
     elixir_decoding_errors = [
       {:error, :malformed_transaction_rlp},
       {:error, :malformed_inputs},
@@ -119,17 +120,17 @@ defmodule OMG.Conformance.SignaturePropertyTest do
     ]
 
     solidity_decoding_errors = [
-      # FIXME does this even happen? if not remove
-      # "Invalid encoding of transaction",
       "Leading zeros are invalid",
       "Transaction type must not be 0",
+      "Null input not allowed",
       "Item is not a list",
       "Scalar 0 should be encoded as 0x80",
       "Output type must not be 0",
       "Output amount must not be 0",
       "Item length must be 33",
       "Item length must be 21",
-      "Item length must be between 1 and 33 bytes"
+      "Item length must be between 1 and 33 bytes",
+      "Transaction inputs num exceeds limit"
     ]
 
     verify_both_error(contract, some_binary, elixir_decoding_errors, solidity_decoding_errors)
