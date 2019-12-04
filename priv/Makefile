@@ -14,6 +14,9 @@ start_daemon_services:
 	cd priv/ && \
 	docker-compose -f ../docker-compose.yml up -d
 
+logs:
+	docker-compose logs -f | grep -v eth_getLogs
+
 generate-security_critical_api_specs:
 	priv/openapitools/openapi-generator-cli generate -i ../apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml -g elixir -o apps/watcher_security_critical_api
 
