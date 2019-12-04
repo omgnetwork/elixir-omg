@@ -17,7 +17,8 @@ defmodule WhiteBreadContext do
   scenario_timeouts(fn _feature, scenario ->
     case scenario.name do
       "Alice starts a Standard Exit" -> @default_timeout * 3
-      _ -> @default_timeout * 2
+      "Alice starts an In Flight Exit" -> @default_timeout * 3
+      _ -> @default_timeout
     end
   end)
 
@@ -87,15 +88,27 @@ defmodule WhiteBreadContext do
   )
 
   then_(
+    ~r/^Alice should have "0" ETH on the network after finality margin$/,
+    fn %{alice_account: alice_account} = state, %{} ->
+      Process.sleep(@finality_margin * 1000 + 15_000)
+      IO.inspect("alice address #{alice_account}")
+      assert [] = Client.get_balance(alice_account, 1)
+      {:ok, balance} = Ethereumex.HttpClient.eth_get_balance(alice_account)
+      {balance, ""} = balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
+      IO.inspect("alice balance #{balance}")
+      {:ok, Map.put(state, :alice_ethereum_balance, balance)}
+    end
+  )
+
+  then_(
     ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network after finality margin$/,
     fn %{alice_account: alice_account} = state, %{amount: amount} ->
-      Process.sleep(@finality_margin * 500 + 15_000)
-
-      assert [] = Client.get_balance(alice_account, Currency.to_wei(amount))
-
-      {:ok, balance} = Client.eth_get_balance(alice_account)
-      {balance, ""} = balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
-      {:ok, Map.put(state, :alice_ethereum_balance, balance)}
+      Process.sleep(@finality_margin * 1000 + 15_000)
+      balance = Client.get_balance(alice_account)
+      IO.inspect(balance)
+      balance = balance["amount"]
+      assert_equal(Currency.to_wei(amount), balance, "For #{alice_account}")
+      {:ok, state}
     end
   )
 
