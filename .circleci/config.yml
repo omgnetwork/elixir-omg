@@ -418,7 +418,7 @@ jobs:
             # run format ONLY on formatted code so that it cleans up quoted atoms because
             # we cannot exclude folders to --warnings-as-errors
             mix format apps/child_chain_api/lib/child_chain_api/model/*.ex
-            mix format apps/watcher_info_api/lib/watcher_info_api/model/*.ex
+            mix format apps/watcher_informational_api/lib/watcher_info_api/model/*.ex
             mix format apps/watcher_security_critical_api/lib/watcher_security_critical_api/model/*.ex
             mix local.hex --force && mix local.rebar --force
             MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
