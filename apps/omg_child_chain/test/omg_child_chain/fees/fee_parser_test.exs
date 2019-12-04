@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.Fees.FeeParserTest do
+defmodule OMG.ChildChain.FeeParserTest do
   @moduledoc false
 
   use ExUnitFixtures
@@ -22,37 +22,35 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
   alias OMG.Eth
 
   @fee_config_file ~s(
-    {
-      "1": [
-        {
-          "token": "0x0000000000000000000000000000000000000000",
-          "amount": 2,
-          "subunit_to_unit": 1000000000000000000,
-          "pegged_amount": 1,
-          "pegged_currency": "USD",
-          "pegged_subunit_to_unit": 100,
-          "updated_at": "2019-01-01T10:10:00+00:00"
-        },
-        {
-          "token": "0xd26114cd6ee289accf82350c8d8487fedb8a0c07",
-          "amount": 0,
-          "subunit_to_unit": 1000000000000000000,
-          "pegged_amount": 1,
-          "pegged_currency": "USD",
-          "pegged_subunit_to_unit": 100,
-          "updated_at": "2019-01-01T10:10:00+00:00"
-        },
-        {
-          "token": "0xa74476443119a942de498590fe1f2454d7d4ac0d",
-          "amount": 4,
-          "subunit_to_unit": 1000000000000000000,
-          "pegged_amount": 1,
-          "pegged_currency": "USD",
-          "pegged_subunit_to_unit": 100,
-          "updated_at": "2019-01-01T10:10:00+00:00"
-        }
-      ]
-    }
+    [
+      {
+        "token": "0x0000000000000000000000000000000000000000",
+        "amount": 2,
+        "subunit_to_unit": 1000000000000000000,
+        "pegged_amount": 1,
+        "pegged_currency": "USD",
+        "pegged_subunit_to_unit": 100,
+        "updated_at": "2019-01-01T10:10:00+00:00"
+      },
+      {
+        "token": "0xd26114cd6ee289accf82350c8d8487fedb8a0c07",
+        "amount": 0,
+        "subunit_to_unit": 1000000000000000000,
+        "pegged_amount": 1,
+        "pegged_currency": "USD",
+        "pegged_subunit_to_unit": 100,
+        "updated_at": "2019-01-01T10:10:00+00:00"
+      },
+      {
+        "token": "0xa74476443119a942de498590fe1f2454d7d4ac0d",
+        "amount": 4,
+        "subunit_to_unit": 1000000000000000000,
+        "pegged_amount": 1,
+        "pegged_currency": "USD",
+        "pegged_subunit_to_unit": 100,
+        "updated_at": "2019-01-01T10:10:00+00:00"
+      }
+    ]
   )
 
   @eth Eth.zero_address()
@@ -71,124 +69,122 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
 
     @tag :capture_log
     test "parse invalid data return errors" do
-      json = ~s({
-        "1": [
-          {
-            "invalid_key": null,
-            "error_reason": "Providing unexpected map results with :invalid_fee_spec error"
-          },
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": -1,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": 1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "2019-01-01T10:10:00+00:00",
-            "error_reason": "Negative fee results with :invalid_fee error"
-          },
-          {
-            "token": "this is not HEX",
-            "amount": 0,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": 1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "2019-01-01T10:10:00+00:00",
-            "error_reason": "Wrongly formatted token results with :invalid_token error"
-          },
-          {
-            "token": "0x0123456789abCdeF",
-            "amount": 1,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": 1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "2019-01-01T10:10:00+00:00",
-            "error_reason": "Tokens length other than 20 bytes results with :invalid_token error"
-          },
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": 1,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": -1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "2019-01-01T10:10:00+00:00",
-            "error_reason": "Negative pegged_amount results with :invalid_pegged_amount error"
-          },
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": 1,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": 0,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "2019-01-01T10:10:00+00:00",
-            "error_reason": "0 pegged_amount results with :invalid_pegged_amount error"
-          },
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": 1,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": 1,
-            "pegged_currency": 12,
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "2019-01-01T10:10:00+00:00",
-            "error_reason": "Non binary pegged_currency results with :invalid_pegged_currency error"
-          },
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": 1,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": 1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": -1,
-            "updated_at": "2019-01-01T10:10:00+00:00",
-            "error_reason": "Negative pegged_subunit_to_unit results with :invalid_pegged_subunit_to_unit error"
-          },
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": 1,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": 1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 0,
-            "updated_at": "2019-01-01T10:10:00+00:00",
-            "error_reason": "0 pegged_subunit_to_unit results with :invalid_pegged_subunit_to_unit error"
-          },
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": 1,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": 1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "invalid_date",
-            "error_reason": "Invalid updated_at results with :invalid_timestamp error"
-          },
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": 1,
-            "subunit_to_unit": -1,
-            "pegged_amount": 1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "2019-01-01T10:10:00+00:00",
-            "error_reason": "Negative pegged_amount results with :invalid_subunit_to_unit error"
-          },
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": 1,
-            "subunit_to_unit": 0,
-            "pegged_amount": 1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "2019-01-01T10:10:00+00:00",
-            "error_reason": "0 pegged_amount results with :invalid_subunit_to_unit error"
-          }
-        ]
-      })
+      json = ~s([
+        {
+          "invalid_key": null,
+          "error_reason": "Providing unexpected map results with :invalid_fee_spec error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": -1,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "Negative fee results with :invalid_fee error"
+        },
+        {
+          "token": "this is not HEX",
+          "amount": 0,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "Wrongly formatted token results with :invalid_token error"
+        },
+        {
+          "token": "0x0123456789abCdeF",
+          "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "Tokens length other than 20 bytes results with :invalid_token error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": -1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "Negative pegged_amount results with :invalid_pegged_amount error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": 0,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "0 pegged_amount results with :invalid_pegged_amount error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": 1,
+          "pegged_currency": 12,
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "Non binary pegged_currency results with :invalid_pegged_currency error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": -1,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "Negative pegged_subunit_to_unit results with :invalid_pegged_subunit_to_unit error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 0,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "0 pegged_subunit_to_unit results with :invalid_pegged_subunit_to_unit error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "invalid_date",
+          "error_reason": "Invalid updated_at results with :invalid_timestamp error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": -1,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "Negative pegged_amount results with :invalid_subunit_to_unit error"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": 0,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00",
+          "error_reason": "0 pegged_amount results with :invalid_subunit_to_unit error"
+        }
+      ])
 
       assert {:error,
               [
@@ -209,30 +205,28 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
 
     @tag :capture_log
     test "json with duplicate tokens returns error" do
-      json = ~s({
-        "1": [
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": 1,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": 1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "2019-01-01T10:10:00+00:00"
-          },
-          {
-            "token": "0x0000000000000000000000000000000000000000",
-            "amount": 2,
-            "subunit_to_unit": 1000000000000000000,
-            "pegged_amount": 1,
-            "pegged_currency": "USD",
-            "pegged_subunit_to_unit": 100,
-            "updated_at": "2019-01-01T10:10:00+00:00"
-          }
-        ]
-      })
+      json = ~s([
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 1,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00"
+        },
+        {
+          "token": "0x0000000000000000000000000000000000000000",
+          "amount": 2,
+          "subunit_to_unit": 1000000000000000000,
+          "pegged_amount": 1,
+          "pegged_currency": "USD",
+          "pegged_subunit_to_unit": 100,
+          "updated_at": "2019-01-01T10:10:00+00:00"
+        }
+      ])
 
-      assert {:error, %{"1" => {:error, [{{:error, :duplicate_token}, 2}]}}} = FeeParser.parse(json)
+      assert {:error, [{{:error, :duplicate_token}, 2}]} = FeeParser.parse(json)
     end
   end
 end
