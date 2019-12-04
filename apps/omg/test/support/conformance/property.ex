@@ -90,16 +90,13 @@ defmodule Support.Conformance.Property do
     ])
   end
 
-  # FIXME: revisit zero inputs, as funny things happen in the test:
-  #        "any rlp-mutated tx binary either fails to decode to a transaction object or is recognized as different"
-  #        it fails, because the generator generates zero utxo positions, which Utxo.Position.decode! prohibits
+  # FIXME: revisit this to generate logic-wise invalid txs like zero inputs/outputs (H6)
   defp input_tuple() do
     let [blknum <- pos_integer(), txindex <- non_neg_integer(), oindex <- non_neg_integer()] do
       {blknum, txindex, oindex}
     end
   end
 
-  # FIXME: revisit non_neg_integer amount in a different test case
   # FIXME: revisit the case of negative amounts, funny things happen
   defp output_tuple() do
     let [owner <- address(), currency <- address(), amount <- pos_integer()] do
@@ -162,6 +159,7 @@ defmodule Support.Conformance.Property do
 
   defp mutate_binary(base_binary) do
     # FIXME: these mutations used could use improving/extending
+    # FIXME: example case - cut off one byte somewhere (beginning, end, middle) - more specifically wrt. "substring" etc
     union([
       prepend_binary(base_binary),
       apend_binary(base_binary),
@@ -191,6 +189,7 @@ defmodule Support.Conformance.Property do
 
     let [index <- integer(0, rlp_items_length - 1)] do
       to_mutate = Enum.at(rlp_items, index)
+      # FIXME for now we only mutate deepest level of the RLP items. Mutate also intermediate levels
       let([mutated_rlp <- mutate_sub_rlp(to_mutate)], do: List.replace_at(rlp_items, index, mutated_rlp))
     end
   end
@@ -198,7 +197,7 @@ defmodule Support.Conformance.Property do
   defp mutate_sub_rlp(rlp_item) when is_integer(rlp_item) or is_binary(rlp_item), do: rlp_item_generator()
 
   defp rlp_item_generator(),
-    do: union([injectable_binary(), non_neg_integer(), list(union([injectable_binary(), non_neg_integer()]))])
+    do: union([[], injectable_binary(), non_neg_integer(), list(union([injectable_binary(), non_neg_integer()]))])
 
   defp rlp_mutate_binary(base_binary) do
     # FIXME: these mutations used could use improving/extending

@@ -74,18 +74,8 @@ defmodule OMG.Conformance.SignaturePropertyTest do
       IO.inspect(ExRLP.decode(tx2_binary))
 
       case Transaction.decode(tx2_binary) do
-        {:ok, _} ->
-          verify_distinct(
-            contract,
-            IO.inspect(Transaction.decode!(tx1_binary)),
-            IO.inspect(Transaction.decode!(tx2_binary))
-          )
-
-        {:error, _} ->
-          IO.inspect("errored")
-          true
-          # FIXME
-          # decoding_errors_the_same_rlp_mutated(contract, tx2_binary)
+        {:ok, _} -> verify_distinct(contract, Transaction.decode!(tx1_binary), Transaction.decode!(tx2_binary))
+        {:error, _} -> decoding_errors_the_same_rlp_mutated(contract, tx2_binary)
       end
     end
   end
@@ -99,6 +89,7 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   end
 
   defp decoding_errors_the_same(contract, some_binary) do
+    # FIXME: rebuild the list
     elixir_decoding_errors = [
       {:error, :malformed_transaction_rlp},
       {:error, :malformed_inputs},
@@ -121,10 +112,25 @@ defmodule OMG.Conformance.SignaturePropertyTest do
     elixir_decoding_errors = [
       {:error, :malformed_inputs},
       {:error, :malformed_outputs},
-      {:error, :malformed_transaction}
+      {:error, :malformed_transaction},
+      {:error, :malformed_metadata},
+      {:error, :malformed_address},
+      {:error, :unrecognized_output_type}
     ]
 
-    solidity_decoding_errors = ["Invalid encoding of transaction"]
+    solidity_decoding_errors = [
+      # FIXME does this even happen? if not remove
+      # "Invalid encoding of transaction",
+      "Leading zeros are invalid",
+      "Transaction type must not be 0",
+      "Item is not a list",
+      "Scalar 0 should be encoded as 0x80",
+      "Output type must not be 0",
+      "Output amount must not be 0",
+      "Item length must be 33",
+      "Item length must be 21",
+      "Item length must be between 1 and 33 bytes"
+    ]
 
     verify_both_error(contract, some_binary, elixir_decoding_errors, solidity_decoding_errors)
   end
