@@ -42,7 +42,6 @@ defmodule OMG.Output.FungibleMoreVPToken do
   # necessary, because RLP handles empty string equally to integer 0
   @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
   defp parse_address(binary)
-  defp parse_address(""), do: {:ok, <<0::160>>}
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
 end

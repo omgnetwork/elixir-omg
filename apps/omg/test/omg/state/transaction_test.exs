@@ -349,7 +349,9 @@ defmodule OMG.State.TransactionTest do
         [type, owner, binary_part(currency, 1, 19), amount],
         [type, owner, binary_part(currency, 0, 19), amount],
         [type, owner, <<1>>, amount],
-        [type, <<1>>, currency, amount]
+        [type, <<1>>, currency, amount],
+        [type, owner, "", amount],
+        [type, "", currency, amount]
       ]
       |> Enum.map(checker)
 
