@@ -345,6 +345,18 @@ paths:
                         items:
                           type: object
                           properties:
+                            txindex:
+                              type: integer
+                              format: int16
+                            txhash:
+                              type: string
+                              format: binary
+                            metadata:
+                              type: string
+                              format: binary
+                            txbytes:
+                              type: string
+                              format: binary
                             block:
                               type: object
                               properties:
@@ -360,24 +372,56 @@ paths:
                                 blknum:
                                   type: integer
                                   format: int64
-                            txindex:
-                              type: integer
-                              format: int16
-                            txhash:
-                              type: string
-                              format: binary
-                            metadata:
-                              type: string
-                              format: binary
-                            results:
+                            inputs:
                               type: array
                               items:
                                 type: object
                                 properties:
+                                  blknum:
+                                    type: integer
+                                    format: int64
+                                  txindex:
+                                    type: integer
+                                    format: int16
+                                  oindex:
+                                    type: integer
+                                    format: int8
+                                  utxo_pos:
+                                    type: integer
+                                    format: int256
+                                  owner:
+                                    type: string
+                                    format: binary
                                   currency:
                                     type: string
                                     format: binary
-                                  value:
+                                  amount:
+                                    type: integer
+                                    format: int256
+                            outputs:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  blknum:
+                                    type: integer
+                                    format: int64
+                                  txindex:
+                                    type: integer
+                                    format: int16
+                                  oindex:
+                                    type: integer
+                                    format: int8
+                                  utxo_pos:
+                                    type: integer
+                                    format: int256
+                                  owner:
+                                    type: string
+                                    format: binary
+                                  currency:
+                                    type: string
+                                    format: binary
+                                  amount:
                                     type: integer
                                     format: int256
                       data_paging:
@@ -401,9 +445,30 @@ paths:
                           txindex: 0
                           txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                           metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
-                          results:
-                            - currency: '0x0000000000000000000000000000000000000000'
-                              value: 20000000
+                          txbytes: 0x5df13a6bee20000...
+                          inputs:
+                            - blknum: 1000
+                              txindex: 111
+                              oindex: 0
+                              utxo_pos: 1000001110000
+                              owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                              currency: '0x0000000000000000000000000000000000000000'
+                              amount: 20000000
+                          outputs:
+                            - blknum: 68290000
+                              txindex: 5113
+                              oindex: 0
+                              utxo_pos: 68290000051130000
+                              owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
+                              currency: '0x0000000000000000000000000000000000000000'
+                              amount: 15000000
+                            - blknum: 68290000
+                              txindex: 5113
+                              oindex: 1
+                              utxo_pos: 68290000051130000
+                              owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                              currency: '0x0000000000000000000000000000000000000000'
+                              amount: 5000000
                       data_paging:
                         page: 1
                         limit: 200
@@ -532,6 +597,18 @@ paths:
                         items:
                           type: object
                           properties:
+                            txindex:
+                              type: integer
+                              format: int16
+                            txhash:
+                              type: string
+                              format: binary
+                            metadata:
+                              type: string
+                              format: binary
+                            txbytes:
+                              type: string
+                              format: binary
                             block:
                               type: object
                               properties:
@@ -547,24 +624,56 @@ paths:
                                 blknum:
                                   type: integer
                                   format: int64
-                            txindex:
-                              type: integer
-                              format: int16
-                            txhash:
-                              type: string
-                              format: binary
-                            metadata:
-                              type: string
-                              format: binary
-                            results:
+                            inputs:
                               type: array
                               items:
                                 type: object
                                 properties:
+                                  blknum:
+                                    type: integer
+                                    format: int64
+                                  txindex:
+                                    type: integer
+                                    format: int16
+                                  oindex:
+                                    type: integer
+                                    format: int8
+                                  utxo_pos:
+                                    type: integer
+                                    format: int256
+                                  owner:
+                                    type: string
+                                    format: binary
                                   currency:
                                     type: string
                                     format: binary
-                                  value:
+                                  amount:
+                                    type: integer
+                                    format: int256
+                            outputs:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  blknum:
+                                    type: integer
+                                    format: int64
+                                  txindex:
+                                    type: integer
+                                    format: int16
+                                  oindex:
+                                    type: integer
+                                    format: int8
+                                  utxo_pos:
+                                    type: integer
+                                    format: int256
+                                  owner:
+                                    type: string
+                                    format: binary
+                                  currency:
+                                    type: string
+                                    format: binary
+                                  amount:
                                     type: integer
                                     format: int256
                       data_paging:
@@ -588,9 +697,30 @@ paths:
                           txindex: 0
                           txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                           metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
-                          results:
-                            - currency: '0x0000000000000000000000000000000000000000'
-                              value: 20000000
+                          txbytes: 0x5df13a6bee20000...
+                          inputs:
+                            - blknum: 1000
+                              txindex: 111
+                              oindex: 0
+                              utxo_pos: 1000001110000
+                              owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                              currency: '0x0000000000000000000000000000000000000000'
+                              amount: 20000000
+                          outputs:
+                            - blknum: 68290000
+                              txindex: 5113
+                              oindex: 0
+                              utxo_pos: 68290000051130000
+                              owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
+                              currency: '0x0000000000000000000000000000000000000000'
+                              amount: 15000000
+                            - blknum: 68290000
+                              txindex: 5113
+                              oindex: 1
+                              utxo_pos: 68290000051130000
+                              owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                              currency: '0x0000000000000000000000000000000000000000'
+                              amount: 5000000
                       data_paging:
                         page: 1
                         limit: 200
