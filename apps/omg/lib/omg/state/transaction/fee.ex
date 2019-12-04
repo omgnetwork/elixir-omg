@@ -14,9 +14,7 @@
 
 defmodule OMG.State.Transaction.Fee do
   @moduledoc """
-  Internal representation of a raw payment transaction done on Plasma chain.
-
-  This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
+  Internal representation of a fee claiming transaction in plasma chain.
   """
   alias OMG.Crypto
   alias OMG.Output
@@ -105,12 +103,12 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Fee do
   @doc """
   Fee claiming transaction is not used to transfer funds
   """
-  @spec valid?(Transaction.Fee.t(), Transaction.Signed.t()) :: {:error, atom}
-  def valid?(%Transaction.Fee{}, _signed_tx), do: {:error, :tx_is_not_payment}
+  @spec valid?(Transaction.Fee.t(), Transaction.Signed.t()) :: {:error, atom()}
+  def valid?(%Transaction.Fee{}, _signed_tx), do: {:error, :transaction_not_transfer_funds}
 
   @doc """
   Fee claiming transaction is not used to transfer funds
   """
-  @spec can_apply?(Transaction.Fee.t(), list(Output.Protocol.t())) :: {:error, :tx_is_not_payment}
-  def can_apply?(%Transaction.Fee{}, _outputs_spent), do: {:error, :tx_is_not_payment}
+  @spec can_apply?(Transaction.Fee.t(), list(Output.Protocol.t())) :: {:error, atom()}
+  def can_apply?(%Transaction.Fee{}, _outputs_spent), do: {:error, :transaction_not_transfer_funds}
 end

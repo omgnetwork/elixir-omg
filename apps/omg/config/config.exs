@@ -10,9 +10,13 @@ config :omg,
   input_pointer_types_modules: %{<<1>> => OMG.InputPointer.UtxoPosition},
   output_types_modules: %{
     <<1>> => OMG.Output.FungibleMoreVPToken,
-    <<0xFE, 0xE0>> => OMG.Output.FungibleMoreVPToken
+    <<0xFE, 0xE0>> => OMG.Output.FungibleMoreVPToken,
+    <<0xF0, 0x0F>> => OMG.Output.UniquenessEnforcer
   },
-  tx_types_modules: %{<<1>> => OMG.State.Transaction.Payment}
+  tx_types_modules: %{
+    <<1>> => OMG.State.Transaction.Payment,
+    <<0xFE, 0xE0>> => OMG.State.Transaction.Fee
+  }
 
 config :omg, :eip_712_domain,
   name: "OMG Network",

@@ -18,7 +18,33 @@ defmodule OMG.State.FeeTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  test "can be encoded to binary form and back"
-  test "hash can be computed with protocol implementation"
-  test "cannot be recovered in payment scenario"
+  alias OMG.State.Transaction
+
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
+
+  @tag fixtures: [:alice]
+  test "can be encoded to binary form and back", %{alice: owner} do
+    fee_tx = Transaction.Fee.new(1000, {owner.addr, @eth, 1551})
+
+    rlp_form = Transaction.raw_txbytes(fee_tx)
+    assert fee_tx == Transaction.decode!(rlp_form)
+  end
+
+  @tag fixtures: [:alice]
+  test "hash can be computed with protocol implementation", %{alice: owner} do
+    fee_tx = Transaction.Fee.new(1000, {owner.addr, @eth, 1551})
+    fee_txhash = Transaction.raw_txhash(fee_tx)
+    assert <<_::256>> = fee_txhash
+
+    assert Transaction.raw_txhash(Transaction.Fee.new(1000, {owner.addr, @eth, 1551})) == fee_txhash
+    assert Transaction.raw_txhash(Transaction.Fee.new(1001, {owner.addr, @eth, 1551})) != fee_txhash
+  end
+
+  @tag fixtures: [:alice]
+  test "cannot be recovered in payment scenario", %{alice: owner} do
+    fee_tx = Transaction.Fee.new(1000, {owner.addr, @eth, 1551})
+    tx_rlp = Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
+
+    assert {:error, :transaction_not_transfer_funds} = Transaction.Recovered.recover_from(tx_rlp)
+  end
 end

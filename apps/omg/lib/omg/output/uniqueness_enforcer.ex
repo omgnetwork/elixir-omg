@@ -23,9 +23,7 @@ defmodule OMG.Output.UniquenessEnforcer do
           type_marker: binary()
         }
 
-  def reconstruct([type_marker, blknum])
-      when is_integer(blknum) and is_binary(type_marker),
-      do: %__MODULE__{blknum: parse_int!(blknum), type_marker: type_marker}
+  def reconstruct([type_marker, blknum]), do: %__MODULE__{blknum: parse_int!(blknum), type_marker: type_marker}
 
   defp parse_int!(binary), do: :binary.decode_unsigned(binary, :big)
 end
@@ -39,7 +37,7 @@ defimpl OMG.Output.Protocol, for: OMG.Output.UniquenessEnforcer do
   def can_spend?(%UniquenessEnforcer{}, _witness, _raw_tx), do: false
 
   def input_pointer(%UniquenessEnforcer{}, _blknum, _txindex, _oindex, _, _),
-    do: exit(:output_cannot_be_tx_input)
+    do: {:error, :output_cannot_be_transaction_input}
 
   def to_db_value(%UniquenessEnforcer{blknum: blknum, type_marker: type_marker}),
     do: %{blknum: blknum, type_marker: type_marker}
