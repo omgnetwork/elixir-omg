@@ -138,7 +138,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns error for non exsiting transaction" do
+    test "returns error for non existing transaction" do
       txhash = <<0::256>> |> Encoding.to_hex()
 
       assert %{
@@ -181,19 +181,35 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "hash" => ^block_hash,
                    "timestamp" => ^timestamp
                  },
-                 "results" => [
+                 "inputs" => [
                    %{
-                     "currency" => @eth_hex,
-                     "value" => value
+                     "amount" => _,
+                     "blknum" => _,
+                     "currency" => _,
+                     "oindex" => _,
+                     "owner" => _,
+                     "txindex" => _,
+                     "utxo_pos" => _
                    }
+                   | _
+                 ],
+                 "outputs" => [
+                   %{
+                     "amount" => _,
+                     "blknum" => _,
+                     "currency" => _,
+                     "oindex" => _,
+                     "owner" => _,
+                     "txindex" => _,
+                     "utxo_pos" => _
+                   }
+                   | _
                  ],
                  "txhash" => ^txhash,
                  "txindex" => ^txindex
                }
                | _
              ] = transaction_all_result()
-
-      assert is_integer(value)
     end
 
     @tag fixtures: [:blocks_inserter, :alice]
@@ -348,35 +364,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
-    end
-
-    @tag fixtures: [:alice, :blocks_inserter]
-    test "digests transactions correctly", %{
-      blocks_inserter: blocks_inserter,
-      alice: alice
-    } do
-      not_eth = <<1::160>>
-      not_eth_enc = not_eth |> Encoding.to_hex()
-
-      blocks_inserter.([
-        {1000,
-         [
-           Test.create_recovered([{1, 0, 0, alice}], [
-             {alice, @eth, 3},
-             {alice, not_eth, 4},
-             {alice, not_eth, 5}
-           ])
-         ]}
-      ])
-
-      assert [
-               %{
-                 "results" => [
-                   %{"currency" => @eth_hex, "value" => 3},
-                   %{"currency" => ^not_eth_enc, "value" => 9}
-                 ]
-               }
-             ] = WatcherHelper.success?("transaction.all")
     end
 
     @tag fixtures: [:initial_blocks]
