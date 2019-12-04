@@ -41,7 +41,7 @@ defmodule OMG.State do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @spec exec(tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
+  @spec exec(tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}}
           | {:error, exec_error()}
   def exec(tx, input_fees) do

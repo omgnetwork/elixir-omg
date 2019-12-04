@@ -25,26 +25,34 @@ defmodule OMG.Fees do
 
   use OMG.Utils.LoggerExt
 
-  @type fee_spec_t() :: %{token: Transaction.Payment.currency(), flat_fee: non_neg_integer}
-  @type fee_t() :: %{Transaction.Payment.currency() => non_neg_integer} | :no_fees_required
+  @type fee_t() :: %{Transaction.Payment.currency() => fee_spec_t()}
+  @type optional_fee_t() :: fee_t() | :no_fees_required
+  @type fee_spec_t() :: %{
+          amount: non_neg_integer,
+          subunit_to_unit: non_neg_integer,
+          pegged_amount: non_neg_integer,
+          pegged_currency: String.t(),
+          pegged_subunit_to_unit: non_neg_integer,
+          updated_at: DateTime.t()
+        }
 
   @doc ~S"""
   Checks whether the transaction's inputs cover the fees.
 
   ## Examples
 
-      iex> Fees.covered?(%{"eth" => 2}, %{"eth" => 1, "omg" => 3})
+      iex> Fees.covered?(%{"eth" => 2}, %{"eth" => %{amount: 1}, "omg" => %{amount: 3}})
       true
 
   """
-  @spec covered?(implicit_paid_fee_by_currency :: map(), fees :: fee_t()) :: boolean()
+  @spec covered?(implicit_paid_fee_by_currency :: map(), fees :: optional_fee_t()) :: boolean()
   def covered?(_, :no_fees_required), do: true
 
   def covered?(implicit_paid_fee_by_currency, fees) do
     for {input_currency, implicit_paid_fee} <- implicit_paid_fee_by_currency do
       case Map.get(fees, input_currency) do
         nil -> false
-        fee -> fee <= implicit_paid_fee
+        %{amount: amount} -> amount <= implicit_paid_fee
       end
     end
     |> Enum.any?()
@@ -56,15 +64,107 @@ defmodule OMG.Fees do
 
   ## Examples
 
-      iex> OMG.Fees.for_transaction(%OMG.State.Transaction.Recovered{}, %{"eth" => 1, "omg" => 3})
-      %{"eth" => 1, "omg" => 3}
+      iex> OMG.Fees.for_transaction(%OMG.State.Transaction.Recovered{},
+      ...> %{
+      ...>  "eth" => %{
+      ...>    amount: 1,
+      ...>    subunit_to_unit: 1000000000000000000,
+      ...>    pegged_amount: 4,
+      ...>    pegged_currency: "USD",
+      ...>    pegged_subunit_to_unit: 100,
+      ...>    updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+      ...>  },
+      ...>  "omg" => %{
+      ...>    amount: 3,
+      ...>    subunit_to_unit: 1000000000000000000,
+      ...>    pegged_amount: 4,
+      ...>    pegged_currency: "USD",
+      ...>    pegged_subunit_to_unit: 100,
+      ...>    updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+      ...>  }
+      ...> }
+      ...>)
+      %{
+        "eth" => %{
+          amount: 1,
+          subunit_to_unit: 1000000000000000000,
+          pegged_amount: 4,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+        },
+        "omg" => %{
+          amount: 3,
+          subunit_to_unit: 1000000000000000000,
+          pegged_amount: 4,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+        }
+      }
 
   """
-  @spec for_transaction(Transaction.Recovered.t(), fee_t()) :: fee_t()
+  @spec for_transaction(Transaction.Recovered.t(), optional_fee_t()) :: optional_fee_t()
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do
       true -> :no_fees_required
       false -> fee_map
     end
+  end
+
+  @doc ~S"""
+  Returns a filtered map of fees given a list of desired currencies.
+  Fees will not be filtered if an empty list of currencies is given.
+
+  ## Examples
+
+      iex> OMG.Fees.filter_fees(
+      ...> %{
+      ...>  "eth" => %{
+      ...>    amount: 1,
+      ...>    subunit_to_unit: 1000000000000000000,
+      ...>    pegged_amount: 4,
+      ...>    pegged_currency: "USD",
+      ...>    pegged_subunit_to_unit: 100,
+      ...>    updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+      ...>  },
+      ...>  "omg" => %{
+      ...>    amount: 3,
+      ...>    subunit_to_unit: 1000000000000000000,
+      ...>    pegged_amount: 4,
+      ...>    pegged_currency: "USD",
+      ...>    pegged_subunit_to_unit: 100,
+      ...>    updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+      ...>  }
+      ...> },
+      ...> ["eth"]
+      ...> )
+      {:ok,
+        %{
+          "eth" =>
+          %{
+            amount: 1,
+            subunit_to_unit: 1000000000000000000,
+            pegged_amount: 4,
+            pegged_currency: "USD",
+            pegged_subunit_to_unit: 100,
+            updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+          }
+        }
+      }
+
+  """
+  @spec filter_fees(fee_t(), list(String.t()) | nil) :: {:ok, fee_t()} | {:error, :currency_fee_not_supported}
+  # empty list = no filter
+  def filter_fees(fees, []), do: {:ok, fees}
+  def filter_fees(fees, nil), do: {:ok, fees}
+
+  def filter_fees(fees, desired_currencies) do
+    Enum.reduce_while(desired_currencies, {:ok, %{}}, fn currency, {:ok, filtered_fees} ->
+      case Map.fetch(fees, currency) do
+        :error -> {:halt, {:error, :currency_fee_not_supported}}
+        {:ok, fee} -> {:cont, {:ok, Map.put(filtered_fees, currency, fee)}}
+      end
+    end)
   end
 end

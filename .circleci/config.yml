@@ -381,9 +381,9 @@ jobs:
       image: ubuntu-1604:201903-01
     steps:
       - checkout
-      - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME="omisego/child_chain"
-      - run: make docker-watcher WATCHER_IMAGE_NAME="omisego/watcher"
-      - run: make docker-watcher_info watcher_info_IMAGE_NAME="omisego/watcher_info"
+      - run: make docker-child_chain
+      - run: make docker-watcher
+      - run: make docker-watcher_info
       - run: docker-compose -f docker-compose.yml -f priv/docker-compose.geth-ganache.yml up -d
       - run: docker image ls
       - run: docker-compose ps

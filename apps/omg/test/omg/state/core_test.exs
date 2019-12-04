@@ -189,7 +189,7 @@ defmodule OMG.State.CoreTest do
       # outputs exceed inputs, with fee
       state
       |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 7}, {bob, 2}]), %{
-        @eth => 2
+        @eth => %{amount: 2}
       })
       |> fail?(:fees_not_covered)
       |> same?(state)
@@ -209,7 +209,7 @@ defmodule OMG.State.CoreTest do
     @tag fixtures: [:alice, :bob, :state_empty]
     test "Inputs exceeds outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
       # outputs: 4 + 3 + 2 < 10 <- inputs
-      fee = %{@eth => 2}
+      fee = %{@eth => %{amount: 2}}
 
       state
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
@@ -220,7 +220,7 @@ defmodule OMG.State.CoreTest do
     @tag fixtures: [:alice, :bob, :state_empty]
     test "Inputs sums up exactly to outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
       # outputs: 5 + 3 + 2 == 10 <- inputs
-      fee = %{@eth => 2}
+      fee = %{@eth => %{amount: 2}}
 
       state
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
@@ -231,7 +231,7 @@ defmodule OMG.State.CoreTest do
     @tag fixtures: [:alice, :bob, :state_empty]
     test "Inputs are not sufficient for outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
       # outputs: 6 + 3 + 2 > 10 <- inputs
-      fee = %{@eth => 2}
+      fee = %{@eth => %{amount: 2}}
 
       state
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
@@ -241,7 +241,7 @@ defmodule OMG.State.CoreTest do
 
     @tag fixtures: [:alice, :bob, :state_empty]
     test "Zero fee is allowed, transaction is processed without cost", %{alice: alice, bob: bob, state_empty: state} do
-      fee = %{@eth => 0}
+      fee = %{@eth => %{amount: 0}}
 
       state
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
@@ -251,7 +251,7 @@ defmodule OMG.State.CoreTest do
 
     @tag fixtures: [:alice, :state_empty]
     test "Merge transaction is fee free", %{alice: alice, state_empty: state} do
-      fees = %{@eth => 2}
+      fees = %{@eth => %{amount: 2}}
       tx = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{alice, 15}])
       fee = Fees.for_transaction(tx, fees)
 
@@ -268,7 +268,7 @@ defmodule OMG.State.CoreTest do
       bob: bob,
       state_empty: state
     } do
-      fees = %{@eth => 1, @not_eth => 1}
+      fees = %{@eth => %{amount: 1}, @not_eth => %{amount: 1}}
       not_fee_token = <<2::160>>
 
       assert not_fee_token not in Map.keys(fees)
@@ -293,7 +293,7 @@ defmodule OMG.State.CoreTest do
       state
       |> Core.exec(
         create_recovered([{1, 0, 0, alice}, {3, 0, 0, alice}], [{bob, not_fee_token, 9}, {bob, not_fee_token, 1}]),
-        %{@eth => 10}
+        %{@eth => %{amount: 10}}
       )
       |> success?
 

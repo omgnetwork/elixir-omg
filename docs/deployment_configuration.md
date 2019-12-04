@@ -14,6 +14,8 @@
 - "DD_APM_PORT" - Datadog TCP port for APM
 - "BATCH_SIZE" - Datadog batch size for APM
 - "SYNC_THRESHOLD" - Datadog sync threshold for APM
+- "ETHEREUM_EVENTS_CHECK_INTERVAL_MS" - the frequency of HTTP requests towards the Ethereum clients and scanning for interested events. Should be less then average block time (10 to 20 seconds) on Ethereum mainnet.
+
 
 ***Erlang VM configuration***
 
