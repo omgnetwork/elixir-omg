@@ -63,7 +63,7 @@ defmodule OMG.WatcherInfo.Supervisor do
     children = [
       {OMG.WatcherInfo.BlockApplicationConsumer, []},
       {OMG.WatcherInfo.DepositConsumer, []},
-      {OMG.WatcherInfo.EventConsumer, []}
+      {OMG.WatcherInfo.ExitConsumer, []}
     ]
 
     opts = [strategy: :one_for_one]
