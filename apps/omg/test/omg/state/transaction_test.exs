@@ -118,8 +118,6 @@ defmodule OMG.State.TransactionTest do
       bob: bob
     } do
       [
-        {[], []},
-        {[{1, 2, 3, alice}], []},
         {[], [{alice, @eth, 7}]},
         {[{1, 2, 3, alice}], [{alice, @eth, 7}]},
         {[{1, 2, 3, alice}], [{alice, @eth, 7}, {bob, @eth, 3}]},
@@ -396,8 +394,8 @@ defmodule OMG.State.TransactionTest do
     end
 
     @tag fixtures: [:alice]
-    test "Decoding transaction without outputs is successful", %{alice: alice} do
-      assert {:ok, _} =
+    test "Decoding transaction without outputs fails", %{alice: alice} do
+      assert {:error, :empty_outputs} =
                TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [])
                |> Transaction.Recovered.recover_from()
     end
