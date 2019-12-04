@@ -27,9 +27,14 @@ A standard exit would only impacts an output. Thus, in the case of SE, only one 
 
 An in-flight exit would impact all inputs and outputs of the in-flight exit transaction. If the IFE is canonical, it would exit the unchallenged piggybacked outputs. On the other hand, if the IFE is non-canonical, the unchallenged piggybacked inputs would be exited.
 
-For IFE, when processed, we would flag _all_ inputs as spent while only flag the unchallenged piggybacked outputs. We do this because the current interaction game would have some edge cases during data unavailability, operator can try to double spend via IFE. For more detail, see this issue: [here](https://github.com/omisego/plasma-contracts/issues/102). In short, current IFE interactive game design can potentially decide the canonicity differently during data unavailability to the real canonicity when there is full data availability. We mitigate this by using Kelvin's solution of flagging all inputs (see: [this comment](https://github.com/omisego/plasma-contracts/issues/102#issuecomment-495809967)). So even a mismatch canonicity happens, it cannot be double spent.
+If any of the in-flight exit input is flagged during `processExit`, that exit would be considered as non-canonical (for more detail on the reasons, see: [this issue](https://github.com/omisego/plasma-contracts/issues/470)). Otherwise, the canonicity would be decided by the canonicity challenge game of the in-flight exit.
 
-As a result, since all inputs would be flagged regardless of piggybacked or not, users should be aware that if the user believes an IFE to be non-canonical, the user should always piggyback the input once IFE started. There is no second chance to exit the IFE transaction input. For the case of IFE transaction outputs, you can still do standard exit and exit on the output afterward if not piggybacked. However, usually an IFE would only occurs when there is a need to exit with higher priority. One might want to always join the first IFE if there is really some issue from the operator.
+If the in-flight exit is considered non-canonical during processing, we flag only the exiting inputs as spent. In other words, if the input is piggybacked, unchallenged and not flagged as spent yet, it would be exited and then be flagged as spent to the `PlasmaFramework`.
+
+On the other hand, if the in-flight exit is considered canonical, _all_ inputs plus the exiting outputs would be flagged. So if the output is piggybacked, unchallenged, and not flagged as spent yet, it would be exited and then be flagged as spent. Also all inputs would be flagged as well.
+
+We flag all the inputs when canonical because the current interaction game would have some edge cases during data unavailability, operator can try to double spend via IFE. For more detail, see this issue: [here](https://github.com/omisego/plasma-contracts/issues/102). In short, current IFE interactive game design can potentially decide the canonicity differently during data unavailability to the real canonicity when there is full data availability. We mitigate this by using Kelvin's solution of flagging all inputs (see: [this comment](https://github.com/omisego/plasma-contracts/issues/102#issuecomment-495809967)). So even a mismatch canonicity happens, it cannot be double spent.
+
 
 #### Previous design on SE <> IFE interaction
 
@@ -39,6 +44,11 @@ We end up change the mechanism heavily for two reasons:
 1. Simplicity on the rule
 2. The best solution to mitigate the IFE canonicity issue is to flag all inputs. So we need to flag output anyway.
 
-However, quite a lot of our currently used `id` schema comes from there, such as `exitId`.
+Quite a lot of our current `id` schema comes from the previous doc, such as `exitId`.
+
+Note that in previous design, `startInFlightExit` would auto challenge an existing standard exit. We removed such feature from the contract. As a result, watcher should add monitoring on such event when a standard exit can be challenged by an in-flight exit tx.
 
 Also, see the discussion of changing the SE <> IFE interaction mechanism: https://github.com/omisego/plasma-contracts/issues/110
+
+#### Current Implementation Of Payment Exit Game
+For more details on our current implementation of Payment Exit Game: https://github.com/omisego/plasma-contracts/blob/master/plasma_framework/docs/design/payment-game-implementation-v1.md
