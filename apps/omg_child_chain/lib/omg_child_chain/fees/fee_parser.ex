@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.Fees.FileParser do
+defmodule OMG.ChildChain.Fees.FeeParser do
   @moduledoc """
   Transaction's fee validation functions
   """
@@ -24,8 +24,8 @@ defmodule OMG.ChildChain.Fees.FileParser do
 
   Parses provided json string to token-fee map and returns the map together with possible parsing errors
   """
-  @spec parse_file_content(binary()) :: {:ok, OMG.Fees.fee_t()} | {:error, list({:error, atom()})}
-  def parse_file_content(file_content) do
+  @spec parse(binary()) :: {:ok, OMG.Fees.fee_t()} | {:error, list({:error, atom()})}
+  def parse(file_content) do
     with {:ok, json} <- Jason.decode(file_content) do
       {errors, token_fee_map, _} =
         json

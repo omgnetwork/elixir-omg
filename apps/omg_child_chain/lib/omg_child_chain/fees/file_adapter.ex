@@ -21,7 +21,7 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
 
   use OMG.Utils.LoggerExt
 
-  alias OMG.ChildChain.Fees.FileParser
+  alias OMG.ChildChain.Fees.FeeParser
 
   @doc """
   Reads fee specification file if needed and returns its content.
@@ -34,7 +34,7 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
 
     with {:changed, file_updated_at} <- check_file_changes(path, recorded_file_updated_at),
          {:ok, content} <- File.read(path),
-         {:ok, fee_specs} <- FileParser.parse_file_content(content) do
+         {:ok, fee_specs} <- FeeParser.parse(content) do
       {:ok, fee_specs, file_updated_at}
     else
       {:unchanged, _last_changed_at} ->
