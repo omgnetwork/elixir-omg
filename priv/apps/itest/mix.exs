@@ -25,7 +25,7 @@ defmodule Itest.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:watcher_info_api, in_umbrella: true},
+      {:watcher_informational_api, in_umbrella: true},
       {:watcher_security_critical_api, in_umbrella: true},
       {:child_chain_api, in_umbrella: true},
       {:ethereumex, "~> 0.5.5"},
