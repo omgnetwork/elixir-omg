@@ -25,7 +25,7 @@
         excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/",
         ~r"/apps/child_chain_api",
         ~r"/apps/watcher_security_critical_api",
-        ~r"/apps/watcher_informational_api"]
+        ~r"/apps/watcher_info_api"]
       },
       #
       # If you create your own checks, you must specify the source files for

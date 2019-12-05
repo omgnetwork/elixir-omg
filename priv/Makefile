@@ -23,7 +23,7 @@ generate_api_code: generate-security_critical_api_specs generate-info_api_specs 
 
 clean_generate_api_code:
 	rm -rf apps/child_chain_api || true && \
-	rm -rf apps/watcher_informational_api || true && \
+	rm -rf apps/watcher_info_api || true && \
 	rm -rf apps/watcher_security_critical_api
 
 
