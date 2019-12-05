@@ -8,10 +8,10 @@ defmodule Itest.StandardExitClient do
   alias Itest.Transactions.PaymentType
   alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1
-  alias WatchersInformationalAPI.Api.Account
+  alias WatchersInformationalAPI.Connection, as: WatcherInformational
   alias WatchersInformationalAPI.Model.AddressBodySchema1
 
-  import Itest.Poller, only: [wait_on_receipt_confirmed: 2]
+  import Itest.Poller, only: [wait_on_receipt_confirmed: 2, pull_api_until_successful: 4]
 
   require Logger
 
@@ -33,9 +33,9 @@ defmodule Itest.StandardExitClient do
   @gas_process_exit_price 1_000_000_000
   @gas_add_exit_queue 800_000
 
-  @min_exit_period 1_000
+  @min_exit_period 20_000
 
-  @sleep_retry_sec 1_000
+  @sleep_retry_sec 5_000
   @retry_count 120
 
   def start_standard_exit(address) do
@@ -51,16 +51,31 @@ defmodule Itest.StandardExitClient do
     |> calculate_total_gas_used()
   end
 
+  # taking the first UTXO from the json array
   defp get_utxo(%__MODULE__{address: address} = se) do
     payload = %AddressBodySchema1{address: address}
-    {:ok, response} = Account.account_get_utxos(Watcher.new(), payload)
-    %{se | utxo: hd(Poison.decode!(response.body, as: %{"data" => [%Utxo{}]})["data"])}
+
+    {:ok, response} =
+      pull_api_until_successful(
+        WatchersInformationalAPI.Api.Account,
+        :account_get_utxos,
+        WatcherInformational.new(),
+        payload
+      )
+
+    %{"success" => true} = response = Poison.decode!(response.body)
+    %{se | utxo: to_struct(Utxo, hd(response["data"]))}
   end
 
   defp get_exit_data(%__MODULE__{utxo: %Utxo{utxo_pos: utxo_pos}} = se) do
     payload = %UtxoPositionBodySchema1{utxo_pos: utxo_pos}
-    {:ok, response} = WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_exit_data(Watcher.new(), payload)
-    %{se | exit_data: Poison.decode!(response.body, as: %{"data" => %Itest.ApiModel.ExitData{}})["data"]}
+
+    {:ok, response} =
+      pull_api_until_successful(WatcherSecurityCriticalAPI.Api.UTXO, :utxo_get_exit_data, Watcher.new(), payload)
+
+    %{"success" => true} = response = Poison.decode!(response.body)
+
+    %{se | exit_data: to_struct(Itest.ApiModel.ExitData, response["data"])}
   end
 
   defp get_exit_game_contract_address(se) do
@@ -164,6 +179,7 @@ defmodule Itest.StandardExitClient do
   end
 
   defp process_exit(%__MODULE__{address: address} = se) do
+    _ = Logger.info("Will sleep for #{@min_exit_period} to process exit.")
     Process.sleep(@min_exit_period)
 
     # TODO this should use the standard_exit_id instead and figure out
@@ -187,6 +203,26 @@ defmodule Itest.StandardExitClient do
     wait_on_receipt_confirmed(receipt_hash, @retry_count)
 
     %{se | process_exit_receipt_hash: receipt_hash}
+  end
+
+  defp calculate_total_gas_used(
+         %__MODULE__{
+           add_exit_queue_hash: add_exit_queue_hash,
+           process_exit_receipt_hash: process_exit_receipt_hash,
+           start_standard_exit_hash: start_standard_exit_hash
+         } = se
+       ) do
+    _ = Logger.info("Calculating total gas used.")
+    receipt_hashes = [add_exit_queue_hash, process_exit_receipt_hash, start_standard_exit_hash]
+
+    total_gas_used =
+      Enum.reduce(receipt_hashes, 0, fn receipt_hash, acc ->
+        gas = Itest.Gas.get_gas_used(receipt_hash)
+        acc + gas
+      end)
+
+    _ = Logger.info("Calculating total gas used done. Result #{total_gas_used}.")
+    %{se | total_gas_used: total_gas_used}
   end
 
   defp wait_for_exit_queue(%__MODULE__{} = _se, 0), do: exit(1)
@@ -216,21 +252,14 @@ defmodule Itest.StandardExitClient do
     |> hd()
   end
 
-  defp calculate_total_gas_used(
-         %__MODULE__{
-           add_exit_queue_hash: add_exit_queue_hash,
-           process_exit_receipt_hash: process_exit_receipt_hash,
-           start_standard_exit_hash: start_standard_exit_hash
-         } = se
-       ) do
-    receipt_hashes = [add_exit_queue_hash, process_exit_receipt_hash, start_standard_exit_hash]
+  def to_struct(kind, attrs) do
+    struct = struct(kind)
 
-    total_gas_used =
-      Enum.reduce(receipt_hashes, 0, fn receipt_hash, acc ->
-        gas = Itest.Gas.get_gas_used(receipt_hash)
-        acc + gas
-      end)
-
-    %{se | total_gas_used: total_gas_used}
+    Enum.reduce(Map.to_list(struct), struct, fn {k, _}, acc ->
+      case Map.fetch(attrs, Atom.to_string(k)) do
+        {:ok, v} -> %{acc | k => v}
+        :error -> acc
+      end
+    end)
   end
 end
