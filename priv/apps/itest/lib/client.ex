@@ -6,13 +6,13 @@ defmodule Itest.Client do
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Deposit
   alias Itest.Transactions.Encoding
-  alias WatcherInformationalAPI.Api.Account
-  alias WatcherInformationalAPI.Api.Transaction
-  alias WatcherInformationalAPI.Connection, as: WatcherInfo
-  alias WatcherInformationalAPI.Model.AddressBodySchema1
-  alias WatcherInformationalAPI.Model.CreateTransactionsBodySchema
-  alias WatcherInformationalAPI.Model.TransactionCreateFee
-  alias WatcherInformationalAPI.Model.TransactionCreatePayments
+  alias WatcherInfoAPI.Api.Account
+  alias WatcherInfoAPI.Api.Transaction
+  alias WatcherInfoAPI.Connection, as: WatcherInfo
+  alias WatcherInfoAPI.Model.AddressBodySchema1
+  alias WatcherInfoAPI.Model.CreateTransactionsBodySchema
+  alias WatcherInfoAPI.Model.TransactionCreateFee
+  alias WatcherInfoAPI.Model.TransactionCreatePayments
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 2, submit_typed: 1]
 

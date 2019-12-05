@@ -6,9 +6,9 @@ defmodule Itest.Poller do
   require Logger
 
   alias Itest.ApiModel.SubmitTransactionResponse
-  alias WatcherInformationalAPI.Api.Account
-  alias WatcherInformationalAPI.Api.Transaction
-  alias WatcherInformationalAPI.Connection, as: WatcherInfo
+  alias WatcherInfoAPI.Api.Account
+  alias WatcherInfoAPI.Api.Transaction
+  alias WatcherInfoAPI.Connection, as: WatcherInfo
 
   @sleep_retry_sec 5_000
   @retry_count 60

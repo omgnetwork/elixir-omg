@@ -13,13 +13,13 @@ start_daemon_services:
 generate-security_critical_api_specs:
 	priv/openapitools/openapi-generator-cli generate -i ../apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml -g elixir -o apps/watcher_security_critical_api
 
-generate-informational_api_specs:
-	priv/openapitools/openapi-generator-cli generate -i ../apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml -g elixir -o apps/watcher_informational_api
+generate-info_api_specs:
+	priv/openapitools/openapi-generator-cli generate -i ../apps/omg_watcher_rpc/priv/swagger/info_api_specs.yaml -g elixir -o apps/watcher_info_api
 
 generate-operator_api_specs:
 	priv/openapitools/openapi-generator-cli generate -i ../apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml -g elixir -o apps/child_chain_api
 
-generate_api_code: generate-security_critical_api_specs generate-informational_api_specs generate-operator_api_specs
+generate_api_code: generate-security_critical_api_specs generate-info_api_specs generate-operator_api_specs
 
 clean_generate_api_code:
 	rm -rf apps/child_chain_api || true && \
