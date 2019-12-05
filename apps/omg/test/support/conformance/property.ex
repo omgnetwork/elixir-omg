@@ -108,7 +108,7 @@ defmodule Support.Conformance.Property do
     do: such_that(l <- list(input_tuple()), when: length(l) <= Transaction.Payment.max_inputs())
 
   defp valid_outputs_list(),
-    do: such_that(l <- list(output_tuple()), when: length(l) <= Transaction.Payment.max_outputs())
+    do: such_that(l <- list(output_tuple()), when: length(l) > 0 && length(l) <= Transaction.Payment.max_outputs())
 
   defp mutated_hash(base_hash) do
     # FIXME: provide more cases

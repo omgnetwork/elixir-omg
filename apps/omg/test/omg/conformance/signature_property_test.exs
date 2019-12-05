@@ -51,16 +51,11 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   property "any crude-mutated tx binary either fails to decode to a transaction object or is recognized as different",
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
-    forall {_tx1_binary, tx2_binary} <- tx_binary_with_mutation() do
-      decoding_errors_the_same(contract, tx2_binary)
-      # FIXME: return to this - this reasoning must be reworked - how do we phrase the condition here?
-      # ||
-      #           verify_distinct(
-      #             contract,
-      # FIXME: can we ever hope to fall into this clause?
-      #   IO.inspect(Transaction.decode!(tx1_binary)),
-      #   IO.inspect(Transaction.decode!(tx2_binary))
-      # )
+    forall {tx1_binary, tx2_binary} <- tx_binary_with_mutation() do
+      case Transaction.decode(tx2_binary) do
+        {:ok, _} -> verify_distinct(contract, Transaction.decode!(tx1_binary), Transaction.decode!(tx2_binary))
+        {:error, _} -> decoding_errors_the_same(contract, tx2_binary)
+      end
     end
   end
 
@@ -90,20 +85,18 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   end
 
   defp decoding_errors_the_same(contract, some_binary) do
-    # FIXME: rebuild the lists
     elixir_decoding_errors = [
       {:error, :malformed_transaction_rlp},
-      {:error, :malformed_inputs},
-      {:error, :malformed_outputs},
       {:error, :malformed_transaction}
     ]
 
     solidity_decoding_errors = [
+      "Invalid leading zeros in length of the length for a long list",
       "Item is not a list",
       "Invalid encoding of transaction",
       "Decoded RLP length for list is invalid",
-      "Invalid RLP encoding",
-      "Invalid decoded length of RLP item found during counting items in a list"
+      "Invalid decoded length of RLP item found during counting items in a list",
+      "Invalid length for a long list"
     ]
 
     verify_both_error(contract, some_binary, elixir_decoding_errors, solidity_decoding_errors)
@@ -116,7 +109,9 @@ defmodule OMG.Conformance.SignaturePropertyTest do
       {:error, :malformed_transaction},
       {:error, :malformed_metadata},
       {:error, :malformed_address},
-      {:error, :unrecognized_output_type}
+      {:error, :unrecognized_output_type},
+      {:error, :leading_zeros_in_encoded_uint},
+      {:error, :amount_cant_be_zero}
     ]
 
     solidity_decoding_errors = [
