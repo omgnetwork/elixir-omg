@@ -6,10 +6,10 @@ defmodule Itest.StandardExitClient do
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
   alias Itest.Transactions.PaymentType
-  alias WatcherSecurityCriticalAPI.Connection, as: Watcher
-  alias WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1
   alias WatcherInformationalAPI.Connection, as: WatcherInfo
   alias WatcherInformationalAPI.Model.AddressBodySchema1
+  alias WatcherSecurityCriticalAPI.Connection, as: Watcher
+  alias WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 2, pull_api_until_successful: 4]
 
