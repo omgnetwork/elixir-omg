@@ -344,7 +344,7 @@ start-watcher_info:
 	_build/prod/rel/watcher_info/bin/watcher_info init_postgresql_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	PORT=${watcher_info_PORT} _build/prod/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
+	PORT=${WATCHER_INFO_PORT} _build/prod/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
@@ -362,7 +362,7 @@ update-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop ; \
 	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_info --silent && \
 	set -e; . ./bin/variables && \
-	exec PORT=${watcher_info_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
+	exec PORT=${WATCHER_INFO_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
 
 stop-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop
