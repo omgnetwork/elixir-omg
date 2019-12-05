@@ -14,8 +14,8 @@
 
 defmodule OMG.Watcher.Supervisor do
   @moduledoc """
-  Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.State` pair, supervised elsewhere)
-  of the Watcher app
+  Starts and supervises child processes for the security-critical watcher. It may start its own child processes
+  or start other supervisors.
   """
   use Supervisor
   use OMG.Utils.LoggerExt

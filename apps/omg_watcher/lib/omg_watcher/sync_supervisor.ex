@@ -14,8 +14,8 @@
 
 defmodule OMG.Watcher.SyncSupervisor do
   @moduledoc """
-  Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.State` pair, supervised elsewhere)
-  of the Watcher app
+  Starts and supervises security-critical watcher's child processes and supervisors related to
+  rootchain synchronisations.
   """
   use Supervisor
   use OMG.Utils.LoggerExt
@@ -36,7 +36,7 @@ defmodule OMG.Watcher.SyncSupervisor do
     Supervisor.init(children(), opts)
   end
 
-  def children() do
+  defp children() do
     [
       %{
         id: OMG.Watcher.BlockGetter.Supervisor,

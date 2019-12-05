@@ -14,8 +14,8 @@
 
 defmodule OMG.WatcherInfo.Supervisor do
   @moduledoc """
-  Supervises the remainder (i.e. all except the `WatcherInfo.BlockGetter` + `OMG.State` pair, supervised elsewhere)
-  of the Watcher app
+  Starts and supervises Watcher Informational services such as the watcher informational database,
+  block consumer, deposit consumer, exit consumer, etc.
   """
   use Supervisor
   use OMG.Utils.LoggerExt
@@ -24,8 +24,8 @@ defmodule OMG.WatcherInfo.Supervisor do
   if Mix.env() == :test do
     defmodule Sandbox do
       @moduledoc """
-       Must be start after WatcherInfo.DB.Repo,
-       that no data will be downloaded/inserted before setting the sandbox option.
+      Must be start after WatcherInfo.DB.Repo,
+      that no data will be downloaded/inserted before setting the sandbox option.
       """
       use GenServer
       alias Ecto.Adapters.SQL
