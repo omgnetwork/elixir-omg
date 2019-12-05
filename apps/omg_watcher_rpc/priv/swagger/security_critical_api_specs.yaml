@@ -379,10 +379,6 @@ paths:
                             height: 4427029
                           - service: competitor_processor
                             height: 4427029
-                          - service: convenience_deposit_processor
-                            height: 4427031
-                          - service: convenience_exit_processor
-                            height: 4427029
                           - service: depositor
                             height: 4427031
                           - service: exit_challenger

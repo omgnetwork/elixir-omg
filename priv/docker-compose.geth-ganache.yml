@@ -6,6 +6,9 @@ services:
   watcher:
     environment:
       - ETHEREUM_WS_RPC_URL=ws://geth:8545
+  watcher_info:
+    environment:
+      - ETHEREUM_WS_RPC_URL=ws://geth:8545
   plasma-contracts:
     environment:
       - MIN_EXIT_PERIOD=1
@@ -25,21 +28,21 @@ services:
       timeout: 5s
       retries: 10
     hostname: geth
-    entrypoint: 
+    entrypoint:
       - node
       - /app/ganache-core.docker.cli.js
-      - --blockTime 
+      - --blockTime
       - '0.5'
-      - --deterministic 
-      - --account_keys_path 
+      - --deterministic
+      - --account_keys_path
       - /data/account_keys.txt
-      - --defaultBalanceEther 
+      - --defaultBalanceEther
       - '100000'
-      - --unlock 
+      - --unlock
       - "0"
-      - --unlock 
+      - --unlock
       - "1"
-      - --mnemonic 
+      - --mnemonic
       - 'myth like bonus scare over problem client lizard pioneer submit female collect'
       #don't scroll it's just 1002 accounts, really, don't.
       #- --account

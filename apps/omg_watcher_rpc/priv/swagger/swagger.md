@@ -8,7 +8,7 @@ In order to facilitate the development and maintenance of the API documentation,
 
 These files are grouped under a resource and each resource has 5 spec files. The basic structure is as follow:
 ```
-/informational_api_specs
+/info_api_specs
   /resource1 (account for example)
     paths.yaml
     request_bodies.yaml
@@ -24,7 +24,7 @@ These files are grouped under a resource and each resource has 5 spec files. The
 
 Each of these file contain different part of the API definition.
 
-When developing you should modify these files, under the `informational_api_specs/` and `security_critical_api_specs/` folders and NOT directly the `informational_api_specs.yaml` or `security_critical_api_specs.yaml` which are automatically generated.
+When developing you should modify these files, under the `info_api_specs/` and `security_critical_api_specs/` folders and NOT directly the `info_api_specs.yaml` or `security_critical_api_specs.yaml` which are automatically generated.
 
 ### Generating the final spec file
 
@@ -47,6 +47,6 @@ openapi-generator-cli validate -i apps/omg_watcher_rpc/priv/swagger/security_cri
 **Informational API:**
 
 ```
-swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/informational_api_specs/swagger.yaml
-openapi-generator-cli validate -i apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml
+swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/info_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/info_api_specs/swagger.yaml
+openapi-generator-cli validate -i apps/omg_watcher_rpc/priv/swagger/info_api_specs.yaml
 ```

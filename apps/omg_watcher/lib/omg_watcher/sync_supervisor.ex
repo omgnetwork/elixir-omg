@@ -14,8 +14,8 @@
 
 defmodule OMG.Watcher.SyncSupervisor do
   @moduledoc """
-  Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.State` pair, supervised elsewhere)
-  of the Watcher app
+  Starts and supervises security-critical watcher's child processes and supervisors related to
+  rootchain synchronisations.
   """
   use Supervisor
   use OMG.Utils.LoggerExt
@@ -51,33 +51,12 @@ defmodule OMG.Watcher.SyncSupervisor do
         get_events_callback: &Eth.RootChain.get_deposits/2,
         process_events_callback: &OMG.State.deposit/1
       ),
-      # this instance of the listener sends deposits to be consumed by the convenience API
-      EthereumEventListener.prepare_child(
-        service_name: :convenience_deposit_processor,
-        synced_height_update_key: :last_convenience_deposit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_deposits/2,
-        process_events_callback: fn deposits ->
-          Watcher.DB.EthEvent.insert_deposits!(deposits)
-          {:ok, []}
-        end
-      ),
       {Watcher.ExitProcessor, []},
       EthereumEventListener.prepare_child(
         service_name: :exit_processor,
         synced_height_update_key: :last_exit_processor_eth_height,
         get_events_callback: &Eth.RootChain.get_standard_exits/2,
         process_events_callback: &Watcher.ExitProcessor.new_exits/1
-      ),
-      # this instance of the listener sends exits to be consumed by the convenience API
-      # we shouldn't use :exit_processor for this, as it has different waiting semantics (waits more)
-      EthereumEventListener.prepare_child(
-        service_name: :convenience_exit_processor,
-        synced_height_update_key: :last_convenience_exit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_standard_exits/2,
-        process_events_callback: fn exits ->
-          exits |> Watcher.DB.EthEvent.insert_exits!()
-          {:ok, []}
-        end
       ),
       EthereumEventListener.prepare_child(
         service_name: :exit_finalizer,

@@ -70,7 +70,11 @@ The contract addresses that are required to be included in the `contract_addr` f
 }
 ```
 
-***Watcher only***
+***Watcher security-critical only***
+
+- "CHILD_CHAIN_URL" - Location of the Child Chain API *mandatory*
+
+***Watcher security-critical + informational***
 
 - "DATABASE_URL" - Postgres address *mandatory*
 - "CHILD_CHAIN_URL" - Location of the Child Chain API *mandatory*

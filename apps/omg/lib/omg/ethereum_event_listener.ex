@@ -124,6 +124,7 @@ defmodule OMG.EthereumEventListener do
     {:ok, db_updates_from_callback} =
       events
       |> Enum.map(&Preprocessor.apply/1)
+      |> publish_data()
       |> callbacks.process_events_callback.()
 
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
@@ -144,5 +145,16 @@ defmodule OMG.EthereumEventListener do
   defp schedule_get_events do
     Application.fetch_env!(:omg, :ethereum_events_check_interval_ms)
     |> :timer.send_after(self(), :sync)
+  end
+
+  defp publish_data([%{event_signature: event_signature} | _] = data) do
+    # String.split("DepositCreated(address,uint256,address,uint256)", "(")
+    [event_signature, _] = String.split(event_signature, "(")
+    :ok = OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
+    data
+  end
+
+  defp publish_data([] = data) do
+    data
   end
 end

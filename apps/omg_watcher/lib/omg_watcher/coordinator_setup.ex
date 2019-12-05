@@ -23,16 +23,11 @@ defmodule OMG.Watcher.CoordinatorSetup do
 
     %{
       depositor: [finality_margin: deposit_finality_margin],
-      convenience_deposit_processor: [waits_for: [:depositor], finality_margin: deposit_finality_margin],
       block_getter: [
-        waits_for: [depositor: :no_margin, convenience_deposit_processor: :no_margin],
+        waits_for: [depositor: :no_margin],
         finality_margin: 0
       ],
       exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
-      convenience_exit_processor: [
-        waits_for: [:convenience_deposit_processor, :block_getter],
-        finality_margin: finality_margin
-      ],
       exit_finalizer: [
         waits_for: [:depositor, :block_getter, :exit_processor],
         finality_margin: finality_margin

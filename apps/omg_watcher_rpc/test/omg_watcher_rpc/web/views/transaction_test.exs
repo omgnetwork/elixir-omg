@@ -15,11 +15,11 @@
 defmodule OMG.WatcherRPC.Web.View.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Watcher.Fixtures
+  use OMG.WatcherInfo.Fixtures
 
   alias OMG.Utils.Paginator
   alias OMG.Utxo
-  alias OMG.Watcher.DB
+  alias OMG.WatcherInfo.DB
   alias OMG.WatcherRPC.Web.View
 
   require Utxo

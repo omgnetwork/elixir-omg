@@ -24,7 +24,6 @@ defmodule Support.WatcherHelper do
 
   import ExUnit.Assertions
   use Phoenix.ConnTest
-
   @endpoint OMG.WatcherRPC.Web.Endpoint
 
   def wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do
