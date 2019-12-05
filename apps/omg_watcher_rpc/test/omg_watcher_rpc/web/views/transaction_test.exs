@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.View.TransactionTest do
 
   alias OMG.Utils.Paginator
   alias OMG.Utxo
-  alias OMG.Watcher.DB
+  alias OMG.WatcherInfo.DB
   alias OMG.WatcherRPC.Web.View
 
   require Utxo
