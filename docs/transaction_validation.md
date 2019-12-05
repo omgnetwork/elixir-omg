@@ -9,17 +9,20 @@ This document presents current way of stateless and stateful validation of
 #### Stateless validation
 
 1. Decoding of encoded singed transaction using `OMG.State.Transaction.Signed.decode` method
-    * Decoding using `ExRLP.decode` method and if fail then `{:error, :malformed_transaction_rlp}`
-    * Decoding the raw structure of RLP items and if fail then `{:error, :malformed_transaction}`
-    * Checking signatures lengths and if fail then `{:error, :bad_signature_length}`
-    * Checking addresses/inputs/outputs/metadata and if fail then `{:error, :malformed_address}` / `{:error, :malformed_inputs}` / `{:error, :malformed_outputs}` / `{:error, :malformed_metadata}` respectively
-2. Checking signed_tx using `OMG.State.Transaction.Recovered.recover_from`
-    * if transaction have duplicated inputs then `{:error, :duplicate_inputs}`
-    * if transaction's inputs intersperse with empty ones then `{:error, :inputs_contain_gaps}`
-    * if transaction's outputs intersperse with empty ones then `{:error, :outputs_contain_gaps}`
-    * if transaction have input and empty sig then  `{:error, :missing_signature}`
-    * if transaction have empty input and non-empty sig then  `{:error, :superfluous_signature}`
-    * Recovering address of spenders from signatures and if fail then `{:error, :signature_corrupt}`
+    * Decoding using `ExRLP.decode` method and if failed then `{:error, :malformed_transaction_rlp}`
+    * Checking the transaction type and if not allowed then `{:error, :malformed_transaction}`
+    * Decoding the raw structure of RLP items and if failed then `{:error, :malformed_transaction}`
+    * Checking output type with respect to the parent transaction type and if failed then `{:error, :unrecognized_output_type}`
+    * Checking addresses/inputs/outputs/metadata format and if failed then `{:error, :malformed_address}` / `{:error, :malformed_inputs}` / `{:error, :malformed_outputs}` / `{:error, :malformed_metadata}` respectively
+    * Checking if outputs are non-empty and if failed then `{:error, :empty_outputs}`
+    * Checking any integer values to be formatted validly and if failed then `{:error, :leading_zeros_in_encoded_uint}` or `{:error, :encoded_uint_too_big}` accordingly
+    * Checking all amount-representing values to non-zero and if failed then `{:error, :amount_cant_be_zero}`
+2. Checking and recovering (preprocessing) a decoded `Transaction.Signed` using `OMG.State.Transaction.Recovered`
+    * Checking if transaction doesn't have duplicated inputs and if failed then `{:error, :duplicate_inputs}`
+    * Checking if signatures are in correct format and lengths and if failed then `{:error, :malformed_witnesses}`
+    * Checking if transaction has no missing signature for an input supplied and if failed then `{:error, :missing_signature}`
+    * Checking if transaction has no missing input for a signature supplied and if failed then `{:error, :superfluous_signature}`
+    * Recovering addresses of spenders from signatures and if failed then `{:error, :signature_corrupt}`
 
 #### Stateful validation
 
