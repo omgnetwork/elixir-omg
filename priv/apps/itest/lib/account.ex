@@ -12,7 +12,7 @@ defmodule Itest.Account do
   @vault elem(EIP55.encode("0x0433420DEE34412B5Bf1e29FBf988aD037cc5Db7"), 1)
   def vault(), do: @vault
 
-  @plasma_framework elem(EIP55.encode("0xC673e4ffcB8464FaFf908A6804FE0e635AF0ea2f"), 1)
+  @plasma_framework elem(EIP55.encode("0x9fA1F748AdEad1F26667a6ddF748669eDB02c70d"), 1)
   def plasma_framework(), do: @plasma_framework
 
   @ether_vault_id 1
