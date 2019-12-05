@@ -199,7 +199,10 @@ defmodule OMG.State.TransactionTest do
                Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, ""]))
 
       assert {:error, :malformed_metadata} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, <<0::288>>]))
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, <<1::224>>]))
+
+      assert {:error, :malformed_metadata} =
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, <<2::288>>]))
     end
 
     @tag fixtures: [:alice, :bob]
