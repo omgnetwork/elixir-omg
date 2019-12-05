@@ -33,10 +33,12 @@ defmodule Itest.Account do
 
   defp account() do
     tick_acc = generate_entity()
-    account_priv_enc = Base.encode16(tick_acc.priv)
-    passphrase = "dev.period"
 
-    {:ok, addr} = create_account_from_secret(account_priv_enc, passphrase)
+    account_priv_enc = Base.encode16(tick_acc.priv)
+
+    passphrase = "dev.period"
+    # remove 0x from priv key when geth!
+    {:ok, addr} = create_account_from_secret("0x" <> account_priv_enc, passphrase)
 
     {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
 
