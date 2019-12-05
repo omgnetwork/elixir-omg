@@ -17,8 +17,8 @@ defmodule WhiteBreadContext do
   scenario_timeouts(fn _feature, scenario ->
     case scenario.name do
       "Alice sends Bob funds" -> @default_timeout * 2
-      "Alice starts a Standard Exit" -> @default_timeout * 5
-      "Alice starts an In Flight Exit" -> @default_timeout * 5
+      "Alice starts a Standard Exit" -> @default_timeout * 10
+      "Alice starts an In Flight Exit" -> @default_timeout * 10
       _ -> @default_timeout
     end
   end)
@@ -145,8 +145,8 @@ defmodule WhiteBreadContext do
        } = state,
        %{amount: amount} ->
       gas_wei = state[:standard_exit_total_gas_used] + state[:gas]
-      assert_equal(alice_ethereum_balance, alice_initial_balance - gas_wei)
-      assert_equal(alice_ethereum_balance, Currency.to_wei(amount) - gas_wei)
+      assert_equal(alice_ethereum_balance, alice_initial_balance - gas_wei, " compared to initial balance")
+      assert_equal(alice_ethereum_balance, Currency.to_wei(amount) - gas_wei, " compared to amount")
       {:ok, state}
     end
   )
