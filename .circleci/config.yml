@@ -60,7 +60,7 @@ executors:
   metal_watcher_info:
     machine: true
     environment:
-      watcher_info_IMAGE_NAME: "omisego/watcher_info"
+      WATCHER_INFO_IMAGE_NAME: "omisego/watcher_info"
 
 commands:
   setup_elixir-omg_workspace:
@@ -499,10 +499,10 @@ jobs:
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher_info:
-    executor: metal_watcher
+    executor: metal_watcher_info
     steps:
       - checkout
-      - run: make docker-watcher_info WATCHER_INFO_IMAGE_NAME=$WATCHER_IMAGE_NAME
+      - run: make docker-watcher_info WATCHER_INFO_IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
   deploy_child_chain:
