@@ -75,11 +75,41 @@ defmodule OMG.Eth.RootChain do
   def get_standard_exits_structs(exit_ids, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
-    return_fields = [
-      {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
+    static_array_return_types = [
+      {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]},
+       Enum.count(exit_ids)}
     ]
 
-    Eth.call_contract(contract, "standardExits(uint160[])", [exit_ids], return_fields)
+    # TODO: hack around an issue with `ex_abi` https://github.com/poanetwork/ex_abi/issues/22
+    #       We procure a hacky version of `OMG.Eth.call_contract` which strips the offending offsets from the abi-
+    #       -encoded binary and proceeds to decode the array as if it were static
+    #       Revert to `call_contract` when that issue is resolved
+    call_contract_manual_standard_exits(
+      contract,
+      "standardExits(uint160[])",
+      [exit_ids],
+      static_array_return_types
+    )
+  end
+
+  # TODO: see above in where it is called - temporary function
+  defp call_contract_manual_standard_exits(contract, signature, args, return_types) do
+    data = signature |> ABI.encode(args)
+
+    with {:ok, return} <- Ethereumex.HttpClient.eth_call(%{to: to_hex(contract), data: to_hex(data)}),
+         do: decode_answer_manual_standard_exits(return, return_types)
+  end
+
+  # TODO: see above in where it is called - temporary function
+  defp decode_answer_manual_standard_exits(enc_return, static_array_return_types) do
+    <<32::size(32)-unit(8), static_array_data::binary>> = from_hex(enc_return)
+
+    static_array_data
+    |> ABI.TypeDecoder.decode(static_array_return_types)
+    |> case do
+      [single_return] -> {:ok, single_return}
+      other when is_list(other) -> {:ok, List.to_tuple(other)}
+    end
   end
 
   @doc """
