@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -234,5 +234,20 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
         assert actual.spending_transaction.txhash == expected.spending_txhash
         assert actual.spending_tx_oindex == expected.spending_tx_oindex
     end
+  end
+
+  @tag fixtures: [:initial_blocks]
+  test "spend_utxos sets timestamps correctly" do
+    # call spend_utoxs
+
+    #    @spec create_inputs(Transaction.any_flavor_t(), binary()) :: [tuple()]
+    #    def create_inputs(tx, spending_txhash) do
+    #      tx
+    #      |> Transaction.get_inputs()
+    #      |> Enum.with_index()
+    #      |> Enum.map(fn {Utxo.position(_, _, _) = input_utxo_pos, index} ->
+    #        {input_utxo_pos, index, spending_txhash}
+    #      end)
+    #    end
   end
 end
