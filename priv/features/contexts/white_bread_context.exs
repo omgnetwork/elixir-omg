@@ -102,18 +102,6 @@ defmodule WhiteBreadContext do
   )
 
   then_(
-    ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network after finality margin$/,
-    fn %{alice_account: alice_account} = state, %{amount: amount} ->
-      Process.sleep(@finality_margin * 1000 + 15_000)
-      balance = Client.get_balance(alice_account)
-      IO.inspect(balance)
-      balance = balance["amount"]
-      assert_equal(Currency.to_wei(amount), balance, "For #{alice_account}")
-      {:ok, state}
-    end
-  )
-
-  then_(
     ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network$/,
     fn %{alice_account: alice_account} = state, %{amount: amount} ->
       expecting_amount = Currency.to_wei(amount)
