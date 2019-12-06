@@ -17,6 +17,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
+  alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -41,6 +42,56 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag fixtures: [:initial_blocks]
     test "last consumed block returns correct block number" do
       assert 3000 == DB.Block.get_max_blknum()
+    end
+  end
+
+  describe "get_blocks/1" do
+    @tag fixtures: [:initial_blocks]
+    test "returns a list of blocks" do
+      paginator = %Paginator{
+        data: [],
+        data_paging: %{
+          limit: 10,
+          page: 1
+        }
+      }
+
+      results = DB.Block.get_blocks(paginator)
+
+      assert length(results.data) == 3
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "returns a list of blocks sorted by descending blknum" do
+      paginator = %Paginator{
+        data: [],
+        data_paging: %{
+          limit: 10,
+          page: 1
+        }
+      }
+
+      results = DB.Block.get_blocks(paginator)
+
+      assert length(results.data) == 3
+      assert results.data |> Enum.at(0) |> Map.get(:blknum) == 3000
+      assert results.data |> Enum.at(1) |> Map.get(:blknum) == 2000
+      assert results.data |> Enum.at(2) |> Map.get(:blknum) == 1000
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "returns an empty list when given limit: 0" do
+      paginator = %Paginator{
+        data: [],
+        data_paging: %{
+          limit: 0,
+          page: 1
+        }
+      }
+
+      results = DB.Block.get_blocks(paginator)
+
+      assert length(results.data) == 0
     end
   end
 
