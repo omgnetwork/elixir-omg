@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInformational.API.Block do
+defmodule OMG.WatcherInfo.API.Block do
   @moduledoc """
   Module provides operations related to plasma blocks.
   """
 
   alias OMG.Utils.Paginator
-  alias OMG.WatcherInformational.DB
+  alias OMG.WatcherInfo.DB
 
   @default_blocks_limit 100
 

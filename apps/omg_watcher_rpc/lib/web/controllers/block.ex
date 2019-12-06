@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.WatcherInformational.API.Block, as: InfoApiBlock
+  alias OMG.WatcherInfo.API.Block, as: InfoApiBlock
   alias OMG.WatcherRPC.Web.Validator
 
   @doc """
