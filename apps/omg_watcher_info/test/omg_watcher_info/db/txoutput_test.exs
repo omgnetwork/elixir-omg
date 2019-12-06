@@ -43,4 +43,19 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     assert not is_nil(utxo)
     assert utxo.amount == big_amount
   end
+
+  @tag fixtures: [:initial_blocks]
+  test "spend_utxos sets timestamps correctly" do
+    # call spend_utoxs
+
+    #    @spec create_inputs(Transaction.any_flavor_t(), binary()) :: [tuple()]
+    #    def create_inputs(tx, spending_txhash) do
+    #      tx
+    #      |> Transaction.get_inputs()
+    #      |> Enum.with_index()
+    #      |> Enum.map(fn {Utxo.position(_, _, _) = input_utxo_pos, index} ->
+    #        {input_utxo_pos, index, spending_txhash}
+    #      end)
+    #    end
+  end
 end
