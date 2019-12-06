@@ -67,6 +67,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       block_hash = block_hash |> Encoding.to_hex()
       metadata = metadata |> Encoding.to_hex()
 
+      DB.Transaction.get(txhash) |> IO.inspect()
+
       assert %{
                "block" => %{
                  "blknum" => ^blknum,
@@ -82,7 +84,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => 0,
                    "owner" => ^alice_addr,
                    "txindex" => 0,
-                   "utxo_pos" => 1_000_000_000
+                   "utxo_pos" => 1_000_000_000,
+                   "creating_txhash" => "",
+                   "spending_txhash" => ^txhash
                  }
                ],
                "outputs" => [
@@ -93,7 +97,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => 0,
                    "owner" => ^bob_addr,
                    "txindex" => 0,
-                   "utxo_pos" => 1_000_000_000_000
+                   "utxo_pos" => 1_000_000_000_000,
+                   "creating_txhash" => ^txhash,
+                   "spending_txhash" => nil
                  }
                ],
                "txhash" => ^txhash,
