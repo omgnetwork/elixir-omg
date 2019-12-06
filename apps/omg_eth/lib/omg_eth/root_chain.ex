@@ -70,32 +70,23 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  Returns exit for a specific utxo. Calls contract method.
-
+  Returns standard exits data from the contract for a list of `exit_id`s. Calls contract method.
   """
-  def get_standard_exit(exit_ids, contract \\ %{}) do
+  def get_standard_exits_structs(exit_ids, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
     return_fields = [
-      {:array, [{:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}}], Enum.count(exit_ids)}
+      {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
     ]
 
-    signature = %ABI.FunctionSelector{
-      function: "standardExits",
-      types: [
-        {:array, {:uint, 160}}
-      ],
-      returns: return_fields
-    }
-
-    Eth.call_contract(contract, signature, [exit_ids], return_fields)
+    Eth.call_contract(contract, "standardExits(uint160[])", [exit_ids], return_fields)
   end
 
   @doc """
   Returns in flight exit for a specific id. Calls contract method.
   #TODO - can exits accept a list of in_flight_exit_id? Look at ExitProcessor.handle_call({:new_in_flight_exits, events})
   """
-  def get_in_flight_exit(in_flight_exit_id, contract \\ %{}) do
+  def get_in_flight_exit_struct(in_flight_exit_id, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
     # solidity does not return arrays of structs
@@ -305,9 +296,9 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  Returns standard exits from a range of blocks. Collects exits from Ethereum logs.
+  Returns standard exits starting events from a range of blocks
   """
-  def get_standard_exits(block_from, block_to, contract \\ %{}) do
+  def get_standard_exits_started(block_from, block_to, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "ExitStarted(address,uint160)"
 
@@ -318,9 +309,9 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  Returns InFlightExit from a range of blocks.
+  Returns in-flight exits starting events from a range of blocks
   """
-  def get_in_flight_exit_starts(block_from, block_to, contract \\ %{}) do
+  def get_in_flight_exits_started(block_from, block_to, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "InFlightExitStarted(address,bytes32)"
 

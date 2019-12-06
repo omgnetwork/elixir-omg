@@ -233,7 +233,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:new_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
-    {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exit(Map.values(exits))
+    {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exits_structs(get_in(exits, [Access.all(), :exit_id]))
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
@@ -247,7 +247,7 @@ defmodule OMG.Watcher.ExitProcessor do
         events,
         fn %{call_data: %{in_flight_tx: bytes}} ->
           {:ok, contract_ife_id} = Eth.RootChain.get_in_flight_exit_id(bytes)
-          {:ok, status} = Eth.RootChain.get_in_flight_exit(contract_ife_id)
+          {:ok, status} = Eth.RootChain.get_in_flight_exit_struct(contract_ife_id)
           {status, contract_ife_id}
         end
       )
