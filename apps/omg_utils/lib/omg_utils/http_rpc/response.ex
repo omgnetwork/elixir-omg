@@ -16,7 +16,6 @@ defmodule OMG.Utils.HttpRPC.Response do
   Serializes the response into expected result/data format.
   """
   alias OMG.Utils.HttpRPC.Encoding
-  @sha String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
 
   @type response_t :: %{version: binary(), success: boolean(), data: map()}
 
@@ -32,16 +31,16 @@ defmodule OMG.Utils.HttpRPC.Response do
   @spec serialize(any()) :: response_t()
   def serialize(%{object: :error} = error) do
     to_response(error, :error)
-    |> add_version()
-    |> add_service_name()
   end
 
   def serialize(data) do
     data
     |> sanitize()
     |> to_response(:success)
-    |> add_version()
-    |> add_service_name()
+  end
+
+  def add_app_infos(response, app_infos) do
+    Map.merge(response, app_infos)
   end
 
   @doc """
@@ -105,41 +104,4 @@ defmodule OMG.Utils.HttpRPC.Response do
       success: result == :success,
       data: data
     }
-
-  # not the most beatuful way of doing this but
-  # because our "response serializer" is in utils there's no other way
-  defp add_version(response) do
-    vsn =
-      case :code.is_loaded(OMG.ChildChainRPC) do
-        {:file, _} ->
-          {:ok, vsn} = :application.get_key(:omg_child_chain_rpc, :vsn)
-
-          vsn
-
-        _ ->
-          {:ok, vsn} = :application.get_key(:omg_watcher_rpc, :vsn)
-
-          vsn
-      end
-
-    Map.merge(response, %{version: List.to_string(vsn) <> "+" <> @sha})
-  end
-
-  # Not the most "beautiful way", but I'm just referencing
-  # how they're injecting the version
-  defp add_service_name(response) do
-    service_name = service_name()
-    # Inject it into the response code
-    Map.merge(response, %{service_name: service_name})
-  end
-
-  defp service_name do
-    case :code.is_loaded(OMG.ChildChainRPC) do
-      {:file, _} ->
-        "child_chain"
-
-      _ ->
-        "watcher"
-    end
-  end
 end

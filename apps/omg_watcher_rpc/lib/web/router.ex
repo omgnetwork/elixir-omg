@@ -17,6 +17,7 @@ defmodule OMG.WatcherRPC.Web.Router do
 
   pipeline :api do
     plug(:accepts, ["json"])
+    plug(OMG.Utils.HttpRPC.Plugs.ApplicationInfo, application: :omg_watcher_rpc)
   end
 
   # Watcher Security-Critical API

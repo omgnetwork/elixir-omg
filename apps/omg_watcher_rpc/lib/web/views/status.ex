@@ -20,10 +20,11 @@ defmodule OMG.WatcherRPC.Web.View.Status do
   use OMG.WatcherRPC.Web, :view
   alias OMG.Utils.HttpRPC.Response
 
-  def render("status.json", %{response: status}) do
+  def render("status.json", %{response: status, app_infos: app_infos}) do
     status
     |> format_byzantine_events()
     |> Response.serialize()
+    |> Response.add_app_infos(app_infos)
   end
 
   defp format_byzantine_events(%{byzantine_events: byzantine_events, services_synced_heights: heights} = status) do

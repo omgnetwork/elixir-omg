@@ -22,24 +22,30 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
 
   use OMG.WatcherRPC.Web, :view
 
-  def render("transaction.json", %{response: transaction}) do
+  def render("transaction.json", %{response: transaction, app_infos: app_infos}) do
     transaction
     |> render_transaction()
     |> Response.serialize()
+    |> Response.add_app_infos(app_infos)
   end
 
-  def render("transactions.json", %{response: %Paginator{data: transactions, data_paging: data_paging}}) do
+  def render("transactions.json", %{
+        response: %Paginator{data: transactions, data_paging: data_paging},
+        app_infos: app_infos
+      }) do
     transactions
     |> Enum.map(&render_transaction/1)
     |> Response.serialize_page(data_paging)
+    |> Response.add_app_infos(app_infos)
   end
 
-  def render("submission.json", %{response: transaction}) do
+  def render("submission.json", %{response: transaction, app_infos: app_infos}) do
     transaction
     |> Response.serialize()
+    |> Response.add_app_infos(app_infos)
   end
 
-  def render("create.json", %{response: advice}) do
+  def render("create.json", %{response: advice, app_infos: app_infos}) do
     transactions =
       advice.transactions
       |> Enum.map(fn tx -> Map.update!(tx, :inputs, &render_txoutputs/1) end)
@@ -48,6 +54,7 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
     advice
     |> Map.put(:transactions, transactions)
     |> Response.serialize()
+    |> Response.add_app_infos(app_infos)
   end
 
   defp render_transaction(transaction) do

@@ -23,19 +23,19 @@ defmodule OMG.ChildChainRPC.Web.Views.Error do
   Handles client errors, e.g. malformed json in request body
   """
   def render("400.json", _) do
-    Error.serialize("operation:bad_request", "Server has failed to parse the request.")
+    Error.serialize("operation:bad_request", "Server has failed to parse the request.", %{})
   end
 
   @doc """
   Supports internal server error thrown by Phoenix.
   """
   def render("500.json", %{reason: %{message: message}}) do
-    Error.serialize("server:internal_server_error", message)
+    Error.serialize("server:internal_server_error", message, %{})
   end
 
   # In case no render clause matches or no
   # template is found, let's render it as 500
   def template_not_found(_template, _assigns) do
-    Error.serialize("server:internal_server_error", nil)
+    Error.serialize("server:internal_server_error", nil, %{})
   end
 end

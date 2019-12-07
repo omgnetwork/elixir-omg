@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.View.Fee do
   use OMG.WatcherRPC.Web, :view
   alias OMG.Utils.HttpRPC.Response
 
-  def render("fees_all.json", %{response: fees}) do
+  def render("fees_all.json", %{response: fees, app_infos: app_infos}) do
     fees
     |> Enum.map(fn fee ->
       fee
@@ -29,5 +29,6 @@ defmodule OMG.WatcherRPC.Web.View.Fee do
       |> Map.put(:updated_at, {:skip_hex_encode, fee.updated_at})
     end)
     |> Response.serialize()
+    |> Response.add_app_infos(app_infos)
   end
 end

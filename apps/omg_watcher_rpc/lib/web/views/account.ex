@@ -23,14 +23,16 @@ defmodule OMG.WatcherRPC.Web.View.Account do
 
   require Utxo
 
-  def render("balance.json", %{response: balance}) do
+  def render("balance.json", %{response: balance, app_infos: app_infos}) do
     balance
     |> Response.serialize()
+    |> Response.add_app_infos(app_infos)
   end
 
-  def render("utxos.json", %{response: utxos}) do
+  def render("utxos.json", %{response: utxos, app_infos: app_infos}) do
     utxos
     |> Enum.map(&to_utxo/1)
     |> Response.serialize()
+    |> Response.add_app_infos(app_infos)
   end
 end

@@ -19,7 +19,9 @@ defmodule OMG.ChildChainRPC.Web.View.Transaction do
 
   alias OMG.Utils.HttpRPC.Response
 
-  def render("submit.json", %{response: result}) do
-    Response.serialize(result)
+  def render("submit.json", %{response: result, app_infos: app_infos}) do
+    result
+    |> Response.serialize()
+    |> Response.add_app_infos(app_infos)
   end
 end

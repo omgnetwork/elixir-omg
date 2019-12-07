@@ -63,7 +63,7 @@ defmodule OMG.ChildChainRPC.Web do
 
         conn
         |> put_view(view_module)
-        |> render(template, response: data)
+        |> render(template, response: data, app_infos: conn.assigns.app_infos)
       end
     end
   end

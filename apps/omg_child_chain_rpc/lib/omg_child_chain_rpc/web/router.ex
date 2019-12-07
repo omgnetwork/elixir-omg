@@ -17,6 +17,7 @@ defmodule OMG.ChildChainRPC.Web.Router do
 
   pipeline :api do
     plug(:accepts, ["json"])
+    plug(OMG.Utils.HttpRPC.Plugs.ApplicationInfo, application: :omg_child_chain_rpc)
   end
 
   scope "/", OMG.ChildChainRPC.Web do
