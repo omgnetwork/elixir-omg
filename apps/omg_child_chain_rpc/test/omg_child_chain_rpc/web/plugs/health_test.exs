@@ -29,17 +29,21 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
       :ok =
         pull_client_alarm(
           300,
-          %{
-            "data" => [
-              %{
-                "boot_in_progress" => %{
-                  "node" => "nonode@nohost",
-                  "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
+          &match?(
+            %{
+              "data" => [
+                %{
+                  "boot_in_progress" => %{
+                    "node" => "nonode@nohost",
+                    "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
+                  }
                 }
-              }
-            ],
-            "success" => true
-          },
+                | _
+              ],
+              "success" => true
+            },
+            &1
+          ),
           fn -> TestHelper.rpc_call(:post, "/alarm.get", %{}) end
         )
 
@@ -54,14 +58,17 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
       :ok =
         pull_client_alarm(
           300,
-          %{
-            "data" => %{
-              "code" => "operation:service_unavailable",
-              "description" => "The server is not ready to handle the request.",
-              "object" => "error"
+          &match?(
+            %{
+              "data" => %{
+                "code" => "operation:service_unavailable",
+                "description" => "The server is not ready to handle the request.",
+                "object" => "error"
+              },
+              "success" => false
             },
-            "success" => false
-          },
+            &1
+          ),
           fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
         )
 
@@ -93,17 +100,21 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
       :ok =
         pull_client_alarm(
           300,
-          %{
-            "data" => [
-              %{
-                "ethereum_client_connection" => %{
-                  "node" => "nonode@nohost",
-                  "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
+          &match?(
+            %{
+              "data" => [
+                %{
+                  "ethereum_client_connection" => %{
+                    "node" => "nonode@nohost",
+                    "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
+                  }
                 }
-              }
-            ],
-            "success" => true
-          },
+                | _
+              ],
+              "success" => true
+            },
+            &1
+          ),
           fn -> TestHelper.rpc_call(:post, "/alarm.get", %{}) end
         )
 
@@ -118,14 +129,17 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
       :ok =
         pull_client_alarm(
           300,
-          %{
-            "data" => %{
-              "code" => "operation:service_unavailable",
-              "description" => "The server is not ready to handle the request.",
-              "object" => "error"
+          &match?(
+            %{
+              "data" => %{
+                "code" => "operation:service_unavailable",
+                "description" => "The server is not ready to handle the request.",
+                "object" => "error"
+              },
+              "success" => false
             },
-            "success" => false
-          },
+            &1
+          ),
           fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
         )
 
@@ -150,18 +164,16 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
 
   defp pull_client_alarm(0, _, _), do: :cant_match
 
-  defp pull_client_alarm(n, match, fnn) do
-    endpoint_call_result = fnn.()
-    match = Map.put_new(match, "version", Map.get(endpoint_call_result, "version"))
-    match = Map.put_new(match, "service_name", Map.get(endpoint_call_result, "service_name"))
+  defp pull_client_alarm(n, matcher_function, endpoint_call_function) do
+    endpoint_call_result = endpoint_call_function.()
 
-    case endpoint_call_result do
-      ^match ->
+    case matcher_function.(endpoint_call_result) do
+      true ->
         :ok
 
-      _ ->
+      false ->
         Process.sleep(10)
-        pull_client_alarm(n - 1, match, fnn)
+        pull_client_alarm(n - 1, matcher_function, endpoint_call_function)
     end
   end
 end
