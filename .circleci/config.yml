@@ -660,6 +660,8 @@ workflows:
           requires: [build]
       - test_barebone_release:
           requires: [build]
+      - barebuild_macos:
+          requires: [build]
       - lint:
           requires: [build]
       - sobelow:
