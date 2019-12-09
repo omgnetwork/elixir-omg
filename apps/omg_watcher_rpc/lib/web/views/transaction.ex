@@ -30,7 +30,7 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
 
   def render("transactions.json", %{response: %Paginator{data: transactions, data_paging: data_paging}}) do
     transactions
-    |> Enum.map(&render_tx_digest/1)
+    |> Enum.map(&render_transaction/1)
     |> Response.serialize_page(data_paging)
   end
 
@@ -55,26 +55,6 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
     |> Map.take([:txindex, :txhash, :block, :inputs, :outputs, :txbytes, :metadata])
     |> Map.update!(:inputs, &render_txoutputs/1)
     |> Map.update!(:outputs, &render_txoutputs/1)
-  end
-
-  defp render_tx_digest(transaction) do
-    outputs = Map.fetch!(transaction, :outputs)
-
-    transaction
-    |> Map.take([:txindex, :block, :txhash, :metadata])
-    |> Map.put(:results, digest_outputs(outputs))
-  end
-
-  # calculates results being sums of outputs grouped by currency
-  # NOTE: this could be potentially digested by the SQL engine, but choosing here for readability
-  defp digest_outputs(outputs) do
-    outputs
-    |> Enum.group_by(&Map.get(&1, :currency))
-    |> Enum.map(&digest_for_currency/1)
-  end
-
-  defp digest_for_currency({currency, outputs}) do
-    %{currency: currency, value: outputs |> Enum.map(&Map.get(&1, :amount)) |> Enum.sum()}
   end
 
   defp render_txoutputs(inputs) do

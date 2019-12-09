@@ -14,56 +14,21 @@
 
 defmodule OMG.Watcher.Supervisor do
   @moduledoc """
-  Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.State` pair, supervised elsewhere)
-  of the Watcher app
+  Starts and supervises child processes for the security-critical watcher. It may start its own child processes
+  or start other supervisors.
   """
   use Supervisor
   use OMG.Utils.LoggerExt
 
   alias OMG.Status.Alert.Alarm
-  alias OMG.Watcher
   alias OMG.Watcher.Monitor
   alias OMG.Watcher.SyncSupervisor
-
-  if Mix.env() == :test do
-    defmodule Sandbox do
-      @moduledoc """
-       Must be start after Watcher.DB.Repo,
-       that no data will be downloaded/inserted before setting the sandbox option.
-      """
-      use GenServer
-      alias Ecto.Adapters.SQL
-
-      def start_link(_args) do
-        GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
-      end
-
-      def init(stack) do
-        :ok = SQL.Sandbox.checkout(Watcher.DB.Repo)
-        SQL.Sandbox.mode(Watcher.DB.Repo, {:shared, self()})
-        {:ok, stack}
-      end
-    end
-  end
-
-  @children_run_after_repo if(Mix.env() == :test, do: [{__MODULE__.Sandbox, []}], else: [])
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
-    # why sandbox is in this code
-    # https://github.com/omisego/elixir-omg/pull/562
-    top_children =
-      [
-        %{
-          id: Watcher.DB.Repo,
-          start: {Watcher.DB.Repo, :start_link, []},
-          type: :supervisor
-        }
-      ] ++ @children_run_after_repo
-
     children = [
       {Monitor,
        [
@@ -81,6 +46,6 @@ defmodule OMG.Watcher.Supervisor do
 
     opts = [strategy: :one_for_one]
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(top_children ++ children, opts)
+    Supervisor.init(children, opts)
   end
 end

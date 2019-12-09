@@ -21,8 +21,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
   alias OMG.Eth
   alias OMG.Utxo
-  alias OMG.Watcher
   alias OMG.Watcher.Event
+  alias OMG.Watcher.Integration.BadChildChainServer
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
@@ -113,7 +113,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+    BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 

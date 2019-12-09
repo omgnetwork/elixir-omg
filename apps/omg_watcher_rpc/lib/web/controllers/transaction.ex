@@ -20,7 +20,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   use OMG.WatcherRPC.Web, :controller
 
   alias OMG.State.Transaction
-  alias OMG.Watcher.API
+  alias OMG.Watcher.API.Transaction, as: SecurityApiTransaction
+  alias OMG.WatcherInfo.API.Transaction, as: InfoApiTransaction
   alias OMG.WatcherRPC.Web.Validator
 
   @doc """
@@ -29,7 +30,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   def get_transaction(conn, params) do
     with {:ok, id} <- expect(params, "id", :hash) do
       id
-      |> API.Transaction.get()
+      |> InfoApiTransaction.get()
       |> api_response(conn, :transaction)
     end
   end
@@ -39,7 +40,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   """
   def get_transactions(conn, params) do
     with {:ok, constraints} <- Validator.Constraints.parse(params) do
-      API.Transaction.get_transactions(constraints)
+      InfoApiTransaction.get_transactions(constraints)
       |> api_response(conn, :transactions)
     end
   end
@@ -49,7 +50,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   """
   def submit(conn, params) do
     with {:ok, txbytes} <- expect(params, "transaction", :hex) do
-      submit_tx(txbytes, conn)
+      submit_tx_sec(txbytes, conn)
     end
   end
 
@@ -62,7 +63,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
       # validation and communicates with API layer with known structures than bytes
       signed_tx
       |> Transaction.Signed.encode()
-      |> submit_tx(conn)
+      |> submit_tx_inf(conn)
     end
   end
 
@@ -72,16 +73,24 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   """
   def create(conn, params) do
     with {:ok, order} <- Validator.Order.parse(params) do
-      API.Transaction.create(order)
-      |> API.Transaction.include_typed_data()
+      InfoApiTransaction.create(order)
+      |> InfoApiTransaction.include_typed_data()
       |> api_response(conn, :create)
     end
   end
 
   # Provides extra validation (recover_from) and passes transaction to API layer
-  defp submit_tx(txbytes, conn) do
+  defp submit_tx_inf(txbytes, conn) do
     with {:ok, %Transaction.Recovered{signed_tx: signed_tx}} <- Transaction.Recovered.recover_from(txbytes) do
-      API.Transaction.submit(signed_tx)
+      InfoApiTransaction.submit(signed_tx)
+      |> api_response(conn, :submission)
+    end
+  end
+
+  # Provides extra validation (recover_from) and passes transaction to API layer
+  defp submit_tx_sec(txbytes, conn) do
+    with {:ok, %Transaction.Recovered{signed_tx: signed_tx}} <- Transaction.Recovered.recover_from(txbytes) do
+      SecurityApiTransaction.submit(signed_tx)
       |> api_response(conn, :submission)
     end
   end

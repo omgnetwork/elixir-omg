@@ -131,9 +131,9 @@ services:
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
+      - PORT=7434
       - APP_ENV=local_development_watcher
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
@@ -146,6 +146,40 @@ services:
       - "7434"
     healthcheck:
       test: curl watcher:7434
+      interval: 30s
+      timeout: 1s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      plasma-contracts:
+        condition: service_healthy
+      childchain:
+        condition: service_healthy
+
+  watcher_info:
+    image: omisego/watcher_info:latest
+    command: "full_local"
+    environment:
+      - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
+      - ETHEREUM_RPC_URL=http://geth:8545
+      - ETHEREUM_WS_RPC_URL=ws://geth:8546
+      - CHILD_CHAIN_URL=http://childchain:9656
+      - ETHEREUM_NETWORK=LOCALCHAIN
+      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
+      - ERLANG_COOKIE=develop
+      - NODE_HOST=127.0.0.1
+      - PORT=7534
+      - APP_ENV=local_development_watcher_info
+      - DD_HOSTNAME=datadog
+      - DD_DISABLED=true
+      - DB_PATH=/app/.omg/data
+    restart: always
+    ports:
+      - "7534:7534"
+    expose:
+      - "7534"
+    healthcheck:
+      test: curl watcher_info:7534
       interval: 30s
       timeout: 1s
       retries: 5

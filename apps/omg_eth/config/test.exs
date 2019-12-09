@@ -15,8 +15,9 @@ config :omg_eth,
   client_monitor_interval_ms: 10,
   environment: :test,
   min_exit_period_seconds: 22,
-  # an entry to fix a common reference path to the root directory of the umbrella project
-  # this is useful because `mix test` and `mix coveralls --umbrella` have different views on the root dir when testing
+  # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory
+  # of the umbrella project. This is useful because `mix test` and `mix coveralls --umbrella`
+  # have different views on the root dir when testing.
   umbrella_root_dir: Path.join(__DIR__, "../../.."),
   ws_url: "ws://localhost:8546/ws",
   eth_node: :geth,

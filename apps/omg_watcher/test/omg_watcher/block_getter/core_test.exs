@@ -705,7 +705,6 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
         interval: 1_000,
         synced_height: 1,
         block_getter_reorg_margin: 5,
-        last_persisted_block: nil,
         state_at_beginning: true,
         exit_processor_results: {:ok, []},
         init_opts: []
@@ -719,56 +718,10 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              init_params.interval,
              init_params.synced_height,
              init_params.block_getter_reorg_margin,
-             init_params.last_persisted_block,
              init_params.state_at_beginning,
              init_params.exit_processor_results,
              init_params.init_opts
            ),
          do: state
-  end
-
-  describe "WatcherDB idempotency:" do
-    test "prevents older or block with the same blknum as previously consumed" do
-      state = init_state(last_persisted_block: 3000)
-
-      assert [] == Core.ensure_block_imported_once(%BlockApplication{number: 2000}, state)
-      assert [] == Core.ensure_block_imported_once(%BlockApplication{number: 3000}, state)
-    end
-
-    test "allows newer blocks to get consumed" do
-      state = init_state(last_persisted_block: 3000)
-
-      assert [
-               %{
-                 eth_height: 1,
-                 blknum: 4000,
-                 blkhash: <<0::256>>,
-                 timestamp: 0,
-                 transactions: []
-               }
-             ] ==
-               Core.ensure_block_imported_once(
-                 %BlockApplication{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0, eth_height: 1},
-                 state
-               )
-    end
-
-    test "do not hold blocks when not properly initialized or DB empty" do
-      state = init_state()
-
-      assert [
-               %{
-                 eth_height: 1,
-                 blknum: 4000,
-                 blkhash: <<0::256>>,
-                 timestamp: 0,
-                 transactions: []
-               }
-             ] ==
-               Core.ensure_block_imported_once(
-                 %BlockApplication{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0, eth_height: 1},
-                 state
-               )
-    end
   end
 end

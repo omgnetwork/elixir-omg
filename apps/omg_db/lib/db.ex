@@ -133,12 +133,10 @@ defmodule OMG.DB do
       :last_block_getter_eth_height,
       # watcher and child chain
       :last_depositor_eth_height,
-      :last_convenience_deposit_processor_eth_height,
       :last_exiter_eth_height,
       :last_piggyback_exit_eth_height,
       :last_in_flight_exit_eth_height,
       :last_exit_processor_eth_height,
-      :last_convenience_exit_processor_eth_height,
       :last_exit_finalizer_eth_height,
       :last_exit_challenger_eth_height,
       :last_in_flight_exit_processor_eth_height,
