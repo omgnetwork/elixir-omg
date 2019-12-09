@@ -23,6 +23,8 @@ defmodule OMG.WatcherInfo.DB.Block do
   alias OMG.State
   alias OMG.WatcherInfo.DB
 
+  import Ecto.Query, only: [from: 2]
+  
   @type mined_block() :: %{
           transactions: [State.Transaction.Recovered.t()],
           blknum: pos_integer(),
@@ -37,6 +39,8 @@ defmodule OMG.WatcherInfo.DB.Block do
     field(:hash, :binary)
     field(:eth_height, :integer)
     field(:timestamp, :integer)
+
+    has_many(:transactions, DB.Transaction, foreign_key: :blknum)
   end
 
   defp changeset(block, params) do
@@ -52,6 +56,21 @@ defmodule OMG.WatcherInfo.DB.Block do
   @spec get_max_blknum() :: non_neg_integer()
   def get_max_blknum do
     DB.Repo.aggregate(__MODULE__, :max, :blknum)
+  end
+
+  @doc """
+    Gets a block specified by a hash.
+  """
+  def get(hash) do
+    query =
+      from(
+        __MODULE__,
+        where: [hash: ^hash],
+        preload: [
+          transactions: ^from(tx in DB.Transaction, order_by: :blknum),
+        ]
+      )
+    DB.Repo.one(query)
   end
 
   @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
