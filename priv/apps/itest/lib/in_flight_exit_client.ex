@@ -17,7 +17,7 @@ defmodule Itest.InFlightExitClient do
   @ife_gas 2_000_000
   @ife_gas_price 1_000_000_000
   @retry_count 120
-  @min_exit_period 1_000
+  @min_exit_period 50_000
   @gas_process_exit 5_712_388
   @gas_process_exit_price 1_000_000_000
   @gas_add_exit_queue 800_000
@@ -159,7 +159,7 @@ defmodule Itest.InFlightExitClient do
     exit_game_contract_address: exit_game_contract_address
   } = se) do
 
-    Process.sleep(@min_exit_period)
+    Process.sleep(10_000)
 
     IO.inspect("---started piggyback ---")
     in_flight_tx = exit_data["in_flight_tx"] |> Encoding.to_binary()
