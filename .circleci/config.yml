@@ -87,7 +87,7 @@ jobs:
       - run:
           name: Integration Tests
           command: |
-            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration` works
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
             export SHELL=/bin/bash
             mix test --trace --only integration
   barebuild_macos:
@@ -334,9 +334,9 @@ jobs:
       - run:
           name: Integration Tests
           command: |
-            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration` works
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
             export SHELL=/bin/bash
-            mix test --only integration
+            mix test --trace --only integration
 
   dialyzer:
     executor: builder_pg
@@ -626,8 +626,8 @@ workflows:
                 - master
     jobs:
       - build
-      - integration_tests:
-          requires: [build]
+      #- integration_tests:
+      #    requires: [build]
       - barebuild:
           requires: [build]
       - barebuild_macos:
@@ -635,6 +635,8 @@ workflows:
   build-deploy:
     jobs:
       - build
+      - integration_tests:
+          requires: [build]
       - notify_services:
           requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
           filters:
