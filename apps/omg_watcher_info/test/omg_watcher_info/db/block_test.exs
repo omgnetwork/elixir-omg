@@ -32,6 +32,12 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     end
   end
 
+  describe "get/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "retrieves block by bloch hash" do
+    end
+  end
+
   describe "get_max_blknum/0" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "last consumed block is not set in empty database" do
