@@ -128,7 +128,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   test "only asking for spends concerning ifes",
        %{alice: alice, processor_empty: processor, state_empty: state_empty} do
-    processor = processor |> start_ife_from(TestHelper.create_recovered([{1, 0, 0, alice}], []))
+    processor = processor |> start_ife_from(TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 1}]))
 
     state = state_empty |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
     comp = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}])

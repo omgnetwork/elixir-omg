@@ -392,15 +392,24 @@ defmodule OMG.State.CoreTest do
       |> success?()
 
     state
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, bob}], @eth, []), :no_fees_required)
+    |> Core.exec(
+      create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, bob}], @eth, [{alice, 1}]),
+      :no_fees_required
+    )
     |> fail?(:unauthorized_spend)
     |> same?(state)
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}, {@blknum1, 0, 1, alice}], @eth, []), :no_fees_required)
+    |> Core.exec(
+      create_recovered([{@blknum1, 0, 0, alice}, {@blknum1, 0, 1, alice}], @eth, [{alice, 1}]),
+      :no_fees_required
+    )
     |> fail?(:unauthorized_spend)
     |> same?(state)
 
     state
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, []), :no_fees_required)
+    |> Core.exec(
+      create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 1}]),
+      :no_fees_required
+    )
     |> success?()
   end
 
@@ -898,14 +907,6 @@ defmodule OMG.State.CoreTest do
     {:ok, _, state} = state |> form_block_check()
 
     assert {@blknum2, true} = Core.get_status(state)
-  end
-
-  @tag fixtures: [:alice, :state_empty]
-  test "Transaction can have no outputs", %{alice: alice, state_empty: state} do
-    state
-    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, []), :no_fees_required)
-    |> success?
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
