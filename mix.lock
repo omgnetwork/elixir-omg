@@ -22,7 +22,7 @@
   "ethereumex": {:hex, :ethereumex, "0.5.5", "af623a88e78a3abcab28cbbc7817ace6e8a430e19d6514e9b39ed871224cc041", [:mix], [{:httpoison, "~> 1.4.0", [hex: :httpoison, repo: "hexpm", optional: false]}, {:jason, "~> 1.1", [hex: :jason, repo: "hexpm", optional: false]}, {:poolboy, "~> 1.5.1", [hex: :poolboy, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_abi": {:hex, :ex_abi, "0.2.1", "e8224ef22782b58d535bf3e29e73379af48df52cc9a941746980d14b32e793c2", [:mix], [{:exth_crypto, "~> 0.1.6", [hex: :exth_crypto, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_doc": {:hex, :ex_doc, "0.20.2", "1bd0dfb0304bade58beb77f20f21ee3558cc3c753743ae0ddbb0fd7ba2912331", [:mix], [{:earmark, "~> 1.3", [hex: :earmark, repo: "hexpm", optional: false]}, {:makeup_elixir, "~> 0.10", [hex: :makeup_elixir, repo: "hexpm", optional: false]}], "hexpm"},
-  "ex_plasma": {:git, "https://github.com/omisego/ex_plasma.git", "0ff360c7e169ecfb14e1ed5d8464521df34c929a", [branch: "achiurizo/fixes"]},
+  "ex_plasma": {:git, "https://github.com/omisego/ex_plasma.git", "f50edf5ff6ba8ae5cad634f6ad18ec457f5b048e", [branch: "achiurizo/omg-merkle-dep"]},
   "ex_rlp": {:hex, :ex_rlp, "0.5.2", "7f4ce7bd55e543c054ce6d49629b01e9833c3462e3d547952be89865f39f2c58", [:mix], [], "hexpm"},
   "ex_unit_fixtures": {:git, "https://github.com/omisego/ex_unit_fixtures.git", "4a099c621dc70e0d65cb9619b38192e31ec5f504", [branch: "feature/require_files_not_load"]},
   "exactor": {:hex, :exactor, "2.2.4", "5efb4ddeb2c48d9a1d7c9b465a6fffdd82300eb9618ece5d34c3334d5d7245b1", [:mix], [], "hexpm"},
