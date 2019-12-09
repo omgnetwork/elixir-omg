@@ -69,7 +69,7 @@ defmodule OMG.Utxo.Position do
   def txindex(Utxo.position(_, txindex, _)), do: txindex
   def oindex(Utxo.position(_, _, oindex)), do: oindex
 
-  @spec get_position(pos_integer()) :: {non_neg_integer, non_neg_integer, non_neg_integer}
+  @spec get_position(pos_integer()) :: {non_neg_integer, non_neg_integer, char}
   defp get_position(encoded) when is_integer(encoded) and encoded > 0 do
     blknum = div(encoded, @block_offset)
     txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
