@@ -1047,11 +1047,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:alice, :more_utxos, :blocks_inserter]
-    test "transaction without payments that burns funds in fees is correct",
-         %{alice: alice, blocks_inserter: blocks_inserter} do
-      alice_addr = Encoding.to_hex(alice.addr)
-      alice_balance = balance_in_token(alice.addr, @other_token)
+    @tag fixtures: [:alice, :more_utxos]
+    test "transaction without payments that burns funds in fees is created correctly and incorrect on decoding",
+         %{alice: alice} do
       fee = 15
 
       assert %{
@@ -1061,15 +1059,13 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => alice_addr,
+                   "owner" => Encoding.to_hex(alice.addr),
                    "payments" => [],
                    "fee" => %{"amount" => fee, "currency" => @other_token_hex}
                  }
                )
 
-      make_payments(7000, alice, [tx_hex], blocks_inserter)
-
-      assert alice_balance - fee == balance_in_token(alice.addr, @other_token)
+      assert {:error, :empty_outputs} = tx_hex |> from_hex!() |> Transaction.decode()
     end
 
     defp balance_in_token(address, token) do
