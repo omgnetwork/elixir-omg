@@ -348,24 +348,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
 
-    @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
-    test "returns tx without outputs (amount = 0) and contains requested address as sender", %{
-      blocks_inserter: blocks_inserter,
-      alice: alice,
-      bob: bob
-    } do
-      blocks_inserter.([
-        {1000,
-         [
-           Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 0}])
-         ]}
-      ])
-
-      address = alice.addr |> Encoding.to_hex()
-
-      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
-    end
-
     @tag fixtures: [:initial_blocks]
     test "returns transactions containing metadata", %{initial_blocks: initial_blocks} do
       {blknum, txindex, txhash, recovered_tx} = initial_blocks |> Enum.find(&match?({2000, 0, _, _}, &1))

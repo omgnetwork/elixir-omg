@@ -80,37 +80,6 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
            } = WatcherHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
   end
 
-  @tag fixtures: [:blocks_inserter, :alice]
-  test "outputs with value zero are not inserted into DB, the other has correct oindex", %{
-    alice: alice,
-    blocks_inserter: blocks_inserter
-  } do
-    blknum = 11_000
-
-    blocks_inserter.([
-      {blknum,
-       [
-         OMG.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 100}]),
-         OMG.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])
-       ]}
-    ])
-
-    [
-      %{
-        "amount" => 100,
-        "blknum" => ^blknum,
-        "txindex" => 0,
-        "oindex" => 1
-      },
-      %{
-        "amount" => 101,
-        "blknum" => ^blknum,
-        "txindex" => 1,
-        "oindex" => 0
-      }
-    ] = WatcherHelper.get_utxos(alice.addr) |> Enum.filter(&match?(%{"blknum" => ^blknum}, &1))
-  end
-
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles improper type of parameter" do
     assert %{

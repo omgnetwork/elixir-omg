@@ -901,16 +901,6 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :state_empty]
-  test "Output with zero value does not change oindex of other outputs", %{alice: alice, state_empty: state} do
-    state
-    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}, {alice, 8}]), :no_fees_required)
-    |> success?
-    |> Core.exec(create_recovered([{1000, 0, 1, alice}], @eth, [{alice, 1}]), :no_fees_required)
-    |> success?
-  end
-
-  @tag fixtures: [:alice, :state_empty]
   test "Transaction can have no outputs", %{alice: alice, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})

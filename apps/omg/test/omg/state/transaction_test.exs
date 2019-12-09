@@ -291,11 +291,40 @@ defmodule OMG.State.TransactionTest do
     end
 
     @tag fixtures: [:alice]
-    test "Decoding transaction with gaps in outputs is ok now", %{alice: alice} do
+    test "Decoding transaction with zero amount in outputs fails ", %{alice: alice} do
+      assert {:error, :malformed_outputs} =
+               TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{alice, 0}, {alice, 100}])
+               |> Transaction.Recovered.recover_from()
+    end
+
+    @tag fixtures: [:alice]
+    test "Decoding transaction with zero output fails", %{alice: alice} do
       no_account = %{addr: @zero_address}
 
+      assert {:error, :malformed_outputs} =
+               TestHelper.create_encoded([{1000, 0, 0, alice}], [{no_account, @zero_address, 0}])
+               |> Transaction.Recovered.recover_from()
+    end
+
+    @tag fixtures: [:alice]
+    test "Decoding transaction with zero output type fails", %{alice: alice} do
+      good_tx_rlp_items =
+        TestHelper.create_encoded([{1000, 0, 0, alice}], [{alice, @eth, 10}])
+        |> ExRLP.decode()
+
+      outputs_index_in_rlp = 3
+      [_type | output_fields] = Enum.at(good_tx_rlp_items, outputs_index_in_rlp)
+
+      assert {:error, :unrecognized_output_type} =
+               good_tx_rlp_items
+               |> List.replace_at(outputs_index_in_rlp, [0 | output_fields])
+               |> ExRLP.encode()
+               |> Transaction.Recovered.recover_from()
+
+      # sanity check just in case
       assert {:ok, _} =
-               TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{no_account, 0}, {alice, 100}])
+               good_tx_rlp_items
+               |> ExRLP.encode()
                |> Transaction.Recovered.recover_from()
     end
 

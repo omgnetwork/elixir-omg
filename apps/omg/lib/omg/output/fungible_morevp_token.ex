@@ -33,9 +33,10 @@ defmodule OMG.Output.FungibleMoreVPToken do
   def reconstruct([owner, currency, amount]) do
     with {:ok, cur12} <- parse_address(currency),
          {:ok, owner} <- parse_address(owner),
-         do: %__MODULE__{owner: owner, currency: cur12, amount: parse_int!(amount)}
+         do: %__MODULE__{owner: owner, currency: cur12, amount: amount |> parse_int!() |> parse_amount!()}
   end
 
+  defp parse_amount!(amount) when is_integer(amount) and amount > 0, do: amount
   defp parse_int!(binary), do: :binary.decode_unsigned(binary, :big)
 
   # necessary, because RLP handles empty string equally to integer 0

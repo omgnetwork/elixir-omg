@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DependencyConformance.SignatureTest do
+defmodule OMG.Conformance.SignatureTest do
   @moduledoc """
   Tests that EIP-712-compliant signatures generated `somehow` (via Elixir code as it happens) are treated the same
   by both Elixir signature code and contract signature code.
