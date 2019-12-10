@@ -27,6 +27,7 @@ defmodule PaymentContext do
 
   scenario_starting_state(fn _ ->
     {:ok, [{alice, alice_pkey}, {bob, bob_pkey}]} = Account.take_accounts(2)
+
     %{
       alice: %{address: alice, key: alice_pkey},
       bob: %{address: bob, key: bob_pkey}
@@ -68,7 +69,7 @@ defmodule PaymentContext do
     {:ok, state}
   end
 
-  def balance_for(%{} = state , %{owner: owner, amount: amount}) do
+  def balance_for(%{} = state, %{owner: owner, amount: amount}) do
     %{address: address} = get_account(owner, state)
 
     expecting_amount = Currency.to_wei(amount)
@@ -106,24 +107,23 @@ defmodule PaymentContext do
     state[key]
   end
 
-  #defp track_account(account) do
-    # count beginning balance
-    #{:ok, initial_balance} = Client.eth_get_balance(alice_account)
-    #{initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
+  # defp track_account(account) do
+  # count beginning balance
+  # {:ok, initial_balance} = Client.eth_get_balance(alice_account)
+  # {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
 
+  # Run function, save receipt and calc gas.
 
-    # Run function, save receipt and calc gas.
+  # gas_used = Client.get_gas_used(receipt_hash)
 
-    #gas_used = Client.get_gas_used(receipt_hash)
-
-    #{_, new_state} =
-      #Map.get_and_update!(state, :gas, fn current_gas ->
-        #{current_gas, current_gas + gas_used}
-      #end)
-    # re-count balance
-    #{:ok, balance_after_deposit} = Client.eth_get_balance(alice_account)
-    #{balance_after_deposit, ""} = balance_after_deposit |> String.replace_prefix("0x", "") |> Integer.parse(16)
-    #state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
-    #{:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
-  #end
+  # {_, new_state} =
+  # Map.get_and_update!(state, :gas, fn current_gas ->
+  # {current_gas, current_gas + gas_used}
+  # end)
+  # re-count balance
+  # {:ok, balance_after_deposit} = Client.eth_get_balance(alice_account)
+  # {balance_after_deposit, ""} = balance_after_deposit |> String.replace_prefix("0x", "") |> Integer.parse(16)
+  # state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
+  # {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
+  # end
 end

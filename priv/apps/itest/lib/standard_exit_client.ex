@@ -182,7 +182,7 @@ defmodule Itest.StandardExitClient do
     _ = Logger.info("Will sleep for #{@min_exit_period} to process exit.")
     Process.sleep(@min_exit_period)
 
-    # TODO this should use the standard_exit_id instead and figure out
+    # NB this should use the standard_exit_id instead and figure out
     # why this isn't the topExitID on clean slate.
     data =
       ABI.encode(

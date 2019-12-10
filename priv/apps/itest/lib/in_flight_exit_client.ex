@@ -1,13 +1,14 @@
 defmodule Itest.InFlightExitClient do
   @moduledoc """
+  Client to run the in flight exit flow
   """
 
+  alias Itest.Client
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
   alias Itest.Transactions.PaymentType
-  alias Itest.Client
-  alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Api.InFlightExit
+  alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Model.InFlightExitTxBytesBodySchema
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 2]
@@ -54,13 +55,11 @@ defmodule Itest.InFlightExitClient do
     |> process_exit()
   end
 
-
   defp get_exit_data(%{signed_txbytes: txbytes} = se) do
     payload = %InFlightExitTxBytesBodySchema{txbytes: txbytes}
     {:ok, response} = InFlightExit.in_flight_exit_get_data(Watcher.new(), payload)
 
     exit_data = Jason.decode!(response.body)["data"]
-    IO.inspect(exit_data)
     %{se | exit_data: exit_data}
   end
 
@@ -97,7 +96,9 @@ defmodule Itest.InFlightExitClient do
     %{se | exit_game_contract_address: exit_game_contract_address}
   end
 
-  defp do_in_flight_exit(%{address: address, exit_data: exit_data, exit_game_contract_address: exit_game_contract_address} = se) do
+  defp do_in_flight_exit(
+         %{address: address, exit_data: exit_data, exit_game_contract_address: exit_game_contract_address} = se
+       ) do
     in_flight_tx = exit_data["in_flight_tx"] |> Encoding.to_binary()
     in_flight_tx_sigs = Enum.map(exit_data["in_flight_tx_sigs"], &Encoding.to_binary(&1))
     input_txs = Enum.map(exit_data["input_txs"], &Encoding.to_binary(&1))
@@ -107,17 +108,16 @@ defmodule Itest.InFlightExitClient do
     # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
     optional_bytes_array = List.duplicate("", Enum.count(input_txs))
 
-     values = [
+    values = [
       {in_flight_tx, input_txs, input_utxos_pos, optional_bytes_array, input_txs_inclusion_proofs, optional_bytes_array,
-       in_flight_tx_sigs, optional_bytes_array}]
-
-    IO.inspect("----building ife----")
-    IO.inspect(values)
+       in_flight_tx_sigs, optional_bytes_array}
+    ]
 
     data =
       ABI.encode(
         "startInFlightExit((bytes,bytes[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[]))",
-        values)
+        values
+      )
 
     txmap = %{
       from: address,
@@ -131,9 +131,6 @@ defmodule Itest.InFlightExitClient do
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     wait_on_receipt_confirmed(receipt_hash, @retry_count)
 
-    IO.inspect("---started in flight exit ---")
-    IO.inspect(receipt_hash)
-
     %{se | start_in_flight_exit: receipt_hash}
   end
 
@@ -141,27 +138,25 @@ defmodule Itest.InFlightExitClient do
     txbytes = exit_data["in_flight_tx"] |> Encoding.to_binary()
     data = ABI.encode("getInFlightExitId(bytes)", [txbytes])
     {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: exit_game_contract_address, data: Encoding.to_hex(data)})
+
     exit_id =
       result
       |> Encoding.to_binary()
       |> ABI.TypeDecoder.decode([{:uint, 128}])
       |> hd()
 
-    IO.inspect("---- exit id ----")
-    IO.inspect(exit_id)
-
     %{se | exit_id: exit_id}
   end
 
-  defp piggyback_input(%{
-    address: address,
-    exit_data: exit_data, 
-    exit_game_contract_address: exit_game_contract_address
-  } = se) do
-
+  defp piggyback_input(
+         %{
+           address: address,
+           exit_data: exit_data,
+           exit_game_contract_address: exit_game_contract_address
+         } = se
+       ) do
     Process.sleep(10_000)
 
-    IO.inspect("---started piggyback ---")
     in_flight_tx = exit_data["in_flight_tx"] |> Encoding.to_binary()
 
     data =
@@ -181,17 +176,13 @@ defmodule Itest.InFlightExitClient do
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     wait_on_receipt_confirmed(receipt_hash, @retry_count)
 
-    IO.inspect(receipt_hash)
-
     %{se | piggyback_input_hash: receipt_hash}
   end
 
   defp process_exit(%__MODULE__{address: address} = se) do
     Process.sleep(@min_exit_period)
 
-    IO.inspect("attempting process exit...")
-
-    # TODO this should use the standard_exit_id instead and figure out
+    # NB this should use the standard_exit_id instead and figure out
     # why this isn't the topExitID on clean slate.
     data =
       ABI.encode(
