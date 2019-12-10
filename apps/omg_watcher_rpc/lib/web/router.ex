@@ -49,13 +49,14 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/account.get_transactions", Controller.Transaction, :get_transactions)
 
     post("/block.all", Controller.Block, :get_blocks)
+    post("/block.get", Controller.Block, :get_block)
+
+    post("/deposit.all", Controller.Utxo, :get_deposits)
 
     post("/transaction.all", Controller.Transaction, :get_transactions)
     post("/transaction.get", Controller.Transaction, :get_transaction)
     post("/transaction.create", Controller.Transaction, :create)
     post("/transaction.submit_typed", Controller.Transaction, :submit_typed)
-
-    post("/block.get", Controller.Block, :get_block)
 
     post("/fees.all", Controller.Fee, :fees_all)
   end

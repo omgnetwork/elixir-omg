@@ -22,6 +22,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Utxo do
 
   alias OMG.Utxo
   alias OMG.Watcher.API
+  alias OMG.WatcherInfo.API.Utxo, as: InfoApiUtxo
+  alias OMG.WatcherRPC.Web.Validator
 
   def get_utxo_exit(conn, params) do
     with {:ok, utxo_pos} <- expect(params, "utxo_pos", :pos_integer),
@@ -29,6 +31,14 @@ defmodule OMG.WatcherRPC.Web.Controller.Utxo do
       utxo
       |> API.Utxo.compose_utxo_exit()
       |> api_response(conn, :utxo_exit)
+    end
+  end
+
+  def get_deposits(conn, params) do
+    # add utxo_type = deposit (or ethevent.event_type) as a constraint here
+    with {:ok, constraints} <- Validator.UtxoConstraints.parse(params) do
+      InfoApiUtxo.get_utxos(constraints)
+      |> api_response(conn, :deposits)
     end
   end
 end
