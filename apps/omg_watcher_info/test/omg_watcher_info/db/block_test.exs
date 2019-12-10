@@ -33,8 +33,27 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   end
 
   describe "get/1" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "retrieves block by bloch hash" do
+    @tag fixtures: [:initial_blocks]
+    test "retrieves a block by block hash" do
+      hash = "##{1000}"
+      block = hash |> DB.Block.get()
+
+      assert block.__struct__ == DB.Block
+      assert block.hash == hash
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "the transactions associated with a block can be preloaded", %{initial_blocks: initial_blocks} do
+      blknum = 1000
+
+      %{:transactions => transactions} =
+        DB.Repo.get(DB.Block, blknum)
+        |> DB.Repo.preload(:transactions)
+
+      hash = "##{blknum}"
+      block = hash |> DB.Block.get()
+
+      assert block.transactions == transactions
     end
   end
 

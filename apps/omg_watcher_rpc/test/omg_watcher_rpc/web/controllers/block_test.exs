@@ -29,21 +29,45 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   describe "get_block\2" do
     @tag fixtures: [:initial_blocks]
     test "/block.get endpoint rejects parameter of length unequal to 32" do
-      too_short_addr = %{hash: "0x" <> String.duplicate("00", 20)}
+      wrong_length_addr = "0x" <> String.duplicate("00", 20)
+      %{"data" => data} = WatcherHelper.rpc_call("block.get", %{id: wrong_length_addr}, 200)
 
-      assert %{
-               "success" => false,
-               "data" => %{
-                 "object" => "error",
-                 "code" => "operation:bad_request",
-                 "messages" => %{
-                   "validation_error" => %{
-                     "parameter" => "hash",
-                     "validator" => "{:length, 32}"
-                   }
-                 }
-               }
-             } = WatcherHelper.rpc_call(:post, "block.get", too_short_addr)
+      expected = %{
+        "code" => "operation:bad_request",
+        "description" => "Parameters required by this operation are missing or incorrect.",
+        "messages" => %{"validation_error" => %{"parameter" => "id", "validator" => ":hex"}},
+        "object" => "error"
+      }
+
+      assert data = expected
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "/block.get endpoint rejects request without parameters" do
+      missing_param = %{}
+      %{"data" => data} = WatcherHelper.rpc_call("block.get", missing_param, 200)
+
+      expected = %{
+        "code" => "operation:bad_request",
+        "messages" => %{"validation_error" => %{"parameter" => "id", "validator" => ":hex"}},
+        "object" => "error"
+      }
+
+      assert data = expected
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "/block.get returns expected error if block not found" do
+      right_length_addr = "0x" <> String.duplicate("00", 32)
+      %{"data" => data} = WatcherHelper.rpc_call("block.get", %{id: right_length_addr}, 200)
+
+      expected = %{
+        "code" => "get_block:block_not_found",
+        "description" => nil,
+        "object" => "error"
+      }
+
+      assert data = expected
     end
   end
 end
