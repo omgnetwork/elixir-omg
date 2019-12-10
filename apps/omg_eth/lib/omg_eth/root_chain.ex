@@ -94,7 +94,7 @@ defmodule OMG.Eth.RootChain do
 
   # TODO: see above in where it is called - temporary function
   defp call_contract_manual_standard_exits(contract, signature, args, return_types) do
-    data = signature |> ABI.encode(args)
+    data = ABI.encode(signature, args)
 
     with {:ok, return} <- Ethereumex.HttpClient.eth_call(%{to: to_hex(contract), data: to_hex(data)}),
          do: decode_answer_manual_standard_exits(return, return_types)
