@@ -1,5 +1,5 @@
 # Aligns with CI/CD builder at https://github.com/omisego-images/docker-elixir-omg/blob/master/builder/Dockerfile.elixir
-elixir 1.8.1
+elixir 1.8.2
 
 # Aligns with CI/CD builder at https://github.com/omisego-images/docker-elixir-omg/blob/master/builder/Dockerfile.erlang
 erlang 21.2.4

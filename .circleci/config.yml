@@ -112,10 +112,10 @@ jobs:
           source ~/.bash_profile
           asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
           asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
-          asdf install erlang 21.0
+          asdf install erlang 21.2.4
           asdf install elixir 1.8.2
           asdf global elixir 1.8.2
-          asdf global erlang 21.0
+          asdf global erlang 21.2.4
       - run:
           command: ./bin/setup
           no_output_timeout: 2400
@@ -398,7 +398,7 @@ jobs:
             sudo dpkg --configure -a || true &&
             sudo dpkg -i erlang-solutions_2.0_all.deb  &&
             sudo apt-get update &&
-            sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2-1
+            sudo apt-get install esl-erlang=1:21.2.4-1 elixir=1.8.2-1
       - run: sh .circleci/status.sh
       - restore_cache:
           key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
@@ -453,14 +453,14 @@ jobs:
             source ~/.bash_profile
             asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
             asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
-            asdf install erlang 21.0
+            asdf install erlang 21.2.4
           no_output_timeout: 2400
       - run: |
           source ~/.bash_profile
           asdf install elixir 1.8.2
       - run: |
           source ~/.bash_profile
-          asdf global erlang 21.0
+          asdf global erlang 21.2.4
       - run:
           command: |
             echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
