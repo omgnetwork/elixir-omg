@@ -83,7 +83,10 @@ defmodule PaymentContext do
   end
 
   def balance_after_finality_for(state, arguments) do
-    Process.sleep(@finality_margin_by_blocks * 500 + 15_000)
+    # Ganache has the `blockTime` set to 0.5sec(500ms), so we wait 0.5 secs for
+    # each finality margin block before checking balance and add 5 secs to pad
+    # for delays.
+    Process.sleep(@finality_margin_by_blocks * 500 + 5_000)
     balance_for(state, arguments)
   end
 
