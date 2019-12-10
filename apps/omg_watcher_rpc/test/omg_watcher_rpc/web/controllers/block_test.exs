@@ -28,7 +28,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   describe "get_block\2" do
     @tag fixtures: [:initial_blocks]
-    test "/block.get endpoint rejects parameter of length unequal to 32" do
+    test "/block.get endpoint rejects parameter of incorrect length" do
       wrong_length_addr = "0x" <> String.duplicate("00", 20)
       %{"data" => data} = WatcherHelper.rpc_call("block.get", %{id: wrong_length_addr}, 200)
 
