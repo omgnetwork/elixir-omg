@@ -9,6 +9,7 @@ defmodule PaymentContext do
   alias Itest.Transactions.Currency
   alias Itest.Account
   alias Itest.Client
+  alias Itest.Poller
   alias Itest.StandardExitClient
   alias Itest.InFlightExitClient
 
@@ -73,8 +74,8 @@ defmodule PaymentContext do
     %{address: address} = get_account(owner, state)
 
     expecting_amount = Currency.to_wei(amount)
-    balance = Client.get_balance(address, expecting_amount)
-    balance = if balance == [], do: 0, else: balance["amount"]
+    response = Poller.pull_balance_until_amount(address, expecting_amount)
+    balance = if response == [], do: 0, else: response["amount"]
 
     assert expecting_amount == balance, "Expecting #{owner} balance to be #{expecting_amount}, was #{balance}"
 
