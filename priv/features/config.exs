@@ -2,9 +2,9 @@ defmodule WhiteBreadConfig do
   use WhiteBread.SuiteConfiguration
 
   suite(
-    name: "All",
-    context: WhiteBreadContext,
-    feature_paths: ["features/"],
+    name: "Payments",
+    context: PaymentContext,
+    feature_paths: ["features/payments/"],
     run_async: true
   )
 end
