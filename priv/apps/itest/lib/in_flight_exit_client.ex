@@ -99,7 +99,7 @@ defmodule Itest.InFlightExitClient do
   defp do_in_flight_exit(
          %{address: address, exit_data: exit_data, exit_game_contract_address: exit_game_contract_address} = se
        ) do
-    in_flight_tx = exit_data["in_flight_tx"] |> Encoding.to_binary()
+    in_flight_tx = Encoding.to_binary(exit_data["in_flight_tx"])
     in_flight_tx_sigs = Enum.map(exit_data["in_flight_tx_sigs"], &Encoding.to_binary(&1))
     input_txs = Enum.map(exit_data["input_txs"], &Encoding.to_binary(&1))
     input_txs_inclusion_proofs = Enum.map(exit_data["input_txs_inclusion_proofs"], &Encoding.to_binary(&1))
