@@ -21,6 +21,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   use Ecto.Schema
 
   alias OMG.State.Transaction
+  alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Repo
@@ -78,6 +79,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     )
   end
 
+  # get unspent utxos by owner address
   def get_utxos(owner) do
     query =
       from(
@@ -96,6 +98,25 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
       )
 
     Repo.all(query)
+  end
+
+  @doc """
+  Returns utxos possibly filtered by constraints
+  * constraints - accepts keyword in the form of [schema_field: value] or [join_table.schema_field: value]
+  """
+  @spec get_by_filters(Keyword.t(), Paginator.t()) :: Paginator.t()
+  def get_by_filters(constraints, paginator) do
+    # utxo_type? or ethevent.event_type for easier join constraints?
+    allowed_constraints = [:address, :utxo_type]
+
+    constraints = filter_constraints(constraints, allowed_constraints)
+
+    # we need to handle complex constraints with dedicated modifier function
+    {address, constraints} = Keyword.pop(constraints, :address)
+
+    query_get_by(constraints)
+    |> DB.Repo.all()
+    |> Paginator.set_data(paginator)
   end
 
   @spec get_balance(OMG.Crypto.address_t()) :: list(balance())

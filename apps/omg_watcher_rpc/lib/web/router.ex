@@ -48,6 +48,8 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/account.get_utxos", Controller.Account, :get_utxos)
     post("/account.get_transactions", Controller.Transaction, :get_transactions)
 
+    post("/deposit.all", Controller.Utxo, :get_deposits)
+
     post("/transaction.all", Controller.Transaction, :get_transactions)
     post("/transaction.get", Controller.Transaction, :get_transaction)
     post("/transaction.create", Controller.Transaction, :create)
