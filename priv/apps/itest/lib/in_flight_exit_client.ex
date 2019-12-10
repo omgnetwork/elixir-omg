@@ -96,6 +96,9 @@ defmodule Itest.InFlightExitClient do
     %{se | exit_game_contract_address: exit_game_contract_address}
   end
 
+  # This takes all the data we get from the Watcher to start an in flight exit.
+  # Since we get it as a hex string, we convert it back to binary so that we can
+  # ABI encode the data and send it back to the contract to start the in flight exit.
   defp do_in_flight_exit(
          %{address: address, exit_data: exit_data, exit_game_contract_address: exit_game_contract_address} = se
        ) do
@@ -106,6 +109,7 @@ defmodule Itest.InFlightExitClient do
     input_utxos_pos = Enum.map(exit_data["input_utxos_pos"], &:binary.encode_unsigned(&1))
 
     # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
+    # Currently, these values are available on the contract but aren't used on our end(yet).
     optional_bytes_array = List.duplicate("", Enum.count(input_txs))
 
     values = [
