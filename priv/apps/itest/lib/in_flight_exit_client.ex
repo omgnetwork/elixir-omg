@@ -248,7 +248,7 @@ defmodule Itest.InFlightExitClient do
     if has_exit_queue?() do
       se
     else
-      Process.sleep(@sleep_retry_sec)
+      Process.sleep(2_000)
       wait_for_exit_queue(se, counter - 1)
     end
   end
