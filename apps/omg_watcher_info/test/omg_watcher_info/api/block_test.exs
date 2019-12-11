@@ -19,11 +19,7 @@ defmodule OMG.WatcherInfo.API.BlockTest do
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
-  alias OMG.State.Transaction
-  alias OMG.TestHelper, as: Test
-  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.DB
-  alias Support.WatcherHelper
   alias OMG.WatcherInfo.API.Block
 
   describe "get_block/1" do

@@ -19,12 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
-  alias OMG.TestHelper, as: Test
-  alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
-
-  @default_data_paging %{"limit" => 200, "page" => 1}
 
   describe "get_block\2" do
     @tag fixtures: [:initial_blocks]

@@ -43,7 +43,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     end
 
     @tag fixtures: [:initial_blocks]
-    test "the transactions associated with a block can be preloaded", %{initial_blocks: initial_blocks} do
+    test "the transactions associated with a block can be preloaded" do
       blknum = 1000
 
       %{:transactions => transactions} =
