@@ -89,7 +89,6 @@ defmodule OMG.ChildChain.FeeServer do
     {:noreply, state}
   end
 
-  # sobelow_skip ["Traversal"]
   @spec update_fee_specs(module()) :: :ok | {:error, atom() | [{:error, atom()}, ...]}
   defp update_fee_specs(adapter) do
     source_updated_at = :ets.lookup_element(:fees_bucket, :fee_specs_source_updated_at, 2)

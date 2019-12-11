@@ -28,6 +28,7 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
   When using this adapter, the operator can change the fees by updating a
   JSON file that is loaded from disk (path variable).
   """
+  # sobelow_skip ["Traversal"]
   @impl true
   def get_fee_specs(recorded_file_updated_at) do
     path = get_path()
