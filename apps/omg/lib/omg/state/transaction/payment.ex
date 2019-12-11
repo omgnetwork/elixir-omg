@@ -28,6 +28,7 @@ defmodule OMG.State.Transaction.Payment do
   require Utxo
 
   @zero_metadata <<0::256>>
+  # TODO: figure out how to nicely reference markers map from config
   @payment_output_type_marker <<1>>
 
   defstruct [:inputs, :outputs, metadata: @zero_metadata]
@@ -154,7 +155,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   @empty_signature <<0::size(520)>>
 
-  # TODO: dry wrt. Application.fetch_env!(:omg, :tx_types_modules)? Use `bimap` perhaps?
+  # TODO: figure out how to nicely reference markers map from config
   @payment_marker <<1>>
 
   @doc """

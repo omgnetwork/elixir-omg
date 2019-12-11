@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Transaction.Fee do
+defmodule OMG.State.Transaction.FeeTokenClaim do
   @moduledoc """
   Internal representation of a fee claiming transaction in plasma chain.
   """
@@ -20,12 +20,14 @@ defmodule OMG.State.Transaction.Fee do
   alias OMG.Output
   alias OMG.State.Transaction
 
-  @fee_output_type_marker <<0xFE, 0xE0>>
-  @uniqueness_output_type_marker <<0xF0, 0x0F>>
+  require Transaction
 
-  defstruct [:outputs]
+  # TODO: figure out how to nicely reference markers map from config
+  @fee_output_type_marker <<2>>
 
-  @type t() :: %__MODULE__{outputs: [Output.FungibleMoreVPToken.t() | Output.UniquenessEnforcer.t()]}
+  defstruct [:outputs, :nonce]
+
+  @type t() :: %__MODULE__{outputs: [Output.FungibleMoreVPToken.t()], nonce: Crypto.hash_t()}
 
   @doc """
   Creates new fee claiming transaction
@@ -37,33 +39,29 @@ defmodule OMG.State.Transaction.Fee do
   def new(blknum, {owner, currency, amount}) do
     %__MODULE__{
       outputs: [
-        %Output.UniquenessEnforcer{blknum: blknum, type_marker: @uniqueness_output_type_marker},
         %Output.FungibleMoreVPToken{
           owner: owner,
           currency: currency,
           amount: amount,
           type_marker: @fee_output_type_marker
         }
-      ]
+      ],
+      nonce: to_nonce(blknum, currency)
     }
   end
 
   @doc """
   Transaform the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
   """
-  def reconstruct([outputs_rlp]) do
+  def reconstruct([outputs_rlp, nonce_rlp]) do
     with {:ok, outputs} <- reconstruct_outputs(outputs_rlp),
-         do: {:ok, %__MODULE__{outputs: outputs}}
+         {:ok, nonce} <- reconstruct_nonce(nonce_rlp),
+         do: {:ok, %__MODULE__{outputs: outputs, nonce: nonce}}
   end
 
   def reconstruct(_), do: {:error, :malformed_transaction}
 
   defp reconstruct_outputs(outputs_rlp) do
-    with {:ok, outputs} <- parse_outputs(outputs_rlp),
-         do: {:ok, outputs}
-  end
-
-  defp parse_outputs(outputs_rlp) do
     outputs = Enum.map(outputs_rlp, &Output.dispatching_reconstruct/1)
 
     with nil <- Enum.find(outputs, &match?({:error, _}, &1)),
@@ -73,42 +71,55 @@ defmodule OMG.State.Transaction.Fee do
     _ -> {:error, :malformed_outputs}
   end
 
-  defp only_allowed_output_types?([%Output.UniquenessEnforcer{}, %Output.FungibleMoreVPToken{}]), do: true
+  defp reconstruct_nonce(nonce) when Transaction.is_metadata(nonce), do: {:ok, nonce}
+  defp reconstruct_nonce(_), do: {:error, :malformed_nonce}
+
+  defp only_allowed_output_types?([%Output.FungibleMoreVPToken{}]), do: true
   defp only_allowed_output_types?(_), do: false
+
+  @spec to_nonce(non_neg_integer(), Transaction.Payment.currency()) :: Crypto.hash_t()
+  defp to_nonce(blknum, token) do
+    blknum_bytes = ABI.TypeEncoder.encode_raw([blknum], [{:uint, 256}])
+    token_bytes = ABI.TypeEncoder.encode_raw([token], [:address])
+
+    Crypto.hash(blknum_bytes <> token_bytes)
+  end
 end
 
-defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Fee do
+defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim do
   alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Transaction
 
-  @fee_tx_type_marker <<0xFE, 0xE0>>
+  # TODO: figure out how to nicely reference markers map from config
+  @fee_tx_type_marker <<3>>
 
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
-  @spec get_data_for_rlp(Transaction.Fee.t()) :: list(any())
-  def get_data_for_rlp(%Transaction.Fee{outputs: outputs}),
+  @spec get_data_for_rlp(Transaction.FeeTokenClaim.t()) :: list(any())
+  def get_data_for_rlp(%Transaction.FeeTokenClaim{outputs: outputs, nonce: nonce}),
     do: [
       @fee_tx_type_marker,
-      Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1)
+      Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
+      nonce
     ]
 
-  @spec get_outputs(Transaction.Fee.t()) :: list(Output.Protocol.t())
-  def get_outputs(%Transaction.Fee{outputs: outputs}), do: outputs
+  @spec get_outputs(Transaction.FeeTokenClaim.t()) :: list(Output.Protocol.t())
+  def get_outputs(%Transaction.FeeTokenClaim{outputs: outputs}), do: outputs
 
-  @spec get_inputs(Transaction.Fee.t()) :: list(InputPointer.Protocol.t())
-  def get_inputs(%Transaction.Fee{}), do: []
-
-  @doc """
-  Fee claiming transaction is not used to transfer funds
-  """
-  @spec valid?(Transaction.Fee.t(), Transaction.Signed.t()) :: {:error, atom()}
-  def valid?(%Transaction.Fee{}, _signed_tx), do: {:error, :transaction_not_transfer_funds}
+  @spec get_inputs(Transaction.FeeTokenClaim.t()) :: list(InputPointer.Protocol.t())
+  def get_inputs(%Transaction.FeeTokenClaim{}), do: []
 
   @doc """
   Fee claiming transaction is not used to transfer funds
   """
-  @spec can_apply?(Transaction.Fee.t(), list(Output.Protocol.t())) :: {:error, atom()}
-  def can_apply?(%Transaction.Fee{}, _outputs_spent), do: {:error, :transaction_not_transfer_funds}
+  @spec valid?(Transaction.FeeTokenClaim.t(), Transaction.Signed.t()) :: {:error, atom()}
+  def valid?(%Transaction.FeeTokenClaim{}, _signed_tx), do: {:error, :transaction_not_transfer_funds}
+
+  @doc """
+  Fee claiming transaction is not used to transfer funds
+  """
+  @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.Protocol.t())) :: {:error, atom()}
+  def can_apply?(%Transaction.FeeTokenClaim{}, _outputs_spent), do: {:error, :transaction_not_transfer_funds}
 end
