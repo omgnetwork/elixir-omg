@@ -20,8 +20,8 @@ defmodule PaymentContext do
   scenario_timeouts(fn _feature, scenario ->
     case scenario.name do
       "Alice sends Bob funds" -> @default_timeout * 2
-      "Alice starts a Standard Exit" -> @default_timeout * 30
-      "Alice starts an In Flight Exit" -> @default_timeout * 30
+      "Alice starts a Standard Exit" -> @default_timeout * 5
+      "Alice starts an In Flight Exit" -> @default_timeout * 5
       _ -> @default_timeout
     end
   end)
