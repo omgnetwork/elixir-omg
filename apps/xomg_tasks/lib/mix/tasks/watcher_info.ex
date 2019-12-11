@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Xomg.WatcherInfo.Start do
 
   @shortdoc "Starts the security-critical + informational watcher. See Mix.Tasks.Xomg.WatcherInfo.Start."
 
-  defp run(args) do
+  def run(args) do
     args
     |> generic_prepare_args()
     |> generic_run([:omg_watcher_info, :omg_watcher_rpc])
