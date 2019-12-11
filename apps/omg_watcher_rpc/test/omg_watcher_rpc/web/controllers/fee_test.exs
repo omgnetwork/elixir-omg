@@ -16,7 +16,7 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
-  use OMG.Watcher.Fixtures
+  use OMG.WatcherInfo.Fixtures
 
   alias Support.WatcherHelper
 

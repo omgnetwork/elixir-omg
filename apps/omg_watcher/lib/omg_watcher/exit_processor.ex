@@ -220,7 +220,11 @@ defmodule OMG.Watcher.ExitProcessor do
     processor = Core.init(db_exits, db_ifes, db_competitors, sla_margin)
 
     {:ok, _} =
-      :timer.send_interval(Application.fetch_env!(:omg_watcher, :metrics_collection_interval), self(), :send_metrics)
+      :timer.send_interval(
+        Application.fetch_env!(:omg_watcher, :metrics_collection_interval),
+        self(),
+        :send_metrics
+      )
 
     _ = Logger.info("Initializing with: #{inspect(processor)}")
     processor

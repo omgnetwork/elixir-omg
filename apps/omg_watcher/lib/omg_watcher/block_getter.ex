@@ -30,7 +30,6 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.BlockGetter.Status
-  alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.HttpRPC.Client
 
@@ -63,11 +62,11 @@ defmodule OMG.Watcher.BlockGetter do
     # while top block number is a block that has been formed (they differ by the interval)
     child_top_block_number = current_block_height - child_block_interval
 
-    last_persisted_block = DB.Block.get_max_blknum()
-
     # how many eth blocks backward can change during an reorg
     block_getter_reorg_margin = Application.fetch_env!(:omg_watcher, :block_getter_reorg_margin)
+
     maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
+
     maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
     # TODO rethink posible solutions see issue #724
@@ -82,7 +81,6 @@ defmodule OMG.Watcher.BlockGetter do
         child_block_interval,
         synced_height,
         block_getter_reorg_margin,
-        last_persisted_block,
         state_at_block_beginning,
         exit_processor_initial_results,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
@@ -99,7 +97,11 @@ defmodule OMG.Watcher.BlockGetter do
     :ok = update_status(state)
 
     {:ok, _} =
-      :timer.send_interval(Application.fetch_env!(:omg_watcher, :metrics_collection_interval), self(), :send_metrics)
+      :timer.send_interval(
+        Application.fetch_env!(:omg_watcher, :metrics_collection_interval),
+        self(),
+        :send_metrics
+      )
 
     _ = Logger.info("Started #{inspect(__MODULE__)}, synced_height: #{inspect(synced_height)}")
 
@@ -111,9 +113,7 @@ defmodule OMG.Watcher.BlockGetter do
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
       {:ok, state} ->
-        block_application
-        |> Core.ensure_block_imported_once(state)
-        |> Enum.each(&DB.Transaction.update_with/1)
+        :ok = OMG.Bus.direct_local_broadcast("block.get", {:block_received, block_application})
 
         {:noreply, state, {:continue, {:apply_block_step, :run_block_download_task, block_application}}}
 

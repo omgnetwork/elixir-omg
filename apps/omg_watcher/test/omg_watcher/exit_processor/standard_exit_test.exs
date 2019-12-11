@@ -29,7 +29,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
   require Utxo
 
-  import OMG.Watcher.ExitProcessor.TestHelper
+  import OMG.Watcher.ExitProcessor.TestHelper,
+    only: [start_ife_from: 2, start_se_from: 3, start_se_from: 4, check_validity_filtered: 3]
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

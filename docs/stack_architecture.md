@@ -56,7 +56,7 @@ Non-critical convenience API proxy and provide data about the chain.
 
 #### Specifications
 
-- [Current API](https://developer.omisego.co/elixir-omg/docs-ui/?url=0.2/informational_api_specs.yaml)
+- [Current API](https://developer.omisego.co/elixir-omg/docs-ui/?url=0.2/info_api_specs.yaml)
 
 ### Integration libraries
 

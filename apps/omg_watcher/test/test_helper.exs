@@ -18,9 +18,5 @@ ExUnit.start()
 
 {:ok, _} = Application.ensure_all_started(:httpoison)
 {:ok, _} = Application.ensure_all_started(:fake_server)
-
-Mix.Task.run("ecto.create", ~w(--quiet))
-Mix.Task.run("ecto.migrate", ~w(--quiet))
-
 {:ok, _} = Application.ensure_all_started(:briefly)
 {:ok, _} = Application.ensure_all_started(:erlexec)

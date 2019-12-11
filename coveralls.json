@@ -10,7 +10,8 @@
     "apps/omg_status/test/support",
     "apps/omg_utils/test/support",
     "apps/omg_watcher/test/support",
-    "apps/omg_watcher/lib/omg_watcher/release_tasks/init_postgresql_db.ex",
+    "apps/omg_watcher_info/test/support",
+    "apps/omg_watcher_info/lib/omg_watcher_info/release_tasks/init_postgresql_db.ex",
     "apps/omg_watcher_rpc/test/support",
     "apps/xomg_tasks"
   ]

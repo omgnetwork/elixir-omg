@@ -21,16 +21,20 @@ help:
 	@echo "instead of your own local geth network. Note: you will need to configure the environment \c"
 	@echo "variables defined in docker-compose-infura.yml"
 	@echo ""
-	@echo "  - \`make docker-watcher && make docker-child_chain\`: use your own image containers \c"
-	@echo "for Watcher and Child Chain"
+	@echo "  - \`make docker-watcher && make docker-watcher_info && make docker-child_chain\`: \c"
+	@echo "use your own image containers for Watcher, Watcher Info and Child Chain"
 	@echo ""
-	@echo "  - \`make docker-update-watcher\` or \`make docker-update-child_chain\`: \c"
-	@echo "replaces containers with your code changes for rapid development."
+	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_info\` or \c"
+	@echo "\`make docker-update-child_chain\`: replaces containers with your code changes\c"
+	@echo "for rapid development."
 	@echo ""
 	@echo "  - \`make docker-nuke\`: wipe docker clean, including containers, images, networks \c"
-	@echo "and build cache"
+	@echo "and build cache."
 	@echo ""
 	@echo "  - \`make docker-remote-watcher\`: remote console (IEx-style) into the watcher application."
+	@echo ""
+	@echo "  - \`make docker-remote-watcher_info\`: remote console (IEx-style) into the \c"
+	@echo "watcher_info application."
 	@echo ""
 	@echo "  - \`make docker-remote-childchain\`: remote console (IEx-style) into the childchain application."
 	@echo ""
@@ -70,16 +74,21 @@ help:
 list:
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
 
-all: clean build-child_chain-prod build-watcher-prod
+all: clean build-child_chain-prod build-watcher-prod build-watcher_info-prod
 
 WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
+WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
+
 IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20191024"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
 ENV_TEST        ?= env MIX_ENV=test
 ENV_PROD        ?= env MIX_ENV=prod
+
+WATCHER_PORT ?= 7434
+WATCHER_INFO_PORT ?= 7534
 
 #
 # Setting-up
@@ -140,6 +149,12 @@ build-watcher-prod: deps-elixir-omg
 build-watcher-dev: deps-elixir-omg
 	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --verbose
 
+build-watcher_info-prod: deps-elixir-omg
+	$(ENV_PROD) mix do compile, distillery.release --name watcher_info --verbose
+
+build-watcher_info-dev: deps-elixir-omg
+	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_info --verbose
+
 build-test: deps-elixir-omg
 	$(ENV_TEST) mix compile
 
@@ -150,16 +165,19 @@ build-test: deps-elixir-omg
 #
 
 test:
-	mix test --include test --exclude common --exclude watcher --exclude child_chain
+	mix test --include test --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
 
 test-watcher:
-	mix test --include watcher --exclude child_chain --exclude common --exclude test
+	mix test --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test
+
+test-watcher_info:
+	mix test --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test
 
 test-common:
-	mix test --include common --exclude child_chain --exclude watcher --exclude test
+	mix test --include common --exclude child_chain --exclude watcher --exclude watcher_info --exclude test
 
 test-child_chain:
-	mix test --include child_chain --exclude common --exclude watcher --exclude test
+	mix test --include child_chain --exclude common --exclude watcher  --exclude watcher_info --exclude test
 
 #
 # Documentation
@@ -173,6 +191,7 @@ changelog:
 start-pre-lumphini-watcher:
 	docker-compose -f docker-compose-watcher.yml up
 ###
+
 #
 # Docker
 #
@@ -194,6 +213,15 @@ docker-watcher-prod:
 		$(IMAGE_BUILDER) \
 		-c "cd /app && make build-watcher-prod"
 
+docker-watcher_info-prod:
+	docker run --rm -it \
+		-v $(PWD):/app \
+		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
+		-u root \
+		--entrypoint /bin/sh \
+		$(IMAGE_BUILDER) \
+		-c "cd /app && make build-watcher_info-prod"
+
 docker-child_chain-build:
 	docker build -f Dockerfile.child_chain \
 		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
@@ -208,12 +236,21 @@ docker-watcher-build:
 		-t $(WATCHER_IMAGE_NAME) \
 		.
 
+docker-watcher_info-build:
+	docker build -f Dockerfile.watcher_info \
+		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
+		--cache-from $(WATCHER_INFO_IMAGE_NAME) \
+		-t $(WATCHER_INFO_IMAGE_NAME) \
+		.
+
 docker-watcher: docker-watcher-prod docker-watcher-build
+docker-watcher_info: docker-watcher_info-prod docker-watcher_info-build
 docker-child_chain: docker-child_chain-prod docker-child_chain-build
 
 docker-push: docker
 	docker push $(CHILD_CHAIN_IMAGE_NAME)
 	docker push $(WATCHER_IMAGE_NAME)
+	docker push $(WATCHER_INFO_IMAGE_NAME)
 
 ###OTHER
 docker-start-cluster:
@@ -226,6 +263,11 @@ docker-update-watcher:
 	docker stop elixir-omg_watcher_1
 	$(MAKE) docker-watcher
 	docker-compose up watcher
+
+docker-update-watcher_info:
+	docker stop elixir-omg_watcher_info_1
+	$(MAKE) docker-watcher_info
+	docker-compose up watcher_info
 
 docker-update-child_chain:
 	docker stop elixir-omg_childchain_1
@@ -240,7 +282,7 @@ docker-start-cluster-with-infura:
 	fi
 
 docker-start-cluster-with-datadog:
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-contracts watcher childchain
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-contracts watcher watcher_info childchain
 
 docker-stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
@@ -252,10 +294,13 @@ docker-nuke:
 docker-remote-watcher:
 	docker-compose exec watcher /watcher_entrypoint bin/watcher remote_console
 
+docker-remote-watcher_info:
+	docker-compose exec watcher_info /watcher_info_entrypoint bin/watcher_info remote_console
+
 docker-remote-childchain:
 	docker-compose exec childchain /child_chain_entrypoint bin/child_chain remote_console
 
-.PHONY: docker-nuke docker-remote-watcher docker-remote-childchain
+.PHONY: docker-nuke docker-remote-watcher docker-remote-watcher_info docker-remote-childchain
 
 ###
 ### barebone stuff
@@ -269,42 +314,63 @@ prune-plasma-contracts:
 start-child_chain:
 	set -e; . ./bin/variables; \
 	echo "Building Child Chain" && \
-	make build-child_chain-dev && \
-	rm -f ./_build/dev/rel/child_chain/var/sys.config || true && \
+	make build-child_chain-prod && \
+	rm -f ./_build/prod/rel/child_chain/var/sys.config || true && \
 	echo "Init Child Chain DB" && \
-	_build/dev/rel/child_chain/bin/child_chain init_key_value_db && \
+	_build/prod/rel/child_chain/bin/child_chain init_key_value_db && \
 	echo "Init Child Chain DB DONE" && \
-	_build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START)
+	_build/prod/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
 	set -e; . ./bin/variables; \
 	echo "Building Watcher" && \
-	make build-watcher-dev && \
+	make build-watcher-prod && \
 	echo "Potential cleanup" && \
-	rm -f ./_build/dev/rel/watcher/var/sys.config || true && \
+	rm -f ./_build/prod/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-	_build/dev/rel/watcher/bin/watcher init_key_value_db && \
-	_build/dev/rel/watcher/bin/watcher init_postgresql_db && \
+	_build/prod/rel/watcher/bin/watcher init_key_value_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	_build/dev/rel/watcher/bin/watcher $(OVERRIDING_START)
+	PORT=${WATCHER_PORT} _build/prod/rel/watcher/bin/watcher $(OVERRIDING_START)
+
+start-watcher_info:
+	set -e; . ./bin/variables; \
+	echo "Building Watcher" && \
+	make build-watcher_info-prod && \
+	echo "Potential cleanup" && \
+	rm -f ./_build/prod/rel/watcher_info/var/sys.config || true && \
+	echo "Init Watcher DBs" && \
+	_build/prod/rel/watcher_info/bin/watcher_info init_key_value_db && \
+	_build/prod/rel/watcher_info/bin/watcher_info init_postgresql_db && \
+	echo "Init Watcher DBs DONE" && \
+	echo "Run Watcher" && \
+	PORT=${WATCHER_INFO_PORT} _build/prod/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
 	$(ENV_DEV) mix do compile, distillery.release dev --name child_chain --silent && \
 	set -e; . ./bin/variables && \
-	exec _build/dev/rel/child_chain/bin/child_chain foreground &
+	exec _build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START) &
 
 update-watcher:
 	_build/dev/rel/watcher/bin/watcher stop ; \
 	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --silent && \
 	set -e; . ./bin/variables && \
-	exec _build/dev/rel/watcher/bin/watcher foreground &
+	exec PORT=${WATCHER_PORT} _build/dev/rel/watcher/bin/watcher $(OVERRIDING_START) &
+
+update-watcher_info:
+	_build/dev/rel/watcher_info/bin/watcher_info stop ; \
+	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_info --silent && \
+	set -e; . ./bin/variables && \
+	exec PORT=${WATCHER_INFO_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
 
 stop-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop
 
 stop-watcher:
+	_build/dev/rel/watcher/bin/watcher stop
+
+stop-watcher_info:
 	_build/dev/rel/watcher/bin/watcher stop
 
 remote-child_chain:
@@ -315,14 +381,20 @@ remote-watcher:
 	set -e; . ./bin/variables && \
 	_build/dev/rel/watcher/bin/watcher remote_console
 
+remote-watcher_info:
+	set -e; . ./bin/variables && \
+	_build/dev/rel/watcher_info/bin/watcher_info remote_console
+
 get-alarms:
 	echo "Child Chain alarms" ; \
 	curl -s -X POST http://localhost:9656/alarm.get ; \
 	echo "\nWatcher alarms" ; \
-	curl -s -X POST http://localhost:7434/alarm.get
+	curl -s -X POST http://localhost:${WATCHER_PORT}/alarm.get ; \
+	echo "\nWatcherInfo alarms" ; \
+	curl -s -X POST http://localhost:${WATCHER_INFO_PORT}/alarm.get
 
 cluster-stop:
-	${MAKE} stop-watcher ; ${MAKE} stop-child_chain ; docker-compose down
+	${MAKE} stop-watcher ; ${MAKE} stop-watcher_info ; ${MAKE} stop-child_chain ; docker-compose down
 
 ### git setup
 init:
@@ -339,8 +411,8 @@ init:
 security_critical_api_specs:
 	swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs/swagger.yaml
 
-informational_api_specs:
-	swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/informational_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/informational_api_specs/swagger.yaml
+info_api_specs:
+	swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/info_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/info_api_specs/swagger.yaml
 
 operator_api_specs:
 	swagger-cli bundle -r -t yaml -o apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml apps/omg_child_chain_rpc/priv/swagger/operator_api_specs/swagger.yaml
@@ -355,6 +427,8 @@ diagnostics:
 	docker-compose logs childchain
 	echo "\n---------- WATCHER LOGS ----------"
 	docker-compose logs watcher
+	echo "\n---------- WATCHER_INFO LOGS ----------"
+	docker-compose logs watcher_info
 	echo "\n---------- PLASMA CONTRACTS ----------"
 	curl -s localhost:8000/contracts | echo "Could not retrieve the deployed plasma contracts."
 	echo "\n---------- GIT ----------"

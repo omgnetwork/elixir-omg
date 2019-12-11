@@ -278,8 +278,7 @@ The watcher can be run in one of two modes:
     - this mode will store easily accessible register of all transactions _for a subset of addresses_ (currently, all addresses)
     - this mode will leverage the Postgres-based `WatcherDB` database
 
-**TODO** the distinction between two modes isn't fully implemented yet.
-Use the **security-critical and informational API** always for now.
+In releases, `watcher` refers to the security-critical mode, while `watcher_info` refers to the security-critical and informational API mode.
 
 ### Using the watcher
 
@@ -351,9 +350,6 @@ Override using the `EXIT_PROCESSOR_SLA_MARGIN` system environment variable.
 
 * **`block_getter_reorg_margin`** - the margin considered by `OMG.Watcher.BlockGetter` when searching for recent child chain block submission events.
 This is driving the process of determining the height and particular event related to the submission of a particular child chain block
-
-* **`convenience_api_mode`** - whether Convenience API should be started for the Watcher.
-This setting is usually set by running the `Mix.Tasks.Xomg.Watcher.Start` with the appropriate flag.
 
 ### `OMG.DB` configuration - `:omg_db` app
 

@@ -13,15 +13,16 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.Application do
+  # See https://hexdocs.pm/elixir/Application.html
+  # for more information on OTP Applications
   @moduledoc false
+
   use Application
-  use OMG.Utils.LoggerExt
+
+  require Logger
 
   def start(_type, _args) do
-    cookie = System.get_env("ERL_W_COOKIE")
-    true = set_cookie(cookie)
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-
     start_root_supervisor()
   end
 
@@ -48,12 +49,6 @@ defmodule OMG.Watcher.Application do
 
   def start_phase(:attach_telemetry, :normal, _phase_args) do
     handlers = [
-      [
-        "spandex-query-tracer",
-        [[:omg, :watcher, :db, :repo, :query]],
-        &SpandexEcto.TelemetryAdapter.handle_event/4,
-        nil
-      ],
       ["measure-state", OMG.State.Measure.supported_events(), &OMG.State.Measure.handle_event/4, nil],
       [
         "measure-blockgetter",
@@ -76,14 +71,4 @@ defmodule OMG.Watcher.Application do
       end
     end)
   end
-
-  # Only set once during bootup. cookie value retrieved from ENV.
-  # sobelow_skip ["DOS.StringToAtom"]
-  defp set_cookie(cookie) when is_binary(cookie) do
-    cookie
-    |> String.to_atom()
-    |> Node.set_cookie()
-  end
-
-  defp set_cookie(_), do: :ok == Logger.warn("Cookie not applied.")
 end

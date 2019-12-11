@@ -16,7 +16,7 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
   use ExUnit.Case, async: true
 
   alias OMG.Utils.HttpRPC.Response
-  alias OMG.Watcher.DB
+  alias OMG.WatcherInfo.DB
 
   @cleaned_tx %{
     blknum: nil,
