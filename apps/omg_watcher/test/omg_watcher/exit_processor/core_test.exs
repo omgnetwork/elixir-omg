@@ -220,7 +220,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "seeks IFE txs in blocks, correctly if IFE inputs duplicate",
          %{processor_filled: processor, alice: alice, transactions: txs} do
       other_tx = TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 1}])
-      processor = processor |> start_ife_from(other_tx)
+      processor = start_ife_from(processor, other_tx)
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
