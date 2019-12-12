@@ -85,7 +85,6 @@ defmodule Support.DevHelper do
     {:ok, tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(to_hex(txhash))
     # we use them (with minor tweak) to be called on the Ethereum client at the exact block of the original call
     {:ok, call_result} = tx |> Map.put("data", tx["input"]) |> Ethereumex.HttpClient.eth_call(tx["blockNumber"])
-
     # this call result is hex decoded and then additionally decoded with ABI, should yield a readable ascii-string
     if call_result == "0x", do: "out of gas, reason is 0x", else: call_result |> from_hex() |> abi_decode_reason()
   end

@@ -18,7 +18,7 @@ defmodule Support.DevNode do
   """
   require Logger
 
-  def start do
+  def start() do
     OMG.Eth.DevGeth.start()
   end
 
