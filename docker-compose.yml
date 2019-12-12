@@ -15,74 +15,45 @@ services:
       timeout: 3s
       retries: 5
 
-  plasma-contracts:
-    image: omisegoimages/elixir-omg-tester-plasma-deployer:stable-20191125
-    command:
-      - /bin/sh
-      - -c
-      - |
-          apk add --update curl
-          cd /home/node/plasma-contracts/plasma_framework
-          # Fix block gas limit issue by retrying truffle migration up to 5 times
-          for i in 1 2 3 4 5; do \
-            echo 'Running truffle migration attempt #$${i}'
-            npx truffle migrate --network remote command && break; \
-          done
-          cd build
-          echo '{"contracts":' > db.json && cat outputs.json >> db.json && echo '}' >> db.json
-          npx json-server -w db.json -p 8000 -H 0.0.0.0
-    ports:
-      - "8000:8000"
-    expose:
-      - "8000"
-    environment:
-      # DEPLOYER_PRIVATEKEY is the geth dev account initially funded address
-      - DEPLOYER_PRIVATEKEY=d885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce # 0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d
-      - MAINTAINER_PRIVATEKEY=6f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807 # 0x59695413678e19d7d490893810a8ac9fe6cb0f5c
-      - AUTHORITY_PRIVATEKEY=7f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807 # 0xc0f780dfc35075979b0def588d999225b7ecc56f
-      - REMOTE_URL=http://geth:8545
-      - MIN_EXIT_PERIOD=20
-    depends_on:
-      geth:
-        condition: service_healthy
-    restart: always
-    healthcheck:
-      test: curl plasma-contracts:8000/contracts
-      interval: 60s
-      timeout: 15s
-      retries: 10
-      start_period: 5m
-
   geth:
     image: ethereum/client-go:v1.8.27
     entrypoint:
       - /bin/sh
       - -c
       - |
+          
           apk add --update curl
           # Configures geth with the deployer and authority accounts. This includes:
           #   1. Configuring the deployer's keystore
           #   2. Configuring the authority's keystore
           #   3. Configuring the keystores' password
           #   4. Unlocking the accounts by their indexes
-          mkdir -p /tmp/geth-dev
-          echo '{"address":"6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d","crypto":{"cipher":"aes-128-ctr","ciphertext":"1adf32e70f22f7e775255b4e6aa0bb0b9338402f8ee2470b6c2ffce9d7d54918","cipherparams":{"iv":"38103d2e38263399e79884f8448172b0"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"eac5b9eee7c6cdf6557f9d84d02294801fd5d6ad67df6ec25a8fcb4dc0011e72"},"mac":"42bc14b9b00ef8387b46feb3f8599ffee82e50442b9d305ef7bfc0e9480566da"},"id":"8ba88812-cef4-44e7-888e-de40b8881120","version":3}' > /tmp/geth-dev/UTC--2019-10-29T05-54-49.573595611Z--6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d
-          echo '{"address":"c0f780dfc35075979b0def588d999225b7ecc56f","crypto":{"cipher":"aes-128-ctr","ciphertext":"70af4aa4485c8bb750d6cc52800bf61eaef29e16460fb9b1dd3d225affc494d8","cipherparams":{"iv":"cdff3498ff1464bf4945642e80ed5187"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"80405b854cf1c1fa56557d060fc9075176463b47b75b535fce19840612d02b06"},"mac":"54bfa823a4bacb9c6a4cb95088fb72755cd0220e26adee4c356b22285d6a167f"},"id":"40c21866-79a2-46ce-990e-d2d77cf86bc3","version":3}' > /tmp/geth-dev/UTC--2019-11-06T08-20-13.587131000Z--c0f780dfc35075979b0def588d999225b7ecc56f
           echo "" > /tmp/geth-blank-password
           # Starts geth
-          geth --miner.gastarget 7500000 --miner.gasprice "10" \
-            --dev --dev.period 1 --keystore=/tmp/geth-dev \
+          
+          geth --syncmode 'fast' --miner.gastarget 7500000 \
+            --miner.gasprice "10" \
+            --nodiscover \
+            --maxpeers 0 \
+            --datadir data/ \
+            --syncmode 'full' \
+            --networkid 1337 \
+            --gasprice '1' \
+            --keystore=./data/geth/keystore/ \
             --password /tmp/geth-blank-password \
             --unlock "0,1" \
-            --miner.etherbase "0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d" \
             --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 \
-            --ws --wsaddr 0.0.0.0 --wsorigins='*'
+            --ws --wsaddr 0.0.0.0 --wsorigins='*' \
+            --mine 
+            
     ports:
       - "8545:8545"
       - "8546:8546"
     expose:
       - "8546"
       - "8545"
+    volumes:
+      - ./data:/data
     healthcheck:
       test: curl geth:8545
       interval: 5s
@@ -93,11 +64,16 @@ services:
     image: omisego/child_chain:latest
     command: "full_local"
     environment:
-      - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
+      - ETHEREUM_NETWORK=LOCALCHAIN
+      - LOCALCHAIN_AUTHORITY_ADDRESS=0xc0f780dfc35075979b0def588d999225b7ecc56f
+      - LOCALCHAIN_TXHASH_CONTRACT=0xc47317b0de4c6ccc9a9fb858ad3ee858c2ee8ade3aed0fa9bcab7f7dad27fe12
+      - LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK=0xc673e4ffcb8464faff908a6804fe0e635af0ea2f
+      - LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT=0x0433420dee34412b5bf1e29fbf988ad037cc5db7
+      - LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT=0x04badc20426bc146453c5b879417b25029fa6c73
+      - LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0xe95661547f69b16ac88e5d06813c2e6a2c432048
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
-      - ETHEREUM_NETWORK=LOCALCHAIN
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - APP_ENV=local_development_child_chain
@@ -117,8 +93,6 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      plasma-contracts:
-        condition: service_healthy
       geth:
         condition: service_healthy
 
@@ -126,11 +100,16 @@ services:
     image: omisego/watcher:latest
     command: "full_local"
     environment:
-      - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
+      - ETHEREUM_NETWORK=LOCALCHAIN
+      - LOCALCHAIN_AUTHORITY_ADDRESS=0xc0f780dfc35075979b0def588d999225b7ecc56f
+      - LOCALCHAIN_TXHASH_CONTRACT=0xc47317b0de4c6ccc9a9fb858ad3ee858c2ee8ade3aed0fa9bcab7f7dad27fe12
+      - LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK=0xc673e4ffcb8464faff908a6804fe0e635af0ea2f
+      - LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT=0x0433420dee34412b5bf1e29fbf988ad037cc5db7
+      - LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT=0x04badc20426bc146453c5b879417b25029fa6c73
+      - LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0xe95661547f69b16ac88e5d06813c2e6a2c432048
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
-      - ETHEREUM_NETWORK=LOCALCHAIN
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - PORT=7434
@@ -151,8 +130,6 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      plasma-contracts:
-        condition: service_healthy
       childchain:
         condition: service_healthy
 
@@ -160,11 +137,16 @@ services:
     image: omisego/watcher_info:latest
     command: "full_local"
     environment:
-      - CONTRACT_EXCHANGER_URL=http://plasma-contracts:8000/contracts
+      - ETHEREUM_NETWORK=LOCALCHAIN
+      - LOCALCHAIN_AUTHORITY_ADDRESS=0xc0f780dfc35075979b0def588d999225b7ecc56f
+      - LOCALCHAIN_TXHASH_CONTRACT=0xc47317b0de4c6ccc9a9fb858ad3ee858c2ee8ade3aed0fa9bcab7f7dad27fe12
+      - LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK=0xc673e4ffcb8464faff908a6804fe0e635af0ea2f
+      - LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT=0x0433420dee34412b5bf1e29fbf988ad037cc5db7
+      - LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT=0x04badc20426bc146453c5b879417b25029fa6c73
+      - LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0xe95661547f69b16ac88e5d06813c2e6a2c432048
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
-      - ETHEREUM_NETWORK=LOCALCHAIN
       - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
@@ -173,6 +155,7 @@ services:
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
     restart: always
     ports:
       - "7534:7534"
@@ -185,8 +168,6 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      plasma-contracts:
-        condition: service_healthy
       childchain:
         condition: service_healthy
       postgres:

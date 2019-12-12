@@ -20,7 +20,6 @@ defmodule Support.DevHelper do
 
   alias OMG.Eth
   alias OMG.Eth.Transaction
-  alias Support.BundleDeployer
   alias Support.WaitFor
   import Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
@@ -33,36 +32,6 @@ defmodule Support.DevHelper do
   @about_4_blocks_time 60_000
 
   @passphrase "ThisIsATestnetPassphrase"
-
-  @doc """
-  Prepares the developer's environment with respect to the root chain contract and its configuration within
-  the application.
-
-   - `root_path` should point to `elixir-omg` root or wherever where `./_build/contracts` holds the compiled contracts
-  """
-  def prepare_env!(opts \\ [], min_exit_period_secods \\ nil) do
-    opts = Keyword.merge([root_path: "./"], opts)
-    %{root_path: root_path} = Enum.into(opts, %{})
-
-    with {:ok, _} <- Application.ensure_all_started(:ethereumex),
-         {:ok, authority} <- create_and_fund_authority_addr(opts),
-         {:ok, deployer_addr} <- get_deployer_address(opts),
-         {:ok, txhash_contract, contracts_map} <-
-           BundleDeployer.deploy_all(root_path, deployer_addr, authority, min_exit_period_secods) do
-      %{
-        contract_addr: contracts_map,
-        txhash_contract: txhash_contract,
-        authority_addr: authority
-      }
-    else
-      {:error, :econnrefused} = error ->
-        Logger.error("It seems that Ethereum instance is not running. Check README.md")
-        error
-
-      other ->
-        other
-    end
-  end
 
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
     contract_addr = Eth.RootChain.contract_map_to_hex(contract_addr)
@@ -171,19 +140,6 @@ defmodule Support.DevHelper do
 
   defp do_create_account_from_secret(method_name, secret, passphrase) do
     {:ok, _} = Ethereumex.HttpClient.request(method_name, [secret, passphrase], [])
-  end
-
-  # returns well-funded faucet address for contract deployment or first address returned from node otherwise
-  defp get_deployer_address(opts) do
-    with {:ok, [addr | _]} <- Ethereumex.HttpClient.eth_accounts(),
-         do: {:ok, from_hex(Keyword.get(opts, :faucet, addr))}
-  end
-
-  defp create_and_fund_authority_addr(opts) do
-    with {:ok, authority} <- Ethereumex.HttpClient.request("personal_newAccount", [@passphrase], []),
-         {:ok, _} <- fund_address_from_faucet(authority, opts) do
-      {:ok, from_hex(authority)}
-    end
   end
 
   defp fund_address_from_faucet(account_enc, opts) do

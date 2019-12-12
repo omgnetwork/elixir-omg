@@ -27,8 +27,7 @@ defmodule OMG.TypedDataHash.Config do
   Returns EIP-712 domain based on values from configuration in a format `signTypedData` expects.
   """
   @spec domain_data_from_config() :: Tools.eip712_domain_t()
-  def domain_data_from_config do
-    # configuration from contract takes precedence, but if it's missing, the fallback addr will be used
+  def domain_data_from_config() do
     verifying_contract_addr =
       Application.get_env(:omg_eth, :contract_addr) |> Access.get(:plasma_framework) |> Encoding.from_hex()
 
@@ -44,7 +43,6 @@ defmodule OMG.TypedDataHash.Config do
   """
   @spec domain_separator_from_config() :: OMG.Crypto.hash_t()
   def domain_separator_from_config do
-    domain_data_from_config()
-    |> Tools.domain_separator()
+    Tools.domain_separator(domain_data_from_config())
   end
 end

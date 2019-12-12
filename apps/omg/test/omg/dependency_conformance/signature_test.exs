@@ -18,93 +18,109 @@ defmodule OMG.DependencyConformance.SignatureTest do
   by both Elixir signature code and contract signature code.
   """
 
-  alias OMG.DevCrypto
   alias OMG.Eth
   alias OMG.State.Transaction
   alias OMG.TestHelper
-  alias Support.Deployer
-  alias Support.DevNode
 
+  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
   use ExUnit.Case, async: false
 
   @moduletag :integration
   @moduletag :common
 
-  @alice TestHelper.generate_entity()
-  @bob TestHelper.generate_entity()
+  @alice %{
+    addr: <<215, 32, 17, 47, 111, 72, 20, 47, 149, 226, 138, 242, 35, 254, 141, 212, 16, 22, 155, 182>>,
+    priv:
+      <<170, 145, 170, 111, 112, 29, 60, 152, 73, 136, 133, 220, 101, 57, 32, 144, 174, 192, 102, 193, 186, 145, 231,
+        104, 132, 231, 27, 63, 128, 36, 204, 94>>
+  }
+  @bob %{
+    addr: <<141, 246, 138, 77, 76, 3, 78, 54, 173, 40, 234, 195, 29, 170, 154, 64, 99, 14, 118, 139>>,
+    priv:
+      <<6, 31, 86, 177, 209, 153, 18, 204, 55, 88, 137, 149, 48, 164, 92, 147, 255, 58, 163, 80, 243, 202, 105, 56, 176,
+        216, 149, 207, 188, 96, 160, 87>>
+  }
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @token TestHelper.generate_entity().addr
+  @token <<235, 169, 32, 193, 242, 237, 159, 137, 184, 46, 124, 13, 178, 171, 61, 87, 179, 179, 135, 146>>
+
+  setup %{} do
+    vcr_path = Path.join(__DIR__, "../../fixtures/vcr_cassettes")
+    ExVCR.Config.cassette_library_dir(vcr_path)
+
+    :ok
+  end
 
   setup_all do
-    {:ok, exit_fn} = DevNode.start()
-
-    root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-
-    {:ok, _, signtest_addr} = Deployer.create_new("PaymentEip712LibMock", root_path, Eth.Encoding.from_hex(addr), [])
-
-    # impose our testing signature contract wrapper (mock) as the validating contract, which normally would be
-    # plasma framework
+    signtest_addr = <<25, 146, 92, 198, 69, 114, 15, 187, 97, 247, 99, 4, 238, 21, 80, 30, 49, 151, 243, 169>>
     :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: Eth.Encoding.to_hex(signtest_addr)})
-
-    on_exit(fn ->
-      # reverting to the original values from `omg_eth/config/test.exs`
-      Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: "0x0000000000000000000000000000000000000001"})
-      exit_fn.()
-    end)
-
     [contract: signtest_addr]
   end
 
-  test "signature test empty transaction", context do
-    contract = context[:contract]
-    tx = TestHelper.create_signed([], [])
-    verify(contract, tx)
+  test "signature with empty transaction", context do
+    use_cassette "712_eip_mock/empty_transaction", match_requests_on: [:request_body] do
+      contract = context[:contract]
+      tx = TestHelper.create_signed([], [])
+      verify(contract, tx)
+    end
   end
 
-  test "no inputs test", context do
-    contract = context[:contract]
-    tx = TestHelper.create_signed([], [{@alice, @eth, 100}])
-    verify(contract, tx)
+  test "signature with no inputs", context do
+    use_cassette "712_eip_mock/no_inputs", match_requests_on: [:request_body] do
+      contract = context[:contract]
+      tx = TestHelper.create_signed([], [{@alice, @eth, 100}])
+      verify(contract, tx)
+    end
   end
 
-  test "no outputs test", context do
-    contract = context[:contract]
-    tx = TestHelper.create_signed([{1, 0, 0, @alice}], [])
-    verify(contract, tx)
+  test "signature with no outputs", context do
+    use_cassette "712_eip_mock/no_outputs", match_requests_on: [:request_body] do
+      contract = context[:contract]
+      tx = TestHelper.create_signed([{1, 0, 0, @alice}], [])
+      verify(contract, tx)
+    end
   end
 
-  test "signature test - small tx", context do
-    contract = context[:contract]
-    tx = TestHelper.create_signed([{1, 0, 0, @alice}], [{@alice, @eth, 100}])
-    verify(contract, tx)
+  test "signature for small tx", context do
+    use_cassette "712_eip_mock/small_tx", match_requests_on: [:request_body] do
+      contract = context[:contract]
+      tx = TestHelper.create_signed([{1, 0, 0, @alice}], [{@alice, @eth, 100}])
+      verify(contract, tx)
+    end
   end
 
-  test "signature test - full tx", context do
-    contract = context[:contract]
+  test "signature for full tx", context do
+    use_cassette "712_eip_mock/transaction", match_requests_on: [:request_body] do
+      contract = context[:contract]
 
-    tx =
-      TestHelper.create_signed(
-        [{1, 0, 0, @alice}, {1000, 555, 3, @bob}, {2000, 333, 1, @alice}, {15_015, 0, 0, @bob}],
-        [{@alice, @eth, 100}, {@alice, @token, 50}, {@bob, @token, 75}, {@bob, @eth, 25}]
-      )
+      tx =
+        TestHelper.create_signed(
+          [{1, 0, 0, @alice}, {1000, 555, 3, @bob}, {2000, 333, 1, @alice}, {15_015, 0, 0, @bob}],
+          [{@alice, @eth, 100}, {@alice, @token, 50}, {@bob, @token, 75}, {@bob, @eth, 25}]
+        )
 
-    verify(contract, tx)
+      verify(contract, tx)
+    end
   end
 
-  test "signature test transaction with metadata", context do
-    contract = context[:contract]
-    {:ok, <<_::256>> = metadata} = DevCrypto.generate_private_key()
+  test "signature for a transaction with metadata", context do
+    use_cassette "712_eip_mock/transaction_metadata", match_requests_on: [:request_body] do
+      contract = context[:contract]
+      # metadata gets a random 256 binary assigned
+      <<_::256>> =
+        metadata =
+        <<136, 72, 182, 143, 114, 106, 162, 12, 23, 115, 79, 191, 109, 221, 32, 179, 148, 78, 39, 106, 255, 9, 104, 243,
+          72, 204, 153, 10, 16, 140, 95, 27>>
 
-    tx =
-      TestHelper.create_signed(
-        [{1, 0, 0, @alice}, {1000, 555, 3, @bob}, {2000, 333, 1, @alice}, {15_015, 0, 0, @bob}],
-        @eth,
-        [{@alice, 100}, {@alice, 50}, {@bob, 75}, {@bob, 25}],
-        metadata
-      )
+      tx =
+        TestHelper.create_signed(
+          [{1, 0, 0, @alice}, {1000, 555, 3, @bob}, {2000, 333, 1, @alice}, {15_015, 0, 0, @bob}],
+          @eth,
+          [{@alice, 100}, {@alice, 50}, {@bob, 75}, {@bob, 25}],
+          metadata
+        )
 
-    verify(contract, tx)
+      verify(contract, tx)
+    end
   end
 
   defp verify(contract, %Transaction.Signed{raw_tx: tx}) do

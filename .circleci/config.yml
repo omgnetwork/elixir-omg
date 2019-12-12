@@ -89,6 +89,7 @@ jobs:
           command: |
             # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
             export SHELL=/bin/bash
+            make init_test
             mix test --trace --only integration
   barebuild_macos:
     executor: metal_macos
@@ -121,6 +122,7 @@ jobs:
           no_output_timeout: 2400
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
+      - run: make init_test
       - run: mix test --trace
   build:
     executor: builder
@@ -165,6 +167,7 @@ jobs:
             - .git
             - Makefile
             - priv
+            - data
 
   lint:
     executor: builder_pg
@@ -172,6 +175,7 @@ jobs:
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
+      - run: make init_test
       - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
 
   sobelow:
@@ -209,6 +213,7 @@ jobs:
       - run:
           name: Integration Tests & Coveralls Part Child Chain
           command: |
+            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -234,6 +239,7 @@ jobs:
       - run:
           name: Integration Tests & Coveralls Part Watcher
           command: |
+            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -284,6 +290,7 @@ jobs:
       - run:
           name: Integration Tests & Coveralls Part Common
           command: |
+            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -309,6 +316,7 @@ jobs:
       - run:
           name: Test
           command: |
+            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -336,6 +344,7 @@ jobs:
           command: |
             # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
             export SHELL=/bin/bash
+            make init_test
             mix test --trace --only integration
 
   dialyzer:
@@ -383,8 +392,8 @@ jobs:
       - checkout
       - run: make docker-child_chain
       - run: make docker-watcher
-      - run: make docker-watcher_info
-      - run: docker-compose -f docker-compose.yml -f priv/docker-compose.geth-ganache.yml up -d
+      - run: make init_test
+      - run: docker-compose up -d
       - run: docker image ls
       - run: docker-compose ps
       - run:
@@ -441,8 +450,8 @@ jobs:
       - checkout
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
       - run:
-          name: Start geth, postgres and plasma-deployer
-          command: make start-services
+          name: Start geth, postgres and pull in blockchain snapshot
+          command: make init_test && make start-services
           background: true
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
       - run:
