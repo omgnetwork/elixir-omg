@@ -280,35 +280,4 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
              }
            } == WatcherHelper.no_success?("account.get_utxos", %{"address" => 1_234_567_890})
   end
-
-  @tag fixtures: [:blocks_inserter, :alice]
-  test "outputs with value zero are not inserted into DB, the other has correct oindex", %{
-    alice: alice,
-    blocks_inserter: blocks_inserter
-  } do
-    blknum = 11_000
-
-    blocks_inserter.([
-      {blknum,
-       [
-         OMG.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 100}]),
-         OMG.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])
-       ]}
-    ])
-
-    [
-      %{
-        "amount" => 100,
-        "blknum" => ^blknum,
-        "txindex" => 0,
-        "oindex" => 1
-      },
-      %{
-        "amount" => 101,
-        "blknum" => ^blknum,
-        "txindex" => 1,
-        "oindex" => 0
-      }
-    ] = WatcherHelper.get_utxos(alice.addr) |> Enum.filter(&match?(%{"blknum" => ^blknum}, &1))
-  end
 end

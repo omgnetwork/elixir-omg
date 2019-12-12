@@ -32,8 +32,7 @@ defmodule Support.Deployer do
 
     gas = Map.get(@gas_contracts, contract_name, @gas_contract_default)
 
-    get_bytecode!(path_project_root, contract_name)
-    |> deploy_contract(from, gas, opts)
+    deploy_contract(get_bytecode!(path_project_root, contract_name), from, gas, opts)
   end
 
   defp deploy_contract(bytecode, from, gas_value, types_args \\ [], opts)
@@ -42,12 +41,13 @@ defmodule Support.Deployer do
     {:error, :empty_bytecode_supplied}
   end
 
-  defp deploy_contract(bytecode, from, gas_value, types_args, opts) do
-    defaults = @tx_defaults |> Keyword.put(:gas, gas_value)
-    opts = Keyword.merge(defaults, opts)
+  defp deploy_contract("0x" <> _ = bytecode, from, gas_value, types_args, opts) do
+    # runtime sanity-check which will fail if the bytecode isn't fully linked
+    true = !String.contains?(bytecode, "$") || {:error, :unlinked_bytecode_supplied}
 
-    do_deploy_contract(from, bytecode, types_args, opts)
-    |> Support.DevHelper.deploy_sync!()
+    defaults = Keyword.put(@tx_defaults, :gas, gas_value)
+    opts = Keyword.merge(defaults, opts)
+    Support.DevHelper.deploy_sync!(do_deploy_contract(from, bytecode, types_args, opts))
   end
 
   defp get_bytecode!(path_project_root, contract_name) do

@@ -392,6 +392,7 @@ jobs:
       - checkout
       - run: make docker-child_chain
       - run: make docker-watcher
+      - run: make docker-watcher_info
       - run: make init_test
       - run: docker-compose up -d
       - run: docker image ls

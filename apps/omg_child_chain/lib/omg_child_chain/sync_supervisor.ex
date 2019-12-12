@@ -50,7 +50,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
       EthereumEventListener.prepare_child(
         service_name: :in_flight_exit,
         synced_height_update_key: :last_in_flight_exit_eth_height,
-        get_events_callback: &RootChain.get_in_flight_exit_starts/2,
+        get_events_callback: &RootChain.get_in_flight_exits_started/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
       EthereumEventListener.prepare_child(
@@ -62,7 +62,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
       EthereumEventListener.prepare_child(
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,
-        get_events_callback: &RootChain.get_standard_exits/2,
+        get_events_callback: &RootChain.get_standard_exits_started/2,
         process_events_callback: &exit_and_ignore_validities/1
       )
     ]

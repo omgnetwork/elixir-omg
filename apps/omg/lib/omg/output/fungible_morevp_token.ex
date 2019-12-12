@@ -30,18 +30,24 @@ defmodule OMG.Output.FungibleMoreVPToken do
     %__MODULE__{owner: owner, currency: currency, amount: amount}
   end
 
-  def reconstruct([owner, currency, amount]) do
+  def reconstruct([owner, currency, bin_amount]) do
     with {:ok, cur12} <- parse_address(currency),
          {:ok, owner} <- parse_address(owner),
-         do: %__MODULE__{owner: owner, currency: cur12, amount: parse_int!(amount)}
+         {:ok, int_amount} <- parse_int(bin_amount),
+         {:ok, amount} <- parse_amount(int_amount),
+         do: %__MODULE__{owner: owner, currency: cur12, amount: amount}
   end
 
-  defp parse_int!(binary), do: :binary.decode_unsigned(binary, :big)
+  defp parse_amount(amount) when is_integer(amount) and amount > 0, do: {:ok, amount}
+  defp parse_amount(amount) when is_integer(amount), do: {:error, :amount_cant_be_zero}
+
+  defp parse_int(<<0>> <> _binary), do: {:error, :leading_zeros_in_encoded_uint}
+  defp parse_int(binary) when byte_size(binary) <= 32, do: {:ok, :binary.decode_unsigned(binary, :big)}
+  defp parse_int(binary) when byte_size(binary) > 32, do: {:error, :encoded_uint_too_big}
 
   # necessary, because RLP handles empty string equally to integer 0
   @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
   defp parse_address(binary)
-  defp parse_address(""), do: {:ok, <<0::160>>}
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
 end
