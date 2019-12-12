@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.Watcher.Start do
+defmodule Mix.Tasks.Xomg.WatcherInfo.Start do
   @moduledoc """
-  Contains mix.task to run the watcher in security-critical only modes.
+  Contains mix.task to run the watcher in security-critical + informational mode.
 
   See the README.md file.
   """
@@ -22,11 +22,11 @@ defmodule Mix.Tasks.Xomg.Watcher.Start do
 
   import XomgTasks.Utils
 
-  @shortdoc "Starts the security-critical watcher. See Mix.Tasks.Watcher."
+  @shortdoc "Starts the security-critical + informational watcher. See Mix.Tasks.Xomg.WatcherInfo.Start."
 
   def run(args) do
     args
     |> generic_prepare_args()
-    |> generic_run([:omg_watcher, :omg_watcher_rpc])
+    |> generic_run([:omg_watcher_info, :omg_watcher_rpc])
   end
 end

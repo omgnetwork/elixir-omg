@@ -14,14 +14,14 @@
 
 defmodule Mix.Tasks.Xomg.ChildChain.Start do
   @moduledoc """
-    Contains mix.task to run the child chain server
+  Contains mix.task to run the child chain server.
   """
 
   use Mix.Task
 
   import XomgTasks.Utils
 
-  @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
+  @shortdoc "Start the child chain server. See Mix.Tasks.Xomg.ChildChain.Start."
 
   def run(args) do
     args
