@@ -51,10 +51,33 @@ defmodule OMG.Conformance.SignatureTest do
   end
 
   setup_all do
-    signtest_addr = <<25, 146, 92, 198, 69, 114, 15, 187, 97, 247, 99, 4, 238, 21, 80, 30, 49, 151, 243, 169>>
+    signtest_addr = <<50, 6, 61, 186, 145, 207, 149, 235, 61, 88, 250, 217, 227, 145, 238, 136, 136, 120, 182, 28>>
     :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: Eth.Encoding.to_hex(signtest_addr)})
     [contract: signtest_addr]
   end
+
+  # RECORDING
+  # setup_all do
+  #   {:ok, exit_fn} = Support.DevNode.start()
+
+  #   root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
+  #   {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
+
+  #   {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "", 0], [])
+
+  #   {:ok, _, signtest_addr} =
+  #     Support.Deployer.create_new("PaymentEip712LibMock", root_path, Eth.Encoding.from_hex(addr), [])
+  #   # impose our testing signature contract wrapper (mock) as the validating contract, which normally would be
+  #   # plasma framework
+  #   :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: Eth.Encoding.to_hex(signtest_addr)})
+
+  #   on_exit(fn ->
+  #     # reverting to the original values from `omg_eth/config/test.exs`
+  #     exit_fn.()
+  #   end)
+
+  #   [contract: signtest_addr]
+  # end
 
   test "signature with empty transaction", context do
     use_cassette "712_eip_mock/empty_transaction", match_requests_on: [:request_body] do
