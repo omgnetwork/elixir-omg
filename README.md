@@ -427,12 +427,12 @@ mix test
 
 Longer-running integration tests (requires compiling contracts):
 ```bash
-mix test --only integration
+mix test --trace --only integration
 ```
 
 To run these tests with `parity` as a backend, set it via `ETH_NODE` environmental variable (default is `geth`):
 ```
-ETH_NODE=parity mix test --only integration
+ETH_NODE=parity mix test --trace --only integration
 ```
 
 For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/omisego/workflows/elixir-omg).
