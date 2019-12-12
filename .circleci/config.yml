@@ -626,8 +626,8 @@ workflows:
                 - master
     jobs:
       - build
-      #- integration_tests:
-      #    requires: [build]
+      - integration_tests:
+          requires: [build]
       - barebuild:
           requires: [build]
       - barebuild_macos:
@@ -635,8 +635,6 @@ workflows:
   build-deploy:
     jobs:
       - build
-      - integration_tests:
-          requires: [build]
       - notify_services:
           requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
           filters:
