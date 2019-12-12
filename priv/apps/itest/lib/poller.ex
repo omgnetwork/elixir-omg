@@ -161,15 +161,6 @@ defmodule Itest.Poller do
     end
   end
 
-  defp account_get_balance(address) do
-    Account.account_get_balance(
-      WatcherInfo.new(),
-      %{
-        address: address
-      }
-    )
-  end
-
   defp eth_get_balance(address, 0) do
     {:ok, response} = account_get_balance(address)
     Jason.decode!(response.body)["data"]
