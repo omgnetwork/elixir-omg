@@ -180,8 +180,9 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
                   txbytes: ^txbytes
                 }
               ]} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+                 only: [Event.PiggybackAvailable]
+               )
     end
 
     test "when input is already piggybacked, it is not reported in piggyback available event",
@@ -197,8 +198,9 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
                   available_outputs: [%{index: 0}]
                 }
               ]} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+                 only: [Event.PiggybackAvailable]
+               )
     end
 
     test "when output is already piggybacked, it is not reported in piggyback available event",
@@ -214,8 +216,9 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
                   available_outputs: []
                 }
               ]} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+                 only: [Event.PiggybackAvailable]
+               )
     end
 
     test "when ife is finalized, it's outputs are not reported as available for piggyback",
@@ -227,21 +230,20 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization], %{})
 
       assert {:ok, []} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+                 only: [Event.PiggybackAvailable]
+               )
     end
 
     test "challenged IFEs emit the same piggybacks as canonical ones",
          %{processor_filled: processor, transactions: [tx | _], competing_tx: comp} do
       assert {:ok, events_canonical} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> Core.check_validity(processor)
+               Core.check_validity(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor)
 
       {challenged_processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx, comp)])
 
       assert {:ok, events_challenged} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> Core.check_validity(challenged_processor)
+               Core.check_validity(%ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}, challenged_processor)
 
       assert_events(events_canonical, events_challenged)
     end
