@@ -64,7 +64,7 @@ defmodule OMG.ChildChain.FeeServer do
   Returns accepted tokens and amounts in which transaction fees are collected.
   """
   @spec transaction_fees() :: {:ok, Fees.fee_t()}
-  def transaction_fees do
+  def transaction_fees() do
     {:ok, load_fees()}
   end
 
@@ -120,18 +120,18 @@ defmodule OMG.ChildChain.FeeServer do
     :ok
   end
 
-  defp load_fees do
+  defp load_fees() do
     :ets.lookup_element(:fees_bucket, :fees, 2)
   end
 
-  defp ensure_ets_init do
+  defp ensure_ets_init() do
     _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :public, :named_table])
 
     true = :ets.insert(:fees_bucket, {:fee_specs_source_updated_at, 0})
     :ok
   end
 
-  defp get_fee_adapter do
+  defp get_fee_adapter() do
     case Application.get_env(:omg_child_chain, :fee_adapter) do
       nil ->
         _ = Logger.error("Fee adapter not defined.")
