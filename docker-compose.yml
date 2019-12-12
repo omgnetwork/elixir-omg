@@ -168,8 +168,6 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      plasma-contracts:
-        condition: service_healthy
       childchain:
         condition: service_healthy
       postgres:

@@ -64,7 +64,7 @@ defmodule Support.Deployer do
       {:error, reason} ->
         raise(
           RuntimeError,
-          "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
+          "Can't read #{path} because #{inspect(reason)}"
         )
     end
   end
