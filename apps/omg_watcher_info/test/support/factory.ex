@@ -152,7 +152,7 @@ defmodule OMG.WatcherInfo.Factory do
   `txoutputs`.
 
   Most scenarios will have a only a 1-1 relationship between ethevents an txoutputs. However, with an ExitFinalized
-  (process exit) scenario, an ethevent may have many txoutputs. A txoutput for every utxo in the exit queue when 
+  (process exit) scenario, an ethevent may have many txoutputs. A txoutput for every utxo in the exit queue when
   processExits() was called.
 
   The default event type is `:deposit`, but can be overridden by setting `event_type`.

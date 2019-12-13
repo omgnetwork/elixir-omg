@@ -15,6 +15,15 @@
 defmodule OMG.WatcherInfo.Factory.TxOutputFactory do
   defmacro __using__(_opts) do
     quote do
+      def txoutput_factory do
+        %OMG.WatcherInfo.DB.TxOutput{
+          blknum: 1,
+          txindex: 0,
+          oindex: 0,
+          amount: 1,
+          currency: <<0::160>>,
+          proof: <<0::256>>
+        }
       def txoutput_factory(attrs \\ nil) do
         txoutput = %OMG.WatcherInfo.DB.TxOutput{
           blknum: sequence(:txoutput_blknum, fn seq -> seq end),
@@ -35,3 +44,26 @@ defmodule OMG.WatcherInfo.Factory.TxOutputFactory do
     end
   end
 end
+
+
+# field(:blknum, :integer, primary_key: true)
+# field(:txindex, :integer, primary_key: true)
+# field(:oindex, :integer, primary_key: true)
+# field(:owner, :binary)
+# field(:amount, OMG.WatcherInfo.DB.Types.IntegerType)
+# field(:currency, :binary)
+# field(:proof, :binary)
+# field(:spending_tx_oindex, :integer)
+# field(:child_chain_utxohash, :binary)
+
+# belongs_to(:creating_transaction, DB.Transaction, foreign_key: :creating_txhash, references: :txhash, type: :binary)
+# belongs_to(:spending_transaction, DB.Transaction, foreign_key: :spending_txhash, references: :txhash, type: :binary)
+
+# many_to_many(
+#   :ethevents,
+#   DB.EthEvent,
+#   join_through: "ethevents_txoutputs",
+#   join_keys: [child_chain_utxohash: :child_chain_utxohash, root_chain_txhash_event: :root_chain_txhash_event]
+# )
+
+# timestamps(type: :utc_datetime)
