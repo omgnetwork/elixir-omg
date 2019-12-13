@@ -45,7 +45,6 @@ defmodule OMG.WatcherInfo.Factory.TxOutputFactory do
   end
 end
 
-
 # field(:blknum, :integer, primary_key: true)
 # field(:txindex, :integer, primary_key: true)
 # field(:oindex, :integer, primary_key: true)
