@@ -2,7 +2,7 @@
 export REPLACE_OS_VARS=true
 export NODE_HOST=127.0.0.1
 export ERLANG_COOKIE=develop
-export APP_ENV=devino
+export APP_ENV=local_development
 export HOSTNAME=yolo
 export DB_PATH=~/plasma-data/
 export ETHEREUM_RPC_URL=http://127.0.0.1:8545
