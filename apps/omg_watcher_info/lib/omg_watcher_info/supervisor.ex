@@ -21,36 +21,11 @@ defmodule OMG.WatcherInfo.Supervisor do
   use OMG.Utils.LoggerExt
   alias OMG.WatcherInfo
 
-  if Mix.env() == :test do
-    defmodule Sandbox do
-      @moduledoc """
-      Must be start after WatcherInfo.DB.Repo,
-      that no data will be downloaded/inserted before setting the sandbox option.
-      """
-      use GenServer
-      alias Ecto.Adapters.SQL
-
-      def start_link(_args) do
-        GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
-      end
-
-      def init(stack) do
-        :ok = SQL.Sandbox.checkout(WatcherInfo.DB.Repo)
-        SQL.Sandbox.mode(WatcherInfo.DB.Repo, {:shared, self()})
-        {:ok, stack}
-      end
-    end
-  end
-
-  @children_run_after_repo if(Mix.env() == :test, do: [{__MODULE__.Sandbox, []}], else: [])
-
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
-    # why sandbox is in this code
-    # https://github.com/omisego/elixir-omg/pull/562
     top_children =
       [
         %{
@@ -58,7 +33,7 @@ defmodule OMG.WatcherInfo.Supervisor do
           start: {WatcherInfo.DB.Repo, :start_link, []},
           type: :supervisor
         }
-      ] ++ @children_run_after_repo
+      ]
 
     children = [
       {OMG.WatcherInfo.BlockApplicationConsumer, []},
