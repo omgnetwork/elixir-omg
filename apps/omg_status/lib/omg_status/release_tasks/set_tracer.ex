@@ -30,7 +30,6 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     # statix setup
     :ok = Application.put_env(:statix, :host, get_dd_hostname(Application.get_env(:statix, :host)), persistent: true)
     :ok = Application.put_env(:statix, :port, get_dd_port(Application.get_env(:statix, :port)), persistent: true)
-    :ok = Application.put_env(:statix, :tags, ["application:#{application()}"], persistent: true)
     # spandex_datadog setup
 
     :ok =
@@ -114,12 +113,4 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
 
   defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
   defp validate_integer(_, default), do: default
-
-  defp application do
-    if Code.ensure_loaded?(OMG.ChildChain) do
-      :child_chain
-    else
-      :watcher
-    end
-  end
 end
