@@ -18,17 +18,11 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
   alias OMG.Watcher.Tracer
   @app :omg_watcher
   @configuration_old Application.get_env(@app, Tracer)
-  @configuration_statix_old Application.get_all_env(:statix)
   setup do
     on_exit(fn ->
       # configuration is global state so we reset it to known values in case
       # it got fiddled before
       :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
-
-      :ok =
-        Enum.each(@configuration_statix_old, fn {key, value} ->
-          Application.put_env(:statix, key, value, persistent: true)
-        end)
     end)
 
     :ok
