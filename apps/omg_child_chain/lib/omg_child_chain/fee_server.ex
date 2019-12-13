@@ -61,9 +61,9 @@ defmodule OMG.ChildChain.FeeServer do
   end
 
   @doc """
-  Returns accepted tokens and amounts in which transaction fees are collected.
+  Returns accepted tokens and amounts in which transaction fees are collected for each transaction type
   """
-  @spec transaction_fees() :: {:ok, Fees.fee_t()}
+  @spec transaction_fees() :: {:ok, %{String.t() => [Fees.fee_t()]}}
   def transaction_fees() do
     {:ok, load_fees()}
   end

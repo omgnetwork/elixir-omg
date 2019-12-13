@@ -28,14 +28,37 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
   @eth Eth.zero_address()
   @eth_hex Eth.Encoding.to_hex(@eth)
+  @not_eth <<1::size(160)>>
+  @not_eth_hex Eth.Encoding.to_hex(@not_eth)
+
   @fees %{
-    @eth_hex => %{
-      amount: 0,
-      pegged_amount: 1,
-      subunit_to_unit: 1_000_000_000_000_000_000,
-      pegged_currency: "USD",
-      pegged_subunit_to_unit: 100,
-      updated_at: DateTime.from_unix!(1_546_336_800)
+    "1" => %{
+      @eth_hex => %{
+        amount: 0,
+        pegged_amount: 1,
+        subunit_to_unit: 1_000_000_000_000_000_000,
+        pegged_currency: "USD",
+        pegged_subunit_to_unit: 100,
+        updated_at: DateTime.from_unix!(1_546_336_800)
+      },
+      @not_eth_hex => %{
+        amount: 0,
+        pegged_amount: 1,
+        subunit_to_unit: 1_000_000_000_000_000_000,
+        pegged_currency: "USD",
+        pegged_subunit_to_unit: 100,
+        updated_at: DateTime.from_unix!(1_546_336_800)
+      }
+    },
+    "2" => %{
+      @eth_hex => %{
+        amount: 0,
+        pegged_amount: 1,
+        subunit_to_unit: 1_000_000_000_000_000_000,
+        pegged_currency: "USD",
+        pegged_subunit_to_unit: 100,
+        updated_at: DateTime.from_unix!(1_546_336_800)
+      }
     }
   }
 
@@ -70,14 +93,38 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       {:started, _log, exit_fn} = start_fee_server()
 
       default_fees = %{
-        @eth => %{
-          amount: 0,
-          subunit_to_unit: 1_000_000_000_000_000_000,
-          pegged_amount: 1,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.from_unix!(1_546_336_800)
-        }
+        "1" =>
+          {:ok,
+           %{
+             @eth => %{
+               amount: 0,
+               pegged_amount: 1,
+               subunit_to_unit: 1_000_000_000_000_000_000,
+               pegged_currency: "USD",
+               pegged_subunit_to_unit: 100,
+               updated_at: DateTime.from_unix!(1_546_336_800)
+             },
+             @not_eth => %{
+               amount: 0,
+               pegged_amount: 1,
+               subunit_to_unit: 1_000_000_000_000_000_000,
+               pegged_currency: "USD",
+               pegged_subunit_to_unit: 100,
+               updated_at: DateTime.from_unix!(1_546_336_800)
+             }
+           }},
+        "2" =>
+          {:ok,
+           %{
+             @eth => %{
+               amount: 0,
+               pegged_amount: 1,
+               subunit_to_unit: 1_000_000_000_000_000_000,
+               pegged_currency: "USD",
+               pegged_subunit_to_unit: 100,
+               updated_at: DateTime.from_unix!(1_546_336_800)
+             }
+           }}
       }
 
       new_fee = %{
@@ -101,10 +148,10 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       assert server_alive?()
 
       # fix file, reload, check changes applied
-      overwrite_fee_file(file_name, %{@eth_hex => new_fee})
+      overwrite_fee_file(file_name, %{"1" => %{@eth_hex => new_fee}})
       refresh_fees()
 
-      assert {:ok, %{@eth => new_fee}} == FeeServer.transaction_fees()
+      assert {:ok, %{"1" => {:ok, %{@eth => new_fee}}}} == FeeServer.transaction_fees()
       assert server_alive?()
 
       exit_fn.()

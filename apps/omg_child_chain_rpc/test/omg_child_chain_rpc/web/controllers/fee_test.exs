@@ -20,21 +20,33 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
 
   setup_all do
     fee_specs = %{
-      Base.decode16!("0000000000000000000000000000000000000000") => %{
-        amount: 1,
-        subunit_to_unit: 1_000_000_000_000_000_000,
-        pegged_amount: 1,
-        pegged_currency: "USD",
-        pegged_subunit_to_unit: 100,
-        updated_at: DateTime.from_unix!(1_546_336_800)
+      "1" => %{
+        Base.decode16!("0000000000000000000000000000000000000000") => %{
+          amount: 1,
+          subunit_to_unit: 1_000_000_000_000_000_000,
+          pegged_amount: 1,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.from_unix!(1_546_336_800)
+        },
+        Base.decode16!("0000000000000000000000000000000000000001") => %{
+          amount: 1,
+          subunit_to_unit: 1_000_000_000_000_000_000,
+          pegged_amount: 1,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.from_unix!(1_546_336_800)
+        }
       },
-      Base.decode16!("0000000000000000000000000000000000000001") => %{
-        amount: 1,
-        subunit_to_unit: 1_000_000_000_000_000_000,
-        pegged_amount: 1,
-        pegged_currency: "USD",
-        pegged_subunit_to_unit: 100,
-        updated_at: DateTime.from_unix!(1_546_336_800)
+      "2" => %{
+        Base.decode16!("0000000000000000000000000000000000000000") => %{
+          amount: 2,
+          subunit_to_unit: 1_000_000_000_000_000_000,
+          pegged_amount: 1,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.from_unix!(1_546_336_800)
+        }
       }
     }
 
@@ -48,17 +60,30 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
     test "fees.all endpoint filters the result when given currencies" do
       assert %{
                "success" => true,
-               "data" => [
-                 %{
-                   "amount" => 1,
-                   "currency" => "0x0000000000000000000000000000000000000000",
-                   "subunit_to_unit" => 1_000_000_000_000_000_000,
-                   "pegged_amount" => 1,
-                   "pegged_currency" => "USD",
-                   "pegged_subunit_to_unit" => 100,
-                   "updated_at" => "2019-01-01T10:00:00Z"
-                 }
-               ]
+               "data" => %{
+                 "1" => [
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ],
+                 "2" => [
+                   %{
+                     "amount" => 2,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ]
+               }
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: ["0x0000000000000000000000000000000000000000"]})
     end
 
@@ -66,26 +91,39 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
     test "fees.all endpoint does not filter when given empty currencies" do
       assert %{
                "success" => true,
-               "data" => [
-                 %{
-                   "amount" => 1,
-                   "currency" => "0x0000000000000000000000000000000000000000",
-                   "subunit_to_unit" => 1_000_000_000_000_000_000,
-                   "pegged_amount" => 1,
-                   "pegged_currency" => "USD",
-                   "pegged_subunit_to_unit" => 100,
-                   "updated_at" => "2019-01-01T10:00:00Z"
-                 },
-                 %{
-                   "amount" => 1,
-                   "currency" => "0x0000000000000000000000000000000000000001",
-                   "subunit_to_unit" => 1_000_000_000_000_000_000,
-                   "pegged_amount" => 1,
-                   "pegged_currency" => "USD",
-                   "pegged_subunit_to_unit" => 100,
-                   "updated_at" => "2019-01-01T10:00:00Z"
-                 }
-               ]
+               "data" => %{
+                 "1" => [
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   },
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000001",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ],
+                 "2" => [
+                   %{
+                     "amount" => 2,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ]
+               }
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: []})
     end
 
@@ -95,26 +133,39 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
 
       assert %{
                "success" => true,
-               "data" => [
-                 %{
-                   "amount" => 1,
-                   "currency" => "0x0000000000000000000000000000000000000000",
-                   "subunit_to_unit" => 1_000_000_000_000_000_000,
-                   "pegged_amount" => 1,
-                   "pegged_currency" => "USD",
-                   "pegged_subunit_to_unit" => 100,
-                   "updated_at" => "2019-01-01T10:00:00Z"
-                 },
-                 %{
-                   "amount" => 1,
-                   "currency" => "0x0000000000000000000000000000000000000001",
-                   "subunit_to_unit" => 1_000_000_000_000_000_000,
-                   "pegged_amount" => 1,
-                   "pegged_currency" => "USD",
-                   "pegged_subunit_to_unit" => 100,
-                   "updated_at" => "2019-01-01T10:00:00Z"
-                 }
-               ]
+               "data" => %{
+                 "1" => [
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   },
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000001",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ],
+                 "2" => [
+                   %{
+                     "amount" => 2,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ]
+               }
              } = TestHelper.rpc_call(:post, "/fees.all", missing_param)
     end
 

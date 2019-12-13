@@ -64,23 +64,25 @@ defmodule OMG.Fees do
 
   ## Examples
 
-      iex> OMG.Fees.for_transaction(%OMG.State.Transaction.Recovered{},
+      iex> OMG.Fees.for_transaction(%OMG.State.Transaction.Recovered{signed_tx: %OMG.State.Transaction.Signed{raw_tx: OMG.State.Transaction.Payment.new([], [], <<0::256>>)}},
       ...> %{
-      ...>  "eth" => %{
-      ...>    amount: 1,
-      ...>    subunit_to_unit: 1000000000000000000,
-      ...>    pegged_amount: 4,
-      ...>    pegged_currency: "USD",
-      ...>    pegged_subunit_to_unit: 100,
-      ...>    updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>  },
-      ...>  "omg" => %{
-      ...>    amount: 3,
-      ...>    subunit_to_unit: 1000000000000000000,
-      ...>    pegged_amount: 4,
-      ...>    pegged_currency: "USD",
-      ...>    pegged_subunit_to_unit: 100,
-      ...>    updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+      ...>  "1" => %{
+      ...>    "eth" => %{
+      ...>      amount: 1,
+      ...>      subunit_to_unit: 1000000000000000000,
+      ...>      pegged_amount: 4,
+      ...>      pegged_currency: "USD",
+      ...>      pegged_subunit_to_unit: 100,
+      ...>      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+      ...>    },
+      ...>    "omg" => %{
+      ...>      amount: 3,
+      ...>      subunit_to_unit: 1000000000000000000,
+      ...>      pegged_amount: 4,
+      ...>      pegged_currency: "USD",
+      ...>      pegged_subunit_to_unit: 100,
+      ...>      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+      ...>    }
       ...>  }
       ...> }
       ...>)
@@ -108,9 +110,21 @@ defmodule OMG.Fees do
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do
       true -> :no_fees_required
-      false -> fee_map
+      false -> get_fee_for_type(transaction, fee_map)
     end
   end
+
+  defp get_fee_for_type(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
+    string_type =
+      raw_tx
+      |> Transaction.Protocol.get_type()
+      |> Binary.to_integer()
+      |> Integer.to_string()
+
+    Map.get(fee_map, string_type, %{})
+  end
+
+  defp get_fee_for_type(_, _fee_map), do: %{}
 
   @doc ~S"""
   Returns a filtered map of fees given a list of desired currencies.
@@ -119,37 +133,51 @@ defmodule OMG.Fees do
   ## Examples
 
       iex> OMG.Fees.filter_fees(
-      ...> %{
-      ...>  "eth" => %{
-      ...>    amount: 1,
-      ...>    subunit_to_unit: 1000000000000000000,
-      ...>    pegged_amount: 4,
-      ...>    pegged_currency: "USD",
-      ...>    pegged_subunit_to_unit: 100,
-      ...>    updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>  },
-      ...>  "omg" => %{
-      ...>    amount: 3,
-      ...>    subunit_to_unit: 1000000000000000000,
-      ...>    pegged_amount: 4,
-      ...>    pegged_currency: "USD",
-      ...>    pegged_subunit_to_unit: 100,
-      ...>    updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>  }
-      ...> },
-      ...> ["eth"]
+      ...>   %{
+      ...>     "1" => %{
+      ...>       "eth" => %{
+      ...>         amount: 1,
+      ...>         subunit_to_unit: 1_000_000_000_000_000_000,
+      ...>         pegged_amount: 4,
+      ...>         pegged_currency: "USD",
+      ...>         pegged_subunit_to_unit: 100,
+      ...>         updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+      ...>       },
+      ...>       "omg" => %{
+      ...>         amount: 3,
+      ...>         subunit_to_unit: 1_000_000_000_000_000_000,
+      ...>         pegged_amount: 4,
+      ...>         pegged_currency: "USD",
+      ...>         pegged_subunit_to_unit: 100,
+      ...>         updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+      ...>       }
+      ...>     },
+      ...>     "2" => %{
+      ...>       "omg" => %{
+      ...>         amount: 3,
+      ...>         subunit_to_unit: 1_000_000_000_000_000_000,
+      ...>         pegged_amount: 4,
+      ...>         pegged_currency: "USD",
+      ...>         pegged_subunit_to_unit: 100,
+      ...>         updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+      ...>       }
+      ...>     }
+      ...>   },
+      ...>   ["eth"]
       ...> )
       {:ok,
         %{
-          "eth" =>
-          %{
-            amount: 1,
-            subunit_to_unit: 1000000000000000000,
-            pegged_amount: 4,
-            pegged_currency: "USD",
-            pegged_subunit_to_unit: 100,
-            updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-          }
+          "1" => %{
+            "eth" => %{
+              amount: 1,
+              subunit_to_unit: 1_000_000_000_000_000_000,
+              pegged_amount: 4,
+              pegged_currency: "USD",
+              pegged_subunit_to_unit: 100,
+              updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+            }
+          },
+          "2" => %{}
         }
       }
 
@@ -160,11 +188,23 @@ defmodule OMG.Fees do
   def filter_fees(fees, nil), do: {:ok, fees}
 
   def filter_fees(fees, desired_currencies) do
-    Enum.reduce_while(desired_currencies, {:ok, %{}}, fn currency, {:ok, filtered_fees} ->
-      case Map.fetch(fees, currency) do
-        :error -> {:halt, {:error, :currency_fee_not_supported}}
-        {:ok, fee} -> {:cont, {:ok, Map.put(filtered_fees, currency, fee)}}
-      end
-    end)
+    with :ok <- validate_currencies(desired_currencies, fees) do
+      {:ok, do_filter(desired_currencies, fees)}
+    end
+  end
+
+  defp validate_currencies(currencies, fees) do
+    currencies
+    |> Enum.all?(fn currency -> Enum.any?(fees, &Map.has_key?(elem(&1, 1), currency)) end)
+    |> case do
+      true -> :ok
+      false -> {:error, :currency_fee_not_supported}
+    end
+  end
+
+  defp do_filter(currencies, fees) do
+    fees
+    |> Enum.map(&{elem(&1, 0), Map.take(elem(&1, 1), currencies)})
+    |> Enum.into(%{})
   end
 end
