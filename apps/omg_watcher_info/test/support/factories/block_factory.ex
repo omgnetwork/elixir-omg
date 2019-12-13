@@ -20,7 +20,7 @@ defmodule OMG.WatcherInfo.Factory.Block do
     no associations to any other objects.
 
     Note that `tx_count` is an aggregate sum(block.transactinons) field and does
-    not automatically get setup in the tests. In most cases `tx_count` will 
+    not automatically get setup in the tests. In most cases `tx_count` will
     need to be managed manually.
   """
   defmacro __using__(_opts) do
@@ -54,24 +54,24 @@ defmodule OMG.WatcherInfo.Factory.Block do
             #  |> Map.put(:outputs, outputs)
 
             # insert(transaction)
-            #   inputs = 
+            #   inputs =
             #     transaction.inputs
             #     |> Enum.with_index()
-            #     |> Enum.map(fn {input, spending_tx_oindex} -> 
+            #     |> Enum.map(fn {input, spending_tx_oindex} ->
             #          Map.put(input, :spending_tx_oindex, spending_tx_oindex)
             #          |> Map.put(:spending_transaction, transaction)
             #          |> Map.put(:proof, insecure_random_bytes(32))
-            #        end) 
+            #        end)
 
             #   outputs =
             #     transaction.outputs
             #     |> Enum.with_index()
-            #     |> Enum.map(fn {output, oindex} -> 
+            #     |> Enum.map(fn {output, oindex} ->
             #          Map.put(output, :blknum, block.blknum)
             #          |> Map.put(:txindex, txindex)
             #          |> Map.put(:oindex, oindex)
             #          |> Map.put(:creating_transaction, transaction)
-            #     end) 
+            #     end)
           end)
 
         Map.put(block, :transactions, transactions)
