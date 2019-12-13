@@ -20,20 +20,19 @@ defmodule OMG.WatcherInfo.Factory.BlockFactory do
           blknum: 1,
           hash: <<1::256>>,
           eth_height: 1,
-          timestamp: 1 #DateTime.from_iso8601("2019-12-12T01:01:01Z") |> DateTime.to_unix(),
+          # DateTime.from_iso8601("2019-12-12T01:01:01Z") |> DateTime.to_unix(),
+          timestamp: 1
         }
       end
     end
   end
 end
 
-
 # returns %{blknum: 1, hash: <<1::256>>, eth_height: 1, timestamp: ....}
-#build(:block)
+# build(:block)
 
 # returns %{blknum: 2, hash: <<1::256>>, eth_height: 1, timestamp: ....}
-#build(:user, blknum: 2)
-
+# build(:user, blknum: 2)
 
 # attrs = %{body: "A comment!"} # attrs is optional. Also accepts a keyword list.
 # build(:comment, attrs)
@@ -60,8 +59,6 @@ end
 # string_params_for(:comment, attrs)
 # string_params_with_assocs(:comment, attrs)
 
-
-
 # ecto associations
 #
 # Using insert/2 in factory definitions may lead to performance issues and bugs, as records will be saved unnecessarily.
@@ -74,8 +71,6 @@ end
 #     author: build(:user),
 #   }
 # end
-
-
 
 # flexible factories with pipes
 
