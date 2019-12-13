@@ -1,32 +1,23 @@
+# Copyright 2019 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 defmodule OMG.WatcherInfo.DB.RepoTest do
-  use ExUnit.Case, async: false
+  use OMG.WatcherInfo.Test.DBTestCase, async: true
 
   import Ecto.Query, only: [from: 2]
 
   import OMG.WatcherInfo.Factory
-
-    # @doc "run only database in sandbox and endpoint to make request"
-    # deffixture phoenix_ecto_sandbox(web_endpoint) do
-    #   :ok = web_endpoint
-
-    #   {:ok, pid} =
-    #     Supervisor.start_link(
-    #       [%{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor}],
-    #       strategy: :one_for_one,
-    #       name: WatcherInfo.Supervisor
-    #     )
-
-    #   :ok = SQL.Sandbox.checkout(DB.Repo)
-    #   # setup and body test are performed in one process, `on_exit` is performed in another
-    #   on_exit(fn ->
-    #     WatcherInfoHelper.wait_for_process(pid)
-    #     :ok
-    #   end)
-    # end
-
-  setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
-  end
 
   # test "insert_all_chunked adds inserted_at and updated_at timestamps correctly" do
   #   blknum = 5432
