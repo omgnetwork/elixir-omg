@@ -26,42 +26,42 @@ defmodule OMG.WatcherInfo.API.BlockTest do
   alias Support.WatcherHelper
   alias OMG.WatcherInfo.API.Block
 
-  describe "get_blocks/1" do
-    @tag fixtures: [:initial_blocks]
-    test "asidyavsduyiads" do
-# %OMG.Utils.Paginator{
-#   data: [
-#     %OMG.WatcherInfo.DB.Block{
-#       __meta__: #Ecto.Schema.Metadata<:loaded, "blocks">,
-#       blknum: 3000,
-#       eth_height: 1,
-#       hash: "#3000",
-#       timestamp: 1540465606
-#     },
-#     %OMG.WatcherInfo.DB.Block{
-#       __meta__: #Ecto.Schema.Metadata<:loaded, "blocks">,
-#       blknum: 2000,
-#       eth_height: 1,
-#       hash: "#2000",
-#       timestamp: 1540465606
-#     },
-#     %OMG.WatcherInfo.DB.Block{
-#       __meta__: #Ecto.Schema.Metadata<:loaded, "blocks">,
-#       blknum: 1000,
-#       eth_height: 1,
-#       hash: "#1000",
-#       timestamp: 1540465606
-#     }
-#   ],
-#   data_paging: %{limit: 10, page: 1}
-# }
-      constraints = [limit: 10, page: 1]
-      results = Block.get_blocks(constraints)
+#   describe "get_blocks/1" do
+#     @tag fixtures: [:initial_blocks]
+#     test "asidyavsduyiads" do
+# # %OMG.Utils.Paginator{
+# #   data: [
+# #     %OMG.WatcherInfo.DB.Block{
+# #       __meta__: #Ecto.Schema.Metadata<:loaded, "blocks">,
+# #       blknum: 3000,
+# #       eth_height: 1,
+# #       hash: "#3000",
+# #       timestamp: 1540465606
+# #     },
+# #     %OMG.WatcherInfo.DB.Block{
+# #       __meta__: #Ecto.Schema.Metadata<:loaded, "blocks">,
+# #       blknum: 2000,
+# #       eth_height: 1,
+# #       hash: "#2000",
+# #       timestamp: 1540465606
+# #     },
+# #     %OMG.WatcherInfo.DB.Block{
+# #       __meta__: #Ecto.Schema.Metadata<:loaded, "blocks">,
+# #       blknum: 1000,
+# #       eth_height: 1,
+# #       hash: "#1000",
+# #       timestamp: 1540465606
+# #     }
+# #   ],
+# #   data_paging: %{limit: 10, page: 1}
+# # }
+#       constraints = [limit: 10, page: 1]
+#       results = Block.get_blocks(constraints)
 
-      assert %OMG.Utils.Paginator{} = results
-      assert length(results.data) == 3
+#       assert %OMG.Utils.Paginator{} = results
+#       assert length(results.data) == 3
 
-      assert ordered by descending blknum
-    end
-  end
+#       assert ordered by descending blknum
+#     end
+#   end
 end
