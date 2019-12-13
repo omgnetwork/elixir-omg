@@ -55,7 +55,7 @@ defmodule OMG.WatcherInfo.Factory.TxOutput do
           creating_transaction: nil,
           spending_transaction: nil,
           spending_tx_oindex: nil,
-          proof: insecure_random_bytes(32),
+          proof: nil,
           ethevents: []
         }
 
