@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracerTest do
+defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
   use ExUnit.Case, async: false
-  alias OMG.ChildChainRPC.ReleaseTasks.SetTracer
-  alias OMG.ChildChainRPC.Tracer
-
-  @app :omg_child_chain_rpc
+  alias OMG.Watcher.ReleaseTasks.SetTracer
+  alias OMG.Watcher.Tracer
+  @app :omg_watcher
   @configuration_old Application.get_env(@app, Tracer)
   @configuration_statix_old Application.get_all_env(:statix)
   setup do
@@ -52,23 +51,12 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracerTest do
   end
 
   test "if default configuration is used when there's no environment variables" do
-    :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
     :ok = System.delete_env("DD_DISABLED")
     :ok = System.put_env("APP_ENV", "YOLO")
     :ok = SetTracer.init([])
     configuration = Application.get_env(@app, Tracer)
     sorted_configuration = Enum.sort(configuration)
     assert sorted_configuration == @configuration_old |> Keyword.put(:env, "YOLO") |> Enum.sort()
-  end
-
-  test "that if APP_ENV env var is not present we crash" do
-    :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
-    :ok = System.delete_env("DD_DISABLED")
-    :ok = System.delete_env("APP_ENV")
-    catch_exit(SetTracer.init([]))
-    configuration = Application.get_env(@app, Tracer)
-    sorted_configuration = Enum.sort(configuration)
-    ^sorted_configuration = Enum.sort(@configuration_old)
   end
 
   test "if exit is thrown when faulty configuration is used" do
