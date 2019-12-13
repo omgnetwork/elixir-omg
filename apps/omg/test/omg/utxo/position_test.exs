@@ -28,6 +28,11 @@ defmodule OMG.Utxo.PositionTest do
   end
 
   test "verbose error on too low encoded position" do
-    assert {:error, :encoded_utxo_position_too_low} = Utxo.Position.decode(100)
+    assert {:error, :encoded_utxo_position_too_low} = Utxo.Position.decode(0)
+    assert {:error, :encoded_utxo_position_too_low} = Utxo.Position.decode(-1)
+  end
+
+  test "too low encoded position means non positive only" do
+    assert {:ok, Utxo.position(0, 0, 1)} = Utxo.Position.decode(1)
   end
 end

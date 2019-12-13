@@ -50,16 +50,12 @@ defmodule OMG.Utxo.Position do
   end
 
   @spec decode(number()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
-  def decode(encoded) when is_integer(encoded) and encoded >= @block_offset do
+  def decode(encoded) when is_integer(encoded) and encoded > 0 do
     {blknum, txindex, oindex} = get_position(encoded)
     {:ok, Utxo.position(blknum, txindex, oindex)}
   end
 
   def decode(encoded) when is_number(encoded), do: {:error, :encoded_utxo_position_too_low}
-
-  @spec non_zero?(t()) :: boolean()
-  def non_zero?(Utxo.position(0, 0, 0)), do: false
-  def non_zero?(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex), do: true
 
   @spec to_db_key(t()) :: db_t()
   def to_db_key(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
@@ -73,7 +69,7 @@ defmodule OMG.Utxo.Position do
   def txindex(Utxo.position(_, txindex, _)), do: txindex
   def oindex(Utxo.position(_, _, oindex)), do: oindex
 
-  @spec get_position(pos_integer()) :: {non_neg_integer, non_neg_integer, non_neg_integer}
+  @spec get_position(pos_integer()) :: {non_neg_integer, non_neg_integer, char}
   defp get_position(encoded) when is_integer(encoded) and encoded > 0 do
     blknum = div(encoded, @block_offset)
     txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)

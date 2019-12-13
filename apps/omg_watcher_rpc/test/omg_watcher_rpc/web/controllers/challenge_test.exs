@@ -79,7 +79,16 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles too low utxo position inputs" do
-    assert %{"object" => "error", "code" => "get_utxo_challenge:encoded_utxo_position_too_low"} =
-             WatcherHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => 1000})
+    assert %{
+             "object" => "error",
+             "code" => "operation:bad_request",
+             "description" => "Parameters required by this operation are missing or incorrect.",
+             "messages" => %{
+               "validation_error" => %{
+                 "parameter" => "utxo_pos",
+                 "validator" => "{:greater, 0}"
+               }
+             }
+           } = WatcherHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => 0})
   end
 end

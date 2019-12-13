@@ -18,22 +18,8 @@ defmodule Support.DevNode do
   """
   require Logger
 
-  def start do
-    start(backend())
-  end
-
-  defp start(:geth) do
+  def start() do
     OMG.Eth.DevGeth.start()
-  end
-
-  defp start(:parity) do
-    Support.DevParity.start()
-  end
-
-  defp start(:ganache) do
-    # we won't start ganache for the testing user, so we want to warn in case this was expected
-    false = Application.get_env(:omg_eth, :run_test_eth_dev_node) && {:error, :ganache_must_be_already_started}
-    {:ok, fn -> :ok end}
   end
 
   def wait_for_start(outstream, look_for, timeout, logger_fn \\ &default_logger/1) do
@@ -55,9 +41,5 @@ defmodule Support.DevNode do
   def default_logger(line) do
     _ = Logger.debug("eth node: " <> line)
     line
-  end
-
-  defp backend() do
-    Application.fetch_env!(:omg_eth, :eth_node)
   end
 end

@@ -18,5 +18,11 @@ ExUnit.start()
 
 {:ok, _} = Application.ensure_all_started(:httpoison)
 {:ok, _} = Application.ensure_all_started(:fake_server)
+
+# TODO: even though watcher does not have postgres, this needs to be here
+# because tests breach scope
+Mix.Task.run("ecto.create", ~w(--quiet))
+Mix.Task.run("ecto.migrate", ~w(--quiet))
+
 {:ok, _} = Application.ensure_all_started(:briefly)
 {:ok, _} = Application.ensure_all_started(:erlexec)

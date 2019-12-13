@@ -55,7 +55,7 @@ defmodule OMG.Watcher.SyncSupervisor do
       EthereumEventListener.prepare_child(
         service_name: :exit_processor,
         synced_height_update_key: :last_exit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_standard_exits/2,
+        get_events_callback: &Eth.RootChain.get_standard_exits_started/2,
         process_events_callback: &Watcher.ExitProcessor.new_exits/1
       ),
       EthereumEventListener.prepare_child(
@@ -73,7 +73,7 @@ defmodule OMG.Watcher.SyncSupervisor do
       EthereumEventListener.prepare_child(
         service_name: :in_flight_exit_processor,
         synced_height_update_key: :last_in_flight_exit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_in_flight_exit_starts/2,
+        get_events_callback: &Eth.RootChain.get_in_flight_exits_started/2,
         process_events_callback: &Watcher.ExitProcessor.new_in_flight_exits/1
       ),
       EthereumEventListener.prepare_child(

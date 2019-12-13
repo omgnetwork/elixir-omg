@@ -17,11 +17,10 @@ defmodule OMG.Eth.Token do
   Adapter/port to tokens that implement ERC20 interface
   """
 
-  alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.TransactionHelper
 
-  @tx_defaults Eth.Defaults.tx_defaults()
+  @tx_defaults OMG.Eth.Defaults.tx_defaults()
 
   @gas_token_ops 80_000
 
