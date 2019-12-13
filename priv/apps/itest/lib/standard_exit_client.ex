@@ -33,7 +33,7 @@ defmodule Itest.StandardExitClient do
   @gas_process_exit_price 1_000_000_000
   @gas_add_exit_queue 800_000
 
-  @min_exit_period 1_000
+  @min_exit_period 20_000
 
   @sleep_retry_sec 5_000
   @retry_count 120

@@ -24,7 +24,9 @@ defmodule OMG.InputPointer.UtxoPosition do
   defdelegate from_db_key(db_key), to: Utxo.Position
 
   def reconstruct(binary_input) when is_binary(binary_input),
-    do: binary_input |> :binary.decode_unsigned(:big) |> Utxo.Position.decode!()
+    do: binary_input |> ensure_32bytes! |> :binary.decode_unsigned(:big) |> Utxo.Position.decode!()
+
+  defp ensure_32bytes!(binary_input) when byte_size(binary_input) == 32, do: binary_input
 end
 
 defimpl OMG.InputPointer.Protocol, for: Tuple do
@@ -41,5 +43,10 @@ defimpl OMG.InputPointer.Protocol, for: Tuple do
 
   @spec get_data_for_rlp(Utxo.Position.t()) :: binary()
   def get_data_for_rlp(Utxo.position(_, _, _) = utxo_pos),
-    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big)
+    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big) |> pad()
+
+  defp pad(unpadded) do
+    padding_bits = (32 - byte_size(unpadded)) * 8
+    <<0::size(padding_bits)>> <> unpadded
+  end
 end

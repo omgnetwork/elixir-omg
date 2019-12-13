@@ -28,8 +28,7 @@ defmodule OMG.State.Transaction.Recovered do
   @type tx_bytes() :: binary()
 
   @type recover_tx_error() ::
-          :bad_signature_length
-          | :duplicate_inputs
+          :duplicate_inputs
           | :malformed_transaction
           | :malformed_transaction_rlp
           | :signature_corrupt
