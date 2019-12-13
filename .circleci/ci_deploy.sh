@@ -49,8 +49,8 @@ if [ "$DEPLOY" = "watcher" ]; then
     kubectl set image statefulset watcher watcher=omisego/watcher:${image_tag}
     while true; do if [ "$(kubectl get pods watcher-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
 elif [ "$DEPLOY" = "watcher_info" ]; then
-    kubectl set image statefulset watcher_info watcher_info=omisego/watcher_info:${image_tag}
-    while true; do if [ "$(kubectl get pods watcher_info-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
+    kubectl set image statefulset watcher-info watcher_info=omisego/watcher_info:${image_tag}
+    while true; do if [ "$(kubectl get pods watcher-info-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
 else
     kubectl set image statefulset childchain childchain=omisego/child_chain:${image_tag}
     while true; do if [ "$(kubectl get pods childchain-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
