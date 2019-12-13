@@ -13,33 +13,49 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Validator.BlockConstraintsTest do
-  use ExUnitFixtures
-  use ExUnit.Case, async: false
-  use OMG.Fixtures
-  use OMG.WatcherInfo.Fixtures
-  use OMG.Watcher.Fixtures
-
-  alias OMG.State.Transaction
-  alias OMG.TestHelper, as: Test
-  alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.WatcherInfo.DB
-  alias Support.WatcherHelper
+  use ExUnit.Case, async: true
 
   alias OMG.WatcherRPC.Web.Validator.BlockConstraints
 
   describe "parse/1" do
-    test "returns block constraints when given page and limit" do
+    test "returns page and limit constraints when given page and limit params" do
       request_data = %{"page" => 1, "limit" => 100}
 
       {:ok, constraints} = BlockConstraints.parse(request_data)
       assert constraints == [page: 1, limit: 100]
     end
 
-    test "returns an error when page == 0" do
-      request_data = %{"page" => 0}
-      {:error, error_data} = BlockConstraints.parse(request_data)
+    test "returns empty constraints when given no params" do
+      request_data = %{}
 
-      assert error_data == {:validation_error, "page", {:greater, 0}}
+      {:ok, constraints} = BlockConstraints.parse(request_data)
+      assert constraints == []
+    end
+
+    test "returns a :validation_error when the given page == 0" do
+      assert BlockConstraints.parse(%{"page" => 0}) == {:error, {:validation_error, "page", {:greater, 0}}}
+    end
+
+    test "returns a :validation_error when the given page < 0" do
+      assert BlockConstraints.parse(%{"page" => -1}) == {:error, {:validation_error, "page", {:greater, 0}}}
+    end
+
+    test "returns a :validation_error when the given page is not an integer" do
+      assert BlockConstraints.parse(%{"page" => 3.14}) == {:error, {:validation_error, "page", :integer}}
+      assert BlockConstraints.parse(%{"page" => "abcd"}) == {:error, {:validation_error, "page", :integer}}
+    end
+
+    test "returns a :validation_error when the given limit == 0" do
+      assert BlockConstraints.parse(%{"page" => 0}) == {:error, {:validation_error, "page", {:greater, 0}}}
+    end
+
+    test "returns a :validation_error when the given limit < 0" do
+      assert BlockConstraints.parse(%{"page" => -1}) == {:error, {:validation_error, "page", {:greater, 0}}}
+    end
+
+    test "returns a :validation_error when the given limit is not an integer" do
+      assert BlockConstraints.parse(%{"page" => 3.14}) == {:error, {:validation_error, "page", :integer}}
+      assert BlockConstraints.parse(%{"page" => "abcd"}) == {:error, {:validation_error, "page", :integer}}
     end
   end
 end
