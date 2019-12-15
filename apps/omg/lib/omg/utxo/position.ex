@@ -18,10 +18,6 @@ defmodule OMG.Utxo.Position do
   and in the `OMG.DB`
   """
 
-  # these two offset constants are driven by the constants from the RootChain.sol contract
-  @block_offset 1_000_000_000
-  @transaction_offset 10_000
-
   alias OMG.Utxo
   require Utxo
 
@@ -50,38 +46,31 @@ defmodule OMG.Utxo.Position do
   end
 
   @spec decode(number()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
-  def decode(encoded) when is_integer(encoded) and encoded > 0 do
-    {blknum, txindex, oindex} = get_position(encoded)
-    {:ok, Utxo.position(blknum, txindex, oindex)}
+  def decode(encoded) when is_integer(encoded) and encoded <= 0,
+    do: {:error, :encoded_utxo_position_too_low}
+
+  def decode(encoded) when is_integer(encoded) do
+    %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex} = ExPlasma.Utxo.new(encoded)
+    {:ok, {:utxo_position, blknum, txindex, oindex}}
   end
 
-  def decode(encoded) when is_number(encoded), do: {:error, :encoded_utxo_position_too_low}
-
   @spec to_db_key(t()) :: db_t()
-  def to_db_key(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
+  def to_db_key({:utxo_position, blknum, txindex, oindex}) when is_position(blknum, txindex, oindex),
     do: {blknum, txindex, oindex}
 
   @spec from_db_key(db_t()) :: t()
   def from_db_key({blknum, txindex, oindex}) when is_position(blknum, txindex, oindex),
-    do: Utxo.position(blknum, txindex, oindex)
+    do: {:utxo_position, blknum, txindex, oindex}
 
   def blknum(Utxo.position(blknum, _, _)), do: blknum
   def txindex(Utxo.position(_, txindex, _)), do: txindex
   def oindex(Utxo.position(_, _, oindex)), do: oindex
 
-  @spec get_position(pos_integer()) :: {non_neg_integer, non_neg_integer, char}
-  defp get_position(encoded) when is_integer(encoded) and encoded > 0 do
-    blknum = div(encoded, @block_offset)
-    txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
-    oindex = rem(encoded, @transaction_offset)
-    {blknum, txindex, oindex}
-  end
-
   @doc """
   Based on the contract parameters determines whether UTXO position provided was created by a deposit
   """
-  @spec is_deposit?(__MODULE__.t()) :: boolean()
-  def is_deposit?(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex) do
+  @spec is_deposit?(t()) :: boolean()
+  def is_deposit?({:utxo_position, blknum, txindex, oindex}) when is_position(blknum, txindex, oindex) do
     {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
     rem(blknum, interval) != 0
   end
