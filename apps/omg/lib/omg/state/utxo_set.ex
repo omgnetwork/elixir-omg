@@ -136,6 +136,8 @@ defmodule OMG.State.UtxoSet do
   defp utxo_kv_created_by?({_input_pointer, %Utxo{creating_txhash: requested_txhash}}, requested_txhash), do: true
   defp utxo_kv_created_by?({_input_pointer, %Utxo{}}, _), do: false
 
-  defp utxo_kv_has_oindex_equal?(utxo_kv, oindex),
-    do: utxo_kv |> utxo_kv_get_position() |> Utxo.Position.oindex() == oindex
+  defp utxo_kv_has_oindex_equal?(utxo_kv, oindex) do
+    {:utxo_position, _blknum, _txindex, kv_oindex} = utxo_kv_get_position(utxo_kv)
+    kv_oindex == oindex
+  end
 end

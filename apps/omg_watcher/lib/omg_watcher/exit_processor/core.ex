@@ -559,8 +559,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         {hash, ife, KnownTx.find_tx_in_blocks(hash, positions_by_tx_hash, blocks_by_blknum)}
       end)
       |> Enum.filter(fn {_hash, _ife, maybepos} -> maybepos != nil end)
-      |> Enum.into(ifes, fn {hash, ife, {block, position}} ->
-        proof = Block.inclusion_proof(block, Utxo.Position.txindex(position))
+      |> Enum.into(ifes, fn {hash, ife, {block, {:utxo_position, _, txindex, _} = position}} ->
+        proof = Block.inclusion_proof(block, txindex)
         {hash, %InFlightExitInfo{ife | tx_seen_in_blocks_at: {position, proof}}}
       end)
 

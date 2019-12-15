@@ -61,17 +61,4 @@ defmodule OMG.Utxo.Position do
   @spec from_db_key(db_t()) :: t()
   def from_db_key({blknum, txindex, oindex}) when is_position(blknum, txindex, oindex),
     do: {:utxo_position, blknum, txindex, oindex}
-
-  def blknum(Utxo.position(blknum, _, _)), do: blknum
-  def txindex(Utxo.position(_, txindex, _)), do: txindex
-  def oindex(Utxo.position(_, _, oindex)), do: oindex
-
-  @doc """
-  Based on the contract parameters determines whether UTXO position provided was created by a deposit
-  """
-  @spec is_deposit?(t()) :: boolean()
-  def is_deposit?({:utxo_position, blknum, txindex, oindex}) when is_position(blknum, txindex, oindex) do
-    {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
-    rem(blknum, interval) != 0
-  end
 end
