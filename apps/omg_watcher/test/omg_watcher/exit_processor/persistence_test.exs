@@ -33,8 +33,10 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  @utxo_pos1 Utxo.position(1, 0, 0)
-  @utxo_pos2 Utxo.position(1_000, 0, 1)
+  @utxo_pos1_tuple {:utxo_position, 1, 0, 0}
+  @utxo_pos2_tuple {:utxo_position, 1_000, 0, 1}
+  @utxo_pos1 ExPlasma.Utxo.pos(%{blknum: 1, txindex: 0, oindex: 0})
+  @utxo_pos2 ExPlasma.Utxo.pos(%{blknum: 1_000, txindex: 0, oindex: 1})
 
   @zero_exit_id 0
   @non_zero_exit_id 1
@@ -60,18 +62,18 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
            owner: alice.addr,
            eth_height: 2,
            exit_id: 1,
-           call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1}
+           call_data: %{utxo_pos: @utxo_pos1, output_tx: txbytes1}
          },
          %{
            owner: alice.addr,
            eth_height: 4,
            exit_id: 2,
-           call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2}
+           call_data: %{utxo_pos: @utxo_pos2, output_tx: txbytes2}
          }
        ],
        [
-         {true, Utxo.Position.encode(@utxo_pos1), Utxo.Position.encode(@utxo_pos1), alice.addr, 10, 0},
-         {false, Utxo.Position.encode(@utxo_pos2), Utxo.Position.encode(@utxo_pos2), alice.addr, 10, 0}
+         {true, @utxo_pos1, @utxo_pos1, alice.addr, 10, 0},
+         {false, @utxo_pos2, @utxo_pos2, alice.addr, 10, 0}
        ]}
 
     {:ok, %{alice: alice, carol: carol, processor_empty: processor_empty, transactions: transactions, exits: exits}}
@@ -81,21 +83,21 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
        %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
     |> persist_new_exits(exit_events, statuses, db_pid)
-    |> persist_finalize_exits({[@utxo_pos1], [@utxo_pos2]}, db_pid)
+    |> persist_finalize_exits({[@utxo_pos1_tuple], [@utxo_pos2_tuple]}, db_pid)
   end
 
   test "persist finalizations with all valid",
        %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
     |> persist_new_exits(exit_events, statuses, db_pid)
-    |> persist_finalize_exits({[@utxo_pos1, @utxo_pos2], []}, db_pid)
+    |> persist_finalize_exits({[@utxo_pos1_tuple, @utxo_pos2_tuple], []}, db_pid)
   end
 
   test "persist finalizations with all invalid",
        %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
     |> persist_new_exits(exit_events, statuses, db_pid)
-    |> persist_finalize_exits({[], [@utxo_pos1, @utxo_pos2]}, db_pid)
+    |> persist_finalize_exits({[], [@utxo_pos1_tuple, @utxo_pos2_tuple]}, db_pid)
   end
 
   test "persist challenges",
@@ -133,7 +135,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
     challenge = %{
       tx_hash: hash,
-      competitor_position: Utxo.Position.encode(@utxo_pos2),
+      competitor_position: @utxo_pos2,
       call_data: %{
         competing_tx: Transaction.raw_txbytes(competing_tx),
         competing_tx_input_index: 0,
@@ -214,8 +216,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   end
 
   defp persist_challenge_exits(processor, utxo_positions, db_pid) do
-    {processor, db_updates} =
-      Core.challenge_exits(processor, utxo_positions |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)}))
+    {processor, db_updates} = Core.challenge_exits(processor, utxo_positions)
 
     persist_common(processor, db_updates, db_pid)
   end

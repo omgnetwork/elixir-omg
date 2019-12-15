@@ -321,7 +321,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     test "detect invalid standard exit based on utxo missing in main ledger",
          %{processor_empty: processor, alice: alice} do
       exiting_pos = @utxo_pos_tx
-      exiting_pos_enc = Utxo.Position.encode(exiting_pos)
+      {:utxo_position, blknum, txindex, oindex} = existing_pos
+      exiting_pos_enc = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
       standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
 
       request = %ExitProcessor.Request{
@@ -388,7 +389,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
       tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], [{alice, @eth, 1}])
       exiting_pos = @utxo_pos_tx
-      exiting_pos_enc = Utxo.Position.encode(exiting_pos)
+      {:utxo_position, blknum, txindex, oindex} = existing_pos
+      exiting_pos_enc = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
       processor = processor |> start_se_from(standard_exit_tx, exiting_pos) |> start_ife_from(tx)
 
       assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_pos_enc}]} =
@@ -418,11 +420,13 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
          %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
       standard_exit_tx = TestHelper.create_recovered([], @eth, [{alice, 10}])
 
+      {:utxo_position, blknum, txindex, oindex} = @utxo_pos_deposit
+      deposit_utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
       {processor, _} =
         processor
         |> start_se_from(standard_exit_tx, @utxo_pos_deposit)
         |> start_ife_from(tx)
-        |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos_deposit)}])
+        |> Core.challenge_exits([%{utxo_pos: deposit_utxo_pos}])
 
       # doesn't check the challenged SE utxo
       assert %{utxos_to_check: [_, Utxo.position(1, 2, 1)]} =
@@ -469,9 +473,13 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       assert %ExitProcessor.Request{utxos_to_check: [_, _]} =
                Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
 
-      {processor, _} =
-        processor
-        |> Core.challenge_exits([@utxo_pos_deposit2, @utxo_pos_tx2] |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)}))
+      {:utxo_position, blknum, txindex, oindex} = @utxo_pos_deposit2
+      deposit_utxo_pos2 = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+
+      {:utxo_position, blknum, txindex, oindex} = @utxo_pos_tx2
+      tx_utxo_pos2 = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+
+      {processor, _} = Core.challenge_exits(processor, [deposit_utxo_pos2, tx_utxo_pos2])
 
       assert %ExitProcessor.Request{utxos_to_check: []} =
                Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
@@ -489,7 +497,10 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
                Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
 
       # pinning because challenge shouldn't change the already challenged exit in the processor
-      {^processor, _} = processor |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos_deposit2)}])
+      {:utxo_position, blknum, txindex, oindex} = @utxo_pos_deposit2
+      deposit_utxo_pos2 = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+
+      {^processor, _} = processor |> Core.challenge_exits([%{utxo_pos: deposit_utxo_pos2}])
     end
   end
 

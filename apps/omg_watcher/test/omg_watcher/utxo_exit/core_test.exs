@@ -69,7 +69,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
       tx_exit = TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])
       tx_exit_raw_tx_bytes = Transaction.raw_txbytes(tx_exit)
       position = Utxo.position(blknum, 1, 0)
-      encode_utxo = position |> Utxo.Position.encode()
+      encoded_utxo = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: 1, oindex: 0})
 
       block =
         [

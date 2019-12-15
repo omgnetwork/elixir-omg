@@ -275,7 +275,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     # ...so we need to stich it together from some pieces we have:
     %{sigs: [competing_sig | _]} = tx2
     competing_tx_input_txbytes = Transaction.Payment.new([], [{alice.addr, @eth, 10}]) |> Transaction.raw_txbytes()
-    competing_tx_input_utxo_pos = Utxo.position(deposit_blknum, 0, 0) |> Utxo.Position.encode()
+    competing_tx_input_utxo_pos = ExPlasma.Utxo.pos(%{blknum: deposit_blknum, txindex: 0, oindex: 0})
 
     {:ok, %{"status" => "0x1", "blockNumber" => challenge_eth_height}} =
       RootChainHelper.challenge_in_flight_exit_not_canonical(

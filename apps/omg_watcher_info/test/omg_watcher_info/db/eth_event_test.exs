@@ -19,7 +19,6 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
   alias OMG.Crypto
   alias OMG.Utxo
-  alias OMG.Utxo.Position
   alias OMG.WatcherInfo.DB
 
   require Utxo
@@ -42,8 +41,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     root_chain_txhash_event =
       DB.EthEvent.generate_root_chain_txhash_event(expected_root_chain_txnhash, expected_log_index)
 
-    expected_child_chain_utxohash =
-      DB.EthEvent.generate_child_chain_utxohash(Utxo.position(expected_blknum, expected_txindex, expected_oindex))
+    expected_utxo_position = {:utxo_position, expected_blknum, expected_txindex, expected_oindex}
+    expected_child_chain_utxohash = DB.EthEvent.generate_child_chain_utxohash(expected_utxo_position)
 
     assert :ok =
              DB.EthEvent.insert_deposits!([
@@ -86,7 +85,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
            ] = event.txoutputs
 
     # check txoutput side of relationship
-    txoutput = DB.TxOutput.get_by_position(Utxo.position(expected_blknum, expected_txindex, expected_oindex))
+    expected_utxo_position = {:utxo_position, expected_blknum, expected_txindex, expected_oindex}
+    txoutput = DB.TxOutput.get_by_position(expected_utxo_position)
 
     assert %DB.TxOutput{
              blknum: ^expected_blknum,
@@ -208,7 +208,12 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     expected_txindex = 0
     expected_oindex = 0
 
-    expected_utxo_encoded_position = Position.encode(Utxo.position(expected_blknum, expected_txindex, expected_oindex))
+    expected_utxo_encoded_position = 
+      ExPlasma.Utxo.pos(%{
+        blknum: expected_blknum, 
+        txindex: expected_txindex,
+        oindex: expected_oindex
+      })
 
     expected_deposit_root_chain_txhash = Crypto.hash(<<5::256>>)
     expected_exit_root_chain_txhash = Crypto.hash(<<6::256>>)
@@ -254,16 +259,18 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                }
              ])
 
+    utxo_pos = ExPlasma.Utxo.pos(%{blknum: 1, txindex: 0, oindex: 0})
+
     exits = [
       %{
         root_chain_txhash: Crypto.hash(<<1000::256>>),
         log_index: 1,
-        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))}
+        call_data: %{utxo_pos: utxo_pos}
       },
       %{
         root_chain_txhash: Crypto.hash(<<1000::256>>),
         log_index: 1,
-        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))}
+        call_data: %{utxo_pos: utxo_pos}
       }
     ]
 
