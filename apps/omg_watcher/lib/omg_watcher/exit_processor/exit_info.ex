@@ -66,8 +66,9 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     struct!(__MODULE__, fields)
   end
 
-  def make_event_data(type, position, %__MODULE__{} = exit_info) do
-    struct(type, exit_info |> Map.from_struct() |> Map.put(:utxo_pos, Utxo.Position.encode(position)))
+  def make_event_data(type, {:utxo_position, blknum, txindex, oindex}, %__MODULE__{} = exit_info) do
+    utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+    struct(type, exit_info |> Map.from_struct() |> Map.put(:utxo_pos, utxo_pos))
   end
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421

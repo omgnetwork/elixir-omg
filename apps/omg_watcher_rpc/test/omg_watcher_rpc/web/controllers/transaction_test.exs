@@ -677,7 +677,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                )
 
-      assert Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode() == utxo_pos
+      assert ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex}) == utxo_pos
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]

@@ -133,8 +133,7 @@ defmodule OMG.Performance.Generators do
     |> Enum.filter(&(is_nil(filtered_address) || &1.owner == filtered_address))
     |> Enum.with_index()
     |> Enum.map(fn {_, oindex} ->
-      utxo_pos = Utxo.position(blknum, txindex, oindex)
-      Utxo.Position.encode(utxo_pos)
+      ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
     end)
   end
 end

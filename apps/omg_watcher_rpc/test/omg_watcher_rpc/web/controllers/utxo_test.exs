@@ -32,7 +32,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
              "object" => "error"
            } ==
              WatcherHelper.no_success?("utxo.get_exit_data", %{
-               "utxo_pos" => Utxo.position(7001, 1, 0) |> Utxo.Position.encode()
+               "utxo_pos" => ExPlasma.Utxo.pos(%{blknum: 7001, txindex: 1, oindex: 0})
              })
   end
 
@@ -44,7 +44,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
              "object" => "error"
            } ==
              WatcherHelper.no_success?("utxo.get_exit_data", %{
-               "utxo_pos" => Utxo.position(7000, 1, 0) |> Utxo.Position.encode()
+               "utxo_pos" => ExPlasma.Utxo.pos(%{blknum: 7000, txindex: 1, oindex: 0})
              })
   end
 
@@ -71,7 +71,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
 
   @tag fixtures: [:web_endpoint, :db_initialized]
   test "getting exit data returns error when there is no txs in specfic block" do
-    utxo_pos = Utxo.position(7000, 1, 0) |> Utxo.Position.encode()
+    utxo_pos = ExPlasma.Utxo.pos(%{blknum: 7000, txindex: 1, oindex: 0})
 
     assert %{
              "object" => "error",

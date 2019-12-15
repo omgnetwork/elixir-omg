@@ -104,7 +104,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     # try to exit from transaction2's output
     proof = Block.inclusion_proof([tx2], 0)
-    encoded_utxo_pos = Utxo.position(spend_child_block2, 0, 0) |> Utxo.Position.encode()
+    encoded_utxo_pos = ExPlasma.Utxo.pos(%{blknum: spend_child_block2, txindex: 0, oindex: 0})
     raw_txbytes = Transaction.raw_txbytes(raw_tx2)
 
     assert {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
@@ -147,8 +147,8 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
         Transaction.raw_txbytes(in_flight_tx),
         get_input_txs([tx, tx]),
         [
-          Utxo.Position.encode(Utxo.position(blknum, txindex, 0)),
-          Utxo.Position.encode(Utxo.position(blknum, txindex, 1))
+          ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: 0}),
+          ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: 1})
         ],
         [proof, proof],
         in_flight_tx_sigs,
@@ -180,7 +180,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       RootChainHelper.in_flight_exit(
         in_flight_tx2_rawbytes,
         get_input_txs([deposit_tx]),
-        [Utxo.Position.encode(Utxo.position(deposit_blknum, 0, 0))],
+        [ExPlasma.Utxo.pos(%{blknum: deposit_blknum, txindex: 0, oindex: 0})],
         [proof],
         sigs,
         alice.addr
@@ -225,7 +225,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       RootChainHelper.in_flight_exit(
         Transaction.raw_txbytes(in_flight_tx),
         get_input_txs([tx]),
-        [Utxo.Position.encode(Utxo.position(blknum, txindex, 0))],
+        [ExPlasma.Utxo.pos(%{blknum: blknum, txindex: 0, oindex: 0})],
         [proof],
         in_flight_tx_sigs,
         alice.addr

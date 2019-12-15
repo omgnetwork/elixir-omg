@@ -72,9 +72,7 @@ defmodule OMG.WatcherRPC.Web.View.TransactionTest do
 
   defp utxos_match_all?(renders, originals) do
     original_utxo_positions =
-      Enum.map(originals, fn utxo ->
-        Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex) |> Utxo.Position.encode()
-      end)
+      Enum.map(originals, fn utxo -> ExPlasma.Utxo.pos(utxo) end)
 
     Enum.all?(renders, fn rendered -> rendered.utxo_pos in original_utxo_positions end)
   end

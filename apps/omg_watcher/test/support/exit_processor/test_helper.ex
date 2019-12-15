@@ -33,10 +33,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     processor
   end
 
-  def se_event_status(tx, exiting_pos, opts \\ []) do
-    Utxo.position(_, _, oindex) = exiting_pos
+  def se_event_status(tx, {:utxo_position, blknum, txindex, oindex}, opts \\ []) do
     txbytes = Transaction.raw_txbytes(tx)
-    enc_pos = Utxo.Position.encode(exiting_pos)
+    enc_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
     owner = tx |> Transaction.get_outputs() |> Enum.at(oindex) |> Map.get(:owner)
     eth_height = Keyword.get(opts, :eth_height, 2)
     exit_id = Keyword.get(opts, :exit_id, @exit_id)
@@ -79,7 +78,8 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   def ife_event(tx, opts \\ []) do
     sigs = Keyword.get(opts, :sigs) || sigs(tx)
-    input_utxos_pos = Transaction.get_inputs(tx) |> Enum.map(&Utxo.Position.encode/1)
+    input_utxos_pos = tx |> Transaction.get_inputs() |> Enum.map(&generate_input_utxo_pos/1)
+
     input_txs = Keyword.get(opts, :input_txs) || List.duplicate("input_tx", length(input_utxos_pos))
     eth_height = Keyword.get(opts, :eth_height, 2)
 
@@ -94,14 +94,23 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     }
   end
 
-  def ife_response(tx, position),
-    do: %{tx_hash: Transaction.raw_txhash(tx), challenge_position: Utxo.Position.encode(position)}
+  def ife_response(tx, {:utxo_position, blknum, txindex, oindex}) do
+    %{
+      tx_hash: Transaction.raw_txhash(tx), 
+      challenge_position: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+    }
+  end
 
   def ife_challenge(tx, comp, opts \\ []) do
     competitor_position = Keyword.get(opts, :competitor_position)
 
     competitor_position =
-      if competitor_position, do: Utxo.Position.encode(competitor_position), else: not_included_competitor_pos()
+    if competitor_position do
+      {:utxo_position, blknum, txindex, oindex} = competitor_position
+      ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+    else
+      not_included_competitor_pos()
+    end
 
     %{
       tx_hash: Transaction.raw_txhash(tx),
@@ -158,4 +167,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
     long
   end
+
+  defp generate_input_utxo_pos({:utxo_position, blknum, txindex, oindex}),
+    do: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 end

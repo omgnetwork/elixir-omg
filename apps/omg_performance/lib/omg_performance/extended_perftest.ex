@@ -73,7 +73,7 @@ defmodule OMG.Performance.ExtendedPerftest do
   @spec create_deposits(list(TestHelper.entity()), pos_integer()) :: list()
   defp create_deposits(spenders, ntx_to_send) do
     Enum.map(make_deposits(ntx_to_send, spenders), fn {:ok, owner, blknum, amount} ->
-      utxo_pos = Utxo.Position.encode(Utxo.position(blknum, 0, 0))
+      utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: 0, oindex: 0})
       %{owner: owner, utxo_pos: utxo_pos, amount: amount}
     end)
   end

@@ -41,7 +41,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
       eth_height: 1
     })
 
-    utxo_pos = Utxo.position(1, 0, 0) |> Utxo.Position.encode()
+    utxo_pos = ExPlasma.Utxo.pos(%{blknum: 1, txindex: 0, oindex: 0})
 
     %{
       "input_index" => _input_index,
@@ -54,7 +54,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   @tag skip: true
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "challenging non-existent utxo returns error" do
-    utxo_pos = Utxo.position(1, 1, 0) |> Utxo.Position.encode()
+    utxo_pos = ExPlasma.Utxo.pos(%{blknum: 1, txindex: 1, oindex: 0})
 
     %{
       "code" => "challenge:invalid",

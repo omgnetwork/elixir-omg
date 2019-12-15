@@ -23,6 +23,6 @@ defmodule OMG.WatcherRPC.Web.Serializer.Base do
 
     db_entry
     |> Map.take([:amount, :currency, :blknum, :txindex, :oindex, :owner])
-    |> Map.put(:utxo_pos, Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode())
+    |> Map.put(:utxo_pos, ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex}))
   end
 end

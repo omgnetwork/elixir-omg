@@ -20,9 +20,9 @@ defmodule OMG.Utxo.PositionTest do
   alias OMG.Utxo
   require Utxo
 
-  test "encode and decode the utxo position checking" do
-    decoded = Utxo.position(4, 5, 1)
-    assert 4_000_050_001 = encoded = Utxo.Position.encode(decoded)
+  test "decode the utxo position checking" do
+    encoded = 4_000_050_001
+    decoded = {:utxo_position, 4, 5, 1}
     assert decoded == Utxo.Position.decode!(encoded)
     assert {:ok, decoded} == Utxo.Position.decode(encoded)
   end

@@ -25,7 +25,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
 
   def compose_block_standard_exit(:not_found, _), do: {:error, :utxo_not_found}
 
-  def compose_block_standard_exit(db_block, Utxo.position(blknum, txindex, _) = utxo_pos) do
+  def compose_block_standard_exit(db_block, {:utxo_position, blknum, txindex, oindex} = utxo_pos) do
     %Block{transactions: sorted_txs_bytes, number: ^blknum} = block = Block.from_db_value(db_block)
 
     with {:ok, signed_tx_bytes} <- get_tx_by_index(sorted_txs_bytes, txindex),
@@ -33,7 +33,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
          :ok <- get_output_by_index(signed_tx, utxo_pos) do
       {:ok,
        %{
-         utxo_pos: Utxo.Position.encode(utxo_pos),
+         utxo_pos: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex}),
          txbytes: Transaction.raw_txbytes(signed_tx),
          proof: Block.inclusion_proof(block, txindex)
        }}
@@ -44,7 +44,9 @@ defmodule OMG.Watcher.UtxoExit.Core do
           {:error, :no_deposit_for_given_blknum}
           | {:ok, %{utxo_pos: non_neg_integer, txbytes: binary, proof: binary}}
   def compose_deposit_standard_exit({:ok, {db_utxo_pos, db_utxo_value}}) do
-    utxo_pos = OMG.InputPointer.from_db_key(db_utxo_pos)
+    # TODO: Refactor this, or use pattern matching to make it more clear
+    # what type data is being passed into the OMG.InputPointer protocol.
+    {:utxo_position, blknum, txindex, oindex} = OMG.InputPointer.from_db_key(db_utxo_pos)
 
     %Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner}} =
       Utxo.from_db_value(db_utxo_value)
@@ -54,7 +56,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
 
     {:ok,
      %{
-       utxo_pos: Utxo.Position.encode(utxo_pos),
+       utxo_pos: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex}),
        txbytes: Transaction.raw_txbytes(tx),
        proof: Block.inclusion_proof(txs, 0)
      }}
@@ -71,7 +73,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
     end
   end
 
-  defp get_output_by_index(tx, Utxo.position(_, _, oindex)) do
+  defp get_output_by_index(tx, {:utxo_position, _, _, oindex}) do
     tx
     |> Transaction.get_outputs()
     |> Enum.at(oindex)

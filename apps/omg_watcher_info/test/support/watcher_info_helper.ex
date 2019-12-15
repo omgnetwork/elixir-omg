@@ -135,7 +135,7 @@ defmodule Support.WatcherInfoHelper do
   end
 
   def get_exit_data(blknum, txindex, oindex),
-    do: get_exit_data(Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)))
+    do: get_exit_data(ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex}))
 
   def get_exit_data(encoded_position) do
     data = success?("utxo.get_exit_data", %{utxo_pos: encoded_position})
@@ -143,7 +143,7 @@ defmodule Support.WatcherInfoHelper do
   end
 
   def get_exit_challenge(blknum, txindex, oindex) do
-    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
+    utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 
     data = success?("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
 

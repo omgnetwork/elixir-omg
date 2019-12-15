@@ -38,7 +38,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
       encoded_utxo = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 
       fake_utxo_db_kv =
-        {OMG.InputPointer.Protocol.to_db_key(position),
+        {{blknum, txindex, oindex},
          Utxo.to_db_value(%Utxo{
            output: %OMG.Output.FungibleMoreVPToken{
              amount: 10,
@@ -84,7 +84,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
               %{
                 proof: proof,
                 txbytes: ^tx_exit_raw_tx_bytes,
-                utxo_pos: ^encode_utxo
+                utxo_pos: ^encoded_utxo
               }} = Core.compose_block_standard_exit(block, position)
 
       # hash byte_size * merkle tree depth

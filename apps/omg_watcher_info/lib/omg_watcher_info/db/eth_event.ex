@@ -177,7 +177,9 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   """
   @spec generate_child_chain_utxohash(Utxo.Position.t()) :: OMG.Crypto.hash_t()
   def generate_child_chain_utxohash(position) do
-    "<#{position |> Utxo.Position.encode()}>" |> Crypto.hash()
+    {:utxo_position, blknum, txindex, oindex} = position
+    utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+    Crypto.hash("<#{utxo_pos}>")
   end
 
   def generate_root_chain_txhash_event(root_chain_txhash, log_index) do

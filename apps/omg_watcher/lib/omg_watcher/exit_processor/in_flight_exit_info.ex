@@ -122,11 +122,14 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
     with {:ok, tx} <- prepare_tx(tx_bytes, tx_signatures) do
       # NOTE: in case of using output_id as the input pointer, getting the youngest will be entirely different
-      Utxo.position(youngest_input_blknum, _, _) =
-        tx
-        |> Transaction.get_inputs()
-        |> Enum.sort_by(&Utxo.Position.encode/1, &>=/2)
+      youngest_utxo_pos =
+        Enum.map(Transaction.get_inputs(tx), fn {:utxo_position, blknum, txindex, oindex} ->
+          ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+        end)
+        |> Enum.sort()
         |> hd()
+
+      %{blknum: youngest_input_blknum} = ExPlasma.Utxo.new(youngest_utxo_pos)
 
       fields =
         fields

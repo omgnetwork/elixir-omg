@@ -155,7 +155,7 @@ defmodule OMG.Performance.SimplePerftest do
         }
       ])
 
-    utxo_pos = Utxo.position(index, 0, 0) |> Utxo.Position.encode()
+    utxo_pos = ExPlasma.Utxo.pos(%{blknum: index, txindex: 0, oindex: 0})
     %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send}
   end
 end

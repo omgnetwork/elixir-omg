@@ -680,23 +680,29 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :state_alice_deposit, :state_empty]
   test "given exit infos in various forms translates to utxo positions",
        %{alice: alice, state_alice_deposit: state, state_empty: state_empty} do
+
+    # TODO: Fix this !@#%
     # this test checks whether all ways of calling `get_exiting_utxo_positions/2` translates
     # to given exiting utxo positions
-    utxo_pos_exits = [Utxo.position(@blknum1, 0, 0), Utxo.position(@blknum1, 0, 1)]
+    expected_utxo_pos_exits = [Utxo.position(@blknum1, 0, 0), Utxo.position(@blknum1, 0, 1)]
+    utxo_pos_exits = [
+      %{blknum: @blknum1, txindex: 0, oindex: 0},
+      %{blknum: @blknum1, txindex: 0, oindex: 1}
+    ]
 
-    assert utxo_pos_exits ==
+    assert expected_utxo_pos_exits ==
              utxo_pos_exits
-             |> Enum.map(&%{call_data: %{utxo_pos: Utxo.Position.encode(&1)}})
+             |> Enum.map(&%{call_data: %{utxo_pos: ExPlasma.Utxo.pos(&1)}})
              |> Core.extract_exiting_utxo_positions(state_empty)
 
-    assert utxo_pos_exits ==
+    assert expected_utxo_pos_exits ==
              utxo_pos_exits
-             |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)})
+             |> Enum.map(&%{utxo_pos: ExPlasma.Utxo.pos(&1)})
              |> Core.extract_exiting_utxo_positions(state_empty)
 
-    assert utxo_pos_exits ==
+    assert expected_utxo_pos_exits ==
              utxo_pos_exits
-             |> Enum.map(&Utxo.Position.encode/1)
+             |> Enum.map(&ExPlasma.Utxo.pos/1)
              |> Core.extract_exiting_utxo_positions(state_empty)
 
     %Transaction.Recovered{tx_hash: tx_hash} = tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
@@ -711,7 +717,7 @@ defmodule OMG.State.CoreTest do
       |> Core.exec(tx, :no_fees_required)
       |> success?
 
-    assert utxo_pos_exits == Core.extract_exiting_utxo_positions(piggybacks, state)
+    assert expected_utxo_pos_exits == Core.extract_exiting_utxo_positions(piggybacks, state)
   end
 
   @tag fixtures: [:alice, :state_alice_deposit]

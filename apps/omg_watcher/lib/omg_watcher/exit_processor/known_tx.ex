@@ -104,7 +104,12 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
     cond do
       is_nil(utxo_pos1) -> false
       is_nil(utxo_pos2) -> true
-      true -> Utxo.Position.encode(utxo_pos1) < Utxo.Position.encode(utxo_pos2)
+      true -> 
+        {:utxo_position, blknum1, txindex1, oindex1} = utxo_pos1
+        {:utxo_position, blknum2, txindex2, oindex2} = utxo_pos2
+        encoded_pos1 = ExPlasma.Utxo.pos(%{blknum: blknum1, txindex: txindex1, oindex: oindex1})
+        encoded_pos2 = ExPlasma.Utxo.pos(%{blknum: blknum2, txindex: txindex2, oindex: oindex2})
+        encoded_pos1 < encoded_pos2
     end
   end
 end

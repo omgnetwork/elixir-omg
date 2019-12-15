@@ -29,26 +29,30 @@ defmodule OMG.WatcherRPC.Web.View.InFlightExit do
 
   def render("competitor.json", %{response: competitor}) do
     competitor
-    |> Map.update!(:competing_tx_pos, &Utxo.Position.encode/1)
-    |> Map.update!(:input_utxo_pos, &Utxo.Position.encode/1)
+    |> Map.update!(:competing_tx_pos, &encode_utxo_position/1)
+    |> Map.update!(:input_utxo_pos, &encode_utxo_position/1)
     |> Response.serialize()
   end
 
   def render("prove_canonical.json", %{response: prove_canonical}) do
     prove_canonical
-    |> Map.update!(:in_flight_tx_pos, &Utxo.Position.encode/1)
+    |> Map.update!(:in_flight_tx_pos, &encode_utxo_position/1)
     |> Response.serialize()
   end
 
   def render("get_input_challenge_data.json", %{response: challenge_data}) do
     challenge_data
-    |> Map.update!(:input_utxo_pos, &Utxo.Position.encode/1)
+    |> Map.update!(:input_utxo_pos, &encode_utxo_position/1)
     |> Response.serialize()
   end
 
   def render("get_output_challenge_data.json", %{response: challenge_data}) do
     challenge_data
-    |> Map.update!(:in_flight_output_pos, &Utxo.Position.encode/1)
+    |> Map.update!(:in_flight_output_pos, &encode_utxo_position/1)
     |> Response.serialize()
+  end
+
+  defp encode_utxo_position({:utxo_position, blknum, txindex, oindex}) do
+    ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
   end
 end

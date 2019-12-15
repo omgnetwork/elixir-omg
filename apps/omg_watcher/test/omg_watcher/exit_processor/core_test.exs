@@ -34,6 +34,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @late_blknum 10_000
 
   @utxo_pos1 Utxo.position(2, 0, 0)
+  @encoded_utxo_pos1 ExPlasma.Utxo.pos(%{blknum: 2, txindex: 0, oindex: 0})
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
   describe "generic sanity checks" do
@@ -95,7 +96,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {processor, _} =
         processor
         |> start_se_from(standard_exit_tx, @utxo_pos1, exit_id: 314)
-        |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}])
+        |> Core.challenge_exits([%{utxo_pos: @encoded_utxo_pos1}])
 
       assert @utxo_pos1 == Core.exit_key_by_exit_id(processor, 314)
     end
@@ -107,7 +108,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {processor, _} =
         processor
         |> start_ife_from(standard_exit_tx, exit_id: 314)
-        |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}])
+        |> Core.challenge_exits([%{utxo_pos: @encoded_utxo_pos1}])
 
       # because not implemented yet
       # TODO fix when implemented
