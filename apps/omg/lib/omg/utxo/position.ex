@@ -53,12 +53,4 @@ defmodule OMG.Utxo.Position do
     %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex} = ExPlasma.Utxo.new(encoded)
     {:ok, {:utxo_position, blknum, txindex, oindex}}
   end
-
-  @spec to_db_key(t()) :: db_t()
-  def to_db_key({:utxo_position, blknum, txindex, oindex}) when is_position(blknum, txindex, oindex),
-    do: {blknum, txindex, oindex}
-
-  @spec from_db_key(db_t()) :: t()
-  def from_db_key({blknum, txindex, oindex}) when is_position(blknum, txindex, oindex),
-    do: {:utxo_position, blknum, txindex, oindex}
 end

@@ -32,8 +32,10 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
 
   describe "compose_deposit_standard_exit/1" do
     test "creates deposit exit", %{alice: alice} do
-      position = Utxo.position(1003, 0, 0)
-      encode_utxo = position |> Utxo.Position.encode()
+      blknum = 1003
+      txindex = 0
+      oindex = 0
+      encoded_utxo = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 
       fake_utxo_db_kv =
         {OMG.InputPointer.Protocol.to_db_key(position),
@@ -47,7 +49,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
 
       assert {:ok,
               %{
-                utxo_pos: ^encode_utxo,
+                utxo_pos: ^encoded_utxo,
                 txbytes: txbytes,
                 proof: proof
               }} = Core.compose_deposit_standard_exit({:ok, fake_utxo_db_kv})

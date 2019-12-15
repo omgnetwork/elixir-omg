@@ -21,7 +21,7 @@ defmodule OMG.InputPointer.UtxoPosition do
 
   require Utxo
 
-  defdelegate from_db_key(db_key), to: Utxo.Position
+  def from_db_key({blknum, txindex, oindex}), do: {:utxo_position, blknum, txindex, oindex}
 
   def reconstruct(binary_input) when is_binary(binary_input),
     do: binary_input |> ensure_32bytes! |> :binary.decode_unsigned(:big) |> Utxo.Position.decode!()
@@ -38,8 +38,8 @@ defimpl OMG.InputPointer.Protocol, for: Tuple do
   @input_pointer_type_marker <<1>>
 
   @spec to_db_key(Utxo.Position.t()) :: {:input_pointer, binary(), Utxo.Position.db_t()}
-  def to_db_key(Utxo.position(_, _, _) = utxo_pos),
-    do: {:input_pointer, @input_pointer_type_marker, Utxo.Position.to_db_key(utxo_pos)}
+  def to_db_key({:utxo_position, blknum, txindex, oindex}),
+    do: {:input_pointer, @input_pointer_type_marker, {blknum, txindex, oindex}}
 
   @spec get_data_for_rlp(tuple()) :: binary()
   def get_data_for_rlp({:utxo_position, blknum, txindex, oindex}),

@@ -96,7 +96,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       eth_height: eth_height
     }
 
-    {:put, :exit_info, {Utxo.Position.to_db_key(position), value}}
+    {:utxo_position, blknum, txindex, oindex} = position
+    {:put, :exit_info, {{blknum, txindex, oindex}, value}}
   end
 
   def from_db_kv(
@@ -125,7 +126,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       eth_height: eth_height
     }
 
-    {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
+    {blknum, txindex, oindex} = db_utxo_pos
+    {{:utxo_position, blknum, txindex, oindex}, struct!(__MODULE__, value)}
   end
 
   # processes the return value of `Eth.get_standard_exits_structs(exit_id)`

@@ -26,7 +26,7 @@ defmodule OMG.InputPointer do
     do: @input_pointer_types_modules[type_marker].from_db_key(db_value)
 
   # default clause for backwards compatibility
-  def from_db_key(db_value), do: OMG.InputPointer.UtxoPosition.from_db_key(db_value)
+  def from_db_key({blknum, txindex, oindex}), do: {:utxo_position, blknum, txindex, oindex}
 end
 
 defprotocol OMG.InputPointer.Protocol do
