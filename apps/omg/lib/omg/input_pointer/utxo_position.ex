@@ -41,12 +41,7 @@ defimpl OMG.InputPointer.Protocol, for: Tuple do
   def to_db_key(Utxo.position(_, _, _) = utxo_pos),
     do: {:input_pointer, @input_pointer_type_marker, Utxo.Position.to_db_key(utxo_pos)}
 
-  @spec get_data_for_rlp(Utxo.Position.t()) :: binary()
-  def get_data_for_rlp(Utxo.position(_, _, _) = utxo_pos),
-    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big) |> pad()
-
-  defp pad(unpadded) do
-    padding_bits = (32 - byte_size(unpadded)) * 8
-    <<0::size(padding_bits)>> <> unpadded
-  end
+  @spec get_data_for_rlp(tuple()) :: binary()
+  def get_data_for_rlp({:utxo_position, blknum, txindex, oindex}),
+    do: ExPlasma.Utxo.to_input_list(%{blknum: blknum, txindex: txindex, oindex: oindex})
 end

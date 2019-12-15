@@ -40,8 +40,8 @@ defmodule OMG.Utxo.Position do
   @type db_t() :: {non_neg_integer, non_neg_integer, non_neg_integer}
 
   @spec encode(t()) :: non_neg_integer()
-  def encode(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
-    do: blknum * @block_offset + txindex * @transaction_offset + oindex
+  def encode({:utxo_position, blknum, txindex, oindex}) when is_position(blknum, txindex, oindex),
+    do: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 
   @spec decode!(number()) :: t()
   def decode!(encoded) do
