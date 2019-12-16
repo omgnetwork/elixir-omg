@@ -37,8 +37,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     test "retrieves a block by block hash" do
       hash = "#1000"
       block = DB.Block.get(hash)
-
-      assert block.__struct__ == DB.Block
+      assert %DB.Block{} = block
       assert block.hash == hash
     end
 
