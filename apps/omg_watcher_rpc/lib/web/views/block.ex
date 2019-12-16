@@ -22,7 +22,6 @@ defmodule OMG.WatcherRPC.Web.View.Block do
   alias OMG.Utils.HttpRPC.Response
 
   def render("block.json", %{response: block}) do
-    block
     Response.serialize(block)
   end
 end
