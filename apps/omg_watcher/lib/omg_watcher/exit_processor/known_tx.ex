@@ -102,9 +102,13 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
 
   def is_older?(%__MODULE__{utxo_pos: utxo_pos1}, %__MODULE__{utxo_pos: utxo_pos2}) do
     cond do
-      is_nil(utxo_pos1) -> false
-      is_nil(utxo_pos2) -> true
-      true -> 
+      is_nil(utxo_pos1) ->
+        false
+
+      is_nil(utxo_pos2) ->
+        true
+
+      true ->
         {:utxo_position, blknum1, txindex1, oindex1} = utxo_pos1
         {:utxo_position, blknum2, txindex2, oindex2} = utxo_pos2
         encoded_pos1 = ExPlasma.Utxo.pos(%{blknum: blknum1, txindex: txindex1, oindex: oindex1})

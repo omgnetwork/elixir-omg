@@ -96,7 +96,10 @@ defmodule OMG.Watcher.API.InFlightExit do
     |> Enum.reduce_while({:ok, {[], [], []}}, &find_single_input_data/2)
   end
 
-  defp find_single_input_data({:utxo_position, blknum, txindex, oindex} = input_utxo_pos, {:ok, {proofs, txbyteses, utxo_positions}}) do
+  defp find_single_input_data(
+         {:utxo_position, blknum, txindex, oindex} = input_utxo_pos,
+         {:ok, {proofs, txbyteses, utxo_positions}}
+       ) do
     input_utxo_pos
     |> API.Utxo.compose_utxo_exit()
     |> case do

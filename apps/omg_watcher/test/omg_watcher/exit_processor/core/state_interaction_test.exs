@@ -47,7 +47,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   test "can work with State to determine and notify invalid exits",
        %{processor_empty: processor, state_empty: state, alice: alice} do
-    exiting_encoded_position = ExPlasma.Utxo.pos(%{blknum: 2, txindex: 0 , oindex: 0})
+    exiting_encoded_position = ExPlasma.Utxo.pos(%{blknum: 2, txindex: 0, oindex: 0})
 
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     processor = start_se_from(processor, standard_exit_tx, @utxo_pos1)
@@ -197,7 +197,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
     assert {:ok,
-            {[{:delete, :utxo, _}, {:delete, :utxo, _}], {[{:utxo_position, 1000, 0, 0}, {:utxo_position, 2, 0, 0}], []}},
+            {[{:delete, :utxo, _}, {:delete, :utxo, _}],
+             {[{:utxo_position, 1000, 0, 0}, {:utxo_position, 2, 0, 0}], []}},
             _} = State.Core.exit_utxos(exiting_positions1 ++ exiting_positions2, state)
   end
 

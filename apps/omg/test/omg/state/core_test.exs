@@ -680,11 +680,11 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :state_alice_deposit, :state_empty]
   test "given exit infos in various forms translates to utxo positions",
        %{alice: alice, state_alice_deposit: state, state_empty: state_empty} do
-
     # TODO: Fix this !@#%
     # this test checks whether all ways of calling `get_exiting_utxo_positions/2` translates
     # to given exiting utxo positions
     expected_utxo_pos_exits = [{:utxo_position, @blknum1, 0, 0}, {:utxo_position, @blknum1, 0, 1}]
+
     utxo_pos_exits = [
       %{blknum: @blknum1, txindex: 0, oindex: 0},
       %{blknum: @blknum1, txindex: 0, oindex: 1}

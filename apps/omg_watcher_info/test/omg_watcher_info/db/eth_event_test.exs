@@ -208,9 +208,9 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     expected_txindex = 0
     expected_oindex = 0
 
-    expected_utxo_encoded_position = 
+    expected_utxo_encoded_position =
       ExPlasma.Utxo.pos(%{
-        blknum: expected_blknum, 
+        blknum: expected_blknum,
         txindex: expected_txindex,
         oindex: expected_oindex
       })

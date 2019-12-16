@@ -335,7 +335,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]
   def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
 
-  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: {{:utxo_position, blknum, txindex, _}, _}} = ife) do
+  def get_piggybacked_outputs_positions(
+        %__MODULE__{tx_seen_in_blocks_at: {{:utxo_position, blknum, txindex, _}, _}} = ife
+      ) do
     @outputs_index_range
     |> Enum.filter(&is_output_piggybacked?(ife, &1))
     |> Enum.map(&{:utxo_position, blknum, txindex, &1})

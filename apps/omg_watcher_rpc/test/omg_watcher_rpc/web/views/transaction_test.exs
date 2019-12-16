@@ -71,8 +71,7 @@ defmodule OMG.WatcherRPC.Web.View.TransactionTest do
   defp utxos_match_all?(renders, originals) when length(renders) != length(originals), do: false
 
   defp utxos_match_all?(renders, originals) do
-    original_utxo_positions =
-      Enum.map(originals, fn utxo -> ExPlasma.Utxo.pos(utxo) end)
+    original_utxo_positions = Enum.map(originals, fn utxo -> ExPlasma.Utxo.pos(utxo) end)
 
     Enum.all?(renders, fn rendered -> rendered.utxo_pos in original_utxo_positions end)
   end

@@ -96,7 +96,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   def ife_response(tx, {:utxo_position, blknum, txindex, oindex}) do
     %{
-      tx_hash: Transaction.raw_txhash(tx), 
+      tx_hash: Transaction.raw_txhash(tx),
       challenge_position: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
     }
   end
@@ -105,12 +105,12 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     competitor_position = Keyword.get(opts, :competitor_position)
 
     competitor_position =
-    if competitor_position do
-      {:utxo_position, blknum, txindex, oindex} = competitor_position
-      ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
-    else
-      not_included_competitor_pos()
-    end
+      if competitor_position do
+        {:utxo_position, blknum, txindex, oindex} = competitor_position
+        ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+      else
+        not_included_competitor_pos()
+      end
 
     %{
       tx_hash: Transaction.raw_txhash(tx),

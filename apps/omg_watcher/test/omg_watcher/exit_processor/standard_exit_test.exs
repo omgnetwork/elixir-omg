@@ -472,11 +472,11 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       assert %ExitProcessor.Request{utxos_to_check: [_, _]} =
                Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
 
-       {:utxo_position, blknum, txindex, oindex} = @utxo_pos_deposit2
-       encoded_deposit_pos_map = %{utxo_pos: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})}
+      {:utxo_position, blknum, txindex, oindex} = @utxo_pos_deposit2
+      encoded_deposit_pos_map = %{utxo_pos: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})}
 
-       {:utxo_position, blknum, txindex, oindex} = @utxo_pos_tx2
-       encoded_tx_pos_map = %{utxo_pos: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})}
+      {:utxo_position, blknum, txindex, oindex} = @utxo_pos_tx2
+      encoded_tx_pos_map = %{utxo_pos: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})}
 
       {processor, _} =
         processor
