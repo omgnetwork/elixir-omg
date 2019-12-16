@@ -73,10 +73,8 @@ defmodule OMG.WatcherInfo.Fixtures do
     end)
   end
 
-  @doc "run only database in sandbox and endpoint to make request"
-  deffixture phoenix_ecto_sandbox(web_endpoint) do
-    :ok = web_endpoint
-
+  @doc "run database in sandbox"
+  deffixture ecto_sandbox do
     {:ok, pid} =
       Supervisor.start_link(
         [%{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor}],
@@ -85,11 +83,18 @@ defmodule OMG.WatcherInfo.Fixtures do
       )
 
     :ok = SQL.Sandbox.checkout(DB.Repo)
+
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       WatcherInfoHelper.wait_for_process(pid)
       :ok
     end)
+  end
+
+  @doc "run only database in sandbox and endpoint to make request"
+  deffixture phoenix_ecto_sandbox(web_endpoint, ecto_sandbox) do
+    :ok = web_endpoint
+    :ok = ecto_sandbox
   end
 
   deffixture initial_blocks(alice, bob, blocks_inserter, initial_deposits) do
