@@ -17,17 +17,12 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
+  import OMG.WatcherInfo.Factory
+
   alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-
-  # TODO: To be replaced by ExMachina.insert/2 once #1199 is merged.
-  defp insert(:block, params) do
-    DB.Block
-    |> struct(params)
-    |> DB.Repo.insert!()
-  end
 
   describe "get_max_blknum/0" do
     @tag fixtures: [:phoenix_ecto_sandbox]

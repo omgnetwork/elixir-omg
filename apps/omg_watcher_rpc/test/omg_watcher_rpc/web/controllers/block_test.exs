@@ -17,15 +17,10 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   use ExUnit.Case, async: false
   use OMG.WatcherInfo.Fixtures
 
+  import OMG.WatcherInfo.Factory
+
   alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
-
-  # TODO: To be replaced by ExMachina.insert/2 once #1199 is merged.
-  defp insert(:block, params) do
-    DB.Block
-    |> struct(params)
-    |> DB.Repo.insert!()
-  end
 
   describe "get_blocks/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]

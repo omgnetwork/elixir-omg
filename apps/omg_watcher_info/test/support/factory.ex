@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.start()
-ExUnit.start()
+defmodule OMG.WatcherInfo.Factory do
+  use ExMachina.Ecto, repo: OMG.WatcherInfo.DB.Repo
 
-{:ok, _} = Application.ensure_all_started(:httpoison)
-{:ok, _} = Application.ensure_all_started(:fake_server)
-{:ok, _} = Application.ensure_all_started(:briefly)
-{:ok, _} = Application.ensure_all_started(:erlexec)
-{:ok, _} = Application.ensure_all_started(:ex_machina)
+  alias OMG.WatcherInfo.DB
 
-Mix.Task.run("ecto.create", ~w(--quiet))
-Mix.Task.run("ecto.migrate", ~w(--quiet))
+  def block_factory do
+    %DB.Block{
+      blknum: sequence(:block_blknum, fn seq -> seq * 1000 end),
+      hash: sequence(:block_hash, fn seq -> <<seq::256>> end),
+      eth_height: sequence(:block_eth_height, fn seq -> seq end),
+      timestamp: sequence(:block_timestamp, fn seq -> seq * 1_000_000 end)
+    }
+  end
+end
