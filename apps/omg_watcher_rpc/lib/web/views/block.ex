@@ -23,6 +23,6 @@ defmodule OMG.WatcherRPC.Web.View.Block do
 
   def render("block.json", %{response: block}) do
     block
-    |> Response.serialize()
+    Response.serialize(block)
   end
 end
