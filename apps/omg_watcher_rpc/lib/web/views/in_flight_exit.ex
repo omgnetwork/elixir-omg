@@ -20,7 +20,6 @@ defmodule OMG.WatcherRPC.Web.View.InFlightExit do
   use OMG.WatcherRPC.Web, :view
 
   alias OMG.Utils.HttpRPC.Response
-  alias OMG.Utxo
 
   def render("in_flight_exit.json", %{response: in_flight_exit}) do
     in_flight_exit
