@@ -162,7 +162,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
              WatcherHelper.success?("/status.get")
   end
 
-
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits, :ecto_sandbox]
   test "in-flight exit competitor is detected by watcher and proven with position immediately",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
