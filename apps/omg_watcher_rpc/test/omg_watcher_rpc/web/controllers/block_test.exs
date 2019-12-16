@@ -19,7 +19,6 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   import OMG.WatcherInfo.Factory
 
-  alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
 
   describe "get_blocks/2" do
