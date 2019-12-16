@@ -91,6 +91,7 @@ defmodule OMG.Conformance.SignaturePropertyTest do
     ]
 
     solidity_decoding_errors = [
+      "Invalid RLP encoding",
       "Invalid leading zeros in length of the length for a long list",
       "Item is not a list",
       "Invalid encoding of transaction",
