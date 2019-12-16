@@ -36,7 +36,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       request_data = %{"limit" => 200, "page" => 1}
       response = WatcherHelper.rpc_call("block.all", request_data, 200)
 
-      assert response == %{
+      assert %{
                "success" => true,
                "data" => [
                  %{
@@ -57,8 +57,8 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
                  "page" => 1
                },
                "service_name" => "child_chain",
-               "version" => "0.3.0+"
-             }
+               "version" => _
+             } == response
     end
   end
 end
