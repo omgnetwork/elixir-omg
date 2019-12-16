@@ -25,7 +25,7 @@ defmodule OMG.WatcherInfo.API.BlockTest do
   describe "get_block/1" do
     @tag fixtures: [:initial_blocks]
     test "returns block by id" do
-      block_hash = "##{1000}"
+      block_hash = "#1000"
       block = DB.Block.get(block_hash)
       assert {:ok, block} == Block.get(block_hash)
     end
