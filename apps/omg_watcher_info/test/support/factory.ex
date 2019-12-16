@@ -13,6 +13,47 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.Factory do
+  @moduledoc """
+  Test data factory for OMG.WatcherInfo.
+
+  Use this module to build structs or insert data into WatcherInfo's database.
+
+  ## Usage
+
+  Import this factory into your test module with `import OMG.WatcherInfo.Factory`.
+
+  Then, use [`build/1`](https://hexdocs.pm/ex_machina/ExMachina.html#c:build/1)
+  to build a struct without inserting them to the database, or
+  [`build/2`](https://hexdocs.pm/ex_machina/ExMachina.html#c:build/2) to override default data.
+
+  Or use [`insert/1`](https://hexdocs.pm/ex_machina/ExMachina.html#c:insert/1) to build and
+  insert the struct to database or [`build/2`](https://hexdocs.pm/ex_machina/ExMachina.html#c:build/2)
+  to insert with overrides.
+
+  See all available APIs at https://hexdocs.pm/ex_machina/ExMachina.html.
+
+  ## Example
+
+      defmodule MyTest do
+        use ExUnit.Case
+
+        import OMG.WatcherInfo.Factory
+
+        test ... do
+          # Returns %OMG.WatcherInfo.DB.Block{blknum: ..., hash: ...}
+          build(:block)
+
+          # Returns %OMG.WatcherInfo.DB.Block{blknum: 1234, hash: ...}
+          build(:block, blknum: 1234)
+
+          # Inserts and returns %OMG.WatcherInfo.DB.Block{blknum: ..., hash: ...}
+          insert(:block)
+
+          # Inserts and returns %OMG.WatcherInfo.DB.Block{blknum: 1234, hash: ...}
+          insert(:block, blknum: 1234)
+        end
+      end
+  """
   use ExMachina.Ecto, repo: OMG.WatcherInfo.DB.Repo
 
   alias OMG.WatcherInfo.DB
