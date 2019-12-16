@@ -36,7 +36,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag fixtures: [:initial_blocks]
     test "retrieves a block by block hash" do
       hash = "##{1000}"
-      block = hash |> DB.Block.get()
+      block = DB.Block.get(hash)
 
       assert block.__struct__ == DB.Block
       assert block.hash == hash
