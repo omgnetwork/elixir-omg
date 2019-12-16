@@ -39,8 +39,6 @@ defmodule OMG.WatcherInfo.DB.Block do
     field(:hash, :binary)
     field(:eth_height, :integer)
     field(:timestamp, :integer)
-
-    has_many(:transactions, DB.Transaction, foreign_key: :blknum)
   end
 
   defp changeset(block, params) do
@@ -59,16 +57,13 @@ defmodule OMG.WatcherInfo.DB.Block do
   end
 
   @doc """
-    Gets a block specified by a hash.
+    Gets a block specified by a block number.
   """
-  def get_by_hash(hash) do
+  def get(blknum) do
     query =
       from(
         __MODULE__,
-        where: [hash: ^hash],
-        preload: [
-          transactions: ^from(tx in DB.Transaction, order_by: :blknum)
-        ]
+        where: [blknum: ^blknum]
       )
 
     DB.Repo.one(query)
@@ -93,7 +88,13 @@ defmodule OMG.WatcherInfo.DB.Block do
         eth_height: eth_height
       }) do
     {db_txs, db_outputs, db_inputs} = prepare_db_transactions(transactions, block_number)
-    current_block = %{blknum: block_number, hash: blkhash, timestamp: timestamp, eth_height: eth_height}
+
+    current_block = %{
+      blknum: block_number,
+      hash: blkhash,
+      timestamp: timestamp,
+      eth_height: eth_height
+    }
 
     {insert_duration, result} =
       :timer.tc(
@@ -116,10 +117,12 @@ defmodule OMG.WatcherInfo.DB.Block do
     case result do
       {:ok, _} ->
         _ = Logger.debug("Block \##{block_number} persisted in WatcherDB, done in #{insert_duration / 1000}ms")
+
         result
 
       {:error, changeset} ->
         _ = Logger.debug("Block \##{block_number} not persisted in WatcherDB, done in #{insert_duration / 1000}ms")
+
         _ = Logger.debug("Error: #{inspect(changeset.errors)}")
         result
     end
@@ -152,7 +155,8 @@ defmodule OMG.WatcherInfo.DB.Block do
     {transaction, outputs, inputs}
   end
 
-  @spec create(pos_integer(), integer(), binary(), binary(), State.Transaction.metadata()) :: map()
+  @spec create(pos_integer(), integer(), binary(), binary(), State.Transaction.metadata()) ::
+          map()
   defp create(block_number, txindex, txhash, txbytes, metadata) do
     %{
       txhash: txhash,
