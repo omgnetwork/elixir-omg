@@ -42,6 +42,18 @@ defmodule OMG.Eth.MixProject do
         app: false,
         only: [:dev, :test]
       },
+      {
+        :plasma_contracts,
+        git: "https://github.com/omisego/plasma-contracts",
+        branch: "master",
+        sparse: "plasma_framework/contracts/",
+        compile:
+          contracts_compile("plasma_contracts", [
+            "plasma_framework/contracts/mocks/transactions/eip712Libs/PaymentEip712LibMock.sol"
+          ]),
+        app: false,
+        only: [:dev, :test]
+      },
       # Umbrella
       {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},
