@@ -51,7 +51,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
   end
 
   @doc """
-  Transaform the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
+  Transforms the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
   """
   def reconstruct([outputs_rlp, nonce_rlp]) do
     with {:ok, outputs} <- reconstruct_outputs(outputs_rlp),
@@ -71,7 +71,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
     _ -> {:error, :malformed_outputs}
   end
 
-  defp reconstruct_nonce(nonce) when Transaction.is_metadata(nonce), do: {:ok, nonce}
+  defp reconstruct_nonce(nonce) when is_binary(nonce) and byte_size(nonce) == 32, do: {:ok, nonce}
   defp reconstruct_nonce(_), do: {:error, :malformed_nonce}
 
   defp only_allowed_output_types?([%Output.FungibleMoreVPToken{}]), do: true
@@ -98,12 +98,13 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
   @spec get_data_for_rlp(Transaction.FeeTokenClaim.t()) :: list(any())
-  def get_data_for_rlp(%Transaction.FeeTokenClaim{outputs: outputs, nonce: nonce}),
-    do: [
+  def get_data_for_rlp(%Transaction.FeeTokenClaim{outputs: outputs, nonce: nonce}) do
+    [
       @fee_token_claim_tx_type,
       Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
       nonce
     ]
+  end
 
   @spec get_outputs(Transaction.FeeTokenClaim.t()) :: list(Output.Protocol.t())
   def get_outputs(%Transaction.FeeTokenClaim{outputs: outputs}), do: outputs
