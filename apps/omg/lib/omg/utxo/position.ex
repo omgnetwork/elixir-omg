@@ -35,13 +35,13 @@ defmodule OMG.Utxo.Position do
 
   @type db_t() :: {non_neg_integer, non_neg_integer, non_neg_integer}
 
-  @spec decode!(number()) :: t()
+  @spec decode!(integer()) :: t()
   def decode!(encoded) do
     {:ok, decoded} = decode(encoded)
     decoded
   end
 
-  @spec decode(number()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
+  @spec decode(integer()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
   def decode(encoded) when is_integer(encoded) and encoded <= 0,
     do: {:error, :encoded_utxo_position_too_low}
 
