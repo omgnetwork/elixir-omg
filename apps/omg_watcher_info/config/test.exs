@@ -6,7 +6,7 @@ config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   ownership_timeout: 180_000,
   pool: Ecto.Adapters.SQL.Sandbox,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
-  url: "postgres://omisego_dev:omisego_dev@postgres:5432/omisego_test"
+  url: "postgres://omisego_dev:omisego_dev@localhost:5432/omisego_test"
 
 config :omg_watcher_info,
   # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory
