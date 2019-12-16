@@ -25,17 +25,17 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraints do
   @spec parse(%{binary() => any()}) :: {:ok, Keyword.t()} | {:error, any()}
   def parse(params) do
     constraints = [
-      address: [:address, :optional],
-      blknum: [:pos_integer, :optional],
-      metadata: [:hash, :optional],
-      limit: [:pos_integer, :optional],
-      page: [:pos_integer, :optional]
+      "address" => [:address, :optional],
+      "blknum" => [:pos_integer, :optional],
+      "metadata" => [:hash, :optional],
+      "limit" => [:pos_integer, :optional],
+      "page" => [:pos_integer, :optional]
     ]
 
-    Enum.reduce_while(constraints, {:ok, []}, fn {constraint, validators}, {:ok, list} ->
-      case expect(params, Atom.to_string(constraint), validators) do
+    Enum.reduce_while(constraints, {:ok, []}, fn {key, validators}, {:ok, list} ->
+      case expect(params, key, validators) do
         {:ok, nil} -> {:cont, {:ok, list}}
-        {:ok, value} -> {:cont, {:ok, [{constraint, value} | list]}}
+        {:ok, value} -> {:cont, {:ok, [{String.to_existing_atom(key), value} | list]}}
         error -> {:halt, error}
       end
     end)

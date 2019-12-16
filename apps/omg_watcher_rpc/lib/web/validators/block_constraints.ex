@@ -29,10 +29,10 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
       "page" => [:pos_integer, :optional]
     ]
 
-    Enum.reduce_while(constraints, {:ok, []}, fn {constraint, validators}, {:ok, list} ->
-      case expect(params, constraint, validators) do
+    Enum.reduce_while(constraints, {:ok, []}, fn {key, validators}, {:ok, list} ->
+      case expect(params, key, validators) do
         {:ok, nil} -> {:cont, {:ok, list}}
-        {:ok, value} -> {:cont, {:ok, [{String.to_existing_atom(constraint), value} | list]}}
+        {:ok, value} -> {:cont, {:ok, [{String.to_existing_atom(key), value} | list]}}
         error -> {:halt, error}
       end
     end)
