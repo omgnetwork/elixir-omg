@@ -26,14 +26,13 @@ defmodule OMG.WatcherInfo.Supervisor do
   end
 
   def init(:ok) do
-    top_children =
-      [
-        %{
-          id: WatcherInfo.DB.Repo,
-          start: {WatcherInfo.DB.Repo, :start_link, []},
-          type: :supervisor
-        }
-      ]
+    top_children = [
+      %{
+        id: WatcherInfo.DB.Repo,
+        start: {WatcherInfo.DB.Repo, :start_link, []},
+        type: :supervisor
+      }
+    ]
 
     children = [
       {OMG.WatcherInfo.BlockApplicationConsumer, []},
