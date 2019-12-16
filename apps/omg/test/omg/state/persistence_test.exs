@@ -97,16 +97,6 @@ defmodule OMG.State.PersistenceTest do
     assert OMG.State.utxo_exists?(Utxo.position(@blknum1, 1, 0))
   end
 
-  @tag fixtures: [:alice]
-  test "zero amount transaction's output is persisted as any other output!", %{alice: alice} do
-    [%{owner: alice, currency: @eth, amount: 20, blknum: 1}]
-    |> persist_deposit()
-    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]))
-    |> persist_form()
-
-    assert OMG.State.utxo_exists?(Utxo.position(@blknum1, 0, 0))
-  end
-
   @tag fixtures: [:alice, :bob]
   test "cannot double spend from the transactions within the same block", %{alice: alice, bob: bob} do
     :ok = persist_deposit([%{owner: alice, currency: @eth, amount: 10, blknum: 1}])

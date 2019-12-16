@@ -12,17 +12,16 @@ defmodule WhiteBreadContext do
   # TODO Fix this, expose via API, also its 12 blocks
   @finality_margin 12
 
-  @default_timeout 30_000
+  @default_timeout 60_000
   scenario_timeouts(fn _feature, scenario ->
     case scenario.name do
-      "Alice sends Bob funds" -> @default_timeout * 2
       "Alice starts a Standard Exit" -> @default_timeout * 3
-      _ -> @default_timeout
+      _ -> @default_timeout * 2
     end
   end)
 
   scenario_starting_state(fn _ ->
-    {:ok, [{alice_account, alice_pkey}, {bob_account, _bob_pkey}]} = Account.take_accounts(2)
+    [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end)
 

@@ -60,7 +60,7 @@ defmodule XomgTasks.Utils do
 
   # mix loads entire codebase which fools `Response.add_version`
   defp ensure_one_rpc_loaded(apps) do
-    if Enum.member?(apps, :omg_watcher) do
+    if Enum.member?(apps, :omg_watcher) || Enum.member?(apps, :omg_watcher_info) do
       true = :code.delete(OMG.ChildChainRPC)
       :code.purge(OMG.ChildChainRPC)
     end

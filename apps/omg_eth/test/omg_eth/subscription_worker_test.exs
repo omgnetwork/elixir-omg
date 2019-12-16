@@ -19,7 +19,6 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
   alias OMG.Eth.SubscriptionWorker
 
   use ExUnit.Case, async: false
-  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
   use OMG.Utils.LoggerExt
 
   @moduletag :common

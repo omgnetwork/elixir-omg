@@ -1,3 +1,7 @@
+.PHONY: list
+list:
+	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
+
 test:
 	mix white_bread.run
 
@@ -8,7 +12,10 @@ clean:
 	docker-compose down && docker rm -f $$(docker ps -a -q) && docker volume rm $$(docker volume ls -q)
 
 start_daemon_services:
-	docker-compose -f ../docker-compose.yml -f docker-compose.geth-ganache.yml up -d
+	cd ../ && \
+	make init_test && \
+	cd priv/ && \
+	docker-compose -f ../docker-compose.yml up -d
 
 generate-security_critical_api_specs:
 	priv/openapitools/openapi-generator-cli generate -i ../apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml -g elixir -o apps/watcher_security_critical_api

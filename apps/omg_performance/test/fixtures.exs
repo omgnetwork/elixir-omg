@@ -52,7 +52,7 @@ defmodule OMG.Performance.Fixtures do
 
     {:ok, _db_proc, _ref, [{:stream, db_out, _stream_server}]} =
       Exexec.run_link(
-        "mix ecto.reset --no-start && mix run --no-start -e ':ok = OMG.DB.init()' --config #{config_file_path} 2>&1",
+        "mix ecto.reset && mix run --no-start -e ':ok = OMG.DB.init()' --config #{config_file_path} 2>&1",
         exexec_opts_for_mix
       )
 

@@ -382,25 +382,11 @@ If you set this to false, remember to set the logging level to `:debug` to see t
 
 * **`ethereum_client_warning_time_ms`** - queries for event logs made to the Ethereum node lasting more than this will emit a `:warn`-level log
 
-## Contracts
-
-OMG network uses contract code from [the contracts repo](http://github.com/omisego/plasma-contracts).
-Code from a particular branch in that repo is used, see [one of `mix.exs` configuration files](apps/omg_eth/mix.exs) for details.
-
-Contract code is downloaded automatically when getting dependencies of the Mix application with `mix deps.get`.
-You can find the downloaded version of that code under `deps/plasma_contracts`.
-
 ### Installing dependencies and compiling contracts
 
 To install dependencies:
 ```bash
 sudo apt-get install libssl-dev solc
-```
-
-Contracts will compile automatically as a regular mix dependency.
-To compile contracts manually:
-```bash
-mix deps.compile plasma_contracts
 ```
 
 # Testing & development
@@ -427,12 +413,12 @@ mix test
 
 Longer-running integration tests (requires compiling contracts):
 ```bash
-mix test --only integration
+mix test --trace --only integration
 ```
 
 To run these tests with `parity` as a backend, set it via `ETH_NODE` environmental variable (default is `geth`):
 ```
-ETH_NODE=parity mix test --only integration
+ETH_NODE=parity mix test --trace --only integration
 ```
 
 For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/omisego/workflows/elixir-omg).
