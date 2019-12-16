@@ -3,26 +3,11 @@ block.all:
     tags:
       - Block
     summary: Gets all blocks (with a limit on the number of blocks to return).
-    description: __/block.xxx endpoints not implemented yet and might undergo design changes__
     operationId: block_all
     requestBody:
       $ref: 'request_bodies.yaml#/AllBlocksBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/BlocksAllResponse'
-      500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
-block.get:
-  post:
-    tags:
-      - Block
-    summary: Gets a block with the given id.
-    description: __/block.xxx endpoints not implemented yet and might undergo design changes__
-    operationId: block_get
-    requestBody:
-      $ref: 'request_bodies.yaml#/GetBlockBodySchema'
-    responses:
-      200:
-        $ref: 'responses.yaml#/BlockResponse'
       500:
         $ref: '../../shared/responses.yaml#/InternalServerError'

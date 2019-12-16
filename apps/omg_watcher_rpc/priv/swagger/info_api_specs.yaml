@@ -12,10 +12,12 @@ info:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
     url: 'https://omisego.network/'
 servers:
-  - url: 'http://localhost:7434/'
+  - url: 'http://localhost:7534/'
 tags:
   - name: Account
     description: Account related API.
+  - name: Block
+    description: Block related API.
   - name: Transaction
     description: Transaction related API.
   - name: Fees
@@ -360,7 +362,7 @@ paths:
                             block:
                               type: object
                               properties:
-                                timestamp:
+                                blknum:
                                   type: integer
                                   format: int64
                                 hash:
@@ -369,7 +371,7 @@ paths:
                                 eth_height:
                                   type: integer
                                   format: int64
-                                blknum:
+                                timestamp:
                                   type: integer
                                   format: int64
                             inputs:
@@ -525,6 +527,149 @@ paths:
                         description: Something went wrong on the server
                         messages:
                           error_key: error_reason
+  /block.all:
+    post:
+      tags:
+        - Block
+      summary: Gets all blocks (with a limit on the number of blocks to return).
+      operationId: block_all
+      requestBody:
+        description: The supported request parameters for /block.all
+        content:
+          application/json:
+            schema:
+              title: AllBlocksBodySchema
+              type: object
+              properties:
+                page:
+                  type: integer
+                  format: int32
+                  default: 1
+                limit:
+                  type: integer
+                  format: int32
+                  default: 100
+              example:
+                page: 2
+                limit: 100
+      responses:
+        '200':
+          description: Blocks succcessful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful list operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: array
+                        items:
+                          type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: []
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            blknum:
+                              type: integer
+                              format: int64
+                            hash:
+                              type: string
+                              format: binary
+                            eth_height:
+                              type: integer
+                              format: int64
+                            timestamp:
+                              type: integer
+                              format: int64
+                      data_paging:
+                        type: object
+                        properties:
+                          page:
+                            type: integer
+                            format: int32
+                            default: 1
+                          limit:
+                            type: integer
+                            format: int32
+                            default: 100
+                    example:
+                      data:
+                        - blknum: 68290000
+                          hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                          eth_height: 97424
+                          timestamp: 1540365586
+                      data_paging:
+                        page: 1
+                        limit: 100
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /transaction.all:
     post:
       tags:
@@ -612,7 +757,7 @@ paths:
                             block:
                               type: object
                               properties:
-                                timestamp:
+                                blknum:
                                   type: integer
                                   format: int64
                                 hash:
@@ -621,7 +766,7 @@ paths:
                                 eth_height:
                                   type: integer
                                   format: int64
-                                blknum:
+                                timestamp:
                                   type: integer
                                   format: int64
                             inputs:
@@ -1334,7 +1479,7 @@ paths:
                           block:
                             type: object
                             properties:
-                              timestamp:
+                              blknum:
                                 type: integer
                                 format: int64
                               hash:
@@ -1343,7 +1488,7 @@ paths:
                               eth_height:
                                 type: integer
                                 format: int64
-                              blknum:
+                              timestamp:
                                 type: integer
                                 format: int64
                           inputs:
