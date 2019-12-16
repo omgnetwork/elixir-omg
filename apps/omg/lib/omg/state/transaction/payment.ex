@@ -28,8 +28,7 @@ defmodule OMG.State.Transaction.Payment do
   require Utxo
 
   @zero_metadata <<0::256>>
-  # TODO: figure out how to nicely reference tx/output types map from config
-  @payment_output_type <<1>>
+  @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
 
   defstruct [:inputs, :outputs, metadata: @zero_metadata]
 
@@ -156,8 +155,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   @empty_signature <<0::size(520)>>
 
-  # TODO: figure out how to nicely reference tx/output types map from config
-  @payment_tx_type <<1>>
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
 
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction

@@ -24,7 +24,7 @@ defmodule OMG.State.Transaction do
 
   require Utxo
 
-  @tx_types_modules Application.fetch_env!(:omg, :tx_types_modules)
+  @tx_types_modules OMG.WireFormatTypes.tx_type_modules()
   @tx_types Map.keys(@tx_types_modules)
 
   @type any_flavor_t() :: __MODULE__.Signed.t() | __MODULE__.Recovered.t() | __MODULE__.Protocol.t()

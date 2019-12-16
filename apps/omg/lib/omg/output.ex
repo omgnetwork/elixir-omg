@@ -20,7 +20,7 @@ defmodule OMG.Output do
   This module specificially dispatches generic calls to the various specific types
   """
 
-  @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
+  @output_types_modules OMG.WireFormatTypes.output_type_modules()
   @output_types Map.keys(@output_types_modules)
 
   def dispatching_reconstruct([output_type | _] = rlp_decoded_data) when output_type in @output_types do

@@ -44,8 +44,7 @@ defmodule OMG.TypedDataHash.Tools do
   @input_type_hash Crypto.hash(@input_encoded_type)
   @output_type_hash Crypto.hash(@output_encoded_type)
 
-  # TODO: dry wrt. Application.fetch_env!(:omg, :output_types_modules)? Use `bimap` perhaps?
-  @output_type <<1>>
+  @output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
 
   @doc """
   Computes Domain Separator `hashStruct(eip712Domain)`,

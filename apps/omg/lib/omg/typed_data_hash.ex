@@ -43,8 +43,7 @@ defmodule OMG.TypedDataHash do
   # Prefix and version byte motivated by http://eips.ethereum.org/EIPS/eip-191
   @eip_191_prefix <<0x19, 0x01>>
 
-  # TODO: dry wrt. Application.fetch_env!(:omg, :tx_types_modules)? Use `bimap` perhaps?
-  @payment_tx_type <<1>>
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
 
   @doc """
   Computes a hash of encoded transaction as defined in EIP-712

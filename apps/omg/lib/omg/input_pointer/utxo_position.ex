@@ -34,8 +34,7 @@ defimpl OMG.InputPointer.Protocol, for: Tuple do
 
   require Utxo
 
-  # TODO: dry wrt. Application.fetch_env!(:omg, :input_pointer_types_modules)? Use `bimap` perhaps?
-  @input_pointer_output_type <<1>>
+  @input_pointer_output_type OMG.WireFormatTypes.input_pointer_type_for(:input_pointer_utxo_position)
 
   @spec to_db_key(Utxo.Position.t()) :: {:input_pointer, binary(), Utxo.Position.db_t()}
   def to_db_key(Utxo.position(_, _, _) = utxo_pos),

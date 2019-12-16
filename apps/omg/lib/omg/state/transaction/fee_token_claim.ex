@@ -22,8 +22,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
 
   require Transaction
 
-  # TODO: figure out how to nicely reference tx/output types map from config
-  @fee_token_claim_output_type <<2>>
+  @fee_token_claim_output_type OMG.WireFormatTypes.output_type_for(:output_fee_token_claim)
 
   defstruct [:outputs, :nonce]
 
@@ -91,8 +90,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   alias OMG.Output
   alias OMG.State.Transaction
 
-  # TODO: figure out how to nicely reference tx/output types map from config
-  @fee_token_claim_tx_type <<3>>
+  @fee_token_claim_tx_type OMG.WireFormatTypes.tx_type_for(:tx_fee_token_claim)
 
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
