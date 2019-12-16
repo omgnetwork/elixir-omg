@@ -15,52 +15,50 @@
 defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
-  use OMG.Watcher.Fixtures
 
-  alias OMG.State.Transaction
-  alias OMG.TestHelper, as: Test
-  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
 
-  @default_data_paging %{"limit" => 200, "page" => 1}
-
-  describe "get_blocks/2" do
-    @tag fixtures: [:initial_blocks]
-    test "" do
-# {[
-#    %{
-#      "blknum" => 3000,
-#      "eth_height" => 1,
-#      "hash" => "0x2333303030",
-#      "timestamp" => 1540465606
-#    },
-#    %{
-#      "blknum" => 2000,
-#      "eth_height" => 1,
-#      "hash" => "0x2332303030",
-#      "timestamp" => 1540465606
-#    },
-#    %{
-#      "blknum" => 1000,
-#      "eth_height" => 1,
-#      "hash" => "0x2331303030",
-#      "timestamp" => 1540465606
-#    }
-#  ], %{"limit" => 100, "page" => 1}}
-      block_all_with_paging(@default_data_paging) |> IO.inspect()
-    end
+  # TODO: To be replaced by ExMachina.insert/2 once #1199 is merged.
+  defp insert(:block, params) do
+    DB.Block
+    |> struct(params)
+    |> DB.Repo.insert!()
   end
 
-  defp block_all_with_paging(body) do
-    %{
-      "success" => true,
-      "data" => data,
-      "data_paging" => paging
-    } = WatcherHelper.rpc_call("block.all", body, 200)
+  describe "get_blocks/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the API response with the blocks" do
+      _ = insert(:block, blknum: 1000, hash: <<1>>, eth_height: 1, timestamp: 100)
+      _ = insert(:block, blknum: 2000, hash: <<2>>, eth_height: 2, timestamp: 200)
 
-    {data, paging}
+      request_data = %{"limit" => 200, "page" => 1}
+      response = WatcherHelper.rpc_call("block.all", request_data, 200)
+
+      assert response == %{
+               "success" => true,
+               "data" => [
+                 %{
+                   "blknum" => 2000,
+                   "eth_height" => 2,
+                   "hash" => "0x02",
+                   "timestamp" => 200
+                 },
+                 %{
+                   "blknum" => 1000,
+                   "eth_height" => 1,
+                   "hash" => "0x01",
+                   "timestamp" => 100
+                 }
+               ],
+               "data_paging" => %{
+                 "limit" => 100,
+                 "page" => 1
+               },
+               "service_name" => "child_chain",
+               "version" => "0.3.0+"
+             }
+    end
   end
 end

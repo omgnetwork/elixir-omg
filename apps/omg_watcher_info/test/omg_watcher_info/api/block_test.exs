@@ -15,53 +15,47 @@
 defmodule OMG.WatcherInfo.API.BlockTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
-  use OMG.Watcher.Fixtures
 
-  alias OMG.State.Transaction
-  alias OMG.TestHelper, as: Test
-  alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Utils.Paginator
+  alias OMG.WatcherInfo.API
   alias OMG.WatcherInfo.DB
-  alias Support.WatcherHelper
-  alias OMG.WatcherInfo.API.Block
 
-#   describe "get_blocks/1" do
-#     @tag fixtures: [:initial_blocks]
-#     test "asidyavsduyiads" do
-# # %OMG.Utils.Paginator{
-# #   data: [
-# #     %OMG.WatcherInfo.DB.Block{
-# #       __meta__: #Ecto.Schema.Metadata<:loaded, "blocks">,
-# #       blknum: 3000,
-# #       eth_height: 1,
-# #       hash: "#3000",
-# #       timestamp: 1540465606
-# #     },
-# #     %OMG.WatcherInfo.DB.Block{
-# #       __meta__: #Ecto.Schema.Metadata<:loaded, "blocks">,
-# #       blknum: 2000,
-# #       eth_height: 1,
-# #       hash: "#2000",
-# #       timestamp: 1540465606
-# #     },
-# #     %OMG.WatcherInfo.DB.Block{
-# #       __meta__: #Ecto.Schema.Metadata<:loaded, "blocks">,
-# #       blknum: 1000,
-# #       eth_height: 1,
-# #       hash: "#1000",
-# #       timestamp: 1540465606
-# #     }
-# #   ],
-# #   data_paging: %{limit: 10, page: 1}
-# # }
-#       constraints = [limit: 10, page: 1]
-#       results = Block.get_blocks(constraints)
+  # TODO: To be replaced by ExMachina.insert/2 once #1199 is merged.
+  defp insert(:block, params) do
+    DB.Block
+    |> struct(params)
+    |> DB.Repo.insert!()
+  end
 
-#       assert %OMG.Utils.Paginator{} = results
-#       assert length(results.data) == 3
+  describe "get_blocks/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a paginator with a list of blocks" do
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
 
-#       assert ordered by descending blknum
-#     end
-#   end
+      constraints = []
+      results = API.Block.get_blocks(constraints)
+
+      assert %Paginator{} = results
+      assert length(results.data) == 3
+      assert Enum.all?(results.data, fn block -> %DB.Block{} = block end)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a paginator according to the provided paginator constraints" do
+      _inserted_1 = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+      inserted_2 = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
+      inserted_3 = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
+
+      constraints = [limit: 2, page: 1]
+      results = API.Block.get_blocks(constraints)
+
+      assert %Paginator{} = results
+      assert length(results.data) == 2
+      assert results.data |> Enum.at(0) |> Map.get(:blknum) == inserted_3.blknum
+      assert results.data |> Enum.at(1) |> Map.get(:blknum) == inserted_2.blknum
+    end
+  end
 end
