@@ -25,8 +25,8 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
   @spec parse(%{binary() => any()}) :: {:ok, Keyword.t()} | {:error, any()}
   def parse(params) do
     constraints = [
-      "limit" => [:pos_integer, :optional],
-      "page" => [:pos_integer, :optional]
+      {"limit", [:pos_integer, :optional]},
+      {"page", [:pos_integer, :optional]}
     ]
 
     Enum.reduce_while(constraints, {:ok, []}, fn {key, validators}, {:ok, list} ->
