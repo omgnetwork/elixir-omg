@@ -99,7 +99,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
       results = DB.Block.get_blocks(paginator)
 
-      assert length(results.data) == 0
+      assert results.data == []
     end
   end
 
