@@ -13,18 +13,20 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.API.Block do
-    @moduledoc """
-    Module provides operations related to plasma blocks.
-    """
-  
-    alias OMG.WatcherInfo.DB
-    @doc """
-    Retrieves a specific block by id
-    """
-    @spec get(binary()) :: {:ok, %DB.Block{}} | {:error, :block_not_found}
-    def get(block_id) do
-        if block = DB.Block.get(block_id),
-            do: {:ok, block},
-            else: {:error, :block_not_found}
-        end
+  @moduledoc """
+  Module provides operations related to plasma blocks.
+  """
+
+  alias OMG.WatcherInfo.DB
+
+  @doc """
+  Retrieves a specific block by hash
+  """
+  @spec get(binary()) :: {:ok, %DB.Block{}} | {:error, :block_not_found}
+  def get(block_id) do
+    case DB.Block.get(block_id) do
+      nil -> {:error, :block_not_found}
+      block -> {:ok, block}
     end
+  end
+end
