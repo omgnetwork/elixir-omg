@@ -58,7 +58,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
                },
                "service_name" => "child_chain",
                "version" => _
-             } == response
+             } = response
     end
   end
 end
