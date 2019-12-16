@@ -58,7 +58,7 @@ defmodule OMG.WatcherInfo.Factory do
 
   alias OMG.WatcherInfo.DB
 
-  def block_factory do
+  def block_factory() do
     %DB.Block{
       blknum: sequence(:block_blknum, fn seq -> seq * 1000 end),
       hash: sequence(:block_hash, fn seq -> <<seq::256>> end),

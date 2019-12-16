@@ -27,7 +27,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   """
   def get_blocks(conn, params) do
     with {:ok, constraints} <- Validator.BlockConstraints.parse(params) do
-      InfoApiBlock.get_blocks(constraints)
+      constraints
+      |> InfoApiBlock.get_blocks()
       |> api_response(conn, :blocks)
     end
   end
