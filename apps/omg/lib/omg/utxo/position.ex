@@ -18,11 +18,6 @@ defmodule OMG.Utxo.Position do
   and in the `OMG.DB`
   """
 
-  alias OMG.Utxo
-  require Utxo
-
-  import Utxo, only: [is_position: 3]
-
   @type t() :: {
           :utxo_position,
           # blknum
