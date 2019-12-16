@@ -111,7 +111,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
         transactions: [tx_1, tx_2],
         blknum: 1000,
         blkhash: "0x1000",
-        timestamp: 1576500000,
+        timestamp: 1_576_500_000,
         eth_height: 1
       }
 
@@ -132,7 +132,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
         transactions: [],
         blknum: existing.blknum,
         blkhash: existing.hash,
-        timestamp: 1576500000,
+        timestamp: 1_576_500_000,
         eth_height: existing.eth_height
       }
 
