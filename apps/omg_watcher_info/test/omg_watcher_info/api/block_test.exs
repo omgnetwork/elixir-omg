@@ -26,13 +26,13 @@ defmodule OMG.WatcherInfo.API.BlockTest do
     @tag fixtures: [:initial_blocks]
     test "returns block by id" do
       block_hash = "#1000"
-      block = DB.Block.get(block_hash)
+      block = DB.Block.get_by_hash(block_hash)
       assert {:ok, block} == Block.get(block_hash)
     end
 
     @tag fixtures: [:initial_blocks]
     test "returns expected error if block not found" do
-      non_existent_block = "##{5000}"
+      non_existent_block = "#5000"
       assert {:error, :block_not_found} == Block.get(non_existent_block)
     end
   end

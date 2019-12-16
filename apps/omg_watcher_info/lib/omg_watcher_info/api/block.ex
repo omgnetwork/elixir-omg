@@ -24,7 +24,7 @@ defmodule OMG.WatcherInfo.API.Block do
   """
   @spec get(binary()) :: {:ok, %DB.Block{}} | {:error, :block_not_found}
   def get(block_id) do
-    case DB.Block.get(block_id) do
+    case DB.Block.get_by_hash(block_id) do
       nil -> {:error, :block_not_found}
       block -> {:ok, block}
     end

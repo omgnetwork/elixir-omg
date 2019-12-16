@@ -24,7 +24,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   alias OMG.WatcherInfo.DB
 
   import Ecto.Query, only: [from: 2]
-  
+
   @type mined_block() :: %{
           transactions: [State.Transaction.Recovered.t()],
           blknum: pos_integer(),
@@ -61,15 +61,16 @@ defmodule OMG.WatcherInfo.DB.Block do
   @doc """
     Gets a block specified by a hash.
   """
-  def get(hash) do
+  def get_by_hash(hash) do
     query =
       from(
         __MODULE__,
         where: [hash: ^hash],
         preload: [
-          transactions: ^from(tx in DB.Transaction, order_by: :blknum),
+          transactions: ^from(tx in DB.Transaction, order_by: :blknum)
         ]
       )
+
     DB.Repo.one(query)
   end
 
