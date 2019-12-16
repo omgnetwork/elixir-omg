@@ -23,11 +23,9 @@ defmodule OMG.WatcherInfo.API.Block do
   @default_blocks_limit 100
 
   @doc """
-  Retrieves a list of blocks that:
-   - (optionally) a given address is involved as input or output owner.
-   - (optionally) belong to a given child block number
+  Retrieves a list of blocks.
 
-  Length of the list is limited by `limit` argument
+  Length of the list is limited by `limit` and `page` arguments.
   """
   @spec get_blocks(Keyword.t()) :: Paginator.t()
   def get_blocks(constraints) do
