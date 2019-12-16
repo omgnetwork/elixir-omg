@@ -13,19 +13,22 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Controller.Block do
-    @moduledoc """
-    Operations related to block.
-    """
-  
-    use OMG.WatcherRPC.Web, :controller
-  
-    alias OMG.WatcherInfo.API.Block, as: InfoApiBlock
-  
-    def get_block(conn, params) do
-        with {:ok, id} <- expect(params, "id", :hash) do 
-          id 
-          |> InfoApiBlock.get()
-          |> api_response(conn, :block)
-        end
+  @moduledoc """
+  Operations related to block.
+  """
+
+  use OMG.WatcherRPC.Web, :controller
+
+  alias OMG.WatcherInfo.API.Block, as: InfoApiBlock
+
+  @doc """
+  Retrieves a specific block by block number.
+  """
+  def get_block(conn, params) do
+    with {:ok, blknum} <- expect(params, "blknum", :pos_integer) do
+      blknum
+      |> InfoApiBlock.get()
+      |> api_response(conn, :block)
     end
+  end
 end

@@ -23,14 +23,14 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   describe "get_block\2" do
     @tag fixtures: [:initial_blocks]
-    test "/block.get endpoint rejects parameter of incorrect length" do
-      wrong_length_addr = "0x" <> String.duplicate("00", 20)
-      %{"data" => data} = WatcherHelper.rpc_call("block.get", %{id: wrong_length_addr}, 200)
+    test "/block.get rejects parameter of wrong type" do
+      string_blknum = "1000"
+      %{"data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: string_blknum}, 200)
 
       expected = %{
         "code" => "operation:bad_request",
         "description" => "Parameters required by this operation are missing or incorrect.",
-        "messages" => %{"validation_error" => %{"parameter" => "id", "validator" => ":hex"}},
+        "messages" => %{"validation_error" => %{"parameter" => "blknum", "validator" => ":integer"}},
         "object" => "error"
       }
 
@@ -44,7 +44,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
       expected = %{
         "code" => "operation:bad_request",
-        "messages" => %{"validation_error" => %{"parameter" => "id", "validator" => ":hex"}},
+        "messages" => %{"validation_error" => %{"parameter" => "blknum", "validator" => ":integer"}},
         "object" => "error"
       }
 
@@ -53,8 +53,8 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
     @tag fixtures: [:initial_blocks]
     test "/block.get returns expected error if block not found" do
-      right_length_addr = "0x" <> String.duplicate("00", 32)
-      %{"data" => data} = WatcherHelper.rpc_call("block.get", %{id: right_length_addr}, 200)
+      non_existent_block = 5000
+      %{"data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: non_existent_block}, 200)
 
       expected = %{
         "code" => "get_block:block_not_found",
@@ -63,6 +63,16 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       }
 
       assert data = expected
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "/block.get returns correct block if existent" do
+      existent_blknum = 1000
+
+      %{"success" => success, "data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: existent_blknum}, 200)
+
+      assert data["blknum"] == existent_blknum
+      assert success == true
     end
   end
 end

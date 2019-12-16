@@ -20,11 +20,11 @@ defmodule OMG.WatcherInfo.API.Block do
   alias OMG.WatcherInfo.DB
 
   @doc """
-  Retrieves a specific block by hash
+  Retrieves a specific block by block number
   """
   @spec get(binary()) :: {:ok, %DB.Block{}} | {:error, :block_not_found}
-  def get(block_id) do
-    case DB.Block.get_by_hash(block_id) do
+  def get(blknum) do
+    case DB.Block.get(blknum) do
       nil -> {:error, :block_not_found}
       block -> {:ok, block}
     end
