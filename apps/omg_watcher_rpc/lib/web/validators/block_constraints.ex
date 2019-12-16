@@ -17,7 +17,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
   Validates `/block.all` query parameters
   """
 
-  import OMG.Utils.HttpRPC.Validator.Base
+  import OMG.Utils.HttpRPC.Validator.Base, only: [expect: 3]
 
   @doc """
   Validates possible query constraints, stops on first error.
