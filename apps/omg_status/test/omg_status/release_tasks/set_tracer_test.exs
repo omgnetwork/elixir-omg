@@ -26,8 +26,10 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
       # configuration is global state so we reset it to known values in case
       # it got fiddled before
       :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
-      :ok = Application.put_env(@app, :statix, @configuration_old_statix, persistent: true)
       :ok = Application.put_env(@app, :spandex_datadog, @configuration_old_spandex_datadog, persistent: true)
+      :ok = Application.put_env(:statix, :host, Keyword.get(@configuration_old_statix, :host), persistent: true)
+      :ok = Application.put_env(:statix, :port, Keyword.get(@configuration_old_statix, :port), persistent: true)
+      :ok = Application.put_env(:statix, :tags, nil, persistent: true)
     end)
 
     :ok
@@ -69,12 +71,12 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     "cluster" = host
     1919 = port
 
-    ^configuration =
-      @configuration_old_statix
-      |> Keyword.put(:host, "cluster")
-      |> Keyword.put(:port, 1919)
-      |> Keyword.put(:tags, ["application:#{application()}"])
-      |> Enum.sort()
+    assert configuration ==
+             @configuration_old_statix
+             |> Keyword.put(:host, "cluster")
+             |> Keyword.put(:port, 1919)
+             |> Keyword.put(:tags, nil)
+             |> Enum.sort()
   end
 
   test "if default statix configuration is used when there's no environment variables" do
@@ -89,10 +91,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     configuration = Application.get_all_env(:statix)
     sorted_configuration = Enum.sort(configuration)
 
-    ^sorted_configuration =
-      @configuration_old_statix
-      |> Keyword.put(:tags, ["application:#{application()}"])
-      |> Enum.sort()
+    assert sorted_configuration == @configuration_old_statix |> Keyword.put(:tags, nil) |> Enum.sort()
   end
 
   test "if environment variables get applied in the spandex_datadog configuration" do
@@ -141,13 +140,5 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     :ok = System.put_env("DD_DISABLED", "TRUEeee")
     catch_exit(SetTracer.init([]))
     :ok = System.delete_env("DD_DISABLED")
-  end
-
-  defp application do
-    if Code.ensure_loaded?(OMG.ChildChain) do
-      :child_chain
-    else
-      :watcher
-    end
   end
 end

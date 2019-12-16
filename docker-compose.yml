@@ -76,7 +76,7 @@ services:
       - CHILD_CHAIN_URL=http://childchain:9656
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
-      - APP_ENV=local_development_child_chain
+      - APP_ENV=local_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
@@ -113,7 +113,7 @@ services:
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - PORT=7434
-      - APP_ENV=local_development_watcher
+      - APP_ENV=local_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
@@ -151,7 +151,7 @@ services:
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - PORT=7534
-      - APP_ENV=local_development_watcher_info
+      - APP_ENV=local_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
