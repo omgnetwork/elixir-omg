@@ -30,7 +30,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
   import OMG.Watcher.ExitProcessor.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @utxo_pos1 Utxo.position(2_000, 0, 0)
+  @utxo_pos1 {:utxo_position, 2_000, 0, 0}
   @exit_id 1
 
   describe "sanity checks" do
@@ -74,8 +74,8 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       ife_id1 = <<ife_id1::192>>
 
-      tx1_first_output = Utxo.position(tx1_blknum, 0, 0)
-      tx1_second_output = Utxo.position(tx1_blknum, 0, 1)
+      tx1_first_output = {:utxo_position, tx1_blknum, 0, 0}
+      tx1_second_output = {:utxo_position, tx1_blknum, 0, 1}
 
       assert {:ok, %{^ife_id1 => [^tx1_first_output, ^tx1_second_output]}} =
                Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
@@ -146,7 +146,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
       ife_id2 = <<ife_id2::192>>
 
       tx1_first_input = tx1 |> Transaction.get_inputs() |> hd()
-      tx2_first_output = Utxo.position(tx2_blknum, 1, 0)
+      tx2_first_output = {:utxo_position, tx2_blknum, 1, 0}
 
       assert {:ok, %{^ife_id1 => [^tx1_first_input], ^ife_id2 => [^tx2_first_output]}} =
                Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)

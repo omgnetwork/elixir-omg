@@ -34,8 +34,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   @early_blknum 1_000
   @late_blknum 10_000
-  @utxo_pos1 Utxo.position(2, 0, 0)
-  @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
+  @utxo_pos1 {:utxo_position, 2, 0, 0}
+  @utxo_pos2 {:utxo_position, @late_blknum - 1_000, 0, 1}
 
   setup do
     {:ok, processor_empty} = Core.init([], [], [])
@@ -62,7 +62,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   test "exits of utxos that couldn't have been seen created yet never excite events",
        %{processor_empty: processor, state_empty: state, alice: alice} do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = start_se_from(processor, standard_exit_tx, Utxo.position(@late_blknum, 0, 0))
+    processor = start_se_from(processor, standard_exit_tx, {:utxo_position, @late_blknum, 0, 0})
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @early_blknum}
@@ -140,8 +140,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              |> mock_utxo_exists(state)
              |> Core.determine_spends_to_get(processor)
 
-    assert {Utxo.position(1, 0, 0), false} not in Enum.zip(utxos_to_check, utxo_exists_result)
-    assert Utxo.position(1, 0, 0) not in spends_to_get
+    assert {{:utxo_position, 1, 0, 0}, false} not in Enum.zip(utxos_to_check, utxo_exists_result)
+    assert {:utxo_position, 1, 0, 0} not in spends_to_get
 
     # spend and see that Core now requests the relevant utxo checks and spends to get
     {:ok, _, state} = State.Core.exec(state, comp, :no_fees_required)
@@ -153,8 +153,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              |> mock_utxo_exists(state)
              |> Core.determine_spends_to_get(processor)
 
-    assert {Utxo.position(1, 0, 0), false} in Enum.zip(utxos_to_check, utxo_exists_result)
-    assert Utxo.position(1, 0, 0) in spends_to_get
+    assert {{:utxo_position, 1, 0, 0}, false} in Enum.zip(utxos_to_check, utxo_exists_result)
+    assert {:utxo_position, 1, 0, 0} in spends_to_get
   end
 
   test "can work with State to exit utxos from in-flight transactions",
@@ -197,7 +197,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
     assert {:ok,
-            {[{:delete, :utxo, _}, {:delete, :utxo, _}], {[Utxo.position(1000, 0, 0), Utxo.position(2, 0, 0)], []}},
+            {[{:delete, :utxo, _}, {:delete, :utxo, _}], {[{:utxo_position, 1000, 0, 0}, {:utxo_position, 2, 0, 0}], []}},
             _} = State.Core.exit_utxos(exiting_positions1 ++ exiting_positions2, state)
   end
 

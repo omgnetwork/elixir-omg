@@ -28,7 +28,7 @@ defmodule OMG.TypedDataHash do
   @zero_address <<0::160>>
 
   # Precomputed hash of empty input for performance
-  @empty_input_hash __MODULE__.Tools.hash_input(Utxo.position(0, 0, 0))
+  @empty_input_hash __MODULE__.Tools.hash_input({:utxo_position, 0, 0, 0})
 
   # Precomputed hash of empty output for performance
   @empty_output_hash __MODULE__.Tools.hash_output(

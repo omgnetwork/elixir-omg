@@ -67,7 +67,7 @@ defmodule OMG.State.Transaction.Validator do
   defp inputs_not_from_future_block?(%Core{height: blknum}, inputs) do
     no_utxo_from_future_block =
       inputs
-      |> Enum.all?(fn Utxo.position(input_blknum, _, _) -> blknum >= input_blknum end)
+      |> Enum.all?(fn {:utxo_position, input_blknum, _, _} -> blknum >= input_blknum end)
 
     if no_utxo_from_future_block, do: :ok, else: {:error, :input_utxo_ahead_of_state}
   end

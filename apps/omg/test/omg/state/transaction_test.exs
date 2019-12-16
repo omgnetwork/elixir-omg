@@ -51,7 +51,7 @@ defmodule OMG.State.TransactionTest do
   end
 
   test "create transaction with different number inputs and outputs" do
-    check_input1 = Utxo.position(20, 42, 1)
+    check_input1 = {:utxo_position, 20, 42, 1}
     output1 = {"Joe Black", @eth, 99}
     check_output2 = %{amount: 99, currency: @eth, owner: "Joe Black"}
     # 1 - input, 1 - output

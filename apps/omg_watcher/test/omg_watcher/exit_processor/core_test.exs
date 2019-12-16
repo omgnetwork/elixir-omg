@@ -33,9 +33,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   @late_blknum 10_000
 
-  @utxo_pos1 Utxo.position(2, 0, 0)
+  @utxo_pos1 {:utxo_position, 2, 0, 0}
   @encoded_utxo_pos1 ExPlasma.Utxo.pos(%{blknum: 2, txindex: 0, oindex: 0})
-  @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
+  @utxo_pos2 {:utxo_position, @late_blknum - 1_000, 0, 1}
 
   describe "generic sanity checks" do
     test "can start new standard exits one by one or batched", %{processor_empty: empty, alice: alice, bob: bob} do

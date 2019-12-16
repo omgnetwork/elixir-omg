@@ -353,7 +353,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       assert {:ok,
               %{
-                in_flight_output_pos: Utxo.position(^tx_blknum, 0, 0),
+                in_flight_output_pos: {:utxo_position, ^tx_blknum, 0, 0},
                 in_flight_proof: proof_bytes,
                 in_flight_txbytes: ^txbytes,
                 spending_txbytes: ^comp_txbytes,
@@ -392,7 +392,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       assert {:ok,
               %{
-                in_flight_output_pos: Utxo.position(^tx_blknum, 0, 0),
+                in_flight_output_pos: {:utxo_position, ^tx_blknum, 0, 0},
                 in_flight_proof: proof_bytes,
                 in_flight_txbytes: ^txbytes,
                 spending_txbytes: ^comp_txbytes,
@@ -427,7 +427,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       assert {:ok,
               %{
-                in_flight_output_pos: Utxo.position(^tx_blknum, 0, 1),
+                in_flight_output_pos: {:utxo_position, ^tx_blknum, 0, 1},
                 in_flight_proof: proof_bytes,
                 in_flight_txbytes: ^txbytes,
                 spending_txbytes: ^comp_txbytes,
@@ -462,7 +462,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       assert {:ok,
               %{
-                in_flight_output_pos: Utxo.position(^tx_blknum, 0, 1),
+                in_flight_output_pos: {:utxo_position, ^tx_blknum, 0, 1},
                 in_flight_proof: proof_bytes,
                 in_flight_txbytes: ^txbytes,
                 spending_txbytes: ^comp_txbytes,
@@ -498,7 +498,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       assert {:ok,
               %{
-                in_flight_output_pos: Utxo.position(^tx_blknum, 1, 0),
+                in_flight_output_pos: {:utxo_position, ^tx_blknum, 1, 0},
                 in_flight_proof: proof_bytes,
                 in_flight_txbytes: ^txbytes,
                 spending_txbytes: ^comp_txbytes,
@@ -611,7 +611,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       assert {:ok,
               %{
                 in_flight_txbytes: ^txbytes,
-                in_flight_output_pos: Utxo.position(^tx_blknum, 0, 0),
+                in_flight_output_pos: {:utxo_position, ^tx_blknum, 0, 0},
                 in_flight_proof: inclusion_proof,
                 spending_txbytes: ^comp_txbytes,
                 spending_input_index: 2,
@@ -628,7 +628,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
 
-      assert {:ok, %{input_tx: "input_tx", input_utxo_pos: Utxo.position(1, 0, 0)}} =
+      assert {:ok, %{input_tx: "input_tx", input_utxo_pos: {:utxo_position, 1, 0, 0}}} =
                Core.get_input_challenge_data(request, state, txbytes, 0)
     end
   end

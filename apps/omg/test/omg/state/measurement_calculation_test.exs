@@ -31,19 +31,19 @@ defmodule OMG.State.MeasurementCalculationTest do
 
   test "calculate metrics from state", %{alice: alice, bob: bob, carol: carol} do
     utxos = %{
-      Utxo.position(2_000, 4076, 3) => %OMG.Utxo{
+      {:utxo_position, 2_000, 4076, 3} => %OMG.Utxo{
         output: %OMG.Output.FungibleMoreVPToken{amount: 700_000_000, currency: @eth, owner: alice}
       },
-      Utxo.position(1_000, 2559, 0) => %OMG.Utxo{
+      {:utxo_position, 1_000, 2559, 0} => %OMG.Utxo{
         output: %OMG.Output.FungibleMoreVPToken{amount: 111_111_111, currency: @not_eth, owner: alice}
       },
-      Utxo.position(8_000, 4854, 2) => %OMG.Utxo{
+      {:utxo_position, 8_000, 4854, 2} => %OMG.Utxo{
         output: %OMG.Output.FungibleMoreVPToken{amount: 77_000_000, currency: @eth, owner: bob}
       },
-      Utxo.position(7_000, 4057, 3) => %OMG.Utxo{
+      {:utxo_position, 7_000, 4057, 3} => %OMG.Utxo{
         output: %OMG.Output.FungibleMoreVPToken{amount: 222_222_222, currency: @not_eth, owner: carol}
       },
-      Utxo.position(7_000, 4057, 4) => %OMG.Utxo{output: %{}}
+      {:utxo_position, 7_000, 4057, 4} => %OMG.Utxo{output: %{}}
     }
 
     assert MapSet.new(OMG.State.MeasurementCalculation.calculate(%Core{utxos: utxos})) ==

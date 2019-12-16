@@ -132,7 +132,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
       request: request,
       ife_good_pb_index: 5,
       ife_txbytes: txbytes(tx),
-      ife_output_pos: Utxo.position(tx_blknum, 0, 0),
+      ife_output_pos: {:utxo_position, tx_blknum, 0, 0},
       ife_proof: Block.inclusion_proof(block, 0),
       spending_txbytes: txbytes(comp),
       spending_input_index: 0,

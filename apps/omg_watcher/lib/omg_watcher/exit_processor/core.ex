@@ -310,7 +310,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp do_determine_utxo_existence_to_get(%__MODULE__{in_flight_exits: ifes} = state, blknum_now) do
     standard_exits_pos =
       StandardExit.exiting_positions(state)
-      |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
+      |> Enum.filter(fn {:utxo_position, blknum, _, _} -> blknum < blknum_now end)
 
     active_relevant_ifes =
       ifes

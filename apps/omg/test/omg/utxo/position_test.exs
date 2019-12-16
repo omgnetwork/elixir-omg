@@ -33,6 +33,6 @@ defmodule OMG.Utxo.PositionTest do
   end
 
   test "too low encoded position means non positive only" do
-    assert {:ok, Utxo.position(0, 0, 1)} = Utxo.Position.decode(1)
+    assert {:ok, {:utxo_position, 0, 0, 1}} = Utxo.Position.decode(1)
   end
 end

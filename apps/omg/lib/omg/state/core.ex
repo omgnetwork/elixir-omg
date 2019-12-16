@@ -202,7 +202,7 @@ defmodule OMG.State.Core do
 
   # attempts to build a standard response data about a single UTXO, based on an abstract `output` structure
   # so that the data can be useful to discover exitable UTXOs
-  defp utxo_to_exitable_utxo_map(%Utxo{output: output}, Utxo.position(blknum, txindex, oindex)) do
+  defp utxo_to_exitable_utxo_map(%Utxo{output: output}, {:utxo_position, blknum, txindex, oindex}) do
     output
     |> Map.from_struct()
     |> Map.take([:owner, :currency, :amount])
@@ -338,7 +338,7 @@ defmodule OMG.State.Core do
   end
 
   # list of utxo positions (decoded)
-  def extract_exiting_utxo_positions([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{}), do: exiting_utxos
+  def extract_exiting_utxo_positions([{:utxo_position, _, _, _} | _] = exiting_utxos, %Core{}), do: exiting_utxos
 
   @doc """
   Spends exited utxos.
@@ -349,7 +349,7 @@ defmodule OMG.State.Core do
   def exit_utxos([], %Core{} = state), do: {:ok, {[], {[], []}}, state}
 
   def exit_utxos(
-        [Utxo.position(_, _, _) | _] = exiting_utxos,
+        [{:utxo_position, _, _, _} | _] = exiting_utxos,
         %Core{utxos: utxos, recently_spent: recently_spent} = state
       ) do
     _ = Logger.info("Recognized exits #{inspect(exiting_utxos)}")
@@ -369,7 +369,7 @@ defmodule OMG.State.Core do
   Note: state passed here is already extended with DB.
   """
   @spec utxo_exists?(Utxo.Position.t(), t()) :: boolean()
-  def utxo_exists?(Utxo.position(_blknum, _txindex, _oindex) = utxo_pos, %Core{utxos: utxos}) do
+  def utxo_exists?({:utxo_position, _blknum, _txindex, _oindex} = utxo_pos, %Core{utxos: utxos}) do
     UtxoSet.exists?(utxos, utxo_pos)
   end
 

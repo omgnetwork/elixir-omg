@@ -39,7 +39,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
       eth_height: 10
     })
 
-    utxo = DB.TxOutput.get_by_position(Utxo.position(11_000, 0, 0))
+    utxo = DB.TxOutput.get_by_position({:utxo_position, 11_000, 0, 0})
     assert not is_nil(utxo)
     assert utxo.amount == big_amount
   end

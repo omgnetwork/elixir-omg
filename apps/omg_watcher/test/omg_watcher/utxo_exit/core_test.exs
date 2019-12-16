@@ -68,7 +68,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
       blknum = 4000
       tx_exit = TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])
       tx_exit_raw_tx_bytes = Transaction.raw_txbytes(tx_exit)
-      position = Utxo.position(blknum, 1, 0)
+      position = {:utxo_position, blknum, 1, 0}
       encoded_utxo = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: 1, oindex: 0})
 
       block =
@@ -93,7 +93,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
 
     test "doesn't find utxo for the output exit, tx position exceeding the block tx count", %{alice: alice} do
       blknum = 4000
-      position = Utxo.position(blknum, 1, 0)
+      position = {:utxo_position, blknum, 1, 0}
 
       block =
         [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]
@@ -105,7 +105,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
 
     test "doesn't find utxo for the output exit, output position exceeding the output count", %{alice: alice} do
       blknum = 4000
-      position = Utxo.position(blknum, 0, 3)
+      position = {:utxo_position, blknum, 0, 3}
 
       block =
         [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]
@@ -116,7 +116,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
     end
 
     test "throws when composing output exit, mismatch blknum and utxo pos (should never occur)", %{alice: alice} do
-      position = Utxo.position(3000, 0, 0)
+      position = {:utxo_position, 3000, 0, 0}
 
       block =
         [TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{alice, 10}])]

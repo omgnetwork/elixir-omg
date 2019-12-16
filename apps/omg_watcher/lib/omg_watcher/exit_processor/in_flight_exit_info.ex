@@ -194,7 +194,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     {:put, :in_flight_exit_info, {ife_hash, value}}
   end
 
-  defp assert_utxo_pos_type(Utxo.position(blknum, txindex, oindex))
+  defp assert_utxo_pos_type({:utxo_position, blknum, txindex, oindex})
        when is_integer(blknum) and is_integer(txindex) and is_integer(oindex),
        do: :ok
 
@@ -335,10 +335,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]
   def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
 
-  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _}} = ife) do
+  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: {{:utxo_position, blknum, txindex, _}, _}} = ife) do
     @outputs_index_range
     |> Enum.filter(&is_output_piggybacked?(ife, &1))
-    |> Enum.map(&Utxo.position(blknum, txindex, &1))
+    |> Enum.map(&{:utxo_position, blknum, txindex, &1})
   end
 
   @spec is_piggybacked?(t(), combined_index_t()) :: boolean()
@@ -422,7 +422,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def is_invalidly_challenged?(%__MODULE__{tx_seen_in_blocks_at: nil}), do: false
 
   def is_invalidly_challenged?(%__MODULE__{
-        tx_seen_in_blocks_at: {Utxo.position(_, _, _) = seen_in_pos, _proof},
+        tx_seen_in_blocks_at: {{:utxo_position, _, _, _} = seen_in_pos, _proof},
         oldest_competitor: oldest_competitor_pos
       }),
       do: is_older?(seen_in_pos, oldest_competitor_pos)
@@ -459,7 +459,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   defp do_is_viable_competitor?(seen_at_pos, oldest_pos, competitor_pos),
     do: is_older?(competitor_pos, seen_at_pos) and is_older?(competitor_pos, oldest_pos)
 
-  defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
+  defp is_older?({:utxo_position, tx1_blknum, tx1_index, _}, {:utxo_position, tx2_blknum, tx2_index, _}),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
 
   @spec exit_map_get(exit_map_t(), combined_index_t()) :: %{is_piggybacked: boolean(), is_finalized: boolean()}

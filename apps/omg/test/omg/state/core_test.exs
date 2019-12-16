@@ -61,16 +61,16 @@ defmodule OMG.State.CoreTest do
         |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{bob, 3}, {alice, 3}]), :no_fees_required)
         |> success?()
 
-      deposit_pos = Utxo.position(1, 0, 0)
+      deposit_pos = {:utxo_position, 1, 0, 0}
       assert Core.utxo_processed?(deposit_pos, state) == true
 
-      spend_pos = Utxo.position(1000, 0, 0)
+      spend_pos = {:utxo_position, 1000, 0, 0}
       assert Core.utxo_processed?(spend_pos, state) == true
 
-      known_pos = [Utxo.position(1000, 0, 2), Utxo.position(1000, 1, 1)]
+      known_pos = [{:utxo_position, 1000, 0, 2}, {:utxo_position, 1000, 1, 1}]
       assert Enum.map(known_pos, &Core.utxo_processed?(&1, state)) == [true, true]
 
-      unknown_pos = [Utxo.position(1000, 2, 0), Utxo.position(1000, 1, 2)]
+      unknown_pos = [{:utxo_position, 1000, 2, 0}, {:utxo_position, 1000, 1, 2}]
       assert Enum.map(unknown_pos, &Core.utxo_processed?(&1, state)) == [false, false]
     end
 
@@ -684,7 +684,7 @@ defmodule OMG.State.CoreTest do
     # TODO: Fix this !@#%
     # this test checks whether all ways of calling `get_exiting_utxo_positions/2` translates
     # to given exiting utxo positions
-    expected_utxo_pos_exits = [Utxo.position(@blknum1, 0, 0), Utxo.position(@blknum1, 0, 1)]
+    expected_utxo_pos_exits = [{:utxo_position, @blknum1, 0, 0}, {:utxo_position, @blknum1, 0, 1}]
     utxo_pos_exits = [
       %{blknum: @blknum1, txindex: 0, oindex: 0},
       %{blknum: @blknum1, txindex: 0, oindex: 1}
@@ -734,8 +734,8 @@ defmodule OMG.State.CoreTest do
       )
       |> success?
 
-    utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
-    utxo_pos_exit_2 = Utxo.position(@blknum1, 0, 1)
+    utxo_pos_exit_1 = {:utxo_position, @blknum1, 0, 0}
+    utxo_pos_exit_2 = {:utxo_position, @blknum1, 0, 1}
     utxo_pos_exits = [utxo_pos_exit_1, utxo_pos_exit_2]
 
     assert {:ok, {[_ | _], {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}}, state_after_exit} =
@@ -757,8 +757,8 @@ defmodule OMG.State.CoreTest do
     db_utxos = make_utxos([{@blknum1, 0, 0, alice, @eth, amount_1}, {@blknum1, 0, 1, alice, @eth, amount_2}])
     extended_state = Core.with_utxos(state, db_utxos)
 
-    utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
-    utxo_pos_exit_2 = Utxo.position(@blknum1, 0, 1)
+    utxo_pos_exit_1 = {:utxo_position, @blknum1, 0, 0}
+    utxo_pos_exit_2 = {:utxo_position, @blknum1, 0, 1}
     utxo_pos_exits = [utxo_pos_exit_1, utxo_pos_exit_2]
 
     assert {:ok, {[_ | _], {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}}, state_after_exit} =
@@ -784,7 +784,7 @@ defmodule OMG.State.CoreTest do
       %{tx_hash: Transaction.raw_txhash(tx), output_index: 0, omg_data: %{piggyback_type: :output}}
     ]
 
-    expected_position = Utxo.position(@blknum1, 0, 0)
+    expected_position = {:utxo_position, @blknum1, 0, 0}
 
     assert {:ok, {[], {[], _}}, ^state} =
              utxo_pos_exits_in_flight
@@ -815,7 +815,7 @@ defmodule OMG.State.CoreTest do
     tx = create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 3}, {alice, 3}])
 
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
-    expected_position = Utxo.position(@blknum1, 0, 0)
+    expected_position = {:utxo_position, @blknum1, 0, 0}
 
     exiting_utxos = Core.extract_exiting_utxo_positions(utxo_pos_exits_in_flight, state)
 
@@ -831,7 +831,7 @@ defmodule OMG.State.CoreTest do
 
   @tag fixtures: [:state_empty]
   test "notifies about invalid utxo exiting", %{state_empty: state} do
-    utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
+    utxo_pos_exit_1 = {:utxo_position, @blknum1, 0, 0}
 
     assert {:ok, {[], {[], [^utxo_pos_exit_1]}}, ^state} = Core.exit_utxos([utxo_pos_exit_1], state)
   end
@@ -858,30 +858,30 @@ defmodule OMG.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "tells if utxo exists", %{alice: alice, state_empty: state} do
-    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
+    assert not Core.utxo_exists?({:utxo_position, 1, 0, 0}, state)
 
     state = state |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    assert Core.utxo_exists?(Utxo.position(1, 0, 0), state)
+    assert Core.utxo_exists?({:utxo_position, 1, 0, 0}, state)
 
     state =
       state
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), :no_fees_required)
       |> success?
 
-    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
+    assert not Core.utxo_exists?({:utxo_position, 1, 0, 0}, state)
   end
 
   @tag fixtures: [:alice, :state_empty]
   test "tells if utxo exists in db-extended state", %{alice: alice, state_empty: state} do
     state = Core.with_utxos(state, make_utxos([{1, 0, 0, alice, @eth, 10}]))
-    assert Core.utxo_exists?(Utxo.position(1, 0, 0), state)
+    assert Core.utxo_exists?({:utxo_position, 1, 0, 0}, state)
 
     state =
       state
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), :no_fees_required)
       |> success?
 
-    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
+    assert not Core.utxo_exists?({:utxo_position, 1, 0, 0}, state)
   end
 
   @tag fixtures: [:state_empty]
@@ -1023,7 +1023,7 @@ defmodule OMG.State.CoreTest do
 
   defp to_utxo_kv({blknum, txindex, oindex, owner, currency, amount}),
     do: {
-      Utxo.position(blknum, txindex, oindex),
+      {:utxo_position, blknum, txindex, oindex},
       %Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner.addr}}
     }
 end

@@ -148,7 +148,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
       competing_txbytes: known_signed_tx |> Transaction.raw_txbytes(),
       competing_input_index: competing_input_index,
       competing_sig: find_sig!(known_signed_tx, owner),
-      competing_tx_pos: known_tx_utxo_pos || Utxo.position(0, 0, 0),
+      competing_tx_pos: known_tx_utxo_pos || {:utxo_position, 0, 0, 0},
       competing_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }
   end
@@ -158,7 +158,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
 
   defp maybe_calculate_proof(nil, _), do: <<>>
 
-  defp maybe_calculate_proof(Utxo.position(blknum, txindex, _), blocks) do
+  defp maybe_calculate_proof({:utxo_position, blknum, txindex, _}, blocks) do
     blocks
     |> Enum.find(fn %Block{number: number} -> blknum == number end)
     |> Block.inclusion_proof(txindex)

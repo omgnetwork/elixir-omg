@@ -35,7 +35,7 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
 
   @type known_txs_by_input_t() :: %{Utxo.Position.t() => list(__MODULE__.t())}
 
-  def new(%Transaction.Signed{} = signed_tx, Utxo.position(_, _, _) = utxo_pos),
+  def new(%Transaction.Signed{} = signed_tx, {:utxo_position, _, _, _} = utxo_pos),
     do: %__MODULE__{signed_tx: signed_tx, utxo_pos: utxo_pos}
 
   def new(%Transaction.Signed{} = signed_tx),
@@ -57,7 +57,7 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
     |> (&Map.get(positions_by_tx_hash, &1)).()
     |> case do
       nil -> nil
-      Utxo.position(blknum, _, _) = position -> {blocks_by_blknum[blknum], position}
+      {:utxo_position, blknum, _, _} = position -> {blocks_by_blknum[blknum], position}
     end
   end
 
@@ -92,7 +92,7 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
     txs
     |> Stream.map(&Transaction.Signed.decode!/1)
     |> Stream.with_index()
-    |> Stream.map(fn {signed, txindex} -> new(signed, Utxo.position(blknum, txindex, 0)) end)
+    |> Stream.map(fn {signed, txindex} -> new(signed, {:utxo_position, blknum, txindex, 0}) end)
   end
 
   defp get_all_from(blocks) when is_list(blocks), do: blocks |> sort_blocks() |> Stream.flat_map(&get_all_from/1)

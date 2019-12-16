@@ -108,7 +108,7 @@ defmodule OMG.TypedDataHash.Tools do
   end
 
   @spec hash_input(Utxo.Position.t()) :: Crypto.hash_t()
-  def hash_input(Utxo.position(blknum, txindex, oindex)) do
+  def hash_input({:utxo_position, blknum, txindex, oindex}) do
     [
       @input_type_hash,
       ABI.TypeEncoder.encode_raw([blknum], [{:uint, 256}]),

@@ -41,7 +41,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
         }
 
   def new(contract_status, %{eth_height: eth_height, call_data: %{output_tx: txbytes}, exit_id: exit_id} = event) do
-    Utxo.position(_, _, oindex) = utxo_pos_for(event)
+    {:utxo_position, _, _, oindex} = utxo_pos_for(event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 

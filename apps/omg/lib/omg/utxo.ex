@@ -27,15 +27,6 @@ defmodule OMG.Utxo do
           creating_txhash: Transaction.tx_hash()
         }
 
-  @doc """
-  Inserts a representation of an UTXO position, usable in guards. See Utxo.Position for handling of these entities
-  """
-  defmacro position(blknum, txindex, oindex) do
-    quote do
-      {:utxo_position, unquote(blknum), unquote(txindex), unquote(oindex)}
-    end
-  end
-
   defguard is_position(blknum, txindex, oindex)
            when is_integer(blknum) and blknum >= 0 and
                   is_integer(txindex) and txindex >= 0 and

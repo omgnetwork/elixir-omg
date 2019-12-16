@@ -68,7 +68,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   # preload ethevents in a single query as there will not be a large number of them
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
-  def get_by_position(Utxo.position(blknum, txindex, oindex)) do
+  def get_by_position({:utxo_position, blknum, txindex, oindex}) do
     DB.Repo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
@@ -127,7 +127,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   @spec spend_utxos([map()]) :: :ok
   def spend_utxos(db_inputs) do
     db_inputs
-    |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} ->
+    |> Enum.each(fn {{:utxo_position, blknum, txindex, oindex}, spending_oindex, spending_txhash} ->
       _ =
         DB.TxOutput
         |> where(blknum: ^blknum, txindex: ^txindex, oindex: ^oindex)
@@ -174,7 +174,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     tx
     |> Transaction.get_inputs()
     |> Enum.with_index()
-    |> Enum.map(fn {Utxo.position(_, _, _) = input_utxo_pos, index} ->
+    |> Enum.map(fn {{:utxo_position, _, _, _} = input_utxo_pos, index} ->
       {input_utxo_pos, index, spending_txhash}
     end)
   end
