@@ -45,7 +45,7 @@ defmodule OMG.TypedDataHash.Tools do
   @output_type_hash Crypto.hash(@output_encoded_type)
 
   # TODO: dry wrt. Application.fetch_env!(:omg, :output_types_modules)? Use `bimap` perhaps?
-  @output_type_marker <<1>>
+  @output_type <<1>>
 
   @doc """
   Computes Domain Separator `hashStruct(eip712Domain)`,
@@ -121,7 +121,7 @@ defmodule OMG.TypedDataHash.Tools do
 
   @spec hash_output(Output.FungibleMoreVPToken.t(), pos_integer) :: Crypto.hash_t()
   def hash_output(%Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}, opts \\ []) do
-    output_type = if Keyword.get(opts, :hash_zero), do: <<0>>, else: @output_type_marker
+    output_type = if Keyword.get(opts, :hash_zero), do: <<0>>, else: @output_type
 
     [
       @output_type_hash,

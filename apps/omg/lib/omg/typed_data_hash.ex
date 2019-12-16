@@ -44,7 +44,7 @@ defmodule OMG.TypedDataHash do
   @eip_191_prefix <<0x19, 0x01>>
 
   # TODO: dry wrt. Application.fetch_env!(:omg, :tx_types_modules)? Use `bimap` perhaps?
-  @payment_marker <<1>>
+  @payment_tx_type <<1>>
 
   @doc """
   Computes a hash of encoded transaction as defined in EIP-712
@@ -58,7 +58,7 @@ defmodule OMG.TypedDataHash do
   @spec hash_transaction(Transaction.Payment.t()) :: Crypto.hash_t()
   def hash_transaction(%Transaction.Payment{} = raw_tx) do
     __MODULE__.Tools.hash_transaction(
-      @payment_marker,
+      @payment_tx_type,
       Transaction.get_inputs(raw_tx),
       Transaction.get_outputs(raw_tx),
       raw_tx.metadata,

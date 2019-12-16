@@ -2,12 +2,12 @@ defmodule Itest.Transactions.Encoding do
   @moduledoc """
     Provides helper functions for encoding and decoding data.
   """
-  @output_type_marker <<1>>
+  @output_type <<1>>
 
   alias Itest.Transactions.Deposit
 
   def get_data_for_rlp(%Deposit{inputs: inputs, outputs: outputs, metadata: metadata}),
-    do: [@output_type_marker, inputs, outputs, metadata]
+    do: [@output_type, inputs, outputs, metadata]
 
   def to_binary(hex) do
     hex

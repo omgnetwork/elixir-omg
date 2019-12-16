@@ -21,16 +21,16 @@ defmodule OMG.Output do
   """
 
   @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
-  @type_markers Map.keys(@output_types_modules)
+  @output_types Map.keys(@output_types_modules)
 
-  def dispatching_reconstruct([type_marker | _] = rlp_decoded_data) when type_marker in @type_markers do
-    protocol_module = @output_types_modules[type_marker]
+  def dispatching_reconstruct([output_type | _] = rlp_decoded_data) when output_type in @output_types do
+    protocol_module = @output_types_modules[output_type]
     protocol_module.reconstruct(rlp_decoded_data)
   end
 
   def dispatching_reconstruct(_), do: {:error, :unrecognized_output_type}
 
-  def from_db_value(%{type: type_marker} = db_value), do: @output_types_modules[type_marker].from_db_value(db_value)
+  def from_db_value(%{type: output_type} = db_value), do: @output_types_modules[output_type].from_db_value(db_value)
   # default clause for backwards compatibility
   def from_db_value(%{} = db_value), do: OMG.Output.FungibleMoreVPToken.from_db_value(db_value)
 end

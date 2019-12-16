@@ -96,7 +96,7 @@ defmodule OMG.Eth.RootChainTest do
   test "get_deposits/3 returns deposit events", %{contract: contract} do
     use_cassette "ganache/get_deposits", match_requests_on: [:request_body] do
       # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
-      # payment marker, no inputs, one output, metadata
+      # payment tx_type, no inputs, one output, metadata
       tx =
         [<<1>>, [], [[<<1>>, contract.authority_address, @eth, 1]], <<0::256>>]
         |> ExRLP.encode()

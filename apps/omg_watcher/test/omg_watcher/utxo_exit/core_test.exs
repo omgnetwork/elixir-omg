@@ -42,7 +42,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
              amount: 10,
              currency: @eth,
              owner: alice.addr,
-             type_marker: <<1>>
+             output_type: <<1>>
            }
          })}
 

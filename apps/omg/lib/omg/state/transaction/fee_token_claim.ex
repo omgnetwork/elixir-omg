@@ -22,8 +22,8 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
 
   require Transaction
 
-  # TODO: figure out how to nicely reference markers map from config
-  @fee_output_type_marker <<2>>
+  # TODO: figure out how to nicely reference tx/output types map from config
+  @fee_token_claim_output_type <<2>>
 
   defstruct [:outputs, :nonce]
 
@@ -43,7 +43,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
           owner: owner,
           currency: currency,
           amount: amount,
-          type_marker: @fee_output_type_marker
+          output_type: @fee_token_claim_output_type
         }
       ],
       nonce: to_nonce(blknum, currency)
@@ -91,8 +91,8 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   alias OMG.Output
   alias OMG.State.Transaction
 
-  # TODO: figure out how to nicely reference markers map from config
-  @fee_tx_type_marker <<3>>
+  # TODO: figure out how to nicely reference tx/output types map from config
+  @fee_token_claim_tx_type <<3>>
 
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
@@ -100,7 +100,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @spec get_data_for_rlp(Transaction.FeeTokenClaim.t()) :: list(any())
   def get_data_for_rlp(%Transaction.FeeTokenClaim{outputs: outputs, nonce: nonce}),
     do: [
-      @fee_tx_type_marker,
+      @fee_token_claim_tx_type,
       Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
       nonce
     ]
@@ -115,11 +115,11 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   Fee claiming transaction is not used to transfer funds
   """
   @spec valid?(Transaction.FeeTokenClaim.t(), Transaction.Signed.t()) :: {:error, atom()}
-  def valid?(%Transaction.FeeTokenClaim{}, _signed_tx), do: {:error, :transaction_not_transfer_funds}
+  def valid?(%Transaction.FeeTokenClaim{}, _signed_tx), do: {:error, :not_implemented}
 
   @doc """
   Fee claiming transaction is not used to transfer funds
   """
   @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.Protocol.t())) :: {:error, atom()}
-  def can_apply?(%Transaction.FeeTokenClaim{}, _outputs_spent), do: {:error, :transaction_not_transfer_funds}
+  def can_apply?(%Transaction.FeeTokenClaim{}, _outputs_spent), do: {:error, :not_implemented}
 end

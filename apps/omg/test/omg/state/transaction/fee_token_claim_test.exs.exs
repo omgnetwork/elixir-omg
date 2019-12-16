@@ -47,6 +47,6 @@ defmodule OMG.State.Transaction.FeeTokenClaimTest do
     fee_tx = Transaction.FeeTokenClaim.new(1000, {owner.addr, @eth, 1551})
     tx_rlp = Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
 
-    assert {:error, :transaction_not_transfer_funds} = Transaction.Recovered.recover_from(tx_rlp)
+    assert {:error, :not_implemented} = Transaction.Recovered.recover_from(tx_rlp)
   end
 end

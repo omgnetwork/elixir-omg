@@ -28,8 +28,8 @@ defmodule OMG.State.Transaction.Payment do
   require Utxo
 
   @zero_metadata <<0::256>>
-  # TODO: figure out how to nicely reference markers map from config
-  @payment_output_type_marker <<1>>
+  # TODO: figure out how to nicely reference tx/output types map from config
+  @payment_output_type <<1>>
 
   defstruct [:inputs, :outputs, metadata: @zero_metadata]
 
@@ -101,7 +101,7 @@ defmodule OMG.State.Transaction.Payment do
       owner: owner,
       currency: currency,
       amount: amount,
-      type_marker: @payment_output_type_marker
+      output_type: @payment_output_type
     }
 
   defp reconstruct_inputs(inputs_rlp) do
@@ -155,8 +155,8 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   @empty_signature <<0::size(520)>>
 
-  # TODO: figure out how to nicely reference markers map from config
-  @payment_marker <<1>>
+  # TODO: figure out how to nicely reference tx/output types map from config
+  @payment_tx_type <<1>>
 
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
@@ -165,7 +165,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   def get_data_for_rlp(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
       when Transaction.is_metadata(metadata),
       do: [
-        @payment_marker,
+        @payment_tx_type,
         Enum.map(inputs, &OMG.InputPointer.Protocol.get_data_for_rlp/1),
         Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here

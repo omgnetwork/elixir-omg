@@ -27,7 +27,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @payment_output_marker <<1>>
+  @payment_output_type <<1>>
   @eth_hex @eth |> Encoding.to_hex()
   @other_token <<127::160>>
   @other_token_hex @other_token |> Encoding.to_hex()
@@ -114,7 +114,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
          {
            {1, 0, 0},
            %{
-             output: %{amount: 333, currency: @eth, owner: alice.addr, type_marker: @payment_output_marker},
+             output: %{amount: 333, currency: @eth, owner: alice.addr, output_type: @payment_output_type},
              creating_txhash: nil
            }
          }},
@@ -122,7 +122,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
          {
            {2, 0, 0},
            %{
-             output: %{amount: 100, currency: @eth, owner: bob.addr, type_marker: @payment_output_marker},
+             output: %{amount: 100, currency: @eth, owner: bob.addr, output_type: @payment_output_type},
              creating_txhash: nil
            }
          }}
