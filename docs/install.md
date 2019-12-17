@@ -104,5 +104,5 @@ mix test
 
 To run integration tests (requires compiling contracts and **not** having `geth` running in the background):
 ```
-mix test --only integration
+mix test --trace --only integration
 ```

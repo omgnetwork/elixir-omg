@@ -18,6 +18,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetTracerTest do
   alias OMG.WatcherInfo.Tracer
   @app :omg_watcher_info
   @configuration_old Application.get_env(@app, Tracer)
+
   setup do
     on_exit(fn ->
       # configuration is global state so we reset it to known values in case
@@ -46,11 +47,11 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetTracerTest do
 
   test "if default configuration is used when there's no environment variables" do
     :ok = System.delete_env("DD_DISABLED")
-    :ok = System.delete_env("APP_ENV")
+    :ok = System.put_env("APP_ENV", "YOLO")
     :ok = SetTracer.init([])
     configuration = Application.get_env(@app, Tracer)
     sorted_configuration = Enum.sort(configuration)
-    ^sorted_configuration = Enum.sort(@configuration_old)
+    assert sorted_configuration == @configuration_old |> Keyword.put(:env, "YOLO") |> Enum.sort()
   end
 
   test "if exit is thrown when faulty configuration is used" do

@@ -102,6 +102,8 @@ defmodule OMG.State.Transaction.Payment do
          do: {:ok, inputs}
   end
 
+  defp reconstruct_outputs([]), do: {:error, :empty_outputs}
+
   defp reconstruct_outputs(outputs_rlp) do
     with {:ok, outputs} <- parse_outputs(outputs_rlp),
          do: {:ok, outputs}

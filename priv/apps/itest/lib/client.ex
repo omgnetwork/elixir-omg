@@ -21,6 +21,18 @@ defmodule Itest.Client do
   @gas 180_000
   @retry_count 60
 
+  def get_watcher_alarms() do
+    WatcherSecurityCriticalAPI.Api.Alarm.alarm_get(WatcherSecurityCriticalAPI.Connection.new())
+  end
+
+  def get_watcher_info_alarms() do
+    WatcherInfoAPI.Api.Alarm.alarm_get(WatcherInfoAPI.Connection.new())
+  end
+
+  def get_child_chain_alarms() do
+    ChildChainAPI.Api.Alarm.alarm_get(ChildChainAPI.Connection.new())
+  end
+
   def deposit(amount_in_wei, output_address, vault_address, currency \\ Currency.ether()) do
     deposit_transaction = deposit_transaction(amount_in_wei, output_address, currency)
 

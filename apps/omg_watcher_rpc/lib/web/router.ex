@@ -24,7 +24,7 @@ defmodule OMG.WatcherRPC.Web.Router do
     pipe_through([:api])
 
     post("/status.get", Controller.Status, :get_status)
-    post("/alarm.get", Controller.Alarm, :get_alarms)
+    get("/alarm.get", Controller.Alarm, :get_alarms)
 
     post("/account.get_exitable_utxos", Controller.Account, :get_exitable_utxos)
 

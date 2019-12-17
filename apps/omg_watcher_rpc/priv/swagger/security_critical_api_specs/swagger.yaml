@@ -33,6 +33,8 @@ servers:
 
 
 paths:
+  /alarm.get:
+    $ref: 'alarm/paths.yaml#/alarm.get'
   /status.get:
     $ref: 'status/paths.yaml#/status.get'
   /account.get_exitable_utxos:

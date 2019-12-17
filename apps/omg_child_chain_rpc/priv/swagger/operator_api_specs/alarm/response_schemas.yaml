@@ -1,0 +1,15 @@
+AlarmResponseSchema:
+  allOf:
+  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: array
+        items:
+          $ref: 'schemas.yaml#/AlarmSchema'
+    example:
+      data:
+      -
+        disk_almost_full: "/dev/null"
+        ethereum_client_connection: {}
+        system_memory_high_watermark: []

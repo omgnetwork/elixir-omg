@@ -72,9 +72,8 @@ defmodule OMG.Performance.ExtendedPerftest do
 
   @spec create_deposits(list(TestHelper.entity()), pos_integer()) :: list()
   defp create_deposits(spenders, ntx_to_send) do
-    make_deposits(10 * ntx_to_send, spenders)
-    |> Enum.map(fn {:ok, owner, blknum, amount} ->
-      utxo_pos = Utxo.position(blknum, 0, 0) |> Utxo.Position.encode()
+    Enum.map(make_deposits(ntx_to_send, spenders), fn {:ok, owner, blknum, amount} ->
+      utxo_pos = Utxo.Position.encode(Utxo.position(blknum, 0, 0))
       %{owner: owner, utxo_pos: utxo_pos, amount: amount}
     end)
   end

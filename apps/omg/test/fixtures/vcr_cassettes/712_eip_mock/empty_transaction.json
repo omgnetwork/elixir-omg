@@ -1,0 +1,28 @@
+[
+  {
+    "request": {
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"data\":\"0x77d8709e00000000000000000000000032063dba91cf95eb3d58fad9e391ee888878b61c00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000025e401c0c0a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\",\"to\":\"0x32063dba91cf95eb3d58fad9e391ee888878b61c\"},\"latest\"]}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "method": "post",
+      "options": {
+        "recv_timeout": "infinity",
+        "pool": "default"
+      },
+      "request_body": "",
+      "url": "http://localhost:8545"
+    },
+    "response": {
+      "binary": false,
+      "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0xf625237776d247fe1cf807702200ac127899030b439cd631fee1145d9d0d7fd6\"}\n",
+      "headers": {
+        "Content-Type": "application/json",
+        "Date": "Thu, 12 Dec 2019 18:48:02 GMT",
+        "Content-Length": "103"
+      },
+      "status_code": 200,
+      "type": "ok"
+    }
+  }
+]

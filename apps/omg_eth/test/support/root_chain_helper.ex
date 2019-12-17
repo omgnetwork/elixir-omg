@@ -24,7 +24,7 @@ defmodule Support.RootChainHelper do
 
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1]
 
-  @tx_defaults Eth.Defaults.tx_defaults()
+  @tx_defaults OMG.Eth.Defaults.tx_defaults()
 
   @type optional_addr_t() :: <<_::160>> | nil
 

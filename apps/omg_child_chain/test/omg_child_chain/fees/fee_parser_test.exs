@@ -18,8 +18,7 @@ defmodule OMG.ChildChain.FeeParserTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  import OMG.ChildChain.FeeParser
-
+  alias OMG.ChildChain.Fees.FeeParser
   alias OMG.Eth
 
   @fee_config_file ~s(
@@ -58,14 +57,14 @@ defmodule OMG.ChildChain.FeeParserTest do
 
   describe "Parser output:" do
     test "parse valid data is successful" do
-      assert {:ok, fee_map} = parse_file_content(@fee_config_file)
+      assert {:ok, fee_map} = FeeParser.parse(@fee_config_file)
 
       assert Enum.count(fee_map) == 3
       assert fee_map[@eth][:amount] == 2
     end
 
     test "empty fee spec list is parsed correctly" do
-      assert {:ok, %{}} = parse_file_content("[]")
+      assert {:ok, %{}} = FeeParser.parse("[]")
     end
 
     @tag :capture_log
@@ -201,7 +200,7 @@ defmodule OMG.ChildChain.FeeParserTest do
                 {{:error, :invalid_timestamp}, 10},
                 {{:error, :invalid_subunit_to_unit}, 11},
                 {{:error, :invalid_subunit_to_unit}, 12}
-              ]} = parse_file_content(json)
+              ]} = FeeParser.parse(json)
     end
 
     @tag :capture_log
@@ -227,7 +226,7 @@ defmodule OMG.ChildChain.FeeParserTest do
         }
       ])
 
-      assert {:error, [{{:error, :duplicate_token}, 2}]} = parse_file_content(json)
+      assert {:error, [{{:error, :duplicate_token}, 2}]} = FeeParser.parse(json)
     end
   end
 end

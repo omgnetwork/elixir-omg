@@ -24,18 +24,21 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
     config = Application.get_env(@app, OMG.Watcher.Tracer)
     config = Keyword.put(config, :disabled?, get_dd_disabled())
     config = Keyword.put(config, :env, get_app_env())
+
+    :ok = Application.put_env(:statix, :tags, ["application:watcher", "app_env:#{get_app_env()}"], persistent: true)
+
     :ok = Application.put_env(@app, OMG.Watcher.Tracer, config, persistent: true)
   end
 
-  defp get_dd_disabled do
+  defp get_dd_disabled() do
     dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, OMG.Watcher.Tracer)[:disabled?])
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
   end
 
-  defp get_app_env do
-    env = validate_string(get_env("APP_ENV"), Application.get_env(@app, OMG.Watcher.Tracer)[:env])
+  defp get_app_env() do
+    env = validate_app_env(get_env("APP_ENV"))
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
     env
   end
@@ -49,6 +52,6 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
   defp to_bool("FALSE"), do: false
   defp to_bool(_), do: exit("DD_DISABLED either true or false.")
 
-  defp validate_string(value, _default) when is_binary(value), do: value
-  defp validate_string(_, default), do: default
+  defp validate_app_env(value) when is_binary(value), do: value
+  defp validate_app_env(nil), do: exit("APP_ENV must be set.")
 end

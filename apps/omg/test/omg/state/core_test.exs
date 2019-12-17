@@ -392,15 +392,24 @@ defmodule OMG.State.CoreTest do
       |> success?()
 
     state
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, bob}], @eth, []), :no_fees_required)
+    |> Core.exec(
+      create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, bob}], @eth, [{alice, 1}]),
+      :no_fees_required
+    )
     |> fail?(:unauthorized_spend)
     |> same?(state)
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}, {@blknum1, 0, 1, alice}], @eth, []), :no_fees_required)
+    |> Core.exec(
+      create_recovered([{@blknum1, 0, 0, alice}, {@blknum1, 0, 1, alice}], @eth, [{alice, 1}]),
+      :no_fees_required
+    )
     |> fail?(:unauthorized_spend)
     |> same?(state)
 
     state
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, []), :no_fees_required)
+    |> Core.exec(
+      create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 1}]),
+      :no_fees_required
+    )
     |> success?()
   end
 
@@ -607,8 +616,8 @@ defmodule OMG.State.CoreTest do
 
     # precomputed fixed hash to check compliance with hashing algo
     assert block_hash ==
-             <<81, 229, 255, 146, 245, 73, 131, 19, 24, 203, 243, 248, 56, 254, 29, 68, 20, 170, 103, 76, 130, 163, 117,
-               121, 82, 178, 184, 111, 166, 164, 188, 179>>
+             <<168, 134, 99, 72, 67, 39, 246, 127, 88, 163, 200, 169, 167, 105, 15, 124, 143, 240, 174, 27, 84, 112, 48,
+               53, 41, 53, 236, 243, 192, 188, 116, 226>>
 
     # Check that contents of the block can be recovered again to original txs
     assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)
@@ -898,24 +907,6 @@ defmodule OMG.State.CoreTest do
     {:ok, _, state} = state |> form_block_check()
 
     assert {@blknum2, true} = Core.get_status(state)
-  end
-
-  @tag fixtures: [:alice, :state_empty]
-  test "Output with zero value does not change oindex of other outputs", %{alice: alice, state_empty: state} do
-    state
-    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}, {alice, 8}]), :no_fees_required)
-    |> success?
-    |> Core.exec(create_recovered([{1000, 0, 1, alice}], @eth, [{alice, 1}]), :no_fees_required)
-    |> success?
-  end
-
-  @tag fixtures: [:alice, :state_empty]
-  test "Transaction can have no outputs", %{alice: alice, state_empty: state} do
-    state
-    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, []), :no_fees_required)
-    |> success?
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]

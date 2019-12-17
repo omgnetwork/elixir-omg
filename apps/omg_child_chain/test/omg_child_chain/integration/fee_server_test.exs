@@ -136,7 +136,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     test "fee server ignores file updates" do
       assert {:ok, :no_fees_required} == FeeServer.transaction_fees()
 
-      assert refresh_fees() =~ "Updates takes no effect"
+      assert refresh_fees() =~ "Updates have no effect"
 
       assert {:ok, :no_fees_required} == FeeServer.transaction_fees()
       assert server_alive?()
@@ -164,7 +164,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     pid = GenServer.whereis(TestFeeServer)
 
     capture_log(fn ->
-      logs = capture_log(fn -> Process.send(pid, :update_fee_spec, []) end)
+      logs = capture_log(fn -> Process.send(pid, :update_fee_specs, []) end)
 
       case logs do
         "" -> wait_for_log()

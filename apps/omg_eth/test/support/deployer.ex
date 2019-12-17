@@ -17,15 +17,11 @@ defmodule Support.Deployer do
   Handling of contract deployments - intended only for testing and `:dev` environment
   """
 
-  alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.Transaction
 
-  @tx_defaults Eth.Defaults.tx_defaults()
-
-  @gas_contract_rootchain 5_000_000
+  @tx_defaults OMG.Eth.Defaults.tx_defaults()
   @gas_contract_default 2_500_000
-  @gas_contract_payment_exit_game 6_000_000
   @gas_contracts %{"SignatureTest" => 1_590_893, "ERC20Mintable" => 1_590_893}
 
   def create_new(contract, path_project_root, from, args, opts \\ [])
@@ -36,152 +32,7 @@ defmodule Support.Deployer do
 
     gas = Map.get(@gas_contracts, contract_name, @gas_contract_default)
 
-    get_bytecode!(path_project_root, contract_name)
-    |> deploy_contract(from, gas, opts)
-  end
-
-  def create_new(
-        "PlasmaFramework" = name,
-        path_project_root,
-        from,
-        [min_exit_period_seconds: min_exit_period_seconds, authority: authority, maintainer: maintainer],
-        opts
-      ) do
-    args = [
-      {{:uint, 256}, min_exit_period_seconds},
-      {{:uint, 256}, 2},
-      {{:uint, 256}, 1},
-      {:address, authority},
-      {:address, maintainer}
-    ]
-
-    get_bytecode!(path_project_root, name)
-    |> deploy_contract(from, @gas_contract_rootchain, args, opts)
-  end
-
-  def create_new(
-        "EthDepositVerifier" = name,
-        path_project_root,
-        from,
-        [transaction_type: transaction_type, output_type: output_type],
-        opts
-      ) do
-    args = [
-      {{:uint, 256}, transaction_type},
-      {{:uint, 256}, output_type}
-    ]
-
-    get_bytecode!(path_project_root, name)
-    |> deploy_contract(from, @gas_contract_default, args, opts)
-  end
-
-  def create_new(
-        "Erc20DepositVerifier" = name,
-        path_project_root,
-        from,
-        [transaction_type: transaction_type, output_type: output_type],
-        opts
-      ) do
-    args = [
-      {{:uint, 256}, transaction_type},
-      {{:uint, 256}, output_type}
-    ]
-
-    get_bytecode!(path_project_root, name)
-    |> deploy_contract(from, @gas_contract_default, args, opts)
-  end
-
-  def create_new(
-        "EthVault" = name,
-        path_project_root,
-        from,
-        [plasma_framework: plasma_framework, safe_gas_stipend: safe_gas_stipend],
-        opts
-      ) do
-    args = [
-      {:address, plasma_framework},
-      {{:uint, 256}, safe_gas_stipend}
-    ]
-
-    get_bytecode!(path_project_root, name)
-    |> deploy_contract(from, @gas_contract_default, args, opts)
-  end
-
-  def create_new(
-        "Erc20Vault" = name,
-        path_project_root,
-        from,
-        [plasma_framework: plasma_framework, safe_gas_stipend: safe_gas_stipend],
-        opts
-      ) do
-    args = [
-      {:address, plasma_framework},
-      {{:uint, 256}, safe_gas_stipend}
-    ]
-
-    get_bytecode!(path_project_root, name)
-    |> deploy_contract(from, @gas_contract_default, args, opts)
-  end
-
-  def create_new(
-        "PaymentOutputGuardHandler" = name,
-        path_project_root,
-        from,
-        [payment_output_type_marker: payment_output_type_marker],
-        opts
-      ) do
-    get_bytecode!(path_project_root, name)
-    |> deploy_contract(from, @gas_contract_default, [{{:uint, 256}, payment_output_type_marker}], opts)
-  end
-
-  def create_new(
-        "PaymentExitGame" = name,
-        path_project_root,
-        from,
-        [
-          plasma_framework: plasma_framework,
-          eth_vault_id: eth_vault_id,
-          erc20_vault_id: erc20_vault_id,
-          output_guard_handler: output_guard_handler,
-          spending_condition: spending_condition,
-          payment_transaction_state_transition_verifier: payment_transaction_state_transition_verifier,
-          tx_finalization_verifier: tx_finalization_verifier,
-          tx_type: tx_type,
-          safe_gas_stipend: safe_gas_stipend
-        ],
-        opts
-      ) do
-    args = [
-      # This 2-element tuple represents the `PaymentExitGame.PaymentExitGameArgs` solidity struct.
-      {:tuple,
-       [
-         {:address, plasma_framework},
-         {{:uint, 256}, eth_vault_id},
-         {{:uint, 256}, erc20_vault_id},
-         {:address, output_guard_handler},
-         {:address, spending_condition},
-         {:address, payment_transaction_state_transition_verifier},
-         {:address, tx_finalization_verifier},
-         {{:uint, 256}, tx_type},
-         {{:uint, 256}, safe_gas_stipend}
-       ]}
-    ]
-
-    Eth.Librarian.link_for!(name, path_project_root, from)
-    |> deploy_contract(from, @gas_contract_payment_exit_game, args, opts)
-  end
-
-  def create_new(
-        "PaymentOutputToPaymentTxCondition" = name,
-        path_project_root,
-        from,
-        [plasma_framework: plasma_framework, input_tx_type: input_tx_type, spending_tx_type: spending_tx_type],
-        opts
-      ) do
-    args = [{:address, plasma_framework}, {{:uint, 256}, input_tx_type}, {{:uint, 256}, spending_tx_type}]
-
-    get_bytecode!(path_project_root, name)
-    |> deploy_contract(from, @gas_contract_default, args, opts)
+    deploy_contract(get_bytecode!(path_project_root, contract_name), from, gas, opts)
   end
 
   defp deploy_contract(bytecode, from, gas_value, types_args \\ [], opts)
@@ -190,12 +41,13 @@ defmodule Support.Deployer do
     {:error, :empty_bytecode_supplied}
   end
 
-  defp deploy_contract(bytecode, from, gas_value, types_args, opts) do
-    defaults = @tx_defaults |> Keyword.put(:gas, gas_value)
-    opts = Keyword.merge(defaults, opts)
+  defp deploy_contract("0x" <> _ = bytecode, from, gas_value, types_args, opts) do
+    # runtime sanity-check which will fail if the bytecode isn't fully linked
+    true = !String.contains?(bytecode, "$") || {:error, :unlinked_bytecode_supplied}
 
-    do_deploy_contract(from, bytecode, types_args, opts)
-    |> Support.DevHelper.deploy_sync!()
+    defaults = Keyword.put(@tx_defaults, :gas, gas_value)
+    opts = Keyword.merge(defaults, opts)
+    Support.DevHelper.deploy_sync!(do_deploy_contract(from, bytecode, types_args, opts))
   end
 
   defp get_bytecode!(path_project_root, contract_name) do
@@ -212,7 +64,7 @@ defmodule Support.Deployer do
       {:error, reason} ->
         raise(
           RuntimeError,
-          "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
+          "Can't read #{path} because #{inspect(reason)}"
         )
     end
   end

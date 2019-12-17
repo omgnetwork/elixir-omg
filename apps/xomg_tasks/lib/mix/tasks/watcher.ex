@@ -14,27 +14,17 @@
 
 defmodule Mix.Tasks.Xomg.Watcher.Start do
   @moduledoc """
-    Contains mix.task to run the watcher in different modes:
-      a) mix xomg.watcher.start ----> security critical
-      b) mix xomg.watcher.start --convenience ----> security critical + convenience api
+  Contains mix.task to run the watcher in security-critical only modes.
 
-    See the README.md file.
+  See the README.md file.
   """
   use Mix.Task
 
   import XomgTasks.Utils
 
-  @shortdoc "Starts the watcher. See Mix.Tasks.Watcher for possible options"
-
-  def run(["--convenience" | args]) do
-    start_watcher(args)
-  end
+  @shortdoc "Starts the security-critical watcher. See Mix.Tasks.Watcher."
 
   def run(args) do
-    start_watcher(args)
-  end
-
-  defp start_watcher(args) do
     args
     |> generic_prepare_args()
     |> generic_run([:omg_watcher, :omg_watcher_rpc])
