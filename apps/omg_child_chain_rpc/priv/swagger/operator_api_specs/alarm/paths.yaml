@@ -1,0 +1,13 @@
+alarm.get:
+  get:
+    tags:
+      - Alarm
+    summary: Gets all utxos belonging to the given address.
+    description: >
+      **Note:** Service operator alarms.
+    operationId: alarm_get
+    responses:
+      200:
+        $ref: 'responses.yaml#/AlarmResponse'
+      500:
+        $ref: '../../shared/responses.yaml#/InternalServerError'

@@ -27,6 +27,8 @@ tags:
     description: Fees related API.
 
 paths:
+  /alarm.get:
+    $ref: 'alarm/paths.yaml#/alarm.get'
   /account.get_balance:
     $ref: 'account/paths.yaml#/account.get_balance'
   /account.get_utxos:

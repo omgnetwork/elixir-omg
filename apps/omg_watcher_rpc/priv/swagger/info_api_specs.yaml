@@ -23,6 +23,142 @@ tags:
   - name: Fees
     description: Fees related API.
 paths:
+  /alarm.get:
+    get:
+      tags:
+        - Alarm
+      summary: Gets all utxos belonging to the given address.
+      description: |
+        **Note:** Service operator alarms.
+      operationId: alarm_get
+      responses:
+        '200':
+          description: System alarms
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: array
+                          items:
+                            anyOf:
+                              - type: object
+                                properties:
+                                  ethereum_client_connection:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  ethereum_client_connection:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  statsd_client_connection:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  statsd_client_connection:
+                                    type: array
+                                    items:
+                                      type: string
+                                    default: []
+                              - type: object
+                                properties:
+                                  disk_almost_full:
+                                    type: string
+                    example:
+                      data:
+                        - disk_almost_full: /dev/null
+                          ethereum_client_connection: {}
+                          system_memory_high_watermark: []
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /account.get_balance:
     post:
       tags:
