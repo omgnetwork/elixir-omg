@@ -40,7 +40,7 @@ defmodule OMG.State.Transaction do
           | :malformed_outputs
           | :malformed_address
           | :malformed_metadata
-          # TODO: rename to:unrecognized_transaction_type
+          | :unrecognized_transaction_type
           | :malformed_transaction
 
   defmacro is_metadata(metadata) do
@@ -51,14 +51,14 @@ defmodule OMG.State.Transaction do
 
   @type input_index_t() :: 0..3
 
-  def dispatching_reconstruct([raw_type | raw_tx_rlp_decoded_chunks] = all_data) when is_binary(raw_type) do
+  def dispatching_reconstruct([raw_type | raw_tx_rlp_decoded_chunks]) when is_binary(raw_type) do
     case RawData.parse_uint256(raw_type) do
       {:ok, tx_type} when tx_type in @tx_types ->
         protocol_module = @tx_types_modules[tx_type]
         protocol_module.reconstruct(raw_tx_rlp_decoded_chunks)
 
       _ ->
-        {:error, :malformed_transaction}
+        {:error, :unrecognized_transaction_type}
     end
   end
 

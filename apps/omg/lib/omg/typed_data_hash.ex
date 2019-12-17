@@ -35,7 +35,8 @@ defmodule OMG.TypedDataHash do
                        %Output.FungibleMoreVPToken{
                          owner: @zero_address,
                          currency: @zero_address,
-                         amount: 0
+                         amount: 0,
+                         output_type: 0
                        },
                        hash_zero: true
                      )

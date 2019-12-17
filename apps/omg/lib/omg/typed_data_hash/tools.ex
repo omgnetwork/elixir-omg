@@ -72,7 +72,7 @@ defmodule OMG.TypedDataHash.Tools do
   end
 
   @spec hash_transaction(
-          binary,
+          non_neg_integer(),
           list(Utxo.Position.t()),
           list(Output.FungibleMoreVPToken.t()),
           Transaction.metadata(),
@@ -119,8 +119,17 @@ defmodule OMG.TypedDataHash.Tools do
   end
 
   @spec hash_output(Output.FungibleMoreVPToken.t(), pos_integer) :: Crypto.hash_t()
-  def hash_output(%Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}, opts \\ []) do
-    output_type = if Keyword.get(opts, :hash_zero), do: <<0>>, else: @output_type
+  def hash_output(
+        %Output.FungibleMoreVPToken{
+          owner: owner,
+          currency: currency,
+          amount: amount,
+          output_type: _
+        },
+        opts \\ []
+      ) do
+    # FIXME: is this still necessary still?
+    output_type = if Keyword.get(opts, :hash_zero), do: 0, else: @output_type
 
     [
       @output_type_hash,

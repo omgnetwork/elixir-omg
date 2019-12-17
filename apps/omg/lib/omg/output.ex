@@ -36,7 +36,7 @@ defmodule OMG.Output do
     end
   end
 
-  def dispatching_reconstruct(what), do: {:error, :malformed_output}
+  def dispatching_reconstruct(_), do: {:error, :malformed_output}
 
   def from_db_value(%{type: output_type} = db_value), do: @output_types_modules[output_type].from_db_value(db_value)
   # default clause for backwards compatibility

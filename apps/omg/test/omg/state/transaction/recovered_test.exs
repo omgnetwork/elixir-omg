@@ -112,7 +112,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
       assert {:error, :malformed_transaction} =
                Transaction.Recovered.recover_from(ExRLP.encode([sigs, inputs, outputs]))
 
-      assert {:error, :malformed_transaction} =
+      assert {:error, :unrecognized_transaction_type} =
                Transaction.Recovered.recover_from(ExRLP.encode([sigs, "bad_marker", inputs, outputs]))
 
       assert {:error, :malformed_witnesses} ==

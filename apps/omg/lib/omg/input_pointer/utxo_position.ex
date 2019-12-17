@@ -36,7 +36,7 @@ defimpl OMG.InputPointer.Protocol, for: Tuple do
 
   @input_pointer_output_type OMG.WireFormatTypes.input_pointer_type_for(:input_pointer_utxo_position)
 
-  @spec to_db_key(Utxo.Position.t()) :: {:input_pointer, binary(), Utxo.Position.db_t()}
+  @spec to_db_key(Utxo.Position.t()) :: {:input_pointer, pos_integer(), Utxo.Position.db_t()}
   def to_db_key(Utxo.position(_, _, _) = utxo_pos),
     do: {:input_pointer, @input_pointer_output_type, Utxo.Position.to_db_key(utxo_pos)}
 
