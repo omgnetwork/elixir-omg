@@ -19,7 +19,7 @@ AllBlocksBodySchema:
           limit: 100
 
 GetBlockBodySchema:
-  description: Hash of the Plasma block
+  description: Block number
   required: true
   content:
     application/json:
@@ -27,8 +27,8 @@ GetBlockBodySchema:
         title: 'GetBlockBodySchema'
         type: object
         properties:
-          id:
-            type: string
-            format: binary
+          blknum:
+            type: integer
+            format: int64
         example:
-          id: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+          blknum: 68290000

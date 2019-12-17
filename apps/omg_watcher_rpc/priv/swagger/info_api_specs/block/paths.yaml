@@ -16,8 +16,7 @@ block.get:
   post:
     tags:
       - Block
-    summary: Gets a block with the given id.
-    description: __/block.xxx endpoints not implemented yet and might undergo design changes__
+    summary: Retrieves a single block for the given block number.
     operationId: block_get
     requestBody:
       $ref: 'request_bodies.yaml#/GetBlockBodySchema'

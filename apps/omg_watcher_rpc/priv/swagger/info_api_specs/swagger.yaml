@@ -33,6 +33,8 @@ paths:
     $ref: 'account/paths.yaml#/account.get_utxos'
   /account.get_transactions:
     $ref: 'account/paths.yaml#/account.get_transactions'
+  /block.get:
+    $ref: 'block/paths.yaml#/block.get'
   /transaction.all:
     $ref: 'transaction/paths.yaml#/transaction.all'
   /transaction.create:
@@ -48,5 +50,3 @@ paths:
   #   $ref: 'transaction/paths.yaml#/transaction.get_by_position'
   # /block.all:
   #   $ref: 'block/paths.yaml#/block.all'
-  # /block.get:
-  #   $ref: 'block/paths.yaml#/block.get'
