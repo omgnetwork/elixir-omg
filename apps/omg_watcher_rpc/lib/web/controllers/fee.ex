@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Fee do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.Watcher.HttpRPC.Client
+  alias OMG.WatcherInfo.HttpRPC.Client
 
   def fees_all(conn, params) do
     with {:ok, _} <- expect(params, "currencies", list: &to_currency/1, optional: true),

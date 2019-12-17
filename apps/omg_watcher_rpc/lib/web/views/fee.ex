@@ -27,9 +27,9 @@ defmodule OMG.WatcherRPC.Web.View.Fee do
        fees
        |> Enum.map(fn fee ->
          fee
-         |> Map.put(:currency, {:skip_hex_encode, fee.currency})
-         |> Map.put(:pegged_currency, {:skip_hex_encode, fee.pegged_currency})
-         |> Map.put(:updated_at, {:skip_hex_encode, fee.updated_at})
+         |> Map.put("currency", {:skip_hex_encode, fee["currency"]})
+         |> Map.put("pegged_currency", {:skip_hex_encode, fee["pegged_currency"]})
+         |> Map.put("updated_at", {:skip_hex_encode, fee["updated_at"]})
        end)}
     end)
     |> Enum.into(%{})

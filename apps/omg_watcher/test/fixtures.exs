@@ -33,21 +33,23 @@ defmodule OMG.Watcher.Fixtures do
 
     {:ok, path, file_name} =
       TestHelper.write_fee_file(%{
-        enc_eth => %{
-          amount: 0,
-          pegged_amount: 1,
-          subunit_to_unit: 1_000_000_000_000_000_000,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.utc_now()
-        },
-        Eth.Encoding.to_hex(token) => %{
-          amount: 0,
-          pegged_amount: 1,
-          subunit_to_unit: 1_000_000_000_000_000_000,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.utc_now()
+        "1" => %{
+          enc_eth => %{
+            amount: 0,
+            pegged_amount: 1,
+            subunit_to_unit: 1_000_000_000_000_000_000,
+            pegged_currency: "USD",
+            pegged_subunit_to_unit: 100,
+            updated_at: DateTime.utc_now()
+          },
+          Eth.Encoding.to_hex(token) => %{
+            amount: 0,
+            pegged_amount: 1,
+            subunit_to_unit: 1_000_000_000_000_000_000,
+            pegged_currency: "USD",
+            pegged_subunit_to_unit: 100,
+            updated_at: DateTime.utc_now()
+          }
         }
       })
 
