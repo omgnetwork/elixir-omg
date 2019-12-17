@@ -34,7 +34,8 @@ defmodule OMG.Conformance.SignaturePropertyTest do
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
     forall tx <- payment_tx() do
-      # FIXME: expand somewhere with verifying the non-signature-related hash, Transaction.raw_txhash
+      # TODO: expand with verifying the non-signature-related hash, Transaction.raw_txhash
+      #       This occurs multiple times, wherever transaction/implementation identity/conformance is tested
       verify(contract, tx)
     end
   end
@@ -43,7 +44,6 @@ defmodule OMG.Conformance.SignaturePropertyTest do
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
     forall [{tx1, tx2} <- distinct_payment_txs()] do
-      # FIXME: expand somewhere with verifying the non-signature-related hash, Transaction.raw_txhash
       verify_distinct(contract, tx1, tx2)
     end
   end
@@ -65,10 +65,6 @@ defmodule OMG.Conformance.SignaturePropertyTest do
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
     forall {tx1_binary, tx2_binary} <- tx_binary_with_rlp_mutation() do
-      # FIXME: remove
-      # IO.inspect(ExRLP.decode(tx1_binary))
-      # IO.inspect(ExRLP.decode(tx2_binary))
-
       case Transaction.decode(tx2_binary) do
         {:ok, _} -> verify_distinct(contract, Transaction.decode!(tx1_binary), Transaction.decode!(tx2_binary))
         {:error, _} -> decoding_errors_the_same_rlp_mutated(contract, tx2_binary)

@@ -91,14 +91,14 @@ defmodule Support.Conformance.Property do
     ])
   end
 
-  # FIXME: revisit this to generate logic-wise invalid txs like zero inputs/outputs (H6)
+  # TODO: revisit this to generate logic-wise invalid txs like zero inputs/outputs (H6)
   defp input_tuple() do
     let [blknum <- pos_integer(), txindex <- non_neg_integer(), oindex <- non_neg_integer()] do
       {blknum, txindex, oindex}
     end
   end
 
-  # FIXME: revisit the case of negative amounts, funny things happen
+  # TODO: revisit the case of negative amounts, funny things happen
   defp output_tuple() do
     let [owner <- non_zero_address(), currency <- address(), amount <- pos_integer()] do
       {owner, currency, amount}
@@ -112,31 +112,31 @@ defmodule Support.Conformance.Property do
     do: such_that(l <- list(output_tuple()), when: length(l) > 0 && length(l) <= Transaction.Payment.max_outputs())
 
   defp mutated_hash(base_hash) do
-    # FIXME: provide more cases
+    # TODO: provide more cases
     OMG.Crypto.hash(base_hash)
   end
 
   defp mutated_inputs(inputs) do
-    # FIXME: provide more cases
+    # TODO: provide more cases
     if Enum.empty?(inputs), do: valid_inputs_list(), else: tl(inputs)
   end
 
   defp mutated_outputs(outputs) do
-    # FIXME: provide more cases
-    if Enum.empty?(outputs), do: valid_outputs_list(), else: tl(outputs)
+    # TODO: provide more cases
+    if length(outputs) == 1, do: valid_outputs_list(), else: tl(outputs)
   end
 
-  # FIXME: these mutations used could use improving/extending
+  # TODO: these mutations used could use improving/extending
   defp prepend_binary(base_binary) do
     let(random_binary <- injectable_binary(), do: random_binary <> base_binary)
   end
 
-  # FIXME: these mutations used could use improving/extending
+  # TODO: these mutations used could use improving/extending
   defp apend_binary(base_binary) do
     let(random_binary <- injectable_binary(), do: base_binary <> random_binary)
   end
 
-  # FIXME: these mutations used could use improving/extending
+  # TODO: these mutations used could use improving/extending
   defp substring_binary(base_binary) do
     base_length = byte_size(base_binary)
 
@@ -149,7 +149,7 @@ defmodule Support.Conformance.Property do
     end
   end
 
-  # FIXME: these mutations used could use improving/extending
+  # TODO: these mutations used could use improving/extending
   defp insert_into_binary(base_binary) do
     base_length = byte_size(base_binary)
 
@@ -159,8 +159,8 @@ defmodule Support.Conformance.Property do
   end
 
   defp mutate_binary(base_binary) do
-    # FIXME: these mutations used could use improving/extending
-    # FIXME: example case - cut off one byte somewhere (beginning, end, middle) - more specifically wrt. "substring" etc
+    # TODO: these mutations used could use improving/extending
+    # TODO: example case - cut off one byte somewhere (beginning, end, middle) - more specifically wrt. "substring" etc
     union([
       prepend_binary(base_binary),
       apend_binary(base_binary),
@@ -201,12 +201,11 @@ defmodule Support.Conformance.Property do
     do: union([[], injectable_binary(), non_neg_integer(), list(union([injectable_binary(), non_neg_integer()]))])
 
   defp rlp_mutate_binary(base_binary) do
-    # FIXME: these mutations used could use improving/extending
+    # TODO: these mutations used could use improving/extending
     base_rlp_items = base_binary |> Transaction.decode!() |> Transaction.Protocol.get_data_for_rlp()
 
     union([
-      # FIXME: reenable or move to a different property?
-      # inject_extra_item(base_rlp_items)
+      inject_extra_item(base_rlp_items),
       recursively_mutate_rlp(base_rlp_items)
     ])
   end
