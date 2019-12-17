@@ -53,8 +53,6 @@ defmodule OMG.InputPointer do
   @position_too_low_error_tuple {:error, :encoded_utxo_position_too_low}
   @type position_too_low_error_tuple() :: {:error, :encoded_utxo_position_too_low}
 
-  # TODO(achiurizo)
-  # Do we really need both of these methods? Deprecate the tuple returning one.
   @doc """
   Decode an integer into a utxo position tuple.
 

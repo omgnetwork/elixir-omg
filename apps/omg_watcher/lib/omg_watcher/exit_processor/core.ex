@@ -390,7 +390,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Filters out all the spends that have not been found (`:not_found` instead of a block)
   This might occur if a UTXO is exited by exit finalization. A block spending such UTXO will not exist.
   """
-  @spec handle_spent_blknum_result(list(spent_blknum_result_t()), list(OMG.InputPointer.utxo_pos_tuple())) :: list(pos_integer())
+  @spec handle_spent_blknum_result(list(spent_blknum_result_t()), list(OMG.InputPointer.utxo_pos_tuple())) ::
+          list(pos_integer())
   def handle_spent_blknum_result(spent_blknum_result, spent_positions_to_get) do
     {not_founds, founds} =
       Stream.zip(spent_positions_to_get, spent_blknum_result)

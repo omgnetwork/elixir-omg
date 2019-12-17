@@ -98,7 +98,8 @@ defmodule OMG.State.Core do
   @type in_flight_exit() :: %{in_flight_tx: binary()}
   @type piggyback() :: %{tx_hash: Transaction.tx_hash(), output_index: non_neg_integer}
 
-  @type validities_t() :: {list(OMG.InputPointer.utxo_pos_tuple()), list(OMG.InputPointer.utxo_pos_tuple() | piggyback())}
+  @type validities_t() ::
+          {list(OMG.InputPointer.utxo_pos_tuple()), list(OMG.InputPointer.utxo_pos_tuple() | piggyback())}
 
   @type utxos() :: %{OMG.InputPointer.utxo_pos_tuple() => Utxo.t()}
 

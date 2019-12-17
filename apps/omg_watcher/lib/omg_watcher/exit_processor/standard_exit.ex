@@ -150,7 +150,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   end
 
   # finds transaction in given block and input index spending given utxo
-  @spec get_double_spend_for_standard_exit(Block.t() | KnownTx.t(), OMG.InputPointer.utxo_pos_tuple()) :: DoubleSpend.t() | nil
+  @spec get_double_spend_for_standard_exit(Block.t() | KnownTx.t(), OMG.InputPointer.utxo_pos_tuple()) ::
+          DoubleSpend.t() | nil
   defp get_double_spend_for_standard_exit(%Block{transactions: txs}, utxo_pos) do
     txs
     |> Enum.map(&Transaction.Signed.decode!/1)

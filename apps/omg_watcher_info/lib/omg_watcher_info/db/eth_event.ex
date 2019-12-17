@@ -115,7 +115,11 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           root_chain_txhash: charlist(),
           log_index: non_neg_integer()
         }) ::
-          %{root_chain_txhash: binary(), log_index: non_neg_integer(), decoded_utxo_position: OMG.InputPointer.utxo_pos_tuple()}
+          %{
+            root_chain_txhash: binary(),
+            log_index: non_neg_integer(),
+            decoded_utxo_position: OMG.InputPointer.utxo_pos_tuple()
+          }
   defp utxo_exit_from_exit_event(%{
          call_data: %{utxo_pos: utxo_pos},
          root_chain_txhash: root_chain_txhash,

@@ -46,7 +46,10 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
   Invalid finalizing exits should continue being tracked as `is_active`, to continue emitting events.
   This includes non-`is_active` exits that finalize invalid, which are turned to be `is_active` now.
   """
-  @spec finalize_exits(Core.t(), validities :: {list(OMG.InputPointer.utxo_pos_tuple()), list(OMG.InputPointer.utxo_pos_tuple())}) ::
+  @spec finalize_exits(
+          Core.t(),
+          validities :: {list(OMG.InputPointer.utxo_pos_tuple()), list(OMG.InputPointer.utxo_pos_tuple())}
+        ) ::
           {Core.t(), list(), list()}
   def finalize_exits(%Core{exits: exits} = state, {valid_finalizations, invalid}) do
     # handling valid finalizations
