@@ -66,7 +66,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
 
     assert {:ok, tx} = TypedDataSigned.parse_transaction(params)
 
-    assert [{:utxo_position, 1000, 0, 1}, {:utxo_position, 3001, 0, 0}] == Transaction.get_inputs(tx)
+    assert [%OMG.InputPointer{blknum: 1000, txindex: 0, oindex: 1}, %OMG.InputPointer{blknum: 3001, txindex: 0, oindex: 0}] == Transaction.get_inputs(tx)
     alice_addr = @alice.addr
     bob_addr = @bob.addr
 

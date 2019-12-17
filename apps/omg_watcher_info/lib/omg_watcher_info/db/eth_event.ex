@@ -62,7 +62,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
          amount: amount
        }) do
     event_type = :deposit
-    position = {:utxo_position, blknum, 0, 0}
+    position = %OMG.InputPointer{blknum: blknum, txindex: 0, oindex: 0}
     root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
 
     case get(root_chain_txhash_event) do
@@ -177,7 +177,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   Generate a unique child_chain_utxohash from the Utxo.position
   """
   @spec generate_child_chain_utxohash(OMG.InputPointer.utxo_pos_tuple()) :: OMG.Crypto.hash_t()
-  def generate_child_chain_utxohash({:utxo_position, blknum, txindex, oindex}) do
+  def generate_child_chain_utxohash(%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}) do
     utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
     Crypto.hash("<#{utxo_pos}>")
   end

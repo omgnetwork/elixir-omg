@@ -32,7 +32,7 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
 
   @type known_txs_by_input_t() :: %{OMG.InputPointer.utxo_pos_tuple() => list(__MODULE__.t())}
 
-  def new(%Transaction.Signed{} = signed_tx, {:utxo_position, _, _, _} = utxo_pos),
+  def new(%Transaction.Signed{} = signed_tx, %OMG.InputPointer{blknum: _, txindex: _, oindex: _} = utxo_pos),
     do: %__MODULE__{signed_tx: signed_tx, utxo_pos: utxo_pos}
 
   def new(%Transaction.Signed{} = signed_tx),
@@ -54,7 +54,7 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
     |> (&Map.get(positions_by_tx_hash, &1)).()
     |> case do
       nil -> nil
-      {:utxo_position, blknum, _, _} = position -> {blocks_by_blknum[blknum], position}
+      %OMG.InputPointer{blknum: blknum, txindex: _, oindex: _} = position -> {blocks_by_blknum[blknum], position}
     end
   end
 
@@ -89,7 +89,7 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
     txs
     |> Stream.map(&Transaction.Signed.decode!/1)
     |> Stream.with_index()
-    |> Stream.map(fn {signed, txindex} -> new(signed, {:utxo_position, blknum, txindex, 0}) end)
+    |> Stream.map(fn {signed, txindex} -> new(signed, %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: 0}) end)
   end
 
   defp get_all_from(blocks) when is_list(blocks), do: blocks |> sort_blocks() |> Stream.flat_map(&get_all_from/1)
@@ -106,8 +106,8 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
         true
 
       true ->
-        {:utxo_position, blknum1, txindex1, oindex1} = utxo_pos1
-        {:utxo_position, blknum2, txindex2, oindex2} = utxo_pos2
+        %OMG.InputPointer{blknum: blknum1, txindex: txindex1, oindex: oindex1} = utxo_pos1
+        %OMG.InputPointer{blknum: blknum2, txindex: txindex2, oindex: oindex2} = utxo_pos2
         encoded_pos1 = ExPlasma.Utxo.pos(%{blknum: blknum1, txindex: txindex1, oindex: oindex1})
         encoded_pos2 = ExPlasma.Utxo.pos(%{blknum: blknum2, txindex: txindex2, oindex: oindex2})
         encoded_pos1 < encoded_pos2

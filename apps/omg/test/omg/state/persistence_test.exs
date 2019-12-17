@@ -59,12 +59,12 @@ defmodule OMG.State.PersistenceTest do
     ]
     |> persist_deposit()
 
-    assert OMG.State.utxo_exists?({:utxo_position, 2, 0, 0})
+    assert OMG.State.utxo_exists?(%OMG.InputPointer{blknum: 2, txindex: 0, oindex: 0})
 
     :ok = restart_state()
 
-    assert OMG.State.utxo_exists?({:utxo_position, 1, 0, 0})
-    assert OMG.State.utxo_exists?({:utxo_position, 2, 0, 0})
+    assert OMG.State.utxo_exists?(%OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0})
+    assert OMG.State.utxo_exists?(%OMG.InputPointer{blknum: 2, txindex: 0, oindex: 0})
   end
 
   @tag fixtures: [:alice]
@@ -74,8 +74,8 @@ defmodule OMG.State.PersistenceTest do
     |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
     |> persist_form()
 
-    assert not OMG.State.utxo_exists?({:utxo_position, 1, 0, 0})
-    assert OMG.State.utxo_exists?({:utxo_position, @blknum1, 0, 0})
+    assert not OMG.State.utxo_exists?(%OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0})
+    assert OMG.State.utxo_exists?(%OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 0})
   end
 
   @tag fixtures: [:alice, :bob]
@@ -88,9 +88,9 @@ defmodule OMG.State.PersistenceTest do
 
     :ok = restart_state()
 
-    assert not OMG.State.utxo_exists?({:utxo_position, @blknum1, 0, 0})
-    assert not OMG.State.utxo_exists?({:utxo_position, @blknum1, 0, 1})
-    assert OMG.State.utxo_exists?({:utxo_position, @blknum1, 1, 0})
+    assert not OMG.State.utxo_exists?(%OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 0})
+    assert not OMG.State.utxo_exists?(%OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 1})
+    assert OMG.State.utxo_exists?(%OMG.InputPointer{blknum: @blknum1, txindex: 1, oindex: 0})
   end
 
   @tag fixtures: [:alice, :bob]
@@ -129,8 +129,8 @@ defmodule OMG.State.PersistenceTest do
   @tag fixtures: [:alice]
   test "exiting utxo is deleted from state", %{alice: alice} do
     utxo_positions = [
-      {:utxo_position, @blknum1, 0, 0},
-      {:utxo_position, @blknum1, 0, 1}
+      %OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 0},
+      %OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 1}
     ]
 
     [%{owner: alice, currency: @eth, amount: 20, blknum: 1}]
@@ -141,15 +141,15 @@ defmodule OMG.State.PersistenceTest do
 
     :ok = restart_state()
 
-    assert not OMG.State.utxo_exists?({:utxo_position, @blknum1, 0, 0})
-    assert not OMG.State.utxo_exists?({:utxo_position, @blknum1, 0, 1})
+    assert not OMG.State.utxo_exists?(%OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 0})
+    assert not OMG.State.utxo_exists?(%OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 1})
   end
 
   @tag fixtures: [:alice]
   test "cannot spend just exited utxo", %{alice: alice} do
     :ok = persist_deposit([%{owner: alice, currency: @eth, amount: 20, blknum: 1}])
 
-    {:ok, _, _} = OMG.State.exit_utxos([{:utxo_position, 1, 0, 0}])
+    {:ok, _, _} = OMG.State.exit_utxos([%OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0}])
 
     # exit db_updates won't get persisted yet, but alice tries to spent it immediately
     assert :utxo_not_found == exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}]))
@@ -157,7 +157,7 @@ defmodule OMG.State.PersistenceTest do
     # retry above with empty in-memory utxoset
     :ok = restart_state()
 
-    {:ok, _, _} = OMG.State.exit_utxos([{:utxo_position, 1, 0, 0}])
+    {:ok, _, _} = OMG.State.exit_utxos([%OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0}])
     assert :utxo_not_found == exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}]))
   end
 
@@ -177,7 +177,7 @@ defmodule OMG.State.PersistenceTest do
 
     # because `form_block` is non-blocking operation we need to wait it finishes
     # easiest to do this is to schedule another operation on `OMG.State` which is blocking
-    _ = OMG.State.utxo_exists?({:utxo_position, 0, 0, 0})
+    _ = OMG.State.utxo_exists?(%OMG.InputPointer{blknum: 0, txindex: 0, oindex: 0})
 
     :ok
   end

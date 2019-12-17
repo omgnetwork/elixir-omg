@@ -66,7 +66,7 @@ defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
   end
 
   def input_pointer(%FungibleMoreVPToken{}, blknum, tx_index, oindex, _, _),
-    do: {:utxo_position, blknum, tx_index, oindex}
+    do: %OMG.InputPointer{blknum: blknum, txindex: tx_index, oindex: oindex}
 
   def to_db_value(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) do

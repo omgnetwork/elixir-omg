@@ -30,7 +30,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     processor
   end
 
-  def se_event_status(tx, {:utxo_position, blknum, txindex, oindex}, opts \\ []) do
+  def se_event_status(tx, %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}, opts \\ []) do
     txbytes = Transaction.raw_txbytes(tx)
     enc_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
     owner = tx |> Transaction.get_outputs() |> Enum.at(oindex) |> Map.get(:owner)
@@ -91,7 +91,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     }
   end
 
-  def ife_response(tx, {:utxo_position, blknum, txindex, oindex}) do
+  def ife_response(tx, %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}) do
     %{
       tx_hash: Transaction.raw_txhash(tx),
       challenge_position: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
@@ -103,7 +103,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
     competitor_position =
       if competitor_position do
-        {:utxo_position, blknum, txindex, oindex} = competitor_position
+        %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex} = competitor_position
         ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
       else
         not_included_competitor_pos()
@@ -165,6 +165,6 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     long
   end
 
-  defp generate_input_utxo_pos({:utxo_position, blknum, txindex, oindex}),
+  defp generate_input_utxo_pos(%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}),
     do: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 end

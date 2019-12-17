@@ -89,7 +89,7 @@ defmodule OMG.State.Transaction.Payment do
 
   # `new_input/1` and `new_output/1` are here to just help interpret the short-hand form of inputs outputs when doing
   # `new/3`
-  defp new_input({blknum, txindex, oindex}), do: {:utxo_position, blknum, txindex, oindex}
+  defp new_input({blknum, txindex, oindex}), do: %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}
 
   defp new_output({owner, currency, amount}),
     do: %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}

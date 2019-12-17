@@ -30,8 +30,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  @utxo_pos1 {:utxo_position, 1, 0, 0}
-  @utxo_pos2 {:utxo_position, 1_000, 0, 1}
+  @utxo_pos1 %OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0}
+  @utxo_pos2 %OMG.InputPointer{blknum: 1_000, txindex: 0, oindex: 1}
   @encoded_utxo_pos1 ExPlasma.Utxo.pos(%{blknum: 1, txindex: 0, oindex: 0})
   @encoded_utxo_pos2 ExPlasma.Utxo.pos(%{blknum: 1_000, txindex: 0, oindex: 1})
 
@@ -219,7 +219,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     persist_common(processor, db_updates, db_pid)
   end
 
-  defp encode_utxo_position({:utxo_position, blknum, txindex, oindex}),
+  defp encode_utxo_position(%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}),
     do: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 
   defp persist_new_ifes(processor, txs, priv_keys, statuses \\ nil, db_pid) do

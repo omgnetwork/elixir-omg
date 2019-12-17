@@ -113,13 +113,13 @@ defmodule OMG.TypedDataHashTest do
 
     test "Input is hashed properly" do
       assert "1a5933eb0b3223b0500fbbe7039cab9badc006adda6cf3d337751412fd7a4b61" ==
-               Tools.hash_input({:utxo_position, 0, 0, 0}) |> Base.encode16(case: :lower)
+               Tools.hash_input(%OMG.InputPointer{blknum: 0, txindex: 0, oindex: 0}) |> Base.encode16(case: :lower)
 
       assert "7377afcd24fdc685fd8c6ea2b5d15a74f2c898c3d5bcce3499f448a4d68db290" ==
-               Tools.hash_input({:utxo_position, 1, 0, 0}) |> Base.encode16(case: :lower)
+               Tools.hash_input(%OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0}) |> Base.encode16(case: :lower)
 
       assert "c198a0ab9b12c3f225195cf0f7870c7ab12c316b33eb99771dfd0f3f7da455a5" ==
-               Tools.hash_input({:utxo_position, 101_000, 1337, 3}) |> Base.encode16(case: :lower)
+               Tools.hash_input(%OMG.InputPointer{blknum: 101_000, txindex: 1337, oindex: 3}) |> Base.encode16(case: :lower)
     end
 
     test "Output is hashed properly", %{outputs: [output1, output2, output3, output4]} do

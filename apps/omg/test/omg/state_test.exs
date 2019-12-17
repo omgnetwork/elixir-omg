@@ -52,7 +52,7 @@ defmodule OMG.StateTest do
   test "can execute various calls on OMG.State, one happy path only", %{alice: alice} do
     # deposits, transactions, utxo existence
     assert {:ok, _} = State.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}])
-    assert true == State.utxo_exists?({:utxo_position, 1, 0, 0})
+    assert true == State.utxo_exists?(%OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0})
 
     assert {:ok, _} = State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]), :no_fees_required)
 
@@ -60,7 +60,7 @@ defmodule OMG.StateTest do
     assert {blknum, _} = State.get_status()
     assert :ok = State.form_block()
     # exits, with invalid ones
-    assert {:ok, _db, _} = State.exit_utxos([{:utxo_position, blknum, 0, 0}])
+    assert {:ok, _db, _} = State.exit_utxos([%OMG.InputPointer{blknum: blknum, txindex: 0, oindex: 0}])
     # close block
     assert {:ok, _db} = State.close_block(123)
   end

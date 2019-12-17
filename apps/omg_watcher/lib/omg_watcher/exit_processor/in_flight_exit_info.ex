@@ -121,7 +121,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     with {:ok, tx} <- prepare_tx(tx_bytes, tx_signatures) do
       # NOTE: in case of using output_id as the input pointer, getting the youngest will be entirely different
       youngest_utxo_pos =
-        Enum.map(Transaction.get_inputs(tx), fn {:utxo_position, blknum, txindex, oindex} ->
+        Enum.map(Transaction.get_inputs(tx), fn %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex} ->
           ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
         end)
         |> Enum.sort()
@@ -192,7 +192,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     {:put, :in_flight_exit_info, {ife_hash, value}}
   end
 
-  defp assert_utxo_pos_type({:utxo_position, blknum, txindex, oindex})
+  defp assert_utxo_pos_type(%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex})
        when is_integer(blknum) and is_integer(txindex) and is_integer(oindex),
        do: :ok
 
@@ -334,11 +334,11 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
 
   def get_piggybacked_outputs_positions(
-        %__MODULE__{tx_seen_in_blocks_at: {{:utxo_position, blknum, txindex, _}, _}} = ife
+        %__MODULE__{tx_seen_in_blocks_at: {%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: _}, _}} = ife
       ) do
     @outputs_index_range
     |> Enum.filter(&is_output_piggybacked?(ife, &1))
-    |> Enum.map(&{:utxo_position, blknum, txindex, &1})
+    |> Enum.map(&%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: &1})
   end
 
   @spec is_piggybacked?(t(), combined_index_t()) :: boolean()
@@ -377,7 +377,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     {ife, indexed_piggybacked_outputs}
   end
 
-  defp index_output_position({:utxo_position, _blknum, _txindex, oindex} = position),
+  defp index_output_position(%OMG.InputPointer{blknum: _blknum, txindex: _txindex, oindex: oindex} = position),
     do: {position, oindex}
 
   def piggybacked_inputs(ife) do
@@ -422,7 +422,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def is_invalidly_challenged?(%__MODULE__{tx_seen_in_blocks_at: nil}), do: false
 
   def is_invalidly_challenged?(%__MODULE__{
-        tx_seen_in_blocks_at: {{:utxo_position, _, _, _} = seen_in_pos, _proof},
+    tx_seen_in_blocks_at: {%OMG.InputPointer{blknum: _, txindex: _, oindex: _} = seen_in_pos, _proof},
         oldest_competitor: oldest_competitor_pos
       }),
       do: is_older?(seen_in_pos, oldest_competitor_pos)
@@ -459,7 +459,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   defp do_is_viable_competitor?(seen_at_pos, oldest_pos, competitor_pos),
     do: is_older?(competitor_pos, seen_at_pos) and is_older?(competitor_pos, oldest_pos)
 
-  defp is_older?({:utxo_position, tx1_blknum, tx1_index, _}, {:utxo_position, tx2_blknum, tx2_index, _}),
+  defp is_older?(%OMG.InputPointer{blknum: tx1_blknum, txindex: tx1_index, oindex: _}, %OMG.InputPointer{blknum: tx2_blknum, txindex: tx2_index, oindex: _}),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
 
   @spec exit_map_get(exit_map_t(), combined_index_t()) :: %{is_piggybacked: boolean(), is_finalized: boolean()}

@@ -94,7 +94,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   end
 
   defp find_single_input_data(
-         {:utxo_position, blknum, txindex, oindex} = input_utxo_pos,
+         %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex} = input_utxo_pos,
          {:ok, {proofs, txbyteses, utxo_positions}}
        ) do
     input_utxo_pos

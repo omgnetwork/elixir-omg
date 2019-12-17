@@ -130,7 +130,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
                 competing_txbytes: ^comp_txbytes,
                 competing_input_index: 1,
                 competing_sig: ^comp_signature,
-                competing_tx_pos: {:utxo_position, 0, 0, 0},
+                competing_tx_pos: %OMG.InputPointer{blknum: 0, txindex: 0, oindex: 0},
                 competing_proof: ""
               }} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -185,7 +185,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
                 competing_txbytes: ^comp_txbytes,
                 competing_input_index: 1,
                 competing_sig: ^comp_signature,
-                competing_tx_pos: {:utxo_position, ^other_blknum, 0, 0},
+                competing_tx_pos: %OMG.InputPointer{blknum: ^other_blknum, txindex: 0, oindex: 0},
                 competing_proof: proof_bytes
               }} =
                exit_processor_request
@@ -216,7 +216,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
                  request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
 
         # this request always returns the oldest competitor, even if we later use a different one
-        assert {:ok, %{competing_txbytes: ^comp_txbytes, competing_tx_pos: {:utxo_position, ^other_blknum, 0, 0}}} =
+        assert {:ok, %{competing_txbytes: ^comp_txbytes, competing_tx_pos: %OMG.InputPointer{blknum: ^other_blknum, txindex: 0, oindex: 0}}} =
                  request |> Core.get_competitor_for_ife(processor, txbytes)
       end
 
@@ -229,12 +229,12 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       assert_intermediate_result.(processor)
 
       # challenge with the younger competitor (still incomplete challenge)
-      young_challenge = ife_challenge(tx1, comp, competitor_position: {:utxo_position, other_blknum, 1, 0})
+      young_challenge = ife_challenge(tx1, comp, competitor_position: %OMG.InputPointer{blknum: other_blknum, txindex: 1, oindex: 0})
       {processor, _} = Core.new_ife_challenges(processor, [young_challenge])
       assert_intermediate_result.(processor)
 
       # challenge with the older competitor (complete!)
-      older_challenge = ife_challenge(tx1, comp, competitor_position: {:utxo_position, other_blknum, 0, 0})
+      older_challenge = ife_challenge(tx1, comp, competitor_position: %OMG.InputPointer{blknum: other_blknum, txindex: 0, oindex: 0})
       {processor, _} = Core.new_ife_challenges(processor, [older_challenge])
       # the tx1 IFE got challenged by the oldest competitor now; finally, it's over:
       assert {:ok, []} = request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
@@ -252,7 +252,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       # before any challenge
       assert {:ok, [_, _, _]} = request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
 
-      assert {:ok, %{competing_tx_pos: {:utxo_position, 0, 0, 0}}} =
+      assert {:ok, %{competing_tx_pos: %OMG.InputPointer{blknum: 0, txindex: 0, oindex: 0}}} =
                request |> Core.get_competitor_for_ife(processor, txbytes)
 
       # after challenge - one event less + no need to challenge more
@@ -354,7 +354,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       }
 
       challenge =
-        ife_challenge(tx1, comp, competitor_position: {:utxo_position, other_blknum, 0, 0}, competing_tx_input_index: 1)
+        ife_challenge(tx1, comp, competitor_position: %OMG.InputPointer{blknum: other_blknum, txindex: 0, oindex: 0}, competing_tx_input_index: 1)
 
       {processor, _} = Core.new_ife_challenges(processor, [challenge])
 
@@ -456,18 +456,18 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       txbytes = txbytes(tx1)
 
-      assert {:ok, %{competing_tx_pos: {:utxo_position, 2000, 0, 0}}} =
+      assert {:ok, %{competing_tx_pos: %OMG.InputPointer{blknum: 2000, txindex: 0, oindex: 0}}} =
                exit_processor_request
                |> Core.get_competitor_for_ife(processor, txbytes)
 
-      assert {:ok, %{competing_tx_pos: {:utxo_position, 2000, 0, 0}}} =
+      assert {:ok, %{competing_tx_pos: %OMG.InputPointer{blknum: 2000, txindex: 0, oindex: 0}}} =
                exit_processor_request
                |> Map.update!(:blocks_result, &Enum.reverse/1)
                |> struct!()
                |> Core.get_competitor_for_ife(processor, txbytes)
 
       # check also that the rule applies to order of txs within a block
-      assert {:ok, %{competing_tx_pos: {:utxo_position, 2000, 0, 0}}} =
+      assert {:ok, %{competing_tx_pos: %OMG.InputPointer{blknum: 2000, txindex: 0, oindex: 0}}} =
                exit_processor_request
                |> Map.put(:blocks_result, [Block.hashed_txs_at([recovered_oldest, recovered_recent], 2000)])
                |> struct!()
@@ -478,19 +478,19 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
          %{processor_empty: processor, alice: alice} do
       standard_exit_tx = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 10}, {alice, 10}])
       ife_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-      standard_exiting_pos = {:utxo_position, 2_000, 0, 1}
+      standard_exiting_pos = %OMG.InputPointer{blknum: 2_000, txindex: 0, oindex: 1}
       processor = processor |> start_se_from(standard_exit_tx, standard_exiting_pos) |> start_ife_from(ife_tx)
 
-      assert %{utxos_to_check: [{:utxo_position, 1, 0, 0}, standard_exiting_pos]} =
+      assert %{utxos_to_check: [%OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0}, standard_exiting_pos]} =
                %ExitProcessor.Request{blknum_now: @late_blknum}
                |> Core.determine_utxo_existence_to_get(processor)
     end
 
     test "by asking for utxo spends concerning active ifes",
          %{processor_filled: processor} do
-      assert %{spends_to_get: [{:utxo_position, 1, 2, 1}]} =
+      assert %{spends_to_get: [%OMG.InputPointer{blknum: 1, txindex: 2, oindex: 1}]} =
                %ExitProcessor.Request{
-                 utxos_to_check: [{:utxo_position, 1, 2, 1}, {:utxo_position, 112, 2, 1}],
+                 utxos_to_check: [%OMG.InputPointer{blknum: 1, txindex: 2, oindex: 1}, %OMG.InputPointer{blknum: 112, txindex: 2, oindex: 1}],
                  utxo_exists_result: [false, false]
                }
                |> Core.determine_spends_to_get(processor)
@@ -533,14 +533,14 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
 
-      assert {:ok, %{input_tx: "input_tx", input_utxo_pos: {:utxo_position, 1, 0, 0}}} =
+      assert {:ok, %{input_tx: "input_tx", input_utxo_pos: %OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0}}} =
                Core.get_competitor_for_ife(request, processor, txbytes)
     end
 
     test "by not asking for spends on no ifes",
          %{processor_empty: processor} do
       assert %{spends_to_get: []} =
-               %ExitProcessor.Request{utxos_to_check: [{:utxo_position, 1, 0, 0}], utxo_exists_result: [false]}
+               %ExitProcessor.Request{utxos_to_check: [%OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0}], utxo_exists_result: [false]}
                |> Core.determine_spends_to_get(processor)
     end
 
@@ -550,7 +550,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 13}
                |> Core.determine_utxo_existence_to_get(processor)
 
-      assert {:utxo_position, 9000, 0, 1} not in to_check
+      assert %OMG.InputPointer{blknum: 9000, txindex: 0, oindex: 1} not in to_check
     end
 
     test "for nonexistent tx doesn't crash",
@@ -591,7 +591,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       assert {:ok,
               %{
                 in_flight_txbytes: ^txbytes,
-                in_flight_tx_pos: {:utxo_position, ^other_blknum, 0, 0},
+                in_flight_tx_pos: %OMG.InputPointer{blknum: ^other_blknum, txindex: 0, oindex: 0},
                 in_flight_proof: proof_bytes
               }} = Core.prove_canonical_for_ife(challenged_processor, txbytes)
 
@@ -625,7 +625,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       {processor, _} =
         processor
-        |> Core.respond_to_in_flight_exits_challenges([ife_response(tx, {:utxo_position, other_blknum, 0, 0})])
+        |> Core.respond_to_in_flight_exits_challenges([ife_response(tx, %OMG.InputPointer{blknum: other_blknum, txindex: 0, oindex: 0})])
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -657,19 +657,19 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
                request |> check_validity_filtered(processor, only: [Event.InvalidIFEChallenge])
 
       # older is returned but we'll respond with the younger first and then older
-      assert {:ok, %{in_flight_tx_pos: {:utxo_position, ^other_blknum, 0, 0}}} =
+      assert {:ok, %{in_flight_tx_pos: %OMG.InputPointer{blknum: ^other_blknum, txindex: 0, oindex: 0}}} =
                Core.prove_canonical_for_ife(processor, txbytes)
 
       {processor, _} =
         processor
-        |> Core.respond_to_in_flight_exits_challenges([ife_response(tx, {:utxo_position, other_blknum, 1, 0})])
+        |> Core.respond_to_in_flight_exits_challenges([ife_response(tx, %OMG.InputPointer{blknum: other_blknum, txindex: 1, oindex: 0})])
 
       assert {:ok, []} = request |> check_validity_filtered(processor, only: [Event.InvalidIFEChallenge])
       assert {:error, :no_viable_canonical_proof_found} = Core.prove_canonical_for_ife(processor, txbytes)
 
       {processor, _} =
         processor
-        |> Core.respond_to_in_flight_exits_challenges([ife_response(tx, {:utxo_position, other_blknum, 0, 0})])
+        |> Core.respond_to_in_flight_exits_challenges([ife_response(tx, %OMG.InputPointer{blknum: other_blknum, txindex: 0, oindex: 0})])
 
       assert {:ok, []} = request |> check_validity_filtered(processor, only: [Event.InvalidIFEChallenge])
       assert {:error, :no_viable_canonical_proof_found} = Core.prove_canonical_for_ife(processor, txbytes)

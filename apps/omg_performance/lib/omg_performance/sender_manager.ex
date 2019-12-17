@@ -56,7 +56,7 @@ defmodule OMG.Performance.SenderManager do
     initial_blknums =
       utxos
       |> Enum.map(fn %{utxo_pos: utxo_pos} ->
-        {:utxo_position, blknum, _txindex, _oindex} = OMG.InputPointer.decode!(utxo_pos)
+        %OMG.InputPointer{blknum: blknum, txindex: _txindex, oindex: _oindex} = OMG.InputPointer.decode!(utxo_pos)
         blknum
       end)
 

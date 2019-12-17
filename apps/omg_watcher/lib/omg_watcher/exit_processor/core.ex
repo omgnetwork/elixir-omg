@@ -308,7 +308,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp do_determine_utxo_existence_to_get(%__MODULE__{in_flight_exits: ifes} = state, blknum_now) do
     standard_exits_pos =
       StandardExit.exiting_positions(state)
-      |> Enum.filter(fn {:utxo_position, blknum, _, _} -> blknum < blknum_now end)
+      |> Enum.filter(fn %OMG.InputPointer{blknum: blknum, txindex: _, oindex: _} -> blknum < blknum_now end)
 
     active_relevant_ifes =
       ifes
@@ -558,7 +558,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         {hash, ife, KnownTx.find_tx_in_blocks(hash, positions_by_tx_hash, blocks_by_blknum)}
       end)
       |> Enum.filter(fn {_hash, _ife, maybepos} -> maybepos != nil end)
-      |> Enum.into(ifes, fn {hash, ife, {block, {:utxo_position, _, txindex, _} = position}} ->
+      |> Enum.into(ifes, fn {hash, ife, {block, %OMG.InputPointer{blknum: _, txindex: txindex, oindex: _} = position}} ->
         proof = Block.inclusion_proof(block, txindex)
         {hash, %InFlightExitInfo{ife | tx_seen_in_blocks_at: {position, proof}}}
       end)

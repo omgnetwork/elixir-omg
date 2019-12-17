@@ -209,7 +209,7 @@ defmodule OMG.Performance.SenderServer do
   #   Generates module's initial state
   @spec init_state(pos_integer(), map(), pos_integer(), keyword()) :: __MODULE__.state()
   defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send, opts) do
-    {:utxo_position, blknum, txindex, oindex} = OMG.InputPointer.decode!(utxo_pos)
+    %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex} = OMG.InputPointer.decode!(utxo_pos)
 
     %__MODULE__{
       seqnum: seqnum,

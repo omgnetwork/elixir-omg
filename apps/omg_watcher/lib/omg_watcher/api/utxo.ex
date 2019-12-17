@@ -44,7 +44,7 @@ defmodule OMG.Watcher.API.Utxo do
     utxo_pos |> OMG.InputPointer.to_db_key() |> OMG.DB.utxo() |> Core.compose_deposit_standard_exit()
   end
 
-  def compose_utxo_exit({:utxo_position, blknum, _, _} = utxo_pos) do
+  def compose_utxo_exit(%OMG.InputPointer{blknum: blknum, txindex: _, oindex: _} = utxo_pos) do
     with {:ok, [blk_hash]} <- OMG.DB.block_hashes([blknum]),
          {:ok, [db_block]} <- OMG.DB.blocks([blk_hash]) do
       Core.compose_block_standard_exit(db_block, utxo_pos)

@@ -28,19 +28,19 @@ defmodule OMG.State.MeasurementCalculationTest do
 
   test "calculate metrics from state", %{alice: alice, bob: bob, carol: carol} do
     utxos = %{
-      {:utxo_position, 2_000, 4076, 3} => %OMG.Utxo{
+      %OMG.InputPointer{blknum: 2_000, txindex: 4076, oindex: 3} => %OMG.Utxo{
         output: %OMG.Output.FungibleMoreVPToken{amount: 700_000_000, currency: @eth, owner: alice}
       },
-      {:utxo_position, 1_000, 2559, 0} => %OMG.Utxo{
+      %OMG.InputPointer{blknum: 1_000, txindex: 2559, oindex: 0} => %OMG.Utxo{
         output: %OMG.Output.FungibleMoreVPToken{amount: 111_111_111, currency: @not_eth, owner: alice}
       },
-      {:utxo_position, 8_000, 4854, 2} => %OMG.Utxo{
+      %OMG.InputPointer{blknum: 8_000, txindex: 4854, oindex: 2} => %OMG.Utxo{
         output: %OMG.Output.FungibleMoreVPToken{amount: 77_000_000, currency: @eth, owner: bob}
       },
-      {:utxo_position, 7_000, 4057, 3} => %OMG.Utxo{
+      %OMG.InputPointer{blknum: 7_000, txindex: 4057, oindex: 3} => %OMG.Utxo{
         output: %OMG.Output.FungibleMoreVPToken{amount: 222_222_222, currency: @not_eth, owner: carol}
       },
-      {:utxo_position, 7_000, 4057, 4} => %OMG.Utxo{output: %{}}
+      %OMG.InputPointer{blknum: 7_000, txindex: 4057, oindex: 4} => %OMG.Utxo{output: %{}}
     }
 
     assert MapSet.new(OMG.State.MeasurementCalculation.calculate(%Core{utxos: utxos})) ==

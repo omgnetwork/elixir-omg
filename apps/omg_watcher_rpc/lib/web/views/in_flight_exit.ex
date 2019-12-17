@@ -51,7 +51,7 @@ defmodule OMG.WatcherRPC.Web.View.InFlightExit do
     |> Response.serialize()
   end
 
-  defp encode_utxo_position({:utxo_position, blknum, txindex, oindex}) do
+  defp encode_utxo_position(%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}) do
     ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
   end
 end

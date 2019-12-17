@@ -91,7 +91,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   @spec determine_standard_challenge_queries(ExitProcessor.Request.t(), Core.t()) ::
           {:ok, ExitProcessor.Request.t()} | {:error, :exit_not_found}
   def determine_standard_challenge_queries(
-        %ExitProcessor.Request{se_exiting_pos: {:utxo_position, _, _, _} = exiting_pos} = request,
+        %ExitProcessor.Request{se_exiting_pos: %OMG.InputPointer{blknum: _, txindex: _, oindex: _} = exiting_pos} = request,
         %Core{exits: exits} = state
       ) do
     with {:ok, _exit_info} <- get_exit(exits, exiting_pos) do
@@ -135,7 +135,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   defp ensure_challengeable(_, _), do: {:error, :utxo_not_spent}
 
   @spec get_ife_based_on_utxo(OMG.InputPointer.utxo_pos_tuple(), Core.t()) :: KnownTx.t() | nil
-  defp get_ife_based_on_utxo({:utxo_position, _, _, _} = utxo_pos, %Core{} = state) do
+  defp get_ife_based_on_utxo(%OMG.InputPointer{blknum: _, txindex: _, oindex: _} = utxo_pos, %Core{} = state) do
     state
     |> TxAppendix.get_all()
     |> get_ife_txs_by_spent_input()
@@ -168,7 +168,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   end
 
   @spec get_double_spends_by_utxo_pos(OMG.InputPointer.utxo_pos_tuple(), KnownTx.t()) :: list(DoubleSpend.t())
-  defp get_double_spends_by_utxo_pos({:utxo_position, _, _, oindex} = utxo_pos, known_tx),
+  defp get_double_spends_by_utxo_pos(%OMG.InputPointer{blknum: _, txindex: _, oindex: oindex} = utxo_pos, known_tx),
     # the function used expects positions with an index (either input index or oindex), hence the oindex added
     do: [{utxo_pos, oindex}] |> double_spends_from_known_tx(known_tx)
 

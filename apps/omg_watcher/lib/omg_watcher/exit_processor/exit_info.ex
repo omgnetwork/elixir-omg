@@ -38,7 +38,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
         }
 
   def new(contract_status, %{eth_height: eth_height, call_data: %{output_tx: txbytes}, exit_id: exit_id} = event) do
-    {:utxo_position, _, _, oindex} = utxo_pos_for(event)
+    %OMG.InputPointer{blknum: _, txindex: _, oindex: oindex} = utxo_pos_for(event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
@@ -63,7 +63,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     struct!(__MODULE__, fields)
   end
 
-  def make_event_data(type, {:utxo_position, blknum, txindex, oindex}, %__MODULE__{} = exit_info) do
+  def make_event_data(type, %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}, %__MODULE__{} = exit_info) do
     utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
     struct(type, exit_info |> Map.from_struct() |> Map.put(:utxo_pos, utxo_pos))
   end
@@ -94,7 +94,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       eth_height: eth_height
     }
 
-    {:utxo_position, blknum, txindex, oindex} = position
+    %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex} = position
     {:put, :exit_info, {{blknum, txindex, oindex}, value}}
   end
 
@@ -125,7 +125,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     }
 
     {blknum, txindex, oindex} = db_utxo_pos
-    {{:utxo_position, blknum, txindex, oindex}, struct!(__MODULE__, value)}
+    {%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}, struct!(__MODULE__, value)}
   end
 
   # processes the return value of `Eth.get_standard_exits_structs(exit_id)`

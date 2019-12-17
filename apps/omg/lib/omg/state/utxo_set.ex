@@ -124,9 +124,9 @@ defmodule OMG.State.UtxoSet do
 
   # based on some key-value pair representing {input_pointer, utxo}, get its position from somewhere
   defp utxo_kv_get_position(utxo_kv)
-  defp utxo_kv_get_position({{:utxo_position, _, _, _} = utxo_pos, _utxo}), do: utxo_pos
+  defp utxo_kv_get_position({%OMG.InputPointer{blknum: _, txindex: _, oindex: _} = utxo_pos, _utxo}), do: utxo_pos
 
-  defp utxo_kv_get_position({_non_utxo_pos_input_pointer, %{utxo_pos: {:utxo_position, _, _, _} = utxo_pos}}),
+  defp utxo_kv_get_position({_non_utxo_pos_input_pointer, %{utxo_pos: %OMG.InputPointer{blknum: _, txindex: _, oindex: _} = utxo_pos}}),
     do: utxo_pos
 
   # based on some key-value pair representing {input_pointer, utxo}, get its owner
@@ -138,7 +138,7 @@ defmodule OMG.State.UtxoSet do
   defp utxo_kv_created_by?({_input_pointer, %Utxo{}}, _), do: false
 
   defp utxo_kv_has_oindex_equal?(utxo_kv, oindex) do
-    {:utxo_position, _blknum, _txindex, kv_oindex} = utxo_kv_get_position(utxo_kv)
+    %OMG.InputPointer{blknum: _blknum, txindex: _txindex, oindex: kv_oindex} = utxo_kv_get_position(utxo_kv)
     kv_oindex == oindex
   end
 end
