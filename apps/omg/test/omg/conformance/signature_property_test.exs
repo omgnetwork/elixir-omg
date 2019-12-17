@@ -36,7 +36,7 @@ defmodule OMG.Conformance.SignaturePropertyTest do
     forall tx <- payment_tx() do
       # TODO: expand with verifying the non-signature-related hash, Transaction.raw_txhash
       #       This occurs multiple times, wherever transaction/implementation identity/conformance is tested
-      verify(contract, tx)
+      verify(tx, contract)
     end
   end
 
@@ -44,7 +44,7 @@ defmodule OMG.Conformance.SignaturePropertyTest do
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
     forall [{tx1, tx2} <- distinct_payment_txs()] do
-      verify_distinct(contract, tx1, tx2)
+      verify_distinct(tx1, tx2, contract)
     end
   end
 
@@ -53,8 +53,8 @@ defmodule OMG.Conformance.SignaturePropertyTest do
            %{contract: contract} do
     forall {tx1_binary, tx2_binary} <- tx_binary_with_mutation() do
       case Transaction.decode(tx2_binary) do
-        {:ok, _} -> verify_distinct(contract, Transaction.decode!(tx1_binary), Transaction.decode!(tx2_binary))
-        {:error, _} -> decoding_errors_the_same(contract, tx2_binary)
+        {:ok, _} -> verify_distinct(Transaction.decode!(tx1_binary), Transaction.decode!(tx2_binary), contract)
+        {:error, _} -> verify_both_error(tx2_binary, contract)
       end
     end
   end
@@ -66,8 +66,8 @@ defmodule OMG.Conformance.SignaturePropertyTest do
            %{contract: contract} do
     forall {tx1_binary, tx2_binary} <- tx_binary_with_rlp_mutation() do
       case Transaction.decode(tx2_binary) do
-        {:ok, _} -> verify_distinct(contract, Transaction.decode!(tx1_binary), Transaction.decode!(tx2_binary))
-        {:error, _} -> decoding_errors_the_same_rlp_mutated(contract, tx2_binary)
+        {:ok, _} -> verify_distinct(Transaction.decode!(tx1_binary), Transaction.decode!(tx2_binary), contract)
+        {:error, _} -> verify_both_error(tx2_binary, contract)
       end
     end
   end
@@ -76,61 +76,7 @@ defmodule OMG.Conformance.SignaturePropertyTest do
            [1000, :verbose, max_size: 1000],
            %{contract: contract} do
     forall some_binary <- binary() do
-      decoding_errors_the_same(contract, some_binary)
+      verify_both_error(some_binary, contract)
     end
-  end
-
-  defp decoding_errors_the_same(contract, some_binary) do
-    elixir_decoding_errors = [
-      {:error, :malformed_transaction_rlp},
-      {:error, :malformed_transaction}
-    ]
-
-    solidity_decoding_errors = [
-      "Invalid RLP encoding",
-      "Invalid leading zeros in length of the length for a long list",
-      "Item is not a list",
-      "Invalid encoding of transaction",
-      "Decoded RLP length for list is invalid",
-      "Invalid decoded length of RLP item found during counting items in a list",
-      "Invalid length for a long list"
-    ]
-
-    verify_both_error(contract, some_binary, elixir_decoding_errors, solidity_decoding_errors)
-  end
-
-  defp decoding_errors_the_same_rlp_mutated(contract, some_binary) do
-    elixir_decoding_errors = [
-      {:error, :malformed_inputs},
-      {:error, :malformed_outputs},
-      {:error, :malformed_transaction},
-      {:error, :malformed_tx_data},
-      {:error, :malformed_metadata},
-      {:error, :malformed_address},
-      {:error, :unrecognized_output_type},
-      {:error, :leading_zeros_in_encoded_uint},
-      {:error, :amount_cant_be_zero},
-      {:error, :output_guard_cant_be_zero}
-    ]
-
-    solidity_decoding_errors = [
-      "Invalid encoding of transaction",
-      "Leading zeros are invalid",
-      "Transaction type must not be 0",
-      "Null input not allowed",
-      "Item is not a list",
-      "Item must not be a list",
-      "Scalar 0 should be encoded as 0x80",
-      "Output type must not be 0",
-      "Output amount must not be 0",
-      "Output outputGuard must not be 0",
-      "Item length must be 33",
-      "Item length must be 21",
-      "Item length must be between 1 and 33 bytes",
-      "Transaction inputs num exceeds limit",
-      "txData must be 0"
-    ]
-
-    verify_both_error(contract, some_binary, elixir_decoding_errors, solidity_decoding_errors)
   end
 end

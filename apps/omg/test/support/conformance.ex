@@ -18,43 +18,60 @@ defmodule Support.Conformance do
   """
   alias OMG.Eth
   alias OMG.State.Transaction
-  alias OMG.TypedDataHash
 
   import ExUnit.Assertions
 
-  def verify_distinct(contract, tx1, tx2) do
+  def verify_distinct(tx1, tx2, contract) do
     # NOTE: those two verifies might be redundant, rethink sometimes. For now keeping to increase chance of picking up
     # discrepancies
-    verify(contract, tx1)
-    verify(contract, tx2)
-    assert solidity_hash!(contract, tx1) != solidity_hash!(contract, tx2)
+    verify(tx1, contract)
+    verify(tx2, contract)
+    assert solidity_hash!(tx1, contract) != solidity_hash!(tx2, contract)
     assert elixir_hash(tx1) != elixir_hash(tx2)
   end
 
-  def verify(contract, tx) do
-    assert solidity_hash!(contract, tx) == elixir_hash(tx)
+  def verify(tx, contract) do
+    assert solidity_hash!(tx, contract) == elixir_hash(tx)
   end
 
-  def verify_both_error(contract, some_binary, elixir_decoding_errors, solidity_decoding_errors) do
-    assert Transaction.decode(some_binary) in elixir_decoding_errors
-    assert (solidity_hash(contract, some_binary) |> get_reason_from_call()) in solidity_decoding_errors
+  def verify_both_error(some_binary, contract) do
+    # elixir implementation errors
+    assert {:error, _} = Transaction.decode(some_binary)
+
+    # solidity implementation errors
+    some_binary
+    |> solidity_hash(contract)
+    |> assert_contract_reverted()
+
+    true
   end
 
-  defp solidity_hash!(contract, tx) do
-    {:ok, solidity_hash} = solidity_hash(contract, tx)
+  defp solidity_hash!(tx, contract) do
+    {:ok, solidity_hash} = solidity_hash(tx, contract)
     solidity_hash
   end
 
-  defp solidity_hash(contract, %{} = tx), do: solidity_hash(contract, Transaction.raw_txbytes(tx))
+  defp solidity_hash(%{} = tx, contract), do: solidity_hash(Transaction.raw_txbytes(tx), contract)
 
-  defp solidity_hash(contract, encoded_tx) when is_binary(encoded_tx),
+  defp solidity_hash(encoded_tx, contract) when is_binary(encoded_tx),
     do: Eth.call_contract(contract, "hashTx(address,bytes)", [contract, encoded_tx], [{:bytes, 32}])
 
   defp elixir_hash(%Transaction.Signed{raw_tx: tx}), do: OMG.TypedDataHash.hash_struct(tx)
-  defp elixir_hash(tx), do: TypedDataHash.hash_struct(tx)
+  defp elixir_hash(tx), do: OMG.TypedDataHash.hash_struct(tx)
 
-  # FIXME: for some reason works for ganache only; for geth failures manifest as a binary with 4 non-zero bytes there
-  #        in an ":ok" message. Investigate
-  defp get_reason_from_call({:error, error_body}),
-    do: error_body["data"] |> Map.values() |> Enum.at(0) |> Access.get("reason")
+  defp assert_contract_reverted(result) do
+    Application.fetch_env!(:omg_eth, :eth_node)
+    |> case do
+      :ganache ->
+        assert {:error, %{"data" => error_data}} = result
+        # NOTE one can use the "reason" field in here to make sure what caused the revert. Only with ganache
+        assert [%{"error" => "revert"} | _] = Map.values(error_data)
+
+      :geth ->
+        # `geth` is problematic - on a revert from `Eth.call_contract` it returns something resembling a reason
+        # binary (beginning with 4-byte function selector). We need to assume that this is in fact a revert
+        assert {:ok, chopped_reason_binary_result} = result
+        assert <<0::size(28)-unit(8)>> = binary_part(chopped_reason_binary_result, 4, 28)
+    end
+  end
 end

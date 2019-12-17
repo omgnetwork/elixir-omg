@@ -38,12 +38,12 @@ defmodule OMG.Conformance.SignatureTest do
   describe "elixir vs solidity conformance test" do
     test "no inputs test", %{contract: contract} do
       tx = Transaction.Payment.new([], [{@alice, @eth, 100}])
-      verify(contract, tx)
+      verify(tx, contract)
     end
 
     test "signature test - small tx", %{contract: contract} do
       tx = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
-      verify(contract, tx)
+      verify(tx, contract)
     end
 
     test "signature test - full tx", %{contract: contract} do
@@ -53,7 +53,7 @@ defmodule OMG.Conformance.SignatureTest do
           [{@alice, @eth, 100}, {@alice, @token, 50}, {@bob, @token, 75}, {@bob, @eth, 25}]
         )
 
-      verify(contract, tx)
+      verify(tx, contract)
     end
 
     test "signature test transaction with metadata", %{contract: contract} do
@@ -64,14 +64,14 @@ defmodule OMG.Conformance.SignatureTest do
           @good_metadata
         )
 
-      verify(contract, tx)
+      verify(tx, contract)
     end
 
     test "transaction type is a list", %{contract: contract} do
       # FIXME: remove and change into a pair of pure elixir test and solc test
       txbytes = ExRLP.encode([[<<1>>], [], [], @good_tx_data, @good_metadata])
 
-      verify_both_error(contract, txbytes, [{:error, :malformed_transaction}], ["Item must not be a list"])
+      verify_both_error(txbytes, contract)
     end
 
     test "output type is a list", %{contract: contract} do
@@ -79,7 +79,7 @@ defmodule OMG.Conformance.SignatureTest do
       badly_typed_output = [[<<1>>], [@good_address, @good_address, @good_amount]]
       txbytes = ExRLP.encode([<<1>>, [], [badly_typed_output], @good_tx_data, @good_metadata])
 
-      verify_both_error(contract, txbytes, [{:error, :unrecognized_output_type}], ["Item must not be a list"])
+      verify_both_error(txbytes, contract)
     end
 
     test "amount is a list", %{contract: contract} do
@@ -87,7 +87,7 @@ defmodule OMG.Conformance.SignatureTest do
       bad_amount_output = [<<1>>, [@good_address, @good_address, [<<1>>]]]
       txbytes = ExRLP.encode([<<1>>, [], [bad_amount_output], @good_tx_data, @good_metadata])
 
-      verify_both_error(contract, txbytes, [{:error, :malformed_outputs}], ["Item must not be a list"])
+      verify_both_error(txbytes, contract)
     end
 
     test "address is a list with an address-like length of 21 bytes", %{contract: contract} do
@@ -99,7 +99,7 @@ defmodule OMG.Conformance.SignatureTest do
 
       txbytes = ExRLP.encode([<<1>>, [], [bad_address_output], @good_tx_data, @good_metadata])
 
-      verify_both_error(contract, txbytes, [{:error, :malformed_address}], ["Item must not be a list"])
+      verify_both_error(txbytes, contract)
     end
 
     test "unrecognized output type", %{contract: contract} do
@@ -107,7 +107,7 @@ defmodule OMG.Conformance.SignatureTest do
       unrecognized_output = [<<2>>, [@good_address, @good_address, @good_amount]]
       txbytes = ExRLP.encode([<<1>>, [], [unrecognized_output], @good_tx_data, @good_metadata])
 
-      verify_both_error(contract, txbytes, [{:error, :unrecognized_output_type}], [])
+      verify_both_error(txbytes, contract)
     end
 
     test "unrecognized tx type", %{contract: contract} do
@@ -115,7 +115,7 @@ defmodule OMG.Conformance.SignatureTest do
       txbytes =
         ExRLP.encode([<<2>>, [], [[<<1>>, [@good_address, @good_address, @good_amount]]], @good_tx_data, @good_metadata])
 
-      verify_both_error(contract, txbytes, [{:error, :malformed_transaction}], ["Invalid encoding of transaction"])
+      verify_both_error(txbytes, contract)
     end
 
     test "new3", %{contract: contract} do
@@ -125,7 +125,7 @@ defmodule OMG.Conformance.SignatureTest do
       txbytes =
         ExRLP.encode([<<1>>, [], [[<<1>>, [@good_address, @good_address, bad_amount]]], @good_tx_data, @good_metadata])
 
-      verify_both_error(contract, txbytes, [{:error, :leading_zeros_in_encoded_uint}], ["Leading zeros are invalid"])
+      verify_both_error(txbytes, contract)
     end
   end
 
@@ -134,7 +134,7 @@ defmodule OMG.Conformance.SignatureTest do
     test "sanity check - different txs hash differently", %{contract: contract} do
       tx1 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
       tx2 = Transaction.Payment.new([{2, 0, 0}], [{@alice, @eth, 100}])
-      verify_distinct(contract, tx1, tx2)
+      verify_distinct(tx1, tx2, contract)
     end
   end
 end
