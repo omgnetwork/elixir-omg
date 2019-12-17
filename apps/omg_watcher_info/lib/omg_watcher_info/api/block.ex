@@ -22,7 +22,7 @@ defmodule OMG.WatcherInfo.API.Block do
   @doc """
   Retrieves a specific block by block number
   """
-  @spec get(binary()) :: {:ok, %DB.Block{}} | {:error, :block_not_found}
+  @spec get(pos_integer()) :: {:ok, %DB.Block{}} | {:error, :block_not_found}
   def get(blknum) do
     case DB.Block.get(blknum) do
       nil -> {:error, :block_not_found}

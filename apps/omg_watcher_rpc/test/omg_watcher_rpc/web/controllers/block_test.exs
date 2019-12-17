@@ -21,7 +21,17 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   alias Support.WatcherHelper
 
-  describe "get_block\2" do
+  describe "get_block/2" do
+    @tag fixtures: [:initial_blocks]
+    test "/block.get returns correct block if existent" do
+      existent_blknum = 1000
+
+      %{"success" => success, "data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: existent_blknum}, 200)
+
+      assert data["blknum"] == existent_blknum
+      assert success == true
+    end
+
     @tag fixtures: [:initial_blocks]
     test "/block.get rejects parameter of wrong type" do
       string_blknum = "1000"
@@ -63,16 +73,6 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       }
 
       assert data = expected
-    end
-
-    @tag fixtures: [:initial_blocks]
-    test "/block.get returns correct block if existent" do
-      existent_blknum = 1000
-
-      %{"success" => success, "data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: existent_blknum}, 200)
-
-      assert data["blknum"] == existent_blknum
-      assert success == true
     end
   end
 end

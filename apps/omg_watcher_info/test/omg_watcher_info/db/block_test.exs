@@ -36,7 +36,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag fixtures: [:initial_blocks]
     test "retrieves a block by block number" do
       blknum = 1000
-      block = DB.Block.get(1000)
+      block = DB.Block.get(blknum)
       assert %DB.Block{} = block
       assert block.blknum == blknum
     end
