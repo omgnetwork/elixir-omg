@@ -33,12 +33,12 @@ defmodule OMG.Output.FungibleMoreVPToken do
     %__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}
   end
 
-  def reconstruct([owner, currency, bin_amount]) do
+  def reconstruct([output_type, owner, currency, bin_amount]) do
     with {:ok, cur12} <- parse_address(currency),
          {:ok, owner} <- parse_address(owner),
          {:ok, int_amount} <- parse_int(bin_amount),
          {:ok, amount} <- parse_amount(int_amount),
-         do: %__MODULE__{owner: owner, currency: cur12, amount: amount}
+         do: %__MODULE__{owner: owner, currency: cur12, amount: amount, output_type: output_type}
   end
 
   defp parse_amount(amount) when is_integer(amount) and amount > 0, do: {:ok, amount}

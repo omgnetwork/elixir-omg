@@ -79,7 +79,7 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   @doc """
-  Transaform the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
+  Transforms the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
   """
   def reconstruct([inputs_rlp, outputs_rlp | rest_rlp])
       when rest_rlp == [] or length(rest_rlp) == 1 do
