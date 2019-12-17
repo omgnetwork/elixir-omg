@@ -19,7 +19,6 @@ defmodule OMG.State.Transaction.Payment do
   This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
   """
   alias OMG.Crypto
-  alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -32,7 +31,7 @@ defmodule OMG.State.Transaction.Payment do
   defstruct [:inputs, :outputs, metadata: @zero_metadata]
 
   @type t() :: %__MODULE__{
-          inputs: list(InputPointer.Protocol.t()),
+          inputs: list(tuple()),
           outputs: list(Output.FungibleMoreVPToken.t()),
           metadata: Transaction.metadata()
         }
@@ -134,11 +133,13 @@ defmodule OMG.State.Transaction.Payment do
 
   # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
   #       most likely one needs to route through generic InputPointer` function that does the dispatch
-  defp parse_input!(input_pointer), do: InputPointer.UtxoPosition.reconstruct(input_pointer)
+  defp parse_input!(input_pointer) do
+    {:ok, utxo_pos_tuple} = OMG.InputPointer.decode(input_pointer)
+    utxo_pos_tuple
+  end
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
-  alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -159,7 +160,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       when Transaction.is_metadata(metadata),
       do: [
         @payment_marker,
-        Enum.map(inputs, &OMG.InputPointer.Protocol.get_data_for_rlp/1),
+        Enum.map(inputs, &OMG.InputPointer.get_data_for_rlp/1),
         Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
@@ -169,7 +170,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   @spec get_outputs(Transaction.Payment.t()) :: list(Output.Protocol.t())
   def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
 
-  @spec get_inputs(Transaction.Payment.t()) :: list(InputPointer.Protocol.t())
+  @spec get_inputs(Transaction.Payment.t()) :: list(tuple())
   def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
 
   @doc """

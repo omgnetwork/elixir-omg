@@ -21,7 +21,6 @@ defmodule OMG.State.PersistenceTest do
   use OMG.Utils.LoggerExt
 
   alias OMG.Block
-  alias OMG.InputPointer
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias Support.WaitFor
@@ -127,7 +126,7 @@ defmodule OMG.State.PersistenceTest do
     assert {:ok, tx} == Transaction.Recovered.recover_from(block_tx)
 
     assert {:ok, 1000} ==
-             tx |> Transaction.get_inputs() |> hd() |> InputPointer.Protocol.to_db_key() |> OMG.DB.spent_blknum()
+             tx |> Transaction.get_inputs() |> hd() |> OMG.InputPointer.to_db_key() |> OMG.DB.spent_blknum()
   end
 
   @tag fixtures: [:alice]
