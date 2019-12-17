@@ -44,8 +44,6 @@ defmodule OMG.TypedDataHash.Tools do
   @input_type_hash Crypto.hash(@input_encoded_type)
   @output_type_hash Crypto.hash(@output_encoded_type)
 
-  @output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
-
   @doc """
   Computes Domain Separator `hashStruct(eip712Domain)`,
   @see: http://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator
@@ -118,19 +116,13 @@ defmodule OMG.TypedDataHash.Tools do
     |> Crypto.hash()
   end
 
-  @spec hash_output(Output.FungibleMoreVPToken.t(), pos_integer) :: Crypto.hash_t()
-  def hash_output(
-        %Output.FungibleMoreVPToken{
-          owner: owner,
-          currency: currency,
-          amount: amount,
-          output_type: _
-        },
-        opts \\ []
-      ) do
-    # FIXME: is this still necessary still?
-    output_type = if Keyword.get(opts, :hash_zero), do: 0, else: @output_type
-
+  @spec hash_output(Output.FungibleMoreVPToken.t()) :: Crypto.hash_t()
+  def hash_output(%Output.FungibleMoreVPToken{
+        owner: owner,
+        currency: currency,
+        amount: amount,
+        output_type: output_type
+      }) do
     [
       @output_type_hash,
       ABI.TypeEncoder.encode_raw([output_type], [{:uint, 256}]),

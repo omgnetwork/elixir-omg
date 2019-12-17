@@ -31,15 +31,12 @@ defmodule OMG.TypedDataHash do
   @empty_input_hash __MODULE__.Tools.hash_input(Utxo.position(0, 0, 0))
 
   # Precomputed hash of empty output for performance
-  @empty_output_hash __MODULE__.Tools.hash_output(
-                       %Output.FungibleMoreVPToken{
-                         owner: @zero_address,
-                         currency: @zero_address,
-                         amount: 0,
-                         output_type: 0
-                       },
-                       hash_zero: true
-                     )
+  @empty_output_hash __MODULE__.Tools.hash_output(%Output.FungibleMoreVPToken{
+                       owner: @zero_address,
+                       currency: @zero_address,
+                       amount: 0,
+                       output_type: 0
+                     })
 
   # Prefix and version byte motivated by http://eips.ethereum.org/EIPS/eip-191
   @eip_191_prefix <<0x19, 0x01>>

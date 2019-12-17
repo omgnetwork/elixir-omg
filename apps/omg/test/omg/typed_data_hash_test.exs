@@ -126,7 +126,12 @@ defmodule OMG.TypedDataHashTest do
 
     test "Output is hashed properly", %{outputs: [output1, output2, output3, output4]} do
       to_output = fn {owner, currency, amount} ->
-        %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
+        %Output.FungibleMoreVPToken{
+          owner: owner,
+          currency: currency,
+          amount: amount,
+          output_type: OMG.WireFormatTypes.output_type_for(:output_payment_v1)
+        }
       end
 
       assert "4b85fe2caac41f533c3d3b56ec75ca3363d0205e4dde63ca16b0d377fa79364d" ==
