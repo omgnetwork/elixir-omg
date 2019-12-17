@@ -35,7 +35,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.AlarmTest do
   ### covered in OMG.Utils.HttpRPC.ResponseTest
   @tag fixtures: [:phoenix_sandbox]
   test "if the controller returns the correct result when there's no alarms raised", _ do
-    response = TestHelper.rpc_call(:post, "alarm.get")
+    response = TestHelper.rpc_call(:get, "alarm.get")
     version = Map.get(response, "version")
     %{"data" => [], "success" => true, "version" => ^version} = response
   end

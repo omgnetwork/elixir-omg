@@ -157,13 +157,13 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       do: [
         @payment_marker,
         Enum.map(inputs, &OMG.InputPointer.get_data_for_rlp/1),
-        Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
+        Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
         metadata
       ]
 
-  @spec get_outputs(Transaction.Payment.t()) :: list(Output.Protocol.t())
+  @spec get_outputs(Transaction.Payment.t()) :: list(OMG.Output.FungibleMoreVPToken.t())
   def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
 
   @spec get_inputs(Transaction.Payment.t()) :: list(tuple())
@@ -187,7 +187,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   Returns the fees that this transaction is paying, mapped by currency
   """
-  @spec can_apply?(Transaction.Payment.t(), list(Output.Protocol.t())) ::
+  @spec can_apply?(Transaction.Payment.t(), list(OMG.Output.FungibleMoreVPToken.t())) ::
           {:ok, map()} | {:error, :amounts_do_not_add_up}
   def can_apply?(%Transaction.Payment{} = tx, outputs_spent) do
     outputs = Transaction.get_outputs(tx)

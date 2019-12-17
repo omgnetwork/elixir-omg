@@ -51,28 +51,3 @@ defmodule OMG.Output.FungibleMoreVPToken do
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
 end
-
-defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
-  alias OMG.Output.FungibleMoreVPToken
-
-  # TODO: dry wrt. Application.fetch_env!(:omg, :output_types_modules)? Use `bimap` perhaps?
-  @output_type_marker <<1>>
-
-  @doc """
-  For payment outputs, a binary witness is assumed to be a signature equal to the payment's output owner
-  """
-  def can_spend?(%FungibleMoreVPToken{owner: owner}, witness, _raw_tx) when is_binary(witness) do
-    owner == witness
-  end
-
-  def input_pointer(%FungibleMoreVPToken{}, blknum, tx_index, oindex, _, _),
-    do: %OMG.InputPointer{blknum: blknum, txindex: tx_index, oindex: oindex}
-
-  def to_db_value(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount})
-      when is_binary(owner) and is_binary(currency) and is_integer(amount) do
-    %{owner: owner, currency: currency, amount: amount, type: @output_type_marker}
-  end
-
-  def get_data_for_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}),
-    do: [@output_type_marker, owner, currency, amount]
-end

@@ -20,7 +20,7 @@ defmodule WhiteBreadContext do
     end
   end)
 
-  scenario_starting_state(fn _ ->
+  scenario_starting_state(fn o ->
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end)
@@ -124,6 +124,42 @@ defmodule WhiteBreadContext do
       gas_wei = state[:standard_exit_total_gas_used] + state[:gas]
       assert_equal(alice_ethereum_balance, alice_initial_balance - gas_wei)
       assert_equal(alice_ethereum_balance, Currency.to_wei(amount) - gas_wei)
+      {:ok, state}
+    end
+  )
+
+  when_(
+    ~r/^Operator deploys "(?<service>[^"]+)"$/,
+    fn state, %{service: service} ->
+      {:ok, response} =
+        case service do
+          "Child Chain" ->
+            Client.get_child_chain_alarms()
+
+          "Watcher" ->
+            Client.get_watcher_alarms()
+
+          "Watcher Info" ->
+            Client.get_watcher_info_alarms()
+        end
+
+      body = Jason.decode!(response.body)
+      {:ok, Map.put(state, :service_response, body)}
+    end
+  )
+
+  then_(
+    ~r/^Operator can read it's service name as "(?<service_name>[^"]+)"/,
+    fn state, %{service_name: service_name} ->
+      case service_name do
+        "watcher_info" ->
+          # TODO remove when implemented
+          assert state.service_response["service_name"] == "watcher"
+
+        _ ->
+          assert state.service_response["service_name"] == service_name
+      end
+
       {:ok, state}
     end
   )

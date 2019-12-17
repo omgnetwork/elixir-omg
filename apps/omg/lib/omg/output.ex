@@ -14,53 +14,100 @@
 
 defmodule OMG.Output do
   @moduledoc """
-  `OMG.Output` and `OMG.Output.Protocol` represent the outputs of transactions, i.e. the valuables or other pieces of
+  `OMG.Output` represent the outputs of transactions, i.e. the valuables or other pieces of
   data spendable via transactions on the child chain, and/or exitable to the root chain.
 
   This module specificially dispatches generic calls to the various specific types
   """
 
-  @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
-  @type_markers Map.keys(@output_types_modules)
+  @output_type_marker <<1>>
 
-  def dispatching_reconstruct([type_marker | raw_rlp_decoded_chunks]) when type_marker in @type_markers do
-    protocol_module = @output_types_modules[type_marker]
-    protocol_module.reconstruct(raw_rlp_decoded_chunks)
-  end
+  @doc """
+  Converts an RLP data list into a output utxo struct.
 
+  ## Examples
+
+      iex> rlp_data = [<<1>>, <<1::160>>, <<1::160>>, 1]
+      iex> OMG.Output.dispatching_reconstruct(rlp_data)
+      %OMG.Output.FungibleMoreVPToken{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
+  """
+  def dispatching_reconstruct([@output_type_marker | rest_of_rlp_data] = rlp_data), do: reconstruct(rest_of_rlp_data)
   def dispatching_reconstruct(_), do: {:error, :unrecognized_output_type}
 
-  def from_db_value(%{type: type_marker} = db_value), do: @output_types_modules[type_marker].from_db_value(db_value)
-  # default clause for backwards compatibility
+  # TODO(achiurizo)
+  #
+  # Remove this method and the call stack, it just wants the struct from FungibleMoreVPToken.
+  @doc """
+  Returns a FungibleMoreVPToken struct from a map
+
+  ## Examples
+
+      iex> output = %{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
+      iex> OMG.Output.from_db_value(output)
+      %OMG.Output.FungibleMoreVPToken{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
+  """
   def from_db_value(%{} = db_value), do: OMG.Output.FungibleMoreVPToken.from_db_value(db_value)
-end
 
-defprotocol OMG.Output.Protocol do
-  @moduledoc """
-  Captures the varying behavior of outputs that build the plasma chain
+  # TODO(achiurizo)
+  # refactor this? WE don't need this?
+  @doc """
+  Returns a boolean if the binary witness is equal to the payment output's owner.
 
-  Includes the "output predicate", within the `can_spend?/3` function
+  # Examples
+
+      iex> output = %OMG.Output.FungibleMoreVPToken{owner: <<1::160>>}
+      iex> OMG.Output.can_spend?(output, <<1::160>>, nil)
+      true
   """
+  def can_spend?(%OMG.Output.FungibleMoreVPToken{owner: owner}, witness, _raw_tx) when is_binary(witness) do
+    owner == witness
+  end
 
   @doc """
-  True if a particular witness can unlock a particular output to be spent, given being put in a particular transaction
+  Converts struct into a map with the output type data.
 
-  Intended to be called in stateful validation
-  """
-  def can_spend?(output_spent, witness, raw_tx)
+  ## Examples
 
-  @doc """
-  Returns the input pointer that the output should be later referenced by in inputs to be spent
+      iex> output = %OMG.Output.FungibleMoreVPToken{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
+      iex> OMG.Output.to_db_value(output)
+      %{type: <<1>>, owner: <<1::160>>, currency: <<1::160>>, amount: 1}
   """
-  def input_pointer(output, blknum, tx_index, oindex, tx, hash)
-
-  @doc """
-  Transforms into a db-specific term
-  """
-  def to_db_value(output)
+  def to_db_value(%OMG.Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount})
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) do
+    %{type: @output_type_marker, owner: owner, currency: currency, amount: amount}
+  end
 
   @doc """
   Transforms into a RLP-ready structure
+
+  ## Examples
+
+      iex> output = %OMG.Output.FungibleMoreVPToken{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
+      iex> OMG.Output.get_data_for_rlp(output)
+      [<<1>>, <<1::160>>, <<1::160>>, 1]
   """
-  def get_data_for_rlp(output)
+  def get_data_for_rlp(%OMG.Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}),
+    do: [@output_type_marker, owner, currency, amount]
+
+
+  defp reconstruct([owner, currency, bin_amount]) do
+    with {:ok, cur12} <- parse_address(currency),
+         {:ok, owner} <- parse_address(owner),
+         {:ok, int_amount} <- parse_int(bin_amount),
+         {:ok, amount} <- parse_amount(int_amount),
+         do: %OMG.Output.FungibleMoreVPToken{owner: owner, currency: cur12, amount: amount}
+  end
+
+  defp parse_amount(amount) when is_integer(amount) and amount > 0, do: {:ok, amount}
+  defp parse_amount(amount) when is_integer(amount), do: {:error, :amount_cant_be_zero}
+
+  defp parse_int(<<0>> <> _binary), do: {:error, :leading_zeros_in_encoded_uint}
+  defp parse_int(binary) when byte_size(binary) <= 32, do: {:ok, :binary.decode_unsigned(binary, :big)}
+  defp parse_int(binary) when byte_size(binary) > 32, do: {:error, :encoded_uint_too_big}
+
+  # necessary, because RLP handles empty string equally to integer 0
+  @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
+  defp parse_address(binary)
+  defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
+  defp parse_address(_), do: {:error, :malformed_address}
 end

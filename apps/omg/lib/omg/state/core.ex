@@ -425,14 +425,14 @@ defmodule OMG.State.Core do
     {Transaction.get_inputs(tx), utxos_from(tx, blknum, tx_index)}
   end
 
-  defp utxos_from(tx, blknum, tx_index) do
+  defp utxos_from(tx, blknum, txindex) do
     hash = Transaction.raw_txhash(tx)
 
     tx
     |> Transaction.get_outputs()
     |> Enum.with_index()
     |> Enum.map(fn {output, oindex} ->
-      {Output.Protocol.input_pointer(output, blknum, tx_index, oindex, tx, hash), output}
+      {%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}, output}
     end)
     |> Enum.into(%{}, fn {input_pointer, output} ->
       {input_pointer, %OMG.Utxo{output: output, creating_txhash: hash}}

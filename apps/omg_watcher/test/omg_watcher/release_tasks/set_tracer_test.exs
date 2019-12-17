@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.ReleaseTasks.SetTracerTest do
+defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
   use ExUnit.Case, async: false
-  alias OMG.WatcherInfo.ReleaseTasks.SetTracer
-  alias OMG.WatcherInfo.Tracer
-  @app :omg_watcher_info
+  alias OMG.Watcher.ReleaseTasks.SetTracer
+  alias OMG.Watcher.Tracer
+  @app :omg_watcher
   @configuration_old Application.get_env(@app, Tracer)
-
   setup do
     on_exit(fn ->
       # configuration is global state so we reset it to known values in case

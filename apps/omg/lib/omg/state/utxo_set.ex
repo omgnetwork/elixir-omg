@@ -47,7 +47,7 @@ defmodule OMG.State.UtxoSet do
   Provides the outputs that are pointed by `inputs` provided
   """
   @spec get_by_inputs(t(), list(tuple())) ::
-          {:ok, list(Output.Protocol.t())} | {:error, :utxo_not_found}
+          {:ok, list(OMG.Output.FungibleMoreVPToken.t())} | {:error, :utxo_not_found}
   def get_by_inputs(utxos, inputs) do
     with {:ok, utxos_for_inputs} <- get_utxos_by_inputs(utxos, inputs),
          do: {:ok, utxos_for_inputs |> Enum.reverse() |> Enum.map(fn %Utxo{output: output} -> output end)}

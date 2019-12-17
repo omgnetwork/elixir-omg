@@ -40,7 +40,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
             ],
             "success" => true
           },
-          fn -> TestHelper.rpc_call(:post, "/alarm.get", %{}) end
+          fn -> TestHelper.rpc_call(:get, "/alarm.get") end
         )
 
       :ok = :alarm_handler.clear_alarm(@alarm_1)
@@ -62,7 +62,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
             },
             "success" => false
           },
-          fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
+          fn -> TestHelper.rpc_call(:post, "/block.get") end
         )
 
       :ok = :alarm_handler.clear_alarm(@alarm_1)
@@ -104,7 +104,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
             ],
             "success" => true
           },
-          fn -> TestHelper.rpc_call(:post, "/alarm.get", %{}) end
+          fn -> TestHelper.rpc_call(:get, "/alarm.get") end
         )
 
       :ok = :alarm_handler.clear_alarm(@alarm_2)
