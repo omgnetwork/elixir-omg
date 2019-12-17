@@ -18,6 +18,8 @@ defmodule OMG.Conformance.SignatureTest do
   by both Elixir signature code and contract signature code.
   """
 
+  alias OMG.State.Transaction
+
   # FIXME: unimport
   import Support.Conformance
 
@@ -27,6 +29,11 @@ defmodule OMG.Conformance.SignatureTest do
 
   @moduletag :integration
   @moduletag :common
+
+  @good_tx_data 0
+  @good_metadata <<1::size(32)-unit(8)>>
+  @good_address <<1::size(20)-unit(8)>>
+  @good_amount <<1>>
 
   describe "elixir vs solidity conformance test" do
     test "no inputs test", %{contract: contract} do
@@ -50,85 +57,87 @@ defmodule OMG.Conformance.SignatureTest do
     end
 
     test "signature test transaction with metadata", %{contract: contract} do
-      {:ok, <<_::256>> = metadata} = DevCrypto.generate_private_key()
-
       tx =
         Transaction.Payment.new(
           [{1, 0, 0}, {1000, 555, 3}, {2000, 333, 1}, {15_015, 0, 0}],
           [{@alice, @eth, 100}, {@alice, @eth, 50}, {@bob, @eth, 75}, {@bob, @eth, 25}],
-          metadata
+          @good_metadata
         )
 
       verify(contract, tx)
     end
 
     test "transaction type is a list", %{contract: contract} do
-      good_metadata = <<1::size(32)-unit(8)>>
-      txbytes = ExRLP.encode([[<<1>>], [], [], good_metadata])
+      txbytes = ExRLP.encode([[<<1>>], [], [], @good_tx_data, @good_metadata])
 
       # FIXME: the second array is empty because I don't know yet what contract error to expect
       #        (b/c now contract accepts)
-      verify_both_error(contract, txbytes, [{:error, :malformed_transaction}], [])
+      verify_both_error(contract, txbytes, [{:error, :malformed_transaction}], ["Item must not be a list"])
     end
 
     test "output type is a list", %{contract: contract} do
       # FIXME: remove and change into a pair of pure elixir test and solc test
-      good_address = <<1::size(20)-unit(8)>>
-      good_metadata = <<1::size(32)-unit(8)>>
-      badly_typed_output = [[<<1>>], good_address, good_address, <<1>>]
-      txbytes = ExRLP.encode([<<1>>, [], [badly_typed_output], good_metadata])
+      badly_typed_output = [[<<1>>], [@good_address, @good_address, @good_amount]]
+      txbytes = ExRLP.encode([<<1>>, [], [badly_typed_output], @good_tx_data, @good_metadata])
 
       # FIXME: the second array is empty because I don't know yet what contract error to expect
       #        (b/c now contract accepts)
-      verify_both_error(contract, txbytes, [{:error, :unrecognized_output_type}], [])
+      verify_both_error(contract, txbytes, [{:error, :unrecognized_output_type}], ["Item must not be a list"])
     end
 
     test "amount is a list", %{contract: contract} do
       # FIXME: remove and change into a pair of pure elixir test and solc test
-      good_address = <<1::size(20)-unit(8)>>
-      good_metadata = <<1::size(32)-unit(8)>>
-      bad_amount_output = [<<1>>, good_address, good_address, [<<1>>]]
-      txbytes = ExRLP.encode([<<1>>, [], [bad_amount_output], good_metadata])
+      bad_amount_output = [<<1>>, [@good_address, @good_address, [<<1>>]]]
+      txbytes = ExRLP.encode([<<1>>, [], [bad_amount_output], @good_tx_data, @good_metadata])
 
       # FIXME: the second array is empty because I don't know yet what contract error to expect
       #        (b/c now contract accepts)
-      verify_both_error(contract, txbytes, [{:error, :malformed_outputs}], [])
+      verify_both_error(contract, txbytes, [{:error, :malformed_outputs}], ["Item must not be a list"])
     end
 
     test "address is a list with an address-like length of 21 bytes", %{contract: contract} do
       # FIXME: remove and change into a pair of pure elixir test and solc test
-      good_address = <<1::size(20)-unit(8)>>
-      good_metadata = <<1::size(32)-unit(8)>>
-
       bad_address_output = [
         <<1>>,
-        [<<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>, <<3>>, <<1>>, <<1>>],
-        good_address,
-        <<1>>
+        [[<<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>, <<3>>, <<1>>, <<1>>], @good_address, @good_amount]
       ]
 
-      txbytes = ExRLP.encode([<<1>>, [], [bad_address_output], good_metadata])
+      txbytes = ExRLP.encode([<<1>>, [], [bad_address_output], @good_tx_data, @good_metadata])
       # FIXME: the second array is empty because I don't know yet what contract error to expect
       #        (b/c now contract accepts)
-      verify_both_error(contract, txbytes, [{:error, :malformed_address}], [])
+      verify_both_error(contract, txbytes, [{:error, :malformed_address}], ["Item must not be a list"])
     end
 
-    test "new", %{contract: contract} do
+    test "unrecognized output type", %{contract: contract} do
       # FIXME: remove and change into a pair of pure elixir test and solc test
-      good_address = <<1::size(20)-unit(8)>>
-      good_metadata = <<1::size(32)-unit(8)>>
+      unrecognized_output = [<<2>>, [@good_address, @good_address, @good_amount]]
 
-      unrecognized_output = [
-        <<2>>,
-        good_address,
-        good_address,
-        <<1>>
-      ]
-
-      txbytes = ExRLP.encode([<<1>>, [], [unrecognized_output], good_metadata])
+      txbytes = ExRLP.encode([<<1>>, [], [unrecognized_output], @good_tx_data, @good_metadata])
       # FIXME: the second array is empty because I don't know yet what contract error to expect
       #        (b/c now contract accepts)
       verify_both_error(contract, txbytes, [{:error, :unrecognized_output_type}], [])
+    end
+
+    test "unrecognized tx type", %{contract: contract} do
+      # FIXME: remove and change into a pair of pure elixir test and solc test
+      txbytes =
+        ExRLP.encode([<<2>>, [], [[<<1>>, [@good_address, @good_address, @good_amount]]], @good_tx_data, @good_metadata])
+
+      # FIXME: the second array is empty because I don't know yet what contract error to expect
+      #        (b/c now contract accepts)
+      verify_both_error(contract, txbytes, [{:error, :malformed_transaction}], ["Invalid encoding of transaction"])
+    end
+
+    test "new3", %{contract: contract} do
+      # FIXME: remove and change into a pair of pure elixir test and solc test
+      bad_amount = <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>
+
+      txbytes =
+        ExRLP.encode([<<1>>, [], [[<<1>>, [@good_address, @good_address, bad_amount]]], @good_tx_data, @good_metadata])
+
+      # FIXME: the second array is empty because I don't know yet what contract error to expect
+      #        (b/c now contract accepts)
+      verify_both_error(contract, txbytes, [{:error, :leading_zeros_in_encoded_uint}], ["Leading zeros are invalid"])
     end
   end
 
@@ -138,20 +147,6 @@ defmodule OMG.Conformance.SignatureTest do
       tx1 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
       tx2 = Transaction.Payment.new([{2, 0, 0}], [{@alice, @eth, 100}])
       verify_distinct(contract, tx1, tx2)
-    end
-
-    test "new2", %{contract: contract} do
-      # FIXME: remove and change into a pair of pure elixir test and solc test
-      good_address = <<1::size(20)-unit(8)>>
-      good_metadata = <<1::size(32)-unit(8)>>
-      good_amount = <<1>>
-      bad_amount = <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>
-      txbytes1 = ExRLP.encode([<<1>>, [], [[<<1>>, good_address, good_address, good_amount]], good_metadata])
-      txbytes2 = ExRLP.encode([<<1>>, [], [[<<1>>, good_address, good_address, bad_amount]], good_metadata])
-
-      # FIXME: the second array is empty because I don't know yet what contract error to expect
-      #        (b/c now contract accepts)
-      verify_distinct(contract, Transaction.decode!(txbytes1), Transaction.decode!(txbytes2))
     end
   end
 end

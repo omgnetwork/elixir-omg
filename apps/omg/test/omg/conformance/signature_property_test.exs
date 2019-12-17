@@ -108,25 +108,31 @@ defmodule OMG.Conformance.SignaturePropertyTest do
       {:error, :malformed_inputs},
       {:error, :malformed_outputs},
       {:error, :malformed_transaction},
+      {:error, :malformed_tx_data},
       {:error, :malformed_metadata},
       {:error, :malformed_address},
       {:error, :unrecognized_output_type},
       {:error, :leading_zeros_in_encoded_uint},
-      {:error, :amount_cant_be_zero}
+      {:error, :amount_cant_be_zero},
+      {:error, :output_guard_cant_be_zero}
     ]
 
     solidity_decoding_errors = [
+      "Invalid encoding of transaction",
       "Leading zeros are invalid",
       "Transaction type must not be 0",
       "Null input not allowed",
       "Item is not a list",
+      "Item must not be a list",
       "Scalar 0 should be encoded as 0x80",
       "Output type must not be 0",
       "Output amount must not be 0",
+      "Output outputGuard must not be 0",
       "Item length must be 33",
       "Item length must be 21",
       "Item length must be between 1 and 33 bytes",
-      "Transaction inputs num exceeds limit"
+      "Transaction inputs num exceeds limit",
+      "txData must be 0"
     ]
 
     verify_both_error(contract, some_binary, elixir_decoding_errors, solidity_decoding_errors)

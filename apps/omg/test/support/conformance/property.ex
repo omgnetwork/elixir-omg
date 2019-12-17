@@ -71,6 +71,7 @@ defmodule Support.Conformance.Property do
 
   defp is_pair_of_distinct_terms?({base_term, new_term}), do: base_term != new_term
 
+  defp non_zero_address(), do: union([exactly(<<1::160>>), binary(20)])
   defp address(), do: union([exactly(<<0::160>>), exactly(<<1::160>>), binary(20)])
   defp hash(), do: union([exactly(<<0::256>>), exactly(<<1::256>>), binary(32)])
 
@@ -99,7 +100,7 @@ defmodule Support.Conformance.Property do
 
   # FIXME: revisit the case of negative amounts, funny things happen
   defp output_tuple() do
-    let [owner <- address(), currency <- address(), amount <- pos_integer()] do
+    let [owner <- non_zero_address(), currency <- address(), amount <- pos_integer()] do
       {owner, currency, amount}
     end
   end
