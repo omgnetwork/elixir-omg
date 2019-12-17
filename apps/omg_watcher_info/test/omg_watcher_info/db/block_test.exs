@@ -58,6 +58,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       results = DB.Block.get_blocks(paginator)
 
       assert length(results.data) == 3
+      assert Enum.all?(results.data, fn block -> %DB.Block{} = block end)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
