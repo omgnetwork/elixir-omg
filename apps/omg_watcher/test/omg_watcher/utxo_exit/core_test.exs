@@ -42,7 +42,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
              amount: 10,
              currency: @eth,
              owner: alice.addr,
-             output_type: <<1>>
+             output_type: OMG.WireFormatTypes.output_type_for(:output_payment_v1)
            }
          })}
 

@@ -947,7 +947,7 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :bob, :carol]
   test "getting user utxos from utxos_query_result",
        %{alice: alice, bob: bob, carol: carol} do
-    output_type = <<1>>
+    output_type = OMG.WireFormatTypes.output_type_for(:output_payment_v1)
 
     utxos_query_result = [
       {{1000, 0, 0},

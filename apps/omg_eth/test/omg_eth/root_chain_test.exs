@@ -16,6 +16,7 @@ defmodule OMG.Eth.RootChainTest do
   alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
+  alias OMG.WireFormatTypes
   alias Support.DevHelper
   alias Support.RootChainHelper
 
@@ -23,6 +24,8 @@ defmodule OMG.Eth.RootChainTest do
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @payment_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
+  @payment_output_type WireFormatTypes.output_type_for(:output_payment_v1)
   @moduletag :common
 
   setup do
@@ -98,7 +101,7 @@ defmodule OMG.Eth.RootChainTest do
       # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
       # payment tx_type, no inputs, one output, metadata
       tx =
-        [<<1>>, [], [[<<1>>, contract.authority_address, @eth, 1]], <<0::256>>]
+        [@payment_tx_type, [], [[@payment_output_type, contract.authority_address, @eth, 1]], <<0::256>>]
         |> ExRLP.encode()
 
       {:ok, tx_hash} =

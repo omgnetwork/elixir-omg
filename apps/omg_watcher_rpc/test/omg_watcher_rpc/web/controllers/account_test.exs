@@ -27,7 +27,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @payment_output_type <<1>>
+  @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
   @eth_hex @eth |> Encoding.to_hex()
   @other_token <<127::160>>
   @other_token_hex @other_token |> Encoding.to_hex()
