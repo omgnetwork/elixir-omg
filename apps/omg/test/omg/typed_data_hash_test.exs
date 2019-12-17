@@ -98,7 +98,7 @@ defmodule OMG.TypedDataHashTest do
         "Transaction(" <>
           "Input input0,Input input1,Input input2,Input input3," <>
           "Output output0,Output output1,Output output2,Output output3," <>
-          "bytes32 metadata)" <>
+          "uint256 txdata,bytes32 metadata)" <>
           "Input(uint256 blknum,uint256 txindex,uint256 oindex)" <>
           "Output(uint256 outputType,bytes20 outputGuard,address currency,uint256 amount)"
 
@@ -189,7 +189,7 @@ defmodule OMG.TypedDataHashTest do
                "uint256 txType," <>
                "Input input0,Input input1,Input input2,Input input3," <>
                "Output output0,Output output1,Output output2,Output output3," <>
-               "bytes32 metadata)" ==
+               "uint256 txData,bytes32 metadata)" ==
                TypedDataHash.Types.encode_type(:Transaction)
 
       assert "Input(uint256 blknum,uint256 txindex,uint256 oindex)" ==

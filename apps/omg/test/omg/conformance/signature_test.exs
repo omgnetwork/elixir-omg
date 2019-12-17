@@ -79,26 +79,10 @@ defmodule OMG.Conformance.SignatureTest do
   #   [contract: signtest_addr]
   # end
 
-  test "signature with empty transaction", context do
-    use_cassette "712_eip_mock/empty_transaction", match_requests_on: [:request_body] do
-      contract = context[:contract]
-      tx = TestHelper.create_signed([], [])
-      verify(contract, tx)
-    end
-  end
-
   test "signature with no inputs", context do
     use_cassette "712_eip_mock/no_inputs", match_requests_on: [:request_body] do
       contract = context[:contract]
       tx = TestHelper.create_signed([], [{@alice, @eth, 100}])
-      verify(contract, tx)
-    end
-  end
-
-  test "signature with no outputs", context do
-    use_cassette "712_eip_mock/no_outputs", match_requests_on: [:request_body] do
-      contract = context[:contract]
-      tx = TestHelper.create_signed([{1, 0, 0, @alice}], [])
       verify(contract, tx)
     end
   end

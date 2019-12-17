@@ -30,13 +30,21 @@ defmodule OMG.Output.FungibleMoreVPToken do
     %__MODULE__{owner: owner, currency: currency, amount: amount}
   end
 
-  def reconstruct([owner, currency, bin_amount]) do
-    with {:ok, cur12} <- parse_address(currency),
-         {:ok, owner} <- parse_address(owner),
-         {:ok, int_amount} <- parse_int(bin_amount),
+  @doc """
+  Reconstructs the structure from a list of RLP items
+
+  NOTE: the of items should be a single-item list holding a list of three items. The output type has been parsed earlier
+  """
+  def reconstruct([[owner_rlp, currency_rlp, amount_rlp]]) do
+    with {:ok, cur12} <- parse_address(currency_rlp),
+         {:ok, owner} <- parse_address(owner_rlp),
+         :ok <- non_zero_owner(owner),
+         {:ok, int_amount} <- parse_int(amount_rlp),
          {:ok, amount} <- parse_amount(int_amount),
          do: %__MODULE__{owner: owner, currency: cur12, amount: amount}
   end
+
+  def reconstruct(_), do: {:error, :malformed_outputs}
 
   defp parse_amount(amount) when is_integer(amount) and amount > 0, do: {:ok, amount}
   defp parse_amount(amount) when is_integer(amount), do: {:error, :amount_cant_be_zero}
@@ -50,6 +58,10 @@ defmodule OMG.Output.FungibleMoreVPToken do
   defp parse_address(binary)
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
+
+  # FIXME unit test
+  defp non_zero_owner(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
+  defp non_zero_owner(_), do: :ok
 end
 
 defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
@@ -77,5 +89,5 @@ defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
   end
 
   def get_data_for_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}),
-    do: [@output_type_marker, owner, currency, amount]
+    do: [@output_type_marker, [owner, currency, amount]]
 end

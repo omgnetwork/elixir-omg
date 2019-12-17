@@ -96,10 +96,11 @@ defmodule OMG.State.Transaction.RecoveredTest do
         Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, @eth, 12}])
         |> DevCrypto.sign([alice.priv, alice.priv])
 
-      [_payment_marker, inputs, outputs, _metadata] = Transaction.raw_txbytes(tx) |> ExRLP.decode()
+      [_payment_marker, inputs, outputs, _txdata, _metadata] = Transaction.raw_txbytes(tx) |> ExRLP.decode()
 
       # sanity
-      assert {:ok, _} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs]))
+      assert {:ok, _} =
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, 0, <<0::256>>]))
 
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<192>>)
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<0x80>>)
@@ -108,52 +109,68 @@ defmodule OMG.State.Transaction.RecoveredTest do
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, []]))
 
       assert {:error, :malformed_transaction} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, inputs, outputs]))
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, inputs, outputs, 0, <<0::256>>]))
 
       assert {:error, :malformed_transaction} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, "bad_marker", inputs, outputs]))
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, "bad_marker", inputs, outputs, 0, <<0::256>>]))
 
       assert {:error, :malformed_witnesses} ==
-               Transaction.Recovered.recover_from(ExRLP.encode([[<<1>>, <<1>>], @payment_marker, inputs, outputs]))
+               Transaction.Recovered.recover_from(
+                 ExRLP.encode([[<<1>>, <<1>>], @payment_marker, inputs, outputs, 0, <<0::256>>])
+               )
 
       assert {:error, :malformed_witnesses} ==
-               Transaction.Recovered.recover_from(ExRLP.encode([<<1>>, @payment_marker, inputs, outputs]))
+               Transaction.Recovered.recover_from(
+                 ExRLP.encode([<<1>>, @payment_marker, inputs, outputs, 0, <<0::256>>])
+               )
 
       assert {:error, :malformed_inputs} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, 42, outputs]))
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, 42, outputs, 0, <<0::256>>]))
 
       assert {:error, :malformed_inputs} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, [[1, 2]], outputs]))
+               Transaction.Recovered.recover_from(
+                 ExRLP.encode([sigs, @payment_marker, [[1, 2]], outputs, 0, <<0::256>>])
+               )
 
       assert {:error, :malformed_inputs} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, [[1, 2, 'a']], outputs]))
+               Transaction.Recovered.recover_from(
+                 ExRLP.encode([sigs, @payment_marker, [[1, 2, 'a']], outputs, 0, <<0::256>>])
+               )
 
       assert {:error, :malformed_outputs} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, 42]))
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, 42, 0, <<0::256>>]))
 
       assert {:error, :malformed_outputs} =
                Transaction.Recovered.recover_from(
-                 ExRLP.encode([sigs, @payment_marker, inputs, [[<<1>>, alice.addr, alice.addr]]])
+                 ExRLP.encode([sigs, @payment_marker, inputs, [[<<1>>, alice.addr, alice.addr, 1]], 0, <<0::256>>])
                )
 
       assert {:error, :malformed_outputs} =
                Transaction.Recovered.recover_from(
-                 ExRLP.encode([sigs, @payment_marker, inputs, [[<<1>>, alice.addr, alice.addr, 'a']]])
+                 ExRLP.encode([sigs, @payment_marker, inputs, [[<<1>>, [alice.addr, alice.addr]]], 0, <<0::256>>])
+               )
+
+      assert {:error, :malformed_outputs} =
+               Transaction.Recovered.recover_from(
+                 ExRLP.encode([sigs, @payment_marker, inputs, [[<<1>>, [alice.addr, alice.addr, 'a']]], 0, <<0::256>>])
                )
 
       assert {:error, :unrecognized_output_type} =
                Transaction.Recovered.recover_from(
-                 ExRLP.encode([sigs, @payment_marker, inputs, [[<<232>>, alice.addr, alice.addr, 1]]])
+                 ExRLP.encode([sigs, @payment_marker, inputs, [[<<232>>, [alice.addr, alice.addr, 1]]], 0, <<0::256>>])
                )
 
       assert {:error, :malformed_metadata} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, ""]))
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, 0, ""]))
 
       assert {:error, :malformed_metadata} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, <<1::224>>]))
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, 0, []]))
 
       assert {:error, :malformed_metadata} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, <<2::288>>]))
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, 0, <<1::224>>]))
+
+      assert {:error, :malformed_metadata} =
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, 0, <<2::288>>]))
     end
 
     @tag fixtures: [:alice, :bob]
@@ -269,7 +286,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
     test "Decoding transaction with shorter/longer address fails" do
       outputs_index_in_rlp = 3
-      [[type, owner, currency, amount]] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
+      [[type, [owner, currency, amount]]] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
 
       checker = fn bad_output ->
         assert {:error, :malformed_address} =
@@ -280,14 +297,14 @@ defmodule OMG.State.Transaction.RecoveredTest do
       end
 
       [
-        [type, binary_part(owner, 1, 19), currency, amount],
-        [type, binary_part(owner, 0, 19), currency, amount],
-        [type, owner, binary_part(currency, 1, 19), amount],
-        [type, owner, binary_part(currency, 0, 19), amount],
-        [type, owner, <<1>>, amount],
-        [type, <<1>>, currency, amount],
-        [type, owner, "", amount],
-        [type, "", currency, amount]
+        [type, [binary_part(owner, 1, 19), currency, amount]],
+        [type, [binary_part(owner, 0, 19), currency, amount]],
+        [type, [owner, binary_part(currency, 1, 19), amount]],
+        [type, [owner, binary_part(currency, 0, 19), amount]],
+        [type, [owner, <<1>>, amount]],
+        [type, [<<1>>, currency, amount]],
+        [type, [owner, "", amount]],
+        [type, ["", currency, amount]]
       ]
       |> Enum.map(checker)
     end
@@ -300,10 +317,19 @@ defmodule OMG.State.Transaction.RecoveredTest do
     end
 
     @tag fixtures: [:alice]
+    test "Decoding transaction with zero output guard in outputs fails ", %{alice: alice} do
+      no_account = %{addr: @zero_address}
+
+      assert {:error, :output_guard_cant_be_zero} =
+               TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{no_account, 10}, {alice, 100}])
+               |> Transaction.Recovered.recover_from()
+    end
+
+    @tag fixtures: [:alice]
     test "Decoding transaction with zero output fails", %{alice: alice} do
       no_account = %{addr: @zero_address}
 
-      assert {:error, :amount_cant_be_zero} =
+      assert {:error, :output_guard_cant_be_zero} =
                TestHelper.create_encoded([{1000, 0, 0, alice}], [{no_account, @zero_address, 0}])
                |> Transaction.Recovered.recover_from()
     end
@@ -321,12 +347,12 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
     test "Decoding transaction with leading-zeros in output amount fails" do
       outputs_index_in_rlp = 3
-      [[type, owner, currency, _amount]] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
+      [[type, [owner, currency, _amount]]] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
 
       checker = fn bad_amount ->
         assert {:error, :leading_zeros_in_encoded_uint} =
                  good_tx_rlp_items()
-                 |> List.replace_at(outputs_index_in_rlp, [[type, owner, currency, bad_amount]])
+                 |> List.replace_at(outputs_index_in_rlp, [[type, [owner, currency, bad_amount]]])
                  |> ExRLP.encode()
                  |> Transaction.Recovered.recover_from()
       end
@@ -337,12 +363,12 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
     test "Decoding transaction with >32 bytes in output amount fails" do
       outputs_index_in_rlp = 3
-      [[type, owner, currency, _amount]] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
+      [[type, [owner, currency, _amount]]] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
       bad_amount = :binary.copy(<<1>>, 33)
 
       assert {:error, :encoded_uint_too_big} =
                good_tx_rlp_items()
-               |> List.replace_at(outputs_index_in_rlp, [[type, owner, currency, bad_amount]])
+               |> List.replace_at(outputs_index_in_rlp, [[type, [owner, currency, bad_amount]]])
                |> ExRLP.encode()
                |> Transaction.Recovered.recover_from()
     end

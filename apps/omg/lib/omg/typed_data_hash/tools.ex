@@ -95,12 +95,16 @@ defmodule OMG.TypedDataHash.Tools do
       |> Stream.concat(Stream.cycle([empty_output_hash]))
       |> Enum.take(Transaction.Payment.max_outputs())
 
+    tx_data = ABI.TypeEncoder.encode_raw([0], [{:uint, 256}])
+    metadata = metadata || <<0::256>>
+
     [
       @transaction_type_hash,
       ABI.TypeEncoder.encode_raw([:binary.decode_unsigned(plasma_framework_tx_type)], [{:uint, 256}]),
       input_hashes,
       output_hashes,
-      metadata || <<0::256>>
+      tx_data,
+      metadata
     ]
     |> List.flatten()
     |> Enum.join()
