@@ -145,8 +145,8 @@ defmodule Itest.StandardExitClient do
     _ = Logger.info("Starting standard exit.")
 
     data =
-      ABI.encode("startStandardExit((uint256,bytes,bytes,bytes))", [
-        {exit_data.utxo_pos, Encoding.to_binary(exit_data.txbytes), "", Encoding.to_binary(exit_data.proof)}
+      ABI.encode("startStandardExit((uint256,bytes,bytes))", [
+        {exit_data.utxo_pos, Encoding.to_binary(exit_data.txbytes), Encoding.to_binary(exit_data.proof)}
       ])
 
     txmap = %{
