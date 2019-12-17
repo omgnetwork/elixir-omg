@@ -391,8 +391,8 @@ defmodule OMG.Eth.RootChain do
 
   defp prepare_exit_started(logs) do
     args = [:args]
-    types = ["(uint256,bytes,bytes,bytes)"]
-    tuple_arg_names = [:utxo_pos, :output_tx, :output_guard_preimage, :output_tx_inclusion_proof]
+    types = ["(uint256,bytes,bytes)"]
+    tuple_arg_names = [:utxo_pos, :output_tx, :output_tx_inclusion_proof]
 
     exits =
       logs
@@ -417,18 +417,8 @@ defmodule OMG.Eth.RootChain do
 
   defp prepare_in_flight_exit_started(logs) do
     args = [:args]
-    types = ["(bytes,bytes[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[])"]
-
-    tuple_arg_names = [
-      :in_flight_tx,
-      :input_txs,
-      :input_utxos_pos,
-      :output_guard_preimages_for_inputs,
-      :input_inclusion_proofs,
-      :in_flight_tx_confirm_sigs,
-      :in_flight_tx_sigs,
-      :optional_args
-    ]
+    types = ["(bytes,bytes[],uint256[],bytes[],bytes[])"]
+    tuple_arg_names = [:in_flight_tx, :input_txs, :input_utxos_pos, :input_inclusion_proofs, :in_flight_tx_sigs]
 
     result =
       logs
@@ -516,7 +506,7 @@ defmodule OMG.Eth.RootChain do
 
   defp prepare_in_flight_exit_challenged(logs) do
     args = [:args]
-    types = ["(bytes,uint256,bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes)"]
+    types = ["(bytes,uint256,bytes,uint16,bytes,uint16,uint256,bytes,bytes)"]
 
     tuple_arg_names = [
       :input_tx_bytes,
