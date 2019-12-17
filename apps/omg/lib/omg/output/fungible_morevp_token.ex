@@ -19,6 +19,7 @@ defmodule OMG.Output.FungibleMoreVPToken do
   they are indistinguishable from code perspective.
   """
   alias OMG.Crypto
+  alias OMG.RawData
   defstruct [:output_type, :owner, :currency, :amount]
 
   @type t :: %__MODULE__{
@@ -29,30 +30,16 @@ defmodule OMG.Output.FungibleMoreVPToken do
         }
 
   def from_db_value(%{owner: owner, currency: currency, amount: amount, output_type: output_type})
-      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_binary(output_type) do
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
     %__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}
   end
 
   def reconstruct([output_type, owner, currency, bin_amount]) do
-    with {:ok, cur12} <- parse_address(currency),
-         {:ok, owner} <- parse_address(owner),
-         {:ok, int_amount} <- parse_int(bin_amount),
-         {:ok, amount} <- parse_amount(int_amount),
+    with {:ok, cur12} <- RawData.parse_address(currency),
+         {:ok, owner} <- RawData.parse_address(owner),
+         {:ok, amount} <- RawData.parse_amount(bin_amount),
          do: %__MODULE__{owner: owner, currency: cur12, amount: amount, output_type: output_type}
   end
-
-  defp parse_amount(amount) when is_integer(amount) and amount > 0, do: {:ok, amount}
-  defp parse_amount(amount) when is_integer(amount), do: {:error, :amount_cant_be_zero}
-
-  defp parse_int(<<0>> <> _binary), do: {:error, :leading_zeros_in_encoded_uint}
-  defp parse_int(binary) when byte_size(binary) <= 32, do: {:ok, :binary.decode_unsigned(binary, :big)}
-  defp parse_int(binary) when byte_size(binary) > 32, do: {:error, :encoded_uint_too_big}
-
-  # necessary, because RLP handles empty string equally to integer 0
-  @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
-  defp parse_address(binary)
-  defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
-  defp parse_address(_), do: {:error, :malformed_address}
 end
 
 defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
@@ -72,7 +59,7 @@ defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
     do: Utxo.position(blknum, tx_index, oindex)
 
   def to_db_value(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount, output_type: output_type})
-      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_binary(output_type) do
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
     %{owner: owner, currency: currency, amount: amount, output_type: output_type}
   end
 

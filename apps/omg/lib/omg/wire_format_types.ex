@@ -15,39 +15,36 @@
 defmodule OMG.WireFormatTypes do
   @moduledoc """
   Provides wire format's tx/output type values and mapping to modules which decodes them.
-
-  Note: Are these types integers? Yes, both `1` and `<<1>>` are RLP-encoded to the same `<<1>>` value.
-  We keep them here in binary, because when decoded its just binary value.
   """
 
-  @type module_map_t() :: %{binary() => atom()}
+  @type module_map_t() :: %{non_neg_integer() => atom()}
 
   @tx_type_values %{
-    tx_payment_v1: <<1>>,
-    tx_fee_token_claim: <<3>>
+    tx_payment_v1: 1,
+    tx_fee_token_claim: 3
   }
 
   @tx_type_modules %{
-    <<1>> => OMG.State.Transaction.Payment,
-    <<3>> => OMG.State.Transaction.FeeTokenClaim
+    1 => OMG.State.Transaction.Payment,
+    3 => OMG.State.Transaction.FeeTokenClaim
   }
 
   @input_pointer_type_values %{
-    input_pointer_utxo_position: <<1>>
+    input_pointer_utxo_position: 1
   }
 
   @input_pointer_type_modules %{
-    <<1>> => OMG.InputPointer.UtxoPosition
+    1 => OMG.InputPointer.UtxoPosition
   }
 
   @output_type_values %{
-    output_payment_v1: <<1>>,
-    output_fee_token_claim: <<2>>
+    output_payment_v1: 1,
+    output_fee_token_claim: 2
   }
 
   @output_type_modules %{
-    <<1>> => OMG.Output.FungibleMoreVPToken,
-    <<2>> => OMG.Output.FungibleMoreVPToken
+    1 => OMG.Output.FungibleMoreVPToken,
+    2 => OMG.Output.FungibleMoreVPToken
   }
 
   @known_tx_types Map.keys(@tx_type_values)
@@ -57,7 +54,7 @@ defmodule OMG.WireFormatTypes do
   @doc """
   Returns wire format type value of known transaction type
   """
-  @spec tx_type_for(tx_type :: atom()) :: binary()
+  @spec tx_type_for(tx_type :: atom()) :: non_neg_integer()
   def tx_type_for(tx_type) when tx_type in @known_tx_types, do: @tx_type_values[tx_type]
 
   @doc """
@@ -69,7 +66,7 @@ defmodule OMG.WireFormatTypes do
   @doc """
   Returns wire format type value of known input pointer type
   """
-  @spec input_pointer_type_for(input_pointer_type :: atom()) :: binary()
+  @spec input_pointer_type_for(input_pointer_type :: atom()) :: non_neg_integer()
   def input_pointer_type_for(input_pointer_type) when input_pointer_type in @known_input_pointer_types,
     do: @input_pointer_type_values[input_pointer_type]
 
@@ -82,7 +79,7 @@ defmodule OMG.WireFormatTypes do
   @doc """
   Returns wire format type value of known output type
   """
-  @spec output_type_for(output_type :: atom()) :: binary()
+  @spec output_type_for(output_type :: atom()) :: non_neg_integer()
   def output_type_for(output_type) when output_type in @known_output_types, do: @output_type_values[output_type]
 
   @doc """

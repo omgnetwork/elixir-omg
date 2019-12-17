@@ -20,15 +20,23 @@ defmodule OMG.Output do
   This module specificially dispatches generic calls to the various specific types
   """
 
+  alias OMG.RawData
+
   @output_types_modules OMG.WireFormatTypes.output_type_modules()
   @output_types Map.keys(@output_types_modules)
 
-  def dispatching_reconstruct([output_type | _] = rlp_decoded_data) when output_type in @output_types do
-    protocol_module = @output_types_modules[output_type]
-    protocol_module.reconstruct(rlp_decoded_data)
+  def dispatching_reconstruct([raw_type | rlp_decoded_chunks]) when is_binary(raw_type) do
+    case RawData.parse_uint256(raw_type) do
+      {:ok, output_type} when output_type in @output_types ->
+        protocol_module = @output_types_modules[output_type]
+        protocol_module.reconstruct([output_type | rlp_decoded_chunks])
+
+      {:ok, _unrecognized_type} ->
+        {:error, :unrecognized_output_type}
+    end
   end
 
-  def dispatching_reconstruct(_), do: {:error, :unrecognized_output_type}
+  def dispatching_reconstruct(what), do: {:error, :malformed_output}
 
   def from_db_value(%{type: output_type} = db_value), do: @output_types_modules[output_type].from_db_value(db_value)
   # default clause for backwards compatibility

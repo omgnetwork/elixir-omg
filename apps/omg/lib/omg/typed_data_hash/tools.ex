@@ -96,7 +96,7 @@ defmodule OMG.TypedDataHash.Tools do
 
     [
       @transaction_type_hash,
-      ABI.TypeEncoder.encode_raw([:binary.decode_unsigned(plasma_framework_tx_type)], [{:uint, 256}]),
+      ABI.TypeEncoder.encode_raw([plasma_framework_tx_type], [{:uint, 256}]),
       input_hashes,
       output_hashes,
       metadata || <<0::256>>
@@ -124,7 +124,7 @@ defmodule OMG.TypedDataHash.Tools do
 
     [
       @output_type_hash,
-      ABI.TypeEncoder.encode_raw([:binary.decode_unsigned(output_type)], [{:uint, 256}]),
+      ABI.TypeEncoder.encode_raw([output_type], [{:uint, 256}]),
       ABI.TypeEncoder.encode_raw([owner], [{:bytes, 20}]),
       ABI.TypeEncoder.encode_raw([currency], [:address]),
       ABI.TypeEncoder.encode_raw([amount], [{:uint, 256}])
