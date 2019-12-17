@@ -19,9 +19,6 @@ defmodule OMG.Watcher.UtxoExit.Core do
 
   alias OMG.Block
   alias OMG.State.Transaction
-  alias OMG.Utxo
-
-  require Utxo
 
   def compose_block_standard_exit(:not_found, _), do: {:error, :utxo_not_found}
 
@@ -48,8 +45,8 @@ defmodule OMG.Watcher.UtxoExit.Core do
     # what type data is being passed into the OMG.InputPointer protocol.
     {:utxo_position, blknum, txindex, oindex} = OMG.InputPointer.from_db_key(db_utxo_pos)
 
-    %Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner}} =
-      Utxo.from_db_value(db_utxo_value)
+    %OMG.Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner}} =
+      OMG.Utxo.from_db_value(db_utxo_value)
 
     tx = Transaction.Payment.new([], [{owner, currency, amount}])
     txs = [Transaction.Signed.encode(%Transaction.Signed{raw_tx: tx, sigs: []})]

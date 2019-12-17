@@ -20,10 +20,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   use OMG.Utils.LoggerExt
 
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
-
-  require Utxo
 
   import Ecto.Query, only: [from: 2, where: 2, where: 3, select: 3, join: 5, distinct: 2]
 

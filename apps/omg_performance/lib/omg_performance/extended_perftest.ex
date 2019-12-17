@@ -22,10 +22,7 @@ defmodule OMG.Performance.ExtendedPerftest do
   use OMG.Utils.LoggerExt
 
   alias OMG.TestHelper
-  alias OMG.Utxo
   alias Support.Integration.DepositHelper
-
-  require Utxo
 
   @make_deposit_timeout 600_000
 

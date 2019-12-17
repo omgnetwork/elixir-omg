@@ -18,11 +18,8 @@ defmodule OMG.WatcherRPC.Web.View.TransactionTest do
   use OMG.WatcherInfo.Fixtures
 
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherRPC.Web.View
-
-  require Utxo
 
   describe "render/2 with transaction.json" do
     @tag fixtures: [:initial_blocks]

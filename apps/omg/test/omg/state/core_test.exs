@@ -24,11 +24,8 @@ defmodule OMG.State.CoreTest do
   alias OMG.Fees
   alias OMG.State.Core
   alias OMG.State.Transaction
-  alias OMG.Utxo
 
   import OMG.TestHelper
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
@@ -1024,6 +1021,6 @@ defmodule OMG.State.CoreTest do
   defp to_utxo_kv({blknum, txindex, oindex, owner, currency, amount}),
     do: {
       {:utxo_position, blknum, txindex, oindex},
-      %Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner.addr}}
+      %OMG.Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner.addr}}
     }
 end

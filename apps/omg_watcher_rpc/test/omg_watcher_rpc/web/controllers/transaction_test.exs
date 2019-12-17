@@ -628,9 +628,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns appropriate schema", %{alice: alice, bob: bob} do
-      alias OMG.Utxo
-      require Utxo
-
       alice_to_bob = 100
       fee = 5
       metadata = (alice.addr <> bob.addr) |> OMG.Crypto.hash() |> Encoding.to_hex()

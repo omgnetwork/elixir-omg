@@ -22,11 +22,8 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
 
   alias OMG.Block
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.TxAppendix
-
-  require Utxo
 
   @type t() :: %__MODULE__{
           signed_tx: Transaction.Signed.t(),

@@ -19,12 +19,9 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
   alias OMG.State.Transaction
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.HttpRPC.Client
   alias OMG.WatcherInfo.UtxoSelection
-
-  require Utxo
 
   @default_transactions_limit 200
   @empty_metadata <<0::256>>

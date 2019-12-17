@@ -41,10 +41,6 @@ defmodule OMG.Performance.ByzantineEvents do
   alias OMG.Performance.HttpRPC.WatcherClient
   alias Support.WaitFor
 
-  alias OMG.Utxo
-
-  require Utxo
-
   @doc """
   For given utxo positions shuffle them and ask the watcher for exit data
 

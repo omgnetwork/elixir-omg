@@ -25,12 +25,9 @@ defmodule OMG.State do
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
   alias OMG.State.UtxoSet
-  alias OMG.Utxo
 
   use GenServer
   use OMG.Utils.LoggerExt
-
-  require Utxo
 
   @type exec_error :: Validator.exec_error()
 

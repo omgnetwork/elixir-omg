@@ -18,11 +18,8 @@ defmodule OMG.Watcher.API.InFlightExit do
   """
 
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.API
   alias OMG.Watcher.ExitProcessor
-
-  require Utxo
 
   @type in_flight_exit() :: %{
           in_flight_tx: binary(),

@@ -23,10 +23,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   alias OMG.Crypto
   alias OMG.Eth.Encoding
-  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
-
-  require Utxo
 
   @primary_key false
   schema "ethevents" do

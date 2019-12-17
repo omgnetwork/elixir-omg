@@ -33,7 +33,6 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   alias OMG.Block
   alias OMG.Crypto
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -42,8 +41,6 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   alias OMG.Watcher.ExitProcessor.KnownTx
 
   import OMG.Watcher.ExitProcessor.Tools
-
-  require Utxo
 
   use OMG.Utils.LoggerExt
 

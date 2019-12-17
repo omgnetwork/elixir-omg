@@ -26,9 +26,6 @@ defmodule OMG.State.Transaction.RecoveredTest do
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.TestHelper
-  alias OMG.Utxo
-
-  require Utxo
 
   @payment_marker 1
 

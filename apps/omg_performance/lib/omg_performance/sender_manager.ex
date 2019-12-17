@@ -20,10 +20,6 @@ defmodule OMG.Performance.SenderManager do
   use GenServer
   use OMG.Utils.LoggerExt
 
-  alias OMG.Utxo
-
-  require Utxo
-
   def sender_stats(new_stats) do
     GenServer.cast(__MODULE__, {:stats, Map.put(new_stats, :timestamp, System.monotonic_time(:millisecond))})
   end

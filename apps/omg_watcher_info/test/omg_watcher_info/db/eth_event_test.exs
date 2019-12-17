@@ -18,10 +18,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
   use OMG.Fixtures
 
   alias OMG.Crypto
-  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

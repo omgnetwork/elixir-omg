@@ -18,13 +18,10 @@ defmodule OMG.Watcher.Integration.TestHelper do
   """
 
   alias OMG.State
-  alias OMG.Utxo
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WaitFor
   alias Support.WatcherHelper
-
-  require Utxo
 
   def wait_for_byzantine_events(event_names, timeout) do
     fn ->

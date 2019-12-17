@@ -31,14 +31,11 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
   """
 
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   use OMG.Utils.LoggerExt
-
-  require Utxo
 
   @doc """
   Finalize exits based on Ethereum events, removing from tracked state if valid.

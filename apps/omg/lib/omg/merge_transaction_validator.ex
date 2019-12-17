@@ -21,9 +21,6 @@ defmodule OMG.MergeTransactionValidator do
 
   alias OMG.Output
   alias OMG.State.Transaction
-  alias OMG.Utxo
-
-  require Utxo
 
   use OMG.Utils.LoggerExt
 

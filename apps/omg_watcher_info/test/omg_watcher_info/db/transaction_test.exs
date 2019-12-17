@@ -26,10 +26,8 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   use Plug.Test
 
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
 
-  require Utxo
   import ExUnit.CaptureLog
 
   @tag fixtures: [:initial_blocks]

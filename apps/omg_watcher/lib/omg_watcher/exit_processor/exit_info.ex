@@ -21,9 +21,6 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
   alias OMG.Crypto
   alias OMG.State.Transaction
-  alias OMG.Utxo
-
-  require Utxo
 
   @enforce_keys [:amount, :currency, :owner, :exit_id, :exiting_txbytes, :is_active, :eth_height]
   defstruct @enforce_keys

@@ -30,9 +30,7 @@ defmodule OMG.TypedDataHashTest do
   alias OMG.State.Transaction
   alias OMG.TypedDataHash
   alias OMG.TypedDataHash.Tools
-  alias OMG.Utxo
 
-  require Utxo
   require OMG.TypedDataHash.Tools
 
   @test_domain_separator Tools.domain_separator(%{

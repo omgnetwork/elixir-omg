@@ -17,10 +17,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
-  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

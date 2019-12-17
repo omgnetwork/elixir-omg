@@ -20,13 +20,10 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   use OMG.ChildChain.Integration.Fixtures
   use Plug.Test
 
-  alias OMG.Utxo
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-
-  require Utxo
 
   @moduletag :integration
   @moduletag :watcher

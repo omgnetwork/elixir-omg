@@ -21,11 +21,8 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
   alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.TestHelper
-  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
-
-  require Utxo
 
   import OMG.Watcher.ExitProcessor.TestHelper
 

@@ -21,7 +21,6 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
   alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.UtxoExit.Core
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

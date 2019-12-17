@@ -24,10 +24,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   alias OMG.DevCrypto
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.Core
-
-  require Utxo
 
   import OMG.Watcher.ExitProcessor.TestHelper
 

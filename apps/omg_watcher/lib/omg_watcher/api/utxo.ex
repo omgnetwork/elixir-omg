@@ -17,12 +17,11 @@ defmodule OMG.Watcher.API.Utxo do
   Module provides API for utxos
   """
 
-  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.UtxoExit.Core
 
-  require Utxo
-  import Utxo, only: [is_deposit: 1]
+  require OMG.Utxo
+  import OMG.Utxo, only: [is_deposit: 1]
 
   @type exit_t() :: %{
           utxo_pos: pos_integer(),

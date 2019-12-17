@@ -19,10 +19,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utxo
   alias OMG.WatcherRPC.Web.Validator.TypedDataSigned
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @other_token <<127::160>>

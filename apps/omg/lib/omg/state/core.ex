@@ -56,10 +56,8 @@ defmodule OMG.State.Core do
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
   alias OMG.State.UtxoSet
-  alias OMG.Utxo
 
   use OMG.Utils.LoggerExt
-  require Utxo
 
   @type t() :: %__MODULE__{
           height: non_neg_integer(),
@@ -202,7 +200,7 @@ defmodule OMG.State.Core do
 
   # attempts to build a standard response data about a single UTXO, based on an abstract `output` structure
   # so that the data can be useful to discover exitable UTXOs
-  defp utxo_to_exitable_utxo_map(%Utxo{output: output}, {:utxo_position, blknum, txindex, oindex}) do
+  defp utxo_to_exitable_utxo_map(%OMG.Utxo{output: output}, {:utxo_position, blknum, txindex, oindex}) do
     output
     |> Map.from_struct()
     |> Map.take([:owner, :currency, :amount])
@@ -430,7 +428,7 @@ defmodule OMG.State.Core do
       {Output.Protocol.input_pointer(output, blknum, tx_index, oindex, tx, hash), output}
     end)
     |> Enum.into(%{}, fn {input_pointer, output} ->
-      {input_pointer, %Utxo{output: output, creating_txhash: hash}}
+      {input_pointer, %OMG.Utxo{output: output, creating_txhash: hash}}
     end)
   end
 

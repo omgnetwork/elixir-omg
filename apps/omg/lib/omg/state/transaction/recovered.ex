@@ -21,9 +21,6 @@ defmodule OMG.State.Transaction.Recovered do
   """
 
   alias OMG.State.Transaction
-  alias OMG.Utxo
-
-  require Utxo
 
   @type tx_bytes() :: binary()
 

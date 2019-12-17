@@ -21,9 +21,6 @@ defmodule OMG.State.MeasurementCalculationTest do
 
   alias OMG.Eth.Encoding
   alias OMG.State.Core
-  alias OMG.Utxo
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>

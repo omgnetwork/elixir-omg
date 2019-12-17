@@ -19,11 +19,8 @@ defmodule OMG.Performance.Generators do
 
   alias OMG.Eth.RootChain
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
   alias Support.DevHelper
-
-  require Utxo
 
   @generate_user_timeout 600_000
 

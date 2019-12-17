@@ -19,9 +19,6 @@ defmodule OMG.WatcherRPC.Web.View.Account do
 
   use OMG.WatcherRPC.Web, :view
   alias OMG.Utils.HttpRPC.Response
-  alias OMG.Utxo
-
-  require Utxo
 
   def render("balance.json", %{response: balance}) do
     balance

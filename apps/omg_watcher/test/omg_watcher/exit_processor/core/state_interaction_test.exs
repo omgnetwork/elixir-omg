@@ -20,12 +20,9 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   alias OMG.State
   alias OMG.TestHelper
-  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
-
-  require Utxo
 
   import OMG.Watcher.ExitProcessor.TestHelper,
     only: [start_se_from: 3, start_se_from: 4, start_ife_from: 2, start_ife_from: 3, piggyback_ife_from: 4]

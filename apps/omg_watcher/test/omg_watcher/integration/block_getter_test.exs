@@ -28,15 +28,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.BadChildChainServer
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-
-  require Utxo
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()

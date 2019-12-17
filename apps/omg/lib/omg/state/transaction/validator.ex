@@ -24,9 +24,6 @@ defmodule OMG.State.Transaction.Validator do
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.UtxoSet
-  alias OMG.Utxo
-
-  require Utxo
 
   @type exec_error ::
           :amounts_do_not_add_up

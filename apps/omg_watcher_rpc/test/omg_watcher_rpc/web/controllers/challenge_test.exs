@@ -18,11 +18,8 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

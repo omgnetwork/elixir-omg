@@ -18,9 +18,6 @@ defmodule Support.WatcherHelper do
   """
   alias ExUnit.CaptureLog
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utxo
-
-  require Utxo
 
   import ExUnit.Assertions
   use Phoenix.ConnTest

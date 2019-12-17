@@ -22,12 +22,9 @@ defmodule OMG.State.PersistenceTest do
 
   alias OMG.Block
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias Support.WaitFor
 
   import OMG.TestHelper
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)

@@ -21,10 +21,8 @@ defmodule OMG.State.Transaction.Payment do
   alias OMG.Crypto
   alias OMG.Output
   alias OMG.State.Transaction
-  alias OMG.Utxo
 
   require Transaction
-  require Utxo
 
   @zero_metadata <<0::256>>
 
@@ -142,10 +140,8 @@ end
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   alias OMG.Output
   alias OMG.State.Transaction
-  alias OMG.Utxo
 
   require Transaction
-  require Utxo
 
   @empty_signature <<0::size(520)>>
 

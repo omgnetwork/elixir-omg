@@ -32,7 +32,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   alias OMG.Block
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
@@ -43,7 +42,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   import OMG.Watcher.ExitProcessor.Tools
 
-  require Utxo
   require Transaction.Payment
 
   use OMG.Utils.LoggerExt

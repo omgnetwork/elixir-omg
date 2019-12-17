@@ -40,7 +40,6 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
 
   alias OMG.Block
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.DoubleSpend
@@ -49,8 +48,6 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   alias OMG.Watcher.ExitProcessor.TxAppendix
 
   import OMG.Watcher.ExitProcessor.Tools
-
-  require Utxo
 
   @doc """
   Gets all utxo positions exiting via active standard exits

@@ -18,9 +18,6 @@ defmodule OMG.WatcherRPC.Web.Serializer.Base do
   """
 
   def to_utxo(%{blknum: blknum, txindex: txindex, oindex: oindex} = db_entry) do
-    alias OMG.Utxo
-    require Utxo
-
     db_entry
     |> Map.take([:amount, :currency, :blknum, :txindex, :oindex, :owner])
     |> Map.put(:utxo_pos, ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex}))

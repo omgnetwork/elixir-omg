@@ -21,9 +21,6 @@ defmodule OMG.TypedDataHash do
   alias OMG.Crypto
   alias OMG.Output
   alias OMG.State.Transaction
-  alias OMG.Utxo
-
-  require Utxo
 
   @zero_address <<0::160>>
 

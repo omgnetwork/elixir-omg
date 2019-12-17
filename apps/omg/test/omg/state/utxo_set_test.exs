@@ -25,8 +25,6 @@ defmodule OMG.State.UtxoSetTest do
 
   import OMG.TestHelper, only: [generate_entity: 0, create_recovered: 2]
 
-  require Utxo
-
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   setup do

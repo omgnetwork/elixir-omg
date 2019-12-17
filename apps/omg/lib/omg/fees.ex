@@ -19,9 +19,6 @@ defmodule OMG.Fees do
 
   alias OMG.MergeTransactionValidator
   alias OMG.State.Transaction
-  alias OMG.Utxo
-
-  require Utxo
 
   use OMG.Utils.LoggerExt
 

@@ -20,9 +20,6 @@ defmodule OMG.State.Transaction do
 
   alias OMG.Crypto
   alias OMG.State.Transaction
-  alias OMG.Utxo
-
-  require Utxo
 
   @tx_types_modules Application.fetch_env!(:omg, :tx_types_modules)
   @type_markers Map.keys(@tx_types_modules)

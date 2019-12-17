@@ -54,9 +54,6 @@ end
 
 defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
   alias OMG.Output.FungibleMoreVPToken
-  alias OMG.Utxo
-
-  require Utxo
 
   # TODO: dry wrt. Application.fetch_env!(:omg, :output_types_modules)? Use `bimap` perhaps?
   @output_type_marker <<1>>

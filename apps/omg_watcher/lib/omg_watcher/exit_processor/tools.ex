@@ -20,7 +20,6 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.TypedDataHash
-  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.DoubleSpend
   alias OMG.Watcher.ExitProcessor.KnownTx
 

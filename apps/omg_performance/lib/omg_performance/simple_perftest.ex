@@ -21,9 +21,6 @@ defmodule OMG.Performance.SimplePerftest do
   use OMG.Utils.LoggerExt
 
   alias OMG.TestHelper
-  alias OMG.Utxo
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

@@ -26,13 +26,11 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Eth.EthereumHeight
   alias OMG.State
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.StandardExit
 
   use OMG.Utils.LoggerExt
-  require Utxo
 
   ### Client
 

@@ -35,6 +35,8 @@ defmodule OMG.InputPointer do
           non_neg_integer
         }
 
+  # This is the 'legacy' db format that the code is using to maintain backwards
+  # compatibility.
   @type utxo_pos_db_tuple() :: {
           # blknum
           non_neg_integer,
@@ -44,6 +46,7 @@ defmodule OMG.InputPointer do
           non_neg_integer
         }
 
+  # This tuple is the format used to push into the DB(RocksDB)
   @type db_key_tuple() :: {
           :input_pointer,
           <<_::8>>,

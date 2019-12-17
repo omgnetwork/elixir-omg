@@ -20,11 +20,8 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
 
   alias OMG.Crypto
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @eth_hex @eth |> Encoding.to_hex()

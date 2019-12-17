@@ -22,9 +22,6 @@ defmodule OMG.State.TransactionTest do
   use ExUnit.Case, async: true
 
   alias OMG.State.Transaction
-  alias OMG.Utxo
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @utxo_positions [{20, 42, 1}, {2, 21, 0}, {1000, 0, 0}, {10_001, 0, 0}]

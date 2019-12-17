@@ -20,15 +20,12 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   use Plug.Test
 
   alias OMG.Eth
-  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.BadChildChainServer
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-
-  require Utxo
 
   import ExUnit.CaptureLog
 

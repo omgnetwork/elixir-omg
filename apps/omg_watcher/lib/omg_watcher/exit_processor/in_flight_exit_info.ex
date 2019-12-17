@@ -20,9 +20,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   """
 
   alias OMG.State.Transaction
-  alias OMG.Utxo
 
-  require Utxo
   require Transaction
   require Transaction.Payment
 
