@@ -129,8 +129,9 @@ defmodule OMG.InputPointer do
     {:input_pointer, <<1>>, {1, 2, 3}}
   """
   @spec to_db_key(utxo_pos_tuple()) :: db_key_tuple()
-  def to_db_key(%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}) when OMG.Utxo.is_position(blknum, txindex, oindex),
-    do: {:input_pointer, @input_pointer_type_marker, {blknum, txindex, oindex}}
+  def to_db_key(%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex})
+      when OMG.Utxo.is_position(blknum, txindex, oindex),
+      do: {:input_pointer, @input_pointer_type_marker, {blknum, txindex, oindex}}
 
   # TODO(achiurizo)
   #
@@ -145,6 +146,7 @@ defmodule OMG.InputPointer do
       0, 0, 0, 0, 0, 0, 59, 155, 24, 35>>
   """
   @spec get_data_for_rlp(utxo_pos_tuple()) :: binary()
-  def get_data_for_rlp(%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}) when OMG.Utxo.is_position(blknum, txindex, oindex),
-    do: ExPlasma.Utxo.to_input_list(%{blknum: blknum, txindex: txindex, oindex: oindex})
+  def get_data_for_rlp(%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex})
+      when OMG.Utxo.is_position(blknum, txindex, oindex),
+      do: ExPlasma.Utxo.to_input_list(%{blknum: blknum, txindex: txindex, oindex: oindex})
 end

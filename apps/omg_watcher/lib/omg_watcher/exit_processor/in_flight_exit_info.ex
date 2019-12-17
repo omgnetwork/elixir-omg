@@ -422,7 +422,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def is_invalidly_challenged?(%__MODULE__{tx_seen_in_blocks_at: nil}), do: false
 
   def is_invalidly_challenged?(%__MODULE__{
-    tx_seen_in_blocks_at: {%OMG.InputPointer{blknum: _, txindex: _, oindex: _} = seen_in_pos, _proof},
+        tx_seen_in_blocks_at: {%OMG.InputPointer{blknum: _, txindex: _, oindex: _} = seen_in_pos, _proof},
         oldest_competitor: oldest_competitor_pos
       }),
       do: is_older?(seen_in_pos, oldest_competitor_pos)
@@ -459,8 +459,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   defp do_is_viable_competitor?(seen_at_pos, oldest_pos, competitor_pos),
     do: is_older?(competitor_pos, seen_at_pos) and is_older?(competitor_pos, oldest_pos)
 
-  defp is_older?(%OMG.InputPointer{blknum: tx1_blknum, txindex: tx1_index, oindex: _}, %OMG.InputPointer{blknum: tx2_blknum, txindex: tx2_index, oindex: _}),
-    do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
+  defp is_older?(%OMG.InputPointer{blknum: tx1_blknum, txindex: tx1_index, oindex: _}, %OMG.InputPointer{
+         blknum: tx2_blknum,
+         txindex: tx2_index,
+         oindex: _
+       }),
+       do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
 
   @spec exit_map_get(exit_map_t(), combined_index_t()) :: %{is_piggybacked: boolean(), is_finalized: boolean()}
   defp exit_map_get(exit_map, {type, index} = combined_index)

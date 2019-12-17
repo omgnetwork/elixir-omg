@@ -200,7 +200,11 @@ defmodule OMG.State.Core do
 
   # attempts to build a standard response data about a single UTXO, based on an abstract `output` structure
   # so that the data can be useful to discover exitable UTXOs
-  defp utxo_to_exitable_utxo_map(%OMG.Utxo{output: output}, %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}) do
+  defp utxo_to_exitable_utxo_map(%OMG.Utxo{output: output}, %OMG.InputPointer{
+         blknum: blknum,
+         txindex: txindex,
+         oindex: oindex
+       }) do
     output
     |> Map.from_struct()
     |> Map.take([:owner, :currency, :amount])
@@ -336,7 +340,8 @@ defmodule OMG.State.Core do
   end
 
   # list of utxo positions (decoded)
-  def extract_exiting_utxo_positions([%OMG.InputPointer{blknum: _, txindex: _, oindex: _} | _] = exiting_utxos, %Core{}), do: exiting_utxos
+  def extract_exiting_utxo_positions([%OMG.InputPointer{blknum: _, txindex: _, oindex: _} | _] = exiting_utxos, %Core{}),
+    do: exiting_utxos
 
   @doc """
   Spends exited utxos.
@@ -367,7 +372,9 @@ defmodule OMG.State.Core do
   Note: state passed here is already extended with DB.
   """
   @spec utxo_exists?(OMG.InputPointer.utxo_pos_tuple(), t()) :: boolean()
-  def utxo_exists?(%OMG.InputPointer{blknum: _blknum, txindex: _txindex, oindex: _oindex} = utxo_pos, %Core{utxos: utxos}) do
+  def utxo_exists?(%OMG.InputPointer{blknum: _blknum, txindex: _txindex, oindex: _oindex} = utxo_pos, %Core{
+        utxos: utxos
+      }) do
     UtxoSet.exists?(utxos, utxo_pos)
   end
 

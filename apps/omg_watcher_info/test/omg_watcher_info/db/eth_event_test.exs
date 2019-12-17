@@ -38,7 +38,12 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     root_chain_txhash_event =
       DB.EthEvent.generate_root_chain_txhash_event(expected_root_chain_txnhash, expected_log_index)
 
-    expected_utxo_position = %OMG.InputPointer{blknum: expected_blknum, txindex: expected_txindex, oindex: expected_oindex}
+    expected_utxo_position = %OMG.InputPointer{
+      blknum: expected_blknum,
+      txindex: expected_txindex,
+      oindex: expected_oindex
+    }
+
     expected_child_chain_utxohash = DB.EthEvent.generate_child_chain_utxohash(expected_utxo_position)
 
     assert :ok =
@@ -82,7 +87,12 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
            ] = event.txoutputs
 
     # check txoutput side of relationship
-    expected_utxo_position = %OMG.InputPointer{blknum: expected_blknum, txindex: expected_txindex, oindex: expected_oindex}
+    expected_utxo_position = %OMG.InputPointer{
+      blknum: expected_blknum,
+      txindex: expected_txindex,
+      oindex: expected_oindex
+    }
+
     txoutput = DB.TxOutput.get_by_position(expected_utxo_position)
 
     assert %DB.TxOutput{

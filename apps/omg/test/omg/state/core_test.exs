@@ -64,10 +64,18 @@ defmodule OMG.State.CoreTest do
       spend_pos = %OMG.InputPointer{blknum: 1000, txindex: 0, oindex: 0}
       assert Core.utxo_processed?(spend_pos, state) == true
 
-      known_pos = [%OMG.InputPointer{blknum: 1000, txindex: 0, oindex: 2}, %OMG.InputPointer{blknum: 1000, txindex: 1, oindex: 1}]
+      known_pos = [
+        %OMG.InputPointer{blknum: 1000, txindex: 0, oindex: 2},
+        %OMG.InputPointer{blknum: 1000, txindex: 1, oindex: 1}
+      ]
+
       assert Enum.map(known_pos, &Core.utxo_processed?(&1, state)) == [true, true]
 
-      unknown_pos = [%OMG.InputPointer{blknum: 1000, txindex: 2, oindex: 0}, %OMG.InputPointer{blknum: 1000, txindex: 1, oindex: 2}]
+      unknown_pos = [
+        %OMG.InputPointer{blknum: 1000, txindex: 2, oindex: 0},
+        %OMG.InputPointer{blknum: 1000, txindex: 1, oindex: 2}
+      ]
+
       assert Enum.map(unknown_pos, &Core.utxo_processed?(&1, state)) == [false, false]
     end
 
@@ -680,7 +688,10 @@ defmodule OMG.State.CoreTest do
     # TODO: Fix this !@#%
     # this test checks whether all ways of calling `get_exiting_utxo_positions/2` translates
     # to given exiting utxo positions
-    expected_utxo_pos_exits = [%OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 0}, %OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 1}]
+    expected_utxo_pos_exits = [
+      %OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 0},
+      %OMG.InputPointer{blknum: @blknum1, txindex: 0, oindex: 1}
+    ]
 
     utxo_pos_exits = [
       %{blknum: @blknum1, txindex: 0, oindex: 0},

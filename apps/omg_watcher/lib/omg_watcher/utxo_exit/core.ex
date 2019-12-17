@@ -22,7 +22,10 @@ defmodule OMG.Watcher.UtxoExit.Core do
 
   def compose_block_standard_exit(:not_found, _), do: {:error, :utxo_not_found}
 
-  def compose_block_standard_exit(db_block, %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex} = utxo_pos) do
+  def compose_block_standard_exit(
+        db_block,
+        %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex} = utxo_pos
+      ) do
     %Block{transactions: sorted_txs_bytes, number: ^blknum} = block = Block.from_db_value(db_block)
 
     with {:ok, signed_tx_bytes} <- get_tx_by_index(sorted_txs_bytes, txindex),

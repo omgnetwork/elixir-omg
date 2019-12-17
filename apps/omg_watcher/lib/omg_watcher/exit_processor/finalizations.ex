@@ -179,8 +179,11 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
   defp get_exiting_positions(ife, output_index, :output) do
     case ife.tx_seen_in_blocks_at do
-      nil -> []
-      {%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: _}, _proof} -> [%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: output_index}]
+      nil ->
+        []
+
+      {%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: _}, _proof} ->
+        [%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: output_index}]
     end
   end
 

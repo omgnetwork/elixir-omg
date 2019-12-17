@@ -124,7 +124,8 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   @spec spend_utxos([map()]) :: :ok
   def spend_utxos(db_inputs) do
     db_inputs
-    |> Enum.each(fn {%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}, spending_oindex, spending_txhash} ->
+    |> Enum.each(fn {%OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}, spending_oindex,
+                     spending_txhash} ->
       _ =
         DB.TxOutput
         |> where(blknum: ^blknum, txindex: ^txindex, oindex: ^oindex)

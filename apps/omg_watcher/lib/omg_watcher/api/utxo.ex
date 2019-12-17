@@ -30,6 +30,8 @@ defmodule OMG.Watcher.API.Utxo do
           sigs: binary()
         }
 
+  @interval elem(OMG.Eth.RootChain.get_child_block_interval(), 1)
+
   @doc """
   Returns a proof that utxo was spent
   """
@@ -39,12 +41,18 @@ defmodule OMG.Watcher.API.Utxo do
     ExitProcessor.create_challenge(utxo)
   end
 
-  @spec compose_utxo_exit(OMG.InputPointer.utxo_pos_tuple()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
-  def compose_utxo_exit(utxo_pos) when is_deposit(utxo_pos) do
-    utxo_pos |> OMG.InputPointer.to_db_key() |> OMG.DB.utxo() |> Core.compose_deposit_standard_exit()
+  # @spec compose_utxo_exit(OMG.InputPointer.utxo_pos_tuple()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
+
+  # TODO(achiurizo)
+  # Fix guard to tell people this is getting a deposit
+  def compose_utxo_exit(%OMG.InputPointer{blknum: blknum} = utxo_pos) when rem(blknum, @interval) != 0 do
+    utxo_pos
+    |> OMG.InputPointer.to_db_key()
+    |> OMG.DB.utxo()
+    |> Core.compose_deposit_standard_exit()
   end
 
-  def compose_utxo_exit(%OMG.InputPointer{blknum: blknum, txindex: _, oindex: _} = utxo_pos) do
+  def compose_utxo_exit(%OMG.InputPointer{blknum: blknum} = utxo_pos) do
     with {:ok, [blk_hash]} <- OMG.DB.block_hashes([blknum]),
          {:ok, [db_block]} <- OMG.DB.blocks([blk_hash]) do
       Core.compose_block_standard_exit(db_block, utxo_pos)

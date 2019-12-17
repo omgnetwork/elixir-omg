@@ -89,7 +89,9 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
     txs
     |> Stream.map(&Transaction.Signed.decode!/1)
     |> Stream.with_index()
-    |> Stream.map(fn {signed, txindex} -> new(signed, %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: 0}) end)
+    |> Stream.map(fn {signed, txindex} ->
+      new(signed, %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: 0})
+    end)
   end
 
   defp get_all_from(blocks) when is_list(blocks), do: blocks |> sort_blocks() |> Stream.flat_map(&get_all_from/1)

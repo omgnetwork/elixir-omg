@@ -166,8 +166,10 @@ defmodule OMG.State.UtxoSetTest do
   describe "zip_with_positions/1" do
     test "will zip all utxos with their positions", %{utxo_set: utxo_set} do
       # for now a trivial test case. When input pointers other than `utxo_pos` are used this becomes relevant
-      assert [{_, %OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0}}, {_, %OMG.InputPointer{blknum: 2, txindex: 0, oindex: 0}}] =
-               UtxoSet.zip_with_positions(utxo_set) |> Enum.to_list()
+      assert [
+               {_, %OMG.InputPointer{blknum: 1, txindex: 0, oindex: 0}},
+               {_, %OMG.InputPointer{blknum: 2, txindex: 0, oindex: 0}}
+             ] = UtxoSet.zip_with_positions(utxo_set) |> Enum.to_list()
     end
   end
 end

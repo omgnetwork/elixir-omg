@@ -91,7 +91,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   @spec determine_standard_challenge_queries(ExitProcessor.Request.t(), Core.t()) ::
           {:ok, ExitProcessor.Request.t()} | {:error, :exit_not_found}
   def determine_standard_challenge_queries(
-        %ExitProcessor.Request{se_exiting_pos: %OMG.InputPointer{blknum: _, txindex: _, oindex: _} = exiting_pos} = request,
+        %ExitProcessor.Request{se_exiting_pos: %OMG.InputPointer{blknum: _, txindex: _, oindex: _} = exiting_pos} =
+          request,
         %Core{exits: exits} = state
       ) do
     with {:ok, _exit_info} <- get_exit(exits, exiting_pos) do
