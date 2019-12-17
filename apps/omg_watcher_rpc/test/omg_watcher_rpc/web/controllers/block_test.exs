@@ -62,12 +62,12 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
       assert %{
                "success" => false,
-                "data" => %{
-                  "object" => "error",
-                  "code" => "operation:bad_request",
-                  "description" => "Parameters required by this operation are missing or incorrect.",
-                  "messages" => _
-                },
+               "data" => %{
+                 "object" => "error",
+                 "code" => "operation:bad_request",
+                 "description" => "Parameters required by this operation are missing or incorrect.",
+                 "messages" => _
+               },
                "service_name" => _,
                "version" => _
              } = response
