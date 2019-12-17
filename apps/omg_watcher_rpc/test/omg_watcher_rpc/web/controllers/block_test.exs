@@ -50,7 +50,25 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
                  "limit" => 100,
                  "page" => 1
                },
-               "service_name" => "child_chain",
+               "service_name" => _,
+               "version" => _
+             } = response
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the error API response when an error occurs" do
+      request_data = %{"limit" => "this should error", "page" => 1}
+      response = WatcherHelper.rpc_call("block.all", request_data, 200)
+
+      assert %{
+               "success" => false,
+                "data" => %{
+                  "object" => "error",
+                  "code" => "operation:bad_request",
+                  "description" => "Parameters required by this operation are missing or incorrect.",
+                  "messages" => _
+                },
+               "service_name" => _,
                "version" => _
              } = response
     end
