@@ -160,6 +160,19 @@ defmodule OMG.State.Transaction.RecoveredTest do
                  ExRLP.encode([sigs, @payment_marker, inputs, [[<<232>>, [alice.addr, alice.addr, 1]]], 0, <<0::256>>])
                )
 
+      assert {:error, :malformed_tx_data} =
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, 1, <<0::256>>]))
+
+      assert {:error, :malformed_tx_data} =
+               Transaction.Recovered.recover_from(
+                 ExRLP.encode([sigs, @payment_marker, inputs, outputs, <<0::256>>, <<0::256>>])
+               )
+
+      assert {:error, :malformed_tx_data} =
+               Transaction.Recovered.recover_from(
+                 ExRLP.encode([sigs, @payment_marker, inputs, outputs, <<1::256>>, <<0::256>>])
+               )
+
       assert {:error, :malformed_metadata} =
                Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_marker, inputs, outputs, 0, ""]))
 

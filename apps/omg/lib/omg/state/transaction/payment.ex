@@ -111,7 +111,6 @@ defmodule OMG.State.Transaction.Payment do
 
   # txData is required to be zero in the contract
   defp reconstruct_tx_data(""), do: :ok
-  # FIXME: unit test
   defp reconstruct_tx_data(_), do: {:error, :malformed_tx_data}
 
   defp reconstruct_metadata(metadata) when Transaction.is_metadata(metadata), do: {:ok, metadata}
