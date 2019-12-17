@@ -164,7 +164,7 @@ build-test: deps-elixir-omg
 init_test:
 	mkdir data/ || true && \
 	rm -rf data/* || true && \
-	wget https://storage.googleapis.com/circleci-docker-artifacts/data-elixir-omg-tester-plasma-deployer-dev-919882d.tar.gz -O data/snapshot.tar.gz && \
+	wget https://storage.googleapis.com/circleci-docker-artifacts/data-elixir-omg-tester-plasma-deployer-dev-f4a88fb.tar.gz -O data/snapshot.tar.gz && \
 	tar -zxvf data/snapshot.tar.gz data/
 
 test:

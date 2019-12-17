@@ -45,10 +45,10 @@ defmodule OMG.Eth.Fixtures do
       contract_addr: %{
         erc20_vault: Encoding.from_hex("0x04badc20426bc146453c5b879417b25029fa6c73"),
         eth_vault: Encoding.from_hex("0x0433420dee34412b5bf1e29fbf988ad037cc5db7"),
-        payment_exit_game: Encoding.from_hex("0x1d92a9bef49bd340c7a11da536fb3ac9efbb1806"),
+        payment_exit_game: Encoding.from_hex("0x92ce4d7773c57d96210c46a07b89acf725057f21"),
         plasma_framework: Encoding.from_hex("0xc673e4ffcb8464faff908a6804fe0e635af0ea2f")
       },
-      txhash_contract: Encoding.from_hex("0xc47317b0de4c6ccc9a9fb858ad3ee858c2ee8ade3aed0fa9bcab7f7dad27fe12")
+      txhash_contract: Encoding.from_hex("0xcd96b40b8324a4e10b421d6dd9796d200c64f7af6799f85262fa8951aed2f10c")
     }
 
     {:ok, true} =
