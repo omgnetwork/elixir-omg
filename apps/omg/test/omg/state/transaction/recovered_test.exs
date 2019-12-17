@@ -96,7 +96,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
         Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, @eth, 12}])
         |> DevCrypto.sign([alice.priv, alice.priv])
 
-      [_payment_marker, inputs, outputs, _txdata, _metadata] = Transaction.raw_txbytes(tx) |> ExRLP.decode()
+      [_payment_marker, inputs, outputs, _txdata, _metadata] = tx |> Transaction.raw_txbytes() |> ExRLP.decode()
 
       # sanity
       assert {:ok, _} =

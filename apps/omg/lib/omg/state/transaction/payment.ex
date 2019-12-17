@@ -83,7 +83,7 @@ defmodule OMG.State.Transaction.Payment do
   def reconstruct([inputs_rlp, outputs_rlp, tx_data_rlp, metadata_rlp]) do
     with {:ok, inputs} <- reconstruct_inputs(inputs_rlp),
          {:ok, outputs} <- reconstruct_outputs(outputs_rlp),
-         :ok <- reconstruct_tx_data(tx_data_rlp),
+         :ok <- check_tx_data(tx_data_rlp),
          {:ok, metadata} <- reconstruct_metadata(metadata_rlp),
          do: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}}
   end
@@ -109,9 +109,9 @@ defmodule OMG.State.Transaction.Payment do
          do: {:ok, outputs}
   end
 
-  # txData is required to be zero in the contract
-  defp reconstruct_tx_data(""), do: :ok
-  defp reconstruct_tx_data(_), do: {:error, :malformed_tx_data}
+  # txData is required to be zero in the contract, zero comes out as `""` from `ExRLP.decode/1`
+  defp check_tx_data(""), do: :ok
+  defp check_tx_data(_), do: {:error, :malformed_tx_data}
 
   defp reconstruct_metadata(metadata) when Transaction.is_metadata(metadata), do: {:ok, metadata}
   defp reconstruct_metadata(_), do: {:error, :malformed_metadata}
