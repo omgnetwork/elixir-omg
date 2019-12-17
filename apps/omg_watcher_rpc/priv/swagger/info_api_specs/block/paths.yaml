@@ -17,6 +17,10 @@ block.get:
     tags:
       - Block
     summary: Retrieves a single block for the given block number.
+    description: >
+      Intended for operations requiring info for a specific block only. 
+      
+      Returns a single block object for the given block number. The returned object does not include associated transactions - for which you can use transaction.all with blknum in the request body.
     operationId: block_get
     requestBody:
       $ref: 'request_bodies.yaml#/GetBlockBodySchema'
