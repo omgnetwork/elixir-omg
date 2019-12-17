@@ -2,7 +2,13 @@ block.all:
   post:
     tags:
       - Block
-    summary: Gets all blocks (with a limit on the number of blocks to return).
+    summary: Gets all blocks (can be limited with various filters).
+    description: >
+      Returns a list of blocks ordered by the highest block number first.
+      Intended to be used for presenting an overview of most recent blocks.
+
+      Note: Due to eventual consistency nature of the informational API,
+      blocks may later than deposits, exits, etc.
     operationId: block_all
     requestBody:
       $ref: 'request_bodies.yaml#/AllBlocksBodySchema'
