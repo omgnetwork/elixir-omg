@@ -55,7 +55,7 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
           spending_input_index: 0..3,
           spending_sig: <<_::520>>,
           input_tx: Transaction.tx_bytes(),
-          input_utxo_pos: Utxo.Position.t()
+          input_utxo_pos: OMG.InputPointer.utxo_pos_tuple()
         }
 
   @type output_challenge_data :: %{

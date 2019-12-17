@@ -73,7 +73,7 @@ defmodule OMG.State do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
 
-  @spec utxo_exists?(Utxo.Position.t()) :: boolean()
+  @spec utxo_exists?(OMG.InputPointer.utxo_pos_tuple()) :: boolean()
   def utxo_exists?(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end

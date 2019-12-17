@@ -76,12 +76,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @type t :: %__MODULE__{
           sla_margin: non_neg_integer(),
-          exits: %{Utxo.Position.t() => ExitInfo.t()},
+          exits: %{OMG.InputPointer.utxo_pos_tuple() => ExitInfo.t()},
           in_flight_exits: %{Transaction.tx_hash() => InFlightExitInfo.t()},
           # NOTE: maps only standard exit_ids to the natural keys of standard exits (input pointers/utxo_pos)
           #       rethink the approach to the keys in the data structures - how to manage exit_ids? should the contract
           #       serve more data (e.g. input pointers/tx hashes) where it would normally only serve exit_ids?
-          exit_ids: %{non_neg_integer() => Utxo.Position.t()},
+          exit_ids: %{non_neg_integer() => OMG.InputPointer.utxo_pos_tuple()},
           competitors: %{Transaction.tx_hash() => CompetitorInfo.t()}
         }
 
@@ -174,7 +174,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp get_positions_from_events(exits) do
     exits
-    |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode!(utxo_pos) end)
+    |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> OMG.InputPointer.decode!(utxo_pos) end)
   end
 
   @doc """
@@ -390,7 +390,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Filters out all the spends that have not been found (`:not_found` instead of a block)
   This might occur if a UTXO is exited by exit finalization. A block spending such UTXO will not exist.
   """
-  @spec handle_spent_blknum_result(list(spent_blknum_result_t()), list(Utxo.Position.t())) :: list(pos_integer())
+  @spec handle_spent_blknum_result(list(spent_blknum_result_t()), list(OMG.InputPointer.utxo_pos_tuple())) :: list(pos_integer())
   def handle_spent_blknum_result(spent_blknum_result, spent_positions_to_get) do
     {not_founds, founds} =
       Stream.zip(spent_positions_to_get, spent_blknum_result)

@@ -34,13 +34,13 @@ defmodule OMG.Watcher.API.Utxo do
   @doc """
   Returns a proof that utxo was spent
   """
-  @spec create_challenge(Utxo.Position.t()) ::
+  @spec create_challenge(OMG.InputPointer.utxo_pos_tuple()) ::
           {:ok, ExitProcessor.StandardExit.Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
   def create_challenge(utxo) do
     ExitProcessor.create_challenge(utxo)
   end
 
-  @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
+  @spec compose_utxo_exit(OMG.InputPointer.utxo_pos_tuple()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
   def compose_utxo_exit(utxo_pos) when is_deposit(utxo_pos) do
     utxo_pos |> OMG.InputPointer.to_db_key() |> OMG.DB.utxo() |> Core.compose_deposit_standard_exit()
   end

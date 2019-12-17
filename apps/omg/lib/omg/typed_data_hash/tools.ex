@@ -74,7 +74,7 @@ defmodule OMG.TypedDataHash.Tools do
 
   @spec hash_transaction(
           binary,
-          list(Utxo.Position.t()),
+          list(OMG.InputPointer.utxo_pos_tuple()),
           list(Output.FungibleMoreVPToken.t()),
           Transaction.metadata(),
           Crypto.hash_t(),
@@ -107,7 +107,7 @@ defmodule OMG.TypedDataHash.Tools do
     |> Crypto.hash()
   end
 
-  @spec hash_input(Utxo.Position.t()) :: Crypto.hash_t()
+  @spec hash_input(OMG.InputPointer.utxo_pos_tuple()) :: Crypto.hash_t()
   def hash_input({:utxo_position, blknum, txindex, oindex}) do
     [
       @input_type_hash,

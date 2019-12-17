@@ -199,7 +199,7 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Returns challenge for an exit
   """
-  @spec create_challenge(Utxo.Position.t()) ::
+  @spec create_challenge(OMG.InputPointer.utxo_pos_tuple()) ::
           {:ok, StandardExit.Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
   def create_challenge(exiting_utxo_pos) do
     GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})

@@ -51,18 +51,18 @@ defmodule OMG.Watcher.ExitProcessor.Request do
   @type t :: %__MODULE__{
           eth_height_now: nil | pos_integer,
           blknum_now: nil | pos_integer,
-          utxos_to_check: list(Utxo.Position.t()),
-          spends_to_get: list(Utxo.Position.t()),
+          utxos_to_check: list(OMG.InputPointer.utxo_pos_tuple()),
+          spends_to_get: list(OMG.InputPointer.utxo_pos_tuple()),
           blknums_to_get: list(pos_integer),
-          ife_input_utxos_to_check: list(Utxo.Position.t()),
-          ife_input_spends_to_get: list(Utxo.Position.t()),
+          ife_input_utxos_to_check: list(OMG.InputPointer.utxo_pos_tuple()),
+          ife_input_spends_to_get: list(OMG.InputPointer.utxo_pos_tuple()),
           piggybacked_blknums_to_get: list(pos_integer),
           utxo_exists_result: list(boolean),
           blocks_result: list(Block.t()),
           ife_input_utxo_exists_result: list(boolean),
           ife_input_spending_blocks_result: list(Block.t()),
-          se_exiting_pos: nil | Utxo.Position.t(),
-          se_spending_blocks_to_get: list(Utxo.Position.t()),
+          se_exiting_pos: nil | OMG.InputPointer.utxo_pos_tuple(),
+          se_spending_blocks_to_get: list(OMG.InputPointer.utxo_pos_tuple()),
           se_spending_blocks_result: list(Block.t())
         }
 end

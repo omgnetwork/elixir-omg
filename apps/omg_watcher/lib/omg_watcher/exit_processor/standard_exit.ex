@@ -55,7 +55,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   @doc """
   Gets all utxo positions exiting via active standard exits
   """
-  @spec exiting_positions(Core.t()) :: list(Utxo.Position.t())
+  @spec exiting_positions(Core.t()) :: list(OMG.InputPointer.utxo_pos_tuple())
   def exiting_positions(%Core{} = state) do
     state
     |> active_exits()
@@ -65,8 +65,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   @doc """
   Gets all standard exits that are invalid, all and late ones separately
   """
-  @spec get_invalid(Core.t(), %{Utxo.Position.t() => boolean}, pos_integer()) ::
-          {%{Utxo.Position.t() => ExitInfo.t()}, %{Utxo.Position.t() => ExitInfo.t()}}
+  @spec get_invalid(Core.t(), %{OMG.InputPointer.utxo_pos_tuple() => boolean}, pos_integer()) ::
+          {%{OMG.InputPointer.utxo_pos_tuple() => ExitInfo.t()}, %{OMG.InputPointer.utxo_pos_tuple() => ExitInfo.t()}}
   def get_invalid(%Core{sla_margin: sla_margin} = state, utxo_exists?, eth_height_now) do
     active_exits = active_exits(state)
 
@@ -137,7 +137,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   defp ensure_challengeable(_, ife_response) when not is_nil(ife_response), do: {:ok, ife_response}
   defp ensure_challengeable(_, _), do: {:error, :utxo_not_spent}
 
-  @spec get_ife_based_on_utxo(Utxo.Position.t(), Core.t()) :: KnownTx.t() | nil
+  @spec get_ife_based_on_utxo(OMG.InputPointer.utxo_pos_tuple(), Core.t()) :: KnownTx.t() | nil
   defp get_ife_based_on_utxo({:utxo_position, _, _, _} = utxo_pos, %Core{} = state) do
     state
     |> TxAppendix.get_all()
@@ -150,7 +150,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   end
 
   # finds transaction in given block and input index spending given utxo
-  @spec get_double_spend_for_standard_exit(Block.t() | KnownTx.t(), Utxo.Position.t()) :: DoubleSpend.t() | nil
+  @spec get_double_spend_for_standard_exit(Block.t() | KnownTx.t(), OMG.InputPointer.utxo_pos_tuple()) :: DoubleSpend.t() | nil
   defp get_double_spend_for_standard_exit(%Block{transactions: txs}, utxo_pos) do
     txs
     |> Enum.map(&Transaction.Signed.decode!/1)
@@ -162,14 +162,14 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   end
 
   # Gets all standard exits invalidated by IFEs exiting their utxo positions
-  @spec get_invalid_exits_based_on_ifes(%{Utxo.Position.t() => ExitInfo.t()}, TxAppendix.t()) ::
-          list({Utxo.Position.t(), ExitInfo.t()})
+  @spec get_invalid_exits_based_on_ifes(%{OMG.InputPointer.utxo_pos_tuple() => ExitInfo.t()}, TxAppendix.t()) ::
+          list({OMG.InputPointer.utxo_pos_tuple(), ExitInfo.t()})
   defp get_invalid_exits_based_on_ifes(active_exits, tx_appendix) do
     known_txs_by_input = get_ife_txs_by_spent_input(tx_appendix)
     Enum.filter(active_exits, fn {utxo_pos, _exit_info} -> Map.has_key?(known_txs_by_input, utxo_pos) end)
   end
 
-  @spec get_double_spends_by_utxo_pos(Utxo.Position.t(), KnownTx.t()) :: list(DoubleSpend.t())
+  @spec get_double_spends_by_utxo_pos(OMG.InputPointer.utxo_pos_tuple(), KnownTx.t()) :: list(DoubleSpend.t())
   defp get_double_spends_by_utxo_pos({:utxo_position, _, _, oindex} = utxo_pos, known_tx),
     # the function used expects positions with an index (either input index or oindex), hence the oindex added
     do: [{utxo_pos, oindex}] |> double_spends_from_known_tx(known_tx)

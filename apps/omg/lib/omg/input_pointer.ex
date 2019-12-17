@@ -19,6 +19,8 @@ defmodule OMG.InputPointer do
   (consisting of transaction hash and output index)
   """
 
+  require OMG.Utxo
+
   # TODO(achiurizo)
   # Do we really need this? How does this work with output type marker?
   @input_pointer_type_marker <<1>>
@@ -44,7 +46,7 @@ defmodule OMG.InputPointer do
 
   @type db_key_tuple() :: {
           :input_pointer,
-          <<_::1>>,
+          <<_::8>>,
           utxo_pos_db_tuple()
         }
 
@@ -61,7 +63,7 @@ defmodule OMG.InputPointer do
     iex> OMG.InputPointer.decode!(1000020003)
     {:utxo_position, 1, 2, 3}
   """
-  @spec decode!(integer()) :: utxo_pos_db_tuple()
+  @spec decode!(integer() | <<_::256>>) :: utxo_pos_tuple()
   def decode!(encoded) do
     {:ok, decoded} = decode(encoded)
     decoded
@@ -124,7 +126,7 @@ defmodule OMG.InputPointer do
     {:input_pointer, <<1>>, {1, 2, 3}}
   """
   @spec to_db_key(utxo_pos_tuple()) :: db_key_tuple()
-  def to_db_key({:utxo_position, blknum, txindex, oindex}),
+  def to_db_key({:utxo_position, blknum, txindex, oindex}) when OMG.Utxo.is_position(blknum, txindex, oindex),
     do: {:input_pointer, @input_pointer_type_marker, {blknum, txindex, oindex}}
 
   # TODO(achiurizo)
@@ -139,7 +141,7 @@ defmodule OMG.InputPointer do
     <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 59, 155, 24, 35>>
   """
-  @spec get_data_for_rlp(tuple()) :: binary()
-  def get_data_for_rlp({:utxo_position, blknum, txindex, oindex}),
+  @spec get_data_for_rlp(utxo_pos_tuple()) :: binary()
+  def get_data_for_rlp({:utxo_position, blknum, txindex, oindex}) when OMG.Utxo.is_position(blknum, txindex, oindex),
     do: ExPlasma.Utxo.to_input_list(%{blknum: blknum, txindex: txindex, oindex: oindex})
 end

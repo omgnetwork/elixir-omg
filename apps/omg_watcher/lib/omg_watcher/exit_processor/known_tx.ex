@@ -30,10 +30,10 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
 
   @type t() :: %__MODULE__{
           signed_tx: Transaction.Signed.t(),
-          utxo_pos: Utxo.Position.t() | nil
+          utxo_pos: OMG.InputPointer.utxo_pos_tuple() | nil
         }
 
-  @type known_txs_by_input_t() :: %{Utxo.Position.t() => list(__MODULE__.t())}
+  @type known_txs_by_input_t() :: %{OMG.InputPointer.utxo_pos_tuple() => list(__MODULE__.t())}
 
   def new(%Transaction.Signed{} = signed_tx, {:utxo_position, _, _, _} = utxo_pos),
     do: %__MODULE__{signed_tx: signed_tx, utxo_pos: utxo_pos}

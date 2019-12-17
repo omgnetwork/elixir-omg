@@ -115,7 +115,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           root_chain_txhash: charlist(),
           log_index: non_neg_integer()
         }) ::
-          %{root_chain_txhash: binary(), log_index: non_neg_integer(), decoded_utxo_position: Utxo.Position.t()}
+          %{root_chain_txhash: binary(), log_index: non_neg_integer(), decoded_utxo_position: OMG.InputPointer.utxo_pos_tuple()}
   defp utxo_exit_from_exit_event(%{
          call_data: %{utxo_pos: utxo_pos},
          root_chain_txhash: root_chain_txhash,
@@ -131,7 +131,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @spec insert_exit!(%{
           root_chain_txhash: binary(),
           log_index: non_neg_integer(),
-          decoded_utxo_position: Utxo.Position.t()
+          decoded_utxo_position: OMG.InputPointer.utxo_pos_tuple()
         }) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   defp insert_exit!(%{
          root_chain_txhash: root_chain_txhash,
@@ -175,7 +175,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @doc """
   Generate a unique child_chain_utxohash from the Utxo.position
   """
-  @spec generate_child_chain_utxohash(Utxo.Position.t()) :: OMG.Crypto.hash_t()
+  @spec generate_child_chain_utxohash(OMG.InputPointer.utxo_pos_tuple()) :: OMG.Crypto.hash_t()
   def generate_child_chain_utxohash({:utxo_position, blknum, txindex, oindex}) do
     utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
     Crypto.hash("<#{utxo_pos}>")

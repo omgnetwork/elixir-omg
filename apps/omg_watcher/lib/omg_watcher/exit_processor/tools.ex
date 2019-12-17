@@ -26,7 +26,7 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
 
   # Intersects utxos, looking for duplicates. Gives full list of double-spends with indexes for
   # a pair of transactions.
-  @spec double_spends_from_known_tx(list({Utxo.Position.t(), non_neg_integer()}), KnownTx.t()) ::
+  @spec double_spends_from_known_tx(list({OMG.InputPointer.utxo_pos_tuple(), non_neg_integer()}), KnownTx.t()) ::
           list(DoubleSpend.t())
   def double_spends_from_known_tx(inputs, %KnownTx{signed_tx: signed} = known_tx) when is_list(inputs) do
     known_spent_inputs = signed |> Transaction.get_inputs() |> Enum.with_index()

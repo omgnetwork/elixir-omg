@@ -26,7 +26,7 @@ defmodule OMG.Watcher.ExitProcessor.DoubleSpend do
 
   @type t() :: %__MODULE__{
           index: non_neg_integer(),
-          utxo_pos: Utxo.Position.t(),
+          utxo_pos: OMG.InputPointer.utxo_pos_tuple(),
           known_spent_index: non_neg_integer,
           known_tx: KnownTx.t()
         }
@@ -58,7 +58,7 @@ defmodule OMG.Watcher.ExitProcessor.DoubleSpend do
   This is useful if the interesting utxo positions aren't just inputs of `tx` (e.g. piggybacking, tx's outputs, etc.)
   """
   @spec all_double_spends_by_index(
-          list({Utxo.Position.t(), non_neg_integer}),
+          list({OMG.InputPointer.utxo_pos_tuple(), non_neg_integer}),
           map(),
           Transaction.any_flavor_t()
         ) :: %{non_neg_integer => t()}

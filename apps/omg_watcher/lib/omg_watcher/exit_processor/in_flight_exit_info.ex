@@ -76,17 +76,17 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @type t :: %__MODULE__{
           tx: Transaction.Signed.t(),
           # if not nil, position was proven in contract
-          contract_tx_pos: Utxo.Position.t() | nil,
+          contract_tx_pos: OMG.InputPointer.utxo_pos_tuple() | nil,
           # nil value means that it was not included
           # OR we haven't processed it yet
           # OR we have found and filled this data, but haven't persisted it later
-          tx_seen_in_blocks_at: {Utxo.Position.t(), inclusion_proof :: binary()} | nil,
+          tx_seen_in_blocks_at: {OMG.InputPointer.utxo_pos_tuple(), inclusion_proof :: binary()} | nil,
           timestamp: non_neg_integer(),
           contract_id: ife_contract_id(),
-          oldest_competitor: Utxo.Position.t() | nil,
+          oldest_competitor: OMG.InputPointer.utxo_pos_tuple() | nil,
           eth_height: pos_integer(),
           input_txs: list(Transaction.Protocol.t()),
-          input_utxos_pos: list(Utxo.Position.t()),
+          input_utxos_pos: list(OMG.InputPointer.utxo_pos_tuple()),
           relevant_from_blknum: pos_integer(),
           exit_map: exit_map_t(),
           is_canonical: boolean(),
@@ -295,7 +295,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     %{ife | exit_map: Map.replace!(exit_map, combined_index, %{is_piggybacked: false, is_finalized: false})}
   end
 
-  @spec respond_to_challenge(t(), Utxo.Position.t()) ::
+  @spec respond_to_challenge(t(), OMG.InputPointer.utxo_pos_tuple()) ::
           t() | {:error, :responded_with_too_young_tx | :cannot_respond}
   def respond_to_challenge(ife, tx_position)
 
@@ -332,7 +332,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]
+  @spec get_piggybacked_outputs_positions(t()) :: [OMG.InputPointer.utxo_pos_tuple()]
   def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
 
   def get_piggybacked_outputs_positions(
@@ -433,7 +433,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   Checks if the competitor being seen at `competitor_pos` (`nil` if unseen) is viable to challenge with, considering the
   current state of the IFE - that is, only if it is older than IFE tx's inclusion and other competitors
   """
-  @spec is_viable_competitor?(t(), Utxo.Position.t() | nil) :: boolean()
+  @spec is_viable_competitor?(t(), OMG.InputPointer.utxo_pos_tuple() | nil) :: boolean()
   def is_viable_competitor?(
         %__MODULE__{tx_seen_in_blocks_at: nil, oldest_competitor: oldest_competitor_pos},
         competitor_pos

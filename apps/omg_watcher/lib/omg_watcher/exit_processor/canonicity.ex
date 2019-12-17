@@ -49,19 +49,19 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
 
   @type competitor_data_t :: %{
           input_txbytes: binary(),
-          input_utxo_pos: Utxo.Position.t(),
+          input_utxo_pos: OMG.InputPointer.utxo_pos_tuple(),
           in_flight_txbytes: binary(),
           in_flight_input_index: non_neg_integer(),
           competing_txbytes: binary(),
           competing_input_index: non_neg_integer(),
           competing_sig: Crypto.sig_t(),
-          competing_tx_pos: nil | Utxo.Position.t(),
+          competing_tx_pos: nil | OMG.InputPointer.utxo_pos_tuple(),
           competing_proof: binary()
         }
 
   @type prove_canonical_data_t :: %{
           in_flight_txbytes: binary(),
-          in_flight_tx_pos: Utxo.Position.t(),
+          in_flight_tx_pos: OMG.InputPointer.utxo_pos_tuple(),
           in_flight_proof: binary()
         }
 

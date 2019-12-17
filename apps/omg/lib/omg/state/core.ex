@@ -88,7 +88,7 @@ defmodule OMG.State.Core do
   @type exit_finalization_t() :: %{utxo_pos: pos_integer()}
 
   @type exiting_utxos_t() ::
-          [Utxo.Position.t()]
+          [OMG.InputPointer.utxo_pos_tuple()]
           | [non_neg_integer()]
           | [exit_t()]
           | [exit_finalization_t()]
@@ -98,9 +98,9 @@ defmodule OMG.State.Core do
   @type in_flight_exit() :: %{in_flight_tx: binary()}
   @type piggyback() :: %{tx_hash: Transaction.tx_hash(), output_index: non_neg_integer}
 
-  @type validities_t() :: {list(Utxo.Position.t()), list(Utxo.Position.t() | piggyback())}
+  @type validities_t() :: {list(OMG.InputPointer.utxo_pos_tuple()), list(OMG.InputPointer.utxo_pos_tuple() | piggyback())}
 
-  @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
+  @type utxos() :: %{OMG.InputPointer.utxo_pos_tuple() => Utxo.t()}
 
   @type deposit_event :: %{deposit: %{amount: non_neg_integer, owner: Crypto.address_t()}}
   @type tx_event :: %{
@@ -288,7 +288,7 @@ defmodule OMG.State.Core do
   NOTE: It is done like this to accommodate different clients of this function as they can either be
   bare `EthereumEventListener` or `ExitProcessor`. Hence different forms it can get the exiting utxos delivered
   """
-  @spec extract_exiting_utxo_positions(exiting_utxos_t(), t()) :: list(Utxo.Position.t())
+  @spec extract_exiting_utxo_positions(exiting_utxos_t(), t()) :: list(OMG.InputPointer.utxo_pos_tuple())
   def extract_exiting_utxo_positions(exit_infos, state)
 
   def extract_exiting_utxo_positions([], %Core{}), do: []
@@ -343,7 +343,7 @@ defmodule OMG.State.Core do
   Spends exited utxos.
   Note: state passed here is already extended with DB.
   """
-  @spec exit_utxos(exiting_utxos :: list(Utxo.Position.t()), state :: t()) ::
+  @spec exit_utxos(exiting_utxos :: list(OMG.InputPointer.utxo_pos_tuple()), state :: t()) ::
           {:ok, {[db_update], validities_t()}, new_state :: t()}
   def exit_utxos([], %Core{} = state), do: {:ok, {[], {[], []}}, state}
 
@@ -367,7 +367,7 @@ defmodule OMG.State.Core do
   Checks whether utxo exists in UTXO set.
   Note: state passed here is already extended with DB.
   """
-  @spec utxo_exists?(Utxo.Position.t(), t()) :: boolean()
+  @spec utxo_exists?(OMG.InputPointer.utxo_pos_tuple(), t()) :: boolean()
   def utxo_exists?({:utxo_position, _blknum, _txindex, _oindex} = utxo_pos, %Core{utxos: utxos}) do
     UtxoSet.exists?(utxos, utxo_pos)
   end

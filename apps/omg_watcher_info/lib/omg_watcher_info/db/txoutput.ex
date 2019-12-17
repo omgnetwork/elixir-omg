@@ -67,7 +67,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   end
 
   # preload ethevents in a single query as there will not be a large number of them
-  @spec get_by_position(Utxo.Position.t()) :: map() | nil
+  @spec get_by_position(OMG.InputPointer.utxo_pos_tuple()) :: map() | nil
   def get_by_position({:utxo_position, blknum, txindex, oindex}) do
     DB.Repo.one(
       from(txoutput in __MODULE__,
