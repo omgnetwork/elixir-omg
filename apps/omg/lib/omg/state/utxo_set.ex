@@ -65,7 +65,7 @@ defmodule OMG.State.UtxoSet do
   Returns the DB updates required given a list of spent input pointers and a map of UTXOs created upon a transaction
   """
   @spec db_updates(list(tuple()), t()) ::
-          list({:put, :utxo, {Utxo.Position.db_t(), Utxo.t()}} | {:delete, :utxo, Utxo.Position.db_t()})
+          list({:put, :utxo, {OMG.InputPointer.db_t(), Utxo.t()}} | {:delete, :utxo, OMG.InputPointer.db_t()})
   def db_updates(spent_input_pointers, new_utxos_map) do
     db_updates_new_utxos = new_utxos_map |> Enum.map(&utxo_to_db_put/1)
     db_updates_spent_utxos = spent_input_pointers |> Enum.map(&utxo_to_db_delete/1)

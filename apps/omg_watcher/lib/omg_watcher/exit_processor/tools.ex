@@ -38,7 +38,7 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
         do: %DoubleSpend{index: left_index, utxo_pos: left, known_spent_index: right_index, known_tx: known_tx}
   end
 
-  # based on an enumberable of `Utxo.Position` and a mapping that tells whether one exists it will pick
+  # based on an enumberable of `OMG.InputPointer` and a mapping that tells whether one exists it will pick
   # only those that **were checked** and were missing
   # (i.e. those not checked are assumed to be present)
   def only_utxos_checked_and_missing(utxo_positions, utxo_exists?) do

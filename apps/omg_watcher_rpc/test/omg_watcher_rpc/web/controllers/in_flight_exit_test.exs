@@ -52,7 +52,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
         assert Enum.count(sigs) == Enum.count(inputs)
 
         input_utxos_pos
-        |> Enum.map(&Utxo.Position.decode!/1)
+        |> Enum.map(&OMG.InputPointer.decode!/1)
         |> Enum.zip(inputs)
         # assert true because we just want to pattern match both positions against each other
         |> Enum.each(fn {{:utxo_position, blknum, txindex, oindex}, {blknum, txindex, oindex, _}} -> assert true end)

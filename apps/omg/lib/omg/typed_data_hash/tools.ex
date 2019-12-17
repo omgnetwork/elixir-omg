@@ -22,9 +22,6 @@ defmodule OMG.TypedDataHash.Tools do
   alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.TypedDataHash.Types
-  alias OMG.Utxo
-
-  require Utxo
 
   @type eip712_domain_t() :: %{
           name: binary(),

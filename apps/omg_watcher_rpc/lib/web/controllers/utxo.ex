@@ -20,12 +20,11 @@ defmodule OMG.WatcherRPC.Web.Controller.Utxo do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.Utxo
   alias OMG.Watcher.API
 
   def get_utxo_exit(conn, params) do
     with {:ok, utxo_pos} <- expect(params, "utxo_pos", :pos_integer),
-         {:ok, utxo} <- Utxo.Position.decode(utxo_pos) do
+         {:ok, utxo} <- OMG.InputPointer.decode(utxo_pos) do
       utxo
       |> API.Utxo.compose_utxo_exit()
       |> api_response(conn, :utxo_exit)

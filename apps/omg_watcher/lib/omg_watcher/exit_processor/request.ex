@@ -28,7 +28,6 @@ defmodule OMG.Watcher.ExitProcessor.Request do
   """
 
   alias OMG.Block
-  alias OMG.Utxo
 
   defstruct [
     :eth_height_now,

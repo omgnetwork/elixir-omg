@@ -20,7 +20,6 @@ defmodule OMG.Watcher.ExitProcessor.DoubleSpend do
   defstruct [:index, :utxo_pos, :known_spent_index, :known_tx]
 
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.KnownTx
   alias OMG.Watcher.ExitProcessor.Tools
 

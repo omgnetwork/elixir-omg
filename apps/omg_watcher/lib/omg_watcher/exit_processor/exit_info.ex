@@ -59,7 +59,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     do: utxo_pos_for(event)
 
   defp utxo_pos_for(%{call_data: %{utxo_pos: utxo_pos_enc}} = _event),
-    do: Utxo.Position.decode!(utxo_pos_enc)
+    do: OMG.InputPointer.decode!(utxo_pos_enc)
 
   defp do_new(contract_status, fields) do
     fields = Keyword.put_new(fields, :is_active, parse_contract_exit_status(contract_status))

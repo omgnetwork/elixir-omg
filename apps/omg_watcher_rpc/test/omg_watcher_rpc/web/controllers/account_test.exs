@@ -174,7 +174,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
     [%{"utxo_pos" => utxo_pos, "blknum" => blknum, "txindex" => txindex, "oindex" => oindex} | _] =
       WatcherHelper.get_utxos(alice.addr)
 
-    assert {:utxo_position, ^blknum, ^txindex, ^oindex} = utxo_pos |> Utxo.Position.decode!()
+    assert {:utxo_position, ^blknum, ^txindex, ^oindex} = utxo_pos |> OMG.InputPointer.decode!()
   end
 
   @tag fixtures: [:initial_blocks, :bob, :carol]

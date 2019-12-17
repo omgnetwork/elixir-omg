@@ -111,8 +111,8 @@ defmodule OMG.State.Core do
         }
 
   @type db_update ::
-          {:put, :utxo, {Utxo.Position.db_t(), map()}}
-          | {:delete, :utxo, Utxo.Position.db_t()}
+          {:put, :utxo, {OMG.InputPointer.db_t(), map()}}
+          | {:delete, :utxo, OMG.InputPointer.db_t()}
           | {:put, :child_top_block_number, pos_integer()}
           | {:put, :block, Block.db_t()}
 
@@ -303,7 +303,7 @@ defmodule OMG.State.Core do
 
   # list of utxo positions (encoded)
   def extract_exiting_utxo_positions([encoded_utxo_pos | _] = exit_infos, %Core{}) when is_integer(encoded_utxo_pos),
-    do: Enum.map(exit_infos, &Utxo.Position.decode!/1)
+    do: Enum.map(exit_infos, &OMG.InputPointer.decode!/1)
 
   # list of IFE input/output piggybacked events
   def extract_exiting_utxo_positions([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{}) do

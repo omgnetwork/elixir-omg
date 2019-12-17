@@ -113,7 +113,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       contract_id: <<contract_ife_id::192>>,
       eth_height: eth_height,
       input_txs: input_txs,
-      input_utxos_pos: Enum.map(input_utxos_pos, &Utxo.Position.decode!/1)
+      input_utxos_pos: Enum.map(input_utxos_pos, &OMG.InputPointer.decode!/1)
     )
   end
 
@@ -278,10 +278,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def challenge(ife, competitor_position)
 
   def challenge(%__MODULE__{oldest_competitor: nil} = ife, competitor_position),
-    do: %{ife | is_canonical: false, oldest_competitor: Utxo.Position.decode!(competitor_position)}
+    do: %{ife | is_canonical: false, oldest_competitor: OMG.InputPointer.decode!(competitor_position)}
 
   def challenge(%__MODULE__{oldest_competitor: current_oldest} = ife, competitor_position) do
-    with decoded_competitor_pos <- Utxo.Position.decode!(competitor_position),
+    with decoded_competitor_pos <- OMG.InputPointer.decode!(competitor_position),
          true <- is_older?(decoded_competitor_pos, current_oldest) do
       %{ife | is_canonical: false, oldest_competitor: decoded_competitor_pos}
     else
@@ -300,7 +300,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def respond_to_challenge(ife, tx_position)
 
   def respond_to_challenge(%__MODULE__{oldest_competitor: current_oldest} = ife, tx_position) do
-    decoded = Utxo.Position.decode!(tx_position)
+    decoded = OMG.InputPointer.decode!(tx_position)
 
     if is_nil(current_oldest) or is_older?(decoded, current_oldest) do
       %{ife | oldest_competitor: decoded, is_canonical: true, contract_tx_pos: decoded}

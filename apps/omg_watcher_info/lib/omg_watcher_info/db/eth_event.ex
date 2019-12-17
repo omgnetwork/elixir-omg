@@ -101,7 +101,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   end
 
   @doc """
-  Uses a list of encoded `Utxo.Position`s to insert the exits (if not already inserted before)
+  Uses a list of encoded `OMG.InputPointer`s to insert the exits (if not already inserted before)
   """
   @spec insert_exits!([non_neg_integer()]) :: :ok
   def insert_exits!(exits) do
@@ -124,7 +124,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     %{
       root_chain_txhash: root_chain_txhash,
       log_index: log_index,
-      decoded_utxo_position: Utxo.Position.decode!(utxo_pos)
+      decoded_utxo_position: OMG.InputPointer.decode!(utxo_pos)
     }
   end
 

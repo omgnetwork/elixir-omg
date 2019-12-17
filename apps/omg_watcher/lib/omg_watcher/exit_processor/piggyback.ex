@@ -31,7 +31,6 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   """
 
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
