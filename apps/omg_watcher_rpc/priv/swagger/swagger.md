@@ -37,14 +37,14 @@ In order to do this you need to have the following installed and available:
 
 Then you need to run the following commands to generate the final spec.
 
-**Watcher API:**
+**Watcher Security-Critical API:**
 
 ```
 swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs/swagger.yaml
 openapi-generator-cli validate -i apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml
 ```
 
-**Informational API:**
+**Watcher Info API:**
 
 ```
 swagger-cli bundle -r -t yaml -o apps/omg_watcher_rpc/priv/swagger/info_api_specs.yaml apps/omg_watcher_rpc/priv/swagger/info_api_specs/swagger.yaml
