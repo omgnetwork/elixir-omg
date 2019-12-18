@@ -78,7 +78,7 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   @doc """
-  Transaform the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
+  Transform the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
   """
   def reconstruct([inputs_rlp, outputs_rlp, tx_data_rlp, metadata_rlp]) do
     with {:ok, inputs} <- reconstruct_inputs(inputs_rlp),

@@ -32,10 +32,8 @@ defmodule OMG.Output.FungibleMoreVPToken do
 
   @doc """
   Reconstructs the structure from a list of RLP items
-
-  NOTE: the of items should be a single-item list holding a list of three items. The output type has been parsed earlier
   """
-  def reconstruct([[owner_rlp, currency_rlp, amount_rlp]]) do
+  def reconstruct([owner_rlp, currency_rlp, amount_rlp]) do
     with {:ok, cur12} <- parse_address(currency_rlp),
          {:ok, owner} <- parse_address(owner_rlp),
          :ok <- non_zero_owner(owner),

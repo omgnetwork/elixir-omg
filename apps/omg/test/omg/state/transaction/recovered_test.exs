@@ -356,11 +356,11 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
     test "Decoding transaction with zero output type fails" do
       outputs_index_in_rlp = 3
-      [_type | output_fields] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
+      [[_type, output_fields]] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
 
       assert {:error, :unrecognized_output_type} =
                good_tx_rlp_items()
-               |> List.replace_at(outputs_index_in_rlp, [0 | output_fields])
+               |> List.replace_at(outputs_index_in_rlp, [[0, output_fields]])
                |> ExRLP.encode()
                |> Transaction.Recovered.recover_from()
     end
