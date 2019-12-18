@@ -277,9 +277,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
     @tag fixtures: [:alice]
     test "Decoding transaction with zero input fails", %{alice: alice} do
-      assert {:error, :malformed_inputs} =
-               encoded_transaction = TestHelper.create_encoded([{0, 0, 0, alice}], [{alice, @zero_address, 10}])
-
+      encoded_transaction = TestHelper.create_encoded([{0, 0, 0, alice}], [{alice, @zero_address, 10}])
       assert {:error, :malformed_inputs} = Transaction.Recovered.recover_from(encoded_transaction)
     end
 
@@ -328,9 +326,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
     @tag fixtures: [:alice]
     test "Decoding transaction with zero amount in outputs fails ", %{alice: alice} do
-      assert {:error, :amount_cant_be_zero} =
-               encoded_transaction = TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{alice, 0}, {alice, 100}])
-
+      encoded_transaction = TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{alice, 0}, {alice, 100}])
       assert {:error, :amount_cant_be_zero} = Transaction.Recovered.recover_from(encoded_transaction)
     end
 
