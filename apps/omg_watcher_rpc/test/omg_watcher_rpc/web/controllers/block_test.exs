@@ -54,6 +54,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
       expected = %{
         "code" => "operation:bad_request",
+        "description" => "Parameters required by this operation are missing or incorrect.",
         "messages" => %{"validation_error" => %{"parameter" => "blknum", "validator" => ":integer"}},
         "object" => "error"
       }
