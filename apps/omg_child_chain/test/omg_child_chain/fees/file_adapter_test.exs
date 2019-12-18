@@ -27,7 +27,7 @@ defmodule OMG.ChildChain.FileAdapterTest do
   @eth Eth.zero_address()
   @eth_hex Eth.Encoding.to_hex(@eth)
   @fees %{
-    "1" => %{
+    <<1>> => %{
       @eth_hex => %{
         amount: 0,
         pegged_amount: 1,
@@ -58,7 +58,7 @@ defmodule OMG.ChildChain.FileAdapterTest do
 
       assert FileAdapter.get_fee_specs(recorded_file_updated_at) == {
                :ok,
-               %{"1" => %{@eth => @fees["1"][@eth_hex]}},
+               %{<<1>> => %{@eth => @fees[<<1>>][@eth_hex]}},
                mtime
              }
 

@@ -32,7 +32,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
     {:ok, path, file_name} =
       TestHelper.write_fee_file(%{
-        "1" => %{
+        <<1>> => %{
           enc_eth => %{
             amount: 0,
             pegged_amount: 1,

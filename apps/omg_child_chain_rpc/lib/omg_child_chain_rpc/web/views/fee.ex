@@ -27,7 +27,7 @@ defmodule OMG.ChildChainRPC.Web.View.Fee do
 
   defp to_api_format(fees) do
     Enum.map(fees, fn {tx_type, fee_for_tx_type} ->
-      {tx_type,
+      {:binary.decode_unsigned(tx_type),
        Enum.map(fee_for_tx_type, fn {currency, fee} ->
          %{
            currency: currency,

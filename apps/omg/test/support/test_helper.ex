@@ -150,7 +150,7 @@ defmodule OMG.TestHelper do
     {:ok, json} =
       map
       |> Enum.map(fn {tx_type, fees} ->
-        {tx_type,
+        {:binary.decode_unsigned(tx_type),
          fees
          |> Enum.map(fn {"0x" <> _ = token, fee} ->
            %{

@@ -49,7 +49,7 @@ defmodule OMG.FeesTest do
   }
 
   @fees %{
-    "1" => @payment_fees
+    <<1>> => @payment_fees
   }
 
   describe "covered?/2" do
@@ -128,9 +128,9 @@ defmodule OMG.FeesTest do
     test "filter fees given a list of currencies" do
       fees =
         @fees
-        |> Map.put("2", @payment_fees)
+        |> Map.put(<<2>>, @payment_fees)
         |> Map.put(
-          "3",
+          <<3>>,
           %{
             @not_eth_2 => %{
               amount: 3,
@@ -146,12 +146,12 @@ defmodule OMG.FeesTest do
       assert Fees.filter_fees(fees, [@eth]) ==
                {:ok,
                 %{
-                  "1" => Map.take(@payment_fees, [@eth]),
-                  "2" => Map.take(@payment_fees, [@eth]),
-                  "3" => %{}
+                  <<1>> => Map.take(@payment_fees, [@eth]),
+                  <<2>> => Map.take(@payment_fees, [@eth]),
+                  <<3>> => %{}
                 }}
 
-      assert Fees.filter_fees(fees, [@not_eth_2]) == {:ok, %{"1" => %{}, "2" => %{}, "3" => fees["3"]}}
+      assert Fees.filter_fees(fees, [@not_eth_2]) == {:ok, %{<<1>> => %{}, <<2>> => %{}, <<3>> => fees[<<3>>]}}
     end
 
     test "returns an error when given an unsupported currency" do

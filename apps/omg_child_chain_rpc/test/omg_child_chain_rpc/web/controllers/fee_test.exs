@@ -20,7 +20,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
 
   setup_all do
     fee_specs = %{
-      "1" => %{
+      <<1>> => %{
         Base.decode16!("0000000000000000000000000000000000000000") => %{
           amount: 1,
           subunit_to_unit: 1_000_000_000_000_000_000,
@@ -38,7 +38,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
           updated_at: DateTime.from_unix!(1_546_336_800)
         }
       },
-      "2" => %{
+      <<2>> => %{
         Base.decode16!("0000000000000000000000000000000000000000") => %{
           amount: 2,
           subunit_to_unit: 1_000_000_000_000_000_000,

@@ -26,7 +26,7 @@ defmodule OMG.Fees do
   use OMG.Utils.LoggerExt
 
   @type fee_t() :: %{Transaction.Payment.currency() => fee_spec_t()}
-  @type full_fee_t() :: %{String.t() => fee_t()}
+  @type full_fee_t() :: %{binary() => fee_t()}
   @type optional_fee_t() :: fee_t() | :no_fees_required
   @type fee_spec_t() :: %{
           amount: non_neg_integer,
@@ -67,7 +67,7 @@ defmodule OMG.Fees do
 
       iex> OMG.Fees.for_transaction(%OMG.State.Transaction.Recovered{signed_tx: %OMG.State.Transaction.Signed{raw_tx: OMG.State.Transaction.Payment.new([], [], <<0::256>>)}},
       ...> %{
-      ...>  "1" => %{
+      ...>  <<1>> => %{
       ...>    "eth" => %{
       ...>      amount: 1,
       ...>      subunit_to_unit: 1000000000000000000,
@@ -116,12 +116,8 @@ defmodule OMG.Fees do
   end
 
   defp get_fee_for_type(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
-    string_type =
-      raw_tx
-      |> Transaction.Protocol.get_type()
-      |> Binary.to_integer()
-      |> Integer.to_string()
-    Map.get(fee_map, string_type, %{})
+    type = Transaction.Protocol.get_type(raw_tx)
+    Map.get(fee_map, type, %{})
   end
 
   defp get_fee_for_type(_, _fee_map), do: %{}
@@ -134,7 +130,7 @@ defmodule OMG.Fees do
 
       iex> OMG.Fees.filter_fees(
       ...>   %{
-      ...>     "1" => %{
+      ...>     <<1>> => %{
       ...>       "eth" => %{
       ...>         amount: 1,
       ...>         subunit_to_unit: 1_000_000_000_000_000_000,
@@ -152,7 +148,7 @@ defmodule OMG.Fees do
       ...>         updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
       ...>       }
       ...>     },
-      ...>     "2" => %{
+      ...>     <<2>> => %{
       ...>       "omg" => %{
       ...>         amount: 3,
       ...>         subunit_to_unit: 1_000_000_000_000_000_000,
@@ -167,7 +163,7 @@ defmodule OMG.Fees do
       ...> )
       {:ok,
         %{
-          "1" => %{
+          <<1>> => %{
             "eth" => %{
               amount: 1,
               subunit_to_unit: 1_000_000_000_000_000_000,
@@ -177,7 +173,7 @@ defmodule OMG.Fees do
               updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
             }
           },
-          "2" => %{}
+          <<2>> => %{}
         }
       }
 
