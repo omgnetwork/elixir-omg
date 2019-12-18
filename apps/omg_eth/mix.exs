@@ -47,5 +47,4 @@ defmodule OMG.Eth.MixProject do
       {:plug_cowboy, "~> 1.0", only: [:dev, :test]}
     ]
   end
-
 end

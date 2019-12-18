@@ -164,7 +164,7 @@ build-test: deps-elixir-omg
 init_test:
 	mkdir data/ || true && \
 	rm -rf data/* || true && \
-	wget https://storage.googleapis.com/circleci-docker-artifacts/data-elixir-omg-tester-plasma-deployer-dev-f68364a-MIN_EXIT_PERIOD-20-PLASMA_CONTRACTS_SHA-c05b445bf704f00b2bd2f2bc563df0880cd54091.tar.gz. -O data/snapshot.tar.gz && \
+	wget https://storage.googleapis.com/circleci-docker-artifacts/data-elixir-omg-tester-plasma-deployer-dev-f68364a-MIN_EXIT_PERIOD-20-PLASMA_CONTRACTS_SHA-c05b445bf704f00b2bd2f2bc563df0880cd54091.tar.gz -O data/snapshot.tar.gz && \
 	tar -zxvf data/snapshot.tar.gz data/
 
 test:
