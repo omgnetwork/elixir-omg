@@ -27,33 +27,14 @@ defmodule OMG.Utxo do
           creating_txhash: Transaction.tx_hash()
         }
 
-  defguard is_position(blknum, txindex, oindex)
-           when is_integer(blknum) and blknum >= 0 and
-                  is_integer(txindex) and txindex >= 0 and
-                  is_integer(oindex) and oindex >= 0
-
-  @interval elem(OMG.Eth.RootChain.get_child_block_interval(), 1)
-  @doc """
-  Based on the contract parameters determines whether UTXO position provided was created by a deposit
-  """
-  defguard is_deposit(position)
-           when is_tuple(position) and tuple_size(position) == 4 and
-                  is_position(elem(position, 1), elem(position, 2), elem(position, 3)) and
-                  rem(elem(position, 1), @interval) != 0
-
-  defmacrop is_nil_or_binary(binary) do
-    quote do
-      is_binary(unquote(binary)) or is_nil(unquote(binary))
-    end
-  end
-
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
-  def to_db_value(%__MODULE__{output: output, creating_txhash: creating_txhash}) when is_nil_or_binary(creating_txhash) do
+  def to_db_value(%__MODULE__{output: output, creating_txhash: creating_txhash})
+      when is_binary(creating_txhash) or is_nil(creating_txhash) do
     %{output: OMG.Output.to_db_value(output), creating_txhash: creating_txhash}
   end
 
   def from_db_value(%{output: output, creating_txhash: creating_txhash})
-      when is_nil_or_binary(creating_txhash) do
+      when is_binary(creating_txhash) or is_nil(creating_txhash) do
     value = %{
       output: OMG.Output.new(output),
       creating_txhash: creating_txhash
@@ -64,7 +45,7 @@ defmodule OMG.Utxo do
 
   # Reading from old db format, only `OMG.Output`
   def from_db_value(%{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash})
-      when is_nil_or_binary(creating_txhash) do
+      when is_binary(creating_txhash) or is_nil(creating_txhash) do
     output = %{owner: owner, currency: currency, amount: amount}
 
     value = %{

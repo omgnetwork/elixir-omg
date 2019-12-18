@@ -49,7 +49,7 @@ defmodule OMG.Output do
       %OMG.Output{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
   """
   def new(%{owner: owner, currency: currency, amount: amount})
-    when is_binary(owner) and is_binary(currency) and is_integer(amount) do
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) do
     %__MODULE__{owner: owner, currency: currency, amount: amount}
   end
 
@@ -96,7 +96,6 @@ defmodule OMG.Output do
   """
   def get_data_for_rlp(%OMG.Output{owner: owner, currency: currency, amount: amount}),
     do: [@output_type_marker, owner, currency, amount]
-
 
   # TODO(achiurizo)
   defp reconstruct([owner, currency, bin_amount]) do

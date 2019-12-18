@@ -20,9 +20,6 @@ defmodule OMG.Watcher.API.Utxo do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.UtxoExit.Core
 
-  require OMG.Utxo
-  import OMG.Utxo, only: [is_deposit: 1]
-
   @type exit_t() :: %{
           utxo_pos: pos_integer(),
           txbytes: binary(),
@@ -31,6 +28,11 @@ defmodule OMG.Watcher.API.Utxo do
         }
 
   @interval elem(OMG.Eth.RootChain.get_child_block_interval(), 1)
+
+  @doc """
+  Determines if the utxo is a deposit utxo.
+  """
+  defguard is_deposit(blknum) when rem(blknum, @interval) != 0
 
   @doc """
   Returns a proof that utxo was spent
@@ -42,10 +44,7 @@ defmodule OMG.Watcher.API.Utxo do
   end
 
   # @spec compose_utxo_exit(OMG.InputPointer.utxo_pos_tuple()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
-
-  # TODO(achiurizo)
-  # Fix guard to tell people this is getting a deposit
-  def compose_utxo_exit(%OMG.InputPointer{blknum: blknum} = utxo_pos) when rem(blknum, @interval) != 0 do
+  def compose_utxo_exit(%OMG.InputPointer{blknum: blknum} = utxo_pos) when is_deposit(blknum) do
     utxo_pos
     |> OMG.InputPointer.to_db_key()
     |> OMG.DB.utxo()
