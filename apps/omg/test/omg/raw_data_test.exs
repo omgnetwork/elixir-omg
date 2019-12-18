@@ -17,32 +17,56 @@ defmodule OMG.RawDataTest do
   # doctest OMG.RawData
   alias OMG.RawData
 
-  test "parsing amounts" do
-    big_32bytes = 2.0 |> :math.pow(8 * 32) |> Kernel.trunc()
-    big_just_enough = big_32bytes - 1
+  describe "parse_amount/1" do
+    test "rejects zero passed as amount" do
+      [zero] = [0] |> ExRLP.encode() |> ExRLP.decode()
 
-    rlp_data = ExRLP.encode([0, 1, big_just_enough, big_32bytes])
-    [zero, one, big, too_big] = ExRLP.decode(rlp_data)
+      assert {:error, :amount_cant_be_zero} == RawData.parse_amount(zero)
+    end
 
-    assert {:error, :amount_cant_be_zero} == RawData.parse_amount(zero)
-    assert {:ok, 1} == RawData.parse_amount(one)
-    assert {:ok, big_just_enough} == RawData.parse_amount(big)
-    assert {:error, :encoded_uint_too_big} == RawData.parse_amount(too_big)
-    assert {:error, :leading_zeros_in_encoded_uint} == RawData.parse_amount(<<0>> <> one)
+    test "rejects integer greater than 32-bytes" do
+      large = 2.0 |> :math.pow(8 * 32) |> Kernel.trunc()
+      [too_large] = [large] |> ExRLP.encode() |> ExRLP.decode()
+
+      assert {:error, :encoded_uint_too_big} == RawData.parse_amount(too_large)
+    end
+
+    test "rejects leading zeros encoded numbers" do
+      [one] = [1] |> ExRLP.encode() |> ExRLP.decode()
+
+      assert {:error, :leading_zeros_in_encoded_uint} == RawData.parse_amount(<<0>> <> one)
+    end
+
+    test "accepts 32-bytes positive integers" do
+      large = 2.0 |> :math.pow(8 * 32) |> Kernel.trunc()
+      big_just_enough = large - 1
+
+      [one, big] = [1, big_just_enough] |> ExRLP.encode() |> ExRLP.decode()
+
+      assert {:ok, 1} == RawData.parse_amount(one)
+      assert {:ok, big_just_enough} == RawData.parse_amount(big)
+    end
   end
 
-  test "parsing addresses" do
-    zero_addr = <<0::160>>
-    non_zero_addr = <<2::160>>
-    too_short_addr = <<0::152>>
-    too_long_addr = <<0::168>>
+  describe "parse_address/1" do
+    test "accepts 20-bytes binaries" do
+      zero_addr = <<0::160>>
+      non_zero_addr = <<2::160>>
 
-    rlp_data = ExRLP.encode([zero_addr, non_zero_addr, too_short_addr, too_long_addr])
-    [zero, addr, bad1, bad2] = ExRLP.decode(rlp_data)
+      [zero, addr] = [zero_addr, non_zero_addr] |> ExRLP.encode() |> ExRLP.decode()
 
-    assert {:ok, zero_addr} == RawData.parse_address(zero)
-    assert {:ok, non_zero_addr} == RawData.parse_address(addr)
-    assert {:error, :malformed_address} == RawData.parse_address(bad1)
-    assert {:error, :malformed_address} == RawData.parse_address(bad2)
+      assert {:ok, zero_addr} == RawData.parse_address(zero)
+      assert {:ok, non_zero_addr} == RawData.parse_address(addr)
+    end
+
+    test "rejects binaries shorter or longer than address length" do
+      too_short_addr = <<0::152>>
+      too_long_addr = <<0::168>>
+
+      [short, long] = [too_short_addr, too_long_addr] |> ExRLP.encode() |> ExRLP.decode()
+
+      assert {:error, :malformed_address} == RawData.parse_address(short)
+      assert {:error, :malformed_address} == RawData.parse_address(long)
+    end
   end
 end
