@@ -17,3 +17,18 @@ AllBlocksBodySchema:
         example:
           page: 2
           limit: 100
+
+GetBlockBodySchema:
+  description: Block number
+  required: true
+  content:
+    application/json:
+      schema:
+        title: 'GetBlockBodySchema'
+        type: object
+        properties:
+          blknum:
+            type: integer
+            format: int64
+        example:
+          blknum: 68290000

@@ -21,6 +21,62 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   alias Support.WatcherHelper
 
+  describe "get_block/2" do
+    @tag fixtures: [:initial_blocks]
+    test "/block.get returns correct block if existent" do
+      existent_blknum = 1000
+
+      %{"success" => success, "data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: existent_blknum}, 200)
+
+      assert data["blknum"] == existent_blknum
+      assert success == true
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "/block.get rejects parameter of wrong type" do
+      string_blknum = "1000"
+      %{"data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: string_blknum}, 200)
+
+      expected = %{
+        "code" => "operation:bad_request",
+        "description" => "Parameters required by this operation are missing or incorrect.",
+        "messages" => %{"validation_error" => %{"parameter" => "blknum", "validator" => ":integer"}},
+        "object" => "error"
+      }
+
+      assert data == expected
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "/block.get endpoint rejects request without parameters" do
+      missing_param = %{}
+      %{"data" => data} = WatcherHelper.rpc_call("block.get", missing_param, 200)
+
+      expected = %{
+        "code" => "operation:bad_request",
+        "description" => "Parameters required by this operation are missing or incorrect.",
+        "messages" => %{"validation_error" => %{"parameter" => "blknum", "validator" => ":integer"}},
+        "object" => "error"
+      }
+
+      assert data == expected
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "/block.get returns expected error if block not found" do
+      non_existent_block = 5000
+      %{"data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: non_existent_block}, 200)
+
+      expected = %{
+        "code" => "get_block:block_not_found",
+        "description" => nil,
+        "object" => "error"
+      }
+
+      assert data == expected
+    end
+  end
+
   describe "get_blocks/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns the API response with the blocks" do

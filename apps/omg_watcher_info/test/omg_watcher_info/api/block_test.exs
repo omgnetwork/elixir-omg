@@ -23,6 +23,21 @@ defmodule OMG.WatcherInfo.API.BlockTest do
   alias OMG.WatcherInfo.API
   alias OMG.WatcherInfo.DB
 
+  describe "get_block/1" do
+    @tag fixtures: [:initial_blocks]
+    test "returns block by block number" do
+      blknum = 1000
+      block = DB.Block.get(blknum)
+      assert {:ok, block} == API.Block.get(blknum)
+    end
+
+    @tag fixtures: [:initial_blocks]
+    test "returns expected error if block not found" do
+      non_existent_block = 5000
+      assert {:error, :block_not_found} == API.Block.get(non_existent_block)
+    end
+  end
+
   describe "get_blocks/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a paginator with a list of blocks" do
