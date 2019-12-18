@@ -19,8 +19,8 @@ defmodule OMG.WatcherInfo.API.BlockTest do
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
-  alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.API.Block
+  alias OMG.WatcherInfo.DB
 
   describe "get_block/1" do
     @tag fixtures: [:initial_blocks]
