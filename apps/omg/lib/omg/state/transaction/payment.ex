@@ -30,7 +30,7 @@ defmodule OMG.State.Transaction.Payment do
 
   @type t() :: %__MODULE__{
           inputs: list(tuple()),
-          outputs: list(Output.FungibleMoreVPToken.t()),
+          outputs: list(Output.t()),
           metadata: Transaction.metadata()
         }
 
@@ -92,7 +92,7 @@ defmodule OMG.State.Transaction.Payment do
   defp new_input({blknum, txindex, oindex}), do: %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex}
 
   defp new_output({owner, currency, amount}),
-    do: %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
+    do: %Output{owner: owner, currency: currency, amount: amount}
 
   defp reconstruct_inputs(inputs_rlp) do
     with {:ok, inputs} <- parse_inputs(inputs_rlp),
@@ -127,7 +127,7 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   defp only_allowed_output_types?(outputs),
-    do: Enum.all?(outputs, &match?(%Output.FungibleMoreVPToken{}, &1))
+    do: Enum.all?(outputs, &match?(%Output{}, &1))
 
   # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
   #       most likely one needs to route through generic InputPointer` function that does the dispatch
@@ -163,7 +163,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
         metadata
       ]
 
-  @spec get_outputs(Transaction.Payment.t()) :: list(OMG.Output.FungibleMoreVPToken.t())
+  @spec get_outputs(Transaction.Payment.t()) :: list(OMG.Output.t())
   def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
 
   @spec get_inputs(Transaction.Payment.t()) :: list(tuple())
@@ -187,7 +187,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   Returns the fees that this transaction is paying, mapped by currency
   """
-  @spec can_apply?(Transaction.Payment.t(), list(OMG.Output.FungibleMoreVPToken.t())) ::
+  @spec can_apply?(Transaction.Payment.t(), list(OMG.Output.t())) ::
           {:ok, map()} | {:error, :amounts_do_not_add_up}
   def can_apply?(%Transaction.Payment{} = tx, outputs_spent) do
     outputs = Transaction.get_outputs(tx)

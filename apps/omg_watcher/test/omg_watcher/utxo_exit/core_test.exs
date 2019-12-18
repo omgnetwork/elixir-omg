@@ -39,7 +39,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
       fake_utxo_db_kv =
         {{blknum, txindex, oindex},
          Utxo.to_db_value(%Utxo{
-           output: %OMG.Output.FungibleMoreVPToken{
+           output: %OMG.Output{
              amount: 10,
              currency: @eth,
              owner: alice.addr

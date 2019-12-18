@@ -72,7 +72,7 @@ defmodule OMG.TypedDataHash.Tools do
   @spec hash_transaction(
           binary,
           list(OMG.InputPointer.utxo_pos_tuple()),
-          list(Output.FungibleMoreVPToken.t()),
+          list(Output.t()),
           Transaction.metadata(),
           Crypto.hash_t(),
           Crypto.hash_t()
@@ -116,8 +116,8 @@ defmodule OMG.TypedDataHash.Tools do
     |> Crypto.hash()
   end
 
-  @spec hash_output(Output.FungibleMoreVPToken.t(), pos_integer) :: Crypto.hash_t()
-  def hash_output(%Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}, opts \\ []) do
+  @spec hash_output(Output.t(), pos_integer) :: Crypto.hash_t()
+  def hash_output(%Output{owner: owner, currency: currency, amount: amount}, opts \\ []) do
     output_type = if Keyword.get(opts, :hash_zero), do: <<0>>, else: @output_type_marker
 
     [

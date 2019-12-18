@@ -1032,6 +1032,6 @@ defmodule OMG.State.CoreTest do
   defp to_utxo_kv({blknum, txindex, oindex, owner, currency, amount}),
     do: {
       %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex},
-      %OMG.Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner.addr}}
+      %OMG.Utxo{output: %OMG.Output{amount: amount, currency: currency, owner: owner.addr}}
     }
 end

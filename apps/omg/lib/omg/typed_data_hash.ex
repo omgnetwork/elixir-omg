@@ -29,7 +29,7 @@ defmodule OMG.TypedDataHash do
 
   # Precomputed hash of empty output for performance
   @empty_output_hash __MODULE__.Tools.hash_output(
-                       %Output.FungibleMoreVPToken{
+                       %Output{
                          owner: @zero_address,
                          currency: @zero_address,
                          amount: 0

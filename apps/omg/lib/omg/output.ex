@@ -20,33 +20,45 @@ defmodule OMG.Output do
   This module specificially dispatches generic calls to the various specific types
   """
 
+  @type t :: %__MODULE__{
+          owner: OMG.Crypto.address_t(),
+          currency: OMG.Crypto.address_t(),
+          amount: non_neg_integer()
+        }
+
   @output_type_marker <<1>>
 
+  defstruct [:owner, :currency, :amount]
+
+  # TODO(achiurizo)
+  # Need to fix that this method is able to re-build from it's own generated rlp data.
+  # ex: [<<1>>, <<1::160>>, <<1::160>>, 1] (last number is an integer instead of binary)
   @doc """
   Converts an RLP data list into a output utxo struct.
 
   ## Examples
 
-      iex> rlp_data = [<<1>>, <<1::160>>, <<1::160>>, 1]
+      iex> rlp_data = [<<1>>, <<1::160>>, <<1::160>>, <<1>>]
       iex> OMG.Output.dispatching_reconstruct(rlp_data)
-      %OMG.Output.FungibleMoreVPToken{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
+      %OMG.Output{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
   """
-  def dispatching_reconstruct([@output_type_marker | rest_of_rlp_data] = rlp_data), do: reconstruct(rest_of_rlp_data)
+  def dispatching_reconstruct([@output_type_marker | rest_of_rlp_data]), do: reconstruct(rest_of_rlp_data)
   def dispatching_reconstruct(_), do: {:error, :unrecognized_output_type}
 
-  # TODO(achiurizo)
-  #
-  # Remove this method and the call stack, it just wants the struct from FungibleMoreVPToken.
+  # TODO(achiurizo) Remove this method and the call stack
   @doc """
-  Returns a FungibleMoreVPToken struct from a map
+  Returns a OMG.Output struct from a map
 
   ## Examples
 
       iex> output = %{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
-      iex> OMG.Output.from_db_value(output)
-      %OMG.Output.FungibleMoreVPToken{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
+      iex> OMG.Output.new(output)
+      %OMG.Output{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
   """
-  def from_db_value(%{} = db_value), do: OMG.Output.FungibleMoreVPToken.from_db_value(db_value)
+  def new(%{owner: owner, currency: currency, amount: amount})
+    when is_binary(owner) and is_binary(currency) and is_integer(amount) do
+    %__MODULE__{owner: owner, currency: currency, amount: amount}
+  end
 
   # TODO(achiurizo)
   # refactor this? WE don't need this?
@@ -55,11 +67,11 @@ defmodule OMG.Output do
 
   # Examples
 
-      iex> output = %OMG.Output.FungibleMoreVPToken{owner: <<1::160>>}
+      iex> output = %OMG.Output{owner: <<1::160>>}
       iex> OMG.Output.can_spend?(output, <<1::160>>, nil)
       true
   """
-  def can_spend?(%OMG.Output.FungibleMoreVPToken{owner: owner}, witness, _raw_tx) when is_binary(witness) do
+  def can_spend?(%OMG.Output{owner: owner}, witness, _raw_tx) when is_binary(witness) do
     owner == witness
   end
 
@@ -68,11 +80,11 @@ defmodule OMG.Output do
 
   ## Examples
 
-      iex> output = %OMG.Output.FungibleMoreVPToken{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
+      iex> output = %OMG.Output{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
       iex> OMG.Output.to_db_value(output)
       %{type: <<1>>, owner: <<1::160>>, currency: <<1::160>>, amount: 1}
   """
-  def to_db_value(%OMG.Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount})
+  def to_db_value(%OMG.Output{owner: owner, currency: currency, amount: amount})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) do
     %{type: @output_type_marker, owner: owner, currency: currency, amount: amount}
   end
@@ -82,20 +94,21 @@ defmodule OMG.Output do
 
   ## Examples
 
-      iex> output = %OMG.Output.FungibleMoreVPToken{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
+      iex> output = %OMG.Output{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
       iex> OMG.Output.get_data_for_rlp(output)
       [<<1>>, <<1::160>>, <<1::160>>, 1]
   """
-  def get_data_for_rlp(%OMG.Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}),
+  def get_data_for_rlp(%OMG.Output{owner: owner, currency: currency, amount: amount}),
     do: [@output_type_marker, owner, currency, amount]
 
 
+  # TODO(achiurizo)
   defp reconstruct([owner, currency, bin_amount]) do
     with {:ok, cur12} <- parse_address(currency),
          {:ok, owner} <- parse_address(owner),
          {:ok, int_amount} <- parse_int(bin_amount),
          {:ok, amount} <- parse_amount(int_amount),
-         do: %OMG.Output.FungibleMoreVPToken{owner: owner, currency: cur12, amount: amount}
+         do: %OMG.Output{owner: owner, currency: cur12, amount: amount}
   end
 
   defp parse_amount(amount) when is_integer(amount) and amount > 0, do: {:ok, amount}

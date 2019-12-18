@@ -48,7 +48,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
     # what type data is being passed into the OMG.InputPointer protocol.
     %OMG.InputPointer{blknum: blknum, txindex: txindex, oindex: oindex} = OMG.InputPointer.from_db_key(db_utxo_pos)
 
-    %OMG.Utxo{output: %OMG.Output.FungibleMoreVPToken{amount: amount, currency: currency, owner: owner}} =
+    %OMG.Utxo{output: %OMG.Output{amount: amount, currency: currency, owner: owner}} =
       OMG.Utxo.from_db_value(db_utxo_value)
 
     tx = Transaction.Payment.new([], [{owner, currency, amount}])

@@ -9,7 +9,7 @@ defmodule Itest.Transactions.Deposit do
 
   @type t() :: %__MODULE__{
           inputs: list(tuple()),
-          outputs: list(Output.FungibleMoreVPToken.t()),
+          outputs: list(Output.t()),
           metadata: Transaction.metadata()
         }
 

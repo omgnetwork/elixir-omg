@@ -70,7 +70,7 @@ defmodule OMG.State.Transaction.Validator do
   end
 
   # Checks the outputs spent by this transaction have been authorized by correct witnesses
-  @spec authorized?(list(OMG.Output.FungibleMoreVPToken.t()), list(Transaction.Witness.t()), Transaction.Protocol.t()) ::
+  @spec authorized?(list(OMG.Output.t()), list(Transaction.Witness.t()), Transaction.Protocol.t()) ::
           :ok | {:error, :unauthorized_spend}
   defp authorized?(outputs_spent, witnesses, raw_tx) do
     outputs_spent

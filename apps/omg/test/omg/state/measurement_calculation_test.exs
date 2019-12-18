@@ -29,16 +29,16 @@ defmodule OMG.State.MeasurementCalculationTest do
   test "calculate metrics from state", %{alice: alice, bob: bob, carol: carol} do
     utxos = %{
       %OMG.InputPointer{blknum: 2_000, txindex: 4076, oindex: 3} => %OMG.Utxo{
-        output: %OMG.Output.FungibleMoreVPToken{amount: 700_000_000, currency: @eth, owner: alice}
+        output: %OMG.Output{amount: 700_000_000, currency: @eth, owner: alice}
       },
       %OMG.InputPointer{blknum: 1_000, txindex: 2559, oindex: 0} => %OMG.Utxo{
-        output: %OMG.Output.FungibleMoreVPToken{amount: 111_111_111, currency: @not_eth, owner: alice}
+        output: %OMG.Output{amount: 111_111_111, currency: @not_eth, owner: alice}
       },
       %OMG.InputPointer{blknum: 8_000, txindex: 4854, oindex: 2} => %OMG.Utxo{
-        output: %OMG.Output.FungibleMoreVPToken{amount: 77_000_000, currency: @eth, owner: bob}
+        output: %OMG.Output{amount: 77_000_000, currency: @eth, owner: bob}
       },
       %OMG.InputPointer{blknum: 7_000, txindex: 4057, oindex: 3} => %OMG.Utxo{
-        output: %OMG.Output.FungibleMoreVPToken{amount: 222_222_222, currency: @not_eth, owner: carol}
+        output: %OMG.Output{amount: 222_222_222, currency: @not_eth, owner: carol}
       },
       %OMG.InputPointer{blknum: 7_000, txindex: 4057, oindex: 4} => %OMG.Utxo{output: %{}}
     }

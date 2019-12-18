@@ -23,7 +23,7 @@ defmodule OMG.Utxo do
   defstruct [:output, :creating_txhash]
 
   @type t() :: %__MODULE__{
-          output: OMG.Output.FungibleMoreVPToken.t(),
+          output: OMG.Output.t(),
           creating_txhash: Transaction.tx_hash()
         }
 
@@ -55,20 +55,20 @@ defmodule OMG.Utxo do
   def from_db_value(%{output: output, creating_txhash: creating_txhash})
       when is_nil_or_binary(creating_txhash) do
     value = %{
-      output: OMG.Output.from_db_value(output),
+      output: OMG.Output.new(output),
       creating_txhash: creating_txhash
     }
 
     struct!(__MODULE__, value)
   end
 
-  # Reading from old db format, only `OMG.Output.FungibleMoreVPToken`
+  # Reading from old db format, only `OMG.Output`
   def from_db_value(%{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash})
       when is_nil_or_binary(creating_txhash) do
     output = %{owner: owner, currency: currency, amount: amount}
 
     value = %{
-      output: OMG.Output.FungibleMoreVPToken.from_db_value(output),
+      output: OMG.Output.new(output),
       creating_txhash: creating_txhash
     }
 
