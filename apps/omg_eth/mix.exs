@@ -34,26 +34,6 @@ defmodule OMG.Eth.MixProject do
     [
       {:ex_abi, "~> 0.2.1"},
       {:ethereumex, "~> 0.5.5"},
-      {
-        :openzeppelin_solidity,
-        git: "https://github.com/OpenZeppelin/openzeppelin-solidity",
-        tag: "v2.3.0",
-        compile: contracts_compile("openzeppelin_solidity", ["contracts/token/ERC20/ERC20Mintable.sol"]),
-        app: false,
-        only: [:dev, :test]
-      },
-      {
-        :plasma_contracts,
-        git: "https://github.com/omisego/plasma-contracts",
-        branch: "master",
-        sparse: "plasma_framework/contracts/",
-        compile:
-          contracts_compile("plasma_contracts", [
-            "plasma_framework/contracts/mocks/transactions/eip712Libs/PaymentEip712LibMock.sol"
-          ]),
-        app: false,
-        only: [:dev, :test]
-      },
       # Umbrella
       {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},

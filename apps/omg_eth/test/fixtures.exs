@@ -69,11 +69,11 @@ defmodule OMG.Eth.Fixtures do
     root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
-    {:ok, _, token_addr} = Deployer.create_new("ERC20Mintable", root_path, Encoding.from_hex(addr), [])
+    {:ok, _, token_addr} = "0x32063dba91cf95eb3d58fad9e391ee888878b61c"
 
     # ensuring that the root chain contract handles token_addr
     {:ok, false} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
-    {:ok, _} = RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr) |> DevHelper.transact_sync!()
+    {:ok, _} = DevHelper.transact_sync!(RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr))
     {:ok, true} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
 
     token_addr

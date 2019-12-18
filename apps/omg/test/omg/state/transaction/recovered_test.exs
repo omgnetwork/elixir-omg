@@ -334,8 +334,9 @@ defmodule OMG.State.Transaction.RecoveredTest do
       no_account = %{addr: @zero_address}
 
       assert {:error, :output_guard_cant_be_zero} =
-               TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{no_account, 10}, {alice, 100}])
-               |> Transaction.Recovered.recover_from()
+               Transaction.Recovered.recover_from(
+                 TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{no_account, 10}, {alice, 100}])
+               )
     end
 
     @tag fixtures: [:alice]
@@ -343,8 +344,9 @@ defmodule OMG.State.Transaction.RecoveredTest do
       no_account = %{addr: @zero_address}
 
       assert {:error, :output_guard_cant_be_zero} =
-               TestHelper.create_encoded([{1000, 0, 0, alice}], [{no_account, @zero_address, 0}])
-               |> Transaction.Recovered.recover_from()
+               Transaction.Recovered.recover_from(
+                 TestHelper.create_encoded([{1000, 0, 0, alice}], [{no_account, @zero_address, 0}])
+               )
     end
 
     test "Decoding transaction with zero output type fails" do

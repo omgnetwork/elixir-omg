@@ -98,9 +98,12 @@ defmodule OMG.TypedDataHash.Tools do
     tx_data = ABI.TypeEncoder.encode_raw([0], [{:uint, 256}])
     metadata = metadata || <<0::256>>
 
+    raw_encoded_ty_type =
+      ABI.TypeEncoder.encode_raw([:binary.decode_unsigned(plasma_framework_tx_type)], [{:uint, 256}])
+
     [
       @transaction_type_hash,
-      ABI.TypeEncoder.encode_raw([:binary.decode_unsigned(plasma_framework_tx_type)], [{:uint, 256}]),
+      raw_encoded_ty_type,
       input_hashes,
       output_hashes,
       tx_data,
