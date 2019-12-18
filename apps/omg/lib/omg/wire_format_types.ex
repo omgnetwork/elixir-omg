@@ -34,7 +34,7 @@ defmodule OMG.WireFormatTypes do
   }
 
   @input_pointer_type_modules %{
-    1 => OMG.InputPointer.UtxoPosition
+    1 => OMG.InputPointer
   }
 
   @output_type_values %{

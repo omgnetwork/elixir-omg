@@ -26,11 +26,15 @@ defmodule OMG.InputPointer do
 
   @input_pointer_types_modules OMG.WireFormatTypes.input_pointer_type_modules()
 
+  def reconstruct(binary_input) when is_binary(binary_input),
+    do: binary_input |> ensure_32bytes! |> :binary.decode_unsigned(:big) |> Utxo.Position.decode!()
+
+
   def from_db_key({:input_pointer, output_type, db_value}),
     do: @input_pointer_types_modules[output_type].from_db_key(db_value)
 
   # default clause for backwards compatibility
-  def from_db_key(db_value), do: OMG.InputPointer.UtxoPosition.from_db_key(db_value)
+  def from_db_key(db_value), do: Utxo.Position.from_db_key(db_value)
 
   @input_pointer_output_type OMG.WireFormatTypes.input_pointer_type_for(:input_pointer_utxo_position)
 
@@ -46,4 +50,6 @@ defmodule OMG.InputPointer do
     padding_bits = (32 - byte_size(unpadded)) * 8
     <<0::size(padding_bits)>> <> unpadded
   end
+
+  defp ensure_32bytes!(binary_input) when byte_size(binary_input) == 32, do: binary_input
 end
