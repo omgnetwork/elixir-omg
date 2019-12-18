@@ -12,15 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.start()
-ExUnit.start()
+defmodule OMG.WatcherRPC.Web.Controller.Block do
+  @moduledoc """
+  Operations related to block.
+  """
 
-{:ok, _} = Application.ensure_all_started(:httpoison)
-{:ok, _} = Application.ensure_all_started(:fake_server)
-{:ok, _} = Application.ensure_all_started(:briefly)
-{:ok, _} = Application.ensure_all_started(:erlexec)
-{:ok, _} = Application.ensure_all_started(:ex_machina)
+  use OMG.WatcherRPC.Web, :controller
 
-Mix.Task.run("ecto.create", ~w(--quiet))
-Mix.Task.run("ecto.migrate", ~w(--quiet))
+  alias OMG.WatcherInfo.API.Block, as: InfoApiBlock
+  alias OMG.WatcherRPC.Web.Validator
+
+  @doc """
+  Retrieves a list of most recent blocks
+  """
+  def get_blocks(conn, params) do
+    with {:ok, constraints} <- Validator.BlockConstraints.parse(params) do
+      constraints
+      |> InfoApiBlock.get_blocks()
+      |> api_response(conn, :blocks)
+    end
+  end
+end
