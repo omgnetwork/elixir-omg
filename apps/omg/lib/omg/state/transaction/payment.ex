@@ -117,7 +117,7 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   defp parse_outputs(outputs_rlp) do
-    outputs = Enum.map(outputs_rlp, &Output.dispatching_reconstruct/1)
+    outputs = Enum.map(outputs_rlp, &Output.new/1)
 
     with nil <- Enum.find(outputs, &match?({:error, _}, &1)),
          true <- only_allowed_output_types?(outputs) || {:error, :tx_cannot_create_output_type},

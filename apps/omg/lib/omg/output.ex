@@ -34,31 +34,27 @@ defmodule OMG.Output do
   # Need to fix that this method is able to re-build from it's own generated rlp data.
   # ex: [<<1>>, <<1::160>>, <<1::160>>, 1] (last number is an integer instead of binary)
   @doc """
-  Converts an RLP data list into a output utxo struct.
-
-  ## Examples
-
-      iex> rlp_data = [<<1>>, <<1::160>>, <<1::160>>, <<1>>]
-      iex> OMG.Output.dispatching_reconstruct(rlp_data)
-      %OMG.Output{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
-  """
-  def dispatching_reconstruct([@output_type_marker | rest_of_rlp_data]), do: reconstruct(rest_of_rlp_data)
-  def dispatching_reconstruct(_), do: {:error, :unrecognized_output_type}
-
-  # TODO(achiurizo) Remove this method and the call stack
-  @doc """
   Returns a OMG.Output struct from a map
 
   ## Examples
 
+      # Converts a map into an OMG.Output 
       iex> output = %{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
       iex> OMG.Output.new(output)
+      %OMG.Output{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
+
+      # Converts an RLP data list into a output utxo struct.
+      iex> rlp_data = [<<1>>, <<1::160>>, <<1::160>>, <<1>>]
+      iex> OMG.Output.new(rlp_data)
       %OMG.Output{owner: <<1::160>>, currency: <<1::160>>, amount: 1}
   """
   def new(%{owner: owner, currency: currency, amount: amount})
     when is_binary(owner) and is_binary(currency) and is_integer(amount) do
     %__MODULE__{owner: owner, currency: currency, amount: amount}
   end
+
+  def new([@output_type_marker | rest_of_rlp_data]), do: reconstruct(rest_of_rlp_data)
+  def new(_), do: {:error, :unrecognized_output_type}
 
   # TODO(achiurizo)
   # refactor this? WE don't need this?
