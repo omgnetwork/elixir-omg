@@ -143,7 +143,7 @@ defprotocol OMG.State.Transaction.Protocol do
   @doc """
   List of input pointers (e.g. of which one implementation is `utxo_pos`) this transaction is intending to spend
   """
-  @spec get_inputs(t()) :: list(InputPointer.Protocol.t())
+  @spec get_inputs(t()) :: list(InputPointer.t())
   def get_inputs(tx)
 
   @doc """

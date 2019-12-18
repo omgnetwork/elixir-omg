@@ -14,12 +14,15 @@
 
 defmodule OMG.InputPointer do
   @moduledoc """
-  `OMG.InputPointer` and `OMG.InputPointer.Protocol` represent the data that's used to mention outputs that are intended
+  `OMG.InputPointer` and `OMG.InputPointer` represent the data that's used to mention outputs that are intended
   to be inputs to a transaction. Examples are UTXO positions or output id (consisting of transaction hash and output
   index)
 
   This module specificially dispatches generic calls to the various specific types
   """
+
+  alias OMG.Utxo
+  require Utxo
 
   @input_pointer_types_modules OMG.WireFormatTypes.input_pointer_type_modules()
 
@@ -28,20 +31,19 @@ defmodule OMG.InputPointer do
 
   # default clause for backwards compatibility
   def from_db_key(db_value), do: OMG.InputPointer.UtxoPosition.from_db_key(db_value)
-end
 
-defprotocol OMG.InputPointer.Protocol do
-  @moduledoc """
-  Captures the varying behavior of how the outputs can be pointed to in child chain transactions
-  """
+  @input_pointer_output_type OMG.WireFormatTypes.input_pointer_type_for(:input_pointer_utxo_position)
 
-  @doc """
-  Transforms into a db-specific term
-  """
-  def to_db_key(input_pointer)
+  @spec to_db_key(Utxo.Position.t()) :: {:input_pointer, pos_integer(), Utxo.Position.db_t()}
+  def to_db_key(Utxo.position(_, _, _) = utxo_pos),
+    do: {:input_pointer, @input_pointer_output_type, Utxo.Position.to_db_key(utxo_pos)}
 
-  @doc """
-  Transforms into a RLP-ready structure
-  """
-  def get_data_for_rlp(input_pointer)
+  @spec get_data_for_rlp(Utxo.Position.t()) :: binary()
+  def get_data_for_rlp(Utxo.position(_, _, _) = utxo_pos),
+    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big) |> pad()
+
+  defp pad(unpadded) do
+    padding_bits = (32 - byte_size(unpadded)) * 8
+    <<0::size(padding_bits)>> <> unpadded
+  end
 end

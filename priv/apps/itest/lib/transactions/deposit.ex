@@ -8,7 +8,7 @@ defmodule Itest.Transactions.Deposit do
   defstruct [:inputs, :outputs, metadata: @zero_metadata]
 
   @type t() :: %__MODULE__{
-          inputs: list(InputPointer.Protocol.t()),
+          inputs: list(InputPointer.t()),
           outputs: list(Output.FungibleMoreVPToken.t()),
           metadata: Transaction.metadata()
         }

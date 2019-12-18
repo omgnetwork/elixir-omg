@@ -111,7 +111,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @spec get_outputs(Transaction.FeeTokenClaim.t()) :: list(Output.Protocol.t())
   def get_outputs(%Transaction.FeeTokenClaim{outputs: outputs}), do: outputs
 
-  @spec get_inputs(Transaction.FeeTokenClaim.t()) :: list(InputPointer.Protocol.t())
+  @spec get_inputs(Transaction.FeeTokenClaim.t()) :: list(InputPointer.t())
   def get_inputs(%Transaction.FeeTokenClaim{}), do: []
 
   @doc """

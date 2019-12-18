@@ -36,7 +36,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
       encode_utxo = position |> Utxo.Position.encode()
 
       [output] = Transaction.get_outputs(Transaction.Payment.new([], [{alice.addr, @eth, 10}]))
-      fake_utxo_db_kv = {OMG.InputPointer.Protocol.to_db_key(position), Utxo.to_db_value(%Utxo{output: output})}
+      fake_utxo_db_kv = {OMG.InputPointer.to_db_key(position), Utxo.to_db_value(%Utxo{output: output})}
 
       assert {:ok,
               %{

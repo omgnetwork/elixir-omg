@@ -36,7 +36,7 @@ defmodule OMG.State.Transaction.Payment do
 
   @type t() :: %__MODULE__{
           tx_type: non_neg_integer(),
-          inputs: list(InputPointer.Protocol.t()),
+          inputs: list(InputPointer.t()),
           outputs: list(Output.FungibleMoreVPToken.t()),
           metadata: Transaction.metadata()
         }
@@ -170,7 +170,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       when Transaction.is_metadata(metadata),
       do: [
         tx_type,
-        Enum.map(inputs, &OMG.InputPointer.Protocol.get_data_for_rlp/1),
+        Enum.map(inputs, &OMG.InputPointer.get_data_for_rlp/1),
         Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
@@ -181,7 +181,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   @spec get_outputs(Transaction.Payment.t()) :: list(Output.Protocol.t())
   def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
 
-  @spec get_inputs(Transaction.Payment.t()) :: list(InputPointer.Protocol.t())
+  @spec get_inputs(Transaction.Payment.t()) :: list(InputPointer.t())
   def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
 
   @doc """
