@@ -28,6 +28,7 @@ defmodule OMG.ChildChain.Fees.FeeParser do
         json
         |> Enum.reduce({[], %{}}, fn {tx_type, fee_spec}, {all_errors, fee_specs} ->
           encoded_tx_type = tx_type |> String.to_integer() |> :binary.encode_unsigned()
+
           {errors, token_fee_map, _, _} =
             fee_spec
             |> Enum.map(&parse_tx_type_fee_spec/1)
