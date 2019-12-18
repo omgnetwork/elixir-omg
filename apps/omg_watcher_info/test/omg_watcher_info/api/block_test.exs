@@ -35,6 +35,8 @@ defmodule OMG.WatcherInfo.API.BlockTest do
     test "returns expected error if block not found" do
       non_existent_block = 5000
       assert {:error, :block_not_found} == API.Block.get(non_existent_block)
+    end
+  end
 
   describe "get_blocks/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]

@@ -15,9 +15,7 @@
 defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
-  use OMG.Watcher.Fixtures
 
   import OMG.WatcherInfo.Factory
 
@@ -76,6 +74,9 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       }
 
       assert data == expected
+    end
+  end
+
   describe "get_blocks/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns the API response with the blocks" do

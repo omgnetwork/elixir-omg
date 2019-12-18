@@ -22,7 +22,6 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   alias OMG.WatcherInfo.API.Block, as: InfoApiBlock
   alias OMG.WatcherRPC.Web.Validator
 
-
   @doc """
   Retrieves a specific block by block number.
   """

@@ -89,7 +89,7 @@ defmodule OMG.WatcherInfo.DB.Block do
       limit: ^limit,
       offset: ^offset
     )
-
+  end
 
   @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   def insert(params) do
