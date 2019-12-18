@@ -173,7 +173,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "plasma_framework_value")
     :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
     :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
