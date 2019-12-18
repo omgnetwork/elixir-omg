@@ -42,7 +42,9 @@ defmodule OMG.WatcherRPC.Mixfile do
       {:omg_utils, in_umbrella: true},
       {:omg_watcher, in_umbrella: true},
       # UMBRELLA but test only
-      {:omg_watcher_info, in_umbrella: true, only: [:test]}
+      {:omg_watcher_info, in_umbrella: true, only: [:test]},
+      # TEST ONLY
+      {:ex_machina, "~> 2.3", only: [:test], runtime: false}
     ]
   end
 end
