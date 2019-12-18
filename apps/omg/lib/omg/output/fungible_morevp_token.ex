@@ -38,7 +38,7 @@ defmodule OMG.Output.FungibleMoreVPToken do
     with {:ok, cur12} <- RawData.parse_address(currency),
          {:ok, owner} <- RawData.parse_address(owner),
          {:ok, amount} <- RawData.parse_amount(bin_amount),
-         do: %__MODULE__{owner: owner, currency: cur12, amount: amount, output_type: output_type}
+         do: %__MODULE__{output_type: output_type, owner: owner, currency: cur12, amount: amount}
   end
 end
 

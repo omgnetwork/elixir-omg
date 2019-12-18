@@ -41,8 +41,6 @@ defmodule OMG.TypedDataHash do
   # Prefix and version byte motivated by http://eips.ethereum.org/EIPS/eip-191
   @eip_191_prefix <<0x19, 0x01>>
 
-  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
-
   @doc """
   Computes a hash of encoded transaction as defined in EIP-712
   """
@@ -55,7 +53,7 @@ defmodule OMG.TypedDataHash do
   @spec hash_transaction(Transaction.Payment.t()) :: Crypto.hash_t()
   def hash_transaction(%Transaction.Payment{} = raw_tx) do
     __MODULE__.Tools.hash_transaction(
-      @payment_tx_type,
+      raw_tx.tx_type,
       Transaction.get_inputs(raw_tx),
       Transaction.get_outputs(raw_tx),
       raw_tx.metadata,

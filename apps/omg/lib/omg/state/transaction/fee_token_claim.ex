@@ -22,11 +22,16 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
 
   require Transaction
 
+  @fee_token_claim_tx_type OMG.WireFormatTypes.tx_type_for(:tx_fee_token_claim)
   @fee_token_claim_output_type OMG.WireFormatTypes.output_type_for(:output_fee_token_claim)
 
-  defstruct [:outputs, :nonce]
+  defstruct [:tx_type, :outputs, :nonce]
 
-  @type t() :: %__MODULE__{outputs: [Output.FungibleMoreVPToken.t()], nonce: Crypto.hash_t()}
+  @type t() :: %__MODULE__{
+          tx_type: non_neg_integer(),
+          outputs: [Output.FungibleMoreVPToken.t()],
+          nonce: Crypto.hash_t()
+        }
 
   @doc """
   Creates new fee claiming transaction
@@ -37,6 +42,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
         ) :: t()
   def new(blknum, {owner, currency, amount}) do
     %__MODULE__{
+      tx_type: @fee_token_claim_tx_type,
       outputs: [
         %Output.FungibleMoreVPToken{
           owner: owner,
@@ -52,10 +58,10 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
   @doc """
   Transforms the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
   """
-  def reconstruct([outputs_rlp, nonce_rlp]) do
+  def reconstruct([tx_type, outputs_rlp, nonce_rlp]) do
     with {:ok, outputs} <- reconstruct_outputs(outputs_rlp),
          {:ok, nonce} <- reconstruct_nonce(nonce_rlp),
-         do: {:ok, %__MODULE__{outputs: outputs, nonce: nonce}}
+         do: {:ok, %__MODULE__{tx_type: tx_type, outputs: outputs, nonce: nonce}}
   end
 
   def reconstruct(_), do: {:error, :malformed_transaction}
@@ -90,15 +96,13 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   alias OMG.Output
   alias OMG.State.Transaction
 
-  @fee_token_claim_tx_type OMG.WireFormatTypes.tx_type_for(:tx_fee_token_claim)
-
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
   @spec get_data_for_rlp(Transaction.FeeTokenClaim.t()) :: list(any())
-  def get_data_for_rlp(%Transaction.FeeTokenClaim{outputs: outputs, nonce: nonce}) do
+  def get_data_for_rlp(%Transaction.FeeTokenClaim{tx_type: tx_type, outputs: outputs, nonce: nonce}) do
     [
-      @fee_token_claim_tx_type,
+      tx_type,
       Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
       nonce
     ]

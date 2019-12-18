@@ -55,7 +55,7 @@ defmodule OMG.State.Transaction do
     case RawData.parse_uint256(raw_type) do
       {:ok, tx_type} when tx_type in @tx_types ->
         protocol_module = @tx_types_modules[tx_type]
-        protocol_module.reconstruct(raw_tx_rlp_decoded_chunks)
+        protocol_module.reconstruct([tx_type | raw_tx_rlp_decoded_chunks])
 
       _ ->
         {:error, :unrecognized_transaction_type}
