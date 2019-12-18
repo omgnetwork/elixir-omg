@@ -21,6 +21,7 @@ defmodule OMG.State.Transaction.Payment do
   alias OMG.Crypto
   alias OMG.InputPointer
   alias OMG.Output
+  alias OMG.RawData
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -86,7 +87,8 @@ defmodule OMG.State.Transaction.Payment do
   def reconstruct([tx_type, inputs_rlp, outputs_rlp, tx_data_rlp, metadata_rlp]) do
     with {:ok, inputs} <- reconstruct_inputs(inputs_rlp),
          {:ok, outputs} <- reconstruct_outputs(outputs_rlp),
-         :ok <- check_tx_data(tx_data_rlp),
+         {:ok, tx_data} <- RawData.parse_uint256(tx_data_rlp),
+         :ok <- check_tx_data(tx_data),
          {:ok, metadata} <- reconstruct_metadata(metadata_rlp),
          do: {:ok, %__MODULE__{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata}}
   end
@@ -118,8 +120,8 @@ defmodule OMG.State.Transaction.Payment do
          do: {:ok, outputs}
   end
 
-  # txData is required to be zero in the contract, zero comes out as `""` from `ExRLP.decode/1`
-  defp check_tx_data(""), do: :ok
+  # txData is required to be zero in the contract
+  defp check_tx_data(0), do: :ok
   defp check_tx_data(_), do: {:error, :malformed_tx_data}
 
   defp reconstruct_metadata(metadata) when Transaction.is_metadata(metadata), do: {:ok, metadata}

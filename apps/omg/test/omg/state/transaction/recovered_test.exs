@@ -194,12 +194,12 @@ defmodule OMG.State.Transaction.RecoveredTest do
                  ExRLP.encode([sigs, @payment_tx_type, inputs, outputs, 1, <<0::256>>])
                )
 
-      assert {:error, :malformed_tx_data} =
+      assert {:error, :leading_zeros_in_encoded_uint} =
                Transaction.Recovered.recover_from(
                  ExRLP.encode([sigs, @payment_tx_type, inputs, outputs, <<0::256>>, <<0::256>>])
                )
 
-      assert {:error, :malformed_tx_data} =
+      assert {:error, :leading_zeros_in_encoded_uint} =
                Transaction.Recovered.recover_from(
                  ExRLP.encode([sigs, @payment_tx_type, inputs, outputs, <<1::256>>, <<0::256>>])
                )
