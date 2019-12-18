@@ -21,6 +21,7 @@ defmodule OMG.Output do
   """
 
   @type t :: %__MODULE__{
+          output_type: binary(),
           owner: OMG.Crypto.address_t(),
           currency: OMG.Crypto.address_t(),
           amount: non_neg_integer()
@@ -28,7 +29,7 @@ defmodule OMG.Output do
 
   @output_type_marker <<1>>
 
-  defstruct [:owner, :currency, :amount]
+  defstruct [:output_type, :owner, :currency, :amount]
 
   # TODO(achiurizo)
   # Need to fix that this method is able to re-build from it's own generated rlp data.
@@ -97,25 +98,19 @@ defmodule OMG.Output do
   def get_data_for_rlp(%OMG.Output{owner: owner, currency: currency, amount: amount}),
     do: [@output_type_marker, owner, currency, amount]
 
-  # TODO(achiurizo)
-  defp reconstruct([owner, currency, bin_amount]) do
-    with {:ok, cur12} <- parse_address(currency),
-         {:ok, owner} <- parse_address(owner),
-         {:ok, int_amount} <- parse_int(bin_amount),
-         {:ok, amount} <- parse_amount(int_amount),
-         do: %OMG.Output{owner: owner, currency: cur12, amount: amount}
+  @doc """
+  Reconstructs the structure from a list of RLP items
+  """
+  def reconstruct([output_type, [owner_rlp, currency_rlp, amount_rlp]]) do
+    with {:ok, cur12} <- OMG.RawData.parse_address(currency_rlp),
+         {:ok, owner} <- OMG.RawData.parse_address(owner_rlp),
+         :ok <- non_zero_owner(owner),
+         {:ok, amount} <- OMG.RawData.parse_amount(amount_rlp),
+         do: %__MODULE__{output_type: output_type, owner: owner, currency: cur12, amount: amount}
   end
 
-  defp parse_amount(amount) when is_integer(amount) and amount > 0, do: {:ok, amount}
-  defp parse_amount(amount) when is_integer(amount), do: {:error, :amount_cant_be_zero}
+  def reconstruct(_), do: {:error, :malformed_outputs}
 
-  defp parse_int(<<0>> <> _binary), do: {:error, :leading_zeros_in_encoded_uint}
-  defp parse_int(binary) when byte_size(binary) <= 32, do: {:ok, :binary.decode_unsigned(binary, :big)}
-  defp parse_int(binary) when byte_size(binary) > 32, do: {:error, :encoded_uint_too_big}
-
-  # necessary, because RLP handles empty string equally to integer 0
-  @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
-  defp parse_address(binary)
-  defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
-  defp parse_address(_), do: {:error, :malformed_address}
+  defp non_zero_owner(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
+  defp non_zero_owner(_), do: :ok
 end

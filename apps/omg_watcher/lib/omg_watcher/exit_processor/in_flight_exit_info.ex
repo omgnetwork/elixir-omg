@@ -240,9 +240,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     struct!(Transaction.Signed, value)
   end
 
-  def from_db_raw_tx(%{inputs: inputs, outputs: outputs, metadata: metadata})
+  def from_db_raw_tx(%{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata})
       when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
-    value = %{inputs: inputs, outputs: outputs, metadata: metadata}
+    value = %{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata}
     struct!(Transaction.Payment, value)
   end
 
@@ -250,9 +250,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     %{raw_tx: to_db_value(raw_tx), sigs: sigs}
   end
 
-  def to_db_value(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
+  def to_db_value(%Transaction.Payment{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata})
       when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
-    %{inputs: inputs, outputs: outputs, metadata: metadata}
+    %{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
   @spec piggyback(t(), combined_index_t()) :: t() | {:error, :non_existent_exit | :cannot_piggyback}

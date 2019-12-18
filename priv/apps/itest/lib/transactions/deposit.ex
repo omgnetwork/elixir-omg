@@ -15,7 +15,7 @@ defmodule Itest.Transactions.Deposit do
 
   def new(owner, currency, amount) do
     outputs = [
-      [@output_type, Encoding.to_binary(owner), currency, amount]
+      [@output_type, [Encoding.to_binary(owner), currency, amount]]
     ]
 
     %__MODULE__{inputs: [], outputs: outputs, metadata: @zero_metadata}

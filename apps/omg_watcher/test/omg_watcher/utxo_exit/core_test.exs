@@ -36,15 +36,8 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
       oindex = 0
       encoded_utxo = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 
-      fake_utxo_db_kv =
-        {{blknum, txindex, oindex},
-         Utxo.to_db_value(%Utxo{
-           output: %OMG.Output{
-             amount: 10,
-             currency: @eth,
-             owner: alice.addr
-           }
-         })}
+      [output] = Transaction.get_outputs(Transaction.Payment.new([], [{alice.addr, @eth, 10}]))
+      fake_utxo_db_kv = {OMG.InputPointer.to_db_key(position), Utxo.to_db_value(%Utxo{output: output})}
 
       assert {:ok,
               %{

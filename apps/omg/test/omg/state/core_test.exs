@@ -620,9 +620,7 @@ defmodule OMG.State.CoreTest do
              }, _, _}, _} = form_block_check(state)
 
     # precomputed fixed hash to check compliance with hashing algo
-    assert block_hash ==
-             <<168, 134, 99, 72, 67, 39, 246, 127, 88, 163, 200, 169, 167, 105, 15, 124, 143, 240, 174, 27, 84, 112, 48,
-               53, 41, 53, 236, 243, 192, 188, 116, 226>>
+    assert <<220, 51, 45, 150, 11, 157, 177, 120, 76, 168>> <> _ = block_hash
 
     # Check that contents of the block can be recovered again to original txs
     assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)
@@ -961,12 +959,22 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :bob, :carol]
   test "getting user utxos from utxos_query_result",
        %{alice: alice, bob: bob, carol: carol} do
+    output_type = OMG.WireFormatTypes.output_type_for(:output_payment_v1)
+
     utxos_query_result = [
-      {{1000, 0, 0}, %{output: %{amount: 1, currency: @eth, owner: alice.addr}, creating_txhash: "nil"}},
-      {{2000, 1, 1}, %{output: %{amount: 2, currency: @eth, owner: bob.addr}, creating_txhash: "nil"}},
-      {{1000, 2, 0}, %{output: %{amount: 3, currency: @not_eth, owner: alice.addr}, creating_txhash: "nil"}},
-      {{1000, 3, 1}, %{output: %{amount: 4, currency: @eth, owner: alice.addr}, creating_txhash: "nil"}},
-      {{1000, 4, 0}, %{output: %{amount: 5, currency: @eth, owner: bob.addr}, creating_txhash: "nil"}}
+      {{1000, 0, 0},
+       %{output: %{amount: 1, currency: @eth, owner: alice.addr, output_type: output_type}, creating_txhash: "nil"}},
+      {{2000, 1, 1},
+       %{output: %{amount: 2, currency: @eth, owner: bob.addr, output_type: output_type}, creating_txhash: "nil"}},
+      {{1000, 2, 0},
+       %{
+         output: %{amount: 3, currency: @not_eth, owner: alice.addr, output_type: output_type},
+         creating_txhash: "nil"
+       }},
+      {{1000, 3, 1},
+       %{output: %{amount: 4, currency: @eth, owner: alice.addr, output_type: output_type}, creating_txhash: "nil"}},
+      {{1000, 4, 0},
+       %{output: %{amount: 5, currency: @eth, owner: bob.addr, output_type: output_type}, creating_txhash: "nil"}}
     ]
 
     assert [] == Core.standard_exitable_utxos(utxos_query_result, carol.addr)
