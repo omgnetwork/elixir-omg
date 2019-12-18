@@ -39,9 +39,11 @@ defmodule OMG.State.Transaction.RecoveredTest do
   describe "APIs used by the `OMG.State.exec/1`" do
     @tag fixtures: [:alice, :state_alice_deposit, :bob]
     test "using created transaction in child chain", %{alice: alice, bob: bob, state_alice_deposit: state} do
-      state = state |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
+      state = TestHelper.do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 2})
 
-      Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, @eth, 12}])
+      payment = Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, @eth, 12}])
+
+      payment
       |> DevCrypto.sign([alice.priv, alice.priv])
       |> assert_tx_usable(state)
     end
@@ -52,7 +54,9 @@ defmodule OMG.State.Transaction.RecoveredTest do
       bob: bob,
       state_alice_deposit: state
     } do
-      Transaction.Payment.new([{1, 0, 0}], [{bob.addr, @eth, 4}])
+      payment = Transaction.Payment.new([{1, 0, 0}], [{bob.addr, @eth, 4}])
+
+      payment
       |> DevCrypto.sign([alice.priv])
       |> assert_tx_usable(state)
     end
@@ -74,7 +78,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
       alice: alice,
       bob: bob
     } do
-      [
+      transaction_list = [
         {[], [{alice, @eth, 7}]},
         {[{1, 2, 3, alice}], [{alice, @eth, 7}]},
         {[{1, 2, 3, alice}], [{alice, @eth, 7}, {bob, @eth, 3}]},
@@ -84,17 +88,17 @@ defmodule OMG.State.Transaction.RecoveredTest do
         {[{1, 2, 3, alice}, {2, 3, 1, alice}, {2, 3, 2, bob}, {3, 3, 4, bob}],
          [{alice, @eth, 7}, {alice, @eth, 3}, {bob, @eth, 7}, {bob, @eth, 3}]}
       ]
-      |> Enum.map(&parametrized_tester/1)
+
+      Enum.map(transaction_list, &parametrized_tester/1)
     end
   end
 
   describe "encoding/decoding is done properly" do
     @tag fixtures: [:alice]
     test "decoding malformed signed payment transaction", %{alice: alice} do
-      %Transaction.Signed{sigs: sigs} =
-        tx =
-        Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, @eth, 12}])
-        |> DevCrypto.sign([alice.priv, alice.priv])
+      payment = Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, @eth, 12}])
+      tx = DevCrypto.sign(payment, [alice.priv, alice.priv])
+      %Transaction.Signed{sigs: sigs} = tx
 
       [_payment_marker, inputs, outputs, _txdata, _metadata] = tx |> Transaction.raw_txbytes() |> ExRLP.decode()
 
@@ -260,30 +264,29 @@ defmodule OMG.State.Transaction.RecoveredTest do
     @tag fixtures: [:alice]
     test "Decoding transaction with gaps in inputs is ok now, but 0 utxo pos is illegal", %{alice: alice} do
       # explicitly testing the behavior that we have instead of the obsolete gap checking
-      assert {:error, :malformed_inputs} =
-               TestHelper.create_encoded([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{alice, 100}])
-               |> Transaction.Recovered.recover_from()
+
+      encoded_transaction = TestHelper.create_encoded([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{alice, 100}])
+      assert {:error, :malformed_inputs} = Transaction.Recovered.recover_from(encoded_transaction)
     end
 
     @tag fixtures: [:alice]
     test "Decoding deposit transaction without inputs is successful", %{alice: alice} do
-      assert {:ok, _} =
-               TestHelper.create_encoded([], @eth, [{alice, 100}])
-               |> Transaction.Recovered.recover_from()
+      encoded_transaction = TestHelper.create_encoded([], @eth, [{alice, 100}])
+      assert {:ok, _} = Transaction.Recovered.recover_from(encoded_transaction)
     end
 
     @tag fixtures: [:alice]
     test "Decoding transaction with zero input fails", %{alice: alice} do
       assert {:error, :malformed_inputs} =
-               TestHelper.create_encoded([{0, 0, 0, alice}], [{alice, @zero_address, 10}])
-               |> Transaction.Recovered.recover_from()
+               encoded_transaction = TestHelper.create_encoded([{0, 0, 0, alice}], [{alice, @zero_address, 10}])
+
+      assert {:error, :malformed_inputs} = Transaction.Recovered.recover_from(encoded_transaction)
     end
 
     @tag fixtures: [:alice]
     test "Decoding transaction with zero blknum works as long as input non-zero", %{alice: alice} do
-      assert {:ok, _} =
-               TestHelper.create_encoded([{0, 0, 1, alice}], [{alice, @zero_address, 10}])
-               |> Transaction.Recovered.recover_from()
+      encoded_transaction = TestHelper.create_encoded([{0, 0, 1, alice}], [{alice, @zero_address, 10}])
+      assert {:ok, _} = Transaction.Recovered.recover_from(encoded_transaction)
     end
 
     test "Decoding transaction with shorter input fails" do
@@ -309,7 +312,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
                  |> Transaction.Recovered.recover_from()
       end
 
-      [
+      transaction_list = [
         [type, [binary_part(owner, 1, 19), currency, amount]],
         [type, [binary_part(owner, 0, 19), currency, amount]],
         [type, [owner, binary_part(currency, 1, 19), amount]],
@@ -319,14 +322,16 @@ defmodule OMG.State.Transaction.RecoveredTest do
         [type, [owner, "", amount]],
         [type, ["", currency, amount]]
       ]
-      |> Enum.map(checker)
+
+      Enum.map(transaction_list, checker)
     end
 
     @tag fixtures: [:alice]
     test "Decoding transaction with zero amount in outputs fails ", %{alice: alice} do
       assert {:error, :amount_cant_be_zero} =
-               TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{alice, 0}, {alice, 100}])
-               |> Transaction.Recovered.recover_from()
+               encoded_transaction = TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [{alice, 0}, {alice, 100}])
+
+      assert {:error, :amount_cant_be_zero} = Transaction.Recovered.recover_from(encoded_transaction)
     end
 
     @tag fixtures: [:alice]
