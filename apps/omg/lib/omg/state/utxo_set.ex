@@ -25,11 +25,8 @@ defmodule OMG.State.UtxoSet do
   """
 
   alias OMG.Crypto
-  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
-
-  require Utxo
 
   @type t() :: %{tuple() => Utxo.t()}
   @type query_result_t() :: list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})

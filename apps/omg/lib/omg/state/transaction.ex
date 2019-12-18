@@ -119,7 +119,6 @@ defprotocol OMG.State.Transaction.Protocol do
   Should be implemented for any type of transaction processed in the system
   """
 
-  alias OMG.Output
   alias OMG.State.Transaction
 
   @doc """

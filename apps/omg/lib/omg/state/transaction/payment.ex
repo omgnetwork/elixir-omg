@@ -138,7 +138,6 @@ defmodule OMG.State.Transaction.Payment do
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
-  alias OMG.Output
   alias OMG.State.Transaction
 
   require Transaction

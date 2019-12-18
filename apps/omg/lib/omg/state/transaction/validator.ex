@@ -20,7 +20,6 @@ defmodule OMG.State.Transaction.Validator do
   @maximum_block_size 65_536
 
   alias OMG.Fees
-  alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.UtxoSet
