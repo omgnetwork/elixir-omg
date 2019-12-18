@@ -80,6 +80,8 @@ defmodule OMG.TypedDataHash.Tools do
   def hash_transaction(plasma_framework_tx_type, inputs, outputs, metadata, empty_input_hash, empty_output_hash) do
     require Transaction.Payment
 
+    raw_encoded_tx_type = ABI.TypeEncoder.encode_raw([plasma_framework_tx_type], [{:uint, 256}])
+
     input_hashes =
       inputs
       |> Stream.map(&hash_input/1)
@@ -92,12 +94,16 @@ defmodule OMG.TypedDataHash.Tools do
       |> Stream.concat(Stream.cycle([empty_output_hash]))
       |> Enum.take(Transaction.Payment.max_outputs())
 
+    tx_data = ABI.TypeEncoder.encode_raw([0], [{:uint, 256}])
+    metadata = metadata || <<0::256>>
+
     [
       @transaction_type_hash,
-      ABI.TypeEncoder.encode_raw([plasma_framework_tx_type], [{:uint, 256}]),
+      raw_encoded_tx_type,
       input_hashes,
       output_hashes,
-      metadata || <<0::256>>
+      tx_data,
+      metadata
     ]
     |> List.flatten()
     |> Enum.join()

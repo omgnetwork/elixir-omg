@@ -34,12 +34,21 @@ defmodule OMG.Output.FungibleMoreVPToken do
     %__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}
   end
 
-  def reconstruct([output_type, owner, currency, bin_amount]) do
-    with {:ok, cur12} <- RawData.parse_address(currency),
-         {:ok, owner} <- RawData.parse_address(owner),
-         {:ok, amount} <- RawData.parse_amount(bin_amount),
+  @doc """
+  Reconstructs the structure from a list of RLP items
+  """
+  def reconstruct([output_type, [owner_rlp, currency_rlp, amount_rlp]]) do
+    with {:ok, cur12} <- RawData.parse_address(currency_rlp),
+         {:ok, owner} <- RawData.parse_address(owner_rlp),
+         :ok <- non_zero_owner(owner),
+         {:ok, amount} <- RawData.parse_amount(amount_rlp),
          do: %__MODULE__{output_type: output_type, owner: owner, currency: cur12, amount: amount}
   end
+
+  def reconstruct(_), do: {:error, :malformed_outputs}
+
+  defp non_zero_owner(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
+  defp non_zero_owner(_), do: :ok
 end
 
 defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
@@ -64,5 +73,5 @@ defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
   end
 
   def get_data_for_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount, output_type: output_type}),
-    do: [output_type, owner, currency, amount]
+    do: [output_type, [owner, currency, amount]]
 end

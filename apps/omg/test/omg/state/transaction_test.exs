@@ -46,9 +46,7 @@ defmodule OMG.State.TransactionTest do
   end
 
   test "raw transaction hash is invariant" do
-    assert Transaction.raw_txhash(@transaction) ==
-             <<117, 35, 30, 107, 221, 12, 246, 144, 217, 144, 147, 52, 82, 0, 223, 240, 60, 26, 79, 183, 28, 57, 22,
-               132, 169, 12, 58, 233, 132, 52, 131, 219>>
+    assert <<21, 94, 181, 22, 125, 2, 47, 124, 113>> <> _ = Transaction.raw_txhash(@transaction)
   end
 
   test "create transaction with different number inputs and outputs" do

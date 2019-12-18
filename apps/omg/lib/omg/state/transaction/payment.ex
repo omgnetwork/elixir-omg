@@ -21,6 +21,7 @@ defmodule OMG.State.Transaction.Payment do
   alias OMG.Crypto
   alias OMG.InputPointer
   alias OMG.Output
+  alias OMG.RawData
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -83,11 +84,12 @@ defmodule OMG.State.Transaction.Payment do
   @doc """
   Transforms the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
   """
-  def reconstruct([tx_type, inputs_rlp, outputs_rlp | rest_rlp])
-      when rest_rlp == [] or length(rest_rlp) == 1 do
+  def reconstruct([tx_type, inputs_rlp, outputs_rlp, tx_data_rlp, metadata_rlp]) do
     with {:ok, inputs} <- reconstruct_inputs(inputs_rlp),
          {:ok, outputs} <- reconstruct_outputs(outputs_rlp),
-         {:ok, metadata} <- reconstruct_metadata(rest_rlp),
+         {:ok, tx_data} <- RawData.parse_uint256(tx_data_rlp),
+         :ok <- check_tx_data(tx_data),
+         {:ok, metadata} <- reconstruct_metadata(metadata_rlp),
          do: {:ok, %__MODULE__{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata}}
   end
 
@@ -118,9 +120,12 @@ defmodule OMG.State.Transaction.Payment do
          do: {:ok, outputs}
   end
 
-  defp reconstruct_metadata([]), do: {:ok, @zero_metadata}
-  defp reconstruct_metadata([metadata]) when Transaction.is_metadata(metadata), do: {:ok, metadata}
-  defp reconstruct_metadata([_]), do: {:error, :malformed_metadata}
+  # txData is required to be zero in the contract
+  defp check_tx_data(0), do: :ok
+  defp check_tx_data(_), do: {:error, :malformed_tx_data}
+
+  defp reconstruct_metadata(metadata) when Transaction.is_metadata(metadata), do: {:ok, metadata}
+  defp reconstruct_metadata(_), do: {:error, :malformed_metadata}
 
   defp parse_inputs(inputs_rlp) do
     {:ok, Enum.map(inputs_rlp, &parse_input!/1)}
@@ -169,6 +174,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
         Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
+        0,
         metadata
       ]
 

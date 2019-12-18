@@ -34,7 +34,7 @@ defmodule Support.RootChainHelper do
   @gas_deposit 180_000
   @gas_deposit_from 250_000
   @gas_init 1_000_000
-  @gas_start_in_flight_exit 2_000_000
+  @gas_start_in_flight_exit 1_500_000
   @gas_respond_to_non_canonical_challenge 1_000_000
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
   @gas_piggyback 1_000_000
@@ -54,16 +54,14 @@ defmodule Support.RootChainHelper do
     opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
-    output_guard_preimage = ""
     backend = Application.fetch_env!(:omg_eth, :eth_node)
 
     TransactionHelper.contract_transact(
       backend,
       from,
       contract,
-      "startStandardExit((uint256,bytes,bytes,bytes))",
-      [{utxo_pos, tx_bytes, output_guard_preimage, proof}],
+      "startStandardExit((uint256,bytes,bytes))",
+      [{utxo_pos, tx_bytes, proof}],
       opts
     )
   end
@@ -91,13 +89,10 @@ defmodule Support.RootChainHelper do
 
     opts = defaults |> Keyword.merge(opts)
 
-    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
-    optional_bytes = ""
-
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
-    signature = "piggybackInFlightExitOnOutput((bytes,uint16,bytes))"
-    args = [{in_flight_tx, output_index, optional_bytes}]
+    signature = "piggybackInFlightExitOnOutput((bytes,uint16))"
+    args = [{in_flight_tx, output_index}]
     backend = Application.fetch_env!(:omg_eth, :eth_node)
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
@@ -154,18 +149,9 @@ defmodule Support.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
     opts = Keyword.merge(defaults, opts)
 
-    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
-    optional_bytes = ""
-    optional_uint = 0
-
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-
-    signature = "challengeStandardExit((uint160,bytes,bytes,uint16,bytes,bytes,bytes,uint256,bytes,bytes))"
-
-    args = [
-      {exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig, optional_bytes, optional_bytes, optional_uint,
-       optional_bytes, optional_bytes}
-    ]
+    signature = "challengeStandardExit((uint160,bytes,bytes,uint16,bytes))"
+    args = [{exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig}]
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
@@ -199,16 +185,10 @@ defmodule Support.RootChainHelper do
 
     opts = Keyword.merge(defaults, opts)
 
-    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
-    optional_bytes_array = List.duplicate("", Enum.count(input_txs))
-
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "startInFlightExit((bytes,bytes[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[]))"
+    signature = "startInFlightExit((bytes,bytes[],uint256[],bytes[],bytes[]))"
 
-    args = [
-      {in_flight_tx, input_txs, input_utxos_pos, optional_bytes_array, input_txs_inclusion_proofs, optional_bytes_array,
-       in_flight_tx_sigs, optional_bytes_array}
-    ]
+    args = [{in_flight_tx, input_txs, input_utxos_pos, input_txs_inclusion_proofs, in_flight_tx_sigs}]
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
 
@@ -246,16 +226,11 @@ defmodule Support.RootChainHelper do
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
-    signature =
-      "challengeInFlightExitNotCanonical((bytes,uint256,bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes))"
-
-    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
-    optional_bytes = ""
+    signature = "challengeInFlightExitNotCanonical((bytes,uint256,bytes,uint16,bytes,uint16,uint256,bytes,bytes))"
 
     args = [
       {input_tx_bytes, input_utxo_pos, in_flight_txbytes, in_flight_input_index, competing_txbytes,
-       competing_input_index, optional_bytes, competing_tx_pos, competing_proof, competing_sig, optional_bytes,
-       optional_bytes}
+       competing_input_index, competing_tx_pos, competing_proof, competing_sig}
     ]
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
@@ -300,14 +275,11 @@ defmodule Support.RootChainHelper do
     opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "challengeInFlightExitInputSpent((bytes,uint16,bytes,uint16,bytes,bytes,uint256,bytes))"
-
-    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
-    optional_bytes = ""
+    signature = "challengeInFlightExitInputSpent((bytes,uint16,bytes,uint16,bytes,bytes,uint256))"
 
     args = [
       {in_flight_txbytes, in_flight_input_index, spending_txbytes, spending_tx_input_index, spending_tx_sig,
-       input_txbytes, input_utxo_pos, optional_bytes}
+       input_txbytes, input_utxo_pos}
     ]
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
@@ -331,14 +303,11 @@ defmodule Support.RootChainHelper do
     opts = Keyword.merge(defaults, opts)
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "challengeInFlightExitOutputSpent((bytes,bytes,uint256,bytes,uint16,bytes,bytes))"
-
-    # NOTE: hardcoded for now, we're talking to a particular exit game so this is fixed
-    optional_bytes = ""
+    signature = "challengeInFlightExitOutputSpent((bytes,bytes,uint256,bytes,uint16,bytes))"
 
     args = [
       {in_flight_txbytes, in_flight_tx_inclusion_proof, in_flight_output_pos, spending_txbytes, spending_tx_input_index,
-       spending_tx_sig, optional_bytes}
+       spending_tx_sig}
     ]
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
