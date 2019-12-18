@@ -20,10 +20,11 @@ defmodule OMG.InputPointer do
 
   This module specificially dispatches generic calls to the various specific types
   """
-  @input_pointer_types_modules Application.fetch_env!(:omg, :input_pointer_types_modules)
 
-  def from_db_key({:input_pointer, type_marker, db_value}),
-    do: @input_pointer_types_modules[type_marker].from_db_key(db_value)
+  @input_pointer_types_modules OMG.WireFormatTypes.input_pointer_type_modules()
+
+  def from_db_key({:input_pointer, output_type, db_value}),
+    do: @input_pointer_types_modules[output_type].from_db_key(db_value)
 
   # default clause for backwards compatibility
   def from_db_key(db_value), do: OMG.InputPointer.UtxoPosition.from_db_key(db_value)
