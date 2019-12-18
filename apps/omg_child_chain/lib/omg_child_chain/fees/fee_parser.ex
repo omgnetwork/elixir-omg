@@ -21,7 +21,7 @@ defmodule OMG.ChildChain.Fees.FeeParser do
   Parses and validates json encoded fee specifications file
   Parses provided json string to token-fee map and returns the map together with possible parsing errors
   """
-  @spec parse(binary()) :: {:ok, OMG.Fees.fee_t()} | {:error, list({:error, atom()})}
+  @spec parse(binary()) :: {:ok, OMG.Fees.full_fee_t()} | {:error, list({:error, atom()})}
   def parse(file_content) do
     with {:ok, json} <- Jason.decode(file_content) do
       {errors, fee_specs} =

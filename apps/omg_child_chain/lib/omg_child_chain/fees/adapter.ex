@@ -18,6 +18,6 @@ defmodule OMG.ChildChain.Fees.Adapter do
   """
 
   @callback get_fee_specs(pos_integer()) ::
-              {:ok, OMG.Fees.fee_t(), pos_integer()}
+              {:ok, OMG.Fees.full_fee_t(), pos_integer()}
               | {:error, atom() | [{:error, atom()}, ...]}
 end

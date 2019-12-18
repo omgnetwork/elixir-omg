@@ -13,11 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.HttpRPC.AdapterTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias OMG.WatcherInfo.HttpRPC.Adapter
-
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "get_unparsed_response_body/1" do
     test "returns an unparsed body when successful" do

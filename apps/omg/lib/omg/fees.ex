@@ -26,6 +26,7 @@ defmodule OMG.Fees do
   use OMG.Utils.LoggerExt
 
   @type fee_t() :: %{Transaction.Payment.currency() => fee_spec_t()}
+  @type full_fee_t() :: %{String.t() => fee_t()}
   @type optional_fee_t() :: fee_t() | :no_fees_required
   @type fee_spec_t() :: %{
           amount: non_neg_integer,
@@ -106,7 +107,7 @@ defmodule OMG.Fees do
       }
 
   """
-  @spec for_transaction(Transaction.Recovered.t(), optional_fee_t()) :: optional_fee_t()
+  @spec for_transaction(Transaction.Recovered.t(), full_fee_t()) :: optional_fee_t()
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do
       true -> :no_fees_required
@@ -120,7 +121,6 @@ defmodule OMG.Fees do
       |> Transaction.Protocol.get_type()
       |> Binary.to_integer()
       |> Integer.to_string()
-
     Map.get(fee_map, string_type, %{})
   end
 
@@ -182,7 +182,7 @@ defmodule OMG.Fees do
       }
 
   """
-  @spec filter_fees(fee_t(), list(String.t()) | nil) :: {:ok, fee_t()} | {:error, :currency_fee_not_supported}
+  @spec filter_fees(full_fee_t(), list(String.t()) | nil) :: {:ok, full_fee_t()} | {:error, :currency_fee_not_supported}
   # empty list = no filter
   def filter_fees(fees, []), do: {:ok, fees}
   def filter_fees(fees, nil), do: {:ok, fees}

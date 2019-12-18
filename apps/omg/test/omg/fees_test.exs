@@ -116,6 +116,8 @@ defmodule OMG.FeesTest do
 
       assert Fees.for_transaction(transaction, @fees) == :no_fees_required
     end
+
+    test "returns an empty hash when given an unsuported tx type"
   end
 
   describe "filter_fees/2" do
