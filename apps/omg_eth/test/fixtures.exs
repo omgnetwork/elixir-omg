@@ -20,7 +20,6 @@ defmodule OMG.Eth.Fixtures do
 
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
-  alias Support.Deployer
   alias Support.DevHelper
   alias Support.DevNode
   alias Support.RootChainHelper
@@ -48,7 +47,7 @@ defmodule OMG.Eth.Fixtures do
         payment_exit_game: Encoding.from_hex("0x92ce4d7773c57d96210c46a07b89acf725057f21"),
         plasma_framework: Encoding.from_hex("0xc673e4ffcb8464faff908a6804fe0e635af0ea2f")
       },
-      txhash_contract: Encoding.from_hex("0xcd96b40b8324a4e10b421d6dd9796d200c64f7af6799f85262fa8951aed2f10c")
+      txhash_contract: Encoding.from_hex("0xe00074ee3160cec121bafadc20e741c1ebf34830fb67b2b6487b0b5574d2c39e")
     }
 
     {:ok, true} =
@@ -66,10 +65,8 @@ defmodule OMG.Eth.Fixtures do
   deffixture token(root_chain_contract_config) do
     :ok = root_chain_contract_config
 
-    root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-
-    {:ok, _, token_addr} = "0x32063dba91cf95eb3d58fad9e391ee888878b61c"
+    # taken from the `plasma-contracts` deployment snapshot
+    token_addr = Encoding.from_hex("0x32063dba91cf95eb3d58fad9e391ee888878b61c")
 
     # ensuring that the root chain contract handles token_addr
     {:ok, false} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
