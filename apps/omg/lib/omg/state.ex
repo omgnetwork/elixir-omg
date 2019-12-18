@@ -239,7 +239,7 @@ defmodule OMG.State do
 
   defp utxo_from_db(input_pointer) do
     # `DB` query can return `:not_found` which is filtered out by following `is_input_pointer?`
-    with {:ok, utxo_kv} <- DB.utxo(InputPointer.to_db_key(input_pointer)),
+    with {:ok, utxo_kv} <- DB.utxo(Utxo.Position.to_input_db_key(input_pointer)),
          do: utxo_kv
   end
 end

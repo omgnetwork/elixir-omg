@@ -148,7 +148,7 @@ defmodule OMG.State.Transaction.Payment do
 
   # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
   #       most likely one needs to route through generic InputPointer` function that does the dispatch
-  defp parse_input!(input_pointer), do: InputPointer.reconstruct(input_pointer)
+  defp parse_input!(input_pointer), do: OMG.Utxo.Position.reconstruct(input_pointer)
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
@@ -170,7 +170,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       when Transaction.is_metadata(metadata),
       do: [
         tx_type,
-        Enum.map(inputs, &OMG.InputPointer.get_data_for_rlp/1),
+        Enum.map(inputs, &OMG.Utxo.Position.get_data_for_rlp/1),
         Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if

@@ -44,7 +44,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
           {:error, :no_deposit_for_given_blknum}
           | {:ok, %{utxo_pos: non_neg_integer, txbytes: binary, proof: binary}}
   def compose_deposit_standard_exit({:ok, {db_utxo_pos, db_utxo_value}}) do
-    utxo_pos = OMG.InputPointer.from_db_key(db_utxo_pos)
+    utxo_pos = OMG.Utxo.Position.from_db_key(db_utxo_pos)
 
     %Utxo{output: %OMG.Output{amount: amount, currency: currency, owner: owner}} =
       Utxo.from_db_value(db_utxo_value)

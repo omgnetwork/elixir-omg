@@ -21,6 +21,7 @@ defmodule OMG.Utxo.Position do
   # these two offset constants are driven by the constants from the RootChain.sol contract
   @block_offset 1_000_000_000
   @transaction_offset 10_000
+  @input_pointer_output_type 1
 
   alias OMG.Utxo
   require Utxo
@@ -57,9 +58,15 @@ defmodule OMG.Utxo.Position do
 
   def decode(encoded) when is_number(encoded), do: {:error, :encoded_utxo_position_too_low}
 
+  @spec to_db_key(Utxo.Position.t()) :: {:input_pointer, pos_integer(), Utxo.Position.db_t()}
+  def to_input_db_key(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
+    do: {:input_pointer, @input_pointer_output_type, {blknum, txindex, oindex}}
+
   @spec to_db_key(t()) :: db_t()
   def to_db_key(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
     do: {blknum, txindex, oindex}
+
+  def from_db_key({:input_pointer, _output_type, db_value}), do: from_db_key(db_value)
 
   @spec from_db_key(db_t()) :: t()
   def from_db_key({blknum, txindex, oindex}) when is_position(blknum, txindex, oindex),
@@ -85,4 +92,18 @@ defmodule OMG.Utxo.Position do
     {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
     rem(blknum, interval) != 0
   end
+
+  def reconstruct(binary_input) when is_binary(binary_input),
+    do: binary_input |> ensure_32bytes! |> :binary.decode_unsigned(:big) |> Utxo.Position.decode!()
+
+  @spec get_data_for_rlp(Utxo.Position.t()) :: binary()
+  def get_data_for_rlp(Utxo.position(_, _, _) = utxo_pos),
+    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big) |> pad()
+
+  defp pad(unpadded) do
+    padding_bits = (32 - byte_size(unpadded)) * 8
+    <<0::size(padding_bits)>> <> unpadded
+  end
+
+  defp ensure_32bytes!(binary_input) when byte_size(binary_input) == 32, do: binary_input
 end

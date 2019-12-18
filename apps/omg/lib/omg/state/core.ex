@@ -405,7 +405,7 @@ defmodule OMG.State.Core do
     new_db_updates = UtxoSet.db_updates(spent_input_pointers, new_utxos_map)
     # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
     spent_blknum_updates =
-      spent_input_pointers |> Enum.map(&{:put, :spend, {InputPointer.to_db_key(&1), blknum}})
+      spent_input_pointers |> Enum.map(&{:put, :spend, {Utxo.Position.to_input_db_key(&1), blknum}})
 
     %Core{
       state

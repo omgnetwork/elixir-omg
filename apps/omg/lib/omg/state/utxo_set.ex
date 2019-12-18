@@ -40,7 +40,7 @@ defmodule OMG.State.UtxoSet do
     utxos_query_result
     |> Enum.reject(&(&1 == :not_found))
     |> Enum.into(%{}, fn {db_input_pointer, db_utxo} ->
-      {InputPointer.from_db_key(db_input_pointer), Utxo.from_db_value(db_utxo)}
+      {OMG.Utxo.Position.from_db_key(db_input_pointer), Utxo.from_db_value(db_utxo)}
     end)
   end
 
@@ -118,10 +118,10 @@ defmodule OMG.State.UtxoSet do
   end
 
   defp utxo_to_db_put({input_pointer, utxo}),
-    do: {:put, :utxo, {InputPointer.to_db_key(input_pointer), Utxo.to_db_value(utxo)}}
+    do: {:put, :utxo, {Utxo.Position.to_input_db_key(input_pointer), Utxo.to_db_value(utxo)}}
 
   defp utxo_to_db_delete(input_pointer),
-    do: {:delete, :utxo, InputPointer.to_db_key(input_pointer)}
+    do: {:delete, :utxo, Utxo.Position.to_input_db_key(input_pointer)}
 
   # based on some key-value pair representing {input_pointer, utxo}, get its position from somewhere
   defp utxo_kv_get_position(utxo_kv)

@@ -467,7 +467,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp do_get_spent_blknum(position) do
-    {:ok, spend_blknum} = position |> InputPointer.to_db_key() |> OMG.DB.spent_blknum()
+    {:ok, spend_blknum} = position |> Utxo.Position.to_input_db_key() |> OMG.DB.spent_blknum()
     spend_blknum
   end
 
