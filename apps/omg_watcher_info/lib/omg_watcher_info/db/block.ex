@@ -21,6 +21,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   import Ecto.Changeset
 
   alias OMG.State
+  alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
 
   import Ecto.Query, only: [from: 2]
@@ -68,6 +69,27 @@ defmodule OMG.WatcherInfo.DB.Block do
 
     DB.Repo.one(query)
   end
+
+  @doc """
+  Returns a list of blocks
+  """
+  @spec get_blocks(Paginator.t()) :: Paginator.t()
+  def get_blocks(paginator) do
+    query_get_last(paginator.data_paging)
+    |> DB.Repo.all()
+    |> Paginator.set_data(paginator)
+  end
+
+  defp query_get_last(%{limit: limit, page: page}) do
+    offset = (page - 1) * limit
+
+    from(
+      __MODULE__,
+      order_by: [desc: :blknum],
+      limit: ^limit,
+      offset: ^offset
+    )
+
 
   @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   def insert(params) do

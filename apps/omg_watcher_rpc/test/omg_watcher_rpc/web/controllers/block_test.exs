@@ -19,6 +19,8 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
+  import OMG.WatcherInfo.Factory
+
   alias Support.WatcherHelper
 
   describe "get_block/2" do
@@ -74,6 +76,56 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       }
 
       assert data == expected
+  describe "get_blocks/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the API response with the blocks" do
+      _ = insert(:block, blknum: 1000, hash: <<1>>, eth_height: 1, timestamp: 100)
+      _ = insert(:block, blknum: 2000, hash: <<2>>, eth_height: 2, timestamp: 200)
+
+      request_data = %{"limit" => 200, "page" => 1}
+      response = WatcherHelper.rpc_call("block.all", request_data, 200)
+
+      assert %{
+               "success" => true,
+               "data" => [
+                 %{
+                   "blknum" => 2000,
+                   "eth_height" => 2,
+                   "hash" => "0x02",
+                   "timestamp" => 200
+                 },
+                 %{
+                   "blknum" => 1000,
+                   "eth_height" => 1,
+                   "hash" => "0x01",
+                   "timestamp" => 100
+                 }
+               ],
+               "data_paging" => %{
+                 "limit" => 100,
+                 "page" => 1
+               },
+               "service_name" => _,
+               "version" => _
+             } = response
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the error API response when an error occurs" do
+      request_data = %{"limit" => "this should error", "page" => 1}
+      response = WatcherHelper.rpc_call("block.all", request_data, 200)
+
+      assert %{
+               "success" => false,
+               "data" => %{
+                 "object" => "error",
+                 "code" => "operation:bad_request",
+                 "description" => "Parameters required by this operation are missing or incorrect.",
+                 "messages" => _
+               },
+               "service_name" => _,
+               "version" => _
+             } = response
     end
   end
 end

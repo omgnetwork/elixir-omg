@@ -20,6 +20,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   use OMG.WatcherRPC.Web, :controller
 
   alias OMG.WatcherInfo.API.Block, as: InfoApiBlock
+  alias OMG.WatcherRPC.Web.Validator
+
 
   @doc """
   Retrieves a specific block by block number.
@@ -29,6 +31,17 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
       blknum
       |> InfoApiBlock.get()
       |> api_response(conn, :block)
+    end
+  end
+
+  @doc """
+  Retrieves a list of most recent blocks
+  """
+  def get_blocks(conn, params) do
+    with {:ok, constraints} <- Validator.BlockConstraints.parse(params) do
+      constraints
+      |> InfoApiBlock.get_blocks()
+      |> api_response(conn, :blocks)
     end
   end
 end

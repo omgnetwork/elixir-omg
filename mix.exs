@@ -81,6 +81,7 @@ defmodule OMG.Umbrella.MixProject do
       :briefly,
       :cowboy,
       :distillery,
+      :ex_machina,
       :ex_unit,
       :exexec,
       :fake_server,

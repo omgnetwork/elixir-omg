@@ -1,21 +1,21 @@
 AllBlocksBodySchema:
-  description: The block number of the latest block in the list to be returned. Optional - if not specified, latest block will be the current
-  required: true
+  description: The supported request parameters for /block.all
   content:
     application/json:
       schema:
         title: 'AllBlocksBodySchema'
         type: object
         properties:
-          from_blknum:
+          page:
             type: integer
-            format: int64
+            format: int32
+            default: 1
           limit:
             type: integer
             format: int32
-            default: 200
+            default: 100
         example:
-          from_blknum: 68290000
+          page: 2
           limit: 100
 
 GetBlockBodySchema:

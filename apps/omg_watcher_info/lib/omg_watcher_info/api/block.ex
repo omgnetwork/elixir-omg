@@ -17,7 +17,10 @@ defmodule OMG.WatcherInfo.API.Block do
   Module provides operations related to plasma blocks.
   """
 
+  alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
+
+  @default_blocks_limit 100
 
   @doc """
   Retrieves a specific block by block number
@@ -28,5 +31,16 @@ defmodule OMG.WatcherInfo.API.Block do
       nil -> {:error, :block_not_found}
       block -> {:ok, block}
     end
+  end
+
+  @doc """
+  Retrieves a list of blocks.
+  Length of the list is limited by `limit` and `page` arguments.
+  """
+  @spec get_blocks(Keyword.t()) :: Paginator.t()
+  def get_blocks(constraints) do
+    paginator = Paginator.from_constraints(constraints, @default_blocks_limit)
+
+    DB.Block.get_blocks(paginator)
   end
 end

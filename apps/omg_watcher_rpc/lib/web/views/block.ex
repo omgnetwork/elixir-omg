@@ -19,9 +19,14 @@ defmodule OMG.WatcherRPC.Web.View.Block do
 
   use OMG.WatcherRPC.Web, :view
 
+  alias OMG.Utils.Paginator
   alias OMG.Utils.HttpRPC.Response
 
   def render("block.json", %{response: block}) do
     Response.serialize(block)
+
+
+  def render("blocks.json", %{response: %Paginator{data: blocks, data_paging: data_paging}}) do
+    Response.serialize_page(blocks, data_paging)
   end
 end

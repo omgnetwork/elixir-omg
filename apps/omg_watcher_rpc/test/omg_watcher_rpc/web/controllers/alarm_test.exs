@@ -18,8 +18,9 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
 
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
-  alias Support.WatcherHelper
+  use Phoenix.ConnTest
 
+  @endpoint OMG.WatcherRPC.Web.Endpoint
   setup do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
 
@@ -37,6 +38,34 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
   ### covered in OMG.Utils.HttpRPC.ResponseTest
   @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
   test "if the controller returns the correct result when there's no alarms raised", _ do
-    assert [] == WatcherHelper.success?("alarm.get")
+    assert [] == get("alarm.get")
+  end
+
+  defp get(path) do
+    response_body = rpc_call_get(path, 200)
+    version = Map.get(response_body, "version")
+
+    %{"version" => ^version, "success" => true, "data" => data} = response_body
+    data
+  end
+
+  defp rpc_call_get(path, expected_resp_status) do
+    response = get(put_req_header(build_conn(), "content-type", "application/json"), path)
+    # CORS check
+    assert ["*"] == get_resp_header(response, "access-control-allow-origin")
+
+    required_headers = [
+      "access-control-allow-origin",
+      "access-control-expose-headers",
+      "access-control-allow-credentials"
+    ]
+
+    for header <- required_headers do
+      assert header in Keyword.keys(response.resp_headers)
+    end
+
+    # CORS check
+    assert response.status == expected_resp_status
+    Jason.decode!(response.resp_body)
   end
 end

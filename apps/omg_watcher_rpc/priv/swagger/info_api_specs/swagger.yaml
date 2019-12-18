@@ -14,19 +14,21 @@ info:
     url: 'https://omisego.network/'
 
 servers:
-  - url: http://localhost:7434/
+  - url: http://localhost:7534/
 
 tags:
   - name: Account
     description: Account related API.
+  - name: Block
+    description: Block related API.
   - name: Transaction
     description: Transaction related API.
   - name: Fees
     description: Fees related API.
-  # - name: Block
-  #   description: Block related API.
 
 paths:
+  /alarm.get:
+    $ref: 'alarm/paths.yaml#/alarm.get'
   /account.get_balance:
     $ref: 'account/paths.yaml#/account.get_balance'
   /account.get_utxos:
@@ -35,6 +37,8 @@ paths:
     $ref: 'account/paths.yaml#/account.get_transactions'
   /block.get:
     $ref: 'block/paths.yaml#/block.get'
+  /block.all:
+    $ref: 'block/paths.yaml#/block.all'
   /transaction.all:
     $ref: 'transaction/paths.yaml#/transaction.all'
   /transaction.create:
@@ -45,8 +49,3 @@ paths:
     $ref: 'transaction/paths.yaml#/transaction.submit_typed'
   /fees.all:
     $ref: 'fees/paths.yaml#/fees.all'
-  # Coming soon?
-  # /transaction.get_by_position:
-  #   $ref: 'transaction/paths.yaml#/transaction.get_by_position'
-  # /block.all:
-  #   $ref: 'block/paths.yaml#/block.all'
