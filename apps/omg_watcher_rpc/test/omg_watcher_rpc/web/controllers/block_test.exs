@@ -44,7 +44,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         "object" => "error"
       }
 
-      assert data = expected
+      assert data == expected
     end
 
     @tag fixtures: [:initial_blocks]
@@ -58,7 +58,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         "object" => "error"
       }
 
-      assert data = expected
+      assert data == expected
     end
 
     @tag fixtures: [:initial_blocks]
@@ -72,7 +72,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         "object" => "error"
       }
 
-      assert data = expected
+      assert data == expected
     end
   end
 end
