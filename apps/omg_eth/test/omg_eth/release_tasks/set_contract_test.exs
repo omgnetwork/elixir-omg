@@ -169,29 +169,6 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     end
   end
 
-  test "if exit is thrown when mixed network names" do
-    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
-    :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
-    :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "plasma_framework_value")
-    :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-    :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-    :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
-
-    try do
-      :ok = SetContract.init([])
-    catch
-      :exit, _ ->
-        :ok = System.delete_env("ETHEREUM_NETWORK")
-        :ok = System.delete_env("TXHASH_CONTRACT")
-        :ok = System.delete_env("AUTHORITY_ADDRESS")
-        :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-        :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
-        :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
-        :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
-    end
-  end
-
   test "contract details from env sets default exit period seconds" do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
