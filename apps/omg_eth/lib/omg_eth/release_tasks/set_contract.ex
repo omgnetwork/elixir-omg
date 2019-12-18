@@ -21,7 +21,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   alias OMG.Eth.Encoding
 
   @app :omg_eth
-  @error "Set ETHEREUM_NETWORK to RINKEBY or LOCALCHAIN, *_TXHASH_CONTRACT, *_AUTHORITY_ADDRESS and *_CONTRACT_ADDRESS_* environment variables or CONTRACT_EXCHANGER_URL."
+  @error "Set ETHEREUM_NETWORK to RINKEBY, ROPSTEEN, MAINNET, or LOCALCHAIN with TXHASH_CONTRACT, AUTHORITY_ADDRESS and CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
 
   @doc """
   The contract values can currently come either from ENV variables for deployments in
@@ -89,6 +89,12 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
         "RINKEBY" = network ->
           network
 
+        "ROPSTEN" = network ->
+          network
+
+        "MAINNET" = network ->
+          network
+
         "LOCALCHAIN" = network ->
           network
 
@@ -96,12 +102,12 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           exit(@error)
       end
 
-    txhash_contract = get_env(network <> "_TXHASH_CONTRACT")
-    authority_address = get_env(network <> "_AUTHORITY_ADDRESS")
-    env_contract_address_plasma_framework = get_env(network <> "_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-    env_contract_address_eth_vault = get_env(network <> "_CONTRACT_ADDRESS_ETH_VAULT")
-    env_contract_address_erc20_vault = get_env(network <> "_CONTRACT_ADDRESS_ERC20_VAULT")
-    env_contract_address_payment_exit_game = get_env(network <> "_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+    txhash_contract = get_env("TXHASH_CONTRACT")
+    authority_address = get_env("AUTHORITY_ADDRESS")
+    env_contract_address_plasma_framework = get_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    env_contract_address_eth_vault = get_env("CONTRACT_ADDRESS_ETH_VAULT")
+    env_contract_address_erc20_vault = get_env("CONTRACT_ADDRESS_ERC20_VAULT")
+    env_contract_address_payment_exit_game = get_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
 
     contract_addresses = %{
       plasma_framework: env_contract_address_plasma_framework,
