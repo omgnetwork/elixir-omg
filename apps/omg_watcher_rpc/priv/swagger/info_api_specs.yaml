@@ -663,11 +663,137 @@ paths:
                         description: Something went wrong on the server
                         messages:
                           error_key: error_reason
+  /block.get:
+    post:
+      tags:
+        - Block
+      summary: Retrieves a single block for the given block number.
+      description: |
+        Intended for operations requiring info for a specific block only. 
+        Returns a single block object for the given block number. The returned object does not include associated transactions - for which you can use transaction.all with blknum in the request body.
+      operationId: block_get
+      requestBody:
+        description: Block number
+        required: true
+        content:
+          application/json:
+            schema:
+              title: GetBlockBodySchema
+              type: object
+              properties:
+                blknum:
+                  type: integer
+                  format: int64
+              example:
+                blknum: 68290000
+      responses:
+        '200':
+          description: Block succcessful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          blknum:
+                            type: integer
+                            format: int64
+                          hash:
+                            type: string
+                            format: binary
+                          eth_height:
+                            type: integer
+                            format: int64
+                          timestamp:
+                            type: integer
+                            format: int64
+                    example:
+                      data:
+                        timestamp: 1540365586
+                        hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                        eth_height: 97424
+                        blknum: 68290000
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /block.all:
     post:
       tags:
         - Block
-      summary: Gets all blocks (with a limit on the number of blocks to return).
+      summary: Gets all blocks (can be limited with various filters).
+      description: |
+        Returns a list of blocks ordered by the highest block number first. Intended to be used for presenting an overview of most recent blocks.
+        Note: Due to eventual consistency nature of the informational API, blocks may later than deposits, exits, etc.
       operationId: block_all
       requestBody:
         description: The supported request parameters for /block.all

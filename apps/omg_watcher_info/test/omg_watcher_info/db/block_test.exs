@@ -24,6 +24,16 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
+  describe "get/1" do
+    @tag fixtures: [:initial_blocks]
+    test "retrieves a block by block number" do
+      blknum = 1000
+      block = DB.Block.get(blknum)
+      assert %DB.Block{} = block
+      assert block.blknum == blknum
+    end
+  end
+
   describe "get_max_blknum/0" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "last consumed block is not set in empty database" do

@@ -27,6 +27,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
   @eth_hex @eth |> Encoding.to_hex()
   @other_token <<127::160>>
   @other_token_hex @other_token |> Encoding.to_hex()
@@ -109,8 +110,22 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
 
       # TODO: this test is brittle because of the way the DB entries are hardcoded
       OMG.DB.multi_update([
-        {:put, :utxo, {{1, 0, 0}, %{output: %{amount: 333, currency: @eth, owner: alice.addr}, creating_txhash: nil}}},
-        {:put, :utxo, {{2, 0, 0}, %{output: %{amount: 100, currency: @eth, owner: bob.addr}, creating_txhash: nil}}}
+        {:put, :utxo,
+         {
+           {1, 0, 0},
+           %{
+             output: %{amount: 333, currency: @eth, owner: alice.addr, output_type: @payment_output_type},
+             creating_txhash: nil
+           }
+         }},
+        {:put, :utxo,
+         {
+           {2, 0, 0},
+           %{
+             output: %{amount: 100, currency: @eth, owner: bob.addr, output_type: @payment_output_type},
+             creating_txhash: nil
+           }
+         }}
       ])
 
       assert WatcherHelper.get_exitable_utxos(alice.addr) == WatcherHelper.get_utxos(alice.addr)

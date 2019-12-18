@@ -20,18 +20,25 @@ defmodule OMG.Output do
   This module specificially dispatches generic calls to the various specific types
   """
 
-  @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
-  @type_markers Map.keys(@output_types_modules)
+  alias OMG.RawData
 
-  def dispatching_reconstruct([type_marker, raw_rlp_decoded_chunks]) when type_marker in @type_markers do
-    protocol_module = @output_types_modules[type_marker]
-    protocol_module.reconstruct(raw_rlp_decoded_chunks)
+  @output_types_modules OMG.WireFormatTypes.output_type_modules()
+  @output_types Map.keys(@output_types_modules)
+
+  def dispatching_reconstruct([raw_type, rlp_decoded_chunks]) when is_binary(raw_type) do
+    case RawData.parse_uint256(raw_type) do
+      {:ok, output_type} when output_type in @output_types ->
+        protocol_module = @output_types_modules[output_type]
+        protocol_module.reconstruct([output_type, rlp_decoded_chunks])
+
+      {:ok, _unrecognized_type} ->
+        {:error, :unrecognized_output_type}
+    end
   end
 
-  def dispatching_reconstruct([_, _]), do: {:error, :unrecognized_output_type}
   def dispatching_reconstruct(_), do: {:error, :malformed_outputs}
 
-  def from_db_value(%{type: type_marker} = db_value), do: @output_types_modules[type_marker].from_db_value(db_value)
+  def from_db_value(%{type: output_type} = db_value), do: @output_types_modules[output_type].from_db_value(db_value)
   # default clause for backwards compatibility
   def from_db_value(%{} = db_value), do: OMG.Output.FungibleMoreVPToken.from_db_value(db_value)
 end
