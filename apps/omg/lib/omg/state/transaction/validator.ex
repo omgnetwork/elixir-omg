@@ -73,12 +73,12 @@ defmodule OMG.State.Transaction.Validator do
   end
 
   # Checks the outputs spent by this transaction have been authorized by correct witnesses
-  @spec authorized?(list(Output.Protocol.t()), list(Transaction.Witness.t()), Transaction.Protocol.t()) ::
+  @spec authorized?(list(Output.t()), list(Transaction.Witness.t()), Transaction.Protocol.t()) ::
           :ok | {:error, :unauthorized_spend}
   defp authorized?(outputs_spent, witnesses, raw_tx) do
     outputs_spent
     |> Enum.with_index()
-    |> Enum.map(fn {output_spent, idx} -> OMG.Output.Protocol.can_spend?(output_spent, witnesses[idx], raw_tx) end)
+    |> Enum.map(fn {output_spent, idx} -> OMG.Output.can_spend?(output_spent, witnesses[idx], raw_tx) end)
     |> Enum.all?()
     |> if(do: :ok, else: {:error, :unauthorized_spend})
   end

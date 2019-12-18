@@ -428,7 +428,7 @@ defmodule OMG.State.Core do
     |> Transaction.get_outputs()
     |> Enum.with_index()
     |> Enum.map(fn {output, oindex} ->
-      {Output.Protocol.input_pointer(output, blknum, tx_index, oindex, tx, hash), output}
+      {Output.input_pointer(output, blknum, tx_index, oindex, tx, hash), output}
     end)
     |> Enum.into(%{}, fn {input_pointer, output} ->
       {input_pointer, %Utxo{output: output, creating_txhash: hash}}

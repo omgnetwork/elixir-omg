@@ -149,7 +149,7 @@ defprotocol OMG.State.Transaction.Protocol do
   @doc """
   List of outputs this transaction intends to create
   """
-  @spec get_outputs(t()) :: list(Output.Protocol.t())
+  @spec get_outputs(t()) :: list(Output.t())
   def get_outputs(tx)
 
   @doc """
@@ -164,6 +164,6 @@ defprotocol OMG.State.Transaction.Protocol do
 
   Should also return the fees that this transaction is paying, mapped by currency; for fee validation
   """
-  @spec can_apply?(t(), Output.Protocol.t()) :: {:ok, map()} | {:error, atom}
+  @spec can_apply?(t(), Output.t()) :: {:ok, map()} | {:error, atom}
   def can_apply?(tx, input_utxos)
 end

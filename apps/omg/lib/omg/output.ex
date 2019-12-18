@@ -20,7 +20,11 @@ defmodule OMG.Output do
   This module specificially dispatches generic calls to the various specific types
   """
 
+  alias OMG.Output.FungibleMoreVPToken
   alias OMG.RawData
+  alias OMG.Utxo
+
+  require Utxo
 
   @output_types_modules OMG.WireFormatTypes.output_type_modules()
   @output_types Map.keys(@output_types_modules)
@@ -41,34 +45,22 @@ defmodule OMG.Output do
   def from_db_value(%{type: output_type} = db_value), do: @output_types_modules[output_type].from_db_value(db_value)
   # default clause for backwards compatibility
   def from_db_value(%{} = db_value), do: OMG.Output.FungibleMoreVPToken.from_db_value(db_value)
-end
-
-defprotocol OMG.Output.Protocol do
-  @moduledoc """
-  Captures the varying behavior of outputs that build the plasma chain
-
-  Includes the "output predicate", within the `can_spend?/3` function
-  """
 
   @doc """
-  True if a particular witness can unlock a particular output to be spent, given being put in a particular transaction
-
-  Intended to be called in stateful validation
+  For payment outputs, a binary witness is assumed to be a signature equal to the payment's output owner
   """
-  def can_spend?(output_spent, witness, raw_tx)
+  def can_spend?(%FungibleMoreVPToken{owner: owner}, witness, _raw_tx) when is_binary(witness) do
+    owner == witness
+  end
 
-  @doc """
-  Returns the input pointer that the output should be later referenced by in inputs to be spent
-  """
-  def input_pointer(output, blknum, tx_index, oindex, tx, hash)
+  def input_pointer(%FungibleMoreVPToken{}, blknum, tx_index, oindex, _, _),
+    do: Utxo.position(blknum, tx_index, oindex)
 
-  @doc """
-  Transforms into a db-specific term
-  """
-  def to_db_value(output)
+  def to_db_value(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount, output_type: output_type})
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
+    %{owner: owner, currency: currency, amount: amount, output_type: output_type}
+  end
 
-  @doc """
-  Transforms into a RLP-ready structure
-  """
-  def get_data_for_rlp(output)
+  def get_data_for_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount, output_type: output_type}),
+    do: [output_type, [owner, currency, amount]]
 end

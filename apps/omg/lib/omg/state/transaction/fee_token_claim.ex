@@ -103,12 +103,12 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   def get_data_for_rlp(%Transaction.FeeTokenClaim{tx_type: tx_type, outputs: outputs, nonce: nonce}) do
     [
       tx_type,
-      Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
+      Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
       nonce
     ]
   end
 
-  @spec get_outputs(Transaction.FeeTokenClaim.t()) :: list(Output.Protocol.t())
+  @spec get_outputs(Transaction.FeeTokenClaim.t()) :: list(Output.t())
   def get_outputs(%Transaction.FeeTokenClaim{outputs: outputs}), do: outputs
 
   @spec get_inputs(Transaction.FeeTokenClaim.t()) :: list(InputPointer.t())
@@ -123,6 +123,6 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @doc """
   Fee claiming transaction is not used to transfer funds
   """
-  @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.Protocol.t())) :: {:error, atom()}
+  @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.t())) :: {:error, atom()}
   def can_apply?(%Transaction.FeeTokenClaim{}, _outputs_spent), do: {:error, :not_implemented}
 end

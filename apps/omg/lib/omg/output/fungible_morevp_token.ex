@@ -50,28 +50,3 @@ defmodule OMG.Output.FungibleMoreVPToken do
   defp non_zero_owner(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
   defp non_zero_owner(_), do: :ok
 end
-
-defimpl OMG.Output.Protocol, for: OMG.Output.FungibleMoreVPToken do
-  alias OMG.Output.FungibleMoreVPToken
-  alias OMG.Utxo
-
-  require Utxo
-
-  @doc """
-  For payment outputs, a binary witness is assumed to be a signature equal to the payment's output owner
-  """
-  def can_spend?(%FungibleMoreVPToken{owner: owner}, witness, _raw_tx) when is_binary(witness) do
-    owner == witness
-  end
-
-  def input_pointer(%FungibleMoreVPToken{}, blknum, tx_index, oindex, _, _),
-    do: Utxo.position(blknum, tx_index, oindex)
-
-  def to_db_value(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount, output_type: output_type})
-      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
-    %{owner: owner, currency: currency, amount: amount, output_type: output_type}
-  end
-
-  def get_data_for_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount, output_type: output_type}),
-    do: [output_type, [owner, currency, amount]]
-end
