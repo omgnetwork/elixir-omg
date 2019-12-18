@@ -125,7 +125,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
       :ok = System.put_env("TXHASH_CONTRACT", "Txhash_contract_value")
-      :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+      :ok = System.put_env("AUTHORITY_ADDRESS", "Authority_address_value")
       :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
       :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "Eth_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "Erc20_vault_value")
