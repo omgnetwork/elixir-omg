@@ -43,8 +43,8 @@ defmodule OMG.WireFormatTypes do
   }
 
   @output_type_modules %{
-    1 => OMG.Output.FungibleMoreVPToken,
-    2 => OMG.Output.FungibleMoreVPToken
+    1 => OMG.Output,
+    2 => OMG.Output
   }
 
   @known_tx_types Map.keys(@tx_type_values)

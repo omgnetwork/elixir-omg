@@ -79,7 +79,7 @@ defmodule OMG.Utxo do
     output = %{owner: owner, currency: currency, amount: amount}
 
     value = %{
-      output: OMG.Output.FungibleMoreVPToken.from_db_value(output),
+      output: OMG.Output.from_db_value(output),
       creating_txhash: creating_txhash
     }
 

@@ -29,7 +29,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
 
   @type t() :: %__MODULE__{
           tx_type: non_neg_integer(),
-          outputs: [Output.FungibleMoreVPToken.t()],
+          outputs: [Output.t()],
           nonce: Crypto.hash_t()
         }
 
@@ -44,7 +44,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
     %__MODULE__{
       tx_type: @fee_token_claim_tx_type,
       outputs: [
-        %Output.FungibleMoreVPToken{
+        %Output{
           owner: owner,
           currency: currency,
           amount: amount,
@@ -79,7 +79,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
   defp reconstruct_nonce(nonce) when is_binary(nonce) and byte_size(nonce) == 32, do: {:ok, nonce}
   defp reconstruct_nonce(_), do: {:error, :malformed_nonce}
 
-  defp only_allowed_output_types?([%Output.FungibleMoreVPToken{}]), do: true
+  defp only_allowed_output_types?([%Output{}]), do: true
   defp only_allowed_output_types?(_), do: false
 
   @spec to_nonce(non_neg_integer(), Transaction.Payment.currency()) :: Crypto.hash_t()

@@ -20,7 +20,15 @@ defmodule OMG.Output do
   This module specificially dispatches generic calls to the various specific types
   """
 
-  alias OMG.Output.FungibleMoreVPToken
+  @type t :: %__MODULE__{
+          output_type: binary(),
+          owner: Crypto.address_t(),
+          currency: Crypto.address_t(),
+          amount: non_neg_integer()
+        }
+
+  defstruct [:output_type, :owner, :currency, :amount]
+
   alias OMG.RawData
   alias OMG.Utxo
 
@@ -40,27 +48,46 @@ defmodule OMG.Output do
     end
   end
 
+  @doc """
+  Reconstructs the structure from a list of RLP items
+  """
+  def reconstruct([output_type, [owner_rlp, currency_rlp, amount_rlp]]) do
+    with {:ok, cur12} <- RawData.parse_address(currency_rlp),
+         {:ok, owner} <- RawData.parse_address(owner_rlp),
+         :ok <- non_zero_owner(owner),
+         {:ok, amount} <- RawData.parse_amount(amount_rlp),
+         do: %__MODULE__{output_type: output_type, owner: owner, currency: cur12, amount: amount}
+  end
+
+  def reconstruct(_), do: {:error, :malformed_outputs}
+
+  defp non_zero_owner(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
+  defp non_zero_owner(_), do: :ok
+
   def dispatching_reconstruct(_), do: {:error, :malformed_outputs}
 
   def from_db_value(%{type: output_type} = db_value), do: @output_types_modules[output_type].from_db_value(db_value)
-  # default clause for backwards compatibility
-  def from_db_value(%{} = db_value), do: OMG.Output.FungibleMoreVPToken.from_db_value(db_value)
+
+  def from_db_value(%{owner: owner, currency: currency, amount: amount, output_type: output_type})
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
+    %__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}
+  end
 
   @doc """
   For payment outputs, a binary witness is assumed to be a signature equal to the payment's output owner
   """
-  def can_spend?(%FungibleMoreVPToken{owner: owner}, witness, _raw_tx) when is_binary(witness) do
+  def can_spend?(%__MODULE__{owner: owner}, witness, _raw_tx) when is_binary(witness) do
     owner == witness
   end
 
-  def input_pointer(%FungibleMoreVPToken{}, blknum, tx_index, oindex, _, _),
+  def input_pointer(%__MODULE__{}, blknum, tx_index, oindex, _, _),
     do: Utxo.position(blknum, tx_index, oindex)
 
-  def to_db_value(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount, output_type: output_type})
+  def to_db_value(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
     %{owner: owner, currency: currency, amount: amount, output_type: output_type}
   end
 
-  def get_data_for_rlp(%FungibleMoreVPToken{owner: owner, currency: currency, amount: amount, output_type: output_type}),
+  def get_data_for_rlp(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}),
     do: [output_type, [owner, currency, amount]]
 end

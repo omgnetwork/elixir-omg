@@ -37,7 +37,7 @@ defmodule OMG.State.Transaction.Payment do
   @type t() :: %__MODULE__{
           tx_type: non_neg_integer(),
           inputs: list(InputPointer.t()),
-          outputs: list(Output.FungibleMoreVPToken.t()),
+          outputs: list(Output.t()),
           metadata: Transaction.metadata()
         }
 
@@ -100,7 +100,7 @@ defmodule OMG.State.Transaction.Payment do
   defp new_input({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
 
   defp new_output({owner, currency, amount}) do
-    %Output.FungibleMoreVPToken{
+    %Output{
       owner: owner,
       currency: currency,
       amount: amount,
@@ -144,7 +144,7 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   defp only_allowed_output_types?(outputs),
-    do: Enum.all?(outputs, &match?(%Output.FungibleMoreVPToken{}, &1))
+    do: Enum.all?(outputs, &match?(%Output{}, &1))
 
   # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
   #       most likely one needs to route through generic InputPointer` function that does the dispatch
