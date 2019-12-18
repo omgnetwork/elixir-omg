@@ -84,7 +84,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   end
 
   defp apply_static_settings(network) do
-    network =
+    _network =
       case String.upcase(network) do
         "RINKEBY" = network ->
           network
