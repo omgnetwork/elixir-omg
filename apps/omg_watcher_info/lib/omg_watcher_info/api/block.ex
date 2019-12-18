@@ -12,15 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.start()
-ExUnit.start()
+defmodule OMG.WatcherInfo.API.Block do
+  @moduledoc """
+  Module provides operations related to plasma blocks.
+  """
 
-{:ok, _} = Application.ensure_all_started(:httpoison)
-{:ok, _} = Application.ensure_all_started(:fake_server)
-{:ok, _} = Application.ensure_all_started(:briefly)
-{:ok, _} = Application.ensure_all_started(:erlexec)
-{:ok, _} = Application.ensure_all_started(:ex_machina)
+  alias OMG.Utils.Paginator
+  alias OMG.WatcherInfo.DB
 
-Mix.Task.run("ecto.create", ~w(--quiet))
-Mix.Task.run("ecto.migrate", ~w(--quiet))
+  @default_blocks_limit 100
+
+  @doc """
+  Retrieves a list of blocks.
+
+  Length of the list is limited by `limit` and `page` arguments.
+  """
+  @spec get_blocks(Keyword.t()) :: Paginator.t()
+  def get_blocks(constraints) do
+    paginator = Paginator.from_constraints(constraints, @default_blocks_limit)
+
+    DB.Block.get_blocks(paginator)
+  end
+end

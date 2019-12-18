@@ -22,14 +22,15 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   @configuration_old_statix Application.get_all_env(:statix)
   @configuration_old_spandex_datadog Application.get_all_env(:spandex_datadog)
   setup do
+    :ok = Application.put_env(:statix, :host, Keyword.get(@configuration_old_statix, :host), persistent: true)
+    :ok = Application.put_env(:statix, :port, Keyword.get(@configuration_old_statix, :port), persistent: true)
+    :ok = Application.put_env(:statix, :tags, nil, persistent: true)
+
     on_exit(fn ->
       # configuration is global state so we reset it to known values in case
       # it got fiddled before
       :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
       :ok = Application.put_env(@app, :spandex_datadog, @configuration_old_spandex_datadog, persistent: true)
-      :ok = Application.put_env(:statix, :host, Keyword.get(@configuration_old_statix, :host), persistent: true)
-      :ok = Application.put_env(:statix, :port, Keyword.get(@configuration_old_statix, :port), persistent: true)
-      :ok = Application.put_env(:statix, :tags, nil, persistent: true)
     end)
 
     :ok

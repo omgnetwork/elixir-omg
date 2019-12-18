@@ -2,27 +2,18 @@ block.all:
   post:
     tags:
       - Block
-    summary: Gets all blocks (with a limit on the number of blocks to return).
-    description: __/block.xxx endpoints not implemented yet and might undergo design changes__
+    summary: Gets all blocks (can be limited with various filters).
+    description: >
+      Returns a list of blocks ordered by the highest block number first.
+      Intended to be used for presenting an overview of most recent blocks.
+
+      Note: Due to eventual consistency nature of the informational API,
+      blocks may later than deposits, exits, etc.
     operationId: block_all
     requestBody:
       $ref: 'request_bodies.yaml#/AllBlocksBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/BlocksAllResponse'
-      500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
-block.get:
-  post:
-    tags:
-      - Block
-    summary: Gets a block with the given id.
-    description: __/block.xxx endpoints not implemented yet and might undergo design changes__
-    operationId: block_get
-    requestBody:
-      $ref: 'request_bodies.yaml#/GetBlockBodySchema'
-    responses:
-      200:
-        $ref: 'responses.yaml#/BlockResponse'
       500:
         $ref: '../../shared/responses.yaml#/InternalServerError'

@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.start()
-ExUnit.start()
+defmodule OMG.WatcherRPC.Web.View.Block do
+  @moduledoc """
+  The block view for rendering json
+  """
 
-{:ok, _} = Application.ensure_all_started(:httpoison)
-{:ok, _} = Application.ensure_all_started(:fake_server)
-{:ok, _} = Application.ensure_all_started(:briefly)
-{:ok, _} = Application.ensure_all_started(:erlexec)
-{:ok, _} = Application.ensure_all_started(:ex_machina)
+  use OMG.WatcherRPC.Web, :view
 
-Mix.Task.run("ecto.create", ~w(--quiet))
-Mix.Task.run("ecto.migrate", ~w(--quiet))
+  alias OMG.Utils.HttpRPC.Response
+  alias OMG.Utils.Paginator
+
+  def render("blocks.json", %{response: %Paginator{data: blocks, data_paging: data_paging}}) do
+    Response.serialize_page(blocks, data_paging)
+  end
+end
