@@ -40,7 +40,7 @@ We allow a static configuration or a dynamic one, served as a http endpoint (one
 ```
 Static configuration
 
-- "ETHEREUM_NETWORK" - RINKEBY or LOCALCHAIN
+- "ETHEREUM_NETWORK" - RINKEBY, ROPSTEN, MAINNET, or LOCALCHAIN
 - "TXHASH_CONTRACT"
 - "AUTHORITY_ADDRESS"
 - "CONTRACT_ADDRESS_PLASMA_FRAMEWORK"
