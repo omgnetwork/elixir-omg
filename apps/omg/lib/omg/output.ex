@@ -37,12 +37,10 @@ defmodule OMG.Output do
   @output_types_modules OMG.WireFormatTypes.output_type_modules()
   @output_types Map.keys(@output_types_modules)
 
-  def dispatching_reconstruct([raw_type, rlp_decoded_chunks]) when is_binary(raw_type) do
+  def reconstruct([raw_type, rlp_decoded_chunks]) when is_binary(raw_type) do
     case RawData.parse_uint256(raw_type) do
       {:ok, output_type} when output_type in @output_types ->
-        protocol_module = @output_types_modules[output_type]
-        protocol_module.reconstruct([output_type, rlp_decoded_chunks])
-
+        reconstruct([output_type, rlp_decoded_chunks])
       {:ok, _unrecognized_type} ->
         {:error, :unrecognized_output_type}
     end
