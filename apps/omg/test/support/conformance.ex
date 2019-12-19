@@ -21,6 +21,9 @@ defmodule Support.Conformance do
 
   import ExUnit.Assertions
 
+  @doc """
+  Check if both implementations treat distinct transactions as distinct but produce the same sign hashes
+  """
   def verify_distinct(tx1, tx2, contract) do
     # NOTE: those two verifies might be redundant, rethink sometimes. For now keeping to increase chance of picking up
     # discrepancies
@@ -30,10 +33,16 @@ defmodule Support.Conformance do
     assert elixir_hash(tx1) != elixir_hash(tx2)
   end
 
+  @doc """
+  Check if both implementations product the same signature hash
+  """
   def verify(tx, contract) do
     assert solidity_hash!(tx, contract) == elixir_hash(tx)
   end
 
+  @doc """
+  Check if both implementations error for a binary that's known to not be a validly decoding transaction
+  """
   def verify_both_error(some_binary, contract) do
     # elixir implementation errors
     assert {:error, _} = Transaction.decode(some_binary)
@@ -44,6 +53,45 @@ defmodule Support.Conformance do
     |> assert_contract_reverted()
 
     true
+  end
+
+  @doc """
+  Check if both implementations either:
+    - treat distinct transactions as distinct but produce the same sign hashes or
+    - both error
+  _under the condition that `tx2_binary` decodes fine in the "native" implementation in Elixir_
+  """
+  def verify_distinct_or_erroring(tx1_binary, tx2_binary, contract) do
+    # TODO - think of a better approach to handling the different treatment of valid/admissible tx/output types
+    #      there shouldn't be that many cases, 2 (`{:ok, _}` and `{:error, _}`) should ideally do
+    case Transaction.decode(tx2_binary) do
+      # if the mutated transaction decodes fine, we check whether signature hashes match across impls and are distinct
+      {:ok, _} ->
+        verify_distinct(Transaction.decode!(tx1_binary), Transaction.decode!(tx2_binary), contract)
+
+      # NOTE: unrecognized tx/output type is never picked up in the contract, since there, decoding assumes already a
+      #       particular type (i.e. Payment) and only checks if delivered type (`1`, `2`, ...) is correct in later stage
+      #       when fetching and verifying the `ISpendingCondition`
+      {:error, :unrecognized_transaction_type} ->
+        true
+
+      {:error, :unrecognized_output_type} ->
+        true
+
+      # NOTE: another temporary special case handling, until a better idea comes. `tx_type` 3 is `FeeTokenClaim`
+      #       transaction which pops out as `malformed` in `elixir-omg` and is accepted by contracts
+      {:error, :malformed_transaction} ->
+        case ExRLP.decode(tx2_binary) do
+          # first RLP item of the transaction specifies the tx type as `FeeTokenClaim` - can't test further
+          [<<3>> | _] -> true
+          # in all other cases the contract should revert
+          _ -> verify_both_error(tx2_binary, contract)
+        end
+
+      # in other cases of errors, we check whether both implementations reject the mutated transaction
+      {:error, _} ->
+        verify_both_error(tx2_binary, contract)
+    end
   end
 
   defp solidity_hash!(tx, contract) do

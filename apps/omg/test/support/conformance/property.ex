@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Support.Conformance.Property do
+defmodule Support.Conformance.PropertyGenerators do
   @moduledoc """
   Utility functions (mainly `:propcheck` generators) useful for building property tests for conformance tests
   """

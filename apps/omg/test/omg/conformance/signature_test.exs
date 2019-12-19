@@ -20,20 +20,14 @@ defmodule OMG.Conformance.SignatureTest do
 
   alias OMG.State.Transaction
 
-  # FIXME: unimport
-  import Support.Conformance
-
-  alias OMG.State.Transaction
+  import Support.Conformance, only: [verify: 2, verify_distinct: 3]
 
   use Support.Conformance.Case, async: false
 
   @moduletag :integration
   @moduletag :common
 
-  @good_tx_data 0
   @good_metadata <<1::size(32)-unit(8)>>
-  @good_address <<1::size(20)-unit(8)>>
-  @good_amount <<1>>
 
   describe "elixir vs solidity conformance test" do
     test "no inputs test", %{contract: contract} do

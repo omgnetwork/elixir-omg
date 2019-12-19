@@ -18,11 +18,10 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   Solidity implementations
   """
 
-  alias OMG.State.Transaction
+  alias Support.Conformance.PropertyGenerators
 
-  # FIXME: unimport
-  import Support.Conformance
-  import Support.Conformance.Property
+  import Support.Conformance,
+    only: [verify: 2, verify_distinct: 3, verify_both_error: 2, verify_distinct_or_erroring: 3]
 
   use PropCheck
   use Support.Conformance.Case, async: false
@@ -33,7 +32,7 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   property "any tx hashes/signhashes the same in all implementations",
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
-    forall tx <- payment_tx() do
+    forall tx <- PropertyGenerators.payment_tx() do
       # TODO: expand with verifying the non-signature-related hash, Transaction.raw_txhash
       #       This occurs multiple times, wherever transaction/implementation identity/conformance is tested
       verify(tx, contract)
@@ -43,7 +42,7 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   property "any 2 different txs hash/signhash differently, regardless of implementation",
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
-    forall [{tx1, tx2} <- distinct_payment_txs()] do
+    forall [{tx1, tx2} <- PropertyGenerators.distinct_payment_txs()] do
       verify_distinct(tx1, tx2, contract)
     end
   end
@@ -51,17 +50,15 @@ defmodule OMG.Conformance.SignaturePropertyTest do
   property "any crude-mutated tx binary either fails to decode to a transaction object or is recognized as different",
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
-    forall {tx1_binary, tx2_binary} <- tx_binary_with_mutation() do
+    forall {tx1_binary, tx2_binary} <- PropertyGenerators.tx_binary_with_mutation() do
       verify_distinct_or_erroring(tx1_binary, tx2_binary, contract)
     end
   end
 
-  # FIXME: remove work tag
-  @tag :work
   property "any rlp-mutated tx binary either fails to decode to a transaction object or is recognized as different",
            [1000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
-    forall {tx1_binary, tx2_binary} <- tx_binary_with_rlp_mutation() do
+    forall {tx1_binary, tx2_binary} <- PropertyGenerators.tx_binary_with_rlp_mutation() do
       verify_distinct_or_erroring(tx1_binary, tx2_binary, contract)
     end
   end
@@ -71,39 +68,6 @@ defmodule OMG.Conformance.SignaturePropertyTest do
            %{contract: contract} do
     forall some_binary <- binary() do
       verify_both_error(some_binary, contract)
-    end
-  end
-
-  # TODO - think of a better approach to handling the different treatment of valid/admissible tx/output types
-  #      there shouldn't be that many cases, 2 (`{:ok, _}` and `{:error, _}`) should ideally do
-  defp verify_distinct_or_erroring(tx1_binary, tx2_binary, contract) do
-    case Transaction.decode(tx2_binary) do
-      # if the mutated transaction decodes fine, we check whether signature hashes match across impls and are distinct
-      {:ok, _} ->
-        verify_distinct(Transaction.decode!(tx1_binary), Transaction.decode!(tx2_binary), contract)
-
-      # NOTE: unrecognized tx/output type is never picked up in the contract, since there, decoding assumes already a
-      #       particular type (i.e. Payment) and only checks if delivered type (`1`, `2`, ...) is correct in later stage
-      #       when fetching and verifying the `ISpendingCondition`
-      {:error, :unrecognized_transaction_type} ->
-        true
-
-      {:error, :unrecognized_output_type} ->
-        true
-
-      # NOTE: another temporary special case handling, until a better idea comes. `tx_type` 3 is `FeeTokenClaim`
-      #       transaction which pops out as `malformed` in `elixir-omg` and is accepted by contracts
-      {:error, :malformed_transaction} ->
-        case ExRLP.decode(tx2_binary) do
-          # first RLP item of the transaction specifies the tx type as `FeeTokenClaim` - can't test further
-          [<<3>> | _] -> true
-          # in all other cases the contract should revert
-          _ -> verify_both_error(tx2_binary, contract)
-        end
-
-      # in other cases of errors, we check whether both implementations reject the mutated transaction
-      {:error, _} ->
-        verify_both_error(tx2_binary, contract)
     end
   end
 end
