@@ -62,7 +62,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
       join_keys: [child_chain_utxohash: :child_chain_utxohash, root_chain_txhash_event: :root_chain_txhash_event]
     )
 
-    timestamps(type: :utc_datetime_usec)
+    timestamps([type: :utc_datetime_usec])
   end
 
   def fetch_by(where_conditions) do
