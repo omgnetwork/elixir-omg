@@ -20,9 +20,14 @@ defmodule OMG.WatcherInfo.Factory do
 
   ## Usage
 
-  Import this factory into your test module with `import OMG.WatcherInfo.Factory`.
+  Import this factory into your test module with `import OMG.WatcherInfo.Factory`. Importing only this factory and
+  you will be able to use all the factories in the factories directory. To specify which factory ExMachina should
+  use pass an atom of the factory name to the `build()` and `insert()` functions.
 
-  Then, use [`build/1`](https://hexdocs.pm/ex_machina/ExMachina.html#c:build/1)
+  For example, to build a block using the block factory use: `block = build(:block)`
+  To build a transaction using the transaction factory use: `transaction = build(:transaction)`
+
+  Use [`build/1`](https://hexdocs.pm/ex_machina/ExMachina.html#c:build/1)
   to build a struct without inserting them to the database, or
   [`build/2`](https://hexdocs.pm/ex_machina/ExMachina.html#c:build/2) to override default data.
 
