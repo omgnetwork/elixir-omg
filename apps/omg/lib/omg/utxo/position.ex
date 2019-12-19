@@ -19,8 +19,6 @@ defmodule OMG.Utxo.Position do
   """
 
   # these two offset constants are driven by the constants from the RootChain.sol contract
-  @block_offset 1_000_000_000
-  @transaction_offset 10_000
   @input_pointer_output_type 1
 
   alias OMG.Utxo
@@ -42,7 +40,7 @@ defmodule OMG.Utxo.Position do
 
   @spec encode(t()) :: non_neg_integer()
   def encode(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
-    do: blknum * @block_offset + txindex * @transaction_offset + oindex
+    do: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 
   @spec decode!(number()) :: t()
   def decode!(encoded) do
@@ -52,8 +50,8 @@ defmodule OMG.Utxo.Position do
 
   @spec decode(number()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
   def decode(encoded) when is_integer(encoded) and encoded > 0 do
-    {blknum, txindex, oindex} = get_position(encoded)
-    {:ok, Utxo.position(blknum, txindex, oindex)}
+    utxo = ExPlasma.Utxo.new(encoded)
+    {:ok, Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex)}
   end
 
   def decode(encoded) when is_number(encoded), do: {:error, :encoded_utxo_position_too_low}
@@ -76,14 +74,6 @@ defmodule OMG.Utxo.Position do
   def txindex(Utxo.position(_, txindex, _)), do: txindex
   def oindex(Utxo.position(_, _, oindex)), do: oindex
 
-  @spec get_position(pos_integer()) :: {non_neg_integer, non_neg_integer, char}
-  defp get_position(encoded) when is_integer(encoded) and encoded > 0 do
-    blknum = div(encoded, @block_offset)
-    txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
-    oindex = rem(encoded, @transaction_offset)
-    {blknum, txindex, oindex}
-  end
-
   @doc """
   Based on the contract parameters determines whether UTXO position provided was created by a deposit
   """
@@ -93,17 +83,14 @@ defmodule OMG.Utxo.Position do
     rem(blknum, interval) != 0
   end
 
-  def reconstruct(binary_input) when is_binary(binary_input),
-    do: binary_input |> ensure_32bytes! |> :binary.decode_unsigned(:big) |> Utxo.Position.decode!()
-
-  @spec get_data_for_rlp(Utxo.Position.t()) :: binary()
-  def get_data_for_rlp(Utxo.position(_, _, _) = utxo_pos),
-    do: utxo_pos |> Utxo.Position.encode() |> :binary.encode_unsigned(:big) |> pad()
-
-  defp pad(unpadded) do
-    padding_bits = (32 - byte_size(unpadded)) * 8
-    <<0::size(padding_bits)>> <> unpadded
+  def reconstruct(binary_input) when is_binary(binary_input) and byte_size(binary_input) == 32 do
+    utxo = ExPlasma.Utxo.new(binary_input)
+    Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex)
   end
 
-  defp ensure_32bytes!(binary_input) when byte_size(binary_input) == 32, do: binary_input
+  @spec get_data_for_rlp(Utxo.Position.t()) :: binary()
+  def get_data_for_rlp(Utxo.position(blknum, txindex, oindex)) do
+    utxo = %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex}
+    ExPlasma.Utxo.to_rlp(utxo)
+  end
 end
