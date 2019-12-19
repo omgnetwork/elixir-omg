@@ -51,12 +51,13 @@ defmodule Support.Conformance do
     solidity_hash
   end
 
-  defp solidity_hash(%{} = tx, contract), do: solidity_hash(Transaction.raw_txbytes(tx), contract)
+  defp solidity_hash(%{} = tx, contract), do: tx |> Transaction.raw_txbytes() |> solidity_hash(contract)
 
   defp solidity_hash(encoded_tx, contract) when is_binary(encoded_tx),
     do: Eth.call_contract(contract, "hashTx(address,bytes)", [contract, encoded_tx], [{:bytes, 32}])
 
-  defp elixir_hash(tx), do: OMG.TypedDataHash.hash_struct(tx)
+  defp elixir_hash(%{} = tx), do: OMG.TypedDataHash.hash_struct(tx)
+  defp elixir_hash(encoded_tx), do: encoded_tx |> Transaction.decode!() |> elixir_hash()
 
   defp assert_contract_reverted(result) do
     Application.fetch_env!(:omg_eth, :eth_node)

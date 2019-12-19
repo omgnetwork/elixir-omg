@@ -91,25 +91,34 @@ defmodule Support.Conformance.Property do
     ])
   end
 
+  defp valid_blknum(), do: non_neg_integer()
+  defp valid_txndex(), do: integer(0, 1_000_000_000 - 1)
+  defp valid_oindex(), do: integer(0, 10_000 - 1)
+
   # TODO: revisit this to generate logic-wise invalid txs like zero inputs/outputs (H6)
-  defp input_tuple() do
-    let [blknum <- pos_integer(), txindex <- non_neg_integer(), oindex <- non_neg_integer()] do
-      {blknum, txindex, oindex}
-    end
+  defp valid_input_tuple() do
+    proposition_result =
+      let [blknum <- valid_blknum(), txindex <- valid_txndex(), oindex <- valid_oindex()] do
+        {blknum, txindex, oindex}
+      end
+
+    such_that({blknum, txindex, oindex} <- proposition_result, when: blknum + txindex + oindex > 0)
   end
 
   # TODO: revisit the case of negative amounts, funny things happen
-  defp output_tuple() do
+  defp valid_output_tuple() do
     let [owner <- non_zero_address(), currency <- address(), amount <- pos_integer()] do
       {owner, currency, amount}
     end
   end
 
-  defp valid_inputs_list(),
-    do: such_that(l <- list(input_tuple()), when: length(l) <= Transaction.Payment.max_inputs())
+  defp valid_inputs_list() do
+    such_that(l <- list(valid_input_tuple()), when: length(l) <= Transaction.Payment.max_inputs())
+  end
 
-  defp valid_outputs_list(),
-    do: such_that(l <- list(output_tuple()), when: length(l) > 0 && length(l) <= Transaction.Payment.max_outputs())
+  defp valid_outputs_list() do
+    such_that(l <- list(valid_output_tuple()), when: length(l) > 0 && length(l) <= Transaction.Payment.max_outputs())
+  end
 
   defp mutated_hash(base_hash) do
     # TODO: provide more cases
