@@ -38,14 +38,6 @@ Install Geth version 1.8.27 from the URL below.
 https://geth.ethereum.org/downloads/
 ```
 
-## Install solc
-```
-sudo apt-get install libssl-dev solc
-curl -fsL -o solc https://github.com/ethereum/solidity/releases/download/v0.5.11/solc-static-linux 
-chmod +x solc 
-install -m0755 solc /usr/local/bin/solc
-```
-
 ## Install hex and rebar
 ```
 mix do local.hex --force, local.rebar --force
