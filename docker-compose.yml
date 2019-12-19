@@ -63,6 +63,8 @@ services:
   childchain:
     image: omisego/child_chain:latest
     command: "full_local"
+    env_file:
+      - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - AUTHORITY_ADDRESS=0xc0f780dfc35075979b0def588d999225b7ecc56f
@@ -99,6 +101,8 @@ services:
   watcher:
     image: omisego/watcher:latest
     command: "full_local"
+    env_file:
+      - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - AUTHORITY_ADDRESS=0xc0f780dfc35075979b0def588d999225b7ecc56f
@@ -136,6 +140,8 @@ services:
   watcher_info:
     image: omisego/watcher_info:latest
     command: "full_local"
+    env_file:
+      - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - AUTHORITY_ADDRESS=0xc0f780dfc35075979b0def588d999225b7ecc56f

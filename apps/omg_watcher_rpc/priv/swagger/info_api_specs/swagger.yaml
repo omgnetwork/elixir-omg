@@ -35,6 +35,8 @@ paths:
     $ref: 'account/paths.yaml#/account.get_utxos'
   /account.get_transactions:
     $ref: 'account/paths.yaml#/account.get_transactions'
+  /block.get:
+    $ref: 'block/paths.yaml#/block.get'
   /block.all:
     $ref: 'block/paths.yaml#/block.all'
   /transaction.all:

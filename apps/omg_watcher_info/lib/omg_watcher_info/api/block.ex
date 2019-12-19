@@ -23,8 +23,18 @@ defmodule OMG.WatcherInfo.API.Block do
   @default_blocks_limit 100
 
   @doc """
-  Retrieves a list of blocks.
+  Retrieves a specific block by block number
+  """
+  @spec get(pos_integer()) :: {:ok, %DB.Block{}} | {:error, :block_not_found}
+  def get(blknum) do
+    case DB.Block.get(blknum) do
+      nil -> {:error, :block_not_found}
+      block -> {:ok, block}
+    end
+  end
 
+  @doc """
+  Retrieves a list of blocks.
   Length of the list is limited by `limit` and `page` arguments.
   """
   @spec get_blocks(Keyword.t()) :: Paginator.t()

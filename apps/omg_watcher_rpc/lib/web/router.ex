@@ -55,6 +55,8 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/transaction.create", Controller.Transaction, :create)
     post("/transaction.submit_typed", Controller.Transaction, :submit_typed)
 
+    post("/block.get", Controller.Block, :get_block)
+
     post("/fees.all", Controller.Fee, :fees_all)
   end
 

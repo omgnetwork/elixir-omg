@@ -22,7 +22,6 @@ defmodule OMG.Conformance.SignatureTest do
   alias OMG.State.Transaction
   alias OMG.TestHelper
 
-  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
   use ExUnit.Case, async: false
 
   @moduletag :integration
@@ -43,107 +42,65 @@ defmodule OMG.Conformance.SignatureTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @token <<235, 169, 32, 193, 242, 237, 159, 137, 184, 46, 124, 13, 178, 171, 61, 87, 179, 179, 135, 146>>
 
-  setup %{} do
-    vcr_path = Path.join(__DIR__, "../../fixtures/vcr_cassettes")
-    ExVCR.Config.cassette_library_dir(vcr_path)
-
-    :ok
-  end
-
   setup_all do
-    signtest_addr = <<50, 6, 61, 186, 145, 207, 149, 235, 61, 88, 250, 217, 227, 145, 238, 136, 136, 120, 182, 28>>
-    :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: Eth.Encoding.to_hex(signtest_addr)})
-    [contract: signtest_addr]
-  end
+    {:ok, exit_fn} = Support.DevNode.start()
 
-  # RECORDING
-  # setup_all do
-  #   {:ok, exit_fn} = Support.DevNode.start()
+    # taken from the `plasma-contracts` deployment snapshot
+    signtest_addr_hex = "0x19925cc645720fbb61f76304ee15501e3197f3a9"
+    :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: signtest_addr_hex})
 
-  #   root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
-  #   {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
+    on_exit(fn ->
+      # reverting to the original values from `omg_eth/config/test.exs`
+      :ok =
+        Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: "0x0000000000000000000000000000000000000001"})
 
-  #   {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "", 0], [])
+      exit_fn.()
+    end)
 
-  #   {:ok, _, signtest_addr} =
-  #     Support.Deployer.create_new("PaymentEip712LibMock", root_path, Eth.Encoding.from_hex(addr), [])
-  #   # impose our testing signature contract wrapper (mock) as the validating contract, which normally would be
-  #   # plasma framework
-  #   :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: Eth.Encoding.to_hex(signtest_addr)})
-
-  #   on_exit(fn ->
-  #     # reverting to the original values from `omg_eth/config/test.exs`
-  #     exit_fn.()
-  #   end)
-
-  #   [contract: signtest_addr]
-  # end
-
-  test "signature with empty transaction", context do
-    use_cassette "712_eip_mock/empty_transaction", match_requests_on: [:request_body] do
-      contract = context[:contract]
-      tx = TestHelper.create_signed([], [])
-      verify(contract, tx)
-    end
+    [contract: Eth.Encoding.from_hex(signtest_addr_hex)]
   end
 
   test "signature with no inputs", context do
-    use_cassette "712_eip_mock/no_inputs", match_requests_on: [:request_body] do
-      contract = context[:contract]
-      tx = TestHelper.create_signed([], [{@alice, @eth, 100}])
-      verify(contract, tx)
-    end
-  end
-
-  test "signature with no outputs", context do
-    use_cassette "712_eip_mock/no_outputs", match_requests_on: [:request_body] do
-      contract = context[:contract]
-      tx = TestHelper.create_signed([{1, 0, 0, @alice}], [])
-      verify(contract, tx)
-    end
+    contract = context[:contract]
+    tx = TestHelper.create_signed([], [{@alice, @eth, 100}])
+    verify(contract, tx)
   end
 
   test "signature for small tx", context do
-    use_cassette "712_eip_mock/small_tx", match_requests_on: [:request_body] do
-      contract = context[:contract]
-      tx = TestHelper.create_signed([{1, 0, 0, @alice}], [{@alice, @eth, 100}])
-      verify(contract, tx)
-    end
+    contract = context[:contract]
+    tx = TestHelper.create_signed([{1, 0, 0, @alice}], [{@alice, @eth, 100}])
+    verify(contract, tx)
   end
 
   test "signature for full tx", context do
-    use_cassette "712_eip_mock/transaction", match_requests_on: [:request_body] do
-      contract = context[:contract]
+    contract = context[:contract]
 
-      tx =
-        TestHelper.create_signed(
-          [{1, 0, 0, @alice}, {1000, 555, 3, @bob}, {2000, 333, 1, @alice}, {15_015, 0, 0, @bob}],
-          [{@alice, @eth, 100}, {@alice, @token, 50}, {@bob, @token, 75}, {@bob, @eth, 25}]
-        )
+    tx =
+      TestHelper.create_signed(
+        [{1, 0, 0, @alice}, {1000, 555, 3, @bob}, {2000, 333, 1, @alice}, {15_015, 0, 0, @bob}],
+        [{@alice, @eth, 100}, {@alice, @token, 50}, {@bob, @token, 75}, {@bob, @eth, 25}]
+      )
 
-      verify(contract, tx)
-    end
+    verify(contract, tx)
   end
 
   test "signature for a transaction with metadata", context do
-    use_cassette "712_eip_mock/transaction_metadata", match_requests_on: [:request_body] do
-      contract = context[:contract]
-      # metadata gets a random 256 binary assigned
-      <<_::256>> =
-        metadata =
-        <<136, 72, 182, 143, 114, 106, 162, 12, 23, 115, 79, 191, 109, 221, 32, 179, 148, 78, 39, 106, 255, 9, 104, 243,
-          72, 204, 153, 10, 16, 140, 95, 27>>
+    contract = context[:contract]
+    # metadata gets a random 256 binary assigned
+    <<_::256>> =
+      metadata =
+      <<136, 72, 182, 143, 114, 106, 162, 12, 23, 115, 79, 191, 109, 221, 32, 179, 148, 78, 39, 106, 255, 9, 104, 243,
+        72, 204, 153, 10, 16, 140, 95, 27>>
 
-      tx =
-        TestHelper.create_signed(
-          [{1, 0, 0, @alice}, {1000, 555, 3, @bob}, {2000, 333, 1, @alice}, {15_015, 0, 0, @bob}],
-          @eth,
-          [{@alice, 100}, {@alice, 50}, {@bob, 75}, {@bob, 25}],
-          metadata
-        )
+    tx =
+      TestHelper.create_signed(
+        [{1, 0, 0, @alice}, {1000, 555, 3, @bob}, {2000, 333, 1, @alice}, {15_015, 0, 0, @bob}],
+        @eth,
+        [{@alice, 100}, {@alice, 50}, {@bob, 75}, {@bob, 25}],
+        metadata
+      )
 
-      verify(contract, tx)
-    end
+    verify(contract, tx)
   end
 
   defp verify(contract, %Transaction.Signed{raw_tx: tx}) do

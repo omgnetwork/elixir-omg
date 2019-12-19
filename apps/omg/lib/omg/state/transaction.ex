@@ -19,13 +19,14 @@ defmodule OMG.State.Transaction do
   """
 
   alias OMG.Crypto
+  alias OMG.RawData
   alias OMG.State.Transaction
   alias OMG.Utxo
 
   require Utxo
 
-  @tx_types_modules Application.fetch_env!(:omg, :tx_types_modules)
-  @type_markers Map.keys(@tx_types_modules)
+  @tx_types_modules OMG.WireFormatTypes.tx_type_modules()
+  @tx_types Map.keys(@tx_types_modules)
 
   @type any_flavor_t() :: __MODULE__.Signed.t() | __MODULE__.Recovered.t() | __MODULE__.Protocol.t()
 
@@ -39,6 +40,7 @@ defmodule OMG.State.Transaction do
           | :malformed_outputs
           | :malformed_address
           | :malformed_metadata
+          | :unrecognized_transaction_type
           | :malformed_transaction
 
   defmacro is_metadata(metadata) do
@@ -49,9 +51,15 @@ defmodule OMG.State.Transaction do
 
   @type input_index_t() :: 0..3
 
-  def dispatching_reconstruct([type_marker | raw_tx_rlp_decoded_chunks]) when type_marker in @type_markers do
-    protocol_module = @tx_types_modules[type_marker]
-    protocol_module.reconstruct(raw_tx_rlp_decoded_chunks)
+  def dispatching_reconstruct([raw_type | raw_tx_rlp_decoded_chunks]) when is_binary(raw_type) do
+    case RawData.parse_uint256(raw_type) do
+      {:ok, tx_type} when tx_type in @tx_types ->
+        protocol_module = @tx_types_modules[tx_type]
+        protocol_module.reconstruct([tx_type | raw_tx_rlp_decoded_chunks])
+
+      _ ->
+        {:error, :unrecognized_transaction_type}
+    end
   end
 
   def dispatching_reconstruct(_), do: {:error, :malformed_transaction}

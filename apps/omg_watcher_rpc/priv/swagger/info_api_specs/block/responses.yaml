@@ -4,3 +4,9 @@ BlocksAllResponse:
     application/json:
       schema:
         $ref: 'response_schemas.yaml#/BlocksAllResponseSchema'
+BlockResponse:
+  description: Block succcessful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/BlockResponseSchema'
