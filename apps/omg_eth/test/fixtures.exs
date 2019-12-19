@@ -38,7 +38,17 @@ defmodule OMG.Eth.Fixtures do
 
   deffixture contract(eth_node) do
     :ok = eth_node
-    contract_addreses = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
+    local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
+
+    contract_addreses =
+      case File.exists?(local_umbrella_path) do
+        true ->
+          local_umbrella_path
+
+        _ ->
+          # CI/CD
+          Path.join([File.cwd!(), "localchain_contract_addresses.env"])
+      end
 
     parsable_data =
       contract_addreses
@@ -47,7 +57,7 @@ defmodule OMG.Eth.Fixtures do
       |> List.flatten()
       |> Enum.reduce(%{}, fn line, acc ->
         [key, value] = String.split(line, "=")
-        Map.put(acc, key, value)
+        Map.put(acc, key, Encoding.from_hex(value))
       end)
 
     contract = %{
