@@ -13,31 +13,64 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.DB.RepoTest do
-  use OMG.WatcherInfo.Test.DBTestCase, async: true
-
-  import Ecto.Query, only: [from: 2]
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
+  use OMG.Fixtures
 
   import OMG.WatcherInfo.Factory
 
-  # test "insert_all_chunked adds inserted_at and updated_at timestamps correctly" do
-  #   blknum = 5432
+  alias OMG.WatcherInfo.DB
 
-  #   block = %{blknum: blknum, eth_height: 1, hash: "#1000", timestamp: 1}
+  alias OMG.Utxo
+  require OMG.Utxo
 
-  #   DB.Repo.insert_all_chunked(OMG.Watcher.DB.Block, [block])
+  describe "DB.Repo.insert_all_chunked/3" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "insert_all_chunked adds inserted_at and updated_at timestamps correctly" do
+      txoutput = params_for(:txoutput)
 
-  #   db_block = DB.Repo.one(from(block in OMG.Watcher.DB.Block, where: block.blknum == ^blknum))
+      DB.Repo.insert_all_chunked(OMG.WatcherInfo.DB.TxOutput, [txoutput])
 
-  #   # on insert inserted_at and updated_at should be approximately equal or updated_at will be greater
-  #   assert DateTime.compare(db_block.inserted_at, db_block.updated_at) == :lt ||
-  #            DateTime.compare(db_block.inserted_at, db_block.updated_at) == :eq
+      txoutput_with_dates =
+        DB.TxOutput.get_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
 
-  #   DB.Repo.delete(db_block)
-  # end
+      assert not is_nil(txoutput_with_dates.inserted_at)
+      assert not is_nil(txoutput_with_dates.updated_at)
+      assert DateTime.compare(txoutput_with_dates.inserted_at, txoutput_with_dates.updated_at) == :eq
+    end
+  end
 
-  test "factory works" do
-    block = insert(:block)
+  describe "OMG.WatcherInfo.DB.TxOutput.spend_utxos/3" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "spend_utxos updates the updated_at timestamp correctly" do
+      txoutput = params_for(:txoutput)
 
-    IO.inspect(block, label: "block")
+      DB.Repo.insert_all_chunked(DB.TxOutput, [txoutput])
+
+      txoutput_with_dates =
+        DB.TxOutput.get_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
+
+      utxo_inputs = [
+        {
+          Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex),
+          nil,
+          nil
+        }
+      ]
+
+      DB.TxOutput.spend_utxos(utxo_inputs)
+
+      txoutput_with_updated_updated_at_date =
+        DB.TxOutput.get_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
+
+      assert not is_nil(txoutput_with_updated_updated_at_date.inserted_at)
+      assert not is_nil(txoutput_with_updated_updated_at_date.updated_at)
+      assert DateTime.compare(txoutput_with_dates.inserted_at, txoutput_with_updated_updated_at_date.inserted_at) == :eq
+
+      assert DateTime.compare(
+               txoutput_with_updated_updated_at_date.inserted_at,
+               txoutput_with_updated_updated_at_date.updated_at
+             ) == :lt
+    end
   end
 end
