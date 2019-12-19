@@ -58,10 +58,16 @@ defmodule OMG.Utxo.Position do
 
   ## Examples
 
+      # Decodes an integer encoded utxo position.
       iex> OMG.Utxo.Position.decode!(4_000_050_001)
       {:utxo_position, 4, 5, 1}
+
+      # Decode a binary encoded utxo position.
+      iex> encoded_pos = <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 238, 107, 235, 81>>
+      iex> OMG.Utxo.Position.decode!(encoded_pos)
+      {:utxo_position, 4, 5, 1}
   """
-  @spec decode!(number()) :: t()
+  @spec decode!(binary()) :: t()
   def decode!(encoded) do
     {:ok, decoded} = decode(encoded)
     decoded

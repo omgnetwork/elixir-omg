@@ -41,6 +41,7 @@ defmodule OMG.Output do
     case RawData.parse_uint256(raw_type) do
       {:ok, output_type} when output_type in @output_types ->
         reconstruct([output_type, rlp_decoded_chunks])
+
       {:ok, _unrecognized_type} ->
         {:error, :unrecognized_output_type}
     end
