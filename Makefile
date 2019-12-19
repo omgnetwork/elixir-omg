@@ -291,7 +291,7 @@ docker-stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
 docker-nuke:
-	docker-compose down
+	docker-compose down --remove-orphans
 	docker system prune --all
 
 docker-remote-watcher:
