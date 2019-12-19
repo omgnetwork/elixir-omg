@@ -15,19 +15,23 @@
 defmodule OMG.WatcherInfo.Factory.TransactionFactory do
   defmacro __using__(_opts) do
     quote do
-      def transaction_factory do
-        %OMG.WatcherInfo.DB.Transaction{
-          txhash: <<1::256>>,
-          txindex: 1,
-          txbytes: <<0::256>>,
-          sent_at: DateTime.from_iso8601("2019-12-12T01:01:01Z"),
-          metadata: <<0::256>>
+      def transaction_factory(attrs \\ nil) do
+        # a default 'sent_at' DateTime to use if none is passed in via args
+        {:ok, default_test_datetime, 0} = DateTime.from_iso8601("2019-12-12T11:11:11Z")
+
+        sent_at = attrs[:sent_at] || default_test_datetime
+
+        transaction = %OMG.WatcherInfo.DB.Transaction{
+          txhash: sequence(:transaction_hash, fn seq -> <<seq::256>> end),
+          txindex: sequence(:transaction_txindex, fn seq -> seq end),
+          txbytes: sequence(:transaction_txbytes, fn seq -> <<seq::256>> end),
+          sent_at: sequence(:transaction_sent_at, fn seq -> DateTime.add(sent_at, seq) end),
+          metadata: sequence(:transaction_metadata, fn seq -> <<seq::256>> end),
+          block: attrs[:block] || build(:block)
         }
+
+        merge_attributes(transaction, attrs)
       end
     end
   end
 end
-
-# has_many(:inputs, DB.TxOutput, foreign_key: :spending_txhash)
-# has_many(:outputs, DB.TxOutput, foreign_key: :creating_txhash)
-# belongs_to(:block, DB.Block, foreign_key: :blknum, references: :blknum, type: :integer)
