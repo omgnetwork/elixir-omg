@@ -153,12 +153,6 @@ defprotocol OMG.State.Transaction.Protocol do
   def get_outputs(tx)
 
   @doc """
-  Returns the transaction type
-  """
-  @spec get_type(t()) :: binary()
-  def get_type(tx)
-
-  @doc """
   Custom validation of the transaction with respect to its witnesses. Part of stateless validation routine
   """
   @spec valid?(t(), Transaction.Signed.t()) :: true | {:error, atom}

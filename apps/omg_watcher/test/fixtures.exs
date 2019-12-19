@@ -26,6 +26,8 @@ defmodule OMG.Watcher.Fixtures do
   alias OMG.TestHelper
   alias Support.DevHelper
 
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
+
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)
 
@@ -33,7 +35,7 @@ defmodule OMG.Watcher.Fixtures do
 
     {:ok, path, file_name} =
       TestHelper.write_fee_file(%{
-        <<1>> => %{
+        @payment_tx_type => %{
           enc_eth => %{
             amount: 0,
             pegged_amount: 1,

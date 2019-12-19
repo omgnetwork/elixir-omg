@@ -29,6 +29,11 @@ defmodule OMG.WireFormatTypes do
     3 => OMG.State.Transaction.FeeTokenClaim
   }
 
+  @module_tx_types %{
+    OMG.State.Transaction.Payment => 1,
+    OMG.State.Transaction.FeeTokenClaim => 3
+  }
+
   @input_pointer_type_values %{
     input_pointer_utxo_position: 1
   }
@@ -58,6 +63,12 @@ defmodule OMG.WireFormatTypes do
   """
   @spec tx_type_modules() :: module_map_t()
   def tx_type_modules, do: @tx_type_modules
+
+  @doc """
+  Returns the tx type that is associated with the given module
+  """
+  @spec module_tx_types() :: module_map_t()
+  def module_tx_types, do: @module_tx_types
 
   @doc """
   Returns wire format type value of known input pointer type

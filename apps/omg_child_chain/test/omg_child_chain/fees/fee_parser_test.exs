@@ -65,10 +65,10 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
   describe "Parser output:" do
     test "parse valid data is successful" do
       assert {:ok, tx_type_map} = FeeParser.parse(@fee_config_file)
-      assert tx_type_map[<<1>>][@eth][:amount] == 2
-      assert tx_type_map[<<1>>][Base.decode16!("d26114cd6ee289accf82350c8d8487fedb8a0c07", case: :mixed)][:amount] == 0
-      assert tx_type_map[<<1>>][Base.decode16!("a74476443119a942de498590fe1f2454d7d4ac0d", case: :mixed)][:amount] == 4
-      assert tx_type_map[<<2>>][@eth][:amount] == 4
+      assert tx_type_map[1][@eth][:amount] == 2
+      assert tx_type_map[1][Base.decode16!("d26114cd6ee289accf82350c8d8487fedb8a0c07", case: :mixed)][:amount] == 0
+      assert tx_type_map[1][Base.decode16!("a74476443119a942de498590fe1f2454d7d4ac0d", case: :mixed)][:amount] == 4
+      assert tx_type_map[2][@eth][:amount] == 4
     end
 
     test "empty fee spec list is parsed correctly" do
@@ -196,6 +196,18 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
             "error_reason": "0 pegged_amount results with :invalid_subunit_to_unit error"
           }
         ],
+        "non_integer_key": [
+          {
+            "token": "0x0000000000000000000000000000000000000000",
+            "amount": 4,
+            "subunit_to_unit": 1000000000000000000,
+            "pegged_amount": 1,
+            "pegged_currency": "USD",
+            "pegged_subunit_to_unit": 100,
+            "updated_at": "2019-01-01T10:10:00+00:00",
+            "error_reason": "Non integer key results with :invalid_tx_type error"
+          }
+        ],
         "3": [
           {
             "token": "0x0000000000000000000000000000000000000000",
@@ -212,18 +224,19 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
 
       assert {:error,
               [
-                {:error, :invalid_fee_spec, <<1>>, 1},
-                {:error, :invalid_fee, <<1>>, 2},
-                {:error, :bad_address_encoding, <<1>>, 3},
-                {:error, :bad_address_encoding, <<1>>, 4},
-                {:error, :invalid_pegged_amount, <<1>>, 5},
-                {:error, :invalid_pegged_amount, <<1>>, 6},
-                {:error, :invalid_pegged_currency, <<1>>, 7},
-                {:error, :invalid_pegged_subunit_to_unit, <<1>>, 8},
-                {:error, :invalid_pegged_subunit_to_unit, <<1>>, 9},
-                {:error, :invalid_timestamp, <<1>>, 10},
-                {:error, :invalid_subunit_to_unit, <<1>>, 11},
-                {:error, :invalid_subunit_to_unit, <<2>>, 1}
+                {:error, :invalid_fee_spec, 1, 1},
+                {:error, :invalid_fee, 1, 2},
+                {:error, :bad_address_encoding, 1, 3},
+                {:error, :bad_address_encoding, 1, 4},
+                {:error, :invalid_pegged_amount, 1, 5},
+                {:error, :invalid_pegged_amount, 1, 6},
+                {:error, :invalid_pegged_currency, 1, 7},
+                {:error, :invalid_pegged_subunit_to_unit, 1, 8},
+                {:error, :invalid_pegged_subunit_to_unit, 1, 9},
+                {:error, :invalid_timestamp, 1, 10},
+                {:error, :invalid_subunit_to_unit, 1, 11},
+                {:error, :invalid_subunit_to_unit, 2, 1},
+                {:error, :invalid_tx_type, "non_integer_key", 0}
               ]} = FeeParser.parse(json)
     end
 
@@ -251,7 +264,7 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
           }
         ]
       })
-      assert {:error, [{:error, :duplicate_token, <<1>>, 2}]} = FeeParser.parse(json)
+      assert {:error, [{:error, :duplicate_token, 1, 2}]} = FeeParser.parse(json)
     end
   end
 end

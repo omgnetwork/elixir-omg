@@ -18,9 +18,11 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
 
   alias OMG.ChildChainRPC.Web.TestHelper
 
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
+
   setup_all do
     fee_specs = %{
-      <<1>> => %{
+      @payment_tx_type => %{
         Base.decode16!("0000000000000000000000000000000000000000") => %{
           amount: 1,
           subunit_to_unit: 1_000_000_000_000_000_000,
@@ -38,7 +40,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
           updated_at: DateTime.from_unix!(1_546_336_800)
         }
       },
-      <<2>> => %{
+      2 => %{
         Base.decode16!("0000000000000000000000000000000000000000") => %{
           amount: 2,
           subunit_to_unit: 1_000_000_000_000_000_000,

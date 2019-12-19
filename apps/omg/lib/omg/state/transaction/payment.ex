@@ -186,9 +186,6 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   @spec get_inputs(Transaction.Payment.t()) :: list(OMG.Utxo.Position.t())
   def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
 
-  @spec get_type(Transaction.Payment.t()) :: binary()
-  def get_type(%Transaction.Payment{}), do: @payment_marker
-
   @doc """
   True if the witnessses provided follow some extra custom validation.
 

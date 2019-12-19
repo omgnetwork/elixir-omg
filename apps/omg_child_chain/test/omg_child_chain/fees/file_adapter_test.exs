@@ -26,8 +26,9 @@ defmodule OMG.ChildChain.FileAdapterTest do
 
   @eth Eth.zero_address()
   @eth_hex Eth.Encoding.to_hex(@eth)
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
   @fees %{
-    <<1>> => %{
+    @payment_tx_type => %{
       @eth_hex => %{
         amount: 0,
         pegged_amount: 1,
@@ -58,7 +59,7 @@ defmodule OMG.ChildChain.FileAdapterTest do
 
       assert FileAdapter.get_fee_specs(recorded_file_updated_at) == {
                :ok,
-               %{<<1>> => %{@eth => @fees[<<1>>][@eth_hex]}},
+               %{@payment_tx_type => %{@eth => @fees[1][@eth_hex]}},
                mtime
              }
 

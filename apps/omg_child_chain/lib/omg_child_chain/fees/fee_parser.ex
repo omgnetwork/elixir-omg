@@ -27,14 +27,18 @@ defmodule OMG.ChildChain.Fees.FeeParser do
       {errors, fee_specs} =
         json
         |> Enum.reduce({[], %{}}, fn {tx_type, fee_spec}, {all_errors, fee_specs} ->
-          encoded_tx_type = tx_type |> String.to_integer() |> :binary.encode_unsigned()
+          case Integer.parse(tx_type) do
+            {encoded_tx_type, ""} ->
+              {errors, token_fee_map, _, _} =
+                fee_spec
+                |> Enum.map(&parse_tx_type_fee_spec/1)
+                |> Enum.reduce({[], %{}, 1, encoded_tx_type}, &spec_reducer/2)
 
-          {errors, token_fee_map, _, _} =
-            fee_spec
-            |> Enum.map(&parse_tx_type_fee_spec/1)
-            |> Enum.reduce({[], %{}, 1, encoded_tx_type}, &spec_reducer/2)
+              {errors ++ all_errors, Map.put(fee_specs, encoded_tx_type, token_fee_map)}
 
-          {errors ++ all_errors, Map.put(fee_specs, encoded_tx_type, token_fee_map)}
+            _ ->
+              {[{:error, :invalid_tx_type, tx_type, 0}] ++ all_errors, fee_specs}
+          end
         end)
 
       errors

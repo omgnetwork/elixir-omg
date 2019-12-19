@@ -29,6 +29,8 @@ defmodule OMG.FeesTest do
   @not_eth_1 <<1::size(160)>>
   @not_eth_2 <<2::size(160)>>
 
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
+
   @payment_fees %{
     @eth => %{
       amount: 1,
@@ -49,7 +51,7 @@ defmodule OMG.FeesTest do
   }
 
   @fees %{
-    <<1>> => @payment_fees
+    @payment_tx_type => @payment_fees
   }
 
   describe "covered?/2" do
@@ -117,7 +119,35 @@ defmodule OMG.FeesTest do
       assert Fees.for_transaction(transaction, @fees) == :no_fees_required
     end
 
-    test "returns an empty hash when given an unsuported tx type"
+    test "returns an empty hash when given an unsuported tx type" do
+      transaction = %OMG.State.Transaction.Recovered{
+        signed_tx: %OMG.State.Transaction.Signed{raw_tx: %OMG.TransactionHelper.Dummy{}, sigs: []},
+        tx_hash: "",
+        witnesses: [],
+        signed_tx_bytes: ""
+      }
+
+      assert Fees.for_transaction(transaction, @fees) == %{}
+    end
+
+    @tag fixtures: [:alice, :bob]
+    test "returns an empty hash when given invalid tx type", %{alice: alice, bob: bob} do
+      fees = %{
+        999 => %{
+          @eth => %{
+            amount: 1,
+            subunit_to_unit: 1_000_000_000_000_000_000,
+            pegged_amount: 4,
+            pegged_currency: "USD",
+            pegged_subunit_to_unit: 100,
+            updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+          }
+        }
+      }
+
+      transaction = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}])
+      assert Fees.for_transaction(transaction, fees) == %{}
+    end
   end
 
   describe "filter_fees/2" do
@@ -128,9 +158,9 @@ defmodule OMG.FeesTest do
     test "filter fees given a list of currencies" do
       fees =
         @fees
-        |> Map.put(<<2>>, @payment_fees)
+        |> Map.put(2, @payment_fees)
         |> Map.put(
-          <<3>>,
+          3,
           %{
             @not_eth_2 => %{
               amount: 3,
@@ -146,12 +176,12 @@ defmodule OMG.FeesTest do
       assert Fees.filter_fees(fees, [@eth]) ==
                {:ok,
                 %{
-                  <<1>> => Map.take(@payment_fees, [@eth]),
-                  <<2>> => Map.take(@payment_fees, [@eth]),
-                  <<3>> => %{}
+                  @payment_tx_type => Map.take(@payment_fees, [@eth]),
+                  2 => Map.take(@payment_fees, [@eth]),
+                  3 => %{}
                 }}
 
-      assert Fees.filter_fees(fees, [@not_eth_2]) == {:ok, %{<<1>> => %{}, <<2>> => %{}, <<3>> => fees[<<3>>]}}
+      assert Fees.filter_fees(fees, [@not_eth_2]) == {:ok, %{@payment_tx_type => %{}, 2 => %{}, 3 => fees[3]}}
     end
 
     test "returns an error when given an unsupported currency" do
