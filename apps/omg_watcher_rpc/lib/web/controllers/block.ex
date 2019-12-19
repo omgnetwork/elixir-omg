@@ -23,6 +23,17 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   alias OMG.WatcherRPC.Web.Validator
 
   @doc """
+  Retrieves a specific block by block number.
+  """
+  def get_block(conn, params) do
+    with {:ok, blknum} <- expect(params, "blknum", :pos_integer) do
+      blknum
+      |> InfoApiBlock.get()
+      |> api_response(conn, :block)
+    end
+  end
+
+  @doc """
   Retrieves a list of most recent blocks
   """
   def get_blocks(conn, params) do

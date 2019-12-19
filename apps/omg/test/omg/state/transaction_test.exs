@@ -27,6 +27,7 @@ defmodule OMG.State.TransactionTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
   @utxo_positions [{20, 42, 1}, {2, 21, 0}, {1000, 0, 0}, {10_001, 0, 0}]
   @transaction Transaction.Payment.new(
                  [{1, 1, 0}, {1, 2, 1}],
@@ -45,15 +46,13 @@ defmodule OMG.State.TransactionTest do
   end
 
   test "raw transaction hash is invariant" do
-    assert Transaction.raw_txhash(@transaction) ==
-             <<117, 35, 30, 107, 221, 12, 246, 144, 217, 144, 147, 52, 82, 0, 223, 240, 60, 26, 79, 183, 28, 57, 22,
-               132, 169, 12, 58, 233, 132, 52, 131, 219>>
+    assert <<21, 94, 181, 22, 125, 2, 47, 124, 113>> <> _ = Transaction.raw_txhash(@transaction)
   end
 
   test "create transaction with different number inputs and outputs" do
     check_input1 = Utxo.position(20, 42, 1)
     output1 = {"Joe Black", @eth, 99}
-    check_output2 = %{amount: 99, currency: @eth, owner: "Joe Black"}
+    check_output2 = %{amount: 99, currency: @eth, owner: "Joe Black", output_type: @payment_output_type}
     # 1 - input, 1 - output
     tx1_1 = Transaction.Payment.new([hd(@utxo_positions)], [output1])
     assert 1 == tx1_1 |> Transaction.get_inputs() |> length()

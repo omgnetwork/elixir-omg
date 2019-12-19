@@ -75,22 +75,25 @@ defmodule Itest.Poller do
     do_wait_on_receipt_status(receipt_hash, status, counter)
   end
 
-  defp do_wait_on_receipt_status(receipt_hash, status, counter) do
+  defp do_wait_on_receipt_status(receipt_hash, expected_status, counter) do
     response = get_transaction_receipt(receipt_hash)
     # response might break with {:error, :closed} or {:error, :socket_closed_remotely}
 
     case response do
-      {:ok, receipt} ->
-        unless receipt && receipt["status"] == status do
-          Process.sleep(@sleep_retry_sec)
-          do_wait_on_receipt_status(receipt_hash, status, counter - 1)
-        end
-
-        response
-
-      _ ->
+      {:ok, nil} ->
         Process.sleep(@sleep_retry_sec)
-        do_wait_on_receipt_status(receipt_hash, status, counter - 1)
+        do_wait_on_receipt_status(receipt_hash, expected_status, counter - 1)
+
+      {:error, :closed} ->
+        Process.sleep(@sleep_retry_sec)
+        do_wait_on_receipt_status(receipt_hash, expected_status, counter - 1)
+
+      {:error, :socket_closed_remotely} ->
+        Process.sleep(@sleep_retry_sec)
+        do_wait_on_receipt_status(receipt_hash, expected_status, counter - 1)
+
+      {:ok, %{"status" => ^expected_status}} ->
+        response
     end
   end
 

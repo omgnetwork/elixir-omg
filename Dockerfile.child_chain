@@ -1,7 +1,7 @@
 FROM alpine:3.8
 
 LABEL maintainer="OmiseGO Team <omg@omise.co>"
-LABEL description="Official image for OmiseGO (Watcher) Plasma Network"
+LABEL description="Official image for OmiseGO (Child Chain) Plasma Network"
 
 ENV LANG=C.UTF-8
 
