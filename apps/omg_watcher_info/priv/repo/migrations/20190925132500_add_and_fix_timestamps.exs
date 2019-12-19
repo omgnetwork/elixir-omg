@@ -24,6 +24,8 @@ defmodule OMG.Watcher.Repo.Migrations.AddAndFixTimestamps do
       timestamps([type: :utc_datetime_usec, default: "1970-01-01T00:00:00Z"])
     end
 
+    # timestamps removed from join table ethevents_txoutputs because ecto has poor support for join tables
+    # with extra columns. i'm not sure it adds much anyway
     alter table(:ethevents_txoutputs) do
       modify(:inserted_at, :utc_datetime_usec, default: "1970-01-01T00:00:00Z")
       modify(:updated_at, :utc_datetime_usec, default: "1970-01-01T00:00:00Z")

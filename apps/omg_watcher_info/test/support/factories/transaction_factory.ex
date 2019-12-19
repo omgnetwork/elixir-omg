@@ -110,3 +110,4 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
     end
   end
 end
+

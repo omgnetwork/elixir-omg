@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -207,97 +207,5 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Enum.group_by(& &1.currency)
     |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
     |> Map.new()
-  end
-
-  # select txoutputs that have neither been spent nor have a corresponding ethevents exit events
-  # using the provided query params
-  defp filter_where_unspent(params) do
-    where_clause =
-      Enum.reduce(params, dynamic(true), fn
-        {:owner, value}, dynamic ->
-          dynamic([t], ^dynamic and t.owner == ^value)
-
-        {:blknum, value}, dynamic ->
-          dynamic([t], ^dynamic and t.blknum == ^value)
-
-        {:txindex, value}, dynamic ->
-          dynamic([t], ^dynamic and t.txindex == ^value)
-
-        {:oindex, value}, dynamic ->
-          dynamic([t], ^dynamic and t.oindex == ^value)
-
-        {_, _}, dynamic ->
-          # not a where parameter
-          dynamic
-      end)
-
-    unspent_query_fragment(where_clause)
-  end
-
-  defp unspent_query_fragment(where_clause) do
-    dynamic(
-      [t],
-      ^where_clause and
-        is_nil(t.spending_txhash) and
-        fragment(
-          "NOT EXISTS (SELECT 1
-                      FROM ethevents_txoutputs AS etfrag
-                      JOIN ethevents AS efrag ON
-                          etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                          AND efrag.event_type IN (?)
-                          AND etfrag.child_chain_utxohash = ?)",
-          "standard_exit",
-          t.child_chain_utxohash
-        )
-    )
-  end
-
-  def new_changeset(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
-    changeset(%{
-      child_chain_utxohash: DB.TxOutput.generate_child_chain_utxohash(Utxo.position(blknum, 0, 0)),
-      blknum: blknum,
-      txindex: 0,
-      oindex: 0,
-      owner: owner,
-      currency: currency,
-      amount: amount,
-      creating_txhash: nil,
-      spending_txhash: nil,
-      spending_tx_oindex: nil,
-      proof: nil
-    })
-  end
-
-  @doc false
-  def changeset(params \\ %{}) do
-    fields = [
-      :child_chain_utxohash,
-      :blknum,
-      :txindex,
-      :oindex,
-      :owner,
-      :currency,
-      :amount,
-      :creating_txhash,
-      :spending_txhash,
-      :spending_tx_oindex,
-      :proof
-    ]
-
-    required_fields = [:blknum, :txindex, :oindex, :child_chain_utxohash, :owner, :amount, :currency]
-
-    %__MODULE__{}
-    |> Ecto.Changeset.cast(params, fields)
-    |> Ecto.Changeset.validate_required(required_fields)
-    |> Ecto.Changeset.unique_constraint(:blknum, name: :txoutputs_pkey)
-    |> Ecto.Changeset.unique_constraint(:child_chain_utxohash)
-  end
-
-  @doc """
-  Generate a unique child_chain_utxohash from the Utxo.position
-  """
-  @spec generate_child_chain_utxohash(Utxo.Position.t()) :: OMG.Crypto.hash_t()
-  def generate_child_chain_utxohash(position) do
-    "<#{position |> Utxo.Position.encode()}>" |> Crypto.hash()
   end
 end
