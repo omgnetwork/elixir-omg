@@ -10,7 +10,7 @@ defmodule OMG.Watcher.Repo.Migrations.AddAndFixTimestamps do
     end
 
     alter table(:ethevents) do
-      timestamps([default: "1970-01-01T00:00:00Z"])
+      timestamps([type: :utc_datetime_usec, default: "1970-01-01T00:00:00Z"])
     end
 
     # the timestamp columns for this table were oringally added with the wrong precision,
@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Repo.Migrations.AddAndFixTimestamps do
     end
 
     alter table(:txoutputs) do
-      timestamps([default: "1970-01-01T00:00:00Z"])
+      timestamps([type: :utc_datetime_usec, default: "1970-01-01T00:00:00Z"])
     end
 
     # timestamps removed from join table ethevents_txoutputs because ecto has poor support for join tables
@@ -32,11 +32,13 @@ defmodule OMG.Watcher.Repo.Migrations.AddAndFixTimestamps do
     end
 
     alter table(:transactions) do
-      timestamps([default: "1970-01-01T00:00:00Z"])
+      timestamps([type: :utc_datetime_usec, default: "1970-01-01T00:00:00Z"])
+
+      modify(:sent_at, type: :utc_datetime_usec, default: "1970-01-01T00:00:00Z"]
     end
 
     alter table(:blocks) do
-      timestamps([default: "1970-01-01T00:00:00Z"])
+      timestamps([type: :utc_datetime_usec, default: "1970-01-01T00:00:00Z"])
     end
   end
 end
