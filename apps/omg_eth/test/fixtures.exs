@@ -38,37 +38,18 @@ defmodule OMG.Eth.Fixtures do
 
   deffixture contract(eth_node) do
     :ok = eth_node
-    local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
 
-    contract_addreses =
-      case File.exists?(local_umbrella_path) do
-        true ->
-          local_umbrella_path
-
-        _ ->
-          # CI/CD
-          Path.join([File.cwd!(), "localchain_contract_addresses.env"])
-      end
-
-    parsable_data =
-      contract_addreses
-      |> File.read!()
-      |> String.split("\n", trim: true)
-      |> List.flatten()
-      |> Enum.reduce(%{}, fn line, acc ->
-        [key, value] = String.split(line, "=")
-        Map.put(acc, key, Encoding.from_hex(value))
-      end)
+    parsable_data = parse_contracts()
 
     contract = %{
-      authority_addr: parsable_data["AUTHORITY_ADDRESS"],
+      authority_addr: Encoding.from_hex(parsable_data["AUTHORITY_ADDRESS"]),
       contract_addr: %{
-        erc20_vault: parsable_data["CONTRACT_ADDRESS_ERC20_VAULT"],
-        eth_vault: parsable_data["CONTRACT_ADDRESS_ETH_VAULT"],
-        payment_exit_game: parsable_data["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"],
-        plasma_framework: parsable_data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
+        erc20_vault: Encoding.from_hex(parsable_data["CONTRACT_ADDRESS_ERC20_VAULT"]),
+        eth_vault: Encoding.from_hex(parsable_data["CONTRACT_ADDRESS_ETH_VAULT"]),
+        payment_exit_game: Encoding.from_hex(parsable_data["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"]),
+        plasma_framework: Encoding.from_hex(parsable_data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
       },
-      txhash_contract: parsable_data["TXHASH_CONTRACT"]
+      txhash_contract: Encoding.from_hex(parsable_data["TXHASH_CONTRACT"])
     }
 
     {:ok, true} =
@@ -85,9 +66,9 @@ defmodule OMG.Eth.Fixtures do
 
   deffixture token(root_chain_contract_config) do
     :ok = root_chain_contract_config
+    parsable_data = parse_contracts()
 
-    # taken from the `plasma-contracts` deployment snapshot
-    token_addr = Encoding.from_hex("0x32063dba91cf95eb3d58fad9e391ee888878b61c")
+    token_addr = Encoding.from_hex(parsable_data["CONTRACT_ERC20_MINTABLE"])
 
     # ensuring that the root chain contract handles token_addr
     {:ok, false} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
@@ -117,5 +98,28 @@ defmodule OMG.Eth.Fixtures do
     end)
 
     :ok
+  end
+
+  defp parse_contracts() do
+    local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
+
+    contract_addreses_path =
+      case File.exists?(local_umbrella_path) do
+        true ->
+          local_umbrella_path
+
+        _ ->
+          # CI/CD
+          Path.join([File.cwd!(), "localchain_contract_addresses.env"])
+      end
+
+    contract_addreses_path
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> List.flatten()
+    |> Enum.reduce(%{}, fn line, acc ->
+      [key, value] = String.split(line, "=")
+      Map.put(acc, key, value)
+    end)
   end
 end

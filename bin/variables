@@ -12,8 +12,8 @@ export ETHEREUM_NETWORK=LOCALCHAIN
 export DATABASE_URL=postgresql://omisego_dev:omisego_dev@127.0.0.1:5432/omisego_dev
 export CHILD_CHAIN_URL=http://127.0.0.1:9656
 export ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-FILE=${DIR}'/../localchain_contract_addresses.env'
+# expects it's executed from the root of the project
+FILE='./localchain_contract_addresses.env'
 while IFS= read -r line; do
     DATA_TO_EXPORT='export '$line
     eval $DATA_TO_EXPORT

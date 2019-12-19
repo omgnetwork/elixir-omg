@@ -45,8 +45,8 @@ defmodule OMG.Conformance.SignatureTest do
   setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
 
-    # taken from the `plasma-contracts` deployment snapshot
-    signtest_addr_hex = "0x19925cc645720fbb61f76304ee15501e3197f3a9"
+    parsable_data = parse_contracts()
+    signtest_addr_hex = parsable_data["CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK"]
     :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: signtest_addr_hex})
 
     on_exit(fn ->
@@ -108,5 +108,28 @@ defmodule OMG.Conformance.SignatureTest do
       Eth.call_contract(contract, "hashTx(address,bytes)", [contract, Transaction.raw_txbytes(tx)], [{:bytes, 32}])
 
     assert solidity_hash == OMG.TypedDataHash.hash_struct(tx)
+  end
+
+  defp parse_contracts() do
+    local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
+
+    contract_addreses_path =
+      case File.exists?(local_umbrella_path) do
+        true ->
+          local_umbrella_path
+
+        _ ->
+          # CI/CD
+          Path.join([File.cwd!(), "localchain_contract_addresses.env"])
+      end
+
+    contract_addreses_path
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> List.flatten()
+    |> Enum.reduce(%{}, fn line, acc ->
+      [key, value] = String.split(line, "=")
+      Map.put(acc, key, value)
+    end)
   end
 end
