@@ -146,9 +146,7 @@ defmodule OMG.State.Transaction.Payment do
   defp only_allowed_output_types?(outputs),
     do: Enum.all?(outputs, &match?(%Output{}, &1))
 
-  # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
-  #       most likely one needs to route through generic InputPointer` function that does the dispatch
-  defp parse_input!(input_pointer), do: OMG.Utxo.Position.reconstruct(input_pointer)
+  defp parse_input!(encoded), do: OMG.Utxo.Position.decode!(encoded)
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do

@@ -48,13 +48,15 @@ defmodule OMG.Utxo.Position do
     decoded
   end
 
-  @spec decode(number()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
-  def decode(encoded) when is_integer(encoded) and encoded > 0 do
+  @spec decode(binary()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
+  def decode(encoded) when is_number(encoded) and encoded <= 0, do: {:error, :encoded_utxo_position_too_low}
+  def decode(encoded) when is_integer(encoded) and encoded > 0, do: do_decode(encoded)
+  def decode(encoded) when is_binary(encoded) and byte_size(encoded) == 32, do: do_decode(encoded)
+
+  defp do_decode(encoded) do
     utxo = ExPlasma.Utxo.new(encoded)
     {:ok, Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex)}
   end
-
-  def decode(encoded) when is_number(encoded), do: {:error, :encoded_utxo_position_too_low}
 
   @spec to_db_key(Utxo.Position.t()) :: {:input_pointer, pos_integer(), Utxo.Position.db_t()}
   def to_input_db_key(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
@@ -83,10 +85,6 @@ defmodule OMG.Utxo.Position do
     rem(blknum, interval) != 0
   end
 
-  def reconstruct(binary_input) when is_binary(binary_input) and byte_size(binary_input) == 32 do
-    utxo = ExPlasma.Utxo.new(binary_input)
-    Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex)
-  end
 
   @spec get_data_for_rlp(Utxo.Position.t()) :: binary()
   def get_data_for_rlp(Utxo.position(blknum, txindex, oindex)) do
