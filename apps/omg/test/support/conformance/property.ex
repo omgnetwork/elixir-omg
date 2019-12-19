@@ -190,7 +190,7 @@ defmodule Support.Conformance.Property do
 
     let [index <- integer(0, rlp_items_length - 1)] do
       to_mutate = Enum.at(rlp_items, index)
-      # FIXME for now we only mutate deepest level of the RLP items. Mutate also intermediate levels
+      # TODO for now we only mutate deepest level of the RLP items. Mutate also intermediate levels
       let([mutated_rlp <- mutate_sub_rlp(to_mutate)], do: List.replace_at(rlp_items, index, mutated_rlp))
     end
   end

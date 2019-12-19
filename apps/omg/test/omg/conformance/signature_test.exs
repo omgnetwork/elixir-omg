@@ -67,45 +67,10 @@ defmodule OMG.Conformance.SignatureTest do
       verify(tx, contract)
     end
 
-    test "transaction type is a list", %{contract: contract} do
-      # FIXME: remove and change into a pair of pure elixir test and solc test
-      txbytes = ExRLP.encode([[<<1>>], [], [], @good_tx_data, @good_metadata])
-
-      verify_both_error(txbytes, contract)
-    end
-
-    test "output type is a list", %{contract: contract} do
-      # FIXME: remove and change into a pair of pure elixir test and solc test
-      badly_typed_output = [[<<1>>], [@good_address, @good_address, @good_amount]]
-      txbytes = ExRLP.encode([<<1>>, [], [badly_typed_output], @good_tx_data, @good_metadata])
-
-      verify_both_error(txbytes, contract)
-    end
-
-    test "amount is a list", %{contract: contract} do
-      # FIXME: remove and change into a pair of pure elixir test and solc test
-      bad_amount_output = [<<1>>, [@good_address, @good_address, [<<1>>]]]
-      txbytes = ExRLP.encode([<<1>>, [], [bad_amount_output], @good_tx_data, @good_metadata])
-
-      verify_both_error(txbytes, contract)
-    end
-
-    test "address is a list with an address-like length of 21 bytes", %{contract: contract} do
-      # FIXME: remove and change into a pair of pure elixir test and solc test
-      bad_address_output = [
-        <<1>>,
-        [[<<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>, <<3>>, <<1>>, <<1>>], @good_address, @good_amount]
-      ]
-
-      txbytes = ExRLP.encode([<<1>>, [], [bad_address_output], @good_tx_data, @good_metadata])
-
-      verify_both_error(txbytes, contract)
-    end
-
     test "unrecognized output type", %{contract: contract} do
       # FIXME: remove and change into a pair of pure elixir test and solc test
-      unrecognized_output = [<<2>>, [@good_address, @good_address, @good_amount]]
-      txbytes = ExRLP.encode([<<1>>, [], [unrecognized_output], @good_tx_data, @good_metadata])
+      unrecognized_output = [234_567, [@good_address, @good_address, @good_amount]]
+      txbytes = ExRLP.encode([1, [], [unrecognized_output], @good_tx_data, @good_metadata])
 
       verify_both_error(txbytes, contract)
     end
@@ -113,27 +78,28 @@ defmodule OMG.Conformance.SignatureTest do
     test "unrecognized tx type", %{contract: contract} do
       # FIXME: remove and change into a pair of pure elixir test and solc test
       txbytes =
-        ExRLP.encode([<<2>>, [], [[<<1>>, [@good_address, @good_address, @good_amount]]], @good_tx_data, @good_metadata])
-
-      verify_both_error(txbytes, contract)
-    end
-
-    test "new3", %{contract: contract} do
-      # FIXME: remove and change into a pair of pure elixir test and solc test
-      bad_amount = <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>
-
-      txbytes =
-        ExRLP.encode([<<1>>, [], [[<<1>>, [@good_address, @good_address, bad_amount]]], @good_tx_data, @good_metadata])
+        ExRLP.encode([234_567, [], [[1, [@good_address, @good_address, @good_amount]]], @good_tx_data, @good_metadata])
 
       verify_both_error(txbytes, contract)
     end
   end
 
-  # FIXME: this might not belong here, technically speaking it could cover the same stuff if put in `plasma_contracts`
   describe "distinct transactions yield distinct sign hashes" do
-    test "sanity check - different txs hash differently", %{contract: contract} do
+    test "different inputs - txs hash differently but same in both implementations", %{contract: contract} do
       tx1 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
       tx2 = Transaction.Payment.new([{2, 0, 0}], [{@alice, @eth, 100}])
+      verify_distinct(tx1, tx2, contract)
+    end
+
+    test "different outputs - txs hash differently but same in both implementations", %{contract: contract} do
+      tx1 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 110}])
+      tx2 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
+      verify_distinct(tx1, tx2, contract)
+    end
+
+    test "different metadata - txs hash differently but same in both implementations", %{contract: contract} do
+      tx1 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}])
+      tx2 = Transaction.Payment.new([{1, 0, 0}], [{@alice, @eth, 100}], <<1::256>>)
       verify_distinct(tx1, tx2, contract)
     end
   end
