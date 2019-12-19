@@ -105,12 +105,6 @@ services:
       - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - AUTHORITY_ADDRESS=0xc0f780dfc35075979b0def588d999225b7ecc56f
-      - TXHASH_CONTRACT=0xc47317b0de4c6ccc9a9fb858ad3ee858c2ee8ade3aed0fa9bcab7f7dad27fe12
-      - CONTRACT_ADDRESS_PLASMA_FRAMEWORK=0xc673e4ffcb8464faff908a6804fe0e635af0ea2f
-      - CONTRACT_ADDRESS_ETH_VAULT=0x0433420dee34412b5bf1e29fbf988ad037cc5db7
-      - CONTRACT_ADDRESS_ERC20_VAULT=0x04badc20426bc146453c5b879417b25029fa6c73
-      - CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0x1d92a9bef49bd340c7a11da536fb3ac9efbb1806
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
@@ -144,12 +138,6 @@ services:
       - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - AUTHORITY_ADDRESS=0xc0f780dfc35075979b0def588d999225b7ecc56f
-      - TXHASH_CONTRACT=0xc47317b0de4c6ccc9a9fb858ad3ee858c2ee8ade3aed0fa9bcab7f7dad27fe12
-      - CONTRACT_ADDRESS_PLASMA_FRAMEWORK=0xc673e4ffcb8464faff908a6804fe0e635af0ea2f
-      - CONTRACT_ADDRESS_ETH_VAULT=0x0433420dee34412b5bf1e29fbf988ad037cc5db7
-      - CONTRACT_ADDRESS_ERC20_VAULT=0x04badc20426bc146453c5b879417b25029fa6c73
-      - CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0x1d92a9bef49bd340c7a11da536fb3ac9efbb1806
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
