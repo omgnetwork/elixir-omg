@@ -128,7 +128,8 @@ defmodule OMG.State.Transaction.Payment do
   defp reconstruct_metadata(_), do: {:error, :malformed_metadata}
 
   defp parse_inputs(inputs_rlp) do
-    {:ok, Enum.map(inputs_rlp, &parse_input!/1)}
+    with true <- Enum.count(inputs_rlp) <= @max_inputs || {:error, :too_many_inputs},
+         do: {:ok, Enum.map(inputs_rlp, &parse_input!/1)}
   rescue
     _ -> {:error, :malformed_inputs}
   end
@@ -136,7 +137,8 @@ defmodule OMG.State.Transaction.Payment do
   defp parse_outputs(outputs_rlp) do
     outputs = Enum.map(outputs_rlp, &Output.reconstruct/1)
 
-    with nil <- Enum.find(outputs, &match?({:error, _}, &1)),
+    with true <- Enum.count(outputs) <= @max_outputs || {:error, :too_many_outputs},
+         nil <- Enum.find(outputs, &match?({:error, _}, &1)),
          true <- only_allowed_output_types?(outputs) || {:error, :tx_cannot_create_output_type},
          do: {:ok, outputs}
   rescue

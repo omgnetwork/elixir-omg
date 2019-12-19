@@ -343,6 +343,17 @@ defmodule OMG.State.Transaction.RecoveredTest do
                |> Transaction.Recovered.recover_from()
     end
 
+    test "Decoding transaction with too many inputs fails" do
+      inputs_index_in_rlp = 2
+      [input] = Enum.at(good_tx_rlp_items(), inputs_index_in_rlp)
+
+      assert {:error, :too_many_inputs} =
+               good_tx_rlp_items()
+               |> List.replace_at(inputs_index_in_rlp, List.duplicate(input, 5))
+               |> ExRLP.encode()
+               |> Transaction.Recovered.recover_from()
+    end
+
     test "Decoding transaction with shorter input fails" do
       inputs_index_in_rlp = 2
       [input] = Enum.at(good_tx_rlp_items(), inputs_index_in_rlp)
@@ -492,6 +503,17 @@ defmodule OMG.State.Transaction.RecoveredTest do
       assert {:error, :malformed_outputs} =
                good_tx_rlp_items()
                |> List.replace_at(outputs_index_in_rlp, [[type, [owner, currency, bad_amount]]])
+               |> ExRLP.encode()
+               |> Transaction.Recovered.recover_from()
+    end
+
+    test "Decoding transaction with too many outputs fails" do
+      outputs_index_in_rlp = 3
+      [output] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
+
+      assert {:error, :too_many_outputs} =
+               good_tx_rlp_items()
+               |> List.replace_at(outputs_index_in_rlp, List.duplicate(output, 5))
                |> ExRLP.encode()
                |> Transaction.Recovered.recover_from()
     end
