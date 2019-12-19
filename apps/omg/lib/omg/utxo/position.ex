@@ -72,10 +72,6 @@ defmodule OMG.Utxo.Position do
   def from_db_key({blknum, txindex, oindex}) when is_position(blknum, txindex, oindex),
     do: Utxo.position(blknum, txindex, oindex)
 
-  def blknum(Utxo.position(blknum, _, _)), do: blknum
-  def txindex(Utxo.position(_, txindex, _)), do: txindex
-  def oindex(Utxo.position(_, _, oindex)), do: oindex
-
   @doc """
   Based on the contract parameters determines whether UTXO position provided was created by a deposit
   """
