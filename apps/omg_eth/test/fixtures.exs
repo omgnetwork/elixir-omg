@@ -39,17 +39,17 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    parsable_data = parse_contracts()
+    contracts = parse_contracts()
 
     contract = %{
-      authority_addr: Encoding.from_hex(parsable_data["AUTHORITY_ADDRESS"]),
+      authority_addr: Encoding.from_hex(contracts["AUTHORITY_ADDRESS"]),
       contract_addr: %{
-        erc20_vault: Encoding.from_hex(parsable_data["CONTRACT_ADDRESS_ERC20_VAULT"]),
-        eth_vault: Encoding.from_hex(parsable_data["CONTRACT_ADDRESS_ETH_VAULT"]),
-        payment_exit_game: Encoding.from_hex(parsable_data["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"]),
-        plasma_framework: Encoding.from_hex(parsable_data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
+        erc20_vault: Encoding.from_hex(contracts["CONTRACT_ADDRESS_ERC20_VAULT"]),
+        eth_vault: Encoding.from_hex(contracts["CONTRACT_ADDRESS_ETH_VAULT"]),
+        payment_exit_game: Encoding.from_hex(contracts["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"]),
+        plasma_framework: Encoding.from_hex(contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
       },
-      txhash_contract: Encoding.from_hex(parsable_data["TXHASH_CONTRACT"])
+      txhash_contract: Encoding.from_hex(contracts["TXHASH_CONTRACT"])
     }
 
     {:ok, true} =
@@ -66,9 +66,9 @@ defmodule OMG.Eth.Fixtures do
 
   deffixture token(root_chain_contract_config) do
     :ok = root_chain_contract_config
-    parsable_data = parse_contracts()
+    contracts = parse_contracts()
 
-    token_addr = Encoding.from_hex(parsable_data["CONTRACT_ERC20_MINTABLE"])
+    token_addr = Encoding.from_hex(contracts["CONTRACT_ERC20_MINTABLE"])
 
     # ensuring that the root chain contract handles token_addr
     {:ok, false} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
@@ -100,6 +100,8 @@ defmodule OMG.Eth.Fixtures do
     :ok
   end
 
+  # taken from the plasma-contracts deployment snapshot
+  # this parsing occurs in several places around the codebase
   defp parse_contracts() do
     local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
 

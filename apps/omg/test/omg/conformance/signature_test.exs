@@ -45,8 +45,8 @@ defmodule OMG.Conformance.SignatureTest do
   setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
 
-    parsable_data = parse_contracts()
-    signtest_addr_hex = parsable_data["CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK"]
+    contracts = parse_contracts()
+    signtest_addr_hex = contracts["CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK"]
     :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: signtest_addr_hex})
 
     on_exit(fn ->
@@ -110,6 +110,8 @@ defmodule OMG.Conformance.SignatureTest do
     assert solidity_hash == OMG.TypedDataHash.hash_struct(tx)
   end
 
+  # taken from the plasma-contracts deployment snapshot
+  # this parsing occurs in several places around the codebase
   defp parse_contracts() do
     local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
 
