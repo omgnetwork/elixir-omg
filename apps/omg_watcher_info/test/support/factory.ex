@@ -58,12 +58,64 @@ defmodule OMG.WatcherInfo.Factory do
 
   alias OMG.WatcherInfo.DB
 
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
+
+  @doc """
+  Block factory.
+
+  Generates a block in an incremental blknum of 1000, 2000, 3000, etc.
+  """
   def block_factory() do
     %DB.Block{
       blknum: sequence(:block_blknum, fn seq -> seq * 1000 end),
       hash: sequence(:block_hash, fn seq -> <<seq::256>> end),
       eth_height: sequence(:block_eth_height, fn seq -> seq end),
       timestamp: sequence(:block_timestamp, fn seq -> seq * 1_000_000 end)
+    }
+  end
+
+  @doc """
+  Transaction factory.
+
+  Generates a transaction without any transaction output and no associated block.
+
+  To generate a transaction with closest data to production, consider associating the transaction
+  to a block and generating transaction outputs associated with this transaction.
+  """
+  def transaction_factory() do
+    %DB.Transaction{
+      txhash: sequence(:block_hash, fn seq -> <<seq::256>> end),
+      txindex: 0,
+      txbytes: :crypto.strong_rand_bytes(8),
+      sent_at: DateTime.utc_now(),
+      metadata: :crypto.strong_rand_bytes(8),
+      block: nil,
+      inputs: [],
+      outputs: []
+    }
+  end
+
+  @doc """
+  Txoutput factory.
+
+  Generates a txoutput. The txindex, oindex and spending_tx_oindex are defaulted to 0.
+  These two values need to be overridden depending on the transaction you aim to build.
+  """
+  def txoutput_factory() do
+    owner = OMG.TestHelper.generate_entity()
+
+    %DB.TxOutput{
+      blknum: insert(:block).blknum,
+      txindex: 0,
+      oindex: 0,
+      owner: owner.addr,
+      amount: 100,
+      currency: @eth,
+      proof: :crypto.strong_rand_bytes(8),
+      spending_tx_oindex: 0,
+      child_chain_utxohash: :crypto.strong_rand_bytes(8),
+      creating_transaction: insert(:transaction),
+      spending_transaction: nil
     }
   end
 end
