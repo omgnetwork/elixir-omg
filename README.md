@@ -13,7 +13,6 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
       * [Service start up using Docker Compose](#service-start-up-using-docker-compose)
          * [Troubleshooting Docker](#troubleshooting-docker)
        * [Install on a Linux host](#install-on-a-linux-host)
-      * [Troubleshooting](#troubleshooting)
    * [Installing Plasma contract snapshots](#installing-plasma-contract-snapshots)
    * [Testing &amp; development](#testing--development)
    * [Working with API Spec's](#working-with-api-specs)
