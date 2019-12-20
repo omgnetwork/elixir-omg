@@ -151,7 +151,7 @@ Q1: Is it possible for the operator to start collecting fee now, but defer addin
 
 
 Q2: How often does a fee exit get called?
-> (From Jeremy) I think this is for the operator to decide. We probably want to do this based upon finance requirements and risk management.
+> This is for the operator to decide. We probably want to do this based upon finance requirements and risk management.
 
 
 Q3: Since smart contract is not checking the fee logic, how do we do with in-flight exit transaction that does not follow the fee rule?
