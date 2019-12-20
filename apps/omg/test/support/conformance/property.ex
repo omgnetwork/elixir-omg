@@ -23,12 +23,20 @@ defmodule Support.Conformance.PropertyGenerators do
 
   require Transaction.Payment
 
+  @doc """
+  Generates a payment transaction, as valid as possible
+  """
   def payment_tx() do
     let [inputs <- valid_inputs_list(), outputs <- valid_outputs_list(), metadata <- hash()] do
       Transaction.Payment.new(inputs, outputs, metadata)
     end
   end
 
+  @doc """
+  Generates a pair of _distinct_ payment transactions, as valid as possible.
+
+  Mimicks the `payment_tx/0` generator, but uses mutations to generate the other transaction
+  """
   def distinct_payment_txs() do
     proposition_result =
       let [inputs <- valid_inputs_list(), outputs <- valid_outputs_list(), metadata <- hash()] do
@@ -36,9 +44,9 @@ defmodule Support.Conformance.PropertyGenerators do
 
         tx2 =
           let [
-            inputs2 <- union([inputs, mutated_inputs(inputs)]),
-            outputs2 <- union([outputs, mutated_outputs(outputs)]),
-            metadata2 <- union([metadata, mutated_hash(metadata)])
+            inputs2 <- union([inputs, mutated_inputs(inputs), Enum.reverse(inputs)]),
+            outputs2 <- union([outputs, mutated_outputs(outputs), Enum.reverse(outputs)]),
+            metadata2 <- union([metadata, mutated_hash(metadata), hash()])
           ] do
             Transaction.Payment.new(inputs2, outputs2, metadata2)
           end
@@ -49,6 +57,9 @@ defmodule Support.Conformance.PropertyGenerators do
     such_that(pair <- proposition_result, when: is_pair_of_distinct_terms?(pair))
   end
 
+  @doc """
+  Generates a valid payment transaction using `payment_tx/0` then mutates it using a structure-blind binary mutation
+  """
   def tx_binary_with_mutation() do
     proposition_result =
       let [tx1 <- payment_tx()] do
@@ -59,6 +70,9 @@ defmodule Support.Conformance.PropertyGenerators do
     such_that(pair <- proposition_result, when: is_pair_of_distinct_terms?(pair))
   end
 
+  @doc """
+  Generates a valid payment transaction using `payment_tx/0` then mutates it using a RLP-aware mutation
+  """
   def tx_binary_with_rlp_mutation() do
     proposition_result =
       let [tx1 <- payment_tx()] do
@@ -135,17 +149,14 @@ defmodule Support.Conformance.PropertyGenerators do
     if length(outputs) == 1, do: valid_outputs_list(), else: tl(outputs)
   end
 
-  # TODO: these mutations used could use improving/extending
   defp prepend_binary(base_binary) do
     let(random_binary <- injectable_binary(), do: random_binary <> base_binary)
   end
 
-  # TODO: these mutations used could use improving/extending
   defp apend_binary(base_binary) do
     let(random_binary <- injectable_binary(), do: base_binary <> random_binary)
   end
 
-  # TODO: these mutations used could use improving/extending
   defp substring_binary(base_binary) do
     base_length = byte_size(base_binary)
 
@@ -158,7 +169,6 @@ defmodule Support.Conformance.PropertyGenerators do
     end
   end
 
-  # TODO: these mutations used could use improving/extending
   defp insert_into_binary(base_binary) do
     base_length = byte_size(base_binary)
 
@@ -168,8 +178,6 @@ defmodule Support.Conformance.PropertyGenerators do
   end
 
   defp mutate_binary(base_binary) do
-    # TODO: these mutations used could use improving/extending
-    # TODO: example case - cut off one byte somewhere (beginning, end, middle) - more specifically wrt. "substring" etc
     union([
       prepend_binary(base_binary),
       apend_binary(base_binary),
@@ -178,44 +186,57 @@ defmodule Support.Conformance.PropertyGenerators do
     ])
   end
 
-  defp inject_extra_item(base_rlp_items) do
+  defp inject_extra_item(base_rlp_items) when is_list(base_rlp_items) do
     rlp_items_length = length(base_rlp_items)
 
     let [new_item <- rlp_item_generator(), index <- integer(0, rlp_items_length)] do
-      base_rlp_items
-      |> List.insert_at(index, new_item)
-      |> ExRLP.encode()
+      List.insert_at(base_rlp_items, index, new_item)
     end
   end
 
-  defp recursively_mutate_rlp(base_rlp_items) do
-    let([mutated_rlp <- mutate_sub_rlp(base_rlp_items)], do: ExRLP.encode(mutated_rlp))
+  # base wasn't a list so we make one now!
+  defp inject_extra_item(base_rlp_items) do
+    union([[rlp_item_generator(), base_rlp_items], [base_rlp_items, rlp_item_generator()]])
   end
 
-  defp mutate_sub_rlp([]), do: rlp_item_generator()
+  defp try_reversing(rlp_item) when is_list(rlp_item) and length(rlp_item) > 1, do: Enum.reverse(rlp_item)
+  defp try_reversing(rlp_item), do: rlp_item
 
-  defp mutate_sub_rlp(rlp_items) when is_list(rlp_items) do
+  defp swap_in_rlp([]), do: rlp_item_generator()
+
+  defp swap_in_rlp(rlp_items) when is_list(rlp_items) do
     rlp_items_length = length(rlp_items)
 
+    # first we pick were we _could_ change the list
     let [index <- integer(0, rlp_items_length - 1)] do
-      to_mutate = Enum.at(rlp_items, index)
-      # TODO for now we only mutate deepest level of the RLP items. Mutate also intermediate levels
-      let([mutated_rlp <- mutate_sub_rlp(to_mutate)], do: List.replace_at(rlp_items, index, mutated_rlp))
+      to_swap = Enum.at(rlp_items, index)
+      # now we either go deeper to change it or change right here
+      let [mutated_rlp <- mutate_sub_rlp(to_swap)] do
+        List.replace_at(rlp_items, index, mutated_rlp)
+      end
     end
   end
 
-  defp mutate_sub_rlp(rlp_item) when is_integer(rlp_item) or is_binary(rlp_item), do: rlp_item_generator()
+  defp swap_in_rlp(rlp_item) when is_integer(rlp_item) or is_binary(rlp_item), do: rlp_item_generator()
 
   defp rlp_item_generator(),
     do: union([[], injectable_binary(), non_neg_integer(), list(union([injectable_binary(), non_neg_integer()]))])
+
+  defp mutate_sub_rlp(base_rlp_items) do
+    union([
+      rlp_item_generator(),
+      swap_in_rlp(base_rlp_items),
+      try_reversing(base_rlp_items),
+      inject_extra_item(base_rlp_items)
+    ])
+  end
 
   defp rlp_mutate_binary(base_binary) do
     # TODO: these mutations used could use improving/extending
     base_rlp_items = base_binary |> Transaction.decode!() |> Transaction.Protocol.get_data_for_rlp()
 
-    union([
-      inject_extra_item(base_rlp_items),
-      recursively_mutate_rlp(base_rlp_items)
-    ])
+    let([mutated_rlp <- mutate_sub_rlp(base_rlp_items)]) do
+      ExRLP.encode(mutated_rlp)
+    end
   end
 end

@@ -55,8 +55,9 @@ defmodule OMG.Conformance.SignaturePropertyTest do
     end
   end
 
+  # this is by far the most interesting-case-yielding test, hence number of cases is set to x10 the others
   property "any rlp-mutated tx binary either fails to decode to a transaction object or is recognized as different",
-           [1000, :verbose, max_size: 100, constraint_tries: 100_000],
+           [10_000, :verbose, max_size: 100, constraint_tries: 100_000],
            %{contract: contract} do
     forall {tx1_binary, tx2_binary} <- PropertyGenerators.tx_binary_with_rlp_mutation() do
       verify_distinct_or_erroring(tx1_binary, tx2_binary, contract)

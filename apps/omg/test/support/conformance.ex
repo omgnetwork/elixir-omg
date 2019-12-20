@@ -22,7 +22,7 @@ defmodule Support.Conformance do
   import ExUnit.Assertions
 
   @doc """
-  Check if both implementations treat distinct transactions as distinct but produce the same sign hashes
+  Check if both implementations treat distinct transactions as distinct but produce sign hashes consistently
   """
   def verify_distinct(tx1, tx2, contract) do
     # NOTE: those two verifies might be redundant, rethink sometimes. For now keeping to increase chance of picking up
@@ -57,7 +57,7 @@ defmodule Support.Conformance do
 
   @doc """
   Check if both implementations either:
-    - treat distinct transactions as distinct but produce the same sign hashes or
+    - treat distinct transactions as distinct but produce sign hashes consistently
     - both error
   _under the condition that `tx2_binary` decodes fine in the "native" implementation in Elixir_
   """
