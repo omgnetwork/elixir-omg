@@ -69,7 +69,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
            ] = WatcherHelper.get_utxos(alice.addr)
 
     # Drop watcher_info's creating_txhash and spending_txhash before comparing to security's exitable utxos
-    utxos = alice.addr |> WatcherHelper.get_utxos() |> Map.drop(["creating_txhash", "spending_txhash"])
+    utxos =
+      alice.addr
+      |> WatcherHelper.get_utxos()
+      |> Enum.map(fn utxo -> Map.drop(utxo, ["creating_txhash", "spending_txhash"]) end)
+
     assert WatcherHelper.get_exitable_utxos(alice.addr) == utxos
 
     %{
