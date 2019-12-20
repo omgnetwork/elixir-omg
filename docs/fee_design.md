@@ -82,7 +82,7 @@ The transaction would be of the following format:
         }
 ```
 
-The input of the fee transaction can just be empty.
+The input of the fee transaction can be empty.
 
 It would have one output per transaction, which follows fungible token output format, which can be spent to a Payment transaction.
 
