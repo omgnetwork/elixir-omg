@@ -39,17 +39,17 @@ The general idea of the apps responsibilities is:
   - `omg_performance` - performance tester for the child chain server
   - `omg_status` - application monitoring facilities
   - `omg_utils` - various non-omg-specific shared code
-  - `omg_watcher` - the [Watcher](#watcher)
-  - `omg_watcher_info` - the [Watcher Info](#watcher)
+  - `omg_watcher` - the [Watcher](#watcher-and-watcher-info)
+  - `omg_watcher_info` - the [Watcher Info](#watcher-and-watcher-info)
   - `omg_watcher_rpc` - an HTTP-RPC server being the gateway to `omg_watcher`
 
-See [application architecture](docs/architecture.md) for more details.
+See [application architecture](architecture.md) for more details.
 
 ## Child chain server
 
 `:omg_child_chain` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_child_chain_rpc`.
 
-For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
+For the responsibilities and design of the child chain server see [Plasma Blockchain Design document](tesuji_blockchain_design.md).
 
 ### Using the child chain server's API
 
@@ -62,7 +62,7 @@ The available RPC calls are defined by `omg_child_chain` in `api.ex` - paths fol
 All requests shall be POST with parameters provided in the request body in JSON object.
 Object's properties names correspond to the names of parameters. Binary values shall be hex-encoded strings.
 
-For API documentation see: https://omisego.github.io/elixir-omg.
+For API documentation see: https://developer.omisego.co/elixir-omg/.
 
 # Ethereum private key management
 
@@ -79,7 +79,7 @@ The Ethereum address which the operator uses to submit blocks to the root chain 
 
 ## Nonces restriction
 
-The [reorg protection mechanism](docs/tesuji_blockchain_design.md#reorgs) enforces there to be a strict relation between the `submitBlock` transactions and block numbers.
+The [reorg protection mechanism](tesuji_blockchain_design.md#reorgs) enforces there to be a strict relation between the `submitBlock` transactions and block numbers.
 Child block number `1000` uses Ethereum nonce `1`, child block number `2000` uses Ethereum nonce `2`, **always**.
 This provides a simple mechanism to avoid submitted blocks getting reordered in the root chain.
 
@@ -137,7 +137,7 @@ It ensures that the child chain is valid and notifies otherwise.
 It exposes the information it gathers via an HTTP-RPC interface (driven by Phoenix).
 It provides a secure proxy to the child chain server's API and to Ethereum, ensuring that sensitive requests are only sent to a valid chain.
 
-For more on the responsibilities and design of the Watcher see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
+For more on the responsibilities and design of the Watcher see [Plasma Blockchain Design document](tesuji_blockchain_design.md).
 
 ### Modes of the watcher
 
@@ -154,7 +154,7 @@ The watcher can be run in one of two modes:
     - intended to provide convenient and performant API to the child chain data, on top of the security-related one
     - this mode will provide/store everything the **security-critical** mode does
     - this mode will store easily accessible register of all transactions _for a subset of addresses_ (currently, all addresses)
-    - this mode will leverage the Postgres-based `WatcherDB` database
+    - this mode will leverage the PostgreSQL - based `WatcherDB` database
 
 In releases, `watcher` refers to the security-critical mode, while `watcher_info` refers to the security-critical and informational API mode.
 
@@ -164,10 +164,96 @@ The watcher is listening on port `7434` by default. And watcher info listens on 
 
 ### Endpoints
 
-For API documentation see: https://omisego.github.io/elixir-omg
+For API documentation see: https://developer.omisego.co/elixir-omg/
 
 ### Ethereum private key management
 
 Watcher doesn't hold or manage user's keys.
 All signatures are assumed to be done outside.
 A planned exception may be to allow Watcher to sign challenges, but using a non-sensitive/low-funded Ethereum account.
+
+# Configuration parameters
+
+Per usual practice, the default values are defined in `apps/<app>/config/config.exs`.
+For docker deployments, and release deployments please refer to [Deployment Configuration](deployment_configuration.md).
+
+**NOTE**: all margins are denominated in Ethereum blocks
+
+## Generic configuration - `:omg` app
+
+* **`deposit_finality_margin`** - the margin that is waited after a `DepositCreated` event in the root chain contract.
+Only after this margin had passed:
+  - the child chain will allow spending the deposit
+  - the watcher and watcher info will consider a transaction spending this deposit a valid transaction
+
+  It is important that for a given child chain, the child chain server and watchers use the same value of this margin.
+
+  **NOTE**: This entry is defined in `omg`, despite not being accessed there, only in `omg_child_chain` and `omg_watcher`.
+  The reason here is to minimize risk of Child Chain server's and Watcher's configuration entries diverging.
+
+* **`ethereum_events_check_interval_ms`** - polling interval for pulling Ethereum events (logs) from the Ethereum client.
+
+* **`coordinator_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `RootChainCoordinator`.
+Affects how quick the services reading Ethereum events realize there's a new block.
+
+## Child chain server configuration - `:omg_child_chain` app
+
+* **`submission_finality_margin`** - the margin waited before mined block submissions are purged from `BlockQueue`'s memory
+
+* **`block_queue_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `BlockQueue` exclusively
+
+* **`fee_file_check_interval_ms`** - interval for checking updates in the `fee_specs.json` file to update the fees required.
+
+* **`child_block_minimal_enqueue_gap`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
+
+* **`fee_specs_file_name`** - path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
+
+* **`ignore_fees`** - boolean option allowing to turn off fee charging altogether
+
+## Watcher configuration - `:omg_watcher` app
+
+* **`exit_processor_sla_margin`** - the margin to define the notion of a "late", invalid exit.
+After this margin passes, every invalid exit is deemed a critical failure of the child chain (`unchallenged_exit`).
+Such event will prompt a mass exit and stop processing new blocks.
+See [exit validation documentation](docs/exit_validation.md) for details.
+Override using the `EXIT_PROCESSOR_SLA_MARGIN` system environment variable.
+
+* **`maximum_block_withholding_time_ms`** - for how long the Watcher will tolerate failures to get a submitted child chain block, before reporting a block withholding attack and stopping
+
+* **`block_getter_loops_interval_ms`** - polling interval for checking new child chain blocks submissions being mined on the root chain
+
+* **`maximum_number_of_unapplied_blocks`** - the maximum number of downloaded and statelessly validated child chain blocks to hold in queue for applying
+
+* **`exit_finality_margin`** - the margin waited before an exit-related event is considered final enough to pull and process
+
+* **`block_getter_reorg_margin`** - the margin considered by `OMG.Watcher.BlockGetter` when searching for recent child chain block submission events.
+This is driving the process of determining the height and particular event related to the submission of a particular child chain block
+
+## `OMG.DB` configuration - `:omg_db` app
+
+* **`path`** - path to the directory holding the LevelDB data store
+
+* **`server_module`** - the module to use when talking to the `OMG.DB`
+
+* **`server_name`** - the named process to refer to when talking to the `OMG.DB`
+
+## `OMG.Eth` configuration - `:omg_eth` app
+
+All binary entries are expected in hex-encoded, `0x`-prefixed.
+
+* **`contract_addr`** - the address of the root chain contract
+
+* **`authority_addr`** - the address used by the operator to submit blocks
+
+* **`txhash_contract`** - the Ethereum-transaction hash holding the deployment of the root chain contract
+
+* **`eth_node`** - the Ethereum client which is used: `"geth" | "infura"`.
+
+* **`node_logging_in_debug`** - whether the output of the Ethereum node being run in integration test should be printed to `:debug` level logs.
+If you set this to false, remember to set the logging level to `:debug` to see the logs
+
+* **`child_block_interval`** - mirror of contract configuration `uint256 constant public CHILD_BLOCK_INTERVAL` from `RootChain.sol`
+
+* **`min_exit_period_seconds`** - mirror of contract configuration `uint256 public minExitPeriod`
+
+* **`ethereum_client_warning_time_ms`** - queries for event logs made to the Ethereum node lasting more than this will emit a `:warn`-level log

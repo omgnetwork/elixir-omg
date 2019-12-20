@@ -80,6 +80,7 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 ### `OMG.Performance`
 
 - executes requests to `OMG.WatcherRPC`
+- executes requests to `OMG.ChildChainRPC`
 - forces block forming by talking directly to `OMG.State`
 
 ## Databases
