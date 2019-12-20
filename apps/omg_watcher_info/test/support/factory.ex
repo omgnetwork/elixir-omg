@@ -68,7 +68,7 @@ defmodule OMG.WatcherInfo.Factory do
   def block_factory() do
     %DB.Block{
       blknum: sequence(:block_blknum, fn seq -> seq * 1000 end),
-      hash: sequence(:block_hash, fn seq -> <<seq::256>> end),
+      hash: insecure_random_bytes(32),
       eth_height: sequence(:block_eth_height, fn seq -> seq end),
       timestamp: sequence(:block_timestamp, fn seq -> seq * 1_000_000 end)
     }
@@ -86,9 +86,9 @@ defmodule OMG.WatcherInfo.Factory do
     %DB.Transaction{
       txhash: sequence(:transaction_hash, fn seq -> <<seq::256>> end),
       txindex: 0,
-      txbytes: sequence(:transaction_txbytes, fn seq -> <<seq::256>> end),
+      txbytes: insecure_random_bytes(32),
       sent_at: DateTime.utc_now(),
-      metadata: sequence(:transaction_metadata, fn seq -> <<seq::256>> end),
+      metadata: insecure_random_bytes(32),
       block: nil,
       inputs: [],
       outputs: []
@@ -111,11 +111,16 @@ defmodule OMG.WatcherInfo.Factory do
       owner: owner.addr,
       amount: 100,
       currency: @eth,
-      proof: sequence(:txoutput_proof, fn seq -> <<seq::256>> end),
+      proof: insecure_random_bytes(32),
       spending_tx_oindex: 0,
-      child_chain_utxohash: sequence(:txoutput_child_chain_utxohash, fn seq -> <<seq::256>> end),
+      child_chain_utxohash: insecure_random_bytes(32),
       creating_transaction: insert(:transaction),
       spending_transaction: nil
     }
+  end
+
+  # Generates a certain length of random bytes. Uniqueness not guaranteed so it's not recommended for identifiers.
+  defp insecure_random_bytes(num_bytes) when num_bytes >= 0 and num_bytes <= 255 do
+    0..255 |> Enum.shuffle() |> Enum.take(num_bytes) |> :erlang.list_to_binary()
   end
 end
