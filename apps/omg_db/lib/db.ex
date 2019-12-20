@@ -30,29 +30,29 @@ defmodule OMG.DB do
   @callback multi_update(term()) :: :ok | {:error, any}
   @callback blocks(block_to_fetch :: list()) :: {:ok, list(term)}
   @callback utxos() :: {:ok, list({utxo_pos_db_t, term})}
-  @callback utxo(utxo_pos_db_t) :: {:ok, term}
+  @callback utxo(utxo_pos_db_t) :: {:ok, term} | :not_found
   @callback exit_infos() :: {:ok, list(term)}
   @callback in_flight_exits_info() :: {:ok, list(term)}
   @callback competitors_info() :: {:ok, list(term)}
-  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}) :: {:ok, map} | {:error, atom}
-  @callback spent_blknum(utxo_pos_db_t()) :: {:ok, pos_integer} | {:error, atom}
-  @callback block_hashes(integer()) :: list()
-  @callback child_top_block_number() :: {:ok, non_neg_integer()}
+  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}) :: {:ok, map} | :not_found
+  @callback spent_blknum(utxo_pos_db_t()) :: {:ok, pos_integer} | :not_found
+  @callback block_hashes(integer()) :: {:ok, list()}
+  @callback child_top_block_number() :: {:ok, non_neg_integer()} | :not_found
 
   # callbacks useful for injecting a specific server implementation
   @callback initiation_multiupdate(GenServer.server()) :: :ok | {:error, any}
   @callback multi_update(term(), GenServer.server()) :: :ok | {:error, any}
   @callback blocks(block_to_fetch :: list(), GenServer.server()) :: {:ok, list()} | {:error, any}
   @callback utxos(GenServer.server()) :: {:ok, list({utxo_pos_db_t, term})} | {:error, any}
-  @callback utxo(utxo_pos_db_t, GenServer.server()) :: {:ok, term} | {:error, any}
+  @callback utxo(utxo_pos_db_t, GenServer.server()) :: {:ok, term} | :not_found
   @callback exit_infos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback in_flight_exits_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback competitors_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}, GenServer.server()) ::
-              {:ok, map} | {:error, atom}
-  @callback spent_blknum(utxo_pos_db_t(), GenServer.server()) :: {:ok, pos_integer} | {:error, atom}
-  @callback block_hashes(integer(), GenServer.server()) :: list()
-  @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()}
+              {:ok, map} | :not_found
+  @callback spent_blknum(utxo_pos_db_t(), GenServer.server()) :: {:ok, pos_integer} | :not_found
+  @callback block_hashes(integer(), GenServer.server()) :: {:ok, list()}
+  @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()} | :not_found
   @optional_callbacks child_spec: 1,
                       initiation_multiupdate: 1,
                       multi_update: 2,
