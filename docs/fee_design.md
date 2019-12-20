@@ -112,7 +112,7 @@ Current Plasma Framework design is immutable on the ability of spending an outpu
 
 Given this, the block verification should assert that all fee transactions in the block have the same transaction type no matter which fee tx types (1 or 2), it should calculate the fee balance of all transaction within the block. The only difference is how the fee claiming output can be spent.
 
-Child chain and watcher could even further deprecate old fee tx types afterward if not necessary anymore. The logic change could be done by upgrading child chain service and watcher together.
+Child chain and watcher could even further deprecate old fee tx types afterward if not needed anymore. The logic change could be done by upgrading child chain service and watcher together.
 
 ## Adding fee exit feature to the Plasma Framework
 
