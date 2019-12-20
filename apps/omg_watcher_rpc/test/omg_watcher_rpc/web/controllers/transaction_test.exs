@@ -72,7 +72,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => input_2.oindex,
                    "owner" => Encoding.to_hex(input_2.owner),
                    "txindex" => input_2.txindex,
-                   "utxo_pos" => 2000000000000,
+                   "utxo_pos" => 2_000_000_000_000,
                    "creating_txhash" => Encoding.to_hex(input_2.creating_txhash),
                    "spending_txhash" => Encoding.to_hex(transaction.txhash)
                  },
@@ -83,7 +83,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => input_1.oindex,
                    "owner" => Encoding.to_hex(input_1.owner),
                    "txindex" => input_1.txindex,
-                   "utxo_pos" => 1000000000000,
+                   "utxo_pos" => 1_000_000_000_000,
                    "creating_txhash" => Encoding.to_hex(input_1.creating_txhash),
                    "spending_txhash" => Encoding.to_hex(transaction.txhash)
                  }
@@ -96,7 +96,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => output_2.oindex,
                    "owner" => Encoding.to_hex(output_2.owner),
                    "txindex" => output_2.txindex,
-                   "utxo_pos" => 4000000000000,
+                   "utxo_pos" => 4_000_000_000_000,
                    "creating_txhash" => Encoding.to_hex(transaction.txhash),
                    "spending_txhash" => nil
                  },
@@ -107,7 +107,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => output_1.oindex,
                    "owner" => Encoding.to_hex(output_1.owner),
                    "txindex" => output_1.txindex,
-                   "utxo_pos" => 3000000000000,
+                   "utxo_pos" => 3_000_000_000_000,
                    "creating_txhash" => Encoding.to_hex(transaction.txhash),
                    "spending_txhash" => nil
                  }
