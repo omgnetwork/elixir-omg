@@ -66,7 +66,7 @@ The design proposes that the child chain service automatically generates fee tra
 1. All fee transactions are included after all other types of transactions in a block. 
 1. A fee transaction's output is the sum of fees paid in a particular token by all transactions in a block.
 1. There must be at most one fee transaction for a token per block.
-1. There can be at most one fee transaction type per block. (PS. as we extends the Plasma Framework, there can potentially be multiple transaction types that all counts as "fee tx type")
+1. There can be at most one fee transaction type per block. (PS. as we extend the Plasma Framework, there can potentially be multiple transaction types that all count as "fee tx type")
 
 Since the transactions are automatically generated from the child chain service, there is no need to do an authentication check. Inclusion of fee transaction is optional, however fees collected in omitted blocks are lost to claim.
 
