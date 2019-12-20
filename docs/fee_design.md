@@ -105,7 +105,7 @@ Current Plasma Framework design is immutable on the ability of spending an outpu
 
 Given this, the block verification should limit the block to be existing with a singe fee tx type per block for simplicity. No matter which fee tx types (1 or 2), it should calculate the fee balance of all transaction within the block. The only difference is how the output can be spent.
 
-Child chain and watcher could even further deprecate old fee tx types afterward if not necessary anymore. The logic change could be done by upgrading child chain service and watcher together.
+Child chain and watcher could even further deprecate old fee tx types afterward if not needed anymore. The logic change could be done by upgrading child chain service and watcher together.
 
 ### Fee transaction type extension
 Current Plasma Framework design is immutable on the ability of spending an output type in another tx type once contract deployed. So let's say we have payment v1 that can spend the fee claiming output. However, when we extend the framework with payment v2, we would need another fee output type that is able to be spent in payment v2. As a result, we would need fee tx type 2 as well during the extension. (As only new transaction type can create new output type)
