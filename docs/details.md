@@ -19,8 +19,7 @@
          * [Using the watcher](#using-the-watcher)
          * [Endpoints](#endpoints)
          * [Ethereum private key management](#ethereum-private-key-management-1)
-   * [Testing &amp; development](#testing--development)
-   * [Working with API Spec's](#working-with-api-specs)
+
 
 # `elixir-omg` applications
 
