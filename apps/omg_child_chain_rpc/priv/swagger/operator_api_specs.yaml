@@ -25,7 +25,7 @@ paths:
     get:
       tags:
         - Alarm
-      summary: Gets all utxos belonging to the given address.
+      summary: 'Provides alarms related to system memory, cpu and storage and application specific alarms.'
       description: |
         **Note:** Service operator alarms.
       operationId: alarm_get
@@ -418,10 +418,15 @@ paths:
                   items:
                     type: string
                     format: binary
+                tx_types:
+                  type: array
+                  items:
+                    type: integer
               example:
                 currencies:
                   - '0x0000000000000000000000000000000000000000'
-                  - '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
+                tx_types:
+                  - 1
       responses:
         '200':
           description: List of all supported fees response
@@ -449,33 +454,35 @@ paths:
                   - type: object
                     properties:
                       data:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            currency:
-                              type: string
-                              format: binary
-                            amount:
-                              type: integer
-                              format: int256
-                            subunit_to_unit:
-                              type: integer
-                              format: int256
-                            pegged_currency:
-                              type: string
-                              format: binary
-                            pegged_amount:
-                              type: integer
-                              format: int256
-                            pegged_subunit_to_unit:
-                              type: integer
-                              format: int256
-                            updated_at:
-                              type: string
-                              format: date-time
+                        type: object
+                        additionalProperties:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              currency:
+                                type: string
+                                format: binary
+                              amount:
+                                type: integer
+                                format: int256
+                              subunit_to_unit:
+                                type: integer
+                                format: int256
+                              pegged_currency:
+                                type: string
+                                format: binary
+                              pegged_amount:
+                                type: integer
+                                format: int256
+                              pegged_subunit_to_unit:
+                                type: integer
+                                format: int256
+                              updated_at:
+                                type: string
+                                format: date-time
                     example:
-                      data:
+                      '1':
                         - currency: '0x0000000000000000000000000000000000000000'
                           amount: 220000000000000
                           subunit_to_unit: 1000000000000000000
@@ -483,13 +490,7 @@ paths:
                           pegged_amount: 4
                           pegged_subunit_to_unit: 100
                           updated_at: '2019-01-01T10:10:10+00:00'
-                        - currency: '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
-                          amount: 39260000000000000
-                          subunit_to_unit: 1000000000000000000
-                          pegged_currency: USD
-                          pegged_amount: 4
-                          pegged_subunit_to_unit: 100
-                          updated_at: '2019-01-01T10:10:10+00:00'
+                      data: null
         '500':
           description: Returns an internal server error
           content:
