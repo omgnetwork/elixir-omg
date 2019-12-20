@@ -166,7 +166,7 @@ Q4: Should we collect fees when spending the fee transaction's output to a payme
 
 
 Q5: How should excessive fees paid be handled?
-> They should be collected/exited normally, thereby decoupling fee requirements from fee collection. We can add some sanity check on client software to avoid some insane high fee appears.
+> They should be collected/exited normally, thereby decoupling fee requirements from fee collection. We can add some sanity checks on client software to avoid excessive fees.
 
 
 Q6: Can we do 4 fee utxos as input (to Payment transaction) and one payment utxo as output?
