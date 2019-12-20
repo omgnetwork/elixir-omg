@@ -151,11 +151,23 @@ defmodule OMG.FeesTest do
   end
 
   describe "filter_fees/2" do
-    test "does not filter when an empty list is passed" do
-      assert Fees.filter_fees(@fees, []) == {:ok, @fees}
+    test "does not filter tx_type when given an empty list" do
+      assert Fees.filter_fees(@fees, [], []) == {:ok, @fees}
     end
 
-    test "filter fees given a list of currencies" do
+    test "does not filter tx_type when given a nil value" do
+      assert Fees.filter_fees(@fees, nil, []) == {:ok, @fees}
+    end
+
+    test "does not filter currencies when given an empty list" do
+      assert Fees.filter_fees(@fees, [], []) == {:ok, @fees}
+    end
+
+    test "does not filter currencies when given a nil value" do
+      assert Fees.filter_fees(@fees, [], nil) == {:ok, @fees}
+    end
+
+    test "filter fees by currency given a list of currencies" do
       fees =
         @fees
         |> Map.put(2, @payment_fees)
@@ -173,7 +185,7 @@ defmodule OMG.FeesTest do
           }
         )
 
-      assert Fees.filter_fees(fees, [@eth]) ==
+      assert Fees.filter_fees(fees, [], [@eth]) ==
                {:ok,
                 %{
                   @payment_tx_type => Map.take(@payment_fees, [@eth]),
@@ -181,12 +193,64 @@ defmodule OMG.FeesTest do
                   3 => %{}
                 }}
 
-      assert Fees.filter_fees(fees, [@not_eth_2]) == {:ok, %{@payment_tx_type => %{}, 2 => %{}, 3 => fees[3]}}
+      assert Fees.filter_fees(fees, [], [@not_eth_2]) == {:ok, %{@payment_tx_type => %{}, 2 => %{}, 3 => fees[3]}}
+    end
+
+    test "filter fees by tx_type when given a list of tx_types" do
+      fees =
+        @fees
+        |> Map.put(2, @payment_fees)
+        |> Map.put(
+          3,
+          %{
+            @not_eth_2 => %{
+              amount: 3,
+              subunit_to_unit: 1000,
+              pegged_amount: 4,
+              pegged_currency: "USD",
+              pegged_subunit_to_unit: 100,
+              updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+            }
+          }
+        )
+
+      assert Fees.filter_fees(fees, [1, 2], []) == {:ok, Map.drop(fees, [3])}
+    end
+
+    test "filter fees by both tx_type and currencies" do
+      fees =
+        @fees
+        |> Map.put(2, @payment_fees)
+        |> Map.put(
+          3,
+          %{
+            @not_eth_2 => %{
+              amount: 3,
+              subunit_to_unit: 1000,
+              pegged_amount: 4,
+              pegged_currency: "USD",
+              pegged_subunit_to_unit: 100,
+              updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+            }
+          }
+        )
+
+      assert Fees.filter_fees(fees, [1, 2], [@eth]) ==
+               {:ok,
+                %{
+                  @payment_tx_type => Map.take(@payment_fees, [@eth]),
+                  2 => Map.take(@payment_fees, [@eth])
+                }}
     end
 
     test "returns an error when given an unsupported currency" do
       other_token = <<9::160>>
-      assert Fees.filter_fees(@fees, [other_token]) == {:error, :currency_fee_not_supported}
+      assert Fees.filter_fees(@fees, [], [other_token]) == {:error, :currency_fee_not_supported}
+    end
+
+    test "returns an error when given an unsupported tx_type" do
+      tx_type = 99_999
+      assert Fees.filter_fees(@fees, [tx_type], []) == {:error, :tx_type_not_supported}
     end
   end
 end

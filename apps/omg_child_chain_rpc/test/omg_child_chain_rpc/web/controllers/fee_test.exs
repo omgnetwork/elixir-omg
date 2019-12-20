@@ -216,5 +216,120 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                }
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: ["invalid"]})
     end
+
+    @tag fixtures: [:phoenix_sandbox]
+    test "fees.all endpoint filters the result when given tx_types" do
+      assert %{
+               "success" => true,
+               "data" => %{
+                 "1" => [
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   },
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000001",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ]
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: [@payment_tx_type]})
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
+    test "fees.all endpoint does not filter when given empty tx_types" do
+      assert %{
+               "success" => true,
+               "data" => %{
+                 "1" => [
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   },
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000001",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ],
+                 "2" => [
+                   %{
+                     "amount" => 2,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ]
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: []})
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
+    test "fees.all returns an error when given unsupported tx_types" do
+      assert %{
+               "success" => false,
+               "data" => %{
+                 "object" => "error",
+                 "code" => "fee:tx_type_not_supported",
+                 "description" => "One or more of the given transaction types are not supported."
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: [99_999]})
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
+    test "fees.all endpoint rejects request with non list tx_types" do
+      assert %{
+               "success" => false,
+               "data" => %{
+                 "object" => "error",
+                 "code" => "operation:bad_request",
+                 "messages" => %{
+                   "validation_error" => %{
+                     "parameter" => "tx_types",
+                     "validator" => ":list"
+                   }
+                 }
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: 1})
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
+    test "fees.all endpoint rejects request with negative integer" do
+      assert %{
+               "success" => false,
+               "data" => %{
+                 "object" => "error",
+                 "code" => "operation:bad_request",
+                 "messages" => %{
+                   "validation_error" => %{
+                     "parameter" => "tx_types.tx_type",
+                     "validator" => "{:greater, 0}"
+                   }
+                 }
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: [-5]})
+    end
   end
 end
