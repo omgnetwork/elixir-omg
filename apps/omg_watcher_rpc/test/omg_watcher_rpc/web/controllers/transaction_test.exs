@@ -178,7 +178,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "getting multiple transactions" do
+  describe "/transaction.all" do
     @tag fixtures: [:initial_blocks]
     test "returns multiple transactions in expected format", %{initial_blocks: initial_blocks} do
       {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> Enum.reverse() |> hd()
@@ -384,7 +384,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "transactions pagination" do
+  describe "/transaction.all pagination" do
     @tag fixtures: [:alice, :bob, :initial_deposits, :blocks_inserter]
     test "returns list of transactions limited by address", %{
       blocks_inserter: blocks_inserter,
@@ -497,7 +497,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     result
   end
 
-  describe "submitting binary-encoded transaction" do
+  describe "/tranasction.submit with binary-encoded transaction" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "handles incorrectly encoded parameter" do
       hex_without_0x = "5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21"
@@ -527,7 +527,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "submitting structural transaction" do
+  describe "/tranasction.submit with structural transaction" do
     deffixture typed_data_request(alice, bob) do
       contract_addr = Application.fetch_env!(:omg_eth, :contract_addr)
       alice_addr = Encoding.to_hex(alice.addr)
@@ -630,7 +630,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "creating transaction" do
+  describe "/transaction.create" do
     deffixture more_utxos(alice, blocks_inserter) do
       [
         {5000,
@@ -1127,7 +1127,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "creating transaction: Validation" do
+  describe "/transaction.create validation" do
     @tag fixtures: [:alice, :more_utxos]
     test "empty transaction without payments list is not allowed", %{alice: alice} do
       alice_addr = Encoding.to_hex(alice.addr)
