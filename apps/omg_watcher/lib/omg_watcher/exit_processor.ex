@@ -372,11 +372,12 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:create_challenge, exiting_utxo_pos}, _from, state) do
     request = %ExitProcessor.Request{se_exiting_pos: exiting_utxo_pos}
+    exiting_utxo_exists = State.utxo_exists?(exiting_utxo_pos)
 
     response =
-      with {:ok, request_with_queries} <- Core.determine_standard_challenge_queries(request, state),
+      with {:ok, request} <- Core.determine_standard_challenge_queries(request, state, exiting_utxo_exists),
            do:
-             request_with_queries
+             request
              |> fill_request_with_standard_challenge_data()
              |> Core.create_challenge(state)
 
@@ -466,8 +467,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp do_get_spent_blknum(position) do
-    {:ok, spend_blknum} = position |> Utxo.Position.to_input_db_key() |> OMG.DB.spent_blknum()
-    spend_blknum
+    position |> Utxo.Position.to_input_db_key() |> OMG.DB.spent_blknum()
   end
 
   defp collect_invalidities_and_state_db_updates(
