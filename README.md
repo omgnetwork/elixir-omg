@@ -95,6 +95,11 @@ Get the necessary dependencies for building:
 mix deps.get
 ```
 
+Pull in the compatible Plasma contracts snapshot:
+```bash
+make init_test
+```
+
 Quick test (no integration tests):
 ```bash
 mix test
