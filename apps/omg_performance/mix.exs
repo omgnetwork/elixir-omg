@@ -24,9 +24,9 @@ defmodule OMG.Performance.MixProject do
   end
 
   # we don't need the performance app in a production release
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(:prod), do: []
-  defp elixirc_paths(_), do: ["lib"]
+  defp elixirc_paths(:dev), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
 
   defp deps do
     [
