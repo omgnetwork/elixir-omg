@@ -1,6 +1,6 @@
 use Mix.Config
 
-config :omg_watcher_info, child_chain_url: "http://localhost:9656"
+config :omg_watcher_info, child_chain_url: "http://localhost:9657"
 
 config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   ownership_timeout: 180_000,
