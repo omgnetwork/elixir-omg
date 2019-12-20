@@ -84,11 +84,11 @@ defmodule OMG.WatcherInfo.Factory do
   """
   def transaction_factory() do
     %DB.Transaction{
-      txhash: sequence(:block_hash, fn seq -> <<seq::256>> end),
+      txhash: sequence(:transaction_hash, fn seq -> <<seq::256>> end),
       txindex: 0,
-      txbytes: :crypto.strong_rand_bytes(8),
+      txbytes: sequence(:transaction_txbytes, fn seq -> <<seq::256>> end),
       sent_at: DateTime.utc_now(),
-      metadata: :crypto.strong_rand_bytes(8),
+      metadata: sequence(:transaction_metadata, fn seq -> <<seq::256>> end),
       block: nil,
       inputs: [],
       outputs: []
@@ -111,9 +111,9 @@ defmodule OMG.WatcherInfo.Factory do
       owner: owner.addr,
       amount: 100,
       currency: @eth,
-      proof: :crypto.strong_rand_bytes(8),
+      proof: sequence(:txoutput_proof, fn seq -> <<seq::256>> end),
       spending_tx_oindex: 0,
-      child_chain_utxohash: :crypto.strong_rand_bytes(8),
+      child_chain_utxohash: sequence(:txoutput_child_chain_utxohash, fn seq -> <<seq::256>> end),
       creating_transaction: insert(:transaction),
       spending_transaction: nil
     }
