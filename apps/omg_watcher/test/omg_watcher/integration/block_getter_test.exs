@@ -68,7 +68,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
              %{"blknum" => ^block_nr}
            ] = WatcherHelper.get_utxos(alice.addr)
 
-    assert WatcherHelper.get_utxos(alice.addr) == WatcherHelper.get_exitable_utxos(alice.addr)
+    # Drop watcher_info's creating_txhash and spending_txhash before comparing to security's exitable utxos
+    utxos = alice.addr |> WatcherHelper.get_utxos() |> Map.drop(["creating_txhash", "spending_txhash"])
+    assert WatcherHelper.get_exitable_utxos(alice.addr) == utxos
 
     %{
       "utxo_pos" => utxo_pos,
@@ -108,8 +110,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     :ok = IntegrationTest.process_exits(2, token, alice)
     :ok = IntegrationTest.process_exits(1, @eth, alice)
 
-    assert WatcherHelper.get_utxos(alice.addr) == WatcherHelper.get_exitable_utxos(alice.addr)
-    assert [] == WatcherHelper.get_utxos(alice.addr)
+    # Drop watcher_info's creating_txhash and spending_txhash before comparing to security's exitable utxos
+    utxos = alice.addr |> WatcherHelper.get_utxos() |> Map.drop(["creating_txhash", "spending_txhash"])
+    assert WatcherHelper.get_exitable_utxos(alice.addr) == utxos
+    assert WatcherHelper.get_utxos(alice.addr) == []
   end
 
   @tag fixtures: [:in_beam_watcher, :test_server]
