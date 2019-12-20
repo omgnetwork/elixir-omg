@@ -68,9 +68,6 @@ If you want Docker to use the latest commit from `elixir-omg` you can trigger a 
 # Install on a Linux host
 Follow the guide to **[install](docs/install.md)** the Child Chain server, Watcher and Watcher Info.
 
-## Troubleshooting
-Solutions to common problems may be found in the [troubleshooting](docs/troubleshooting.md) document.
-
 # Installing Plasma contract snapshots 
 
 To pull in the compatible snapshot for Geth:

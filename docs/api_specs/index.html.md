@@ -12,7 +12,6 @@ toc_footers:
 includes:
   - operator_api_specs
   - watcher_api_specs
-  - watcher_websocket_specs
   - info_api_specs
   - integration_libraries
   - errors

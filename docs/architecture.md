@@ -84,9 +84,9 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 
 ## Databases
 
-- The Child Chain talks to it's local RocksDB
-- The Watcher talks to it's local RocksDB
-- The Watcher Info talks to it's local RocksDB and PostgreSQL
+- The Child Chain talks to its local RocksDB
+- The Watcher talks to its local RocksDB
+- The Watcher Info talks to its local RocksDB and PostgreSQL
 
 ### `OMG.DB`
 

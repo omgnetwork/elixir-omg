@@ -6,7 +6,7 @@ Only **Linux** and **OSX** platforms are supported now. These instructions have 
 
 ## Prerequisites
 * **Erlang OTP** `>=21` (check with `elixir --version`)
-* **Elixir** `>=1.8.2` (check with `elixir --version`)
+* **Elixir** `=1.8.*` (check with `elixir --version`)
 
 ## Install prerequisite packages
 
