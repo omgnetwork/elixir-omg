@@ -114,7 +114,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     utxos =
       alice.addr
       |> WatcherHelper.get_utxos()
-      |> Enum.map(fn utxo -> Map.drop(utxo, ["creating_txhash", "spending_txhash"] end)
+      |> Enum.map(fn utxo -> Map.drop(utxo, ["creating_txhash", "spending_txhash"]) end)
 
     assert WatcherHelper.get_exitable_utxos(alice.addr) == utxos
     assert WatcherHelper.get_utxos(alice.addr) == []
