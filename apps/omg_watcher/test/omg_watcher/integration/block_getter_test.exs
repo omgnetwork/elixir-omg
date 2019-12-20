@@ -68,13 +68,20 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
              %{"blknum" => ^block_nr}
            ] = WatcherHelper.get_utxos(alice.addr)
 
-    # Drop watcher_info's creating_txhash and spending_txhash before comparing to security's exitable utxos
+    # utxos contain extra fields such as `spending_txhash` so we compare only the fields we expect from both.
+    fields = ["blknum", "txindex", "oindex", "utxo_pos", "amount", "currency", "owner"]
+
+    exitable_utxos =
+      alice.addr
+      |> WatcherHelper.get_exitable_utxos()
+      |> Enum.map(fn utxo -> Map.take(utxo, fields) end)
+
     utxos =
       alice.addr
       |> WatcherHelper.get_utxos()
-      |> Enum.map(fn utxo -> Map.drop(utxo, ["creating_txhash", "spending_txhash"]) end)
+      |> Enum.map(fn utxo -> Map.take(utxo, fields) end)
 
-    assert WatcherHelper.get_exitable_utxos(alice.addr) == utxos
+    assert utxos == exitable_utxos
 
     %{
       "utxo_pos" => utxo_pos,
@@ -114,13 +121,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     :ok = IntegrationTest.process_exits(2, token, alice)
     :ok = IntegrationTest.process_exits(1, @eth, alice)
 
-    # Drop watcher_info's creating_txhash and spending_txhash before comparing to security's exitable utxos
-    utxos =
-      alice.addr
-      |> WatcherHelper.get_utxos()
-      |> Enum.map(fn utxo -> Map.drop(utxo, ["creating_txhash", "spending_txhash"]) end)
-
-    assert WatcherHelper.get_exitable_utxos(alice.addr) == utxos
+    assert WatcherHelper.get_exitable_utxos(alice.addr) == []
     assert WatcherHelper.get_utxos(alice.addr) == []
   end
 
