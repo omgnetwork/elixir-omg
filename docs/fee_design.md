@@ -145,7 +145,7 @@ As a result, a high level steps of adding fee exit feature would be:
 ## FAQ
 
 Q1: Is it possible for the operator to start collecting fee now, but defer adding the new fee-exit ALD to some time in the future? 
-> Yes, it should be possible in the abandoned design. But be aware pre-collecting fee meanings we would need to put extra effort to migrate DB for fee feature during production on live. For instance, we would need to calculate the sum of fee while accepting new transactions, which might impact sum of fee too.
+> Yes, it should be possible in the abandoned design. But be aware pre-collecting fee meanings we would need to put extra effort to migrate DB for fee feature during production. For instance, we would need to calculate the sum of fees while accepting new transactions, which might impact sum of fees too.
 
 > In the chosen design, we can defer the fee-exit feature to the future but we would lose all fee pre-collected.
 
