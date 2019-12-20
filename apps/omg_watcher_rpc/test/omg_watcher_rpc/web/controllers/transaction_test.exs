@@ -645,7 +645,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]
-    test "returns appropriate schema", %{alice: alice, bob: bob} do
+    test "returns appropriate schema", %{alice: alice, bob: bob, more_utxos: inserted_txs} do
       alias OMG.Utxo
       require Utxo
 
@@ -656,6 +656,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       alice_addr = Encoding.to_hex(alice.addr)
       bob_addr = Encoding.to_hex(bob.addr)
       blknum = 5000
+      creating_txhash = inserted_txs |> Enum.at(0) |> elem(2) |> Encoding.to_hex()
 
       assert %{
                "result" => "complete",
@@ -668,7 +669,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                        "blknum" => ^blknum,
                        "txindex" => txindex,
                        "oindex" => oindex,
-                       "utxo_pos" => utxo_pos
+                       "utxo_pos" => utxo_pos,
+                       "creating_txhash" => ^creating_txhash,
+                       "spending_txhash" => nil
                      }
                      | _
                    ],
