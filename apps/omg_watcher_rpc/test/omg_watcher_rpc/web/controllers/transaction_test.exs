@@ -497,7 +497,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     result
   end
 
-  describe "/tranasction.submit with binary-encoded transaction" do
+  describe "/transaction.submit with binary-encoded transaction" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "handles incorrectly encoded parameter" do
       hex_without_0x = "5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21"
@@ -527,7 +527,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "/tranasction.submit with structural transaction" do
+  describe "/transaction.submit with structural transaction" do
     deffixture typed_data_request(alice, bob) do
       contract_addr = Application.fetch_env!(:omg_eth, :contract_addr)
       alice_addr = Encoding.to_hex(alice.addr)
