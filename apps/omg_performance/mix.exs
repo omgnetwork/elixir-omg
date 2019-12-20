@@ -25,15 +25,16 @@ defmodule OMG.Performance.MixProject do
 
   # we don't need the performance app in a production release
   defp elixirc_paths(:prod), do: []
-  defp elixirc_paths(:dev), do: ["lib", "test/support"]
+  defp elixirc_paths(:dev), do: []
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
   defp deps do
     [
       # TEST ONLY
-      {:briefly, "~> 0.3.0", only: [:dev, :test]},
+      {:briefly, "~> 0.3.0", only: [:test]},
       {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false},
       {:omg_child_chain_rpc, in_umbrella: true, only: [:test], runtime: false},
+      {:omg_eth, in_umbrella: true, only: [:test], runtime: false},
       {:omg_watcher, in_umbrella: true, only: [:test], runtime: false},
       {:omg_status, in_umbrella: true, only: [:test], runtime: false}
     ]
