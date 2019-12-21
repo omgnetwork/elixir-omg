@@ -2,26 +2,23 @@
 **Table of Contents**
 
 <!--ts-->
-   * [elixir-omg applications](#elixir-omg-applications)
-      * [Child chain server](#child-chain-server)
-         * [Using the child chain server's API](#using-the-child-chain-servers-api)
-            * [HTTP-RPC](#http-rpc)
-         * [Running a child chain in practice](#running-a-child-chain-in-practice)
-            * [Ethereum private key management](#ethereum-private-key-management)
-               * [geth](#geth)
-               * [parity](#parity)
-            * [Specifying the fees required](#specifying-the-fees-required)
-            * [Managing the operator address](#managing-the-operator-address)
-               * [Nonces restriction](#nonces-restriction)
-               * [Funding the operator address](#funding-the-operator-address)
-      * [Watcher and Watcher Info](#watcher-and-Watcher-info)
-         * [Modes of the watcher](#modes-of-the-watcher)
-         * [Using the watcher](#using-the-watcher)
-         * [Endpoints](#endpoints)
-         * [Ethereum private key management](#ethereum-private-key-management-1)
+  * [elixir-omg applications](#elixir-omg-applications)
+  * [Child chain server](#child-chain-server)
+  * [Using the child chain server's API](#using-the-child-chain-servers-api)
+    * [HTTP-RPC](#http-rpc)
+  * [Ethereum private key management](#ethereum-private-key-management)
+    * [geth](#geth)               
+  * [Managing the operator address](#managing-the-operator-address)
+  * [Nonces restriction](#nonces-restriction)
+  * [Funding the operator address](#funding-the-operator-address)
+  * [Watcher and Watcher Info](#watcher-and-Watcher-info)
+    * [Modes of the watcher](#modes-of-the-watcher)
+    * [Using the watcher](#using-the-watcher)
+    * [Endpoints](#endpoints)
+    
 
 
-# `elixir-omg` applications
+## `elixir-omg` applications
 
 `elixir-omg` is an umbrella app comprising of several Elixir applications:
 
@@ -51,11 +48,11 @@ See [application architecture](architecture.md) for more details.
 
 For the responsibilities and design of the child chain server see [Plasma Blockchain Design document](tesuji_blockchain_design.md).
 
-### Using the child chain server's API
+## Using the child chain server's API
 
 The child chain server is listening on port `9656` by default.
 
-#### HTTP-RPC
+### HTTP-RPC
 
 HTTP-RPC requests are served up on the port specified in `omg_child_chain_rpc`'s `config` (`:omg_child_chain_rpc, OMG.RPC.Web.Endpoint, http: [port: ...]`).
 The available RPC calls are defined by `omg_child_chain` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`.
@@ -64,9 +61,9 @@ Object's properties names correspond to the names of parameters. Binary values s
 
 For API documentation see: https://developer.omisego.co/elixir-omg/.
 
-# Ethereum private key management
+## Ethereum private key management
 
-## `geth`
+### `geth`
 
 Currently, the child chain server assumes that the authority account is unlocked or otherwise available on the Ethereum node.
 This might change in the future.
@@ -83,7 +80,7 @@ The [reorg protection mechanism](tesuji_blockchain_design.md#reorgs) enforces th
 Child block number `1000` uses Ethereum nonce `1`, child block number `2000` uses Ethereum nonce `2`, **always**.
 This provides a simple mechanism to avoid submitted blocks getting reordered in the root chain.
 
-This restriction is respected by the child chain server (`OMG.ChildChain.BlockQueue`), whereby the Ethereum nonce is simply derived from the child block number.
+This restriction is respected by the child chain server, whereby the Ethereum nonce is simply derived from the child block number.
 
 As a consequence, the operator address must never send any other transactions, if it intends to continue submitting blocks.
 (Workarounds to this limitation are available, if there's such requirement.)
@@ -170,11 +167,9 @@ For API documentation see: https://developer.omisego.co/elixir-omg/
 
 Watcher doesn't hold or manage user's keys.
 All signatures are assumed to be done outside.
-A planned exception may be to allow Watcher to sign challenges, but using a non-sensitive/low-funded Ethereum account.
 
 # Configuration parameters
 
-Per usual practice, the default values are defined in `apps/<app>/config/config.exs`.
 For docker deployments, and release deployments please refer to [Deployment Configuration](deployment_configuration.md).
 
 **NOTE**: all margins are denominated in Ethereum blocks

@@ -632,6 +632,8 @@ workflows:
           requires: [build]
       - barebuild_macos:
           requires: [build]
+      - test_barebone_release:
+          requires: [build]
   build-deploy:
     jobs:
       - build
@@ -657,8 +659,6 @@ workflows:
       - common_coveralls_and_integration_tests:
           requires: [build]
       - test_docker_compose_release:
-          requires: [build]
-      - test_barebone_release:
           requires: [build]
       - lint:
           requires: [build]
