@@ -14,7 +14,7 @@
             * [Managing the operator address](#managing-the-operator-address)
                * [Nonces restriction](#nonces-restriction)
                * [Funding the operator address](#funding-the-operator-address)
-      * [Watcher](#watcher)
+      * [Watcher and Watcher Info](#watcher-and-Watcher-info)
          * [Modes of the watcher](#modes-of-the-watcher)
          * [Using the watcher](#using-the-watcher)
          * [Endpoints](#endpoints)
@@ -255,5 +255,3 @@ If you set this to false, remember to set the logging level to `:debug` to see t
 * **`child_block_interval`** - mirror of contract configuration `uint256 constant public CHILD_BLOCK_INTERVAL` from `RootChain.sol`
 
 * **`min_exit_period_seconds`** - mirror of contract configuration `uint256 public minExitPeriod`
-
-* **`ethereum_client_warning_time_ms`** - queries for event logs made to the Ethereum node lasting more than this will emit a `:warn`-level log
