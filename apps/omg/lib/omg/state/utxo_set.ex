@@ -25,14 +25,14 @@ defmodule OMG.State.UtxoSet do
   """
 
   alias OMG.Crypto
-  alias OMG.InputPointer
+
   alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
 
   require Utxo
 
-  @type t() :: %{InputPointer.t() => Utxo.t()}
+  @type t() :: %{OMG.Utxo.Position.t() => Utxo.t()}
   @type query_result_t() :: list({OMG.DB.utxo_pos_db_t(), OMG.Utxo.t()})
 
   @spec init(query_result_t()) :: t()
@@ -47,7 +47,7 @@ defmodule OMG.State.UtxoSet do
   @doc """
   Provides the outputs that are pointed by `inputs` provided
   """
-  @spec get_by_inputs(t(), list(InputPointer.t())) ::
+  @spec get_by_inputs(t(), list(OMG.Utxo.Position.t())) ::
           {:ok, list(Output.t())} | {:error, :utxo_not_found}
   def get_by_inputs(utxos, inputs) do
     with {:ok, utxos_for_inputs} <- get_utxos_by_inputs(utxos, inputs),
@@ -57,7 +57,7 @@ defmodule OMG.State.UtxoSet do
   @doc """
   Updates itself given a list of spent input pointers and a map of UTXOs created upon a transaction
   """
-  @spec apply_effects(t(), list(InputPointer.t()), t()) :: t()
+  @spec apply_effects(t(), list(OMG.Utxo.Position.t()), t()) :: t()
   def apply_effects(utxos, spent_input_pointers, new_utxos_map) do
     utxos |> Map.merge(new_utxos_map) |> Map.drop(spent_input_pointers)
   end
@@ -65,7 +65,7 @@ defmodule OMG.State.UtxoSet do
   @doc """
   Returns the DB updates required given a list of spent input pointers and a map of UTXOs created upon a transaction
   """
-  @spec db_updates(list(InputPointer.t()), t()) ::
+  @spec db_updates(list(OMG.Utxo.Position.t()), t()) ::
           list({:put, :utxo, {Utxo.Position.db_t(), Utxo.t()}} | {:delete, :utxo, Utxo.Position.db_t()})
   def db_updates(spent_input_pointers, new_utxos_map) do
     db_updates_new_utxos = new_utxos_map |> Enum.map(&utxo_to_db_put/1)
@@ -73,7 +73,7 @@ defmodule OMG.State.UtxoSet do
     Enum.concat(db_updates_new_utxos, db_updates_spent_utxos)
   end
 
-  @spec exists?(t(), InputPointer.t()) :: boolean()
+  @spec exists?(t(), OMG.Utxo.Position.t()) :: boolean()
   def exists?(utxos, input_pointer),
     do: Map.has_key?(utxos, input_pointer)
 
@@ -82,7 +82,7 @@ defmodule OMG.State.UtxoSet do
 
   Current implementation is **expensive**
   """
-  @spec find_matching_utxo(t(), Transaction.tx_hash(), non_neg_integer()) :: {InputPointer.t(), Utxo.t()}
+  @spec find_matching_utxo(t(), Transaction.tx_hash(), non_neg_integer()) :: {OMG.Utxo.Position.t(), Utxo.t()}
   def find_matching_utxo(utxos, requested_txhash, oindex) do
     utxos
     |> Stream.filter(&utxo_kv_created_by?(&1, requested_txhash))

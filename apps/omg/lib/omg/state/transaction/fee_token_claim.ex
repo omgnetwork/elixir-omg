@@ -92,7 +92,6 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim do
-  alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Transaction
 
@@ -111,7 +110,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @spec get_outputs(Transaction.FeeTokenClaim.t()) :: list(Output.t())
   def get_outputs(%Transaction.FeeTokenClaim{outputs: outputs}), do: outputs
 
-  @spec get_inputs(Transaction.FeeTokenClaim.t()) :: list(InputPointer.t())
+  @spec get_inputs(Transaction.FeeTokenClaim.t()) :: list(OMG.Utxo.Position.t())
   def get_inputs(%Transaction.FeeTokenClaim{}), do: []
 
   @doc """

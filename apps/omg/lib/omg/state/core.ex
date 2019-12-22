@@ -51,7 +51,7 @@ defmodule OMG.State.Core do
   alias OMG.Block
   alias OMG.Crypto
   alias OMG.Fees
-  alias OMG.InputPointer
+
   alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
@@ -72,7 +72,7 @@ defmodule OMG.State.Core do
           utxo_db_updates: list(db_update()),
           # NOTE: because UTXO set is not loaded from DB entirely, we need to remember the UTXOs spent in already
           # processed transaction before they get removed from DB on form_block.
-          recently_spent: MapSet.t(InputPointer.t())
+          recently_spent: MapSet.t(OMG.Utxo.Position.t())
         }
 
   @type deposit() :: %{
@@ -147,7 +147,7 @@ defmodule OMG.State.Core do
   @doc """
   Tell whether utxo position was created or spent by current state.
   """
-  @spec utxo_processed?(InputPointer.t(), t()) :: boolean()
+  @spec utxo_processed?(OMG.Utxo.Position.t(), t()) :: boolean()
   def utxo_processed?(utxo_pos, %Core{utxos: utxos, recently_spent: recently_spent}) do
     Map.has_key?(utxos, utxo_pos) or MapSet.member?(recently_spent, utxo_pos)
   end

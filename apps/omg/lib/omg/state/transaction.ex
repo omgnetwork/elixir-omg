@@ -130,7 +130,6 @@ defprotocol OMG.State.Transaction.Protocol do
   Should be implemented for any type of transaction processed in the system
   """
 
-  alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Transaction
 
@@ -143,7 +142,7 @@ defprotocol OMG.State.Transaction.Protocol do
   @doc """
   List of input pointers (e.g. of which one implementation is `utxo_pos`) this transaction is intending to spend
   """
-  @spec get_inputs(t()) :: list(InputPointer.t())
+  @spec get_inputs(t()) :: list(OMG.Utxo.Position.t())
   def get_inputs(tx)
 
   @doc """

@@ -21,7 +21,7 @@ defmodule OMG.State.PersistenceTest do
   use OMG.Utils.LoggerExt
 
   alias OMG.Block
-  alias OMG.InputPointer
+
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias Support.WaitFor

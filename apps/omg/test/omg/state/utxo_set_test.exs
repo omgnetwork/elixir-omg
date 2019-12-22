@@ -19,7 +19,6 @@ defmodule OMG.State.UtxoSetTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.InputPointer
   alias OMG.State.Transaction
   alias OMG.State.UtxoSet
   alias OMG.Utxo

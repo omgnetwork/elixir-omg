@@ -19,7 +19,7 @@ defmodule OMG.State.Transaction.Payment do
   This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
   """
   alias OMG.Crypto
-  alias OMG.InputPointer
+
   alias OMG.Output
   alias OMG.RawData
   alias OMG.State.Transaction
@@ -36,7 +36,7 @@ defmodule OMG.State.Transaction.Payment do
 
   @type t() :: %__MODULE__{
           tx_type: non_neg_integer(),
-          inputs: list(InputPointer.t()),
+          inputs: list(OMG.Utxo.Position.t()),
           outputs: list(Output.t()),
           metadata: Transaction.metadata()
         }
@@ -150,7 +150,6 @@ defmodule OMG.State.Transaction.Payment do
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
-  alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -179,7 +178,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   @spec get_outputs(Transaction.Payment.t()) :: list(Output.t())
   def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
 
-  @spec get_inputs(Transaction.Payment.t()) :: list(InputPointer.t())
+  @spec get_inputs(Transaction.Payment.t()) :: list(OMG.Utxo.Position.t())
   def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
 
   @doc """
