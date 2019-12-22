@@ -33,18 +33,14 @@ defmodule OMG.WireFormatTypes do
     input_pointer_utxo_position: 1
   }
 
-  @input_pointer_type_modules %{
-    1 => OMG.InputPointer.UtxoPosition
-  }
-
   @output_type_values %{
     output_payment_v1: 1,
     output_fee_token_claim: 2
   }
 
   @output_type_modules %{
-    1 => OMG.Output.FungibleMoreVPToken,
-    2 => OMG.Output.FungibleMoreVPToken
+    1 => OMG.Output,
+    2 => OMG.Output
   }
 
   @known_tx_types Map.keys(@tx_type_values)
@@ -69,12 +65,6 @@ defmodule OMG.WireFormatTypes do
   @spec input_pointer_type_for(input_pointer_type :: atom()) :: non_neg_integer()
   def input_pointer_type_for(input_pointer_type) when input_pointer_type in @known_input_pointer_types,
     do: @input_pointer_type_values[input_pointer_type]
-
-  @doc """
-  Returns module atom that is able to decode input pointer of given type
-  """
-  @spec input_pointer_type_modules() :: module_map_t()
-  def input_pointer_type_modules, do: @input_pointer_type_modules
 
   @doc """
   Returns wire format type value of known output type

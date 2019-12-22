@@ -29,7 +29,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
 
   @type t() :: %__MODULE__{
           tx_type: non_neg_integer(),
-          outputs: [Output.FungibleMoreVPToken.t()],
+          outputs: [Output.t()],
           nonce: Crypto.hash_t()
         }
 
@@ -44,7 +44,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
     %__MODULE__{
       tx_type: @fee_token_claim_tx_type,
       outputs: [
-        %Output.FungibleMoreVPToken{
+        %Output{
           owner: owner,
           currency: currency,
           amount: amount,
@@ -67,7 +67,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
   def reconstruct(_), do: {:error, :malformed_transaction}
 
   defp reconstruct_outputs(outputs_rlp) do
-    outputs = Enum.map(outputs_rlp, &Output.dispatching_reconstruct/1)
+    outputs = Enum.map(outputs_rlp, &Output.reconstruct/1)
 
     with nil <- Enum.find(outputs, &match?({:error, _}, &1)),
          true <- only_allowed_output_types?(outputs) || {:error, :tx_cannot_create_output_type},
@@ -79,7 +79,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
   defp reconstruct_nonce(nonce) when is_binary(nonce) and byte_size(nonce) == 32, do: {:ok, nonce}
   defp reconstruct_nonce(_), do: {:error, :malformed_nonce}
 
-  defp only_allowed_output_types?([%Output.FungibleMoreVPToken{}]), do: true
+  defp only_allowed_output_types?([%Output{}]), do: true
   defp only_allowed_output_types?(_), do: false
 
   @spec to_nonce(non_neg_integer(), Transaction.Payment.currency()) :: Crypto.hash_t()
@@ -92,7 +92,6 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim do
-  alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Transaction
 
@@ -103,15 +102,15 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   def get_data_for_rlp(%Transaction.FeeTokenClaim{tx_type: tx_type, outputs: outputs, nonce: nonce}) do
     [
       tx_type,
-      Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
+      Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
       nonce
     ]
   end
 
-  @spec get_outputs(Transaction.FeeTokenClaim.t()) :: list(Output.Protocol.t())
+  @spec get_outputs(Transaction.FeeTokenClaim.t()) :: list(Output.t())
   def get_outputs(%Transaction.FeeTokenClaim{outputs: outputs}), do: outputs
 
-  @spec get_inputs(Transaction.FeeTokenClaim.t()) :: list(InputPointer.Protocol.t())
+  @spec get_inputs(Transaction.FeeTokenClaim.t()) :: list(OMG.Utxo.Position.t())
   def get_inputs(%Transaction.FeeTokenClaim{}), do: []
 
   @doc """
@@ -123,6 +122,6 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @doc """
   Fee claiming transaction is not used to transfer funds
   """
-  @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.Protocol.t())) :: {:error, atom()}
+  @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.t())) :: {:error, atom()}
   def can_apply?(%Transaction.FeeTokenClaim{}, _outputs_spent), do: {:error, :not_implemented}
 end

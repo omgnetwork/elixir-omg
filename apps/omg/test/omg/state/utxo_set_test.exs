@@ -19,7 +19,6 @@ defmodule OMG.State.UtxoSetTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.InputPointer
   alias OMG.State.Transaction
   alias OMG.State.UtxoSet
   alias OMG.Utxo
@@ -41,7 +40,7 @@ defmodule OMG.State.UtxoSetTest do
       inputs
       |> Enum.zip(outputs)
       |> Enum.map(fn {input, output} -> {input, %Utxo{output: output, creating_txhash: <<1>>}} end)
-      |> Enum.map(fn {input, utxo} -> {InputPointer.Protocol.to_db_key(input), Utxo.to_db_value(utxo)} end)
+      |> Enum.map(fn {input, utxo} -> {Utxo.Position.to_input_db_key(input), Utxo.to_db_value(utxo)} end)
 
     utxo_set = UtxoSet.init(db_query_result)
 
