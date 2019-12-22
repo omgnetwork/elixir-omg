@@ -29,14 +29,14 @@ defmodule OMG.Utxo.Position do
   @type t() :: {
           :utxo_position,
           # blknum
-          non_neg_integer,
+          non_neg_integer(),
           # txindex
-          non_neg_integer,
+          non_neg_integer(),
           # oindex
-          non_neg_integer
+          non_neg_integer()
         }
 
-  @type db_t() :: {non_neg_integer, non_neg_integer, non_neg_integer}
+  @type db_t() :: {non_neg_integer(), non_neg_integer(), non_neg_integer()}
 
   @type input_db_key_t() :: {:input_pointer, pos_integer(), db_t()}
 
@@ -111,7 +111,7 @@ defmodule OMG.Utxo.Position do
       iex> OMG.Utxo.Position.to_input_db_key(utxo_pos)
       {:input_pointer, 1, {1, 2, 3}}
   """
-  @spec to_db_key(t()) :: input_db_key_t()
+  @spec to_input_db_key(t()) :: {:input_pointer, unquote(@input_pointer_output_type), db_t()}
   def to_input_db_key(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
     do: {:input_pointer, @input_pointer_output_type, {blknum, txindex, oindex}}
 

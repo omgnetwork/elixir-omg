@@ -19,6 +19,7 @@ defmodule OMG.Output do
 
   This module specificially dispatches generic calls to the various specific types
   """
+  alias OMG.Crypto
 
   @type t :: %__MODULE__{
           output_type: binary(),

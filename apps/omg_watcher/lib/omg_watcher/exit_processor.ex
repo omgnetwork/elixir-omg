@@ -24,7 +24,6 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
-  alias OMG.InputPointer
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo

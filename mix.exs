@@ -33,7 +33,7 @@ defmodule OMG.Umbrella.MixProject do
   defp deps do
     [
       {:distillery, "~> 2.1", runtime: false},
-      {:dialyxir, "~> 1.0.0-rc.6", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.0.5", only: [:dev, :test], runtime: false},
       # https://github.com/xadhoom/excoveralls.git `52c6c8e5d7fe9abb814e5e3e546c863b9b2b41b7` rebased on `master`
       # more or less around v0.11.1
