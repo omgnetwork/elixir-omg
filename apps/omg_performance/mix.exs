@@ -32,7 +32,7 @@ defmodule OMG.Performance.MixProject do
   defp deps do
     [
       # TEST ONLY
-      {:briefly, "~> 0.3.0", only: [:test]},
+      {:briefly, "~> 0.3.0", only: [:dev, :test]},
       {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false},
       {:omg_child_chain_rpc, in_umbrella: true, only: [:test], runtime: false},
       {:omg_eth, in_umbrella: true, only: [:test], runtime: false},
