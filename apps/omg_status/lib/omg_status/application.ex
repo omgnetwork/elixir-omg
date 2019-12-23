@@ -42,7 +42,7 @@ defmodule OMG.Status.Application do
         ]
       end
 
-    child = [{AlarmPrinter, []}]
+    child = [{AlarmPrinter, [alarm_module: Alarm]}]
     Supervisor.start_link(children ++ child, strategy: :one_for_one, name: Status.Supervisor)
   end
 

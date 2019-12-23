@@ -31,10 +31,16 @@ defmodule OMG.Status.Alert.Alarm do
            | :ethereum_client_connection
            | :invalid_fee_file
            | :statsd_client_connection
-           | :chain_crash, alarm_detail}
+           | :main_supervisor_halted, alarm_detail}
 
   def alarm_types(),
-    do: [:boot_in_progress, :ethereum_client_connection, :invalid_fee_file, :statsd_client_connection, :chain_crash]
+    do: [
+      :boot_in_progress,
+      :ethereum_client_connection,
+      :invalid_fee_file,
+      :statsd_client_connection,
+      :main_supervisor_halted
+    ]
 
   @spec statsd_client_connection(module()) :: {:statsd_client_connection, alarm_detail}
   def statsd_client_connection(reporter),
@@ -52,9 +58,9 @@ defmodule OMG.Status.Alert.Alarm do
   def invalid_fee_file(reporter),
     do: {:invalid_fee_file, %{node: Node.self(), reporter: reporter}}
 
-  @spec chain_crash(module()) :: {:chain_crash, alarm_detail}
-  def chain_crash(reporter),
-    do: {:chain_crash, %{node: Node.self(), reporter: reporter}}
+  @spec main_supervisor_halted(module()) :: {:main_supervisor_halted, alarm_detail}
+  def main_supervisor_halted(reporter),
+    do: {:main_supervisor_halted, %{node: Node.self(), reporter: reporter}}
 
   @spec set(alarms()) :: :ok | :duplicate
   def set(alarm), do: do_raise(alarm)

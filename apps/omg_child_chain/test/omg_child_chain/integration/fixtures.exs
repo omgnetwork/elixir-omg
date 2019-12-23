@@ -18,6 +18,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
 
+  alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
   alias OMG.TestHelper
   alias Support.DevHelper
@@ -74,7 +75,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
-    :ok
+    wait_for_web()
   end
 
   deffixture alice_deposits(alice, token) do
@@ -95,5 +96,16 @@ defmodule OMG.ChildChain.Integration.Fixtures do
     token_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value, token_addr)
 
     {deposit_blknum, token_deposit_blknum}
+  end
+
+  defp wait_for_web() do
+    case apply(OMG.ChildChainRPC.Web.TestHelper, :rpc_call, [:post, "/transaction.submit", %{}]) do
+      %{"data" => %{"code" => "operation:service_unavailable"}} ->
+        Process.sleep(100)
+        wait_for_web()
+
+      _ ->
+        :ok
+    end
   end
 end

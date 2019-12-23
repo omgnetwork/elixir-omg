@@ -20,6 +20,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
 
+  alias OMG.ChildChain.ChildManager
   alias OMG.ChildChain.CoordinatorSetup
   alias OMG.ChildChain.Monitor
   alias OMG.Eth.RootChain
@@ -35,7 +36,6 @@ defmodule OMG.ChildChain.SyncSupervisor do
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    {:ok, _tref} = :timer.send_after(5_000, :health_checkin)
     Supervisor.init(children(), opts)
   end
 
@@ -66,17 +66,13 @@ defmodule OMG.ChildChain.SyncSupervisor do
         synced_height_update_key: :last_exiter_eth_height,
         get_events_callback: &RootChain.get_standard_exits_started/2,
         process_events_callback: &exit_and_ignore_validities/1
-      )
+      ),
+      {ChildManager, [monitor: Monitor]}
     ]
   end
 
   defp exit_and_ignore_validities(exits) do
     {status, db_updates, _validities} = State.exit_utxos(exits)
     {status, db_updates}
-  end
-
-  def handle_info(:health_checkin, state) do
-    :ok = Monitor.health_checkin()
-    {:noreply, state}
   end
 end

@@ -23,7 +23,9 @@ defmodule OMG.Watcher.SyncSupervisor do
   alias OMG.Eth
   alias OMG.EthereumEventListener
   alias OMG.Watcher
+  alias OMG.Watcher.ChildManager
   alias OMG.Watcher.CoordinatorSetup
+  alias OMG.Watcher.Monitor
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -105,7 +107,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         synced_height_update_key: :last_ife_exit_finalizer_eth_height,
         get_events_callback: &Eth.RootChain.get_in_flight_exit_finalizations/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
-      )
+      ),
+      {ChildManager, [monitor: Monitor]}
     ]
   end
 end
