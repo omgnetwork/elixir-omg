@@ -13,7 +13,7 @@ defmodule OMG.XomgTasks.MixProject do
       build_path: "../../_build",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: "~> 1.6",
+      elixir: "~> 1.8",
       elixirc_paths: ["lib"],
       start_permanent: false,
       deps: []
