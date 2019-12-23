@@ -38,7 +38,7 @@ To exit fees, an operator puts a special fee transaction into a plasma chain blo
 A fee transaction is unique from a normal transaction in that:
 
 1. It does not need to consume any inputs. As the fee is implied (at least for the *payment* transactions), there is no output that consumes an input.
-2. The verification of the fee transaction relies on Child Chain and Watcher only. 
+2. Verification of transaction fees occur only on the Child Chain and Watcher.
 
 The Plasma MoreVP security relies on the Watcher, not the contracts,  to verify the validity of a transaction fee. If an invalid transaction fee is mined, the Watcher will consider an operator as "rogue" and notify users to mass exit the network.
 
