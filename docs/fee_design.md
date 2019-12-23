@@ -15,7 +15,7 @@ This document describes the design for fee exits. It starts with the requirement
    3. fixed token price, floating with USD or other fiat.
 
 ### Non-functional Requirement
-1. A Fee exit does not take longer time than normal exit.
+1. A Fee exit does not take more time than a normal exit to process.
 2. A Fee exit can batch-exit multiple fees collected in different transactions.
 
 ### Out of Scope
