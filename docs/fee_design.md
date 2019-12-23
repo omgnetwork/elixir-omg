@@ -31,7 +31,7 @@ The transaction fee is implied for a *payment* transaction. It is the difference
 
 To exit fees, an operator puts a special fee transaction into a plasma chain block. This allows the operator to spend the transaction fee output as a Payment transaction. By leveraging MoreVP, we only need a contract to represent the fee transaction type and can use the pre-existing exit game contract.
 
-A fee transaction is special and different from a normal transaction in that:
+A fee transaction is unique from a normal transaction in that:
 
 1. It does not need to consume any inputs. As the fee is implied (at least for the *payment* transactions), there is no output that consumes an input.
 2. The verification of the fee transaction relies on Child Chain and Watcher only. 
