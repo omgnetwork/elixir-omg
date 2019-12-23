@@ -27,7 +27,11 @@ The fee rules are enforced and implemented only on the child chain. While a POA 
 
 Child chain operators implement the format and rules for fees on a transaction, not the contracts. This is the case as long as the Plasma network runs as a POA.
 
-The transaction fee is implied for a *payment* transaction. It is the difference of the sum of inputs and the sum of outputs. For instance, if the sum of inputs is 10 ETH and sum of outputs is 9.9 Eth, the 0.1 Eth difference would be the transaction fee.
+Transaction fees are an implied behavior for a Payment Transaction. It is calculated by the difference between a transaction's sum of inputs and it's sum of outputs. For instance:
+
+The sum of inputs is 10 ETH
+The sum of outputs is 9.9 ETH
+The transaction fee is 0.1 ETH
 
 To exit fees, an operator puts a special fee transaction into a plasma chain block. This allows the operator to spend the transaction fee output as a Payment transaction. By leveraging MoreVP, we only need a contract to represent the fee transaction type and can use the pre-existing exit game contract.
 
