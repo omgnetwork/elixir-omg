@@ -42,7 +42,7 @@ A fee transaction is unique from a normal transaction in that:
 
 The Plasma MoreVP security relies on the Watcher, not the contracts,  to verify the validity of a transaction fee. If an invalid transaction fee is mined, the Watcher will consider an operator as "rogue" and notify users to mass exit the network.
 
-This decoupling of fee rule from smart contract gives the operator a more fine-tuned control on updating the fee rules. See the following paragraph for fee rule changes.
+This decoupling of fee rule from smart contract gives the operator a more fine-tuned control on updating the fee rules.
 
 ### Fee rules upgrade/change
 
