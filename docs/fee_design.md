@@ -27,7 +27,7 @@ The fee rules are enforced and implemented only on the child chain. While a POA 
 
 Child chain operators implement the format and rules for fees on a transaction, not the contracts. This is the case as long as the Plasma network runs as a POA.
 
-Transaction fees are an implied behavior for a Payment Transaction. It is calculated by the difference between a transaction's sum of inputs and it's sum of outputs. For instance:
+Transaction fees are an implied behavior for a Payment Transaction. It is calculated by the difference between a transaction's sum of inputs and its sum of outputs. For instance:
 
 The sum of inputs is 10 ETH
 The sum of outputs is 9.9 ETH
