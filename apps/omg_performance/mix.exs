@@ -23,9 +23,10 @@ defmodule OMG.Performance.MixProject do
     ]
   end
 
-  # we don't need the performance app in a production release
+  # Specifies which paths to compile per environment.
+  # We don't need the performance app in a production release
   defp elixirc_paths(:prod), do: []
-  defp elixirc_paths(:dev), do: []
+  defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
   defp deps do
