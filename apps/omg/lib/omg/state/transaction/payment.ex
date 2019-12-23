@@ -19,7 +19,7 @@ defmodule OMG.State.Transaction.Payment do
   This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
   """
   alias OMG.Crypto
-  alias OMG.InputPointer
+
   alias OMG.Output
   alias OMG.RawData
   alias OMG.State.Transaction
@@ -36,8 +36,8 @@ defmodule OMG.State.Transaction.Payment do
 
   @type t() :: %__MODULE__{
           tx_type: non_neg_integer(),
-          inputs: list(InputPointer.Protocol.t()),
-          outputs: list(Output.FungibleMoreVPToken.t()),
+          inputs: list(OMG.Utxo.Position.t()),
+          outputs: list(Output.t()),
           metadata: Transaction.metadata()
         }
 
@@ -100,7 +100,7 @@ defmodule OMG.State.Transaction.Payment do
   defp new_input({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
 
   defp new_output({owner, currency, amount}) do
-    %Output.FungibleMoreVPToken{
+    %Output{
       owner: owner,
       currency: currency,
       amount: amount,
@@ -134,7 +134,7 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   defp parse_outputs(outputs_rlp) do
-    outputs = Enum.map(outputs_rlp, &Output.dispatching_reconstruct/1)
+    outputs = Enum.map(outputs_rlp, &Output.reconstruct/1)
 
     with nil <- Enum.find(outputs, &match?({:error, _}, &1)),
          true <- only_allowed_output_types?(outputs) || {:error, :tx_cannot_create_output_type},
@@ -144,15 +144,12 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   defp only_allowed_output_types?(outputs),
-    do: Enum.all?(outputs, &match?(%Output.FungibleMoreVPToken{}, &1))
+    do: Enum.all?(outputs, &match?(%Output{}, &1))
 
-  # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
-  #       most likely one needs to route through generic InputPointer` function that does the dispatch
-  defp parse_input!(input_pointer), do: InputPointer.UtxoPosition.reconstruct(input_pointer)
+  defp parse_input!(encoded), do: OMG.Utxo.Position.decode!(encoded)
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
-  alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -170,18 +167,18 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
       when Transaction.is_metadata(metadata),
       do: [
         tx_type,
-        Enum.map(inputs, &OMG.InputPointer.Protocol.get_data_for_rlp/1),
-        Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
+        Enum.map(inputs, &OMG.Utxo.Position.get_data_for_rlp/1),
+        Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
         0,
         metadata
       ]
 
-  @spec get_outputs(Transaction.Payment.t()) :: list(Output.Protocol.t())
+  @spec get_outputs(Transaction.Payment.t()) :: list(Output.t())
   def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
 
-  @spec get_inputs(Transaction.Payment.t()) :: list(InputPointer.Protocol.t())
+  @spec get_inputs(Transaction.Payment.t()) :: list(OMG.Utxo.Position.t())
   def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
 
   @doc """
@@ -202,7 +199,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   Returns the fees that this transaction is paying, mapped by currency
   """
-  @spec can_apply?(Transaction.Payment.t(), list(Output.Protocol.t())) ::
+  @spec can_apply?(Transaction.Payment.t(), list(Output.t())) ::
           {:ok, map()} | {:error, :amounts_do_not_add_up}
   def can_apply?(%Transaction.Payment{} = tx, outputs_spent) do
     outputs = Transaction.get_outputs(tx)

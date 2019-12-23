@@ -130,7 +130,6 @@ defprotocol OMG.State.Transaction.Protocol do
   Should be implemented for any type of transaction processed in the system
   """
 
-  alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Transaction
 
@@ -143,13 +142,13 @@ defprotocol OMG.State.Transaction.Protocol do
   @doc """
   List of input pointers (e.g. of which one implementation is `utxo_pos`) this transaction is intending to spend
   """
-  @spec get_inputs(t()) :: list(InputPointer.Protocol.t())
+  @spec get_inputs(t()) :: list(OMG.Utxo.Position.t())
   def get_inputs(tx)
 
   @doc """
   List of outputs this transaction intends to create
   """
-  @spec get_outputs(t()) :: list(Output.Protocol.t())
+  @spec get_outputs(t()) :: list(Output.t())
   def get_outputs(tx)
 
   @doc """
@@ -164,6 +163,6 @@ defprotocol OMG.State.Transaction.Protocol do
 
   Should also return the fees that this transaction is paying, mapped by currency; for fee validation
   """
-  @spec can_apply?(t(), Output.Protocol.t()) :: {:ok, map()} | {:error, atom}
+  @spec can_apply?(t(), Output.t()) :: {:ok, map()} | {:error, atom}
   def can_apply?(tx, input_utxos)
 end

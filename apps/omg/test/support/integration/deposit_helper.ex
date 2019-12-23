@@ -52,9 +52,7 @@ defmodule Support.Integration.DepositHelper do
   end
 
   defp process_deposit(%{"blockNumber" => deposit_eth_height} = receipt) do
-    deposit_eth_height
-    |> wait_deposit_recognized()
-
+    _ = wait_deposit_recognized(deposit_eth_height)
     RootChainHelper.deposit_blknum_from_receipt(receipt)
   end
 

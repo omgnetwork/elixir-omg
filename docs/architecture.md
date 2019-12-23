@@ -64,7 +64,6 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 - manages concurrent `Task`'s to pull blocks from child chain server API (JSON-RPC)
 - pushes decoded and statelessly valid blocks to `OMG.State`
 - pushes statefully valid blocks and transactions (acknowledged by `OMG.State` above) to `WatcherDB`
-- emits block, transaction, consensus events to `OMG.Watcher.Eventer`
 - stops if `OMG.Watcher.ExitProcessor` reports a dangerous byzantine condition related to exits
 
 ### `OMG.Watcher.ExitProcessor`
@@ -77,20 +76,18 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 ### `OMG.WatcherRPC`
 
 - uses `OMG.Watcher` to server user's requests
-- subscribes to event buses to `OMG.Watcher.Eventer`
-
-### `OMG.Watcher.Eventer`
-
-- pushes events to `Phoenix app`
 
 ### `OMG.Performance`
 
-- executes requests to `OMG.RPC`
+- executes requests to `OMG.WatcherRPC`
+- executes requests to `OMG.ChildChainRPC`
 - forces block forming by talking directly to `OMG.State`
 
 ## Databases
 
-The confusing (and to be probably amended in the future) part is that we have two databases
+- The Child Chain talks to its local RocksDB
+- The Watcher talks to its local RocksDB
+- The Watcher Info talks to its local RocksDB and PostgreSQL
 
 ### `OMG.DB`
 
@@ -107,7 +104,7 @@ Database necessary to properly ensure validity and availability of blocks and tr
 - it is read by many other processes to discover where they left off, on restart
 - it is used for the Watcher's security critical features to access exits info and blocks
 
-### WatcherDB
+### Watcher Info DB
 
 A database running used by the Watcher in convenience API mode **only**.
 
