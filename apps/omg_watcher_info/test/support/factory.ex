@@ -102,13 +102,11 @@ defmodule OMG.WatcherInfo.Factory do
   These two values need to be overridden depending on the transaction you aim to build.
   """
   def txoutput_factory() do
-    owner = OMG.TestHelper.generate_entity()
-
     %DB.TxOutput{
       blknum: insert(:block).blknum,
       txindex: 0,
       oindex: 0,
-      owner: owner.addr,
+      owner: insecure_random_bytes(20),
       amount: 100,
       currency: @eth,
       proof: insecure_random_bytes(32),
