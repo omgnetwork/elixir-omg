@@ -65,47 +65,49 @@ defmodule OMG.Fees do
   and under particular fee specs listed in `fee_map`.
 
   ## Examples
-
-      iex> OMG.Fees.for_transaction(%OMG.State.Transaction.Recovered{signed_tx: %OMG.State.Transaction.Signed{raw_tx: OMG.State.Transaction.Payment.new([], [], <<0::256>>)}},
-      ...> %{
-      ...>  1 => %{
-      ...>    "eth" => %{
-      ...>      amount: 1,
-      ...>      subunit_to_unit: 1000000000000000000,
-      ...>      pegged_amount: 4,
-      ...>      pegged_currency: "USD",
-      ...>      pegged_subunit_to_unit: 100,
-      ...>      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>    },
-      ...>    "omg" => %{
-      ...>      amount: 3,
-      ...>      subunit_to_unit: 1000000000000000000,
-      ...>      pegged_amount: 4,
-      ...>      pegged_currency: "USD",
-      ...>      pegged_subunit_to_unit: 100,
-      ...>      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>    }
-      ...>  }
-      ...> }
-      ...>)
-      %{
-        "eth" => %{
-          amount: 1,
-          subunit_to_unit: 1000000000000000000,
-          pegged_amount: 4,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-        },
-        "omg" => %{
-          amount: 3,
-          subunit_to_unit: 1000000000000000000,
-          pegged_amount: 4,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-        }
-      }
+  iex> OMG.Fees.for_transaction(
+  ...> %OMG.State.Transaction.Recovered{
+  ...>   signed_tx: %OMG.State.Transaction.Signed{raw_tx: OMG.State.Transaction.Payment.new([], [], <<0::256>>)}
+  ...> },
+  ...> %{
+  ...>   1 => %{
+  ...>     "eth" => %{
+  ...>       amount: 1,
+  ...>       subunit_to_unit: 1_000_000_000_000_000_000,
+  ...>       pegged_amount: 4,
+  ...>       pegged_currency: "USD",
+  ...>       pegged_subunit_to_unit: 100,
+  ...>       updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+  ...>     },
+  ...>     "omg" => %{
+  ...>       amount: 3,
+  ...>       subunit_to_unit: 1_000_000_000_000_000_000,
+  ...>       pegged_amount: 4,
+  ...>       pegged_currency: "USD",
+  ...>       pegged_subunit_to_unit: 100,
+  ...>       updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+  ...>     }
+  ...>   }
+  ...> }
+  ...> )
+  %{
+    "eth" => %{
+      amount: 1,
+      subunit_to_unit: 1000000000000000000,
+      pegged_amount: 4,
+      pegged_currency: "USD",
+      pegged_subunit_to_unit: 100,
+      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+    },
+    "omg" => %{
+      amount: 3,
+      subunit_to_unit: 1000000000000000000,
+      pegged_amount: 4,
+      pegged_currency: "USD",
+      pegged_subunit_to_unit: 100,
+      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+    }
+  }
 
   """
   @spec for_transaction(Transaction.Recovered.t(), full_fee_t()) :: optional_fee_t()
@@ -124,123 +126,4 @@ defmodule OMG.Fees do
   end
 
   defp get_fee_for_type(_, _fee_map), do: %{}
-
-  @doc ~S"""
-  Returns a filtered map of fees given a list of transaction types and currencies.
-  Passing a nil value or an empty array skip the filtering.
-
-  ## Examples
-
-      iex> OMG.Fees.filter_fees(
-      ...>   %{
-      ...>     1 => %{
-      ...>       "eth" => %{
-      ...>         amount: 1,
-      ...>         subunit_to_unit: 1_000_000_000_000_000_000,
-      ...>         pegged_amount: 4,
-      ...>         pegged_currency: "USD",
-      ...>         pegged_subunit_to_unit: 100,
-      ...>         updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>       },
-      ...>       "omg" => %{
-      ...>         amount: 3,
-      ...>         subunit_to_unit: 1_000_000_000_000_000_000,
-      ...>         pegged_amount: 4,
-      ...>         pegged_currency: "USD",
-      ...>         pegged_subunit_to_unit: 100,
-      ...>         updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>       }
-      ...>     },
-      ...>     2 => %{
-      ...>       "omg" => %{
-      ...>         amount: 3,
-      ...>         subunit_to_unit: 1_000_000_000_000_000_000,
-      ...>         pegged_amount: 4,
-      ...>         pegged_currency: "USD",
-      ...>         pegged_subunit_to_unit: 100,
-      ...>         updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>       }
-      ...>     },
-      ...>     3 => %{
-      ...>       "omg" => %{
-      ...>         amount: 3,
-      ...>         subunit_to_unit: 1_000_000_000_000_000_000,
-      ...>         pegged_amount: 4,
-      ...>         pegged_currency: "USD",
-      ...>         pegged_subunit_to_unit: 100,
-      ...>         updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>       }
-      ...>     }
-      ...>   },
-      ...>   [1,2],
-      ...>   ["eth"]
-      ...> )
-      {:ok,
-        %{
-          1 => %{
-            "eth" => %{
-              amount: 1,
-              subunit_to_unit: 1_000_000_000_000_000_000,
-              pegged_amount: 4,
-              pegged_currency: "USD",
-              pegged_subunit_to_unit: 100,
-              updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-            }
-          },
-          2 => %{}
-        }
-      }
-
-  """
-  @spec filter_fees(full_fee_t(), list(pos_integer()), list(String.t()) | nil) ::
-          {:ok, full_fee_t()} | {:error, :currency_fee_not_supported}
-  # empty list = no filter
-  def filter_fees(fees, []), do: {:ok, fees}
-  def filter_fees(fees, nil), do: {:ok, fees}
-
-  def filter_fees(fees, tx_types, currencies) do
-    with {:ok, fees} <- filter_tx_type(fees, tx_types) do
-      filtter_currency(fees, currencies)
-    end
-  end
-
-  defp filter_tx_type(fees, []), do: {:ok, fees}
-  defp filter_tx_type(fees, nil), do: {:ok, fees}
-
-  defp filter_tx_type(fees, tx_types) do
-    with :ok <- validate_tx_types(tx_types, fees), do: {:ok, Map.take(fees, tx_types)}
-  end
-
-  defp validate_tx_types(tx_types, fees) do
-    tx_types
-    |> Enum.all?(&Map.has_key?(fees, &1))
-    |> case do
-      true -> :ok
-      false -> {:error, :tx_type_not_supported}
-    end
-  end
-
-  defp filtter_currency(fees, []), do: {:ok, fees}
-  defp filtter_currency(fees, nil), do: {:ok, fees}
-
-  defp filtter_currency(fees, currencies) do
-    with :ok <- validate_currencies(currencies, fees) do
-      {:ok, do_filter_currencies(currencies, fees)}
-    end
-  end
-
-  defp validate_currencies(currencies, fees) do
-    currencies
-    |> Enum.all?(fn currency -> Enum.any?(fees, &Map.has_key?(elem(&1, 1), currency)) end)
-    |> case do
-      true -> :ok
-      false -> {:error, :currency_fee_not_supported}
-    end
-  end
-
-  defp do_filter_currencies(currencies, fees) do
-    fees
-    |> Enum.map(&{elem(&1, 0), Map.take(elem(&1, 1), currencies)})
-    |> Enum.into(%{})
-  end
 end
