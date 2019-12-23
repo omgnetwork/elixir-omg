@@ -19,7 +19,7 @@ This document describes the design for fee exits. It starts with the requirement
 2. A Fee exit can batch-exit multiple fees collected in different transactions.
 
 ### Out of Scope
-1. The fee rules are enforced by the operator by accepting transactions in the Child Chain, and not at the smart contracts level. A POA Plasma network always gives the operator the chance to censor transactions, therefore having the fee rule enforcement implemented in the smart contracts is not a design goal. However, users are protected by the Watcher which would report a misbehaving operator if they tried to exit more fees than accepted in the recorded transactions. 
+The fee rules are enforced and implemented only on the child chain. While a POA Plasma network gives the operator the ability to censor transactions, users are protected by the Watcher which would report misbehaving operators that try to exit more fees than allowed in a recorded transaction.
 
 ## General fee mechanism design
 
