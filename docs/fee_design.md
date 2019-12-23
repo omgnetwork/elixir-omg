@@ -46,7 +46,7 @@ This decoupling of fee rule from smart contract gives the operator a more fine-t
 
 ### Fee rules upgrade/change
 
-The fee rules are not implemented in the smart contracts but by the Child Chain, which sets the fee rules, and the Watcher, which informs users about the fee rules. Also, the fee transaction verification part is not bound to the logic of the fee rules. Fee rules come into force at the time the Child Chain processes transactions. A transaction not following the fee rules is rejected. Find more details on transaction verification in the design section.
+The Child Chain sets the fee rules, while the Watcher informs users about the fee rules. The fee rules are enforced by the Child Chain during the transaction processing. Any transaction not following the fee rules is rejected. Note that the fee transaction verification part is not bound to the logic of the fee rules. Find more details on transaction verification in the design section.
 
 As a result, fee rules updates are done by changing the logic of how the Child Chain service would accept/reject an incoming transaction and how Watcher/wallet update the logic to follow the new fee rule when generating transaction.
 
