@@ -98,21 +98,28 @@ defmodule OMG.WatcherInfo.Factory do
   @doc """
   Txoutput factory.
 
-  Generates a txoutput. The txindex, oindex and spending_tx_oindex are defaulted to 0.
-  These two values need to be overridden depending on the transaction you aim to build.
+  Generates a txoutput. A new block and transaction are generated per each txoutput built.
+  Therefore, if you are overriding some values, also consider its relation to other values. E.g:
+
+    - To override `blknum`, also consider overriding `txindex`.
+    - To override `creating_transaction`, also consider overriding `txindex` and `oindex`.
+    - To override `spending_transaction`, also consider overriding `spending_tx_oindex`
   """
   def txoutput_factory() do
+    block = build(:block)
+    transaction = build(:transaction, blknum: block.blknum)
+
     %DB.TxOutput{
-      blknum: build(:block).blknum,
+      blknum: block.blknum,
       txindex: 0,
       oindex: 0,
       owner: insecure_random_bytes(20),
       amount: 100,
       currency: @eth,
       proof: insecure_random_bytes(32),
-      spending_tx_oindex: 0,
+      spending_tx_oindex: nil,
       child_chain_utxohash: insecure_random_bytes(32),
-      creating_transaction: build(:transaction),
+      creating_transaction: transaction,
       spending_transaction: nil
     }
   end
