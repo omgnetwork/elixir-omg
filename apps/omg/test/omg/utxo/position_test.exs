@@ -16,23 +16,5 @@ defmodule OMG.Utxo.PositionTest do
   @moduledoc false
 
   use ExUnit.Case, async: true
-
-  alias OMG.Utxo
-  require Utxo
-
-  test "encode and decode the utxo position checking" do
-    decoded = Utxo.position(4, 5, 1)
-    assert 4_000_050_001 = encoded = Utxo.Position.encode(decoded)
-    assert decoded == Utxo.Position.decode!(encoded)
-    assert {:ok, decoded} == Utxo.Position.decode(encoded)
-  end
-
-  test "verbose error on too low encoded position" do
-    assert {:error, :encoded_utxo_position_too_low} = Utxo.Position.decode(0)
-    assert {:error, :encoded_utxo_position_too_low} = Utxo.Position.decode(-1)
-  end
-
-  test "too low encoded position means non positive only" do
-    assert {:ok, Utxo.position(0, 0, 1)} = Utxo.Position.decode(1)
-  end
+  doctest OMG.Utxo.Position
 end

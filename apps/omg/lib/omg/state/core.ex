@@ -51,7 +51,7 @@ defmodule OMG.State.Core do
   alias OMG.Block
   alias OMG.Crypto
   alias OMG.Fees
-  alias OMG.InputPointer
+
   alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
@@ -72,7 +72,7 @@ defmodule OMG.State.Core do
           utxo_db_updates: list(db_update()),
           # NOTE: because UTXO set is not loaded from DB entirely, we need to remember the UTXOs spent in already
           # processed transaction before they get removed from DB on form_block.
-          recently_spent: MapSet.t(InputPointer.Protocol.t())
+          recently_spent: MapSet.t(OMG.Utxo.Position.t())
         }
 
   @type deposit() :: %{
@@ -147,7 +147,7 @@ defmodule OMG.State.Core do
   @doc """
   Tell whether utxo position was created or spent by current state.
   """
-  @spec utxo_processed?(InputPointer.Protocol.t(), t()) :: boolean()
+  @spec utxo_processed?(OMG.Utxo.Position.t(), t()) :: boolean()
   def utxo_processed?(utxo_pos, %Core{utxos: utxos, recently_spent: recently_spent}) do
     Map.has_key?(utxos, utxo_pos) or MapSet.member?(recently_spent, utxo_pos)
   end
@@ -404,8 +404,7 @@ defmodule OMG.State.Core do
     new_utxos = UtxoSet.apply_effects(utxos, spent_input_pointers, new_utxos_map)
     new_db_updates = UtxoSet.db_updates(spent_input_pointers, new_utxos_map)
     # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
-    spent_blknum_updates =
-      spent_input_pointers |> Enum.map(&{:put, :spend, {InputPointer.Protocol.to_db_key(&1), blknum}})
+    spent_blknum_updates = Enum.map(spent_input_pointers, &{:put, :spend, {Utxo.Position.to_input_db_key(&1), blknum}})
 
     %Core{
       state
@@ -428,7 +427,7 @@ defmodule OMG.State.Core do
     |> Transaction.get_outputs()
     |> Enum.with_index()
     |> Enum.map(fn {output, oindex} ->
-      {Output.Protocol.input_pointer(output, blknum, tx_index, oindex, tx, hash), output}
+      {Output.input_pointer(output, blknum, tx_index, oindex, tx, hash), output}
     end)
     |> Enum.into(%{}, fn {input_pointer, output} ->
       {input_pointer, %Utxo{output: output, creating_txhash: hash}}
