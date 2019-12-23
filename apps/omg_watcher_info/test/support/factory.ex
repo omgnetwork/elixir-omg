@@ -103,7 +103,7 @@ defmodule OMG.WatcherInfo.Factory do
   """
   def txoutput_factory() do
     %DB.TxOutput{
-      blknum: insert(:block).blknum,
+      blknum: build(:block).blknum,
       txindex: 0,
       oindex: 0,
       owner: insecure_random_bytes(20),
@@ -112,7 +112,7 @@ defmodule OMG.WatcherInfo.Factory do
       proof: insecure_random_bytes(32),
       spending_tx_oindex: 0,
       child_chain_utxohash: insecure_random_bytes(32),
-      creating_transaction: insert(:transaction),
+      creating_transaction: build(:transaction),
       spending_transaction: nil
     }
   end
