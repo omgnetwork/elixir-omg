@@ -107,7 +107,7 @@ defmodule OMG.WatcherInfo.Factory do
   """
   def txoutput_factory() do
     block = build(:block)
-    transaction = build(:transaction, blknum: block.blknum)
+    transaction = build(:transaction, block: block)
 
     %DB.TxOutput{
       blknum: block.blknum,
