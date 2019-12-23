@@ -29,7 +29,7 @@ Child chain operators implement the format and rules for fees on a transaction, 
 
 The transaction fee is implied for a *payment* transaction. It is the difference of the sum of inputs and the sum of outputs. For instance, if the sum of inputs is 10 ETH and sum of outputs is 9.9 Eth, the 0.1 Eth difference would be the transaction fee.
 
-In order to exit fees, an operator would first put a special fee transaction into a plasma chain block. After that, the operator can spend that fee transaction output to a *payment* transaction. So the operator can exit it as a normal *payment* transaction. This removes the need to deploy an Exit Game contract for the fee transaction type as it requires only an empty contract to represent the existence of the transaction type and its protocol (using MoreVP instead of MVP).
+To exit fees, an operator puts a special fee transaction into a plasma chain block. This allows the operator to spend the transaction fee output as a Payment transaction. By leveraging MoreVP, we only need a contract to represent the fee transaction type and can use the pre-existing exit game contract.
 
 A fee transaction is special and different from a normal transaction in that:
 
