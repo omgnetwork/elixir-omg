@@ -58,12 +58,74 @@ defmodule OMG.WatcherInfo.Factory do
 
   alias OMG.WatcherInfo.DB
 
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
+
+  @doc """
+  Block factory.
+
+  Generates a block in an incremental blknum of 1000, 2000, 3000, etc.
+  """
   def block_factory() do
     %DB.Block{
       blknum: sequence(:block_blknum, fn seq -> seq * 1000 end),
-      hash: sequence(:block_hash, fn seq -> <<seq::256>> end),
+      hash: insecure_random_bytes(32),
       eth_height: sequence(:block_eth_height, fn seq -> seq end),
       timestamp: sequence(:block_timestamp, fn seq -> seq * 1_000_000 end)
     }
+  end
+
+  @doc """
+  Transaction factory.
+
+  Generates a transaction without any transaction output and no associated block.
+
+  To generate a transaction with closest data to production, consider associating the transaction
+  to a block and generating transaction outputs associated with this transaction.
+  """
+  def transaction_factory() do
+    %DB.Transaction{
+      txhash: sequence(:transaction_hash, fn seq -> <<seq::256>> end),
+      txindex: 0,
+      txbytes: insecure_random_bytes(32),
+      sent_at: DateTime.utc_now(),
+      metadata: insecure_random_bytes(32),
+      block: nil,
+      inputs: [],
+      outputs: []
+    }
+  end
+
+  @doc """
+  Txoutput factory.
+
+  Generates a txoutput. A new block and transaction are generated per each txoutput built.
+  Therefore, if you are overriding some values, also consider its relation to other values. E.g:
+
+    - To override `blknum`, also consider overriding `txindex`.
+    - To override `creating_transaction`, also consider overriding `txindex` and `oindex`.
+    - To override `spending_transaction`, also consider overriding `spending_tx_oindex`
+  """
+  def txoutput_factory() do
+    block = build(:block)
+    transaction = build(:transaction, block: block)
+
+    %DB.TxOutput{
+      blknum: block.blknum,
+      txindex: 0,
+      oindex: 0,
+      owner: insecure_random_bytes(20),
+      amount: 100,
+      currency: @eth,
+      proof: insecure_random_bytes(32),
+      spending_tx_oindex: nil,
+      child_chain_utxohash: insecure_random_bytes(32),
+      creating_transaction: transaction,
+      spending_transaction: nil
+    }
+  end
+
+  # Generates a certain length of random bytes. Uniqueness not guaranteed so it's not recommended for identifiers.
+  defp insecure_random_bytes(num_bytes) when num_bytes >= 0 and num_bytes <= 255 do
+    0..255 |> Enum.shuffle() |> Enum.take(num_bytes) |> :erlang.list_to_binary()
   end
 end

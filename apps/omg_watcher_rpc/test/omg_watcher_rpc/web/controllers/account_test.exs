@@ -96,7 +96,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :alice, :bob]
-    test "get_utxos and get_exitable_utxos have the same return format", %{alice: alice, bob: bob} do
+    test "get_utxos and get_exitable_utxos have the same return values", %{alice: alice, bob: bob} do
       DB.EthEvent.insert_deposits!([
         %{
           root_chain_txhash: Crypto.hash(<<1000::256>>),
@@ -128,7 +128,20 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
          }}
       ])
 
-      assert WatcherHelper.get_exitable_utxos(alice.addr) == WatcherHelper.get_utxos(alice.addr)
+      # utxos contain extra fields such as `spending_txhash` so we compare only the fields we expect from both.
+      fields = ["blknum", "txindex", "oindex", "utxo_pos", "amount", "currency", "owner"]
+
+      exitable_utxos =
+        alice.addr
+        |> WatcherHelper.get_exitable_utxos()
+        |> Enum.map(fn utxo -> Map.take(utxo, fields) end)
+
+      utxos =
+        alice.addr
+        |> WatcherHelper.get_utxos()
+        |> Enum.map(fn utxo -> Map.take(utxo, fields) end)
+
+      assert utxos == exitable_utxos
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

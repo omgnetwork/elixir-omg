@@ -19,6 +19,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
+  import OMG.WatcherInfo.Factory
+
   alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
   alias OMG.Utils.HttpRPC.Encoding
@@ -29,11 +31,11 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @other_token <<127::160>>
-  @eth_hex @eth |> Encoding.to_hex()
-  @other_token_hex @other_token |> Encoding.to_hex()
+  @eth_hex Encoding.to_hex(@eth)
+  @other_token_hex Encoding.to_hex(@other_token)
   @default_data_paging %{"limit" => 200, "page" => 1}
 
-  describe "getting transaction by id" do
+  describe "/transaction.get" do
     @tag fixtures: [:initial_blocks]
     test "verifies all inserted transactions available to get", %{initial_blocks: initial_blocks} do
       Enum.each(initial_blocks, fn {blknum, txindex, txhash, _recovered_tx} ->
@@ -44,65 +46,77 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       end)
     end
 
-    @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
-    test "returns transaction in expected format", %{
-      blocks_inserter: blocks_inserter,
-      alice: alice,
-      bob: bob
-    } do
-      {:ok, metadata} = OMG.DevCrypto.generate_private_key()
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns transaction in expected format" do
+      block = insert(:block)
+      input_1 = insert(:txoutput)
+      input_2 = insert(:txoutput)
+      output_1 = insert(:txoutput)
+      output_2 = insert(:txoutput)
+      transaction = insert(:transaction, block: block, inputs: [input_1, input_2], outputs: [output_1, output_2])
 
-      [{blknum, txindex, txhash, _recovered_tx}] =
-        blocks_inserter.([
-          {1000,
-           [
-             Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}], metadata)
-           ]}
-        ])
+      response = WatcherHelper.success?("transaction.get", %{"id" => Encoding.to_hex(transaction.txhash)})
 
-      %DB.Block{timestamp: timestamp, eth_height: eth_height, hash: block_hash} = get_block(blknum)
-      bob_addr = bob.addr |> Encoding.to_hex()
-      alice_addr = alice.addr |> Encoding.to_hex()
-      txhash = txhash |> Encoding.to_hex()
-      block_hash = block_hash |> Encoding.to_hex()
-      metadata = metadata |> Encoding.to_hex()
-
-      assert %{
+      assert response == %{
                "block" => %{
-                 "blknum" => ^blknum,
-                 "eth_height" => ^eth_height,
-                 "hash" => ^block_hash,
-                 "timestamp" => ^timestamp
+                 "blknum" => block.blknum,
+                 "eth_height" => block.eth_height,
+                 "hash" => Encoding.to_hex(block.hash),
+                 "timestamp" => block.timestamp
                },
                "inputs" => [
                  %{
-                   "amount" => 333,
-                   "blknum" => 1,
-                   "currency" => @eth_hex,
-                   "oindex" => 0,
-                   "owner" => ^alice_addr,
-                   "txindex" => 0,
-                   "utxo_pos" => 1_000_000_000
+                   "amount" => input_2.amount,
+                   "blknum" => input_2.blknum,
+                   "currency" => Encoding.to_hex(input_2.currency),
+                   "oindex" => input_2.oindex,
+                   "owner" => Encoding.to_hex(input_2.owner),
+                   "txindex" => input_2.txindex,
+                   "utxo_pos" => 2_000_000_000_000,
+                   "creating_txhash" => Encoding.to_hex(input_2.creating_txhash),
+                   "spending_txhash" => Encoding.to_hex(transaction.txhash)
+                 },
+                 %{
+                   "amount" => input_1.amount,
+                   "blknum" => input_1.blknum,
+                   "currency" => Encoding.to_hex(input_1.currency),
+                   "oindex" => input_1.oindex,
+                   "owner" => Encoding.to_hex(input_1.owner),
+                   "txindex" => input_1.txindex,
+                   "utxo_pos" => 1_000_000_000_000,
+                   "creating_txhash" => Encoding.to_hex(input_1.creating_txhash),
+                   "spending_txhash" => Encoding.to_hex(transaction.txhash)
                  }
                ],
                "outputs" => [
                  %{
-                   "amount" => 300,
-                   "blknum" => 1000,
-                   "currency" => @eth_hex,
-                   "oindex" => 0,
-                   "owner" => ^bob_addr,
-                   "txindex" => 0,
-                   "utxo_pos" => 1_000_000_000_000
+                   "amount" => output_2.amount,
+                   "blknum" => output_2.blknum,
+                   "currency" => Encoding.to_hex(output_2.currency),
+                   "oindex" => output_2.oindex,
+                   "owner" => Encoding.to_hex(output_2.owner),
+                   "txindex" => output_2.txindex,
+                   "utxo_pos" => 4_000_000_000_000,
+                   "creating_txhash" => Encoding.to_hex(transaction.txhash),
+                   "spending_txhash" => nil
+                 },
+                 %{
+                   "amount" => output_1.amount,
+                   "blknum" => output_1.blknum,
+                   "currency" => Encoding.to_hex(output_1.currency),
+                   "oindex" => output_1.oindex,
+                   "owner" => Encoding.to_hex(output_1.owner),
+                   "txindex" => output_1.txindex,
+                   "utxo_pos" => 3_000_000_000_000,
+                   "creating_txhash" => Encoding.to_hex(transaction.txhash),
+                   "spending_txhash" => nil
                  }
                ],
-               "txhash" => ^txhash,
-               "txbytes" => txbytes,
-               "txindex" => ^txindex,
-               "metadata" => ^metadata
-             } = WatcherHelper.success?("transaction.get", %{"id" => txhash})
-
-      assert {:ok, _} = Encoding.from_hex(txbytes)
+               "txhash" => Encoding.to_hex(transaction.txhash),
+               "txbytes" => Encoding.to_hex(transaction.txbytes),
+               "txindex" => transaction.txindex,
+               "metadata" => Encoding.to_hex(transaction.metadata)
+             }
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -164,7 +178,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "getting multiple transactions" do
+  describe "/transaction.all" do
     @tag fixtures: [:initial_blocks]
     test "returns multiple transactions in expected format", %{initial_blocks: initial_blocks} do
       {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> Enum.reverse() |> hd()
@@ -189,7 +203,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      "oindex" => _,
                      "owner" => _,
                      "txindex" => _,
-                     "utxo_pos" => _
+                     "utxo_pos" => _,
+                     "creating_txhash" => _,
+                     "spending_txhash" => _
                    }
                    | _
                  ],
@@ -201,7 +217,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      "oindex" => _,
                      "owner" => _,
                      "txindex" => _,
-                     "utxo_pos" => _
+                     "utxo_pos" => _,
+                     "creating_txhash" => _,
+                     "spending_txhash" => _
                    }
                    | _
                  ],
@@ -366,7 +384,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "transactions pagination" do
+  describe "/transaction.all pagination" do
     @tag fixtures: [:alice, :bob, :initial_deposits, :blocks_inserter]
     test "returns list of transactions limited by address", %{
       blocks_inserter: blocks_inserter,
@@ -479,7 +497,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     result
   end
 
-  describe "submitting binary-encoded transaction" do
+  describe "/transaction.submit with binary-encoded transaction" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "handles incorrectly encoded parameter" do
       hex_without_0x = "5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21"
@@ -509,7 +527,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "submitting structural transaction" do
+  describe "/transaction.submit with structural transaction" do
     deffixture typed_data_request(alice, bob) do
       contract_addr = Application.fetch_env!(:omg_eth, :contract_addr)
       alice_addr = Encoding.to_hex(alice.addr)
@@ -612,7 +630,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "creating transaction" do
+  describe "/transaction.create" do
     deffixture more_utxos(alice, blocks_inserter) do
       [
         {5000,
@@ -627,7 +645,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]
-    test "returns appropriate schema", %{alice: alice, bob: bob} do
+    test "returns appropriate schema", %{alice: alice, bob: bob, more_utxos: inserted_txs} do
       alias OMG.Utxo
       require Utxo
 
@@ -638,6 +656,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       alice_addr = Encoding.to_hex(alice.addr)
       bob_addr = Encoding.to_hex(bob.addr)
       blknum = 5000
+      creating_txhash = inserted_txs |> Enum.at(0) |> elem(2) |> Encoding.to_hex()
 
       assert %{
                "result" => "complete",
@@ -650,7 +669,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                        "blknum" => ^blknum,
                        "txindex" => txindex,
                        "oindex" => oindex,
-                       "utxo_pos" => utxo_pos
+                       "utxo_pos" => utxo_pos,
+                       "creating_txhash" => ^creating_txhash,
+                       "spending_txhash" => nil
                      }
                      | _
                    ],
@@ -1109,7 +1130,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
-  describe "creating transaction: Validation" do
+  describe "/transaction.create validation" do
     @tag fixtures: [:alice, :more_utxos]
     test "empty transaction without payments list is not allowed", %{alice: alice} do
       alice_addr = Encoding.to_hex(alice.addr)
