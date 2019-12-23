@@ -25,7 +25,7 @@ The fee rules are enforced and implemented only on the child chain. While a POA 
 
 ### High level description
 
-A Child Chain operator decides and enforces the fee format and the rule for transactions. The smart contracts do not check the rules for fee transactions. The rule enforcement is perfomed by the Child chain service. This is the case as long as the Plasma network runs in POA.
+Child chain operators implement the format and rules for fees on a transaction, not the contracts. This is the case as long as the Plasma network runs as a POA.
 
 The transaction fee is implied for a *payment* transaction. It is the difference of the sum of inputs and the sum of outputs. For instance, if the sum of inputs is 10 ETH and sum of outputs is 9.9 Eth, the 0.1 Eth difference would be the transaction fee.
 
