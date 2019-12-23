@@ -23,7 +23,7 @@ defmodule OMG.Utxo do
   defstruct [:output, :creating_txhash]
 
   @type t() :: %__MODULE__{
-          output: Output.Protocol.t(),
+          output: Output.t(),
           creating_txhash: Transaction.tx_hash()
         }
 
@@ -60,7 +60,7 @@ defmodule OMG.Utxo do
   def to_db_value(%__MODULE__{output: output, creating_txhash: creating_txhash})
       when is_nil_or_binary(creating_txhash) do
     %{creating_txhash: creating_txhash}
-    |> Map.put(:output, OMG.Output.Protocol.to_db_value(output))
+    |> Map.put(:output, OMG.Output.to_db_value(output))
   end
 
   def from_db_value(%{output: output, creating_txhash: creating_txhash})
@@ -79,7 +79,7 @@ defmodule OMG.Utxo do
     output = %{owner: owner, currency: currency, amount: amount}
 
     value = %{
-      output: OMG.Output.FungibleMoreVPToken.from_db_value(output),
+      output: OMG.Output.from_db_value(output),
       creating_txhash: creating_txhash
     }
 

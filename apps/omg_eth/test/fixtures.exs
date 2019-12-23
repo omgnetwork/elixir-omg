@@ -39,15 +39,17 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
+    contracts = parse_contracts()
+
     contract = %{
-      authority_addr: Encoding.from_hex("0xc0f780dfc35075979b0def588d999225b7ecc56f"),
+      authority_addr: Encoding.from_hex(contracts["AUTHORITY_ADDRESS"]),
       contract_addr: %{
-        erc20_vault: Encoding.from_hex("0x04badc20426bc146453c5b879417b25029fa6c73"),
-        eth_vault: Encoding.from_hex("0x0433420dee34412b5bf1e29fbf988ad037cc5db7"),
-        payment_exit_game: Encoding.from_hex("0x92ce4d7773c57d96210c46a07b89acf725057f21"),
-        plasma_framework: Encoding.from_hex("0xc673e4ffcb8464faff908a6804fe0e635af0ea2f")
+        erc20_vault: Encoding.from_hex(contracts["CONTRACT_ADDRESS_ERC20_VAULT"]),
+        eth_vault: Encoding.from_hex(contracts["CONTRACT_ADDRESS_ETH_VAULT"]),
+        payment_exit_game: Encoding.from_hex(contracts["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"]),
+        plasma_framework: Encoding.from_hex(contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
       },
-      txhash_contract: Encoding.from_hex("0xcd96b40b8324a4e10b421d6dd9796d200c64f7af6799f85262fa8951aed2f10c")
+      txhash_contract: Encoding.from_hex(contracts["TXHASH_CONTRACT"])
     }
 
     {:ok, true} =
@@ -64,9 +66,9 @@ defmodule OMG.Eth.Fixtures do
 
   deffixture token(root_chain_contract_config) do
     :ok = root_chain_contract_config
+    contracts = parse_contracts()
 
-    # taken from the `plasma-contracts` deployment snapshot
-    token_addr = Encoding.from_hex("0x32063dba91cf95eb3d58fad9e391ee888878b61c")
+    token_addr = Encoding.from_hex(contracts["CONTRACT_ERC20_MINTABLE"])
 
     # ensuring that the root chain contract handles token_addr
     {:ok, false} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
@@ -96,5 +98,30 @@ defmodule OMG.Eth.Fixtures do
     end)
 
     :ok
+  end
+
+  # taken from the plasma-contracts deployment snapshot
+  # this parsing occurs in several places around the codebase
+  defp parse_contracts() do
+    local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
+
+    contract_addreses_path =
+      case File.exists?(local_umbrella_path) do
+        true ->
+          local_umbrella_path
+
+        _ ->
+          # CI/CD
+          Path.join([File.cwd!(), "localchain_contract_addresses.env"])
+      end
+
+    contract_addreses_path
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> List.flatten()
+    |> Enum.reduce(%{}, fn line, acc ->
+      [key, value] = String.split(line, "=")
+      Map.put(acc, key, value)
+    end)
   end
 end

@@ -32,6 +32,7 @@ defmodule OMG.MixProject do
 
   defp deps do
     [
+      {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git"},
       {:ex_rlp, "~> 0.5.2"},
       {:merkle_tree,
        git: "https://github.com/omisego/merkle_tree.git", branch: "prevent_second_preimage_attack", override: true},

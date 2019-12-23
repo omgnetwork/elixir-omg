@@ -374,7 +374,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     {ife, indexed_piggybacked_outputs}
   end
 
-  defp index_output_position(position), do: {position, Utxo.Position.oindex(position)}
+  defp index_output_position(position) do
+    Utxo.position(_, _, oindex) = position
+    {position, oindex}
+  end
 
   def piggybacked_inputs(ife) do
     @inputs_index_range

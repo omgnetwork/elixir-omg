@@ -43,7 +43,7 @@ defmodule OMG.MergeTransactionValidator do
   defp is_payment?(_), do: false
 
   defp only_fungible_tokens?(tx),
-    do: tx |> Transaction.get_outputs() |> Enum.all?(&match?(%Output.FungibleMoreVPToken{}, &1))
+    do: tx |> Transaction.get_outputs() |> Enum.all?(&match?(%Output{}, &1))
 
   defp has_same_account?(%Transaction.Recovered{witnesses: witnesses} = tx) do
     spenders = Map.values(witnesses)

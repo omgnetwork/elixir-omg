@@ -72,7 +72,7 @@ defmodule OMG.TypedDataHash.Tools do
   @spec hash_transaction(
           non_neg_integer(),
           list(Utxo.Position.t()),
-          list(Output.FungibleMoreVPToken.t()),
+          list(Output.t()),
           Transaction.metadata(),
           Crypto.hash_t(),
           Crypto.hash_t()
@@ -122,8 +122,8 @@ defmodule OMG.TypedDataHash.Tools do
     |> Crypto.hash()
   end
 
-  @spec hash_output(Output.FungibleMoreVPToken.t()) :: Crypto.hash_t()
-  def hash_output(%Output.FungibleMoreVPToken{
+  @spec hash_output(Output.t()) :: Crypto.hash_t()
+  def hash_output(%Output{
         owner: owner,
         currency: currency,
         amount: amount,
