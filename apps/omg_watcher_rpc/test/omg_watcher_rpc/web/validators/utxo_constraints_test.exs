@@ -14,7 +14,7 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Validator.UtxoConstraintsTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   import OMG.Eth.Encoding, only: [to_hex: 1]
 
