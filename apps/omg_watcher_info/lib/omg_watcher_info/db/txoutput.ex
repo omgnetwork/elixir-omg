@@ -107,16 +107,16 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   @spec get_by_filters(Keyword.t(), Paginator.t()) :: Paginator.t()
   def get_by_filters(constraints, paginator) do
     # utxo_type? or ethevent.event_type for easier join constraints?
-    allowed_constraints = [:address, :utxo_type]
+    #allowed_constraints = [:address, :utxo_type]
 
-    constraints = filter_constraints(constraints, allowed_constraints)
+    #constraints = filter_constraints(constraints, allowed_constraints)
 
     # we need to handle complex constraints with dedicated modifier function
-    {address, constraints} = Keyword.pop(constraints, :address)
+    #{address, constraints} = Keyword.pop(constraints, :address)
 
-    query_get_by(constraints)
-    |> DB.Repo.all()
-    |> Paginator.set_data(paginator)
+    #query_get_by(constraints)
+    #|> DB.Repo.all()
+    #|> Paginator.set_data(paginator)
   end
 
   @spec get_balance(OMG.Crypto.address_t()) :: list(balance())
@@ -207,5 +207,46 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Enum.group_by(& &1.currency)
     |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
     |> Map.new()
+  end
+
+  @doc """
+  Returns a list of deposits
+  """
+  @spec get_deposits(Paginator.t()) :: Paginator.t()
+  def get_deposits(paginator) do
+    query_deposits_get_last(paginator.data_paging)
+    |> DB.Repo.all()
+    |> Paginator.set_data(paginator)
+  end
+
+  defp query_deposits_get_last(%{address: address, limit: limit, page: page}) do
+    IO.inspect(nil, label: "here")
+    offset = (page - 1) * limit
+
+    from(
+      txoutput in __MODULE__,
+      left_join: ethevent in assoc(txoutput, :ethevents),
+      # where: txoutput.owner == ^address and fragment("
+
+      # "),
+      where: txoutput.owner == ^address and not is_nil(ethevent) and ethevent.event_type == ^:deposit,
+      order_by: [desc: :blknum],
+      limit: ^limit,
+      offset: ^offset
+    )
+  end
+
+  defp query_deposits_get_last(%{limit: limit, page: page}) do
+    IO.inspect(nil, label: "there")
+    offset = (page - 1) * limit
+
+    from(
+      txoutput in __MODULE__,
+      left_join: ethevent in assoc(txoutput, :ethevents),
+      where: not is_nil(ethevent) and ethevent.event_type == ^:deposit,
+      order_by: [desc: :blknum],
+      limit: ^limit,
+      offset: ^offset
+    )
   end
 end

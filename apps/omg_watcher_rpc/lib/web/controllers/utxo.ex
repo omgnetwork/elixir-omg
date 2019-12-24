@@ -35,9 +35,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Utxo do
   end
 
   def get_deposits(conn, params) do
-    # add utxo_type = deposit (or ethevent.event_type) as a constraint here
     with {:ok, constraints} <- Validator.UtxoConstraints.parse(params) do
-      InfoApiUtxo.get_utxos(constraints)
+      InfoApiUtxo.get_deposits(constraints)
       |> api_response(conn, :deposits)
     end
   end

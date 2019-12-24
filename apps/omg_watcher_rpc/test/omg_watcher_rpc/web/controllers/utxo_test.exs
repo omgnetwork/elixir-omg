@@ -18,6 +18,8 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
 
+  import OMG.WatcherInfo.Factory
+
   alias OMG.Utxo
   alias Support.WatcherHelper
   require Utxo
@@ -108,5 +110,62 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
                }
              }
            } = WatcherHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => 0})
+  end
+
+  describe "get_deposits/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the API response with the deposits" do
+      # _ = insert(:block, blknum: 1000, hash: <<1>>, eth_height: 1, timestamp: 100)
+      # _ = insert(:block, blknum: 2000, hash: <<2>>, eth_height: 2, timestamp: 200)
+
+      # request_data = %{"limit" => 100, "page" => 1}
+      # response = WatcherHelper.rpc_call("deposit.all", request_data, 200)
+
+      assert true == false
+
+      # assert %{
+      #   "success" => true,
+      #   "data" => [
+      #     %{
+      #       "blknum" => 2000,
+      #       "eth_height" => 2,
+      #       "hash" => "0x02",
+      #       "timestamp" => 200
+      #     },
+      #     %{
+      #       "blknum" => 1000,
+      #       "eth_height" => 1,
+      #       "hash" => "0x01",
+      #       "timestamp" => 100
+      #     }
+      #   ],
+      #   "data_paging" => %{
+      #     "limit" => 100,
+      #     "page" => 1
+      #   },
+      #   "service_name" => _,
+      #   "version" => _
+      # } = response
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the error API response when an error occurs" do
+      # request_data = %{"limit" => "this should error", "page" => 1}
+      # response = WatcherHelper.rpc_call("deposit.all", request_data, 200)
+
+      # assert %{
+      #   "success" => false,
+      #   "data" => %{
+      #     "object" => "error",
+      #     "code" => "operation:bad_request",
+      #     "description" => "Parameters required by this operation are missing or incorrect.",
+      #     "messages" => _
+      #   },
+      #   "service_name" => _,
+      #   "version" => _
+      # } = response
+
+      assert true == false
+    end
   end
 end

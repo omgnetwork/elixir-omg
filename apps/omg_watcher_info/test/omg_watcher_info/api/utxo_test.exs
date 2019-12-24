@@ -13,22 +13,17 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.API.UtxoTest do
-  use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
-  use OMG.WatcherInfo.Fixtures
-  use OMG.Watcher.Fixtures
 
-  alias OMG.State.Transaction
-  alias OMG.TestHelper, as: Test
-  alias OMG.Utils.HttpRPC.Encoding
+  import OMG.WatcherInfo.Factory
+
+  alias OMG.Utils.Paginator
+  alias OMG.WatcherInfo.API
   alias OMG.WatcherInfo.DB
-  alias Support.WatcherHelper
-  alias OMG.WatcherInfo.API.Utxo
 
   describe "get_deposits/1" do
-    @tag fixtures: [:initial_blocks, :alice]
-    test "gets paginated list of deposits for address ordered by descending blknum, txindex, oindex", %{alice: alice} do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "gets paginated list of deposits for address ordered by descending blknum, txindex, oindex" do
       # %OMG.Utils.Paginator{
       #   data: [
       #     %OMG.WatcherInfo.DB.Block{
@@ -56,9 +51,8 @@ defmodule OMG.WatcherInfo.API.UtxoTest do
       #   data_paging: %{limit: 10, page: 1}
       # }
 
-
-      constraints = [data: [owner: alice.addr], data_paging: [page: 1, limit: 10]]
-      results = Utxo.get_deposits(constraints)
+      # constraints = [data: [owner: alice.addr], data_paging: [page: 1, limit: 10]]
+      # results = Utxo.get_deposits(constraints)
 #
 #      IO.inspect(results, label: "deposits")
 
@@ -67,7 +61,7 @@ defmodule OMG.WatcherInfo.API.UtxoTest do
 
       #assert ordered by descending blknum, txindex, oindex
 
-      IO.inspect(alice, label: "alice")
+      assert true == false
     end
   end
 end

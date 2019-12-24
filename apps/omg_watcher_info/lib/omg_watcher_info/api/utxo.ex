@@ -23,16 +23,14 @@ defmodule OMG.WatcherInfo.API.Utxo do
   @default_utxos_limit 100
 
   @doc """
-  Retrieves a list of deposits for an address
-   - (required) the address of owner of the deposits
-  Length of the list is limited by `limit` argument
+  Retrieves a list of deposits, optionally filtered by `address`.
+  Length of the list is limited by `limit`.
+  Offset of the list is set by `page`.
   """
-  @spec get_utxos(Keyword.t()) :: Paginator.t()
-  def get_utxos(constraints) do
+  @spec get_deposits(Keyword.t()) :: Paginator.t()
+  def get_deposits(constraints) do
     paginator = Paginator.from_constraints(constraints, @default_utxos_limit)
 
-    constraints
-    |> Keyword.drop([:limit, :page])
-    |> DB.TxOutput.get_by_filters(paginator)
+    DB.TxOutput.get_deposits(paginator)
   end
 end

@@ -25,8 +25,7 @@ defmodule OMG.WatcherRPC.Web.Validator.UtxoConstraints do
   @spec parse(%{binary() => any()}) :: {:ok, Keyword.t()} | {:error, any()}
   def parse(params) do
     constraints = [
-      address: [:address],
-      event_type: [:string, :optional],
+      address: [:address, :optional],
       limit: [:pos_integer, :optional],
       page: [:pos_integer, :optional]
     ]

@@ -19,9 +19,14 @@ defmodule OMG.WatcherRPC.Web.View.Utxo do
 
   use OMG.WatcherRPC.Web, :view
   alias OMG.Utils.HttpRPC.Response
+  alias OMG.Utils.Paginator
 
   def render("utxo_exit.json", %{response: utxo_exit}) do
     utxo_exit
     |> Response.serialize()
+  end
+
+  def render("deposits.json", %{response: %Paginator{data: deposits, data_paging: data_paging}}) do
+    Response.serialize_page(deposits, data_paging)
   end
 end

@@ -17,6 +17,10 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
+  alias OMG.Utils.Paginator
+
+  import OMG.WatcherInfo.Factory
+
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
 
@@ -42,5 +46,68 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     utxo = DB.TxOutput.get_by_position(Utxo.position(11_000, 0, 0))
     assert not is_nil(utxo)
     assert utxo.amount == big_amount
+  end
+
+  describe "get_deposits/1" do
+  @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a list of deposits" do
+    #    _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+    #      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
+    #    _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
+
+       paginator = %Paginator{
+         data: [],
+           data_paging: %{
+           limit: 10,
+           page: 1
+         }
+       }
+
+      results = DB.TxOutput.get_deposits(paginator)
+
+      assert length(results.data) == 3
+      assert Enum.all?(results.data, fn txoutput -> %DB.TxOutput{} = txoutput end)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a list of deposits sorted by descending blknum" do
+#    _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+#    _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
+#    _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
+
+      paginator = %Paginator{
+        data: [],
+        data_paging: %{
+          limit: 10,
+          page: 1
+        }
+      }
+
+      results = DB.TxOutput.get_deposits(paginator)
+
+      assert length(results.data) == 3
+#      assert results.data |> Enum.at(0) |> Map.get(:blknum) == 3000
+#      assert results.data |> Enum.at(1) |> Map.get(:blknum) == 2000
+#      assert results.data |> Enum.at(2) |> Map.get(:blknum) == 1000
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a list of deposits filtered by address" do
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns an empty list when given limit: 0" do
+      paginator = %Paginator{
+        data: [],
+        data_paging: %{
+          limit: 0,
+          page: 1
+        }
+      }
+
+      results = DB.TxOutput.get_deposits(paginator)
+
+      assert results.data == []
+    end
   end
 end
