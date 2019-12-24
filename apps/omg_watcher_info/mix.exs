@@ -54,7 +54,7 @@ defmodule OMG.WatcherInfo.MixProject do
       {:briefly, "~> 0.3.0", only: [:dev, :test]},
       {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false},
       {:phoenix, "~> 1.3", runtime: false},
-      {:ex_machina, "~> 2.3", only: [:test, :dev], runtime: false}
+      {:ex_machina, "~> 2.3", only: [:test], runtime: false}
     ]
   end
 end
