@@ -27,7 +27,7 @@ defmodule OMG.Fees do
   use OMG.Utils.LoggerExt
 
   @type fee_t() :: %{Transaction.Payment.currency() => fee_spec_t()}
-  @type full_fee_t() :: %{pos_integer() => fee_t()}
+  @type full_fee_t() :: %{non_neg_integer() => fee_t()}
   @type optional_fee_t() :: fee_t() | :no_fees_required
   @type fee_spec_t() :: %{
           amount: non_neg_integer(),

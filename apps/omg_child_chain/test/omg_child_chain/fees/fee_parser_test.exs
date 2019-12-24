@@ -240,6 +240,23 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
               ]} = FeeParser.parse(json)
     end
 
+    test "json with invalid format returns error" do
+      json = ~s([{
+        "1": [
+          {
+            "token": "0x0000000000000000000000000000000000000000",
+            "amount": 1,
+            "subunit_to_unit": 1000000000000000000,
+            "pegged_amount": 1,
+            "pegged_currency": "USD",
+            "pegged_subunit_to_unit": 100,
+            "updated_at": "2019-01-01T10:10:00+00:00"
+          }
+        ]
+      }])
+      assert {:error, [{:error, :invalid_json_format, nil, nil}]} = FeeParser.parse(json)
+    end
+
     @tag :capture_log
     test "json with duplicate tokens returns error" do
       json = ~s({

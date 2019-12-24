@@ -17,29 +17,39 @@ defmodule OMG.ChildChain.Fees.FeeParser do
   """
   require Logger
 
+  # the format of the json is invalid (ie: it's an array)
+  @type parsing_error() ::
+          :invalid_json_format
+          # the tx type can't be parsed to an integer
+          | :invalid_tx_type
+          # the fee spec for a specific type/token is missing keys
+          | :invalid_fee_spec
+          # the fee amount is invalid (must be >= 0)
+          | :invalid_fee
+          # the subunit to unit is invalid (must be > 0)
+          | :invalid_subunit_to_unit
+          # the pegged amount is invalid (must be > 0)
+          | :invalid_pegged_amount
+          # the pegged currency is invalid (must be > 0)
+          | :invalid_pegged_currency
+          # the pegged subunit to unit is invalid (must be > 0)
+          | :invalid_pegged_subunit_to_unit
+          # the updated at date is invalid (wrong date format)
+          | :invalid_timestamp
+          # the token address is invalid (must be a valid Ethereum address)
+          | :bad_address_encoding
+          # There is a duplicated token for the same tx type
+          | :duplicate_token
+
   @doc """
   Parses and validates json encoded fee specifications file
   Parses provided json string to token-fee map and returns the map together with possible parsing errors
   """
-  @spec parse(binary()) :: {:ok, OMG.Fees.full_fee_t()} | {:error, list({:error, atom()})}
+  @spec parse(binary()) ::
+          {:ok, OMG.Fees.full_fee_t()} | {:error, list({:error, parsing_error(), any(), non_neg_integer() | nil})}
   def parse(file_content) do
     with {:ok, json} <- Jason.decode(file_content) do
-      {errors, fee_specs} =
-        json
-        |> Enum.reduce({[], %{}}, fn {tx_type, fee_spec}, {all_errors, fee_specs} ->
-          case Integer.parse(tx_type) do
-            {encoded_tx_type, ""} ->
-              {errors, token_fee_map, _, _} =
-                fee_spec
-                |> Enum.map(&parse_tx_type_fee_spec/1)
-                |> Enum.reduce({[], %{}, 1, encoded_tx_type}, &spec_reducer/2)
-
-              {errors ++ all_errors, Map.put(fee_specs, encoded_tx_type, token_fee_map)}
-
-            _ ->
-              {[{:error, :invalid_tx_type, tx_type, 0}] ++ all_errors, fee_specs}
-          end
-        end)
+      {errors, fee_specs} = Enum.reduce(json, {[], %{}}, &reduce_json/2)
 
       errors
       |> Enum.reverse()
@@ -48,7 +58,39 @@ defmodule OMG.ChildChain.Fees.FeeParser do
     end
   end
 
-  defp parse_tx_type_fee_spec(%{
+  defp reduce_json({tx_type, fee_spec}, {all_errors, fee_specs}) do
+    tx_type
+    |> Integer.parse()
+    |> parse_for_type(fee_spec)
+    |> handle_type_parsing_output(tx_type, all_errors, fee_specs)
+  end
+
+  defp reduce_json(_, {all_errors, fee_specs}) do
+    {[{:error, :invalid_json_format, nil, nil}] ++ all_errors, fee_specs}
+  end
+
+  defp parse_for_type({tx_type, ""}, fee_spec) do
+    fee_spec
+    |> Enum.map(&parse_single_spec/1)
+    |> Enum.reduce({[], %{}, 1, tx_type}, &spec_reducer/2)
+  end
+
+  defp parse_for_type(_, _), do: {:error, :invalid_tx_type}
+
+  defp handle_type_parsing_output({:error, :invalid_tx_type} = error, tx_type, all_errors, fee_specs) do
+    e =
+      error
+      |> Tuple.append(tx_type)
+      |> Tuple.append(0)
+
+    {[e] ++ all_errors, fee_specs}
+  end
+
+  defp handle_type_parsing_output({errors, token_fee_map, _, tx_type}, _, all_errors, fee_specs) do
+    {errors ++ all_errors, Map.put(fee_specs, tx_type, token_fee_map)}
+  end
+
+  defp parse_single_spec(%{
          "amount" => fee,
          "token" => token,
          "subunit_to_unit" => subunit_to_unit,
@@ -78,7 +120,7 @@ defmodule OMG.ChildChain.Fees.FeeParser do
     end
   end
 
-  defp parse_tx_type_fee_spec(_), do: {:error, :invalid_fee_spec}
+  defp parse_single_spec(_), do: {:error, :invalid_fee_spec}
   defp validate_fee_amount(amount, _error) when is_integer(amount) and amount >= 0, do: {:ok, amount}
   defp validate_fee_amount(_amount, error), do: {:error, error}
   defp validate_positive_amount(amount, _error) when is_integer(amount) and amount > 0, do: {:ok, amount}

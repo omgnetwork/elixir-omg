@@ -22,17 +22,19 @@ defmodule OMG.WatcherRPC.Web.View.Fee do
 
   def render("fees_all.json", %{response: fees}) do
     fees
-    |> Enum.map(fn {tx_type, fees} ->
-      {tx_type,
-       fees
-       |> Enum.map(fn fee ->
-         fee
-         |> Map.put("currency", {:skip_hex_encode, fee["currency"]})
-         |> Map.put("pegged_currency", {:skip_hex_encode, fee["pegged_currency"]})
-         |> Map.put("updated_at", {:skip_hex_encode, fee["updated_at"]})
-       end)}
-    end)
+    |> Enum.map(&parse_for_type/1)
     |> Enum.into(%{})
     |> Response.serialize()
+  end
+
+  defp parse_for_type({tx_type, fees}) do
+    {tx_type, Enum.map(fees, &parse_for_token/1)}
+  end
+
+  defp parse_for_token(fee) do
+    fee
+    |> Map.put("currency", {:skip_hex_encode, fee["currency"]})
+    |> Map.put("pegged_currency", {:skip_hex_encode, fee["pegged_currency"]})
+    |> Map.put("updated_at", {:skip_hex_encode, fee["updated_at"]})
   end
 end

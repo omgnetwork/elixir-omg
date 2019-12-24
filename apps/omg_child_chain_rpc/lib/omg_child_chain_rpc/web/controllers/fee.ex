@@ -34,6 +34,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.Fee do
   end
 
   defp to_tx_type(tx_type_str) do
-    expect(%{"tx_type" => tx_type_str}, "tx_type", :pos_integer)
+    expect(%{"tx_type" => tx_type_str}, "tx_type", :non_neg_integer)
   end
 end

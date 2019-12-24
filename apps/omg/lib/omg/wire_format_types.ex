@@ -17,7 +17,7 @@ defmodule OMG.WireFormatTypes do
   Provides wire format's tx/output type values and mapping to modules which decodes them.
   """
 
-  @type module_map_t() :: %{non_neg_integer() => atom()}
+  @type tx_type_to_module_map() :: %{non_neg_integer() => atom()}
 
   @tx_type_values %{
     tx_payment_v1: 1,
@@ -61,14 +61,14 @@ defmodule OMG.WireFormatTypes do
   @doc """
   Returns module atom that is able to decode transaction of given type
   """
-  @spec tx_type_modules() :: module_map_t()
-  def tx_type_modules, do: @tx_type_modules
+  @spec tx_type_modules() :: tx_type_to_module_map()
+  def tx_type_modules(), do: @tx_type_modules
 
   @doc """
   Returns the tx type that is associated with the given module
   """
-  @spec module_tx_types() :: module_map_t()
-  def module_tx_types, do: @module_tx_types
+  @spec module_tx_types() :: %{atom() => non_neg_integer()}
+  def module_tx_types(), do: @module_tx_types
 
   @doc """
   Returns wire format type value of known input pointer type
@@ -86,6 +86,6 @@ defmodule OMG.WireFormatTypes do
   @doc """
   Returns module atom that is able to decode output of given type
   """
-  @spec output_type_modules() :: module_map_t()
-  def output_type_modules, do: @output_type_modules
+  @spec output_type_modules() :: tx_type_to_module_map()
+  def output_type_modules(), do: @output_type_modules
 end

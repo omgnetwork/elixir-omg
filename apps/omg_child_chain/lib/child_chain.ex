@@ -25,7 +25,7 @@ defmodule OMG.ChildChain do
   alias OMG.ChildChain.FeeServer
   alias OMG.ChildChain.FreshBlocks
   alias OMG.Fees
-  alias OMG.Fees.Filter
+  alias OMG.Fees.FeeFilter
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Status.Alert.Alarm
@@ -61,7 +61,7 @@ defmodule OMG.ChildChain do
           {:ok, Fees.full_fee_t()} | {:error, :currency_fee_not_supported}
   def get_filtered_fees(tx_types, currencies) do
     with {:ok, fees} <- FeeServer.transaction_fees() do
-      Filter.filter(fees, tx_types, currencies)
+      FeeFilter.filter(fees, tx_types, currencies)
     end
     |> result_with_logging()
   end

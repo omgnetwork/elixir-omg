@@ -71,7 +71,7 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
                "messages" => %{
                  "validation_error" => %{
                    "parameter" => "tx_types.tx_type",
-                   "validator" => "{:greater, 0}"
+                   "validator" => "{:greater, -1}"
                  }
                }
              } = WatcherHelper.no_success?("/fees.all", %{tx_types: [-5]})

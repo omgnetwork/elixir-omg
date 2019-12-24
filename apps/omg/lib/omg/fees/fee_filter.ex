@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Fees.Filter do
+defmodule OMG.Fees.FeeFilter do
   @moduledoc """
   Filtering of fees.
   """
@@ -25,7 +25,7 @@ defmodule OMG.Fees.Filter do
 
   ## Examples
 
-      iex> OMG.Fees.Filter.filter(
+      iex> OMG.Fees.FeeFilter.filter(
       ...>   %{
       ...>     1 => %{
       ...>       "eth" => %{
@@ -86,8 +86,8 @@ defmodule OMG.Fees.Filter do
       }
 
   """
-  @spec filter(Fees.full_fee_t(), list(pos_integer()), list(String.t()) | nil) ::
-          {:ok, Fees.full_fee_t()} | {:error, :currency_fee_not_supported}
+  @spec filter(Fees.full_fee_t(), list(non_neg_integer()), list(String.t()) | nil) ::
+          {:ok, Fees.full_fee_t()} | {:error, :currency_fee_not_supported} | {:error, :tx_type_not_supported}
   # empty list = no filter
   def filter(fees, []), do: {:ok, fees}
   def filter(fees, nil), do: {:ok, fees}

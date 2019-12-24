@@ -130,9 +130,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
     end
 
     @tag fixtures: [:phoenix_sandbox]
-    test "fees.all endpoint does not filter without parameter" do
-      missing_param = %{}
-
+    test "fees.all endpoint does not filter without a body" do
       assert %{
                "success" => true,
                "data" => %{
@@ -168,7 +166,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                    }
                  ]
                }
-             } = TestHelper.rpc_call(:post, "/fees.all", missing_param)
+             } = TestHelper.rpc_call(:post, "/fees.all", %{})
     end
 
     @tag fixtures: [:phoenix_sandbox]
@@ -325,7 +323,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                  "messages" => %{
                    "validation_error" => %{
                      "parameter" => "tx_types.tx_type",
-                     "validator" => "{:greater, 0}"
+                     "validator" => "{:greater, -1}"
                    }
                  }
                }

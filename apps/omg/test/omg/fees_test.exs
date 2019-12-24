@@ -21,6 +21,7 @@ defmodule OMG.FeesTest do
 
   import OMG.TestHelper
 
+  alias __MODULE__.DummyTransaction
   alias OMG.Fees
 
   doctest OMG.Fees
@@ -120,7 +121,7 @@ defmodule OMG.FeesTest do
 
     test "returns an empty hash when given an unsuported tx type" do
       transaction = %OMG.State.Transaction.Recovered{
-        signed_tx: %OMG.State.Transaction.Signed{raw_tx: %OMG.TransactionHelper.Dummy{}, sigs: []},
+        signed_tx: %OMG.State.Transaction.Signed{raw_tx: DummyTransaction.new(), sigs: []},
         tx_hash: "",
         witnesses: [],
         signed_tx_bytes: ""
@@ -147,5 +148,11 @@ defmodule OMG.FeesTest do
       transaction = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}])
       assert Fees.for_transaction(transaction, fees) == %{}
     end
+  end
+
+  defmodule DummyTransaction do
+    defstruct []
+
+    def new(), do: %__MODULE__{}
   end
 end
