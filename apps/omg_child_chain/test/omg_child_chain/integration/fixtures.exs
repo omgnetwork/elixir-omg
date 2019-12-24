@@ -20,6 +20,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
+  alias OMG.Status.Alert.Alarm
   alias OMG.TestHelper
   alias Support.DevHelper
   alias Support.Integration.DepositHelper
@@ -99,12 +100,12 @@ defmodule OMG.ChildChain.Integration.Fixtures do
   end
 
   defp wait_for_web() do
-    case apply(OMG.ChildChainRPC.Web.TestHelper, :rpc_call, [:post, "/transaction.submit", %{}]) do
-      %{"data" => %{"code" => "operation:service_unavailable"}} ->
+    case Keyword.has_key?(Alarm.all(), elem(Alarm.main_supervisor_halted(__MODULE__), 0)) do
+      true ->
         Process.sleep(100)
         wait_for_web()
 
-      _ ->
+      false ->
         :ok
     end
   end

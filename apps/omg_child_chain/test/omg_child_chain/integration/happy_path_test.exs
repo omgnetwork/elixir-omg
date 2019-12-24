@@ -25,6 +25,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
   alias OMG.State.Transaction
+  alias OMG.Status.Alert.Alarm
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias Support.DevHelper
@@ -263,12 +264,12 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   defp get_input_txs(txs), do: Enum.map(txs, &Transaction.raw_txbytes/1)
 
   defp wait_for_web() do
-    case apply(OMG.ChildChainRPC.Web.TestHelper, :rpc_call, [:post, "/transaction.submit", %{}]) do
-      %{"data" => %{"code" => "operation:service_unavailable"}} ->
+    case Keyword.has_key?(Alarm.all(), elem(Alarm.main_supervisor_halted(__MODULE__), 0)) do
+      true ->
         Process.sleep(100)
         wait_for_web()
 
-      _ ->
+      false ->
         :ok
     end
   end

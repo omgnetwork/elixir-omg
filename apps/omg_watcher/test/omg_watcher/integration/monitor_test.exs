@@ -95,7 +95,6 @@ defmodule OMG.Watcher.MonitorTest do
     # in our case the child is alive so init should NOT be called
     parent = self()
     {:ok, _} = :dbg.tracer(:process, {fn msg, _ -> send(parent, msg) end, []})
-    {:ok, _} = :dbg.tpl(ChildProcess, :init, [{:_, [], [{:return_trace}]}])
     {:ok, _} = :dbg.p(:all, [:call])
     :ok = :alarm_handler.clear_alarm(app_alarm)
     assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_child}}, 1500

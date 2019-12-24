@@ -90,7 +90,7 @@ defmodule OMG.ChildChain.Monitor do
 
   # alarm has cleared, we can now begin restarting supervisor child
   def handle_cast(:health_checkin, state) do
-    _ = Logger.error("Got a health checkin... clearing alarm main_supervisor_halted.")
+    _ = Logger.info("Got a health checkin... clearing alarm main_supervisor_halted.")
     _ = state.alarm_module.clear(state.alarm_module.main_supervisor_halted(__MODULE__))
     {:noreply, state}
   end

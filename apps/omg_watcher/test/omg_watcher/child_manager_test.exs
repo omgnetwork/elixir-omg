@@ -25,6 +25,7 @@ defmodule OMG.Watcher.ChildManagerTest do
     # we wait for that long
     assert_receive(:got_health_checkin, timer + 10)
     # make sure child manager has shutdown
+    _ = Process.sleep(100)
     assert Process.alive?(pid) == false
   end
 
