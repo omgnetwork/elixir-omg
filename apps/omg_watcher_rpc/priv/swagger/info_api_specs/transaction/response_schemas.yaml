@@ -38,6 +38,8 @@ GetAllTransactionsResponseSchema:
           utxo_pos: 1000001110000
           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
           currency: '0x0000000000000000000000000000000000000000'
+          creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+          spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
           amount: 20000000
         outputs:
         -
@@ -48,6 +50,8 @@ GetAllTransactionsResponseSchema:
           owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
           currency: '0x0000000000000000000000000000000000000000'
           amount: 15000000
+          creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+          spending_txhash: null
         -
           blknum: 68290000
           txindex: 5113
@@ -56,6 +60,8 @@ GetAllTransactionsResponseSchema:
           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
           currency: '0x0000000000000000000000000000000000000000'
           amount: 5000000
+          creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+          spending_txhash: null
       data_paging:
         page: 1
         limit: 200
@@ -82,6 +88,8 @@ CreateTransactionResponseSchema:
                 owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                 currency: '0x0000000000000000000000000000000000000000'
                 amount: 50
+                creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                spending_txhash: null
               -
                 blknum: 277000
                 txindex: 2340
@@ -90,6 +98,8 @@ CreateTransactionResponseSchema:
                 owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                 currency: '0x0000000000000000000000000000000000000000'
                 amount: 75
+                creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                spending_txhash: null
             outputs:
               -
                 amount: 100
@@ -219,6 +229,8 @@ GetTransactionResponseSchema:
           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
           currency: '0x0000000000000000000000000000000000000000'
           amount: 10
+          creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+          spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
         outputs:
         -
           blknum: 68290000
@@ -228,6 +240,8 @@ GetTransactionResponseSchema:
           owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
           currency: '0x0000000000000000000000000000000000000000'
           amount: 2
+          creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+          spending_txhash: null
         -
           blknum: 68290000
           txindex: 5113
@@ -236,3 +250,5 @@ GetTransactionResponseSchema:
           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
           currency: '0x0000000000000000000000000000000000000000'
           amount: 7
+          creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+          spending_txhash: null

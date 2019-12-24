@@ -22,6 +22,12 @@ TransactionOutputSchema:
     amount:
       type: integer
       format: int256
+    creating_txhash:
+      type: string
+      format: binary
+    spending_txhash:
+      type: string
+      format: binary
 
 TransactionSchema:
   type: object
