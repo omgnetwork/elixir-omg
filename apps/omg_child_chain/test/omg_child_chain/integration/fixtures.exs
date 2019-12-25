@@ -105,7 +105,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
     case Keyword.has_key?(Alarm.all(), elem(Alarm.main_supervisor_halted(__MODULE__), 0)) do
       true ->
         Process.sleep(100)
-        wait_for_web(counter(-1))
+        wait_for_web(counter - 1)
 
       false ->
         :ok
