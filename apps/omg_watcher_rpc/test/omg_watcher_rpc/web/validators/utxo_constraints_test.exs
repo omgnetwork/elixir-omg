@@ -41,6 +41,11 @@ defmodule OMG.WatcherRPC.Web.Validator.UtxoConstraintsTest do
       {:error, error_data} = UtxoConstraints.parse(request_data)
 
       assert error_data == {:validation_error, "address", :hex}
+      request_data = %{"owner" => <<0::256>>, "page" => 1, "limit" => 100}
+
+      {:error, error_data} = UtxoConstraints.parse(request_data)
+
+      assert error_data == {:validation_error, "owner", :hex}
     end
   end
 end
