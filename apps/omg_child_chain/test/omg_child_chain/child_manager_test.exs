@@ -23,7 +23,7 @@ defmodule OMG.ChildChain.ChildManagerTest do
     # when does the mananger send a health check?
     %{timer: timer} = :sys.get_state(pid)
     # we wait for that long
-    assert_receive(:got_health_checkin, timer + 10)
+    assert_receive(:got_health_checkin, Kernel.trunc(timer * 1.5))
     # make sure child manager has shutdown
     _ = Process.sleep(100)
     assert Process.alive?(pid) == false
