@@ -21,9 +21,7 @@ defmodule OMG.ChildChainRPC.Web.TestHelper do
   use Plug.Test
 
   def rpc_call(method, path, params_or_body \\ nil) do
-    request =
-      conn(method, path, params_or_body)
-      |> put_req_header("content-type", "application/json")
+    request = put_req_header(conn(method, path, params_or_body), "content-type", "application/json")
 
     response = send_request(request)
 

@@ -12,21 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Controller.Status do
+defmodule OMG.Watcher.ChildManager do
   @moduledoc """
-  Module provides operation related to the child chain health status, like: geth syncing status, last minned block
-  number and time and last block verified by watcher.
+    Reports it's health to the Monitor after start or restart and shutsdown.
   """
+  use GenServer, restart: :transient
 
-  use OMG.WatcherRPC.Web, :controller
-  # check for health before calling action
-  plug(OMG.WatcherRPC.Plugs.Health)
-  alias OMG.Watcher.API.Status
+  require Logger
+  @timer 100
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  end
 
-  @doc """
-  Gets plasma network and Watcher status
-  """
-  def get_status(conn, _params) do
-    api_response(Status.get_status(), conn, :status)
+  def init(args) do
+    monitor = Keyword.fetch!(args, :monitor)
+    {:ok, _tref} = :timer.send_after(@timer, :health_checkin)
+    {:ok, %{timer: @timer, monitor: monitor}}
+  end
+
+  def handle_info(:health_checkin, state) do
+    :ok = state.monitor.health_checkin()
+
+    {:stop, :normal, state}
   end
 end

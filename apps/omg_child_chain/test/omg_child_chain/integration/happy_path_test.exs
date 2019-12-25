@@ -25,6 +25,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
   alias OMG.State.Transaction
+  alias OMG.Status.Alert.Alarm
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias Support.DevHelper
@@ -39,7 +40,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
-
+  # kill this test ASAP
   @tag fixtures: [:alice, :bob, :in_beam_child_chain, :token, :alice_deposits]
   test "deposit, spend, restart, exit etc works fine", %{
     alice: alice,
@@ -74,14 +75,12 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     # Restart everything to check persistance and revival.
     # NOTE: this is an integration test of the critical data persistence in the child chain
     #       See various ...PersistenceTest tests for more detailed tests of persistence behaviors
-    [:omg_child_chain, :omg_eth, :omg_db] |> Enum.each(&Application.stop/1)
-    {:ok, started_apps} = Application.ensure_all_started(:omg_child_chain)
-    # sanity check, did-we restart really?
-    assert Enum.member?(started_apps, :omg_child_chain)
-
+    Enum.each([:omg_child_chain, :omg_eth, :omg_db], &Application.stop/1)
+    {:ok, _started_apps} = Application.ensure_all_started(:omg_child_chain)
+    wait_for_web()
     # repeat spending to see if all works
     raw_tx2 = Transaction.Payment.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, @eth, 10}])
-    tx2 = raw_tx2 |> OMG.TestHelper.sign_encode([bob.priv, alice.priv])
+    tx2 = OMG.TestHelper.sign_encode(raw_tx2, [bob.priv, alice.priv])
     # spend the output of the first tx
     assert {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
 
@@ -92,7 +91,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     {:ok, {block_hash2, _}} = Eth.RootChain.get_child_chain(spend_child_block2)
 
     assert {:ok, %{"transactions" => [transaction2]}} = get_block(block_hash2)
-    {:ok, decoded_tx2_bytes} = transaction2 |> Encoding.from_hex()
+    {:ok, decoded_tx2_bytes} = Encoding.from_hex(transaction2)
     assert %{raw_tx: ^raw_tx2} = Transaction.Signed.decode!(decoded_tx2_bytes)
 
     # sanity checks, mainly persistence & failure responses
@@ -104,24 +103,25 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     # try to exit from transaction2's output
     proof = Block.inclusion_proof([tx2], 0)
-    encoded_utxo_pos = Utxo.position(spend_child_block2, 0, 0) |> Utxo.Position.encode()
+    encoded_utxo_pos = Utxo.Position.encode(Utxo.position(spend_child_block2, 0, 0))
     raw_txbytes = Transaction.raw_txbytes(raw_tx2)
 
     assert {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-             RootChainHelper.start_exit(
-               encoded_utxo_pos,
-               raw_txbytes,
-               proof,
-               alice.addr
+             DevHelper.transact_sync!(
+               RootChainHelper.start_exit(
+                 encoded_utxo_pos,
+                 raw_txbytes,
+                 proof,
+                 alice.addr
+               )
              )
-             |> DevHelper.transact_sync!()
 
     # check if the utxo is no longer available
     exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
     {:ok, _} = DevHelper.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
 
     invalid_raw_tx = Transaction.Payment.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
-    invalid_tx = invalid_raw_tx |> OMG.TestHelper.sign_encode([alice.priv])
+    invalid_tx = OMG.TestHelper.sign_encode(invalid_raw_tx, [alice.priv])
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(invalid_tx)
   end
 
@@ -262,4 +262,17 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   end
 
   defp get_input_txs(txs), do: Enum.map(txs, &Transaction.raw_txbytes/1)
+
+  defp wait_for_web(), do: wait_for_web(100)
+
+  defp wait_for_web(counter) do
+    case Keyword.has_key?(Alarm.all(), elem(Alarm.main_supervisor_halted(__MODULE__), 0)) do
+      true ->
+        Process.sleep(100)
+        wait_for_web(counter - 1)
+
+      false ->
+        :ok
+    end
+  end
 end

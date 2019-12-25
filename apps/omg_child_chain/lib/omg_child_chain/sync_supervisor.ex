@@ -20,17 +20,19 @@ defmodule OMG.ChildChain.SyncSupervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
 
+  alias OMG.ChildChain.ChildManager
   alias OMG.ChildChain.CoordinatorSetup
+  alias OMG.ChildChain.Monitor
   alias OMG.Eth.RootChain
   alias OMG.EthereumEventListener
   alias OMG.RootChainCoordinator
   alias OMG.State
 
-  def start_link do
+  def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def init(:ok) do
+  def init(_) do
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
@@ -64,7 +66,8 @@ defmodule OMG.ChildChain.SyncSupervisor do
         synced_height_update_key: :last_exiter_eth_height,
         get_events_callback: &RootChain.get_standard_exits_started/2,
         process_events_callback: &exit_and_ignore_validities/1
-      )
+      ),
+      {ChildManager, [monitor: Monitor]}
     ]
   end
 

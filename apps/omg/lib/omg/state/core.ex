@@ -263,13 +263,12 @@ defmodule OMG.State.Core do
   """
   @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}
   def deposit(deposits, %Core{utxos: utxos} = state) do
-    new_utxos_map = deposits |> Enum.into(%{}, &deposit_to_utxo/1)
+    new_utxos_map = Enum.into(deposits, %{}, &deposit_to_utxo/1)
     new_utxos = UtxoSet.apply_effects(utxos, [], new_utxos_map)
     db_updates = UtxoSet.db_updates([], new_utxos_map)
 
     event_triggers =
-      deposits
-      |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
+      Enum.map(deposits, fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
 
     _ = if deposits != [], do: Logger.info("Recognized deposits #{inspect(deposits)}")
 
@@ -310,8 +309,7 @@ defmodule OMG.State.Core do
   def extract_exiting_utxo_positions([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{}) do
     _ = Logger.info("Recognized exits from IFE starts #{inspect(in_flight_txs)}")
 
-    in_flight_txs
-    |> Enum.flat_map(fn %{call_data: %{in_flight_tx: tx_bytes}} ->
+    Enum.flat_map(in_flight_txs, fn %{call_data: %{in_flight_tx: tx_bytes}} ->
       {:ok, tx} = Transaction.decode(tx_bytes)
       Transaction.get_inputs(tx)
     end)

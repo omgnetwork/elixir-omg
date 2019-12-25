@@ -45,8 +45,8 @@ defmodule OMG.Status.Metric.StatsdMonitor do
     _ = Logger.info("Starting #{inspect(__MODULE__)}.")
     install_alarm_handler()
 
-    alarm_module = Keyword.get(opts, :alarm_module)
-    child_module = Keyword.get(opts, :child_module)
+    alarm_module = Keyword.fetch!(opts, :alarm_module)
+    child_module = Keyword.fetch!(opts, :child_module)
     false = Process.flag(:trap_exit, true)
     {:ok, pid} = apply(child_module, :start_link, [])
 
@@ -67,7 +67,7 @@ defmodule OMG.Status.Metric.StatsdMonitor do
 
   def handle_info({:EXIT, _, reason}, state) do
     _ = Logger.error("Monitored datadog connection process from statix died of reason #{inspect(reason)} ")
-    _ = state.alarm_module.set({:statsd_client_connection, Node.self(), __MODULE__})
+    _ = state.alarm_module.set(state.alarm_module.statsd_client_connection(__MODULE__))
     _ = :timer.cancel(state.tref)
     {:ok, tref} = :timer.send_after(state.interval, :connect)
     {:noreply, %{state | raised: true, tref: tref}}
@@ -120,10 +120,10 @@ defmodule OMG.Status.Metric.StatsdMonitor do
   defp raise_clear(_alarm_module, true, false), do: :ok
 
   defp raise_clear(alarm_module, false, false),
-    do: alarm_module.set({:statsd_client_connection, Node.self(), __MODULE__})
+    do: alarm_module.set(alarm_module.statsd_client_connection(__MODULE__))
 
   defp raise_clear(alarm_module, true, _),
-    do: alarm_module.clear({:statsd_client_connection, Node.self(), __MODULE__})
+    do: alarm_module.clear(alarm_module.statsd_client_connection(__MODULE__))
 
   defp raise_clear(_alarm_module, false, _), do: :ok
 

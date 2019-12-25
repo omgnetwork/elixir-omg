@@ -160,7 +160,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end
   end
 
-  defp refresh_fees do
+  defp refresh_fees() do
     pid = GenServer.whereis(TestFeeServer)
 
     capture_log(fn ->
@@ -173,7 +173,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end)
   end
 
-  defp wait_for_log do
+  defp wait_for_log() do
     # wait maximal 1s for logs
     Enum.reduce_while(1..100, nil, fn _, _ ->
       logs = capture_log(fn -> Process.sleep(10) end)
@@ -185,7 +185,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end)
   end
 
-  defp server_alive? do
+  defp server_alive?() do
     case GenServer.whereis(TestFeeServer) do
       pid when is_pid(pid) ->
         Process.alive?(pid)

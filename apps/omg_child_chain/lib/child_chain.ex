@@ -53,7 +53,7 @@ defmodule OMG.ChildChain do
     |> result_with_logging()
   end
 
-  @spec get_alarms() :: {:ok, Alarm.raw_t()}
+  @spec get_alarms() :: {:ok, Alarm.alarms()}
   def get_alarms, do: {:ok, Alarm.all()}
 
   @spec get_filtered_fees(list(String.t()) | nil) :: {:ok, Fees.fee_t()} | {:error, :currency_fee_not_supported}

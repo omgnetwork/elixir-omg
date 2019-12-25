@@ -19,6 +19,11 @@ defmodule OMG.ChildChain.Monitor do
   It subscribes to alarms and when an alarm is cleared it restarts it
   children if they're dead.
   """
+
+  def health_checkin() do
+    GenServer.cast(__MODULE__, :health_checkin)
+  end
+
   defmodule Child do
     @moduledoc false
     @type t :: %__MODULE__{
@@ -34,21 +39,21 @@ defmodule OMG.ChildChain.Monitor do
 
   @type t :: %__MODULE__{
           alarm_module: module(),
-          children: list(Child.t())
+          child: Child.t()
         }
-  defstruct alarm_module: nil, children: nil
+  defstruct alarm_module: nil, child: nil
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init([alarm_module, children_specs]) do
+  def init([alarm_module, child_spec]) do
     subscribe_to_alarms()
     Process.flag(:trap_exit, true)
-
-    children = Enum.map(children_specs, &start_child(&1))
-
-    {:ok, %__MODULE__{alarm_module: alarm_module, children: children}}
+    # we raise the alarms first, because we get a health checkin when all
+    # sub processes of the supervisor are ready to go
+    _ = alarm_module.set(alarm_module.main_supervisor_halted(__MODULE__))
+    {:ok, %__MODULE__{alarm_module: alarm_module, child: start_child(child_spec)}}
   end
 
   # gen_event boot
@@ -63,7 +68,7 @@ defmodule OMG.ChildChain.Monitor do
 
   def handle_event({:clear_alarm, {:ethereum_client_connection, _}}, state) do
     _ = Logger.warn(":ethereum_client_connection alarm was cleared. Beginning to restart processes.")
-    :ok = GenServer.cast(__MODULE__, :start_children)
+    :ok = GenServer.cast(__MODULE__, :start_child)
     {:ok, state}
   end
 
@@ -73,16 +78,29 @@ defmodule OMG.ChildChain.Monitor do
     {:ok, state}
   end
 
-  # there's a supervisor below us that did the needed restarts for it's children
-  # so we just ignore the exit from the supervisor, if the alarm clears, we restart it
-  def handle_info({:EXIT, _from, _reason}, state) do
+  # There's a supervisor below us that did the needed restarts for it's children
+  # so we do not attempt to restart the exit from the supervisor, if the alarm clears, we restart it then.
+  # We declare the sytem unhealthy
+  def handle_info({:EXIT, _from, reason}, state) do
+    _ = Logger.error("Child Chain supervisor crashed. Raising alarm. Reason #{inspect(reason)}")
+    state.alarm_module.set(state.alarm_module.main_supervisor_halted(__MODULE__))
+
     {:noreply, state}
   end
 
-  # alarm has cleared, we can now begin restarting children
-  def handle_cast(:start_children, state) do
-    children = Enum.map(state.children, &start_child(&1))
-    {:noreply, %{state | children: children}}
+  # alarm has cleared, we can now begin restarting supervisor child
+  def handle_cast(:health_checkin, state) do
+    _ = Logger.info("Got a health checkin... clearing alarm main_supervisor_halted.")
+    _ = state.alarm_module.clear(state.alarm_module.main_supervisor_halted(__MODULE__))
+    {:noreply, state}
+  end
+
+  # alarm has cleared, we can now begin restarting supervisor child
+  def handle_cast(:start_child, state) do
+    child = state.child
+    _ = Logger.info("Monitor is restarting child #{inspect(child)}.")
+
+    {:noreply, %{state | child: start_child(child)}}
   end
 
   defp start_child(%{id: _name, start: {child_module, function, args}} = spec) do
