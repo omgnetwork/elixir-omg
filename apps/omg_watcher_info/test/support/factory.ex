@@ -20,9 +20,14 @@ defmodule OMG.WatcherInfo.Factory do
 
   ## Usage
 
-  Import this factory into your test module with `import OMG.WatcherInfo.Factory`.
+  Import this factory into your test module with `import OMG.WatcherInfo.Factory`. Importing only this factory and
+  you will be able to use all the factories in the factories directory. To specify which factory ExMachina should
+  use pass an atom of the factory name to the `build()` and `insert()` functions.
 
-  Then, use [`build/1`](https://hexdocs.pm/ex_machina/ExMachina.html#c:build/1)
+  For example, to build a block using the block factory use: `block = build(:block)`
+  To build a transaction using the transaction factory use: `transaction = build(:transaction)`
+
+  Use [`build/1`](https://hexdocs.pm/ex_machina/ExMachina.html#c:build/1)
   to build a struct without inserting them to the database, or
   [`build/2`](https://hexdocs.pm/ex_machina/ExMachina.html#c:build/2) to override default data.
 
@@ -57,6 +62,10 @@ defmodule OMG.WatcherInfo.Factory do
   use ExMachina.Ecto, repo: OMG.WatcherInfo.DB.Repo
 
   alias OMG.WatcherInfo.DB
+  
+
+  alias OMG.Utxo
+  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -105,11 +114,12 @@ defmodule OMG.WatcherInfo.Factory do
     - To override `creating_transaction`, also consider overriding `txindex` and `oindex`.
     - To override `spending_transaction`, also consider overriding `spending_tx_oindex`
   """
-  def txoutput_factory() do
-    block = build(:block)
-    transaction = build(:transaction, block: block)
+  def txoutput_factory(attrs \\ nil) do
+    block = attrs[:block] || build(:block)
+    creating_transaction = attrs[:creating_transaction] || build(:transaction, block: block)
+    ethevents = attrs[:ethevents] || nil
 
-    %DB.TxOutput{
+    txoutput = %DB.TxOutput{
       blknum: block.blknum,
       txindex: 0,
       oindex: 0,
@@ -118,10 +128,45 @@ defmodule OMG.WatcherInfo.Factory do
       currency: @eth,
       proof: insecure_random_bytes(32),
       spending_tx_oindex: nil,
-      child_chain_utxohash: insecure_random_bytes(32),
-      creating_transaction: transaction,
-      spending_transaction: nil
+      creating_transaction: creating_transaction,
+      spending_transaction: nil,
+      ethevents: ethevents
     }
+
+    child_chain_utxohash = DB.EthEvent.generate_child_chain_utxohash(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
+
+    txoutput = Map.put(txoutput, :child_chain_utxohash, child_chain_utxohash)
+
+    merge_attributes(txoutput, attrs)
+  end
+
+  def deposit_factory() do
+    ethevents = build_list(1, :ethevent)
+
+    # rootchain deposits come from the rootchain and have no creating_transaction
+    build(:txoutput, creating_transaction: nil, ethevents: ethevents)
+  end
+
+  def standard_exit_factory(attrs \\ nil) do
+    ethevents = build_list(1, :ethevent, event_type: :start_standard_exit)
+
+    build(:txoutput, ethevents: ethevents)
+  end
+
+  def ethevent_factory(attrs \\ nil) do
+    event_type = attrs[:event_type] || :deposit
+    
+    ethevent = %DB.EthEvent{
+      root_chain_txhash: insecure_random_bytes(32),
+      log_index: sequence(:ethevent_log_index, fn seq -> seq end),
+      event_type: event_type
+    }
+
+    root_chain_txhash_event = DB.EthEvent.generate_root_chain_txhash_event(ethevent.root_chain_txhash, ethevent.log_index)
+
+    ethevent = Map.put(ethevent, :root_chain_txhash_event, root_chain_txhash_event)
+
+    merge_attributes(ethevent, attrs)
   end
 
   # Generates a certain length of random bytes. Uniqueness not guaranteed so it's not recommended for identifiers.

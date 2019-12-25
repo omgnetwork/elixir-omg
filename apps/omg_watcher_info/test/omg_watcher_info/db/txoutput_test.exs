@@ -50,34 +50,14 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
 
   describe "get_deposits/1" do
   @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns a list of deposits" do
-    #    _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
-    #      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
-    #    _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
-
-       paginator = %Paginator{
-         data: [],
-           data_paging: %{
-           limit: 10,
-           page: 1
-         }
-       }
-
-      results = DB.TxOutput.get_deposits(paginator)
-
-      assert length(results.data) == 3
-      assert Enum.all?(results.data, fn txoutput -> %DB.TxOutput{} = txoutput end)
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns a list of deposits sorted by descending blknum" do
-#    _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
-#    _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
-#    _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
+    test "returns a list of utxos that have a deposit eth event" do
+      _ = insert(:deposit)
+      _ = insert(:deposit)
+      _ = insert(:standard_exit)
 
       paginator = %Paginator{
         data: [],
-        data_paging: %{
+          data_paging: %{
           limit: 10,
           page: 1
         }
@@ -85,29 +65,72 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
 
       results = DB.TxOutput.get_deposits(paginator)
 
-      assert length(results.data) == 3
-#      assert results.data |> Enum.at(0) |> Map.get(:blknum) == 3000
-#      assert results.data |> Enum.at(1) |> Map.get(:blknum) == 2000
-#      assert results.data |> Enum.at(2) |> Map.get(:blknum) == 1000
+      assert length(results.data) == 2
+      assert Enum.all?(results.data, fn txoutput -> %DB.TxOutput{} = txoutput end)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns a list of deposits filtered by address" do
-    end
+    test "returns a list of utxos that have a deposit eth event and possibly other eth events too" do
+      _ = insert(:deposit)
+      _ = insert(:deposit)
+      
+      # this utxo has both an deposit eth event and a standard exit eth event. it should still be
+      # returned as a deposit
+      utxo = insert(:standard_exit)
+      # add standard exit eth event to utxo
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns an empty list when given limit: 0" do
       paginator = %Paginator{
         data: [],
-        data_paging: %{
-          limit: 0,
+          data_paging: %{
+          limit: 10,
           page: 1
         }
       }
 
       results = DB.TxOutput.get_deposits(paginator)
 
-      assert results.data == []
-    end
+      assert length(results.data) == 2
+      assert Enum.all?(results.data, fn txoutput -> %DB.TxOutput{} = txoutput end)
+    end    
+
+#     @tag fixtures: [:phoenix_ecto_sandbox]
+#     test "returns a list of deposits sorted by descending blknum" do
+# #    _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+# #    _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
+# #    _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
+
+#       paginator = %Paginator{
+#         data: [],
+#         data_paging: %{
+#           limit: 10,
+#           page: 1
+#         }
+#       }
+
+#       results = DB.TxOutput.get_deposits(paginator)
+
+#       assert length(results.data) == 3
+# #      assert results.data |> Enum.at(0) |> Map.get(:blknum) == 3000
+# #      assert results.data |> Enum.at(1) |> Map.get(:blknum) == 2000
+# #      assert results.data |> Enum.at(2) |> Map.get(:blknum) == 1000
+#     end
+
+#     @tag fixtures: [:phoenix_ecto_sandbox]
+#     test "returns a list of deposits filtered by address" do
+#     end
+
+#     @tag fixtures: [:phoenix_ecto_sandbox]
+#     test "returns an empty list when given limit: 0" do
+#       paginator = %Paginator{
+#         data: [],
+#         data_paging: %{
+#           limit: 0,
+#           page: 1
+#         }
+#       }
+
+#       results = DB.TxOutput.get_deposits(paginator)
+
+#       assert results.data == []
+#     end
   end
 end

@@ -220,7 +220,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   end
 
   defp query_deposits_get_last(%{address: address, limit: limit, page: page}) do
-    IO.inspect(nil, label: "here")
     offset = (page - 1) * limit
 
     from(
@@ -237,7 +236,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   end
 
   defp query_deposits_get_last(%{limit: limit, page: page}) do
-    IO.inspect(nil, label: "there")
     offset = (page - 1) * limit
 
     from(
