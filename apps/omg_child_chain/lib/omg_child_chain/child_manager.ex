@@ -19,7 +19,7 @@ defmodule OMG.ChildChain.ChildManager do
   use GenServer, restart: :transient
 
   require Logger
-  @timer 5_000
+  @timer 100
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
