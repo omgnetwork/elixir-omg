@@ -73,7 +73,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => input_2.oindex,
                    "owner" => Encoding.to_hex(input_2.owner),
                    "txindex" => input_2.txindex,
-                   "utxo_pos" => Utxo.Position.encode({:utxo_position, input_2.blknum, input_2.txindex, input_2.oindex}),
+                   "utxo_pos" =>
+                     Utxo.Position.encode({:utxo_position, input_2.blknum, input_2.txindex, input_2.oindex}),
                    "creating_txhash" => Encoding.to_hex(input_2.creating_txhash),
                    "spending_txhash" => Encoding.to_hex(transaction.txhash)
                  },
@@ -84,7 +85,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => input_1.oindex,
                    "owner" => Encoding.to_hex(input_1.owner),
                    "txindex" => input_1.txindex,
-                   "utxo_pos" => Utxo.Position.encode({:utxo_position, input_1.blknum, input_1.txindex, input_1.oindex}),
+                   "utxo_pos" =>
+                     Utxo.Position.encode({:utxo_position, input_1.blknum, input_1.txindex, input_1.oindex}),
                    "creating_txhash" => Encoding.to_hex(input_1.creating_txhash),
                    "spending_txhash" => Encoding.to_hex(transaction.txhash)
                  }
@@ -97,7 +99,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => output_2.oindex,
                    "owner" => Encoding.to_hex(output_2.owner),
                    "txindex" => output_2.txindex,
-                   "utxo_pos" => Utxo.Position.encode({:utxo_position, output_2.blknum, output_2.txindex, output_2.oindex}),
+                   "utxo_pos" =>
+                     Utxo.Position.encode({:utxo_position, output_2.blknum, output_2.txindex, output_2.oindex}),
                    "creating_txhash" => Encoding.to_hex(transaction.txhash),
                    "spending_txhash" => nil
                  },
@@ -108,7 +111,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => output_1.oindex,
                    "owner" => Encoding.to_hex(output_1.owner),
                    "txindex" => output_1.txindex,
-                   "utxo_pos" => Utxo.Position.encode({:utxo_position, output_1.blknum, output_1.txindex, output_1.oindex}),
+                   "utxo_pos" =>
+                     Utxo.Position.encode({:utxo_position, output_1.blknum, output_1.txindex, output_1.oindex}),
                    "creating_txhash" => Encoding.to_hex(transaction.txhash),
                    "spending_txhash" => nil
                  }
