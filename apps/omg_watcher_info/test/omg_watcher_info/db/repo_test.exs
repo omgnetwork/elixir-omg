@@ -22,7 +22,7 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
   alias OMG.WatcherInfo.DB
 
   alias OMG.Utxo
-  require OMG.Utxo
+  require Utxo
 
   describe "DB.Repo.insert_all_chunked/3" do
     # a special test for insert_all_chunked/3 is here because under the hood it calls insert_all/2. using
@@ -33,13 +33,16 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
     test "insert_all_chunked adds inserted_at and updated_at timestamps correctly" do
       txoutput = params_for(:txoutput)
 
+      # insert_all doesn't support associations so remove them
+      txoutput = Map.drop(txoutput, [:ethevents])
+
       DB.Repo.insert_all_chunked(OMG.WatcherInfo.DB.TxOutput, [txoutput])
 
       txoutput_with_dates =
         DB.TxOutput.get_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
 
-      assert not is_nil(txoutput_with_dates.inserted_at)
-      assert not is_nil(txoutput_with_dates.updated_at)
+      assert txoutput_with_dates.inserted_at != nil
+      assert txoutput_with_dates.updated_at != nil
       assert DateTime.compare(txoutput_with_dates.inserted_at, txoutput_with_dates.updated_at) == :eq
     end
   end
@@ -52,6 +55,9 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "spend_utxos updates the updated_at timestamp correctly" do
       txoutput = params_for(:txoutput)
+
+      # insert_all doesn't support associations so remove them
+      txoutput = Map.drop(txoutput, [:ethevents])
 
       DB.Repo.insert_all_chunked(DB.TxOutput, [txoutput])
 
@@ -71,14 +77,64 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
       txoutput_with_updated_updated_at_date =
         DB.TxOutput.get_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
 
-      assert not is_nil(txoutput_with_updated_updated_at_date.inserted_at)
-      assert not is_nil(txoutput_with_updated_updated_at_date.updated_at)
+      assert txoutput_with_updated_updated_at_date.inserted_at != nil
+      assert txoutput_with_updated_updated_at_date.updated_at != nil
       assert DateTime.compare(txoutput_with_dates.inserted_at, txoutput_with_updated_updated_at_date.inserted_at) == :eq
 
       assert DateTime.compare(
                txoutput_with_updated_updated_at_date.inserted_at,
                txoutput_with_updated_updated_at_date.updated_at
              ) == :lt
+    end
+  end
+
+  describe "OMG.WatcherInfo.DB.Repo insert and update" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "entity inserts correctly set inserted_at and updated_at fields" do
+      block = insert(:block)
+      transaction = insert(:transaction)
+      txoutput = insert(:txoutput)
+      ethevent = insert(:ethevent)
+
+      assert block.inserted_at != nil
+      assert block.updated_at != nil
+
+      assert transaction.inserted_at != nil
+      assert transaction.updated_at != nil
+
+      assert txoutput.inserted_at != nil
+      assert txoutput.updated_at != nil
+
+      assert ethevent.inserted_at != nil
+      assert ethevent.updated_at != nil
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "entity updates correctly update the updated_at" do
+      block = insert(:block)
+      transaction = insert(:transaction)
+      txoutput = insert(:txoutput)
+      ethevent = insert(:ethevent)
+
+      {:ok, updated_block} = DB.Repo.update(Ecto.Changeset.change(block), force: true)
+
+      assert DateTime.compare(block.inserted_at, updated_block.inserted_at) == :eq
+      assert DateTime.compare(block.updated_at, updated_block.updated_at) == :lt
+
+      {:ok, updated_transaction} = DB.Repo.update(Ecto.Changeset.change(transaction), force: true)
+
+      assert DateTime.compare(transaction.inserted_at, updated_transaction.inserted_at) == :eq
+      assert DateTime.compare(transaction.updated_at, updated_transaction.updated_at) == :lt
+
+      {:ok, updated_txoutput} = DB.Repo.update(Ecto.Changeset.change(txoutput), force: true)
+
+      assert DateTime.compare(txoutput.inserted_at, updated_txoutput.inserted_at) == :eq
+      assert DateTime.compare(txoutput.updated_at, updated_txoutput.updated_at) == :lt
+
+      {:ok, updated_ethevent} = DB.Repo.update(Ecto.Changeset.change(ethevent), force: true)
+
+      assert DateTime.compare(ethevent.inserted_at, updated_ethevent.inserted_at) == :eq
+      assert DateTime.compare(ethevent.updated_at, updated_ethevent.updated_at) == :lt
     end
   end
 end
