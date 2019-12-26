@@ -72,12 +72,13 @@ defmodule Itest.Client do
       "transactions" => [
         %{
           "sign_hash" => sign_hash,
-          "typed_data" => typed_data
+          "typed_data" => typed_data,
+          "txbytes" => txbytes
         }
       ]
     } = Jason.decode!(response.body)["data"]
 
-    {:ok, [sign_hash, typed_data]}
+    {:ok, [sign_hash, typed_data, txbytes]}
   end
 
   def submit_transaction(typed_data, sign_hash, private_key) do
