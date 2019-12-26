@@ -76,8 +76,7 @@ defmodule OMG.Eth.RootChain do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
     static_array_return_types = [
-      {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]},
-       Enum.count(exit_ids)}
+      {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
     ]
 
     # TODO: hack around an issue with `ex_abi` https://github.com/poanetwork/ex_abi/issues/22
