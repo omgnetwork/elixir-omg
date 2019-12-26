@@ -80,9 +80,6 @@ defmodule OMG.Output do
     owner == witness
   end
 
-  def input_pointer(%__MODULE__{}, blknum, tx_index, oindex, _, _),
-    do: Utxo.position(blknum, tx_index, oindex)
-
   def to_db_value(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
     %{owner: owner, currency: currency, amount: amount, output_type: output_type}
