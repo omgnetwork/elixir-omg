@@ -30,15 +30,12 @@ defmodule OMG.Eth.RootChainTest do
     ExVCR.Config.cassette_library_dir(vcr_path)
 
     contract = %{
-      # NOTE: achiurizo
-      # this has changed with ALD(see plasma-contrats deploy of plasma_framework)
-      # it's now :plasma_framework_tx_hash instead of :txhash_contract
-      txhash_contract: Encoding.from_hex("0x3d517d431daea71a99310f12468ffdf2bf547ad1d148f42acfc4ee34dd4e84d7"),
-      plasma_framework: Encoding.from_hex("0xd17e1233a03affb9092d5109179b43d6a8828607"),
-      eth_vault: Encoding.from_hex("0x1967d06b1faba91eaadb1be33b277447ea24fa0e"),
-      erc20_vault: Encoding.from_hex("0xaef6182310e3d34b6ea138b60d36a245386f3201"),
-      payment_exit_game: Encoding.from_hex("0x902719f192aa5240632f704aa7a94bab61b86550"),
-      authority_address: Encoding.from_hex("0x22d491bde2303f2f43325b2108d26f1eaba1e32b")
+      plasma_framework_tx_hash: Encoding.from_hex("0xcd96b40b8324a4e10b421d6dd9796d200c64f7af6799f85262fa8951aed2f10c"),
+      plasma_framework: Encoding.from_hex("0xc673e4ffcb8464faff908a6804fe0e635af0ea2f"),
+      eth_vault: Encoding.from_hex("0x0433420dee34412b5bf1e29fbf988ad037cc5db7"),
+      erc20_vault: Encoding.from_hex("0x04badc20426bc146453c5b879417b25029fa6c73"),
+      payment_exit_game: Encoding.from_hex("0x92ce4d7773c57d96210c46a07b89acf725057f21"),
+      authority_address: Encoding.from_hex("0xc0f780dfc35075979b0def588d999225b7ecc56f")
     }
 
     {:ok, contract: contract}
@@ -46,14 +43,14 @@ defmodule OMG.Eth.RootChainTest do
 
   test "get_root_deployment_height/2 returns current block number", %{contract: contract} do
     use_cassette "ganache/get_root_deployment_height", match_requests_on: [:request_body] do
-      {:ok, number} = RootChain.get_root_deployment_height(contract.txhash_contract, contract)
+      {:ok, number} = RootChain.get_root_deployment_height(contract.plasma_framework_tx_hash, contract)
       assert is_integer(number)
     end
   end
 
   test "get_next_child_block/1 returns next blknum to be mined by operator", %{contract: contract} do
     use_cassette "ganache/get_next_child_block", match_requests_on: [:request_body] do
-      assert {:ok, 2000} = RootChain.get_next_child_block(contract)
+      assert {:ok, 1000} = RootChain.get_next_child_block(contract)
     end
   end
 
@@ -90,16 +87,14 @@ defmodule OMG.Eth.RootChainTest do
     end
   end
 
-  # TODO achiurizo
-  #
-  # ganache complaining about invalid output encoding
   test "get_deposits/3 returns deposit events", %{contract: contract} do
     use_cassette "ganache/get_deposits", match_requests_on: [:request_body] do
       # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
       # payment tx_type, no inputs, one output, metadata
       tx =
-        [1, [], [[1, contract.authority_address, @eth, 1]], <<0::256>>]
-        |> ExRLP.encode()
+        [owner: contract.authority_address, currency: @eth, amount: 1]
+        |> ExPlasma.Transactions.Deposit.new()
+        |> ExPlasma.Transaction.encode()
 
       {:ok, tx_hash} =
         RootChainHelper.deposit(tx, 1, contract.authority_address, contract)
