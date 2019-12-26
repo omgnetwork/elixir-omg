@@ -68,7 +68,7 @@ defmodule OMG.WatcherInfo.Factory do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-   @doc """
+  @doc """
   Block factory.
 
   Generates a block in an incremental blknum of 1000, 2000, 3000, etc.
@@ -134,7 +134,8 @@ defmodule OMG.WatcherInfo.Factory do
       ethevents: ethevents
     }
 
-    child_chain_utxohash = DB.EthEvent.generate_child_chain_utxohash(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
+    child_chain_utxohash =
+      DB.EthEvent.generate_child_chain_utxohash(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
 
     txoutput = Map.put(txoutput, :child_chain_utxohash, child_chain_utxohash)
 
@@ -153,13 +154,13 @@ defmodule OMG.WatcherInfo.Factory do
   Most scenarios will have a only a 1-1 relationship between ethevents an txoutputs. However, with an ExitFinalized
   (process exit) scenario, an ethevent may have many txoutputs. A txoutput for every utxo in the exit queue when 
   processExits() was called.
-  
+
   The default event type is `:deposit`, but can be overridden by setting `event_type`.
   """
   def ethevent_factory(attrs \\ nil) do
     event_type = attrs[:event_type] || :deposit
     txoutputs = attrs[:txoutputs] || []
-    
+
     ethevent = %DB.EthEvent{
       root_chain_txhash: insecure_random_bytes(32),
       log_index: sequence(:ethevent_log_index, fn seq -> seq end),
@@ -167,7 +168,8 @@ defmodule OMG.WatcherInfo.Factory do
       txoutputs: txoutputs
     }
 
-    root_chain_txhash_event = DB.EthEvent.generate_root_chain_txhash_event(ethevent.root_chain_txhash, ethevent.log_index)
+    root_chain_txhash_event =
+      DB.EthEvent.generate_root_chain_txhash_event(ethevent.root_chain_txhash, ethevent.log_index)
 
     ethevent = Map.put(ethevent, :root_chain_txhash_event, root_chain_txhash_event)
 
