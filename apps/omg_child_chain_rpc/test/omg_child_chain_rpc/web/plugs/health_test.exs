@@ -47,28 +47,6 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
     end
 
     @tag fixtures: [:phoenix_sandbox]
-    test "if block.get endpoint rejects request because alarms are raised" do
-      :ok = :alarm_handler.clear_alarm(@alarm_2)
-      :ok = :alarm_handler.set_alarm(@alarm_1)
-
-      :ok =
-        pull_client_alarm(
-          300,
-          %{
-            "data" => %{
-              "code" => "operation:service_unavailable",
-              "description" => "The server is not ready to handle the request.",
-              "object" => "error"
-            },
-            "success" => false
-          },
-          fn -> TestHelper.rpc_call(:post, "/block.get") end
-        )
-
-      :ok = :alarm_handler.clear_alarm(@alarm_1)
-    end
-
-    @tag fixtures: [:phoenix_sandbox]
     test "if block.get endpoint rejects the request because of bad params when alarm is cleared" do
       :ok = :alarm_handler.clear_alarm(@alarm_1)
       :ok = :alarm_handler.clear_alarm(@alarm_2)
@@ -105,28 +83,6 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
             "success" => true
           },
           fn -> TestHelper.rpc_call(:get, "/alarm.get") end
-        )
-
-      :ok = :alarm_handler.clear_alarm(@alarm_2)
-    end
-
-    @tag fixtures: [:phoenix_sandbox]
-    test "if block.get endpoint rejects request because alarms are raised" do
-      :ok = :alarm_handler.set_alarm(@alarm_2)
-      :ok = :alarm_handler.clear_alarm(@alarm_1)
-
-      :ok =
-        pull_client_alarm(
-          300,
-          %{
-            "data" => %{
-              "code" => "operation:service_unavailable",
-              "description" => "The server is not ready to handle the request.",
-              "object" => "error"
-            },
-            "success" => false
-          },
-          fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
         )
 
       :ok = :alarm_handler.clear_alarm(@alarm_2)

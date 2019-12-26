@@ -18,6 +18,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.Transaction do
   """
 
   use OMG.ChildChainRPC.Web, :controller
+  # check for health before calling action
   plug(OMG.ChildChainRPC.Plugs.Health)
   alias OMG.ChildChain
 

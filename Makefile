@@ -1,6 +1,7 @@
 MAKEFLAGS += --silent
 OVERRIDING_START ?= foreground
 SNAPSHOT ?= SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20
+BAREBUILD_ENV ?= dev
 help:
 	@echo "Dont Fear the Makefile"
 	@echo ""
@@ -316,37 +317,37 @@ start-services:
 start-child_chain:
 	set -e; . ./bin/variables; \
 	echo "Building Child Chain" && \
-	make build-child_chain-prod && \
-	rm -f ./_build/prod/rel/child_chain/var/sys.config || true && \
+	make build-child_chain-${BAREBUILD_ENV} && \
+	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
 	echo "Init Child Chain DB" && \
-	_build/prod/rel/child_chain/bin/child_chain init_key_value_db && \
+	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain init_key_value_db && \
 	echo "Init Child Chain DB DONE" && \
-	_build/prod/rel/child_chain/bin/child_chain $(OVERRIDING_START)
+	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
 	set -e; . ./bin/variables; \
 	echo "Building Watcher" && \
-	make build-watcher-prod && \
+	make build-watcher-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
-	rm -f ./_build/prod/rel/watcher/var/sys.config || true && \
+	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-	_build/prod/rel/watcher/bin/watcher init_key_value_db && \
+	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher init_key_value_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	PORT=${WATCHER_PORT} _build/prod/rel/watcher/bin/watcher $(OVERRIDING_START)
+	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
 
 start-watcher_info:
 	set -e; . ./bin/variables; \
 	echo "Building Watcher" && \
-	make build-watcher_info-prod && \
+	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
-	rm -f ./_build/prod/rel/watcher_info/var/sys.config || true && \
+	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-	_build/prod/rel/watcher_info/bin/watcher_info init_key_value_db && \
-	_build/prod/rel/watcher_info/bin/watcher_info init_postgresql_db && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_key_value_db && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_postgresql_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	PORT=${WATCHER_INFO_PORT} _build/prod/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
+	PORT=${WATCHER_INFO_PORT} _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
@@ -389,11 +390,11 @@ remote-watcher_info:
 
 get-alarms:
 	echo "Child Chain alarms" ; \
-	curl -s -X POST http://localhost:9656/alarm.get ; \
+	curl -s -X GET http://localhost:9656/alarm.get ; \
 	echo "\nWatcher alarms" ; \
-	curl -s -X POST http://localhost:${WATCHER_PORT}/alarm.get ; \
+	curl -s -X GET http://localhost:${WATCHER_PORT}/alarm.get ; \
 	echo "\nWatcherInfo alarms" ; \
-	curl -s -X POST http://localhost:${WATCHER_INFO_PORT}/alarm.get
+	curl -s -X GET http://localhost:${WATCHER_INFO_PORT}/alarm.get
 
 cluster-stop:
 	${MAKE} stop-watcher ; ${MAKE} stop-watcher_info ; ${MAKE} stop-child_chain ; docker-compose down

@@ -1097,8 +1097,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     defp balance_in_token(address, token) do
       currency = Encoding.to_hex(token)
 
-      WatcherHelper.get_balance(address)
-      |> Enum.find_value(0, fn
+      Enum.find_value(WatcherHelper.get_balance(address), 0, fn
         %{"currency" => ^currency, "amount" => amount} -> amount
         _ -> false
       end)

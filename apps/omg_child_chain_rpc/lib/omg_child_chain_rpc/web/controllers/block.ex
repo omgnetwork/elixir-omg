@@ -18,7 +18,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.Block do
   """
 
   use OMG.ChildChainRPC.Web, :controller
-  plug(OMG.ChildChainRPC.Plugs.Health)
   alias OMG.ChildChain
 
   def get_block(conn, params) do

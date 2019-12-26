@@ -40,8 +40,9 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
 
   defp set_db(root_path) do
     app =
-      case Code.ensure_loaded?(OMG.Watcher) do
-        true -> :watcher
+      case {Code.ensure_loaded?(OMG.Watcher), Code.ensure_loaded?(OMG.WatcherInfo)} do
+        {true, true} -> :watcher_info
+        {true, false} -> :watcher
         _ -> :child_chain
       end
 

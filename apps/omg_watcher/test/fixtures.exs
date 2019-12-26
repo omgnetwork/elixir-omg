@@ -22,6 +22,7 @@ defmodule OMG.Watcher.Fixtures do
   alias FakeServer.Agents.EnvAgent
   alias FakeServer.HTTP.Server
   alias OMG.Eth
+  alias OMG.Status.Alert.Alarm
   alias OMG.TestHelper
   alias Support.DevHelper
 
@@ -164,6 +165,7 @@ defmodule OMG.Watcher.Fixtures do
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_security_watcher} = Application.ensure_all_started(:omg_watcher)
     {:ok, started_watcher_api} = Application.ensure_all_started(:omg_watcher_rpc)
+    wait_for_web()
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
@@ -196,5 +198,18 @@ defmodule OMG.Watcher.Fixtures do
       fake_addr: fake_addr,
       server_id: server_id
     }
+  end
+
+  defp wait_for_web(), do: wait_for_web(100)
+
+  defp wait_for_web(counter) do
+    case Keyword.has_key?(Alarm.all(), elem(Alarm.main_supervisor_halted(__MODULE__), 0)) do
+      true ->
+        Process.sleep(100)
+        wait_for_web(counter - 1)
+
+      false ->
+        :ok
+    end
   end
 end
