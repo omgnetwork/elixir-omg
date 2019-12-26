@@ -22,7 +22,7 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
   alias OMG.WatcherInfo.DB
 
   alias OMG.Utxo
-  require OMG.Utxo
+  require Utxo
 
   describe "DB.Repo.insert_all_chunked/3" do
     # a special test for insert_all_chunked/3 is here because under the hood it calls insert_all/2. using
