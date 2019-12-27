@@ -333,4 +333,18 @@ defmodule Support.RootChainHelper do
 
     deposit_blknum
   end
+
+  def exit_id_from_receipt(%{"logs" => logs}) do
+    topic =
+      "ExitStarted(address,uint160)"
+      |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+      |> to_hex()
+
+    [%{exit_id: exit_id}] =
+      logs
+      |> Enum.filter(&(topic in &1["topics"]))
+      |> Enum.map(&RootChain.decode_exit_started/1)
+
+    exit_id
+  end
 end
