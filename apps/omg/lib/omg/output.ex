@@ -20,6 +20,7 @@ defmodule OMG.Output do
   This module specificially dispatches generic calls to the various specific types
   """
   alias OMG.Crypto
+  alias OMG.RawData
 
   @type t :: %__MODULE__{
           output_type: binary(),
@@ -29,14 +30,6 @@ defmodule OMG.Output do
         }
 
   defstruct [:output_type, :owner, :currency, :amount]
-
-  alias OMG.RawData
-  alias OMG.Utxo
-
-  require Utxo
-
-  @output_types_modules OMG.WireFormatTypes.output_type_modules()
-  @output_types Map.keys(@output_types_modules)
 
   @doc """
   Reconstructs the structure from a list of RLP items
@@ -49,8 +42,6 @@ defmodule OMG.Output do
   end
 
   def reconstruct(rlp_data), do: {:error, :malformed_outputs}
-
-  def from_db_value(%{type: output_type} = db_value), do: @output_types_modules[output_type].from_db_value(db_value)
 
   def from_db_value(%{owner: owner, currency: currency, amount: amount, output_type: output_type})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
