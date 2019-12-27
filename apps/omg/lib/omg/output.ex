@@ -58,6 +58,7 @@ defmodule OMG.Output do
 
   defp validate_data([raw_type, [owner, currency, amount]]) do
     with {:ok, _} <- RawData.parse_uint256(raw_type),
+         {:ok, _} <- valid_output_type?(raw_type),
          {:ok, _} <- RawData.parse_address(owner),
          {:ok, _} <- non_zero_owner?(owner),
          {:ok, _} <- RawData.parse_address(currency),
@@ -67,4 +68,7 @@ defmodule OMG.Output do
 
   defp non_zero_owner?(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
   defp non_zero_owner?(_), do: {:ok, :valid}
+
+  defp valid_output_type?(<<1>>), do: {:ok, :valid}
+  defp valid_output_type?(_), do: {:error, :unrecognized_output_type}
 end
