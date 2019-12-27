@@ -52,7 +52,6 @@ defmodule OMG.State.Core do
   alias OMG.Crypto
   alias OMG.Fees
 
-  alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
