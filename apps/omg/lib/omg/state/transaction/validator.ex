@@ -78,8 +78,10 @@ defmodule OMG.State.Transaction.Validator do
   defp authorized?(outputs_spent, witnesses, raw_tx) do
     outputs_spent
     |> Enum.with_index()
-    |> Enum.map(fn {output_spent, idx} -> OMG.Output.can_spend?(output_spent, witnesses[idx], raw_tx) end)
+    |> Enum.map(fn {output_spent, idx} -> can_spend?(output_spent, witnesses[idx]) end)
     |> Enum.all?()
     |> if(do: :ok, else: {:error, :unauthorized_spend})
   end
+
+  defp can_spend?(%OMG.Output{owner: owner}, witness), do: owner == witness
 end

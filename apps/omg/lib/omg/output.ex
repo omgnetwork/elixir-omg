@@ -57,13 +57,6 @@ defmodule OMG.Output do
     %__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}
   end
 
-  @doc """
-  For payment outputs, a binary witness is assumed to be a signature equal to the payment's output owner
-  """
-  def can_spend?(%__MODULE__{owner: owner}, witness, _raw_tx) when is_binary(witness) do
-    owner == witness
-  end
-
   def to_db_value(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
     %{owner: owner, currency: currency, amount: amount, output_type: output_type}
