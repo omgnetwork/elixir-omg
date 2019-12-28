@@ -60,6 +60,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       output_2 = insert(:txoutput)
       transaction = insert(:transaction, block: block, inputs: [input_1, input_2], outputs: [output_1, output_2])
 
+      %{inputs: [input_1, input_2], outputs: [output_1, output_2]} = transaction
+
       response = WatcherHelper.success?("transaction.get", %{"id" => Encoding.to_hex(transaction.txhash)})
 
       assert response == %{
@@ -68,7 +70,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  "eth_height" => block.eth_height,
                  "hash" => Encoding.to_hex(block.hash),
                  "timestamp" => block.timestamp,
-                 "tx_count" => 1
+                 "tx_count" => 1,
+                 "timestamp" => block.timestamp,
+                 "inserted_at" => DateTime.to_iso8601(block.inserted_at),
+                 "updated_at" => DateTime.to_iso8601(block.updated_at)
                },
                "inputs" => [
                  %{
@@ -81,7 +86,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "utxo_pos" =>
                      Utxo.Position.encode({:utxo_position, input_2.blknum, input_2.txindex, input_2.oindex}),
                    "creating_txhash" => Encoding.to_hex(input_2.creating_txhash),
-                   "spending_txhash" => Encoding.to_hex(transaction.txhash)
+                   "spending_txhash" => Encoding.to_hex(transaction.txhash),
+                   "inserted_at" => DateTime.to_iso8601(input_2.inserted_at),
+                   "updated_at" => DateTime.to_iso8601(input_2.updated_at)
                  },
                  %{
                    "amount" => input_1.amount,
@@ -93,7 +100,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "utxo_pos" =>
                      Utxo.Position.encode({:utxo_position, input_1.blknum, input_1.txindex, input_1.oindex}),
                    "creating_txhash" => Encoding.to_hex(input_1.creating_txhash),
-                   "spending_txhash" => Encoding.to_hex(transaction.txhash)
+                   "spending_txhash" => Encoding.to_hex(transaction.txhash),
+                   "inserted_at" => DateTime.to_iso8601(input_1.inserted_at),
+                   "updated_at" => DateTime.to_iso8601(input_1.updated_at)
                  }
                ],
                "outputs" => [
@@ -107,7 +116,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "utxo_pos" =>
                      Utxo.Position.encode({:utxo_position, output_2.blknum, output_2.txindex, output_2.oindex}),
                    "creating_txhash" => Encoding.to_hex(transaction.txhash),
-                   "spending_txhash" => nil
+                   "spending_txhash" => nil,
+                   "inserted_at" => DateTime.to_iso8601(output_2.inserted_at),
+                   "updated_at" => DateTime.to_iso8601(output_2.updated_at)
                  },
                  %{
                    "amount" => output_1.amount,
@@ -119,13 +130,18 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "utxo_pos" =>
                      Utxo.Position.encode({:utxo_position, output_1.blknum, output_1.txindex, output_1.oindex}),
                    "creating_txhash" => Encoding.to_hex(transaction.txhash),
-                   "spending_txhash" => nil
+                   "spending_txhash" => nil,
+                   "inserted_at" => DateTime.to_iso8601(output_1.inserted_at),
+                   "updated_at" => DateTime.to_iso8601(output_1.updated_at)
                  }
                ],
                "txhash" => Encoding.to_hex(transaction.txhash),
                "txbytes" => Encoding.to_hex(transaction.txbytes),
                "txindex" => transaction.txindex,
-               "metadata" => Encoding.to_hex(transaction.metadata)
+               "metadata" => Encoding.to_hex(transaction.metadata),
+               "inserted_at" => DateTime.to_iso8601(transaction.inserted_at),
+               "updated_at" => DateTime.to_iso8601(transaction.updated_at),
+               "sent_at" => DateTime.to_iso8601(transaction.sent_at)
              }
     end
 

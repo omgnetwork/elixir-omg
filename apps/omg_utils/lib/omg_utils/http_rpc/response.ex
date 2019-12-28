@@ -56,6 +56,11 @@ defmodule OMG.Utils.HttpRPC.Response do
     list |> Enum.map(&sanitize/1)
   end
 
+  # serialize all DateTimes to ISO8601 formatted strings
+  def sanitize(%DateTime{} = datetime) do
+    DateTime.to_iso8601(datetime)
+  end
+
   def sanitize(map_or_struct) when is_map(map_or_struct) do
     map_or_struct
     |> to_map()

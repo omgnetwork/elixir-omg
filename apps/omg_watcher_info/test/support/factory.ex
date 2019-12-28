@@ -90,16 +90,14 @@ defmodule OMG.WatcherInfo.Factory do
   To generate a transaction with closest data to production, consider associating the transaction
   to a block and generating transaction outputs associated with this transaction.
   """
-  def transaction_factory(attrs \\ nil) do
-    block = attrs[:block] || build(:block)
-
-    %DB.Transaction{
+  def transaction_factory() do
+    transaction = %DB.Transaction{
       txhash: sequence(:transaction_hash, fn seq -> <<seq::256>> end),
       txindex: 0,
       txbytes: insecure_random_bytes(32),
       sent_at: DateTime.utc_now(),
       metadata: insecure_random_bytes(32),
-      block: block,
+      block: nil,
       inputs: [],
       outputs: []
     }
