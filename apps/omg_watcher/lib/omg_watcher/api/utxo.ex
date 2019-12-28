@@ -22,7 +22,6 @@ defmodule OMG.Watcher.API.Utxo do
   alias OMG.Watcher.UtxoExit.Core
 
   require Utxo
-  import Utxo, only: [is_deposit: 1]
 
   @type exit_t() :: %{
           utxo_pos: pos_integer(),
@@ -30,6 +29,12 @@ defmodule OMG.Watcher.API.Utxo do
           proof: binary(),
           sigs: binary()
         }
+
+  @interval elem(OMG.Eth.RootChain.get_child_block_interval(), 1)
+  @doc """
+  Based on the contract parameters determines whether UTXO position provided was created by a deposit
+  """
+  defguardp is_deposit(blknum) when rem(blknum, @interval) != 0
 
   @doc """
   Returns a proof that utxo was spent
@@ -41,7 +46,7 @@ defmodule OMG.Watcher.API.Utxo do
   end
 
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
-  def compose_utxo_exit(utxo_pos) when is_deposit(utxo_pos) do
+  def compose_utxo_exit({:utxo_position, blknum, _, _} = utxo_pos) when is_deposit(blknum) do
     utxo_pos |> Utxo.Position.to_input_db_key() |> OMG.DB.utxo() |> Core.compose_deposit_standard_exit()
   end
 

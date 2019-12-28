@@ -24,8 +24,6 @@ defmodule OMG.Utxo.Position do
   alias OMG.Utxo
   require Utxo
 
-  import Utxo, only: [is_position: 3]
-
   @type t() :: {
           :utxo_position,
           # blknum
@@ -39,6 +37,11 @@ defmodule OMG.Utxo.Position do
   @type db_t() :: {non_neg_integer(), non_neg_integer(), non_neg_integer()}
 
   @type input_db_key_t() :: {:input_pointer, pos_integer(), db_t()}
+
+  defguardp is_position(blknum, txindex, oindex)
+            when is_integer(blknum) and blknum >= 0 and
+                   is_integer(txindex) and txindex >= 0 and
+                   is_integer(oindex) and oindex >= 0
 
   @doc """
   Encode an input utxo position into an integer value.
