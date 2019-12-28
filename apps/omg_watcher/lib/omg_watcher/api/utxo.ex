@@ -31,9 +31,8 @@ defmodule OMG.Watcher.API.Utxo do
         }
 
   @interval elem(OMG.Eth.RootChain.get_child_block_interval(), 1)
-  @doc """
-  Based on the contract parameters determines whether UTXO position provided was created by a deposit
-  """
+
+  #Based on the contract parameters determines whether UTXO position provided was created by a deposit
   defguardp is_deposit(blknum) when rem(blknum, @interval) != 0
 
   @doc """
