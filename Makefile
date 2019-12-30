@@ -1,6 +1,6 @@
 MAKEFLAGS += --silent
 OVERRIDING_START ?= foreground
-SNAPSHOT ?= SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120
+SNAPSHOT ?= SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20
 BAREBUILD_ENV ?= dev
 help:
 	@echo "Dont Fear the Makefile"
@@ -163,12 +163,36 @@ build-test: deps-elixir-omg
 # Testing
 #
 
+# get the SNAPSHOT url from the snapshots file based on the SNAPSHOT env value
+# untar the snapshot and fetch json values from the db.json that came from plasma-deployer
+# put these values into an localchain_contract_addresses.env file that's used by docker and exunit tests
+
 init_test:
 	mkdir data/ || true && \
 	rm -rf data/* || true && \
-	URL=$$(grep "^$(SNAPSHOT)" localchain_contract_addresses.env | cut -d'=' -f2-) && \
+	URL=$$(grep "^$(SNAPSHOT)" snapshots.env | cut -d'=' -f2-) && \
 	wget $$URL -O data/snapshot.tar.gz && \
-	tar -zxvf data/snapshot.tar.gz data/
+	cd data && \
+	tar --strip-components 1 -zxvf snapshot.tar.gz data/geth && \
+	tar -zxvf snapshot.tar.gz plasma-contracts/ && \
+	AUTHORITY_ADDRESS=$$(cat plasma-contracts/build/authority_address) && \
+	ETH_VAULT=$$(cat plasma-contracts/build/eth_vault) && \
+	ERC20_VAULT=$$(cat plasma-contracts/build/erc20_vault) && \
+	PAYMENT_EXIT_GAME=$$(cat plasma-contracts/build/payment_exit_game) && \
+	PLASMA_FRAMEWORK_TX_HASH=$$(cat plasma-contracts/build/plasma_framework_tx_hash) && \
+	PLASMA_FRAMEWORK=$$(cat plasma-contracts/build/plasma_framework) && \
+	PAYMENT_EIP712_LIBMOCK=$$(cat plasma-contracts/build/paymentEip712LibMock) && \
+	ERC20_MINTABLE=$$(cat plasma-contracts/build/erc20Mintable) && \
+	sed 's/{AUTHORITY_ADDRESS}/'$$AUTHORITY_ADDRESS'/g' ../contract_addresses_template.env | \
+	sed 's/{CONTRACT_ADDRESS_ETH_VAULT}/'$$ETH_VAULT'/g' | \
+	sed 's/{CONTRACT_ADDRESS_ERC20_VAULT}/'$$ERC20_VAULT'/g' | \
+	sed 's/{CONTRACT_ADDRESS_PAYMENT_EXIT_GAME}/'$$PAYMENT_EXIT_GAME'/g' | \
+	sed 's/{TXHASH_CONTRACT}/'$$PLASMA_FRAMEWORK_TX_HASH'/g' | \
+	sed 's/{CONTRACT_ADDRESS_PLASMA_FRAMEWORK}/'$$PLASMA_FRAMEWORK'/g' | \
+	sed 's/{CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK}/'$$PAYMENT_EIP712_LIBMOCK'/g' | \
+	sed 's/{CONTRACT_ERC20_MINTABLE}/'$$ERC20_MINTABLE'/g' \
+	> ../localchain_contract_addresses.env
+
 
 test:
 	mix test --include test --exclude common --exclude watcher --exclude watcher_info --exclude child_chain

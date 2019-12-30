@@ -169,7 +169,8 @@ jobs:
             - Makefile
             - priv
             - data
-            - localchain_contract_addresses.env
+            - snapshots.env
+            - contract_addresses_template.env
 
   lint:
     executor: builder_pg
@@ -396,7 +397,11 @@ jobs:
       - run: make docker-watcher
       - run: make docker-watcher_info
       - run: make init_test
-      - run: docker-compose up -d
+      - run: 
+          name: Run specs
+          command: |
+            cd priv/
+            make start_daemon_services
       - run: docker image ls
       - run: docker-compose ps
       - run:

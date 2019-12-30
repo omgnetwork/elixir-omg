@@ -10,7 +10,7 @@ clean:
 
 start_daemon_services:
 	cd ../ && \
-	make init_test && \
+	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	cd priv/ && \
 	docker-compose -f ../docker-compose.yml up -d
 
@@ -29,7 +29,6 @@ clean_generate_api_code:
 	rm -rf apps/child_chain_api || true && \
 	rm -rf apps/watcher_info_api || true && \
 	rm -rf apps/watcher_security_critical_api
-
 
 install:
 	mkdir -p priv/openapitools
