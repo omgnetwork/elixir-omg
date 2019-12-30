@@ -11,7 +11,7 @@ defmodule WhiteBreadContext do
   alias Itest.InFlightExitClient
   alias Itest.Poller
   # TODO Fix this, expose via API, also its 12 blocks
-  @finality_margin_by_blocks 12
+  # @finality_margin_by_blocks 12
   @default_timeout 60_000
   scenario_timeouts(fn _feature, _scenario -> @default_timeout * 10 end)
 
@@ -195,7 +195,7 @@ defmodule WhiteBreadContext do
   # IFE
   then_(~r/Alice should have "(?<amount>[^"]+)" ETH after finality margin$/, fn %{alice_account: alice_account} = state,
                                                                                 %{amount: amount} ->
-    Process.sleep(@finality_margin_by_blocks * 500 + 120_000)
+    # Process.sleep(@finality_margin_by_blocks * 500 + 120_000)
     expecting_amount = Currency.to_wei(amount)
     response = Poller.pull_balance_until_amount(alice_account, expecting_amount)
     balance = if response == [], do: 0, else: response["amount"]

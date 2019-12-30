@@ -216,6 +216,8 @@ defmodule Itest.StandardExitClient do
   end
 
   defp process_exit(%__MODULE__{address: address} = se) do
+    _ = Logger.info("Process exit #{__MODULE__}")
+
     data =
       ABI.encode(
         "processExits(uint256,address,uint160,uint256)",

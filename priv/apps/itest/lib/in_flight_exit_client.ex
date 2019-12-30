@@ -20,14 +20,18 @@ defmodule Itest.InFlightExitClient do
   @gas_add_exit_queue 800_000
   @gas_piggyback 1_000_000
   @sleep_retry_sec 2_000
+  @gas_process_exit 5_712_388
+  @gas_process_exit_price 1_000_000_000
+
   defstruct [
     :address,
     :address_key,
     :exit_data,
     :exit_game_contract_address,
-    :exit_id,
+    :ife_exit_id,
     :piggyback_input_hash,
-    # :process_exit_receipt_hash,
+    :process_exit_receipt_hash,
+    :ife_exit_ids,
     :add_exit_queue_hash,
     :receiver_address,
     :sign_hash,
@@ -50,8 +54,10 @@ defmodule Itest.InFlightExitClient do
     |> get_in_flight_exit_bond_size()
     |> do_in_flight_exit()
     |> get_in_flight_exit_id()
+    |> get_in_flight_exits()
     |> get_piggyback_bond_size()
     |> piggyback_input()
+    |> process_exit()
   end
 
   defp create_transaction(%{address: address, receiver_address: receiver_address} = ife) do
@@ -82,6 +88,20 @@ defmodule Itest.InFlightExitClient do
     %{ife | exit_data: exit_data}
   end
 
+  defp get_exit_game_contract_address(ife) do
+    data = ABI.encode("exitGames(uint256)", [PaymentType.simple_payment_transaction()])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+
+    exit_game_contract_address =
+      result
+      |> Encoding.to_binary()
+      |> ABI.TypeDecoder.decode([:address])
+      |> hd()
+      |> Encoding.to_hex()
+
+    %{ife | exit_game_contract_address: exit_game_contract_address}
+  end
+
   defp add_exit_queue(%__MODULE__{} = ife) do
     if has_exit_queue?() do
       _ = Logger.info("Exit queue was already added.")
@@ -110,24 +130,10 @@ defmodule Itest.InFlightExitClient do
     end
   end
 
-  defp get_exit_game_contract_address(ife) do
-    data = ABI.encode("exitGames(uint256)", [PaymentType.simple_payment_transaction()])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
-
-    exit_game_contract_address =
-      result
-      |> Encoding.to_binary()
-      |> ABI.TypeDecoder.decode([:address])
-      |> hd()
-      |> Encoding.to_hex()
-
-    %{ife | exit_game_contract_address: exit_game_contract_address}
-  end
-
-  defp get_in_flight_exit_bond_size(%__MODULE__{exit_game_contract_address: exit_game_contract_address} = ife) do
+  defp get_in_flight_exit_bond_size(ife) do
     _ = Logger.info("Trying to get bond size for in flight exit.")
     data = ABI.encode("startIFEBondSize()", [])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: exit_game_contract_address, data: Encoding.to_hex(data)})
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: ife.exit_game_contract_address, data: Encoding.to_hex(data)})
 
     in_flight_exit_bond_size =
       result
@@ -144,7 +150,6 @@ defmodule Itest.InFlightExitClient do
   defp do_in_flight_exit(
          %{address: address, exit_data: exit_data, exit_game_contract_address: exit_game_contract_address} = ife
        ) do
-    IO.inspect(ife)
     in_flight_tx = Encoding.to_binary(exit_data["in_flight_tx"])
     in_flight_tx_sigs = Enum.map(exit_data["in_flight_tx_sigs"], &Encoding.to_binary(&1))
     input_txs = Enum.map(exit_data["input_txs"], &Encoding.to_binary(&1))
@@ -177,19 +182,60 @@ defmodule Itest.InFlightExitClient do
     %{ife | start_in_flight_exit: receipt_hash}
   end
 
-  defp get_in_flight_exit_id(%{exit_data: exit_data, exit_game_contract_address: exit_game_contract_address} = ife) do
+  defp get_in_flight_exit_id(%__MODULE__{exit_data: exit_data} = ife) do
+    _ = Logger.info("Get in flight exit id...")
     txbytes = Encoding.to_binary(exit_data["in_flight_tx"])
     data = ABI.encode("getInFlightExitId(bytes)", [txbytes])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: exit_game_contract_address, data: Encoding.to_hex(data)})
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: ife.exit_game_contract_address, data: Encoding.to_hex(data)})
 
-    exit_id =
+    ife_exit_id =
       result
       |> Encoding.to_binary()
       |> ABI.TypeDecoder.decode([{:uint, 128}])
       |> hd()
 
-    _ = Logger.info("IFE id is #{exit_id}")
-    %{ife | exit_id: exit_id}
+    _ = Logger.info("IFE id is #{ife_exit_id}")
+    %{ife | ife_exit_id: ife_exit_id}
+  end
+
+  defp get_in_flight_exits(%__MODULE__{ife_exit_id: ife_exit_id} = ife) do
+    _ = Logger.info("Get in flight exits...")
+    data = ABI.encode("inFlightExits(uint160)", [ife_exit_id])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: ife.exit_game_contract_address, data: Encoding.to_hex(data)})
+
+    return_struct = [
+      :bool,
+      {:uint, 64},
+      {:uint, 256},
+      {:uint, 256},
+      # NOTE: there are these two more fields in the return but they can be ommitted,
+      #       both have withdraw_data_struct type
+      # withdraw_data_struct,
+      # withdraw_data_struct,
+      :address,
+      {:uint, 256},
+      {:uint, 256}
+    ]
+
+    # struct InFlightExit {
+    #  bool isCanonical,
+    #  uint64 exitStartTimestamp,
+    #  uint256 exitMap,
+    #  uint256 position,
+    #  struct PaymentExitDataModel.WithdrawData[4] inputs,
+    #  struct PaymentExitDataModel.WithdrawData[4] outputs,
+    #  address payable bondOwner,
+    #  uint256 bondSize,
+    #  uint256 oldestCompetitorPosition
+    # }
+
+    ife_exit_ids =
+      result
+      |> Encoding.to_binary()
+      |> ABI.TypeDecoder.decode(return_struct)
+
+    _ = Logger.info("IFEs #{inspect(ife_exit_ids)}")
+    %{ife | ife_exit_ids: ife_exit_ids}
   end
 
   defp get_piggyback_bond_size(%__MODULE__{exit_game_contract_address: exit_game_contract_address} = ife) do
@@ -233,8 +279,32 @@ defmodule Itest.InFlightExitClient do
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     wait_on_receipt_confirmed(receipt_hash, @retry_count)
-
+    _ = Logger.info("Piggyback input... DONE.")
     %{ife | piggyback_input_hash: receipt_hash}
+  end
+
+  defp process_exit(%__MODULE__{address: address} = ife) do
+    _ = Logger.info("Process exit #{__MODULE__}")
+
+    data =
+      ABI.encode(
+        "processExits(uint256,address,uint160,uint256)",
+        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), 0, 1]
+      )
+
+    txmap = %{
+      from: address,
+      to: Itest.Account.plasma_framework(),
+      value: Encoding.to_hex(0),
+      data: Encoding.to_hex(data),
+      gas: Encoding.to_hex(@gas_process_exit),
+      gasPrice: Encoding.to_hex(@gas_process_exit_price)
+    }
+
+    {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    wait_on_receipt_confirmed(receipt_hash, @retry_count)
+
+    %{ife | process_exit_receipt_hash: receipt_hash}
   end
 
   defp wait_for_exit_queue(%__MODULE__{} = _se, 0), do: exit(1)
