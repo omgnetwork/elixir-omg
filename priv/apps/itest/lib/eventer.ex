@@ -20,10 +20,15 @@ defmodule Itest.Eventer do
     case Process.whereis(name) do
       nil ->
         ws_url = Keyword.fetch!(opts, :ws_url)
-        IO.inspect(opts)
-        {:ok, pid} = WebSockex.start_link(ws_url, __MODULE__, opts, name: name)
-        spawn(fn -> listen(pid, opts) end)
-        {:ok, pid}
+
+        case WebSockex.start_link(ws_url, __MODULE__, opts, name: name) do
+          {:error, {:already_started, pid}} ->
+            {:ok, pid}
+
+          {:ok, pid} ->
+            spawn(fn -> listen(pid, opts) end)
+            {:ok, pid}
+        end
 
       pid ->
         {:ok, pid}
