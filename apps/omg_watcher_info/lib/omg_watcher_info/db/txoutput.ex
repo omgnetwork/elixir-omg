@@ -208,4 +208,20 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
     |> Map.new()
   end
+
+  @doc false
+  def changeset(struct, params \\ %{}) do
+    fields = [:root_chain_txhash_event, :log_index, :root_chain_txhash, :event_type]
+
+    Ecto.Changeset.cast(struct, params, fields)
+  end
+
+  def txoutput_changeset(txoutput, params, ethevent) do
+    # fields = [:blknum, :txindex, :oindex, :owner, :amount, :currency, :child_chain_utxohash]
+
+    # txoutput
+    # |> cast(params, fields)
+    # |> put_assoc(:ethevents, txoutput.ethevents ++ [ethevent])
+    # |> validate_required(fields)
+  end
 end
