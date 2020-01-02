@@ -59,7 +59,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     many_to_many(
       :ethevents,
       DB.EthEvent,
-      join_through: "ethevents_txoutputs",
+      join_through: DB.EthEventsTxOutputs,
       join_keys: [child_chain_utxohash: :child_chain_utxohash, root_chain_txhash_event: :root_chain_txhash_event]
     )
 
@@ -126,13 +126,15 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   @spec spend_utxos([map()]) :: :ok
   def spend_utxos(db_inputs) do
+    utc_now = DateTime.utc_now()
+
     db_inputs
     |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} ->
       _ =
         DB.TxOutput
         |> where(blknum: ^blknum, txindex: ^txindex, oindex: ^oindex)
         |> Repo.update_all(
-          set: [spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash, updated_at: DateTime.utc_now()]
+          set: [spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash, updated_at: utc_now]
         )
     end)
   end
@@ -188,5 +190,21 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Enum.group_by(& &1.currency)
     |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
     |> Map.new()
+  end
+
+  @doc false
+  def changeset(struct, params \\ %{}) do
+    fields = [:root_chain_txhash_event, :log_index, :root_chain_txhash, :event_type]
+
+    Ecto.Changeset.cast(struct, params, fields)
+  end
+
+  def txoutput_changeset(txoutput, params, ethevent) do
+    # fields = [:blknum, :txindex, :oindex, :owner, :amount, :currency, :child_chain_utxohash]
+
+    # txoutput
+    # |> cast(params, fields)
+    # |> put_assoc(:ethevents, txoutput.ethevents ++ [ethevent])
+    # |> validate_required(fields)
   end
 end

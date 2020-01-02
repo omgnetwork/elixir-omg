@@ -17,10 +17,14 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
+  import Ecto.Query
+
   alias OMG.Crypto
   alias OMG.Utxo
   alias OMG.Utxo.Position
   alias OMG.WatcherInfo.DB
+
+  alias OMG.WatcherInfo.Factory
 
   require Utxo
 
@@ -268,5 +272,103 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     ]
 
     assert :ok = DB.EthEvent.insert_exits!(exits)
+  end
+
+  # insert deposits: creates deposit event and utxo
+  # insert deposits: creates deposits and retrieves them by hash", %{alice: alice} do
+  # Writes of deposits are idempotent
+
+  def assert_deposits_ethevents(deposits) do
+    conditions =
+      Enum.reduce(deposits, false, fn deposit, conditions ->
+        dynamic(
+          [e],
+          (e.root_chain_txhash == ^deposit.root_chain_txhash and e.log_index == ^deposit.log_index) or ^conditions
+        )
+      end)
+
+    query =
+      from(
+        e in DB.EthEvent,
+        select: e,
+        where: ^conditions,
+        order_by: [asc: e.updated_at],
+        preload: [{:txoutputs, [:creating_transaction, :spending_transaction]}]
+      )
+
+    ethevents = DB.Repo.all(query)
+
+    assert length(deposits) == length(ethevents)
+
+    Enum.zip(deposits, ethevents)
+    |> Enum.each(fn {deposit, ethevent} ->
+      IO.inspect(deposit, label: "deposit")
+      IO.inspect(ethevent, label: "ethevent")
+
+      assert deposit.root_chain_txhash == ethevent.root_chain_txhash
+      assert deposit.log_index == ethevent.log_index
+
+      assert ethevent.root_chain_txhash_event ==
+               DB.EthEvent.generate_root_chain_txhash_event(ethevent.root_chain_txhash, ethevent.log_index)
+
+      assert ethevent.event_type == :deposit
+
+      assert ethevent.inserted_at != nil
+      assert DateTime.compare(ethevent.inserted_at, ethevent.updated_at) == :eq
+
+      assert length(ethevent.txoutputs) == 1
+
+      [txoutput | _] = ethevent.txoutputs
+
+      assert deposit.blknum == txoutput.blknum
+      assert deposit.owner == txoutput.owner
+      assert deposit.currency == txoutput.currency
+      assert deposit.amount == txoutput.amount
+
+      assert txoutput.creating_transaction == nil
+      assert txoutput.creating_txhash == nil
+
+      assert txoutput.spending_transaction == nil
+      assert txoutput.spending_txhash == nil
+      assert txoutput.spending_tx_oindex == nil
+
+      assert txoutput.txindex == 0
+      assert txoutput.oindex == 0
+
+      assert txoutput.child_chain_utxohash ==
+               DB.EthEvent.generate_child_chain_utxohash(
+                 Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)
+               )
+
+      assert txoutput.proof == nil
+
+      assert txoutput.inserted_at != nil
+      assert DateTime.compare(txoutput.inserted_at, txoutput.updated_at) == :eq
+
+      # check the association table
+      ethevent_txoutput =
+        DB.Repo.get_by!(
+          DB.EthEventsTxOutputs,
+          root_chain_txhash_event: ethevent.root_chain_txhash_event,
+          child_chain_utxohash: txoutput.child_chain_utxohash
+        )
+
+      assert ethevent_txoutput.root_chain_txhash_event == ethevent.root_chain_txhash_event
+      assert ethevent_txoutput.child_chain_utxohash == txoutput.child_chain_utxohash
+
+      assert ethevent_txoutput.inserted_at != nil
+      assert DateTime.compare(ethevent_txoutput.inserted_at, ethevent_txoutput.updated_at) == :eq
+    end)
+  end
+
+  describe "DB.EthEvent.insert_deposits!/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "creates deposit events and the events' corresponding utxo" do
+      deposits = Factory.deposits_params(3)
+
+      assert :ok = DB.EthEvent.insert_deposits!(deposits)
+
+      assert_deposits_ethevents(deposits)
+    end
   end
 end

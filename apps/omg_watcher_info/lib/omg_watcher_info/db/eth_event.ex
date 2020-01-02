@@ -17,7 +17,6 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   Ecto schema for events logged by Ethereum
   """
   import Ecto.Query, only: [from: 2]
-  import Ecto.Changeset
 
   use Ecto.Schema
 
@@ -40,7 +39,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     many_to_many(
       :txoutputs,
       DB.TxOutput,
-      join_through: "ethevents_txoutputs",
+      join_through: DB.EthEventsTxOutputs,
       join_keys: [root_chain_txhash_event: :root_chain_txhash_event, child_chain_utxohash: :child_chain_utxohash]
     )
 
@@ -66,34 +65,57 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
        }) do
     event_type = :deposit
     position = Utxo.position(blknum, 0, 0)
+
     root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
 
     case get(root_chain_txhash_event) do
       nil ->
-        %__MODULE__{
+        ethevent = %__MODULE__{
           root_chain_txhash_event: root_chain_txhash_event,
           log_index: log_index,
           root_chain_txhash: root_chain_txhash,
           event_type: event_type,
-
-          # a deposit from the root chain will only ever have 1 childchain txoutput object
-          txoutputs: [
-            %DB.TxOutput{
-              child_chain_utxohash: generate_child_chain_utxohash(position),
-              blknum: blknum,
-              txindex: 0,
-              oindex: 0,
-              owner: owner,
-              currency: currency,
-              amount: amount
-            }
-          ]
+          txoutputs: []
         }
-        |> DB.Repo.insert()
 
-        # an ethevents row just got inserted, now return the ethevent with all populated fields including
-        # those populated by the DB (eg: inserted_at, updated_at, ...)
-        {:ok, get(root_chain_txhash_event)}
+        child_chain_utxohash = generate_child_chain_utxohash(position)
+
+        txoutput = %DB.TxOutput{
+          child_chain_utxohash: child_chain_utxohash,
+          blknum: blknum,
+          txindex: 0,
+          oindex: 0,
+          owner: owner,
+          currency: currency,
+          amount: amount,
+          ethevents: []
+        }
+
+        ethevent_txoutput =
+          DB.EthEventsTxOutputs.changeset(
+            %DB.EthEventsTxOutputs{},
+            %{
+              root_chain_txhash_event: ethevent.root_chain_txhash_event,
+              child_chain_utxohash: txoutput.child_chain_utxohash
+            }
+          )
+
+        with {:ok, ethevent} <- DB.Repo.insert(ethevent),
+             {:ok, txoutput} <- DB.Repo.insert(txoutput),
+             {:ok, ethevent_txoutput} <- DB.Repo.insert(ethevent_txoutput) do
+          ethevent = get(root_chain_txhash_event)
+
+          case get(root_chain_txhash_event) do
+            nil ->
+              error = Ecto.Changeset.change(%__MODULE__{}, %{})
+              Ecto.Changeset.add_error(error, :root_chain_txhash_event, "Not found")
+
+            ethevent ->
+              {:ok, ethevent}
+          end
+        else
+          {:error, error} -> {:error, error}
+        end
 
       existing_deposit ->
         {:ok, existing_deposit}
@@ -138,38 +160,36 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
          log_index: log_index,
          decoded_utxo_position: decoded_utxo_position
        }) do
-    event_type = :standard_exit
-    root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
+    # event_type = :standard_exit
+    # root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
 
-    case get(root_chain_txhash_event) do
-      nil ->
-        ethevent = %__MODULE__{
-          root_chain_txhash_event: root_chain_txhash_event,
-          log_index: log_index,
-          root_chain_txhash: root_chain_txhash,
-          event_type: event_type
-        }
+    # case get(root_chain_txhash_event) do
+    #   nil ->
+    #     cs = Ecto.Changeset.change(%__MODULE__{
+    #       root_chain_txhash_event: root_chain_txhash_event,
+    #       log_index: log_index,
+    #       root_chain_txhash: root_chain_txhash,
+    #       event_type: event_type
+    #     })
 
-        DB.TxOutput.get_by_position(decoded_utxo_position)
-        |> txoutput_changeset(%{child_chain_utxohash: generate_child_chain_utxohash(decoded_utxo_position)}, ethevent)
-        |> DB.Repo.update()
+    #     DB.TxOutput.get_by_position(decoded_utxo_position)
+    #     |> txoutput_changeset(%{child_chain_utxohash: generate_child_chain_utxohash(decoded_utxo_position)}, ethevent)
+    #     |> DB.Repo.update()
 
-        # a txoutput row just got updated, but we need to return the associated ethevent with all populated
-        # fields including those populated by the DB (eg: inserted_at, updated_at, ...)
-        {:ok, get(root_chain_txhash_event)}
+    #     # a txoutput row just got updated, but we need to return the associated ethevent with all populated
+    #     # fields including those populated by the DB (eg: inserted_at, updated_at, ...)
+    #     {:ok, get(root_chain_txhash_event)}
 
-      existing_exit ->
-        {:ok, existing_exit}
-    end
+    #   existing_exit ->
+    #     {:ok, existing_exit}
+    # end
   end
 
-  def txoutput_changeset(txoutput, params, ethevent) do
-    fields = [:blknum, :txindex, :oindex, :owner, :amount, :currency, :child_chain_utxohash]
+  @doc false
+  def changeset(struct, params \\ %{}) do
+    fields = [:root_chain_txhash_event, :log_index, :root_chain_txhash, :event_type]
 
-    txoutput
-    |> cast(params, fields)
-    |> put_assoc(:ethevents, txoutput.ethevents ++ [ethevent])
-    |> validate_required(fields)
+    Ecto.Changeset.cast(struct, params, fields)
   end
 
   @doc """

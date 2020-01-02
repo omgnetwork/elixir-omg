@@ -38,8 +38,7 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
       txoutput_with_dates =
         DB.TxOutput.get_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
 
-      assert txoutput_with_updated_updated_at_date.inserted_at != nil
-      assert txoutput_with_updated_updated_at_date.updated_at != nil
+      assert txoutput_with_dates.inserted_at != nil
       assert DateTime.compare(txoutput_with_dates.inserted_at, txoutput_with_dates.updated_at) == :eq
     end
   end
@@ -68,16 +67,16 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
 
       DB.TxOutput.spend_utxos(utxo_inputs)
 
-      txoutput_with_updated_updated_at_date =
+      txoutput_with_new_updated_at_date =
         DB.TxOutput.get_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
 
-      assert txoutput_with_updated_updated_at_date.inserted_at != nil
+      assert txoutput_with_new_updated_at_date.inserted_at != nil
       assert txoutput_with_updated_updated_at_date.updated_at != nil
-      assert DateTime.compare(txoutput_with_dates.inserted_at, txoutput_with_updated_updated_at_date.inserted_at) == :eq
+      assert DateTime.compare(txoutput_with_dates.inserted_at, txoutput_with_new_updated_at_date.inserted_at) == :eq
 
       assert DateTime.compare(
-               txoutput_with_updated_updated_at_date.inserted_at,
-               txoutput_with_updated_updated_at_date.updated_at
+               txoutput_with_new_updated_at_date.inserted_at,
+               txoutput_with_new_updated_at_date.updated_at
              ) == :lt
     end
   end

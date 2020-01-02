@@ -156,7 +156,9 @@ defmodule OMG.WatcherInfo.Factory do
 
     ethevent = %DB.EthEvent{
       root_chain_txhash: insecure_random_bytes(32),
-      log_index: sequence(:ethevent_log_index, fn seq -> seq end),
+      # within a log there may be 0 or more ethereum events, this is the index of the
+      # event within the log
+      log_index: 0,
       event_type: event_type,
       txoutputs: txoutputs
     }
@@ -167,6 +169,21 @@ defmodule OMG.WatcherInfo.Factory do
     ethevent = Map.put(ethevent, :root_chain_txhash_event, root_chain_txhash_event)
 
     merge_attributes(ethevent, attrs)
+  end
+
+  ##
+  ## non-schema based test data helpers
+  ##
+  def deposits_params(n) do
+    Enum.map(0..(n - 1), fn _ -> deposit_params() end)
+  end
+
+  def deposit_params() do
+    block = insert(:block)
+
+    params_for(:ethevent)
+    |> Map.drop([:root_chain_txhash_event, :txoutputs])
+    |> Map.merge(%{blknum: block.blknum, currency: <<0>>, owner: insecure_random_bytes(20), amount: 1})
   end
 
   # Generates a certain length of random bytes. Uniqueness not guaranteed so it's not recommended for identifiers.

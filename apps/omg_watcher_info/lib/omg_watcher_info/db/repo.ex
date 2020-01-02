@@ -35,9 +35,10 @@ defmodule OMG.WatcherInfo.DB.Repo do
   def insert_all_chunked(schema_or_source, entries, opts) do
     chunk_size = @max_params_count |> div(entries |> hd |> fields_count)
 
+    utc_now = DateTime.utc_now()
+
     entries
     |> Enum.map(fn entry ->
-      utc_now = DateTime.utc_now()
       Map.merge(entry, %{inserted_at: utc_now, updated_at: utc_now})
     end)
     |> Stream.chunk_every(chunk_size)
