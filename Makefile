@@ -336,6 +336,7 @@ docker-remote-childchain:
 ### barebone stuff
 ###
 start-services:
+	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose up geth postgres 
 
 start-child_chain:
