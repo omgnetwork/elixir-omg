@@ -225,6 +225,6 @@ defmodule Itest.Poller do
     {:ok, tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(response["transactionHash"])
 
     {:ok, reason} = Ethereumex.HttpClient.eth_call(Map.put(tx, "data", tx["input"]), tx["blockNumber"])
-    Logger.info("Revert reason: #{inspect(Itest.Transactions.Encoding.to_binary(reason))}")
+    _ = Logger.info("Revert reason: #{inspect(Itest.Transactions.Encoding.to_binary(reason))}")
   end
 end

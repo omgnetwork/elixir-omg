@@ -79,7 +79,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20191024"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-902845d"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -284,6 +284,7 @@ docker-push: docker
 
 ###OTHER
 docker-start-cluster:
+	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
 docker-stop-cluster:
