@@ -20,14 +20,16 @@ defmodule WhiteBreadContext do
       Itest.Eventer.start_link(
         ws_url: "ws://127.0.0.1:8546",
         name: :plasma_framework,
-        listen_to: %{"address" => Itest.Account.plasma_framework()}
+        listen_to: %{"address" => Itest.Account.plasma_framework()},
+        abi_path: Path.join([File.cwd!(), "../data/plasma-contracts/contracts/", "PlasmaFramework.json"])
       )
 
     {:ok, _} =
       Itest.Eventer.start_link(
         ws_url: "ws://127.0.0.1:8546",
         name: :eth_vault,
-        listen_to: %{"address" => Itest.Account.vault(Currency.ether())}
+        listen_to: %{"address" => Itest.Account.vault(Currency.ether())},
+        abi_path: Path.join([File.cwd!(), "../data/plasma-contracts/contracts/", "EthVault.json"])
       )
 
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)

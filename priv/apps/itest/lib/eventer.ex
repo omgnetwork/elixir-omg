@@ -1,6 +1,6 @@
 defmodule Itest.Eventer do
   @moduledoc """
-  Listens for events passed in as `listen_to`.
+  Listens for contract events passed in as `listen_to`.
   """
   use WebSockex
 
@@ -32,28 +32,55 @@ defmodule Itest.Eventer do
   #
 
   @doc false
-  @spec init(any()) :: {:ok, any()}
-  def init(opts) do
-    {:ok, opts}
-  end
-
-  # sobelow_skip ["DOS.StringToAtom"]
-  @doc false
   @impl true
   def handle_frame({:text, msg}, state) do
     {:ok, decoded} = Jason.decode(msg)
 
-    _ = Logger.info("got message on #{inspect(state)} msg -> #{inspect(decoded)} ")
-    # listen_to = Keyword.fetch!(state, :listen_to)
-    # event_bus = Keyword.fetch!(state, :event_bus)
-    # :ok = apply(event_bus, :broadcast, [listen_to, {String.to_atom(listen_to), decoded}])
+    case decoded["params"]["result"] do
+      nil ->
+        :ok
+
+      result ->
+        # parsing events
+        # per spec, they have 4 topics and data field
+        topics = result["topics"]
+
+        case Enum.count(topics) do
+          4 ->
+            abi = Keyword.fetch!(state, :abi)
+
+            event =
+              ABI.Event.find_and_decode(
+                abi,
+                Itest.Transactions.Encoding.to_binary(Enum.at(topics, 0)),
+                Enum.at(topics, 1),
+                Enum.at(topics, 2),
+                Enum.at(topics, 3),
+                result["data"]
+              )
+
+            _ = Logger.info("Event detected: #{inspect(event)}")
+
+          _ ->
+            :ok
+        end
+    end
+
     {:ok, state}
   end
 
   defp websockex_start_link(name, opts) do
     ws_url = Keyword.fetch!(opts, :ws_url)
+    abi_path = Keyword.fetch!(opts, :abi_path)
 
-    case WebSockex.start_link(ws_url, __MODULE__, opts, name: name) do
+    abi =
+      abi_path
+      |> File.read!()
+      |> Jason.decode!()
+      |> Map.fetch!("abi")
+      |> ABI.parse_specification(include_events?: true)
+
+    case WebSockex.start_link(ws_url, __MODULE__, [{:abi, abi} | opts], name: name) do
       {:error, {:already_started, pid}} ->
         {:ok, pid}
 
@@ -73,7 +100,6 @@ defmodule Itest.Eventer do
       method: "eth_subscribe",
       params: [
         "logs",
-        # %{"address" => Itest.Account.plasma_framework()}
         Keyword.fetch!(opts, :listen_to)
       ]
     }
