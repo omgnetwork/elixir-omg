@@ -56,6 +56,24 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
   end
 
   describe "Core.determine_standard_challenge_queries" do
+    test "doesn't ask for anything and stops if deposit utxo not spent at all",
+         %{alice: alice, processor_empty: processor} do
+      processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice)
+
+      assert {:error, :utxo_not_spent} =
+               %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
+               |> Core.determine_standard_challenge_queries(processor, true)
+    end
+
+    test "doesn't ask for anything and stops if tx utxo not spent at all",
+         %{alice: alice, processor_empty: processor} do
+      processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice)
+
+      assert {:error, :utxo_not_spent} =
+               %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
+               |> Core.determine_standard_challenge_queries(processor, true)
+    end
+
     test "asks for correct data: deposit utxo double spent in IFE",
          %{alice: alice, processor_empty: processor} do
       ife_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 1}])
@@ -63,7 +81,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
       assert {:ok, %ExitProcessor.Request{se_spending_blocks_to_get: []}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
-               |> Core.determine_standard_challenge_queries(processor)
+               |> Core.determine_standard_challenge_queries(processor, true)
     end
 
     test "asks for correct data: deposit utxo double spent outside an IFE",
@@ -72,7 +90,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
       assert {:ok, %ExitProcessor.Request{se_spending_blocks_to_get: [@utxo_pos_deposit]}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
-               |> Core.determine_standard_challenge_queries(processor)
+               |> Core.determine_standard_challenge_queries(processor, false)
     end
 
     test "asks for correct data: tx utxo double spent in an IFE",
@@ -82,7 +100,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
       assert {:ok, %ExitProcessor.Request{se_spending_blocks_to_get: []}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
-               |> Core.determine_standard_challenge_queries(processor)
+               |> Core.determine_standard_challenge_queries(processor, true)
     end
 
     test "asks for correct data: tx utxo double spent outside an IFE",
@@ -91,14 +109,21 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
       assert {:ok, %ExitProcessor.Request{se_spending_blocks_to_get: [@utxo_pos_tx]}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
-               |> Core.determine_standard_challenge_queries(processor)
+               |> Core.determine_standard_challenge_queries(processor, false)
     end
 
-    test "stops immediately, if exit not found",
+    test "stops immediately, if exit not found, utxo exists",
          %{processor_empty: processor} do
       assert {:error, :exit_not_found} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
-               |> Core.determine_standard_challenge_queries(processor)
+               |> Core.determine_standard_challenge_queries(processor, true)
+    end
+
+    test "stops immediately, if exit not found, utxo doesn't exist",
+         %{processor_empty: processor} do
+      assert {:error, :exit_not_found} =
+               %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
+               |> Core.determine_standard_challenge_queries(processor, false)
     end
   end
 

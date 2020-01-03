@@ -173,18 +173,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   describe "handling of spent blknums result" do
     test "asks for the right blocks when all are spent correctly" do
-      assert [1000] = Core.handle_spent_blknum_result([1000], [@utxo_pos1])
+      assert [1000] = Core.handle_spent_blknum_result([{:ok, 1000}], [@utxo_pos1])
       assert [] = Core.handle_spent_blknum_result([], [])
-      assert [2000, 1000] = Core.handle_spent_blknum_result([2000, 1000], [@utxo_pos2, @utxo_pos1])
+      assert [2000, 1000] = Core.handle_spent_blknum_result([{:ok, 2000}, {:ok, 1000}], [@utxo_pos2, @utxo_pos1])
     end
 
     test "asks for blocks just once" do
-      assert [1000] = Core.handle_spent_blknum_result([1000, 1000], [@utxo_pos2, @utxo_pos1])
+      assert [1000] = Core.handle_spent_blknum_result([{:ok, 1000}, {:ok, 1000}], [@utxo_pos2, @utxo_pos1])
     end
 
     @tag :capture_log
     test "asks for the right blocks if some spends are missing" do
-      assert [1000] = Core.handle_spent_blknum_result([:not_found, 1000], [@utxo_pos2, @utxo_pos1])
+      assert [1000] = Core.handle_spent_blknum_result([:not_found, {:ok, 1000}], [@utxo_pos2, @utxo_pos1])
     end
   end
 
