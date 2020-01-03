@@ -174,7 +174,7 @@ init_test:
 	wget $$URL -O data/snapshot.tar.gz && \
 	cd data && \
 	tar --strip-components 1 -zxvf snapshot.tar.gz data/geth && \
-	tar -zxvf snapshot.tar.gz plasma-contracts/ && \
+	tar --exclude=data/* -xvzf snapshot.tar.gz && \
 	AUTHORITY_ADDRESS=$$(cat plasma-contracts/build/authority_address) && \
 	ETH_VAULT=$$(cat plasma-contracts/build/eth_vault) && \
 	ERC20_VAULT=$$(cat plasma-contracts/build/erc20_vault) && \
