@@ -27,7 +27,7 @@ defmodule WhiteBreadContext do
       Itest.Eventer.start_link(
         ws_url: "ws://127.0.0.1:8546",
         name: :eth_vault,
-        listen_to: %{"address" => Itest.Account.vault()}
+        listen_to: %{"address" => Itest.Account.vault(Currency.ether())}
       )
 
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
@@ -43,7 +43,7 @@ defmodule WhiteBreadContext do
       {:ok, receipt_hash} =
         amount
         |> Currency.to_wei()
-        |> Client.deposit(alice_account, Account.vault())
+        |> Client.deposit(alice_account, Itest.Account.vault(Currency.ether()))
 
       gas_used = Client.get_gas_used(receipt_hash)
 
