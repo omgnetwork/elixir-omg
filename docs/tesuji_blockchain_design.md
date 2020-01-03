@@ -211,48 +211,16 @@ If the child chain operator submits an invalid block or withholds a submitted bl
 
 ### Transactions
 
-A transaction is spending existing UTXO(s) (inputs) and creating new UTXO(s) (outputs).
-Generally, the transaction must specify the inputs being spent as well as owners of the outputs and their respective amounts.
-The transaction must prove, that the spenders consent to their funds (inputs) being spent (by including signatures).
+Transactions, their semantics and encoding are described in detail in the [Transactions section of the contracts integration document](https://github.com/omisego/plasma-contracts/blob/master/plasma_framework/docs/integration-docs/integration-doc.md#transactions),
 
-Each transaction can have up to 4 UTXOs as inputs, and create up to 4 UTXOs as outputs.
+**NOTE** To create a valid transaction, a user needs to have access to inputs pointers (UTXO positions or OutputIDs or other) of all the UTXOs that they intend to spend.
+The Child Chain server doesn't provide this data, it is the responsibility of the Watcher (or Watcher Info) service intended to be ran by the users.
+
+### Fees
 
 The transaction's fee is implicit (think bitcoin), i.e. surplus of the amount being inputted over the amount being outputted (`sumAmount(spent UTXOs) - sumAmount(created UTXOs) >= 0`) is the fee that the child chain operator is eligible to claim later.
 
-A child chain transaction will have:
-```
-    [
-      [sig1, sig2, sig3, sig4],
-      [inpPos1, inpPos2, inpPos3, inpPos4],
-      [
-        [newOwner1, currency1, amount1],
-        [newOwner2, currency2, amount2],
-        [newOwner3, currency3, amount3],
-        [newOwner4, currency4, amount4]
-      ],
-      metadata
-    ]
-```
-
-- `inpPos` - specify the inputs to the transaction.
-Every `inpPos` is an output's unique position, derived from child block number, transaction index within that block and output index.
-Every such output must be unspent for the transaction to be valid.
-`inpPos` might be zero if less than 4 inputs are required
-- `sig` is a signature of all the other fields in a transaction, RLP-encoded and hashed.
-A transaction must have a non-zero signature per every non-zero input used, under the same indices.
-Any zero input must have a zero signature (65 zero bytes) delivered.
-- `newOwner`, `currency` and `amount` specify a single output with the address of the new owner for a given amount of currency
-- `metadata` is an optional field that can hold any 32bytes-worth of data.
-It isn't involved in any form of logic, it only is included in the Transaction hashes preimage.
-To not have it, this item should just be skipped in the array
-- All zero outputs, inputs must come after the non-zero ones.
-
-**NOTE** To create a valid transaction, a user needs to have access to positions of all the UTXOs that they own.
-
-**TODO** A detailed documentation of transaction encoding scheme used is pending.
-As a temporary source of information refer to the implementation details in `elixir-omg` repo [with an entrypoint here.](https://github.com/omisego/elixir-omg/blob/master/apps/omg/lib/omg/state/transaction/signed.ex#L41)
-
-### Fees
+This section only skims the transaction fee topic, for details see [fee design document](./fee_design.md).
 
 #### Accepting fees by the child chain server
 
