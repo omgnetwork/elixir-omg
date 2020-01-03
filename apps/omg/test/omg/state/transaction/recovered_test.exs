@@ -307,24 +307,20 @@ defmodule OMG.State.Transaction.RecoveredTest do
   end
 
   describe "formal protocol rules are enforced" do
-    @tag fixtures: [:alice]
-    test "Decoding transaction with gaps in inputs is ok now, but 0 utxo pos is illegal", %{alice: alice} do
-      # explicitly testing the behavior that we have instead of the obsolete gap checking
+    test "Decoding transaction with a zero input fails" do
+      inputs_index_in_rlp = 2
 
-      encoded_transaction = TestHelper.create_encoded([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{alice, 100}])
-      assert {:error, :malformed_inputs} = Transaction.Recovered.recover_from(encoded_transaction)
+      assert {:error, :malformed_inputs} =
+               good_tx_rlp_items()
+               |> List.replace_at(inputs_index_in_rlp, [<<0::256>>, <<1::256>>])
+               |> ExRLP.encode()
+               |> Transaction.Recovered.recover_from()
     end
 
     @tag fixtures: [:alice]
     test "Decoding deposit transaction without inputs is successful", %{alice: alice} do
       encoded_transaction = TestHelper.create_encoded([], @eth, [{alice, 100}])
       assert {:ok, _} = Transaction.Recovered.recover_from(encoded_transaction)
-    end
-
-    @tag fixtures: [:alice]
-    test "Decoding transaction with zero input fails", %{alice: alice} do
-      encoded_transaction = TestHelper.create_encoded([{0, 0, 0, alice}], [{alice, @zero_address, 10}])
-      assert {:error, :malformed_inputs} = Transaction.Recovered.recover_from(encoded_transaction)
     end
 
     @tag fixtures: [:alice]
@@ -345,7 +341,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
     test "Decoding transaction with too many inputs fails" do
       inputs_index_in_rlp = 2
-      [input] = Enum.at(good_tx_rlp_items(), inputs_index_in_rlp)
+      [input | _] = Enum.at(good_tx_rlp_items(), inputs_index_in_rlp)
 
       assert {:error, :too_many_inputs} =
                good_tx_rlp_items()
@@ -356,7 +352,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
     test "Decoding transaction with shorter input fails" do
       inputs_index_in_rlp = 2
-      [input] = Enum.at(good_tx_rlp_items(), inputs_index_in_rlp)
+      [input | _] = Enum.at(good_tx_rlp_items(), inputs_index_in_rlp)
 
       assert {:error, :malformed_inputs} =
                good_tx_rlp_items()
@@ -574,7 +570,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
     alice = TestHelper.generate_entity()
 
     good_tx_rlp_items =
-      TestHelper.create_encoded([{1000, 0, 0, alice}], [{alice, @eth, 10}])
+      TestHelper.create_encoded([{1000, 0, 0, alice}, {1000, 0, 1, alice}], [{alice, @eth, 10}])
       |> ExRLP.decode()
 
     # sanity check just in case
