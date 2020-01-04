@@ -11,7 +11,7 @@ defmodule Itest.InFlightExitClient do
   alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Model.InFlightExitTxBytesBodySchema
 
-  import Itest.Poller, only: [wait_on_receipt_confirmed: 2]
+  import Itest.Poller, only: [wait_on_receipt_confirmed: 2, pull_api_until_successful: 4]
   require Logger
 
   @ife_gas 2_000_000
@@ -81,10 +81,9 @@ defmodule Itest.InFlightExitClient do
 
   defp get_exit_data(%{signed_txbytes: txbytes} = ife) do
     payload = %InFlightExitTxBytesBodySchema{txbytes: txbytes}
-    {:ok, response} = InFlightExit.in_flight_exit_get_data(Watcher.new(), payload)
-
+    # if deposit is not recognized yet we get https://github.com/omisego/elixir-omg/issues/1128
+    {:ok, response} = pull_api_until_successful(InFlightExit, :in_flight_exit_get_data, Watcher.new(), payload)
     exit_data = Jason.decode!(response.body)["data"]
-
     %{ife | exit_data: exit_data}
   end
 
