@@ -79,7 +79,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-902845d"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200104"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -164,8 +164,9 @@ build-test: deps-elixir-omg
 #
 
 # get the SNAPSHOT url from the snapshots file based on the SNAPSHOT env value
-# untar the snapshot and fetch json values from the db.json that came from plasma-deployer
-# put these values into an localchain_contract_addresses.env file that's used by docker and exunit tests
+# untar the snapshot and fetch values from the files in build dir that came from plasma-deployer
+# put these values into an localchain_contract_addresses.env via the script in bin
+# localchain_contract_addresses.env is used by docker, exunit tests and end2end tests
 
 init_test:
 	mkdir data/ || true && \
@@ -183,16 +184,10 @@ init_test:
 	PLASMA_FRAMEWORK=$$(cat plasma-contracts/build/plasma_framework) && \
 	PAYMENT_EIP712_LIBMOCK=$$(cat plasma-contracts/build/paymentEip712LibMock) && \
 	ERC20_MINTABLE=$$(cat plasma-contracts/build/erc20Mintable) && \
-	sed 's/{AUTHORITY_ADDRESS}/'$$AUTHORITY_ADDRESS'/g' ../contract_addresses_template.env | \
-	sed 's/{CONTRACT_ADDRESS_ETH_VAULT}/'$$ETH_VAULT'/g' | \
-	sed 's/{CONTRACT_ADDRESS_ERC20_VAULT}/'$$ERC20_VAULT'/g' | \
-	sed 's/{CONTRACT_ADDRESS_PAYMENT_EXIT_GAME}/'$$PAYMENT_EXIT_GAME'/g' | \
-	sed 's/{TXHASH_CONTRACT}/'$$PLASMA_FRAMEWORK_TX_HASH'/g' | \
-	sed 's/{CONTRACT_ADDRESS_PLASMA_FRAMEWORK}/'$$PLASMA_FRAMEWORK'/g' | \
-	sed 's/{CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK}/'$$PAYMENT_EIP712_LIBMOCK'/g' | \
-	sed 's/{CONTRACT_ERC20_MINTABLE}/'$$ERC20_MINTABLE'/g' \
-	> ../localchain_contract_addresses.env
-
+	sh ../bin/generate-localchain-env AUTHORITY_ADDRESS=$$AUTHORITY_ADDRESS ETH_VAULT=$$ETH_VAULT \
+	ERC20_VAULT=$$ERC20_VAULT PAYMENT_EXIT_GAME=$$PAYMENT_EXIT_GAME \
+	PLASMA_FRAMEWORK_TX_HASH=$$PLASMA_FRAMEWORK_TX_HASH PLASMA_FRAMEWORK=$$PLASMA_FRAMEWORK \
+	PAYMENT_EIP712_LIBMOCK=$$PAYMENT_EIP712_LIBMOCK ERC20_MINTABLE=$$ERC20_MINTABLE
 
 test:
 	mix test --include test --exclude common --exclude watcher --exclude watcher_info --exclude child_chain

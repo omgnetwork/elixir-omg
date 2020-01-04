@@ -19,12 +19,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:dev-902845d
+      - image: omisegoimages/elixir-omg-builder:stable-20200104
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:dev-902845d
+      - image: omisegoimages/elixir-omg-builder:stable-20200104
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -34,7 +34,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:dev-902845d
+      - image: omisegoimages/elixir-omg-tester:stable-20200104
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
