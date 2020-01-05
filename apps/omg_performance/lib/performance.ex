@@ -60,7 +60,7 @@ defmodule OMG.Performance do
     iex> Performance.init(watcher_url: "http://elsewhere:7434")
     :ok
     iex> Application.get_env(:omg_watcher, :child_chain_url)
-    "http://localhost:9656"
+    "http://localhost:9657"
     iex> Application.get_env(:omg_performance, :watcher_url)
     "http://elsewhere:7434"
   """

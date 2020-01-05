@@ -1,6 +1,6 @@
 use Mix.Config
 
-config :omg_watcher, child_chain_url: "http://localhost:9656"
+config :omg_watcher, child_chain_url: "http://localhost:9657"
 
 config :omg_watcher,
   block_getter_loops_interval_ms: 50,
