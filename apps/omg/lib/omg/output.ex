@@ -56,6 +56,8 @@ defmodule OMG.Output do
   def get_data_for_rlp(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}),
     do: [output_type, [owner, currency, amount]]
 
+  # TODO(achiurizo)
+  # remove the validation here and port the error tuple response handling into ex_plasma.
   defp validate_data([raw_type, [owner, currency, amount]]) do
     with {:ok, _} <- RawData.parse_uint256(raw_type),
          {:ok, _} <- valid_output_type?(raw_type),

@@ -45,7 +45,7 @@ defmodule OMG.Watcher.API.Utxo do
   end
 
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
-  def compose_utxo_exit({:utxo_position, blknum, _, _} = utxo_pos) when is_deposit(blknum) do
+  def compose_utxo_exit(Utxo.position(blknum, _, _) = utxo_pos) when is_deposit(blknum) do
     utxo_pos |> Utxo.Position.to_input_db_key() |> OMG.DB.utxo() |> Core.compose_deposit_standard_exit()
   end
 
