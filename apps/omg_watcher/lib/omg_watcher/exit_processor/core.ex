@@ -87,7 +87,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @type check_validity_result_t :: {:ok | {:error, :unchallenged_exit}, list(Event.byzantine_t())}
 
-  @type spent_blknum_result_t() :: pos_integer | :not_found
+  @type spent_blknum_result_t() :: {:ok, pos_integer} | :not_found
 
   @type in_flight_exit_response_t() :: %{
           txhash: binary(),
@@ -396,7 +396,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       Stream.zip(spent_positions_to_get, spent_blknum_result)
       |> Enum.split_with(fn {_utxo_pos, result} -> result == :not_found end)
 
-    {_, blknums_to_get} = Enum.unzip(founds)
+    blknums_to_get = founds |> Enum.unzip() |> elem(1) |> Enum.map(fn {:ok, blknum} -> blknum end)
 
     warn? = !Enum.empty?(not_founds)
     _ = if warn?, do: Logger.warn("UTXO doesn't exists but no spend registered (spent in exit?) #{inspect(not_founds)}")
@@ -476,7 +476,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defdelegate get_input_challenge_data(request, state, txbytes, input_index), to: ExitProcessor.Piggyback
   defdelegate get_output_challenge_data(request, state, txbytes, output_index), to: ExitProcessor.Piggyback
 
-  defdelegate determine_standard_challenge_queries(request, state), to: ExitProcessor.StandardExit
+  defdelegate determine_standard_challenge_queries(request, state, exiting_utxo_exists), to: ExitProcessor.StandardExit
   defdelegate create_challenge(request, state), to: ExitProcessor.StandardExit
 
   @spec get_ifes_to_piggyback(t()) :: list(InFlightExitInfo.t())

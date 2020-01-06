@@ -20,6 +20,7 @@ defmodule OMG.Output do
   This module specificially dispatches generic calls to the various specific types
   """
   alias OMG.Crypto
+  alias OMG.RawData
 
   @type t :: %__MODULE__{
           output_type: binary(),
@@ -30,58 +31,22 @@ defmodule OMG.Output do
 
   defstruct [:output_type, :owner, :currency, :amount]
 
-  alias OMG.RawData
-  alias OMG.Utxo
-
-  require Utxo
-
-  @output_types_modules OMG.WireFormatTypes.output_type_modules()
-  @output_types Map.keys(@output_types_modules)
-
-  def reconstruct([raw_type, rlp_decoded_chunks]) when is_binary(raw_type) do
-    case RawData.parse_uint256(raw_type) do
-      {:ok, output_type} when output_type in @output_types ->
-        reconstruct([output_type, rlp_decoded_chunks])
-
-      {:ok, _unrecognized_type} ->
-        {:error, :unrecognized_output_type}
-    end
-  end
-
   @doc """
   Reconstructs the structure from a list of RLP items
   """
-  def reconstruct([output_type, [owner_rlp, currency_rlp, amount_rlp]]) do
-    with {:ok, cur12} <- RawData.parse_address(currency_rlp),
-         {:ok, owner} <- RawData.parse_address(owner_rlp),
-         :ok <- non_zero_owner(owner),
-         {:ok, amount} <- RawData.parse_amount(amount_rlp),
-         do: %__MODULE__{output_type: output_type, owner: owner, currency: cur12, amount: amount}
+  def reconstruct([raw_type, [_owner, _currency, _amount]] = rlp_data) when is_binary(raw_type) do
+    with :ok <- validate_data(rlp_data) do
+      utxo = ExPlasma.Utxo.new(rlp_data)
+      %__MODULE__{output_type: utxo.output_type, owner: utxo.owner, currency: utxo.currency, amount: utxo.amount}
+    end
   end
 
   def reconstruct(_), do: {:error, :malformed_outputs}
-
-  defp non_zero_owner(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
-  defp non_zero_owner(_), do: :ok
-
-  def dispatching_reconstruct(_), do: {:error, :malformed_outputs}
-
-  def from_db_value(%{type: output_type} = db_value), do: @output_types_modules[output_type].from_db_value(db_value)
 
   def from_db_value(%{owner: owner, currency: currency, amount: amount, output_type: output_type})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
     %__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}
   end
-
-  @doc """
-  For payment outputs, a binary witness is assumed to be a signature equal to the payment's output owner
-  """
-  def can_spend?(%__MODULE__{owner: owner}, witness, _raw_tx) when is_binary(witness) do
-    owner == witness
-  end
-
-  def input_pointer(%__MODULE__{}, blknum, tx_index, oindex, _, _),
-    do: Utxo.position(blknum, tx_index, oindex)
 
   def to_db_value(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
@@ -90,4 +55,22 @@ defmodule OMG.Output do
 
   def get_data_for_rlp(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}),
     do: [output_type, [owner, currency, amount]]
+
+  # TODO(achiurizo)
+  # remove the validation here and port the error tuple response handling into ex_plasma.
+  defp validate_data([raw_type, [owner, currency, amount]]) do
+    with {:ok, _} <- RawData.parse_uint256(raw_type),
+         {:ok, _} <- valid_output_type?(raw_type),
+         {:ok, _} <- RawData.parse_address(owner),
+         {:ok, _} <- non_zero_owner?(owner),
+         {:ok, _} <- RawData.parse_address(currency),
+         {:ok, _} <- RawData.parse_amount(amount),
+         do: :ok
+  end
+
+  defp non_zero_owner?(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
+  defp non_zero_owner?(_), do: {:ok, :valid}
+
+  defp valid_output_type?(<<1>>), do: {:ok, :valid}
+  defp valid_output_type?(_), do: {:error, :unrecognized_output_type}
 end
