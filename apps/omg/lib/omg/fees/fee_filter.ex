@@ -134,7 +134,9 @@ defmodule OMG.Fees.FeeFilter do
 
   defp do_filter_currencies(currencies, fees) do
     fees
-    |> Enum.map(&{elem(&1, 0), Map.take(elem(&1, 1), currencies)})
+    |> Enum.map(fn {tx_type, fees_for_tx_type} ->
+      {tx_type, Map.take(fees_for_tx_type, currencies)}
+    end)
     |> Enum.into(%{})
   end
 end

@@ -2381,15 +2381,15 @@ paths:
                                 type: string
                                 format: date-time
                     example:
-                      '1':
-                        - currency: '0x0000000000000000000000000000000000000000'
-                          amount: 220000000000000
-                          subunit_to_unit: 1000000000000000000
-                          pegged_currency: USD
-                          pegged_amount: 4
-                          pegged_subunit_to_unit: 100
-                          updated_at: '2019-01-01T10:10:10+00:00'
-                      data: null
+                      data:
+                        '1':
+                          - currency: '0x0000000000000000000000000000000000000000'
+                            amount: 220000000000000
+                            subunit_to_unit: 1000000000000000000
+                            pegged_currency: USD
+                            pegged_amount: 4
+                            pegged_subunit_to_unit: 100
+                            updated_at: '2019-01-01T10:10:10+00:00'
         '500':
           description: Returns an internal server error
           content:
