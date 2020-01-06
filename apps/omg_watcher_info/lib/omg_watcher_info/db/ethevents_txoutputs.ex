@@ -23,7 +23,7 @@ defmodule OMG.WatcherInfo.DB.EthEventsTxOutputs do
   @primary_key false
   schema "ethevents_txoutputs" do
     belongs_to(:ethevents, DB.EthEvent, foreign_key: :root_chain_txhash_event, type: :binary)
-    belongs_to(:txoutput, DB.TxOutput, foreign_key: :child_chain_utxohash, type: :binary)
+    belongs_to(:txoutputs, DB.TxOutput, foreign_key: :child_chain_utxohash, type: :binary)
 
     timestamps(type: :utc_datetime_usec)
   end

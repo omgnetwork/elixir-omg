@@ -20,6 +20,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   use Ecto.Schema
 
+  alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
@@ -71,8 +72,8 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
     DB.Repo.one(
       from(txoutput in __MODULE__,
-        preload: [:ethevents],
-        left_join: ethevent in assoc(txoutput, :ethevents),
+        preload: [:ethevents, :creating_transaction, :spending_transaction],
+        # left_join: ethevent in assoc(txoutput, :ethevents),
         where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
       )
     )
@@ -82,7 +83,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     query =
       from(
         txoutput in __MODULE__,
-        preload: [:ethevents],
+        preload: [:ethevents, :creating_transaction, :spending_transaction],
         left_join: ethevent in assoc(txoutput, :ethevents),
         # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
         where: txoutput.owner == ^owner and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
@@ -194,17 +195,14 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   @doc false
   def changeset(struct, params \\ %{}) do
-    fields = [:root_chain_txhash_event, :log_index, :root_chain_txhash, :event_type]
-
-    Ecto.Changeset.cast(struct, params, fields)
+    Ecto.Changeset.cast(struct, params, [])
   end
 
-  def txoutput_changeset(txoutput, params, ethevent) do
-    # fields = [:blknum, :txindex, :oindex, :owner, :amount, :currency, :child_chain_utxohash]
-
-    # txoutput
-    # |> cast(params, fields)
-    # |> put_assoc(:ethevents, txoutput.ethevents ++ [ethevent])
-    # |> validate_required(fields)
+  @doc """
+  Generate a unique child_chain_utxohash from the Utxo.position
+  """
+  @spec generate_child_chain_utxohash(Utxo.Position.t()) :: OMG.Crypto.hash_t()
+  def generate_child_chain_utxohash(position) do
+    "<#{position |> Utxo.Position.encode()}>" |> Crypto.hash()
   end
 end

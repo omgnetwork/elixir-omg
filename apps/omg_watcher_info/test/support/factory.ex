@@ -61,6 +61,8 @@ defmodule OMG.WatcherInfo.Factory do
   alias OMG.Utxo
   require Utxo
 
+  alias OMG.Eth.Encoding
+
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @doc """
@@ -128,7 +130,7 @@ defmodule OMG.WatcherInfo.Factory do
     }
 
     child_chain_utxohash =
-      DB.EthEvent.generate_child_chain_utxohash(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
+      DB.TxOutput.generate_child_chain_utxohash(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
 
     txoutput = Map.put(txoutput, :child_chain_utxohash, child_chain_utxohash)
 
@@ -184,6 +186,20 @@ defmodule OMG.WatcherInfo.Factory do
     params_for(:ethevent)
     |> Map.drop([:root_chain_txhash_event, :txoutputs])
     |> Map.merge(%{blknum: block.blknum, currency: <<0>>, owner: insecure_random_bytes(20), amount: 1})
+  end
+
+  def exits_params(ethevents) do
+    Enum.map(ethevents, fn ethevent -> exit_params(ethevent) end)
+  end
+
+  def exit_params(ethevent) do
+    [txoutput | _] = ethevent.txoutputs
+
+    %{
+      root_chain_txhash: Encoding.to_hex(ethevent.root_chain_txhash),
+      log_index: ethevent.log_index,
+      call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))}
+    }
   end
 
   # Generates a certain length of random bytes. Uniqueness not guaranteed so it's not recommended for identifiers.
