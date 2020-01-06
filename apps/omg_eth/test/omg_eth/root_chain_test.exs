@@ -178,7 +178,7 @@ defmodule OMG.Eth.RootChainTest do
     topic =
       "ExitStarted(address,uint160)"
       |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
-      |> to_hex()
+      |> Encoding.to_hex()
 
     [%{exit_id: exit_id}] =
       logs
