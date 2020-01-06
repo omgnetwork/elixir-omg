@@ -75,19 +75,19 @@ defmodule OMG.Eth.RootChain do
   def get_standard_exits_structs(exit_ids, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
-    static_array_return_types = [
+    return_types = [
       {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
     ]
 
     # TODO: hack around an issue with `ex_abi` https://github.com/poanetwork/ex_abi/issues/22
-    #       We procure a hacky version of `OMG.Eth.call_contract` which strips the offending offsets from the abi-
-    #       -encoded binary and proceeds to decode the array as if it were static
+    #       We procure a hacky version of `OMG.Eth.call_contract` which strips the offending offsets from
+    #       the ABI-encoded binary and proceeds to decode the array without the offset
     #       Revert to `call_contract` when that issue is resolved
     call_contract_manual_standard_exits(
       contract,
       "standardExits(uint160[])",
       [exit_ids],
-      static_array_return_types
+      return_types
     )
   end
 
@@ -100,11 +100,11 @@ defmodule OMG.Eth.RootChain do
   end
 
   # TODO: see above in where it is called - temporary function
-  defp decode_answer_manual_standard_exits(enc_return, static_array_return_types) do
-    <<32::size(32)-unit(8), static_array_data::binary>> = from_hex(enc_return)
+  defp decode_answer_manual_standard_exits(enc_return, return_types) do
+    <<32::size(32)-unit(8), raw_array_data::binary>> = from_hex(enc_return)
 
-    static_array_data
-    |> ABI.TypeDecoder.decode(static_array_return_types)
+    raw_array_data
+    |> ABI.TypeDecoder.decode(return_types)
     |> case do
       [single_return] -> {:ok, single_return}
       other when is_list(other) -> {:ok, List.to_tuple(other)}
