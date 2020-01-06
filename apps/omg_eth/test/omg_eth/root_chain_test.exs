@@ -135,8 +135,8 @@ defmodule OMG.Eth.RootChainTest do
         {:ok, _} = RootChainHelper.add_exit_queue(vault_id, @eth, contracts)
 
         # Now get the exits by their ids and asserts the result
-        exit_id_1 = RootChainHelper.exit_id_from_receipt(exit_1)
-        exit_id_3 = RootChainHelper.exit_id_from_receipt(exit_3)
+        exit_id_1 = exit_id_from_receipt(exit_1)
+        exit_id_3 = exit_id_from_receipt(exit_3)
 
         {:ok, exits} = RootChain.get_standard_exits_structs([exit_id_1, exit_id_3], contracts)
 
@@ -172,5 +172,25 @@ defmodule OMG.Eth.RootChainTest do
       |> DevHelper.transact_sync!()
 
     {utxo_pos, start_exit_tx}
+  end
+
+  defp exit_id_from_receipt(%{"logs" => logs}) do
+    topic =
+      "ExitStarted(address,uint160)"
+      |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+      |> to_hex()
+
+    [%{exit_id: exit_id}] =
+      logs
+      |> Enum.filter(&(topic in &1["topics"]))
+      |> Enum.map(fn log ->
+        Eth.parse_events_with_indexed_fields(
+          log,
+          {[:exit_id], [{:uint, 160}]},
+          {[:owner], [:address]}
+        )
+      end)
+
+    exit_id
   end
 end

@@ -375,7 +375,7 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def decode_exit_started(log) do
+  defp decode_exit_started(log) do
     non_indexed_keys = [:exit_id]
     non_indexed_key_types = [{:uint, 160}]
     indexed_keys = [:owner]
