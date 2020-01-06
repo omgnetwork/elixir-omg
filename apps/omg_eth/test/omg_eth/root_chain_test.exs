@@ -54,29 +54,6 @@ defmodule OMG.Eth.RootChainTest do
     end
   end
 
-  describe "has_token/2" do
-    # TODO achiurizo
-    #
-    # Figure out why I can't use the same cassettes even though request_body is unique
-    @tag :skip
-    test "returns true  if token exists", %{contracts: contracts} do
-      use_cassette "ganache/has_token_true", match_requests_on: [:request_body] do
-        assert {:ok, true} = RootChainHelper.has_token(@eth, contracts)
-      end
-    end
-
-    # TODO achiurizo
-    #
-    # Skipping these specs for now as this function needs to be updated
-    # to use the new ALD function (not hasToken?)
-    @tag :skip
-    test "returns false if no token exists", %{contracts: contracts} do
-      use_cassette "ganache/has_token_false", match_requests_on: [:request_body] do
-        assert {:ok, false} = RootChainHelper.has_token(<<1::160>>, contracts)
-      end
-    end
-  end
-
   test "get_child_chain/2 returns the current block hash and timestamp", %{contracts: contracts} do
     use_cassette "ganache/get_child_chain", match_requests_on: [:request_body] do
       {:ok, {child_chain_hash, child_chain_time}} = RootChain.get_child_chain(0, contracts)
