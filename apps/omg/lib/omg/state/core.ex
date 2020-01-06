@@ -52,7 +52,6 @@ defmodule OMG.State.Core do
   alias OMG.Crypto
   alias OMG.Fees
 
-  alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
@@ -425,7 +424,7 @@ defmodule OMG.State.Core do
     |> Transaction.get_outputs()
     |> Enum.with_index()
     |> Enum.map(fn {output, oindex} ->
-      {Output.input_pointer(output, blknum, tx_index, oindex, tx, hash), output}
+      {Utxo.position(blknum, tx_index, oindex), output}
     end)
     |> Enum.into(%{}, fn {input_pointer, output} ->
       {input_pointer, %Utxo{output: output, creating_txhash: hash}}
