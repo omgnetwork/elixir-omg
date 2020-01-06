@@ -149,7 +149,7 @@ defmodule WhiteBreadContext do
   )
 
   then_(
-    ~r/^Operator can read it's service name as "(?<service_name>[^"]+)"/,
+    ~r/^Operator can read its service name as "(?<service_name>[^"]+)"/,
     fn state, %{service_name: service_name} ->
       case service_name do
         "watcher_info" ->
@@ -159,6 +159,18 @@ defmodule WhiteBreadContext do
         _ ->
           assert state.service_response["service_name"] == service_name
       end
+
+      {:ok, state}
+    end
+  )
+
+  then_(
+    ~r/^Operator should have "(?<count>[^"]+)" standard exits on the network/,
+    fn state, %{count: count} ->
+      {:ok, response} = StandardExitClient.get_standard_exits()
+
+      body = Jason.decode!(response.body)
+      assert length(body) == count
 
       {:ok, state}
     end

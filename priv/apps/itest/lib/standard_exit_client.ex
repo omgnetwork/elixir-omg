@@ -162,6 +162,10 @@ defmodule Itest.StandardExitClient do
     %{se | start_standard_exit_hash: receipt_hash}
   end
 
+  def get_standard_exits() do
+    # Calls the plasma contracts and get StandardExits
+  end
+
   defp get_standard_exit_id(
          %__MODULE__{exit_game_contract_address: exit_game_contract_address, exit_data: exit_data} = se
        ) do
