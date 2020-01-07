@@ -312,6 +312,9 @@ defmodule Itest.InFlightExitClient do
     %{ife | process_exit_receipt_hash: receipt_hash}
   end
 
+  ##
+  ## helper functions
+  ##
   defp wait_for_exit_queue(%__MODULE__{} = _se, 0), do: exit(1)
 
   defp wait_for_exit_queue(%__MODULE__{} = se, counter) do

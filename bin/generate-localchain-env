@@ -1,3 +1,7 @@
+#!/bin/bash
+
+# this script takes in arguments (in key value pairs) and template file (localchain_contract_addresses.env)
+# looks for keys and replaces them with valuesß
 for ARGUMENT in "$@"
 do
 

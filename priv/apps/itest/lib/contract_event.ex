@@ -1,4 +1,4 @@
-defmodule Itest.Eventer do
+defmodule Itest.ContractEvent do
   @moduledoc """
   Listens for contract events passed in as `listen_to`.
   """

@@ -17,7 +17,7 @@ defmodule WhiteBreadContext do
 
   scenario_starting_state(fn _ ->
     {:ok, _} =
-      Itest.Eventer.start_link(
+      Itest.ContractEvent.start_link(
         ws_url: "ws://127.0.0.1:8546",
         name: :plasma_framework,
         listen_to: %{"address" => Itest.Account.plasma_framework()},
@@ -25,7 +25,7 @@ defmodule WhiteBreadContext do
       )
 
     {:ok, _} =
-      Itest.Eventer.start_link(
+      Itest.ContractEvent.start_link(
         ws_url: "ws://127.0.0.1:8546",
         name: :eth_vault,
         listen_to: %{"address" => Itest.Account.vault(Currency.ether())},
