@@ -129,6 +129,9 @@ defmodule OMG.State.Transaction.Payment do
 
   defp parse_inputs(inputs_rlp) do
     with true <- Enum.count(inputs_rlp) <= @max_inputs || {:error, :too_many_inputs},
+         # NOTE: workaround for https://github.com/omisego/ex_plasma/issues/19.
+         #       remove, when this is blocked on `ex_plasma` end
+         true <- Enum.all?(inputs_rlp, &(&1 != <<0::256>>)) || {:error, :malformed_inputs},
          do: {:ok, Enum.map(inputs_rlp, &parse_input!/1)}
   rescue
     _ -> {:error, :malformed_inputs}
