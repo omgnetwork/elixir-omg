@@ -78,7 +78,6 @@ defmodule Itest.Poller do
   defp do_wait_on_receipt_status(receipt_hash, expected_status, counter) do
     response = get_transaction_receipt(receipt_hash)
     # response might break with {:error, :closed} or {:error, :socket_closed_remotely}
-
     case response do
       {:ok, nil} ->
         Process.sleep(@sleep_retry_sec)
@@ -92,8 +91,13 @@ defmodule Itest.Poller do
         Process.sleep(@sleep_retry_sec)
         do_wait_on_receipt_status(receipt_hash, expected_status, counter - 1)
 
-      {:ok, %{"status" => ^expected_status}} ->
-        response
+      {:ok, %{"status" => ^expected_status} = resp} ->
+        revert_reason(resp)
+        resp
+
+      {:ok, resp} ->
+        revert_reason(resp)
+        %{"status" => ^expected_status} = resp
     end
   end
 
@@ -213,5 +217,14 @@ defmodule Itest.Poller do
 
   defp execute_submit_typed(typed_data_signed) do
     Transaction.submit_typed(WatcherInfo.new(), typed_data_signed)
+  end
+
+  defp revert_reason(%{"status" => "0x1"}), do: :ok
+
+  defp revert_reason(%{"status" => "0x0"} = response) do
+    {:ok, tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(response["transactionHash"])
+
+    {:ok, reason} = Ethereumex.HttpClient.eth_call(Map.put(tx, "data", tx["input"]), tx["blockNumber"])
+    _ = Logger.info("Revert reason for #{inspect(response)}: #{inspect(Itest.Transactions.Encoding.to_binary(reason))}")
   end
 end

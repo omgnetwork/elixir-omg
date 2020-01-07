@@ -5,6 +5,6 @@ defmodule WhiteBreadConfig do
     name: "All",
     context: WhiteBreadContext,
     feature_paths: ["features/"],
-    run_async: true
+    run_async: false
   )
 end
