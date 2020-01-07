@@ -19,265 +19,79 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
   import Ecto.Query
 
-  alias OMG.Crypto
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
 
   alias OMG.WatcherInfo.Factory
+  import OMG.WatcherInfo.Factory
 
   require Utxo
-
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
-
-  @tag fixtures: [:phoenix_ecto_sandbox]
-  test "insert deposits: creates deposit event and utxo" do
-    expected_root_chain_txnhash = Crypto.hash(<<1::256>>)
-    expected_log_index = 0
-    expected_event_type = :deposit
-
-    expected_blknum = 10_000
-    expected_txindex = 0
-    expected_oindex = 0
-    expected_owner = <<1::160>>
-    expected_currency = @eth
-    expected_amount = 1
-
-    expected_child_chain_utxohash =
-      DB.TxOutput.generate_child_chain_utxohash(Utxo.position(expected_blknum, expected_txindex, expected_oindex))
-
-    assert :ok =
-             DB.EthEvent.insert_deposits!([
-               %{
-                 root_chain_txhash: expected_root_chain_txnhash,
-                 log_index: expected_log_index,
-                 blknum: expected_blknum,
-                 owner: expected_owner,
-                 currency: expected_currency,
-                 amount: expected_amount
-               }
-             ])
-
-    event =
-      DB.EthEvent.get_by_composite_pk(%{root_chain_txhash: expected_root_chain_txnhash, log_index: expected_log_index})
-
-    assert %DB.EthEvent{
-             root_chain_txhash: ^expected_root_chain_txnhash,
-             log_index: ^expected_log_index,
-             event_type: ^expected_event_type
-           } = event
-
-    # check ethevent side of relationship
-    assert length(event.txoutputs) == 1
-
-    assert [
-             %DB.TxOutput{
-               blknum: ^expected_blknum,
-               txindex: ^expected_txindex,
-               oindex: ^expected_oindex,
-               owner: ^expected_owner,
-               amount: ^expected_amount,
-               currency: ^expected_currency,
-               creating_txhash: nil,
-               spending_txhash: nil,
-               spending_tx_oindex: nil,
-               proof: nil,
-               child_chain_utxohash: ^expected_child_chain_utxohash
-             }
-             | _tail
-           ] = event.txoutputs
-
-    # check txoutput side of relationship
-    txoutput = DB.TxOutput.get_by_position(Utxo.position(expected_blknum, expected_txindex, expected_oindex))
-
-    assert %DB.TxOutput{
-             blknum: ^expected_blknum,
-             txindex: ^expected_txindex,
-             oindex: ^expected_oindex,
-             owner: ^expected_owner,
-             amount: ^expected_amount,
-             currency: ^expected_currency,
-             creating_txhash: nil,
-             spending_txhash: nil,
-             spending_tx_oindex: nil,
-             proof: nil,
-             child_chain_utxohash: ^expected_child_chain_utxohash
-           } = txoutput
-
-    assert length(txoutput.ethevents) == 1
-
-    assert [
-             %DB.EthEvent{
-               root_chain_txhash: ^expected_root_chain_txnhash,
-               log_index: ^expected_log_index,
-               event_type: ^expected_event_type
-             }
-             | _tail
-           ] = txoutput.ethevents
-  end
-
-  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-  test "insert deposits: creates deposits and retrieves them by hash", %{alice: alice} do
-    expected_event_type = :deposit
-    expected_owner = alice.addr
-    expected_currency = @eth
-    expected_log_index = 0
-    expected_amount = 1
-
-    expected_root_chain_txhash_1 = Crypto.hash(<<2::256>>)
-
-    expected_root_chain_txhash_event_1 =
-      DB.EthEvent.generate_root_chain_txhash_event(expected_root_chain_txhash_1, expected_log_index)
-
-    expected_blknum_1 = 20_000
-
-    expected_root_chain_txhash_2 = Crypto.hash(<<3::256>>)
-
-    expected_root_chain_txhash_event_2 =
-      DB.EthEvent.generate_root_chain_txhash_event(expected_root_chain_txhash_2, expected_log_index)
-
-    expected_blknum_2 = 30_000
-
-    expected_root_chain_txhash_3 = Crypto.hash(<<4::256>>)
-
-    expected_root_chain_txhash_event_3 =
-      DB.EthEvent.generate_root_chain_txhash_event(expected_root_chain_txhash_3, expected_log_index)
-
-    expected_blknum_3 = 40_000
-
-    assert :ok =
-             DB.EthEvent.insert_deposits!([
-               %{
-                 root_chain_txhash: expected_root_chain_txhash_1,
-                 log_index: expected_log_index,
-                 blknum: expected_blknum_1,
-                 owner: expected_owner,
-                 currency: expected_currency,
-                 amount: expected_amount
-               },
-               %{
-                 root_chain_txhash: expected_root_chain_txhash_2,
-                 log_index: expected_log_index,
-                 blknum: expected_blknum_2,
-                 owner: expected_owner,
-                 currency: expected_currency,
-                 amount: expected_amount
-               },
-               %{
-                 root_chain_txhash: expected_root_chain_txhash_3,
-                 log_index: expected_log_index,
-                 blknum: expected_blknum_3,
-                 owner: expected_owner,
-                 currency: expected_currency,
-                 amount: expected_amount
-               }
-             ])
-
-    assert %DB.EthEvent{
-             root_chain_txhash: ^expected_root_chain_txhash_1,
-             log_index: ^expected_log_index,
-             event_type: ^expected_event_type,
-             root_chain_txhash_event: ^expected_root_chain_txhash_event_1
-           } =
-             DB.EthEvent.get_by_composite_pk(%{
-               root_chain_txhash: expected_root_chain_txhash_1,
-               log_index: expected_log_index
-             })
-
-    assert %DB.EthEvent{
-             root_chain_txhash: ^expected_root_chain_txhash_2,
-             log_index: ^expected_log_index,
-             event_type: ^expected_event_type,
-             root_chain_txhash_event: ^expected_root_chain_txhash_event_2
-           } =
-             DB.EthEvent.get_by_composite_pk(%{
-               root_chain_txhash: expected_root_chain_txhash_2,
-               log_index: expected_log_index
-             })
-
-    assert %DB.EthEvent{
-             root_chain_txhash: ^expected_root_chain_txhash_3,
-             log_index: ^expected_log_index,
-             event_type: ^expected_event_type,
-             root_chain_txhash_event: ^expected_root_chain_txhash_event_3
-           } =
-             DB.EthEvent.get_by_composite_pk(%{
-               root_chain_txhash: expected_root_chain_txhash_3,
-               log_index: expected_log_index
-             })
-
-    assert [^expected_root_chain_txhash_1, ^expected_root_chain_txhash_2, ^expected_root_chain_txhash_3] =
-             DB.TxOutput.get_utxos(alice.addr)
-             |> Enum.map(fn txoutput ->
-               [head | _tail] = txoutput.ethevents
-               head.root_chain_txhash
-             end)
-  end
-
-  @tag fixtures: [:alice, :initial_blocks]
-  test "Writes of deposits and exits are idempotent", %{alice: alice} do
-    # try to insert again existing deposit (from initial_blocks)
-    assert :ok =
-             DB.EthEvent.insert_deposits!([
-               %{
-                 root_chain_txhash: Crypto.hash(<<1000::256>>),
-                 log_index: 0,
-                 owner: alice.addr,
-                 currency: @eth,
-                 amount: 333,
-                 blknum: 1
-               }
-             ])
-
-    exits = [
-      %{
-        root_chain_txhash: Crypto.hash(<<1000::256>>),
-        log_index: 1,
-        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))}
-      },
-      %{
-        root_chain_txhash: Crypto.hash(<<1000::256>>),
-        log_index: 1,
-        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))}
-      }
-    ]
-
-    assert :ok = DB.EthEvent.insert_exits!(exits)
-  end
-
-  # insert deposits: creates deposit event and utxo
-  # insert deposits: creates deposits and retrieves them by hash", %{alice: alice} do
-  # Writes of deposits are idempotent
 
   describe "DB.EthEvent.insert_deposits!/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "creates deposit events and the events' corresponding utxo" do
       deposits = Factory.deposits_params(3)
 
-      assert :ok = DB.EthEvent.insert_deposits!(deposits)
+      assert :ok == DB.EthEvent.insert_deposits!(deposits)
 
       assert_deposits_ethevents(deposits)
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "inserting duplicate deposits results in an error and has no effect on the DB" do
+      %{root_chain_txhash: root_chain_txhash, log_index: log_index} = deposit = Factory.deposit_params()
+
+      assert :ok == DB.EthEvent.insert_deposits!([deposit])
+      assert :error == DB.EthEvent.insert_deposits!([deposit])
+
+      assert %{root_chain_txhash: ^root_chain_txhash, log_index: ^log_index} = DB.EthEvent.get_by(deposit)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "deposit creation cannot partially fail" do
+      block = insert(:block)
+      txoutput = insert(:txoutput, blknum: block.blknum, creating_transaction: nil)
+
+      # create a deposit with a txoutput that already exists, which will cause a failure
+      %{root_chain_txhash: root_chain_txhash, log_index: log_index} = deposit = Factory.deposit_params(block: block)
+
+      assert :error == DB.EthEvent.insert_deposits!([deposit])
+
+      # insert of txoutput failed, so there should not be an ethevent as the entire transaction
+      # was rolled back
+      assert DB.EthEvent.get_by(deposit) == nil
+    end
   end
 
-  describe "DB.EthEvent.insert_exits!/1" do
+  describe "DB.EthEvent and DB.TxOutput relationship" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "insert exits: creates exit event for utxo" do
+    test "updating txoutput does not affect txoutput's ethevents" do
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "txoutput's ethevents can only be appended to, but not deleted from" do
+    end
+  end
+
+  describe "DB.EthEvent.insert_standard_exits!/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "insert standard exits: creates exit event for an unspent utxo" do
       deposits = Factory.deposits_params(1)
 
       DB.EthEvent.insert_deposits!(deposits)
-      deposit_ethevents = DB.EthEvent.get_by_composite_pks(deposits)
+      deposit_ethevents = DB.EthEvent.get_by(deposits)
 
       exit_utxos_params = Factory.exits_params(deposit_ethevents)
 
       assert :ok = DB.EthEvent.insert_exits!(exit_utxos_params)
-      exit_ethevents = DB.EthEvent.get_by_composite_pks(exit_utxos_params)
+      exit_ethevents = DB.EthEvent.get_by(exit_utxos_params)
 
-      assert_exited_utxos(exit_utxos_params, deposit_ethevents, exit_ethevents)
+      assert_standard_exit_utxos(exit_utxos_params, deposit_ethevents, exit_ethevents)
     end
   end
 
   def assert_deposits_ethevents(deposits) do
-    ethevents = DB.EthEvent.get_by_composite_pks(deposits)
+    ethevents = DB.EthEvent.get_by(deposits)
 
     assert length(deposits) == length(ethevents)
 
@@ -307,6 +121,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     assert deposit.currency == txoutput.currency
     assert deposit.amount == txoutput.amount
 
+    # a fresh deposit should have no creating/spending transaction data
     assert txoutput.creating_transaction == nil
     assert txoutput.creating_txhash == nil
 
@@ -342,25 +157,22 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     assert DateTime.compare(ethevent_txoutput.inserted_at, ethevent_txoutput.updated_at) == :eq
   end
 
-  def assert_exited_utxos(exit_utxos_params, deposit_ethevents, exit_ethevents) do
+  def assert_standard_exit_utxos(exit_utxos_params, deposit_ethevents, exit_ethevents) do
     assert length(exit_utxos_params) == length(deposit_ethevents)
     assert length(exit_utxos_params) == length(exit_ethevents)
 
     Enum.each(Enum.zip([exit_utxos_params, deposit_ethevents, exit_ethevents]), fn {exit_utxo_params, deposit_ethevent,
                                                                                     exit_ethevent} ->
-      assert_exited_utxo(exit_utxo_params, deposit_ethevent, exit_ethevent)
+      assert_standard_exit_utxo(exit_utxo_params, deposit_ethevent, exit_ethevent)
     end)
   end
 
-  def assert_exited_utxo(exit_utxo_params, deposit_ethevent, exit_ethevent) do
+  def assert_standard_exit_utxo(exit_utxo_params, deposit_ethevent, exit_ethevent) do
     {:ok, {:utxo_position, blknum, txindex, oindex}} = Utxo.Position.decode(exit_utxo_params.call_data.utxo_pos)
 
     txoutput = DB.TxOutput.get_by_position(Utxo.position(blknum, txindex, oindex))
 
     assert length(txoutput.ethevents) == 2
-
-    # assert exit_utxo_params.root_chain_txhash == ethevent.root_chain_txhash
-    # assert exit_utxo_params.log_index == ethevent.log_index
 
     assert exit_ethevent.event_type == :standard_exit
 
@@ -408,11 +220,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     assert DateTime.compare(txoutput_ethevent_standard_exit.inserted_at, txoutput_ethevent_standard_exit.updated_at) ==
              :eq
 
-    query =
-      from(
-        et in DB.EthEventsTxOutputs,
-        where: et.child_chain_utxohash == ^txoutput.child_chain_utxohash
-      )
+    query = from(et in DB.EthEventsTxOutputs, where: et.child_chain_utxohash == ^txoutput.child_chain_utxohash)
 
     assert length(DB.Repo.all(query)) == length(txoutput.ethevents)
   end

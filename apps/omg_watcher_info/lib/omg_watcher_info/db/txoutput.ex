@@ -73,7 +73,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     DB.Repo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents, :creating_transaction, :spending_transaction],
-        # left_join: ethevent in assoc(txoutput, :ethevents),
         where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
       )
     )
@@ -193,9 +192,29 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Map.new()
   end
 
+  def new_changeset(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
+    txoutput = %{
+      child_chain_utxohash: DB.TxOutput.generate_child_chain_utxohash(Utxo.position(blknum, 0, 0)),
+      blknum: blknum,
+      txindex: 0,
+      oindex: 0,
+      owner: owner,
+      currency: currency,
+      amount: amount
+    }
+
+    changeset(%__MODULE__{}, txoutput)
+  end
+
   @doc false
   def changeset(struct, params \\ %{}) do
-    Ecto.Changeset.cast(struct, params, [])
+    fields = [:blknum, :txindex, :oindex, :child_chain_utxohash, :owner, :amount, :currency]
+
+    struct
+    |> Ecto.Changeset.cast(params, fields)
+    |> Ecto.Changeset.validate_required(fields)
+    |> Ecto.Changeset.unique_constraint(:blknum, name: :txoutputs_pkey)
+    |> Ecto.Changeset.unique_constraint(:child_chain_utxohash)
   end
 
   @doc """

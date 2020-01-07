@@ -110,9 +110,16 @@ defmodule OMG.WatcherInfo.Factory do
     - To override `creating_transaction`, also consider overriding `txindex` and `oindex`.
     - To override `spending_transaction`, also consider overriding `spending_tx_oindex`
   """
-  def txoutput_factory(attrs \\ nil) do
+  def txoutput_factory(attrs \\ %{}) do
     block = attrs[:block] || build(:block)
-    creating_transaction = attrs[:creating_transaction] || build(:transaction, block: block)
+
+    # need to check key existence because value may be nil which is valid
+    creating_transaction =
+      case Map.has_key?(attrs, :creating_transaction) do
+        true -> attrs[:creating_transaction]
+        false -> build(:transaction, block: block)
+      end
+
     ethevents = attrs[:ethevents] || []
 
     txoutput = %DB.TxOutput{
@@ -180,8 +187,8 @@ defmodule OMG.WatcherInfo.Factory do
     Enum.map(0..(n - 1), fn _ -> deposit_params() end)
   end
 
-  def deposit_params() do
-    block = insert(:block)
+  def deposit_params(attrs \\ nil) do
+    block = attrs[:block] || insert(:block)
 
     params_for(:ethevent)
     |> Map.drop([:root_chain_txhash_event, :txoutputs])

@@ -20,6 +20,8 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   use Ecto.Schema
 
+  alias Ecto.Multi
+
   alias OMG.Crypto
   alias OMG.Eth.Encoding
   alias OMG.Utxo
@@ -49,69 +51,47 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @doc """
   Inserts deposits based on a list of event maps (if not already inserted before)
   """
-  @spec insert_deposits!([OMG.State.Core.deposit()]) :: :ok
+  @spec insert_deposits!([OMG.State.Core.deposit()]) :: :ok | :error
   def insert_deposits!(deposits) do
-    deposits |> Enum.each(&insert_deposit!/1)
+    {_, status} =
+      Enum.map_reduce(deposits, {:ok}, fn deposit, status ->
+        status = insert_deposit!(deposit)
+        {status, status}
+      end)
+
+    status
   end
 
-  @spec insert_deposit!(OMG.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
-  defp insert_deposit!(
-         %{
-           root_chain_txhash: root_chain_txhash,
-           log_index: log_index,
-           blknum: blknum,
-           owner: owner,
-           currency: currency,
-           amount: amount
-         } = deposit
-       ) do
-    case get_by_composite_pk(deposit) do
-      nil ->
-        event_type = :deposit
-        position = Utxo.position(blknum, 0, 0)
+  @spec insert_deposit!(OMG.State.Core.deposit()) :: :ok | :error
+  defp insert_deposit!(deposit) do
+    result =
+      Multi.new()
+      |> Multi.run(:deposit_not_exists?, deposit_not_exists?(deposit))
+      |> Multi.insert(:insert_ethevent, new_changeset(deposit, :deposit))
+      |> Multi.insert(:insert_txoutput, DB.TxOutput.new_changeset(deposit))
+      |> Multi.insert(:ethevent_txoutput, fn %{insert_ethevent: ethevent, insert_txoutput: txoutput} ->
+        DB.EthEventsTxOutputs.changeset(
+          %DB.EthEventsTxOutputs{},
+          %{
+            root_chain_txhash_event: ethevent.root_chain_txhash_event,
+            child_chain_utxohash: txoutput.child_chain_utxohash
+          }
+        )
+      end)
+      |> DB.Repo.transaction()
 
-        root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
+    case result do
+      {:ok, _changes} -> :ok
+      {:error, _failed_operation, _failed_value, _changes_so_far} -> :error
+    end
+  end
 
-        ethevent = %__MODULE__{
-          root_chain_txhash_event: root_chain_txhash_event,
-          log_index: log_index,
-          root_chain_txhash: root_chain_txhash,
-          event_type: event_type,
-          txoutputs: []
-        }
-
-        child_chain_utxohash = DB.TxOutput.generate_child_chain_utxohash(position)
-
-        txoutput = %DB.TxOutput{
-          child_chain_utxohash: child_chain_utxohash,
-          blknum: blknum,
-          txindex: 0,
-          oindex: 0,
-          owner: owner,
-          currency: currency,
-          amount: amount,
-          ethevents: []
-        }
-
-        ethevent_txoutput =
-          DB.EthEventsTxOutputs.changeset(
-            %DB.EthEventsTxOutputs{},
-            %{
-              root_chain_txhash_event: ethevent.root_chain_txhash_event,
-              child_chain_utxohash: txoutput.child_chain_utxohash
-            }
-          )
-
-        with {:ok, ethevent} <- DB.Repo.insert(ethevent),
-             {:ok, txoutput} <- DB.Repo.insert(txoutput),
-             {:ok, ethevent_txoutput} <- DB.Repo.insert(ethevent_txoutput) do
-          {:ok, ethevent}
-        else
-          {:error, error} -> {:error, error}
-        end
-
-      existing_deposit ->
-        {:ok, existing_deposit}
+  defp deposit_not_exists?(composite_key = %{root_chain_txhash: root_chain_txhash, log_index: log_index}) do
+    fn _, _ ->
+      case get_by(composite_key) do
+        nil -> {:ok, nil}
+        existing_deposit -> {:error, existing_deposit}
+      end
     end
   end
 
@@ -159,7 +139,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
          log_index: log_index,
          decoded_utxo_position: decoded_utxo_position
        }) do
-    case get_by_composite_pk(%{root_chain_txhash: root_chain_txhash, log_index: log_index}) do
+    case get_by(%{root_chain_txhash: root_chain_txhash, log_index: log_index}) do
       nil ->
         case DB.TxOutput.get_by_position(decoded_utxo_position) do
           nil ->
@@ -201,23 +181,36 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     end
   end
 
+  def new_changeset(%{root_chain_txhash: root_chain_txhash, log_index: log_index}, event_type) do
+    ethevent = %{
+      root_chain_txhash: root_chain_txhash,
+      log_index: log_index,
+      event_type: event_type,
+      root_chain_txhash_event: generate_root_chain_txhash_event(root_chain_txhash, log_index)
+    }
+
+    changeset(%__MODULE__{}, ethevent)
+  end
+
   @doc false
   def changeset(struct, params \\ %{}) do
     fields = [:root_chain_txhash_event, :log_index, :root_chain_txhash, :event_type]
 
-    Ecto.Changeset.cast(struct, params, fields)
+    struct
+    |> Ecto.Changeset.cast(params, fields)
+    |> Ecto.Changeset.validate_required(fields)
   end
 
   def generate_root_chain_txhash_event(root_chain_txhash, log_index) do
     (Encoding.to_hex(root_chain_txhash) <> Integer.to_string(log_index)) |> Crypto.hash()
   end
 
-  def get_by_composite_pks(composite_pks) do
+  def get_by(composite_keys) when is_list(composite_keys) do
     conditions =
-      Enum.reduce(composite_pks, false, fn composite_pk, conditions ->
+      Enum.reduce(composite_keys, false, fn composite_key, conditions ->
         dynamic(
           [e],
-          (e.root_chain_txhash == ^composite_pk.root_chain_txhash and e.log_index == ^composite_pk.log_index) or
+          (e.root_chain_txhash == ^composite_key.root_chain_txhash and e.log_index == ^composite_key.log_index) or
             ^conditions
         )
       end)
@@ -234,19 +227,14 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     DB.Repo.all(query)
   end
 
-  def get_by_composite_pk(composite_pk) do
-    conditions =
-      dynamic([e], e.root_chain_txhash == ^composite_pk.root_chain_txhash and e.log_index == ^composite_pk.log_index)
-
-    query =
+  def get_by(%{:root_chain_txhash => root_chain_txhash, :log_index => log_index}) do
+    DB.Repo.one(
       from(
-        e in DB.EthEvent,
-        select: e,
-        where: ^conditions,
+        e in __MODULE__,
+        where: e.root_chain_txhash == ^root_chain_txhash and e.log_index == ^log_index,
         order_by: [asc: e.updated_at],
         preload: [{:txoutputs, [:creating_transaction, :spending_transaction]}]
       )
-
-    DB.Repo.one(query)
+    )
   end
 end

@@ -44,4 +44,20 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
       assert DateTime.compare(txoutput_with_dates.inserted_at, txoutput_with_dates.updated_at) == :eq
     end
   end
+
+  describe "DB.Repo timestamps" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "all tables have inserted_at and updated_at timestamps set correctly" do
+      Enum.each([:block, :transaction, :txoutput, :ethevent], fn row ->
+        row = insert(row)
+
+        assert row.inserted_at != nil
+        assert DateTime.compare(row.inserted_at, row.updated_at) == :eq
+
+        {:ok, row} = DB.Repo.update(Ecto.Changeset.change(row), [{:force, true}])
+
+        assert DateTime.compare(row.inserted_at, row.updated_at) == :lt
+      end)
+    end
+  end
 end
