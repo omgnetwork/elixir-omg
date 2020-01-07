@@ -70,6 +70,22 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
       assert fetch_status == :error
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "inserting duplicate deposits results in an error and has no effect on the DB" do
+      %{root_chain_txhash: root_chain_txhash, log_index: log_index} = insert_deposit_params = Factory.deposit_params()
+
+      assert :ok == DB.EthEvent.insert_deposits!([deposit])
+      assert :error == DB.EthEvent.insert_deposits!([deposit])
+
+      {:ok, deposit_ethevent} =
+        insert_deposit_params
+        |> to_fetch_by_params([:root_chain_txhash, :log_index])
+        |> DB.EthEvent.fetch_by()
+
+      assert deposit_ethevent.root_chain_txhash == insert_deposit_params.root_chain_txhash
+      assert deposit_ethevent.log_index == insert_deposit_params.log_index
+    end
   end
 
   describe "DB.EthEvent.insert_standard_exits!/1" do

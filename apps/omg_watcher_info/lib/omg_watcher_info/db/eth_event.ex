@@ -150,22 +150,6 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     end
   end
 
-  defp validate_txoutput_unspent(txoutput) do
-    case txoutput.spending_txhash do
-      nil -> {:ok, txoutput}
-      _spending_txhash -> {:error, "Cannot exit and already spent txoutput"}
-    end
-  end
-
-  defp validate_txoutput_unexited(txoutput) do
-    Enum.reduce_while(txoutput.ethevents, {:ok, txoutput}, fn ethevent, _acc ->
-      case ethevent.event_type do
-        :standard_exit -> {:halt, {:error, "Cannot exit and already exited txoutput"}}
-        _ -> {:cont, {:ok, txoutput}}
-      end
-    end)
-  end
-
   def fetch_by(where_conditions) do
     DB.Repo.fetch(
       from(ethevents in __MODULE__,
@@ -217,4 +201,21 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   def generate_root_chain_txhash_event(root_chain_txhash, log_index) do
     (Encoding.to_hex(root_chain_txhash) <> Integer.to_string(log_index)) |> Crypto.hash()
   end
+
+  defp validate_txoutput_unspent(txoutput) do
+    case txoutput.spending_txhash do
+      nil -> {:ok, txoutput}
+      _spending_txhash -> {:error, "Cannot exit an already spent txoutput"}
+    end
+  end
+
+  defp validate_txoutput_unexited(txoutput) do
+    Enum.reduce_while(txoutput.ethevents, {:ok, txoutput}, fn ethevent, _acc ->
+      case ethevent.event_type do
+        :standard_exit -> {:halt, {:error, "Cannot exit an already exited txoutput"}}
+        _ -> {:cont, {:ok, txoutput}}
+      end
+    end)
+  end
+ end
 end

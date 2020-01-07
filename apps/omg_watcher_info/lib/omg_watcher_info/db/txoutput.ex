@@ -68,10 +68,16 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   def fetch_by(where_conditions) do
     DB.Repo.fetch(
       from(txoutputs in __MODULE__,
-        left_join: ethevents in assoc(txoutputs, :ethevents),
-        preload: [ethevents: ethevents],
+        left_join: ethevents in assoc(txoutput, :ethevents),
+        left_join: creating_transaction in assoc(txoutput, :creating_transaction),
+        left_join: spending_transaction in assoc(txoutput, :spending_transaction),
+        preload: [
+          ethevents: ethevents,
+          creating_transaction: creating_transaction,
+          spending_transaction: spending_transaction
+        ],
         where: ^where_conditions,
-        order_by: [asc: ethevents.updated_at]
+        order_by: [asc: txoutputs.blknum, asc: txoutputs.txindex, asc: txoutputs.oindex]
       )
     )
   end
@@ -214,14 +220,5 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     fields = [:root_chain_txhash_event, :log_index, :root_chain_txhash, :event_type]
 
     Ecto.Changeset.cast(struct, params, fields)
-  end
-
-  def txoutput_changeset(txoutput, params, ethevent) do
-    # fields = [:blknum, :txindex, :oindex, :owner, :amount, :currency, :child_chain_utxohash]
-
-    # txoutput
-    # |> cast(params, fields)
-    # |> put_assoc(:ethevents, txoutput.ethevents ++ [ethevent])
-    # |> validate_required(fields)
   end
 end
