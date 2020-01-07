@@ -118,6 +118,22 @@ defmodule OMG.Fees do
     end
   end
 
+  @doc """
+  Filters input-output surpluses from transaction to supported fee-tokens only
+
+  ## Examples
+
+      iex> Fees.filter_fee_tokens(%{"eth" => 1, "omg" => 3}, %{"omg" => %{amount: 3}})
+      %{"omg" => 3}
+
+      iex> Fees.filter_fee_tokens(%{"eth" => 1, "omg" => 3}, :no_fees_required)
+      %{}
+  """
+  @spec filter_fee_tokens(surpluses :: map, fees :: optional_fee_t()) :: map()
+  def filter_fee_tokens(_map, :no_fees_required), do: %{}
+
+  def filter_fee_tokens(surpluses, fees), do: Map.take(surpluses, Map.keys(fees))
+
   @doc ~S"""
   Returns the fees to pay for a particular transaction,
   and under particular fee specs listed in `fee_map`.

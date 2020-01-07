@@ -54,7 +54,8 @@ defmodule OMG.State.Transaction.Validator do
          :ok <- authorized?(outputs_spent, witnesses),
          {:ok, implicit_paid_fee_by_currency} <- Transaction.Protocol.can_apply?(raw_tx, outputs_spent),
          :ok <- Fees.check_if_covered(implicit_paid_fee_by_currency, fees) do
-      true
+      {:ok, Fees.filter_fee_tokens(implicit_paid_fee_by_currency, fees)}
+==== BASE ====
     else
       {:error, _reason} = error -> {error, state}
     end

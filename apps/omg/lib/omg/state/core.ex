@@ -46,7 +46,15 @@ defmodule OMG.State.Core do
   created and spent utxos are lost and the ledger state basically resets to the previous block.
   """
 
-  defstruct [:height, utxos: %{}, pending_txs: [], tx_index: 0, utxo_db_updates: [], recently_spent: MapSet.new()]
+  defstruct [
+    :height,
+    utxos: %{},
+    pending_txs: [],
+    tx_index: 0,
+    utxo_db_updates: [],
+    recently_spent: MapSet.new(),
+    fees_paid: %{}
+  ]
 
   alias OMG.Block
   alias OMG.Crypto
@@ -61,6 +69,8 @@ defmodule OMG.State.Core do
   use OMG.Utils.LoggerExt
   require Utxo
 
+  @type fee_summary_t() :: %{Transaction.Payment.currency() => pos_integer()}
+
   @type t() :: %__MODULE__{
           height: non_neg_integer(),
           utxos: utxos,
@@ -71,7 +81,10 @@ defmodule OMG.State.Core do
           utxo_db_updates: list(db_update()),
           # NOTE: because UTXO set is not loaded from DB entirely, we need to remember the UTXOs spent in already
           # processed transaction before they get removed from DB on form_block.
-          recently_spent: MapSet.t(OMG.Utxo.Position.t())
+          recently_spent: MapSet.t(OMG.Utxo.Position.t()),
+          # Summarizes fees paid by pending transactions that will be formed into current block. Fees will be claimed
+          # by appending `FeeTokenClaim` txs after pending txs in current block.
+          fees_paid: fee_summary_t()
         }
 
   @type deposit() :: %{
@@ -166,11 +179,12 @@ defmodule OMG.State.Core do
     tx_hash = Transaction.raw_txhash(tx)
 
     case Validator.can_apply_spend(state, tx, fees) do
-      true ->
+      {:ok, fees_paid} ->
         {:ok, {tx_hash, state.height, state.tx_index},
          state
          |> apply_spend(tx)
-         |> add_pending_tx(tx)}
+         |> add_pending_tx(tx)
+         |> collect_fees(fees_paid)}
 
       {{:error, _reason}, _state} = error ->
         error
@@ -385,6 +399,16 @@ defmodule OMG.State.Core do
       | utxos: new_utxos,
         recently_spent: MapSet.union(recently_spent, MapSet.new(spent_input_pointers)),
         utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates
+    }
+  end
+
+  defp collect_fees(%Core{fees_paid: fees_paid} = state, tx_fees) do
+    %Core{
+      state
+      | fees_paid:
+          Map.merge(fees_paid, tx_fees, fn _token, collected, tx_paid ->
+            collected + tx_paid
+          end)
     }
   end
 
