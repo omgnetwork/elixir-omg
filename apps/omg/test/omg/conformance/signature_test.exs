@@ -66,22 +66,6 @@ defmodule OMG.Conformance.SignatureTest do
 
       verify(tx, contract)
     end
-
-    test "unrecognized output type", %{contract: contract} do
-      # FIXME: remove and change into a pair of pure elixir test and solc test
-      unrecognized_output = [234_567, [@good_address, @good_address, @good_amount]]
-      txbytes = ExRLP.encode([1, [], [unrecognized_output], @good_tx_data, @good_metadata])
-
-      verify_both_error(txbytes, contract)
-    end
-
-    test "unrecognized tx type", %{contract: contract} do
-      # FIXME: remove and change into a pair of pure elixir test and solc test
-      txbytes =
-        ExRLP.encode([234_567, [], [[1, [@good_address, @good_address, @good_amount]]], @good_tx_data, @good_metadata])
-
-      verify_both_error(txbytes, contract)
-    end
   end
 
   describe "distinct transactions yield distinct sign hashes" do

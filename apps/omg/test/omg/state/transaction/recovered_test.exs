@@ -114,16 +114,23 @@ defmodule OMG.State.Transaction.RecoveredTest do
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<0x80>>)
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<>>)
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode(23))
-      assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, []]))
+      assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, 1]))
+
+      # looks like a payment transaction but type points to a `FeeTokenClaim` transaction, hence malformed not
+      # unrecognized
+      assert {:error, :malformed_transaction} =
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, 3, inputs, outputs, 0, <<0::256>>]))
 
       assert {:error, :malformed_transaction} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, inputs, outputs, 0, <<0::256>>]))
-
-      assert {:error, :malformed_transaction} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, ["bad"], inputs, outputs, 0, <<0::256>>]))
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, 1, outputs, 0, <<0::256>>]))
 
       assert {:error, :unrecognized_transaction_type} =
-               Transaction.Recovered.recover_from(ExRLP.encode([sigs, 245_654, inputs, outputs, 0, <<0::256>>]))
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, ["bad"], inputs, outputs, 0, <<0::256>>]))
+
+      assert {:error, :unrecognized_transaction_type} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, []]))
+
+      assert {:error, :unrecognized_transaction_type} =
+               Transaction.Recovered.recover_from(ExRLP.encode([sigs, 234_567, inputs, outputs, 0, <<0::256>>]))
 
       assert {:error, :malformed_witnesses} ==
                Transaction.Recovered.recover_from(
@@ -329,7 +336,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
     test "Decoding transaction with list as transaction type fails" do
       tx_type_index_in_rlp = 1
 
-      assert {:error, :malformed_transaction} =
+      assert {:error, :unrecognized_transaction_type} =
                good_tx_rlp_items()
                |> List.replace_at(tx_type_index_in_rlp, [<<1>>])
                |> ExRLP.encode()
@@ -420,7 +427,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
       [[_type, output_fields]] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
       bad_output = [[<<1>>], output_fields]
 
-      assert {:error, :malformed_outputs} =
+      assert {:error, :unrecognized_output_type} =
                good_tx_rlp_items()
                |> List.replace_at(outputs_index_in_rlp, [bad_output])
                |> ExRLP.encode()

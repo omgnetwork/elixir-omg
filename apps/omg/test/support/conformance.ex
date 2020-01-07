@@ -56,7 +56,6 @@ defmodule Support.Conformance do
   defp solidity_hash(encoded_tx, contract) when is_binary(encoded_tx),
     do: Eth.call_contract(contract, "hashTx(address,bytes)", [contract, encoded_tx], [{:bytes, 32}])
 
-  defp elixir_hash(%Transaction.Signed{raw_tx: tx}), do: OMG.TypedDataHash.hash_struct(tx)
   defp elixir_hash(tx), do: OMG.TypedDataHash.hash_struct(tx)
 
   defp assert_contract_reverted(result) do
