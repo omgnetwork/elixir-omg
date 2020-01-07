@@ -17,7 +17,8 @@ defmodule OMG.State.Transaction.Validator do
   Provides functions for stateful transaction validation for transaction processing in OMG.State.Core.
   """
 
-  @maximum_block_size 65_536
+  @maximum_fee_transactions 128
+  @maximum_block_size 65_536 - @maximum_fee_transactions
 
   alias OMG.Fees
   alias OMG.Output
