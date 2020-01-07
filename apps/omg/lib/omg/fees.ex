@@ -22,6 +22,7 @@ defmodule OMG.Fees do
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.WireFormatTypes
+  alias OMG.Crypto
 
   require Utxo
 
