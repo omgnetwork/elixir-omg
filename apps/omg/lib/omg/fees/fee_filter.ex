@@ -94,7 +94,7 @@ defmodule OMG.Fees.FeeFilter do
 
   def filter(fees, tx_types, currencies) do
     with {:ok, fees} <- filter_tx_type(fees, tx_types) do
-      filtter_currency(fees, currencies)
+      filter_currency(fees, currencies)
     end
   end
 
@@ -114,10 +114,10 @@ defmodule OMG.Fees.FeeFilter do
     end
   end
 
-  defp filtter_currency(fees, []), do: {:ok, fees}
-  defp filtter_currency(fees, nil), do: {:ok, fees}
+  defp filter_currency(fees, []), do: {:ok, fees}
+  defp filter_currency(fees, nil), do: {:ok, fees}
 
-  defp filtter_currency(fees, currencies) do
+  defp filter_currency(fees, currencies) do
     with :ok <- validate_currencies(currencies, fees) do
       {:ok, do_filter_currencies(currencies, fees)}
     end

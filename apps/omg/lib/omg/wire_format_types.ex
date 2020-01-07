@@ -71,6 +71,12 @@ defmodule OMG.WireFormatTypes do
   def module_tx_types(), do: @module_tx_types
 
   @doc """
+  Returns the tx type corresponding to the given raw transaction
+  """
+  @spec tx_type_for_transaction(any()) :: non_neg_integer() | nil
+  def tx_type_for_transaction(%module{}), do: @module_tx_types[module]
+
+  @doc """
   Returns wire format type value of known input pointer type
   """
   @spec input_pointer_type_for(input_pointer_type :: atom()) :: non_neg_integer()

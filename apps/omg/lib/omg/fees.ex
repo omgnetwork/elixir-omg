@@ -21,14 +21,21 @@ defmodule OMG.Fees do
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.WireFormatTypes
+  alias OMG.Crypto
 
   require Utxo
 
   use OMG.Utils.LoggerExt
 
-  @type fee_t() :: %{Transaction.Payment.currency() => fee_spec_t()}
+  @typedoc "A map of token addresses to a single fee spec"
+  @type fee_t() :: %{Crypto.address_t() => fee_spec_t()}
+  @typedoc """
+  A map of transaction types to fees
+  where fees is itself a map of token to fee spec
+  """
   @type full_fee_t() :: %{non_neg_integer() => fee_t()}
   @type optional_fee_t() :: fee_t() | :no_fees_required
+  @typedoc "A map representing a single fee"
   @type fee_spec_t() :: %{
           amount: non_neg_integer(),
           subunit_to_unit: pos_integer(),
@@ -119,7 +126,7 @@ defmodule OMG.Fees do
   end
 
   defp get_fee_for_type(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
-    case WireFormatTypes.module_tx_types()[raw_tx.__struct__] do
+    case WireFormatTypes.tx_type_for_transaction(raw_tx) do
       nil -> %{}
       type -> Map.get(fee_map, type, %{})
     end
