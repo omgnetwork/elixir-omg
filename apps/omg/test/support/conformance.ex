@@ -19,7 +19,7 @@ defmodule Support.Conformance do
   alias OMG.Eth
   alias OMG.State.Transaction
 
-  import ExUnit.Assertions
+  import ExUnit.Assertions, only: [assert: 1, assert: 2]
 
   @doc """
   Check if both implementations treat distinct transactions as distinct but produce sign hashes consistently
