@@ -130,7 +130,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
     end
 
     @tag fixtures: [:phoenix_sandbox]
-    test "fees.all endpoint does not filter without a body" do
+    test "fees.all endpoint does not filter without an empty body" do
       assert %{
                "success" => true,
                "data" => %{
