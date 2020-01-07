@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# FIXME: rename and move to Support.Conformance.SignaturesHashes
 defmodule Support.Conformance do
   @moduledoc """
   Utility functions that used when testing Elixir vs Solidity implementation conformance
