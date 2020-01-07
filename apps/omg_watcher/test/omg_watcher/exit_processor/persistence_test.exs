@@ -209,7 +209,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   end
 
   defp persist_finalize_exits(processor, validities, db_pid) do
-    {processor, _, db_updates} = Core.finalize_exits(processor, validities)
+    {processor, db_updates} = Core.finalize_exits(processor, validities)
     persist_common(processor, db_updates, db_pid)
   end
 

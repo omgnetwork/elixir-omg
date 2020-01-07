@@ -88,7 +88,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     # finalizing here - note that without `finalize_exits`, we would just get a single invalid exit event
     # with - we get 3, because we include the invalidly finalized on which will hurt forever
     # (see persistence tests for the "forever" part)
-    assert {processor, [], _} = Core.finalize_exits(processor, two_spend)
+    assert {processor, _} = Core.finalize_exits(processor, two_spend)
 
     assert {{:error, :unchallenged_exit}, [_event1, _event2, _event3]} =
              %ExitProcessor.Request{eth_height_now: 12, blknum_now: @late_blknum}
@@ -120,7 +120,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     # exit validly finalizes and continues to not emit any events
     {:ok, {_, spends}, _} = [1] |> Enum.map(&Core.exit_key_by_exit_id(processor, &1)) |> State.Core.exit_utxos(state)
 
-    assert {processor, _, [{:put, :exit_info, {{2, 0, 0}, _}}]} = Core.finalize_exits(processor, spends)
+    assert {processor, [{:put, :exit_info, {{2, 0, 0}, _}}]} = Core.finalize_exits(processor, spends)
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
@@ -145,7 +145,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     # spend and see that Core now requests the relevant utxo checks and spends to get
     {:ok, _, state} = State.Core.exec(state, comp, :no_fees_required)
-    {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
+    {:ok, {block, _}, state} = State.Core.form_block(1000, state)
 
     assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
              %ExitProcessor.Request{blknum_now: @late_blknum, blocks_result: [block]}
@@ -173,7 +173,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
       |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
       |> State.Core.exec(ife_exit_tx1, :no_fees_required)
 
-    {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
+    {:ok, {block, _}, state} = State.Core.form_block(1000, state)
 
     request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: [block]}
 
@@ -239,7 +239,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     state = TestHelper.do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
     {:ok, {tx_hash, _, _}, state} = State.Core.exec(state, ife_exit_tx, :no_fees_required)
     {:ok, {_, _, _}, state} = State.Core.exec(state, spending_tx, :no_fees_required)
-    {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
+    {:ok, {block, _}, state} = State.Core.form_block(1000, state)
 
     request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: [block]}
 

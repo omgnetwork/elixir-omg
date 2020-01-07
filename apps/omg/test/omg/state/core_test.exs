@@ -454,7 +454,7 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can spend after block is formed", %{alice: alice, bob: bob, state_alice_deposit: state} do
     next_block_height = @blknum2
-    {:ok, {_, _, _}, state} = form_block_check(state)
+    {:ok, {_, _}, state} = form_block_check(state)
 
     state
     |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :no_fees_required)
@@ -467,7 +467,7 @@ defmodule OMG.State.CoreTest do
   test "forming block doesn't unspend", %{alice: alice, bob: bob, state_alice_deposit: state} do
     recovered = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
 
-    {:ok, {_, _, _}, state} =
+    {:ok, {_, _}, state} =
       state
       |> Core.exec(recovered, :no_fees_required)
       |> success?
@@ -501,91 +501,6 @@ defmodule OMG.State.CoreTest do
     |> fail?(:utxo_not_found)
   end
 
-  @tag fixtures: [:alice, :bob, :state_alice_deposit]
-  test "spending emits event trigger", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    recover1 = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
-    recover2 = create_recovered([{1000, 0, 0, bob}], @eth, [{alice, 3}])
-
-    assert {:ok, {%Block{hash: block_hash, number: block_number}, triggers, _}, _} =
-             state
-             |> Core.exec(recover1, :no_fees_required)
-             |> success?
-             |> Core.exec(recover2, :no_fees_required)
-             |> success?
-             |> form_block_check()
-
-    assert [
-             %{tx: ^recover1, child_blknum: ^block_number, child_txindex: 0, child_block_hash: ^block_hash},
-             %{tx: ^recover2, child_blknum: ^block_number, child_txindex: 1, child_block_hash: ^block_hash}
-           ] = triggers
-  end
-
-  @tag fixtures: [:alice, :state_alice_deposit]
-  test "spending provides eth_height in event", %{alice: alice, state_alice_deposit: state} do
-    recover1 = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}])
-
-    assert state =
-             state
-             |> Core.exec(recover1, :no_fees_required)
-             |> success?
-
-    assert {_, {_block, [%{submited_at_ethheight: 123}], _db_updates}, _} = Core.form_block(@interval, 123, state)
-  end
-
-  @tag fixtures: [:alice, :bob, :state_alice_deposit]
-  test "every spending emits event triggers", %{
-    alice: alice,
-    bob: bob,
-    state_alice_deposit: state
-  } do
-    state =
-      state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :no_fees_required)
-      |> success?
-      |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}], @eth, [{alice, 7}]), :no_fees_required)
-      |> success?
-
-    assert {:ok, {_, [_trigger1, _trigger2], _}, _} = form_block_check(state)
-  end
-
-  @tag fixtures: [:alice, :bob, :state_alice_deposit]
-  test "only successful spending emits event trigger", %{
-    alice: alice,
-    bob: bob,
-    state_alice_deposit: state
-  } do
-    state
-    |> Core.exec(create_recovered([{1, 1, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :no_fees_required)
-    |> same?(state)
-
-    assert {:ok, {_, [], _}, _} = form_block_check(state)
-  end
-
-  @tag fixtures: [:alice, :state_empty]
-  test "deposits emit event triggers, they don't leak into next block",
-       %{alice: %{addr: alice}, state_empty: state} do
-    assert {:ok, {[trigger], _}, state} = Core.deposit([%{owner: alice, currency: @eth, amount: 4, blknum: 1}], state)
-
-    assert trigger == %{deposit: %{owner: alice, amount: 4}}
-    assert {:ok, {_, [], _}, _} = form_block_check(state)
-  end
-
-  @tag fixtures: [:alice, :bob, :state_alice_deposit]
-  test "empty blocks emit empty event triggers", %{
-    alice: alice,
-    bob: bob,
-    state_alice_deposit: state
-  } do
-    state =
-      state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :no_fees_required)
-      |> success?
-
-    assert {:ok, {_, [_trigger], _}, state} = form_block_check(state)
-
-    assert {:ok, {_, [], _}, _} = form_block_check(state)
-  end
-
   @tag fixtures: [:stable_alice, :stable_bob, :state_stable_alice_deposit]
   test "forming block puts all transactions in a block", %{
     stable_alice: alice,
@@ -612,7 +527,7 @@ defmodule OMG.State.CoreTest do
                transactions: [block_tx1, block_tx2, _third_tx],
                hash: block_hash,
                number: @blknum1
-             }, _, _}, _} = form_block_check(state)
+             }, _}, _} = form_block_check(state)
 
     # precomputed fixed hash to check compliance with hashing algo
     assert <<220, 51, 45, 150, 11, 157, 177, 120, 76, 168>> <> _ = block_hash
@@ -633,17 +548,17 @@ defmodule OMG.State.CoreTest do
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :no_fees_required)
       |> success?
 
-    {:ok, {_, _, _}, state} = form_block_check(state)
+    {:ok, {_, _}, state} = form_block_check(state)
     expected_block = empty_block(@blknum2)
 
-    assert {:ok, {^expected_block, _, _}, _} = form_block_check(state)
+    assert {:ok, {^expected_block, _}, _} = form_block_check(state)
   end
 
   @tag fixtures: [:state_empty]
-  test "no pending transactions at start (no events, empty block, no db updates)", %{state_empty: state} do
+  test "no pending transactions at start (empty block, no db updates)", %{state_empty: state} do
     expected_block = empty_block()
 
-    assert {:ok, {^expected_block, [], [{:put, :block, _}, {:put, :child_top_block_number, @blknum1}]}, _state} =
+    assert {:ok, {^expected_block, [{:put, :block, _}, {:put, :child_top_block_number, @blknum1}]}, _state} =
              form_block_check(state)
   end
 
@@ -654,13 +569,13 @@ defmodule OMG.State.CoreTest do
     state_alice_deposit: state
   } do
     # persistence tested in-depth elsewhere
-    {:ok, {_, _, [_ | _]}, state} =
+    {:ok, {_, [_ | _]}, state} =
       state
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :no_fees_required)
       |> success?
       |> form_block_check()
 
-    assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @blknum2}]}, _} = form_block_check(state)
+    assert {:ok, {_, [{:put, :block, _}, {:put, :child_top_block_number, @blknum2}]}, _} = form_block_check(state)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -669,10 +584,9 @@ defmodule OMG.State.CoreTest do
     state_empty: state
   } do
     # persistence tested in-depth elsewhere
-    assert {:ok, {_, [_ | _]}, state} =
-             Core.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}], state)
+    assert {:ok, [_ | _], state} = Core.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}], state)
 
-    assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @blknum1}]}, _} = form_block_check(state)
+    assert {:ok, {_, [{:put, :block, _}, {:put, :child_top_block_number, @blknum1}]}, _} = form_block_check(state)
   end
 
   @tag fixtures: [:alice, :state_alice_deposit, :state_empty]
@@ -883,7 +797,7 @@ defmodule OMG.State.CoreTest do
 
   @tag fixtures: [:state_empty]
   test "Getting current block height with one formed block", %{state_empty: state} do
-    {:ok, {_, _, _}, new_state} = state |> form_block_check()
+    {:ok, {_, _}, new_state} = form_block_check(state)
     assert {@blknum2, true} = Core.get_status(new_state)
   end
 
@@ -902,7 +816,7 @@ defmodule OMG.State.CoreTest do
     assert {@blknum1, false} = Core.get_status(state)
 
     # when a block has been newly formed it is at the beginning
-    {:ok, _, state} = state |> form_block_check()
+    {:ok, _, state} = form_block_check(state)
 
     assert {@blknum2, true} = Core.get_status(state)
   end
@@ -1010,7 +924,7 @@ defmodule OMG.State.CoreTest do
   # used to check the invariants in form_block
   # use this throughout this test module instead of Core.form_block
   defp form_block_check(state) do
-    {_, {block, _, db_updates}, _} = result = Core.form_block(@interval, state)
+    {_, {block, db_updates}, _} = result = Core.form_block(@interval, state)
 
     # check if block returned and sent to db_updates is the same
     assert Enum.member?(db_updates, {:put, :block, Block.to_db_value(block)})
