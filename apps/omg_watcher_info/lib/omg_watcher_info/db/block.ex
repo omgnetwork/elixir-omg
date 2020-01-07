@@ -40,6 +40,9 @@ defmodule OMG.WatcherInfo.DB.Block do
     field(:hash, :binary)
     field(:eth_height, :integer)
     field(:timestamp, :integer)
+    field(:tx_count, :integer, virtual: true, default: nil)
+
+    has_many(:transactions, DB.Transaction, foreign_key: :blknum)
   end
 
   defp changeset(block, params) do
@@ -63,10 +66,12 @@ defmodule OMG.WatcherInfo.DB.Block do
   def get(blknum) do
     query =
       from(
-        __MODULE__,
-        where: [blknum: ^blknum]
+        block in __MODULE__,
+        where: [blknum: ^blknum],
+        left_join: tx in assoc(block, :transactions),
+        group_by: block.blknum,
+        select: %{block | tx_count: count(tx.txhash)}
       )
-
     DB.Repo.one(query)
   end
 
@@ -84,8 +89,11 @@ defmodule OMG.WatcherInfo.DB.Block do
     offset = (page - 1) * limit
 
     from(
-      __MODULE__,
+      block in __MODULE__,
       order_by: [desc: :blknum],
+      left_join: tx in assoc(block, :transactions),
+      group_by: block.blknum,
+      select: %{block | tx_count: count(tx.txhash)},
       limit: ^limit,
       offset: ^offset
     )
