@@ -8,19 +8,30 @@ defmodule WhiteBreadContext do
   alias Itest.Account
   alias Itest.Client
   alias Itest.StandardExitClient
-
+  alias Itest.InFlightExitClient
+  alias Itest.Poller
   # TODO Fix this, expose via API, also its 12 blocks
-  @finality_margin 12
-
+  # @finality_margin_by_blocks 12
   @default_timeout 60_000
-  scenario_timeouts(fn _feature, scenario ->
-    case scenario.name do
-      "Alice starts a Standard Exit" -> @default_timeout * 3
-      _ -> @default_timeout * 2
-    end
-  end)
+  scenario_timeouts(fn _feature, _scenario -> @default_timeout * 10 end)
 
-  scenario_starting_state(fn o ->
+  scenario_starting_state(fn _ ->
+    {:ok, _} =
+      Itest.ContractEvent.start_link(
+        ws_url: "ws://127.0.0.1:8546",
+        name: :plasma_framework,
+        listen_to: %{"address" => Itest.Account.plasma_framework()},
+        abi_path: Path.join([File.cwd!(), "../data/plasma-contracts/contracts/", "PlasmaFramework.json"])
+      )
+
+    {:ok, _} =
+      Itest.ContractEvent.start_link(
+        ws_url: "ws://127.0.0.1:8546",
+        name: :eth_vault,
+        listen_to: %{"address" => Itest.Account.vault(Currency.ether())},
+        abi_path: Path.join([File.cwd!(), "../data/plasma-contracts/contracts/", "EthVault.json"])
+      )
+
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end)
@@ -34,7 +45,7 @@ defmodule WhiteBreadContext do
       {:ok, receipt_hash} =
         amount
         |> Currency.to_wei()
-        |> Client.deposit(alice_account, Account.vault())
+        |> Client.deposit(alice_account, Itest.Account.vault(Currency.ether()))
 
       gas_used = Client.get_gas_used(receipt_hash)
 
@@ -54,7 +65,7 @@ defmodule WhiteBreadContext do
   when_(
     ~r/^Alice sends Bob "(?<amount>[^"]+)" ETH on the network$/,
     fn %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account} = state, %{amount: amount} ->
-      {:ok, [sign_hash, typed_data]} =
+      {:ok, [sign_hash, typed_data, _txbytes]} =
         Client.create_transaction(
           Currency.to_wei(amount),
           alice_account,
@@ -80,9 +91,16 @@ defmodule WhiteBreadContext do
   then_(
     ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network after finality margin$/,
     fn %{alice_account: alice_account} = state, %{amount: amount} ->
-      Process.sleep(@finality_margin * 500 + 15_000)
+      _ = Logger.info("Alice should have #{amount} ETH on the network after finality margin")
 
-      assert [] = Client.get_balance(alice_account, Currency.to_wei(amount))
+      case amount do
+        "0" ->
+          assert Client.get_balance(alice_account, Currency.to_wei(amount)) == []
+
+        _ ->
+          %{"amount" => network_amount} = Client.get_balance(alice_account, Currency.to_wei(amount))
+          assert network_amount == Currency.to_wei(amount)
+      end
 
       {:ok, balance} = Client.eth_get_balance(alice_account)
       {balance, ""} = balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
@@ -164,11 +182,36 @@ defmodule WhiteBreadContext do
     end
   )
 
-  def assert_equal(left, right) do
+  # IFE
+  when_(~r/Alice starts an in flight exit$/, fn %{
+                                                  alice_account: alice_account,
+                                                  alice_pkey: alice_pkey,
+                                                  bob_account: bob_account
+                                                } = state,
+                                                _ ->
+    _ife = InFlightExitClient.start_in_flight_exit(alice_account, alice_pkey, bob_account)
+
+    {:ok, state}
+  end)
+
+  # IFE
+  then_(~r/Alice should have "(?<amount>[^"]+)" ETH after finality margin$/, fn %{alice_account: alice_account} = state,
+                                                                                %{amount: amount} ->
+    # Process.sleep(@finality_margin_by_blocks * 500 + 120_000)
+    expecting_amount = Currency.to_wei(amount)
+    response = Poller.pull_balance_until_amount(alice_account, expecting_amount)
+    balance = if response == [], do: 0, else: response["amount"]
+
+    assert expecting_amount == balance, "Expecting #{alice_account} balance to be #{expecting_amount}, was #{balance}"
+
+    {:ok, state}
+  end)
+
+  defp assert_equal(left, right) do
     assert_equal(left, right, "")
   end
 
-  def assert_equal(left, right, message) do
+  defp assert_equal(left, right, message) do
     assert(left == right, "Expected #{left}, but have #{right}." <> message)
   end
 end

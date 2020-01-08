@@ -9,11 +9,13 @@ defmodule Itest.Account do
 
   @retry_count 60
 
-  @vault elem(EIP55.encode("0x0433420DEE34412B5Bf1e29FBf988aD037cc5Db7"), 1)
-  def vault(), do: @vault
+  def plasma_framework() do
+    contracts = parse_contracts()
 
-  @plasma_framework elem(EIP55.encode("0xc673e4ffcb8464faff908a6804fe0e635af0ea2f"), 1)
-  def plasma_framework(), do: @plasma_framework
+    contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
+    |> EIP55.encode()
+    |> elem(1)
+  end
 
   @ether_vault_id 1
   def vault_id(currency) do
@@ -21,6 +23,14 @@ defmodule Itest.Account do
 
     case currency do
       ^ether -> @ether_vault_id
+    end
+  end
+
+  def vault(currency) do
+    ether = Currency.ether()
+
+    case currency do
+      ^ether -> get_vault(@ether_vault_id)
     end
   end
 
@@ -84,4 +94,42 @@ defmodule Itest.Account do
   end
 
   defp hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
+
+  defp get_vault(id) do
+    data = ABI.encode("vaults(uint256)", [id])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: plasma_framework(), data: Encoding.to_hex(data)})
+
+    result
+    |> Encoding.to_binary()
+    |> ABI.TypeDecoder.decode([:address])
+    |> hd()
+    |> Encoding.to_hex()
+    |> EIP55.encode()
+    |> elem(1)
+  end
+
+  # taken from the plasma-contracts deployment snapshot
+  # this parsing occurs in several places around the codebase
+  defp parse_contracts() do
+    local_umbrella_path = Path.join([File.cwd!(), "../", "localchain_contract_addresses.env"])
+
+    contract_addreses_path =
+      case File.exists?(local_umbrella_path) do
+        true ->
+          local_umbrella_path
+
+        _ ->
+          # CI/CD
+          Path.join([File.cwd!(), "localchain_contract_addresses.env"])
+      end
+
+    contract_addreses_path
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> List.flatten()
+    |> Enum.reduce(%{}, fn line, acc ->
+      [key, value] = String.split(line, "=")
+      Map.put(acc, key, value)
+    end)
+  end
 end
