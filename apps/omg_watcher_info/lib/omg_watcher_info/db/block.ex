@@ -66,14 +66,20 @@ defmodule OMG.WatcherInfo.DB.Block do
   def get(blknum) do
     query =
       from(
-        block in __MODULE__,
-        where: [blknum: ^blknum],
-        left_join: tx in assoc(block, :transactions),
-        group_by: block.blknum,
-        select: %{block | tx_count: count(tx.txhash)}
+        block in base_query(),
+        where: [blknum: ^blknum]
       )
 
     DB.Repo.one(query)
+  end
+
+  def base_query() do
+    from(
+      block in __MODULE__,
+      left_join: tx in assoc(block, :transactions),
+      group_by: block.blknum,
+      select: %{block | tx_count: count(tx.txhash)}
+    )
   end
 
   @doc """
@@ -90,11 +96,8 @@ defmodule OMG.WatcherInfo.DB.Block do
     offset = (page - 1) * limit
 
     from(
-      block in __MODULE__,
+      block in base_query(),
       order_by: [desc: :blknum],
-      left_join: tx in assoc(block, :transactions),
-      group_by: block.blknum,
-      select: %{block | tx_count: count(tx.txhash)},
       limit: ^limit,
       offset: ^offset
     )
