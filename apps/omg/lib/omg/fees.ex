@@ -17,11 +17,11 @@ defmodule OMG.Fees do
   Transaction's fee validation functions.
   """
 
+  alias OMG.Crypto
   alias OMG.MergeTransactionValidator
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.WireFormatTypes
-  alias OMG.Crypto
 
   require Utxo
 
