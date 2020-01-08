@@ -215,10 +215,46 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Map.new()
   end
 
+  def new_changeset(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
+    txoutput = %{
+      child_chain_utxohash: DB.TxOutput.generate_child_chain_utxohash(Utxo.position(blknum, 0, 0)),
+      blknum: blknum,
+      txindex: 0,
+      oindex: 0,
+      owner: owner,
+      currency: currency,
+      amount: amount,
+      creating_txhash: nil,
+      spending_txhash: nil,
+      spending_tx_oindex: nil,
+      proof: nil
+    }
+
+    changeset(%__MODULE__{}, txoutput)
+  end
+
   @doc false
   def changeset(struct, params \\ %{}) do
-    fields = [:root_chain_txhash_event, :log_index, :root_chain_txhash, :event_type]
+    fields = [
+      :child_chain_utxohash,
+      :blknum,
+      :txindex,
+      :oindex,
+      :owner,
+      :currency,
+      :amount,
+      :creating_txhash,
+      :spending_txhash,
+      :spending_tx_oindex,
+      :proof
+    ]
 
-    Ecto.Changeset.cast(struct, params, fields)
+    required_fields = [:blknum, :txindex, :oindex, :child_chain_utxohash, :owner, :amount, :currency]
+
+    struct
+    |> Ecto.Changeset.cast(params, fields)
+    |> Ecto.Changeset.validate_required(required_fields)
+    |> Ecto.Changeset.unique_constraint(:blknum, name: :txoutputs_pkey)
+    |> Ecto.Changeset.unique_constraint(:child_chain_utxohash)
   end
 end
