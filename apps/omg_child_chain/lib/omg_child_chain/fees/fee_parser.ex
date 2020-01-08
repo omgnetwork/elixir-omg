@@ -54,7 +54,7 @@ defmodule OMG.ChildChain.Fees.FeeParser do
   end
 
   defp reduce_json(_, {all_errors, fee_specs}) do
-    {[{:error, :invalid_json_format, nil, nil}] ++ all_errors, fee_specs}
+    {[{:error, :invalid_json_format, nil, nil} | all_errors], fee_specs}
   end
 
   defp parse_for_type({tx_type, ""}, fee_spec) do
@@ -71,7 +71,7 @@ defmodule OMG.ChildChain.Fees.FeeParser do
       |> Tuple.append(tx_type)
       |> Tuple.append(0)
 
-    {[e] ++ all_errors, fee_specs}
+    {[e | all_errors], fee_specs}
   end
 
   defp handle_type_parsing_output({errors, token_fee_map, _, tx_type}, _, all_errors, fee_specs) do
