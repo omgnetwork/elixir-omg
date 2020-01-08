@@ -18,11 +18,73 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   use OMG.Fixtures
 
   import OMG.WatcherInfo.Factory
+  import Ecto.Query, only: [from: 2]
 
   alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+
+  describe "base_query" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "can be used to retrieve all blocks" do
+      _ = insert(:block, blknum: 1000, hash: <<1000>>, eth_height: 1, timestamp: 100)
+      _ = insert(:block, blknum: 2000, hash: <<2000>>, eth_height: 2, timestamp: 200)
+      _ = insert(:block, blknum: 3000, hash: <<3000>>, eth_height: 3, timestamp: 300)
+
+      result = DB.Repo.all(DB.Block.base_query())
+
+      assert length(result) == 3
+      assert Enum.all?(result, fn block -> %DB.Block{} = block end)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "can be used with a 'where' query expression to retrieve a specific block" do
+      _ = insert(:block, blknum: 1000, hash: <<1000>>, eth_height: 1, timestamp: 100)
+      _ = insert(:block, blknum: 2000, hash: <<2000>>, eth_height: 2, timestamp: 200)
+      _ = insert(:block, blknum: 3000, hash: <<3000>>, eth_height: 3, timestamp: 300)
+
+      target_blknum = 1000
+
+      query =
+        from(
+          block in DB.Block.base_query(),
+          where: [blknum: ^target_blknum]
+        )
+
+      result = DB.Repo.one(query)
+
+      assert %DB.Block{} = result
+      assert result.blknum == target_blknum
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "includes the transaction count corresponding to a block" do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+
+      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
+
+      mined_block = %{
+        transactions: [tx_1, tx_2],
+        blknum: 1000,
+        blkhash: "0x1000",
+        timestamp: 1_576_500_000,
+        eth_height: 1
+      }
+
+      _ = DB.Block.insert_with_transactions(mined_block)
+
+      tx_count =
+        DB.Block.base_query()
+        |> DB.Repo.all()
+        |> Enum.at(0)
+        |> Map.get(:tx_count)
+
+      assert tx_count == 2
+    end
+  end
 
   describe "get/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
