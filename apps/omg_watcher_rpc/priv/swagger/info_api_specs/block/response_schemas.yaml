@@ -25,6 +25,7 @@ BlocksAllResponseSchema:
         hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
         eth_height: 97424
         timestamp: 1540365586
+        tx_count: 2
       data_paging:
         page: 1
         limit: 100
@@ -42,3 +43,4 @@ BlockResponseSchema:
         hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
         eth_height: 97424
         blknum: 68290000
+        tx_count: 2

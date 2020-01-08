@@ -510,6 +510,9 @@ paths:
                                 timestamp:
                                   type: integer
                                   format: int64
+                                tx_count:
+                                  type: integer
+                                  format: int64
                             inputs:
                               type: array
                               items:
@@ -688,7 +691,7 @@ paths:
       summary: Retrieves a single block for the given block number.
       description: |
         Intended for operations requiring info for a specific block only. 
-        Returns a single block object for the given block number. The returned object does not include associated transactions - for which you can use transaction.all with blknum in the request body.
+        Returns a single block object for the given block number. The returned object includes transaction count but not associated transactions - for which you can use transaction.all with blknum in the request body.
       operationId: block_get
       requestBody:
         description: Block number
@@ -745,12 +748,16 @@ paths:
                           timestamp:
                             type: integer
                             format: int64
+                          tx_count:
+                            type: integer
+                            format: int64
                     example:
                       data:
                         timestamp: 1540365586
                         hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
                         eth_height: 97424
                         blknum: 68290000
+                        tx_count: 2
         '500':
           description: Returns an internal server error
           content:
@@ -877,6 +884,9 @@ paths:
                             timestamp:
                               type: integer
                               format: int64
+                            tx_count:
+                              type: integer
+                              format: int64
                       data_paging:
                         type: object
                         properties:
@@ -894,6 +904,7 @@ paths:
                           hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
                           eth_height: 97424
                           timestamp: 1540365586
+                          tx_count: 2
                       data_paging:
                         page: 1
                         limit: 100
@@ -1047,6 +1058,9 @@ paths:
                                   type: integer
                                   format: int64
                                 timestamp:
+                                  type: integer
+                                  format: int64
+                                tx_count:
                                   type: integer
                                   format: int64
                             inputs:
@@ -1797,6 +1811,9 @@ paths:
                                 type: integer
                                 format: int64
                               timestamp:
+                                type: integer
+                                format: int64
+                              tx_count:
                                 type: integer
                                 format: int64
                           inputs:
