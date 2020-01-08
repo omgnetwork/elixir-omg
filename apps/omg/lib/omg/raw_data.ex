@@ -54,4 +54,5 @@ defmodule OMG.RawData do
   def parse_uint256(<<0>> <> _binary), do: {:error, :leading_zeros_in_encoded_uint}
   def parse_uint256(binary) when byte_size(binary) <= 32, do: {:ok, :binary.decode_unsigned(binary, :big)}
   def parse_uint256(binary) when byte_size(binary) > 32, do: {:error, :encoded_uint_too_big}
+  def parse_uint256(_), do: {:error, :malformed_uint256}
 end

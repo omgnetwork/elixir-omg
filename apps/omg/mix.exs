@@ -37,6 +37,7 @@ defmodule OMG.MixProject do
       {:merkle_tree,
        git: "https://github.com/omisego/merkle_tree.git", branch: "prevent_second_preimage_attack", override: true},
       {:telemetry, "~> 0.4.0"},
+      {:propcheck, "~> 1.1", only: [:test, :dev]},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
       {:omg_db, in_umbrella: true},
