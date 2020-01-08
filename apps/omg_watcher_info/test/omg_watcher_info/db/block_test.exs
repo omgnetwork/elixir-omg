@@ -32,6 +32,41 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert %DB.Block{} = block
       assert block.blknum == blknum
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a correct transaction count if block contains transactions" do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+
+      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
+
+      blknum = 1000
+
+      mined_block = %{
+        transactions: [tx_1, tx_2],
+        blknum: blknum,
+        blkhash: "0x#{blknum}",
+        timestamp: 1_576_500_000,
+        eth_height: 1
+      }
+
+      _ = DB.Block.insert_with_transactions(mined_block)
+
+      result = DB.Block.get(blknum)
+
+      assert result.tx_count == 2
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a tx_count of zero if block has no transactions" do
+      blknum = 1000
+      _ = insert(:block, blknum: blknum, hash: "0x#{blknum}", eth_height: 1, timestamp: 100)
+
+      result = DB.Block.get(blknum)
+
+      assert result.tx_count == 0
+    end
   end
 
   describe "get_max_blknum/0" do
@@ -106,6 +141,61 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       results = DB.Block.get_blocks(paginator)
 
       assert results.data == []
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a correct transaction count if block contains transactions" do
+
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+
+      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
+
+      mined_block = %{
+        transactions: [tx_1, tx_2],
+        blknum: 1000,
+        blkhash: "0x1000",
+        timestamp: 1_576_500_000,
+        eth_height: 1
+      }
+
+      _ = DB.Block.insert_with_transactions(mined_block)
+
+      paginator = %Paginator{
+        data: [],
+        data_paging: %{
+          limit: 10,
+          page: 1
+        }
+      }
+
+      tx_count = DB.Block.get_blocks(paginator)
+      |> Map.get(:data)
+      |> Enum.at(0)
+      |> Map.get(:tx_count)
+
+      assert tx_count == 2
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a tx_count of zero if block has no transactions" do
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+
+      paginator = %Paginator{
+        data: [],
+        data_paging: %{
+          limit: 10,
+          page: 1
+        }
+      }
+
+      tx_count = DB.Block.get_blocks(paginator)
+      |> Map.get(:data)
+      |> Enum.at(0)
+      |> Map.get(:tx_count)
+
+      assert tx_count == 0
     end
   end
 
