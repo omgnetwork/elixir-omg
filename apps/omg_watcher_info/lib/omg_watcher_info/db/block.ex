@@ -72,6 +72,7 @@ defmodule OMG.WatcherInfo.DB.Block do
         group_by: block.blknum,
         select: %{block | tx_count: count(tx.txhash)}
       )
+
     DB.Repo.one(query)
   end
 

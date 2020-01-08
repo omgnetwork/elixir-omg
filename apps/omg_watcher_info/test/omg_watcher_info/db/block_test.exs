@@ -43,7 +43,6 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
       tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
 
-
       mined_block = %{
         transactions: [tx_1, tx_2],
         blknum: blknum,
@@ -169,10 +168,11 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
         }
       }
 
-      tx_count = DB.Block.get_blocks(paginator)
-      |> Map.get(:data)
-      |> Enum.at(0)
-      |> Map.get(:tx_count)
+      tx_count =
+        DB.Block.get_blocks(paginator)
+        |> Map.get(:data)
+        |> Enum.at(0)
+        |> Map.get(:tx_count)
 
       assert tx_count == 2
     end
@@ -189,10 +189,11 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
         }
       }
 
-      tx_count = DB.Block.get_blocks(paginator)
-      |> Map.get(:data)
-      |> Enum.at(0)
-      |> Map.get(:tx_count)
+      tx_count =
+        DB.Block.get_blocks(paginator)
+        |> Map.get(:data)
+        |> Enum.at(0)
+        |> Map.get(:tx_count)
 
       assert tx_count == 0
     end
