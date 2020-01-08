@@ -72,7 +72,7 @@ defmodule OMG.WatcherInfo.Factory do
   """
   def block_factory() do
     %DB.Block{
-      blknum: sequence(:block_blknum, fn seq -> seq * 1000 end),
+      blknum: sequence(:block_blknum, fn seq -> (seq + 1) * 1000 end),
       hash: insecure_random_bytes(32),
       eth_height: sequence(:block_eth_height, fn seq -> seq end),
       timestamp: sequence(:block_timestamp, fn seq -> seq * 1_000_000 end)

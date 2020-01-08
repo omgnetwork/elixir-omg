@@ -198,29 +198,33 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   # select txoutputs that have neither been spent nor have a corresponding ethevents exit events
   # using the provided query params
   defp filter_where_unspent(params) do
-    Enum.reduce(params, unspent_query_fragment(), fn
-      {"owner", value}, dynamic ->
-        dynamic([t], ^dynamic and t.owner == ^value)
+    where_clause =
+      Enum.reduce(params, dynamic(true), fn
+        {:owner, value}, dynamic ->
+          dynamic([t], ^dynamic and t.owner == ^value)
 
-      {"blknum", value}, dynamic ->
-        dynamic([t], ^dynamic and t.blknum == ^value)
+        {:blknum, value}, dynamic ->
+          dynamic([t], ^dynamic and t.blknum == ^value)
 
-      {"txindex", value}, dynamic ->
-        dynamic([t], ^dynamic and t.txindex > ^value)
+        {:txindex, value}, dynamic ->
+          dynamic([t], ^dynamic and t.txindex == ^value)
 
-      {"oindex", value}, dynamic ->
-        dynamic([t], ^dynamic and t.oindex > ^value)
+        {:oindex, value}, dynamic ->
+          dynamic([t], ^dynamic and t.oindex == ^value)
 
-      {_, _}, dynamic ->
-        # not a where parameter
-        dynamic
-    end)
+        {_, _}, dynamic ->
+          # not a where parameter
+          dynamic
+      end)
+
+    unspent_query_fragment(where_clause)
   end
 
-  defp unspent_query_fragment() do
+  defp unspent_query_fragment(where_clause) do
     dynamic(
       [t],
-      is_nil(t.spending_txhash) and
+      ^where_clause and
+        is_nil(t.spending_txhash) and
         fragment(
           "NOT EXISTS (SELECT 1
                       FROM ethevents_txoutputs AS etfrag
