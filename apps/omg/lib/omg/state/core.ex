@@ -102,14 +102,6 @@ defmodule OMG.State.Core do
 
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
 
-  @type deposit_event :: %{deposit: %{amount: non_neg_integer, owner: Crypto.address_t()}}
-  @type tx_event :: %{
-          tx: Transaction.Recovered.t(),
-          child_blknum: pos_integer,
-          child_txindex: pos_integer,
-          child_block_hash: Block.block_hash_t()
-        }
-
   @type db_update ::
           {:put, :utxo, {Utxo.Position.db_t(), map()}}
           | {:delete, :utxo, Utxo.Position.db_t()}
@@ -212,30 +204,18 @@ defmodule OMG.State.Core do
 
   @doc """
    - Generates block and calculates it's root hash for submission
-   - generates triggers for events
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
    - clears `recently_spent` collection
   """
-  @spec form_block(pos_integer(), pos_integer() | nil, state :: t()) ::
-          {:ok, {Block.t(), [tx_event], [db_update]}, new_state :: t()}
+  @spec form_block(pos_integer(), state :: t()) :: {:ok, {Block.t(), [db_update]}, new_state :: t()}
   def form_block(
         child_block_interval,
-        eth_height \\ nil,
         %Core{pending_txs: reversed_txs, height: height, utxo_db_updates: reversed_utxo_db_updates} = state
       ) do
     txs = Enum.reverse(reversed_txs)
 
     block = Block.hashed_txs_at(txs, height)
-
-    event_triggers =
-      txs
-      |> Enum.with_index()
-      |> Enum.map(fn {tx, index} ->
-        %{tx: tx, child_blknum: block.number, child_txindex: index, child_block_hash: block.hash}
-      end)
-      # enrich the event triggers with the ethereum height supplied
-      |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
 
     db_updates_block = {:put, :block, Block.to_db_value(block)}
     db_updates_top_block_number = {:put, :child_top_block_number, height}
@@ -251,7 +231,7 @@ defmodule OMG.State.Core do
         recently_spent: MapSet.new()
     }
 
-    {:ok, {block, event_triggers, db_updates}, new_state}
+    {:ok, {block, db_updates}, new_state}
   end
 
   @doc """
@@ -260,19 +240,16 @@ defmodule OMG.State.Core do
   **NOTE** this expects that each deposit event is fed to here exactly once, so this must be ensured elsewhere.
            There's no double-checking of this constraint done here.
   """
-  @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}
+  @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, [db_update], new_state :: t()}
   def deposit(deposits, %Core{utxos: utxos} = state) do
     new_utxos_map = Enum.into(deposits, %{}, &deposit_to_utxo/1)
     new_utxos = UtxoSet.apply_effects(utxos, [], new_utxos_map)
     db_updates = UtxoSet.db_updates([], new_utxos_map)
 
-    event_triggers =
-      Enum.map(deposits, fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
-
     _ = if deposits != [], do: Logger.info("Recognized deposits #{inspect(deposits)}")
 
     new_state = %Core{state | utxos: new_utxos}
-    {:ok, {event_triggers, db_updates}, new_state}
+    {:ok, db_updates, new_state}
   end
 
   @doc """

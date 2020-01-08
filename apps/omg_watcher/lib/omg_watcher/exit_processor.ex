@@ -261,9 +261,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, db_updates_from_state, validities} =
       exits |> Enum.map(&Core.exit_key_by_exit_id(state, &1.exit_id)) |> State.exit_utxos()
 
-    {new_state, event_triggers, db_updates} = Core.finalize_exits(state, validities)
-
-    :ok = OMG.Bus.broadcast("events", {:preprocess_emit_events, event_triggers})
+    {new_state, db_updates} = Core.finalize_exits(state, validities)
 
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
