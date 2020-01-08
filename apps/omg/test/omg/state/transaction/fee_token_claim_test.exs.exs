@@ -18,6 +18,7 @@ defmodule OMG.State.Transaction.FeeTokenClaimTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
+  alias OMG.Output
   alias OMG.State.Transaction
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -49,6 +50,42 @@ defmodule OMG.State.Transaction.FeeTokenClaimTest do
       tx_rlp = Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
 
       assert {:error, :not_implemented} = Transaction.Recovered.recover_from(tx_rlp)
+    end
+  end
+
+  describe "claim_collected/3" do
+    @tag fixtures: [:alice]
+    test "no fees collected result in empty fee-txs list", %{alice: owner} do
+      assert [] == Transaction.FeeTokenClaim.claim_collected(1000, owner, %{})
+    end
+
+    @tag fixtures: [:alice]
+    test "fee-txs are sorted by currency", %{alice: owner} do
+      fees_paid = %{
+        @other_token => 111,
+        @eth => 100
+      }
+
+      assert [
+               eth_fee_tx,
+               other_fee_tx
+             ] = Transaction.FeeTokenClaim.claim_collected(1000, owner, fees_paid)
+
+      assert [
+               %Output{
+                 owner: ^owner,
+                 currency: @eth,
+                 amount: 100
+               }
+             ] = Transaction.get_outputs(eth_fee_tx)
+
+      assert [
+               %Output{
+                 owner: ^owner,
+                 currency: @other_token,
+                 amount: 111
+               }
+             ] = Transaction.get_outputs(other_fee_tx)
     end
   end
 end

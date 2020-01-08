@@ -56,6 +56,20 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
   end
 
   @doc """
+  Generates fee-txs to claim collected fees from the forming block
+  """
+  @spec claim_collected(
+          blknum :: non_neg_integer(),
+          owner :: Crypto.address_t(),
+          fees_paid :: %{Crypto.address_t() => pos_integer()}
+        ) :: list(t())
+  def claim_collected(blknum, owner, fees_paid) do
+    fees_paid
+    |> Enum.map(fn {token, amount} -> new(blknum, {owner, token, amount}) end)
+    |> Enum.sort_by(fn %__MODULE__{outputs: [output]} -> output.currency end)
+  end
+
+  @doc """
   Transforms the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
   """
   def reconstruct([tx_type, outputs_rlp, nonce_rlp]) do
