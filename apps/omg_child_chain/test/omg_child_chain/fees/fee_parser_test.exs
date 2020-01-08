@@ -81,7 +81,6 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
       assert {:ok, %{}} = FeeParser.parse("{}")
     end
 
-    @tag :capture_log
     test "returns an `invalid_tx_type` error when given a non integer tx type" do
       json = ~s({
         "non_integer_key": [
@@ -119,7 +118,6 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
       assert {:error, [{:error, :invalid_json_format, nil, nil}]} = FeeParser.parse(json)
     end
 
-    @tag :capture_log
     test "returns a `duplicate_token` error when tokens are duplicated for the same tx type" do
       json = ~s({
         "1": [
