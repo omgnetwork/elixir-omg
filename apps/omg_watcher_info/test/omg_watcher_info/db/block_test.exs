@@ -25,9 +25,10 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "get/1" do
-    @tag fixtures: [:initial_blocks]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "retrieves a block by block number" do
       blknum = 1000
+      _ = insert(:block, blknum: blknum, hash: "0x#{blknum}", eth_height: 1, timestamp: 100)
       block = DB.Block.get(blknum)
       assert %DB.Block{} = block
       assert block.blknum == blknum
@@ -35,13 +36,13 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct transaction count if block contains transactions" do
+      blknum = 1000
+
       alice = OMG.TestHelper.generate_entity()
       bob = OMG.TestHelper.generate_entity()
-
       tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
       tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
 
-      blknum = 1000
 
       mined_block = %{
         transactions: [tx_1, tx_2],
@@ -145,10 +146,8 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct transaction count if block contains transactions" do
-
       alice = OMG.TestHelper.generate_entity()
       bob = OMG.TestHelper.generate_entity()
-
       tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
       tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
 
