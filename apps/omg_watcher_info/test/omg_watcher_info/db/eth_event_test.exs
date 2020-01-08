@@ -32,7 +32,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     test "creates deposit events and the events' corresponding utxo" do
       deposits = Factory.deposits_params(3)
 
-      assert :ok == DB.EthEvent.insert_deposits!(deposits)
+      assert DB.EthEvent.insert_deposits!(deposits) == :ok
 
       assert_deposits_ethevents(deposits)
     end
@@ -41,8 +41,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     test "inserting duplicate deposits results in an error and has no effect on the DB" do
       %{root_chain_txhash: root_chain_txhash, log_index: log_index} = deposit = Factory.deposit_params()
 
-      assert :ok == DB.EthEvent.insert_deposits!([deposit])
-      assert :error == DB.EthEvent.insert_deposits!([deposit])
+      assert DB.EthEvent.insert_deposits!([deposit]) == :ok
+      assert DB.EthEvent.insert_deposits!([deposit]) == :error
 
       assert %{root_chain_txhash: ^root_chain_txhash, log_index: ^log_index} = DB.EthEvent.get_by(deposit)
     end
@@ -50,12 +50,12 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "deposit creation cannot partially fail" do
       block = insert(:block)
-      txoutput = insert(:txoutput, blknum: block.blknum, creating_transaction: nil)
+      _txoutput = insert(:txoutput, blknum: block.blknum, creating_transaction: nil)
 
       # create a deposit with a txoutput that already exists, which will cause a failure
-      %{root_chain_txhash: root_chain_txhash, log_index: log_index} = deposit = Factory.deposit_params(block: block)
+      deposit = Factory.deposit_params(block: block)
 
-      assert :error == DB.EthEvent.insert_deposits!([deposit])
+      assert DB.EthEvent.insert_deposits!([deposit]) == :error
 
       # insert of txoutput failed, so there should not be an ethevent as the entire transaction
       # was rolled back
@@ -63,15 +63,15 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     end
   end
 
-  describe "DB.EthEvent and DB.TxOutput relationship" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "updating txoutput does not affect txoutput's ethevents" do
-    end
+  # describe "DB.EthEvent and DB.TxOutput relationship" do
+  #   @tag fixtures: [:phoenix_ecto_sandbox]
+  #   test "updating txoutput does not affect txoutput's ethevents" do
+  #   end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "txoutput's ethevents can only be appended to, but not deleted from" do
-    end
-  end
+  #   @tag fixtures: [:phoenix_ecto_sandbox]
+  #   test "txoutput's ethevents can only be appended to, but not deleted from" do
+  #   end
+  # end
 
   describe "DB.EthEvent.insert_standard_exits!/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -81,12 +81,46 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       DB.EthEvent.insert_deposits!(deposits)
       deposit_ethevents = DB.EthEvent.get_by(deposits)
 
-      exit_utxos_params = Factory.exits_params(deposit_ethevents)
+      exit_utxos_params = Factory.exits_params_from_ethevents(deposit_ethevents)
 
-      assert :ok = DB.EthEvent.insert_exits!(exit_utxos_params)
+      assert DB.EthEvent.insert_exits!(exit_utxos_params) == :ok
       exit_ethevents = DB.EthEvent.get_by(exit_utxos_params)
 
       assert_standard_exit_utxos(exit_utxos_params, deposit_ethevents, exit_ethevents)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "insert standard exits: updating txoutput has no effect on already existing ethevents for this txoutput" do
+      [deposit_params | _] = Factory.deposits_params(1)
+
+      DB.EthEvent.insert_deposits!([deposit_params])
+
+      deposit_ethevent = DB.EthEvent.get_by(deposit_params)
+      [txoutput | _] = deposit_ethevent.txoutputs
+
+      # store the original association row
+      ethevent_txoutput =
+        DB.Repo.get_by!(
+          DB.EthEventsTxOutputs,
+          root_chain_txhash_event: deposit_ethevent.root_chain_txhash_event,
+          child_chain_utxohash: txoutput.child_chain_utxohash
+        )
+
+      exit_params = Factory.exit_params_from_txoutput(txoutput)
+
+      assert DB.EthEvent.insert_exits!([exit_params]) == :ok
+
+      updated_ethevent_txoutput =
+        DB.Repo.get_by!(
+          DB.EthEventsTxOutputs,
+          root_chain_txhash_event: deposit_ethevent.root_chain_txhash_event,
+          child_chain_utxohash: txoutput.child_chain_utxohash
+        )
+
+      assert ethevent_txoutput.root_chain_txhash_event == updated_ethevent_txoutput.root_chain_txhash_event
+      assert ethevent_txoutput.child_chain_utxohash == updated_ethevent_txoutput.child_chain_utxohash
+      assert DateTime.compare(ethevent_txoutput.inserted_at, updated_ethevent_txoutput.inserted_at) == :eq
+      assert DateTime.compare(ethevent_txoutput.updated_at, updated_ethevent_txoutput.updated_at) == :eq
     end
   end
 
@@ -173,6 +207,11 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     txoutput = DB.TxOutput.get_by_position(Utxo.position(blknum, txindex, oindex))
 
     assert length(txoutput.ethevents) == 2
+
+    Enum.each(txoutput.ethevents, fn ethevent ->
+      e = DB.EthEvent.get_by(%{root_chain_txhash: ethevent.root_chain_txhash, log_index: ethevent.log_index})
+      assert length(e.txoutputs) == 1
+    end)
 
     assert exit_ethevent.event_type == :standard_exit
 

@@ -54,7 +54,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @spec insert_deposits!([OMG.State.Core.deposit()]) :: :ok | :error
   def insert_deposits!(deposits) do
     {_, status} =
-      Enum.map_reduce(deposits, {:ok}, fn deposit, status ->
+      Enum.map_reduce(deposits, {:ok}, fn deposit, _ ->
         status = insert_deposit!(deposit)
         {status, status}
       end)
@@ -66,7 +66,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   defp insert_deposit!(deposit) do
     result =
       Multi.new()
-      |> Multi.run(:deposit_not_exists?, deposit_not_exists?(deposit))
+      |> Multi.run(:deposit_not_exists?, event_not_exists?(deposit))
       |> Multi.insert(:insert_ethevent, new_changeset(deposit, :deposit))
       |> Multi.insert(:insert_txoutput, DB.TxOutput.new_changeset(deposit))
       |> Multi.insert(:ethevent_txoutput, fn %{insert_ethevent: ethevent, insert_txoutput: txoutput} ->
@@ -86,11 +86,11 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     end
   end
 
-  defp deposit_not_exists?(composite_key = %{root_chain_txhash: root_chain_txhash, log_index: log_index}) do
+  def event_not_exists?(composite_key = %{root_chain_txhash: _, log_index: _}) do
     fn _, _ ->
       case get_by(composite_key) do
         nil -> {:ok, nil}
-        existing_deposit -> {:error, existing_deposit}
+        existing_event -> {:error, existing_event}
       end
     end
   end
@@ -104,19 +104,58 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
             root_chain_txhash: charlist(),
             log_index: non_neg_integer()
           }
-        ]) :: :ok
+        ]) :: :ok | :error
   def insert_exits!(exits) do
-    exits
-    |> Enum.map(&utxo_exit_from_exit_event/1)
-    |> Enum.each(&insert_exit!/1)
+    {_, status} =
+      exits
+      |> Enum.map(&utxo_exit_from_exit_event/1)
+      |> Enum.map_reduce({:ok}, fn utxo_exit, _ ->
+        status = insert_exit!(utxo_exit)
+        {status, status}
+      end)
+
+    status
+  end
+
+  @spec insert_exit!(%{
+          root_chain_txhash: binary(),
+          log_index: non_neg_integer(),
+          decoded_utxo_position: Utxo.Position.t()
+        }) :: :ok | :error
+  defp insert_exit!(
+         utxo_exit = %{
+           root_chain_txhash: _,
+           log_index: _,
+           decoded_utxo_position: decoded_utxo_position
+         }
+       ) do
+    result =
+      Multi.new()
+      |> Multi.run(:event_not_exists?, event_not_exists?(utxo_exit))
+      |> Multi.run(:existing_utxo, DB.TxOutput.utxo_exists?(decoded_utxo_position))
+      |> Multi.insert(:insert_ethevent, new_changeset(utxo_exit, :standard_exit))
+      |> Multi.insert(:ethevent_txoutput, fn %{insert_ethevent: ethevent, existing_utxo: txoutput} ->
+        DB.EthEventsTxOutputs.changeset(
+          %DB.EthEventsTxOutputs{},
+          %{
+            root_chain_txhash_event: ethevent.root_chain_txhash_event,
+            child_chain_utxohash: txoutput.child_chain_utxohash
+          }
+        )
+      end)
+      |> DB.Repo.transaction()
+
+    case result do
+      {:ok, _changes} -> :ok
+      {:error, _failed_operation, _failed_value, _changes_so_far} -> :error
+    end
   end
 
   @spec utxo_exit_from_exit_event(%{
           call_data: %{utxo_pos: pos_integer()},
           root_chain_txhash: charlist(),
           log_index: non_neg_integer()
-        }) ::
-          %{root_chain_txhash: binary(), log_index: non_neg_integer(), decoded_utxo_position: Utxo.Position.t()}
+        }) :: %{root_chain_txhash: binary(), log_index: non_neg_integer(), decoded_utxo_position: Utxo.Position.t()}
   defp utxo_exit_from_exit_event(%{
          call_data: %{utxo_pos: utxo_pos},
          root_chain_txhash: root_chain_txhash,
@@ -127,58 +166,6 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
       log_index: log_index,
       decoded_utxo_position: Utxo.Position.decode!(utxo_pos)
     }
-  end
-
-  @spec insert_exit!(%{
-          root_chain_txhash: binary(),
-          log_index: non_neg_integer(),
-          decoded_utxo_position: Utxo.Position.t()
-        }) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
-  defp insert_exit!(%{
-         root_chain_txhash: root_chain_txhash,
-         log_index: log_index,
-         decoded_utxo_position: decoded_utxo_position
-       }) do
-    case get_by(%{root_chain_txhash: root_chain_txhash, log_index: log_index}) do
-      nil ->
-        case DB.TxOutput.get_by_position(decoded_utxo_position) do
-          nil ->
-            {:error, :utxo_does_not_exist}
-
-          txoutput ->
-            event_type = :standard_exit
-
-            root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
-
-            ethevent = %__MODULE__{
-              root_chain_txhash_event: root_chain_txhash_event,
-              log_index: log_index,
-              root_chain_txhash: root_chain_txhash,
-              event_type: event_type,
-              txoutputs: []
-            }
-
-            ethevent_txoutput =
-              DB.EthEventsTxOutputs.changeset(
-                %DB.EthEventsTxOutputs{},
-                %{
-                  root_chain_txhash_event: ethevent.root_chain_txhash_event,
-                  child_chain_utxohash: txoutput.child_chain_utxohash
-                }
-              )
-
-            with {:ok, ethevent} <- DB.Repo.insert(ethevent),
-                 {:ok, ethevent_txoutput} <- DB.Repo.insert(ethevent_txoutput) do
-              {:ok, ethevent}
-            else
-              {:error, error} ->
-                {:error, error}
-            end
-        end
-
-      existing_exit ->
-        {:ok, existing_exit}
-    end
   end
 
   def new_changeset(%{root_chain_txhash: root_chain_txhash, log_index: log_index}, event_type) do
@@ -199,6 +186,8 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     struct
     |> Ecto.Changeset.cast(params, fields)
     |> Ecto.Changeset.validate_required(fields)
+    |> Ecto.Changeset.unique_constraint(:root_chain_txhash, name: :ethevents_pkey)
+    |> Ecto.Changeset.unique_constraint(:root_chain_txhash_event)
   end
 
   def generate_root_chain_txhash_event(root_chain_txhash, log_index) do

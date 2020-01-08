@@ -87,16 +87,21 @@ defmodule OMG.WatcherInfo.Factory do
   To generate a transaction with closest data to production, consider associating the transaction
   to a block and generating transaction outputs associated with this transaction.
   """
-  def transaction_factory() do
+  def transaction_factory(attrs \\ %{}) do
+    block = attrs[:block] || nil
+
+    inputs = attrs[:inputs] || []
+    outputs = attrs[:outputs] || []
+
     %DB.Transaction{
       txhash: sequence(:transaction_hash, fn seq -> <<seq::256>> end),
       txindex: 0,
       txbytes: insecure_random_bytes(32),
       sent_at: DateTime.utc_now(),
       metadata: insecure_random_bytes(32),
-      block: nil,
-      inputs: [],
-      outputs: []
+      block: block,
+      inputs: inputs,
+      outputs: outputs
     }
   end
 
@@ -120,6 +125,14 @@ defmodule OMG.WatcherInfo.Factory do
         false -> build(:transaction, block: block)
       end
 
+    spending_transaction =
+      case Map.has_key?(attrs, :spending_transaction) do
+        true -> attrs[:spending_transaction]
+        false -> nil
+      end
+
+    spending_tx_oindex = attrs[:spending_tx_oindex] || nil
+
     ethevents = attrs[:ethevents] || []
 
     txoutput = %DB.TxOutput{
@@ -130,9 +143,9 @@ defmodule OMG.WatcherInfo.Factory do
       amount: 100,
       currency: @eth,
       proof: insecure_random_bytes(32),
-      spending_tx_oindex: nil,
+      spending_tx_oindex: spending_tx_oindex,
       creating_transaction: creating_transaction,
-      spending_transaction: nil,
+      spending_transaction: spending_transaction,
       ethevents: ethevents
     }
 
@@ -195,16 +208,30 @@ defmodule OMG.WatcherInfo.Factory do
     |> Map.merge(%{blknum: block.blknum, currency: <<0>>, owner: insecure_random_bytes(20), amount: 1})
   end
 
-  def exits_params(ethevents) do
-    Enum.map(ethevents, fn ethevent -> exit_params(ethevent) end)
+  def exits_params_from_ethevents(ethevents) do
+    Enum.map(ethevents, fn ethevent -> exit_params_from_ethevent(ethevent) end)
   end
 
-  def exit_params(ethevent) do
+  def exit_params_from_ethevent(ethevent) do
     [txoutput | _] = ethevent.txoutputs
 
     %{
       root_chain_txhash: Encoding.to_hex(ethevent.root_chain_txhash),
       log_index: ethevent.log_index,
+      call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))}
+    }
+  end
+
+  def exits_params_from_txoutputs(txoutputs) do
+    Enum.map(txoutputs, fn txoutput -> exit_params_from_txoutput(txoutput) end)
+  end
+
+  def exit_params_from_txoutput(txoutput) do
+    ethevent_params = params_for(:ethevent)
+
+    %{
+      root_chain_txhash: Encoding.to_hex(ethevent_params.root_chain_txhash),
+      log_index: ethevent_params.log_index,
       call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))}
     }
   end

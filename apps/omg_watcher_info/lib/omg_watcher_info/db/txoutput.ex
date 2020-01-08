@@ -16,7 +16,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   @moduledoc """
   Ecto schema for transaction's output or input
   """
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query
 
   use Ecto.Schema
 
@@ -27,8 +27,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   alias OMG.WatcherInfo.DB.Repo
 
   require Utxo
-
-  import Ecto.Query, only: [from: 2, where: 2]
 
   @type balance() :: %{
           currency: binary(),
@@ -67,7 +65,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     timestamps(type: :utc_datetime_usec)
   end
 
-  # preload ethevents in a single query as there will not be a large number of them
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
     DB.Repo.one(
@@ -78,20 +75,24 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     )
   end
 
+  # same as get_by_position, except this function only returns unspent txoutputs
+  @spec get_utxo_by_position(Utxo.Position.t()) :: %__MODULE__{} | nil
+  def get_utxo_by_position(Utxo.position(blknum, txindex, oindex)) do
+    DB.Repo.one(
+      from(
+        txoutput in __MODULE__,
+        preload: [:ethevents, :creating_transaction, :spending_transaction],
+        where: ^filter_where_unspent(%{blknum: blknum, txindex: txindex, oindex: oindex})
+      )
+    )
+  end
+
   def get_utxos(owner) do
     query =
       from(
         txoutput in __MODULE__,
         preload: [:ethevents, :creating_transaction, :spending_transaction],
-        left_join: ethevent in assoc(txoutput, :ethevents),
-        # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
-        where: txoutput.owner == ^owner and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
- NOT EXISTS (SELECT 1
-             FROM ethevents_txoutputs AS etfrag
-             JOIN ethevents AS efrag ON
-                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                      AND efrag.event_type IN (?)
-                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+        where: ^filter_where_unspent(%{owner: owner}),
         order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
       )
 
@@ -104,14 +105,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
       from(
         txoutput in __MODULE__,
         left_join: ethevent in assoc(txoutput, :ethevents),
-        # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
-        where: txoutput.owner == ^owner and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
- NOT EXISTS (SELECT 1
-             FROM ethevents_txoutputs AS etfrag
-             JOIN ethevents AS efrag ON
-                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                      AND efrag.event_type IN (?)
-                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+        where: ^filter_where_unspent(%{owner: owner}),
         group_by: txoutput.currency,
         select: {txoutput.currency, sum(txoutput.amount)}
       )
@@ -190,6 +184,54 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Enum.group_by(& &1.currency)
     |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
     |> Map.new()
+  end
+
+  def utxo_exists?(Utxo.position(blknum, txindex, oindex)) do
+    fn _, _ ->
+      case get_utxo_by_position(Utxo.position(blknum, txindex, oindex)) do
+        nil -> {:error, nil}
+        existing_utxo -> {:ok, existing_utxo}
+      end
+    end
+  end
+
+  # select txoutputs that have neither been spent nor have a corresponding ethevents exit events
+  # using the provided query params
+  defp filter_where_unspent(params) do
+    Enum.reduce(params, unspent_query_fragment(), fn
+      {"owner", value}, dynamic ->
+        dynamic([t], ^dynamic and t.owner == ^value)
+
+      {"blknum", value}, dynamic ->
+        dynamic([t], ^dynamic and t.blknum == ^value)
+
+      {"txindex", value}, dynamic ->
+        dynamic([t], ^dynamic and t.txindex > ^value)
+
+      {"oindex", value}, dynamic ->
+        dynamic([t], ^dynamic and t.oindex > ^value)
+
+      {_, _}, dynamic ->
+        # not a where parameter
+        dynamic
+    end)
+  end
+
+  defp unspent_query_fragment() do
+    dynamic(
+      [t],
+      is_nil(t.spending_txhash) and
+        fragment(
+          "NOT EXISTS (SELECT 1
+                      FROM ethevents_txoutputs AS etfrag
+                      JOIN ethevents AS efrag ON
+                          etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
+                          AND efrag.event_type IN (?)
+                          AND etfrag.child_chain_utxohash = ?)",
+          "standard_exit",
+          t.child_chain_utxohash
+        )
+    )
   end
 
   def new_changeset(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do

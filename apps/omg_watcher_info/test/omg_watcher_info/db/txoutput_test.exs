@@ -55,13 +55,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     test "spend_utxos updates the updated_at timestamp correctly" do
       txoutput = insert(:txoutput)
 
-      utxo_inputs = [
-        {
-          Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex),
-          nil,
-          nil
-        }
-      ]
+      utxo_inputs = [{Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex), nil, nil}]
 
       DB.TxOutput.spend_utxos(utxo_inputs)
 
@@ -70,6 +64,57 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
       assert DateTime.compare(txoutput.inserted_at, updated_txoutput.inserted_at) == :eq
 
       assert DateTime.compare(updated_txoutput.inserted_at, updated_txoutput.updated_at) == :lt
+    end
+  end
+
+  describe "OMG.WatcherInfo.DB.TxOutput.get_utxo_by_position/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a txoutput for the position if the txoutput exists and has not been spent" do
+      txoutput = insert(:txoutput, creating_transaction: nil, proof: nil)
+
+      utxo = DB.TxOutput.get_utxo_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
+
+      assert utxo != nil
+      assert txoutput.blknum == utxo.blknum
+      assert txoutput.txindex == utxo.txindex
+      assert txoutput.oindex == utxo.oindex
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns nil for the position if the txoutput exists, but has been spent" do
+      creating_block = insert(:block)
+      spending_block = insert(:block)
+
+      creating_transaction = insert(:transaction, block: creating_block)
+      spending_transaction = insert(:transaction, block: spending_block)
+
+      txoutput =
+        insert(:txoutput,
+          blknum: creating_block.blknum,
+          creating_transaction: creating_transaction,
+          spending_transaction: spending_transaction,
+          spending_tx_oindex: 0
+        )
+
+      assert DB.TxOutput.get_utxo_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)) == nil
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns nil for the position if the txoutput exists, but has been exited" do
+      block = insert(:block)
+
+      txoutput = insert(:txoutput, blknum: block.blknum)
+
+      exit_params = exit_params_from_txoutput(txoutput)
+
+      assert DB.EthEvent.insert_exits!([exit_params]) == :ok
+
+      assert DB.TxOutput.get_utxo_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)) == nil
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns nil for the position if the txoutput does not exist" do
+      assert DB.TxOutput.get_utxo_by_position(Utxo.position(0, 0, 0)) == nil
     end
   end
 end
