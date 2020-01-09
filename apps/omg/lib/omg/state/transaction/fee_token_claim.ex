@@ -128,10 +128,20 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   def get_inputs(%Transaction.FeeTokenClaim{}), do: []
 
   @doc """
-  Fee claiming transaction is not used to transfer funds
+  Tells whether Fee claiming transaction is valid
   """
   @spec valid?(Transaction.FeeTokenClaim.t(), Transaction.Signed.t()) :: {:error, atom()}
-  def valid?(%Transaction.FeeTokenClaim{}, _signed_tx), do: {:error, :not_implemented}
+  def valid?(%Transaction.FeeTokenClaim{} = fee_tx, _signed_tx) do
+    # we're able to check structure validity => single output with amount > 0
+    # extending the api we could check more, e.g. if:
+    # * token is supported fee token
+    # * owner address belongs to operator(?)
+    with outputs = Transaction.get_outputs(fee_tx),
+         true <- length(outputs) == 1 || {:error, :wrong_number_of_fee_outputs},
+         [output] = outputs,
+         true <- output.amount > 0 || {:error, :fee_output_amount_has_to_be_positive},
+         do: true
+  end
 
   @doc """
   Fee claiming transaction is not used to transfer funds

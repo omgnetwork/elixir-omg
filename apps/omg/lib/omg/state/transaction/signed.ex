@@ -64,8 +64,11 @@ defmodule OMG.State.Transaction.Signed do
   @doc """
   Recovers the witnesses for non-empty signatures, in the order they appear in transaction's signatures
   """
-  @spec get_witnesses(Transaction.Signed.t()) :: {:ok, list(Crypto.address_t())} | {:error, atom}
-  def get_witnesses(%Transaction.Signed{raw_tx: raw_tx, sigs: raw_witnesses}) do
+  @spec get_witnesses(Transaction.Signed.t()) :: {:ok, %{non_neg_integer => Transaction.Witness.t()}} | {:error, atom}
+  def get_witnesses(%Transaction.Signed{raw_tx: raw_tx, sigs: raw_witnesses}),
+    do: get_witnesses_from_raw_tx(raw_tx, raw_witnesses)
+
+  defp get_witnesses_from_raw_tx(%Transaction.Payment{} = raw_tx, raw_witnesses) do
     raw_txhash = TypedDataHash.hash_struct(raw_tx)
 
     with {:ok, reversed_witnesses} <- get_reversed_witnesses(raw_txhash, raw_tx, raw_witnesses),
@@ -76,6 +79,8 @@ defmodule OMG.State.Transaction.Signed do
             |> Enum.with_index()
             |> Enum.into(%{}, fn {witness, idx} -> {idx, witness} end)}
   end
+
+  defp get_witnesses_from_raw_tx(%Transaction.FeeTokenClaim{}, _raw_witnesses), do: {:ok, %{}}
 
   defp get_reversed_witnesses(raw_txhash, raw_tx, raw_witnesses) do
     raw_witnesses

@@ -44,12 +44,16 @@ defmodule OMG.State.Transaction.FeeTokenClaimTest do
       assert Transaction.raw_txhash(Transaction.FeeTokenClaim.new(1000, {owner.addr, @other_token, 1551})) != fee_txhash
     end
 
+    # FIXME: Fee-tx should be recoverable and executable on state but CANNOT be accepted by submit (tests needed)
     @tag fixtures: [:alice]
-    test "cannot be recovered in payment scenario", %{alice: owner} do
+    test "fee-tx should be recoverable from binary form", %{alice: owner} do
       fee_tx = Transaction.FeeTokenClaim.new(1000, {owner.addr, @eth, 1551})
       tx_rlp = Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
 
-      assert {:error, :not_implemented} = Transaction.Recovered.recover_from(tx_rlp)
+      assert {:ok,
+              %Transaction.Recovered{
+                signed_tx: %Transaction.Signed{raw_tx: ^fee_tx}
+              }} = Transaction.Recovered.recover_from(tx_rlp)
     end
   end
 
