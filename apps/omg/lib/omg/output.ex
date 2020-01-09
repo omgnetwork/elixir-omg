@@ -71,6 +71,6 @@ defmodule OMG.Output do
   defp non_zero_owner?(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
   defp non_zero_owner?(_), do: {:ok, :valid}
 
-  defp valid_output_type?(<<1>>), do: {:ok, :valid}
+  defp valid_output_type?(type) when type in [<<1>>, <<2>>], do: {:ok, :valid}
   defp valid_output_type?(_), do: {:error, :unrecognized_output_type}
 end
