@@ -58,8 +58,8 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   end
 
   defp parse_fee(map) when is_map(map) do
-    with {:ok, currency} <- expect(map, "currency", :address),
-         {:ok, amount} <- expect(map, "amount", :non_neg_integer),
-         do: {:ok, %{currency: currency, amount: amount}}
+    with {:ok, currency} <- expect(map, "currency", :address) do
+      {:ok, %{currency: currency}}
+    end
   end
 end
