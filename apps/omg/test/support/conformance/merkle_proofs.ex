@@ -17,11 +17,12 @@ defmodule Support.Conformance.MerkleProofs do
   Utility functions that used when testing Elixir vs Solidity implementation conformance
   """
   alias OMG.Eth
-  # FIXME imports
-  # alias OMG.State.Transaction
 
-  # import ExUnit.Assertions, only: [assert: 1, assert: 2]
+  import ExUnit.Assertions, only: [assert: 1]
 
+  @doc """
+  Checks if the provided proof data returns true (valid proof) in the contract
+  """
   def solidity_proof_valid(leaf, index, root_hash, proof, contract) do
     signature = "checkMembership(bytes,uint256,bytes32,bytes)"
     args = [leaf, index, root_hash, proof]
@@ -30,15 +31,26 @@ defmodule Support.Conformance.MerkleProofs do
     try do
       {:ok, result} = Eth.call_contract(contract, signature, args, return_types)
       result
-      # FIXME: some incorrect proofs throw, and end up returning something that the ABI decoder borks on (looks like
-      #        reason). Rethink here
+      # Some incorrect proofs throw, and end up returning something that the ABI decoder borks on, hence rescue
     rescue
       e in CaseClauseError ->
-        # this is the reason, attempted to be decoded as a bool or something. See fixme above. Asserting just in case
-        %{term: 3_963_877_391_197_344_453_575_983_046_348_115_674_221_700_746_820_753_546_331_534_351_508_065_746_944} =
-          e
-
+        # this term holds the failure reason, but attempted to be decoded as a bool. It is a huge int
+        %{term: failed_decoding_reason} = e
+        # now we bring it back to binary form
+        binary_reason = :binary.encode_unsigned(failed_decoding_reason)
+        # it should contain 4 bytes of the function selector and then zeros
+        assert_contract_reverted(binary_reason)
         false
     end
+  end
+
+  # see similar function in `Support.Conformance.SignaturesHashes`
+  defp assert_contract_reverted(chopped_reason_binary_result) do
+    # only geth is supported for the merkle proof conformance tests for now
+    :geth = Application.fetch_env!(:omg_eth, :eth_node)
+
+    # revert from `Eth.call_contract` it returns something resembling a reason
+    # binary (beginning with 4-byte function selector). We need to assume that this is in fact a revert
+    assert <<0::size(28)-unit(8)>> = binary_part(chopped_reason_binary_result, 4, 28)
   end
 end

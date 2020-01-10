@@ -46,7 +46,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
     [contract: OMG.Eth.Encoding.from_hex(merkle_wrapper_address_hex)]
   end
 
-  property "any root hash and proof created by the Elixir implementation validates in the contract",
+  property "any root hash and proof created by the Elixir implementation validates in the contract, for all leaves",
            [250, :verbose, max_size: 256, constraint_tries: 100_000],
            %{contract: contract} do
     forall leaves <- list(binary()) do

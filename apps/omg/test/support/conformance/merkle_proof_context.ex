@@ -23,6 +23,9 @@ defmodule Support.Conformance.MerkleProofContext do
 
   use PropCheck
 
+  @doc """
+  A correct context - a proof proves something it should
+  """
   def correct() do
     let leaves <- such_that(leaves <- list(binary()), when: length(leaves) > 0) do
       leaves_length = length(leaves)
@@ -36,6 +39,9 @@ defmodule Support.Conformance.MerkleProofContext do
     end
   end
 
+  @doc """
+  A mutated context where only the leaf is different from the original, correct proof
+  """
   def mutated_leaf(%__MODULE__{} = base) do
     # TODO: add borrowing leaf from proof
 
@@ -54,6 +60,9 @@ defmodule Support.Conformance.MerkleProofContext do
     ])
   end
 
+  @doc """
+  A mutated context where only the txindex proven is different from the original, correct proof
+  """
   def mutated_txindex(%__MODULE__{} = base) do
     # The trick here is that it can be any index (even beyond the scope of leaves list!), but can't point to an
     # identical leaf, in case we have 2 in the leaves list.
@@ -65,25 +74,77 @@ defmodule Support.Conformance.MerkleProofContext do
     end
   end
 
+  @doc """
+  A mutated context where only the proof bytes is different from the original, correct proof
+  """
   def mutated_proof(%__MODULE__{} = base) do
     union([
-      bitwise_modify(base),
-      chunkwise_modify(base)
+      bitwise_modify_proof(base),
+      chunkwise_modify_proof(base)
     ])
   end
 
+  @doc """
+  A mutated context where we're trying to alter both the proof and what we proof, aiming to "reuse" parts of a proof
+  that worked (the original, `base`) and produce a proof that works when it shouldn't
+  """
   def mutated_to_prove_sth_else(%__MODULE__{} = base) do
-    let should_mutate_the_leaf <- boolean() do
-      let [
-        other_proof <- mutated_proof(base),
-        proving_something_else <- if(should_mutate_the_leaf, do: mutated_leaf(base), else: mutated_txindex(base))
-      ] do
-        %{proving_something_else | proof: other_proof.proof}
-      end
+    let [
+      other_proof <- mutated_proof(base),
+      proving_something_else <- union([mutated_leaf(base), mutated_txindex(base)])
+    ] do
+      # first get a context that's proving something else (other leaf or other index) and after that modify proof
+      %{proving_something_else | proof: other_proof.proof}
     end
   end
 
-  defp chunkwise_modify(%__MODULE__{} = base) do
+  #
+  # leaf mutations
+
+  defp zero_out_leaf(%__MODULE__{} = base) do
+    %{base | leaf: <<0::256>>}
+  end
+
+  defp random_leaf(%__MODULE__{} = base) do
+    let b <- such_that(b <- binary(), when: b != base.leaf) do
+      %{base | leaf: b}
+    end
+  end
+
+  defp trimmed_leaf(%__MODULE__{} = base) do
+    length_leaf = byte_size(base.leaf)
+
+    let to_keep <- integer(0, length_leaf - 1) do
+      %{base | leaf: binary_part(base.leaf, 0, to_keep)}
+    end
+  end
+
+  defp expanded_leaf(%__MODULE__{} = base) do
+    let [b <- non_empty_binary(), append? <- boolean()] do
+      if append?, do: %{base | leaf: base.leaf <> b}, else: %{base | leaf: b <> base.leaf}
+    end
+  end
+
+  defp get_other_leaf(%__MODULE__{} = base) do
+    length_leaves = length(base.leaves)
+    distinct_leaf_index = such_that(i <- integer(0, length_leaves - 1), when: Enum.at(base.leaves, i) != base.leaf)
+
+    let other_index <- distinct_leaf_index do
+      %{base | leaf: Enum.at(base.leaves, other_index)}
+    end
+  end
+
+  #
+  # proof mutations
+
+  defp bitwise_modify_proof(%__MODULE__{} = base) do
+    # TODO: more cases pending
+    union([
+      bitwise_append(base)
+    ])
+  end
+
+  defp chunkwise_modify_proof(%__MODULE__{} = base) do
     insert_leaf_chunk_weight = if base.leaf == "", do: 0, else: 1
 
     weighted_union([
@@ -131,49 +192,9 @@ defmodule Support.Conformance.MerkleProofContext do
     end
   end
 
-  defp bitwise_modify(%__MODULE__{} = base) do
-    # FIXME: more cases of these (expand appending/trimming just like with the leaf)
-    union([
-      bitwise_append(base)
-    ])
-  end
-
   defp bitwise_append(%__MODULE__{} = base) do
     let to_append <- union([non_empty_binary(), <<0>>, <<0::256>>, <<0::512>>]) do
       %{base | proof: base.proof <> to_append}
-    end
-  end
-
-  defp zero_out_leaf(%__MODULE__{} = base) do
-    %{base | leaf: <<0::256>>}
-  end
-
-  defp random_leaf(%__MODULE__{} = base) do
-    let b <- such_that(b <- binary(), when: b != base.leaf) do
-      %{base | leaf: b}
-    end
-  end
-
-  defp trimmed_leaf(%__MODULE__{} = base) do
-    length_leaf = byte_size(base.leaf)
-
-    let to_keep <- integer(0, length_leaf - 1) do
-      %{base | leaf: binary_part(base.leaf, 0, to_keep)}
-    end
-  end
-
-  defp expanded_leaf(%__MODULE__{} = base) do
-    let [b <- non_empty_binary(), append? <- boolean()] do
-      if append?, do: %{base | leaf: base.leaf <> b}, else: %{base | leaf: b <> base.leaf}
-    end
-  end
-
-  defp get_other_leaf(%__MODULE__{} = base) do
-    length_leaves = length(base.leaves)
-    distinct_leaf_index = such_that(i <- integer(0, length_leaves - 1), when: Enum.at(base.leaves, i) != base.leaf)
-
-    let other_index <- distinct_leaf_index do
-      %{base | leaf: Enum.at(base.leaves, other_index)}
     end
   end
 
