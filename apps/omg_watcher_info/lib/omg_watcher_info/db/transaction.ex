@@ -51,7 +51,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
         __MODULE__,
         where: [txhash: ^hash],
         preload: [
-          :block,
+          block: ^DB.Block.base_query(),
           inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
           outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
         ]

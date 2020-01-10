@@ -63,7 +63,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  "blknum" => block.blknum,
                  "eth_height" => block.eth_height,
                  "hash" => Encoding.to_hex(block.hash),
-                 "timestamp" => block.timestamp
+                 "timestamp" => block.timestamp,
+                 "tx_count" => 1
                },
                "inputs" => [
                  %{

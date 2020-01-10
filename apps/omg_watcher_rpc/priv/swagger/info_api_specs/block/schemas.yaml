@@ -13,3 +13,6 @@ BlockSchema:
     timestamp:
       type: integer
       format: int64
+    tx_count:
+      type: integer
+      format: int64
