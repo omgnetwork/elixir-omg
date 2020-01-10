@@ -36,9 +36,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
     contracts = SnapshotContracts.parse_contracts()
     merkle_wrapper_address_hex = contracts["CONTRACT_ADDRESS_MERKLE_WRAPPER"]
 
-    on_exit(fn ->
-      exit_fn.()
-    end)
+    on_exit(exit_fn)
 
     [contract: OMG.Eth.Encoding.from_hex(merkle_wrapper_address_hex)]
   end
@@ -63,7 +61,6 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
            %{contract: contract} do
     forall proof <- MerkleProofContext.correct() do
       forall mutated <- MerkleProofContext.mutated_leaf(proof) do
-        if proof == mutated, do: IO.puts("equal")
         not solidity_proof_valid(mutated.leaf, mutated.txindex, mutated.root_hash, mutated.proof, contract)
       end
     end
@@ -74,7 +71,6 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
            %{contract: contract} do
     forall proof <- MerkleProofContext.correct() do
       forall mutated <- MerkleProofContext.mutated_txindex(proof) do
-        if proof == mutated, do: IO.puts("equal")
         not solidity_proof_valid(mutated.leaf, mutated.txindex, mutated.root_hash, mutated.proof, contract)
       end
     end
@@ -85,7 +81,6 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
            %{contract: contract} do
     forall proof <- MerkleProofContext.correct() do
       forall mutated <- MerkleProofContext.mutated_proof(proof) do
-        if proof == mutated, do: IO.puts("equal")
         not solidity_proof_valid(mutated.leaf, mutated.txindex, mutated.root_hash, mutated.proof, contract)
       end
     end
@@ -96,7 +91,6 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
            %{contract: contract} do
     forall proof <- MerkleProofContext.correct() do
       forall mutated <- MerkleProofContext.mutated_to_prove_sth_else(proof) do
-        if proof == mutated, do: IO.puts("equal")
         not solidity_proof_valid(mutated.leaf, mutated.txindex, mutated.root_hash, mutated.proof, contract)
       end
     end

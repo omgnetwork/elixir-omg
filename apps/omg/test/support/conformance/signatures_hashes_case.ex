@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Support.Conformance.Case do
+defmodule Support.Conformance.SignaturesHashesCase do
   @moduledoc """
   `ExUnit` test case for the setup required by a test of Elixir and Solidity implementation conformance
   """

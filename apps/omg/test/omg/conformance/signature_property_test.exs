@@ -20,11 +20,11 @@ defmodule OMG.Conformance.SignaturePropertyTest do
 
   alias Support.Conformance.PropertyGenerators
 
-  import Support.Conformance,
+  import Support.Conformance.SignaturesHashes,
     only: [verify: 2, verify_distinct: 3, verify_both_error: 2, verify_distinct_or_erroring: 3]
 
   use PropCheck
-  use Support.Conformance.Case, async: false
+  use Support.Conformance.SignaturesHashesCase, async: false
 
   @moduletag :property
   @moduletag timeout: 450_000
