@@ -48,12 +48,14 @@ defmodule OMG.State.Core do
 
   defstruct [
     :height,
+    :fee_claimer_address,
     utxos: %{},
     pending_txs: [],
     tx_index: 0,
     utxo_db_updates: [],
     recently_spent: MapSet.new(),
-    fees_paid: %{}
+    fees_paid: %{},
+    fee_claiming_started: false
   ]
 
   alias OMG.Block
@@ -84,7 +86,10 @@ defmodule OMG.State.Core do
           recently_spent: MapSet.t(OMG.Utxo.Position.t()),
           # Summarizes fees paid by pending transactions that will be formed into current block. Fees will be claimed
           # by appending `FeeTokenClaim` txs after pending txs in current block.
-          fees_paid: fee_summary_t()
+          fees_paid: fee_summary_t(),
+          # fees can be claimed at the end of the block, no other payments can be processed until next block
+          fee_claiming_started: boolean(),
+          fee_claimer_address: Crypto.address_t()
         }
 
   @type deposit() :: %{
@@ -135,11 +140,15 @@ defmodule OMG.State.Core do
   """
   @spec extract_initial_state(
           height_query_result :: non_neg_integer() | :not_found,
-          child_block_interval :: pos_integer()
+          child_block_interval :: pos_integer(),
+          fee_claimer_address :: Crypto.address_t()
         ) :: {:ok, t()} | {:error, :top_block_number_not_found}
-  def extract_initial_state(height_query_result, child_block_interval)
+  def extract_initial_state(height_query_result, child_block_interval, fee_claimer_address)
       when is_integer(height_query_result) and is_integer(child_block_interval) do
-    state = %__MODULE__{height: height_query_result + child_block_interval}
+    state = %__MODULE__{
+      height: height_query_result + child_block_interval,
+      fee_claimer_address: fee_claimer_address
+    }
 
     {:ok, state}
   end
@@ -174,17 +183,24 @@ defmodule OMG.State.Core do
   """
   @spec exec(state :: t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
-          | {{:error, Validator.exec_error()}, t()}
+          | {{:error, Validator.process_error()}, t()}
   def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
     tx_hash = Transaction.raw_txhash(tx)
 
-    case Validator.can_apply_spend(state, tx, fees) do
-      {:ok, fees_paid} ->
+    case Validator.can_process(state, tx, fees) do
+      {:ok, :apply_spend, fees_paid} ->
         {:ok, {tx_hash, state.height, state.tx_index},
          state
          |> apply_spend(tx)
          |> add_pending_tx(tx)
          |> collect_fees(fees_paid)}
+
+      {:ok, :claim_fees, claimed_token} ->
+        {:ok, {tx_hash, state.height, state.tx_index},
+         state
+         |> disallow_payments()
+         |> claim_token(claimed_token |> Map.keys() |> hd())
+         |> add_pending_tx(tx)}
 
       {{:error, _reason}, _state} = error ->
         error
@@ -242,7 +258,9 @@ defmodule OMG.State.Core do
         height: height + child_block_interval,
         pending_txs: [],
         utxo_db_updates: [],
-        recently_spent: MapSet.new()
+        recently_spent: MapSet.new(),
+        fees_paid: %{},
+        fee_claiming_started: false
     }
 
     {:ok, {block, db_updates}, new_state}
@@ -411,6 +429,10 @@ defmodule OMG.State.Core do
           end)
     }
   end
+
+  defp disallow_payments(state), do: %Core{state | fee_claiming_started: true}
+
+  defp claim_token(state, token), do: %Core{state | fees_paid: Map.delete(state.fees_paid, token)}
 
   # Effects of a payment transaction - spends all inputs and creates all outputs
   # Relies on the polymorphic `get_inputs` and `get_outputs` of `Transaction`

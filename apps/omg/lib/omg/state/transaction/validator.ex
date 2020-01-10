@@ -39,8 +39,31 @@ defmodule OMG.State.Transaction.Validator do
           | :overpaying_fees
           | :multiple_potential_currency_fees
 
+  @type fee_claim_error :: :claiming_unsupported_token | :claiming_more_than_collected
+
+  @type process_error :: exec_error | fee_claim_error
+
+  @doc """
+  can process transaction?
+  """
+  @spec can_process(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
+          {:ok, :apply_spend, map()} | {:ok, :claim_fees, map()} | {{:error, process_error()}, Core.t()}
+  def can_process(
+        %Core{} = state,
+        %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}} = tx,
+        fees
+      ) do
+    case raw_tx do
+      %Transaction.Payment{} ->
+        can_apply_spend(state, tx, fees)
+
+      %Transaction.FeeTokenClaim{} ->
+        can_claim_fees(state, tx, fees)
+    end
+  end
+
   @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
-          true | {{:error, exec_error()}, Core.t()}
+          {:ok, :apply_spend, map()} | {{:error, exec_error()}, Core.t()}
   def can_apply_spend(
         %Core{utxos: utxos} = state,
         %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses} = tx,
@@ -48,14 +71,14 @@ defmodule OMG.State.Transaction.Validator do
       ) do
     inputs = Transaction.get_inputs(tx)
 
-    with :ok <- validate_block_size(state),
+    with true <- not state.fee_claiming_started || {:error, :payments_rejected_during_fee_claiming},
+         :ok <- validate_block_size(state),
          :ok <- inputs_not_from_future_block?(state, inputs),
          {:ok, outputs_spent} <- UtxoSet.get_by_inputs(utxos, inputs),
          :ok <- authorized?(outputs_spent, witnesses),
          {:ok, implicit_paid_fee_by_currency} <- Transaction.Protocol.can_apply?(raw_tx, outputs_spent),
          :ok <- Fees.check_if_covered(implicit_paid_fee_by_currency, fees) do
       {:ok, Fees.filter_fee_tokens(implicit_paid_fee_by_currency, fees)}
-==== BASE ====
     else
       {:error, _reason} = error -> {error, state}
     end

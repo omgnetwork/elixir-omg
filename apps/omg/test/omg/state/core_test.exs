@@ -551,6 +551,15 @@ defmodule OMG.State.CoreTest do
     assert {:ok, ^recovered_tx_2} = Transaction.Recovered.recover_from(block_tx2)
   end
 
+  # FIXME fee claiming tests
+  # 1 no fee tx appended when :no_fees_required
+  # 2 can't apply spend after fee_tx exec
+  # 3 can't double claim same token
+  # 4 can't claim more than collected
+  # 5 CAN claim less than collected
+  # 6 not all token must be claimed (fee acceptable tokens can change)
+  # 7 collected fees resets after form block
+
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "forming block empty block after a non-empty block", %{
     alice: alice,

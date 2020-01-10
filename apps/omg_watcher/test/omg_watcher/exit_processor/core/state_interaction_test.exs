@@ -31,6 +31,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     only: [start_se_from: 3, start_se_from: 4, start_ife_from: 2, start_ife_from: 3, piggyback_ife_from: 4]
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @fee_claimer_address OMG.Eth.RootChain.eth_pseudo_address()
 
   @early_blknum 1_000
   @late_blknum 10_000
@@ -40,7 +41,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   setup do
     {:ok, processor_empty} = Core.init([], [], [])
     {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
-    {:ok, state_empty} = State.Core.extract_initial_state(0, child_block_interval)
+    {:ok, state_empty} = State.Core.extract_initial_state(0, child_block_interval, @fee_claimer_address)
 
     {:ok, %{alice: TestHelper.generate_entity(), processor_empty: processor_empty, state_empty: state_empty}}
   end

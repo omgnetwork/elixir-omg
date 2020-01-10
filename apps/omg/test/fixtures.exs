@@ -20,6 +20,7 @@ defmodule OMG.Fixtures do
   import OMG.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @fee_claimer_address OMG.Eth.RootChain.eth_pseudo_address()
 
   deffixture(entities, do: entities())
 
@@ -33,7 +34,7 @@ defmodule OMG.Fixtures do
 
   deffixture state_empty() do
     {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
-    {:ok, state} = Core.extract_initial_state(0, child_block_interval)
+    {:ok, state} = Core.extract_initial_state(0, child_block_interval, @fee_claimer_address)
     state
   end
 

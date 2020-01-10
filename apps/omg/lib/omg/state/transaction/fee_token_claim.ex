@@ -133,9 +133,6 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @spec valid?(Transaction.FeeTokenClaim.t(), Transaction.Signed.t()) :: {:error, atom()}
   def valid?(%Transaction.FeeTokenClaim{} = fee_tx, _signed_tx) do
     # we're able to check structure validity => single output with amount > 0
-    # extending the api we could check more, e.g. if:
-    # * token is supported fee token
-    # * owner address belongs to operator(?)
     with outputs = Transaction.get_outputs(fee_tx),
          true <- length(outputs) == 1 || {:error, :wrong_number_of_fee_outputs},
          [output] = outputs,
@@ -146,6 +143,12 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @doc """
   Fee claiming transaction is not used to transfer funds
   """
-  @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.t())) :: {:error, atom()}
-  def can_apply?(%Transaction.FeeTokenClaim{}, _outputs_spent), do: {:error, :not_implemented}
+  @spec can_apply?(Transaction.FeeTokenClaim.t(), map()) :: {:ok, map()} | {:error, atom()}
+  def can_apply?(%Transaction.FeeTokenClaim{outputs: [output]}, fees_paid) do
+    with %Output{currency: claimed_currency, amount: claimed_amount} = output,
+         true <- claimed_currency in Map.keys(fees_paid) || {:error, :claiming_unsupported_token},
+         amount_collected = Map.get(fees_paid, claimed_currency, 0),
+         true <- amount_collected >= claimed_amount || {:error, :claiming_more_than_collected},
+         do: {:ok, %{claimed_currency => claimed_amount}}
+  end
 end

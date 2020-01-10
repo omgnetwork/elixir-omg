@@ -92,9 +92,11 @@ defmodule OMG.State do
   def init(:ok) do
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+    fee_claimer_address = Application.get_env(:omg, :fee_claimer_address, <<0::160>>)
 
     {:ok, state} =
-      with {:ok, _data} = result <- Core.extract_initial_state(height_query_result, child_block_interval) do
+      with {:ok, _data} = result <-
+             Core.extract_initial_state(height_query_result, child_block_interval, fee_claimer_address) do
         _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{height_query_result}}")
 
         {:ok, _} =
