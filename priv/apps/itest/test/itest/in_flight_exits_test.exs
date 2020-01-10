@@ -2,11 +2,12 @@ defmodule InFlightExitsTests do
   use Cabbage.Feature, async: false, file: "in_flight_exits.feature"
 
   require Logger
-  alias Itest.Transactions.Currency
+
   alias Itest.Account
   alias Itest.Client
   alias Itest.InFlightExitClient
   alias Itest.Poller
+  alias Itest.Transactions.Currency
 
   setup do
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)

@@ -1,10 +1,11 @@
 defmodule DepositsTests do
-  use Cabbage.Feature, async: false, file: "deposits.feature"
+  use Cabbage.Feature, async: true, file: "deposits.feature"
 
   require Logger
-  alias Itest.Transactions.Currency
+
   alias Itest.Account
   alias Itest.Client
+  alias Itest.Transactions.Currency
 
   setup do
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)

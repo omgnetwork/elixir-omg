@@ -299,7 +299,7 @@ defmodule Itest.InFlightExitClient do
     # to milliseconds
     |> Kernel.*(1000)
     # needs a be a tiny more than exit period seconds
-    |> Kernel.+(500)
+    |> Kernel.+(1500)
     |> Process.sleep()
 
     ife

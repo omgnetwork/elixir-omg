@@ -2,10 +2,11 @@ defmodule StandardExitsTests do
   use Cabbage.Feature, async: false, file: "standard_exits.feature"
 
   require Logger
-  alias Itest.Transactions.Currency
+
   alias Itest.Account
   alias Itest.Client
   alias Itest.StandardExitClient
+  alias Itest.Transactions.Currency
 
   setup do
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
