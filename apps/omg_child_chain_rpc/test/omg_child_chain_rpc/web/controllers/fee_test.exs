@@ -18,23 +18,37 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
 
   alias OMG.ChildChainRPC.Web.TestHelper
 
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
+
   setup_all do
     fee_specs = %{
-      Base.decode16!("0000000000000000000000000000000000000000") => %{
-        amount: 1,
-        subunit_to_unit: 1_000_000_000_000_000_000,
-        pegged_amount: 1,
-        pegged_currency: "USD",
-        pegged_subunit_to_unit: 100,
-        updated_at: DateTime.from_unix!(1_546_336_800)
+      @payment_tx_type => %{
+        Base.decode16!("0000000000000000000000000000000000000000") => %{
+          amount: 1,
+          subunit_to_unit: 1_000_000_000_000_000_000,
+          pegged_amount: 1,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.from_unix!(1_546_336_800)
+        },
+        Base.decode16!("0000000000000000000000000000000000000001") => %{
+          amount: 1,
+          subunit_to_unit: 1_000_000_000_000_000_000,
+          pegged_amount: 1,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.from_unix!(1_546_336_800)
+        }
       },
-      Base.decode16!("0000000000000000000000000000000000000001") => %{
-        amount: 1,
-        subunit_to_unit: 1_000_000_000_000_000_000,
-        pegged_amount: 1,
-        pegged_currency: "USD",
-        pegged_subunit_to_unit: 100,
-        updated_at: DateTime.from_unix!(1_546_336_800)
+      2 => %{
+        Base.decode16!("0000000000000000000000000000000000000000") => %{
+          amount: 2,
+          subunit_to_unit: 1_000_000_000_000_000_000,
+          pegged_amount: 1,
+          pegged_currency: "USD",
+          pegged_subunit_to_unit: 100,
+          updated_at: DateTime.from_unix!(1_546_336_800)
+        }
       }
     }
 
@@ -48,17 +62,30 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
     test "fees.all endpoint filters the result when given currencies" do
       assert %{
                "success" => true,
-               "data" => [
-                 %{
-                   "amount" => 1,
-                   "currency" => "0x0000000000000000000000000000000000000000",
-                   "subunit_to_unit" => 1_000_000_000_000_000_000,
-                   "pegged_amount" => 1,
-                   "pegged_currency" => "USD",
-                   "pegged_subunit_to_unit" => 100,
-                   "updated_at" => "2019-01-01T10:00:00Z"
-                 }
-               ]
+               "data" => %{
+                 "1" => [
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ],
+                 "2" => [
+                   %{
+                     "amount" => 2,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ]
+               }
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: ["0x0000000000000000000000000000000000000000"]})
     end
 
@@ -66,56 +93,80 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
     test "fees.all endpoint does not filter when given empty currencies" do
       assert %{
                "success" => true,
-               "data" => [
-                 %{
-                   "amount" => 1,
-                   "currency" => "0x0000000000000000000000000000000000000000",
-                   "subunit_to_unit" => 1_000_000_000_000_000_000,
-                   "pegged_amount" => 1,
-                   "pegged_currency" => "USD",
-                   "pegged_subunit_to_unit" => 100,
-                   "updated_at" => "2019-01-01T10:00:00Z"
-                 },
-                 %{
-                   "amount" => 1,
-                   "currency" => "0x0000000000000000000000000000000000000001",
-                   "subunit_to_unit" => 1_000_000_000_000_000_000,
-                   "pegged_amount" => 1,
-                   "pegged_currency" => "USD",
-                   "pegged_subunit_to_unit" => 100,
-                   "updated_at" => "2019-01-01T10:00:00Z"
-                 }
-               ]
+               "data" => %{
+                 "1" => [
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   },
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000001",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ],
+                 "2" => [
+                   %{
+                     "amount" => 2,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ]
+               }
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: []})
     end
 
     @tag fixtures: [:phoenix_sandbox]
-    test "fees.all endpoint does not filter without parameter" do
-      missing_param = %{}
-
+    test "fees.all endpoint does not filter without an empty body" do
       assert %{
                "success" => true,
-               "data" => [
-                 %{
-                   "amount" => 1,
-                   "currency" => "0x0000000000000000000000000000000000000000",
-                   "subunit_to_unit" => 1_000_000_000_000_000_000,
-                   "pegged_amount" => 1,
-                   "pegged_currency" => "USD",
-                   "pegged_subunit_to_unit" => 100,
-                   "updated_at" => "2019-01-01T10:00:00Z"
-                 },
-                 %{
-                   "amount" => 1,
-                   "currency" => "0x0000000000000000000000000000000000000001",
-                   "subunit_to_unit" => 1_000_000_000_000_000_000,
-                   "pegged_amount" => 1,
-                   "pegged_currency" => "USD",
-                   "pegged_subunit_to_unit" => 100,
-                   "updated_at" => "2019-01-01T10:00:00Z"
-                 }
-               ]
-             } = TestHelper.rpc_call(:post, "/fees.all", missing_param)
+               "data" => %{
+                 "1" => [
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   },
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000001",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ],
+                 "2" => [
+                   %{
+                     "amount" => 2,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ]
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{})
     end
 
     @tag fixtures: [:phoenix_sandbox]
@@ -162,6 +213,121 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                  }
                }
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: ["invalid"]})
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
+    test "fees.all endpoint filters the result when given tx_types" do
+      assert %{
+               "success" => true,
+               "data" => %{
+                 "1" => [
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   },
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000001",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ]
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: [@payment_tx_type]})
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
+    test "fees.all endpoint does not filter when given empty tx_types" do
+      assert %{
+               "success" => true,
+               "data" => %{
+                 "1" => [
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   },
+                   %{
+                     "amount" => 1,
+                     "currency" => "0x0000000000000000000000000000000000000001",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ],
+                 "2" => [
+                   %{
+                     "amount" => 2,
+                     "currency" => "0x0000000000000000000000000000000000000000",
+                     "subunit_to_unit" => 1_000_000_000_000_000_000,
+                     "pegged_amount" => 1,
+                     "pegged_currency" => "USD",
+                     "pegged_subunit_to_unit" => 100,
+                     "updated_at" => "2019-01-01T10:00:00Z"
+                   }
+                 ]
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: []})
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
+    test "fees.all returns an error when given unsupported tx_types" do
+      assert %{
+               "success" => false,
+               "data" => %{
+                 "object" => "error",
+                 "code" => "fee:tx_type_not_supported",
+                 "description" => "One or more of the given transaction types are not supported."
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: [99_999]})
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
+    test "fees.all endpoint rejects request with non list tx_types" do
+      assert %{
+               "success" => false,
+               "data" => %{
+                 "object" => "error",
+                 "code" => "operation:bad_request",
+                 "messages" => %{
+                   "validation_error" => %{
+                     "parameter" => "tx_types",
+                     "validator" => ":list"
+                   }
+                 }
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: 1})
+    end
+
+    @tag fixtures: [:phoenix_sandbox]
+    test "fees.all endpoint rejects request with negative integer" do
+      assert %{
+               "success" => false,
+               "data" => %{
+                 "object" => "error",
+                 "code" => "operation:bad_request",
+                 "messages" => %{
+                   "validation_error" => %{
+                     "parameter" => "tx_types.tx_type",
+                     "validator" => "{:greater, -1}"
+                   }
+                 }
+               }
+             } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: [-5]})
     end
   end
 end

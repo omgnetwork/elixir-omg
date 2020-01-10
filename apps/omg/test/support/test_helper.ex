@@ -149,17 +149,10 @@ defmodule OMG.TestHelper do
   def write_fee_file(map, file_name) when is_map(map) do
     {:ok, json} =
       map
-      |> Enum.map(fn {"0x" <> _ = token, fee} ->
-        %{
-          token: token,
-          amount: fee.amount,
-          subunit_to_unit: fee.subunit_to_unit,
-          pegged_amount: fee.pegged_amount,
-          pegged_currency: fee.pegged_currency,
-          pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
-          updated_at: fee.updated_at
-        }
+      |> Enum.map(fn {tx_type, fees} ->
+        {Integer.to_string(tx_type), parse_fees(fees)}
       end)
+      |> Enum.into(%{})
       |> Jason.encode()
 
     write_fee_file(json, file_name)
@@ -172,6 +165,20 @@ defmodule OMG.TestHelper do
 
     :ok = File.write(full_path, content, [:write])
     {:ok, full_path, file}
+  end
+
+  defp parse_fees(fees) do
+    Enum.map(fees, fn {"0x" <> _ = token, fee} ->
+      %{
+        token: token,
+        amount: fee.amount,
+        subunit_to_unit: fee.subunit_to_unit,
+        pegged_amount: fee.pegged_amount,
+        pegged_currency: fee.pegged_currency,
+        pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
+        updated_at: fee.updated_at
+      }
+    end)
   end
 
   defp get_private_keys(inputs),

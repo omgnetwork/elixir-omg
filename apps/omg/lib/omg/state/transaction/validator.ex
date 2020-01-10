@@ -36,7 +36,7 @@ defmodule OMG.State.Transaction.Validator do
           | :unauthorized_spend
           | :utxo_not_found
 
-  @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
+  @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           true | {{:error, exec_error()}, Core.t()}
   def can_apply_spend(
         %Core{utxos: utxos} = state,

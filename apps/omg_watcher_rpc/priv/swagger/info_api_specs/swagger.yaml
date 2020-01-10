@@ -15,6 +15,7 @@ info:
 
 servers:
   - url: http://localhost:7534/
+  - url: http://localhost:7434/
 
 tags:
   - name: Account

@@ -25,6 +25,7 @@ defmodule OMG.ChildChain do
   alias OMG.ChildChain.FeeServer
   alias OMG.ChildChain.FreshBlocks
   alias OMG.Fees
+  alias OMG.Fees.FeeFilter
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Status.Alert.Alarm
@@ -56,10 +57,11 @@ defmodule OMG.ChildChain do
   @spec get_alarms() :: {:ok, Alarm.alarms()}
   def get_alarms, do: {:ok, Alarm.all()}
 
-  @spec get_filtered_fees(list(String.t()) | nil) :: {:ok, Fees.fee_t()} | {:error, :currency_fee_not_supported}
-  def get_filtered_fees(currencies) do
+  @spec get_filtered_fees(list(pos_integer()), list(String.t()) | nil) ::
+          {:ok, Fees.full_fee_t()} | {:error, :currency_fee_not_supported}
+  def get_filtered_fees(tx_types, currencies) do
     with {:ok, fees} <- FeeServer.transaction_fees() do
-      Fees.filter_fees(fees, currencies)
+      FeeFilter.filter(fees, tx_types, currencies)
     end
     |> result_with_logging()
   end

@@ -4,24 +4,16 @@ AllFeesResponseSchema:
   - type: object
     properties:
       data:
-        type: array
-        items:
-          $ref: 'schemas.yaml#/FeeItemSchema'
+        type: object
+        $ref: 'schemas.yaml#/FeeAllSchema'
     example:
       data:
-      -
-        currency: '0x0000000000000000000000000000000000000000'
-        amount: 220000000000000
-        subunit_to_unit: 1000000000000000000,
-        pegged_currency: 'USD'
-        pegged_amount: 4
-        pegged_subunit_to_unit: 100
-        updated_at: '2019-01-01T10:10:10+00:00'
-      -
-        currency: '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
-        amount: 39260000000000000
-        subunit_to_unit: 1000000000000000000,
-        pegged_currency: 'USD'
-        pegged_amount: 4
-        pegged_subunit_to_unit: 100
-        updated_at: '2019-01-01T10:10:10+00:00'
+        '1':
+          -
+            currency: '0x0000000000000000000000000000000000000000'
+            amount: 220000000000000
+            subunit_to_unit: 1000000000000000000
+            pegged_currency: 'USD'
+            pegged_amount: 4
+            pegged_subunit_to_unit: 100
+            updated_at: '2019-01-01T10:10:10+00:00'

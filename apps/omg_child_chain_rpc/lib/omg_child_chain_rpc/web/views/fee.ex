@@ -26,16 +26,24 @@ defmodule OMG.ChildChainRPC.Web.View.Fee do
   end
 
   defp to_api_format(fees) do
-    Enum.map(fees, fn {currency, fee} ->
-      %{
-        currency: currency,
-        amount: fee.amount,
-        subunit_to_unit: fee.subunit_to_unit,
-        pegged_currency: {:skip_hex_encode, fee.pegged_currency},
-        pegged_amount: fee.pegged_amount,
-        pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
-        updated_at: {:skip_hex_encode, fee.updated_at}
-      }
-    end)
+    fees
+    |> Enum.map(&parse_for_type/1)
+    |> Enum.into(%{})
+  end
+
+  defp parse_for_type({tx_type, fees}) do
+    {Integer.to_string(tx_type), Enum.map(fees, &parse_for_token/1)}
+  end
+
+  defp parse_for_token({currency, fee}) do
+    %{
+      currency: currency,
+      amount: fee.amount,
+      subunit_to_unit: fee.subunit_to_unit,
+      pegged_currency: {:skip_hex_encode, fee.pegged_currency},
+      pegged_amount: fee.pegged_amount,
+      pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
+      updated_at: {:skip_hex_encode, fee.updated_at}
+    }
   end
 end

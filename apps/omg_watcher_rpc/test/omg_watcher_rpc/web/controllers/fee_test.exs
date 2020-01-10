@@ -48,5 +48,33 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
                }
              } = WatcherHelper.no_success?("/fees.all", %{currencies: ["invalid"]})
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "fees.all endpoint rejects request with non list tx_types" do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "tx_types",
+                   "validator" => ":list"
+                 }
+               }
+             } = WatcherHelper.no_success?("/fees.all", %{tx_types: 1})
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "fees.all endpoint rejects request with negative tx_types" do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "tx_types.tx_type",
+                   "validator" => "{:greater, -1}"
+                 }
+               }
+             } = WatcherHelper.no_success?("/fees.all", %{tx_types: [-5]})
+    end
   end
 end

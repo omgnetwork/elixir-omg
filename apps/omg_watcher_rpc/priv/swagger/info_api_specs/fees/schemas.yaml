@@ -1,3 +1,10 @@
+FeeAllSchema:
+  type: object
+  additionalProperties:
+    type: array
+    items:
+      $ref: '#/FeeItemSchema'
+
 FeeItemSchema:
   type: object
   properties:
@@ -7,7 +14,7 @@ FeeItemSchema:
     amount:
       type: integer
       format: int256
-    subunit_to_unit: 
+    subunit_to_unit:
       type: integer
       format: int256
     pegged_currency:

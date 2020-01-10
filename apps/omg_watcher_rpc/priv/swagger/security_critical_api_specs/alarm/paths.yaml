@@ -2,7 +2,7 @@ alarm.get:
   get:
     tags:
       - Alarm
-    summary: Gets all utxos belonging to the given address.
+    summary: Provides alarms related to system memory, cpu and storage and application specific alarms.
     description: >
       **Note:** Service operator alarms.
     operationId: alarm_get

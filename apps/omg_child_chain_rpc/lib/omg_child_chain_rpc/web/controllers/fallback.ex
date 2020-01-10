@@ -23,6 +23,10 @@ defmodule OMG.ChildChainRPC.Web.Controller.Fallback do
   alias OMG.Utils.HttpRPC.Error
 
   @errors %{
+    tx_type_not_supported: %{
+      code: "fee:tx_type_not_supported",
+      description: "One or more of the given transaction types are not supported."
+    },
     currency_fee_not_supported: %{
       code: "fee:currency_fee_not_supported",
       description: "One or more of the given currencies are not supported as a fee-token."
