@@ -62,6 +62,7 @@ defmodule OMG.State.Transaction do
     end
   end
 
+  def dispatching_reconstruct([_raw_type | _raw_tx_rlp_decoded_chunks]), do: {:error, :unrecognized_transaction_type}
   def dispatching_reconstruct(_), do: {:error, :malformed_transaction}
 
   @spec decode(tx_bytes()) :: {:ok, Transaction.Protocol.t()} | {:error, decode_error()}

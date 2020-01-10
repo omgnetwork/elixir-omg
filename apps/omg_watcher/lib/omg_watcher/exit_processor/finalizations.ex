@@ -50,13 +50,6 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
           {Core.t(), list(), list()}
   def finalize_exits(%Core{exits: exits} = state, {valid_finalizations, invalid}) do
     # handling valid finalizations
-    exit_event_triggers =
-      valid_finalizations
-      |> Enum.map(fn utxo_pos ->
-        %ExitInfo{owner: owner, currency: currency, amount: amount} = exits[utxo_pos]
-
-        %{exit_finalized: %{owner: owner, currency: currency, amount: amount, utxo_pos: utxo_pos}}
-      end)
 
     new_exits_kv_pairs =
       exits
@@ -69,7 +62,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
     # invalid ones - activating, in case they were inactive, to keep being invalid forever
     {new_state2, activating_db_updates} = activate_on_invalid_finalization(new_state1, invalid)
 
-    {new_state2, exit_event_triggers, db_updates ++ activating_db_updates}
+    {new_state2, db_updates ++ activating_db_updates}
   end
 
   defp activate_on_invalid_finalization(%Core{exits: exits} = state, invalid_finalizations) do

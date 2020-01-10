@@ -330,6 +330,26 @@ jobs:
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
+  property_tests:
+    executor: builder_pg_geth
+    environment:
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Property Test
+          command: |
+            make init_test
+            export SHELL=/bin/bash
+            # no coverage calculation, coverage is on the other tests
+            mix test --only property --trace
+
   integration_tests:
     executor: builder_pg_geth
     environment:
@@ -681,6 +701,8 @@ workflows:
           requires: [build]
       - test:
           requires: [build]
+      - property_tests:
+          requires: [build]
       - build_and_deploy_staging:
           requires:
             - build
@@ -692,6 +714,7 @@ workflows:
             - watcher_coveralls_and_integration_tests
             - watcher_info_coveralls_and_integration_tests
             - common_coveralls_and_integration_tests
+            - property_tests
           filters:
             branches:
               only:
@@ -705,6 +728,7 @@ workflows:
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
+              property_tests,
               dialyzer,
               lint,
             ]
@@ -720,6 +744,7 @@ workflows:
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
+              property_tests,
               dialyzer,
               lint,
             ]
@@ -735,6 +760,7 @@ workflows:
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
+              property_tests,
               dialyzer,
               lint,
             ]

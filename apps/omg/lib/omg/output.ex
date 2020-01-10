@@ -41,6 +41,7 @@ defmodule OMG.Output do
     end
   end
 
+  def reconstruct([_raw_type, [_owner, _currency, _amount]]), do: {:error, :unrecognized_output_type}
   def reconstruct(_), do: {:error, :malformed_outputs}
 
   def from_db_value(%{owner: owner, currency: currency, amount: amount, output_type: output_type})

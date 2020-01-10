@@ -52,9 +52,9 @@ defmodule OMG.State do
     GenServer.cast(__MODULE__, :form_block)
   end
 
-  @spec close_block(pos_integer) :: {:ok, list(Core.db_update())}
-  def close_block(eth_height) do
-    GenServer.call(__MODULE__, {:close_block, eth_height})
+  @spec close_block() :: {:ok, list(Core.db_update())}
+  def close_block() do
+    GenServer.call(__MODULE__, :close_block)
   end
 
   @spec deposit(deposits :: [Core.deposit()]) :: {:ok, list(Core.db_update())}
@@ -143,9 +143,7 @@ defmodule OMG.State do
   Includes a deposit done on the root chain contract (see above - not sure about this)
   """
   def handle_call({:deposits, deposits}, _from, state) do
-    {:ok, {event_triggers, db_updates}, new_state} = Core.deposit(deposits, state)
-
-    :ok = OMG.Bus.broadcast("events", {:preprocess_emit_events, event_triggers})
+    {:ok, db_updates, new_state} = Core.deposit(deposits, state)
 
     {:reply, {:ok, db_updates}, new_state}
   end
@@ -187,45 +185,42 @@ defmodule OMG.State do
   @doc """
   Works exactly like handle_cast(:form_block) but:
    - is synchronous
-   - `eth_height` given is the Ethereum chain height where the block being closed got submitted, to be used with events.
    - relies on the caller to handle persistence, instead of handling itself
 
   Someday, one might want to skip some of computations done (like calculating the root hash, which is scrapped)
   """
-  def handle_call({:close_block, eth_height}, _from, state) do
-    {:ok, {block, event_triggers, db_updates}, new_state} = do_form_block(state, eth_height)
+  def handle_call(:close_block, _from, state) do
+    {:ok, {block, db_updates}, new_state} = do_form_block(state)
 
-    publish_block_to_event_bus(block, event_triggers)
+    publish_block_to_event_bus(block)
     {:reply, {:ok, db_updates}, new_state}
   end
 
   @doc """
   Wraps up accumulated transactions submissions into a block, triggers db update and:
-   - pushes events to subscribers of `"event_triggers"` internal event bus topic
    - pushes the new block to subscribers of `"blocks"` internal event bus topic
 
   Does its on persistence!
   """
   def handle_cast(:form_block, state) do
     _ = Logger.debug("Forming new block...")
-    {:ok, {%Block{number: blknum} = block, event_triggers, db_updates}, new_state} = do_form_block(state)
+    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = do_form_block(state)
     _ = Logger.debug("Formed new block ##{blknum}")
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
     # new block
     :ok = DB.multi_update(db_updates)
 
-    publish_block_to_event_bus(block, event_triggers)
+    publish_block_to_event_bus(block)
     {:noreply, new_state}
   end
 
-  defp do_form_block(state, eth_height \\ nil) do
+  defp do_form_block(state) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    Core.form_block(child_block_interval, eth_height, state)
+    Core.form_block(child_block_interval, state)
   end
 
-  defp publish_block_to_event_bus(block, event_triggers) do
-    :ok = OMG.Bus.broadcast("events", {:preprocess_emit_events, event_triggers})
+  defp publish_block_to_event_bus(block) do
     :ok = OMG.Bus.direct_local_broadcast("blocks", {:enqueue_block, block})
   end
 

@@ -30,8 +30,7 @@ defmodule OMG.WatcherRPC.Application do
         id: OMG.WatcherRPC.Web.Endpoint,
         start: {OMG.WatcherRPC.Web.Endpoint, :start_link, []},
         type: :supervisor
-      },
-      {OMG.WatcherRPC.BroadcastEvent, []}
+      }
     ]
 
     opts = [
