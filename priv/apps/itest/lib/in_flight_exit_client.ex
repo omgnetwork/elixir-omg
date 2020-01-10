@@ -13,6 +13,7 @@ defmodule Itest.InFlightExitClient do
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 2, pull_api_until_successful: 4]
   require Logger
+  use Bitwise
 
   @ife_gas 2_000_000
   @ife_gas_price 1_000_000_000
@@ -57,6 +58,7 @@ defmodule Itest.InFlightExitClient do
     |> get_in_flight_exits()
     |> get_piggyback_bond_size()
     |> piggyback_input()
+    |> wait_for_exit_period()
     |> process_exit()
   end
 
@@ -106,32 +108,26 @@ defmodule Itest.InFlightExitClient do
       _ = Logger.info("Exit queue was already added.")
       ife
     else
-      case :global.set_lock({:exit_queue, self()}, [Node.self()], 1) do
-        true ->
-          _ = Logger.info("Exit queue missing. Adding...")
+      _ = Logger.info("Exit queue missing. Adding...")
 
-          data =
-            ABI.encode(
-              "addExitQueue(uint256,address)",
-              [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
-            )
+      data =
+        ABI.encode(
+          "addExitQueue(uint256,address)",
+          [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
+        )
 
-          txmap = %{
-            from: ife.address,
-            to: Itest.Account.plasma_framework(),
-            value: Encoding.to_hex(0),
-            data: Encoding.to_hex(data),
-            gas: Encoding.to_hex(@gas_add_exit_queue)
-          }
+      txmap = %{
+        from: ife.address,
+        to: Itest.Account.plasma_framework(),
+        value: Encoding.to_hex(0),
+        data: Encoding.to_hex(data),
+        gas: Encoding.to_hex(@gas_add_exit_queue)
+      }
 
-          {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-          wait_on_receipt_confirmed(receipt_hash, @retry_count)
-          wait_for_exit_queue(ife, @retry_count)
-          %{ife | add_exit_queue_hash: receipt_hash}
-
-        _ ->
-          ife
-      end
+      {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+      wait_on_receipt_confirmed(receipt_hash, @retry_count)
+      wait_for_exit_queue(ife, @retry_count)
+      %{ife | add_exit_queue_hash: receipt_hash}
     end
   end
 
@@ -199,7 +195,10 @@ defmodule Itest.InFlightExitClient do
       |> ABI.TypeDecoder.decode([{:uint, 128}])
       |> hd()
 
-    _ = Logger.info("IFE id is #{ife_exit_id}")
+    _ = Logger.warn("IFE id is #{ife_exit_id}")
+
+    get_next_exit_from_queue()
+
     %{ife | ife_exit_id: ife_exit_id}
   end
 
@@ -288,13 +287,31 @@ defmodule Itest.InFlightExitClient do
     %{ife | piggyback_input_hash: receipt_hash}
   end
 
+  defp wait_for_exit_period(ife) do
+    _ = Logger.info("Wait for exit period to pass.")
+    data = ABI.encode("minExitPeriod()", [])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+    # result is in seconds
+    result
+    |> Encoding.to_binary()
+    |> ABI.TypeDecoder.decode([{:uint, 160}])
+    |> hd()
+    # to milliseconds
+    |> Kernel.*(1000)
+    # needs a be a tiny more than exit period seconds
+    |> Kernel.+(500)
+    |> Process.sleep()
+
+    ife
+  end
+
   defp process_exit(%__MODULE__{address: address} = ife) do
     _ = Logger.info("Process exit #{__MODULE__}")
 
     data =
       ABI.encode(
         "processExits(uint256,address,uint160,uint256)",
-        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), 0, 1]
+        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), ife.ife_exit_id, 1]
       )
 
     txmap = %{
@@ -308,6 +325,8 @@ defmodule Itest.InFlightExitClient do
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     wait_on_receipt_confirmed(receipt_hash, @retry_count)
+
+    get_next_exit_from_queue()
 
     %{ife | process_exit_receipt_hash: receipt_hash}
   end
@@ -340,5 +359,20 @@ defmodule Itest.InFlightExitClient do
     |> Encoding.to_binary()
     |> ABI.TypeDecoder.decode([:bool])
     |> hd()
+  end
+
+  defp get_next_exit_from_queue() do
+    data = ABI.encode("getNextExit(uint256,address)", [Itest.Account.vault_id(Currency.ether()), Currency.ether()])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+
+    case Encoding.to_binary(result) do
+      "" ->
+        _ = Logger.info("Empty exit queue while #{__MODULE__}.")
+
+      result ->
+        next_exit_id = hd(ABI.TypeDecoder.decode(result, [{:uint, 256}]))
+        exit_id = next_exit_id &&& (1 <<< 160) - 1
+        _ = Logger.warn("First exit id in the queue is #{exit_id}")
+    end
   end
 end
