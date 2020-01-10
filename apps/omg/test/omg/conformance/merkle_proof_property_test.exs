@@ -30,9 +30,6 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   @moduletag :property
   @moduletag timeout: 450_000
 
-  @proof_length 16
-  @max_block_size trunc(:math.pow(2, @proof_length))
-
   setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
 
@@ -104,6 +101,4 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
       end
     end
   end
-
-  # FIXME: full 2**16 merkle trees, >2**16 proofs and trees (?) - property test or not?
 end
