@@ -20,6 +20,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
 
   alias OMG.Merkle
   alias Support.Conformance.MerkleProofContext
+  alias Support.SnapshotContracts
 
   import Support.Conformance.MerkleProofs, only: [solidity_proof_valid: 5]
 
@@ -35,7 +36,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
 
-    contracts = parse_contracts()
+    contracts = SnapshotContracts.parse_contracts()
     merkle_wrapper_address_hex = contracts["CONTRACT_ADDRESS_MERKLE_WRAPPER"]
 
     on_exit(fn ->
@@ -105,30 +106,4 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   end
 
   # FIXME: full 2**16 merkle trees, >2**16 proofs and trees (?) - property test or not?
-
-  # FIXME: copy pasted from conformance/case.ex do sth about this
-  # taken from the plasma-contracts deployment snapshot
-  # this parsing occurs in several places around the codebase
-  defp parse_contracts() do
-    local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
-
-    contract_addreses_path =
-      case File.exists?(local_umbrella_path) do
-        true ->
-          local_umbrella_path
-
-        _ ->
-          # CI/CD
-          Path.join([File.cwd!(), "localchain_contract_addresses.env"])
-      end
-
-    contract_addreses_path
-    |> File.read!()
-    |> String.split("\n", trim: true)
-    |> List.flatten()
-    |> Enum.reduce(%{}, fn line, acc ->
-      [key, value] = String.split(line, "=")
-      Map.put(acc, key, value)
-    end)
-  end
 end
