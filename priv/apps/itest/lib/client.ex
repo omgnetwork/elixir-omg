@@ -14,12 +14,11 @@ defmodule Itest.Client do
   alias WatcherInfoAPI.Model.TransactionCreateFee
   alias WatcherInfoAPI.Model.TransactionCreatePayments
 
-  import Itest.Poller, only: [wait_on_receipt_confirmed: 2, submit_typed: 1]
+  import Itest.Poller, only: [wait_on_receipt_confirmed: 1, submit_typed: 1]
 
   require Logger
 
   @gas 180_000
-  @retry_count 60
 
   def get_watcher_alarms() do
     WatcherSecurityCriticalAPI.Api.Alarm.alarm_get(WatcherSecurityCriticalAPI.Connection.new())
@@ -48,7 +47,7 @@ defmodule Itest.Client do
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
 
-    wait_on_receipt_confirmed(receipt_hash, @retry_count)
+    wait_on_receipt_confirmed(receipt_hash)
     {:ok, receipt_hash}
   end
 
@@ -102,6 +101,10 @@ defmodule Itest.Client do
 
   def get_balance(address), do: Itest.Poller.get_balance(address)
   def get_balance(address, amount), do: Itest.Poller.pull_balance_until_amount(address, amount)
+<<<<<<< HEAD
+=======
+  def eth_get_balance(address), do: Itest.Poller.eth_get_balance(address)
+>>>>>>> feature: introduce cabbage
 
   defp deposit_transaction(amount_in_wei, address, currency) do
     address

@@ -3,6 +3,7 @@ defmodule Itest.InFlightExitClient do
   Client to run the in flight exit flow
   """
 
+  alias Itest.ApiModel.IfeExitData
   alias Itest.Client
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
@@ -11,7 +12,7 @@ defmodule Itest.InFlightExitClient do
   alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Model.InFlightExitTxBytesBodySchema
 
-  import Itest.Poller, only: [wait_on_receipt_confirmed: 2, pull_api_until_successful: 4]
+  import Itest.Poller, only: [wait_on_receipt_confirmed: 1, pull_api_until_successful: 4]
   require Logger
   use Bitwise
 
@@ -84,9 +85,9 @@ defmodule Itest.InFlightExitClient do
   defp get_exit_data(%{signed_txbytes: txbytes} = ife) do
     payload = %InFlightExitTxBytesBodySchema{txbytes: txbytes}
     # if deposit is not recognized yet we get https://github.com/omisego/elixir-omg/issues/1128
-    {:ok, response} = pull_api_until_successful(InFlightExit, :in_flight_exit_get_data, Watcher.new(), payload)
-    exit_data = Jason.decode!(response.body)["data"]
-    %{ife | exit_data: exit_data}
+    exit_data = pull_api_until_successful(InFlightExit, :in_flight_exit_get_data, Watcher.new(), payload)
+    IfeExitData.to_struct(exit_data)
+    %{ife | exit_data: IfeExitData.to_struct(exit_data)}
   end
 
   defp get_exit_game_contract_address(ife) do
@@ -125,7 +126,7 @@ defmodule Itest.InFlightExitClient do
       }
 
       {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-      wait_on_receipt_confirmed(receipt_hash, @retry_count)
+      wait_on_receipt_confirmed(receipt_hash)
       wait_for_exit_queue(ife, @retry_count)
       %{ife | add_exit_queue_hash: receipt_hash}
     end
@@ -151,11 +152,11 @@ defmodule Itest.InFlightExitClient do
   defp do_in_flight_exit(
          %{address: address, exit_data: exit_data, exit_game_contract_address: exit_game_contract_address} = ife
        ) do
-    in_flight_tx = Encoding.to_binary(exit_data["in_flight_tx"])
-    in_flight_tx_sigs = Enum.map(exit_data["in_flight_tx_sigs"], &Encoding.to_binary(&1))
-    input_txs = Enum.map(exit_data["input_txs"], &Encoding.to_binary(&1))
-    input_txs_inclusion_proofs = Enum.map(exit_data["input_txs_inclusion_proofs"], &Encoding.to_binary(&1))
-    input_utxos_pos = Enum.map(exit_data["input_utxos_pos"], &:binary.encode_unsigned(&1))
+    in_flight_tx = Encoding.to_binary(exit_data.in_flight_tx)
+    in_flight_tx_sigs = Enum.map(exit_data.in_flight_tx_sigs, &Encoding.to_binary(&1))
+    input_txs = Enum.map(exit_data.input_txs, &Encoding.to_binary(&1))
+    input_txs_inclusion_proofs = Enum.map(exit_data.input_txs_inclusion_proofs, &Encoding.to_binary(&1))
+    input_utxos_pos = Enum.map(exit_data.input_utxos_pos, &:binary.encode_unsigned(&1))
 
     values = [
       {in_flight_tx, input_txs, input_utxos_pos, input_txs_inclusion_proofs, in_flight_tx_sigs}
@@ -178,7 +179,7 @@ defmodule Itest.InFlightExitClient do
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     _ = Logger.info("Done IFE with hash #{receipt_hash}")
-    wait_on_receipt_confirmed(receipt_hash, @retry_count)
+    wait_on_receipt_confirmed(receipt_hash)
 
     %{ife | start_in_flight_exit: receipt_hash}
   end
@@ -282,7 +283,7 @@ defmodule Itest.InFlightExitClient do
     }
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    wait_on_receipt_confirmed(receipt_hash, @retry_count)
+    wait_on_receipt_confirmed(receipt_hash)
     _ = Logger.info("Piggyback input... DONE.")
     %{ife | piggyback_input_hash: receipt_hash}
   end
@@ -324,7 +325,9 @@ defmodule Itest.InFlightExitClient do
     }
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    wait_on_receipt_confirmed(receipt_hash, @retry_count)
+    wait_on_receipt_confirmed(receipt_hash)
+
+    get_next_exit_from_queue()
 
     get_next_exit_from_queue()
 

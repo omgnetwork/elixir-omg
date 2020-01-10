@@ -40,37 +40,49 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   @moduletag timeout: 180_000
 
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :alice_deposits]
-  test "piggyback in flight exit", %{alice: alice, bob: bob, alice_deposits: {alice_deposit, _}} do
+  test "piggyback in flight exit", %{alice: alice, bob: bob, alice_deposits: {alice_deposit_blknum, _}} do
     {:ok, _} = DevHelper.import_unlock_fund(bob)
-    bob_deposit = DepositHelper.deposit_to_child_chain(bob.addr, 10)
-
+    bob_deposit_blknum = DepositHelper.deposit_to_child_chain(bob.addr, 10)
+    txindex = 0
+    oindex = 0
+    # alice creates a transaction sending 5 eth to bob (creates! not sends!)
     submitted_tx =
       OMG.TestHelper.create_signed(
-        [{alice_deposit, 0, 0, alice}, {bob_deposit, 0, 0, bob}],
+        [{alice_deposit_blknum, txindex, oindex, alice}, {bob_deposit_blknum, txindex, oindex, bob}],
         @eth,
         [{alice, 5}, {bob, 15}]
       )
 
     submitted_txbytes = Transaction.raw_txbytes(submitted_tx)
 
+    # alice creates a transaction sending 5 eth to bob (creates! not sends!)
+
+    # bob gets exit data for his 10-5 deposit eth
     # To create in-flight exit watcher needs to have available utxos in his state,
     # otherwise the watcher state indicates that there is no need to do an in-flight exit.
     competing_ife =
-      OMG.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 5}])
+      OMG.TestHelper.create_signed([{bob_deposit_blknum, 0, 0, bob}], @eth, [{bob, 5}])
       |> Transaction.Signed.encode()
       |> WatcherHelper.get_in_flight_exit()
 
+    # bob gets exit data for his 10-5 deposit eth
+
+    # we submit the transaction from alice sending 5 eth to bob
     # Submit tx 1
     %{"blknum" => blknum} = submitted_tx |> Transaction.Signed.encode() |> WatcherHelper.submit()
 
+    # we submit the transaction from alice sending 5 eth to bob
+
+    # bob spending based on alices deposit
     # Submit another tx spending that tx's output
     OMG.TestHelper.create_signed([{blknum, 0, 1, bob}], @eth, [{alice, 2}, {alice, 3}])
     |> Transaction.Signed.encode()
     |> WatcherHelper.submit()
 
     # now, start the "main" IFE we're going to piggyback on
+    # When Alice starts an in flight exit
     {:ok, %{"status" => "0x1"}} = exit_in_flight(submitted_tx, alice)
-
+    # When Alice starts an in flight exit
     # sanity check
     {:ok, ife_id} = RootChain.get_in_flight_exit_id(submitted_txbytes)
     {:ok, {_, _, 0, _, _, _, _}} = RootChain.get_in_flight_exit_struct(ife_id)

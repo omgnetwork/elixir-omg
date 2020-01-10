@@ -11,7 +11,7 @@ defmodule Itest.StandardExitClient do
   alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1
 
-  import Itest.Poller, only: [wait_on_receipt_confirmed: 2, pull_api_until_successful: 4]
+  import Itest.Poller, only: [wait_on_receipt_confirmed: 1, pull_api_until_successful: 4]
 
   use Bitwise
   require Logger
@@ -57,7 +57,7 @@ defmodule Itest.StandardExitClient do
   defp get_utxo(%__MODULE__{address: address} = se) do
     payload = %AddressBodySchema1{address: address}
 
-    {:ok, response} =
+    response =
       pull_api_until_successful(
         WatcherInfoAPI.Api.Account,
         :account_get_utxos,
@@ -65,19 +65,16 @@ defmodule Itest.StandardExitClient do
         payload
       )
 
-    %{"success" => true} = response = Poison.decode!(response.body)
-    %{se | utxo: to_struct(Utxo, hd(response["data"]))}
+    %{se | utxo: response |> hd |> Utxo.to_struct()}
   end
 
   defp get_exit_data(%__MODULE__{utxo: %Utxo{utxo_pos: utxo_pos}} = se) do
     payload = %UtxoPositionBodySchema1{utxo_pos: utxo_pos}
 
-    {:ok, response} =
+    response =
       pull_api_until_successful(WatcherSecurityCriticalAPI.Api.UTXO, :utxo_get_exit_data, Watcher.new(), payload)
 
-    %{"success" => true} = response = Poison.decode!(response.body)
-
-    %{se | exit_data: to_struct(Itest.ApiModel.ExitData, response["data"])}
+    %{se | exit_data: Itest.ApiModel.ExitData.to_struct(response)}
   end
 
   defp get_exit_game_contract_address(se) do
@@ -116,7 +113,11 @@ defmodule Itest.StandardExitClient do
       }
 
       {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+<<<<<<< HEAD
       wait_on_receipt_confirmed(receipt_hash, @retry_count)
+=======
+      wait_on_receipt_confirmed(receipt_hash)
+>>>>>>> feature: introduce cabbage
       wait_for_exit_queue(se, @retry_count)
       %{se | add_exit_queue_hash: receipt_hash}
     end
@@ -160,7 +161,7 @@ defmodule Itest.StandardExitClient do
     }
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    wait_on_receipt_confirmed(receipt_hash, @retry_count)
+    wait_on_receipt_confirmed(receipt_hash)
     %{se | start_standard_exit_hash: receipt_hash}
   end
 
@@ -234,7 +235,7 @@ defmodule Itest.StandardExitClient do
     }
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    wait_on_receipt_confirmed(receipt_hash, @retry_count)
+    wait_on_receipt_confirmed(receipt_hash)
 
     %{se | process_exit_receipt_hash: receipt_hash}
   end
@@ -284,16 +285,5 @@ defmodule Itest.StandardExitClient do
     |> Encoding.to_binary()
     |> ABI.TypeDecoder.decode([:bool])
     |> hd()
-  end
-
-  def to_struct(kind, attrs) do
-    struct = struct(kind)
-
-    Enum.reduce(Map.to_list(struct), struct, fn {k, _}, acc ->
-      case Map.fetch(attrs, Atom.to_string(k)) do
-        {:ok, v} -> %{acc | k => v}
-        :error -> acc
-      end
-    end)
   end
 end

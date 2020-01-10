@@ -9,11 +9,17 @@ defmodule Itest.Poller do
   alias WatcherInfoAPI.Api.Account
   alias WatcherInfoAPI.Api.Transaction
   alias WatcherInfoAPI.Connection, as: WatcherInfo
+  alias WatcherInfoAPI.Model.AddressBodySchema1
 
-  @sleep_retry_sec 5_000
-  @retry_count 60
+  @sleep_retry_sec 1_000
+  @retry_count 30
 
-  def pull_api_until_successful(module, function, connection, payload),
+  def pull_for_utxo_until_recognized_deposit(account, amount, currency, blknum) do
+    payload = %AddressBodySchema1{address: account}
+    pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, @retry_count)
+  end
+
+  def pull_api_until_successful(module, function, connection, payload \\ nil),
     do: pull_api_until_successful(module, function, connection, payload, @retry_count)
 
   @doc """
@@ -39,23 +45,27 @@ defmodule Itest.Poller do
   @doc """
     Ethereum:: Waits on the receipt status as 'confirmed'
   """
-  def wait_on_receipt_confirmed(receipt_hash, counter),
-    do: wait_on_receipt_status(receipt_hash, "0x1", counter)
+  def wait_on_receipt_confirmed(receipt_hash),
+    do: wait_on_receipt_status(receipt_hash, "0x1", @retry_count)
 
   #######################################################################################################
   ### PRIVATE
   #######################################################################################################
   defp pull_api_until_successful(module, function, connection, payload, 0),
-    do: apply(module, function, [connection, payload])
+    do: Jason.decode!(apply(module, function, [connection, payload]))["data"]
 
   defp pull_api_until_successful(module, function, connection, payload, counter) do
-    response = apply(module, function, [connection, payload])
+    response =
+      case payload do
+        nil -> apply(module, function, [connection])
+        _ -> apply(module, function, [connection, payload])
+      end
 
     case response do
       {:ok, data} ->
         case Jason.decode!(data.body) do
-          %{"success" => true} ->
-            response
+          %{"success" => true} = resp ->
+            resp["data"]
 
           _ ->
             Process.sleep(@sleep_retry_sec)
@@ -213,7 +223,7 @@ defmodule Itest.Poller do
         submit_typed(typed_data_signed, counter - 1)
 
       %{"txhash" => _} ->
-        struct(SubmitTransactionResponse, decoded_response)
+        SubmitTransactionResponse.to_struct(decoded_response)
     end
   end
 
@@ -227,6 +237,58 @@ defmodule Itest.Poller do
     {:ok, tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(response["transactionHash"])
 
     {:ok, reason} = Ethereumex.HttpClient.eth_call(Map.put(tx, "data", tx["input"]), tx["blockNumber"])
-    _ = Logger.info("Revert reason for #{inspect(response)}: #{inspect(Itest.Transactions.Encoding.to_binary(reason))}")
+
+    _ =
+      Logger.info(
+        "Revert reason for #{inspect(response)}: revert string: #{inspect(reason)} revert string: #{
+          inspect(Itest.Transactions.Encoding.to_binary(reason))
+        }"
+      )
+  end
+
+  defp pull_for_utxo_until_recognized_deposit(payload, _, _, _, 0) do
+    {:ok, data} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), payload)
+    Jason.decode!(data.body)
+  end
+
+  defp pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter) do
+    response = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), payload)
+
+    case response do
+      {:ok, data} ->
+        case Jason.decode!(data.body) do
+          %{
+            "success" => true,
+            "data" => utxos
+          } ->
+            # does the UTXO set contain our deposit?
+
+            has_deposit =
+              Enum.find(utxos, fn
+                %{"amount" => ^amount, "blknum" => ^blknum, "currency" => ^currency} ->
+                  true
+
+                _ ->
+                  false
+              end)
+
+            case is_map(has_deposit) do
+              true ->
+                Jason.decode!(data.body)
+
+              _ ->
+                Process.sleep(@sleep_retry_sec)
+                pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter)
+            end
+
+          _ ->
+            Process.sleep(@sleep_retry_sec)
+            pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter)
+        end
+
+      _ ->
+        Process.sleep(@sleep_retry_sec)
+        pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter)
+    end
   end
 end
