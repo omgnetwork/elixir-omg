@@ -19,9 +19,9 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   """
 
   alias OMG.Merkle
+  alias Support.Conformance.MerkleProofContext
 
-  # FIXME: explicit import here
-  import Support.Conformance.MerkleProofs
+  import Support.Conformance.MerkleProofs, only: [solidity_proof_valid: 5]
 
   use PropCheck
   use ExUnit.Case, async: false
@@ -29,7 +29,8 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   @moduletag :property
   @moduletag timeout: 450_000
 
-  @max_block_size trunc(:math.pow(2, 16))
+  @proof_length 16
+  @max_block_size trunc(:math.pow(2, @proof_length))
 
   setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
@@ -45,8 +46,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   end
 
   property "any root hash and proof created by the Elixir implementation validates in the contract",
-           # FIXME: revisit max sizes and num tests in all tests
-           [50, :verbose, max_size: @max_block_size, constraint_tries: 100_000],
+           [250, :verbose, max_size: 256, constraint_tries: 100_000],
            %{contract: contract} do
     forall leaves <- list(binary()) do
       root_hash = Merkle.hash(leaves)
@@ -60,30 +60,49 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
     end
   end
 
-  # FIXME: remove work tag
-  @tag :work
-  property "no proof created by the Elixir implementation proves a different txindex in the contract",
-           [500, :verbose, max_size: 1000, constraint_tries: 100_000],
+  property "no proof can prove a mutated leaf",
+           [2500, :verbose, max_size: 256, constraint_tries: 100_000],
            %{contract: contract} do
-    forall leaves <- such_that(leaves <- list(binary()), when: length(leaves) > 0) do
-      leaves_length = length(leaves)
-      root_hash = Merkle.hash(leaves)
-
-      forall txindex <- integer(0, leaves_length - 1) do
-        proof = Merkle.create_tx_proof(leaves, txindex)
-        leaf = Enum.at(leaves, txindex)
-
-        forall other_txindex <- such_that(other_txindex <- non_neg_integer(), when: other_txindex != txindex) do
-          not solidity_proof_valid(leaf, other_txindex, root_hash, proof, contract)
-        end
+    forall proof <- MerkleProofContext.correct() do
+      forall mutated <- MerkleProofContext.mutated_leaf(proof) do
+        if proof == mutated, do: IO.puts("equal")
+        not solidity_proof_valid(mutated.leaf, mutated.txindex, mutated.root_hash, mutated.proof, contract)
       end
     end
   end
 
-  # FIXME:
-  # - how to smartly try to trick the validator?
-  #    - mutate the leaf using the merkle tree (can expand the above property, otherwise it's trivial)
-  #    - mutate the proof also. Mutate within the domain of the tripplet: leaf, index, proof. Keep the root hash and tree
+  property "no proof can prove at different index",
+           [2500, :verbose, max_size: 256, constraint_tries: 100_000],
+           %{contract: contract} do
+    forall proof <- MerkleProofContext.correct() do
+      forall mutated <- MerkleProofContext.mutated_txindex(proof) do
+        if proof == mutated, do: IO.puts("equal")
+        not solidity_proof_valid(mutated.leaf, mutated.txindex, mutated.root_hash, mutated.proof, contract)
+      end
+    end
+  end
+
+  property "no mutated proof bytes can prove anything that the original proved",
+           [2500, :verbose, max_size: 256, constraint_tries: 100_000],
+           %{contract: contract} do
+    forall proof <- MerkleProofContext.correct() do
+      forall mutated <- MerkleProofContext.mutated_proof(proof) do
+        if proof == mutated, do: IO.puts("equal")
+        not solidity_proof_valid(mutated.leaf, mutated.txindex, mutated.root_hash, mutated.proof, contract)
+      end
+    end
+  end
+
+  property "no proof can prove a different leaf/txindex if proof bytes mutated",
+           [2500, :verbose, max_size: 256, constraint_tries: 100_000],
+           %{contract: contract} do
+    forall proof <- MerkleProofContext.correct() do
+      forall mutated <- MerkleProofContext.mutated_to_prove_sth_else(proof) do
+        if proof == mutated, do: IO.puts("equal")
+        not solidity_proof_valid(mutated.leaf, mutated.txindex, mutated.root_hash, mutated.proof, contract)
+      end
+    end
+  end
 
   # FIXME: full 2**16 merkle trees, >2**16 proofs and trees (?) - property test or not?
 

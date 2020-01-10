@@ -26,7 +26,19 @@ defmodule Support.Conformance.MerkleProofs do
     signature = "checkMembership(bytes,uint256,bytes32,bytes)"
     args = [leaf, index, root_hash, proof]
     return_types = [:bool]
-    {:ok, result} = Eth.call_contract(contract, signature, args, return_types)
-    result
+
+    try do
+      {:ok, result} = Eth.call_contract(contract, signature, args, return_types)
+      result
+      # FIXME: some incorrect proofs throw, and end up returning something that the ABI decoder borks on (looks like
+      #        reason). Rethink here
+    rescue
+      e in CaseClauseError ->
+        # this is the reason, attempted to be decoded as a bool or something. See fixme above. Asserting just in case
+        %{term: 3_963_877_391_197_344_453_575_983_046_348_115_674_221_700_746_820_753_546_331_534_351_508_065_746_944} =
+          e
+
+        false
+    end
   end
 end
