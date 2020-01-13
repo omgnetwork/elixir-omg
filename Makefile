@@ -59,7 +59,7 @@ help:
 	@echo "4. In the fourth terminal window, run:"
 	@echo "    make start-watcher_info"
 	@echo ""
-	@echo "5. Wait until they all boot. And run in the fourth terminal window:"
+	@echo "5. Wait until they all boot. And run in the fifth terminal window:"
 	@echo "    make get-alarms"
 	@echo ""
 	@echo "If you want to attach yourself to running services, use:"
