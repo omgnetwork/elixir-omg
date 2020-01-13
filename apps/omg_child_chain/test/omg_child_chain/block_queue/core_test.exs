@@ -14,7 +14,6 @@
 
 defmodule OMG.ChildChain.BlockQueue.CoreTest do
   @moduledoc false
-  use ExUnitFixtures
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureLog
@@ -30,8 +29,8 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
   @nonce_too_low_response {:error, %{"code" => -32_000, "message" => "nonce too low"}}
   @account_locked_response {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}}
 
-  deffixture empty do
-    {:ok, state} =
+  setup do
+    {:ok, empty} =
       new(
         mined_child_block_num: 0,
         known_hashes: [],
@@ -44,21 +43,14 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
         last_enqueued_block_at_height: 0
       )
 
-    state
-  end
-
-  deffixture empty_with_gas_params(empty) do
     state = %{empty | formed_child_block_num: 5 * @child_block_interval, gas_price_to_use: 100}
-
-    {:dont_form_block, state} =
-      state
-      |> set_ethereum_status(1, 3 * @child_block_interval, false)
+    {:dont_form_block, empty_with_gas_params} = set_ethereum_status(state, 1, 3 * @child_block_interval, false)
 
     # assertions - to be explicit how state looks like
     child_block_mined = 3 * @child_block_interval
     assert {1, ^child_block_mined} = state.gas_price_adj_params.last_block_mined
 
-    state
+    {:ok, %{empty: empty, empty_with_gas_params: empty_with_gas_params}}
   end
 
   @doc """
@@ -230,7 +222,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       catch_error(get_blocks_to_submit(new()))
     end
 
-    @tag fixtures: [:empty]
     test "A new block is emitted ASAP", %{empty: empty} do
       assert [%{hash: "2", nonce: 2}] =
                empty
@@ -240,8 +231,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> get_blocks_to_submit()
     end
 
-    @tag :basic
-    @tag fixtures: [:empty]
     test "Produced child block numbers to form are as expected", %{empty: empty} do
       assert {:dont_form_block, queue} =
                empty
@@ -252,7 +241,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> set_ethereum_status(2, 0, false)
     end
 
-    @tag fixtures: [:empty]
     test "Produced child blocks to form aren't repeated, if none are enqueued", %{empty: empty} do
       assert {:do_form_block, queue} =
                empty
@@ -263,7 +251,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> set_ethereum_status(3, 0, false)
     end
 
-    @tag fixtures: [:empty]
     test "Ethereum updates and enqueues can go interleaved", %{empty: empty} do
       # no enqueue after set_ethereum_status(1) so don't form block
       assert {:dont_form_block, queue} =
@@ -290,7 +277,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     end
 
     # NOTE: theoretically the back off is ver hard to get - testing if this rare occasion doesn't make the state weird
-    @tag fixtures: [:empty]
     test "Ethereum updates can back off and jump independent from enqueues", %{empty: empty} do
       # no enqueue after set_ethereum_status(2) so don't form block
       assert {:dont_form_block, queue} =
@@ -316,14 +302,12 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> set_ethereum_status(4, 0, false)
     end
 
-    @tag fixtures: [:empty]
     test "Block is not enqueued when number of enqueued block does not match expected block number", %{empty: empty} do
       {:error, :unexpected_block_number} =
         empty
         |> enqueue_block("1", 2 * @child_block_interval, 0)
     end
 
-    @tag fixtures: [:empty]
     test "Produced blocks submission requests have nonces in order", %{empty: empty} do
       assert [_, %{nonce: 2}] =
                empty
@@ -334,7 +318,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> get_blocks_to_submit()
     end
 
-    @tag fixtures: [:empty]
     test "Block generation is driven by last enqueued block Ethereum height and if block is empty or not", %{
       empty: empty
     } do
@@ -367,7 +350,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> set_ethereum_status(parent_height + 2, 0, false)
     end
 
-    @tag fixtures: [:empty]
     test "Smoke test", %{empty: empty} do
       assert {:dont_form_block, queue} =
                empty
@@ -398,7 +380,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       state |> :erlang.term_to_binary() |> byte_size()
     end
 
-    @tag fixtures: [:empty]
     test "Old blocks are removed, but only after finality_threshold", %{empty: empty} do
       long_length = 1_000
       short_length = 4
@@ -428,7 +409,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     # TODO: rewrite these tests to not use the internal `gas_price_adj_params` field - ask for submissions via public
     #       interface instead
 
-    @tag fixtures: [:empty]
     test "Calling with empty state will initailize gas information", %{empty: empty} do
       {:dont_form_block, state} =
         empty
@@ -439,7 +419,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert {1, 0} == gas_params.last_block_mined
     end
 
-    @tag fixtures: [:empty_with_gas_params]
     test "Calling with current ethereum height doesn't change the gas params", %{
       empty_with_gas_params: empty_with_gas_params
     } do
@@ -458,7 +437,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert current_params == newstate.gas_price_adj_params
     end
 
-    @tag fixtures: [:empty_with_gas_params]
     test "Gas price is lowered when ethereum blocks gap isn't filled", %{empty_with_gas_params: empty_with_gas_params} do
       state = empty_with_gas_params |> Core.enqueue_block(<<0>>, 6 * @child_block_interval, 1)
       current_price = state.gas_price_to_use
@@ -473,7 +451,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert 90 == newstate.gas_price_to_use
     end
 
-    @tag fixtures: [:empty_with_gas_params]
     test "Gas price is raised when ethereum blocks gap is filled", %{empty_with_gas_params: empty_with_gas_params} do
       state = empty_with_gas_params
       current_price = state.gas_price_to_use
@@ -490,7 +467,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert 200 == newstate.gas_price_to_use
     end
 
-    @tag fixtures: [:empty_with_gas_params]
     test "Gas price is lowered and then raised when ethereum blocks gap gets filled", %{
       empty_with_gas_params: empty_with_gas_params
     } do
@@ -519,7 +495,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert state3.gas_price_to_use < state4.gas_price_to_use
     end
 
-    @tag fixtures: [:empty_with_gas_params]
     test "Gas price calculation cannot be raised above limit", %{empty_with_gas_params: state} do
       expected_max_price = 5 * state.gas_price_to_use
       gas_params = %{state.gas_price_adj_params | gas_price_raising_factor: 10, max_gas_price: expected_max_price}
@@ -533,7 +508,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       end)
     end
 
-    @tag fixtures: [:empty_with_gas_params]
     test "Gas price doesn't change if no new blocks are formed, and is lowered the moment there's one",
          %{empty_with_gas_params: state} do
       expected_price = state.gas_price_to_use
@@ -598,7 +572,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
              end) =~ "[error]"
     end
 
-    @tag fixtures: [:empty_with_gas_params]
     test "gas price change only, when try to push blocks", %{empty_with_gas_params: state} do
       gas_price = state.gas_price_to_use
 
@@ -614,7 +587,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert state.gas_price_to_use > gas_price
     end
 
-    @tag fixtures: [:empty_with_gas_params]
     test "gas price changes only, when etherum advanses", %{empty_with_gas_params: state} do
       gas_price = state.gas_price_to_use
       eth_height = 0
@@ -634,7 +606,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert state.gas_price_to_use < gas_price
     end
 
-    @tag fixtures: [:empty_with_gas_params]
     test "gas price doesn't change when ethereum backs off, even if block in queue", %{empty_with_gas_params: state} do
       eth_height = 100
       {_, state} = set_ethereum_status(state, eth_height, 0, false)
