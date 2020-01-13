@@ -115,7 +115,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           child_block_interval: pos_integer(),
           # Ethereum height at which first block was mined
           chain_start_parent_height: pos_integer(),
-          # minimal gap between child blocks
+          # configure to trigger forming a child chain block every this many Ethereum blocks are mined since enqueueing
           block_submit_every_nth: pos_integer(),
           # depth of max reorg we take into account
           finality_threshold: pos_integer(),
@@ -364,7 +364,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
          is_empty_block
        ) do
     # e.g. if we're at 15th Ethereum block now, last enqueued was at 14th, we're submitting a child chain block on every
-    # single Ethereum block (`block_submit_every_nth` == 1), then we should mine a block (`it_is_time` is `true`)
+    # single Ethereum block (`block_submit_every_nth` == 1), then we could form a new block (`it_is_time` is `true`)
     it_is_time = parent_height - last_enqueued_block_at_height >= block_submit_every_nth
     should_form_block = it_is_time and !wait_for_enqueue and !is_empty_block
 

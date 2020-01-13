@@ -181,13 +181,27 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                )
     end
 
+    test "Won't recover if mined block number and hash don't match with db" do
+      assert {:error, :mined_blknum_not_found_in_db} ==
+               Core.new(
+                 mined_child_block_num: 2000,
+                 known_hashes: [{1000, <<1::size(256)>>}],
+                 top_mined_hash: <<2::size(256)>>,
+                 parent_height: 10,
+                 child_block_interval: 1000,
+                 chain_start_parent_height: 1,
+                 block_submit_every_nth: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
+               )
+    end
+
     test "Won't recover if mined block number doesn't match with db" do
       assert {:error, :mined_blknum_not_found_in_db} ==
                Core.new(
                  mined_child_block_num: 2000,
                  known_hashes: [{1000, <<1::size(256)>>}],
-                 # TODO(pdobacz, fixing in a follow-up PR): shouldn't be 1 below?
-                 top_mined_hash: <<2::size(256)>>,
+                 top_mined_hash: <<1::size(256)>>,
                  parent_height: 10,
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
