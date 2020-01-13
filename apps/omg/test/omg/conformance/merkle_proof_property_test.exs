@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 defmodule OMG.Conformance.MerkleProofPropertyTest do
   @moduledoc """
-  Checks if some properties about the merkle proofing (proof generation and validation) behaves consistently across
+  Checks if some properties about the merkle proving (proof generation and validation) are consistent across
   implementations (currently `elixir-omg` and `plasma-contracts`, Elixir and Solidity)
   """
 

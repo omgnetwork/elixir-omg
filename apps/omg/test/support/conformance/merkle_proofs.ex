@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 defmodule Support.Conformance.MerkleProofs do
   @moduledoc """
-  Utility functions that used when testing Elixir vs Solidity implementation conformance
+  Utility functions used when testing Elixir vs Solidity implementation conformance
   """
   alias OMG.Eth
 

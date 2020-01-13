@@ -75,7 +75,7 @@ defmodule Support.Conformance.MerkleProofContext do
   end
 
   @doc """
-  A mutated context where only the proof bytes is different from the original, correct proof
+  A mutated context where only the proof bytes are different from the original, correct proof
   """
   def mutated_proof(%__MODULE__{} = base) do
     union([
@@ -85,7 +85,7 @@ defmodule Support.Conformance.MerkleProofContext do
   end
 
   @doc """
-  A mutated context where we're trying to alter both the proof and what we proof, aiming to "reuse" parts of a proof
+  A mutated context where we're trying to alter both the proof and what we prove, aiming to "reuse" parts of a proof
   that worked (the original, `base`) and produce a proof that works when it shouldn't
   """
   def mutated_to_prove_sth_else(%__MODULE__{} = base) do
