@@ -33,7 +33,6 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   schema "transactions" do
     field(:txindex, :integer)
     field(:txbytes, :binary)
-    field(:sent_at, :utc_datetime)
     field(:metadata, :binary)
 
     has_many(:inputs, DB.TxOutput, foreign_key: :spending_txhash)

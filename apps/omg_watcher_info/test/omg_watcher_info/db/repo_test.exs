@@ -17,6 +17,8 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
+  import Ecto.Query
+
   import OMG.WatcherInfo.Factory
 
   alias OMG.WatcherInfo.DB

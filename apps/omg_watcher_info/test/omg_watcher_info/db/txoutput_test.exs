@@ -17,6 +17,8 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
+  import Ecto.Query
+
   import OMG.WatcherInfo.Factory
 
   alias OMG.Utxo
@@ -70,7 +72,10 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
   describe "OMG.WatcherInfo.DB.TxOutput.get_utxo_by_position/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a txoutput for the position if the txoutput exists and has not been spent" do
-      txoutput = insert(:txoutput, creating_transaction: nil, proof: nil)
+      txoutput =
+        build(:txoutput)
+        |> with_deposit()
+        |> insert()
 
       utxo = DB.TxOutput.get_utxo_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
 
@@ -82,32 +87,22 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns nil for the position if the txoutput exists, but has been spent" do
-      creating_block = insert(:block)
-      spending_block = insert(:block)
-
-      creating_transaction = insert(:transaction, block: creating_block)
-      spending_transaction = insert(:transaction, block: spending_block)
-
       txoutput =
-        insert(:txoutput,
-          blknum: creating_block.blknum,
-          creating_transaction: creating_transaction,
-          spending_transaction: spending_transaction,
-          spending_tx_oindex: 0
-        )
+        build(:txoutput)
+        |> with_deposit()
+        |> with_spending_transaction()
+        |> insert()
 
       assert DB.TxOutput.get_utxo_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)) == nil
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns nil for the position if the txoutput exists, but has been exited" do
-      block = insert(:block)
-
-      txoutput = insert(:txoutput, blknum: block.blknum)
-
-      exit_params = exit_params_from_txoutput(txoutput)
-
-      assert DB.EthEvent.insert_exits!([exit_params]) == :ok
+      txoutput =
+        build(:txoutput)
+        |> with_deposit()
+        |> with_standard_exit()
+        |> insert()
 
       assert DB.TxOutput.get_utxo_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)) == nil
     end
@@ -115,6 +110,77 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns nil for the position if the txoutput does not exist" do
       assert DB.TxOutput.get_utxo_by_position(Utxo.position(0, 0, 0)) == nil
+    end
+  end
+
+  describe "OMG.WatcherInfo.DB.TxOutput.get_utxos/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a txoutputs for the owner address if the txoutputs exist and have not been spent" do
+      txoutput =
+        build(:txoutput)
+        |> with_deposit()
+        |> insert()
+
+      utxos = DB.TxOutput.get_utxos(txoutput.owner)
+
+      assert utxos != nil
+      assert length(utxos) == 1
+
+      [utxo | _] = utxos
+
+      assert txoutput.blknum == utxo.blknum
+      assert txoutput.txindex == utxo.txindex
+      assert txoutput.oindex == utxo.oindex
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns empty array for the owner address if the txoutputs exist, but have been spent" do
+      txoutput =
+        build(:txoutput)
+        |> with_deposit()
+        |> with_spending_transaction()
+        |> IO.inspect(label: "txoutput")
+        |> insert()
+
+      assert length(DB.TxOutput.get_utxos(txoutput.owner)) == 0
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns empty array for the owner address if the txoutputs exist, but have been exited" do
+      txoutput =
+        build(:txoutput)
+        |> with_deposit()
+        |> with_standard_exit()
+        |> insert()
+
+      assert length(DB.TxOutput.get_utxos(txoutput.owner)) == 0
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a filtered list of txoutputs for the owner address that have not been spent nor exited" do
+      txoutput =
+        build(:txoutput)
+        |> with_deposit()
+        |> insert()
+
+      build(:txoutput, owner: txoutput.owner)
+      |> with_deposit()
+      |> with_spending_transaction()
+      |> insert()
+
+      build(:txoutput, owner: txoutput.owner)
+      |> with_deposit()
+      |> with_standard_exit()
+      |> insert()
+
+      assert length(DB.TxOutput.get_utxos(txoutput.owner)) == 1
+
+      assert DB.Repo.one(
+               from(t in DB.TxOutput,
+                 where: t.owner == ^txoutput.owner,
+                 select: count(t.child_chain_utxohash)
+               )
+             ) == 3
     end
   end
 end

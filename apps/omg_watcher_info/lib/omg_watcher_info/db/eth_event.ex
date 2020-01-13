@@ -86,7 +86,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     end
   end
 
-  def event_not_exists?(composite_key = %{root_chain_txhash: _, log_index: _}) do
+  def event_not_exists?(%{root_chain_txhash: _, log_index: _} = composite_key) do
     fn _, _ ->
       case get_by(composite_key) do
         nil -> {:ok, nil}
@@ -123,11 +123,11 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           decoded_utxo_position: Utxo.Position.t()
         }) :: :ok | :error
   defp insert_exit!(
-         utxo_exit = %{
+         %{
            root_chain_txhash: _,
            log_index: _,
            decoded_utxo_position: decoded_utxo_position
-         }
+         } = utxo_exit
        ) do
     result =
       Multi.new()

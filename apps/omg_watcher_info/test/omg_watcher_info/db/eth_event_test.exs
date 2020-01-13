@@ -22,7 +22,6 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
 
-  alias OMG.WatcherInfo.Factory
   import OMG.WatcherInfo.Factory
 
   require Utxo
@@ -30,16 +29,18 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
   describe "DB.EthEvent.insert_deposits!/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "creates deposit events and the events' corresponding utxo" do
-      deposits = Factory.deposits_params(3)
+      blocks = insert_list(3, :block)
+      deposits = Enum.map(blocks, fn block -> deposit_params(block.blknum) end)
 
       assert DB.EthEvent.insert_deposits!(deposits) == :ok
 
-      assert_deposits_ethevents(deposits)
+      assert_deposit_ethevents(deposits)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "inserting duplicate deposits results in an error and has no effect on the DB" do
-      %{root_chain_txhash: root_chain_txhash, log_index: log_index} = deposit = Factory.deposit_params()
+      block = insert(:block)
+      %{root_chain_txhash: root_chain_txhash, log_index: log_index} = deposit = deposit_params(block.blknum)
 
       assert DB.EthEvent.insert_deposits!([deposit]) == :ok
       assert DB.EthEvent.insert_deposits!([deposit]) == :error
@@ -50,10 +51,10 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "deposit creation cannot partially fail" do
       block = insert(:block)
-      _txoutput = insert(:txoutput, blknum: block.blknum, creating_transaction: nil)
+      insert(:txoutput, blknum: block.blknum)
 
       # create a deposit with a txoutput that already exists, which will cause a failure
-      deposit = Factory.deposit_params(block: block)
+      deposit = deposit_params(block.blknum)
 
       assert DB.EthEvent.insert_deposits!([deposit]) == :error
 
@@ -63,68 +64,94 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     end
   end
 
-  # describe "DB.EthEvent and DB.TxOutput relationship" do
-  #   @tag fixtures: [:phoenix_ecto_sandbox]
-  #   test "updating txoutput does not affect txoutput's ethevents" do
-  #   end
-
-  #   @tag fixtures: [:phoenix_ecto_sandbox]
-  #   test "txoutput's ethevents can only be appended to, but not deleted from" do
-  #   end
-  # end
-
   describe "DB.EthEvent.insert_standard_exits!/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "insert standard exits: creates exit event for an unspent utxo" do
-      deposits = Factory.deposits_params(1)
+      block = build(:block)
+      deposit = deposit_params(block.blknum)
 
-      DB.EthEvent.insert_deposits!(deposits)
-      deposit_ethevents = DB.EthEvent.get_by(deposits)
+      DB.EthEvent.insert_deposits!([deposit])
+      deposit_ethevents = DB.EthEvent.get_by([deposit])
 
-      exit_utxos_params = Factory.exits_params_from_ethevents(deposit_ethevents)
+      exit_utxos_params =
+        Enum.map(deposit_ethevents, fn deposit_ethevent ->
+          exit_params_from_ethevent(deposit_ethevent)
+        end)
 
       assert DB.EthEvent.insert_exits!(exit_utxos_params) == :ok
       exit_ethevents = DB.EthEvent.get_by(exit_utxos_params)
 
-      assert_standard_exit_utxos(exit_utxos_params, deposit_ethevents, exit_ethevents)
+      utxo_positions =
+        Enum.map(exit_utxos_params, fn exit_utxos_param ->
+          exit_utxos_param.call_data.utxo_pos
+        end)
+
+      assert_standard_exit_ethevents(utxo_positions, deposit_ethevents, exit_ethevents)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "insert standard exits: updating txoutput has no effect on already existing ethevents for this txoutput" do
-      [deposit_params | _] = Factory.deposits_params(1)
+    test "ethevents_txoutputs relationship should have correct information after multiple ethevents on a single txoutput" do
+      block = build(:block)
+      deposit_params = deposit_params(block.blknum)
 
-      DB.EthEvent.insert_deposits!([deposit_params])
+      assert DB.EthEvent.insert_deposits!([deposit_params]) == :ok
 
       deposit_ethevent = DB.EthEvent.get_by(deposit_params)
-      [txoutput | _] = deposit_ethevent.txoutputs
+      [deposit_txoutput | _] = deposit_ethevent.txoutputs
 
       # store the original association row
       ethevent_txoutput =
         DB.Repo.get_by!(
           DB.EthEventsTxOutputs,
           root_chain_txhash_event: deposit_ethevent.root_chain_txhash_event,
-          child_chain_utxohash: txoutput.child_chain_utxohash
+          child_chain_utxohash: deposit_txoutput.child_chain_utxohash
         )
 
-      exit_params = Factory.exit_params_from_txoutput(txoutput)
+      exit_params = exit_params_from_txoutput(deposit_txoutput)
 
       assert DB.EthEvent.insert_exits!([exit_params]) == :ok
+
+      exit_ethevent = DB.EthEvent.get_by(exit_params)
+      [exit_txoutput | _] = exit_ethevent.txoutputs
+
+      assert deposit_txoutput.child_chain_utxohash == exit_txoutput.child_chain_utxohash
 
       updated_ethevent_txoutput =
         DB.Repo.get_by!(
           DB.EthEventsTxOutputs,
           root_chain_txhash_event: deposit_ethevent.root_chain_txhash_event,
-          child_chain_utxohash: txoutput.child_chain_utxohash
+          child_chain_utxohash: exit_txoutput.child_chain_utxohash
         )
 
       assert ethevent_txoutput.root_chain_txhash_event == updated_ethevent_txoutput.root_chain_txhash_event
       assert ethevent_txoutput.child_chain_utxohash == updated_ethevent_txoutput.child_chain_utxohash
       assert DateTime.compare(ethevent_txoutput.inserted_at, updated_ethevent_txoutput.inserted_at) == :eq
       assert DateTime.compare(ethevent_txoutput.updated_at, updated_ethevent_txoutput.updated_at) == :eq
+
+      assert DB.Repo.one(
+               from(et in DB.EthEventsTxOutputs,
+                 where: et.child_chain_utxohash == ^deposit_txoutput.child_chain_utxohash,
+                 select: count(et.child_chain_utxohash)
+               )
+             ) == 2
+
+      assert DB.Repo.one(
+               from(et in DB.EthEventsTxOutputs,
+                 where: et.root_chain_txhash_event == ^deposit_ethevent.root_chain_txhash_event,
+                 select: count(et.root_chain_txhash_event)
+               )
+             ) == 1
+
+      assert DB.Repo.one(
+               from(et in DB.EthEventsTxOutputs,
+                 where: et.root_chain_txhash_event == ^exit_ethevent.root_chain_txhash_event,
+                 select: count(et.root_chain_txhash_event)
+               )
+             ) == 1
     end
   end
 
-  def assert_deposits_ethevents(deposits) do
+  def assert_deposit_ethevents(deposits) do
     ethevents = DB.EthEvent.get_by(deposits)
 
     assert length(deposits) == length(ethevents)
@@ -150,6 +177,10 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
     [txoutput | _] = ethevent.txoutputs
 
+    assert_deposit_txoutput(deposit, txoutput)
+  end
+
+  def assert_deposit_txoutput(deposit, txoutput) do
     assert deposit.blknum == txoutput.blknum
     assert deposit.owner == txoutput.owner
     assert deposit.currency == txoutput.currency
@@ -176,41 +207,43 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     assert txoutput.inserted_at != nil
     assert DateTime.compare(txoutput.inserted_at, txoutput.updated_at) == :eq
 
+    root_chain_txhash_event = DB.EthEvent.generate_root_chain_txhash_event(deposit.root_chain_txhash, deposit.log_index)
+
     # check the association table
     ethevent_txoutput =
       DB.Repo.get_by!(
         DB.EthEventsTxOutputs,
-        root_chain_txhash_event: ethevent.root_chain_txhash_event,
+        root_chain_txhash_event: root_chain_txhash_event,
         child_chain_utxohash: txoutput.child_chain_utxohash
       )
 
-    assert ethevent_txoutput.root_chain_txhash_event == ethevent.root_chain_txhash_event
+    assert ethevent_txoutput.root_chain_txhash_event == root_chain_txhash_event
     assert ethevent_txoutput.child_chain_utxohash == txoutput.child_chain_utxohash
 
     assert ethevent_txoutput.inserted_at != nil
     assert DateTime.compare(ethevent_txoutput.inserted_at, ethevent_txoutput.updated_at) == :eq
   end
 
-  def assert_standard_exit_utxos(exit_utxos_params, deposit_ethevents, exit_ethevents) do
-    assert length(exit_utxos_params) == length(deposit_ethevents)
-    assert length(exit_utxos_params) == length(exit_ethevents)
+  def assert_standard_exit_ethevents(utxo_positions, deposit_ethevents, exit_ethevents) do
+    assert length(utxo_positions) == length(deposit_ethevents)
+    assert length(utxo_positions) == length(exit_ethevents)
 
-    Enum.each(Enum.zip([exit_utxos_params, deposit_ethevents, exit_ethevents]), fn {exit_utxo_params, deposit_ethevent,
-                                                                                    exit_ethevent} ->
-      assert_standard_exit_utxo(exit_utxo_params, deposit_ethevent, exit_ethevent)
-    end)
+    Enum.each(
+      Enum.zip([utxo_positions, deposit_ethevents, exit_ethevents]),
+      fn {utxo_position, deposit_ethevent, exit_ethevent} ->
+        assert_standard_exit_ethevent(utxo_position, deposit_ethevent, exit_ethevent)
+      end
+    )
   end
 
-  def assert_standard_exit_utxo(exit_utxo_params, deposit_ethevent, exit_ethevent) do
-    {:ok, {:utxo_position, blknum, txindex, oindex}} = Utxo.Position.decode(exit_utxo_params.call_data.utxo_pos)
+  def assert_standard_exit_ethevent(utxo_pos, deposit_ethevent, exit_ethevent) do
+    {:ok, {:utxo_position, blknum, txindex, oindex}} = Utxo.Position.decode(utxo_pos)
 
     txoutput = DB.TxOutput.get_by_position(Utxo.position(blknum, txindex, oindex))
 
-    assert length(txoutput.ethevents) == 2
-
     Enum.each(txoutput.ethevents, fn ethevent ->
-      e = DB.EthEvent.get_by(%{root_chain_txhash: ethevent.root_chain_txhash, log_index: ethevent.log_index})
-      assert length(e.txoutputs) == 1
+      event = DB.EthEvent.get_by(ethevent)
+      assert length(event.txoutputs) == 1
     end)
 
     assert exit_ethevent.event_type == :standard_exit
@@ -219,6 +252,14 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     assert DateTime.compare(deposit_ethevent.inserted_at, exit_ethevent.inserted_at) == :lt
     assert DateTime.compare(exit_ethevent.inserted_at, exit_ethevent.updated_at) == :eq
 
+    assert_standard_exit_txoutput(
+      txoutput,
+      deposit_ethevent.root_chain_txhash_event,
+      exit_ethevent.root_chain_txhash_event
+    )
+  end
+
+  def assert_standard_exit_txoutput(txoutput, deposit_root_chain_txhash_event, exit_root_chain_txhash_event) do
     # an already spent utxo cannot be exited
     assert txoutput.spending_transaction == nil
     assert txoutput.spending_txhash == nil
@@ -241,14 +282,14 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     txoutput_ethevent_deposit =
       DB.Repo.get_by!(
         DB.EthEventsTxOutputs,
-        root_chain_txhash_event: deposit_ethevent.root_chain_txhash_event,
+        root_chain_txhash_event: deposit_root_chain_txhash_event,
         child_chain_utxohash: txoutput.child_chain_utxohash
       )
 
     txoutput_ethevent_standard_exit =
       DB.Repo.get_by!(
         DB.EthEventsTxOutputs,
-        root_chain_txhash_event: exit_ethevent.root_chain_txhash_event,
+        root_chain_txhash_event: exit_root_chain_txhash_event,
         child_chain_utxohash: txoutput.child_chain_utxohash
       )
 
@@ -259,8 +300,11 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     assert DateTime.compare(txoutput_ethevent_standard_exit.inserted_at, txoutput_ethevent_standard_exit.updated_at) ==
              :eq
 
-    query = from(et in DB.EthEventsTxOutputs, where: et.child_chain_utxohash == ^txoutput.child_chain_utxohash)
-
-    assert length(DB.Repo.all(query)) == length(txoutput.ethevents)
+    assert DB.Repo.one(
+             from(et in DB.EthEventsTxOutputs,
+               where: et.child_chain_utxohash == ^txoutput.child_chain_utxohash,
+               select: count(et.child_chain_utxohash)
+             )
+           ) == 2
   end
 end

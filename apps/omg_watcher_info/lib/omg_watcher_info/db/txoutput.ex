@@ -246,7 +246,11 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
       oindex: 0,
       owner: owner,
       currency: currency,
-      amount: amount
+      amount: amount,
+      creating_txhash: nil,
+      spending_txhash: nil,
+      spending_tx_oindex: nil,
+      proof: nil
     }
 
     changeset(%__MODULE__{}, txoutput)
@@ -254,11 +258,25 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   @doc false
   def changeset(struct, params \\ %{}) do
-    fields = [:blknum, :txindex, :oindex, :child_chain_utxohash, :owner, :amount, :currency]
+    fields = [
+      :child_chain_utxohash,
+      :blknum,
+      :txindex,
+      :oindex,
+      :owner,
+      :currency,
+      :amount,
+      :creating_txhash,
+      :spending_txhash,
+      :spending_tx_oindex,
+      :proof
+    ]
+
+    required_fields = [:blknum, :txindex, :oindex, :child_chain_utxohash, :owner, :amount, :currency]
 
     struct
     |> Ecto.Changeset.cast(params, fields)
-    |> Ecto.Changeset.validate_required(fields)
+    |> Ecto.Changeset.validate_required(required_fields)
     |> Ecto.Changeset.unique_constraint(:blknum, name: :txoutputs_pkey)
     |> Ecto.Changeset.unique_constraint(:child_chain_utxohash)
   end
