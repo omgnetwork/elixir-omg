@@ -197,7 +197,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                  top_mined_hash: <<1::size(256)>>,
                  parent_height: 10,
                  child_block_interval: 1000,
-                 chain_start_parent_height: 1,
                  block_submit_every_nth: 1,
                  finality_threshold: 12,
                  last_enqueued_block_at_height: 0
@@ -219,11 +218,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> elem(1)
                |> Core.enqueue_block("10", 10 * @child_block_interval, 0)
                |> Core.get_blocks_to_submit()
-    end
-
-    # TODO(pdobacz, fixing in a follow-up PR): looks like dupe of 3 tests above
-    test "Recovery will fail if DB is corrupted" do
-      assert {:error, :mined_blknum_not_found_in_db} == recover([{5000, "5"}, {6000, "6"}], 7000)
     end
 
     test "A new block is emitted ASAP", %{empty: empty} do
