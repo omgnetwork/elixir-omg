@@ -92,7 +92,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     # config:
     child_block_interval: nil,
     chain_start_parent_height: nil,
-    minimal_enqueue_block_gap: 1,
+    block_submit_every_nth: 1,
     finality_threshold: 12,
     gas_price_adj_params: %GasPriceAdjustment{}
   ]
@@ -116,7 +116,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           # Ethereum height at which first block was mined
           chain_start_parent_height: pos_integer(),
           # minimal gap between child blocks
-          minimal_enqueue_block_gap: pos_integer(),
+          block_submit_every_nth: pos_integer(),
           # depth of max reorg we take into account
           finality_threshold: pos_integer(),
           # the gas price adjustment strategy parameters
@@ -137,7 +137,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
         parent_height: parent_height,
         child_block_interval: child_block_interval,
         chain_start_parent_height: child_start_parent_height,
-        minimal_enqueue_block_gap: minimal_enqueue_block_gap,
+        block_submit_every_nth: block_submit_every_nth,
         finality_threshold: finality_threshold,
         last_enqueued_block_at_height: last_enqueued_block_at_height
       ) do
@@ -147,7 +147,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
       parent_height: parent_height,
       child_block_interval: child_block_interval,
       chain_start_parent_height: child_start_parent_height,
-      minimal_enqueue_block_gap: minimal_enqueue_block_gap,
+      block_submit_every_nth: block_submit_every_nth,
       finality_threshold: finality_threshold,
       gas_price_adj_params: %GasPriceAdjustment{},
       last_enqueued_block_at_height: last_enqueued_block_at_height
@@ -358,12 +358,14 @@ defmodule OMG.ChildChain.BlockQueue.Core do
          %Core{
            parent_height: parent_height,
            last_enqueued_block_at_height: last_enqueued_block_at_height,
-           minimal_enqueue_block_gap: minimal_enqueue_block_gap,
+           block_submit_every_nth: block_submit_every_nth,
            wait_for_enqueue: wait_for_enqueue
          },
          is_empty_block
        ) do
-    it_is_time = parent_height - last_enqueued_block_at_height > minimal_enqueue_block_gap
+    # e.g. if we're at 15th Ethereum block now, last enqueued was at 14th, we're submitting a child chain block on every
+    # single Ethereum block (`block_submit_every_nth` == 1), then we should mine a block (`it_is_time` is `true`)
+    it_is_time = parent_height - last_enqueued_block_at_height >= block_submit_every_nth
     should_form_block = it_is_time and !wait_for_enqueue and !is_empty_block
 
     _ =
@@ -371,7 +373,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
         log_data = %{
           parent_height: parent_height,
           last_enqueued_block_at_height: last_enqueued_block_at_height,
-          minimal_enqueue_block_gap: minimal_enqueue_block_gap,
+          block_submit_every_nth: block_submit_every_nth,
           wait_for_enqueue: wait_for_enqueue,
           it_is_time: it_is_time,
           is_empty_block: is_empty_block

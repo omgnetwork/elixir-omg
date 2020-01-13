@@ -86,7 +86,7 @@ defmodule OMG.ChildChain.BlockQueue do
                  parent_height: parent_height,
                  child_block_interval: child_block_interval,
                  chain_start_parent_height: parent_start,
-                 minimal_enqueue_block_gap: Application.fetch_env!(:omg_child_chain, :child_block_minimal_enqueue_gap),
+                 block_submit_every_nth: Application.fetch_env!(:omg_child_chain, :block_submit_every_nth),
                  finality_threshold: finality_threshold,
                  last_enqueued_block_at_height: parent_height
                ) do

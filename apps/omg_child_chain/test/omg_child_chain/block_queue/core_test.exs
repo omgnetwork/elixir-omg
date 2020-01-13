@@ -39,7 +39,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
         parent_height: 1,
         child_block_interval: @child_block_interval,
         chain_start_parent_height: 1,
-        minimal_enqueue_block_gap: 1,
+        block_submit_every_nth: 1,
         finality_threshold: 12,
         last_enqueued_block_at_height: 0
       )
@@ -75,7 +75,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       parent_height: 10,
       child_block_interval: 1000,
       chain_start_parent_height: 1,
-      minimal_enqueue_block_gap: 1,
+      block_submit_every_nth: 1,
       finality_threshold: 12,
       last_enqueued_block_at_height: 0
     )
@@ -123,7 +123,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
           parent_height: 6,
           child_block_interval: @child_block_interval,
           chain_start_parent_height: 1,
-          minimal_enqueue_block_gap: 1,
+          block_submit_every_nth: 1,
           finality_threshold: finality_threshold,
           last_enqueued_block_at_height: 0
         )
@@ -152,7 +152,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
           parent_height: 10,
           child_block_interval: 1000,
           chain_start_parent_height: 1,
-          minimal_enqueue_block_gap: 1,
+          block_submit_every_nth: 1,
           finality_threshold: 12,
           last_enqueued_block_at_height: 0
         )
@@ -169,7 +169,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                  parent_height: 10,
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
-                 minimal_enqueue_block_gap: 1,
+                 block_submit_every_nth: 1,
                  finality_threshold: 12,
                  last_enqueued_block_at_height: 0
                )
@@ -184,7 +184,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                  parent_height: 10,
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
-                 minimal_enqueue_block_gap: 1,
+                 block_submit_every_nth: 1,
                  finality_threshold: 12,
                  last_enqueued_block_at_height: 0
                )
@@ -199,7 +199,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                  parent_height: 10,
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
-                 minimal_enqueue_block_gap: 1,
+                 block_submit_every_nth: 1,
                  finality_threshold: 12,
                  last_enqueued_block_at_height: 0
                )
@@ -338,15 +338,15 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     test "Block generation is driven by last enqueued block Ethereum height and if block is empty or not", %{
       empty: empty
     } do
-      %Core{minimal_enqueue_block_gap: minimal_enqueue_block_gap, parent_height: parent_height} = empty
+      %Core{block_submit_every_nth: block_submit_every_nth, parent_height: parent_height} = empty
 
       assert {:dont_form_block, _} =
                empty
-               |> set_ethereum_status(parent_height + minimal_enqueue_block_gap, 0, true)
+               |> set_ethereum_status(parent_height + block_submit_every_nth, 0, true)
 
       assert {:do_form_block, _} =
                empty
-               |> set_ethereum_status(parent_height + minimal_enqueue_block_gap, 0, false)
+               |> set_ethereum_status(parent_height + block_submit_every_nth, 0, false)
 
       assert {:dont_form_block, queue} =
                empty
