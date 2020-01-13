@@ -126,8 +126,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
-  def new, do: {:ok, %__MODULE__{blocks: Map.new()}}
-
   @spec new(keyword) ::
           {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
   def new(

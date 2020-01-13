@@ -233,10 +233,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert {:error, :mined_blknum_not_found_in_db} == recover([{5000, "5"}, {6000, "6"}], 7000)
     end
 
-    test "No submitBlock will be sent until properly initialized" do
-      catch_error(Core.get_blocks_to_submit(Core.new()))
-    end
-
     test "A new block is emitted ASAP", %{empty: empty} do
       assert [%{hash: "2", nonce: 2}] =
                empty
