@@ -55,10 +55,13 @@ defmodule OMG.ChildChain.BlockQueue do
     def handle_continue(:setup, %{}) do
       _ = Logger.info("Starting #{__MODULE__} service.")
       :ok = Eth.node_ready()
+
+      # prevent booting if contracts are not ready
       :ok = Eth.RootChain.contract_ready()
+      {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
+
       {:ok, parent_height} = EthereumHeight.get()
       {:ok, mined_num} = Eth.RootChain.get_mined_child_block()
-      {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
       {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
       {:ok, stored_child_top_num} = OMG.DB.get_single_value(:child_top_block_number)
       {:ok, finality_threshold} = Application.fetch_env(:omg_child_chain, :submission_finality_margin)
@@ -85,7 +88,6 @@ defmodule OMG.ChildChain.BlockQueue do
                  top_mined_hash: top_mined_hash,
                  parent_height: parent_height,
                  child_block_interval: child_block_interval,
-                 chain_start_parent_height: parent_start,
                  block_submit_every_nth: Application.fetch_env!(:omg_child_chain, :block_submit_every_nth),
                  finality_threshold: finality_threshold,
                  last_enqueued_block_at_height: parent_height

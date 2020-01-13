@@ -91,7 +91,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     last_enqueued_block_at_height: 0,
     # config:
     child_block_interval: nil,
-    chain_start_parent_height: nil,
     block_submit_every_nth: 1,
     finality_threshold: 12,
     gas_price_adj_params: %GasPriceAdjustment{}
@@ -113,8 +112,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           # CONFIG CONSTANTS below
           # spacing of child blocks in RootChain contract, being the amount of deposit decimals per child block
           child_block_interval: pos_integer(),
-          # Ethereum height at which first block was mined
-          chain_start_parent_height: pos_integer(),
           # configure to trigger forming a child chain block every this many Ethereum blocks are mined since enqueueing
           block_submit_every_nth: pos_integer(),
           # depth of max reorg we take into account
@@ -134,7 +131,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
         top_mined_hash: top_mined_hash,
         parent_height: parent_height,
         child_block_interval: child_block_interval,
-        chain_start_parent_height: child_start_parent_height,
         block_submit_every_nth: block_submit_every_nth,
         finality_threshold: finality_threshold,
         last_enqueued_block_at_height: last_enqueued_block_at_height
@@ -144,7 +140,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
       mined_child_block_num: mined_child_block_num,
       parent_height: parent_height,
       child_block_interval: child_block_interval,
-      chain_start_parent_height: child_start_parent_height,
       block_submit_every_nth: block_submit_every_nth,
       finality_threshold: finality_threshold,
       gas_price_adj_params: %GasPriceAdjustment{},

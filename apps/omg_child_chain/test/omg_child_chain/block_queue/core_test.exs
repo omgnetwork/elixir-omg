@@ -36,7 +36,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
         top_mined_hash: <<0::256>>,
         parent_height: 0,
         child_block_interval: @child_block_interval,
-        chain_start_parent_height: 1,
         block_submit_every_nth: 1,
         finality_threshold: 12,
         last_enqueued_block_at_height: 0
@@ -65,7 +64,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       top_mined_hash: top_mined_hash,
       parent_height: 10,
       child_block_interval: 1000,
-      chain_start_parent_height: 1,
       block_submit_every_nth: 1,
       finality_threshold: 12,
       last_enqueued_block_at_height: 0
@@ -113,7 +111,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
           top_mined_hash: "6",
           parent_height: 6,
           child_block_interval: @child_block_interval,
-          chain_start_parent_height: 1,
           block_submit_every_nth: 1,
           finality_threshold: finality_threshold,
           last_enqueued_block_at_height: 0
@@ -142,7 +139,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
           top_mined_hash: <<0::size(256)>>,
           parent_height: 10,
           child_block_interval: 1000,
-          chain_start_parent_height: 1,
           block_submit_every_nth: 1,
           finality_threshold: 12,
           last_enqueued_block_at_height: 0
@@ -159,7 +155,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                  top_mined_hash: <<1::size(256)>>,
                  parent_height: 10,
                  child_block_interval: 1000,
-                 chain_start_parent_height: 1,
                  block_submit_every_nth: 1,
                  finality_threshold: 12,
                  last_enqueued_block_at_height: 0
@@ -174,7 +169,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                  top_mined_hash: <<1::size(256)>>,
                  parent_height: 10,
                  child_block_interval: 1000,
-                 chain_start_parent_height: 1,
                  block_submit_every_nth: 1,
                  finality_threshold: 12,
                  last_enqueued_block_at_height: 0
@@ -189,7 +183,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                  top_mined_hash: <<2::size(256)>>,
                  parent_height: 10,
                  child_block_interval: 1000,
-                 chain_start_parent_height: 1,
                  block_submit_every_nth: 1,
                  finality_threshold: 12,
                  last_enqueued_block_at_height: 0
