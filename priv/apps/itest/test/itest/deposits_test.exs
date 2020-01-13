@@ -16,8 +16,7 @@ defmodule DepositsTests do
   defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the network$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
-    {:ok, initial_balance} = Client.eth_get_balance(alice_account)
-    {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    initial_balance = Itest.Poller.eth_get_balance(alice_account)
 
     {:ok, receipt_hash} =
       amount
@@ -31,8 +30,7 @@ defmodule DepositsTests do
         {current_gas, current_gas + gas_used}
       end)
 
-    {:ok, balance_after_deposit} = Client.eth_get_balance(alice_account)
-    {balance_after_deposit, ""} = balance_after_deposit |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    balance_after_deposit = Itest.Poller.eth_get_balance(alice_account)
 
     state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
