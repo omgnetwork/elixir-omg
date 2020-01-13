@@ -56,7 +56,7 @@ help:
 	@echo "    make start-watcher"
 	@echo ""
 	@echo ""
-	@echo "4. In the third terminal window, run:"
+	@echo "4. In the fourth terminal window, run:"
 	@echo "    make start-watcher_info"
 	@echo ""
 	@echo "5. Wait until they all boot. And run in the fourth terminal window:"
