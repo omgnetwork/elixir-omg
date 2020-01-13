@@ -94,6 +94,8 @@ defmodule Support.Conformance.SignaturesHashes do
     end
   end
 
+  # NOTE: `solidity_hash!/2` returns `<<8, 195, 121, 160, 0, 0, 0, more zeroes...>>` on revert, see note on
+  #       `solidity_hash/2`
   defp solidity_hash!(tx, contract) do
     {:ok, solidity_hash} = solidity_hash(tx, contract)
     solidity_hash
@@ -101,6 +103,9 @@ defmodule Support.Conformance.SignaturesHashes do
 
   defp solidity_hash(%{} = tx, contract), do: tx |> Transaction.raw_txbytes() |> solidity_hash(contract)
 
+  # NOTE: `solidity_hash/2` returns something like `{:ok, <<8, 195, 121, 160, 0, 0, 0, more zeroes...>>}`, on contract
+  #       revert, when using `:geth` Ethereum node. If an assertion fails with such a result, it indicates the contract
+  #       rejected some transaction to signhash unexpectedly.
   defp solidity_hash(encoded_tx, contract) when is_binary(encoded_tx),
     do: Eth.call_contract(contract, "hashTx(address,bytes)", [contract, encoded_tx], [{:bytes, 32}])
 
