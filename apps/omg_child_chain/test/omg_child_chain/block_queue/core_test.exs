@@ -70,7 +70,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     )
   end
 
-  describe "Block queue." do
+  describe "child_block_nums_to_init_with/4" do
     test "Requests correct block range on initialization" do
       assert [] == Core.child_block_nums_to_init_with(0, 0, @child_block_interval, 0)
       assert [] == Core.child_block_nums_to_init_with(0, 9, @child_block_interval, 0)
@@ -95,7 +95,9 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> elem(1)
                |> Core.get_blocks_to_submit()
     end
+  end
 
+  describe "new/1" do
     test "Recovers after restart and talking to an un-synced geth" do
       # imagine restart after geth is nuked and hasn't caught up
       # testing against a disaster scenario where `BlockQueue` would start pushing old blocks again
@@ -219,7 +221,9 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> Core.enqueue_block("10", 10 * @child_block_interval, 0)
                |> Core.get_blocks_to_submit()
     end
+  end
 
+  describe "set_ethereum_status/4" do
     test "A new block is emitted ASAP", %{empty: empty} do
       assert [%{hash: "2", nonce: 2}] =
                empty
@@ -292,20 +296,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> Core.set_ethereum_status(2, 0, false)
     end
 
-    test "Block is not enqueued when number of enqueued block does not match expected block number", %{empty: empty} do
-      {:error, :unexpected_block_number} = Core.enqueue_block(empty, "1", 2 * @child_block_interval, 0)
-    end
-
-    test "Produced blocks submission requests have nonces in order", %{empty: empty} do
-      assert [_, %{nonce: 2}] =
-               empty
-               |> Core.set_ethereum_status(0, 0, false)
-               |> elem(1)
-               |> Core.enqueue_block("1", @child_block_interval, 0)
-               |> Core.enqueue_block("2", 2 * @child_block_interval, 0)
-               |> Core.get_blocks_to_submit()
-    end
-
     test "Block generation is driven by last enqueued block Ethereum height and if block is empty or not", %{
       empty: empty
     } do
@@ -357,7 +347,9 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> Core.enqueue_block("2", 2 * @child_block_interval, 1)
                |> Core.set_ethereum_status(2, 0, false)
     end
+  end
 
+  describe "get_blocks_to_submit/1" do
     test "Smoke test", %{empty: empty} do
       assert {:dont_form_block, queue} =
                empty
@@ -374,46 +366,16 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                queue |> Core.get_blocks_to_submit()
     end
 
-    # helper function makes a chain that have size blocks
-    defp make_chain(base, size) do
-      if size > 0,
-        do:
-          Enum.reduce(1..size, base, fn hash, state ->
-            Core.enqueue_block(state, hash, hash * @child_block_interval, hash)
-          end),
-        else: base
+    test "Produced blocks submission requests have nonces in order", %{empty: empty} do
+      assert [_, %{nonce: 2}] =
+               empty
+               |> Core.set_ethereum_status(0, 0, false)
+               |> elem(1)
+               |> Core.enqueue_block("1", @child_block_interval, 0)
+               |> Core.enqueue_block("2", 2 * @child_block_interval, 0)
+               |> Core.get_blocks_to_submit()
     end
 
-    defp size(state) do
-      state |> :erlang.term_to_binary() |> byte_size()
-    end
-
-    test "Old blocks are removed, but only after finality_threshold", %{empty: empty} do
-      long_length = 1_000
-      short_length = 4
-
-      # make chains where no child blocks ever get mined to bloat the object
-      long = make_chain(empty, long_length)
-      long_size = size(long)
-
-      empty_size = size(empty)
-      one_block_size = size(make_chain(empty, 1)) - empty_size
-
-      # sanity check if we haven't removed blocks to early
-      assert long_size - empty_size >= one_block_size * long_length
-
-      # here we suddenly mine the child blocks and the remove should happen
-      long_mined_size =
-        long
-        |> Core.set_ethereum_status(long_length, (long_length - short_length) * 1000, false)
-        |> elem(1)
-        |> size()
-
-      assert long_mined_size - empty_size < (short_length + empty.finality_threshold + 1) * one_block_size
-    end
-  end
-
-  describe "Adjusting gas price" do
     # TODO: rewrite these tests to not use the internal `gas_price_adj_params` field - ask for submissions via public
     #       interface instead
 
@@ -522,53 +484,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
       assert expected_price > state.gas_price_to_use
     end
-  end
-
-  describe "Processing submission results from geth" do
-    test "everything might be ok" do
-      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
-      # no change in mined blknum
-      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 1000)
-      # arbitrary ignored change in mined blknum
-      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 0)
-      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 2000)
-    end
-
-    test "benign reports / warnings from geth" do
-      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
-      # no change in mined blknum
-      assert :ok = Core.process_submit_result(submission, @known_transaction_response, 1000)
-
-      assert :ok = Core.process_submit_result(submission, @replacement_transaction_response, 1000)
-    end
-
-    test "benign nonce too low error - related to our tx being mined, since the mined blknum advanced" do
-      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
-      assert :ok = Core.process_submit_result(submission, @nonce_too_low_response, 1000)
-      assert :ok = Core.process_submit_result(submission, @nonce_too_low_response, 2000)
-    end
-
-    test "real nonce too low error" do
-      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
-
-      # the new mined child block number is not the one we submitted, so we expect an error an error log
-      assert capture_log(fn ->
-               assert {:error, :nonce_too_low} = Core.process_submit_result(submission, @nonce_too_low_response, 0)
-             end) =~ "[error]"
-
-      assert capture_log(fn ->
-               assert {:error, :nonce_too_low} = Core.process_submit_result(submission, @nonce_too_low_response, 90)
-             end) =~ "[error]"
-    end
-
-    test "other fatal errors" do
-      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
-
-      # the new mined child block number is not the one we submitted, so we expect an error an error log
-      assert capture_log(fn ->
-               assert {:error, :account_locked} = Core.process_submit_result(submission, @account_locked_response, 0)
-             end) =~ "[error]"
-    end
 
     test "gas price change only, when try to push blocks", %{empty_with_gas_params: state} do
       gas_price = state.gas_price_to_use
@@ -619,6 +534,97 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
         assert gas_price == state.gas_price_to_use
         state
       end)
+    end
+  end
+
+  describe "enqueue_block/4" do
+    test "Block is not enqueued when number of enqueued block does not match expected block number", %{empty: empty} do
+      {:error, :unexpected_block_number} = Core.enqueue_block(empty, "1", 2 * @child_block_interval, 0)
+    end
+
+    test "Old blocks are removed, but only after finality_threshold", %{empty: empty} do
+      long_length = 1_000
+      short_length = 4
+
+      # make chains where no child blocks ever get mined to bloat the object
+      long = make_chain(empty, long_length)
+      long_size = size(long)
+
+      empty_size = size(empty)
+      one_block_size = size(make_chain(empty, 1)) - empty_size
+
+      # sanity check if we haven't removed blocks to early
+      assert long_size - empty_size >= one_block_size * long_length
+
+      # here we suddenly mine the child blocks and the remove should happen
+      long_mined_size =
+        long
+        |> Core.set_ethereum_status(long_length, (long_length - short_length) * 1000, false)
+        |> elem(1)
+        |> size()
+
+      assert long_mined_size - empty_size < (short_length + empty.finality_threshold + 1) * one_block_size
+    end
+
+    # helper function makes a chain that have size blocks
+    defp make_chain(base, size) do
+      if size > 0,
+        do:
+          Enum.reduce(1..size, base, fn hash, state ->
+            Core.enqueue_block(state, hash, hash * @child_block_interval, hash)
+          end),
+        else: base
+    end
+
+    defp size(state) do
+      state |> :erlang.term_to_binary() |> byte_size()
+    end
+  end
+
+  describe "process_submit_result/3" do
+    test "everything might be ok" do
+      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
+      # no change in mined blknum
+      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 1000)
+      # arbitrary ignored change in mined blknum
+      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 0)
+      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 2000)
+    end
+
+    test "benign reports / warnings from geth" do
+      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
+      # no change in mined blknum
+      assert :ok = Core.process_submit_result(submission, @known_transaction_response, 1000)
+
+      assert :ok = Core.process_submit_result(submission, @replacement_transaction_response, 1000)
+    end
+
+    test "benign nonce too low error - related to our tx being mined, since the mined blknum advanced" do
+      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
+      assert :ok = Core.process_submit_result(submission, @nonce_too_low_response, 1000)
+      assert :ok = Core.process_submit_result(submission, @nonce_too_low_response, 2000)
+    end
+
+    test "real nonce too low error" do
+      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
+
+      # the new mined child block number is not the one we submitted, so we expect an error an error log
+      assert capture_log(fn ->
+               assert {:error, :nonce_too_low} = Core.process_submit_result(submission, @nonce_too_low_response, 0)
+             end) =~ "[error]"
+
+      assert capture_log(fn ->
+               assert {:error, :nonce_too_low} = Core.process_submit_result(submission, @nonce_too_low_response, 90)
+             end) =~ "[error]"
+    end
+
+    test "other fatal errors" do
+      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
+
+      # the new mined child block number is not the one we submitted, so we expect an error an error log
+      assert capture_log(fn ->
+               assert {:error, :account_locked} = Core.process_submit_result(submission, @account_locked_response, 0)
+             end) =~ "[error]"
     end
   end
 end
