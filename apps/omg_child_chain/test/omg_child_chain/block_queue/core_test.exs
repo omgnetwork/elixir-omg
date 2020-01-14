@@ -281,11 +281,21 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> Core.enqueue_block("2", 2000, 1)
                |> Core.set_ethereum_status(2, 0, false)
     end
+
+    test "if Ethereum progressed to no later where last enqueue happened, don't ask to form", %{empty: empty} do
+      assert {:dont_form_block, queue} =
+               empty
+               |> Core.set_ethereum_status(0, 0, false)
+               |> elem(1)
+               |> Core.enqueue_block("1", 1000, 0)
+               |> Core.enqueue_block("2", 2000, 1)
+               |> Core.set_ethereum_status(1, 2000, false)
+    end
   end
 
   describe "get_blocks_to_submit/1" do
     test "A new block is submitted after enqueuing", %{empty: empty} do
-      assert [%{hash: "2", nonce: 2}] =
+      assert [%{num: 2000}] =
                empty
                |> Core.set_ethereum_status(0, 1000, false)
                |> elem(1)
@@ -293,24 +303,23 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> Core.get_blocks_to_submit()
     end
 
-    test "multiple blocks enqueued in a row", %{empty: empty} do
-      assert {:dont_form_block, queue} =
-               empty
-               |> Core.set_ethereum_status(0, 0, false)
-               |> elem(1)
-               |> Core.enqueue_block("1", 1000, 0)
-               |> Core.enqueue_block("2", 2000, 1)
-               |> Core.enqueue_block("3", 3000, 2)
-               |> Core.enqueue_block("4", 4000, 3)
-               |> Core.enqueue_block("5", 5000, 4)
-               |> Core.set_ethereum_status(3, 2000, false)
+    test "multiple blocks enqueued in a row, and all unmined will be submitted", %{empty: empty} do
+      {_, queue} =
+        empty
+        |> Core.set_ethereum_status(0, 0, false)
+        |> elem(1)
+        |> Core.enqueue_block("1", 1000, 0)
+        |> Core.enqueue_block("2", 2000, 1)
+        |> Core.enqueue_block("3", 3000, 2)
+        |> Core.enqueue_block("4", 4000, 3)
+        |> Core.enqueue_block("5", 5000, 4)
+        |> Core.set_ethereum_status(3, 2000, false)
 
-      assert [%{hash: "3", nonce: 3}, %{hash: "4", nonce: 4}, %{hash: "5", nonce: 5}] =
-               queue |> Core.get_blocks_to_submit()
+      assert [%{num: 3000}, %{num: 4000}, %{num: 5000}] = Core.get_blocks_to_submit(queue)
     end
 
-    test "Produced blocks submission requests have nonces in order", %{empty: empty} do
-      assert [_, %{nonce: 2}] =
+    test "Produced blocks submission requests have nonces in order and matching the blocks", %{empty: empty} do
+      assert [%{hash: "1", num: 1000, nonce: 1}, %{hash: "2", num: 2000, nonce: 2}] =
                empty
                |> Core.set_ethereum_status(0, 0, false)
                |> elem(1)
@@ -483,6 +492,24 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
   describe "enqueue_block/4" do
     test "Block is not enqueued when number of enqueued block does not match expected block number", %{empty: empty} do
       {:error, :unexpected_block_number} = Core.enqueue_block(empty, "1", 2000, 0)
+    end
+
+    test "Block is not enqueued when number of enqueued block does not match expected block number, after recovery" do
+      # either early unknown block, early known block or most recent known block
+      {:error, :unexpected_block_number} =
+        Core.new(5000, [{5000, "5"}, {6000, "6"}], "5", 10, child_block_interval: @child_block_interval)
+        |> elem(1)
+        |> Core.enqueue_block("2", 2000, 0)
+
+      {:error, :unexpected_block_number} =
+        Core.new(5000, [{5000, "5"}, {6000, "6"}], "5", 10, child_block_interval: @child_block_interval)
+        |> elem(1)
+        |> Core.enqueue_block("5", 5000, 0)
+
+      {:error, :unexpected_block_number} =
+        Core.new(5000, [{5000, "5"}, {6000, "6"}], "5", 10, child_block_interval: @child_block_interval)
+        |> elem(1)
+        |> Core.enqueue_block("6", 6000, 0)
     end
 
     test "Old blocks are removed, but only after finality_threshold", %{empty: empty} do
