@@ -294,6 +294,18 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
   end
 
   describe "get_blocks_to_submit/1" do
+    test "Empty queue doesn't want to submit blocks", %{empty: empty} do
+      assert [] = Core.get_blocks_to_submit(empty)
+    end
+
+    test "Empty queue doesn't want to submit blocks, even if ethereum progresses", %{empty: empty} do
+      assert [] =
+               empty
+               |> Core.set_ethereum_status(10, 3000, false)
+               |> elem(1)
+               |> Core.get_blocks_to_submit()
+    end
+
     test "A new block is submitted after enqueuing", %{empty: empty} do
       assert [%{num: 2000}] =
                empty
