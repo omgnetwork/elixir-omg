@@ -53,23 +53,6 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     {:ok, %{empty: empty, empty_with_gas_params: empty_with_gas_params}}
   end
 
-  # Create the block_queue new state with non-initial parameters like it was recovered from db after restart / crash
-  # If top_mined_hash parameter is ommited it will be generated from mined_child_block_num
-  defp recover(known_hashes, mined_child_block_num, top_mined_hash \\ nil) do
-    top_mined_hash = top_mined_hash || "#{Kernel.inspect(trunc(mined_child_block_num / 1000))}"
-
-    Core.new(
-      mined_child_block_num: mined_child_block_num,
-      known_hashes: known_hashes,
-      top_mined_hash: top_mined_hash,
-      parent_height: 10,
-      child_block_interval: 1000,
-      block_submit_every_nth: 1,
-      finality_threshold: 12,
-      last_enqueued_block_at_height: 0
-    )
-  end
-
   describe "child_block_nums_to_init_with/4" do
     test "Requests correct block range on initialization" do
       assert [] == Core.child_block_nums_to_init_with(0, 0, @child_block_interval, 0)
@@ -90,8 +73,16 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "Recovers after restart to proper mined height" do
       assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] =
-               [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
-               |> recover(7000)
+               Core.new(
+                 mined_child_block_num: 7000,
+                 known_hashes: [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}],
+                 top_mined_hash: "7",
+                 parent_height: 10,
+                 child_block_interval: 1000,
+                 block_submit_every_nth: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
+               )
                |> elem(1)
                |> Core.get_blocks_to_submit()
     end
@@ -127,8 +118,16 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "Recovers after restart even when only empty blocks were mined" do
       assert [%{hash: "0", nonce: 8}, %{hash: "0", nonce: 9}] =
-               [{5000, "0"}, {6000, "0"}, {7000, "0"}, {8000, "0"}, {9000, "0"}]
-               |> recover(7000, "0")
+               Core.new(
+                 mined_child_block_num: 7000,
+                 known_hashes: [{5000, "0"}, {6000, "0"}, {7000, "0"}, {8000, "0"}, {9000, "0"}],
+                 top_mined_hash: "0",
+                 parent_height: 10,
+                 child_block_interval: 1000,
+                 block_submit_every_nth: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
+               )
                |> elem(1)
                |> Core.get_blocks_to_submit()
     end
@@ -206,7 +205,18 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     end
 
     test "Will recover if there are blocks in db but none in root chain" do
-      assert {:ok, state} = recover([{1000, "1"}], 0, <<0::size(256)>>)
+      assert {:ok, state} =
+               Core.new(
+                 mined_child_block_num: 0,
+                 known_hashes: [{1000, "1"}],
+                 top_mined_hash: <<0::size(256)>>,
+                 parent_height: 10,
+                 child_block_interval: 1000,
+                 block_submit_every_nth: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
+               )
+
       assert [%{hash: "1", nonce: 1}] = Core.get_blocks_to_submit(state)
 
       assert [%{hash: "1", nonce: 1}, %{hash: "2", nonce: 2}] =
@@ -215,8 +225,16 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "Recovers after restart and is able to process more blocks" do
       assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}, %{hash: "10", nonce: 10}] =
-               [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
-               |> recover(7000)
+               Core.new(
+                 mined_child_block_num: 7000,
+                 known_hashes: [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}],
+                 top_mined_hash: "7",
+                 parent_height: 10,
+                 child_block_interval: 1000,
+                 block_submit_every_nth: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
+               )
                |> elem(1)
                |> Core.enqueue_block("10", 10 * @child_block_interval, 0)
                |> Core.get_blocks_to_submit()
@@ -583,7 +601,20 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
   describe "process_submit_result/3" do
     test "everything might be ok" do
-      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
+      [submission] =
+        Core.new(
+          mined_child_block_num: 0,
+          known_hashes: [{1000, "1"}],
+          top_mined_hash: <<0::size(256)>>,
+          parent_height: 10,
+          child_block_interval: 1000,
+          block_submit_every_nth: 1,
+          finality_threshold: 12,
+          last_enqueued_block_at_height: 0
+        )
+        |> elem(1)
+        |> Core.get_blocks_to_submit()
+
       # no change in mined blknum
       assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 1000)
       # arbitrary ignored change in mined blknum
@@ -592,7 +623,20 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     end
 
     test "benign reports / warnings from geth" do
-      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
+      [submission] =
+        Core.new(
+          mined_child_block_num: 0,
+          known_hashes: [{1000, "1"}],
+          top_mined_hash: <<0::size(256)>>,
+          parent_height: 10,
+          child_block_interval: 1000,
+          block_submit_every_nth: 1,
+          finality_threshold: 12,
+          last_enqueued_block_at_height: 0
+        )
+        |> elem(1)
+        |> Core.get_blocks_to_submit()
+
       # no change in mined blknum
       assert :ok = Core.process_submit_result(submission, @known_transaction_response, 1000)
 
@@ -600,13 +644,38 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     end
 
     test "benign nonce too low error - related to our tx being mined, since the mined blknum advanced" do
-      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
+      [submission] =
+        Core.new(
+          mined_child_block_num: 0,
+          known_hashes: [{1000, "1"}],
+          top_mined_hash: <<0::size(256)>>,
+          parent_height: 10,
+          child_block_interval: 1000,
+          block_submit_every_nth: 1,
+          finality_threshold: 12,
+          last_enqueued_block_at_height: 0
+        )
+        |> elem(1)
+        |> Core.get_blocks_to_submit()
+
       assert :ok = Core.process_submit_result(submission, @nonce_too_low_response, 1000)
       assert :ok = Core.process_submit_result(submission, @nonce_too_low_response, 2000)
     end
 
     test "real nonce too low error" do
-      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
+      [submission] =
+        Core.new(
+          mined_child_block_num: 0,
+          known_hashes: [{1000, "1"}],
+          top_mined_hash: <<0::size(256)>>,
+          parent_height: 10,
+          child_block_interval: 1000,
+          block_submit_every_nth: 1,
+          finality_threshold: 12,
+          last_enqueued_block_at_height: 0
+        )
+        |> elem(1)
+        |> Core.get_blocks_to_submit()
 
       # the new mined child block number is not the one we submitted, so we expect an error an error log
       assert capture_log(fn ->
@@ -619,7 +688,19 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     end
 
     test "other fatal errors" do
-      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> Core.get_blocks_to_submit()
+      [submission] =
+        Core.new(
+          mined_child_block_num: 0,
+          known_hashes: [{1000, "1"}],
+          top_mined_hash: <<0::size(256)>>,
+          parent_height: 10,
+          child_block_interval: 1000,
+          block_submit_every_nth: 1,
+          finality_threshold: 12,
+          last_enqueued_block_at_height: 0
+        )
+        |> elem(1)
+        |> Core.get_blocks_to_submit()
 
       # the new mined child block number is not the one we submitted, so we expect an error an error log
       assert capture_log(fn ->
