@@ -374,7 +374,8 @@ defmodule OMG.State.CoreTest do
   end
 
   test "extract_initial_state function returns error when passed top block number as :not_found" do
-    assert {:error, :top_block_number_not_found} = Core.extract_initial_state(:not_found, @interval)
+    assert {:error, :top_block_number_not_found} =
+             Core.extract_initial_state(:not_found, @interval, "NO FEE CLAIMER ADDR!")
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -550,16 +551,6 @@ defmodule OMG.State.CoreTest do
     assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)
     assert {:ok, ^recovered_tx_2} = Transaction.Recovered.recover_from(block_tx2)
   end
-
-  # FIXME fee claiming tests
-  # 1 no fee tx appended when :no_fees_required
-  # 2 can't apply spend after fee_tx exec
-  # 3 can't double claim same token
-  # 4 can't claim more than collected
-  # 5 CAN claim less than collected
-  # 6 not all token must be claimed (fee acceptable tokens can change)
-  # 7 collected fees resets after form block
-  # 8 add cases with :no_fees_required
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "forming block empty block after a non-empty block", %{
@@ -921,6 +912,43 @@ defmodule OMG.State.CoreTest do
            )
   end
 
+  describe "Automatic fees claiming" do
+    # FIXME fee claiming tests
+    # 1 no fee tx appended when :no_fees_required
+    # 2 can't apply spend after fee_tx exec
+    # 3 can't double claim same token
+    # 4 can't claim more than collected
+    # 5 CAN claim less than collected
+    # 6 not all token must be claimed (fee acceptable tokens can change)
+    # 7 collected fees resets after form block
+    # 8 add cases with :no_fees_required
+
+    # @tag fixtures: [:alice, :bob, :state_empty]
+    # test "Inputs exceeds outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
+    #     # outputs: 4 + 3 + 2 < 10 <- inputs
+    #     fee = %{@eth => %{amount: 2}}
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "should append fee txs in block", %{alice: alice, bob: bob, state_empty: state} do
+      fee = %{@eth => %{amount: 2}}
+
+      state =
+        state
+        |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 4}, {alice, 3}]), fee)
+        |> success?()
+
+      {:ok, {block, _dbupdates}, state} = form_block_check(state, fee)
+
+      assert [_payment_txbytes, _fee_txbytes] = block.transactions
+    end
+
+    @tag skip: true
+    test "no fee txs appended when fees aren't required"
+    @tag skip: true
+    test "should create utxos from claimed fee"
+  end
+
   defp success?(result) do
     assert {:ok, _, state} = result
     state
@@ -947,8 +975,8 @@ defmodule OMG.State.CoreTest do
 
   # used to check the invariants in form_block
   # use this throughout this test module instead of Core.form_block
-  defp form_block_check(state) do
-    {_, {block, db_updates}, _} = result = Core.form_block(@interval, state)
+  defp form_block_check(state, fees \\ :no_fees_required) do
+    {_, {block, db_updates}, _} = result = Core.form_block(@interval, state, fees)
 
     # check if block returned and sent to db_updates is the same
     assert Enum.member?(db_updates, {:put, :block, Block.to_db_value(block)})

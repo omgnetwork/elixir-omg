@@ -177,7 +177,7 @@ defmodule OMG.State.PersistenceTest do
   defp persist_form(:ok), do: persist_form()
 
   defp persist_form() do
-    OMG.State.form_block()
+    OMG.State.form_block(:no_fees_required)
 
     # because `form_block` is non-blocking operation we need to wait it finishes
     # easiest to do this is to schedule another operation on `OMG.State` which is blocking

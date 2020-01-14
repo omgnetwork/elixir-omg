@@ -20,7 +20,7 @@ defmodule OMG.Fixtures do
   import OMG.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @fee_claimer_address OMG.Eth.RootChain.eth_pseudo_address()
+  @fee_claimer_address "NO FEE CLAIMER ADDR!"
 
   deffixture(entities, do: entities())
 

@@ -18,6 +18,7 @@ defmodule OMG.State do
   """
 
   alias OMG.Block
+  alias OMG.ChildChain.Fees
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Fees
@@ -32,6 +33,9 @@ defmodule OMG.State do
   use OMG.Utils.LoggerExt
 
   require Utxo
+
+  # owner of the output cannot be zero-address
+  @no_fee_claimer_address "NO FEE CLAIMER ADDR!"
 
   @type exec_error :: Validator.exec_error()
 
@@ -48,13 +52,14 @@ defmodule OMG.State do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
-  def form_block() do
-    GenServer.cast(__MODULE__, :form_block)
+  @spec form_block(Fees.optional_fee_t()) :: :ok
+  def form_block(fees) do
+    GenServer.cast(__MODULE__, {:form_block, fees})
   end
 
-  @spec close_block() :: {:ok, list(Core.db_update())}
-  def close_block() do
-    GenServer.call(__MODULE__, :close_block)
+  @spec close_block(Fees.optional_fee_t()) :: {:ok, list(Core.db_update())}
+  def close_block(fees) do
+    GenServer.call(__MODULE__, {:close_block, fees})
   end
 
   @spec deposit(deposits :: [Core.deposit()]) :: {:ok, list(Core.db_update())}
@@ -92,7 +97,7 @@ defmodule OMG.State do
   def init(:ok) do
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    fee_claimer_address = Application.get_env(:omg, :fee_claimer_address, <<0::160>>)
+    fee_claimer_address = Application.get_env(:omg, :fee_claimer_address, @no_fee_claimer_address)
 
     {:ok, state} =
       with {:ok, _data} = result <-
@@ -191,8 +196,8 @@ defmodule OMG.State do
 
   Someday, one might want to skip some of computations done (like calculating the root hash, which is scrapped)
   """
-  def handle_call(:close_block, _from, state) do
-    {:ok, {block, db_updates}, new_state} = do_form_block(state)
+  def handle_call({:close_block, fees}, _from, state) do
+    {:ok, {block, db_updates}, new_state} = do_form_block(state, fees)
 
     publish_block_to_event_bus(block)
     {:reply, {:ok, db_updates}, new_state}
@@ -204,9 +209,9 @@ defmodule OMG.State do
 
   Does its on persistence!
   """
-  def handle_cast(:form_block, state) do
+  def handle_cast({:form_block, fees}, state) do
     _ = Logger.debug("Forming new block...")
-    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = do_form_block(state)
+    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = do_form_block(state, fees)
     _ = Logger.debug("Formed new block ##{blknum}")
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
@@ -217,9 +222,9 @@ defmodule OMG.State do
     {:noreply, new_state}
   end
 
-  defp do_form_block(state) do
+  defp do_form_block(state, fees) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    Core.form_block(child_block_interval, state)
+    Core.form_block(child_block_interval, state, fees)
   end
 
   defp publish_block_to_event_bus(block) do

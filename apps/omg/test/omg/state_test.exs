@@ -58,10 +58,10 @@ defmodule OMG.StateTest do
 
     # block forming & status
     assert {blknum, _} = State.get_status()
-    assert :ok = State.form_block()
+    assert :ok = State.form_block(:no_fees_required)
     # exits, with invalid ones
     assert {:ok, _db, _} = State.exit_utxos([Utxo.position(blknum, 0, 0)])
     # close block
-    assert {:ok, _db} = State.close_block()
+    assert {:ok, _db} = State.close_block(:no_fees_required)
   end
 end

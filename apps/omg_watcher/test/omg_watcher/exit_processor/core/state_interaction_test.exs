@@ -31,7 +31,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     only: [start_se_from: 3, start_se_from: 4, start_ife_from: 2, start_ife_from: 3, piggyback_ife_from: 4]
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @fee_claimer_address OMG.Eth.RootChain.eth_pseudo_address()
+  @fee_claimer_address "NO FEE CLAIMER ADDR!"
 
   @early_blknum 1_000
   @late_blknum 10_000
