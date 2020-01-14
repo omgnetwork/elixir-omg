@@ -559,6 +559,7 @@ defmodule OMG.State.CoreTest do
   # 5 CAN claim less than collected
   # 6 not all token must be claimed (fee acceptable tokens can change)
   # 7 collected fees resets after form block
+  # 8 add cases with :no_fees_required
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "forming block empty block after a non-empty block", %{
