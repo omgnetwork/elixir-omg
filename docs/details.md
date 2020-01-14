@@ -15,7 +15,7 @@
     * [Modes of the watcher](#modes-of-the-watcher)
     * [Using the watcher](#using-the-watcher)
     * [Endpoints](#endpoints)
-    
+
 
 
 ## `elixir-omg` applications
@@ -199,7 +199,7 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 
 * **`fee_file_check_interval_ms`** - interval for checking updates in the `fee_specs.json` file to update the fees required.
 
-* **`child_block_minimal_enqueue_gap`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
+* **`block_submit_every_nth`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
 
 * **`fee_specs_file_name`** - path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
 
