@@ -12,26 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.API.Account do
+defmodule OMG.Watcher.API.Account do
   @moduledoc """
   Module provides operations related to plasma accounts.
   """
 
-  alias OMG.WatcherInfo.DB
-
   @doc """
-  Returns a list of amounts of currencies that a given address owns
+  Gets all utxos belonging to the given address. Slow operation.
   """
-  @spec get_balance(OMG.Crypto.address_t()) :: list(DB.TxOutput.balance())
-  def get_balance(address) do
-    DB.TxOutput.get_balance(address)
-  end
+  @spec get_exitable_utxos(OMG.Crypto.address_t()) :: list(OMG.State.Core.exitable_utxos())
+  def get_exitable_utxos(address) do
+    # OMG.DB.utxos() takes a while.
+    {:ok, utxos} = OMG.DB.utxos()
 
-  @doc """
-  Gets all utxos belonging to the given address.
-  """
-  @spec get_utxos(OMG.Crypto.address_t()) :: list(%DB.TxOutput{})
-  def get_utxos(address) do
-    DB.TxOutput.get_utxos(address)
+    OMG.State.Core.standard_exitable_utxos(utxos, address)
   end
 end
