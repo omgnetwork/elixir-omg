@@ -29,17 +29,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
   @account_locked_response {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}}
 
   setup do
-    {:ok, empty} =
-      Core.new(
-        mined_child_block_num: 0,
-        known_hashes: [],
-        top_mined_hash: <<0::256>>,
-        parent_height: 0,
-        child_block_interval: @child_block_interval,
-        block_submit_every_nth: 1,
-        finality_threshold: 12,
-        last_enqueued_block_at_height: 0
-      )
+    {:ok, empty} = Core.new(0, [], <<0::256>>, 0, child_block_interval: @child_block_interval)
 
     empty_with_gas_params = %{empty | formed_child_block_num: 5 * @child_block_interval, gas_price_to_use: 100}
 
@@ -74,14 +64,11 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     test "Recovers after restart to proper mined height" do
       assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] =
                Core.new(
-                 mined_child_block_num: 7000,
-                 known_hashes: [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}],
-                 top_mined_hash: "7",
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 block_submit_every_nth: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
+                 7000,
+                 [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}],
+                 "7",
+                 10,
+                 child_block_interval: @child_block_interval
                )
                |> elem(1)
                |> Core.get_blocks_to_submit()
@@ -99,14 +86,12 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
       {:ok, state} =
         Core.new(
-          mined_child_block_num: mined_blknum,
-          known_hashes: Enum.zip(range, known_hashes),
-          top_mined_hash: "6",
-          parent_height: 6,
+          mined_blknum,
+          Enum.zip(range, known_hashes),
+          "6",
+          6,
           child_block_interval: @child_block_interval,
-          block_submit_every_nth: 1,
-          finality_threshold: finality_threshold,
-          last_enqueued_block_at_height: 0
+          finality_threshold: finality_threshold
         )
 
       assert [%{hash: "7", nonce: 7}, %{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] = Core.get_blocks_to_submit(state)
@@ -119,103 +104,50 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     test "Recovers after restart even when only empty blocks were mined" do
       assert [%{hash: "0", nonce: 8}, %{hash: "0", nonce: 9}] =
                Core.new(
-                 mined_child_block_num: 7000,
-                 known_hashes: [{5000, "0"}, {6000, "0"}, {7000, "0"}, {8000, "0"}, {9000, "0"}],
-                 top_mined_hash: "0",
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 block_submit_every_nth: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
+                 7000,
+                 [{5000, "0"}, {6000, "0"}, {7000, "0"}, {8000, "0"}, {9000, "0"}],
+                 "0",
+                 10,
+                 child_block_interval: @child_block_interval
                )
                |> elem(1)
                |> Core.get_blocks_to_submit()
     end
 
     test "Recovers properly for fresh world state" do
-      {:ok, queue} =
-        Core.new(
-          mined_child_block_num: 0,
-          known_hashes: [],
-          top_mined_hash: <<0::size(256)>>,
-          parent_height: 10,
-          child_block_interval: 1000,
-          block_submit_every_nth: 1,
-          finality_threshold: 12,
-          last_enqueued_block_at_height: 0
-        )
-
+      {:ok, queue} = Core.new(0, [], <<0::size(256)>>, 10, child_block_interval: @child_block_interval)
       assert [] == Core.get_blocks_to_submit(queue)
     end
 
     test "Won't recover if is contract is ahead of db" do
       assert {:error, :contract_ahead_of_db} ==
-               Core.new(
-                 mined_child_block_num: 0,
-                 known_hashes: [],
-                 top_mined_hash: <<1::size(256)>>,
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 block_submit_every_nth: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
-               )
+               Core.new(0, [], <<1::size(256)>>, 10, child_block_interval: @child_block_interval)
     end
 
     test "Won't recover if mined hash doesn't match with hash in db" do
       assert {:error, :hashes_dont_match} ==
-               Core.new(
-                 mined_child_block_num: 1000,
-                 known_hashes: [{1000, <<2::size(256)>>}],
-                 top_mined_hash: <<1::size(256)>>,
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 block_submit_every_nth: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
+               Core.new(1000, [{1000, <<2::size(256)>>}], <<1::size(256)>>, 10,
+                 child_block_interval: @child_block_interval
                )
     end
 
     test "Won't recover if mined block number and hash don't match with db" do
       assert {:error, :mined_blknum_not_found_in_db} ==
-               Core.new(
-                 mined_child_block_num: 2000,
-                 known_hashes: [{1000, <<1::size(256)>>}],
-                 top_mined_hash: <<2::size(256)>>,
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 block_submit_every_nth: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
+               Core.new(2000, [{1000, <<1::size(256)>>}], <<2::size(256)>>, 10,
+                 child_block_interval: @child_block_interval
                )
     end
 
     test "Won't recover if mined block number doesn't match with db" do
       assert {:error, :mined_blknum_not_found_in_db} ==
-               Core.new(
-                 mined_child_block_num: 2000,
-                 known_hashes: [{1000, <<1::size(256)>>}],
-                 top_mined_hash: <<1::size(256)>>,
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 block_submit_every_nth: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
+               Core.new(2000, [{1000, <<1::size(256)>>}], <<1::size(256)>>, 10,
+                 child_block_interval: @child_block_interval
                )
     end
 
     test "Will recover if there are blocks in db but none in root chain" do
       assert {:ok, state} =
-               Core.new(
-                 mined_child_block_num: 0,
-                 known_hashes: [{1000, "1"}],
-                 top_mined_hash: <<0::size(256)>>,
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 block_submit_every_nth: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
-               )
+               Core.new(0, [{1000, "1"}], <<0::size(256)>>, 10, child_block_interval: @child_block_interval)
 
       assert [%{hash: "1", nonce: 1}] = Core.get_blocks_to_submit(state)
 
@@ -226,14 +158,11 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     test "Recovers after restart and is able to process more blocks" do
       assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}, %{hash: "10", nonce: 10}] =
                Core.new(
-                 mined_child_block_num: 7000,
-                 known_hashes: [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}],
-                 top_mined_hash: "7",
-                 parent_height: 10,
-                 child_block_interval: 1000,
-                 block_submit_every_nth: 1,
-                 finality_threshold: 12,
-                 last_enqueued_block_at_height: 0
+                 7000,
+                 [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}],
+                 "7",
+                 10,
+                 child_block_interval: @child_block_interval
                )
                |> elem(1)
                |> Core.enqueue_block("10", 10 * @child_block_interval, 0)
@@ -602,16 +531,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
   describe "process_submit_result/3" do
     test "everything might be ok" do
       [submission] =
-        Core.new(
-          mined_child_block_num: 0,
-          known_hashes: [{1000, "1"}],
-          top_mined_hash: <<0::size(256)>>,
-          parent_height: 10,
-          child_block_interval: 1000,
-          block_submit_every_nth: 1,
-          finality_threshold: 12,
-          last_enqueued_block_at_height: 0
-        )
+        Core.new(0, [{1000, "1"}], <<0::size(256)>>, 10, child_block_interval: @child_block_interval)
         |> elem(1)
         |> Core.get_blocks_to_submit()
 
@@ -624,16 +544,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "benign reports / warnings from geth" do
       [submission] =
-        Core.new(
-          mined_child_block_num: 0,
-          known_hashes: [{1000, "1"}],
-          top_mined_hash: <<0::size(256)>>,
-          parent_height: 10,
-          child_block_interval: 1000,
-          block_submit_every_nth: 1,
-          finality_threshold: 12,
-          last_enqueued_block_at_height: 0
-        )
+        Core.new(0, [{1000, "1"}], <<0::size(256)>>, 10, child_block_interval: @child_block_interval)
         |> elem(1)
         |> Core.get_blocks_to_submit()
 
@@ -645,16 +556,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "benign nonce too low error - related to our tx being mined, since the mined blknum advanced" do
       [submission] =
-        Core.new(
-          mined_child_block_num: 0,
-          known_hashes: [{1000, "1"}],
-          top_mined_hash: <<0::size(256)>>,
-          parent_height: 10,
-          child_block_interval: 1000,
-          block_submit_every_nth: 1,
-          finality_threshold: 12,
-          last_enqueued_block_at_height: 0
-        )
+        Core.new(0, [{1000, "1"}], <<0::size(256)>>, 10, child_block_interval: @child_block_interval)
         |> elem(1)
         |> Core.get_blocks_to_submit()
 
@@ -664,16 +566,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "real nonce too low error" do
       [submission] =
-        Core.new(
-          mined_child_block_num: 0,
-          known_hashes: [{1000, "1"}],
-          top_mined_hash: <<0::size(256)>>,
-          parent_height: 10,
-          child_block_interval: 1000,
-          block_submit_every_nth: 1,
-          finality_threshold: 12,
-          last_enqueued_block_at_height: 0
-        )
+        Core.new(0, [{1000, "1"}], <<0::size(256)>>, 10, child_block_interval: @child_block_interval)
         |> elem(1)
         |> Core.get_blocks_to_submit()
 
@@ -689,16 +582,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "other fatal errors" do
       [submission] =
-        Core.new(
-          mined_child_block_num: 0,
-          known_hashes: [{1000, "1"}],
-          top_mined_hash: <<0::size(256)>>,
-          parent_height: 10,
-          child_block_interval: 1000,
-          block_submit_every_nth: 1,
-          finality_threshold: 12,
-          last_enqueued_block_at_height: 0
-        )
+        Core.new(0, [{1000, "1"}], <<0::size(256)>>, 10, child_block_interval: @child_block_interval)
         |> elem(1)
         |> Core.get_blocks_to_submit()
 

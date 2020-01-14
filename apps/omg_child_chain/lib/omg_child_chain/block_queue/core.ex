@@ -83,12 +83,12 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   defstruct [
     :blocks,
     :parent_height,
+    :mined_child_block_num,
+    :last_enqueued_block_at_height,
+    :wait_for_enqueue,
     last_parent_height: 0,
     formed_child_block_num: 0,
-    wait_for_enqueue: false,
     gas_price_to_use: 20_000_000_000,
-    mined_child_block_num: 0,
-    last_enqueued_block_at_height: 0,
     # config:
     child_block_interval: nil,
     block_submit_every_nth: 1,
@@ -103,7 +103,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           # newest formed block num
           formed_child_block_num: BlockQueue.plasma_block_num(),
           # current Ethereum block height
-          parent_height: nil | BlockQueue.eth_height(),
+          parent_height: BlockQueue.eth_height(),
           # whether we're pending an enqueue signal with a new block
           wait_for_enqueue: boolean(),
           # gas price to use when (re)submitting transactions
@@ -123,29 +123,25 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
-  @spec new(keyword) ::
+  @spec new(
+          BlockSubmission.plasma_block_num(),
+          list({BlockSubmission.plasma_block_num(), BlockSubmission.hash()}),
+          BlockSubmission.hash(),
+          non_neg_integer(),
+          keyword
+        ) ::
           {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
-  def new(
-        mined_child_block_num: mined_child_block_num,
-        known_hashes: known_hashes,
-        top_mined_hash: top_mined_hash,
-        parent_height: parent_height,
-        child_block_interval: child_block_interval,
-        block_submit_every_nth: block_submit_every_nth,
-        finality_threshold: finality_threshold,
-        last_enqueued_block_at_height: last_enqueued_block_at_height
-      ) do
-    state = %__MODULE__{
-      blocks: Map.new(),
-      mined_child_block_num: mined_child_block_num,
-      parent_height: parent_height,
-      child_block_interval: child_block_interval,
-      block_submit_every_nth: block_submit_every_nth,
-      finality_threshold: finality_threshold,
-      gas_price_adj_params: %GasPriceAdjustment{},
-      last_enqueued_block_at_height: last_enqueued_block_at_height
-    }
+  def new(mined_child_block_num, known_hashes, top_mined_hash, parent_height, opts \\ []) do
+    fields =
+      opts
+      |> Keyword.put_new(:blocks, Map.new())
+      |> Keyword.put_new(:mined_child_block_num, mined_child_block_num)
+      |> Keyword.put_new(:parent_height, parent_height)
+      |> Keyword.put_new(:last_enqueued_block_at_height, parent_height)
+      |> Keyword.put_new(:wait_for_enqueue, false)
+      |> Keyword.put_new(:gas_price_adj_params, %GasPriceAdjustment{})
 
+    state = struct!(__MODULE__, fields)
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
   end
 
