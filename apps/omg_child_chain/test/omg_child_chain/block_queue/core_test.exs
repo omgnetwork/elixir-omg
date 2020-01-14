@@ -60,7 +60,9 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert [1000, 2000, 3000] == Core.child_block_nums_to_init_with(0, 3000, @child_block_interval, 2)
       assert [2000, 3000, 4000, 5000] == Core.child_block_nums_to_init_with(4000, 5000, @child_block_interval, 2)
     end
+  end
 
+  describe "new/1" do
     test "Recovers after restart to proper mined height" do
       assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] =
                Core.new(
@@ -73,25 +75,17 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> elem(1)
                |> Core.get_blocks_to_submit()
     end
-  end
 
-  describe "new/1" do
     test "Recovers after restart and talking to an un-synced geth" do
       # imagine restart after geth is nuked and hasn't caught up
-      # testing against a disaster scenario where `BlockQueue` would start pushing old blocks again
-      finality_threshold = 12
-      mined_blknum = 6000
-      range = Core.child_block_nums_to_init_with(mined_blknum, 9000, @child_block_interval, finality_threshold)
-      known_hashes = ~w(1 2 3 4 5 6 7 8 9)
-
+      # testing protecting against a disaster scenario, where `BlockQueue` would start pushing old blocks again
       {:ok, state} =
         Core.new(
-          mined_blknum,
-          Enum.zip(range, known_hashes),
+          6000,
+          [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}],
           "6",
-          6,
-          child_block_interval: @child_block_interval,
-          finality_threshold: finality_threshold
+          10,
+          child_block_interval: @child_block_interval
         )
 
       assert [%{hash: "7", nonce: 7}, %{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] = Core.get_blocks_to_submit(state)
@@ -99,6 +93,9 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       # simulate geth catching up
       assert {:dont_form_block, new_state} = Core.set_ethereum_status(state, 7, 7000, true)
       assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] = Core.get_blocks_to_submit(new_state)
+      # still don't want to form blocks
+      assert {:dont_form_block, new_state} = Core.set_ethereum_status(state, 8, 7000, true)
+      assert {:dont_form_block, new_state} = Core.set_ethereum_status(state, 9, 8000, true)
     end
 
     test "Recovers after restart even when only empty blocks were mined" do
