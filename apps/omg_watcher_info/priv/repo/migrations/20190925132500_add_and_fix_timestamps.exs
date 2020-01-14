@@ -31,8 +31,6 @@ defmodule OMG.Watcher.Repo.Migrations.AddAndFixTimestamps do
 
     alter table(:transactions) do
       remove(:sent_at)
-      modify(:blknum, references(:blocks, column: :blknum, type: :bigint), null: false)
-      modify(:blknum, :bigint, null: false)
 
       timestamps([type: :utc_datetime_usec, default: "1970-01-01T00:00:00Z"])
     end
