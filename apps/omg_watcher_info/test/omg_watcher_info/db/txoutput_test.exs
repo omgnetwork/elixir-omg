@@ -139,10 +139,9 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
         build(:txoutput)
         |> with_deposit()
         |> with_spending_transaction()
-        |> IO.inspect(label: "txoutput")
         |> insert()
 
-      assert length(DB.TxOutput.get_utxos(txoutput.owner)) == 0
+      assert DB.TxOutput.get_utxos(txoutput.owner) == []
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -153,7 +152,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
         |> with_standard_exit()
         |> insert()
 
-      assert length(DB.TxOutput.get_utxos(txoutput.owner)) == 0
+      assert DB.TxOutput.get_utxos(txoutput.owner) == []
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

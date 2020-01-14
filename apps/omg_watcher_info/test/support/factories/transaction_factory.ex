@@ -13,6 +13,14 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.Factory.Transaction do
+  @moduledoc """
+    Transaction factory.
+
+    Generates a transaction without any transaction inputs or outputs.
+
+    To generate a transaction with closest data to production, consider generating transaction inputs and/or outputs
+    and associate them with this transaction.
+  """
   defmacro __using__(_opts) do
     quote do
       alias OMG.WatcherInfo.DB
@@ -20,16 +28,16 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
       alias OMG.Utxo
       require OMG.Utxo
 
-      # @doc """
-      # Transaction factory.
-
-      # Generates a transaction without any transaction inputs or outputs.
-
-      # To generate a transaction with closest data to production, consider generating transaction inputs and/or outputs
-      # and associate them with this transaction.
-      # """
       def transaction_factory(attrs \\ %{}) do
         block = attrs[:block] || build(:block)
+
+        tx_count =
+          case block.tx_count do
+            nil -> 1
+            tx_count -> tx_count
+          end
+
+        block = Map.put(block, :tx_count, tx_count)
 
         transaction = %DB.Transaction{
           txhash: insecure_random_bytes(32),
@@ -47,14 +55,16 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
 
       def with_inputs(transaction, txoutputs) do
         {_, transaction} =
-          Enum.map_reduce(txoutputs, transaction, fn txoutput, transaction ->
+          txoutputs
+          |> Enum.with_index()
+          |> Enum.map_reduce(transaction, fn {txoutput, index}, transaction ->
             txoutput =
               txoutput
               |> Map.put(:proof, insecure_random_bytes(32))
               |> Map.put(:spending_txhash, transaction.txhash)
-              |> Map.put(:spending_tx_oindex, length(transaction.inputs))
+              |> Map.put(:spending_tx_oindex, index)
 
-            {txoutput, Map.put(transaction, :inputs, Enum.concat(transaction.inputs, [txoutput]))}
+            {{txoutput, index}, Map.put(transaction, :inputs, Enum.concat(transaction.inputs, [txoutput]))}
           end)
 
         transaction
@@ -62,45 +72,43 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
 
       def with_outputs(transaction, txoutputs) do
         {_, transaction} =
-          Enum.map_reduce(txoutputs, transaction, fn txoutput, transaction ->
+          txoutputs
+          |> Enum.with_index()
+          |> Enum.map_reduce(transaction, fn {txoutput, index}, transaction ->
             txoutput =
               txoutput
               |> Map.put(:blknum, transaction.block.blknum)
-              |> Map.put(:txindex, length(transaction.outputs))
+              |> Map.put(:txindex, index)
 
-            {txoutput, Map.put(transaction, :outputs, Enum.concat(transaction.outputs, [txoutput]))}
+            {{txoutput, index}, Map.put(transaction, :outputs, Enum.concat(transaction.outputs, [txoutput]))}
           end)
 
         transaction
       end
 
-      # this is needed because ExMachina only supports inserting data, not updating it. transaction
-      # inputs that have been spent are updated here with info from the transaction it was spent in
+      # when inputs are added to a transaction some of the inputs' attributes are changed.
+      # transaction inputs are usually already inserted in the database as outputs of an
+      # earlier transaction. because the transaction inputs are already in the db, and ExMachina
+      # only support inserts, this function is needed to update the inputs.
+      #
+      # note that the transaction must be insert first so that when the inputs are updated with
+      # input.txhash = transaction.txhash it does not violate a FK constraint. this function is needed
       def update_inputs_as_spent(transaction) do
-        {_, transaction} =
-          Enum.map_reduce(transaction.inputs, transaction, fn input, transaction ->
-            txoutput =
-              case DB.TxOutput.get_by_position(Utxo.position(input.blknum, input.txindex, input.oindex)) do
-                nil ->
-                  input
+        :ok =
+          Enum.each(transaction.inputs, fn input ->
+            {:ok, txoutput} =
+              input
+              |> Ecto.Changeset.change()
+              |> Ecto.Changeset.force_change(:proof, input.proof)
+              |> Ecto.Changeset.force_change(:spending_txhash, input.spending_txhash)
+              |> Ecto.Changeset.force_change(:spending_tx_oindex, input.spending_tx_oindex)
+              |> DB.Repo.update()
 
-                txoutput ->
-                  {:ok, txoutput} =
-                    txoutput
-                    |> Ecto.Changeset.change(%{
-                      proof: input.proof,
-                      spending_txhash: input.spending_txhash,
-                      spending_tx_oindex: input.spending_tx_oindex
-                    })
-                    |> DB.Repo.update()
-
-                  txoutput
-              end
-
-            {txoutput, transaction}
+            :ok
           end)
 
-        transaction
+        # return transaction with up-to-date data
+        DB.Transaction.get(transaction.txhash)
       end
     end
   end

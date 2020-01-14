@@ -13,25 +13,25 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.Factory.EthEvent do
+  @moduledoc """
+    EthEvent factory.
+
+    Generates an ethevent. For testing flexibility, an ethevent can be created with 0 txoutputs. Although this does not
+    conform to the business logic, this violates no database constraints.
+
+    To associate an ethevent with one or more txoutputs, an array of txoutputs can be passed in via by overriding
+    `txoutputs`.
+
+    Most scenarios will have a only a 1-1 relationship between ethevents an txoutputs or a one-to-many
+    (txoutput -> ethevents) relationship. However, with an ExitFinalized ethevent (processExits()) scenario, an ethevent
+    may have many txoutputs. A txoutput for every utxo in the exit queue when processExits() was called.
+
+    The default event type is `:deposit`, but can be overridden by setting `event_type`.
+  """
   defmacro __using__(_opts) do
     quote do
       alias OMG.WatcherInfo.DB
 
-      @doc """
-      EthEvent factory.
-
-      Generates an ethevent. For testing flexibility, an ethevent can be created with 0 txoutputs. Although this does not
-      conform to the business logic, this violates no database constraints.
-
-      To associate an ethevent with one or more txoutputs, an array of txoutputs can be passed in via by overriding
-      `txoutputs`.
-
-      Most scenarios will have a only a 1-1 relationship between ethevents an txoutputs or a one-to-many
-      (txoutput -> ethevents) relationship. However, with an ExitFinalized ethevent (processExits()) scenario, an ethevent
-      may have many txoutputs. A txoutput for every utxo in the exit queue when processExits() was called.
-
-      The default event type is `:deposit`, but can be overridden by setting `event_type`.
-      """
       def ethevent_factory(attrs \\ %{}) do
         ethevent = %DB.EthEvent{
           root_chain_txhash: insecure_random_bytes(32),

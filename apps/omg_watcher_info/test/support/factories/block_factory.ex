@@ -13,22 +13,28 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.Factory.Block do
+  @moduledoc """
+    Block factory.
+
+    Generates a block in an incremental blknum of 1, 1001, 2001, 3001, etc with
+    no associations to any other objects.
+
+    Note that `tx_count` is an aggregate sum(block.transactinons) field and does
+    not automatically get setup in the tests. In most cases `tx_count` will 
+    need to be managed manually.
+  """
   defmacro __using__(_opts) do
     quote do
       alias OMG.WatcherInfo.DB
 
-      @doc """
-      Block factory.
-
-      Generates a block in an incremental blknum of 1, 1001, 2001, 3001, etc.
-      """
       def block_factory() do
         %DB.Block{
           blknum: sequence(:block_blknum, fn seq -> seq * 1000 + 1 end),
           hash: insecure_random_bytes(32),
           eth_height: sequence(:block_eth_height, fn seq -> seq end),
           timestamp: sequence(:block_timestamp, fn seq -> seq end),
-          transactions: []
+          transactions: [],
+          tx_count: 0
         }
       end
     end

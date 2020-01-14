@@ -13,6 +13,11 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.Factory.DataHelper do
+  @moduledoc """
+    A data helper module with functions to generate useful data for testing. Unlike the factories,
+    the data generated in this module is not constrained to the sructures defined in the DB models.
+  """
+
   defmacro __using__(_opts) do
     quote do
       alias OMG.Eth.Encoding

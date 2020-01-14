@@ -46,7 +46,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     @tag fixtures: [:initial_blocks]
     test "verifies all inserted transactions available to get", %{initial_blocks: initial_blocks} do
       Enum.each(initial_blocks, fn {blknum, txindex, txhash, _recovered_tx} ->
-        txhash_enc = Encoding.to_hex(txhash)
+        txhash_enc = to_hex_or_nil(txhash)
 
         assert %{"block" => %{"blknum" => ^blknum}, "txhash" => ^txhash_enc, "txindex" => ^txindex} =
                  WatcherHelper.success?("transaction.get", %{id: txhash_enc})
@@ -69,7 +69,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
         |> with_inputs([deposit_1, deposit_2])
         |> with_outputs([input_1, input_2])
         |> insert()
-        |> update_inputs_as_spent()
 
       spending_transaction =
         build(:transaction)
@@ -78,11 +77,63 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
         |> insert()
         |> update_inputs_as_spent()
 
-      rendered = TransactionView.render("transaction.json", %{response: spending_transaction})
+      expected_response = %{
+        "block" => %{
+          "blknum" => spending_transaction.block.blknum,
+          "eth_height" => spending_transaction.block.eth_height,
+          "hash" => to_hex_or_nil(spending_transaction.block.hash),
+          "timestamp" => spending_transaction.block.timestamp,
+          "tx_count" => spending_transaction.block.tx_count,
+          "inserted_at" => DateTime.to_iso8601(spending_transaction.block.inserted_at),
+          "updated_at" => DateTime.to_iso8601(spending_transaction.block.updated_at)
+        },
+        "inputs" =>
+          Enum.map(spending_transaction.inputs, fn input ->
+            %{
+              "amount" => input.amount,
+              "blknum" => input.blknum,
+              "currency" => to_hex_or_nil(input.currency),
+              "oindex" => input.oindex,
+              "owner" => to_hex_or_nil(input.owner),
+              "txindex" => input.txindex,
+              "utxo_pos" => Utxo.Position.encode({:utxo_position, input.blknum, input.txindex, input.oindex}),
+              "creating_txhash" => to_hex_or_nil(input.creating_txhash),
+              "spending_txhash" => to_hex_or_nil(input.spending_txhash),
+              "spending_tx_oindex" => input.spending_tx_oindex,
+              "proof" => to_hex_or_nil(input.proof),
+              "inserted_at" => DateTime.to_iso8601(input.inserted_at),
+              "updated_at" => DateTime.to_iso8601(input.updated_at)
+            }
+          end),
+        "outputs" =>
+          Enum.map(spending_transaction.outputs, fn output ->
+            %{
+              "amount" => output.amount,
+              "blknum" => output.blknum,
+              "currency" => to_hex_or_nil(output.currency),
+              "oindex" => output.oindex,
+              "owner" => to_hex_or_nil(output.owner),
+              "txindex" => output.txindex,
+              "utxo_pos" => Utxo.Position.encode({:utxo_position, output.blknum, output.txindex, output.oindex}),
+              "creating_txhash" => to_hex_or_nil(output.creating_txhash),
+              "spending_txhash" => to_hex_or_nil(output.spending_txhash),
+              "spending_tx_oindex" => output.spending_tx_oindex,
+              "proof" => to_hex_or_nil(output.proof),
+              "inserted_at" => DateTime.to_iso8601(output.inserted_at),
+              "updated_at" => DateTime.to_iso8601(output.updated_at)
+            }
+          end),
+        "txhash" => to_hex_or_nil(spending_transaction.txhash),
+        "txbytes" => to_hex_or_nil(spending_transaction.txbytes),
+        "txindex" => spending_transaction.txindex,
+        "metadata" => to_hex_or_nil(spending_transaction.metadata),
+        "inserted_at" => DateTime.to_iso8601(spending_transaction.inserted_at),
+        "updated_at" => DateTime.to_iso8601(spending_transaction.updated_at)
+      }
 
-      response = WatcherHelper.success?("transaction.get", %{"id" => Encoding.to_hex(spending_transaction.txhash)})
+      response = WatcherHelper.success?("transaction.get", %{"id" => to_hex_or_nil(spending_transaction.txhash)})
 
-      assert response == rendered
+      assert response == expected_response
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -107,7 +158,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
            ]}
         ])
 
-      txhash = txhash |> Encoding.to_hex()
+      txhash = txhash |> to_hex_or_nil()
 
       assert %{
                "inputs" => [%{"amount" => 10}, %{"amount" => 20}, %{"amount" => 30}, %{"amount" => 40}],
@@ -119,7 +170,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns error for non existing transaction" do
-      txhash = <<0::256>> |> Encoding.to_hex()
+      txhash = <<0::256>> |> to_hex_or_nil()
 
       assert %{
                "object" => "error",
@@ -150,8 +201,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> Enum.reverse() |> hd()
 
       %DB.Block{timestamp: timestamp, eth_height: eth_height, hash: block_hash} = get_block(blknum)
-      txhash = txhash |> Encoding.to_hex()
-      block_hash = block_hash |> Encoding.to_hex()
+      txhash = txhash |> to_hex_or_nil()
+      block_hash = block_hash |> to_hex_or_nil()
 
       assert [
                %{
@@ -231,7 +282,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = bob.addr |> Encoding.to_hex()
+      address = bob.addr |> to_hex_or_nil()
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}] =
                transaction_all_result(%{"address" => address, "blknum" => 2000})
@@ -250,7 +301,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = alice.addr |> Encoding.to_hex()
+      address = alice.addr |> to_hex_or_nil()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
@@ -271,8 +322,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      alice_addr = alice.addr |> Encoding.to_hex()
-      carol_addr = carol.addr |> Encoding.to_hex()
+      alice_addr = alice.addr |> to_hex_or_nil()
+      carol_addr = carol.addr |> to_hex_or_nil()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 2}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
                transaction_all_result(%{"address" => alice_addr})
@@ -293,7 +344,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = alice.addr |> Encoding.to_hex()
+      address = alice.addr |> to_hex_or_nil()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
@@ -310,7 +361,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = alice.addr |> Encoding.to_hex()
+      address = alice.addr |> to_hex_or_nil()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
@@ -327,7 +378,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = alice.addr |> Encoding.to_hex()
+      address = alice.addr |> to_hex_or_nil()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
@@ -336,8 +387,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     test "returns transactions containing metadata", %{initial_blocks: initial_blocks} do
       {blknum, txindex, txhash, recovered_tx} = initial_blocks |> Enum.find(&match?({2000, 0, _, _}, &1))
 
-      expected_metadata = recovered_tx.signed_tx.raw_tx.metadata |> Encoding.to_hex()
-      expected_txhash = Encoding.to_hex(txhash)
+      expected_metadata = recovered_tx.signed_tx.raw_tx.metadata |> to_hex_or_nil()
+      expected_txhash = to_hex_or_nil(txhash)
 
       assert [
                %{
@@ -369,7 +420,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      alice_addr = alice.addr |> Encoding.to_hex()
+      alice_addr = alice.addr |> to_hex_or_nil()
 
       assert {
                [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 1}],
@@ -379,7 +430,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert {[%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}],
               %{"limit" => 2, "page" => 1}} = transaction_all_with_paging(%{address: alice_addr, limit: 2})
 
-      bob_addr = bob.addr |> Encoding.to_hex()
+      bob_addr = bob.addr |> to_hex_or_nil()
 
       assert {[%{"block" => %{"blknum" => 1000}, "txindex" => 0}], %{"limit" => 2, "page" => 2}} =
                transaction_all_with_paging(%{address: bob_addr, limit: 2, page: 2})
@@ -489,15 +540,15 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "code" => "submit:duplicate_inputs",
                "description" => nil,
                "object" => "error"
-             } == WatcherHelper.no_success?("transaction.submit", %{"transaction" => Encoding.to_hex(signed_bytes)})
+             } == WatcherHelper.no_success?("transaction.submit", %{"transaction" => to_hex_or_nil(signed_bytes)})
     end
   end
 
   describe "/transaction.submit with structural transaction" do
     deffixture typed_data_request(alice, bob) do
       contract_addr = Application.fetch_env!(:omg_eth, :contract_addr)
-      alice_addr = Encoding.to_hex(alice.addr)
-      bob_addr = Encoding.to_hex(bob.addr)
+      alice_addr = to_hex_or_nil(alice.addr)
+      bob_addr = to_hex_or_nil(bob.addr)
 
       %{
         # these values should match configuration :omg, :eip_712_domain
@@ -516,9 +567,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
           "output1" => %{"owner" => alice_addr, "currency" => @other_token_hex, "amount" => 300},
           "output2" => %{"owner" => bob_addr, "currency" => @other_token_hex, "amount" => 100},
           "output3" => %{"owner" => @eth_hex, "currency" => @eth_hex, "amount" => 0},
-          "metadata" => Encoding.to_hex(<<0::256>>)
+          "metadata" => to_hex_or_nil(<<0::256>>)
         },
-        "signatures" => List.duplicate(<<127::520>>, 2) |> Enum.map(&Encoding.to_hex/1)
+        "signatures" => List.duplicate(<<127::520>>, 2) |> Enum.map(&to_hex_or_nil/1)
       }
     end
 
@@ -639,10 +690,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       alice_to_bob = 100
       metadata = (alice.addr <> bob.addr) |> OMG.Crypto.hash() |> Encoding.to_hex()
 
-      alice_addr = Encoding.to_hex(alice.addr)
-      bob_addr = Encoding.to_hex(bob.addr)
+      alice_addr = to_hex_or_nil(alice.addr)
+      bob_addr = to_hex_or_nil(bob.addr)
       blknum = 5000
-      creating_txhash = inserted_txs |> Enum.at(0) |> elem(2) |> Encoding.to_hex()
+      creating_txhash = inserted_txs |> Enum.at(0) |> elem(2) |> to_hex_or_nil()
 
       assert %{
                "result" => "complete",
@@ -712,10 +763,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [%{"amount" => 100, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}],
                    "fee" => %{"currency" => @default_fee_currency},
-                   "metadata" => Encoding.to_hex(<<123::256>>)
+                   "metadata" => to_hex_or_nil(<<123::256>>)
                  }
                )
 
@@ -726,15 +777,15 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
           from_hex!(verbose_metadata)
         )
 
-      assert tx_hex == verbose_tx |> Transaction.raw_txbytes() |> Encoding.to_hex()
-      assert sign_hash_hex == verbose_tx |> OMG.TypedDataHash.hash_struct() |> Encoding.to_hex()
+      assert tx_hex == verbose_tx |> Transaction.raw_txbytes() |> to_hex_or_nil()
+      assert sign_hash_hex == verbose_tx |> OMG.TypedDataHash.hash_struct() |> to_hex_or_nil()
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns typed data in the form of request of typedDataSign", %{alice: alice, bob: bob, test_server: context} do
       alias OMG.State.Transaction
 
-      metadata_hex = Encoding.to_hex(<<123::256>>)
+      metadata_hex = to_hex_or_nil.to_hex(<<123::256>>)
       prepare_test_server(context, @fee_response)
 
       assert %{
@@ -765,7 +816,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [%{"amount" => 100, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}],
                    "fee" => %{"currency" => @default_fee_currency},
                    "metadata" => metadata_hex
@@ -794,9 +845,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [
-                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => to_hex_or_nil(bob.addr)}
                    ],
                    "fee" => %{"currency" => @default_fee_currency}
                  }
@@ -829,9 +880,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [
-                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => to_hex_or_nil(bob.addr)}
                    ],
                    "fee" => %{"currency" => @default_fee_currency}
                  }
@@ -858,9 +909,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [
-                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => to_hex_or_nil(bob.addr)}
                    ],
                    "fee" => %{"currency" => @default_fee_currency}
                  }
@@ -893,10 +944,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [
-                     %{"amount" => payment_eth, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)},
-                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment_eth, "currency" => @eth_hex, "owner" => to_hex_or_nil(bob.addr)},
+                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => to_hex_or_nil(bob.addr)}
                    ],
                    "fee" => %{"currency" => @default_fee_currency}
                  }
@@ -928,9 +979,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [
-                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => to_hex_or_nil(bob.addr)}
                    ],
                    "fee" => %{"currency" => @default_fee_currency}
                  }
@@ -967,12 +1018,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [
-                     %{"amount" => payment_eth, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)},
-                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment_eth, "currency" => @eth_hex, "owner" => to_hex_or_nil(bob.addr)},
+                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => to_hex_or_nil(bob.addr)}
                    ],
-                   "fee" => %{"currency" => @default_fee_currency}
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
                  }
                )
 
@@ -1003,9 +1054,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [
-                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => to_hex_or_nil(bob.addr)}
                    ],
                    "fee" => %{"currency" => @default_fee_currency}
                  }
@@ -1028,9 +1079,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(bob.addr),
+                   "owner" => to_hex_or_nil(bob.addr),
                    "payments" => [
-                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(alice.addr)}
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => to_hex_or_nil(alice.addr)}
                    ],
                    "fee" => %{"currency" => @default_fee_currency}
                  }
@@ -1040,7 +1091,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     @tag fixtures: [:alice, :more_utxos, :blocks_inserter]
     test "does not return txbytes when spend owner is not provided", %{alice: alice, test_server: context} do
       payment = 100
-      alice_addr = Encoding.to_hex(alice.addr)
+      alice_addr = to_hex_or_nil(alice.addr)
 
       prepare_test_server(context, @fee_response)
 
@@ -1059,7 +1110,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [
                      %{"amount" => payment, "currency" => @eth_hex}
                    ],
@@ -1069,12 +1120,13 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]
+
     test "total number of outputs exceeds allowed outputs returns custom error", %{
       alice: alice,
       bob: bob,
       test_server: context
     } do
-      bob_addr = Encoding.to_hex(bob.addr)
+      bob_addr = to_hex_or_nil(bob.addr)
 
       prepare_test_server(context, @fee_response)
 
@@ -1086,7 +1138,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [
                      %{"amount" => 1, "currency" => @other_token_hex, "owner" => bob_addr},
                      %{"amount" => 2, "currency" => @other_token_hex, "owner" => bob_addr},
@@ -1121,7 +1173,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [],
                    "fee" => %{"currency" => @other_token_hex}
                  }
@@ -1160,7 +1212,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     defp balance_in_token(address, token) do
-      currency = Encoding.to_hex(token)
+      currency = to_hex_or_nil(token)
 
       Enum.find_value(WatcherHelper.get_balance(address), 0, fn
         %{"currency" => ^currency, "amount" => amount} -> amount
@@ -1169,7 +1221,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     defp max_amount_spendable_in_single_tx(address, token) do
-      currency = Encoding.to_hex(token)
+      currency = to_hex_or_nil(token)
 
       WatcherHelper.get_utxos(address)
       |> Stream.filter(&(&1["currency"] == currency))
@@ -1208,7 +1260,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   describe "/transaction.create validation" do
     @tag fixtures: [:alice, :more_utxos]
     test "incorrect payment in payment list", %{alice: alice} do
-      alice_addr = Encoding.to_hex(alice.addr)
+      alice_addr = to_hex_or_nil(alice.addr)
 
       assert %{
                "object" => "error",
@@ -1233,7 +1285,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :more_utxos]
     test "too many payments attempted", %{alice: alice} do
-      alice_addr = Encoding.to_hex(alice.addr)
+      alice_addr = to_hex_or_nil(alice.addr)
       too_many_payments = List.duplicate(%{"amount" => 1, "currency" => @other_token_hex, "owner" => alice_addr}, 5)
 
       assert %{
@@ -1289,7 +1341,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [],
                    "fee" => %{"currency" => @eth_hex},
                    "metadata" => "no-a-hex"
@@ -1313,7 +1365,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => "not-a-list",
                    "fee" => %{"currency" => @eth_hex}
                  }
@@ -1336,7 +1388,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => [],
                    "fee" => %{"currency" => "123"}
                  }
@@ -1359,7 +1411,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => to_hex_or_nil(alice.addr),
                    "payments" => []
                  }
                )
@@ -1371,5 +1423,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   defp from_hex!(hex) do
     {:ok, result} = Encoding.from_hex(hex)
     result
+  end
+
+  defp to_hex_or_nil(hash) do
+    case hash do
+      nil -> nil
+      hash -> Encoding.to_hex(hash)
+    end
   end
 end
