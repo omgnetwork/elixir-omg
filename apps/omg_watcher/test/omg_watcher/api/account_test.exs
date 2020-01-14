@@ -39,24 +39,25 @@ defmodule OMG.Watcher.API.AccountTest do
       txindex = 78
       oindex = 1
 
-      _ = OMG.DB.multi_update([
-        {:put, :utxo,
-         {
-           {blknum, txindex, oindex},
-           %{
-             output: %{amount: 333, currency: @eth, owner: alice.addr, output_type: @payment_output_type},
-             creating_txhash: nil
-           }
-         }},
-        {:put, :utxo,
-         {
-           {blknum, txindex, oindex + 1},
-           %{
-             output: %{amount: 999, currency: @eth, owner: bob.addr, output_type: @payment_output_type},
-             creating_txhash: nil
-           }
-         }}
-      ])
+      _ =
+        OMG.DB.multi_update([
+          {:put, :utxo,
+           {
+             {blknum, txindex, oindex},
+             %{
+               output: %{amount: 333, currency: @eth, owner: alice.addr, output_type: @payment_output_type},
+               creating_txhash: nil
+             }
+           }},
+          {:put, :utxo,
+           {
+             {blknum, txindex, oindex + 1},
+             %{
+               output: %{amount: 999, currency: @eth, owner: bob.addr, output_type: @payment_output_type},
+               creating_txhash: nil
+             }
+           }}
+        ])
 
       [utxo] = Account.get_exitable_utxos(alice.addr)
 
