@@ -13,6 +13,18 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.Factory.TxOutput do
+  @moduledoc """
+    TxOutput factory.
+
+    Generates a txoutput with a `blknum` using blknum sequence from the block factory.the 1, 1001,
+    2001, etc... In most test use cases `blknum` should be overridden.
+
+    If you are overriding some values, also consider its relation to other values. E.g:
+
+      - To override `blknum`, also consider overriding `txindex`.
+      - To override `creating_transaction`, also consider overriding `txindex` and `oindex`.
+      - To override `spending_transaction`, also consider overriding `spending_tx_oindex`
+  """
   defmacro __using__(_opts) do
     quote do
       alias OMG.Utxo
@@ -22,18 +34,6 @@ defmodule OMG.WatcherInfo.Factory.TxOutput do
 
       @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-      @doc """
-      TxOutput factory.
-
-      Generates a txoutput with a `blknum` using blknum sequence from the block factory.the 1, 1001,
-      2001, etc... In most test use cases `blknum` should be overridden.
-
-      If you are overriding some values, also consider its relation to other values. E.g:
-
-        - To override `blknum`, also consider overriding `txindex`.
-        - To override `creating_transaction`, also consider overriding `txindex` and `oindex`.
-        - To override `spending_transaction`, also consider overriding `spending_tx_oindex`
-      """
       def txoutput_factory(attrs \\ %{}) do
         # use the blknum sequence for block.blknum
         {blknum, attrs} =
