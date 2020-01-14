@@ -19,7 +19,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Account do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.WatcherInfo.API.Account
+  alias OMG.Watcher.API, as: SecurityAPI
+  alias OMG.WatcherInfo.API, as: InfoAPI
 
   @doc """
   Gets plasma account balance
@@ -27,7 +28,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Account do
   def get_balance(conn, params) do
     with {:ok, address} <- expect(params, "address", :address) do
       address
-      |> Account.get_balance()
+      |> InfoAPI.Account.get_balance()
       |> api_response(conn, :balance)
     end
   end
@@ -35,7 +36,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Account do
   def get_utxos(conn, params) do
     with {:ok, address} <- expect(params, "address", :address) do
       address
-      |> Account.get_utxos()
+      |> InfoAPI.Account.get_utxos()
       |> api_response(conn, :utxos)
     end
   end
@@ -43,7 +44,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Account do
   def get_exitable_utxos(conn, params) do
     with {:ok, address} <- expect(params, "address", :address) do
       address
-      |> Account.get_exitable_utxos()
+      |> SecurityAPI.Account.get_exitable_utxos()
       |> api_response(conn, :utxos)
     end
   end
