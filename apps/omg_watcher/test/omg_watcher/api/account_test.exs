@@ -35,7 +35,7 @@ defmodule OMG.Watcher.API.AccountTest do
       alice = TestHelper.generate_entity()
       bob = TestHelper.generate_entity()
 
-      blknum = 10927
+      blknum = 1927
       txindex = 78
       oindex = 1
 
