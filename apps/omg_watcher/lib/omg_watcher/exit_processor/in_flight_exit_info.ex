@@ -83,7 +83,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           tx_seen_in_blocks_at: {Utxo.Position.t(), inclusion_proof :: binary()} | nil,
           timestamp: non_neg_integer(),
           contract_id: ife_contract_id(),
-          oldest_competitor: Utxo.Position.t() | nil,
+          # includes a special value denoting "age" of a non-included transaction being a competitor
+          oldest_competitor: Utxo.Position.t() | :no_position | nil,
           eth_height: pos_integer(),
           input_txs: list(Transaction.Protocol.t()),
           input_utxos_pos: list(Utxo.Position.t()),
@@ -197,6 +198,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   defp assert_utxo_pos_type(nil), do: :ok
 
+  # a special value denoting position ("age") of a non-included transaction is ok too
+  defp assert_utxo_pos_type(:no_position), do: :ok
+
   def from_db_kv({ife_hash, fields}) do
     # TODO: this got really horrible. Instead of tidying up/maintaining maybe go `Ecto` and use `Ecto.x` facilities
     #       on this here and elsewhere
@@ -275,7 +279,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def challenge(ife, competitor_position)
 
   def challenge(%__MODULE__{oldest_competitor: nil} = ife, competitor_position),
-    do: %{ife | is_canonical: false, oldest_competitor: Utxo.Position.decode!(competitor_position)}
+    do: %{ife | is_canonical: false, oldest_competitor: decode_position_possibly_exceeding(competitor_position)}
 
   def challenge(%__MODULE__{oldest_competitor: current_oldest} = ife, competitor_position) do
     with decoded_competitor_pos <- Utxo.Position.decode!(competitor_position),
@@ -458,8 +462,23 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   defp do_is_viable_competitor?(seen_at_pos, oldest_pos, competitor_pos),
     do: is_older?(competitor_pos, seen_at_pos) and is_older?(competitor_pos, oldest_pos)
 
+  # no position is older than any real position
+  defp is_older?(Utxo.position(_, _, _), :no_position), do: true
+  # no position is younger than any real position
+  defp is_older?(:no_position, Utxo.position(_, _, _)), do: false
+  # for real positions, the smaller it is the older it is
   defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
+
+  # to cater for utxo positions coming from the contract, that represent non-included transactions
+  defp decode_position_possibly_exceeding(encoded_position) do
+    case Utxo.Position.decode(encoded_position) do
+      {:ok, Utxo.position(_, _, _) = decoded} -> decoded
+      # The position was huge so it denoted a non-included transaction.
+      # Use a special value denoting "age" of a non-included transaction
+      {:error, {:blknum, :exceeds_maximum}} -> :no_position
+    end
+  end
 
   @spec exit_map_get(exit_map_t(), combined_index_t()) :: %{is_piggybacked: boolean(), is_finalized: boolean()}
   defp exit_map_get(exit_map, {type, index} = combined_index)
