@@ -3,7 +3,7 @@ list:
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
 
 test:
-	mix white_bread.run
+	mix test test/itest
 
 clean:
 	docker-compose down && docker rm -f $$(docker ps -a -q) && docker volume rm $$(docker volume ls -q)

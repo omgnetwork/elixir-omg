@@ -446,7 +446,7 @@ jobs:
             make generate_api_code
             mix local.hex --force && mix local.rebar --force
             mix deps.get
-            mix white_bread.run
+            mix test
       - run:
           name: Format generated code and check for warnings
           command: |
@@ -515,7 +515,7 @@ jobs:
             make generate_api_code
             mix local.hex --force && mix local.rebar --force
             mix deps.get
-            mix white_bread.run
+            mix test
 
   publish_child_chain:
     executor: metal_child_chain

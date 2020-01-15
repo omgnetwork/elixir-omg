@@ -169,16 +169,18 @@ defmodule Itest.Poller do
   end
 
   defp eth_get_balance(address, 0) do
-    {:ok, response} = account_get_balance(address)
-    Jason.decode!(response.body)["data"]
+    {:ok, initial_balance} = eth_account_get_balance(address)
+    {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    initial_balance
   end
 
   defp eth_get_balance(address, counter) do
     response = eth_account_get_balance(address)
 
     case response do
-      {:ok, _} ->
-        response
+      {:ok, initial_balance} ->
+        {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
+        initial_balance
 
       _ ->
         Process.sleep(@sleep_retry_sec)
