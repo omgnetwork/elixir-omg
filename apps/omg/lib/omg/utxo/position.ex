@@ -172,7 +172,7 @@ defmodule OMG.Utxo.Position do
   end
 
   defp do_decode(encoded) do
-    utxo = ExPlasma.Utxo.new(encoded)
-    {:ok, Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex)}
+    with {:ok, utxo} <- ExPlasma.Utxo.new(encoded),
+         do: {:ok, Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex)}
   end
 end
