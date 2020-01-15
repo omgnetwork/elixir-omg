@@ -14,6 +14,6 @@
 
 ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
 ExUnitFixtures.start()
-ExUnit.start()
+ExUnit.start(if System.get_env("CAPTURE_LOG"), do: false, else: true)
 {:ok, _} = Application.ensure_all_started(:briefly)
 {:ok, _} = Application.ensure_all_started(:erlexec)

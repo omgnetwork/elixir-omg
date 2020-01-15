@@ -13,4 +13,4 @@
 # limitations under the License.
 
 ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnit.start()
+ExUnit.start(if System.get_env("CAPTURE_LOG"), do: false, else: true)
