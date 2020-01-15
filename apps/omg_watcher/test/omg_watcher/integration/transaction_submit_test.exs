@@ -51,7 +51,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   } do
     alice_addr = Encoding.to_hex(alice.addr)
     bob_addr = Encoding.to_hex(bob.addr)
-    # 10 = 5 to Bob + 2 fee + 3 rest to Alice
+    # 10 = 5 to Bob + 0 fee + 5 rest to Alice
     alice_to_bob = 5
 
     order = %{
