@@ -97,7 +97,7 @@ defmodule OMG.Utxo.Position do
       iex> OMG.Utxo.Position.decode(encoded_pos)
       {:ok, {:utxo_position, 4, 5, 1}}
   """
-  @spec decode(binary()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
+  @spec decode(binary()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low | {:blknum, :exceeds_maximum}}
   def decode(encoded) when is_number(encoded) and encoded <= 0, do: {:error, :encoded_utxo_position_too_low}
   def decode(encoded) when is_integer(encoded) and encoded > 0, do: do_decode(encoded)
   def decode(encoded) when is_binary(encoded) and byte_size(encoded) == 32, do: do_decode(encoded)
