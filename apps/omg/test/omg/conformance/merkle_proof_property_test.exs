@@ -42,7 +42,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   end
 
   property "any root hash and proof created by the Elixir implementation validates in the contract, for all leaves",
-           [250, :verbose, max_size: 256, constraint_tries: 100_000],
+           [500, :verbose, max_size: 256, constraint_tries: 100_000],
            %{contract: contract} do
     forall leaves <- list(binary()) do
       root_hash = Merkle.hash(leaves)
@@ -57,7 +57,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   end
 
   property "no proof can prove a mutated leaf",
-           [2500, :verbose, max_size: 256, constraint_tries: 100_000],
+           [5000, :verbose, max_size: 256, constraint_tries: 100_000],
            %{contract: contract} do
     forall proof <- MerkleProofContext.correct() do
       forall mutated <- MerkleProofContext.mutated_leaf(proof) do
@@ -67,7 +67,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   end
 
   property "no proof can prove at different index",
-           [2500, :verbose, max_size: 256, constraint_tries: 100_000],
+           [5000, :verbose, max_size: 256, constraint_tries: 100_000],
            %{contract: contract} do
     forall proof <- MerkleProofContext.correct() do
       forall mutated <- MerkleProofContext.mutated_txindex(proof) do
@@ -77,7 +77,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   end
 
   property "no mutated proof bytes can prove anything that the original proved",
-           [2500, :verbose, max_size: 256, constraint_tries: 100_000],
+           [5000, :verbose, max_size: 256, constraint_tries: 100_000],
            %{contract: contract} do
     forall proof <- MerkleProofContext.correct() do
       forall mutated <- MerkleProofContext.mutated_proof(proof) do
@@ -87,7 +87,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   end
 
   property "no proof can prove a different leaf/txindex if proof bytes mutated",
-           [2500, :verbose, max_size: 256, constraint_tries: 100_000],
+           [5000, :verbose, max_size: 256, constraint_tries: 100_000],
            %{contract: contract} do
     forall proof <- MerkleProofContext.correct() do
       forall mutated <- MerkleProofContext.mutated_to_prove_sth_else(proof) do

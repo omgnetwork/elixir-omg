@@ -27,7 +27,7 @@ defmodule Support.Conformance.MerkleProofContext do
   A correct context - a proof proves something it should
   """
   def correct() do
-    let leaves <- such_that(leaves <- list(binary()), when: length(leaves) > 0) do
+    let leaves <- such_that(leaves <- list(pragmatic_binary()), when: length(leaves) > 0) do
       leaves_length = length(leaves)
       root_hash = Merkle.hash(leaves)
 
@@ -106,7 +106,7 @@ defmodule Support.Conformance.MerkleProofContext do
   end
 
   defp random_leaf(%__MODULE__{} = base) do
-    let b <- such_that(b <- binary(), when: b != base.leaf) do
+    let b <- such_that(b <- pragmatic_binary(), when: b != base.leaf) do
       %{base | leaf: b}
     end
   end
@@ -198,7 +198,18 @@ defmodule Support.Conformance.MerkleProofContext do
     end
   end
 
-  defp non_empty_binary(), do: such_that(b <- binary(), when: b != "")
+  # `pragmatic_binary/0` generator is here to speed up the generator a bit and also to allow for more repetition in the
+  # explored domain
+  # TODO: rethink this again, and compare with discussions here:
+  # https://github.com/omisego/elixir-omg/pull/1251
+  # Can the binaries be generated more efficiently and explore the cases interesting to us better?
+  @n_prescribed_binaries 20
+  @prescribed_binaries for i <- 0..@n_prescribed_binaries, do: :binary.encode_unsigned(i)
+
+  defp prescribed_binary(), do: union(@prescribed_binaries)
+  defp pragmatic_binary(), do: union([binary(), prescribed_binary()])
+
+  defp non_empty_binary(), do: such_that(b <- pragmatic_binary(), when: b != "")
 
   #
   # auxiliary helper functions
