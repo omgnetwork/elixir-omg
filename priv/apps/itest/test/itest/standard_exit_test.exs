@@ -14,7 +14,7 @@ defmodule StandardExitsTests do
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end
 
-  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the network$/,
+  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
     initial_balance = Itest.Poller.eth_get_balance(alice_account)
@@ -37,7 +37,7 @@ defmodule StandardExitsTests do
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
   end
 
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network$/,
+  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
     expecting_amount = Currency.to_wei(amount)
@@ -49,17 +49,17 @@ defmodule StandardExitsTests do
     {:ok, state}
   end
 
-  defwhen ~r/^Alice starts a standard exit on the network$/, _, %{alice_account: alice_account} = state do
+  defwhen ~r/^Alice starts a standard exit on the child chain$/, _, %{alice_account: alice_account} = state do
     se = StandardExitClient.start_standard_exit(alice_account)
     state = Map.put_new(state, :standard_exit_total_gas_used, se.total_gas_used)
 
     {:ok, state}
   end
 
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network after finality margin$/,
+  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain after finality margin$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
-    _ = Logger.info("Alice should have #{amount} ETH on the network after finality margin")
+    _ = Logger.info("Alice should have #{amount} ETH on the child chain after finality margin")
 
     case amount do
       "0" ->

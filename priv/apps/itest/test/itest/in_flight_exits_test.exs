@@ -15,7 +15,7 @@ defmodule InFlightExitsTests do
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end
 
-  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the network$/,
+  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
     initial_balance = Itest.Poller.eth_get_balance(alice_account)
@@ -38,7 +38,7 @@ defmodule InFlightExitsTests do
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
   end
 
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network after finality margin$/,
+  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the root chain after finality margin$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
     _ = Logger.info("Alice should have #{amount} ETH on the network after finality margin")

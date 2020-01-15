@@ -13,7 +13,7 @@ defmodule DepositsTests do
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end
 
-  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the network$/,
+  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
     initial_balance = Itest.Poller.eth_get_balance(alice_account)
@@ -36,7 +36,7 @@ defmodule DepositsTests do
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
   end
 
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network$/,
+  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
     expecting_amount = Currency.to_wei(amount)
@@ -48,7 +48,7 @@ defmodule DepositsTests do
     {:ok, state}
   end
 
-  defwhen ~r/^Alice sends Bob "(?<amount>[^"]+)" ETH on the network$/,
+  defwhen ~r/^Alice sends Bob "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account} = state do
     {:ok, [sign_hash, typed_data, _txbytes]} =
@@ -63,7 +63,7 @@ defmodule DepositsTests do
     {:ok, state}
   end
 
-  defthen ~r/^Bob should have "(?<amount>[^"]+)" ETH on the network$/,
+  defthen ~r/^Bob should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{bob_account: bob_account} = state do
     balance = Client.get_balance(bob_account)["amount"]
