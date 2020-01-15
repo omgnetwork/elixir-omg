@@ -20,9 +20,9 @@ defmodule OMG.Conformance.SignatureTest do
 
   alias OMG.State.Transaction
 
-  import Support.Conformance, only: [verify: 2, verify_distinct: 3]
+  import Support.Conformance.SignaturesHashes, only: [verify: 2, verify_distinct: 3]
 
-  use Support.Conformance.Case, async: false
+  use Support.Conformance.SignaturesHashesCase, async: false
 
   @moduletag :integration
   @moduletag :common
