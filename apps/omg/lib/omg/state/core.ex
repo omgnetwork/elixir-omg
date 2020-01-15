@@ -153,7 +153,7 @@ defmodule OMG.State.Core do
     {:ok, state}
   end
 
-  def extract_initial_state(:not_found, _child_block_interval) do
+  def extract_initial_state(:not_found, _child_block_interval, _fee_claimer_address) do
     {:error, :top_block_number_not_found}
   end
 
@@ -198,9 +198,10 @@ defmodule OMG.State.Core do
       {:ok, :claim_fees, claimed_token} ->
         {:ok, {tx_hash, state.height, state.tx_index},
          state
-         |> disallow_payments()
+         |> apply_spend(tx)
+         |> add_pending_tx(tx)
          |> claim_token(claimed_token |> Map.keys() |> hd())
-         |> add_pending_tx(tx)}
+         |> disallow_payments()}
 
       {{:error, _reason}, _state} = error ->
         error
@@ -240,15 +241,13 @@ defmodule OMG.State.Core do
   """
   @spec form_block(pos_integer(), state :: t(), fees :: Fees.optional_fee_t()) ::
           {:ok, {Block.t(), [db_update]}, new_state :: t()}
-  def form_block(
-        child_block_interval,
-        %Core{
-          height: height,
-          utxo_db_updates: reversed_utxo_db_updates
-        } = state,
-        fees
-      ) do
-    %Core{pending_txs: reversed_txs} = claim_fees(state, fees)
+  def form_block(child_block_interval, %Core{} = state, fees) do
+    # important: `claim_fees` changes state significantly, overriding the parameter
+    %Core{
+      height: height,
+      pending_txs: reversed_txs,
+      utxo_db_updates: reversed_utxo_db_updates
+    } = state = claim_fees(state, fees)
 
     txs = Enum.reverse(reversed_txs)
 
@@ -452,7 +451,9 @@ defmodule OMG.State.Core do
          } = state,
          fees
        ) do
-    Transaction.FeeTokenClaim.claim_collected(height, owner, fees_paid)
+    fees_available_to_claim = Map.take(fees_paid, Map.keys(fees))
+
+    Transaction.FeeTokenClaim.claim_collected(height, owner, fees_available_to_claim)
     |> Enum.map(fn fee_tx ->
       Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
     end)
