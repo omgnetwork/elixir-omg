@@ -23,7 +23,7 @@
   "ex_abi": {:hex, :ex_abi, "0.2.1", "e8224ef22782b58d535bf3e29e73379af48df52cc9a941746980d14b32e793c2", [:mix], [{:exth_crypto, "~> 0.1.6", [hex: :exth_crypto, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_doc": {:hex, :ex_doc, "0.20.2", "1bd0dfb0304bade58beb77f20f21ee3558cc3c753743ae0ddbb0fd7ba2912331", [:mix], [{:earmark, "~> 1.3", [hex: :earmark, repo: "hexpm", optional: false]}, {:makeup_elixir, "~> 0.10", [hex: :makeup_elixir, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_machina": {:hex, :ex_machina, "2.3.0", "92a5ad0a8b10ea6314b876a99c8c9e3f25f4dde71a2a835845b136b9adaf199a", [:mix], [{:ecto, "~> 2.2 or ~> 3.0", [hex: :ecto, repo: "hexpm", optional: true]}, {:ecto_sql, "~> 3.0", [hex: :ecto_sql, repo: "hexpm", optional: true]}], "hexpm"},
-  "ex_plasma": {:git, "https://github.com/omisego/ex_plasma.git", "fca260f98017ff1983ec13afff059ba59fd5070f", []},
+  "ex_plasma": {:git, "https://github.com/omisego/ex_plasma.git", "f6d52abc643236969a1541bddf9f7a5fd77f76d5", []},
   "ex_rlp": {:hex, :ex_rlp, "0.5.2", "7f4ce7bd55e543c054ce6d49629b01e9833c3462e3d547952be89865f39f2c58", [:mix], [], "hexpm"},
   "ex_unit_fixtures": {:git, "https://github.com/omisego/ex_unit_fixtures.git", "4a099c621dc70e0d65cb9619b38192e31ec5f504", [branch: "feature/require_files_not_load"]},
   "exactor": {:hex, :exactor, "2.2.4", "5efb4ddeb2c48d9a1d7c9b465a6fffdd82300eb9618ece5d34c3334d5d7245b1", [:mix], [], "hexpm"},
