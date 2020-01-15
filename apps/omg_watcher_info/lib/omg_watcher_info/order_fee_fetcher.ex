@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.OrderFeeFetcher do
   @moduledoc """
-  Handle fetching and foratting of fees for an order
+  Handle fetching and formatting of fees for an order
   """
 
   alias OMG.WatcherInfo.HttpRPC.Client
@@ -25,29 +25,27 @@ defmodule OMG.WatcherInfo.OrderFeeFetcher do
   @tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
   @str_tx_type Integer.to_string(@tx_type)
 
-  def add_fee_to_order(%{fee: %{currency: currency}} = order) do
-    child_chain_url = Application.get_env(:omg_watcher, :child_chain_url)
+  def add_fee_to_order(%{fee: %{currency: currency}} = order, url \\ nil) do
+    child_chain_url = url || Application.get_env(:omg_watcher_info, :child_chain_url)
     encoded_currency = Encoding.to_hex(currency)
+    params = %{"currencies" => [encoded_currency], "tx_types" => [@tx_type]}
 
-    %{"currencies" => [encoded_currency], "tx_types" => [@tx_type]}
-    |> Client.get_fees(child_chain_url)
-    |> parse_response(encoded_currency)
-    |> respond(order)
-  end
-
-  defp parse_response({:ok, fees}, currency) do
-    with %{@str_tx_type => [%{"amount" => amount, "currency" => ^currency} | _]} <- fees do
-      {:ok, amount}
+    with {:ok, fees} <- Client.get_fees(params, child_chain_url),
+         {:ok, amount} <- validate_child_chain_fees(fees, encoded_currency) do
+      {:ok, Kernel.put_in(order, [:fee, :amount], amount)}
     else
-      _ -> {:error, :unexpected_fee}
+      error ->
+        error
     end
   end
 
-  defp parse_response(error, _), do: error
+  defp validate_child_chain_fees(fees, currency) do
+    case fees do
+      %{@str_tx_type => [%{"amount" => amount, "currency" => ^currency} | _]} ->
+        {:ok, amount}
 
-  defp respond({:ok, amount}, %{fee: fee} = order) do
-    {:ok, Map.put(order, :fee, Map.put(fee, :amount, amount))}
+      _ ->
+        {:error, :unexpected_fee}
+    end
   end
-
-  defp respond(error, _), do: error
 end

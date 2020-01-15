@@ -52,13 +52,12 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
     alice_addr = Encoding.to_hex(alice.addr)
     bob_addr = Encoding.to_hex(bob.addr)
     # 10 = 5 to Bob + 2 fee + 3 rest to Alice
-    fee = 2
     alice_to_bob = 5
 
     order = %{
       "owner" => alice_addr,
       "payments" => [%{"amount" => alice_to_bob, "currency" => @eth_hex, "owner" => bob_addr}],
-      "fee" => %{"amount" => fee, "currency" => @eth_hex}
+      "fee" => %{"currency" => @eth_hex}
     }
 
     %{
