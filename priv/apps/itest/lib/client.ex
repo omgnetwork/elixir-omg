@@ -62,7 +62,7 @@ defmodule Itest.Client do
           owner: output_address
         }
       ],
-      fee: %TransactionCreateFee{amount: 0, currency: Encoding.to_hex(currency)}
+      fee: %TransactionCreateFee{currency: Encoding.to_hex(currency)}
     }
 
     {:ok, response} = Transaction.create_transaction(WatcherInfo.new(), transaction)
