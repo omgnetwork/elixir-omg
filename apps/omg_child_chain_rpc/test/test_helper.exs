@@ -15,6 +15,7 @@
 ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
 ExUnitFixtures.start()
 ExUnitFixtures.load_fixture_files()
-ExUnit.start(if System.get_env("CAPTURE_LOG"), do: false, else: true)
+capture_log = if(System.get_env("CAPTURE_LOG"), do: false, else: true)
+ExUnit.start(capture_log: capture_log)
 
 {:ok, _} = Application.ensure_all_started(:cowboy)
