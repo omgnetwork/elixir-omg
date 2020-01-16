@@ -180,6 +180,16 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert {:do_form_block, _} = Core.set_ethereum_status(queue, 1, 0, false)
     end
 
+    test "Respects the block every nth setting" do
+      {:ok, empty} =
+        Core.new(0, [], <<0::256>>, 0, child_block_interval: @child_block_interval, block_submit_every_nth: 3)
+
+      assert {:dont_form_block, _} = Core.set_ethereum_status(empty, 0, 0, false)
+      assert {:dont_form_block, _} = Core.set_ethereum_status(empty, 1, 0, false)
+      assert {:dont_form_block, _} = Core.set_ethereum_status(empty, 2, 0, false)
+      assert {:do_form_block, _} = Core.set_ethereum_status(empty, 3, 0, false)
+    end
+
     test "Produced child blocks to form aren't repeated, if none are enqueued", %{empty: empty} do
       {:do_form_block, queue} = Core.set_ethereum_status(empty, 1, 0, false)
 
@@ -379,7 +389,9 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                |> Core.get_blocks_to_submit()
     end
 
-    test "Progressing to enqueue height may raise price if threshold exceeded", %{empty_high_max_gas_price: empty} do
+    # NOTE: This behavior is strange - revisit along with the other ones (see `NOTEs` here)
+    #       Why would detecting the exact height of enqueue cause the price to raise - we don't know if there's need to
+    test "Despite progressing to enqueue height price may raise", %{empty_high_max_gas_price: empty} do
       assert [%{gas_price: 40_000_000_000}] =
                empty
                |> Core.set_ethereum_status(0, 0, false)
@@ -528,15 +540,12 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert [%{gas_price: 5}, %{gas_price: 5}] = Core.get_blocks_to_submit(state)
 
       # no more successful submissions can change the price
-      state =
-        Enum.reduce(1001..1002, state, fn eth_height, state ->
-          state
-          |> Core.set_ethereum_status(eth_height - 1, (eth_height - 2) * 1000, false)
-          |> elem(1)
-          |> Core.enqueue_block("#{eth_height}", eth_height * 1000, eth_height - 2)
-        end)
-
-      assert [%{gas_price: 5}, %{gas_price: 5}] = Core.get_blocks_to_submit(state)
+      assert [%{gas_price: 5}, %{gas_price: 5}] =
+               state
+               |> Core.set_ethereum_status(1000, 999_000, false)
+               |> elem(1)
+               |> Core.enqueue_block("1001", 1_001_000, 999)
+               |> Core.get_blocks_to_submit()
     end
 
     test "Gas price is lowered only once, in a range of Ethereum progressions without child blocks",
