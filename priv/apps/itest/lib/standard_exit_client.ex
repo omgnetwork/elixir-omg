@@ -113,11 +113,7 @@ defmodule Itest.StandardExitClient do
       }
 
       {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-<<<<<<< HEAD
-      wait_on_receipt_confirmed(receipt_hash, @retry_count)
-=======
       wait_on_receipt_confirmed(receipt_hash)
->>>>>>> feature: introduce cabbage
       wait_for_exit_queue(se, @retry_count)
       %{se | add_exit_queue_hash: receipt_hash}
     end

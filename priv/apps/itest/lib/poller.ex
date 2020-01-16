@@ -256,39 +256,38 @@ defmodule Itest.Poller do
 
     case response do
       {:ok, data} ->
-        case Jason.decode!(data.body) do
-          %{
-            "success" => true,
-            "data" => utxos
-          } ->
-            # does the UTXO set contain our deposit?
-
-            has_deposit =
-              Enum.find(utxos, fn
-                %{"amount" => ^amount, "blknum" => ^blknum, "currency" => ^currency} ->
-                  true
-
-                _ ->
-                  false
-              end)
-
-            case is_map(has_deposit) do
-              true ->
-                Jason.decode!(data.body)
-
-              _ ->
-                Process.sleep(@sleep_retry_sec)
-                pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter)
-            end
-
-          _ ->
-            Process.sleep(@sleep_retry_sec)
-            pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter)
-        end
+IO.inspect Jason.decode!(data.body)
+        find_deposit(Jason.decode!(data.body), payload, {amount, currency, blknum}, counter)
 
       _ ->
         Process.sleep(@sleep_retry_sec)
         pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter)
     end
+  end
+
+  defp find_deposit(%{"success" => true, "data" => utxos} = data, payload, {amount, currency, blknum}, counter) do
+    has_deposit =
+      Enum.find(utxos, fn
+        # does the UTXO set contain our deposit?
+        %{"amount" => ^amount, "blknum" => ^blknum, "currency" => ^currency} ->
+          true
+
+        _ ->
+          false
+      end)
+
+    case is_map(has_deposit) do
+      true ->
+        data
+
+      _ ->
+        Process.sleep(@sleep_retry_sec)
+        pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter - 1)
+    end
+  end
+
+  defp find_deposit(_, payload, {amount, currency, blknum}, counter) do
+    Process.sleep(@sleep_retry_sec)
+    pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter - 1)
   end
 end

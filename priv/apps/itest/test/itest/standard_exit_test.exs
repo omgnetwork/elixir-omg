@@ -14,18 +14,10 @@ defmodule StandardExitsTests do
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end
 
-<<<<<<< HEAD
   defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
     initial_balance = Itest.Poller.eth_get_balance(alice_account)
-=======
-  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the network$/,
-          %{amount: amount},
-          %{alice_account: alice_account} = state do
-    {:ok, initial_balance} = Client.eth_get_balance(alice_account)
-    {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
->>>>>>> feature: introduce cabbage
 
     {:ok, receipt_hash} =
       amount
@@ -39,22 +31,13 @@ defmodule StandardExitsTests do
         {current_gas, current_gas + gas_used}
       end)
 
-<<<<<<< HEAD
     balance_after_deposit = Itest.Poller.eth_get_balance(alice_account)
-=======
-    {:ok, balance_after_deposit} = Client.eth_get_balance(alice_account)
-    {balance_after_deposit, ""} = balance_after_deposit |> String.replace_prefix("0x", "") |> Integer.parse(16)
->>>>>>> feature: introduce cabbage
 
     state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
   end
 
-<<<<<<< HEAD
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
-=======
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network$/,
->>>>>>> feature: introduce cabbage
           %{amount: amount},
           %{alice_account: alice_account} = state do
     expecting_amount = Currency.to_wei(amount)
@@ -66,28 +49,17 @@ defmodule StandardExitsTests do
     {:ok, state}
   end
 
-<<<<<<< HEAD
   defwhen ~r/^Alice starts a standard exit on the child chain$/, _, %{alice_account: alice_account} = state do
-=======
-  defwhen ~r/^Alice starts a standard exit on the network$/, _, %{alice_account: alice_account} = state do
->>>>>>> feature: introduce cabbage
     se = StandardExitClient.start_standard_exit(alice_account)
     state = Map.put_new(state, :standard_exit_total_gas_used, se.total_gas_used)
 
     {:ok, state}
   end
 
-<<<<<<< HEAD
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain after finality margin$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
     _ = Logger.info("Alice should have #{amount} ETH on the child chain after finality margin")
-=======
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the network after finality margin$/,
-          %{amount: amount},
-          %{alice_account: alice_account} = state do
-    _ = Logger.info("Alice should have #{amount} ETH on the network after finality margin")
->>>>>>> feature: introduce cabbage
 
     case amount do
       "0" ->
@@ -98,20 +70,11 @@ defmodule StandardExitsTests do
         assert network_amount == Currency.to_wei(amount)
     end
 
-<<<<<<< HEAD
     balance = Itest.Poller.eth_get_balance(alice_account)
     {:ok, Map.put(state, :alice_ethereum_balance, balance)}
   end
 
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the blockchain$/,
-=======
-    {:ok, balance} = Client.eth_get_balance(alice_account)
-    {balance, ""} = balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
-    {:ok, Map.put(state, :alice_ethereum_balance, balance)}
-  end
-
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the blockchain/,
->>>>>>> feature: introduce cabbage
           %{amount: amount},
           %{
             alice_account: _alice_account,

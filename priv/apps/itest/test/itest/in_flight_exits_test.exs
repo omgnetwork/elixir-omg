@@ -3,24 +3,6 @@ defmodule InFlightExitsTests do
 
   require Logger
 
-<<<<<<< HEAD
-  alias Itest.Account
-  alias Itest.Client
-  alias Itest.InFlightExitClient
-  alias Itest.Poller
-  alias Itest.Transactions.Currency
-
-  setup do
-    [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
-
-    %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
-  end
-
-  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
-          %{amount: amount},
-          %{alice_account: alice_account} = state do
-    initial_balance = Itest.Poller.eth_get_balance(alice_account)
-=======
   alias ExPlasma.Transactions.Payment
   alias Itest.Account
   alias Itest.ApiModel.IfeExitData
@@ -38,9 +20,9 @@ defmodule InFlightExitsTests do
   alias WatcherSecurityCriticalAPI.Api.Transaction
   alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Model.InFlightExitInputChallengeDataBodySchema
+  alias WatcherSecurityCriticalAPI.Model.InFlightExitOutputChallengeDataBodySchema
   alias WatcherSecurityCriticalAPI.Model.InFlightExitTxBytesBodySchema
   alias WatcherSecurityCriticalAPI.Model.TransactionSubmitBodySchema
-  alias WatcherSecurityCriticalAPI.Model.InFlightExitOutputChallengeDataBodySchema
 
   import Itest.Poller,
     only: [
@@ -112,75 +94,15 @@ defmodule InFlightExitsTests do
     }
   end
 
-  defwhen ~r/^"(?<entity>[^"]+)" deposits "(?<amount>[^"]+)" ETH to the network$/,
+  defwhen ~r/^"(?<entity>[^"]+)" deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{entity: entity, amount: amount},
           state do
     %{address: address} = entity_state = state[entity]
-    {:ok, initial_balance} = Client.eth_get_balance(address)
-    {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
->>>>>>> feature: introduce cabbage
+    initial_balance = Itest.Poller.eth_get_balance(address)
 
     {:ok, receipt_hash} =
       amount
       |> Currency.to_wei()
-<<<<<<< HEAD
-      |> Client.deposit(alice_account, Itest.Account.vault(Currency.ether()))
-
-    gas_used = Client.get_gas_used(receipt_hash)
-
-    {_, new_state} =
-      Map.get_and_update!(state, :gas, fn current_gas ->
-        {current_gas, current_gas + gas_used}
-      end)
-
-    balance_after_deposit = Itest.Poller.eth_get_balance(alice_account)
-
-    state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
-    {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
-  end
-
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the root chain after finality margin$/,
-          %{amount: amount},
-          %{alice_account: alice_account} = state do
-    _ = Logger.info("Alice should have #{amount} ETH on the network after finality margin")
-
-    case amount do
-      "0" ->
-        assert Client.get_balance(alice_account, Currency.to_wei(amount)) == []
-
-      _ ->
-        %{"amount" => network_amount} = Client.get_balance(alice_account, Currency.to_wei(amount))
-        assert network_amount == Currency.to_wei(amount)
-    end
-
-    balance = Itest.Poller.eth_get_balance(alice_account)
-
-    {:ok, Map.put(state, :alice_ethereum_balance, balance)}
-  end
-
-  defwhen ~r/Alice starts an in flight exit$/,
-          _,
-          %{
-            alice_account: alice_account,
-            alice_pkey: alice_pkey,
-            bob_account: bob_account
-          } = state do
-    _ife = InFlightExitClient.start_in_flight_exit(alice_account, alice_pkey, bob_account)
-
-    {:ok, state}
-  end
-
-  defthen ~r/Alice should have "(?<amount>[^"]+)" ETH after finality margin$/,
-          %{amount: amount},
-          %{alice_account: alice_account} = state do
-    expecting_amount = Currency.to_wei(amount)
-    response = Poller.pull_balance_until_amount(alice_account, expecting_amount)
-    balance = if response == [], do: 0, else: response["amount"]
-
-    assert expecting_amount == balance, "Expecting #{alice_account} balance to be #{expecting_amount}, was #{balance}"
-
-    {:ok, state}
-=======
       |> Client.deposit(address, Itest.Account.vault(Currency.ether()))
 
     # retrieve finality margin from the API
@@ -194,8 +116,7 @@ defmodule InFlightExitsTests do
     |> Kernel.round()
     |> Process.sleep()
 
-    {:ok, balance_after_deposit} = Client.eth_get_balance(address)
-    {balance_after_deposit, ""} = balance_after_deposit |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    balance_after_deposit = Itest.Poller.eth_get_balance(address)
 
     entity_state =
       entity_state
@@ -206,11 +127,11 @@ defmodule InFlightExitsTests do
     {:ok, Map.put(state, entity, entity_state)}
   end
 
-  defthen ~r/^"(?<entity>[^"]+)" should have "(?<amount>[^"]+)" ETH on the network after finality margin$/,
+  defthen ~r/^"(?<entity>[^"]+)" should have "(?<amount>[^"]+)" ETH on the child chain after finality margin$/,
           %{entity: entity, amount: amount},
           state do
     %{address: address} = entity_state = state[entity]
-    _ = Logger.info("#{entity} should have #{amount} ETH on the network after finality margin")
+    _ = Logger.info("#{entity} should have #{amount} ETH on the child chain after finality margin")
 
     omg_network_balance =
       case amount do
@@ -234,8 +155,7 @@ defmodule InFlightExitsTests do
         blknum
       )
 
-    {:ok, balance} = Client.eth_get_balance(address)
-    {balance, ""} = balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    balance = Itest.Poller.eth_get_balance(address)
 
     entity_state =
       entity_state
@@ -529,6 +449,7 @@ defmodule InFlightExitsTests do
       in_flight_exit_id: in_flight_exit_id,
       in_flight_exit_ids: in_flight_exit_ids,
       unsigned_txbytes: unsigned_txbytes
+      
     } = alice_state = state["Alice"]
 
     # only a single non_canonical event, since on of the IFE tx is included!
@@ -545,7 +466,7 @@ defmodule InFlightExitsTests do
     assert in_flight_exit_ids1.exit_map != in_flight_exit_ids.exit_map
     assert in_flight_exit_ids1.exit_map != 0
 
-    # output challenge 
+    # output challenge
     payload = %InFlightExitOutputChallengeDataBodySchema{txbytes: Encoding.to_hex(unsigned_txbytes), output_index: 1}
 
     response =
@@ -593,7 +514,6 @@ defmodule InFlightExitsTests do
             |> elem(1)
             |> Enum.sort()
 
-          IO.inspect(byzantine_events)
           byzantine_events == events
 
         _ ->
@@ -918,6 +838,5 @@ defmodule InFlightExitsTests do
     |> Encoding.to_binary()
     |> ABI.TypeDecoder.decode([:bool])
     |> hd()
->>>>>>> feature: introduce cabbage
   end
 end

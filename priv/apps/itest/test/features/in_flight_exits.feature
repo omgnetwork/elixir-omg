@@ -1,9 +1,9 @@
 Feature: In Flight Exits
   Scenario: Alice starts an In Flight Exit
-    When "Alice" deposits "10" ETH to the network
-    When "Bob" deposits "10" ETH to the network
-    Then "Alice" should have "10" ETH on the network after finality margin
-    Then "Bob" should have "10" ETH on the network after finality margin
+    When "Alice" deposits "10" ETH to the root chain
+    When "Bob" deposits "10" ETH to the root chain
+    Then "Alice" should have "10" ETH on the child chain after finality margin
+    Then "Bob" should have "10" ETH on the child chain after finality margin
     When Alice creates a transaction for "5" ETH
     Then Bob gets in flight exit data for "5" ETH
     Then Alice sends a transaction

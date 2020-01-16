@@ -11,10 +11,6 @@ miliseconds =
   |> hd()
   # to milliseconds
   |> Kernel.*(1_000)
-<<<<<<< HEAD
-  # add a minute for the rest of the test
-  |> Kernel.+(60_000)
-=======
   # add two minutes for the rest of the test
   |> Kernel.+(120_000)
 
@@ -47,6 +43,5 @@ Application.put_env(:ex_plasma, :eip_712_domain,
   verifying_contract: contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"],
   version: "1"
 )
->>>>>>> feature: introduce cabbage
 
 ExUnit.start(trace: "--trace" in System.argv(), timeout: miliseconds)

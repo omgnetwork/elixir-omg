@@ -10,7 +10,7 @@ clean:
 
 start_daemon_services:
 	cd ../ && \
-	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
+	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20 make init_test && \
 	cd priv/ && \
 	docker-compose -f ../docker-compose.yml up -d
 
