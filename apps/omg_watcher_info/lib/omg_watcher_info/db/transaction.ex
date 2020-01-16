@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
         __MODULE__,
         where: [txhash: ^hash],
         preload: [
-          :block,
+          block: ^DB.Block.base_query(),
           inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
           outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
         ]

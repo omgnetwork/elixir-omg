@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
-  alias OMG.InputPointer
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -233,11 +232,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:new_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
-    exit_contract_statuses =
-      Enum.map(exits, fn %{exit_id: exit_id} ->
-        {:ok, result} = Eth.RootChain.get_standard_exit(exit_id)
-        result
-      end)
+    {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exits_structs(get_in(exits, [Access.all(), :exit_id]))
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
@@ -251,7 +246,7 @@ defmodule OMG.Watcher.ExitProcessor do
         events,
         fn %{call_data: %{in_flight_tx: bytes}} ->
           {:ok, contract_ife_id} = Eth.RootChain.get_in_flight_exit_id(bytes)
-          {:ok, status} = Eth.RootChain.get_in_flight_exit(contract_ife_id)
+          {:ok, status} = Eth.RootChain.get_in_flight_exit_struct(contract_ife_id)
           {status, contract_ife_id}
         end
       )
@@ -266,9 +261,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, db_updates_from_state, validities} =
       exits |> Enum.map(&Core.exit_key_by_exit_id(state, &1.exit_id)) |> State.exit_utxos()
 
-    {new_state, event_triggers, db_updates} = Core.finalize_exits(state, validities)
-
-    :ok = OMG.Bus.broadcast("events", {:preprocess_emit_events, event_triggers})
+    {new_state, db_updates} = Core.finalize_exits(state, validities)
 
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
@@ -377,11 +370,12 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:create_challenge, exiting_utxo_pos}, _from, state) do
     request = %ExitProcessor.Request{se_exiting_pos: exiting_utxo_pos}
+    exiting_utxo_exists = State.utxo_exists?(exiting_utxo_pos)
 
     response =
-      with {:ok, request_with_queries} <- Core.determine_standard_challenge_queries(request, state),
+      with {:ok, request} <- Core.determine_standard_challenge_queries(request, state, exiting_utxo_exists),
            do:
-             request_with_queries
+             request
              |> fill_request_with_standard_challenge_data()
              |> Core.create_challenge(state)
 
@@ -471,8 +465,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp do_get_spent_blknum(position) do
-    {:ok, spend_blknum} = position |> InputPointer.Protocol.to_db_key() |> OMG.DB.spent_blknum()
-    spend_blknum
+    position |> Utxo.Position.to_input_db_key() |> OMG.DB.spent_blknum()
   end
 
   defp collect_invalidities_and_state_db_updates(

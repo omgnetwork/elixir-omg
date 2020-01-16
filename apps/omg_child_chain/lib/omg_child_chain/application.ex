@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,14 +25,12 @@ defmodule OMG.ChildChain.Application do
 
   def start(_type, _args) do
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    cookie = System.get_env("ERL_CC_COOKIE")
-    true = set_cookie(cookie)
-    :ok = Alarm.set(alarm())
+    :ok = Alarm.set(Alarm.boot_in_progress(__MODULE__))
     OMG.ChildChain.Supervisor.start_link()
   end
 
   def start_phase(:boot_done, :normal, _phase_args) do
-    :ok = Alarm.clear(alarm())
+    :ok = Alarm.clear(Alarm.boot_in_progress(__MODULE__))
   end
 
   def start_phase(:attach_telemetry, :normal, _phase_args) do
@@ -53,15 +51,4 @@ defmodule OMG.ChildChain.Application do
       end
     end)
   end
-
-  # Only set once during bootup. cookie value retrieved from ENV.
-  # sobelow_skip ["DOS.StringToAtom"]
-  defp set_cookie(cookie) when is_binary(cookie) do
-    cookie
-    |> String.to_atom()
-    |> Node.set_cookie()
-  end
-
-  defp set_cookie(_), do: :ok == Logger.warn("Cookie not applied.")
-  defp alarm, do: {:boot_in_progress, Node.self(), __MODULE__}
 end

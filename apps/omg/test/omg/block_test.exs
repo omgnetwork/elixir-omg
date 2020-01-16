@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ defmodule OMG.BlockTest do
 
       assert Block.hashed_txs_at(transactions, 10) == %Block{
                hash:
-                 <<119, 67, 65, 203, 225, 236, 47, 61, 248, 102, 197, 197, 168, 227, 211, 131, 37, 112, 80, 234, 193,
-                   107, 232, 73, 102, 216, 22, 8, 116, 25, 6, 13>>,
+                 <<189, 245, 69, 5, 94, 45, 148, 210, 5, 89, 98, 245, 201, 111, 222, 48, 61, 114, 145, 55, 122, 84, 196,
+                   156, 254, 80, 85, 184, 3, 205, 163, 233>>,
                number: 10,
                transactions: [
                  tx_1.signed_tx_bytes,
@@ -186,7 +186,7 @@ defmodule OMG.BlockTest do
 
       proof = Block.inclusion_proof([tx_1, tx_2, tx_3], 1)
 
-      assert <<124, 155, 191, 232, 217, 33, 84, 54, 127, 244, 127, 94>> <> _ = proof
+      assert <<141, 42, 165, 123, 233, 242, 135, 178>> <> _ = proof
       assert is_binary(proof)
       assert byte_size(proof) == 32 * 16
     end

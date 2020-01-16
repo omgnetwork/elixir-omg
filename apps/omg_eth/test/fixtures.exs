@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,13 @@ defmodule OMG.Eth.Fixtures do
 
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
-  alias Support.Deployer
   alias Support.DevHelper
   alias Support.DevNode
   alias Support.RootChainHelper
+  alias Support.SnapshotContracts
 
   @test_erc20_vault_id 2
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   deffixture eth_node do
     if Application.get_env(:omg_eth, :run_test_eth_dev_node, true) do
@@ -39,21 +40,40 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    contract = DevHelper.prepare_env!(root_path: Application.fetch_env!(:omg_eth, :umbrella_root_dir))
+    contracts = SnapshotContracts.parse_contracts()
+
+    contract = %{
+      authority_addr: Encoding.from_hex(contracts["AUTHORITY_ADDRESS"]),
+      contract_addr: %{
+        erc20_vault: Encoding.from_hex(contracts["CONTRACT_ADDRESS_ERC20_VAULT"]),
+        eth_vault: Encoding.from_hex(contracts["CONTRACT_ADDRESS_ETH_VAULT"]),
+        payment_exit_game: Encoding.from_hex(contracts["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"]),
+        plasma_framework: Encoding.from_hex(contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
+      },
+      txhash_contract: Encoding.from_hex(contracts["TXHASH_CONTRACT"])
+    }
+
+    {:ok, true} =
+      Ethereumex.HttpClient.request("personal_unlockAccount", ["0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d", "", 0], [])
+
+    add_exit_queue =
+      RootChainHelper.add_exit_queue(1, @eth, %{
+        plasma_framework: Encoding.from_hex("0xc673e4ffcb8464faff908a6804fe0e635af0ea2f")
+      })
+
+    {:ok, _} = Support.DevHelper.transact_sync!(add_exit_queue)
     contract
   end
 
   deffixture token(root_chain_contract_config) do
     :ok = root_chain_contract_config
+    contracts = SnapshotContracts.parse_contracts()
 
-    root_path = Application.fetch_env!(:omg_eth, :umbrella_root_dir)
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-
-    {:ok, _, token_addr} = Deployer.create_new("ERC20Mintable", root_path, Encoding.from_hex(addr), [])
+    token_addr = Encoding.from_hex(contracts["CONTRACT_ERC20_MINTABLE"])
 
     # ensuring that the root chain contract handles token_addr
     {:ok, false} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
-    {:ok, _} = RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr) |> DevHelper.transact_sync!()
+    {:ok, _} = DevHelper.transact_sync!(RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr))
     {:ok, true} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
 
     token_addr

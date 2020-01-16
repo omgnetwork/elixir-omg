@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ defmodule OMG.State.PersistenceTest do
   use OMG.Utils.LoggerExt
 
   alias OMG.Block
-  alias OMG.InputPointer
+
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias Support.WaitFor
@@ -97,16 +97,6 @@ defmodule OMG.State.PersistenceTest do
     assert OMG.State.utxo_exists?(Utxo.position(@blknum1, 1, 0))
   end
 
-  @tag fixtures: [:alice]
-  test "zero amount transaction's output is persisted as any other output!", %{alice: alice} do
-    [%{owner: alice, currency: @eth, amount: 20, blknum: 1}]
-    |> persist_deposit()
-    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]))
-    |> persist_form()
-
-    assert OMG.State.utxo_exists?(Utxo.position(@blknum1, 0, 0))
-  end
-
   @tag fixtures: [:alice, :bob]
   test "cannot double spend from the transactions within the same block", %{alice: alice, bob: bob} do
     :ok = persist_deposit([%{owner: alice, currency: @eth, amount: 10, blknum: 1}])
@@ -137,7 +127,7 @@ defmodule OMG.State.PersistenceTest do
     assert {:ok, tx} == Transaction.Recovered.recover_from(block_tx)
 
     assert {:ok, 1000} ==
-             tx |> Transaction.get_inputs() |> hd() |> InputPointer.Protocol.to_db_key() |> OMG.DB.spent_blknum()
+             tx |> Transaction.get_inputs() |> hd() |> Utxo.Position.to_input_db_key() |> OMG.DB.spent_blknum()
   end
 
   @tag fixtures: [:alice]

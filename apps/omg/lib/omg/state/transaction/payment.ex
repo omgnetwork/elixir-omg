@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,9 @@ defmodule OMG.State.Transaction.Payment do
   This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
   """
   alias OMG.Crypto
-  alias OMG.InputPointer
+
   alias OMG.Output
+  alias OMG.RawData
   alias OMG.State.Transaction
   alias OMG.Utxo
 
@@ -28,12 +29,15 @@ defmodule OMG.State.Transaction.Payment do
   require Utxo
 
   @zero_metadata <<0::256>>
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
+  @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
 
-  defstruct [:inputs, :outputs, metadata: @zero_metadata]
+  defstruct [:tx_type, :inputs, :outputs, metadata: @zero_metadata]
 
   @type t() :: %__MODULE__{
-          inputs: list(InputPointer.Protocol.t()),
-          outputs: list(Output.FungibleMoreVPToken.t()),
+          tx_type: non_neg_integer(),
+          inputs: list(OMG.Utxo.Position.t()),
+          outputs: list(Output.t()),
           metadata: Transaction.metadata()
         }
 
@@ -74,18 +78,19 @@ defmodule OMG.State.Transaction.Payment do
       when Transaction.is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
     inputs = Enum.map(inputs, &new_input/1)
     outputs = Enum.map(outputs, &new_output/1)
-    %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
+    %__MODULE__{tx_type: @payment_tx_type, inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
   @doc """
-  Transaform the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
+  Transforms the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
   """
-  def reconstruct([inputs_rlp, outputs_rlp | rest_rlp])
-      when rest_rlp == [] or length(rest_rlp) == 1 do
+  def reconstruct([tx_type, inputs_rlp, outputs_rlp, tx_data_rlp, metadata_rlp]) do
     with {:ok, inputs} <- reconstruct_inputs(inputs_rlp),
          {:ok, outputs} <- reconstruct_outputs(outputs_rlp),
-         {:ok, metadata} <- reconstruct_metadata(rest_rlp),
-         do: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}}
+         {:ok, tx_data} <- RawData.parse_uint256(tx_data_rlp),
+         :ok <- check_tx_data(tx_data),
+         {:ok, metadata} <- reconstruct_metadata(metadata_rlp),
+         do: {:ok, %__MODULE__{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata}}
   end
 
   def reconstruct(_), do: {:error, :malformed_transaction}
@@ -94,33 +99,49 @@ defmodule OMG.State.Transaction.Payment do
   # `new/3`
   defp new_input({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
 
-  defp new_output({owner, currency, amount}),
-    do: %Output.FungibleMoreVPToken{owner: owner, currency: currency, amount: amount}
+  defp new_output({owner, currency, amount}) do
+    %Output{
+      owner: owner,
+      currency: currency,
+      amount: amount,
+      output_type: @payment_output_type
+    }
+  end
 
   defp reconstruct_inputs(inputs_rlp) do
     with {:ok, inputs} <- parse_inputs(inputs_rlp),
          do: {:ok, inputs}
   end
 
+  defp reconstruct_outputs([]), do: {:error, :empty_outputs}
+
   defp reconstruct_outputs(outputs_rlp) do
     with {:ok, outputs} <- parse_outputs(outputs_rlp),
          do: {:ok, outputs}
   end
 
-  defp reconstruct_metadata([]), do: {:ok, @zero_metadata}
-  defp reconstruct_metadata([metadata]) when Transaction.is_metadata(metadata), do: {:ok, metadata}
-  defp reconstruct_metadata([_]), do: {:error, :malformed_metadata}
+  # txData is required to be zero in the contract
+  defp check_tx_data(0), do: :ok
+  defp check_tx_data(_), do: {:error, :malformed_tx_data}
+
+  defp reconstruct_metadata(metadata) when Transaction.is_metadata(metadata), do: {:ok, metadata}
+  defp reconstruct_metadata(_), do: {:error, :malformed_metadata}
 
   defp parse_inputs(inputs_rlp) do
-    {:ok, Enum.map(inputs_rlp, &parse_input!/1)}
+    with true <- Enum.count(inputs_rlp) <= @max_inputs || {:error, :too_many_inputs},
+         # NOTE: workaround for https://github.com/omisego/ex_plasma/issues/19.
+         #       remove, when this is blocked on `ex_plasma` end
+         true <- Enum.all?(inputs_rlp, &(&1 != <<0::256>>)) || {:error, :malformed_inputs},
+         do: {:ok, Enum.map(inputs_rlp, &parse_input!/1)}
   rescue
     _ -> {:error, :malformed_inputs}
   end
 
   defp parse_outputs(outputs_rlp) do
-    outputs = Enum.map(outputs_rlp, &Output.dispatching_reconstruct/1)
+    outputs = Enum.map(outputs_rlp, &Output.reconstruct/1)
 
-    with nil <- Enum.find(outputs, &match?({:error, _}, &1)),
+    with true <- Enum.count(outputs) <= @max_outputs || {:error, :too_many_outputs},
+         nil <- Enum.find(outputs, &match?({:error, _}, &1)),
          true <- only_allowed_output_types?(outputs) || {:error, :tx_cannot_create_output_type},
          do: {:ok, outputs}
   rescue
@@ -128,15 +149,12 @@ defmodule OMG.State.Transaction.Payment do
   end
 
   defp only_allowed_output_types?(outputs),
-    do: Enum.all?(outputs, &match?(%Output.FungibleMoreVPToken{}, &1))
+    do: Enum.all?(outputs, &match?(%Output{}, &1))
 
-  # NOTE: we predetermine the input_pointer type, this is most likely not generic enough - rethink
-  #       most likely one needs to route through generic InputPointer` function that does the dispatch
-  defp parse_input!(input_pointer), do: InputPointer.UtxoPosition.reconstruct(input_pointer)
+  defp parse_input!(encoded), do: OMG.Utxo.Position.decode!(encoded)
 end
 
 defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
-  alias OMG.InputPointer
   alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -146,28 +164,26 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   @empty_signature <<0::size(520)>>
 
-  # TODO: dry wrt. Application.fetch_env!(:omg, :tx_types_modules)? Use `bimap` perhaps?
-  @payment_marker <<1>>
-
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
   @spec get_data_for_rlp(Transaction.Payment.t()) :: list(any())
-  def get_data_for_rlp(%Transaction.Payment{inputs: inputs, outputs: outputs, metadata: metadata})
+  def get_data_for_rlp(%Transaction.Payment{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata})
       when Transaction.is_metadata(metadata),
       do: [
-        @payment_marker,
-        Enum.map(inputs, &OMG.InputPointer.Protocol.get_data_for_rlp/1),
-        Enum.map(outputs, &OMG.Output.Protocol.get_data_for_rlp/1),
+        tx_type,
+        Enum.map(inputs, &OMG.Utxo.Position.get_data_for_rlp/1),
+        Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
+        0,
         metadata
       ]
 
-  @spec get_outputs(Transaction.Payment.t()) :: list(Output.Protocol.t())
+  @spec get_outputs(Transaction.Payment.t()) :: list(Output.t())
   def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs
 
-  @spec get_inputs(Transaction.Payment.t()) :: list(InputPointer.Protocol.t())
+  @spec get_inputs(Transaction.Payment.t()) :: list(OMG.Utxo.Position.t())
   def get_inputs(%Transaction.Payment{inputs: inputs}), do: inputs
 
   @doc """
@@ -188,7 +204,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
 
   Returns the fees that this transaction is paying, mapped by currency
   """
-  @spec can_apply?(Transaction.Payment.t(), list(Output.Protocol.t())) ::
+  @spec can_apply?(Transaction.Payment.t(), list(Output.t())) ::
           {:ok, map()} | {:error, :amounts_do_not_add_up}
   def can_apply?(%Transaction.Payment{} = tx, outputs_spent) do
     outputs = Transaction.get_outputs(tx)

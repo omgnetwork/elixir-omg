@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,8 +53,8 @@ defmodule OMG.Watcher.MonitorTest do
 
   test "that a child process gets restarted after alarm is cleared" do
     child = ChildProcess.prepare_child()
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
-    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, child])
+    app_alarm = Alarm.ethereum_client_connection(__MODULE__)
     :ok = :alarm_handler.set_alarm(app_alarm)
     _ = Process.unlink(monitor_pid)
     {:links, [child_pid]} = Process.info(monitor_pid, :links)
@@ -72,7 +72,7 @@ defmodule OMG.Watcher.MonitorTest do
     {:ok, _} = :dbg.tpl(ChildProcess, :init, [{:_, [], [{:return_trace}]}])
     {:ok, _} = :dbg.p(:all, [:call])
     :ok = :alarm_handler.clear_alarm(app_alarm)
-    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_children}}
+    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_child}}
     :erlang.trace(monitor_pid, false, [:receive])
 
     started =
@@ -86,8 +86,8 @@ defmodule OMG.Watcher.MonitorTest do
 
   test "that a child process does not get restarted if an alarm is cleared but it was not down" do
     child = ChildProcess.prepare_child()
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
-    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, child])
+    app_alarm = Alarm.ethereum_client_connection(__MODULE__)
     :ok = :alarm_handler.set_alarm(app_alarm)
     :erlang.trace(monitor_pid, true, [:receive])
     {:links, links} = Process.info(monitor_pid, :links)
@@ -95,10 +95,9 @@ defmodule OMG.Watcher.MonitorTest do
     # in our case the child is alive so init should NOT be called
     parent = self()
     {:ok, _} = :dbg.tracer(:process, {fn msg, _ -> send(parent, msg) end, []})
-    {:ok, _} = :dbg.tpl(ChildProcess, :init, [{:_, [], [{:return_trace}]}])
     {:ok, _} = :dbg.p(:all, [:call])
     :ok = :alarm_handler.clear_alarm(app_alarm)
-    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_children}}, 1500
+    assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_child}}, 1500
     :erlang.trace(monitor_pid, false, [:receive])
 
     started =

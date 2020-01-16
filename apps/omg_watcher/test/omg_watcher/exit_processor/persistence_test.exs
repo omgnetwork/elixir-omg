@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -209,7 +209,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   end
 
   defp persist_finalize_exits(processor, validities, db_pid) do
-    {processor, _, db_updates} = Core.finalize_exits(processor, validities)
+    {processor, db_updates} = Core.finalize_exits(processor, validities)
     persist_common(processor, db_updates, db_pid)
   end
 

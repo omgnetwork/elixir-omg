@@ -12,15 +12,154 @@ info:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
     url: 'https://omisego.network/'
 servers:
+  - url: 'http://localhost:7534/'
   - url: 'http://localhost:7434/'
 tags:
   - name: Account
     description: Account related API.
+  - name: Block
+    description: Block related API.
   - name: Transaction
     description: Transaction related API.
   - name: Fees
     description: Fees related API.
 paths:
+  /alarm.get:
+    get:
+      tags:
+        - Alarm
+      summary: 'Provides alarms related to system memory, cpu and storage and application specific alarms.'
+      description: |
+        **Note:** Service operator alarms.
+      operationId: alarm_get
+      responses:
+        '200':
+          description: System alarms
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: array
+                          items:
+                            anyOf:
+                              - type: object
+                                properties:
+                                  ethereum_client_connection:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  ethereum_client_connection:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  statsd_client_connection:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  statsd_client_connection:
+                                    type: array
+                                    items:
+                                      type: string
+                                    default: []
+                              - type: object
+                                properties:
+                                  disk_almost_full:
+                                    type: string
+                    example:
+                      data:
+                        - disk_almost_full: /dev/null
+                          ethereum_client_connection: {}
+                          system_memory_high_watermark: []
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /account.get_balance:
     post:
       tags:
@@ -360,7 +499,7 @@ paths:
                             block:
                               type: object
                               properties:
-                                timestamp:
+                                blknum:
                                   type: integer
                                   format: int64
                                 hash:
@@ -369,7 +508,10 @@ paths:
                                 eth_height:
                                   type: integer
                                   format: int64
-                                blknum:
+                                timestamp:
+                                  type: integer
+                                  format: int64
+                                tx_count:
                                   type: integer
                                   format: int64
                             inputs:
@@ -398,6 +540,12 @@ paths:
                                   amount:
                                     type: integer
                                     format: int256
+                                  creating_txhash:
+                                    type: string
+                                    format: binary
+                                  spending_txhash:
+                                    type: string
+                                    format: binary
                             outputs:
                               type: array
                               items:
@@ -424,6 +572,12 @@ paths:
                                   amount:
                                     type: integer
                                     format: int256
+                                  creating_txhash:
+                                    type: string
+                                    format: binary
+                                  spending_txhash:
+                                    type: string
+                                    format: binary
                       data_paging:
                         type: object
                         properties:
@@ -453,6 +607,8 @@ paths:
                               utxo_pos: 1000001110000
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                               currency: '0x0000000000000000000000000000000000000000'
+                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               amount: 20000000
                           outputs:
                             - blknum: 68290000
@@ -462,6 +618,8 @@ paths:
                               owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 15000000
+                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              spending_txhash: null
                             - blknum: 68290000
                               txindex: 5113
                               oindex: 1
@@ -469,9 +627,288 @@ paths:
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 5000000
+                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              spending_txhash: null
                       data_paging:
                         page: 1
                         limit: 200
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /block.get:
+    post:
+      tags:
+        - Block
+      summary: Retrieves a single block for the given block number.
+      description: |
+        Intended for operations requiring info for a specific block only. 
+        Returns a single block object for the given block number. The returned object includes transaction count but not associated transactions - for which you can use transaction.all with blknum in the request body.
+      operationId: block_get
+      requestBody:
+        description: Block number
+        required: true
+        content:
+          application/json:
+            schema:
+              title: GetBlockBodySchema
+              type: object
+              properties:
+                blknum:
+                  type: integer
+                  format: int64
+              example:
+                blknum: 68290000
+      responses:
+        '200':
+          description: Block succcessful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          blknum:
+                            type: integer
+                            format: int64
+                          hash:
+                            type: string
+                            format: binary
+                          eth_height:
+                            type: integer
+                            format: int64
+                          timestamp:
+                            type: integer
+                            format: int64
+                          tx_count:
+                            type: integer
+                            format: int64
+                    example:
+                      data:
+                        timestamp: 1540365586
+                        hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                        eth_height: 97424
+                        blknum: 68290000
+                        tx_count: 2
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /block.all:
+    post:
+      tags:
+        - Block
+      summary: Gets all blocks (can be limited with various filters).
+      description: |
+        Returns a list of blocks ordered by the highest block number first. Intended to be used for presenting an overview of most recent blocks.
+        Note: Due to eventual consistency nature of the informational API, blocks may later than deposits, exits, etc.
+      operationId: block_all
+      requestBody:
+        description: The supported request parameters for /block.all
+        content:
+          application/json:
+            schema:
+              title: AllBlocksBodySchema
+              type: object
+              properties:
+                page:
+                  type: integer
+                  format: int32
+                  default: 1
+                limit:
+                  type: integer
+                  format: int32
+                  default: 100
+              example:
+                page: 2
+                limit: 100
+      responses:
+        '200':
+          description: Blocks succcessful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful list operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: array
+                        items:
+                          type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: []
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            blknum:
+                              type: integer
+                              format: int64
+                            hash:
+                              type: string
+                              format: binary
+                            eth_height:
+                              type: integer
+                              format: int64
+                            timestamp:
+                              type: integer
+                              format: int64
+                            tx_count:
+                              type: integer
+                              format: int64
+                      data_paging:
+                        type: object
+                        properties:
+                          page:
+                            type: integer
+                            format: int32
+                            default: 1
+                          limit:
+                            type: integer
+                            format: int32
+                            default: 100
+                    example:
+                      data:
+                        - blknum: 68290000
+                          hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                          eth_height: 97424
+                          timestamp: 1540365586
+                          tx_count: 2
+                      data_paging:
+                        page: 1
+                        limit: 100
         '500':
           description: Returns an internal server error
           content:
@@ -612,7 +1049,7 @@ paths:
                             block:
                               type: object
                               properties:
-                                timestamp:
+                                blknum:
                                   type: integer
                                   format: int64
                                 hash:
@@ -621,7 +1058,10 @@ paths:
                                 eth_height:
                                   type: integer
                                   format: int64
-                                blknum:
+                                timestamp:
+                                  type: integer
+                                  format: int64
+                                tx_count:
                                   type: integer
                                   format: int64
                             inputs:
@@ -650,6 +1090,12 @@ paths:
                                   amount:
                                     type: integer
                                     format: int256
+                                  creating_txhash:
+                                    type: string
+                                    format: binary
+                                  spending_txhash:
+                                    type: string
+                                    format: binary
                             outputs:
                               type: array
                               items:
@@ -676,6 +1122,12 @@ paths:
                                   amount:
                                     type: integer
                                     format: int256
+                                  creating_txhash:
+                                    type: string
+                                    format: binary
+                                  spending_txhash:
+                                    type: string
+                                    format: binary
                       data_paging:
                         type: object
                         properties:
@@ -705,6 +1157,8 @@ paths:
                               utxo_pos: 1000001110000
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                               currency: '0x0000000000000000000000000000000000000000'
+                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               amount: 20000000
                           outputs:
                             - blknum: 68290000
@@ -714,6 +1168,8 @@ paths:
                               owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 15000000
+                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              spending_txhash: null
                             - blknum: 68290000
                               txindex: 5113
                               oindex: 1
@@ -721,6 +1177,8 @@ paths:
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 5000000
+                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              spending_txhash: null
                       data_paging:
                         page: 1
                         limit: 200
@@ -908,6 +1366,12 @@ paths:
                                       amount:
                                         type: integer
                                         format: int256
+                                      creating_txhash:
+                                        type: string
+                                        format: binary
+                                      spending_txhash:
+                                        type: string
+                                        format: binary
                                 outputs:
                                   type: array
                                   items:
@@ -1111,6 +1575,8 @@ paths:
                                 owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                                 currency: '0x0000000000000000000000000000000000000000'
                                 amount: 50
+                                creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                                spending_txhash: null
                               - blknum: 277000
                                 txindex: 2340
                                 oindex: 3
@@ -1118,6 +1584,8 @@ paths:
                                 owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                                 currency: '0x0000000000000000000000000000000000000000'
                                 amount: 75
+                                creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                                spending_txhash: null
                             outputs:
                               - amount: 100
                                 currency: '0x0000000000000000000000000000000000000000'
@@ -1334,7 +1802,7 @@ paths:
                           block:
                             type: object
                             properties:
-                              timestamp:
+                              blknum:
                                 type: integer
                                 format: int64
                               hash:
@@ -1343,7 +1811,10 @@ paths:
                               eth_height:
                                 type: integer
                                 format: int64
-                              blknum:
+                              timestamp:
+                                type: integer
+                                format: int64
+                              tx_count:
                                 type: integer
                                 format: int64
                           inputs:
@@ -1372,6 +1843,12 @@ paths:
                                 amount:
                                   type: integer
                                   format: int256
+                                creating_txhash:
+                                  type: string
+                                  format: binary
+                                spending_txhash:
+                                  type: string
+                                  format: binary
                           outputs:
                             type: array
                             items:
@@ -1398,6 +1875,12 @@ paths:
                                 amount:
                                   type: integer
                                   format: int256
+                                creating_txhash:
+                                  type: string
+                                  format: binary
+                                spending_txhash:
+                                  type: string
+                                  format: binary
                     example:
                       data:
                         txindex: 5113
@@ -1417,6 +1900,8 @@ paths:
                             owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                             currency: '0x0000000000000000000000000000000000000000'
                             amount: 10
+                            creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                            spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                         outputs:
                           - blknum: 68290000
                             txindex: 5113
@@ -1425,6 +1910,8 @@ paths:
                             owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
                             currency: '0x0000000000000000000000000000000000000000'
                             amount: 2
+                            creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                            spending_txhash: null
                           - blknum: 68290000
                             txindex: 5113
                             oindex: 1
@@ -1432,6 +1919,8 @@ paths:
                             owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                             currency: '0x0000000000000000000000000000000000000000'
                             amount: 7
+                            creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                            spending_txhash: null
         '500':
           description: Returns an internal server error
           content:
@@ -1828,10 +2317,15 @@ paths:
                   items:
                     type: string
                     format: binary
+                tx_types:
+                  type: array
+                  items:
+                    type: integer
               example:
                 currencies:
                   - '0x0000000000000000000000000000000000000000'
-                  - '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
+                tx_types:
+                  - 1
       responses:
         '200':
           description: List of all supported fees response
@@ -1859,47 +2353,43 @@ paths:
                   - type: object
                     properties:
                       data:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            currency:
-                              type: string
-                              format: binary
-                            amount:
-                              type: integer
-                              format: int256
-                            subunit_to_unit:
-                              type: integer
-                              format: int256
-                            pegged_currency:
-                              type: string
-                              format: binary
-                            pegged_amount:
-                              type: integer
-                              format: int256
-                            pegged_subunit_to_unit:
-                              type: integer
-                              format: int256
-                            updated_at:
-                              type: string
-                              format: date-time
+                        type: object
+                        additionalProperties:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              currency:
+                                type: string
+                                format: binary
+                              amount:
+                                type: integer
+                                format: int256
+                              subunit_to_unit:
+                                type: integer
+                                format: int256
+                              pegged_currency:
+                                type: string
+                                format: binary
+                              pegged_amount:
+                                type: integer
+                                format: int256
+                              pegged_subunit_to_unit:
+                                type: integer
+                                format: int256
+                              updated_at:
+                                type: string
+                                format: date-time
                     example:
                       data:
-                        - currency: '0x0000000000000000000000000000000000000000'
-                          amount: 220000000000000
-                          subunit_to_unit: '1000000000000000000,'
-                          pegged_currency: USD
-                          pegged_amount: 4
-                          pegged_subunit_to_unit: 100
-                          updated_at: '2019-01-01T10:10:10+00:00'
-                        - currency: '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
-                          amount: 39260000000000000
-                          subunit_to_unit: '1000000000000000000,'
-                          pegged_currency: USD
-                          pegged_amount: 4
-                          pegged_subunit_to_unit: 100
-                          updated_at: '2019-01-01T10:10:10+00:00'
+                        '1':
+                          - currency: '0x0000000000000000000000000000000000000000'
+                            amount: 220000000000000
+                            subunit_to_unit: 1000000000000000000
+                            pegged_currency: USD
+                            pegged_amount: 4
+                            pegged_subunit_to_unit: 100
+                            updated_at: '2019-01-01T10:10:10+00:00'
         '500':
           description: Returns an internal server error
           content:

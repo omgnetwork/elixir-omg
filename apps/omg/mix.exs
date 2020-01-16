@@ -9,7 +9,7 @@ defmodule OMG.MixProject do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: "~> 1.6",
+      elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -25,15 +25,19 @@ defmodule OMG.MixProject do
   end
 
   # Specifies which paths to compile per environment.
+  # :dev compiles `test/support` to gain access to various `Support.*` helpers
   defp elixirc_paths(:prod), do: ["lib"]
-  defp elixirc_paths(_), do: ["lib", "test/support"]
+  defp elixirc_paths(:dev), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
 
   defp deps do
     [
+      {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git"},
       {:ex_rlp, "~> 0.5.2"},
       {:merkle_tree,
        git: "https://github.com/omisego/merkle_tree.git", branch: "prevent_second_preimage_attack", override: true},
       {:telemetry, "~> 0.4.0"},
+      {:propcheck, "~> 1.1", only: [:test, :dev]},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
       {:omg_db, in_umbrella: true},

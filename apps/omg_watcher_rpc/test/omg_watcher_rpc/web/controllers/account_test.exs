@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
   @eth_hex @eth |> Encoding.to_hex()
   @other_token <<127::160>>
   @other_token_hex @other_token |> Encoding.to_hex()
@@ -95,7 +96,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :alice, :bob]
-    test "get_utxos and get_exitable_utxos have the same return format", %{alice: alice, bob: bob} do
+    test "get_utxos and get_exitable_utxos have the same return values", %{alice: alice, bob: bob} do
       DB.EthEvent.insert_deposits!([
         %{
           root_chain_txhash: Crypto.hash(<<1000::256>>),
@@ -109,11 +110,38 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
 
       # TODO: this test is brittle because of the way the DB entries are hardcoded
       OMG.DB.multi_update([
-        {:put, :utxo, {{1, 0, 0}, %{output: %{amount: 333, currency: @eth, owner: alice.addr}, creating_txhash: nil}}},
-        {:put, :utxo, {{2, 0, 0}, %{output: %{amount: 100, currency: @eth, owner: bob.addr}, creating_txhash: nil}}}
+        {:put, :utxo,
+         {
+           {1, 0, 0},
+           %{
+             output: %{amount: 333, currency: @eth, owner: alice.addr, output_type: @payment_output_type},
+             creating_txhash: nil
+           }
+         }},
+        {:put, :utxo,
+         {
+           {2, 0, 0},
+           %{
+             output: %{amount: 100, currency: @eth, owner: bob.addr, output_type: @payment_output_type},
+             creating_txhash: nil
+           }
+         }}
       ])
 
-      assert WatcherHelper.get_exitable_utxos(alice.addr) == WatcherHelper.get_utxos(alice.addr)
+      # utxos contain extra fields such as `spending_txhash` so we compare only the fields we expect from both.
+      fields = ["blknum", "txindex", "oindex", "utxo_pos", "amount", "currency", "owner"]
+
+      exitable_utxos =
+        alice.addr
+        |> WatcherHelper.get_exitable_utxos()
+        |> Enum.map(fn utxo -> Map.take(utxo, fields) end)
+
+      utxos =
+        alice.addr
+        |> WatcherHelper.get_utxos()
+        |> Enum.map(fn utxo -> Map.take(utxo, fields) end)
+
+      assert utxos == exitable_utxos
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -279,36 +307,5 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
                }
              }
            } == WatcherHelper.no_success?("account.get_utxos", %{"address" => 1_234_567_890})
-  end
-
-  @tag fixtures: [:blocks_inserter, :alice]
-  test "outputs with value zero are not inserted into DB, the other has correct oindex", %{
-    alice: alice,
-    blocks_inserter: blocks_inserter
-  } do
-    blknum = 11_000
-
-    blocks_inserter.([
-      {blknum,
-       [
-         OMG.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 100}]),
-         OMG.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])
-       ]}
-    ])
-
-    [
-      %{
-        "amount" => 100,
-        "blknum" => ^blknum,
-        "txindex" => 0,
-        "oindex" => 1
-      },
-      %{
-        "amount" => 101,
-        "blknum" => ^blknum,
-        "txindex" => 1,
-        "oindex" => 0
-      }
-    ] = WatcherHelper.get_utxos(alice.addr) |> Enum.filter(&match?(%{"blknum" => ^blknum}, &1))
   end
 end

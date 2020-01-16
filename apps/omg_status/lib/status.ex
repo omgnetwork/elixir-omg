@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ defmodule OMG.Status do
   # if ETS table has a tuple entry in form of {:boot_in_progress, 0}, return false
   # if ETS table has a tuple entry in form of {:boot_in_progress, 1}, return true
   @health_match List.flatten(
-                  for n <- [:boot_in_progress, :ethereum_client_connection],
+                  for n <- [:boot_in_progress, :ethereum_client_connection, :main_supervisor_halted],
                       do: [{{n, 0}, [], [false]}, {{n, 1}, [], [true]}]
                 )
 

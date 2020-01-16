@@ -25,6 +25,8 @@ servers:
   - url: 'http://localhost:9656/'
 
 paths:
+  /alarm.get:
+    $ref: 'alarm/paths.yaml#/alarm.get'
   /transaction.submit:
     $ref: 'transaction/paths.yaml#/transaction.submit'
   /block.get:

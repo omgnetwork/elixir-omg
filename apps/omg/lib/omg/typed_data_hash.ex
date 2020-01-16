@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,20 +31,15 @@ defmodule OMG.TypedDataHash do
   @empty_input_hash __MODULE__.Tools.hash_input(Utxo.position(0, 0, 0))
 
   # Precomputed hash of empty output for performance
-  @empty_output_hash __MODULE__.Tools.hash_output(
-                       %Output.FungibleMoreVPToken{
-                         owner: @zero_address,
-                         currency: @zero_address,
-                         amount: 0
-                       },
-                       hash_zero: true
-                     )
+  @empty_output_hash __MODULE__.Tools.hash_output(%Output{
+                       owner: @zero_address,
+                       currency: @zero_address,
+                       amount: 0,
+                       output_type: 0
+                     })
 
   # Prefix and version byte motivated by http://eips.ethereum.org/EIPS/eip-191
   @eip_191_prefix <<0x19, 0x01>>
-
-  # TODO: dry wrt. Application.fetch_env!(:omg, :tx_types_modules)? Use `bimap` perhaps?
-  @payment_marker <<1>>
 
   @doc """
   Computes a hash of encoded transaction as defined in EIP-712
@@ -58,7 +53,7 @@ defmodule OMG.TypedDataHash do
   @spec hash_transaction(Transaction.Payment.t()) :: Crypto.hash_t()
   def hash_transaction(%Transaction.Payment{} = raw_tx) do
     __MODULE__.Tools.hash_transaction(
-      @payment_marker,
+      raw_tx.tx_type,
       Transaction.get_inputs(raw_tx),
       Transaction.get_outputs(raw_tx),
       raw_tx.metadata,

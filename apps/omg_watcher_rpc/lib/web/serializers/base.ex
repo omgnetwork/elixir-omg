@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ defmodule OMG.WatcherRPC.Web.Serializer.Base do
     require Utxo
 
     db_entry
-    |> Map.take([:amount, :currency, :blknum, :txindex, :oindex, :owner])
+    |> Map.take([:amount, :currency, :blknum, :txindex, :oindex, :owner, :creating_txhash, :spending_txhash])
     |> Map.put(:utxo_pos, Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode())
   end
 end

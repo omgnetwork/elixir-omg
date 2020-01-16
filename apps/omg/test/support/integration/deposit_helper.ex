@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,9 +52,7 @@ defmodule Support.Integration.DepositHelper do
   end
 
   defp process_deposit(%{"blockNumber" => deposit_eth_height} = receipt) do
-    deposit_eth_height
-    |> wait_deposit_recognized()
-
+    _ = wait_deposit_recognized(deposit_eth_height)
     RootChainHelper.deposit_blknum_from_receipt(receipt)
   end
 

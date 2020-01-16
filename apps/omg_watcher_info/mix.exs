@@ -9,7 +9,7 @@ defmodule OMG.WatcherInfo.MixProject do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: "~> 1.4",
+      elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -25,8 +25,10 @@ defmodule OMG.WatcherInfo.MixProject do
     ]
   end
 
+  # Specifies which paths to compile per environment.
   defp elixirc_paths(:prod), do: ["lib"]
-  defp elixirc_paths(_), do: ["lib", "test/support"]
+  defp elixirc_paths(:dev), do: ["lib"]
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
 
   defp deps do
     [
@@ -51,7 +53,8 @@ defmodule OMG.WatcherInfo.MixProject do
       {:fake_server, "~> 1.5", only: [:dev, :test], runtime: false},
       {:briefly, "~> 0.3.0", only: [:dev, :test]},
       {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false},
-      {:phoenix, "~> 1.3", runtime: false}
+      {:phoenix, "~> 1.3", runtime: false},
+      {:ex_machina, "~> 2.3", only: [:test], runtime: false}
     ]
   end
 end

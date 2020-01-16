@@ -21,6 +21,142 @@ tags:
 servers:
   - url: 'http://localhost:9656/'
 paths:
+  /alarm.get:
+    get:
+      tags:
+        - Alarm
+      summary: 'Provides alarms related to system memory, cpu and storage and application specific alarms.'
+      description: |
+        **Note:** Service operator alarms.
+      operationId: alarm_get
+      responses:
+        '200':
+          description: System alarms
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: array
+                          items:
+                            anyOf:
+                              - type: object
+                                properties:
+                                  ethereum_client_connection:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  ethereum_client_connection:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  statsd_client_connection:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  statsd_client_connection:
+                                    type: array
+                                    items:
+                                      type: string
+                                    default: []
+                              - type: object
+                                properties:
+                                  disk_almost_full:
+                                    type: string
+                    example:
+                      data:
+                        - disk_almost_full: /dev/null
+                          ethereum_client_connection: {}
+                          system_memory_high_watermark: []
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                    example:
+                      version: '1.0'
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /transaction.submit:
     post:
       tags:
@@ -282,10 +418,15 @@ paths:
                   items:
                     type: string
                     format: binary
+                tx_types:
+                  type: array
+                  items:
+                    type: integer
               example:
                 currencies:
                   - '0x0000000000000000000000000000000000000000'
-                  - '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
+                tx_types:
+                  - 1
       responses:
         '200':
           description: List of all supported fees response
@@ -313,47 +454,43 @@ paths:
                   - type: object
                     properties:
                       data:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            currency:
-                              type: string
-                              format: binary
-                            amount:
-                              type: integer
-                              format: int256
-                            subunit_to_unit:
-                              type: integer
-                              format: int256
-                            pegged_currency:
-                              type: string
-                              format: binary
-                            pegged_amount:
-                              type: integer
-                              format: int256
-                            pegged_subunit_to_unit:
-                              type: integer
-                              format: int256
-                            updated_at:
-                              type: string
-                              format: date-time
+                        type: object
+                        additionalProperties:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              currency:
+                                type: string
+                                format: binary
+                              amount:
+                                type: integer
+                                format: int256
+                              subunit_to_unit:
+                                type: integer
+                                format: int256
+                              pegged_currency:
+                                type: string
+                                format: binary
+                              pegged_amount:
+                                type: integer
+                                format: int256
+                              pegged_subunit_to_unit:
+                                type: integer
+                                format: int256
+                              updated_at:
+                                type: string
+                                format: date-time
                     example:
                       data:
-                        - currency: '0x0000000000000000000000000000000000000000'
-                          amount: 220000000000000
-                          subunit_to_unit: 1000000000000000000
-                          pegged_currency: USD
-                          pegged_amount: 4
-                          pegged_subunit_to_unit: 100
-                          updated_at: '2019-01-01T10:10:10+00:00'
-                        - currency: '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'
-                          amount: 39260000000000000
-                          subunit_to_unit: 1000000000000000000
-                          pegged_currency: USD
-                          pegged_amount: 4
-                          pegged_subunit_to_unit: 100
-                          updated_at: '2019-01-01T10:10:10+00:00'
+                        '1':
+                          - currency: '0x0000000000000000000000000000000000000000'
+                            amount: 220000000000000
+                            subunit_to_unit: 1000000000000000000
+                            pegged_currency: USD
+                            pegged_amount: 4
+                            pegged_subunit_to_unit: 100
+                            updated_at: '2019-01-01T10:10:10+00:00'
         '500':
           description: Returns an internal server error
           content:

@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ defmodule OMG.Performance do
     iex> Performance.init(watcher_url: "http://elsewhere:7434")
     :ok
     iex> Application.get_env(:omg_watcher, :child_chain_url)
-    "http://localhost:9656"
+    "http://localhost:9657"
     iex> Application.get_env(:omg_performance, :watcher_url)
     "http://elsewhere:7434"
   """

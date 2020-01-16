@@ -1,5 +1,7 @@
 MAKEFLAGS += --silent
 OVERRIDING_START ?= foreground
+SNAPSHOT ?= SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20
+BAREBUILD_ENV ?= dev
 help:
 	@echo "Dont Fear the Makefile"
 	@echo ""
@@ -41,14 +43,11 @@ help:
 	@echo "BARE METAL DEVELOPMENT"
 	@echo "----------------------"
 	@echo
-	@echo "This presumes you want to run geth, plasma-contracts and postgres as containers \c"
+	@echo "This presumes you want to run geth and postgres as containers \c"
 	@echo "but Watcher and Child Chain bare metal. You will need four terminal windows."
 	@echo ""
-	@echo "1. In the first one, start geth, postgres and plasma-contracts:"
+	@echo "1. In the first one, start geth, postgres:"
 	@echo "    make start-services"
-	@echo ""
-	@echo "   In case one of the containers is faulty, restart it by running the command again. \c"
-	@echo "Usually it's plasma-contracts."
 	@echo ""
 	@echo "2. In the second terminal window, run:"
 	@echo "    make start-child_chain"
@@ -56,13 +55,20 @@ help:
 	@echo "3. In the third terminal window, run:"
 	@echo "    make start-watcher"
 	@echo ""
-	@echo "4. Wait until they all boot. And run in the fourth terminal window:"
+	@echo ""
+	@echo "4. In the fourth terminal window, run:"
+	@echo "    make start-watcher_info"
+	@echo ""
+	@echo "5. Wait until they all boot. And run in the fifth terminal window:"
 	@echo "    make get-alarms"
 	@echo ""
 	@echo "If you want to attach yourself to running services, use:"
 	@echo "    make remote-child_chain"
 	@echo "or"
 	@echo "    make remote-watcher"
+	@echo ""
+	@echo "or"
+	@echo "    make remote-watcher_info"
 	@echo ""
 	@echo "MISCELLANEOUS"
 	@echo "-------------"
@@ -80,7 +86,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20191024"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200104"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -163,6 +169,33 @@ build-test: deps-elixir-omg
 #
 # Testing
 #
+
+# get the SNAPSHOT url from the snapshots file based on the SNAPSHOT env value
+# untar the snapshot and fetch values from the files in build dir that came from plasma-deployer
+# put these values into an localchain_contract_addresses.env via the script in bin
+# localchain_contract_addresses.env is used by docker, exunit tests and end2end tests
+
+init_test:
+	mkdir data/ || true && \
+	rm -rf data/* || true && \
+	URL=$$(grep "^$(SNAPSHOT)" snapshots.env | cut -d'=' -f2-) && \
+	wget $$URL -O data/snapshot.tar.gz && \
+	cd data && \
+	tar --strip-components 1 -zxvf snapshot.tar.gz data/geth && \
+	tar --exclude=data/* -xvzf snapshot.tar.gz && \
+	AUTHORITY_ADDRESS=$$(cat plasma-contracts/build/authority_address) && \
+	ETH_VAULT=$$(cat plasma-contracts/build/eth_vault) && \
+	ERC20_VAULT=$$(cat plasma-contracts/build/erc20_vault) && \
+	PAYMENT_EXIT_GAME=$$(cat plasma-contracts/build/payment_exit_game) && \
+	PLASMA_FRAMEWORK_TX_HASH=$$(cat plasma-contracts/build/plasma_framework_tx_hash) && \
+	PLASMA_FRAMEWORK=$$(cat plasma-contracts/build/plasma_framework) && \
+	PAYMENT_EIP712_LIBMOCK=$$(cat plasma-contracts/build/paymentEip712LibMock) && \
+	MERKLE_WRAPPER=$$(cat plasma-contracts/build/merkleWrapper) && \
+	ERC20_MINTABLE=$$(cat plasma-contracts/build/erc20Mintable) && \
+	sh ../bin/generate-localchain-env AUTHORITY_ADDRESS=$$AUTHORITY_ADDRESS ETH_VAULT=$$ETH_VAULT \
+	ERC20_VAULT=$$ERC20_VAULT PAYMENT_EXIT_GAME=$$PAYMENT_EXIT_GAME \
+	PLASMA_FRAMEWORK_TX_HASH=$$PLASMA_FRAMEWORK_TX_HASH PLASMA_FRAMEWORK=$$PLASMA_FRAMEWORK \
+	PAYMENT_EIP712_LIBMOCK=$$PAYMENT_EIP712_LIBMOCK MERKLE_WRAPPER=$$MERKLE_WRAPPER ERC20_MINTABLE=$$ERC20_MINTABLE
 
 test:
 	mix test --include test --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
@@ -254,6 +287,7 @@ docker-push: docker
 
 ###OTHER
 docker-start-cluster:
+	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
 docker-stop-cluster:
@@ -282,13 +316,13 @@ docker-start-cluster-with-infura:
 	fi
 
 docker-start-cluster-with-datadog:
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up plasma-contracts watcher watcher_info childchain
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up watcher watcher_info childchain
 
 docker-stop-cluster-with-datadog:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
 docker-nuke:
-	docker-compose down
+	docker-compose down --remove-orphans
 	docker system prune --all
 
 docker-remote-watcher:
@@ -306,45 +340,43 @@ docker-remote-childchain:
 ### barebone stuff
 ###
 start-services:
-	docker-compose up geth postgres plasma-contracts
-
-prune-plasma-contracts:
-	docker rmi -f $(docker images --format '{{.Repository}}:{{.Tag}}' | grep elixir-omg_plasma-contracts:latest)
+	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
+	docker-compose up geth postgres
 
 start-child_chain:
 	set -e; . ./bin/variables; \
 	echo "Building Child Chain" && \
-	make build-child_chain-prod && \
-	rm -f ./_build/prod/rel/child_chain/var/sys.config || true && \
+	make build-child_chain-${BAREBUILD_ENV} && \
+	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
 	echo "Init Child Chain DB" && \
-	_build/prod/rel/child_chain/bin/child_chain init_key_value_db && \
+	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain init_key_value_db && \
 	echo "Init Child Chain DB DONE" && \
-	_build/prod/rel/child_chain/bin/child_chain $(OVERRIDING_START)
+	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
 	set -e; . ./bin/variables; \
 	echo "Building Watcher" && \
-	make build-watcher-prod && \
+	make build-watcher-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
-	rm -f ./_build/prod/rel/watcher/var/sys.config || true && \
+	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-	_build/prod/rel/watcher/bin/watcher init_key_value_db && \
+	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher init_key_value_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	PORT=${WATCHER_PORT} _build/prod/rel/watcher/bin/watcher $(OVERRIDING_START)
+	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
 
 start-watcher_info:
 	set -e; . ./bin/variables; \
 	echo "Building Watcher" && \
-	make build-watcher_info-prod && \
+	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
-	rm -f ./_build/prod/rel/watcher_info/var/sys.config || true && \
+	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-	_build/prod/rel/watcher_info/bin/watcher_info init_key_value_db && \
-	_build/prod/rel/watcher_info/bin/watcher_info init_postgresql_db && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_key_value_db && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_postgresql_db && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
-	PORT=${WATCHER_INFO_PORT} _build/prod/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
+	PORT=${WATCHER_INFO_PORT} _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
@@ -387,11 +419,11 @@ remote-watcher_info:
 
 get-alarms:
 	echo "Child Chain alarms" ; \
-	curl -s -X POST http://localhost:9656/alarm.get ; \
+	curl -s -X GET http://localhost:9656/alarm.get ; \
 	echo "\nWatcher alarms" ; \
-	curl -s -X POST http://localhost:${WATCHER_PORT}/alarm.get ; \
+	curl -s -X GET http://localhost:${WATCHER_PORT}/alarm.get ; \
 	echo "\nWatcherInfo alarms" ; \
-	curl -s -X POST http://localhost:${WATCHER_INFO_PORT}/alarm.get
+	curl -s -X GET http://localhost:${WATCHER_INFO_PORT}/alarm.get
 
 cluster-stop:
 	${MAKE} stop-watcher ; ${MAKE} stop-watcher_info ; ${MAKE} stop-child_chain ; docker-compose down

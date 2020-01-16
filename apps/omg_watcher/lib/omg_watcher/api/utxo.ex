@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,11 @@ defmodule OMG.Watcher.API.Utxo do
   Module provides API for utxos
   """
 
-  alias OMG.InputPointer
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.UtxoExit.Core
 
   require Utxo
-  import Utxo, only: [is_deposit: 1]
 
   @type exit_t() :: %{
           utxo_pos: pos_integer(),
@@ -31,6 +29,11 @@ defmodule OMG.Watcher.API.Utxo do
           proof: binary(),
           sigs: binary()
         }
+
+  @interval elem(OMG.Eth.RootChain.get_child_block_interval(), 1)
+
+  # Based on the contract parameters determines whether UTXO position provided was created by a deposit
+  defguardp is_deposit(blknum) when rem(blknum, @interval) != 0
 
   @doc """
   Returns a proof that utxo was spent
@@ -42,8 +45,8 @@ defmodule OMG.Watcher.API.Utxo do
   end
 
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
-  def compose_utxo_exit(utxo_pos) when is_deposit(utxo_pos) do
-    utxo_pos |> InputPointer.Protocol.to_db_key() |> OMG.DB.utxo() |> Core.compose_deposit_standard_exit()
+  def compose_utxo_exit(Utxo.position(blknum, _, _) = utxo_pos) when is_deposit(blknum) do
+    utxo_pos |> Utxo.Position.to_input_db_key() |> OMG.DB.utxo() |> Core.compose_deposit_standard_exit()
   end
 
   def compose_utxo_exit(Utxo.position(blknum, _, _) = utxo_pos) do

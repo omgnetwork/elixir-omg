@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -173,18 +173,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   describe "handling of spent blknums result" do
     test "asks for the right blocks when all are spent correctly" do
-      assert [1000] = Core.handle_spent_blknum_result([1000], [@utxo_pos1])
+      assert [1000] = Core.handle_spent_blknum_result([{:ok, 1000}], [@utxo_pos1])
       assert [] = Core.handle_spent_blknum_result([], [])
-      assert [2000, 1000] = Core.handle_spent_blknum_result([2000, 1000], [@utxo_pos2, @utxo_pos1])
+      assert [2000, 1000] = Core.handle_spent_blknum_result([{:ok, 2000}, {:ok, 1000}], [@utxo_pos2, @utxo_pos1])
     end
 
     test "asks for blocks just once" do
-      assert [1000] = Core.handle_spent_blknum_result([1000, 1000], [@utxo_pos2, @utxo_pos1])
+      assert [1000] = Core.handle_spent_blknum_result([{:ok, 1000}, {:ok, 1000}], [@utxo_pos2, @utxo_pos1])
     end
 
     @tag :capture_log
     test "asks for the right blocks if some spends are missing" do
-      assert [1000] = Core.handle_spent_blknum_result([:not_found, 1000], [@utxo_pos2, @utxo_pos1])
+      assert [1000] = Core.handle_spent_blknum_result([:not_found, {:ok, 1000}], [@utxo_pos2, @utxo_pos1])
     end
   end
 
@@ -219,8 +219,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     test "seeks IFE txs in blocks, correctly if IFE inputs duplicate",
          %{processor_filled: processor, alice: alice, transactions: txs} do
-      other_tx = TestHelper.create_recovered([{1, 0, 0, alice}], [])
-      processor = processor |> start_ife_from(other_tx)
+      other_tx = TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 1}])
+      processor = start_ife_from(processor, other_tx)
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,

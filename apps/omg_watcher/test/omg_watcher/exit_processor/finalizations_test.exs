@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
   alias OMG.Block
   alias OMG.State.Transaction
-  alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -29,14 +28,12 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
   import OMG.Watcher.ExitProcessor.TestHelper
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @utxo_pos1 Utxo.position(2_000, 0, 0)
   @exit_id 1
 
   describe "sanity checks" do
     test "can process empty finalizations", %{processor_empty: empty, processor_filled: filled} do
-      assert {^empty, [], []} = Core.finalize_exits(empty, {[], []})
-      assert {^filled, [], []} = Core.finalize_exits(filled, {[], []})
+      assert {^empty, []} = Core.finalize_exits(empty, {[], []})
+      assert {^filled, []} = Core.finalize_exits(filled, {[], []})
       assert {:ok, %{}} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(empty, [])
       assert {:ok, %{}} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(filled, [])
       assert {:ok, ^empty, []} = Core.finalize_in_flight_exits(empty, [], %{})
@@ -321,24 +318,6 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       {:unknown_piggybacks, ^expected_unknown_piggybacks} =
         Core.finalize_in_flight_exits(processor, [finalization1, finalization2], %{})
-    end
-  end
-
-  describe "finalization Watcher events" do
-    test "emits exit events when finalizing valid exits",
-         %{processor_empty: processor, alice: %{addr: alice_addr} = alice} do
-      standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-      processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
-
-      assert {_, [%{exit_finalized: %{amount: 10, currency: @eth, owner: ^alice_addr, utxo_pos: @utxo_pos1}}], _} =
-               Core.finalize_exits(processor, {[@utxo_pos1], []})
-    end
-
-    test "doesn't emit exit events when finalizing invalid exits",
-         %{processor_empty: processor, alice: alice} do
-      standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-      processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
-      assert {_, [], _} = Core.finalize_exits(processor, {[], [@utxo_pos1]})
     end
   end
 end

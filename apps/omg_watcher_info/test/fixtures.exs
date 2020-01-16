@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ defmodule OMG.WatcherInfo.Fixtures do
   alias OMG.Crypto
   alias OMG.WatcherInfo
   alias OMG.WatcherInfo.DB
-  alias Support.WatcherInfoHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -68,7 +67,7 @@ defmodule OMG.WatcherInfo.Fixtures do
     _ = Application.load(:omg_watcher_rpc)
 
     on_exit(fn ->
-      WatcherInfoHelper.wait_for_process(pid)
+      wait_for_process(pid)
       :ok
     end)
   end
@@ -87,7 +86,7 @@ defmodule OMG.WatcherInfo.Fixtures do
     :ok = SQL.Sandbox.checkout(DB.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
-      WatcherInfoHelper.wait_for_process(pid)
+      wait_for_process(pid)
       :ok
     end)
   end
@@ -95,7 +94,7 @@ defmodule OMG.WatcherInfo.Fixtures do
   deffixture initial_blocks(alice, bob, blocks_inserter, initial_deposits) do
     :ok = initial_deposits
 
-    [
+    blocks = [
       {1000,
        [
          OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
@@ -111,7 +110,8 @@ defmodule OMG.WatcherInfo.Fixtures do
          OMG.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
        ]}
     ]
-    |> blocks_inserter.()
+
+    blocks_inserter.(blocks)
   end
 
   deffixture initial_deposits(alice, bob, phoenix_ecto_sandbox) do
@@ -144,7 +144,7 @@ defmodule OMG.WatcherInfo.Fixtures do
   deffixture blocks_inserter(phoenix_ecto_sandbox) do
     :ok = phoenix_ecto_sandbox
 
-    fn blocks -> blocks |> Enum.flat_map(&prepare_one_block/1) end
+    fn blocks -> Enum.flat_map(blocks, &prepare_one_block/1) end
   end
 
   deffixture test_server do
@@ -210,5 +210,17 @@ defmodule OMG.WatcherInfo.Fixtures do
 
       :ok = Process.sleep(5)
       ensure_web_started(module, function, args, counter - 1)
+  end
+
+  defp wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do
+    ref = Process.monitor(pid)
+
+    receive do
+      {:DOWN, ^ref, :process, _, _} ->
+        :ok
+    after
+      timeout ->
+        throw({:timeouted_waiting_for, pid})
+    end
   end
 end

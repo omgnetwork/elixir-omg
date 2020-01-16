@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ defmodule OMG.MergeTransactionValidator do
   defp is_payment?(_), do: false
 
   defp only_fungible_tokens?(tx),
-    do: tx |> Transaction.get_outputs() |> Enum.all?(&match?(%Output.FungibleMoreVPToken{}, &1))
+    do: tx |> Transaction.get_outputs() |> Enum.all?(&match?(%Output{}, &1))
 
   defp has_same_account?(%Transaction.Recovered{witnesses: witnesses} = tx) do
     spenders = Map.values(witnesses)

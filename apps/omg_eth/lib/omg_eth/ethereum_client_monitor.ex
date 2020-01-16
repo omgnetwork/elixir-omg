@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ defmodule OMG.Eth.EthereumClientMonitor do
   end
 
   def init([_ | _] = opts) do
-    alarm_module = Keyword.get(opts, :alarm_module)
+    alarm_module = Keyword.fetch!(opts, :alarm_module)
     false = Process.flag(:trap_exit, true)
     _ = Logger.info("Starting Ethereum client monitor.")
     install_alarm_handler()
@@ -93,7 +93,7 @@ defmodule OMG.Eth.EthereumClientMonitor do
 
   def handle_info({:EXIT, _from, _reason}, state) do
     # subscription died so we need to raise an alarm and start manual checks
-    _ = state.alarm_module.set({:ethereum_client_connection, Node.self(), __MODULE__})
+    _ = state.alarm_module.set(state.alarm_module.ethereum_client_connection(__MODULE__))
     _ = :timer.cancel(state.tref)
     {:ok, tref} = :timer.send_after(state.interval, :health_check)
     {:noreply, %{state | tref: tref}}
@@ -179,10 +179,10 @@ defmodule OMG.Eth.EthereumClientMonitor do
   defp raise_clear(_alarm_module, true, :error), do: :ok
 
   defp raise_clear(alarm_module, false, :error),
-    do: alarm_module.set({:ethereum_client_connection, Node.self(), __MODULE__})
+    do: alarm_module.set(alarm_module.ethereum_client_connection(__MODULE__))
 
   defp raise_clear(alarm_module, true, _),
-    do: alarm_module.clear({:ethereum_client_connection, Node.self(), __MODULE__})
+    do: alarm_module.clear(alarm_module.ethereum_client_connection(__MODULE__))
 
   defp raise_clear(_alarm_module, false, _), do: :ok
 

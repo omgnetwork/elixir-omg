@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +22,11 @@ defmodule OMG.Watcher.Fixtures do
   alias FakeServer.Agents.EnvAgent
   alias FakeServer.HTTP.Server
   alias OMG.Eth
+  alias OMG.Status.Alert.Alarm
   alias OMG.TestHelper
   alias Support.DevHelper
+
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
 
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)
@@ -32,21 +35,23 @@ defmodule OMG.Watcher.Fixtures do
 
     {:ok, path, file_name} =
       TestHelper.write_fee_file(%{
-        enc_eth => %{
-          amount: 0,
-          pegged_amount: 1,
-          subunit_to_unit: 1_000_000_000_000_000_000,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.utc_now()
-        },
-        Eth.Encoding.to_hex(token) => %{
-          amount: 0,
-          pegged_amount: 1,
-          subunit_to_unit: 1_000_000_000_000_000_000,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.utc_now()
+        @payment_tx_type => %{
+          enc_eth => %{
+            amount: 0,
+            pegged_amount: 1,
+            subunit_to_unit: 1_000_000_000_000_000_000,
+            pegged_currency: "USD",
+            pegged_subunit_to_unit: 100,
+            updated_at: DateTime.utc_now()
+          },
+          Eth.Encoding.to_hex(token) => %{
+            amount: 0,
+            pegged_amount: 1,
+            subunit_to_unit: 1_000_000_000_000_000_000,
+            pegged_currency: "USD",
+            pegged_subunit_to_unit: 100,
+            updated_at: DateTime.utc_now()
+          }
         }
       })
 
@@ -164,6 +169,7 @@ defmodule OMG.Watcher.Fixtures do
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_security_watcher} = Application.ensure_all_started(:omg_watcher)
     {:ok, started_watcher_api} = Application.ensure_all_started(:omg_watcher_rpc)
+    wait_for_web()
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
@@ -196,5 +202,18 @@ defmodule OMG.Watcher.Fixtures do
       fake_addr: fake_addr,
       server_id: server_id
     }
+  end
+
+  defp wait_for_web(), do: wait_for_web(100)
+
+  defp wait_for_web(counter) do
+    case Keyword.has_key?(Alarm.all(), elem(Alarm.main_supervisor_halted(__MODULE__), 0)) do
+      true ->
+        Process.sleep(100)
+        wait_for_web(counter - 1)
+
+      false ->
+        :ok
+    end
   end
 end

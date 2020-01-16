@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,18 +16,5 @@ defmodule OMG.Utxo.PositionTest do
   @moduledoc false
 
   use ExUnit.Case, async: true
-
-  alias OMG.Utxo
-  require Utxo
-
-  test "encode and decode the utxo position checking" do
-    decoded = Utxo.position(4, 5, 1)
-    assert 4_000_050_001 = encoded = Utxo.Position.encode(decoded)
-    assert decoded == Utxo.Position.decode!(encoded)
-    assert {:ok, decoded} == Utxo.Position.decode(encoded)
-  end
-
-  test "verbose error on too low encoded position" do
-    assert {:error, :encoded_utxo_position_too_low} = Utxo.Position.decode(100)
-  end
+  doctest OMG.Utxo.Position
 end

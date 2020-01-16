@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,14 +33,12 @@ defmodule OMG.Watcher.Supervisor do
       {Monitor,
        [
          Alarm,
-         [
-           %{
-             id: SyncSupervisor,
-             start: {SyncSupervisor, :start_link, []},
-             restart: :permanent,
-             type: :supervisor
-           }
-         ]
+         %{
+           id: SyncSupervisor,
+           start: {SyncSupervisor, :start_link, []},
+           restart: :permanent,
+           type: :supervisor
+         }
        ]}
     ]
 

@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,11 +40,11 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
     :ok = System.put_env("DB_PATH", "/tmp/YOLO/")
     :ok = SetKeyValueDB.init([])
     configuration = Enum.sort(Application.get_all_env(@app))
-    "/tmp/YOLO/watcher" = configuration[:path]
+    "/tmp/YOLO/watcher_info" = configuration[:path]
 
     ^configuration =
       @configuration_old
-      |> Keyword.put(:path, "/tmp/YOLO/watcher")
+      |> Keyword.put(:path, "/tmp/YOLO/watcher_info")
       |> Enum.sort()
 
     :ok = System.delete_env("DB_PATH")
@@ -59,7 +59,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
 
     {_, configuration_old} =
       Keyword.get_and_update(@configuration_old, :path, fn current_value ->
-        {current_value, Path.join([current_value, "#{:watcher}"])}
+        {current_value, Path.join([current_value, "#{:watcher_info}"])}
       end)
 
     sorted_configuration = Enum.sort(configuration)

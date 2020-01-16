@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,8 +28,7 @@ defmodule OMG.State.Transaction.Recovered do
   @type tx_bytes() :: binary()
 
   @type recover_tx_error() ::
-          :bad_signature_length
-          | :duplicate_inputs
+          :duplicate_inputs
           | :malformed_transaction
           | :malformed_transaction_rlp
           | :signature_corrupt

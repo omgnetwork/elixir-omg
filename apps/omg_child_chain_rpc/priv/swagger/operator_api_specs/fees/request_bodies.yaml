@@ -12,5 +12,10 @@ FeesAllBodySchema:
             items: 
               type: string
               format: binary
+          tx_types:
+            type: array
+            items: 
+              type: integer
         example:
-          currencies: ['0x0000000000000000000000000000000000000000', '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07']
+          currencies: ['0x0000000000000000000000000000000000000000']
+          tx_types: [1]

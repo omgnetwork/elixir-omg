@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,14 +28,38 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
   @eth Eth.zero_address()
   @eth_hex Eth.Encoding.to_hex(@eth)
+  @not_eth <<1::size(160)>>
+  @not_eth_hex Eth.Encoding.to_hex(@not_eth)
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
+
   @fees %{
-    @eth_hex => %{
-      amount: 0,
-      pegged_amount: 1,
-      subunit_to_unit: 1_000_000_000_000_000_000,
-      pegged_currency: "USD",
-      pegged_subunit_to_unit: 100,
-      updated_at: DateTime.from_unix!(1_546_336_800)
+    @payment_tx_type => %{
+      @eth_hex => %{
+        amount: 0,
+        pegged_amount: 1,
+        subunit_to_unit: 1_000_000_000_000_000_000,
+        pegged_currency: "USD",
+        pegged_subunit_to_unit: 100,
+        updated_at: DateTime.from_unix!(1_546_336_800)
+      },
+      @not_eth_hex => %{
+        amount: 0,
+        pegged_amount: 1,
+        subunit_to_unit: 1_000_000_000_000_000_000,
+        pegged_currency: "USD",
+        pegged_subunit_to_unit: 100,
+        updated_at: DateTime.from_unix!(1_546_336_800)
+      }
+    },
+    2 => %{
+      @eth_hex => %{
+        amount: 0,
+        pegged_amount: 1,
+        subunit_to_unit: 1_000_000_000_000_000_000,
+        pegged_currency: "USD",
+        pegged_subunit_to_unit: 100,
+        updated_at: DateTime.from_unix!(1_546_336_800)
+      }
     }
   }
 
@@ -70,13 +94,33 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       {:started, _log, exit_fn} = start_fee_server()
 
       default_fees = %{
-        @eth => %{
-          amount: 0,
-          subunit_to_unit: 1_000_000_000_000_000_000,
-          pegged_amount: 1,
-          pegged_currency: "USD",
-          pegged_subunit_to_unit: 100,
-          updated_at: DateTime.from_unix!(1_546_336_800)
+        @payment_tx_type => %{
+          @eth => %{
+            amount: 0,
+            pegged_amount: 1,
+            subunit_to_unit: 1_000_000_000_000_000_000,
+            pegged_currency: "USD",
+            pegged_subunit_to_unit: 100,
+            updated_at: DateTime.from_unix!(1_546_336_800)
+          },
+          @not_eth => %{
+            amount: 0,
+            pegged_amount: 1,
+            subunit_to_unit: 1_000_000_000_000_000_000,
+            pegged_currency: "USD",
+            pegged_subunit_to_unit: 100,
+            updated_at: DateTime.from_unix!(1_546_336_800)
+          }
+        },
+        2 => %{
+          @eth => %{
+            amount: 0,
+            pegged_amount: 1,
+            subunit_to_unit: 1_000_000_000_000_000_000,
+            pegged_currency: "USD",
+            pegged_subunit_to_unit: 100,
+            updated_at: DateTime.from_unix!(1_546_336_800)
+          }
         }
       }
 
@@ -101,10 +145,10 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       assert server_alive?()
 
       # fix file, reload, check changes applied
-      overwrite_fee_file(file_name, %{@eth_hex => new_fee})
+      overwrite_fee_file(file_name, %{@payment_tx_type => %{@eth_hex => new_fee}})
       refresh_fees()
 
-      assert {:ok, %{@eth => new_fee}} == FeeServer.transaction_fees()
+      assert {:ok, %{@payment_tx_type => %{@eth => new_fee}}} == FeeServer.transaction_fees()
       assert server_alive?()
 
       exit_fn.()
@@ -136,7 +180,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     test "fee server ignores file updates" do
       assert {:ok, :no_fees_required} == FeeServer.transaction_fees()
 
-      assert refresh_fees() =~ "Updates takes no effect"
+      assert refresh_fees() =~ "Updates have no effect"
 
       assert {:ok, :no_fees_required} == FeeServer.transaction_fees()
       assert server_alive?()
@@ -160,11 +204,11 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end
   end
 
-  defp refresh_fees do
+  defp refresh_fees() do
     pid = GenServer.whereis(TestFeeServer)
 
     capture_log(fn ->
-      logs = capture_log(fn -> Process.send(pid, :update_fee_spec, []) end)
+      logs = capture_log(fn -> Process.send(pid, :update_fee_specs, []) end)
 
       case logs do
         "" -> wait_for_log()
@@ -173,7 +217,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end)
   end
 
-  defp wait_for_log do
+  defp wait_for_log() do
     # wait maximal 1s for logs
     Enum.reduce_while(1..100, nil, fn _, _ ->
       logs = capture_log(fn -> Process.sleep(10) end)
@@ -185,7 +229,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end)
   end
 
-  defp server_alive? do
+  defp server_alive?() do
     case GenServer.whereis(TestFeeServer) do
       pid when is_pid(pid) ->
         Process.alive?(pid)

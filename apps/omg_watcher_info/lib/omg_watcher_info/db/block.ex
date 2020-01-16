@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,10 @@ defmodule OMG.WatcherInfo.DB.Block do
   import Ecto.Changeset
 
   alias OMG.State
+  alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
+
+  import Ecto.Query, only: [from: 2]
 
   @type mined_block() :: %{
           transactions: [State.Transaction.Recovered.t()],
@@ -37,6 +40,9 @@ defmodule OMG.WatcherInfo.DB.Block do
     field(:hash, :binary)
     field(:eth_height, :integer)
     field(:timestamp, :integer)
+    field(:tx_count, :integer, virtual: true, default: nil)
+
+    has_many(:transactions, DB.Transaction, foreign_key: :blknum)
   end
 
   defp changeset(block, params) do
@@ -52,6 +58,49 @@ defmodule OMG.WatcherInfo.DB.Block do
   @spec get_max_blknum() :: non_neg_integer()
   def get_max_blknum do
     DB.Repo.aggregate(__MODULE__, :max, :blknum)
+  end
+
+  @doc """
+    Gets a block specified by a block number.
+  """
+  def get(blknum) do
+    query =
+      from(
+        block in base_query(),
+        where: [blknum: ^blknum]
+      )
+
+    DB.Repo.one(query)
+  end
+
+  def base_query() do
+    from(
+      block in __MODULE__,
+      left_join: tx in assoc(block, :transactions),
+      group_by: block.blknum,
+      select: %{block | tx_count: count(tx.txhash)}
+    )
+  end
+
+  @doc """
+  Returns a list of blocks
+  """
+  @spec get_blocks(Paginator.t()) :: Paginator.t()
+  def get_blocks(paginator) do
+    query_get_last(paginator.data_paging)
+    |> DB.Repo.all()
+    |> Paginator.set_data(paginator)
+  end
+
+  defp query_get_last(%{limit: limit, page: page}) do
+    offset = (page - 1) * limit
+
+    from(
+      block in base_query(),
+      order_by: [desc: :blknum],
+      limit: ^limit,
+      offset: ^offset
+    )
   end
 
   @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
@@ -73,7 +122,13 @@ defmodule OMG.WatcherInfo.DB.Block do
         eth_height: eth_height
       }) do
     {db_txs, db_outputs, db_inputs} = prepare_db_transactions(transactions, block_number)
-    current_block = %{blknum: block_number, hash: blkhash, timestamp: timestamp, eth_height: eth_height}
+
+    current_block = %{
+      blknum: block_number,
+      hash: blkhash,
+      timestamp: timestamp,
+      eth_height: eth_height
+    }
 
     {insert_duration, result} =
       :timer.tc(
@@ -96,10 +151,12 @@ defmodule OMG.WatcherInfo.DB.Block do
     case result do
       {:ok, _} ->
         _ = Logger.debug("Block \##{block_number} persisted in WatcherDB, done in #{insert_duration / 1000}ms")
+
         result
 
       {:error, changeset} ->
         _ = Logger.debug("Block \##{block_number} not persisted in WatcherDB, done in #{insert_duration / 1000}ms")
+
         _ = Logger.debug("Error: #{inspect(changeset.errors)}")
         result
     end
@@ -132,7 +189,8 @@ defmodule OMG.WatcherInfo.DB.Block do
     {transaction, outputs, inputs}
   end
 
-  @spec create(pos_integer(), integer(), binary(), binary(), State.Transaction.metadata()) :: map()
+  @spec create(pos_integer(), integer(), binary(), binary(), State.Transaction.metadata()) ::
+          map()
   defp create(block_number, txindex, txhash, txbytes, metadata) do
     %{
       txhash: txhash,

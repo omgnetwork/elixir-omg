@@ -1,7 +1,7 @@
 BlockSchema:
   type: object
   properties:
-    timestamp:
+    blknum:
       type: integer
       format: int64
     hash:
@@ -10,6 +10,9 @@ BlockSchema:
     eth_height:
       type: integer
       format: int64
-    blknum:
+    timestamp:
+      type: integer
+      format: int64
+    tx_count:
       type: integer
       format: int64

@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,19 +25,6 @@ defmodule OMG.Bus.PubSub do
   Is being broadcast on a local node whenever `OMG.State` completes forming of a new child chain block
 
   Message: {:internal_event_bus, :enqueue_block, OMG.Block.t()}
-
-  #### `preprocess_emit_events`
-
-  Decoupling API from Watcher core - Enrich data before broadcast
-
-  Message: {:internal_event, :preprocess_emit_events, list()}
-
-  #### `emit_events`
-
-  Is being broadcast to all nodes whenever an event trigger, that should be turned into a push event in `Eventer` occurs
-
-  Message: {:internal_event, :emit_events, list()}
-
   """
   alias Phoenix.PubSub
 

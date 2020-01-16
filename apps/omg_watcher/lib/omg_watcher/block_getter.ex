@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -130,7 +130,7 @@ defmodule OMG.Watcher.BlockGetter do
        {:continue, {:apply_block_step, :close_and_apply_block, block_application}}}
 
   def handle_continue({:apply_block_step, :close_and_apply_block, block_application}, state) do
-    {:ok, db_updates_from_state} = OMG.State.close_block(block_application.eth_height)
+    {:ok, db_updates_from_state} = OMG.State.close_block()
 
     {state, synced_height, db_updates} = Core.apply_block(state, block_application)
 

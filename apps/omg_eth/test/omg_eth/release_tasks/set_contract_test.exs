@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -100,129 +100,106 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   test "contract details from env" do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
-      :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
-      :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
+      :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
+      :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+      :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
       :ok = SetContract.init([])
       "authority_address_value" = Application.get_env(@app, :authority_addr)
       @contract_addresses_value = Application.get_env(@app, :contract_addr)
       "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
       :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
-      :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+      :ok = System.delete_env("TXHASH_CONTRACT")
+      :ok = System.delete_env("AUTHORITY_ADDRESS")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+      :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
+      :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
     end
   end
 
   test "contract details from env, mixed case" do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
-      :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "Txhash_contract_value")
-      :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "Authority_address_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "Eth_vault_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "Erc20_vault_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "Payment_exit_game_value")
+      :ok = System.put_env("TXHASH_CONTRACT", "Txhash_contract_value")
+      :ok = System.put_env("AUTHORITY_ADDRESS", "Authority_address_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+      :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "Eth_vault_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "Erc20_vault_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "Payment_exit_game_value")
       :ok = SetContract.init([])
       "authority_address_value" = Application.get_env(@app, :authority_addr)
       @contract_addresses_value = Application.get_env(@app, :contract_addr)
       "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
       :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
-      :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+      :ok = System.delete_env("TXHASH_CONTRACT")
+      :ok = System.delete_env("AUTHORITY_ADDRESS")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+      :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
+      :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
     end
   end
 
   test "contract details from env for localchain" do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "localchain")
-      :ok = System.put_env("LOCALCHAIN_TXHASH_CONTRACT", "txhash_contract_value")
-      :ok = System.put_env("LOCALCHAIN_AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
-      :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-      :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-      :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
+      :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
+      :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+      :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
       :ok = SetContract.init([])
       "authority_address_value" = Application.get_env(@app, :authority_addr)
       @contract_addresses_value = Application.get_env(@app, :contract_addr)
       "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
       :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("LOCALCHAIN_TXHASH_CONTRACT")
-      :ok = System.delete_env("LOCALCHAIN_AUTHORITY_ADDRESS")
-      :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-      :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT")
-      :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT")
-      :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
-    end
-  end
-
-  test "if exit is thrown when mixed network names" do
-    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
-    :ok = System.put_env("LOCALCHAIN_TXHASH_CONTRACT", "txhash_contract_value")
-    :ok = System.put_env("LOCALCHAIN_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "plasma_framework_value")
-    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-    :ok = System.put_env("LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
-
-    try do
-      :ok = SetContract.init([])
-    catch
-      :exit, _ ->
-        :ok = System.delete_env("ETHEREUM_NETWORK")
-        :ok = System.delete_env("LOCALCHAIN_TXHASH_CONTRACT")
-        :ok = System.delete_env("LOCALCHAIN_AUTHORITY_ADDRESS")
-        :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-        :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_ETH_VAULT")
-        :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_ERC20_VAULT")
-        :ok = System.delete_env("LOCALCHAIN_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+      :ok = System.delete_env("TXHASH_CONTRACT")
+      :ok = System.delete_env("AUTHORITY_ADDRESS")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+      :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
+      :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
     end
   end
 
   test "contract details from env sets default exit period seconds" do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
-      :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
-      :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
+      :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
+      :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+      :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
       :ok = SetContract.init([])
       600 = Application.get_env(@app, :min_exit_period_seconds)
 
       :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
-      :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+      :ok = System.delete_env("TXHASH_CONTRACT")
+      :ok = System.delete_env("AUTHORITY_ADDRESS")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+      :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
+      :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
     end
   end
 
   test "contract details and exit period seconds from env" do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
-      :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
-      :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-      :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
+      :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
+      :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+      :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+      :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
 
       :ok = SetContract.init([])
       600 = Application.get_env(@app, :min_exit_period_seconds)
@@ -230,23 +207,23 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
       @contract_addresses_value = Application.get_env(@app, :contract_addr)
       "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
       :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
-      :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
-      :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+      :ok = System.delete_env("TXHASH_CONTRACT")
+      :ok = System.delete_env("AUTHORITY_ADDRESS")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+      :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
+      :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
     end
   end
 
   test "that exit is thrown when env configuration is faulty for network name" do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby is what we are, rinkeby is what we know")
-    :ok = System.put_env("RINKEBY_TXHASH_CONTRACT", "txhash_contract_value")
-    :ok = System.put_env("RINKEBY_AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-    :ok = System.put_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
+    :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+    :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
+    :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
+    :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
 
     try do
       :ok = SetContract.init([])
@@ -256,22 +233,22 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     end
 
     :ok = System.delete_env("ETHEREUM_NETWORK")
-    :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
-    :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+    :ok = System.delete_env("TXHASH_CONTRACT")
+    :ok = System.delete_env("AUTHORITY_ADDRESS")
+    :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
+    :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
+    :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
   end
 
   test "that exit is thrown when there's no mandatory configuration" do
     :ok = System.delete_env("ETHEREUM_NETWORK")
-    :ok = System.delete_env("RINKEBY_TXHASH_CONTRACT")
-    :ok = System.delete_env("RINKEBY_AUTHORITY_ADDRESS")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ETH_VAULT")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_ERC20_VAULT")
-    :ok = System.delete_env("RINKEBY_CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+    :ok = System.delete_env("TXHASH_CONTRACT")
+    :ok = System.delete_env("AUTHORITY_ADDRESS")
+    :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+    :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
+    :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
+    :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
     :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
 
     try do

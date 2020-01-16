@@ -21,6 +21,18 @@ defmodule Itest.Client do
   @gas 180_000
   @retry_count 60
 
+  def get_watcher_alarms() do
+    WatcherSecurityCriticalAPI.Api.Alarm.alarm_get(WatcherSecurityCriticalAPI.Connection.new())
+  end
+
+  def get_watcher_info_alarms() do
+    WatcherInfoAPI.Api.Alarm.alarm_get(WatcherInfoAPI.Connection.new())
+  end
+
+  def get_child_chain_alarms() do
+    ChildChainAPI.Api.Alarm.alarm_get(ChildChainAPI.Connection.new())
+  end
+
   def deposit(amount_in_wei, output_address, vault_address, currency \\ Currency.ether()) do
     deposit_transaction = deposit_transaction(amount_in_wei, output_address, currency)
 
@@ -60,12 +72,13 @@ defmodule Itest.Client do
       "transactions" => [
         %{
           "sign_hash" => sign_hash,
-          "typed_data" => typed_data
+          "typed_data" => typed_data,
+          "txbytes" => txbytes
         }
       ]
     } = Jason.decode!(response.body)["data"]
 
-    {:ok, [sign_hash, typed_data]}
+    {:ok, [sign_hash, typed_data, txbytes]}
   end
 
   def submit_transaction(typed_data, sign_hash, private_key) do
@@ -89,8 +102,6 @@ defmodule Itest.Client do
 
   def get_balance(address), do: Itest.Poller.get_balance(address)
   def get_balance(address, amount), do: Itest.Poller.pull_balance_until_amount(address, amount)
-
-  def eth_get_balance(address), do: Itest.Poller.eth_get_balance(address)
 
   defp deposit_transaction(amount_in_wei, address, currency) do
     address

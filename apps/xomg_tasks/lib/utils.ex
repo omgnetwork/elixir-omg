@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ defmodule XomgTasks.Utils do
 
   # mix loads entire codebase which fools `Response.add_version`
   defp ensure_one_rpc_loaded(apps) do
-    if Enum.member?(apps, :omg_watcher) do
+    if Enum.member?(apps, :omg_watcher) || Enum.member?(apps, :omg_watcher_info) do
       true = :code.delete(OMG.ChildChainRPC)
       :code.purge(OMG.ChildChainRPC)
     end

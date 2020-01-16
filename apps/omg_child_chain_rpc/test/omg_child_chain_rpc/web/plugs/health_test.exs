@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,38 +38,12 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
                     "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
                   }
                 }
-                | _
               ],
               "success" => true
             },
             &1
           ),
-          fn -> TestHelper.rpc_call(:post, "/alarm.get", %{}) end
-        )
-
-      :ok = :alarm_handler.clear_alarm(@alarm_1)
-    end
-
-    @tag fixtures: [:phoenix_sandbox]
-    test "if block.get endpoint rejects request because alarms are raised" do
-      :ok = :alarm_handler.clear_alarm(@alarm_2)
-      :ok = :alarm_handler.set_alarm(@alarm_1)
-
-      :ok =
-        pull_client_alarm(
-          300,
-          &match?(
-            %{
-              "data" => %{
-                "code" => "operation:service_unavailable",
-                "description" => "The server is not ready to handle the request.",
-                "object" => "error"
-              },
-              "success" => false
-            },
-            &1
-          ),
-          fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
+          fn -> TestHelper.rpc_call(:get, "/alarm.get") end
         )
 
       :ok = :alarm_handler.clear_alarm(@alarm_1)
@@ -109,38 +83,12 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
                     "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
                   }
                 }
-                | _
               ],
               "success" => true
             },
             &1
           ),
-          fn -> TestHelper.rpc_call(:post, "/alarm.get", %{}) end
-        )
-
-      :ok = :alarm_handler.clear_alarm(@alarm_2)
-    end
-
-    @tag fixtures: [:phoenix_sandbox]
-    test "if block.get endpoint rejects request because alarms are raised" do
-      :ok = :alarm_handler.set_alarm(@alarm_2)
-      :ok = :alarm_handler.clear_alarm(@alarm_1)
-
-      :ok =
-        pull_client_alarm(
-          300,
-          &match?(
-            %{
-              "data" => %{
-                "code" => "operation:service_unavailable",
-                "description" => "The server is not ready to handle the request.",
-                "object" => "error"
-              },
-              "success" => false
-            },
-            &1
-          ),
-          fn -> TestHelper.rpc_call(:post, "/block.get", %{}) end
+          fn -> TestHelper.rpc_call(:get, "/alarm.get") end
         )
 
       :ok = :alarm_handler.clear_alarm(@alarm_2)

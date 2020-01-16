@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,8 +39,6 @@ defmodule OMG.Watcher.HttpRPC.Client do
   """
   @spec submit(binary(), binary()) :: response_t()
   def submit(tx, url), do: call(%{transaction: Encoding.to_hex(tx)}, "transaction.submit", url)
-
-  def get_fees(params, url), do: call(params, "fees.all", url)
 
   defp call(params, path, url),
     do: Adapter.rpc_post(params, path, url) |> Adapter.get_response_body() |> decode_response()

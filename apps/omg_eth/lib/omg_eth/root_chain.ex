@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,21 +70,52 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  Returns exit for a specific utxo. Calls contract method.
-
-  #TODO - can exits accept a list of exits? Look at ExitProcessor.handle_call({:new_exits, new_exits})
+  Returns standard exits data from the contract for a list of `exit_id`s. Calls contract method.
   """
-  def get_standard_exit(exit_id, contract \\ %{}) do
+  def get_standard_exits_structs(exit_ids, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    return_fields = [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]
-    Eth.call_contract(contract, "standardExits(uint160)", [exit_id], return_fields)
+
+    return_types = [
+      {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
+    ]
+
+    # TODO: hack around an issue with `ex_abi` https://github.com/poanetwork/ex_abi/issues/22
+    #       We procure a hacky version of `OMG.Eth.call_contract` which strips the offending offsets from
+    #       the ABI-encoded binary and proceeds to decode the array without the offset
+    #       Revert to `call_contract` when that issue is resolved
+    call_contract_manual_standard_exits(
+      contract,
+      "standardExits(uint160[])",
+      [exit_ids],
+      return_types
+    )
+  end
+
+  # TODO: see above in where it is called - temporary function
+  defp call_contract_manual_standard_exits(contract, signature, args, return_types) do
+    data = ABI.encode(signature, args)
+
+    with {:ok, return} <- Ethereumex.HttpClient.eth_call(%{to: to_hex(contract), data: to_hex(data)}),
+         do: decode_answer_manual_standard_exits(return, return_types)
+  end
+
+  # TODO: see above in where it is called - temporary function
+  defp decode_answer_manual_standard_exits(enc_return, return_types) do
+    <<32::size(32)-unit(8), raw_array_data::binary>> = from_hex(enc_return)
+
+    raw_array_data
+    |> ABI.TypeDecoder.decode(return_types)
+    |> case do
+      [single_return] -> {:ok, single_return}
+      other when is_list(other) -> {:ok, List.to_tuple(other)}
+    end
   end
 
   @doc """
   Returns in flight exit for a specific id. Calls contract method.
   #TODO - can exits accept a list of in_flight_exit_id? Look at ExitProcessor.handle_call({:new_in_flight_exits, events})
   """
-  def get_in_flight_exit(in_flight_exit_id, contract \\ %{}) do
+  def get_in_flight_exit_struct(in_flight_exit_id, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
     # solidity does not return arrays of structs
@@ -239,9 +270,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   def decode_in_flight_exit_challenge_responded(log) do
-    non_indexed_keys = [:challenger, :tx_hash, :challenge_position]
-    non_indexed_key_types = [:address, {:bytes, 32}, {:uint, 256}]
-    indexed_keys = indexed_keys_types = []
+    non_indexed_keys = [:challenge_position]
+    non_indexed_key_types = [{:uint, 256}]
+    indexed_keys = [:challenger, :tx_hash]
+    indexed_keys_types = [:address, {:bytes, 32}]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -293,9 +325,9 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  Returns standard exits from a range of blocks. Collects exits from Ethereum logs.
+  Returns standard exits starting events from a range of blocks
   """
-  def get_standard_exits(block_from, block_to, contract \\ %{}) do
+  def get_standard_exits_started(block_from, block_to, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "ExitStarted(address,uint160)"
 
@@ -306,9 +338,9 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  Returns InFlightExit from a range of blocks.
+  Returns in-flight exits starting events from a range of blocks
   """
-  def get_in_flight_exit_starts(block_from, block_to, contract \\ %{}) do
+  def get_in_flight_exits_started(block_from, block_to, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "InFlightExitStarted(address,bytes32)"
 
@@ -358,8 +390,8 @@ defmodule OMG.Eth.RootChain do
 
   defp prepare_exit_started(logs) do
     args = [:args]
-    types = ["(uint256,bytes,bytes,bytes)"]
-    tuple_arg_names = [:utxo_pos, :output_tx, :output_guard_preimage, :output_tx_inclusion_proof]
+    types = ["(uint256,bytes,bytes)"]
+    tuple_arg_names = [:utxo_pos, :output_tx, :output_tx_inclusion_proof]
 
     exits =
       logs
@@ -370,10 +402,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_in_flight_exit_started(log) do
-    non_indexed_keys = [:tx_hash]
-    non_indexed_key_types = [{:bytes, 32}]
-    indexed_keys = [:initiator]
-    indexed_keys_types = [:address]
+    non_indexed_keys = []
+    non_indexed_key_types = []
+    indexed_keys = [:initiator, :tx_hash]
+    indexed_keys_types = [:address, {:bytes, 32}]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -384,18 +416,8 @@ defmodule OMG.Eth.RootChain do
 
   defp prepare_in_flight_exit_started(logs) do
     args = [:args]
-    types = ["(bytes,bytes[],uint256[],bytes[],bytes[],bytes[],bytes[],bytes[])"]
-
-    tuple_arg_names = [
-      :in_flight_tx,
-      :input_txs,
-      :input_utxos_pos,
-      :output_guard_preimages_for_inputs,
-      :input_inclusion_proofs,
-      :in_flight_tx_confirm_sigs,
-      :in_flight_tx_sigs,
-      :optional_args
-    ]
+    types = ["(bytes,bytes[],uint256[],bytes[],bytes[])"]
+    tuple_arg_names = [:in_flight_tx, :input_txs, :input_utxos_pos, :input_inclusion_proofs, :in_flight_tx_sigs]
 
     result =
       logs
@@ -406,10 +428,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_piggyback_challenged(log) do
-    non_indexed_keys = [:tx_hash, :output_index]
-    non_indexed_key_types = [{:bytes, 32}, {:uint, 16}]
-    indexed_keys = [:challenger]
-    indexed_keys_types = [:address]
+    non_indexed_keys = [:output_index]
+    non_indexed_key_types = [{:uint, 16}]
+    indexed_keys = [:challenger, :tx_hash]
+    indexed_keys_types = [:address, {:bytes, 32}]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -419,10 +441,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_piggybacked(log) do
-    non_indexed_keys = [:tx_hash, :output_index]
-    non_indexed_key_types = [{:bytes, 32}, {:uint, 16}]
-    indexed_keys = [:owner]
-    indexed_keys_types = [:address]
+    non_indexed_keys = [:output_index]
+    non_indexed_key_types = [{:uint, 16}]
+    indexed_keys = [:owner, :tx_hash]
+    indexed_keys_types = [:address, {:bytes, 32}]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -469,10 +491,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_in_flight_exit_challenged(log) do
-    non_indexed_keys = [:tx_hash, :competitor_position]
-    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
-    indexed_keys = [:challenger]
-    indexed_keys_types = [:address]
+    non_indexed_keys = [:competitor_position]
+    non_indexed_key_types = [{:uint, 256}]
+    indexed_keys = [:challenger, :tx_hash]
+    indexed_keys_types = [:address, {:bytes, 32}]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -483,7 +505,7 @@ defmodule OMG.Eth.RootChain do
 
   defp prepare_in_flight_exit_challenged(logs) do
     args = [:args]
-    types = ["(bytes,uint256,bytes,uint16,bytes,uint16,bytes,uint256,bytes,bytes,bytes,bytes)"]
+    types = ["(bytes,uint256,bytes,uint16,bytes,uint16,uint256,bytes,bytes)"]
 
     tuple_arg_names = [
       :input_tx_bytes,

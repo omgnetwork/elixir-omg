@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,8 +51,7 @@ defmodule OMG.State.Core do
   alias OMG.Block
   alias OMG.Crypto
   alias OMG.Fees
-  alias OMG.InputPointer
-  alias OMG.Output
+
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
@@ -72,7 +71,7 @@ defmodule OMG.State.Core do
           utxo_db_updates: list(db_update()),
           # NOTE: because UTXO set is not loaded from DB entirely, we need to remember the UTXOs spent in already
           # processed transaction before they get removed from DB on form_block.
-          recently_spent: MapSet.t(InputPointer.Protocol.t())
+          recently_spent: MapSet.t(OMG.Utxo.Position.t())
         }
 
   @type deposit() :: %{
@@ -102,14 +101,6 @@ defmodule OMG.State.Core do
   @type validities_t() :: {list(Utxo.Position.t()), list(Utxo.Position.t() | piggyback())}
 
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
-
-  @type deposit_event :: %{deposit: %{amount: non_neg_integer, owner: Crypto.address_t()}}
-  @type tx_event :: %{
-          tx: Transaction.Recovered.t(),
-          child_blknum: pos_integer,
-          child_txindex: pos_integer,
-          child_block_hash: Block.block_hash_t()
-        }
 
   @type db_update ::
           {:put, :utxo, {Utxo.Position.db_t(), map()}}
@@ -147,7 +138,7 @@ defmodule OMG.State.Core do
   @doc """
   Tell whether utxo position was created or spent by current state.
   """
-  @spec utxo_processed?(InputPointer.Protocol.t(), t()) :: boolean()
+  @spec utxo_processed?(OMG.Utxo.Position.t(), t()) :: boolean()
   def utxo_processed?(utxo_pos, %Core{utxos: utxos, recently_spent: recently_spent}) do
     Map.has_key?(utxos, utxo_pos) or MapSet.member?(recently_spent, utxo_pos)
   end
@@ -168,7 +159,7 @@ defmodule OMG.State.Core do
 
   See docs/transaction_validation.md for more information about stateful and stateless validation.
   """
-  @spec exec(state :: t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
+  @spec exec(state :: t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
           | {{:error, Validator.exec_error()}, t()}
   def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
@@ -213,30 +204,18 @@ defmodule OMG.State.Core do
 
   @doc """
    - Generates block and calculates it's root hash for submission
-   - generates triggers for events
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
    - clears `recently_spent` collection
   """
-  @spec form_block(pos_integer(), pos_integer() | nil, state :: t()) ::
-          {:ok, {Block.t(), [tx_event], [db_update]}, new_state :: t()}
+  @spec form_block(pos_integer(), state :: t()) :: {:ok, {Block.t(), [db_update]}, new_state :: t()}
   def form_block(
         child_block_interval,
-        eth_height \\ nil,
         %Core{pending_txs: reversed_txs, height: height, utxo_db_updates: reversed_utxo_db_updates} = state
       ) do
     txs = Enum.reverse(reversed_txs)
 
     block = Block.hashed_txs_at(txs, height)
-
-    event_triggers =
-      txs
-      |> Enum.with_index()
-      |> Enum.map(fn {tx, index} ->
-        %{tx: tx, child_blknum: block.number, child_txindex: index, child_block_hash: block.hash}
-      end)
-      # enrich the event triggers with the ethereum height supplied
-      |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
 
     db_updates_block = {:put, :block, Block.to_db_value(block)}
     db_updates_top_block_number = {:put, :child_top_block_number, height}
@@ -252,7 +231,7 @@ defmodule OMG.State.Core do
         recently_spent: MapSet.new()
     }
 
-    {:ok, {block, event_triggers, db_updates}, new_state}
+    {:ok, {block, db_updates}, new_state}
   end
 
   @doc """
@@ -261,20 +240,16 @@ defmodule OMG.State.Core do
   **NOTE** this expects that each deposit event is fed to here exactly once, so this must be ensured elsewhere.
            There's no double-checking of this constraint done here.
   """
-  @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}
+  @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, [db_update], new_state :: t()}
   def deposit(deposits, %Core{utxos: utxos} = state) do
-    new_utxos_map = deposits |> Enum.into(%{}, &deposit_to_utxo/1)
+    new_utxos_map = Enum.into(deposits, %{}, &deposit_to_utxo/1)
     new_utxos = UtxoSet.apply_effects(utxos, [], new_utxos_map)
     db_updates = UtxoSet.db_updates([], new_utxos_map)
-
-    event_triggers =
-      deposits
-      |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
 
     _ = if deposits != [], do: Logger.info("Recognized deposits #{inspect(deposits)}")
 
     new_state = %Core{state | utxos: new_utxos}
-    {:ok, {event_triggers, db_updates}, new_state}
+    {:ok, db_updates, new_state}
   end
 
   @doc """
@@ -310,8 +285,7 @@ defmodule OMG.State.Core do
   def extract_exiting_utxo_positions([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{}) do
     _ = Logger.info("Recognized exits from IFE starts #{inspect(in_flight_txs)}")
 
-    in_flight_txs
-    |> Enum.flat_map(fn %{call_data: %{in_flight_tx: tx_bytes}} ->
+    Enum.flat_map(in_flight_txs, fn %{call_data: %{in_flight_tx: tx_bytes}} ->
       {:ok, tx} = Transaction.decode(tx_bytes)
       Transaction.get_inputs(tx)
     end)
@@ -404,8 +378,7 @@ defmodule OMG.State.Core do
     new_utxos = UtxoSet.apply_effects(utxos, spent_input_pointers, new_utxos_map)
     new_db_updates = UtxoSet.db_updates(spent_input_pointers, new_utxos_map)
     # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
-    spent_blknum_updates =
-      spent_input_pointers |> Enum.map(&{:put, :spend, {InputPointer.Protocol.to_db_key(&1), blknum}})
+    spent_blknum_updates = Enum.map(spent_input_pointers, &{:put, :spend, {Utxo.Position.to_input_db_key(&1), blknum}})
 
     %Core{
       state
@@ -428,7 +401,7 @@ defmodule OMG.State.Core do
     |> Transaction.get_outputs()
     |> Enum.with_index()
     |> Enum.map(fn {output, oindex} ->
-      {Output.Protocol.input_pointer(output, blknum, tx_index, oindex, tx, hash), output}
+      {Utxo.position(blknum, tx_index, oindex), output}
     end)
     |> Enum.into(%{}, fn {input_pointer, output} ->
       {input_pointer, %Utxo{output: output, creating_txhash: hash}}

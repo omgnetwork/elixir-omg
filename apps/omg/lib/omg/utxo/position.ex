@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,74 +19,160 @@ defmodule OMG.Utxo.Position do
   """
 
   # these two offset constants are driven by the constants from the RootChain.sol contract
-  @block_offset 1_000_000_000
-  @transaction_offset 10_000
+  @input_pointer_output_type 1
 
   alias OMG.Utxo
   require Utxo
 
-  import Utxo, only: [is_position: 3]
-
   @type t() :: {
           :utxo_position,
           # blknum
-          non_neg_integer,
+          non_neg_integer(),
           # txindex
-          non_neg_integer,
+          non_neg_integer(),
           # oindex
-          non_neg_integer
+          non_neg_integer()
         }
 
-  @type db_t() :: {non_neg_integer, non_neg_integer, non_neg_integer}
+  @type db_t() :: {non_neg_integer(), non_neg_integer(), non_neg_integer()}
 
+  @type input_db_key_t() :: {:input_pointer, pos_integer(), db_t()}
+
+  defguardp is_position(blknum, txindex, oindex)
+            when is_integer(blknum) and blknum >= 0 and
+                   is_integer(txindex) and txindex >= 0 and
+                   is_integer(oindex) and oindex >= 0
+
+  @doc """
+  Encode an input utxo position into an integer value.
+
+  ## Examples
+
+      iex> utxo_pos = {:utxo_position, 4, 5, 1}
+      iex> OMG.Utxo.Position.encode(utxo_pos)
+      4_000_050_001
+  """
   @spec encode(t()) :: non_neg_integer()
   def encode(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
-    do: blknum * @block_offset + txindex * @transaction_offset + oindex
+    do: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 
-  @spec decode!(number()) :: t()
+  @doc """
+  Decode an integer or binary into a utxo position tuple.
+
+  ## Examples
+
+      # Decodes an integer encoded utxo position.
+      iex> OMG.Utxo.Position.decode!(4_000_050_001)
+      {:utxo_position, 4, 5, 1}
+
+      # Decode a binary encoded utxo position.
+      iex> encoded_pos = <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 238, 107, 235, 81>>
+      iex> OMG.Utxo.Position.decode!(encoded_pos)
+      {:utxo_position, 4, 5, 1}
+  """
+  @spec decode!(binary()) :: t()
   def decode!(encoded) do
     {:ok, decoded} = decode(encoded)
     decoded
   end
 
-  @spec decode(number()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
-  def decode(encoded) when is_integer(encoded) and encoded >= @block_offset do
-    {blknum, txindex, oindex} = get_position(encoded)
-    {:ok, Utxo.position(blknum, txindex, oindex)}
-  end
+  @doc """
+  Decode an integer or binary into a utxo position tuple.
 
-  def decode(encoded) when is_number(encoded), do: {:error, :encoded_utxo_position_too_low}
+  ## Examples
 
-  @spec non_zero?(t()) :: boolean()
-  def non_zero?(Utxo.position(0, 0, 0)), do: false
-  def non_zero?(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex), do: true
+      # Decode an integer encoded utxo position.
+      iex> OMG.Utxo.Position.decode(4_000_050_001)
+      {:ok, {:utxo_position, 4, 5, 1}}
 
+      # Returns an error if the value is too low.
+      iex> OMG.Utxo.Position.decode(0)
+      {:error, :encoded_utxo_position_too_low}
+
+      iex> OMG.Utxo.Position.decode(-1)
+      {:error, :encoded_utxo_position_too_low}
+
+      # Decode a binary encoded utxo position.
+      iex> encoded_pos = <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 238, 107, 235, 81>>
+      iex> OMG.Utxo.Position.decode(encoded_pos)
+      {:ok, {:utxo_position, 4, 5, 1}}
+  """
+  @spec decode(binary()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low | {:blknum, :exceeds_maximum}}
+  def decode(encoded) when is_number(encoded) and encoded <= 0, do: {:error, :encoded_utxo_position_too_low}
+  def decode(encoded) when is_integer(encoded) and encoded > 0, do: do_decode(encoded)
+  def decode(encoded) when is_binary(encoded) and byte_size(encoded) == 32, do: do_decode(encoded)
+
+  # TODO(achiurizo)
+  # Refactor to_input_db_key/1 and to_db_key/1. Doing this because
+  # this was merged from a previous module where one code path still wants the 3 item tuple.
+  @doc """
+  Convert a utxo position into the input db key tuple.
+
+  ## Examples
+
+      iex> utxo_pos = {:utxo_position, 1, 2, 3}
+      iex> OMG.Utxo.Position.to_input_db_key(utxo_pos)
+      {:input_pointer, 1, {1, 2, 3}}
+  """
+  @spec to_input_db_key(t()) :: {:input_pointer, unquote(@input_pointer_output_type), db_t()}
+  def to_input_db_key(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
+    do: {:input_pointer, @input_pointer_output_type, {blknum, txindex, oindex}}
+
+  @doc """
+  Convert a utxo position into the db key tuple. (legacy?)
+
+  ## Examples
+
+      iex> utxo_pos = {:utxo_position, 1, 2, 3}
+      iex> OMG.Utxo.Position.to_db_key(utxo_pos)
+      {1, 2, 3}
+  """
   @spec to_db_key(t()) :: db_t()
-  def to_db_key(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
-    do: {blknum, txindex, oindex}
+  def to_db_key(Utxo.position(blknum, txindex, oindex)), do: {blknum, txindex, oindex}
 
-  @spec from_db_key(db_t()) :: t()
+  # TODO(achiurizo)
+  # Refactor so we only have one db key type.
+  @doc """
+  Convert an input db key tuple into a utxo position.
+
+  ## Examples
+
+      # Convert an input db key tuple into a utxo position.
+      iex> input_db_key = {:input_pointer, 1, {1, 2, 3}}
+      iex> OMG.Utxo.Position.from_db_key(input_db_key)
+      {:utxo_position, 1, 2, 3}
+
+      # Convert a 'legacy' db key tuple into a utxo position
+      iex> legacy_input_db_key = {1, 2, 3}
+      iex> OMG.Utxo.Position.from_db_key(legacy_input_db_key)
+      {:utxo_position, 1, 2, 3}
+  """
+  @spec from_db_key(db_t() | input_db_key_t()) :: t()
+  def from_db_key({:input_pointer, _output_type, db_value}), do: from_db_key(db_value)
+
   def from_db_key({blknum, txindex, oindex}) when is_position(blknum, txindex, oindex),
     do: Utxo.position(blknum, txindex, oindex)
 
-  def blknum(Utxo.position(blknum, _, _)), do: blknum
-  def txindex(Utxo.position(_, txindex, _)), do: txindex
-  def oindex(Utxo.position(_, _, oindex)), do: oindex
+  # TODO(achiurizo)
+  # better name for this function, like to_rlp/1.
+  @doc """
+  Returns the rlp-encodable data for the given utxo position.
 
-  @spec get_position(pos_integer()) :: {non_neg_integer, non_neg_integer, non_neg_integer}
-  defp get_position(encoded) when is_integer(encoded) and encoded > 0 do
-    blknum = div(encoded, @block_offset)
-    txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
-    oindex = rem(encoded, @transaction_offset)
-    {blknum, txindex, oindex}
+  ## Examples
+
+      iex> utxo_pos = {:utxo_position, 1, 2, 3}
+      iex> OMG.Utxo.Position.get_data_for_rlp(utxo_pos)
+      <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 59, 155, 24, 35>>
+  """
+  @spec get_data_for_rlp(t()) :: binary()
+  def get_data_for_rlp(Utxo.position(blknum, txindex, oindex)) do
+    utxo = %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex}
+    ExPlasma.Utxo.to_rlp(utxo)
   end
 
-  @doc """
-  Based on the contract parameters determines whether UTXO position provided was created by a deposit
-  """
-  @spec is_deposit?(__MODULE__.t()) :: boolean()
-  def is_deposit?(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex) do
-    {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
-    rem(blknum, interval) != 0
+  defp do_decode(encoded) do
+    with {:ok, utxo} <- ExPlasma.Utxo.new(encoded),
+         do: {:ok, Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex)}
   end
 end

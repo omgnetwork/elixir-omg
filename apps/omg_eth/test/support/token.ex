@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,10 @@ defmodule OMG.Eth.Token do
   Adapter/port to tokens that implement ERC20 interface
   """
 
-  alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.TransactionHelper
 
-  @tx_defaults Eth.Defaults.tx_defaults()
+  @tx_defaults OMG.Eth.Defaults.tx_defaults()
 
   @gas_token_ops 80_000
 
@@ -43,12 +42,6 @@ defmodule OMG.Eth.Token do
       [owner, amount],
       opts
     )
-  end
-
-  def transfer(from, owner, amount, token, opts \\ []) do
-    opts = @tx_defaults |> Keyword.put(:gas, @gas_token_ops) |> Keyword.merge(opts)
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
-    TransactionHelper.contract_transact(backend, from, token, "transfer(address,uint256)", [owner, amount], opts)
   end
 
   def approve(from, spender, amount, token, opts \\ []) do

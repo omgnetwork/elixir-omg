@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
     # the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
     # 1. transaction which is, ife'd, output piggybacked, and included in a block
     # 2. transaction which spends that piggybacked output
-    comp = TestHelper.create_recovered([{3000, 0, 0, alice}], [])
+    comp = TestHelper.create_recovered([{3000, 0, 0, alice}], [{alice, @eth, 1}])
 
     tx_blknum = 3000
     comp_blknum = 4000

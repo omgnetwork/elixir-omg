@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@ defmodule OMG.Watcher.SyncSupervisor do
   alias OMG.Eth
   alias OMG.EthereumEventListener
   alias OMG.Watcher
+  alias OMG.Watcher.ChildManager
   alias OMG.Watcher.CoordinatorSetup
+  alias OMG.Watcher.Monitor
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -55,7 +57,7 @@ defmodule OMG.Watcher.SyncSupervisor do
       EthereumEventListener.prepare_child(
         service_name: :exit_processor,
         synced_height_update_key: :last_exit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_standard_exits/2,
+        get_events_callback: &Eth.RootChain.get_standard_exits_started/2,
         process_events_callback: &Watcher.ExitProcessor.new_exits/1
       ),
       EthereumEventListener.prepare_child(
@@ -73,7 +75,7 @@ defmodule OMG.Watcher.SyncSupervisor do
       EthereumEventListener.prepare_child(
         service_name: :in_flight_exit_processor,
         synced_height_update_key: :last_in_flight_exit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_in_flight_exit_starts/2,
+        get_events_callback: &Eth.RootChain.get_in_flight_exits_started/2,
         process_events_callback: &Watcher.ExitProcessor.new_in_flight_exits/1
       ),
       EthereumEventListener.prepare_child(
@@ -105,7 +107,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         synced_height_update_key: :last_ife_exit_finalizer_eth_height,
         get_events_callback: &Eth.RootChain.get_in_flight_exit_finalizations/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
-      )
+      ),
+      {ChildManager, [monitor: Monitor]}
     ]
   end
 end

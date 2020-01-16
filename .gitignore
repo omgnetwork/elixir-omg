@@ -53,10 +53,12 @@ docker-compose.override.yml
 # Sobelow
 .sobelow
 
-#ganache end2ned
-data/
-
 #generated applications and source
 priv/apps/child_chain_api
 priv/apps/watcher_info_api
 priv/apps/watcher_security_critical_api
+
+# where Geth gets it's snapshot data
+data/
+# local test setup
+localchain_contract_addresses.env

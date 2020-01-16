@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ defmodule OMG.ChildChainRPC.Web.Router do
 
     post("/block.get", Controller.Block, :get_block)
     post("/transaction.submit", Controller.Transaction, :submit)
-    post("/alarm.get", Controller.Alarm, :get_alarms)
+    get("/alarm.get", Controller.Alarm, :get_alarms)
     post("/fees.all", Controller.Fee, :fees_all)
 
     # NOTE: This *has to* be the last route, catching all unhandled paths

@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,18 +33,5 @@ defmodule OMG.WatcherInfo.API.Account do
   @spec get_utxos(OMG.Crypto.address_t()) :: list(%DB.TxOutput{})
   def get_utxos(address) do
     DB.TxOutput.get_utxos(address)
-  end
-
-  @doc """
-  Gets all utxos belonging to the given address.
-  Slow operation, compatible with security-critical.
-  """
-  # TODO this seems weird and a breach of decoupling
-  @spec get_exitable_utxos(OMG.Crypto.address_t()) :: list(OMG.State.Core.exitable_utxos())
-  def get_exitable_utxos(address) do
-    # OMG.DB.utxos() takes a while.
-    {:ok, utxos} = OMG.DB.utxos()
-
-    OMG.State.Core.standard_exitable_utxos(utxos, address)
   end
 end

@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracerTest do
 
   @app :omg_child_chain_rpc
   @configuration_old Application.get_env(@app, Tracer)
+
   setup do
     on_exit(fn ->
       # configuration is global state so we reset it to known values in case
@@ -48,8 +49,18 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracerTest do
   test "if default configuration is used when there's no environment variables" do
     :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
     :ok = System.delete_env("DD_DISABLED")
-    :ok = System.delete_env("APP_ENV")
+    :ok = System.put_env("APP_ENV", "YOLO")
     :ok = SetTracer.init([])
+    configuration = Application.get_env(@app, Tracer)
+    sorted_configuration = Enum.sort(configuration)
+    assert sorted_configuration == @configuration_old |> Keyword.put(:env, "YOLO") |> Enum.sort()
+  end
+
+  test "that if APP_ENV env var is not present we crash" do
+    :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
+    :ok = System.delete_env("DD_DISABLED")
+    :ok = System.delete_env("APP_ENV")
+    catch_exit(SetTracer.init([]))
     configuration = Application.get_env(@app, Tracer)
     sorted_configuration = Enum.sort(configuration)
     ^sorted_configuration = Enum.sort(@configuration_old)

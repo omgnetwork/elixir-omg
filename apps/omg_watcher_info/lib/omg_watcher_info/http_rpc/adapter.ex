@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,23 +38,33 @@ defmodule OMG.WatcherInfo.HttpRPC.Adapter do
   end
 
   @doc """
-  Retrieves body from response structure. When response is successful
-  the structure in body is known, so we can try to deserialize it.
+  Retrieves body from response structure but don't deserialize it.
   """
-  def get_response_body(%HTTPoison.Response{status_code: 200, body: body}) do
+  def get_unparsed_response_body(%HTTPoison.Response{status_code: 200, body: body}) do
     with {:ok, response} <- Jason.decode(body),
          %{"success" => true, "data" => data} <- response do
-      {:ok, convert_keys_to_atoms(data)}
+      {:ok, data}
     else
       %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
       match_err -> {:error, {:malformed_response, match_err}}
     end
   end
 
-  def get_response_body(%HTTPoison.Response{body: error}),
+  def get_unparsed_response_body(%HTTPoison.Response{body: error}),
     do: {:error, {:server_error, error}}
 
-  def get_response_body(error), do: {:error, {:client_error, error}}
+  def get_unparsed_response_body(error), do: {:error, {:client_error, error}}
+
+  @doc """
+  Retrieves body from response structure. When response is successful
+  the structure in body is known, so we can try to deserialize it.
+  """
+  def get_response_body(response) do
+    case get_unparsed_response_body(response) do
+      {:ok, data} -> {:ok, convert_keys_to_atoms(data)}
+      error -> error
+    end
+  end
 
   defp convert_keys_to_atoms(data) when is_list(data),
     do: Enum.map(data, &convert_keys_to_atoms/1)

@@ -13,6 +13,7 @@ defmodule Itest.StandardExitClient do
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 2, pull_api_until_successful: 4]
 
+  use Bitwise
   require Logger
 
   defstruct [
@@ -33,12 +34,12 @@ defmodule Itest.StandardExitClient do
   @gas_process_exit_price 1_000_000_000
   @gas_add_exit_queue 800_000
 
-  @min_exit_period 1_000
-
   @sleep_retry_sec 5_000
   @retry_count 120
 
   def start_standard_exit(address) do
+    _ = Logger.info("Starting standard exit for #{address}")
+
     %__MODULE__{address: address}
     |> get_utxo()
     |> get_exit_data()
@@ -46,6 +47,7 @@ defmodule Itest.StandardExitClient do
     |> add_exit_queue()
     |> get_bond_size_for_standard_exit()
     |> do_start_standard_exit()
+    |> wait_for_exit_period()
     |> get_standard_exit_id()
     |> process_exit()
     |> calculate_total_gas_used()
@@ -145,8 +147,8 @@ defmodule Itest.StandardExitClient do
     _ = Logger.info("Starting standard exit.")
 
     data =
-      ABI.encode("startStandardExit((uint256,bytes,bytes,bytes))", [
-        {exit_data.utxo_pos, Encoding.to_binary(exit_data.txbytes), "", Encoding.to_binary(exit_data.proof)}
+      ABI.encode("startStandardExit((uint256,bytes,bytes))", [
+        {exit_data.utxo_pos, Encoding.to_binary(exit_data.txbytes), Encoding.to_binary(exit_data.proof)}
       ])
 
     txmap = %{
@@ -162,10 +164,33 @@ defmodule Itest.StandardExitClient do
     %{se | start_standard_exit_hash: receipt_hash}
   end
 
+  defp wait_for_exit_period(se) do
+    _ = Logger.info("Wait for exit period to pass.")
+    data = ABI.encode("minExitPeriod()", [])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+    # result is in seconds
+    result
+    |> Encoding.to_binary()
+    |> ABI.TypeDecoder.decode([{:uint, 160}])
+    |> hd()
+    # to milliseconds
+    |> Kernel.*(1000)
+    # needs a be a tiny more than exit period seconds
+    |> Kernel.+(500)
+    |> Process.sleep()
+
+    se
+  end
+
   defp get_standard_exit_id(
          %__MODULE__{exit_game_contract_address: exit_game_contract_address, exit_data: exit_data} = se
        ) do
-    data = ABI.encode("getStandardExitId(bool,bytes,uint256)", [true, exit_data.txbytes, exit_data.utxo_pos])
+    data =
+      ABI.encode("getStandardExitId(bool,bytes,uint256)", [
+        true,
+        Encoding.to_binary(exit_data.txbytes),
+        exit_data.utxo_pos
+      ])
 
     {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: exit_game_contract_address, data: Encoding.to_hex(data)})
 
@@ -175,19 +200,28 @@ defmodule Itest.StandardExitClient do
       |> ABI.TypeDecoder.decode([{:uint, 160}])
       |> hd()
 
+    data = ABI.encode("getNextExit(uint256,address)", [Itest.Account.vault_id(Currency.ether()), Currency.ether()])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+
+    next_exit_id =
+      result
+      |> Encoding.to_binary()
+      |> ABI.TypeDecoder.decode([{:uint, 256}])
+      |> hd()
+
+    # double check correctness, our exit ID must be the first one in the priority queue
+    ^standard_exit_id = next_exit_id &&& (1 <<< 160) - 1
+
     %{se | standard_exit_id: standard_exit_id}
   end
 
   defp process_exit(%__MODULE__{address: address} = se) do
-    _ = Logger.info("Will sleep for #{@min_exit_period} to process exit.")
-    Process.sleep(@min_exit_period)
+    _ = Logger.info("Process exit #{__MODULE__}")
 
-    # TODO this should use the standard_exit_id instead and figure out
-    # why this isn't the topExitID on clean slate.
     data =
       ABI.encode(
         "processExits(uint256,address,uint160,uint256)",
-        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), 0, 1]
+        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), se.standard_exit_id, 1]
       )
 
     txmap = %{

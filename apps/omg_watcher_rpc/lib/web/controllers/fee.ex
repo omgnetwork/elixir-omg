@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,11 @@ defmodule OMG.WatcherRPC.Web.Controller.Fee do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.Watcher.HttpRPC.Client
+  alias OMG.WatcherInfo.HttpRPC.Client
 
   def fees_all(conn, params) do
     with {:ok, _} <- expect(params, "currencies", list: &to_currency/1, optional: true),
+         {:ok, _} <- expect(params, "tx_types", list: &to_tx_type/1, optional: true),
          child_chain_url <- Application.get_env(:omg_watcher, :child_chain_url),
          {:ok, fees} <- Client.get_fees(params, child_chain_url) do
       api_response(fees, conn, :fees_all)
@@ -31,5 +32,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Fee do
 
   defp to_currency(currency_str) do
     expect(%{"currency" => currency_str}, "currency", :address)
+  end
+
+  defp to_tx_type(tx_type_str) do
+    expect(%{"tx_type" => tx_type_str}, "tx_type", :non_neg_integer)
   end
 end

@@ -1,7 +1,7 @@
 FROM alpine:3.8
 
 LABEL maintainer="OmiseGO Team <omg@omise.co>"
-LABEL description="Official image for OmiseGO (Watcher) Plasma Network"
+LABEL description="Official image for OmiseGO (WatcherInfo) Plasma Network"
 
 ENV LANG=C.UTF-8
 
@@ -54,7 +54,7 @@ RUN set -xe \
 #rocksdb from builder image to deployer image
 RUN mkdir -p /usr/local/rocksdb/lib
 RUN mkdir /usr/local/rocksdb/include
-COPY --from=omisegoimages/elixir-omg-builder:stable-20191024 /usr/local/rocksdb/ /usr/local/rocksdb/
+COPY --from=omisegoimages/elixir-omg-builder:stable-20200104 /usr/local/rocksdb/ /usr/local/rocksdb/
 
 ARG release_version
 ADD _build/prod/rel/watcher_info/releases/${release_version}/watcher_info.tar.gz /app

@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,11 +65,14 @@ defmodule OMG.Status.Metric.StatsdMonitorTest do
       {:ok, %{parent: parent}}
     end
 
-    def set({:statsd_client_connection, _node, OMG.Status.Metric.StatsdMonitor}) do
+    def statsd_client_connection(reporter),
+      do: {:statsd_client_connection, %{node: Node.self(), reporter: reporter}}
+
+    def set({:statsd_client_connection, _details}) do
       GenServer.call(__MODULE__, :got_raise_alarm)
     end
 
-    def clear({:statsd_client_connection, _, OMG.Status.Metric.StatsdMonitor}) do
+    def clear({:statsd_client_connection, _details}) do
       GenServer.call(__MODULE__, :got_clear_alarm)
     end
 

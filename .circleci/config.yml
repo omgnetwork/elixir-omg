@@ -19,12 +19,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20191024
+      - image: omisegoimages/elixir-omg-builder:stable-20200104
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20191024
+      - image: omisegoimages/elixir-omg-builder:stable-20200104
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -34,7 +34,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:stable-20191024
+      - image: omisegoimages/elixir-omg-tester:stable-20200104
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -87,9 +87,11 @@ jobs:
       - run:
           name: Integration Tests
           command: |
-            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration` works
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
             export SHELL=/bin/bash
+            make init_test
             mix test --trace --only integration
+          no_output_timeout: 30m
   barebuild_macos:
     executor: metal_macos
     environment:
@@ -121,6 +123,7 @@ jobs:
           no_output_timeout: 2400
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
+      - run: make init_test
       - run: mix test --trace
   build:
     executor: builder
@@ -165,6 +168,9 @@ jobs:
             - .git
             - Makefile
             - priv
+            - data
+            - snapshots.env
+            - contract_addresses_template.env
 
   lint:
     executor: builder_pg
@@ -172,6 +178,7 @@ jobs:
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
+      - run: make init_test
       - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
 
   sobelow:
@@ -209,6 +216,7 @@ jobs:
       - run:
           name: Integration Tests & Coveralls Part Child Chain
           command: |
+            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -234,6 +242,7 @@ jobs:
       - run:
           name: Integration Tests & Coveralls Part Watcher
           command: |
+            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -284,6 +293,7 @@ jobs:
       - run:
           name: Integration Tests & Coveralls Part Common
           command: |
+            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -309,6 +319,7 @@ jobs:
       - run:
           name: Test
           command: |
+            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -318,6 +329,26 @@ jobs:
                 # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
+
+  property_tests:
+    executor: builder_pg_geth
+    environment:
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Property Test
+          command: |
+            make init_test
+            export SHELL=/bin/bash
+            # no coverage calculation, coverage is on the other tests
+            mix test --only property --trace
 
   integration_tests:
     executor: builder_pg_geth
@@ -334,9 +365,10 @@ jobs:
       - run:
           name: Integration Tests
           command: |
-            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration` works
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
             export SHELL=/bin/bash
-            mix test --only integration
+            make init_test
+            mix test --trace --only integration
 
   dialyzer:
     executor: builder_pg
@@ -384,7 +416,11 @@ jobs:
       - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
-      - run: docker-compose -f docker-compose.yml -f priv/docker-compose.geth-ganache.yml up -d
+      - run: 
+          name: Run specs
+          command: |
+            cd priv/
+            make start_daemon_services
       - run: docker image ls
       - run: docker-compose ps
       - run:
@@ -410,7 +446,7 @@ jobs:
             make generate_api_code
             mix local.hex --force && mix local.rebar --force
             mix deps.get
-            mix white_bread.run
+            mix test
       - run:
           name: Format generated code and check for warnings
           command: |
@@ -434,44 +470,32 @@ jobs:
 
   test_barebone_release:
     machine:
-      image: circleci/classic:201808-01
+      image: ubuntu-1604:201903-01
     environment:
       TERM: xterm-256color
     steps:
       - checkout
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
       - run:
-          name: Start geth, postgres and plasma-deployer
+          name: Start geth, postgres and pull in blockchain snapshot
           command: make start-services
           background: true
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
       - run:
+          name: Install Erlang and Elixir
           command: |
-            git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.7.4
-            echo -e '\n. $HOME/.asdf/asdf.sh' >> ~/.bash_profile
-            echo -e '\n. $HOME/.asdf/completions/asdf.bash' >> ~/.bash_profile
-            source ~/.bash_profile
-            asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
-            asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
-            asdf install erlang 21.0
-          no_output_timeout: 2400
-      - run: |
-          source ~/.bash_profile
-          asdf install elixir 1.8.2
-      - run: |
-          source ~/.bash_profile
-          asdf global erlang 21.0
-      - run:
-          command: |
-            echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
-            source ~/.bash_profile
-            asdf global elixir 1.8.2
-            mix local.rebar --force &&
-            mix local.hex --force &&
+            set -e
+            wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
             sudo killall dpkg || true &&
             sudo rm /var/lib/dpkg/lock || true &&
             sudo rm /var/cache/apt/archives/lock || true &&
             sudo dpkg --configure -a || true &&
+            wget https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc &&
+            sudo apt-key add erlang_solutions.asc &&
+            sudo dpkg -i erlang-solutions_2.0_all.deb  &&
+            sudo apt-get update &&
+            sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2-1 &&
+            sudo apt-get install -y erlang-os-mon &&
             ./bin/setup &&
             make deps-elixir-omg &&
             make start-child_chain OVERRIDING_START=start &&
@@ -483,6 +507,15 @@ jobs:
       - run: ps axww | grep watcher_info
       - run: ps axww | grep child_chain
       - run: sh .circleci/status.sh
+      - run:
+          name: Run specs
+          command: |
+            cd priv/
+            make install
+            make generate_api_code
+            mix local.hex --force && mix local.rebar --force
+            mix deps.get
+            mix test
 
   publish_child_chain:
     executor: metal_child_chain
@@ -632,6 +665,8 @@ workflows:
           requires: [build]
       - barebuild_macos:
           requires: [build]
+      - test_barebone_release:
+          requires: [build]
   build-deploy:
     jobs:
       - build
@@ -658,8 +693,6 @@ workflows:
           requires: [build]
       - test_docker_compose_release:
           requires: [build]
-      - test_barebone_release:
-          requires: [build]
       - lint:
           requires: [build]
       - sobelow:
@@ -667,6 +700,8 @@ workflows:
       - dialyzer:
           requires: [build]
       - test:
+          requires: [build]
+      - property_tests:
           requires: [build]
       - build_and_deploy_staging:
           requires:
@@ -679,6 +714,7 @@ workflows:
             - watcher_coveralls_and_integration_tests
             - watcher_info_coveralls_and_integration_tests
             - common_coveralls_and_integration_tests
+            - property_tests
           filters:
             branches:
               only:
@@ -692,6 +728,7 @@ workflows:
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
+              property_tests,
               dialyzer,
               lint,
             ]
@@ -707,6 +744,7 @@ workflows:
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
+              property_tests,
               dialyzer,
               lint,
             ]
@@ -722,6 +760,7 @@ workflows:
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
+              property_tests,
               dialyzer,
               lint,
             ]

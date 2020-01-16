@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
   import OMG.Watcher.ExitProcessor.TestHelper
 
   @exit_id 1
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "sanity checks" do
     test "throwing when unknown piggyback events arrive", %{processor_filled: processor, ife_tx_hashes: [ife_id | _]} do
@@ -124,7 +125,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
     test "detects available piggyback because tx not seen in valid block, regardless of competitors",
          %{processor_empty: processor, alice: alice} do
       # testing this because everywhere else, the test fixtures always imply competitors
-      tx = TestHelper.create_recovered([{1, 0, 0, alice}], [])
+      tx = TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 1}])
       txbytes = txbytes(tx)
       processor = processor |> start_ife_from(tx)
 
@@ -137,7 +138,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
          %{processor_empty: processor, alice: alice} do
       # there is leeway in the contract, that allows IFE transactions to hold non-zero signatures for zero-inputs
       # we want to be sure that this doesn't crash the `ExitProcessor`
-      tx = Transaction.Payment.new([{1, 0, 0}], [])
+      tx = Transaction.Payment.new([{1, 0, 0}], [{alice.addr, @eth, 1}])
       txbytes = txbytes(tx)
       # superfluous signatures
       %{sigs: sigs} = signed_tx = OMG.DevCrypto.sign(tx, [alice.priv])
@@ -162,11 +163,12 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes2}]} = request |> Core.check_validity(processor)
     end
 
-    test "transaction without outputs and different input owners",
-         %{alice: alice, bob: bob, processor_empty: processor} do
-      tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, bob}], [])
+    test "transaction with different input/output owners",
+         %{alice: alice, bob: bob, carol: carol, processor_empty: processor} do
+      tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, bob}], [{carol, @eth, 1}])
       alice_addr = alice.addr
       bob_addr = bob.addr
+      carol_addr = carol.addr
       txbytes = txbytes(tx)
       processor = processor |> start_ife_from(tx)
 
@@ -174,17 +176,18 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
               [
                 %Event.PiggybackAvailable{
                   available_inputs: [%{address: ^alice_addr, index: 0}, %{address: ^bob_addr, index: 1}],
-                  available_outputs: [],
+                  available_outputs: [%{address: ^carol_addr, index: 0}],
                   txbytes: ^txbytes
                 }
               ]} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+                 only: [Event.PiggybackAvailable]
+               )
     end
 
-    test "when output is already piggybacked, it is not reported in piggyback available event",
+    test "when input is already piggybacked, it is not reported in piggyback available event",
          %{alice: alice, processor_empty: processor} do
-      tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [])
+      tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [{alice, @eth, 1}])
       tx_hash = Transaction.raw_txhash(tx)
       processor = processor |> start_ife_from(tx) |> piggyback_ife_from(tx_hash, 0, :input)
 
@@ -192,37 +195,55 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
               [
                 %Event.PiggybackAvailable{
                   available_inputs: [%{index: 1}],
+                  available_outputs: [%{index: 0}]
+                }
+              ]} =
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+                 only: [Event.PiggybackAvailable]
+               )
+    end
+
+    test "when output is already piggybacked, it is not reported in piggyback available event",
+         %{alice: alice, processor_empty: processor} do
+      tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [{alice, @eth, 1}])
+      tx_hash = Transaction.raw_txhash(tx)
+      processor = processor |> start_ife_from(tx) |> piggyback_ife_from(tx_hash, 0, :output)
+
+      assert {:ok,
+              [
+                %Event.PiggybackAvailable{
+                  available_inputs: [%{index: 0}, %{index: 1}],
                   available_outputs: []
                 }
               ]} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+                 only: [Event.PiggybackAvailable]
+               )
     end
 
     test "when ife is finalized, it's outputs are not reported as available for piggyback",
          %{alice: alice, processor_empty: processor} do
-      tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [])
+      tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [{alice, @eth, 1}])
       tx_hash = Transaction.raw_txhash(tx)
       processor = processor |> start_ife_from(tx) |> piggyback_ife_from(tx_hash, 0, :input)
       finalization = %{in_flight_exit_id: @exit_id, output_index: 0, omg_data: %{piggyback_type: :input}}
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization], %{})
 
       assert {:ok, []} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+                 only: [Event.PiggybackAvailable]
+               )
     end
 
     test "challenged IFEs emit the same piggybacks as canonical ones",
          %{processor_filled: processor, transactions: [tx | _], competing_tx: comp} do
       assert {:ok, events_canonical} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> Core.check_validity(processor)
+               Core.check_validity(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor)
 
       {challenged_processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx, comp)])
 
       assert {:ok, events_challenged} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> Core.check_validity(challenged_processor)
+               Core.check_validity(%ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}, challenged_processor)
 
       assert_events(events_canonical, events_challenged)
     end
@@ -243,7 +264,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       tx_blknum = 3000
 
       # 2. transaction which spends that piggybacked output
-      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [])
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [{alice, @eth, 1}])
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -314,7 +335,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       tx_blknum = 3000
 
       # 2. transaction which spends that piggybacked output
-      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [])
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [{alice, @eth, 1}])
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
 
       request = %ExitProcessor.Request{
@@ -351,7 +372,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       tx_blknum = 3000
 
       # 2. transaction which spends that piggybacked output
-      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [])
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [{alice, @eth, 1}])
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
 
       comp_blknum = 4000
@@ -387,7 +408,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       txbytes = txbytes(tx)
       tx_blknum = 3000
 
-      comp = TestHelper.create_recovered([{tx_blknum, 0, 1, carol}], [])
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 1, carol}], [{carol, @eth, 1}])
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
 
       comp_blknum = 4000
@@ -422,7 +443,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       txbytes = txbytes(tx)
       tx_blknum = 3000
 
-      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}, {tx_blknum, 0, 1, carol}], [])
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}, {tx_blknum, 0, 1, carol}], [{alice, @eth, 1}])
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp, 1)}
 
       comp_blknum = 4000
@@ -454,11 +475,11 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
     test "proves and proves double-spend of an output, found in a block, for various inclusion positions",
          %{alice: alice, bob: bob, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
-      other_tx = TestHelper.create_recovered([{10_000, 0, 0, bob}], [])
+      other_tx = TestHelper.create_recovered([{10_000, 0, 0, bob}], [{alice, @eth, 1}])
       txbytes = txbytes(tx)
       tx_blknum = 3000
 
-      comp = TestHelper.create_recovered([{tx_blknum, 1, 0, alice}], [])
+      comp = TestHelper.create_recovered([{tx_blknum, 1, 0, alice}], [{alice, @eth, 1}])
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
 
       comp_blknum = 4000
@@ -508,7 +529,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       tx_blknum = 3000
 
       # 2. transaction which _doesn't_ spend that piggybacked output
-      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [])
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [{alice, @eth, 1}])
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -546,7 +567,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       comp =
         TestHelper.create_recovered(
           [{1, 0, 0, alice}, {1, 2, 1, alice}, {tx_blknum, 0, 0, alice}, {tx_blknum, 0, 1, alice}],
-          []
+          [{alice, @eth, 1}]
         )
 
       {comp_txbytes, alice_sig} = {txbytes(comp), sig(comp)}

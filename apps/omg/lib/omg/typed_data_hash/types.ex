@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ defmodule OMG.TypedDataHash.Types do
              [@make_spec.("txType", "uint256")],
              Enum.map(0..3, fn i -> @make_spec.("input" <> Integer.to_string(i), "Input") end),
              Enum.map(0..3, fn i -> @make_spec.("output" <> Integer.to_string(i), "Output") end),
+             [@make_spec.("txData", "uint256")],
              [@make_spec.("metadata", "bytes32")]
            ])
 

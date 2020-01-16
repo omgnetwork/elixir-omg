@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -144,7 +144,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
          %{alice: alice, processor_filled: processor, transactions: [tx1, tx2 | _]} do
       # ifes in processor here aren't competitors to each other, but the challenge filed for tx2 is a competitor
       # for tx1, which is what we want to detect:
-      comp = TestHelper.create_recovered([{1, 0, 0, alice}, {2, 1, 0, alice}], [])
+      comp = TestHelper.create_recovered([{1, 0, 0, alice}, {2, 1, 0, alice}], [{alice, @eth, 1}])
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
       txbytes = Transaction.raw_txbytes(tx1)
       challenge_event = ife_challenge(tx2, comp)
@@ -246,7 +246,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
     test "handle two competitors, when both are non canonical and used to challenge",
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _]} do
-      comp1 = TestHelper.create_recovered([{1, 0, 0, alice}], [])
+      comp1 = TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 1}])
       comp2 = TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 2}])
       txbytes = txbytes(tx1)
       request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -367,7 +367,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
     test "a competitor having the double-spend on various input indices",
          %{alice: alice, processor_empty: processor} do
-      tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [])
+      tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [{alice, @eth, 1}])
       txbytes = txbytes(tx)
       processor = processor |> start_ife_from(tx)
 
@@ -378,14 +378,14 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       other_input3 = {112, 2, 1}
 
       comps = [
-        Transaction.Payment.new([input_spent_in_idx0], []),
-        Transaction.Payment.new([other_input1, input_spent_in_idx0], []),
-        Transaction.Payment.new([other_input1, other_input2, input_spent_in_idx0], []),
-        Transaction.Payment.new([other_input1, other_input2, other_input3, input_spent_in_idx0], []),
-        Transaction.Payment.new([input_spent_in_idx1], []),
-        Transaction.Payment.new([other_input1, input_spent_in_idx1], []),
-        Transaction.Payment.new([other_input1, other_input2, input_spent_in_idx1], []),
-        Transaction.Payment.new([other_input1, other_input2, other_input3, input_spent_in_idx1], [])
+        Transaction.Payment.new([input_spent_in_idx0], [{alice.addr, @eth, 1}]),
+        Transaction.Payment.new([other_input1, input_spent_in_idx0], [{alice.addr, @eth, 1}]),
+        Transaction.Payment.new([other_input1, other_input2, input_spent_in_idx0], [{alice.addr, @eth, 1}]),
+        Transaction.Payment.new([other_input1, other_input2, other_input3, input_spent_in_idx0], [{alice.addr, @eth, 1}]),
+        Transaction.Payment.new([input_spent_in_idx1], [{alice.addr, @eth, 1}]),
+        Transaction.Payment.new([other_input1, input_spent_in_idx1], [{alice.addr, @eth, 1}]),
+        Transaction.Payment.new([other_input1, other_input2, input_spent_in_idx1], [{alice.addr, @eth, 1}]),
+        Transaction.Payment.new([other_input1, other_input2, other_input3, input_spent_in_idx1], [{alice.addr, @eth, 1}])
       ]
 
       expected_input_ids = [{0, 0}, {1, 0}, {2, 0}, {3, 0}, {0, 1}, {1, 1}, {2, 1}, {3, 1}]
@@ -425,7 +425,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
     test "a competitor being signed on various positions",
          %{processor_filled: processor, transactions: [tx1 | _], alice: alice, bob: bob} do
-      comp = TestHelper.create_recovered([{10, 2, 1, bob}, {1, 0, 0, alice}], [])
+      comp = TestHelper.create_recovered([{10, 2, 1, bob}, {1, 0, 0, alice}], [{alice, @eth, 1}])
       comp_signature = sig(comp, 1)
 
       exit_processor_request = %ExitProcessor.Request{
@@ -445,8 +445,8 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       # NOTE also that non-included competitors always are considered last, and hence worst and never are returned
 
       # first the included competitors
-      recovered_recent = TestHelper.create_recovered([{1, 0, 0, alice}], [])
-      recovered_oldest = TestHelper.create_recovered([{1, 0, 0, alice}, {2, 2, 1, alice}], [])
+      recovered_recent = TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 1}])
+      recovered_oldest = TestHelper.create_recovered([{1, 0, 0, alice}, {2, 2, 1, alice}], [{alice, @eth, 1}])
 
       # ife-related competitor
       processor = processor |> start_ife_from(comp)

@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,8 +30,7 @@ defmodule OMG.WatcherRPC.Application do
         id: OMG.WatcherRPC.Web.Endpoint,
         start: {OMG.WatcherRPC.Web.Endpoint, :start_link, []},
         type: :supervisor
-      },
-      {OMG.WatcherRPC.BroadcastEvent, []}
+      }
     ]
 
     opts = [

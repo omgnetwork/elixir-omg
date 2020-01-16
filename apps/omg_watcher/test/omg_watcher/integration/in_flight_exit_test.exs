@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     # sanity check
     {:ok, ife_id} = RootChain.get_in_flight_exit_id(submitted_txbytes)
-    {:ok, {_, _, 0, _, _, _, _}} = RootChain.get_in_flight_exit(ife_id)
+    {:ok, {_, _, 0, _, _, _, _}} = RootChain.get_in_flight_exit_struct(ife_id)
 
     # PB 1
     {:ok, %{"status" => "0x1"}} =
@@ -86,7 +86,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> DevHelper.transact_sync!()
 
     # sanity check
-    {:ok, {_, _, exitmap, _, _, _, _}} = RootChain.get_in_flight_exit(ife_id)
+    {:ok, {_, _, exitmap, _, _, _, _}} = RootChain.get_in_flight_exit_struct(ife_id)
     assert exitmap != 0
 
     # start the competing IFE, to double-spend some inputs
@@ -126,7 +126,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> DevHelper.transact_sync!()
 
     # sanity check
-    {:ok, {_, _, exitmap1, _, _, _, _}} = RootChain.get_in_flight_exit(ife_id)
+    {:ok, {_, _, exitmap1, _, _, _, _}} = RootChain.get_in_flight_exit_struct(ife_id)
     assert exitmap1 != exitmap
     assert exitmap1 != 0
 
@@ -152,7 +152,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> DevHelper.transact_sync!()
 
     # observe the result - piggybacks are gone
-    assert {:ok, {_, _, 0, _, _, _, _}} = RootChain.get_in_flight_exit(ife_id)
+    assert {:ok, {_, _, 0, _, _, _, _}} = RootChain.get_in_flight_exit_struct(ife_id)
 
     # observe the byzantine events gone
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
@@ -182,7 +182,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
     {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
     # sanity check in-flight exit has started on root chain, wait for finality
-    assert {:ok, [_, _]} = RootChain.get_in_flight_exit_starts(0, ife_eth_height)
+    assert {:ok, [_, _]} = RootChain.get_in_flight_exits_started(0, ife_eth_height)
 
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     DevHelper.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
@@ -260,7 +260,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
     {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
     # sanity check in-flight exit has started on root chain, wait for finality
-    assert {:ok, [_, _]} = RootChain.get_in_flight_exit_starts(0, ife_eth_height)
+    assert {:ok, [_, _]} = RootChain.get_in_flight_exits_started(0, ife_eth_height)
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     DevHelper.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
 

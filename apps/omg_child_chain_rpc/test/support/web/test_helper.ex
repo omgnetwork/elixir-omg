@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,9 +21,7 @@ defmodule OMG.ChildChainRPC.Web.TestHelper do
   use Plug.Test
 
   def rpc_call(method, path, params_or_body \\ nil) do
-    request =
-      conn(method, path, params_or_body)
-      |> put_req_header("content-type", "application/json")
+    request = put_req_header(conn(method, path, params_or_body), "content-type", "application/json")
 
     response = send_request(request)
 

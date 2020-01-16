@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,37 +80,6 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
            } = WatcherHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
   end
 
-  @tag fixtures: [:blocks_inserter, :alice]
-  test "outputs with value zero are not inserted into DB, the other has correct oindex", %{
-    alice: alice,
-    blocks_inserter: blocks_inserter
-  } do
-    blknum = 11_000
-
-    blocks_inserter.([
-      {blknum,
-       [
-         OMG.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 100}]),
-         OMG.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])
-       ]}
-    ])
-
-    [
-      %{
-        "amount" => 100,
-        "blknum" => ^blknum,
-        "txindex" => 0,
-        "oindex" => 1
-      },
-      %{
-        "amount" => 101,
-        "blknum" => ^blknum,
-        "txindex" => 1,
-        "oindex" => 0
-      }
-    ] = WatcherHelper.get_utxos(alice.addr) |> Enum.filter(&match?(%{"blknum" => ^blknum}, &1))
-  end
-
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles improper type of parameter" do
     assert %{
@@ -128,7 +97,16 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles too low utxo position inputs" do
-    assert %{"object" => "error", "code" => "get_utxo_exit:encoded_utxo_position_too_low"} =
-             WatcherHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => 1000})
+    assert %{
+             "object" => "error",
+             "code" => "operation:bad_request",
+             "description" => "Parameters required by this operation are missing or incorrect.",
+             "messages" => %{
+               "validation_error" => %{
+                 "parameter" => "utxo_pos",
+                 "validator" => "{:greater, 0}"
+               }
+             }
+           } = WatcherHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => 0})
   end
 end

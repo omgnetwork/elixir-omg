@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ defmodule OMG.WatcherRPC.Web.Router do
     pipe_through([:api])
 
     post("/status.get", Controller.Status, :get_status)
-    post("/alarm.get", Controller.Alarm, :get_alarms)
+    get("/alarm.get", Controller.Alarm, :get_alarms)
 
     post("/account.get_exitable_utxos", Controller.Account, :get_exitable_utxos)
 
@@ -49,10 +49,14 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/account.get_utxos", Controller.Account, :get_utxos)
     post("/account.get_transactions", Controller.Transaction, :get_transactions)
 
+    post("/block.all", Controller.Block, :get_blocks)
+
     post("/transaction.all", Controller.Transaction, :get_transactions)
     post("/transaction.get", Controller.Transaction, :get_transaction)
     post("/transaction.create", Controller.Transaction, :create)
     post("/transaction.submit_typed", Controller.Transaction, :submit_typed)
+
+    post("/block.get", Controller.Block, :get_block)
 
     post("/fees.all", Controller.Fee, :fees_all)
   end

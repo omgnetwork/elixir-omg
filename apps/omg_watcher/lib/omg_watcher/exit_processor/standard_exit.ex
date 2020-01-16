@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -91,14 +91,22 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   Determines the utxo-creating and utxo-spending blocks to get from `OMG.DB`
   `se_spending_blocks_to_get` are requested by the UTXO position they spend
   """
-  @spec determine_standard_challenge_queries(ExitProcessor.Request.t(), Core.t()) ::
-          {:ok, ExitProcessor.Request.t()} | {:error, :exit_not_found}
+  @spec determine_standard_challenge_queries(ExitProcessor.Request.t(), Core.t(), boolean()) ::
+          {:ok, ExitProcessor.Request.t()} | {:error, :exit_not_found | :utxo_not_spent}
   def determine_standard_challenge_queries(
         %ExitProcessor.Request{se_exiting_pos: Utxo.position(_, _, _) = exiting_pos} = request,
-        %Core{exits: exits} = state
+        %Core{exits: exits} = state,
+        exiting_utxo_exists
       ) do
-    with {:ok, _exit_info} <- get_exit(exits, exiting_pos) do
-      spending_blocks_to_get = if get_ife_based_on_utxo(exiting_pos, state), do: [], else: [exiting_pos]
+    with {:ok, _exit_info} <- get_exit(exits, exiting_pos),
+         # once figured out the exit exists, check if it is spent in an IFE?
+         ife_based_on_utxo = get_ife_based_on_utxo(exiting_pos, state),
+         # To be challengable, the exit utxo must be spent in either an IFE or missing from the `OMG.State`.
+         # In the latter case we'll go on looking for the spending tx in the `OMG.DB`
+         true <- !is_nil(ife_based_on_utxo) || !exiting_utxo_exists || {:error, :utxo_not_spent} do
+      # if the exit utxo is spent in an IFE no need to bother with looking for the spending tx in the blocks
+      spending_blocks_to_get = if ife_based_on_utxo, do: [], else: [exiting_pos]
+
       {:ok, %ExitProcessor.Request{request | se_spending_blocks_to_get: spending_blocks_to_get}}
     end
   end

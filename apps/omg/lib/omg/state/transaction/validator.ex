@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ defmodule OMG.State.Transaction.Validator do
           | :unauthorized_spend
           | :utxo_not_found
 
-  @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
+  @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           true | {{:error, exec_error()}, Core.t()}
   def can_apply_spend(
         %Core{utxos: utxos} = state,
@@ -48,7 +48,7 @@ defmodule OMG.State.Transaction.Validator do
     with :ok <- validate_block_size(state),
          :ok <- inputs_not_from_future_block?(state, inputs),
          {:ok, outputs_spent} <- UtxoSet.get_by_inputs(utxos, inputs),
-         :ok <- authorized?(outputs_spent, witnesses, raw_tx),
+         :ok <- authorized?(outputs_spent, witnesses),
          {:ok, implicit_paid_fee_by_currency} <- Transaction.Protocol.can_apply?(raw_tx, outputs_spent),
          true <- Fees.covered?(implicit_paid_fee_by_currency, fees) || {:error, :fees_not_covered} do
       true
@@ -73,13 +73,15 @@ defmodule OMG.State.Transaction.Validator do
   end
 
   # Checks the outputs spent by this transaction have been authorized by correct witnesses
-  @spec authorized?(list(Output.Protocol.t()), list(Transaction.Witness.t()), Transaction.Protocol.t()) ::
+  @spec authorized?(list(Output.t()), list(Transaction.Witness.t())) ::
           :ok | {:error, :unauthorized_spend}
-  defp authorized?(outputs_spent, witnesses, raw_tx) do
+  defp authorized?(outputs_spent, witnesses) do
     outputs_spent
     |> Enum.with_index()
-    |> Enum.map(fn {output_spent, idx} -> OMG.Output.Protocol.can_spend?(output_spent, witnesses[idx], raw_tx) end)
+    |> Enum.map(fn {output_spent, idx} -> can_spend?(output_spent, witnesses[idx]) end)
     |> Enum.all?()
     |> if(do: :ok, else: {:error, :unauthorized_spend})
   end
+
+  defp can_spend?(%OMG.Output{owner: owner}, witness), do: owner == witness
 end

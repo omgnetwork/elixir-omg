@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,8 +39,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   Retrieves a list of transactions
   """
   def get_transactions(conn, params) do
-    with {:ok, constraints} <- Validator.Constraints.parse(params) do
-      InfoApiTransaction.get_transactions(constraints)
+    with {:ok, constraints} <- Validator.TransactionConstraints.parse(params) do
+      constraints
+      |> InfoApiTransaction.get_transactions()
       |> api_response(conn, :transactions)
     end
   end

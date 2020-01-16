@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,48 +19,58 @@ defmodule OMG.Output do
 
   This module specificially dispatches generic calls to the various specific types
   """
+  alias OMG.Crypto
+  alias OMG.RawData
 
-  @output_types_modules Application.fetch_env!(:omg, :output_types_modules)
-  @type_markers Map.keys(@output_types_modules)
+  @type t :: %__MODULE__{
+          output_type: binary(),
+          owner: Crypto.address_t(),
+          currency: Crypto.address_t(),
+          amount: non_neg_integer()
+        }
 
-  def dispatching_reconstruct([type_marker | raw_rlp_decoded_chunks]) when type_marker in @type_markers do
-    protocol_module = @output_types_modules[type_marker]
-    protocol_module.reconstruct(raw_rlp_decoded_chunks)
+  defstruct [:output_type, :owner, :currency, :amount]
+
+  @doc """
+  Reconstructs the structure from a list of RLP items
+  """
+  def reconstruct([raw_type, [_owner, _currency, _amount]] = rlp_data) when is_binary(raw_type) do
+    with :ok <- validate_data(rlp_data),
+         {:ok, utxo} <- ExPlasma.Utxo.new(rlp_data),
+         do: %__MODULE__{output_type: utxo.output_type, owner: utxo.owner, currency: utxo.currency, amount: utxo.amount}
   end
 
-  def dispatching_reconstruct(_), do: {:error, :unrecognized_output_type}
+  def reconstruct([_raw_type, [_owner, _currency, _amount]]), do: {:error, :unrecognized_output_type}
+  def reconstruct(_), do: {:error, :malformed_outputs}
 
-  def from_db_value(%{type: type_marker} = db_value), do: @output_types_modules[type_marker].from_db_value(db_value)
-  # default clause for backwards compatibility
-  def from_db_value(%{} = db_value), do: OMG.Output.FungibleMoreVPToken.from_db_value(db_value)
-end
+  def from_db_value(%{owner: owner, currency: currency, amount: amount, output_type: output_type})
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
+    %__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}
+  end
 
-defprotocol OMG.Output.Protocol do
-  @moduledoc """
-  Captures the varying behavior of outputs that build the plasma chain
+  def to_db_value(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type})
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_integer(output_type) do
+    %{owner: owner, currency: currency, amount: amount, output_type: output_type}
+  end
 
-  Includes the "output predicate", within the `can_spend?/3` function
-  """
+  def get_data_for_rlp(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}),
+    do: [output_type, [owner, currency, amount]]
 
-  @doc """
-  True if a particular witness can unlock a particular output to be spent, given being put in a particular transaction
+  # TODO(achiurizo)
+  # remove the validation here and port the error tuple response handling into ex_plasma.
+  defp validate_data([raw_type, [owner, currency, amount]]) do
+    with {:ok, _} <- RawData.parse_uint256(raw_type),
+         {:ok, _} <- valid_output_type?(raw_type),
+         {:ok, _} <- RawData.parse_address(owner),
+         {:ok, _} <- non_zero_owner?(owner),
+         {:ok, _} <- RawData.parse_address(currency),
+         {:ok, _} <- RawData.parse_amount(amount),
+         do: :ok
+  end
 
-  Intended to be called in stateful validation
-  """
-  def can_spend?(output_spent, witness, raw_tx)
+  defp non_zero_owner?(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
+  defp non_zero_owner?(_), do: {:ok, :valid}
 
-  @doc """
-  Returns the input pointer that the output should be later referenced by in inputs to be spent
-  """
-  def input_pointer(output, blknum, tx_index, oindex, tx, hash)
-
-  @doc """
-  Transforms into a db-specific term
-  """
-  def to_db_value(output)
-
-  @doc """
-  Transforms into a RLP-ready structure
-  """
-  def get_data_for_rlp(output)
+  defp valid_output_type?(<<1>>), do: {:ok, :valid}
+  defp valid_output_type?(_), do: {:error, :unrecognized_output_type}
 end

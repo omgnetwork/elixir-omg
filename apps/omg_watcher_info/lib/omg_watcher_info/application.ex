@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ defmodule OMG.WatcherInfo.Application do
   use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
-    cookie = System.get_env("ERL_W_COOKIE")
-    true = set_cookie(cookie)
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
     start_root_supervisor()
@@ -45,14 +43,4 @@ defmodule OMG.WatcherInfo.Application do
 
     Supervisor.start_link(children, opts)
   end
-
-  # Only set once during bootup. cookie value retrieved from ENV.
-  # sobelow_skip ["DOS.StringToAtom"]
-  defp set_cookie(cookie) when is_binary(cookie) do
-    cookie
-    |> String.to_atom()
-    |> Node.set_cookie()
-  end
-
-  defp set_cookie(_), do: :ok == Logger.warn("Cookie not applied.")
 end

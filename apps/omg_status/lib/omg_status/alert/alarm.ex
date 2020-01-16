@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,37 +21,58 @@ defmodule OMG.Status.Alert.Alarm do
   @typedoc """
   The raw alarm being used to `set` the Alarm
   """
-  @type raw_t ::
+  @type alarm_detail :: %{
+          node: Node.t(),
+          reporter: module()
+        }
+
+  @type alarms ::
           {:boot_in_progress
            | :ethereum_client_connection
            | :invalid_fee_file
-           | :statsd_client_connection, atom(), atom()}
+           | :statsd_client_connection
+           | :main_supervisor_halted, alarm_detail}
 
-  def alarm_types(), do: [:boot_in_progress, :ethereum_client_connection, :invalid_fee_file, :statsd_client_connection]
+  def alarm_types(),
+    do: [
+      :boot_in_progress,
+      :ethereum_client_connection,
+      :invalid_fee_file,
+      :statsd_client_connection,
+      :main_supervisor_halted
+    ]
 
-  def statsd_client_connection(node, reporter),
-    do: {:statsd_client_connection, %{node: node, reporter: reporter}}
+  @spec statsd_client_connection(module()) :: {:statsd_client_connection, alarm_detail}
+  def statsd_client_connection(reporter),
+    do: {:statsd_client_connection, %{node: Node.self(), reporter: reporter}}
 
-  def ethereum_client_connection_issue(node, reporter),
-    do: {:ethereum_client_connection, %{node: node, reporter: reporter}}
+  @spec ethereum_client_connection(module()) :: {:ethereum_client_connection, alarm_detail}
+  def ethereum_client_connection(reporter),
+    do: {:ethereum_client_connection, %{node: Node.self(), reporter: reporter}}
 
-  def boot_in_progress(node, reporter),
-    do: {:boot_in_progress, %{node: node, reporter: reporter}}
+  @spec boot_in_progress(module()) :: {:boot_in_progress, alarm_detail}
+  def boot_in_progress(reporter),
+    do: {:boot_in_progress, %{node: Node.self(), reporter: reporter}}
 
-  def invalid_fee_file(node, reporter),
-    do: {:invalid_fee_file, %{node: node, reporter: reporter}}
+  @spec invalid_fee_file(module()) :: {:invalid_fee_file, alarm_detail}
+  def invalid_fee_file(reporter),
+    do: {:invalid_fee_file, %{node: Node.self(), reporter: reporter}}
 
-  @spec set(raw_t()) :: :ok | :duplicate
-  def set(raw_alarm), do: raw_alarm |> make_alarm() |> do_raise()
+  @spec main_supervisor_halted(module()) :: {:main_supervisor_halted, alarm_detail}
+  def main_supervisor_halted(reporter),
+    do: {:main_supervisor_halted, %{node: Node.self(), reporter: reporter}}
 
-  @spec clear(raw_t()) :: :ok | :not_raised
-  def clear(raw_alarm), do: raw_alarm |> make_alarm() |> do_clear()
+  @spec set(alarms()) :: :ok | :duplicate
+  def set(alarm), do: do_raise(alarm)
 
-  def clear_all do
+  @spec clear(alarms()) :: :ok | :not_raised
+  def clear(alarm), do: do_clear(alarm)
+
+  def clear_all() do
     Enum.each(all(), &:alarm_handler.clear_alarm(&1))
   end
 
-  def all do
+  def all() do
     :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
   end
 
@@ -69,24 +90,5 @@ defmodule OMG.Status.Alert.Alarm do
     else
       :not_raised
     end
-  end
-
-  defp make_alarm(raw_alarm = {_, node, reporter}) when is_atom(node) and is_atom(reporter),
-    do: make_alarm_for(raw_alarm)
-
-  defp make_alarm_for({:ethereum_client_connection, node, reporter}) do
-    ethereum_client_connection_issue(node, reporter)
-  end
-
-  defp make_alarm_for({:boot_in_progress, node, reporter}) do
-    boot_in_progress(node, reporter)
-  end
-
-  defp make_alarm_for({:invalid_fee_file, node, reporter}) do
-    invalid_fee_file(node, reporter)
-  end
-
-  defp make_alarm_for({:statsd_client_connection, node, reporter}) do
-    statsd_client_connection(node, reporter)
   end
 end

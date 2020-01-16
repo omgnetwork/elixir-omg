@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ defmodule OMG.Status.Application do
   Top level application module.
   """
   use Application
+
+  alias OMG.Status.AlarmPrinter
   alias OMG.Status.Alert.Alarm
   alias OMG.Status.Alert.AlarmHandler
   alias OMG.Status.Metric.Datadog
@@ -40,7 +42,8 @@ defmodule OMG.Status.Application do
         ]
       end
 
-    Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
+    child = [{AlarmPrinter, [alarm_module: Alarm]}]
+    Supervisor.start_link(children ++ child, strategy: :one_for_one, name: Status.Supervisor)
   end
 
   def start_phase(:install_alarm_handler, _start_type, _phase_args) do

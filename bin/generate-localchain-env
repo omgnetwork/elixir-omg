@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# this script takes in arguments (in key value pairs) and template file (localchain_contract_addresses.env)
+# looks for keys and replaces them with valuesß
+for ARGUMENT in "$@"
+do
+
+    KEY=$(echo $ARGUMENT | cut -f1 -d=)
+    VALUE=$(echo $ARGUMENT | cut -f2 -d=)
+
+    case "$KEY" in
+            AUTHORITY_ADDRESS)              AUTHORITY_ADDRESS=${VALUE} ;;
+            ETH_VAULT)    ETH_VAULT=${VALUE} ;;
+            ERC20_VAULT)              ERC20_VAULT=${VALUE} ;;
+            PAYMENT_EXIT_GAME)    PAYMENT_EXIT_GAME=${VALUE} ;;
+            CONTRACT_ADDRESS_PAYMENT_EXIT_GAME)              CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=${VALUE} ;;
+            PLASMA_FRAMEWORK_TX_HASH)    PLASMA_FRAMEWORK_TX_HASH=${VALUE} ;;
+            PLASMA_FRAMEWORK)              PLASMA_FRAMEWORK=${VALUE} ;;
+            PAYMENT_EIP712_LIBMOCK)    PAYMENT_EIP712_LIBMOCK=${VALUE} ;;
+            MERKLE_WRAPPER)    MERKLE_WRAPPER=${VALUE} ;;
+            ERC20_MINTABLE)    ERC20_MINTABLE=${VALUE} ;;
+            *)
+    esac
+
+done
+
+sed 's/{AUTHORITY_ADDRESS}/'$AUTHORITY_ADDRESS'/g' ../contract_addresses_template.env | \
+sed 's/{CONTRACT_ADDRESS_ETH_VAULT}/'$ETH_VAULT'/g' | \
+sed 's/{CONTRACT_ADDRESS_ERC20_VAULT}/'$ERC20_VAULT'/g' | \
+sed 's/{CONTRACT_ADDRESS_PAYMENT_EXIT_GAME}/'$PAYMENT_EXIT_GAME'/g' | \
+sed 's/{TXHASH_CONTRACT}/'$PLASMA_FRAMEWORK_TX_HASH'/g' | \
+sed 's/{CONTRACT_ADDRESS_PLASMA_FRAMEWORK}/'$PLASMA_FRAMEWORK'/g' | \
+sed 's/{CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK}/'$PAYMENT_EIP712_LIBMOCK'/g' | \
+sed 's/{CONTRACT_ADDRESS_MERKLE_WRAPPER}/'$MERKLE_WRAPPER'/g' | \
+sed 's/{CONTRACT_ERC20_MINTABLE}/'$ERC20_MINTABLE'/g' \
+> ../localchain_contract_addresses.env

@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     processor
   end
 
-  # See `OMG.Eth.RootChain.get_in_flight_exit/2` for reference of where this comes from
+  # See `OMG.Eth.RootChain.get_in_flight_exit_struct/2` for reference of where this comes from
   # `nil`s are unused portions of the returns data from the contract
   def active_ife_status(), do: {nil, 1, nil, nil, nil, nil, nil}
   def inactive_ife_status(), do: {nil, 0, nil, nil, nil, nil, nil}

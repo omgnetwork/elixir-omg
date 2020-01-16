@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,13 +35,27 @@ defmodule OMG.WatcherInfo.HttpRPC.Client do
   def get_block(hash, url), do: call(%{hash: Encoding.to_hex(hash)}, "block.get", url)
 
   @doc """
+  Gets supported fees
+  """
+  @spec get_fees(map(), binary()) ::
+          {:ok, map()}
+          | {:error,
+             {:client_error | :server_error, any()}
+             | {:malformed_response, any() | {:error, :invalid}}}
+  def get_fees(params, url) do
+    params
+    |> Adapter.rpc_post("fees.all", url)
+    |> Adapter.get_unparsed_response_body()
+  end
+
+  @doc """
   Submits transaction
   """
   @spec submit(binary(), binary()) :: response_t()
   def submit(tx, url), do: call(%{transaction: Encoding.to_hex(tx)}, "transaction.submit", url)
 
   defp call(params, path, url),
-    do: Adapter.rpc_post(params, path, url) |> Adapter.get_response_body() |> decode_response()
+    do: params |> Adapter.rpc_post(path, url) |> Adapter.get_response_body() |> decode_response()
 
   # Translates response's body to known elixir structure, either block or tx submission response or error.
   defp decode_response({:ok, %{transactions: transactions, blknum: number, hash: hash}}) do

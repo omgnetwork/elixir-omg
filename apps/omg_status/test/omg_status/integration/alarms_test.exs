@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -57,13 +57,13 @@ defmodule OMG.Status.Alert.AlarmTest do
     :alarm_handler.set_alarm({:some_system_alarm, "description_1"})
     assert not Enum.empty?(get_alarms([:some_system_alarm]))
     Alarm.clear_all()
-    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__})
+    Alarm.set(Alarm.ethereum_client_connection(__MODULE__))
     assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 1
 
-    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__.SecondProcess})
+    Alarm.set(Alarm.ethereum_client_connection(__MODULE__.SecondProcess))
     assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 2
 
-    Alarm.clear({:ethereum_client_connection, Node.self(), __MODULE__})
+    Alarm.clear(Alarm.ethereum_client_connection(__MODULE__))
     assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 1
 
     Alarm.clear_all()
@@ -71,9 +71,9 @@ defmodule OMG.Status.Alert.AlarmTest do
   end
 
   test "an alarm raise twice is reported once" do
-    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__})
+    Alarm.set(Alarm.ethereum_client_connection(__MODULE__))
     first_count = Enum.count(get_alarms([:ethereum_client_connection]))
-    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__})
+    Alarm.set(Alarm.ethereum_client_connection(__MODULE__))
     ^first_count = Enum.count(get_alarms([:ethereum_client_connection]))
   end
 

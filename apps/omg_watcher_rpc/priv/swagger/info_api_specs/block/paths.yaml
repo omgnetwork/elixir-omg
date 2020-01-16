@@ -2,8 +2,13 @@ block.all:
   post:
     tags:
       - Block
-    summary: Gets all blocks (with a limit on the number of blocks to return).
-    description: __/block.xxx endpoints not implemented yet and might undergo design changes__
+    summary: Gets all blocks (can be limited with various filters).
+    description: >
+      Returns a list of blocks ordered by the highest block number first.
+      Intended to be used for presenting an overview of most recent blocks.
+
+      Note: Due to eventual consistency nature of the informational API,
+      blocks may later than deposits, exits, etc.
     operationId: block_all
     requestBody:
       $ref: 'request_bodies.yaml#/AllBlocksBodySchema'
@@ -16,8 +21,11 @@ block.get:
   post:
     tags:
       - Block
-    summary: Gets a block with the given id.
-    description: __/block.xxx endpoints not implemented yet and might undergo design changes__
+    summary: Retrieves a single block for the given block number.
+    description: >
+      Intended for operations requiring info for a specific block only. 
+      
+      Returns a single block object for the given block number. The returned object includes transaction count but not associated transactions - for which you can use transaction.all with blknum in the request body.
     operationId: block_get
     requestBody:
       $ref: 'request_bodies.yaml#/GetBlockBodySchema'

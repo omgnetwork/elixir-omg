@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,14 +14,14 @@
 
 defmodule Mix.Tasks.Xomg.ChildChain.Start do
   @moduledoc """
-    Contains mix.task to run the child chain server
+  Contains mix.task to run the child chain server.
   """
 
   use Mix.Task
 
   import XomgTasks.Utils
 
-  @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
+  @shortdoc "Start the child chain server. See Mix.Tasks.Xomg.ChildChain.Start."
 
   def run(args) do
     args

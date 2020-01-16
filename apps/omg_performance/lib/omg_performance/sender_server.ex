@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -132,9 +132,13 @@ defmodule OMG.Performance.SenderServer do
         "[#{inspect(seqnum)}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{inspect(newamount)}"
       )
 
+    recipient_output = [{recipient.addr, @eth, to_spend}]
+    # we aren't allowed to create zero-amount outputs, so if this is the last tx and no change is due, leave it out
+    change_output = if newamount > 0, do: [{spender.addr, @eth, newamount}], else: []
+
     # create and return signed transaction
     [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
-    |> Transaction.Payment.new([{spender.addr, @eth, newamount}, {recipient.addr, @eth, to_spend}])
+    |> Transaction.Payment.new(change_output ++ recipient_output)
     |> DevCrypto.sign([spender.priv])
   end
 
