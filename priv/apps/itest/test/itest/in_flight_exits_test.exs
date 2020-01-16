@@ -449,7 +449,6 @@ defmodule InFlightExitsTests do
       in_flight_exit_id: in_flight_exit_id,
       in_flight_exit_ids: in_flight_exit_ids,
       unsigned_txbytes: unsigned_txbytes
-      
     } = alice_state = state["Alice"]
 
     # only a single non_canonical event, since on of the IFE tx is included!

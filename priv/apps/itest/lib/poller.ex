@@ -256,7 +256,6 @@ defmodule Itest.Poller do
 
     case response do
       {:ok, data} ->
-IO.inspect Jason.decode!(data.body)
         find_deposit(Jason.decode!(data.body), payload, {amount, currency, blknum}, counter)
 
       _ ->
