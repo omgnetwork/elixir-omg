@@ -101,9 +101,15 @@ Quick test (no integration tests):
 mix test
 ```
 
-Longer-running integration tests (requires compiling contracts):
+Longer-running integration tests:
 ```bash
 mix test --trace --only integration
+```
+
+To unmute logging during testing:
+```
+export CAPTURE_LOG=0
+mix test
 ```
 
 For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/omisego/workflows/elixir-omg) or build steps (https://github.com/omisego/elixir-omg/blob/master/.circleci/config.yml).

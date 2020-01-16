@@ -67,3 +67,10 @@ To run integration tests (requires **not** having `geth` running in the backgrou
 make init_test
 mix test --trace --only integration
 ```
+
+To unmute logging during testing:
+```
+export CAPTURE_LOG=0
+make init_test
+mix test
+```
