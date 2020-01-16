@@ -64,6 +64,6 @@ defmodule OMG.WatcherRPC.Web.Router do
   # NOTE: This *has to* be the last route, catching all unhandled paths
   scope "/", OMG.WatcherRPC.Web do
     pipe_through([:api])
-    match(:*, "/*path", Controller.Fallback, Route.NotFound)
+    match(:*, "/*path", Controller.Fallback, {:error, :operation_not_found})
   end
 end

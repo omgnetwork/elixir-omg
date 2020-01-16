@@ -81,8 +81,6 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
     }
   }
 
-  def call(conn, Route.NotFound), do: call(conn, {:error, :operation_not_found})
-
   def call(conn, {:error, {:validation_error, param_name, validator}}) do
     error = error_info(conn, :operation_bad_request)
 
