@@ -22,7 +22,7 @@ defmodule OMG.Utils.HttpRPC.Error do
   Serializes error's code and description provided in response's data field.
   """
   @spec serialize(atom() | String.t(), String.t() | nil, map() | nil) :: map()
-  def serialize(code, description, app_infos, messages \\ nil) do
+  def serialize(code, description, messages \\ nil) do
     %{
       object: :error,
       code: code,
@@ -30,7 +30,6 @@ defmodule OMG.Utils.HttpRPC.Error do
     }
     |> add_messages(messages)
     |> Response.serialize()
-    |> Response.add_app_infos(app_infos)
   end
 
   defp add_messages(data, nil), do: data

@@ -17,10 +17,11 @@ defmodule OMG.ChildChainRPC.Web.View.Block do
   The Block view for rendering json
   """
   alias OMG.Utils.HttpRPC.Response
+  alias OMG.ChildChainRPC.Web.Response, as: ChildChainRPCResponse
 
-  def render("block.json", %{response: block, app_infos: app_infos}) do
+  def render("block.json", %{response: block}) do
     block
     |> Response.serialize()
-    |> Response.add_app_infos(app_infos)
+    |> ChildChainRPCResponse.add_app_infos()
   end
 end

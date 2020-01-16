@@ -21,39 +21,40 @@ defmodule OMG.WatcherRPC.Web.View.InFlightExit do
 
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
+  alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
-  def render("in_flight_exit.json", %{response: in_flight_exit, app_infos: app_infos}) do
+  def render("in_flight_exit.json", %{response: in_flight_exit}) do
     in_flight_exit
     |> Response.serialize()
-    |> Response.add_app_infos(app_infos)
+    |> WatcherRPCResponse.add_app_infos()
   end
 
-  def render("competitor.json", %{response: competitor, app_infos: app_infos}) do
+  def render("competitor.json", %{response: competitor}) do
     competitor
     |> Map.update!(:competing_tx_pos, &Utxo.Position.encode/1)
     |> Map.update!(:input_utxo_pos, &Utxo.Position.encode/1)
     |> Response.serialize()
-    |> Response.add_app_infos(app_infos)
+    |> WatcherRPCResponse.add_app_infos()
   end
 
-  def render("prove_canonical.json", %{response: prove_canonical, app_infos: app_infos}) do
+  def render("prove_canonical.json", %{response: prove_canonical}) do
     prove_canonical
     |> Map.update!(:in_flight_tx_pos, &Utxo.Position.encode/1)
     |> Response.serialize()
-    |> Response.add_app_infos(app_infos)
+    |> WatcherRPCResponse.add_app_infos()
   end
 
-  def render("get_input_challenge_data.json", %{response: challenge_data, app_infos: app_infos}) do
+  def render("get_input_challenge_data.json", %{response: challenge_data}) do
     challenge_data
     |> Map.update!(:input_utxo_pos, &Utxo.Position.encode/1)
     |> Response.serialize()
-    |> Response.add_app_infos(app_infos)
+    |> WatcherRPCResponse.add_app_infos()
   end
 
-  def render("get_output_challenge_data.json", %{response: challenge_data, app_infos: app_infos}) do
+  def render("get_output_challenge_data.json", %{response: challenge_data}) do
     challenge_data
     |> Map.update!(:in_flight_output_pos, &Utxo.Position.encode/1)
     |> Response.serialize()
-    |> Response.add_app_infos(app_infos)
+    |> WatcherRPCResponse.add_app_infos()
   end
 end

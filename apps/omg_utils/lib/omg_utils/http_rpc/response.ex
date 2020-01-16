@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 defmodule OMG.Utils.HttpRPC.Response do
   @moduledoc """
   Serializes the response into expected result/data format.
   """
   alias OMG.Utils.HttpRPC.Encoding
+
+  @sha String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
 
   @type response_t :: %{version: binary(), success: boolean(), data: map()}
 
@@ -37,10 +40,6 @@ defmodule OMG.Utils.HttpRPC.Response do
     data
     |> sanitize()
     |> to_response(:success)
-  end
-
-  def add_app_infos(response, app_infos) do
-    Map.merge(response, app_infos)
   end
 
   @doc """
@@ -69,6 +68,14 @@ defmodule OMG.Utils.HttpRPC.Response do
   def sanitize({{key, value}, _}), do: Map.put_new(%{}, key, value)
   def sanitize({key, value}), do: Map.put_new(%{}, key, value)
   def sanitize(value), do: value
+
+  @doc """
+  Derive the running service's version for adding to a response.
+  """
+  def version(app) do
+    {:ok, vsn} = :application.get_key(app, :vsn)
+    List.to_string(vsn) <> "+" <> @sha
+  end
 
   defp do_filter(map_or_struct) do
     if :code.is_loaded(Ecto) do
@@ -99,9 +106,10 @@ defmodule OMG.Utils.HttpRPC.Response do
 
   defp to_map(struct), do: Map.drop(struct, [:__struct__, :__meta__])
 
-  defp to_response(data, result),
-    do: %{
+  defp to_response(data, result) do
+    %{
       success: result == :success,
       data: data
     }
+  end
 end

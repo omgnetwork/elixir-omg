@@ -19,10 +19,11 @@ defmodule OMG.WatcherRPC.Web.View.Alarm do
 
   use OMG.WatcherRPC.Web, :view
   alias OMG.Utils.HttpRPC.Response
+  alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
-  def render("alarm.json", %{response: alarms, app_infos: app_infos}) do
+  def render("alarm.json", %{response: alarms}) do
     alarms
     |> Response.serialize()
-    |> Response.add_app_infos(app_infos)
+    |> WatcherRPCResponse.add_app_infos()
   end
 end

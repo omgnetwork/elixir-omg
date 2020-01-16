@@ -19,10 +19,11 @@ defmodule OMG.WatcherRPC.Web.View.Utxo do
 
   use OMG.WatcherRPC.Web, :view
   alias OMG.Utils.HttpRPC.Response
+  alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
-  def render("utxo_exit.json", %{response: utxo_exit, app_infos: app_infos}) do
+  def render("utxo_exit.json", %{response: utxo_exit}) do
     utxo_exit
     |> Response.serialize()
-    |> Response.add_app_infos(app_infos)
+    |> WatcherRPCResponse.add_app_infos()
   end
 end
