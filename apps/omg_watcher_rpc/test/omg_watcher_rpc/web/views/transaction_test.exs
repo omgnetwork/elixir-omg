@@ -32,7 +32,7 @@ defmodule OMG.WatcherRPC.Web.View.TransactionTest do
         |> DB.Transaction.get_by_position(1)
         |> DB.Repo.preload([:inputs, :outputs])
 
-      rendered = View.Transaction.render("transaction.json", %{response: transaction, app_infos: %{}})
+      rendered = View.Transaction.render("transaction.json", %{response: transaction}})
 
       # Asserts all transaction inputs get rendered
       assert Map.has_key?(rendered.data, :inputs)
@@ -58,7 +58,7 @@ defmodule OMG.WatcherRPC.Web.View.TransactionTest do
         }
       }
 
-      rendered = View.Transaction.render("transactions.json", %{response: paginator, app_infos: %{}})
+      rendered = View.Transaction.render("transactions.json", %{response: paginator})
       [rendered_1, rendered_2] = rendered.data
 
       assert utxos_match_all?(rendered_1.inputs, tx_1.inputs)

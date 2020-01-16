@@ -38,8 +38,7 @@ defmodule OMG.WatcherRPC.Plugs.Health do
       data =
         Error.serialize(
           "operation:service_unavailable",
-          "The server is not ready to handle the request.",
-          conn.assigns.app_infos
+          "The server is not ready to handle the request."
         )
 
       conn

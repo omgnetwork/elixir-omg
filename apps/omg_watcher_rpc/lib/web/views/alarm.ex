@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.View.Alarm do
   @moduledoc """
-  The status view for rendering json
+  The alarm view for rendering json
   """
 
   use OMG.WatcherRPC.Web, :view

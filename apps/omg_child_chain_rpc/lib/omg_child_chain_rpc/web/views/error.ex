@@ -18,24 +18,52 @@ defmodule OMG.ChildChainRPC.Web.Views.Error do
   require Logger
 
   alias OMG.Utils.HttpRPC.Error
+  alias OMG.ChildChainRPC.Web.Response, as: ChildChainRPCResponse
 
   @doc """
   Handles client errors, e.g. malformed json in request body
   """
   def render("400.json", _) do
-    Error.serialize("operation:bad_request", "Server has failed to parse the request.", %{})
+    "operation:bad_request"
+    |> Error.serialize("Server has failed to parse the request.")
+    |> ChildChainRPCResponse.add_app_infos()
   end
 
   @doc """
   Supports internal server error thrown by Phoenix.
   """
   def render("500.json", %{reason: %{message: message}}) do
-    Error.serialize("server:internal_server_error", message, %{})
+    "server:internal_server_error"
+    |> Error.serialize(message)
+    |> ChildChainRPCResponse.add_app_infos()
   end
 
-  # In case no render clause matches or no
-  # template is found, let's render it as 500
+  @doc """
+  Renders the given error code, description and messages.
+  """
+  def render("error.json", %{code: code, description: description, messages: messages}) do
+    code
+    |> Error.serialize(description, messages)
+    |> ChildChainRPCResponse.add_app_infos()
+  end
+
+  @doc """
+  Renders the given error code and description.
+  """
+  def render("error.json", %{code: code, description: description}) do
+    code
+    |> Error.serialize(description)
+    |> ChildChainRPCResponse.add_app_infos()
+  end
+
+  @doc """
+  Renders internal server error when no render clause is matched. This is a Phoenix feature.
+
+  See: https://github.com/phoenixframework/phoenix/blob/master/lib/phoenix/template.ex#L143-L153
+  """
   def template_not_found(_template, _assigns) do
-    Error.serialize("server:internal_server_error", nil, %{})
+    "server:internal_server_error"
+    |> Error.serialize("Server has failed to render the error.")
+    |> ChildChainRPCResponse.add_app_infos()
   end
 end

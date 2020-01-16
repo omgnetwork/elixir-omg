@@ -62,7 +62,7 @@ defmodule OMG.WatcherRPC.Web do
 
         conn
         |> put_view(view_module)
-        |> render(template, response: data, app_infos: conn.assigns.app_infos)
+        |> render(template, response: data)
       end
     end
   end

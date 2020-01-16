@@ -13,29 +13,57 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Views.Error do
-  @moduledoc false
+  @moduledoc """
+  The error view for rendering json
+  """
+
   use OMG.WatcherRPC.Web, :view
   use OMG.Utils.LoggerExt
 
   alias OMG.Utils.HttpRPC.Error
+  alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
   @doc """
   Handles client errors, e.g. malformed json in request body
   """
   def render("400.json", _) do
-    Error.serialize("operation:bad_request", "Server has failed to parse the request.", %{})
+    "operation:bad_request"
+    |> Error.serialize("Server has failed to parse the request.")
+    |> WatcherRPCResponse.add_app_infos()
   end
 
   @doc """
   Supports internal server error thrown by Phoenix.
   """
   def render("500.json", %{reason: %{message: message}} = _conn) do
-    Error.serialize("server:internal_server_error", message, %{})
+    "server:internal_server_error"
+    |> Error.serialize(message)
+    |> WatcherRPCResponse.add_app_infos()
+  end
+
+  @doc """
+  Renders the given error code, description and messages.
+  """
+  def render("error.json", %{code: code, description: description, messages: messages}) do
+    code
+    |> Error.serialize(description, messages)
+    |> WatcherRPCResponse.add_app_infos()
+  end
+
+  @doc """
+  Renders the given error code and description.
+  """
+  def render("error.json", %{code: code, description: description}) do
+    code
+    |> Error.serialize(description)
+    |> WatcherRPCResponse.add_app_infos()
   end
 
   # In case no render clause matches or no
   # template is found, let's render it as 500
   def template_not_found(_template, _assigns) do
-    Error.serialize("server:internal_server_error", nil, %{})
+    "server:internal_server_error"
+    |> Error.serialize("Server has failed to render the error.")
+    |> WatcherRPCResponse.add_app_infos()
   end
 end
