@@ -73,12 +73,12 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
     }
   }
 
-  def call(conn, Route.NotFound),
-    do:
-      json(
-        conn,
-        Error.serialize("operation:not_found", "Operation cannot be found. Check request URL.", conn.assigns.app_infos)
-      )
+  def call(conn, Route.NotFound) do
+    json(
+      conn,
+      Error.serialize("operation:not_found", "Operation cannot be found. Check request URL.", conn.assigns.app_infos)
+    )
+  end
 
   def call(conn, {:error, {:validation_error, param_name, validator}}) do
     response =
@@ -108,8 +108,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
     json(conn, Error.serialize(code, description, conn.assigns.app_infos, Map.get(err_info, :messages)))
   end
 
-  defp error_info(conn, reason),
-    do:
-      @errors
-      |> Map.get(reason, %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil})
+  defp error_info(conn, reason) do
+    Map.get(@errors, reason, %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil})
+  end
 end

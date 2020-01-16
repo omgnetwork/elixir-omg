@@ -33,12 +33,12 @@ defmodule OMG.ChildChainRPC.Web.Controller.Fallback do
     }
   }
 
-  def call(conn, Route.NotFound),
-    do:
-      json(
-        conn,
-        Error.serialize("operation:not_found", "Operation cannot be found. Check request URL.", conn.assigns.app_infos)
-      )
+  def call(conn, Route.NotFound) do
+    json(
+      conn,
+      Error.serialize("operation:not_found", "Operation cannot be found. Check request URL.", conn.assigns.app_infos)
+    )
+  end
 
   def call(conn, {:error, {:validation_error, param_name, validator}}) do
     response =
@@ -54,8 +54,8 @@ defmodule OMG.ChildChainRPC.Web.Controller.Fallback do
 
   def call(conn, {:error, reason}) do
     err_info =
-      @errors
-      |> Map.get(
+      Map.get(
+        @errors,
         reason,
         %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
       )
