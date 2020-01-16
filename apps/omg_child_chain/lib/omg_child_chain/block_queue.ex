@@ -83,10 +83,10 @@ defmodule OMG.ChildChain.BlockQueue do
       {:ok, state} =
         with {:ok, _state} = result <-
                Core.new(
-                 mined_num,
-                 Enum.zip(range, known_hashes),
-                 top_mined_hash,
-                 parent_height,
+                 mined_child_block_num: mined_num,
+                 known_hashes: Enum.zip(range, known_hashes),
+                 top_mined_hash: top_mined_hash,
+                 parent_height: parent_height,
                  child_block_interval: child_block_interval,
                  block_submit_every_nth: Application.fetch_env!(:omg_child_chain, :block_submit_every_nth),
                  finality_threshold: finality_threshold

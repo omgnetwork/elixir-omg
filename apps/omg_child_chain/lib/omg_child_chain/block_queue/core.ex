@@ -123,23 +123,20 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
-  @spec new(
-          BlockSubmission.plasma_block_num(),
-          list({BlockSubmission.plasma_block_num(), BlockSubmission.hash()}),
-          BlockSubmission.hash(),
-          non_neg_integer(),
-          keyword
-        ) ::
+  @spec new(keyword()) ::
           {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
-  def new(mined_child_block_num, known_hashes, top_mined_hash, parent_height, opts \\ []) do
+  def new(opts \\ []) do
+    true = Keyword.has_key?(opts, :mined_child_block_num)
+    known_hashes = Keyword.fetch!(opts, :known_hashes)
+    top_mined_hash = Keyword.fetch!(opts, :top_mined_hash)
+    parent_height = Keyword.fetch!(opts, :parent_height)
+
     fields =
       opts
-      |> Keyword.put_new(:blocks, Map.new())
-      |> Keyword.put_new(:mined_child_block_num, mined_child_block_num)
-      |> Keyword.put_new(:parent_height, parent_height)
-      |> Keyword.put_new(:last_enqueued_block_at_height, parent_height)
-      |> Keyword.put_new(:wait_for_enqueue, false)
-      |> Keyword.put_new(:gas_price_adj_params, %GasPriceAdjustment{})
+      |> Keyword.put(:blocks, Map.new())
+      |> Keyword.put(:last_enqueued_block_at_height, parent_height)
+      |> Keyword.put(:wait_for_enqueue, false)
+      |> Keyword.drop([:known_hashes, :top_mined_hash])
 
     state = struct!(__MODULE__, fields)
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
