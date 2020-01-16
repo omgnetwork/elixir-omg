@@ -58,17 +58,17 @@ defmodule OMG.State.Transaction.Validator do
         can_apply_spend(state, tx, fees)
 
       %Transaction.FeeTokenClaim{} ->
-        can_claim_fees(state, tx, fees)
+        can_claim_fees(state, tx)
     end
   end
 
   @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           {:ok, :apply_spend, map()} | {{:error, exec_error()}, Core.t()}
-  def can_apply_spend(
-        %Core{utxos: utxos} = state,
-        %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses} = tx,
-        fees
-      ) do
+  defp can_apply_spend(
+         %Core{utxos: utxos} = state,
+         %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses} = tx,
+         fees
+       ) do
     inputs = Transaction.get_inputs(tx)
 
     with true <- not state.fee_claiming_started || {:error, :payments_rejected_during_fee_claiming},
@@ -82,6 +82,26 @@ defmodule OMG.State.Transaction.Validator do
     else
       {:error, _reason} = error -> {error, state}
     end
+  end
+
+  @spec can_claim_fees(Core.t(), Transaction.Recovered.t()) ::
+          {:ok, :claim_fees} | {{:error, fee_claim_error()}, Core.t()}
+  defp can_claim_fees(
+         %Core{fee_claimer_address: owner, fees_paid: fees_paid} = state,
+         %Transaction.Recovered{signed_tx: %{raw_tx: fee_tx}}
+       ) do
+    with outputs = make_outputs(owner, fees_paid),
+         {:ok, claimed_fee_token} <- Transaction.Protocol.can_apply?(fee_tx, outputs) do
+      {:ok, :claim_fees, claimed_fee_token}
+    else
+      {:error, _reason} = error -> {error, state}
+    end
+  end
+
+  defp make_outputs(owner, fees_paid) do
+    Enum.map(fees_paid, fn {currency, amount} ->
+      Transaction.FeeTokenClaim.make_output(owner, currency, amount)
+    end)
   end
 
   defp validate_block_size(%Core{tx_index: number_of_transactions_in_block}) do

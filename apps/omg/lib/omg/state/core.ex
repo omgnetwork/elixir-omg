@@ -239,15 +239,14 @@ defmodule OMG.State.Core do
    - processes pending txs gathered, updates height etc
    - clears `recently_spent` collection
   """
-  @spec form_block(pos_integer(), state :: t(), fees :: Fees.optional_fee_t()) ::
-          {:ok, {Block.t(), [db_update]}, new_state :: t()}
-  def form_block(child_block_interval, %Core{} = state, fees) do
+  @spec form_block(pos_integer(), state :: t()) :: {:ok, {Block.t(), [db_update]}, new_state :: t()}
+  def form_block(child_block_interval, %Core{} = state) do
     # important: `claim_fees` changes state significantly, overriding the parameter
     %Core{
       height: height,
       pending_txs: reversed_txs,
       utxo_db_updates: reversed_utxo_db_updates
-    } = state = claim_fees(state, fees)
+    } = state = claim_fees(state)
 
     txs = Enum.reverse(reversed_txs)
 
@@ -440,26 +439,21 @@ defmodule OMG.State.Core do
 
   defp claim_token(state, token), do: %Core{state | fees_paid: Map.delete(state.fees_paid, token)}
 
-  @spec claim_fees(state :: t(), fees :: Fees.optional_fee_t()) :: t()
-  defp claim_fees(%Core{} = state, :no_fees_required), do: state
-
+  @spec claim_fees(state :: t()) :: t()
   defp claim_fees(
          %Core{
            height: height,
            fees_paid: fees_paid,
            fee_claimer_address: owner
-         } = state,
-         fees
+         } = state
        ) do
-    fees_available_to_claim = Map.take(fees_paid, Map.keys(fees))
-
-    Transaction.FeeTokenClaim.claim_collected(height, owner, fees_available_to_claim)
+    Transaction.FeeTokenClaim.claim_collected(height, owner, fees_paid)
     |> Enum.map(fn fee_tx ->
       Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
     end)
     |> Enum.reduce(state, fn rlp_tx, curr_state ->
       {:ok, tx} = Transaction.Recovered.recover_from(rlp_tx)
-      {:ok, _, new_state} = exec(curr_state, tx, fees)
+      {:ok, _, new_state} = exec(curr_state, tx, :no_fees_required)
       new_state
     end)
   end

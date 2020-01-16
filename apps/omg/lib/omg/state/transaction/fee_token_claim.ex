@@ -43,15 +43,22 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
   def new(blknum, {owner, currency, amount}) do
     %__MODULE__{
       tx_type: @fee_token_claim_tx_type,
-      outputs: [
-        %Output{
-          owner: owner,
-          currency: currency,
-          amount: amount,
-          output_type: @fee_token_claim_output_type
-        }
-      ],
+      outputs: [make_output(owner, currency, amount)],
       nonce: to_nonce(blknum, currency)
+    }
+  end
+
+  @doc """
+  Creates output for fee transaction
+  """
+  @spec make_output(owner :: Crypto.address_t(), currency :: Transaction.Payment.currency(), amount :: pos_integer()) ::
+          Output.t()
+  def make_output(owner, currency, amount) do
+    %Output{
+      owner: owner,
+      currency: currency,
+      amount: amount,
+      output_type: @fee_token_claim_output_type
     }
   end
 
@@ -143,12 +150,12 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @doc """
   Fee claiming transaction is not used to transfer funds
   """
-  @spec can_apply?(Transaction.FeeTokenClaim.t(), map()) :: {:ok, map()} | {:error, atom()}
-  def can_apply?(%Transaction.FeeTokenClaim{outputs: [output]}, fees_paid) do
-    with %Output{currency: claimed_currency, amount: claimed_amount} = output,
-         true <- claimed_currency in Map.keys(fees_paid) || {:error, :claiming_unsupported_token},
-         amount_collected = Map.get(fees_paid, claimed_currency, 0),
-         true <- amount_collected >= claimed_amount || {:error, :claiming_more_than_collected},
-         do: {:ok, %{claimed_currency => claimed_amount}}
+  @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.t())) :: {:ok, map()} | {:error, atom()}
+  def can_apply?(%Transaction.FeeTokenClaim{outputs: [output]}, outputs) do
+    # FIXME: extend validation [missing token, amount mismatch owner mismatch]
+    with true <- output in outputs || {:error, :claimed_collected_amounts_mismatch} do
+      %Output{currency: claimed_currency, amount: claimed_amount} = output
+      {:ok, %{claimed_currency => claimed_amount}}
+    end
   end
 end

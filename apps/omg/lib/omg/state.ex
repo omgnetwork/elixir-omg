@@ -52,14 +52,14 @@ defmodule OMG.State do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
-  @spec form_block(Fees.optional_fee_t()) :: :ok
-  def form_block(fees) do
-    GenServer.cast(__MODULE__, {:form_block, fees})
+  @spec form_block() :: :ok
+  def form_block do
+    GenServer.cast(__MODULE__, :form_block)
   end
 
-  @spec close_block(Fees.optional_fee_t()) :: {:ok, list(Core.db_update())}
-  def close_block(fees) do
-    GenServer.call(__MODULE__, {:close_block, fees})
+  @spec close_block() :: {:ok, list(Core.db_update())}
+  def close_block do
+    GenServer.call(__MODULE__, :close_block)
   end
 
   @spec deposit(deposits :: [Core.deposit()]) :: {:ok, list(Core.db_update())}
@@ -196,8 +196,8 @@ defmodule OMG.State do
 
   Someday, one might want to skip some of computations done (like calculating the root hash, which is scrapped)
   """
-  def handle_call({:close_block, fees}, _from, state) do
-    {:ok, {block, db_updates}, new_state} = do_form_block(state, fees)
+  def handle_call(:close_block, _from, state) do
+    {:ok, {block, db_updates}, new_state} = do_form_block(state)
 
     publish_block_to_event_bus(block)
     {:reply, {:ok, db_updates}, new_state}
@@ -209,9 +209,9 @@ defmodule OMG.State do
 
   Does its on persistence!
   """
-  def handle_cast({:form_block, fees}, state) do
+  def handle_cast(:form_block, state) do
     _ = Logger.debug("Forming new block...")
-    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = do_form_block(state, fees)
+    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = do_form_block(state)
     _ = Logger.debug("Formed new block ##{blknum}")
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
@@ -222,9 +222,9 @@ defmodule OMG.State do
     {:noreply, new_state}
   end
 
-  defp do_form_block(state, fees) do
+  defp do_form_block(state) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    Core.form_block(child_block_interval, state, fees)
+    Core.form_block(child_block_interval, state)
   end
 
   defp publish_block_to_event_bus(block) do
