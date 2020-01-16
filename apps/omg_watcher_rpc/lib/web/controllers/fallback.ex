@@ -92,7 +92,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       code: error.code,
       description: error.description,
       messages: %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
-    )
+    })
   end
 
   def call(conn, {:error, {reason, data}}) do
@@ -100,7 +100,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
 
     conn
     |> put_view(Views.Error)
-    |> render(:error, %{code: error.code, description: error.description, messages: data)
+    |> render(:error, %{code: error.code, description: error.description, messages: data})
   end
 
   def call(conn, {:error, reason}) do
@@ -108,7 +108,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
 
     conn
     |> put_view(Views.Error)
-    |> render(:error, %{code: error.code, description: error.description)
+    |> render(:error, %{code: error.code, description: error.description})
   end
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})

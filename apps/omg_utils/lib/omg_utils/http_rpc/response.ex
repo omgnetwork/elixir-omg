@@ -72,6 +72,7 @@ defmodule OMG.Utils.HttpRPC.Response do
   @doc """
   Derive the running service's version for adding to a response.
   """
+  @spec version(Application.app()) :: String.t()
   def version(app) do
     {:ok, vsn} = :application.get_key(app, :vsn)
     List.to_string(vsn) <> "+" <> @sha
