@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Plugs.Health do
+defmodule OMG.WatcherRPC.Web.Plugs.Health do
   @moduledoc """
   Observes the systems alarms and prevents calls towards an unhealthy one.
   """

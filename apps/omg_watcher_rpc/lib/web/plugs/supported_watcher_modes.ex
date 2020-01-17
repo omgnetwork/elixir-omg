@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Plugs.SupportedWatcherModes do
+defmodule OMG.WatcherRPC.Web.Plugs.SupportedWatcherModes do
   @moduledoc """
   A plug that serves the endpoints in scope only when the running watcher's mode matches
   the plug's supported watcher modes.

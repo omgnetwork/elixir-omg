@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.Router do
   use OMG.WatcherRPC.Web, :router
-  alias OMG.WatcherRPC.Plugs.SupportedWatcherModes
+  alias OMG.WatcherRPC.Web.Plugs.SupportedWatcherModes
 
   pipeline :api do
     plug(:accepts, ["json"])
