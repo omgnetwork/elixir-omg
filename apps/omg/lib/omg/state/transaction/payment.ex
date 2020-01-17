@@ -213,7 +213,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
     output_amounts_by_currency = get_amounts_by_currency(outputs)
 
     with :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
-         do: {:ok, fees_paid(input_amounts_by_currency, output_amounts_by_currency)}
+         do: {:ok, input_output_diffs(input_amounts_by_currency, output_amounts_by_currency)}
   end
 
   defp all_inputs_signed?(non_zero_inputs, sigs) do
@@ -227,16 +227,17 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
     end
   end
 
-  defp fees_paid(input_amounts_by_currency, output_amounts_by_currency) do
-    input_amounts_by_currency
-    |> Enum.reduce(%{}, fn fees_paid, {input_currency, input_amount} ->
-      # fee is implicit - it's the difference between funds owned and spend
-      implicit_paid_fee = input_amount - Map.get(output_amounts_by_currency, input_currency, 0)
-#FIXME: THIS Impl
-      if implicit_paid_fee > 0,
-        do: Map.put_new(fees_paid, input_currency, implicit_paid_fee),
-        else: fees_paid
-    end)
+  defp input_output_diffs(input_amounts_by_currency, output_amounts_by_currency) do
+    Enum.into(
+      input_amounts_by_currency,
+      %{},
+      fn {input_currency, input_amount} ->
+        # fee is implicit - it's the difference between funds owned and spend
+        implicit_paid_fee = input_amount - Map.get(output_amounts_by_currency, input_currency, 0)
+
+        {input_currency, implicit_paid_fee}
+      end
+    )
   end
 
   defp get_amounts_by_currency(outputs) do

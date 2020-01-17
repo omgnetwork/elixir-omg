@@ -425,12 +425,17 @@ defmodule OMG.State.Core do
     }
   end
 
-  defp collect_fees(%Core{fees_paid: fees_paid} = state, tx_fees) do
+  defp collect_fees(%Core{fees_paid: fees_paid} = state, tx_diffs) do
+    tx_fees =
+      tx_diffs
+      |> Enum.reject(fn {_token, amount} -> amount == 0 end)
+      |> Map.new()
+
     %Core{
       state
       | fees_paid:
-          Map.merge(fees_paid, tx_fees, fn _token, collected, tx_paid ->
-            collected + tx_paid
+          Map.merge(fees_paid, tx_fees, fn
+            _token, collected, tx_paid -> collected + tx_paid
           end)
     }
   end

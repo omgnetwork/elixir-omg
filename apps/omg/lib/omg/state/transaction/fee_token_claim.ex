@@ -72,6 +72,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
         ) :: list(t())
   def claim_collected(blknum, owner, fees_paid) do
     fees_paid
+    |> Enum.reject(fn {_token, amount} -> amount == 0 end)
     |> Enum.map(fn {token, amount} -> new(blknum, {owner, token, amount}) end)
     |> Enum.sort_by(fn %__MODULE__{outputs: [output]} -> output.currency end)
   end

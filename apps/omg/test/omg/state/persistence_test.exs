@@ -110,7 +110,7 @@ defmodule OMG.State.PersistenceTest do
 
   @tag fixtures: [:alice]
   test "blocks and spends are persisted", %{alice: alice} do
-    tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}])
+    tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}])
 
     [%{owner: alice, currency: @eth, amount: 20, blknum: 1}]
     |> persist_deposit()
