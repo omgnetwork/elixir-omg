@@ -382,8 +382,8 @@ jobs:
       - run:
           name: Unpack PLT cache
           command: |
-            mkdir -p _build/test
-            cp plts/dialyxir*.plt _build/test/ || true
+            mkdir -p _build_docker/test
+            cp plts/dialyxir*.plt _build_docker/test/ || true
             mkdir -p ~/.mix
             cp plts/dialyxir*.plt ~/.mix/ || true
       - run: mix dialyzer --plt
@@ -391,7 +391,7 @@ jobs:
           name: Pack PLT cache
           command: |
             mkdir -p plts
-            cp _build/test/dialyxir*.plt plts/
+            cp _build_docker/test/dialyxir*.plt plts/
             cp ~/.mix/dialyxir*.plt plts/
       - save_cache:
           key: v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
