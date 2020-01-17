@@ -50,7 +50,7 @@ defmodule OMG.State.Transaction.Validator do
          {:ok, outputs_spent} <- UtxoSet.get_by_inputs(utxos, inputs),
          :ok <- authorized?(outputs_spent, witnesses),
          {:ok, implicit_paid_fee_by_currency} <- Transaction.Protocol.can_apply?(raw_tx, outputs_spent),
-         true <- Fees.covered?(implicit_paid_fee_by_currency, fees) || {:error, :fees_not_covered} do
+         :ok <- Fees.check_if_covered(implicit_paid_fee_by_currency, fees) do
       true
     else
       {:error, _reason} = error -> {error, state}

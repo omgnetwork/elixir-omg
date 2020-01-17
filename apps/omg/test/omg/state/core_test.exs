@@ -214,7 +214,7 @@ defmodule OMG.State.CoreTest do
       state
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 4}, {alice, 3}]), fee)
-      |> success?
+      |> fail?(:overpaying_fees)
     end
 
     @tag fixtures: [:alice, :bob, :state_empty]
@@ -240,13 +240,13 @@ defmodule OMG.State.CoreTest do
     end
 
     @tag fixtures: [:alice, :bob, :state_empty]
-    test "Zero fee is allowed, transaction is processed without cost", %{alice: alice, bob: bob, state_empty: state} do
+    test "Zero fee is not allowed, transaction is not processed", %{alice: alice, bob: bob, state_empty: state} do
       fee = %{@eth => %{amount: 0}}
 
       state
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 3}, {alice, 7}]), fee)
-      |> success?
+      |> fail?(:fees_not_covered)
     end
 
     @tag fixtures: [:alice, :state_empty]
@@ -276,23 +276,24 @@ defmodule OMG.State.CoreTest do
       state =
         state
         |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-        |> do_deposit(alice, %{amount: 10, currency: @not_eth, blknum: 2})
-        |> do_deposit(alice, %{amount: 10, currency: not_fee_token, blknum: 3})
+        |> do_deposit(alice, %{amount: 2, currency: @not_eth, blknum: 2})
+        |> do_deposit(alice, %{amount: 1, currency: @not_eth, blknum: 3})
+        |> do_deposit(alice, %{amount: 10, currency: not_fee_token, blknum: 4})
 
       # fee is paid in the same currency as an output
       state
       |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @not_eth, 1}]), fees)
       |> success?
 
-      # fee is paid in different currency then outputs
+      # fee is paid in different currency than outputs
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 9}, {bob, @eth, 1}]), fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}, {3, 0, 0, alice}], [{bob, @eth, 9}, {bob, @eth, 1}]), fees)
       |> success?
 
       # fee is paid from input not transferred by transaction
       state
       |> Core.exec(
-        create_recovered([{1, 0, 0, alice}, {3, 0, 0, alice}], [{bob, not_fee_token, 9}, {bob, not_fee_token, 1}]),
+        create_recovered([{1, 0, 0, alice}, {4, 0, 0, alice}], [{bob, not_fee_token, 9}, {bob, not_fee_token, 1}]),
         %{@eth => %{amount: 10}}
       )
       |> success?
@@ -302,10 +303,10 @@ defmodule OMG.State.CoreTest do
       |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @eth, 1}]), fees)
       |> fail?(:amounts_do_not_add_up)
       # fee is not respected
-      |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @not_eth, 10}]), fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @not_eth, 2}]), fees)
       |> fail?(:fees_not_covered)
       # transaction transferring only not fee currency still is obliged to fee
-      |> Core.exec(create_recovered([{3, 0, 0, alice}], not_fee_token, [{bob, 3}, {alice, 7}]), fees)
+      |> Core.exec(create_recovered([{4, 0, 0, alice}], not_fee_token, [{bob, 3}, {alice, 7}]), fees)
       |> fail?(:fees_not_covered)
     end
 

@@ -48,7 +48,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
-    raw_tx = Transaction.Payment.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 3}], <<0::256>>)
+    raw_tx = Transaction.Payment.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 2}], <<0::256>>)
 
     tx = OMG.TestHelper.sign_encode(raw_tx, [alice.priv])
     # spend the deposit

@@ -50,21 +50,60 @@ defmodule OMG.Fees do
 
   ## Examples
 
-      iex> Fees.covered?(%{"eth" => 2}, %{"eth" => %{amount: 1}, "omg" => %{amount: 3}})
-      true
+      iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 0}, %{"eth" => %{amount: 1}, "omg" => %{amount: 3}})
+      :ok
 
   """
-  @spec covered?(implicit_paid_fee_by_currency :: map(), fees :: optional_fee_t()) :: boolean()
-  def covered?(_, :no_fees_required), do: true
+  @spec check_if_covered(implicit_paid_fee_by_currency :: map(), fees :: optional_fee_t()) ::
+          :ok | {:error, :fees_not_covered} | {:error, :overpaying_fees} | {:error, :multiple_potential_currency_fees}
+  def check_if_covered(_, :no_fees_required), do: :ok
 
-  def covered?(implicit_paid_fee_by_currency, fees) do
-    for {input_currency, implicit_paid_fee} <- implicit_paid_fee_by_currency do
-      case Map.get(fees, input_currency) do
-        nil -> false
-        %{amount: amount} -> amount <= implicit_paid_fee
-      end
+  def check_if_covered(implicit_paid_fee_by_currency, fees) do
+    IO.inspect(implicit_paid_fee_by_currency)
+    IO.inspect(fees)
+    # Check for zero fees?
+    implicit_fees = remove_zero_fees(implicit_paid_fee_by_currency)
+
+    case length(implicit_fees) > 1 do
+      true ->
+        {:error, :multiple_potential_currency_fees}
+
+      false ->
+        implicit_fees
+        |> Enum.at(0)
+        |> check_fees_coverage(fees)
     end
-    |> Enum.any?()
+  end
+
+  defp remove_zero_fees(implicit_paid_fee_by_currency) do
+    Enum.filter(implicit_paid_fee_by_currency, fn {_currency, paid_fee} ->
+      paid_fee > 0
+    end)
+  end
+
+  defp check_fees_coverage(nil, _), do: {:error, :fees_not_covered}
+
+  defp check_fees_coverage({currency, paid_fee}, fees) do
+    case Map.get(fees, currency) do
+      nil ->
+        {:error, :fees_not_covered}
+
+      %{amount: amount} ->
+        check_if_exact_match(amount, paid_fee)
+    end
+  end
+
+  defp check_if_exact_match(amount, paid_fee) do
+    cond do
+      amount == paid_fee ->
+        :ok
+
+      amount > paid_fee ->
+        {:error, :fees_not_covered}
+
+      amount < paid_fee ->
+        {:error, :overpaying_fees}
+    end
   end
 
   @doc ~S"""
