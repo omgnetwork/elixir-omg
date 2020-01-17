@@ -22,10 +22,10 @@ defmodule OMG.WatcherRPC.Web.Plugs.SupportedWatcherModes do
   @behaviour Plug
   @app :omg_watcher_rpc
 
-  @spec init(atom()) :: atom()
+  @spec init([atom()]) :: [atom()]
   def init(supported), do: supported
 
-  @spec call(Plug.Conn.t(), atom()) :: Plug.Conn.t()
+  @spec call(Plug.Conn.t(), [atom()]) :: Plug.Conn.t()
   def call(conn, supported) do
     case Application.get_env(@app, :api_mode) in supported do
       true -> conn
