@@ -17,8 +17,8 @@ defmodule OMG.ChildChainRPC.Web.View.Alarm do
   The Alarm view for rendering json
   """
 
-  alias OMG.Utils.HttpRPC.Response
   alias OMG.ChildChainRPC.Web.Response, as: ChildChainRPCResponse
+  alias OMG.Utils.HttpRPC.Response
 
   def render("alarm.json", %{response: alarms}) do
     alarms

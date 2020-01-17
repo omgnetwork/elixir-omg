@@ -17,8 +17,8 @@ defmodule OMG.ChildChainRPC.Web.Views.Error do
   use OMG.ChildChainRPC.Web, :view
   require Logger
 
-  alias OMG.Utils.HttpRPC.Error
   alias OMG.ChildChainRPC.Web.Response, as: ChildChainRPCResponse
+  alias OMG.Utils.HttpRPC.Error
 
   @doc """
   Handles client errors, e.g. malformed json in request body

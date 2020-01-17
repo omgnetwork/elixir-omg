@@ -16,8 +16,8 @@ defmodule OMG.ChildChainRPC.Web.View.Fee do
   @moduledoc """
   The Fee view for rendering json
   """
-  alias OMG.Utils.HttpRPC.Response
   alias OMG.ChildChainRPC.Web.Response, as: ChildChainRPCResponse
+  alias OMG.Utils.HttpRPC.Response
 
   def render("fees_all.json", %{response: fees}) do
     fees

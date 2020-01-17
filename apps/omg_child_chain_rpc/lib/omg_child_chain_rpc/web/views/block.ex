@@ -16,8 +16,8 @@ defmodule OMG.ChildChainRPC.Web.View.Block do
   @moduledoc """
   The Block view for rendering json
   """
-  alias OMG.Utils.HttpRPC.Response
   alias OMG.ChildChainRPC.Web.Response, as: ChildChainRPCResponse
+  alias OMG.Utils.HttpRPC.Response
 
   def render("block.json", %{response: block}) do
     block

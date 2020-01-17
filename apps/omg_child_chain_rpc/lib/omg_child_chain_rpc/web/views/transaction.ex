@@ -16,8 +16,8 @@ defmodule OMG.ChildChainRPC.Web.View.Transaction do
   @moduledoc """
   The Transaction submission view for rendering json
   """
-  alias OMG.Utils.HttpRPC.Response
   alias OMG.ChildChainRPC.Web.Response, as: ChildChainRPCResponse
+  alias OMG.Utils.HttpRPC.Response
 
   def render("submit.json", %{response: result}) do
     result
