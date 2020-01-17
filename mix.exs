@@ -69,12 +69,13 @@ defmodule OMG.Umbrella.MixProject do
     ]
   end
 
-  defp dialyzer do
+  defp dialyzer() do
     [
       flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
       ignore_warnings: "dialyzer.ignore-warnings",
       list_unused_filters: true,
-      plt_add_apps: plt_apps()
+      plt_add_apps: plt_apps(),
+      paths: Enum.map(File.ls!("apps"), fn app -> "_build#{docker()}/#{Mix.env()}/lib/#{app}/ebin" end)
     ]
   end
 

@@ -76,9 +76,9 @@ make init_test
 
 # Testing & development
 
-You can setup the docker environment to run testing and development tasks:
+Docker building of source code and dependencies used to directly use common `mix` folders like `_build` and `deps`. To support workflows that switch between bare metal and Docker containers we've introduced `_build_docker` and `deps_docker` folders.
 
-(Note: If they exist, be sure to delete the `deps` and `_build` dirs from your host drive. Otherwise these dirs will get mapped into the docker container and can create build discrepancies and breakages.)
+You can setup the docker environment to run testing and development tasks:
 
 ```sh
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --entrypoint bash elixir-omg

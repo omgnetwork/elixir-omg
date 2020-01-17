@@ -376,9 +376,9 @@ jobs:
       - setup_elixir-omg_workspace
       - restore_cache:
           keys:
-            - v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
-            - v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
-            - v2-plt-cache-{{ ".tool-versions" }}
+            - v3-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
+            - v3-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
+            - v3-plt-cache-{{ ".tool-versions" }}
       - run:
           name: Unpack PLT cache
           command: |
@@ -394,15 +394,15 @@ jobs:
             cp _build_docker/test/dialyxir*.plt plts/
             cp ~/.mix/dialyxir*.plt plts/
       - save_cache:
-          key: v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
+          key: v3-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
           paths:
             - plts
       - save_cache:
-          key: v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
+          key: v3-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
           paths:
             - plts
       - save_cache:
-          key: v2-plt-cache-{{ ".tool-versions" }}
+          key: v3-plt-cache-{{ ".tool-versions" }}
           paths:
             - plts
 
