@@ -152,11 +152,12 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   Fee claiming transaction is not used to transfer funds
   """
   @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.t())) :: {:ok, map()} | {:error, atom()}
-  def can_apply?(%Transaction.FeeTokenClaim{outputs: [output]}, outputs) do
-    # FIXME: extend validation [missing token, amount mismatch owner mismatch]
-    with true <- output in outputs || {:error, :claimed_collected_amounts_mismatch} do
-      %Output{currency: claimed_currency, amount: claimed_amount} = output
-      {:ok, %{claimed_currency => claimed_amount}}
+  def can_apply?(%Transaction.FeeTokenClaim{outputs: [claimed]}, outputs) do
+    with %Output{} = collected <-
+           Enum.find(outputs, {:error, :surplus_in_token_not_collected}, fn o -> o.currency == claimed.currency end),
+         true <- collected.amount == claimed.amount || {:error, :claimed_and_collected_amounts_mismatch},
+         true <- collected.owner == claimed.owner || {:error, :only_fee_claimer_address_can_claim} do
+      {:ok, %{collected.currency => collected.amount}}
     end
   end
 end

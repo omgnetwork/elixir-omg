@@ -938,7 +938,7 @@ defmodule OMG.State.CoreTest do
     end
 
     @tag fixtures: [:alice, :bob, :state_empty]
-    test "fee txs appended even when fees aren't required", %{alice: alice, bob: bob, state_empty: state} do
+    test "fee txs are appended even when fees aren't required", %{alice: alice, bob: bob, state_empty: state} do
       fees = :no_fees_required
 
       state =
@@ -1017,7 +1017,7 @@ defmodule OMG.State.CoreTest do
       |> success?()
       # at this point no other payment can be processed
       |> Core.exec(fee_tx, fees)
-      |> fail?(:claimed_collected_amounts_mismatch)
+      |> fail?(:surplus_in_token_not_collected)
     end
 
     @tag fixtures: [:alice, :state_empty]
@@ -1040,7 +1040,7 @@ defmodule OMG.State.CoreTest do
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, available - fee_amount}]), fees)
       |> success?()
       |> Core.exec(fee_tx, fees)
-      |> fail?(:claimed_collected_amounts_mismatch)
+      |> fail?(:claimed_and_collected_amounts_mismatch)
     end
 
     @tag fixtures: [:alice, :state_empty]
@@ -1062,7 +1062,35 @@ defmodule OMG.State.CoreTest do
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, available - fee_amount}]), fees)
       |> success?()
       |> Core.exec(fee_tx, fees)
-      |> fail?(:claimed_collected_amounts_mismatch)
+      |> fail?(:claimed_and_collected_amounts_mismatch)
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "cannot claim for address other than fee claimer", %{alice: alice, bob: bob, state_empty: state} do
+      # we need just 2 different addresses
+      assert alice != bob
+      state = %Core{state | fee_claimer_address: bob.addr}
+      raw_fee_tx = Transaction.FeeTokenClaim.new(1000, {alice.addr, @eth, 3})
+
+      fees = %{@eth => %{amount: 2}}
+
+      state =
+        state
+        |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}]), fees)
+        |> success?()
+
+      fee_tx =
+        %Transaction.Signed{
+          raw_tx: raw_fee_tx,
+          sigs: []
+        }
+        |> Transaction.Signed.encode()
+        |> Transaction.Recovered.recover_from!()
+
+      state
+      |> Core.exec(fee_tx, fees)
+      |> fail?(:only_fee_claimer_address_can_claim)
     end
 
     @tag fixtures: [:alice, :state_empty]
@@ -1095,7 +1123,7 @@ defmodule OMG.State.CoreTest do
       # it's no longer possible to claim fees
       new_state
       |> Core.exec(fee_tx, fees)
-      |> fail?(:claimed_collected_amounts_mismatch)
+      |> fail?(:surplus_in_token_not_collected)
     end
   end
 
