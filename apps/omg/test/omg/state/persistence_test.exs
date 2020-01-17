@@ -131,6 +131,38 @@ defmodule OMG.State.PersistenceTest do
   end
 
   @tag fixtures: [:alice]
+  test "collected surpluses are persisted", %{alice: alice} do
+    token1 = <<1::160>>
+    token2 = <<2::160>>
+
+    tx =
+      create_recovered(
+        [{1, 0, 0, alice}, {2, 0, 0, alice}, {3, 0, 0, alice}],
+        [{alice, @eth, 10}, {alice, token1, 10}, {alice, token2, 10}]
+      )
+
+    [
+      %{owner: alice, currency: @eth, amount: 20, blknum: 1},
+      %{owner: alice, currency: token1, amount: 60, blknum: 2},
+      %{owner: alice, currency: token2, amount: 110, blknum: 3}
+    ]
+    |> persist_deposit()
+    |> exec(tx)
+    |> persist_form()
+
+    assert {:ok, [hash]} = OMG.DB.block_hashes([@blknum1])
+
+    :ok = restart_state()
+
+    assert {:ok, [db_block]} = OMG.DB.blocks([hash])
+    assert %Block{transactions: [_payment_tx, eth_fee_tx, token1_fee_tx, token2_fee_tx]} = Block.from_db_value(db_block)
+
+    assert OMG.State.utxo_exists?(Utxo.position(1000, 1, 0))
+    assert OMG.State.utxo_exists?(Utxo.position(1000, 2, 0))
+    assert OMG.State.utxo_exists?(Utxo.position(1000, 3, 0))
+  end
+
+  @tag fixtures: [:alice]
   test "exiting utxo is deleted from state", %{alice: alice} do
     utxo_positions = [
       Utxo.position(@blknum1, 0, 0),
