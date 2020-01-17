@@ -37,7 +37,9 @@ defmodule OMG.WatcherRPC.Web.Response do
   end
 
   defp service_name() do
-    # Configurable through OMG.WatcherRPC.ReleaseTasks.SetApiServiceName
-    Application.get_env(@app, :api_service_name)
+    case Application.get_env(@app, :api_mode) do
+      :watcher -> "watcher"
+      :watcher_info -> "watcher_info"
+    end
   end
 end

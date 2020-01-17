@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.ReleaseTasks.SetApiServiceName do
+defmodule OMG.WatcherRPC.ReleaseTasks.SetApiMode do
   @moduledoc false
   use Distillery.Releases.Config.Provider
   require Logger
 
   @impl Provider
 
-  def init(args) do
-    case Map.get(args, :service_name) do
-      nil -> exit("WatcherRPC's service name not provided.")
-      service_name -> Application.put_env(:omg_watcher_rpc, :service_name, service_name)
-    end
+  def init(nil) do
+    exit("WatcherRPC's API mode is not provided.")
+  end
+
+  def init(api_mode) do
+    :ok = Application.put_env(:omg_watcher_rpc, :api_mode, api_mode)
   end
 end
