@@ -474,10 +474,3 @@ diagnostics:
 	echo "\n ---------- END OF DIAGNOSTICS REPORT ----------"
 
 .PHONY: diagnostics
-
-### UTILS
-OSFLAG := ''
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	OSFLAG = OSX
-endif
