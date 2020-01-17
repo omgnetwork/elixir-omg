@@ -16,6 +16,8 @@ defmodule OMG.Umbrella.MixProject do
         "coveralls.circle": :test,
         dialyzer: :test
       ],
+      build_path: "_build" <> docker(),
+      deps_path: "deps" <> docker(),
       dialyzer: dialyzer(),
       test_coverage: [tool: ExCoveralls],
       # gets all apps test folders for the sake of `mix coveralls --umbrella`
@@ -93,4 +95,6 @@ defmodule OMG.Umbrella.MixProject do
       :sentry,
       :vmstats
     ]
+
+  defp docker(), do: if(System.get_env("DOCKER"), do: "_docker", else: "")
 end

@@ -19,12 +19,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20200104
+      - image: omisegoimages/elixir-omg-builder:dev-5735fd5
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20200104
+      - image: omisegoimages/elixir-omg-builder:dev-5735fd5
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -34,7 +34,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:stable-20200104
+      - image: omisegoimages/elixir-omg-tester:dev-5735fd5
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -137,13 +137,13 @@ jobs:
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - save_cache:
           key: v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
-          paths: "_build"
+          paths: "_build_docker"
       - save_cache:
           key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
           paths:
-            - "deps/rocksdb"
-            - "_build/test/lib/rocksdb/"
-            - "_build/test/dev/rocksdb/"
+            - "deps_docker/rocksdb"
+            - "_build_docker/test/lib/rocksdb/"
+            - "_build_docker/test/dev/rocksdb/"
       - persist_to_workspace:
           name: Persist workspace
           root: ~/src
@@ -151,12 +151,12 @@ jobs:
             - .circleci
             - dialyzer.ignore-warnings
             - .formatter.exs
-            - _build
+            - _build_docker
             - .credo.exs
             - apps
             - bin
             - config
-            - deps
+            - deps_docker
             - doc
             - mix.exs
             - mix.lock
@@ -496,6 +496,7 @@ jobs:
             sudo apt-get update &&
             sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2-1 &&
             sudo apt-get install -y erlang-os-mon &&
+            sudo apt-get install -y erlang-parsetools &&
             ./bin/setup &&
             make deps-elixir-omg &&
             make start-child_chain OVERRIDING_START=start &&
