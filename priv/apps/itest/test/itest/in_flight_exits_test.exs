@@ -5,6 +5,7 @@ defmodule InFlightExitsTests do
 
   alias ExPlasma.Transactions.Payment
   alias Itest.Account
+  alias Itest.ApiModel.IfeCompetitor
   alias Itest.ApiModel.IfeExitData
   alias Itest.ApiModel.IfeExits
   alias Itest.ApiModel.IfeInputChallenge
@@ -38,6 +39,7 @@ defmodule InFlightExitsTests do
   @gas_add_exit_queue 800_000
   @retry_count 60
   @sleep_retry_sec 5_000
+  @gas_challenge_in_flight_exit_not_canonical 1_000_000
   setup do
     {:ok, _} =
       Itest.ContractEvent.start_link(
@@ -62,7 +64,6 @@ defmodule InFlightExitsTests do
     %{
       "exit_game_contract_address" => get_exit_game_contract_address(),
       "in_flight_exit_bond_size" => get_in_flight_exit_bond_size(get_exit_game_contract_address()),
-      "piggyback_bond_size" => get_piggyback_bond_size(get_exit_game_contract_address()),
       "Alice" => %{
         address: alice_address,
         pkey: "0x" <> alice_pkey,
@@ -280,10 +281,21 @@ defmodule InFlightExitsTests do
 
     txbytes = ExPlasma.Transaction.encode(submitted_tx)
 
+    unsigned_submitted_tx =
+      ExPlasma.Transaction.sign(transaction,
+        keys: []
+      )
+
+    unsigned_txbytes = ExPlasma.Transaction.encode(unsigned_submitted_tx)
+
     payload = %InFlightExitTxBytesBodySchema{txbytes: Encoding.to_hex(txbytes)}
     response = pull_api_until_successful(InFlightExit, :in_flight_exit_get_data, Watcher.new(), payload)
     exit_data = IfeExitData.to_struct(response)
-    bob_state = Map.put(bob_state, :exit_data, exit_data)
+
+    bob_state =
+      bob_state
+      |> Map.put(:exit_data, exit_data)
+      |> Map.put(:unsigned_txbytes, unsigned_txbytes)
 
     entity = "Bob"
     {:ok, Map.put(state, entity, bob_state)}
@@ -345,6 +357,7 @@ defmodule InFlightExitsTests do
       )
 
     txbytes = ExPlasma.Transaction.encode(submitted_tx)
+
     transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
     {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema)
 
@@ -402,15 +415,15 @@ defmodule InFlightExitsTests do
 
   defthen ~r/Bob piggybacks inputs and outputs from Alice$/, _, state do
     exit_game_contract_address = state["exit_game_contract_address"]
-    piggyback_bond_size = state["piggyback_bond_size"]
+
     %{exit_data: exit_data, in_flight_exit_id: in_flight_exit_id} = state["Alice"]
     %{address: address} = bob_state = state["Bob"]
     output_index = 1
     input_index = 1
-    # we need to add a vault queue for this currency first
+    # we need to add a vault exit queue for this currency first
     receipt_hash_0 = add_exit_queue(address)
-    receipt_hash_1 = piggyback_output(exit_game_contract_address, piggyback_bond_size, address, output_index, exit_data)
-    receipt_hash_2 = piggyback_input(exit_game_contract_address, piggyback_bond_size, address, input_index, exit_data)
+    receipt_hash_1 = piggyback_output(exit_game_contract_address, address, output_index, exit_data)
+    receipt_hash_2 = piggyback_input(exit_game_contract_address, address, input_index, exit_data)
 
     bob_state =
       Map.put(
@@ -437,6 +450,7 @@ defmodule InFlightExitsTests do
     bob_state = Map.put(bob_state, :receipt_hashes, [receipt_hash | bob_state.receipt_hashes])
 
     entity = "Bob"
+
     {:ok, Map.put(state, entity, bob_state)}
   end
 
@@ -450,6 +464,8 @@ defmodule InFlightExitsTests do
       in_flight_exit_ids: in_flight_exit_ids,
       unsigned_txbytes: unsigned_txbytes
     } = alice_state = state["Alice"]
+
+    %{address: bob_address, unsigned_txbytes: bob_unsigned_txbytes} = state["Bob"]
 
     # only a single non_canonical event, since on of the IFE tx is included!
     # only piggyback_available for tx2 is present, tx1 is included in block and does not spawn that event
@@ -480,7 +496,22 @@ defmodule InFlightExitsTests do
 
     # observe the byzantine events gone
     # but how do I remove these??? cleanup!
+
     assert check_if_byzantine_events_present(["non_canonical_ife", "piggyback_available"]) == true
+
+    ###
+    # CANONICITY GAME
+    ###
+
+    payload = %InFlightExitTxBytesBodySchema{txbytes: Encoding.to_hex(bob_unsigned_txbytes)}
+
+    response = pull_api_until_successful(InFlightExit, :in_flight_exit_get_competitor, Watcher.new(), payload)
+    ife_competitor = IfeCompetitor.to_struct(response)
+
+    assert ife_competitor.competing_tx_pos > 0
+    assert ife_competitor.competing_proof != ""
+    challenge_in_flight_exit_not_canonical(exit_game_contract_address, bob_address, ife_competitor)
+    assert check_if_byzantine_events_present(["piggyback_available"]) == true
 
     alice_state =
       Map.put(
@@ -495,8 +526,11 @@ defmodule InFlightExitsTests do
   end
 
   ###############################################################################################
+  ####
   #### PRIVATE
+  ####
   ###############################################################################################
+
   defp check_if_byzantine_events_present(events), do: check_if_byzantine_events_present(Enum.sort(events), @retry_count)
   defp check_if_byzantine_events_present(_, 0), do: false
 
@@ -529,6 +563,36 @@ defmodule InFlightExitsTests do
     end
   end
 
+  defp challenge_in_flight_exit_not_canonical(exit_game_contract_address, address, ife_competitor) do
+    values = [
+      {Encoding.to_binary(ife_competitor.input_tx), ife_competitor.input_utxo_pos,
+       Encoding.to_binary(ife_competitor.in_flight_txbytes), ife_competitor.in_flight_input_index,
+       Encoding.to_binary(ife_competitor.competing_txbytes), ife_competitor.competing_input_index,
+       ife_competitor.competing_tx_pos, Encoding.to_binary(ife_competitor.competing_proof),
+       Encoding.to_binary(ife_competitor.competing_sig)}
+    ]
+
+    data =
+      ABI.encode(
+        "challengeInFlightExitNotCanonical((bytes,uint256,bytes,uint16,bytes,uint16,uint256,bytes,bytes))",
+        values
+      )
+
+    txmap = %{
+      from: address,
+      to: exit_game_contract_address,
+      value: Encoding.to_hex(0),
+      data: Encoding.to_hex(data),
+      gas: Encoding.to_hex(@gas_challenge_in_flight_exit_not_canonical),
+      gasPrice: Encoding.to_hex(@ife_gas_price)
+    }
+
+    {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    wait_on_receipt_confirmed(receipt_hash)
+
+    receipt_hash
+  end
+
   defp challenge_in_flight_exit_input_spent(exit_game_contract_address, address, ife_input_challenge) do
     values = [
       {Encoding.to_binary(ife_input_challenge.in_flight_txbytes), ife_input_challenge.in_flight_input_index,
@@ -553,7 +617,7 @@ defmodule InFlightExitsTests do
     }
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    _ = Logger.info("Done IFE with hash #{receipt_hash}")
+    _ = Logger.info("Done challenge IFE input #{receipt_hash}")
     wait_on_receipt_confirmed(receipt_hash)
 
     receipt_hash
@@ -583,7 +647,7 @@ defmodule InFlightExitsTests do
     }
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    _ = Logger.info("Done IFE with hash #{receipt_hash}")
+    _ = Logger.info("Done challenge IFE output #{receipt_hash}")
     wait_on_receipt_confirmed(receipt_hash)
 
     receipt_hash
@@ -732,21 +796,8 @@ defmodule InFlightExitsTests do
     |> hd()
   end
 
-  defp get_piggyback_bond_size(exit_game_contract_address) do
-    _ = Logger.info("Trying to get bond size for piggback.")
-    data = ABI.encode("piggybackBondSize()", [])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: exit_game_contract_address, data: Encoding.to_hex(data)})
-
-    piggyback_bond_size =
-      result
-      |> Encoding.to_binary()
-      |> ABI.TypeDecoder.decode([{:uint, 128}])
-      |> hd()
-
-    piggyback_bond_size
-  end
-
-  defp piggyback_output(exit_game_contract_address, piggyback_bond_size, address, output_index, exit_data) do
+  defp piggyback_output(exit_game_contract_address, address, output_index, exit_data) do
+    piggyback_bond_size = get_piggyback_bond_size(exit_game_contract_address)
     _ = Logger.info("Piggyback output...")
 
     in_flight_tx = Encoding.to_binary(exit_data.in_flight_tx)
@@ -771,7 +822,8 @@ defmodule InFlightExitsTests do
     receipt_hash
   end
 
-  defp piggyback_input(exit_game_contract_address, piggyback_bond_size, address, input_index, exit_data) do
+  defp piggyback_input(exit_game_contract_address, address, input_index, exit_data) do
+    piggyback_bond_size = get_piggyback_bond_size(exit_game_contract_address)
     _ = Logger.info("Piggyback input...")
 
     in_flight_tx = Encoding.to_binary(exit_data.in_flight_tx)
@@ -794,6 +846,20 @@ defmodule InFlightExitsTests do
     wait_on_receipt_confirmed(receipt_hash)
     _ = Logger.info("Piggyback input... DONE.")
     receipt_hash
+  end
+
+  defp get_piggyback_bond_size(exit_game_contract_address) do
+    _ = Logger.info("Trying to get bond size for piggback.")
+    data = ABI.encode("piggybackBondSize()", [])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: exit_game_contract_address, data: Encoding.to_hex(data)})
+
+    piggyback_bond_size =
+      result
+      |> Encoding.to_binary()
+      |> ABI.TypeDecoder.decode([{:uint, 128}])
+      |> hd()
+
+    piggyback_bond_size
   end
 
   defp add_exit_queue(address) do
