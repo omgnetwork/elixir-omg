@@ -92,6 +92,21 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> Paginator.set_data(paginator)
   end
 
+  @spec query_count :: Ecto.Query.t()
+  defp query_count do
+    from(block in __MODULE__, select: count())
+  end
+
+  @doc """
+  Returns the total number of blocks
+  """
+  @spec get_count() :: non_neg_integer()
+  def get_count do
+    query_count()
+    |> DB.Repo.all()
+    |> Enum.at(0)
+  end
+
   defp query_get_last(%{limit: limit, page: page}) do
     offset = (page - 1) * limit
 

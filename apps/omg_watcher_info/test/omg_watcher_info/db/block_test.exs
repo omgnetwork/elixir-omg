@@ -261,6 +261,19 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     end
   end
 
+  describe "get_count" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns correct number of blocks" do
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
+
+      block_count = DB.Block.get_count()
+
+      assert block_count == 3
+    end
+  end
+
   describe "insert_with_transactions/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "inserts the block, its transactions and transaction outputs" do
