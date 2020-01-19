@@ -18,7 +18,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   use OMG.Fixtures
   use OMG.ChildChain.Integration.Fixtures
   use Plug.Test
-  require Utxo
 
   alias OMG.Eth.RootChain
   alias OMG.State.Transaction
@@ -27,6 +26,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
+
+  require Utxo
 
   @timeout 40_000
   @eth RootChain.eth_pseudo_address()
