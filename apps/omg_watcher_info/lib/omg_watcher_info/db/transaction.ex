@@ -96,6 +96,21 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     )
   end
 
+  @spec query_count :: Ecto.Query.t()
+  defp query_count do
+    from(block in __MODULE__, select: count())
+  end
+
+  @doc """
+  Returns the total number of transactions
+  """
+  @spec get_count() :: non_neg_integer()
+  def get_count do
+    query_count()
+    |> DB.Repo.all()
+    |> Enum.at(0)
+  end
+
   defp query_get_by_address(query, nil), do: query
 
   defp query_get_by_address(query, address) do

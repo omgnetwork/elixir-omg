@@ -32,6 +32,8 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   require Utxo
   import ExUnit.CaptureLog
 
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
+
   @tag fixtures: [:initial_blocks]
   test "the associated block can be preloaded" do
     preloaded =
@@ -63,7 +65,35 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   @tag fixtures: [:initial_blocks]
   test "passing constrains out of allowed takes no effect and print a warning" do
     assert capture_log([level: :warn], fn ->
-             DB.Transaction.get_by_filters([blknum: 2000, nothing: "there's no such thing"], %Paginator{})
-           end) =~ "Constraint on :nothing does not exist in schema and was dropped from the query"
+             DB.Transaction.get_by_filters(
+               [blknum: 2000, nothing: "there's no such thing"],
+               %Paginator{}
+             )
+           end) =~
+             "Constraint on :nothing does not exist in schema and was dropped from the query"
+  end
+
+  describe "get_count/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a correct transaction count" do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
+
+      mined_block = %{
+        transactions: [tx_1, tx_2],
+        blknum: 1000,
+        blkhash: "0x1000",
+        timestamp: 1_576_500_000,
+        eth_height: 1
+      }
+
+      _ = DB.Block.insert_with_transactions(mined_block)
+
+      tx_count = DB.Transaction.get_count()
+
+      assert tx_count == 2
+    end
   end
 end
