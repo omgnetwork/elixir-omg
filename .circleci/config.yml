@@ -137,13 +137,13 @@ jobs:
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - save_cache:
           key: v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
-          paths: "_build_docker"
+          paths: "_build"
       - save_cache:
           key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
           paths:
-            - "deps_docker/rocksdb"
-            - "_build_docker/test/lib/rocksdb/"
-            - "_build_docker/test/dev/rocksdb/"
+            - "deps/rocksdb"
+            - "_build/test/lib/rocksdb/"
+            - "_build/test/dev/rocksdb/"
       - persist_to_workspace:
           name: Persist workspace
           root: ~/src
@@ -151,12 +151,12 @@ jobs:
             - .circleci
             - dialyzer.ignore-warnings
             - .formatter.exs
-            - _build_docker
+            - _build
             - .credo.exs
             - apps
             - bin
             - config
-            - deps_docker
+            - deps
             - doc
             - mix.exs
             - mix.lock

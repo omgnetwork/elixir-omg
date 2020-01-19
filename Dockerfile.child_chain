@@ -56,7 +56,7 @@ RUN mkdir /usr/local/rocksdb/include
 COPY --from=omisegoimages/elixir-omg-builder:dev-5735fd5 /usr/local/rocksdb/ /usr/local/rocksdb/
 
 ARG release_version
-ADD _build_docker/prod/rel/child_chain/releases/${release_version}/child_chain.tar.gz /app
+ADD _build/prod/rel/child_chain/releases/${release_version}/child_chain.tar.gz /app
 RUN chown -R "${uid}:${gid}" /app
 WORKDIR /app
 

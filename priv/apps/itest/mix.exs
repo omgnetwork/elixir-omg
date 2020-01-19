@@ -8,9 +8,9 @@ defmodule Itest.MixProject do
       elixir: "~> 1.8",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      build_path: "../../_build" <> if(System.get_env("DOCKER"), do: "_docker", else: ""),
+      build_path: "../../_build",
       config_path: "../../config/config.exs",
-      deps_path: "../../deps" <> if(System.get_env("DOCKER"), do: "_docker", else: ""),
+      deps_path: "../../deps",
       lockfile: "../../mix.lock"
     ]
   end
