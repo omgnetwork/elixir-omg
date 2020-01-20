@@ -28,9 +28,11 @@ defmodule OMG.WatcherRPC.Web.ResponseTest do
   end
 
   describe "add_app_infos/1" do
-    test "appends the given map with a service_name and version" do
+    test "appends the given map with a service_name and semver-compliant version" do
       :ok = Application.put_env(@app, :api_mode, :watcher)
-      assert %{foo: "bar", service_name: _, version: _} = Response.add_app_infos(%{foo: "bar"})
+
+      assert %{foo: "bar", service_name: "watcher", version: version} = Response.add_app_infos(%{foo: "bar"})
+      assert {:ok, _} = Version.parse(version)
     end
 
     test "appends the given map with the correct service_name" do
