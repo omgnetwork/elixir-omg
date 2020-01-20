@@ -366,7 +366,7 @@ start-watcher:
 
 start-watcher_info:
 	set -e; . ./bin/variables; \
-	echo "Building Watcher" && \
+	echo "Building Watcher Info" && \
 	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
@@ -374,7 +374,7 @@ start-watcher_info:
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_key_value_db && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_postgresql_db && \
 	echo "Init Watcher DBs DONE" && \
-	echo "Run Watcher" && \
+	echo "Run Watcher Info" && \
 	PORT=${WATCHER_INFO_PORT} _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
