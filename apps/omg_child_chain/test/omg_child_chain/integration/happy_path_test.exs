@@ -220,7 +220,13 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     %Transaction.Signed{sigs: in_flight_tx_sigs} =
       in_flight_tx = OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}], @eth, [{alice, 5}])
 
-    proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], 0)
+    fee_tx = %Transaction.Signed{
+      raw_tx: Transaction.FeeTokenClaim.new(blknum, {"NO FEE CLAIMER ADDR!", @eth, 5}),
+      sigs: []
+    }
+    |> Transaction.Signed.encode()
+
+    proof = Block.inclusion_proof([Transaction.Signed.encode(tx), fee_tx], 0)
 
     {:ok, %{"status" => "0x1"}} =
       RootChainHelper.in_flight_exit(
