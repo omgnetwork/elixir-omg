@@ -24,7 +24,9 @@ defmodule OMG.WatcherInfo.OrderFeeFetcher do
   alias OMG.WatcherInfo.UtxoSelection
   alias OMG.WireFormatTypes
 
-  # Note: Hardcoding the tx_type for now
+  # Note: Hardcoding the tx_type for now, until we need to support more types of transactions
+  # that require fetching fees from the child chain.
+  # For now, only transaction.create uses this module and it's used only for payment type transactions.
   @tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
   @str_tx_type Integer.to_string(@tx_type)
 
@@ -39,7 +41,8 @@ defmodule OMG.WatcherInfo.OrderFeeFetcher do
   Fetch the correct fee amount for the given fee currency from the childchain
   and adds it to the order map.
   """
-  @spec add_fee_to_order(order_without_fee_amount_t()) :: {:ok, UtxoSelection.order_t()} | {:error, atom()}
+  @spec add_fee_to_order(order_without_fee_amount_t(), String.t() | nil) ::
+          {:ok, UtxoSelection.order_t()} | {:error, atom()}
   def add_fee_to_order(%{fee: %{currency: currency}} = order, url \\ nil) do
     child_chain_url = url || Application.get_env(:omg_watcher_info, :child_chain_url)
     encoded_currency = Encoding.to_hex(currency)
@@ -48,9 +51,6 @@ defmodule OMG.WatcherInfo.OrderFeeFetcher do
     with {:ok, fees} <- Client.get_fees(params, child_chain_url),
          {:ok, amount} <- validate_child_chain_fees(fees, encoded_currency) do
       {:ok, Kernel.put_in(order, [:fee, :amount], amount)}
-    else
-      error ->
-        error
     end
   end
 

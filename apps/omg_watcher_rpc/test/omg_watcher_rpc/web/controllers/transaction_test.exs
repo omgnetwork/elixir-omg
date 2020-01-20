@@ -641,6 +641,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   end
 
   describe "/transaction.create" do
+    setup tags do
+      context = TestServer.start()
+      on_exit(fn -> TestServer.stop(context) end)
+      Map.put(tags, :test_server, context)
+    end
+
     @default_fee_amount 5
     @default_fee_currency @eth_hex
     @fee_response %{
@@ -669,12 +675,11 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       |> blocks_inserter.()
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns appropriate schema", %{alice: alice, bob: bob, more_utxos: inserted_txs, test_server: context} do
       alias OMG.Utxo
       require Utxo
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
       alice_to_bob = 100
       metadata = (alice.addr <> bob.addr) |> OMG.Crypto.hash() |> Encoding.to_hex()
 
@@ -726,7 +731,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode() == utxo_pos
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns correctly formed transaction, identical with the verbose form", %{
       alice: alice,
       bob: bob,
@@ -734,8 +739,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     } do
       alias OMG.State.Transaction
 
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "result" => "complete",
@@ -770,13 +774,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert sign_hash_hex == verbose_tx |> OMG.TypedDataHash.hash_struct() |> Encoding.to_hex()
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns typed data in the form of request of typedDataSign", %{alice: alice, bob: bob, test_server: context} do
       alias OMG.State.Transaction
 
       metadata_hex = Encoding.to_hex(<<123::256>>)
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "result" => "complete",
@@ -814,7 +817,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
     test "allows to pay single token tx", %{
       alice: alice,
       bob: bob,
@@ -826,8 +829,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       payment = 100
 
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "result" => "complete",
@@ -850,7 +852,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert bob_balance + payment == balance_in_token(bob.addr, @eth)
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
     test "advice on merge single token tx", %{
       alice: alice,
       bob: bob,
@@ -862,8 +864,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       payment = max_spendable + 10
 
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "result" => "intermediate",
@@ -886,28 +887,13 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert max_amount_spendable_in_single_tx(alice.addr, @eth) >= payment
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos]
     test "advice on merge does not merge single utxo", %{alice: alice, bob: bob, test_server: context} do
       max_spendable = max_amount_spendable_in_single_tx(alice.addr, @eth)
 
       payment = max_spendable + 1
 
-      fee_response = %{
-        @str_tx_type => [
-          %{
-            "currency" => @default_fee_currency,
-            "amount" => 0,
-            "subunit_to_unit" => 1_000_000_000_000_000_000,
-            "pegged_amount" => 4,
-            "pegged_currency" => "USD",
-            "pegged_subunit_to_unit" => 100,
-            "updated_at" => "2019-01-01T10:10:00+00:00"
-          }
-        ]
-      }
-
-      response = TestServer.make_response(fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "result" => "intermediate",
@@ -927,7 +913,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert OMG.State.Transaction.Payment.max_inputs() == length(transaction["inputs"])
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
     test "allows to pay multi token tx", %{
       alice: alice,
       bob: bob,
@@ -942,8 +928,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       payment_eth = 100
       payment_token = 110
 
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "result" => "complete",
@@ -969,7 +954,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert bob_token + payment_token == balance_in_token(bob.addr, @other_token)
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
     test "allows to pay other token tx with fee in different currency",
          %{alice: alice, bob: bob, blocks_inserter: blocks_inserter, test_server: context} do
       alice_eth = balance_in_token(alice.addr, @eth)
@@ -978,8 +963,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       payment_token = 110
 
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "result" => "complete",
@@ -1003,7 +987,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert bob_token + payment_token == balance_in_token(bob.addr, @other_token)
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
     test "advice on merge multi token tx", %{
       alice: alice,
       bob: bob,
@@ -1018,8 +1002,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       payment_eth = max_amount_spendable_in_single_tx(alice.addr, @eth) + 10
       payment_token = max_amount_spendable_in_single_tx(alice.addr, @other_token) + 10
 
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "result" => "intermediate",
@@ -1048,13 +1031,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert max_amount_spendable_in_single_tx(alice.addr, @other_token) >= payment_token
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos]
     test "insufficient funds returns custom error", %{alice: alice, bob: bob, test_server: context} do
       balance = balance_in_token(alice.addr, @eth)
       payment = balance + 10
 
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "object" => "error",
@@ -1074,13 +1056,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos]
     test "unknown owner returns insufficient funds error", %{alice: alice, bob: bob, test_server: context} do
       assert 0 == balance_in_token(bob.addr, @eth)
       payment = 25
 
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "object" => "error",
@@ -1100,13 +1081,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:alice, :more_utxos, :blocks_inserter, :test_server]
+    @tag fixtures: [:alice, :more_utxos, :blocks_inserter]
     test "does not return txbytes when spend owner is not provided", %{alice: alice, test_server: context} do
       payment = 100
       alice_addr = Encoding.to_hex(alice.addr)
 
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "result" => "complete",
@@ -1132,7 +1112,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :test_server]
+    @tag fixtures: [:alice, :bob, :more_utxos]
     test "total number of outputs exceeds allowed outputs returns custom error", %{
       alice: alice,
       bob: bob,
@@ -1140,8 +1120,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     } do
       bob_addr = Encoding.to_hex(bob.addr)
 
-      response = TestServer.make_response(@fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, @fee_response)
 
       assert %{
                "object" => "error",
@@ -1162,14 +1141,14 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:alice, :more_utxos, :test_server]
+    @tag fixtures: [:alice, :more_utxos]
     test "transaction without payments that burns funds in fees is created correctly and incorrect on decoding",
          %{alice: alice, test_server: context} do
-      fee_response = %{
+      prepare_test_server(context, %{
         @str_tx_type => [
           %{
             "currency" => @other_token_hex,
-            "amount" => 15,
+            "amount" => @default_fee_amount,
             "subunit_to_unit" => 1_000_000_000_000_000_000,
             "pegged_amount" => 4,
             "pegged_currency" => "USD",
@@ -1177,10 +1156,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
             "updated_at" => "2019-01-01T10:10:00+00:00"
           }
         ]
-      }
-
-      response = TestServer.make_response(fee_response)
-      TestServer.with_route(context, "/fees.all", response)
+      })
 
       assert %{
                "result" => "complete",
@@ -1196,6 +1172,35 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
 
       assert {:error, :empty_outputs} = tx_hex |> from_hex!() |> Transaction.decode()
+    end
+
+    @tag fixtures: [:alice, :more_utxos]
+    test "empty transaction without payments list is not allowed", %{alice: alice, test_server: context} do
+      alice_addr = Encoding.to_hex(alice.addr)
+
+      prepare_test_server(context, %{
+        @str_tx_type => [
+          %{
+            "currency" => @default_fee_currency,
+            "amount" => 0,
+            "subunit_to_unit" => 1_000_000_000_000_000_000,
+            "pegged_amount" => 4,
+            "pegged_currency" => "USD",
+            "pegged_subunit_to_unit" => 100,
+            "updated_at" => "2019-01-01T10:10:00+00:00"
+          }
+        ]
+      })
+
+      assert %{
+               "object" => "error",
+               "code" => "transaction.create:empty_transaction",
+               "description" => "Requested payment transfers no funds."
+             } ==
+               WatcherHelper.no_success?(
+                 "transaction.create",
+                 %{"owner" => alice_addr, "payments" => [], "fee" => %{"currency" => @default_fee_currency}}
+               )
     end
 
     defp balance_in_token(address, token) do
@@ -1236,41 +1241,15 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       [{blknum, recovered_txs}] |> blocks_inserter.()
     end
+
+    defp prepare_test_server(context, response) do
+      response
+      |> TestServer.make_response()
+      |> TestServer.with_response(context, "/fees.all")
+    end
   end
 
   describe "/transaction.create validation" do
-    @tag fixtures: [:alice, :more_utxos, :test_server]
-    test "empty transaction without payments list is not allowed", %{alice: alice, test_server: context} do
-      alice_addr = Encoding.to_hex(alice.addr)
-
-      fee_response = %{
-        @str_tx_type => [
-          %{
-            "currency" => @default_fee_currency,
-            "amount" => 0,
-            "subunit_to_unit" => 1_000_000_000_000_000_000,
-            "pegged_amount" => 4,
-            "pegged_currency" => "USD",
-            "pegged_subunit_to_unit" => 100,
-            "updated_at" => "2019-01-01T10:10:00+00:00"
-          }
-        ]
-      }
-
-      response = TestServer.make_response(fee_response)
-      TestServer.with_route(context, "/fees.all", response)
-
-      assert %{
-               "object" => "error",
-               "code" => "transaction.create:empty_transaction",
-               "description" => "Requested payment transfers no funds."
-             } ==
-               WatcherHelper.no_success?(
-                 "transaction.create",
-                 %{"owner" => alice_addr, "payments" => [], "fee" => %{"currency" => @eth_hex}}
-               )
-    end
-
     @tag fixtures: [:alice, :more_utxos]
     test "incorrect payment in payment list", %{alice: alice} do
       alice_addr = Encoding.to_hex(alice.addr)

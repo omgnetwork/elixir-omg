@@ -28,25 +28,27 @@ defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
   @tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
   @str_tx_type Integer.to_string(@tx_type)
 
-  describe "add_fee_to_order/2" do
-    @tag fixtures: [:test_server]
-    test "adds the correct amount to the order", %{test_server: context} do
-      response =
-        TestServer.make_response(%{
-          @str_tx_type => [
-            %{
-              "currency" => Encoding.to_hex(@eth),
-              "amount" => 2,
-              "subunit_to_unit" => 1_000_000_000_000_000_000,
-              "pegged_amount" => 4,
-              "pegged_currency" => "USD",
-              "pegged_subunit_to_unit" => 100,
-              "updated_at" => "2019-01-01T10:10:00+00:00"
-            }
-          ]
-        })
+  setup do
+    context = TestServer.start()
+    on_exit(fn -> TestServer.stop(context) end)
+    context
+  end
 
-      TestServer.with_route(context, "/fees.all", response)
+  describe "add_fee_to_order/2" do
+    test "adds the correct amount to the order", context do
+      prepare_test_server(context, %{
+        @str_tx_type => [
+          %{
+            "currency" => Encoding.to_hex(@eth),
+            "amount" => 2,
+            "subunit_to_unit" => 1_000_000_000_000_000_000,
+            "pegged_amount" => 4,
+            "pegged_currency" => "USD",
+            "pegged_subunit_to_unit" => 100,
+            "updated_at" => "2019-01-01T10:10:00+00:00"
+          }
+        ]
+      })
 
       order = %{
         fee: %{currency: @eth}
@@ -57,23 +59,22 @@ defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
     end
 
     @tag fixtures: [:test_server]
-    test "returns an `unexpected_fee` error when cc returns an unexpected fee value", %{test_server: context} do
-      response =
-        TestServer.make_response(%{
-          @str_tx_type => [
-            %{
-              "currency" => Encoding.to_hex(@not_eth),
-              "amount" => 2,
-              "subunit_to_unit" => 1_000_000_000_000_000_000,
-              "pegged_amount" => 4,
-              "pegged_currency" => "USD",
-              "pegged_subunit_to_unit" => 100,
-              "updated_at" => "2019-01-01T10:10:00+00:00"
-            }
-          ]
-        })
-
-      TestServer.with_route(context, "/fees.all", response)
+    test "returns an `unexpected_fee` error when the child chain returns an unexpected fee value", %{
+      test_server: context
+    } do
+      prepare_test_server(context, %{
+        @str_tx_type => [
+          %{
+            "currency" => Encoding.to_hex(@not_eth),
+            "amount" => 2,
+            "subunit_to_unit" => 1_000_000_000_000_000_000,
+            "pegged_amount" => 4,
+            "pegged_currency" => "USD",
+            "pegged_subunit_to_unit" => 100,
+            "updated_at" => "2019-01-01T10:10:00+00:00"
+          }
+        ]
+      })
 
       assert OrderFeeFetcher.add_fee_to_order(%{fee: %{currency: @eth}}, context.fake_addr) ==
                {:error, :unexpected_fee}
@@ -81,16 +82,19 @@ defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
 
     @tag fixtures: [:test_server]
     test "forwards the childchain error", %{test_server: context} do
-      response =
-        TestServer.make_response(%{
-          code: "fees.all:some_error",
-          description: "Some errors"
-        })
-
-      TestServer.with_route(context, "/fees.all", response)
+      prepare_test_server(context, %{
+        code: "fees.all:some_error",
+        description: "Some errors"
+      })
 
       assert OrderFeeFetcher.add_fee_to_order(%{fee: %{currency: @eth}}, context.fake_addr) ==
                {:error, {:client_error, %{"code" => "fees.all:some_error", "description" => "Some errors"}}}
     end
+  end
+
+  defp prepare_test_server(context, response) do
+    response
+    |> TestServer.make_response()
+    |> TestServer.with_response(context, "/fees.all")
   end
 end

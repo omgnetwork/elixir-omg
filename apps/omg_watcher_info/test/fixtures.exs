@@ -24,8 +24,6 @@ defmodule OMG.WatcherInfo.Fixtures do
   use OMG.Utils.LoggerExt
 
   alias Ecto.Adapters.SQL
-  alias FakeServer.Agents.EnvAgent
-  alias FakeServer.HTTP.Server
   alias OMG.Crypto
   alias OMG.WatcherInfo
   alias OMG.WatcherInfo.DB
@@ -145,30 +143,6 @@ defmodule OMG.WatcherInfo.Fixtures do
     :ok = phoenix_ecto_sandbox
 
     fn blocks -> Enum.flat_map(blocks, &prepare_one_block/1) end
-  end
-
-  deffixture test_server do
-    {:ok, server_id, port} = Server.run()
-    env = FakeServer.Env.new(port)
-
-    EnvAgent.save_env(server_id, env)
-
-    real_addr = Application.fetch_env!(:omg_watcher_info, :child_chain_url)
-    old_client_env = Application.fetch_env!(:omg_watcher_info, :child_chain_url)
-    fake_addr = "http://#{env.ip}:#{env.port}"
-
-    on_exit(fn ->
-      Application.put_env(:omg_watcher_info, :child_chain_url, old_client_env)
-
-      Server.stop(server_id)
-      EnvAgent.delete_env(server_id)
-    end)
-
-    %{
-      real_addr: real_addr,
-      fake_addr: fake_addr,
-      server_id: server_id
-    }
   end
 
   defp prepare_one_block({blknum, recovered_txs}) do
