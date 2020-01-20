@@ -402,7 +402,7 @@ stop-watcher:
 	_build/dev/rel/watcher/bin/watcher stop
 
 stop-watcher_info:
-	_build/dev/rel/watcher/bin/watcher stop
+	_build/dev/rel/watcher_info/bin/watcher_info stop
 
 remote-child_chain:
 	set -e; . ./bin/variables && \
