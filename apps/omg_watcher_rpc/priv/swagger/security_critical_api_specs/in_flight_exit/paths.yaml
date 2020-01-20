@@ -12,7 +12,7 @@ in_flight_exit.get_data:
       200:
         $ref: 'responses.yaml#/GetInFlightExitDataResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'
 
 in_flight_exit.get_competitor:
   post:
@@ -40,7 +40,7 @@ in_flight_exit.get_competitor:
       200:
         $ref: 'responses.yaml#/GetCompetitorResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'
 
 in_flight_exit.prove_canonical:
   post:
@@ -68,7 +68,7 @@ in_flight_exit.prove_canonical:
       200:
         $ref: 'responses.yaml#/ProveCanonicalResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'
 
 in_flight_exit.get_input_challenge_data:
   post:
@@ -83,7 +83,7 @@ in_flight_exit.get_input_challenge_data:
       200:
         $ref: 'responses.yaml#/InputChallengeDataResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'
 
 in_flight_exit.get_output_challenge_data:
   post:
@@ -98,4 +98,4 @@ in_flight_exit.get_output_challenge_data:
       200:
         $ref: 'responses.yaml#/OutputChallengeDataResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'

@@ -21,15 +21,8 @@ defmodule ServiceNameTests do
     {:ok, Map.put(state, :service_response, body)}
   end
 
-  defthen ~r/^Operator can read it's service name as "(?<service_name>[^"]+)"$/, %{service_name: service_name}, state do
-    case service_name do
-      "watcher_info" ->
-        # TODO remove when implemented
-        assert state.service_response["service_name"] == "watcher"
-
-      _ ->
-        assert state.service_response["service_name"] == service_name
-    end
+  defthen ~r/^Operator can read its service name as "(?<service_name>[^"]+)"$/, %{service_name: service_name}, state do
+    assert state.service_response["service_name"] == service_name
 
     {:ok, state}
   end

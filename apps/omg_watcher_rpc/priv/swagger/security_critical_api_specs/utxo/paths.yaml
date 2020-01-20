@@ -11,7 +11,7 @@ utxo.get_challenge_data:
       200:
         $ref: 'responses.yaml#/GetUtxoChallengeResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'
 
 utxo.get_exit_data:
   post:
@@ -26,4 +26,4 @@ utxo.get_exit_data:
       200:
         $ref: 'responses.yaml#/GetUtxoExitResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'

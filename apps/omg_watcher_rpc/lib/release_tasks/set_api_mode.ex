@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Web.View.Block do
-  @moduledoc """
-  The Block view for rendering json
-  """
-  alias OMG.ChildChainRPC.Web.Response, as: ChildChainRPCResponse
-  alias OMG.Utils.HttpRPC.Response
+defmodule OMG.WatcherRPC.ReleaseTasks.SetApiMode do
+  @moduledoc false
+  use Distillery.Releases.Config.Provider
+  require Logger
 
-  def render("block.json", %{response: block}) do
-    block
-    |> Response.serialize()
-    |> ChildChainRPCResponse.add_app_infos()
+  @impl Provider
+
+  def init(nil) do
+    exit("WatcherRPC's API mode is not provided.")
+  end
+
+  def init(api_mode) do
+    :ok = Application.put_env(:omg_watcher_rpc, :api_mode, api_mode)
   end
 end

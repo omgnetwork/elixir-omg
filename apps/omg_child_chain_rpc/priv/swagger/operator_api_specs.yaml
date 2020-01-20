@@ -39,6 +39,8 @@ paths:
                   - description: The response schema for a successful operation
                     type: object
                     properties:
+                      service_name:
+                        type: string
                       version:
                         type: string
                       success:
@@ -49,8 +51,10 @@ paths:
                       - version
                       - success
                       - data
+                      - service_name
                     example:
-                      version: '1.0'
+                      service_name: child_chain
+                      version: 1.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -114,6 +118,8 @@ paths:
                   - description: The response schema for a successful operation
                     type: object
                     properties:
+                      service_name:
+                        type: string
                       version:
                         type: string
                       success:
@@ -124,8 +130,10 @@ paths:
                       - version
                       - success
                       - data
+                      - service_name
                     example:
-                      version: '1.0'
+                      service_name: child_chain
+                      version: 1.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -191,6 +199,8 @@ paths:
                   - description: The response schema for a successful operation
                     type: object
                     properties:
+                      service_name:
+                        type: string
                       version:
                         type: string
                       success:
@@ -201,8 +211,10 @@ paths:
                       - version
                       - success
                       - data
+                      - service_name
                     example:
-                      version: '1.0'
+                      service_name: child_chain
+                      version: 1.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -234,6 +246,8 @@ paths:
                   - description: The response schema for a successful operation
                     type: object
                     properties:
+                      service_name:
+                        type: string
                       version:
                         type: string
                       success:
@@ -244,8 +258,10 @@ paths:
                       - version
                       - success
                       - data
+                      - service_name
                     example:
-                      version: '1.0'
+                      service_name: child_chain
+                      version: 1.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -309,6 +325,8 @@ paths:
                   - description: The response schema for a successful operation
                     type: object
                     properties:
+                      service_name:
+                        type: string
                       version:
                         type: string
                       success:
@@ -319,8 +337,10 @@ paths:
                       - version
                       - success
                       - data
+                      - service_name
                     example:
-                      version: '1.0'
+                      service_name: child_chain
+                      version: 1.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -355,6 +375,8 @@ paths:
                   - description: The response schema for a successful operation
                     type: object
                     properties:
+                      service_name:
+                        type: string
                       version:
                         type: string
                       success:
@@ -365,8 +387,10 @@ paths:
                       - version
                       - success
                       - data
+                      - service_name
                     example:
-                      version: '1.0'
+                      service_name: child_chain
+                      version: 1.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -437,6 +461,8 @@ paths:
                   - description: The response schema for a successful operation
                     type: object
                     properties:
+                      service_name:
+                        type: string
                       version:
                         type: string
                       success:
@@ -447,8 +473,10 @@ paths:
                       - version
                       - success
                       - data
+                      - service_name
                     example:
-                      version: '1.0'
+                      service_name: child_chain
+                      version: 1.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -501,6 +529,8 @@ paths:
                   - description: The response schema for a successful operation
                     type: object
                     properties:
+                      service_name:
+                        type: string
                       version:
                         type: string
                       success:
@@ -511,8 +541,10 @@ paths:
                       - version
                       - success
                       - data
+                      - service_name
                     example:
-                      version: '1.0'
+                      service_name: child_chain
+                      version: 1.0+abcdefa
                       success: true
                       data: {}
                   - type: object

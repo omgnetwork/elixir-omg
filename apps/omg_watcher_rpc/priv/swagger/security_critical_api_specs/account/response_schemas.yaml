@@ -1,6 +1,6 @@
 AccountUtxoResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
   - type: object
     properties:
       data:

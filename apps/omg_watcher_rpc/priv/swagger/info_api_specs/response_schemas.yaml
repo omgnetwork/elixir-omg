@@ -1,32 +1,30 @@
-BaseResponseSchema:
+WatcherInfoBaseResponseSchema:
   description: The response schema for a successful operation
   type: object
   properties:
-    service_name:
-      type: string
     version:
       type: string
     success:
       type: boolean
     data:
       type: object
+    service_name:
+      type: string
   required:
+    - service_name
     - version
     - success
     - data
-    - service_name
   example:
-    service_name: child_chain
-    version: '1.0+abcdefa'
+    service_name: watcher_info
+    version: '1.0.0+abcdefa'
     success: true
     data: {}
 
-BaseListResponseSchema:
+WatcherInfoBaseListResponseSchema:
   description: The response schema for a successful list operation
   type: object
   properties:
-    service_name:
-      type: string
     version:
       type: string
     success:
@@ -35,25 +33,27 @@ BaseListResponseSchema:
       type: array
       items:
         type: object
+    service_name:
+      type: string
   required:
     - service_name
     - version
     - success
     - data
   example:
-    service_name: child_chain
+    service_name: watcher_info
     version: '1.0+abcdefa'
     success: true
     data: []
 
-ErrorResponseSchema:
+WatcherInfoErrorResponseSchema:
   description: The response schema for an error
   allOf:
-    - $ref: 'response_schemas.yaml#/BaseResponseSchema'
+    - $ref: 'response_schemas.yaml#/WatcherInfoBaseResponseSchema'
     - type: object
       properties:
         data:
-          $ref: 'schemas.yaml#/ErrorSchema'
+          $ref: '../shared/schemas.yaml#/ErrorSchema'
       required:
         - data
       example:

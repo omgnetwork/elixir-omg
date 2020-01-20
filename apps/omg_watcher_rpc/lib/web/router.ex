@@ -14,14 +14,37 @@
 
 defmodule OMG.WatcherRPC.Web.Router do
   use OMG.WatcherRPC.Web, :router
+  alias OMG.WatcherRPC.Web.Plugs.SupportedWatcherModes
 
   pipeline :api do
     plug(:accepts, ["json"])
   end
 
-  # Watcher Security-Critical API
+  pipeline :security_api do
+    plug(SupportedWatcherModes, [:watcher, :watcher_info])
+    plug(:accepts, ["json"])
+  end
+
+  pipeline :info_api do
+    plug(SupportedWatcherModes, [:watcher_info])
+    plug(:accepts, ["json"])
+  end
+
+  # A note on scope ordering.
+  #
+  # The scopes are order-sensitive. Due to the way that plug works sequentially,
+  # once a plug halts, the rest of the router does not get evaluated, even if it is
+  # outside the scope of the used plug.
+  #
+  # Therefore, always put the more permissive scope first, e.g. put the scope with
+  # `plug(SupportedWatcherModes, [:watcher, :watcher_info])` before the scope with
+  # plug(SupportedWatcherModes, [:watcher_info])
+
+  #
+  # Endpoints allowed on both Watcher Security-Critical and Info API
+  #
   scope "/", OMG.WatcherRPC.Web do
-    pipe_through([:api])
+    pipe_through([:security_api])
 
     post("/status.get", Controller.Status, :get_status)
     get("/alarm.get", Controller.Alarm, :get_alarms)
@@ -40,9 +63,11 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/in_flight_exit.get_output_challenge_data", Controller.InFlightExit, :get_output_challenge_data)
   end
 
-  # Watcher Info API
+  #
+  # Extra endpoints allowed only on Watcher Info API
+  #
   scope "/", OMG.WatcherRPC.Web do
-    pipe_through([:api])
+    pipe_through([:info_api])
 
     post("/account.get_balance", Controller.Account, :get_balance)
     post("/account.get_utxos", Controller.Account, :get_utxos)
@@ -64,6 +89,6 @@ defmodule OMG.WatcherRPC.Web.Router do
   # NOTE: This *has to* be the last route, catching all unhandled paths
   scope "/", OMG.WatcherRPC.Web do
     pipe_through([:api])
-    match(:*, "/*path", Controller.Fallback, Route.NotFound)
+    match(:*, "/*path", Controller.Fallback, {:error, :operation_not_found})
   end
 end

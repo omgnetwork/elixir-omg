@@ -1,6 +1,6 @@
 BlocksAllResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseListResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherInfoBaseListResponseSchema'
   - type: object
     properties:
       data:
@@ -31,7 +31,7 @@ BlocksAllResponseSchema:
         limit: 100
 BlockResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherInfoBaseResponseSchema'
   - type: object
     properties:
       data:

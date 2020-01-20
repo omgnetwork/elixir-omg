@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Plugs.Health do
+defmodule OMG.WatcherRPC.Web.Plugs.Health do
   @moduledoc """
   Observes the systems alarms and prevents calls towards an unhealthy one.
   """
@@ -35,7 +35,11 @@ defmodule OMG.WatcherRPC.Plugs.Health do
     if Status.is_healthy() do
       conn
     else
-      data = Error.serialize("operation:service_unavailable", "The server is not ready to handle the request.")
+      data =
+        Error.serialize(
+          "operation:service_unavailable",
+          "The server is not ready to handle the request."
+        )
 
       conn
       |> Controller.json(data)

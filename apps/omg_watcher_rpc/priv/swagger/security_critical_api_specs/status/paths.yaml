@@ -12,4 +12,4 @@ status.get:
       200:
         $ref: 'responses.yaml#/StatusResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'

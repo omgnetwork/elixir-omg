@@ -45,17 +45,18 @@ release :watcher do
 
   set(
     config_providers: [
-      {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Eth.ReleaseTasks.SetEthereumClient, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.WatcherRPC.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Status.ReleaseTasks.SetSentry, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Status.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Watcher.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Watcher.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+      {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, []},
+      {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
+      {OMG.Eth.ReleaseTasks.SetContract, []},
+      {OMG.DB.ReleaseTasks.SetKeyValueDB, []},
+      {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, []},
+      {OMG.WatcherRPC.ReleaseTasks.SetTracer, []},
+      {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher},
+      {OMG.Status.ReleaseTasks.SetSentry, []},
+      {OMG.Status.ReleaseTasks.SetTracer, []},
+      {OMG.Watcher.ReleaseTasks.SetChildChain, []},
+      {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, []},
+      {OMG.Watcher.ReleaseTasks.SetTracer, []}
     ]
   )
 
@@ -87,19 +88,20 @@ release :watcher_info do
 
   set(
     config_providers: [
-      {OMG.Eth.ReleaseTasks.SetEthereumClient, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.WatcherRPC.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Status.ReleaseTasks.SetSentry, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Status.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Watcher.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.WatcherInfo.ReleaseTasks.SetChildChain, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Watcher.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.WatcherInfo.ReleaseTasks.SetDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.WatcherInfo.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+      {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
+      {OMG.Eth.ReleaseTasks.SetContract, []},
+      {OMG.DB.ReleaseTasks.SetKeyValueDB, []},
+      {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, []},
+      {OMG.WatcherRPC.ReleaseTasks.SetTracer, []},
+      {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher_info},
+      {OMG.Status.ReleaseTasks.SetSentry, []},
+      {OMG.Status.ReleaseTasks.SetTracer, []},
+      {OMG.Watcher.ReleaseTasks.SetChildChain, []},
+      {OMG.WatcherInfo.ReleaseTasks.SetChildChain, []},
+      {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, []},
+      {OMG.Watcher.ReleaseTasks.SetTracer, []},
+      {OMG.WatcherInfo.ReleaseTasks.SetDB, []},
+      {OMG.WatcherInfo.ReleaseTasks.SetTracer, []}
     ]
   )
 
@@ -131,14 +133,14 @@ release :child_chain do
 
   set(
     config_providers: [
-      {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Eth.ReleaseTasks.SetEthereumClient, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.ChildChainRPC.ReleaseTasks.SetEndpoint, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.ChildChainRPC.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Status.ReleaseTasks.SetSentry, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.Status.ReleaseTasks.SetTracer, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+      {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, []},
+      {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
+      {OMG.Eth.ReleaseTasks.SetContract, []},
+      {OMG.DB.ReleaseTasks.SetKeyValueDB, []},
+      {OMG.ChildChainRPC.ReleaseTasks.SetEndpoint, []},
+      {OMG.ChildChainRPC.ReleaseTasks.SetTracer, []},
+      {OMG.Status.ReleaseTasks.SetSentry, []},
+      {OMG.Status.ReleaseTasks.SetTracer, []}
     ]
   )
 

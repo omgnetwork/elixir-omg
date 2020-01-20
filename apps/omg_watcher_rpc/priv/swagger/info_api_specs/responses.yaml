@@ -3,4 +3,4 @@ InternalServerError:
   content:
     application/json:
       schema:
-        $ref: 'response_schemas.yaml#/ErrorResponseSchema'
+        $ref: 'response_schemas.yaml#/WatcherInfoErrorResponseSchema'
