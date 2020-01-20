@@ -433,7 +433,8 @@ jobs:
             sudo dpkg --configure -a || true &&
             sudo dpkg -i erlang-solutions_2.0_all.deb  &&
             sudo apt-get update &&
-            sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2-1
+            sudo apt-get install esl-erlang=1:21.3.8.10-1
+            sudo apt-get install elixir=1.8.2-1
       - run: sh .circleci/status.sh
       - restore_cache:
           key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
@@ -493,15 +494,30 @@ jobs:
             sudo apt-key add erlang_solutions.asc &&
             sudo dpkg -i erlang-solutions_2.0_all.deb  &&
             sudo apt-get update &&
-            sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2-1 &&
-            sudo apt-get install -y erlang-os-mon &&
-            sudo apt-get install -y erlang-parsetools &&
-            ./bin/setup &&
-            make deps-elixir-omg &&
-            make start-child_chain OVERRIDING_START=start &&
-            make start-watcher OVERRIDING_START=start
-            make start-watcher_info OVERRIDING_START=start
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests esl-erlang=1:21.3.8.10-1
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-os-mon
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-parsetools
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests elixir=1.8.2-1
+            sudo apt policy elixir
+            ./bin/setup
           no_output_timeout: 2400
+      - run:
+          name: Compile
+          command: |
+            set -e
+            make deps-elixir-omg &&
+            mix compile
+          no_output_timeout: 2400
+      - run:
+          name: Run Child Chain, Watcher and Watcher Info
+          command: |
+            set -e
+            make start-child_chain OVERRIDING_START=start &&
+            make start-watcher OVERRIDING_START=start &&
+            make start-watcher_info OVERRIDING_START=start
+          background: true
+          no_output_timeout: 2400
+      - run: sleep 2m
       - run: docker ps
       - run: ps axww | grep watcher
       - run: ps axww | grep watcher_info
@@ -670,6 +686,8 @@ workflows:
   build-deploy:
     jobs:
       - build
+      - test_barebone_release:
+          requires: [build]
       - notify_services:
           requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
           filters:
