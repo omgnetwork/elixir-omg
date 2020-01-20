@@ -1,6 +1,6 @@
 AccountBalanceResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherInfoBaseResponseSchema'
   - type: object
     properties:
       data:
@@ -18,7 +18,7 @@ AccountBalanceResponseSchema:
 
 AccountUtxoResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherInfoBaseResponseSchema'
   - type: object
     properties:
       data:

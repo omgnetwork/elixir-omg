@@ -10,4 +10,4 @@ fees.all:
       200:
         $ref: 'responses.yaml#/AllFeesResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'

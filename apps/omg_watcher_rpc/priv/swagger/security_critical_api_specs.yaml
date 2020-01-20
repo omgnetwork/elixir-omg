@@ -52,12 +52,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -127,12 +131,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -189,12 +197,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -548,12 +560,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -625,12 +641,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -686,12 +706,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -763,12 +787,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -814,12 +842,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -891,12 +923,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -934,12 +970,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1010,12 +1050,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1053,12 +1097,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1130,12 +1178,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1194,12 +1246,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1269,12 +1325,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1337,12 +1397,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1412,12 +1476,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1456,12 +1524,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1537,12 +1609,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1597,12 +1673,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1678,12 +1758,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
@@ -1734,12 +1818,16 @@ paths:
                         type: boolean
                       data:
                         type: object
+                      service_name:
+                        type: string
                     required:
+                      - service_name
                       - version
                       - success
                       - data
                     example:
-                      version: '1.0'
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
                       success: true
                       data: {}
                   - type: object
