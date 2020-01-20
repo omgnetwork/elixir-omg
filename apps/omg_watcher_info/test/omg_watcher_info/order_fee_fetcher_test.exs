@@ -58,10 +58,7 @@ defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
                {:ok, Kernel.put_in(order, [:fee, :amount], 2)}
     end
 
-    @tag fixtures: [:test_server]
-    test "returns an `unexpected_fee` error when the child chain returns an unexpected fee value", %{
-      test_server: context
-    } do
+    test "returns an `unexpected_fee` error when the child chain returns an unexpected fee value", context do
       prepare_test_server(context, %{
         @str_tx_type => [
           %{
@@ -80,8 +77,7 @@ defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
                {:error, :unexpected_fee}
     end
 
-    @tag fixtures: [:test_server]
-    test "forwards the childchain error", %{test_server: context} do
+    test "forwards the childchain error", context do
       prepare_test_server(context, %{
         code: "fees.all:some_error",
         description: "Some errors"
