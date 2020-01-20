@@ -1,11 +1,17 @@
 # The directory Mix will write compiled artifacts to.
 /_build/
 
+# The directory Mix will write compiled artifacts to when in docker.
+/_build_docker/
+
 # If you run "mix test --cover", coverage assets end up here.
 /cover/
 
 # app-specific coverage results go to their respective apps
 /apps/*/cover/
+
+# The directory Mix downloads your dependencies sources to when in docker.
+/deps_docker/
 
 # The directory Mix downloads your dependencies sources to.
 /deps/
