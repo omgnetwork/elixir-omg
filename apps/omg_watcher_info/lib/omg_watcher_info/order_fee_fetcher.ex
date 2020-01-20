@@ -56,6 +56,9 @@ defmodule OMG.WatcherInfo.OrderFeeFetcher do
 
   defp validate_child_chain_fees(fees, currency) do
     case fees do
+      # Ensuring that the child chain response is correct, we should only have
+      # 1 currency for the given tx type as we filter it in the params of the request.
+      # We also take this opportunity to pattern match the amount.
       %{@str_tx_type => [%{"amount" => amount, "currency" => ^currency} | _]} ->
         {:ok, amount}
 
