@@ -25,6 +25,8 @@ defmodule InFlightExitsTests do
   alias WatcherSecurityCriticalAPI.Model.InFlightExitTxBytesBodySchema
   alias WatcherSecurityCriticalAPI.Model.TransactionSubmitBodySchema
 
+  use Bitwise
+
   import Itest.Poller,
     only: [
       pull_for_utxo_until_recognized_deposit: 4,
@@ -36,11 +38,16 @@ defmodule InFlightExitsTests do
   @ife_gas 2_000_000
   @ife_gas_price 1_000_000_000
   @gas_piggyback 1_000_000
-  @gas_add_exit_queue 800_000
+
   @retry_count 60
   @sleep_retry_sec 5_000
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
+  @gas_process_exit 5_712_388
+  @gas_process_exit_price 1_000_000_000
   setup do
+    # as we're testing IFEs, queue needs to be empty
+    0 = get_next_exit_from_queue()
+
     {:ok, _} =
       Itest.ContractEvent.start_link(
         ws_url: "ws://127.0.0.1:8546",
@@ -49,15 +56,6 @@ defmodule InFlightExitsTests do
         abi_path: Path.join([File.cwd!(), "../../../data/plasma-contracts/contracts/", "EthVault.json"]),
         subscribe: self()
       )
-
-    # {:ok, _} =
-    #   Itest.ContractEvent.start_link(
-    #     ws_url: "ws://127.0.0.1:8546",
-    #     name: :payment_exit_game,
-    #     listen_to: %{"address" => Itest.Account.vault(Currency.ether())},
-    #     abi_path: Path.join([File.cwd!(), "../../../data/plasma-contracts/contracts/", "PaymentExitGame.json"]),
-    #     subscribe: self()
-    #   )
 
     [{alice_address, alice_pkey}, {bob_address, bob_pkey}] = Account.take_accounts(2)
 
@@ -418,10 +416,10 @@ defmodule InFlightExitsTests do
 
     %{exit_data: exit_data, in_flight_exit_id: in_flight_exit_id} = state["Alice"]
     %{address: address} = bob_state = state["Bob"]
+
     output_index = 1
     input_index = 1
-    # we need to add a vault exit queue for this currency first
-    receipt_hash_0 = add_exit_queue(address)
+
     receipt_hash_1 = piggyback_output(exit_game_contract_address, address, output_index, exit_data)
     receipt_hash_2 = piggyback_input(exit_game_contract_address, address, input_index, exit_data)
 
@@ -429,13 +427,14 @@ defmodule InFlightExitsTests do
       Map.put(
         bob_state,
         :receipt_hashes,
-        Enum.concat([receipt_hash_0, receipt_hash_1, receipt_hash_2], bob_state.receipt_hashes)
+        Enum.concat([receipt_hash_1, receipt_hash_2], bob_state.receipt_hashes)
       )
 
     in_flight_exit_ids = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
     # bits is flagged when output is piggybacked
     assert in_flight_exit_ids.exit_map != 0
     entity = "Bob"
+
     {:ok, Map.put(state, entity, bob_state)}
   end
 
@@ -467,8 +466,10 @@ defmodule InFlightExitsTests do
 
     %{address: bob_address, unsigned_txbytes: bob_unsigned_txbytes} = state["Bob"]
 
-    # only a single non_canonical event, since on of the IFE tx is included!
     # only piggyback_available for tx2 is present, tx1 is included in block and does not spawn that event
+    # (piggybacks for index 0)
+    # only a single non_canonical event, since on of the IFE tx is included!
+
     assert check_if_byzantine_events_present(["invalid_piggyback", "non_canonical_ife", "piggyback_available"]) == true
 
     payload = %InFlightExitInputChallengeDataBodySchema{txbytes: Encoding.to_hex(unsigned_txbytes), input_index: 1}
@@ -495,7 +496,6 @@ defmodule InFlightExitsTests do
     assert in_flight_exit_ids2.exit_map == 0
 
     # observe the byzantine events gone
-    # but how do I remove these??? cleanup!
 
     assert check_if_byzantine_events_present(["non_canonical_ife", "piggyback_available"]) == true
 
@@ -511,6 +511,7 @@ defmodule InFlightExitsTests do
     assert ife_competitor.competing_tx_pos > 0
     assert ife_competitor.competing_proof != ""
     challenge_in_flight_exit_not_canonical(exit_game_contract_address, bob_address, ife_competitor)
+
     assert check_if_byzantine_events_present(["piggyback_available"]) == true
 
     alice_state =
@@ -521,7 +522,16 @@ defmodule InFlightExitsTests do
       )
 
     entity = "Alice"
+    {:ok, Map.put(state, entity, alice_state)}
+  end
 
+  defthen ~r/Alice processes its own exit$/, _, state do
+    %{address: address, in_flight_exit_id: in_flight_exit_id} = alice_state = state["Alice"]
+    _ = wait_for_exit_period()
+    receipt_hash = process_exit(address, in_flight_exit_id)
+    assert get_next_exit_from_queue() == 0
+    alice_state = Map.put(alice_state, :receipt_hashes, [receipt_hash | alice_state.receipt_hashes])
+    entity = "Alice"
     {:ok, Map.put(state, entity, alice_state)}
   end
 
@@ -530,6 +540,61 @@ defmodule InFlightExitsTests do
   #### PRIVATE
   ####
   ###############################################################################################
+  defp process_exit(address, ife_exit_id) do
+    _ = Logger.info("Process exit #{__MODULE__}")
+
+    data =
+      ABI.encode(
+        "processExits(uint256,address,uint160,uint256)",
+        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), ife_exit_id, 1]
+      )
+
+    txmap = %{
+      from: address,
+      to: Itest.Account.plasma_framework(),
+      value: Encoding.to_hex(0),
+      data: Encoding.to_hex(data),
+      gas: Encoding.to_hex(@gas_process_exit),
+      gasPrice: Encoding.to_hex(@gas_process_exit_price)
+    }
+
+    {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    wait_on_receipt_confirmed(receipt_hash)
+
+    receipt_hash
+  end
+
+  defp get_next_exit_from_queue() do
+    data = ABI.encode("getNextExit(uint256,address)", [Itest.Account.vault_id(Currency.ether()), Currency.ether()])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+
+    case Encoding.to_binary(result) do
+      "" ->
+        :queue_not_added
+
+      result ->
+        next_exit_id = hd(ABI.TypeDecoder.decode(result, [{:uint, 256}]))
+        next_exit_id &&& (1 <<< 160) - 1
+    end
+  end
+
+  defp wait_for_exit_period() do
+    _ = Logger.info("Wait for exit period to pass.")
+    data = ABI.encode("minExitPeriod()", [])
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+    # result is in seconds
+    result
+    |> Encoding.to_binary()
+    |> ABI.TypeDecoder.decode([{:uint, 160}])
+    |> hd()
+    # to milliseconds
+    |> Kernel.*(1000)
+    # needs a be a tiny more than exit period seconds
+    |> Kernel.+(1000)
+    # twice the amount of min exit period for IFE
+    |> Kernel.*(2)
+    |> Process.sleep()
+  end
 
   defp check_if_byzantine_events_present(events), do: check_if_byzantine_events_present(Enum.sort(events), @retry_count)
   defp check_if_byzantine_events_present(_, 0), do: false
@@ -800,12 +865,10 @@ defmodule InFlightExitsTests do
     piggyback_bond_size = get_piggyback_bond_size(exit_game_contract_address)
     _ = Logger.info("Piggyback output...")
 
-    in_flight_tx = Encoding.to_binary(exit_data.in_flight_tx)
-
     data =
       ABI.encode(
         "piggybackInFlightExitOnOutput((bytes,uint16))",
-        [{in_flight_tx, output_index}]
+        [{Encoding.to_binary(exit_data.in_flight_tx), output_index}]
       )
 
     txmap = %{
@@ -860,48 +923,5 @@ defmodule InFlightExitsTests do
       |> hd()
 
     piggyback_bond_size
-  end
-
-  defp add_exit_queue(address) do
-    if has_exit_queue?() do
-      _ = Logger.info("Exit queue was already added.")
-      nil
-    else
-      _ = Logger.info("Exit queue missing. Adding...")
-
-      data =
-        ABI.encode(
-          "addExitQueue(uint256,address)",
-          [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
-        )
-
-      txmap = %{
-        from: address,
-        to: Itest.Account.plasma_framework(),
-        value: Encoding.to_hex(0),
-        data: Encoding.to_hex(data),
-        gas: Encoding.to_hex(@gas_add_exit_queue)
-      }
-
-      {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-      wait_on_receipt_confirmed(receipt_hash)
-      receipt_hash
-    end
-  end
-
-  defp has_exit_queue?() do
-    data =
-      ABI.encode(
-        "hasExitQueue(uint256,address)",
-        [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
-      )
-
-    {:ok, receipt_enc} =
-      Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
-
-    receipt_enc
-    |> Encoding.to_binary()
-    |> ABI.TypeDecoder.decode([:bool])
-    |> hd()
   end
 end

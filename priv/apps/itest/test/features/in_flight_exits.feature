@@ -13,4 +13,5 @@ Feature: In Flight Exits
     Then Bob piggybacks inputs and outputs from Alice
     Then Bob starts a competing in flight exit
     Then Alice starts to challenge Bobs in flight exit
+    Then Alice processes its own exit
     

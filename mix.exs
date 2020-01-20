@@ -20,8 +20,6 @@ defmodule OMG.Umbrella.MixProject do
       deps_path: "deps" <> docker(),
       dialyzer: dialyzer(),
       test_coverage: [tool: ExCoveralls],
-      build_path: "_build" <> docker(),
-      deps_path: "deps" <> docker(),
       # gets all apps test folders for the sake of `mix coveralls --umbrella`
       test_paths: test_paths(),
       aliases: aliases(),
