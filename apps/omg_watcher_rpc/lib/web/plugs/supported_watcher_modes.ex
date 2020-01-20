@@ -14,8 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.Plugs.SupportedWatcherModes do
   @moduledoc """
-  A plug that serves the endpoints in scope only when the running watcher's mode matches
-  the plug's supported watcher modes.
+  Ensures that unsupported endpoints return an appropriate error, depending on watcher's mode.
   """
   alias OMG.WatcherRPC.Web.Controller
 
@@ -23,11 +22,11 @@ defmodule OMG.WatcherRPC.Web.Plugs.SupportedWatcherModes do
   @app :omg_watcher_rpc
 
   @spec init([atom()]) :: [atom()]
-  def init(supported), do: supported
+  def init(supported_modes), do: supported_modes
 
   @spec call(Plug.Conn.t(), [atom()]) :: Plug.Conn.t()
-  def call(conn, supported) do
-    case Application.get_env(@app, :api_mode) in supported do
+  def call(conn, supported_modes) do
+    case Application.get_env(@app, :api_mode) in supported_modes do
       true -> conn
       false -> Controller.Fallback.call(conn, {:error, :operation_not_found})
     end
