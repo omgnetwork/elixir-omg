@@ -96,4 +96,56 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
       assert tx_count == 2
     end
   end
+
+  describe "get_count_last_24_hour/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns correct count if transactions have been made in the last twenty four hours" do
+      now = DateTime.to_unix(DateTime.utc_now())
+      twenty_four_hours = 86400
+
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
+
+      mined_block = %{
+        transactions: [tx_1, tx_2],
+        blknum: 1000,
+        blkhash: "0x1000",
+        timestamp: now - twenty_four_hours + 100,
+        eth_height: 1
+      }
+
+      _ = DB.Block.insert_with_transactions(mined_block)
+
+      tx_count = DB.Transaction.get_count_last_24_hour()
+
+      assert tx_count == 2
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns correct count if no transactions have been made in the last twenty four hours" do
+      now = DateTime.to_unix(DateTime.utc_now())
+      twenty_four_hours = 86400
+
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
+
+      mined_block = %{
+        transactions: [tx_1, tx_2],
+        blknum: 1000,
+        blkhash: "0x1000",
+        timestamp: now - twenty_four_hours - 100,
+        eth_height: 1
+      }
+
+      _ = DB.Block.insert_with_transactions(mined_block)
+
+      tx_count = DB.Transaction.get_count_last_24_hour()
+
+      assert tx_count == 0
+    end
+  end
 end
