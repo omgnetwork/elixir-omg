@@ -261,7 +261,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     end
   end
 
-  describe "get_count" do
+  describe "get_count/0" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct number of blocks" do
       _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
@@ -271,6 +271,36 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       block_count = DB.Block.get_count()
 
       assert block_count == 3
+    end
+  end
+
+  describe "get_count_last_24_hour/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns correct count if blocks have been produced in the last twenty four hours" do
+      now = DateTime.to_unix(DateTime.utc_now())
+      twenty_four_hours = 86400
+
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: now - twenty_four_hours + 100)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: now - twenty_four_hours)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: now - twenty_four_hours - 100)
+
+      block_count = DB.Block.get_count_last_24_hour()
+
+      assert block_count == 2
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns correct count if no blocks have been produced in the last twenty four hours" do
+      now = DateTime.to_unix(DateTime.utc_now())
+      twenty_four_hours = 86400
+
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: now - twenty_four_hours - 100)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: now - twenty_four_hours - 200)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: now - twenty_four_hours - 300)
+
+      block_count = DB.Block.get_count_last_24_hour()
+
+      assert block_count == 0
     end
   end
 

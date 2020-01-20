@@ -92,9 +92,22 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> Paginator.set_data(paginator)
   end
 
-  @spec query_count :: Ecto.Query.t()
-  defp query_count do
-    from(block in __MODULE__, select: count())
+  @spec query_last_24_hour(Ecto.Query.t()) :: Ecto.Query.t()
+  def query_last_24_hour(query) do
+    now = DateTime.to_unix(DateTime.utc_now())
+    twenty_four_hours = 86400
+    from(block in query, where: block.timestamp >= ^(now - twenty_four_hours))
+  end
+
+  @doc """
+  Returns the total number of blocks in the last 24 hours
+  """
+  @spec get_count_last_24_hour() :: non_neg_integer()
+  def get_count_last_24_hour do
+    query_count()
+    |> query_last_24_hour()
+    |> DB.Repo.all()
+    |> Enum.at(0)
   end
 
   @doc """
@@ -105,6 +118,11 @@ defmodule OMG.WatcherInfo.DB.Block do
     query_count()
     |> DB.Repo.all()
     |> Enum.at(0)
+  end
+
+  @spec query_count :: Ecto.Query.t()
+  defp query_count do
+    from(block in __MODULE__, select: count())
   end
 
   defp query_get_last(%{limit: limit, page: page}) do
