@@ -526,7 +526,7 @@ defmodule InFlightExitsTests do
 
   defthen ~r/Alice processes its own exit$/, _, state do
     %{address: address, in_flight_exit_id: in_flight_exit_id} = alice_state = state["Alice"]
-    _ = wait_for_exit_period()
+    _ = wait_for_min_exit_period()
     receipt_hash = process_exit(address, in_flight_exit_id)
     assert get_next_exit_from_queue() == 0
     alice_state = Map.put(alice_state, :receipt_hashes, [receipt_hash | alice_state.receipt_hashes])
@@ -577,7 +577,7 @@ defmodule InFlightExitsTests do
     end
   end
 
-  defp wait_for_exit_period() do
+  defp wait_for_min_exit_period() do
     _ = Logger.info("Wait for exit period to pass.")
     data = ABI.encode("minExitPeriod()", [])
     {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
@@ -590,7 +590,7 @@ defmodule InFlightExitsTests do
     |> Kernel.*(1000)
     # needs a be a tiny more than exit period seconds
     |> Kernel.+(1000)
-    # twice the amount of min exit period for IFE
+    # twice the amount of min exit period for for a freshly submitted utxo IFE
     |> Kernel.*(2)
     |> Process.sleep()
   end
