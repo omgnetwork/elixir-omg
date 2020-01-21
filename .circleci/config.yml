@@ -517,7 +517,6 @@ jobs:
             make start-watcher_info OVERRIDING_START=foreground
           background: true
           no_output_timeout: 2400
-      - run: sleep 2m
       - run: docker ps
       - run: ps axww | grep watcher
       - run: ps axww | grep watcher_info
