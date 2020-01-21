@@ -29,13 +29,14 @@ defmodule OMG.ChildChain do
   alias OMG.State
   alias OMG.State.Transaction
 
-  @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error()
+  @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error() | :transaction_not_supported
 
   @spec submit(transaction :: binary) ::
           {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
           | {:error, submit_error()}
   def submit(transaction) do
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
+         true <- is_supported(recovered_tx) || {:error, :transaction_not_supported},
          {:ok, fees} <- FeeServer.transaction_fees(),
          fees = Fees.for_transaction(recovered_tx, fees),
          {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
@@ -60,6 +61,11 @@ defmodule OMG.ChildChain do
       FeeFilter.filter(fees, tx_types, currencies)
     end
     |> result_with_logging()
+  end
+
+  defp is_supported(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}})
+       when is_map(raw_tx) do
+    Map.get(raw_tx, :__struct__) in [Transaction.Payment]
   end
 
   defp result_with_logging(result) do
