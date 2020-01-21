@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   use OMG.WatcherInfo.Fixtures
 
   alias OMG.Eth
@@ -58,7 +58,7 @@ defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
                {:ok, Kernel.put_in(order, [:fee, :amount], 2)}
     end
 
-    test "returns an `unexpected_fee` error when the child chain returns an unexpected fee value", context do
+    test "returns an `unexpected_fee_currency` error when the child chain returns an unexpected fee value", context do
       prepare_test_server(context, %{
         @str_tx_type => [
           %{
@@ -74,7 +74,7 @@ defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
       })
 
       assert OrderFeeFetcher.add_fee_to_order(%{fee: %{currency: @eth}}, context.fake_addr) ==
-               {:error, :unexpected_fee}
+               {:error, :unexpected_fee_currency}
     end
 
     test "forwards the childchain error", context do

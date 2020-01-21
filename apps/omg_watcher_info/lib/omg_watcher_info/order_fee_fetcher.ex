@@ -63,7 +63,7 @@ defmodule OMG.WatcherInfo.OrderFeeFetcher do
         {:ok, amount}
 
       _ ->
-        {:error, :unexpected_fee}
+        {:error, :unexpected_fee_currency}
     end
   end
 end
