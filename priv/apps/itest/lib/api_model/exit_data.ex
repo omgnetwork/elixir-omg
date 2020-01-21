@@ -1,6 +1,6 @@
 defmodule Itest.ApiModel.ExitData do
   @moduledoc """
-  The ExitData payload structure
+  The purpose of this module is to represent a specific API response as a struct and validates it's response and validates it's response
   """
 
   defstruct [:proof, :utxo_pos, :txbytes]

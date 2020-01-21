@@ -1,5 +1,7 @@
 defmodule Itest.ApiModel.SubmitTransactionResponse do
-  @moduledoc false
+  @moduledoc """
+  The purpose of this module is to represent a specific API response as a struct and validates it's response
+  """
   defstruct [:blknum, :txhash, :txindex]
 
   @type t() :: %__MODULE__{

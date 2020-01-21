@@ -1,5 +1,7 @@
 defmodule Itest.ApiModel.Utxo do
-  @moduledoc false
+  @moduledoc """
+  The purpose of this module is to represent a specific API response as a struct and validates it's response
+  """
   defstruct [:amount, :blknum, :currency, :oindex, :owner, :txindex, :utxo_pos]
 
   @type t() :: %__MODULE__{

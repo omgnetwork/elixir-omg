@@ -1,6 +1,6 @@
 defmodule Itest.ApiModel.IfeExitData do
   @moduledoc """
-  The IFE ExitData payload structure
+  The purpose of this module is to represent a specific API response as a struct and validates it's response
   """
 
   defstruct [:in_flight_tx, :in_flight_tx_sigs, :input_txs_inclusion_proofs, :input_utxos_pos, :input_txs]

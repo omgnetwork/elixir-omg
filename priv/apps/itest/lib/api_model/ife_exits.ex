@@ -1,6 +1,6 @@
 defmodule Itest.ApiModel.IfeExits do
   @moduledoc """
-  The IFE Exits
+  The purpose of this module is to represent a specific API response as a struct and validates it's response
   """
 
   defstruct [
