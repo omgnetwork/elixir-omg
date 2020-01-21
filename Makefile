@@ -370,10 +370,10 @@ start-watcher_info:
 	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
-	echo "Init Watcher DBs" && \
+	echo "Init Watcher Info DBs" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_key_value_db && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_postgresql_db && \
-	echo "Init Watcher DBs DONE" && \
+	echo "Init WatcherInfo DBs DONE" && \
 	echo "Run Watcher Info" && \
 	PORT=${WATCHER_INFO_PORT} _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 

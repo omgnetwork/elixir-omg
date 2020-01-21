@@ -514,7 +514,7 @@ jobs:
             set -e
             make start-child_chain OVERRIDING_START=start &&
             make start-watcher OVERRIDING_START=start &&
-            make start-watcher_info OVERRIDING_START=start
+            make start-watcher_info OVERRIDING_START=foreground
           background: true
           no_output_timeout: 2400
       - run: sleep 2m
