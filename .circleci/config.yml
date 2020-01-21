@@ -517,6 +517,14 @@ jobs:
             make start-watcher_info OVERRIDING_START=foreground
           background: true
           no_output_timeout: 2400
+      - run:
+          name: Install specs
+          command: |
+            cd priv/
+            make install
+            make generate_api_code
+            mix local.hex --force && mix local.rebar --force
+            mix deps.get
       - run: docker ps
       - run: ps axww | grep watcher
       - run: ps axww | grep watcher_info
@@ -526,10 +534,6 @@ jobs:
           name: Run specs
           command: |
             cd priv/
-            make install
-            make generate_api_code
-            mix local.hex --force && mix local.rebar --force
-            mix deps.get
             mix test
 
   publish_child_chain:
