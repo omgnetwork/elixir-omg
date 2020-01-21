@@ -220,11 +220,9 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     %Transaction.Signed{sigs: in_flight_tx_sigs} =
       in_flight_tx = OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}], @eth, [{alice, 5}])
 
-    fee_tx = %Transaction.Signed{
-      raw_tx: Transaction.FeeTokenClaim.new(blknum, {"NO FEE CLAIMER ADDR!", @eth, 5}),
-      sigs: []
-    }
-    |> Transaction.Signed.encode()
+    # We need to consider fee tx in block, as 10 ETH deposited = 5 transferred with tx + 5 collected as fees
+    fee_claimer = Application.fetch_env!(:omg, :fee_claimer_address)
+    fee_tx = OMG.TestHelper.create_encoded_fee_tx(blknum, {fee_claimer, @eth, 5})
 
     proof = Block.inclusion_proof([Transaction.Signed.encode(tx), fee_tx], 0)
 

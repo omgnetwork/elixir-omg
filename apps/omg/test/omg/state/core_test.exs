@@ -913,17 +913,27 @@ defmodule OMG.State.CoreTest do
   end
 
   describe "Automatic fees claiming" do
-    @tag fixtures: [:alice, :bob, :state_empty]
-    test "should append fee txs in block", %{alice: alice, bob: bob, state_empty: state} do
+    setup do
+      fee_claimer = OMG.TestHelper.generate_entity()
+
+      {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
+      {:ok, state} = Core.extract_initial_state(0, child_block_interval, fee_claimer.addr)
+
+      alice = OMG.TestHelper.generate_entity()
       fees = %{@eth => %{amount: 2}}
 
+      # Transaction requires fee of 2wei ETH but Alice actually is paying 3wei
       state =
         state
         |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 4}, {alice, 3}]), fees)
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}]), fees)
         |> success?()
 
-      {:ok, {block, _dbupdates}, state} = form_block_check(state)
+      {:ok, [state: state, alice: alice, fees: fees, fee_claimer: fee_claimer]}
+    end
+
+    test "should append fee txs in block", %{state: state} do
+      {:ok, {block, _dbupdates}, _state} = form_block_check(state)
 
       assert [payment_txbytes, fee_txbytes] = block.transactions
 
@@ -937,81 +947,36 @@ defmodule OMG.State.CoreTest do
       assert %Transaction.FeeTokenClaim{} = fee_tx
     end
 
-    @tag fixtures: [:alice, :bob, :state_empty]
-    test "fee txs are appended even when fees aren't required", %{alice: alice, bob: bob, state_empty: state} do
-      fees = :no_fees_required
-
-      state =
-        state
-        |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 4}, {alice, 3}]), fees)
-        |> success?()
-
-      {:ok, {block, _dbupdates}, state} = form_block_check(state)
+    test "fee txs are appended even when fees aren't required", %{state: state} do
+      {:ok, {block, _dbupdates}, _state} = form_block_check(state)
 
       assert 2 = length(block.transactions)
     end
 
-    @tag fixtures: [:alice, :bob, :state_empty]
-    test "should create utxos from claimed fee", %{alice: alice, bob: fee_claimer, state_empty: state} do
-      fees = %{@eth => %{amount: 2}}
-      state = %Core{state | fee_claimer_address: fee_claimer.addr}
-
-      state =
-        state
-        |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 5}]), fees)
-        |> success?()
-
-      {:ok, {block, _dbupdates}, state} = form_block_check(state)
+    test "should create utxos from claimed fee", %{alice: alice, state: state, fee_claimer: fee_claimer} do
+      {:ok, _, state} = form_block_check(state)
 
       state
-      |> Core.exec(create_recovered([{1000, 1, 0, fee_claimer}], @eth, [{alice, 5}]), :no_fees_required)
+      |> Core.exec(create_recovered([{1000, 1, 0, fee_claimer}], @eth, [{alice, 3}]), :no_fees_required)
       |> success?()
     end
 
-    @tag fixtures: [:alice, :state_empty]
-    test "fee txs cannot be intermixed with payments", %{alice: alice, state_empty: state} do
-      fees = %{@eth => %{amount: 2}}
-
-      fee_tx =
-        %Transaction.Signed{
-          raw_tx: Transaction.FeeTokenClaim.new(1000, {state.fee_claimer_address, @eth, 5}),
-          sigs: []
-        }
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from!()
+    test "fee txs cannot be intermixed with payments", %{alice: alice, state: state, fees: fees} do
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 3)
 
       state
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 5}]), fees)
-      |> success?()
       # fees from 1st tx are available to claim
       |> Core.exec(fee_tx, fees)
       |> success?()
       # at this point no other payment can be processed
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 5}]), fees)
+      |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 5}]), fees)
       |> fail?(:payments_rejected_during_fee_claiming)
     end
 
-    @tag fixtures: [:alice, :state_empty]
-    test "cannot claim the same token twice", %{alice: alice, state_empty: state} do
-      fees = %{@eth => %{amount: 2}}
-
-      fee_tx =
-        %Transaction.Signed{
-          raw_tx: Transaction.FeeTokenClaim.new(1000, {state.fee_claimer_address, @eth, 3}),
-          sigs: []
-        }
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from!()
+    test "cannot claim the same token twice", %{state: state, fees: fees} do
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 3)
 
       state
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}]), fees)
-      |> success?()
       # fees from 1st tx are available to claim
       |> Core.exec(fee_tx, fees)
       |> success?()
@@ -1020,97 +985,43 @@ defmodule OMG.State.CoreTest do
       |> fail?(:surplus_in_token_not_collected)
     end
 
-    @tag fixtures: [:alice, :state_empty]
-    test "cannot claim more than collected", %{alice: alice, state_empty: state} do
-      available = 10
-      fee_amount = 2
-      fees = %{@eth => %{amount: fee_amount}}
+    test "cannot claim more than collected", %{state: state, fees: fees} do
+      paid_fee = 3
 
-      fee_tx =
-        %Transaction.Signed{
-          raw_tx: Transaction.FeeTokenClaim.new(1000, {state.fee_claimer_address, @eth, fee_amount + 1}),
-          sigs: []
-        }
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from!()
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, paid_fee + 1)
 
       state
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, available - fee_amount}]), fees)
-      |> success?()
       |> Core.exec(fee_tx, fees)
       |> fail?(:claimed_and_collected_amounts_mismatch)
     end
 
-    @tag fixtures: [:alice, :state_empty]
-    test "cannot claim less than collected", %{alice: alice, state_empty: state} do
-      available = 10
-      fee_amount = 2
-      fees = %{@eth => %{amount: fee_amount}}
+    test "cannot claim less than collected", %{state: state, fees: fees} do
+      paid_fee = 3
 
-      fee_tx =
-        %Transaction.Signed{
-          raw_tx: Transaction.FeeTokenClaim.new(1000, {state.fee_claimer_address, @eth, fee_amount - 1}),
-          sigs: []
-        }
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from!()
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, paid_fee - 1)
 
       state
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, available - fee_amount}]), fees)
-      |> success?()
       |> Core.exec(fee_tx, fees)
       |> fail?(:claimed_and_collected_amounts_mismatch)
     end
 
-    @tag fixtures: [:alice, :bob, :state_empty]
-    test "cannot claim for address other than fee claimer", %{alice: alice, bob: bob, state_empty: state} do
-      # we need just 2 different addresses
-      assert alice != bob
-      state = %Core{state | fee_claimer_address: bob.addr}
-      raw_fee_tx = Transaction.FeeTokenClaim.new(1000, {alice.addr, @eth, 3})
+    test "cannot claim for address other than fee claimer", %{
+      alice: alice,
+      state: state,
+      fees: fees,
+      fee_claimer: fee_claimer
+    } do
+      assert alice != fee_claimer
 
-      fees = %{@eth => %{amount: 2}}
-
-      state =
-        state
-        |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}]), fees)
-        |> success?()
-
-      fee_tx =
-        %Transaction.Signed{
-          raw_tx: raw_fee_tx,
-          sigs: []
-        }
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from!()
+      fee_tx = create_recovered_fee_tx(1000, alice.addr, @eth, 3)
 
       state
       |> Core.exec(fee_tx, fees)
       |> fail?(:only_fee_claimer_address_can_claim)
     end
 
-    @tag fixtures: [:alice, :state_empty]
-    test "no fees can be claimed after block is formed", %{alice: alice, state_empty: state} do
-      fee_claimer = state.fee_claimer_address
-      fees = %{@eth => %{amount: 2}}
-
-      fee_tx =
-        %Transaction.Signed{
-          raw_tx: Transaction.FeeTokenClaim.new(1000, {state.fee_claimer_address, @eth, 3}),
-          sigs: []
-        }
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from!()
-
-      state =
-        state
-        |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}]), fees)
-        |> success?()
+    test "no fees can be claimed after block is formed", %{state: state, fees: fees} do
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 3)
 
       # now it's possible to claim Eth fee (note: no state modification)
       state
@@ -1118,12 +1029,28 @@ defmodule OMG.State.CoreTest do
       |> success?()
 
       # block is formed without claiming fees
-      {:ok, {block, _dbupdates}, new_state} = form_block_check(state)
+      {:ok, {_block, _dbupdates}, new_state} = form_block_check(state)
 
       # it's no longer possible to claim fees
       new_state
       |> Core.exec(fee_tx, fees)
       |> fail?(:surplus_in_token_not_collected)
+    end
+
+    test "surplus in non-fee token is also claimed", %{alice: alice, state: state, fees: fees} do
+      state =
+        state
+        |> do_deposit(alice, %{amount: 100, currency: @not_eth, blknum: 2})
+        |> Core.exec(
+          create_recovered([{1000, 0, 0, alice}, {2, 0, 0, alice}], [{alice, @eth, 5}, {alice, @not_eth, 90}]),
+          fees
+        )
+        |> success?()
+
+      # not_eth currency can be claimed
+      state
+      |> Core.exec(create_recovered_fee_tx(1000, state.fee_claimer_address, @not_eth, 10), fees)
+      |> success?()
     end
   end
 
