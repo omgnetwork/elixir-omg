@@ -6,12 +6,12 @@ Feature: In Flight Exits
     Then "Bob" should have "10" ETH on the child chain after finality margin
     When Alice creates a transaction for "5" ETH
     Then Bob gets in flight exit data for "5" ETH
-    Then Alice sends a transaction
-    Then Bob sends a transaction spending Alices output
-    When Alice starts an in flight exit
-    Then Alice verifies its in flight exit
+    Then Alice sends a transaction tx1
+    Then Bob sends a transaction spending Alices outputs of tx1
+    When Alice starts an in flight exit of the tx1 transaction
+    Then Alice verifies its in flight exit of tx1 transaction
     Then Bob piggybacks inputs and outputs from Alice
     Then Bob starts a competing in flight exit
-    Then Alice starts to challenge Bobs in flight exit
+    Then Alice fully challenges Bobs in flight exit
     Then Alice processes its own exit
     

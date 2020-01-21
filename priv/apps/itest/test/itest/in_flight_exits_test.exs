@@ -3,7 +3,7 @@ defmodule InFlightExitsTests do
 
   require Logger
 
-  alias ExPlasma.Transactions.Payment
+  alias ExPlasma.Transaction.Payment
   alias Itest.Account
   alias Itest.ApiModel.IfeCompetitor
   alias Itest.ApiModel.IfeExitData
@@ -68,7 +68,7 @@ defmodule InFlightExitsTests do
         gas: 0,
         ethereum_balance: 0,
         ethereum_initial_balance: 0,
-        omg_network_balance: 0,
+        child_chain_balance: 0,
         utxos: [],
         exit_data: nil,
         transaction_submit: nil,
@@ -82,7 +82,7 @@ defmodule InFlightExitsTests do
         gas: 0,
         ethereum_balance: 0,
         ethereum_initial_balance: 0,
-        omg_network_balance: 0,
+        child_chain_balance: 0,
         utxos: [],
         exit_data: nil,
         transaction_submit: nil,
@@ -132,7 +132,7 @@ defmodule InFlightExitsTests do
     %{address: address} = entity_state = state[entity]
     _ = Logger.info("#{entity} should have #{amount} ETH on the child chain after finality margin")
 
-    omg_network_balance =
+    child_chain_balance =
       case amount do
         "0" ->
           assert Client.get_balance(address, Currency.to_wei(amount)) == []
@@ -160,7 +160,7 @@ defmodule InFlightExitsTests do
       entity_state
       |> Map.put(:ethereum_balance, balance)
       |> Map.put(:utxos, all_utxos["data"])
-      |> Map.put(:omg_network_balance, omg_network_balance)
+      |> Map.put(:child_chain_balance, child_chain_balance)
 
     {:ok, Map.put(state, entity, entity_state)}
   end
@@ -177,10 +177,10 @@ defmodule InFlightExitsTests do
           state do
     amount = Currency.to_wei(amount)
 
-    %{address: alice_address, utxos: alice_utxos, pkey: alice_pkey, omg_network_balance: alice_omg_network_balance} =
+    %{address: alice_address, utxos: alice_utxos, pkey: alice_pkey, child_chain_balance: alice_child_chain_balance} =
       alice_state = state["Alice"]
 
-    %{address: bob_address, utxos: bob_utxos, pkey: bob_pkey, omg_network_balance: bob_omg_network_balance} =
+    %{address: bob_address, utxos: bob_utxos, pkey: bob_pkey, child_chain_balance: bob_child_chain_balance} =
       state["Bob"]
 
     # inputs
@@ -210,13 +210,13 @@ defmodule InFlightExitsTests do
     alice_output = %ExPlasma.Utxo{
       currency: Currency.ether(),
       owner: alice_address,
-      amount: alice_omg_network_balance - Currency.to_wei(5)
+      amount: alice_child_chain_balance - Currency.to_wei(5)
     }
 
     bob_output = %ExPlasma.Utxo{
       currency: Currency.ether(),
       owner: bob_address,
-      amount: amount + bob_omg_network_balance
+      amount: amount + bob_child_chain_balance
     }
 
     transaction = %Payment{inputs: [alice_deposit_input, bob_deposit_input], outputs: [alice_output, bob_output]}
@@ -299,7 +299,7 @@ defmodule InFlightExitsTests do
     {:ok, Map.put(state, entity, bob_state)}
   end
 
-  defthen ~r/Alice sends a transaction$/, _, state do
+  defthen ~r/Alice sends a transaction tx1$/, _, state do
     %{txbytes: txbytes} = alice_state = state["Alice"]
 
     transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
@@ -319,7 +319,7 @@ defmodule InFlightExitsTests do
     {:ok, Map.put(state, entity, alice_state)}
   end
 
-  defwhen ~r/Bob sends a transaction spending Alices output$/, _, state do
+  defwhen ~r/Bob sends a transaction spending Alices outputs of tx1$/, _, state do
     %{address: alice_address, transaction_submit: alice_transaction_submit} = state["Alice"]
 
     %{address: bob_address, pkey: bob_pkey} = bob_state = state["Bob"]
@@ -376,7 +376,7 @@ defmodule InFlightExitsTests do
     {:ok, Map.put(state, entity, bob_state)}
   end
 
-  defwhen ~r/Alice starts an in flight exit$/, _, state do
+  defwhen ~r/Alice starts an in flight exit of the tx1 transaction$/, _, state do
     exit_game_contract_address = state["exit_game_contract_address"]
     in_flight_exit_bond_size = state["in_flight_exit_bond_size"]
     %{address: address, txbytes: txbytes} = alice_state = state["Alice"]
@@ -394,7 +394,7 @@ defmodule InFlightExitsTests do
     {:ok, Map.put(state, entity, alice_state)}
   end
 
-  defwhen ~r/Alice verifies its in flight exit$/, _, state do
+  defwhen ~r/Alice verifies its in flight exit of tx1 transaction$/, _, state do
     exit_game_contract_address = state["exit_game_contract_address"]
     %{exit_data: exit_data} = alice_state = state["Alice"]
 
@@ -453,8 +453,7 @@ defmodule InFlightExitsTests do
     {:ok, Map.put(state, entity, bob_state)}
   end
 
-  # ### start the competing IFE, to double-spend some inputs
-  defthen ~r/Alice starts to challenge Bobs in flight exit$/, _, state do
+  defthen ~r/Alice fully challenges Bobs in flight exit$/, _, state do
     exit_game_contract_address = state["exit_game_contract_address"]
 
     %{
@@ -468,9 +467,9 @@ defmodule InFlightExitsTests do
 
     # only piggyback_available for tx2 is present, tx1 is included in block and does not spawn that event
     # (piggybacks for index 0)
-    # only a single non_canonical event, since on of the IFE tx is included!
-
-    assert check_if_byzantine_events_present(["invalid_piggyback", "non_canonical_ife", "piggyback_available"]) == true
+    # only a single non_canonical event, since one of the IFE txs is included!
+    # I’m waiting for these three, and only these three to appear
+    assert has_byzantine_events(["invalid_piggyback", "non_canonical_ife", "piggyback_available"]) == true
 
     payload = %InFlightExitInputChallengeDataBodySchema{txbytes: Encoding.to_hex(unsigned_txbytes), input_index: 1}
     response = pull_api_until_successful(InFlightExit, :in_flight_exit_get_input_challenge_data, Watcher.new(), payload)
@@ -496,8 +495,8 @@ defmodule InFlightExitsTests do
     assert in_flight_exit_ids2.exit_map == 0
 
     # observe the byzantine events gone
-
-    assert check_if_byzantine_events_present(["non_canonical_ife", "piggyback_available"]) == true
+    # I’m waiting for these two, and only these two to appear
+    assert has_byzantine_events(["non_canonical_ife", "piggyback_available"]) == true
 
     ###
     # CANONICITY GAME
@@ -511,8 +510,8 @@ defmodule InFlightExitsTests do
     assert ife_competitor.competing_tx_pos > 0
     assert ife_competitor.competing_proof != ""
     challenge_in_flight_exit_not_canonical(exit_game_contract_address, bob_address, ife_competitor)
-
-    assert check_if_byzantine_events_present(["piggyback_available"]) == true
+    # I’m waiting for these one, and only this one to appear
+    assert has_byzantine_events(["piggyback_available"]) == true
 
     alice_state =
       Map.put(
@@ -596,10 +595,10 @@ defmodule InFlightExitsTests do
     |> Process.sleep()
   end
 
-  defp check_if_byzantine_events_present(events), do: check_if_byzantine_events_present(Enum.sort(events), @retry_count)
-  defp check_if_byzantine_events_present(_, 0), do: false
+  defp has_byzantine_events(events), do: has_byzantine_events(Enum.sort(events), @retry_count)
+  defp has_byzantine_events(_, 0), do: false
 
-  defp check_if_byzantine_events_present(events, counter) do
+  defp has_byzantine_events(events, counter) do
     result =
       case pull_api_until_successful(Status, :status_get, Watcher.new()) do
         %{"byzantine_events" => byzantine_events} ->
@@ -624,7 +623,7 @@ defmodule InFlightExitsTests do
 
       false ->
         Process.sleep(@sleep_retry_sec)
-        check_if_byzantine_events_present(events, counter - 1)
+        has_byzantine_events(events, counter - 1)
     end
   end
 
