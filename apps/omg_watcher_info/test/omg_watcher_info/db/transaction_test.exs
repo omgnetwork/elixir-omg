@@ -101,7 +101,7 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if transactions have been made in the last twenty four hours" do
       now = DateTime.to_unix(DateTime.utc_now())
-      twenty_four_hours = 86400
+      twenty_four_hours = 86_400
 
       alice = OMG.TestHelper.generate_entity()
       bob = OMG.TestHelper.generate_entity()
@@ -126,7 +126,7 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if no transactions have been made in the last twenty four hours" do
       now = DateTime.to_unix(DateTime.utc_now())
-      twenty_four_hours = 86400
+      twenty_four_hours = 86_400
 
       alice = OMG.TestHelper.generate_entity()
       bob = OMG.TestHelper.generate_entity()

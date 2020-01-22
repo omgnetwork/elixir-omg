@@ -278,7 +278,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if blocks have been produced in the last twenty four hours" do
       now = DateTime.to_unix(DateTime.utc_now())
-      twenty_four_hours = 86400
+      twenty_four_hours = 86_400
       within_today = now - twenty_four_hours + 100
       before_today = now - twenty_four_hours - 100
 
@@ -294,7 +294,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if no blocks have been produced in the last twenty four hours" do
       now = DateTime.to_unix(DateTime.utc_now())
-      twenty_four_hours = 86400
+      twenty_four_hours = 86_400
       before_today = now - twenty_four_hours - 100
 
       _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: before_today)
@@ -311,7 +311,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "retrieves timestamps correctly - all time and last 24 hours" do
       now = DateTime.to_unix(DateTime.utc_now())
-      twenty_four_hours = 86400
+      twenty_four_hours = 86_400
       within_today = now - twenty_four_hours + 100
       before_today = now - twenty_four_hours - 100
 

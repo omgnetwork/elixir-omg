@@ -95,7 +95,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   @spec query_last_24_hour(Ecto.Query.t()) :: Ecto.Query.t()
   def query_last_24_hour(query) do
     now = DateTime.to_unix(DateTime.utc_now())
-    twenty_four_hours = 86400
+    twenty_four_hours = 86_400
     from(block in query, where: block.timestamp >= ^(now - twenty_four_hours))
   end
 
