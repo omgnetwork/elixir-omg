@@ -17,23 +17,24 @@ defmodule OMG.WatcherInfo.API.Stats do
   Module provides operations related to network statistics.
   """
 
-  alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.DB.Block
+  alias OMG.WatcherInfo.DB.Transaction
 
   @doc """
   Retrieves network statistics.
   """
   def get() do
-    timestamps_all_time = DB.Block.get_timestamps()
-    timestamps_last_24_hours = DB.Block.get_timestamps_last_24_hours()
+    timestamps_all_time = Block.get_timestamps()
+    timestamps_last_24_hours = Block.get_timestamps_last_24_hours()
 
     response = %{
       transaction_count: %{
-        all_time: DB.Transaction.get_count(),
-        last_24_hours: DB.Transaction.get_count_last_24_hour()
+        all_time: Transaction.get_count(),
+        last_24_hours: Transaction.get_count_last_24_hour()
       },
       block_count: %{
-        all_time: DB.Block.get_count(),
-        last_24_hours: DB.Block.get_count_last_24_hour()
+        all_time: Block.get_count(),
+        last_24_hours: Block.get_count_last_24_hour()
       },
       average_block_interval: %{
         all_time: get_average_block_interval(timestamps_all_time),
