@@ -22,6 +22,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   alias OMG.State.Transaction
   alias OMG.Watcher.API.Transaction, as: SecurityApiTransaction
   alias OMG.WatcherInfo.API.Transaction, as: InfoApiTransaction
+  alias OMG.WatcherInfo.OrderFeeFetcher
   alias OMG.WatcherRPC.Web.Validator
 
   @doc """
@@ -73,7 +74,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   If also provided with receiver's address, creates and encodes a transaction.
   """
   def create(conn, params) do
-    with {:ok, order} <- Validator.Order.parse(params) do
+    with {:ok, order} <- Validator.Order.parse(params),
+         {:ok, order} <- OrderFeeFetcher.add_fee_to_order(order) do
       InfoApiTransaction.create(order)
       |> InfoApiTransaction.include_typed_data()
       |> api_response(conn, :create)

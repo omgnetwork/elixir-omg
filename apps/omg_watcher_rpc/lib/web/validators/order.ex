@@ -17,9 +17,13 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   Validates `/transaction.create` request body.
   """
 
+  require OMG.State.Transaction.Payment
+
+  import OMG.Utils.HttpRPC.Validator.Base
+
+  alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Validator.Base
   alias OMG.WatcherInfo.UtxoSelection
-  import OMG.Utils.HttpRPC.Validator.Base
 
   @doc """
   Parses and validates request body
@@ -42,9 +46,6 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   end
 
   defp fills_in_outputs?(payments) do
-    alias OMG.State.Transaction
-    require Transaction.Payment
-
     if length(payments) <= Transaction.Payment.max_outputs(),
       do: {:ok, payments},
       else: error("payments", {:too_many_payments, Transaction.Payment.max_outputs()})
@@ -58,8 +59,8 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   end
 
   defp parse_fee(map) when is_map(map) do
-    with {:ok, currency} <- expect(map, "currency", :address),
-         {:ok, amount} <- expect(map, "amount", :non_neg_integer),
-         do: {:ok, %{currency: currency, amount: amount}}
+    with {:ok, currency} <- expect(map, "currency", :address) do
+      {:ok, %{currency: currency}}
+    end
   end
 end
