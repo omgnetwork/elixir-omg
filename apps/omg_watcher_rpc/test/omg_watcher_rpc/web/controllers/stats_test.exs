@@ -42,34 +42,30 @@ defmodule OMG.WatcherRPC.Web.Controller.StatsTet do
         transactions: [tx_1, tx_2],
         blknum: 1000,
         blkhash: "0x1000",
-        timestamp: within_today,
+        timestamp: before_today,
         eth_height: 1
       }
 
       mined_block_2 = %{
         transactions: [tx_3, tx_4],
-        blknum: 1000,
-        blkhash: "0x1000",
-        timestamp: before_today,
+        blknum: 2000,
+        blkhash: "0x2000",
+        timestamp: within_today,
         eth_height: 1
       }
 
       _ = DB.Block.insert_with_transactions(mined_block_1)
       _ = DB.Block.insert_with_transactions(mined_block_2)
 
-      result = WatcherHelper.rpc_call("stats.get", %{}, 200)
+      %{"data" => data} = WatcherHelper.rpc_call("stats.get", %{}, 200)
 
       expected = %{
-        "data" => %{
-          "blocks" => %{"all_time" => 1, "last_24_hours" => 1},
-          "transactions" => %{"count" => %{"all_time" => 2, "last_24_hours" => 2}}
-        },
-        "service_name" => "child_chain",
-        "success" => true,
-        "version" => "0.3.0+df1b4bb"
+        "block_count" => %{"all_time" => 2, "last_24_hours" => 1},
+        "transaction_count" => %{"all_time" => 4, "last_24_hours" => 2},
+        "average_block_interval" => %{"all_time" => 200.0, "last_24_hours" => "N/A"}
       }
 
-      assert result == expected
+      assert data == expected
     end
   end
 end
