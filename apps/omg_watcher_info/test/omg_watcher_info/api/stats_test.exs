@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.API.BlockTest do
+defmodule OMG.WatcherInfo.API.StatsTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.WatcherInfo.Fixtures
