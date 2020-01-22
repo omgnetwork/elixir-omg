@@ -44,6 +44,7 @@ defmodule OMG.WatcherInfo.API.Stats do
     {:ok, response}
   end
 
+  @spec get_average_block_interval([%{timestamp: integer}]) :: float | String.t()
   def get_average_block_interval(timestamps) do
     case length(timestamps) do
       n when n < 2 ->
@@ -57,7 +58,7 @@ defmodule OMG.WatcherInfo.API.Stats do
     end
   end
 
-  @spec average([any]) :: number
+  @spec average([integer]) :: float
   def average(diff_array) do
     diff_array
     |> Enum.reduce(0, fn current, acc -> current + acc end)
