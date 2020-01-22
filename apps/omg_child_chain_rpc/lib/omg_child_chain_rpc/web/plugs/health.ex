@@ -35,7 +35,11 @@ defmodule OMG.ChildChainRPC.Plugs.Health do
     if Status.is_healthy() do
       conn
     else
-      data = Error.serialize("operation:service_unavailable", "The server is not ready to handle the request.")
+      data =
+        Error.serialize(
+          "operation:service_unavailable",
+          "The server is not ready to handle the request."
+        )
 
       conn
       |> Controller.json(data)

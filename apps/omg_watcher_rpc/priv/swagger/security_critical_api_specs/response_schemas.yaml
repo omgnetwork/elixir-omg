@@ -1,0 +1,65 @@
+WatcherBaseResponseSchema:
+  description: The response schema for a successful operation
+  type: object
+  properties:
+    version:
+      type: string
+    success:
+      type: boolean
+    data:
+      type: object
+    service_name:
+      type: string
+  required:
+    - service_name
+    - version
+    - success
+    - data
+  example:
+    service_name: watcher
+    version: '1.0.0+abcdefa'
+    success: true
+    data: {}
+
+WatcherBaseListResponseSchema:
+  description: The response schema for a successful list operation
+  type: object
+  properties:
+    version:
+      type: string
+    success:
+      type: boolean
+    data:
+      type: array
+      items:
+        type: object
+    service_name:
+      type: string
+  required:
+    - service_name
+    - version
+    - success
+    - data
+  example:
+    service_name: watcher
+    version: '1.0+abcdefa'
+    success: true
+    data: []
+
+WatcherErrorResponseSchema:
+  description: The response schema for an error
+  allOf:
+    - $ref: 'response_schemas.yaml#/WatcherBaseResponseSchema'
+    - type: object
+      properties:
+        data:
+          $ref: '../shared/schemas.yaml#/ErrorSchema'
+      required:
+        - data
+      example:
+        success: false
+        data:
+          object: error
+          code: server:internal_server_error
+          description: Something went wrong on the server
+          messages: {error_key: error_reason}

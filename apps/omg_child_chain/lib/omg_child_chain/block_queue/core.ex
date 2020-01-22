@@ -83,15 +83,14 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   defstruct [
     :blocks,
     :parent_height,
+    :mined_child_block_num,
+    :last_enqueued_block_at_height,
+    :wait_for_enqueue,
     last_parent_height: 0,
     formed_child_block_num: 0,
-    wait_for_enqueue: false,
     gas_price_to_use: 20_000_000_000,
-    mined_child_block_num: 0,
-    last_enqueued_block_at_height: 0,
     # config:
     child_block_interval: nil,
-    chain_start_parent_height: nil,
     block_submit_every_nth: 1,
     finality_threshold: 12,
     gas_price_adj_params: %GasPriceAdjustment{}
@@ -104,7 +103,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           # newest formed block num
           formed_child_block_num: BlockQueue.plasma_block_num(),
           # current Ethereum block height
-          parent_height: nil | BlockQueue.eth_height(),
+          parent_height: BlockQueue.eth_height(),
           # whether we're pending an enqueue signal with a new block
           wait_for_enqueue: boolean(),
           # gas price to use when (re)submitting transactions
@@ -113,8 +112,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           # CONFIG CONSTANTS below
           # spacing of child blocks in RootChain contract, being the amount of deposit decimals per child block
           child_block_interval: pos_integer(),
-          # Ethereum height at which first block was mined
-          chain_start_parent_height: pos_integer(),
           # configure to trigger forming a child chain block every this many Ethereum blocks are mined since enqueueing
           block_submit_every_nth: pos_integer(),
           # depth of max reorg we take into account
@@ -126,33 +123,22 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
-  def new, do: {:ok, %__MODULE__{blocks: Map.new()}}
-
-  @spec new(keyword) ::
+  @spec new(keyword()) ::
           {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
-  def new(
-        mined_child_block_num: mined_child_block_num,
-        known_hashes: known_hashes,
-        top_mined_hash: top_mined_hash,
-        parent_height: parent_height,
-        child_block_interval: child_block_interval,
-        chain_start_parent_height: child_start_parent_height,
-        block_submit_every_nth: block_submit_every_nth,
-        finality_threshold: finality_threshold,
-        last_enqueued_block_at_height: last_enqueued_block_at_height
-      ) do
-    state = %__MODULE__{
-      blocks: Map.new(),
-      mined_child_block_num: mined_child_block_num,
-      parent_height: parent_height,
-      child_block_interval: child_block_interval,
-      chain_start_parent_height: child_start_parent_height,
-      block_submit_every_nth: block_submit_every_nth,
-      finality_threshold: finality_threshold,
-      gas_price_adj_params: %GasPriceAdjustment{},
-      last_enqueued_block_at_height: last_enqueued_block_at_height
-    }
+  def new(opts \\ []) do
+    true = Keyword.has_key?(opts, :mined_child_block_num)
+    known_hashes = Keyword.fetch!(opts, :known_hashes)
+    top_mined_hash = Keyword.fetch!(opts, :top_mined_hash)
+    parent_height = Keyword.fetch!(opts, :parent_height)
 
+    fields =
+      opts
+      |> Keyword.put(:blocks, Map.new())
+      |> Keyword.put(:last_enqueued_block_at_height, parent_height)
+      |> Keyword.put(:wait_for_enqueue, false)
+      |> Keyword.drop([:known_hashes, :top_mined_hash])
+
+    state = struct!(__MODULE__, fields)
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
   end
 

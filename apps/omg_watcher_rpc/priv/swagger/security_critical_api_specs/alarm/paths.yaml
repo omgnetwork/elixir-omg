@@ -10,4 +10,4 @@ alarm.get:
       200:
         $ref: 'responses.yaml#/AlarmResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'

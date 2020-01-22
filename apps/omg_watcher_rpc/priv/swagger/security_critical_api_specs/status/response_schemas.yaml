@@ -1,7 +1,7 @@
 StatusResponseSchema:
   description: The response schema for a status
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
   - type: object
     properties:
       data:

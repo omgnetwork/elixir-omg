@@ -15,12 +15,11 @@
 defmodule OMG.ChildChainRPC.Web.Controller.Fallback do
   @moduledoc """
   The fallback handler.
-
   """
 
   use Phoenix.Controller
 
-  alias OMG.Utils.HttpRPC.Error
+  alias OMG.ChildChainRPC.Web.Views
 
   @errors %{
     tx_type_not_supported: %{
@@ -30,32 +29,35 @@ defmodule OMG.ChildChainRPC.Web.Controller.Fallback do
     currency_fee_not_supported: %{
       code: "fee:currency_fee_not_supported",
       description: "One or more of the given currencies are not supported as a fee-token."
+    },
+    operation_not_found: %{
+      code: "operation:not_found",
+      description: "Operation cannot be found. Check request URL."
+    },
+    operation_bad_request: %{
+      code: "operation:bad_request",
+      description: "Parameters required by this operation are missing or incorrect."
     }
   }
 
-  def call(conn, Route.NotFound),
-    do: json(conn, Error.serialize("operation:not_found", "Operation cannot be found. Check request URL."))
-
   def call(conn, {:error, {:validation_error, param_name, validator}}) do
-    response =
-      Error.serialize(
-        "operation:bad_request",
-        "Parameters required by this operation are missing or incorrect.",
-        %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
-      )
+    error = error_info(conn, :operation_bad_request)
 
-    json(conn, response)
+    conn
+    |> put_view(Views.Error)
+    |> render(:error, %{
+      code: error.code,
+      description: error.description,
+      messages: %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
+    })
   end
 
   def call(conn, {:error, reason}) do
-    err_info =
-      @errors
-      |> Map.get(
-        reason,
-        %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
-      )
+    error = error_info(conn, reason)
 
-    respond(conn, err_info)
+    conn
+    |> put_view(Views.Error)
+    |> render(:error, %{code: error.code, description: error.description})
   end
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
@@ -63,7 +65,10 @@ defmodule OMG.ChildChainRPC.Web.Controller.Fallback do
   # Controller's action with expression has no match, e.g. on guard
   def call(conn, _), do: call(conn, {:error, :unknown_error})
 
-  defp respond(conn, %{code: code, description: description}) do
-    json(conn, Error.serialize(code, description))
+  defp error_info(conn, reason) do
+    case Map.get(@errors, reason) do
+      nil -> %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
+      error -> error
+    end
   end
 end

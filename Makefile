@@ -86,7 +86,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200104"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-5735fd5"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -116,6 +116,8 @@ clean: clean-elixir-omg
 clean-elixir-omg:
 	rm -rf _build/*
 	rm -rf deps/*
+	rm -rf _build_docker/*
+	rm -rf deps_docker/*
 
 
 .PHONY: clean clean-elixir-omg
@@ -231,7 +233,6 @@ start-pre-lumphini-watcher:
 docker-child_chain-prod:
 	docker run --rm -it \
 		-v $(PWD):/app \
-		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
@@ -240,7 +241,6 @@ docker-child_chain-prod:
 docker-watcher-prod:
 	docker run --rm -it \
 		-v $(PWD):/app \
-		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
@@ -249,7 +249,6 @@ docker-watcher-prod:
 docker-watcher_info-prod:
 	docker run --rm -it \
 		-v $(PWD):/app \
-		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
@@ -367,15 +366,15 @@ start-watcher:
 
 start-watcher_info:
 	set -e; . ./bin/variables; \
-	echo "Building Watcher" && \
+	echo "Building Watcher Info" && \
 	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
-	echo "Init Watcher DBs" && \
+	echo "Init Watcher Info DBs" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_key_value_db && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_postgresql_db && \
-	echo "Init Watcher DBs DONE" && \
-	echo "Run Watcher" && \
+	echo "Init WatcherInfo DBs DONE" && \
+	echo "Run Watcher Info" && \
 	PORT=${WATCHER_INFO_PORT} _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
@@ -403,7 +402,7 @@ stop-watcher:
 	_build/dev/rel/watcher/bin/watcher stop
 
 stop-watcher_info:
-	_build/dev/rel/watcher/bin/watcher stop
+	_build/dev/rel/watcher_info/bin/watcher_info stop
 
 remote-child_chain:
 	set -e; . ./bin/variables && \
@@ -475,10 +474,3 @@ diagnostics:
 	echo "\n ---------- END OF DIAGNOSTICS REPORT ----------"
 
 .PHONY: diagnostics
-
-### UTILS
-OSFLAG := ''
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	OSFLAG = OSX
-endif

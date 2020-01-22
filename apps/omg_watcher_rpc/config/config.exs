@@ -5,6 +5,10 @@
 # is restricted to this project.
 use Mix.Config
 
+# In mix environment, all modules are loaded, therefore it behaves like a watcher_info
+config :omg_watcher_rpc,
+  api_mode: :watcher_info
+
 # Configures the endpoint
 config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
   render_errors: [view: OMG.WatcherRPC.Web.Views.Error, accepts: ~w(json)],

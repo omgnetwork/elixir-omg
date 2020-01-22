@@ -157,6 +157,14 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
     assert response |> Map.get(:skip_hex_encode) |> is_nil()
   end
 
+  describe "version/1" do
+    test "returns a compliant semver when given an application" do
+      # Using :elixir as the app because it is certain to be running during the test
+      version = Response.version(:elixir)
+      assert {:ok, _} = Version.parse(version)
+    end
+  end
+
   defp unload_ecto do
     :code.purge(Ecto)
     :code.delete(Ecto)

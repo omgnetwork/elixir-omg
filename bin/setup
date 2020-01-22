@@ -25,14 +25,6 @@ install_linux_deps() {
   esac
 }
 
-install_linux_solc(){
-  echo "Installing Solc v0.5.11"
-  wget https://github.com/ethereum/solidity/releases/download/v0.5.11/solc-static-linux \
-  && chmod +x solc-static-linux \
-  && mv solc-static-linux solc  \
-  && sudo install -m0755 solc /usr/local/bin/solc
-}
-
 install_linux_postgres(){
   echo "Installing Postgres 9.6."
   echo "Adding public key 7FCC7D46ACCC4CF8 to repo."
@@ -102,7 +94,6 @@ install_deps() {
   case $sys in
     Linux*)
       install_linux_deps
-      install_linux_solc
       install_linux_geth
       install_linux_rocksdb
       if [ -z "$CIRCLE_SHA1" ]; then

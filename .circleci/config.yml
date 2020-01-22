@@ -19,12 +19,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20200104
+      - image: omisegoimages/elixir-omg-builder:dev-5735fd5
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20200104
+      - image: omisegoimages/elixir-omg-builder:dev-5735fd5
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -34,7 +34,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:stable-20200104
+      - image: omisegoimages/elixir-omg-tester:dev-5735fd5
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -137,13 +137,13 @@ jobs:
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - save_cache:
           key: v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
-          paths: "_build"
+          paths: "_build_docker"
       - save_cache:
           key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
           paths:
-            - "deps/rocksdb"
-            - "_build/test/lib/rocksdb/"
-            - "_build/test/dev/rocksdb/"
+            - "deps_docker/rocksdb"
+            - "_build_docker/test/lib/rocksdb/"
+            - "_build_docker/test/dev/rocksdb/"
       - persist_to_workspace:
           name: Persist workspace
           root: ~/src
@@ -151,12 +151,12 @@ jobs:
             - .circleci
             - dialyzer.ignore-warnings
             - .formatter.exs
-            - _build
+            - _build_docker
             - .credo.exs
             - apps
             - bin
             - config
-            - deps
+            - deps_docker
             - doc
             - mix.exs
             - mix.lock
@@ -376,14 +376,14 @@ jobs:
       - setup_elixir-omg_workspace
       - restore_cache:
           keys:
-            - v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
-            - v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
-            - v2-plt-cache-{{ ".tool-versions" }}
+            - v3-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
+            - v3-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
+            - v3-plt-cache-{{ ".tool-versions" }}
       - run:
           name: Unpack PLT cache
           command: |
-            mkdir -p _build/test
-            cp plts/dialyxir*.plt _build/test/ || true
+            mkdir -p _build_docker/test
+            cp plts/dialyxir*.plt _build_docker/test/ || true
             mkdir -p ~/.mix
             cp plts/dialyxir*.plt ~/.mix/ || true
       - run: mix dialyzer --plt
@@ -391,21 +391,20 @@ jobs:
           name: Pack PLT cache
           command: |
             mkdir -p plts
-            cp _build/test/dialyxir*.plt plts/
+            cp _build_docker/test/dialyxir*.plt plts/
             cp ~/.mix/dialyxir*.plt plts/
       - save_cache:
-          key: v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
+          key: v3-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
           paths:
             - plts
       - save_cache:
-          key: v2-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
+          key: v3-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
           paths:
             - plts
       - save_cache:
-          key: v2-plt-cache-{{ ".tool-versions" }}
+          key: v3-plt-cache-{{ ".tool-versions" }}
           paths:
             - plts
-
       - run: mix dialyzer --format short --halt-exit-status
 
   test_docker_compose_release:
@@ -434,7 +433,8 @@ jobs:
             sudo dpkg --configure -a || true &&
             sudo dpkg -i erlang-solutions_2.0_all.deb  &&
             sudo apt-get update &&
-            sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2-1
+            sudo apt-get install esl-erlang=1:21.3.8.10-1
+            sudo apt-get install elixir=1.8.2-1
       - run: sh .circleci/status.sh
       - restore_cache:
           key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
@@ -494,14 +494,37 @@ jobs:
             sudo apt-key add erlang_solutions.asc &&
             sudo dpkg -i erlang-solutions_2.0_all.deb  &&
             sudo apt-get update &&
-            sudo apt-get install esl-erlang=1:21.3.8.10-1 elixir=1.8.2-1 &&
-            sudo apt-get install -y erlang-os-mon &&
-            ./bin/setup &&
-            make deps-elixir-omg &&
-            make start-child_chain OVERRIDING_START=start &&
-            make start-watcher OVERRIDING_START=start
-            make start-watcher_info OVERRIDING_START=start
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests esl-erlang=1:21.3.8.10-1
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-os-mon
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-parsetools
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests elixir=1.8.2-1
+            sudo apt policy elixir
+            ./bin/setup
           no_output_timeout: 2400
+      - run:
+          name: Compile
+          command: |
+            set -e
+            make deps-elixir-omg &&
+            mix compile
+          no_output_timeout: 2400
+      - run:
+          name: Run Child Chain, Watcher and Watcher Info
+          command: |
+            set -e
+            make start-child_chain OVERRIDING_START=start &&
+            make start-watcher OVERRIDING_START=start &&
+            make start-watcher_info OVERRIDING_START=foreground
+          background: true
+          no_output_timeout: 2400
+      - run:
+          name: Install specs
+          command: |
+            cd priv/
+            make install
+            make generate_api_code
+            mix local.hex --force && mix local.rebar --force
+            mix deps.get
       - run: docker ps
       - run: ps axww | grep watcher
       - run: ps axww | grep watcher_info
@@ -511,10 +534,6 @@ jobs:
           name: Run specs
           command: |
             cd priv/
-            make install
-            make generate_api_code
-            mix local.hex --force && mix local.rebar --force
-            mix deps.get
             mix test
 
   publish_child_chain:
@@ -670,6 +689,8 @@ workflows:
   build-deploy:
     jobs:
       - build
+      - test_barebone_release:
+          requires: [build]
       - notify_services:
           requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
           filters:

@@ -28,8 +28,6 @@ defmodule XomgTasks.Utils do
         {:ok, _} = Application.ensure_all_started(app)
       end)
 
-    ensure_one_rpc_loaded(apps)
-
     iex_running?() || Process.sleep(:infinity)
   end
 
@@ -56,13 +54,5 @@ defmodule XomgTasks.Utils do
 
   defp ensure_doesnt_contain(args, arg) do
     List.delete(args, arg)
-  end
-
-  # mix loads entire codebase which fools `Response.add_version`
-  defp ensure_one_rpc_loaded(apps) do
-    if Enum.member?(apps, :omg_watcher) || Enum.member?(apps, :omg_watcher_info) do
-      true = :code.delete(OMG.ChildChainRPC)
-      :code.purge(OMG.ChildChainRPC)
-    end
   end
 end

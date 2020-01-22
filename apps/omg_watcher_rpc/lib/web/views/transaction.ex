@@ -19,6 +19,7 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
 
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Utils.Paginator
+  alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
   use OMG.WatcherRPC.Web, :view
 
@@ -26,17 +27,20 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
     transaction
     |> render_transaction()
     |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
   end
 
   def render("transactions.json", %{response: %Paginator{data: transactions, data_paging: data_paging}}) do
     transactions
     |> Enum.map(&render_transaction/1)
     |> Response.serialize_page(data_paging)
+    |> WatcherRPCResponse.add_app_infos()
   end
 
   def render("submission.json", %{response: transaction}) do
     transaction
     |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
   end
 
   def render("create.json", %{response: advice}) do
@@ -48,6 +52,7 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
     advice
     |> Map.put(:transactions, transactions)
     |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
   end
 
   defp render_transaction(transaction) do

@@ -14,4 +14,4 @@ account.get_exitable_utxos:
       200:
         $ref: 'responses.yaml#/AccountUtxoResponse'
       500:
-        $ref: '../../shared/responses.yaml#/InternalServerError'
+        $ref: '../responses.yaml#/InternalServerError'
