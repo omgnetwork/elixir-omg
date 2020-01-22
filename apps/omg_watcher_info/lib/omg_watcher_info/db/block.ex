@@ -125,6 +125,23 @@ defmodule OMG.WatcherInfo.DB.Block do
     from(block in __MODULE__, select: count())
   end
 
+  @spec query_timestamps :: Ecto.Query.t()
+  defp query_timestamps do
+    from(block in __MODULE__, select: %{timestamp: block.timestamp})
+  end
+
+  @spec get_timestamps :: []
+  def get_timestamps() do
+    DB.Repo.all(query_timestamps())
+  end
+
+  @spec get_timestamps_last_24_hours :: []
+  def get_timestamps_last_24_hours() do
+    query_timestamps()
+    |> query_last_24_hour()
+    |> DB.Repo.all()
+  end
+
   defp query_get_last(%{limit: limit, page: page}) do
     offset = (page - 1) * limit
 

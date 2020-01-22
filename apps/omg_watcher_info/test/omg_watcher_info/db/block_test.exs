@@ -279,10 +279,12 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     test "returns correct count if blocks have been produced in the last twenty four hours" do
       now = DateTime.to_unix(DateTime.utc_now())
       twenty_four_hours = 86400
+      within_today = now - twenty_four_hours + 100
+      before_today = now - twenty_four_hours - 100
 
-      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: now - twenty_four_hours + 100)
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: within_today)
       _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: now - twenty_four_hours)
-      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: now - twenty_four_hours - 100)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: before_today)
 
       block_count = DB.Block.get_count_last_24_hour()
 
@@ -293,14 +295,43 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     test "returns correct count if no blocks have been produced in the last twenty four hours" do
       now = DateTime.to_unix(DateTime.utc_now())
       twenty_four_hours = 86400
+      before_today = now - twenty_four_hours - 100
 
-      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: now - twenty_four_hours - 100)
-      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: now - twenty_four_hours - 200)
-      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: now - twenty_four_hours - 300)
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: before_today)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: before_today)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: before_today)
 
       block_count = DB.Block.get_count_last_24_hour()
 
       assert block_count == 0
+    end
+  end
+
+  describe "average block interval" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "retrieves timestamps correctly - all time and last 24 hours" do
+      now = DateTime.to_unix(DateTime.utc_now())
+      twenty_four_hours = 86400
+      within_today = now - twenty_four_hours + 100
+      before_today = now - twenty_four_hours - 100
+
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: within_today)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: now - twenty_four_hours)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: before_today)
+
+      timestamps_1 = DB.Block.get_timestamps()
+      timestamps_2 = DB.Block.get_timestamps_last_24_hours()
+
+      assert timestamps_1 === [
+               %{timestamp: within_today},
+               %{timestamp: now - twenty_four_hours},
+               %{timestamp: before_today}
+             ]
+
+      assert timestamps_2 === [
+               %{timestamp: within_today},
+               %{timestamp: now - twenty_four_hours}
+             ]
     end
   end
 
