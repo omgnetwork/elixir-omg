@@ -23,6 +23,8 @@ tags:
     description: Transaction related API.
   - name: Fees
     description: Fees related API.
+  - name: Stats
+    description: Stats related API.
 paths:
   /alarm.get:
     get:
@@ -2469,6 +2471,146 @@ paths:
                             pegged_amount: 4
                             pegged_subunit_to_unit: 100
                             updated_at: '2019-01-01T10:10:10+00:00'
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                      service_name:
+                        type: string
+                    required:
+                      - service_name
+                      - version
+                      - success
+                      - data
+                    example:
+                      service_name: watcher_info
+                      version: 1.0.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /stats.get:
+    post:
+      tags:
+        - Stats
+      summary: Retrieves network statistics
+      description: |
+        Retrieves transaction count, block count and average block interval, both for all time and the last 24 hours.
+      operationId: stats_get
+      responses:
+        '200':
+          description: Stats Successful Response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful list operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: array
+                        items:
+                          type: object
+                      service_name:
+                        type: string
+                    required:
+                      - service_name
+                      - version
+                      - success
+                      - data
+                    example:
+                      service_name: watcher_info
+                      version: 1.0+abcdefa
+                      success: true
+                      data: []
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        items:
+                          type: object
+                          properties:
+                            transaction_count:
+                              type: object
+                              properties:
+                                all_time:
+                                  type: integer
+                                  format: int64
+                                last_24_hours:
+                                  type: integer
+                                  format: int64
+                            block_count:
+                              type: object
+                              properties:
+                                all_time:
+                                  type: integer
+                                  format: int64
+                                last_24_hours:
+                                  type: integer
+                                  format: int64
+                            average_block_interval:
+                              type: object
+                              properties:
+                                all_time:
+                                  type: number
+                                  format: int64
+                                last_24_hours:
+                                  type: number
+                                  format: int64
+                    example:
+                      data:
+                        transaction_count:
+                          all_time: 4
+                          last_24_hours: 2
+                        block_count:
+                          all_time: 2
+                          last_24_hours: 1
+                        average_block_interval:
+                          all_time: 100
+                          last_24_hours: N/A
         '500':
           description: Returns an internal server error
           content:
