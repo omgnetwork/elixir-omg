@@ -23,19 +23,44 @@ defmodule OMG.WatcherInfo.API.Stats do
   Retrieves network statistics.
   """
   def get() do
+    timestamps_all_time = Block.get_timestamps()
+    timestamps_last_24_hours = Block.get_timestamps_last_24_hours()
+
     response = %{
-      transactions: %{
-        count: %{
-          all_time: Transaction.get_count(),
-          last_24_hours: Transaction.get_count_last_24_hour()
-        }
+      transaction_count: %{
+        all_time: Transaction.get_count(),
+        last_24_hours: Transaction.get_count_last_24_hour()
       },
-      blocks: %{
+      block_count: %{
         all_time: Block.get_count(),
         last_24_hours: Block.get_count_last_24_hour()
+      },
+      average_block_interval: %{
+        all_time: get_average_block_interval(timestamps_all_time),
+        last_24_hours: get_average_block_interval(timestamps_last_24_hours)
       }
     }
 
     {:ok, response}
+  end
+
+  def get_average_block_interval(timestamps) do
+    case length(timestamps) do
+      n when n < 2 ->
+        String.to_atom("N/A")
+
+      n when n >= 2 ->
+        timestamps
+        |> Enum.chunk_every(2, 1, :discard)
+        |> Enum.map(fn [a, b] -> b.timestamp - a.timestamp end)
+        |> average()
+    end
+  end
+
+  @spec average([any]) :: number
+  def average(diff_array) do
+    diff_array
+    |> Enum.reduce(0, fn current, acc -> current + acc end)
+    |> Kernel./(length(diff_array))
   end
 end
