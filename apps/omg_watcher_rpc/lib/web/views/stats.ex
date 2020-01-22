@@ -20,8 +20,11 @@ defmodule OMG.WatcherRPC.Web.View.Stats do
   use OMG.WatcherRPC.Web, :view
 
   alias OMG.Utils.HttpRPC.Response
+  alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
   def render("stats.json", %{response: stats}) do
-    Response.serialize(stats)
+    stats
+    |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
   end
 end
