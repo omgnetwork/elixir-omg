@@ -65,11 +65,25 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     timestamps(type: :utc_datetime_usec)
   end
 
+  def fetch_by(where_conditions) do
+    DB.Repo.fetch(
+      from(txoutputs in __MODULE__,
+        join: ethevents in assoc(txoutputs, :ethevents),
+        preload: [ethevents: ethevents],
+        where: ^where_conditions,
+        order_by: [asc: ethevents.updated_at]
+      )
+    )
+  end
+
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
-    DB.Repo.one(
-      from(txoutput in __MODULE__,
-        preload: [:ethevents, :creating_transaction, :spending_transaction],
+    Repo.one(
+      from(txoutput in __MODULE__,      
+        left_join: ethevents in assoc(txoutput, :ethevents),
+        left_join: creating_transaction in assoc(txoutput, :creating_transaction),
+        left_join: spending_transaction in assoc(txoutput, :spending_transaction),
+        preload: [ethevents: ethevents, creating_transaction: creating_transaction, spending_transaction: spending_transaction],
         where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
       )
     )
@@ -78,11 +92,14 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   # same as get_by_position, except this function only returns unspent txoutputs
   @spec get_utxo_by_position(Utxo.Position.t()) :: %__MODULE__{} | nil
   def get_utxo_by_position(Utxo.position(blknum, txindex, oindex)) do
-    DB.Repo.one(
+    Repo.one(
       from(
         txoutput in __MODULE__,
+        left_join: ethevents in assoc(txoutput, :ethevents),
+        left_join: creating_transaction in assoc(txoutput, :creating_transaction),
+        left_join: spending_transaction in assoc(txoutput, :spending_transaction),
         preload: [:ethevents, :creating_transaction, :spending_transaction],
-        where: ^filter_where_unspent(%{blknum: blknum, txindex: txindex, oindex: oindex})
+        where: ^filter_where_unspent([blknum: blknum, txindex: txindex, oindex: oindex])
       )
     )
   end
@@ -91,8 +108,11 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     query =
       from(
         txoutput in __MODULE__,
+        left_join: ethevents in assoc(txoutput, :ethevents),
+        left_join: creating_transaction in assoc(txoutput, :creating_transaction),
+        left_join: spending_transaction in assoc(txoutput, :spending_transaction),
         preload: [:ethevents, :creating_transaction, :spending_transaction],
-        where: ^filter_where_unspent(%{owner: owner}),
+        where: ^filter_where_unspent([owner: owner]),
         order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
       )
 
@@ -104,8 +124,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     query =
       from(
         txoutput in __MODULE__,
-        left_join: ethevent in assoc(txoutput, :ethevents),
-        where: ^filter_where_unspent(%{owner: owner}),
+        where: ^filter_where_unspent([owner: owner]),
         group_by: txoutput.currency,
         select: {txoutput.currency, sum(txoutput.amount)}
       )
@@ -186,36 +205,26 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Map.new()
   end
 
-  def utxo_exists?(Utxo.position(blknum, txindex, oindex)) do
-    fn _, _ ->
-      case get_utxo_by_position(Utxo.position(blknum, txindex, oindex)) do
-        nil -> {:error, nil}
-        existing_utxo -> {:ok, existing_utxo}
-      end
-    end
-  end
-
   # select txoutputs that have neither been spent nor have a corresponding ethevents exit events
   # using the provided query params
   defp filter_where_unspent(params) do
-    where_clause =
-      Enum.reduce(params, dynamic(true), fn
-        {:owner, value}, dynamic ->
-          dynamic([t], ^dynamic and t.owner == ^value)
+    where_clause = Enum.reduce(params, dynamic(true), fn
+      {:owner, value}, dynamic ->
+        dynamic([t], ^dynamic and t.owner == ^value)
 
-        {:blknum, value}, dynamic ->
-          dynamic([t], ^dynamic and t.blknum == ^value)
+      {:blknum, value}, dynamic ->
+        dynamic([t], ^dynamic and t.blknum == ^value)
 
-        {:txindex, value}, dynamic ->
-          dynamic([t], ^dynamic and t.txindex == ^value)
+      {:txindex, value}, dynamic ->
+        dynamic([t], ^dynamic and t.txindex == ^value)
 
-        {:oindex, value}, dynamic ->
-          dynamic([t], ^dynamic and t.oindex == ^value)
+      {:oindex, value}, dynamic ->
+        dynamic([t], ^dynamic and t.oindex == ^value)
 
-        {_, _}, dynamic ->
-          # not a where parameter
-          dynamic
-      end)
+      {_, _}, dynamic ->
+        # not a where parameter
+        dynamic
+    end)
 
     unspent_query_fragment(where_clause)
   end
@@ -239,7 +248,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   end
 
   def new_changeset(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
-    txoutput = %{
+    changeset(%{
       child_chain_utxohash: DB.TxOutput.generate_child_chain_utxohash(Utxo.position(blknum, 0, 0)),
       blknum: blknum,
       txindex: 0,
@@ -251,13 +260,11 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
       spending_txhash: nil,
       spending_tx_oindex: nil,
       proof: nil
-    }
-
-    changeset(%__MODULE__{}, txoutput)
+    })
   end
 
   @doc false
-  def changeset(struct, params \\ %{}) do
+  def changeset(params \\ %{}) do
     fields = [
       :child_chain_utxohash,
       :blknum,
@@ -274,7 +281,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
     required_fields = [:blknum, :txindex, :oindex, :child_chain_utxohash, :owner, :amount, :currency]
 
-    struct
+    %__MODULE__{}
     |> Ecto.Changeset.cast(params, fields)
     |> Ecto.Changeset.validate_required(required_fields)
     |> Ecto.Changeset.unique_constraint(:blknum, name: :txoutputs_pkey)

@@ -30,6 +30,7 @@ defmodule OMG.WatcherInfo.Factory.DataHelper do
         0..255 |> Enum.shuffle() |> Enum.take(num_bytes) |> :erlang.list_to_binary()
       end
 
+      # creates event data specifically for the EthEvents.insert_deposit!/1 function
       def deposit_params(blknum) do
         params_for(:ethevent)
         |> Map.drop([:root_chain_txhash_event, :txoutputs])
@@ -40,7 +41,7 @@ defmodule OMG.WatcherInfo.Factory.DataHelper do
         [txoutput | _] = ethevent.txoutputs
 
         %{
-          root_chain_txhash: Encoding.to_hex(ethevent.root_chain_txhash),
+          root_chain_txhash: ethevent.root_chain_txhash,
           log_index: ethevent.log_index,
           call_data: %{
             utxo_pos: Utxo.Position.encode(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
@@ -48,16 +49,32 @@ defmodule OMG.WatcherInfo.Factory.DataHelper do
         }
       end
 
+      # creates event data specifically for the EthEvents.insert_exit!/1 function
       def exit_params_from_txoutput(txoutput) do
         ethevent_params = params_for(:ethevent)
 
         %{
-          root_chain_txhash: Encoding.to_hex(ethevent_params.root_chain_txhash),
+          root_chain_txhash: ethevent_params.root_chain_txhash,
           log_index: ethevent_params.log_index,
           call_data: %{
             utxo_pos: Utxo.Position.encode(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
           }
         }
+      end
+
+      def to_fetch_by_params(params, params_names) do
+        to_keyword_list(Map.take(params, params_names))
+      end
+
+      def to_keyword_list(map) do
+        Enum.map(map, fn {k, v} ->
+          v = cond do
+            is_map(v) -> to_keyword_list(v)
+            true -> v
+          end
+    
+          {String.to_atom("#{k}"), v}           
+        end)
       end
     end
   end

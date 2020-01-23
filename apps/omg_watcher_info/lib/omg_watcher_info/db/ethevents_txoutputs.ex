@@ -37,8 +37,8 @@ defmodule OMG.WatcherInfo.DB.EthEventsTxOutputs do
     timestamps(type: :utc_datetime_usec)
   end
 
-  def changeset(struct, params \\ %{}) do
-    struct
+  def changeset(params \\ %{}) do
+    %__MODULE__{}
     |> Ecto.Changeset.cast(params, [:root_chain_txhash_event, :child_chain_utxohash])
     |> Ecto.Changeset.validate_required([:root_chain_txhash_event, :child_chain_utxohash])
   end

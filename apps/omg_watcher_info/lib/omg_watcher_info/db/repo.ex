@@ -17,13 +17,15 @@ defmodule OMG.WatcherInfo.DB.Repo do
     otp_app: :omg_watcher_info,
     adapter: Ecto.Adapters.Postgres
 
+  import Ecto.Query
+
   @max_params_count 0xFFFF
 
   @doc """
   Inserts all entries to the database in chunks to avoid `too many parameters` error.
   Accepts the same parameters that `Repo.insert_all/3`.
   """
-  @spec insert_all_chunked(
+@spec insert_all_chunked(
           schema_or_source :: binary() | atom() | Ecto.Schema.t(),
           entries :: [map() | Keyword.t()],
           opts :: Keyword.t()
@@ -43,6 +45,39 @@ defmodule OMG.WatcherInfo.DB.Repo do
     end)
     |> Stream.chunk_every(chunk_size)
     |> Enum.each(&insert_all(schema_or_source, &1, opts))
+  end
+
+  @doc """
+  The functions fetch/1, fetch/2 and fetch_by/2 are added here to provide a consistent Ecto.Repo interface.
+  The Ecto.Repo interface provides functions like: get/3, get_by/2, one/2. They all return `nil` if nothing
+  is found and raise an exception if more than one entry was found.
+
+  These return values are very different from functions like delete/2, insert/2, and update/2 which return:
+    success -> {:ok, Ecto.Schema.t()}
+    failure -> {:error, Ecto.Changeset.t()}}
+
+  Also to fetch/1, fetch_by/2 play nicely with the Ecto.Multi pipelines which expects each stage of the
+  pipeline to return:
+    success -> {:ok, value}
+    failure -> {:error, value}
+  """
+  def fetch(query) do
+    case all(query) do
+      [] ->
+        {:error, query}
+
+      [obj] ->
+        {:ok, obj}
+
+      _ ->
+        raise "Expected one or no items, got many items #{inspect(query)}"
+    end
+  end
+
+  def fetch_by(query, args) do
+    query
+    |> where(^args)
+    |> fetch
   end
 
   defp fields_count(map) when is_map(map), do: map |> Kernel.map_size()

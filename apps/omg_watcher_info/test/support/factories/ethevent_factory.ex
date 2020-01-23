@@ -32,7 +32,7 @@ defmodule OMG.WatcherInfo.Factory.EthEvent do
     quote do
       alias OMG.WatcherInfo.DB
 
-      def ethevent_factory(attrs \\ %{}) do
+      def ethevent_factory() do
         ethevent = %DB.EthEvent{
           root_chain_txhash: insecure_random_bytes(32),
           # within a log there may be 0 or more ethereum events, this is the index of the
@@ -41,8 +41,6 @@ defmodule OMG.WatcherInfo.Factory.EthEvent do
           event_type: :deposit,
           txoutputs: []
         }
-
-        ethevent = merge_attributes(ethevent, attrs)
 
         root_chain_txhash_event =
           DB.EthEvent.generate_root_chain_txhash_event(ethevent.root_chain_txhash, ethevent.log_index)

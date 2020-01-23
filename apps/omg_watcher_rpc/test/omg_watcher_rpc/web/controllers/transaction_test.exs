@@ -64,18 +64,23 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       output_1 = build(:txoutput)
       output_2 = build(:txoutput)
 
-      creating_transaction =
-        build(:transaction)
-        |> with_inputs([deposit_1, deposit_2])
-        |> with_outputs([input_1, input_2])
-        |> insert()
+      # creating_transaction =
+      #   insert(:transaction)
+      #   |> with_inputs([deposit_1, deposit_2])
+      #   |> with_outputs([input_1, input_2])
 
+      # spending_transaction =
+      #   insert(:transaction)
+      #   |> with_inputs(creating_transaction.outputs)
+      #   |> with_outputs([output_1, output_2])
+
+      creating_transaction =
+        build(:transaction, inputs: [deposit_1, deposit_2], outputs: [input_1, input_1])
+      
       spending_transaction =
-        build(:transaction)
-        |> with_inputs(creating_transaction.outputs)
-        |> with_outputs([output_1, output_2])
-        |> insert()
-        |> update_inputs_as_spent()
+        build(:transaction, inputs: creating_transaction.outputs, outputs: [output_1, output_2])
+
+      block = insert(:block) |> with_transactions([creating_transaction, spending_transaction])
 
       expected_response = %{
         "block" => %{

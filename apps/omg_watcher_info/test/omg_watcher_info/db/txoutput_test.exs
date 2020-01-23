@@ -69,20 +69,41 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     end
   end
 
+  describe "OMG.WatcherInfo.DB.TxOutput.get_by_position/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns txoutputs for the position with preloads" do
+      deposit_1 = build(:txoutput) |> with_deposit()
+      deposit_2 = build(:txoutput) |> with_deposit()
+
+      input_1 = build(:txoutput)
+      input_2 = build(:txoutput)
+
+      transaction =
+        insert(:transaction)
+        |> with_inputs([deposit_1, deposit_2])
+        |> with_outputs([input_1, input_2])
+
+      Enum.each(transaction.inputs ++ transaction.outputs, fn txoutput -> 
+        db_txoutput =
+          Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)
+          |> DB.TxOutput.get_by_position()
+
+          assert_txoutputs_with_preloads_equal(txoutput, db_txoutput)
+      end)
+    end
+  end
+
   describe "OMG.WatcherInfo.DB.TxOutput.get_utxo_by_position/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns a txoutput for the position if the txoutput exists and has not been spent" do
+    test "returns a txoutput for the position with preloads, if the txoutput exists and has not been spent" do
       txoutput =
         build(:txoutput)
         |> with_deposit()
         |> insert()
 
-      utxo = DB.TxOutput.get_utxo_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
+      db_txoutput = DB.TxOutput.get_utxo_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
 
-      assert utxo != nil
-      assert txoutput.blknum == utxo.blknum
-      assert txoutput.txindex == utxo.txindex
-      assert txoutput.oindex == utxo.oindex
+      assert_txoutputs_with_preloads_equal(txoutput, db_txoutput)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -115,22 +136,15 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
 
   describe "OMG.WatcherInfo.DB.TxOutput.get_utxos/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns a txoutputs for the owner address if the txoutputs exist and have not been spent" do
+    test "returns a txoutput for the owner address if the txoutputs exist and have not been spent" do
       txoutput =
         build(:txoutput)
         |> with_deposit()
         |> insert()
 
-      utxos = DB.TxOutput.get_utxos(txoutput.owner)
+      [db_txoutput | _] = DB.TxOutput.get_utxos(txoutput.owner)
 
-      assert utxos != nil
-      assert length(utxos) == 1
-
-      [utxo | _] = utxos
-
-      assert txoutput.blknum == utxo.blknum
-      assert txoutput.txindex == utxo.txindex
-      assert txoutput.oindex == utxo.oindex
+      assert_txoutputs_with_preloads_equal(txoutput, db_txoutput)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -175,11 +189,50 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
       assert length(DB.TxOutput.get_utxos(txoutput.owner)) == 1
 
       assert DB.Repo.one(
-               from(t in DB.TxOutput,
-                 where: t.owner == ^txoutput.owner,
-                 select: count(t.child_chain_utxohash)
-               )
-             ) == 3
+        from(t in DB.TxOutput,
+          where: t.owner == ^txoutput.owner,
+          select: count(t.child_chain_utxohash)
+        )
+      ) == 3
     end
+  end
+
+  def assert_txoutputs_with_preloads_equal(expected, actual) do
+    assert_txoutputs_equal(expected, actual)
+    assert_txoutputs_preloads_equal(expected, actual)
+  end
+
+  def assert_txoutputs_equal(expected, actual) do
+    assert actual != nil
+    assert actual.blknum == expected.blknum
+    assert actual.txindex == expected.txindex
+    assert actual.oindex == expected.oindex
+    assert actual.creating_txhash == expected.creating_txhash
+    assert actual.spending_txhash == expected.spending_txhash
+    assert actual.spending_tx_oindex == expected.spending_tx_oindex
+    assert actual.inserted_at == expected.inserted_at
+    assert actual.updated_at == expected.updated_at
+  end
+
+  def assert_txoutputs_preloads_equal(expected, actual) do
+    assert length(expected.ethevents) == length(expected.ethevents)
+
+    case actual.creating_txhash do
+      nil ->
+        assert length(actual.ethevents) == 1
+
+      _creating_txhash ->
+        assert actual.ethevents == []
+        assert actual.creating_transaction.txhash == expected.creating_txhash
+    end
+
+    case actual.spending_txhash do
+      nil ->
+        assert actual.spending_transaction == nil
+
+      _spending_txhash ->
+        assert actual.spending_transaction.txhash == expected.spending_txhash
+        assert actual.spending_tx_oindex == expected.spending_tx_oindex
+    end    
   end
 end

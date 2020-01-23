@@ -13,18 +13,6 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.Factory.TxOutput do
-  @moduledoc """
-    TxOutput factory.
-
-    Generates a txoutput with a `blknum` using blknum sequence from the block factory.the 1, 1001,
-    2001, etc... In most test use cases `blknum` should be overridden.
-
-    If you are overriding some values, also consider its relation to other values. E.g:
-
-      - To override `blknum`, also consider overriding `txindex`.
-      - To override `creating_transaction`, also consider overriding `txindex` and `oindex`.
-      - To override `spending_transaction`, also consider overriding `spending_tx_oindex`
-  """
   defmacro __using__(_opts) do
     quote do
       alias OMG.Utxo
@@ -34,9 +22,27 @@ defmodule OMG.WatcherInfo.Factory.TxOutput do
 
       @eth OMG.Eth.RootChain.eth_pseudo_address()
 
+      @doc """
+      TxOutput factory.
+
+      Generates a txoutput with a `blknum` using blknum sequence from the block factory.the 1, 1001,
+      2001, etc... In most test use cases `blknum` should be overridden.
+
+      If you are overriding some values, also consider its relation to other values. E.g:
+
+        - To override `blknum`, also consider overriding `txindex`.
+        - To override `creating_transaction`, also consider overriding `txindex` and `oindex`.
+        - To override `spending_transaction`, also consider overriding `spending_tx_oindex`
+      """
       def txoutput_factory(attrs \\ %{}) do
         # use the blknum sequence for block.blknum
-        blknum = attrs[:blknum] || sequence(:block_blknum, fn seq -> seq * 1000 + 1 end)
+        {blknum, attrs} = case attrs[:blknum] do
+          nil ->
+            {sequence(:block_blknum, fn seq -> seq * 1000 + 1 end), attrs}
+
+          blknum ->
+            {blknum, Map.delete(attrs, :blknum)}
+        end
 
         txoutput = %DB.TxOutput{
           blknum: blknum,
@@ -48,7 +54,7 @@ defmodule OMG.WatcherInfo.Factory.TxOutput do
           creating_transaction: nil,
           spending_transaction: nil,
           spending_tx_oindex: nil,
-          proof: nil,
+          proof: insecure_random_bytes(32),
           ethevents: []
         }
 
@@ -79,10 +85,19 @@ defmodule OMG.WatcherInfo.Factory.TxOutput do
             transaction -> transaction
           end
 
-        txoutput
-        |> Map.put(:blknum, transaction.block.blknum)
-        |> Map.put(:creating_txhash, transaction.txhash)
-        |> Map.put(:txindex, length(transaction.outputs))
+        txoutput = struct(txoutput, %{
+          blknum: transaction.block.blknum,
+          creating_txhash: transaction.txhash,
+          txindex: length(transaction.outputs)
+        })
+
+        Map.put(
+          txoutput,
+          :child_chain_utxohash,
+          DB.TxOutput.generate_child_chain_utxohash(
+            Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)
+          )
+        )
       end
 
       # if testing with a transaction containing multiple txoutput inputs then consider using the transaction

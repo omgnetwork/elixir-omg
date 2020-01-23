@@ -62,6 +62,15 @@ defmodule OMG.WatcherInfo.DB.Block do
     DB.Repo.aggregate(__MODULE__, :max, :blknum)
   end
 
+  def fetch_by(where_conditions) do
+    DB.Repo.fetch(
+      from(
+        block in base_query(),
+        where: ^where_conditions
+      )
+    )
+  end  
+
   @doc """
     Gets a block specified by a block number.
   """

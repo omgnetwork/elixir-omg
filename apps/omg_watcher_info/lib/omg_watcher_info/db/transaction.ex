@@ -42,23 +42,38 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     timestamps(type: :utc_datetime_usec)
   end
 
+  def fetch_by(where_conditions) do
+    DB.Repo.fetch(
+      from(
+        transaction in __MODULE__,
+        join: block in subquery(DB.Block.base_query()), on: transaction.blknum == block.blknum,
+        preload: [
+          inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
+          outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
+        ],
+        where: ^where_conditions,
+        select: %{transaction | block: block}
+      )
+    )
+  end
+
   @doc """
     Gets a transaction specified by a hash.
     Optionally, fetches block which the transaction was included in.
   """
   def get(hash) do
-    query =
+    DB.Repo.one(
       from(
-        __MODULE__,
+        transaction in __MODULE__,
+        join: block in subquery(DB.Block.base_query()), on: transaction.blknum == block.blknum,
         where: [txhash: ^hash],
+        select: %{transaction | block: block},
         preload: [
-          block: ^DB.Block.base_query(),
           inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
           outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
         ]
       )
-
-    DB.Repo.one(query)
+    )
   end
 
   @doc """
