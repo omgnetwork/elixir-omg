@@ -36,13 +36,14 @@ defmodule OMG.WatcherInfo.Factory.TxOutput do
       """
       def txoutput_factory(attrs \\ %{}) do
         # use the blknum sequence for block.blknum
-        {blknum, attrs} = case attrs[:blknum] do
-          nil ->
-            {sequence(:block_blknum, fn seq -> seq * 1000 + 1 end), attrs}
+        {blknum, attrs} =
+          case attrs[:blknum] do
+            nil ->
+              {sequence(:block_blknum, fn seq -> seq * 1000 + 1 end), attrs}
 
-          blknum ->
-            {blknum, Map.delete(attrs, :blknum)}
-        end
+            blknum ->
+              {blknum, Map.delete(attrs, :blknum)}
+          end
 
         txoutput = %DB.TxOutput{
           blknum: blknum,
@@ -85,18 +86,17 @@ defmodule OMG.WatcherInfo.Factory.TxOutput do
             transaction -> transaction
           end
 
-        txoutput = struct(txoutput, %{
-          blknum: transaction.block.blknum,
-          creating_txhash: transaction.txhash,
-          txindex: length(transaction.outputs)
-        })
+        txoutput =
+          struct(txoutput, %{
+            blknum: transaction.block.blknum,
+            creating_txhash: transaction.txhash,
+            txindex: length(transaction.outputs)
+          })
 
         Map.put(
           txoutput,
           :child_chain_utxohash,
-          DB.TxOutput.generate_child_chain_utxohash(
-            Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)
-          )
+          DB.TxOutput.generate_child_chain_utxohash(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
         )
       end
 

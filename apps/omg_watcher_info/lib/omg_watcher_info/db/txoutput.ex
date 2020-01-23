@@ -79,11 +79,15 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
     Repo.one(
-      from(txoutput in __MODULE__,      
+      from(txoutput in __MODULE__,
         left_join: ethevents in assoc(txoutput, :ethevents),
         left_join: creating_transaction in assoc(txoutput, :creating_transaction),
         left_join: spending_transaction in assoc(txoutput, :spending_transaction),
-        preload: [ethevents: ethevents, creating_transaction: creating_transaction, spending_transaction: spending_transaction],
+        preload: [
+          ethevents: ethevents,
+          creating_transaction: creating_transaction,
+          spending_transaction: spending_transaction
+        ],
         where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
       )
     )
@@ -99,7 +103,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
         left_join: creating_transaction in assoc(txoutput, :creating_transaction),
         left_join: spending_transaction in assoc(txoutput, :spending_transaction),
         preload: [:ethevents, :creating_transaction, :spending_transaction],
-        where: ^filter_where_unspent([blknum: blknum, txindex: txindex, oindex: oindex])
+        where: ^filter_where_unspent(blknum: blknum, txindex: txindex, oindex: oindex)
       )
     )
   end
@@ -112,7 +116,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
         left_join: creating_transaction in assoc(txoutput, :creating_transaction),
         left_join: spending_transaction in assoc(txoutput, :spending_transaction),
         preload: [:ethevents, :creating_transaction, :spending_transaction],
-        where: ^filter_where_unspent([owner: owner]),
+        where: ^filter_where_unspent(owner: owner),
         order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
       )
 
@@ -124,7 +128,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     query =
       from(
         txoutput in __MODULE__,
-        where: ^filter_where_unspent([owner: owner]),
+        where: ^filter_where_unspent(owner: owner),
         group_by: txoutput.currency,
         select: {txoutput.currency, sum(txoutput.amount)}
       )
@@ -208,23 +212,24 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   # select txoutputs that have neither been spent nor have a corresponding ethevents exit events
   # using the provided query params
   defp filter_where_unspent(params) do
-    where_clause = Enum.reduce(params, dynamic(true), fn
-      {:owner, value}, dynamic ->
-        dynamic([t], ^dynamic and t.owner == ^value)
+    where_clause =
+      Enum.reduce(params, dynamic(true), fn
+        {:owner, value}, dynamic ->
+          dynamic([t], ^dynamic and t.owner == ^value)
 
-      {:blknum, value}, dynamic ->
-        dynamic([t], ^dynamic and t.blknum == ^value)
+        {:blknum, value}, dynamic ->
+          dynamic([t], ^dynamic and t.blknum == ^value)
 
-      {:txindex, value}, dynamic ->
-        dynamic([t], ^dynamic and t.txindex == ^value)
+        {:txindex, value}, dynamic ->
+          dynamic([t], ^dynamic and t.txindex == ^value)
 
-      {:oindex, value}, dynamic ->
-        dynamic([t], ^dynamic and t.oindex == ^value)
+        {:oindex, value}, dynamic ->
+          dynamic([t], ^dynamic and t.oindex == ^value)
 
-      {_, _}, dynamic ->
-        # not a where parameter
-        dynamic
-    end)
+        {_, _}, dynamic ->
+          # not a where parameter
+          dynamic
+      end)
 
     unspent_query_fragment(where_clause)
   end

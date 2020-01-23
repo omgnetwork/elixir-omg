@@ -80,10 +80,9 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
       assert transaction.block.hash == db_transaction.block.hash
       assert transaction.block.eth_height == db_transaction.block.eth_height
       assert transaction.block.timestamp == db_transaction.block.timestamp
-      
+
       assert length(db_transaction.inputs) == 2
 
-            
       assert length(db_transaction.outputs) == 2
 
       assert db_transaction.block.tx_count == 2

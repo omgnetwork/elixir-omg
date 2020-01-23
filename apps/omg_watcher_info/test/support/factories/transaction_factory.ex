@@ -29,13 +29,15 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
       require Utxo
 
       def transaction_factory(attrs \\ %{}) do
-        {block, attrs} = case attrs[:block] do
-          nil -> {build(:block, tx_count: 1), attrs}
+        {block, attrs} =
+          case attrs[:block] do
+            nil ->
+              {build(:block, tx_count: 1), attrs}
 
-          block ->
-            block = Map.put(block, :tx_count, Map.get(block, :tx_count) + 1)
+            block ->
+              block = Map.put(block, :tx_count, Map.get(block, :tx_count) + 1)
 
-            {block, Map.delete(attrs, :block)}
+              {block, Map.delete(attrs, :block)}
           end
 
         transaction = %DB.Transaction{
@@ -58,23 +60,23 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
           txoutputs
           |> Enum.with_index()
           |> Enum.map_reduce(transaction, fn {txoutput, index}, transaction ->
-               input_fields = %{
-                 proof: insecure_random_bytes(32),
-                 spending_transaction: transaction,
-                 spending_tx_oindex: index
-               }
-               
-               utxo_pos = Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)
+            input_fields = %{
+              proof: insecure_random_bytes(32),
+              spending_transaction: transaction,
+              spending_tx_oindex: index
+            }
 
-               txoutput = DB.TxOutput.get_by_position(utxo_pos) || txoutput
+            utxo_pos = Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)
 
-               {:ok, txoutput} =
-                 txoutput
-                 |> Ecto.Changeset.change(input_fields)
-                 |> DB.Repo.insert_or_update()
+            txoutput = DB.TxOutput.get_by_position(utxo_pos) || txoutput
 
-               {{txoutput, index}, Map.put(transaction, :inputs, transaction.inputs ++ [txoutput])}
-             end)
+            {:ok, txoutput} =
+              txoutput
+              |> Ecto.Changeset.change(input_fields)
+              |> DB.Repo.insert_or_update()
+
+            {{txoutput, index}, Map.put(transaction, :inputs, transaction.inputs ++ [txoutput])}
+          end)
 
         transaction
       end
@@ -84,23 +86,24 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
           txoutputs
           |> Enum.with_index()
           |> Enum.map_reduce(transaction, fn {txoutput, index}, transaction ->
-               output_fields = %{
-                 creating_transaction: transaction,
-                 blknum: transaction.block.blknum,
-                 txindex: transaction.txindex,
-                 oindex: index
-               }
+            output_fields = %{
+              creating_transaction: transaction,
+              blknum: transaction.block.blknum,
+              txindex: transaction.txindex,
+              oindex: index
+            }
 
-               child_chain_utxohash =
-                 DB.TxOutput.generate_child_chain_utxohash(
-                   Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
+            child_chain_utxohash =
+              DB.TxOutput.generate_child_chain_utxohash(
+                Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)
+              )
 
-               output_fields = Map.put(output_fields, :child_chain_utxohash, child_chain_utxohash)
+            output_fields = Map.put(output_fields, :child_chain_utxohash, child_chain_utxohash)
 
-               txoutput = insert(struct(txoutput, output_fields))
+            txoutput = insert(struct(txoutput, output_fields))
 
-               {{txoutput, index}, Map.put(transaction, :outputs, transaction.outputs ++ [txoutput])}
-             end)
+            {{txoutput, index}, Map.put(transaction, :outputs, transaction.outputs ++ [txoutput])}
+          end)
 
         transaction
       end

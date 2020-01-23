@@ -43,16 +43,15 @@ defmodule OMG.WatcherInfo.Factory.Block do
           transactions
           |> Enum.with_index()
           |> Enum.map(fn {transaction, txindex} ->
-               transaction =
-                 Map.put(transaction, :block, block)
-                 |> Map.put(:txindex, txindex)
-                 |> insert()
-                 
-              IO.inspect(transaction, label: "transaction in with_transactions")
+            transaction =
+              Map.put(transaction, :block, block)
+              |> Map.put(:txindex, txindex)
+              |> insert()
 
+            IO.inspect(transaction, label: "transaction in with_transactions")
 
-              #  |> Map.put(:inputs, inputs)
-              #  |> Map.put(:outputs, outputs)
+            #  |> Map.put(:inputs, inputs)
+            #  |> Map.put(:outputs, outputs)
 
             # insert(transaction)
             #   inputs = 
@@ -73,7 +72,7 @@ defmodule OMG.WatcherInfo.Factory.Block do
             #          |> Map.put(:oindex, oindex)
             #          |> Map.put(:creating_transaction, transaction)
             #     end) 
-            end)
+          end)
 
         Map.put(block, :transactions, transactions)
         |> Map.put(:tx_count, length(transactions))

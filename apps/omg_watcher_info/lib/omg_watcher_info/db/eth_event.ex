@@ -17,7 +17,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   Ecto schema for events logged by Ethereum
   """
   use Ecto.Schema
-  
+
   import Ecto.Query
 
   alias Ecto.Multi
@@ -69,16 +69,14 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
       |> Multi.insert(:ethevent, new_changeset(deposit, :deposit))
       |> Multi.insert(:txoutput, DB.TxOutput.new_changeset(deposit))
       |> Multi.insert(
-           :ethevent_txoutput,
-           fn %{ethevent: ethevent, txoutput: txoutput} ->
-             DB.EthEventsTxOutputs.changeset(
-               %{
-                  root_chain_txhash_event: ethevent.root_chain_txhash_event,
-                  child_chain_utxohash: txoutput.child_chain_utxohash
-                }
-             )
-           end
-         )
+        :ethevent_txoutput,
+        fn %{ethevent: ethevent, txoutput: txoutput} ->
+          DB.EthEventsTxOutputs.changeset(%{
+            root_chain_txhash_event: ethevent.root_chain_txhash_event,
+            child_chain_utxohash: txoutput.child_chain_utxohash
+          })
+        end
+      )
       |> DB.Repo.transaction()
 
     case result do
@@ -102,47 +100,46 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
       exits
       |> Enum.map(&utxo_exit_from_exit_event/1)
       |> Enum.map_reduce({:ok}, fn utxo_exit, _ ->
-           status = insert_exit!(utxo_exit)
-           {status, status}
-         end)
+        status = insert_exit!(utxo_exit)
+        {status, status}
+      end)
 
     status
   end
-  
+
   @spec insert_exit!(%{
           root_chain_txhash: binary(),
           log_index: non_neg_integer(),
           decoded_utxo_position: Utxo.Position.t()
         }) :: :ok | :error
-  defp insert_exit!(
-         %{
-           root_chain_txhash: root_chain_txhash,
-           log_index: log_index,
-           decoded_utxo_position: {:utxo_position, blknum, txindex, oindex}
-         }
-       ) do
-
+  defp insert_exit!(%{
+         root_chain_txhash: root_chain_txhash,
+         log_index: log_index,
+         decoded_utxo_position: {:utxo_position, blknum, txindex, oindex}
+       }) do
     result =
       Multi.new()
-      |> Multi.insert(:ethevent, new_changeset(%{root_chain_txhash: root_chain_txhash, log_index: log_index}, :standard_exit))
-      |> Multi.run(:txoutput, fn _, _ -> 
-           {:ok, txoutput} = DB.TxOutput.fetch_by([blknum: blknum, txindex: txindex, oindex: oindex])
-
-           case txoutput.spending_txhash do
-             nil -> {:ok, txoutput}
-             spending_txhash -> {:error, "Cannot exit and already spent txoutput"}
-           end
-         end)
       |> Multi.insert(
-           :ethevent_txoutput,
-           fn %{ethevent: ethevent, txoutput: txoutput} ->
-             DB.EthEventsTxOutputs.changeset(
-               %{
-                  root_chain_txhash_event: ethevent.root_chain_txhash_event,
-                  child_chain_utxohash: txoutput.child_chain_utxohash
-                }
-            )
-           end)
+        :ethevent,
+        new_changeset(%{root_chain_txhash: root_chain_txhash, log_index: log_index}, :standard_exit)
+      )
+      |> Multi.run(:txoutput, fn _, _ ->
+        {:ok, txoutput} = DB.TxOutput.fetch_by(blknum: blknum, txindex: txindex, oindex: oindex)
+
+        case txoutput.spending_txhash do
+          nil -> {:ok, txoutput}
+          spending_txhash -> {:error, "Cannot exit and already spent txoutput"}
+        end
+      end)
+      |> Multi.insert(
+        :ethevent_txoutput,
+        fn %{ethevent: ethevent, txoutput: txoutput} ->
+          DB.EthEventsTxOutputs.changeset(%{
+            root_chain_txhash_event: ethevent.root_chain_txhash_event,
+            child_chain_utxohash: txoutput.child_chain_utxohash
+          })
+        end
+      )
       |> DB.Repo.transaction()
 
     case result do

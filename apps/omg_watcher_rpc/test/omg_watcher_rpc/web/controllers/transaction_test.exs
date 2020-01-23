@@ -74,11 +74,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       #   |> with_inputs(creating_transaction.outputs)
       #   |> with_outputs([output_1, output_2])
 
-      creating_transaction =
-        build(:transaction, inputs: [deposit_1, deposit_2], outputs: [input_1, input_1])
-      
-      spending_transaction =
-        build(:transaction, inputs: creating_transaction.outputs, outputs: [output_1, output_2])
+      creating_transaction = build(:transaction, inputs: [deposit_1, deposit_2], outputs: [input_1, input_1])
+
+      spending_transaction = build(:transaction, inputs: creating_transaction.outputs, outputs: [output_1, output_2])
 
       block = insert(:block) |> with_transactions([creating_transaction, spending_transaction])
 

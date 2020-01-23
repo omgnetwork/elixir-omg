@@ -25,7 +25,7 @@ defmodule OMG.WatcherInfo.DB.Repo do
   Inserts all entries to the database in chunks to avoid `too many parameters` error.
   Accepts the same parameters that `Repo.insert_all/3`.
   """
-@spec insert_all_chunked(
+  @spec insert_all_chunked(
           schema_or_source :: binary() | atom() | Ecto.Schema.t(),
           entries :: [map() | Keyword.t()],
           opts :: Keyword.t()

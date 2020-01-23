@@ -46,7 +46,8 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     DB.Repo.fetch(
       from(
         transaction in __MODULE__,
-        join: block in subquery(DB.Block.base_query()), on: transaction.blknum == block.blknum,
+        join: block in subquery(DB.Block.base_query()),
+        on: transaction.blknum == block.blknum,
         preload: [
           inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
           outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
@@ -65,7 +66,8 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     DB.Repo.one(
       from(
         transaction in __MODULE__,
-        join: block in subquery(DB.Block.base_query()), on: transaction.blknum == block.blknum,
+        join: block in subquery(DB.Block.base_query()),
+        on: transaction.blknum == block.blknum,
         where: [txhash: ^hash],
         select: %{transaction | block: block},
         preload: [

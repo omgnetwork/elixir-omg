@@ -83,12 +83,12 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
         |> with_inputs([deposit_1, deposit_2])
         |> with_outputs([input_1, input_2])
 
-      Enum.each(transaction.inputs ++ transaction.outputs, fn txoutput -> 
+      Enum.each(transaction.inputs ++ transaction.outputs, fn txoutput ->
         db_txoutput =
           Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex)
           |> DB.TxOutput.get_by_position()
 
-          assert_txoutputs_with_preloads_equal(txoutput, db_txoutput)
+        assert_txoutputs_with_preloads_equal(txoutput, db_txoutput)
       end)
     end
   end
@@ -189,11 +189,11 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
       assert length(DB.TxOutput.get_utxos(txoutput.owner)) == 1
 
       assert DB.Repo.one(
-        from(t in DB.TxOutput,
-          where: t.owner == ^txoutput.owner,
-          select: count(t.child_chain_utxohash)
-        )
-      ) == 3
+               from(t in DB.TxOutput,
+                 where: t.owner == ^txoutput.owner,
+                 select: count(t.child_chain_utxohash)
+               )
+             ) == 3
     end
   end
 
@@ -233,6 +233,6 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
       _spending_txhash ->
         assert actual.spending_transaction.txhash == expected.spending_txhash
         assert actual.spending_tx_oindex == expected.spending_tx_oindex
-    end    
+    end
   end
 end

@@ -69,7 +69,7 @@ defmodule OMG.WatcherInfo.DB.Block do
         where: ^where_conditions
       )
     )
-  end  
+  end
 
   @doc """
     Gets a block specified by a block number.
