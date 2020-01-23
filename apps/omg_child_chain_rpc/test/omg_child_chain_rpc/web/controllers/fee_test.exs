@@ -32,7 +32,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
           updated_at: DateTime.from_unix!(1_546_336_800)
         },
         Base.decode16!("0000000000000000000000000000000000000001") => %{
-          amount: 1,
+          amount: 2,
           subunit_to_unit: 1_000_000_000_000_000_000,
           pegged_amount: 1,
           pegged_currency: "USD",

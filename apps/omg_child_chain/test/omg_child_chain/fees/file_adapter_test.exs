@@ -30,7 +30,7 @@ defmodule OMG.ChildChain.FileAdapterTest do
   @fees %{
     @payment_tx_type => %{
       @eth_hex => %{
-        amount: 0,
+        amount: 1,
         pegged_amount: 1,
         subunit_to_unit: 1_000_000_000_000_000_000,
         pegged_currency: "USD",

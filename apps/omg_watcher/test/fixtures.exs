@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Fixtures do
       TestHelper.write_fee_file(%{
         @payment_tx_type => %{
           enc_eth => %{
-            amount: 0,
+            amount: 1,
             pegged_amount: 1,
             subunit_to_unit: 1_000_000_000_000_000_000,
             pegged_currency: "USD",
@@ -45,7 +45,7 @@ defmodule OMG.Watcher.Fixtures do
             updated_at: DateTime.utc_now()
           },
           Eth.Encoding.to_hex(token) => %{
-            amount: 0,
+            amount: 2,
             pegged_amount: 1,
             subunit_to_unit: 1_000_000_000_000_000_000,
             pegged_currency: "USD",
