@@ -55,7 +55,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert {:ok, %{"blknum" => spend_child_block}} = submit_transaction(tx)
 
     token_raw_tx =
-      Transaction.Payment.new([{token_deposit_blknum, 0, 0}], [{bob.addr, token, 8}, {alice.addr, token, 2}])
+      Transaction.Payment.new([{token_deposit_blknum, 0, 0}], [{bob.addr, token, 6}, {alice.addr, token, 2}])
 
     token_tx = OMG.TestHelper.sign_encode(token_raw_tx, [alice.priv])
     # spend the token deposit
@@ -79,7 +79,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     {:ok, _started_apps} = Application.ensure_all_started(:omg_child_chain)
     wait_for_web()
     # repeat spending to see if all works
-    raw_tx2 = Transaction.Payment.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, @eth, 10}])
+    raw_tx2 = Transaction.Payment.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, @eth, 8}])
     tx2 = OMG.TestHelper.sign_encode(raw_tx2, [bob.priv, alice.priv])
     # spend the output of the first tx
     assert {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
@@ -129,7 +129,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   test "check that unspent funds can be exited with in-flight exits",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     # create transaction, submit, wait for block publication
-    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 4}])
     {:ok, %{"blknum" => blknum, "txindex" => txindex}} = tx |> Transaction.Signed.encode() |> submit_transaction()
 
     post_spend_child_block = blknum + @interval
@@ -213,7 +213,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   test "check in-flight exit input piggybacking is ignored by the child chain",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     # create transaction, submit, wait for block publication
-    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}])
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     {:ok, %{"blknum" => blknum, "txindex" => txindex}} = tx |> Transaction.Signed.encode() |> submit_transaction()
 
     %Transaction.Signed{sigs: in_flight_tx_sigs} =
