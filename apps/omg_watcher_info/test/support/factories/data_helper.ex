@@ -37,6 +37,7 @@ defmodule OMG.WatcherInfo.Factory.DataHelper do
         |> Map.merge(%{blknum: blknum, currency: <<0>>, owner: insecure_random_bytes(20), amount: 1})
       end
 
+      # creates event data specifically for the EthEvents.insert_exit!/1 function
       def exit_params_from_ethevent(ethevent) do
         [txoutput | _] = ethevent.txoutputs
 

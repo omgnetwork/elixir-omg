@@ -126,9 +126,14 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
       |> Multi.run(:txoutput, fn _, _ ->
         {:ok, txoutput} = DB.TxOutput.fetch_by(blknum: blknum, txindex: txindex, oindex: oindex)
 
-        case txoutput.spending_txhash do
-          nil -> {:ok, txoutput}
-          spending_txhash -> {:error, "Cannot exit and already spent txoutput"}
+        with {:ok, txoutput} <- validate_txoutput_unspent(txoutput),
+             {:ok, txoutput} <- validate_txoutput_unexited(txoutput) do
+          IO.puts("txoutput not spent nor exited")
+          {:ok, txoutput}
+        else
+          {:error, reason} ->
+            IO.puts("error: #{reason}")
+            {:error, reason}
         end
       end)
       |> Multi.insert(
@@ -146,6 +151,22 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
       {:ok, _changes} -> :ok
       {:error, _failed_operation, _failed_value, _changes_so_far} -> :error
     end
+  end
+
+  defp validate_txoutput_unspent(txoutput) do
+    case txoutput.spending_txhash do
+      nil -> {:ok, txoutput}
+      _spending_txhash -> {:error, "Cannot exit and already spent txoutput"}
+    end
+  end
+
+  defp validate_txoutput_unexited(txoutput) do
+    Enum.reduce_while(txoutput.ethevents, {:ok, txoutput}, fn ethevent, _acc ->
+      case ethevent.event_type do
+        :standard_exit -> {:halt, {:error, "Cannot exit and already exited txoutput"}}
+        _ -> {:cont, {:ok, txoutput}}
+      end
+    end)
   end
 
   def fetch_by(where_conditions) do
