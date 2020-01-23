@@ -48,7 +48,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       OMG.TestHelper.create_signed(
         [{alice_deposit, 0, 0, alice}, {bob_deposit, 0, 0, bob}],
         @eth,
-        [{alice, 5}, {bob, 15}]
+        [{alice, 4}, {bob, 15}]
       )
 
     submitted_txbytes = Transaction.raw_txbytes(submitted_tx)
@@ -56,7 +56,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     # To create in-flight exit watcher needs to have available utxos in his state,
     # otherwise the watcher state indicates that there is no need to do an in-flight exit.
     competing_ife =
-      OMG.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 5}])
+      OMG.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 9}])
       |> Transaction.Signed.encode()
       |> WatcherHelper.get_in_flight_exit()
 
@@ -64,7 +64,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     %{"blknum" => blknum} = submitted_tx |> Transaction.Signed.encode() |> WatcherHelper.submit()
 
     # Submit another tx spending that tx's output
-    OMG.TestHelper.create_signed([{blknum, 0, 1, bob}], @eth, [{alice, 2}, {alice, 3}])
+    OMG.TestHelper.create_signed([{blknum, 0, 1, bob}], @eth, [{alice, 7}, {alice, 7}])
     |> Transaction.Signed.encode()
     |> WatcherHelper.submit()
 
@@ -167,8 +167,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     # tx1 is submitted then in-flight-exited
     # tx2 is in-flight-exited
-    tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
-    tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
+    tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 4}])
+    tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 9}])
 
     ife1 = tx1 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
     ife2 = tx2 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
@@ -240,8 +240,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     # tx1 is submitted then in-flight-exited
     # tx2 is in-flight-exited, it will be _invalidly_ used to challenge tx1!
-    tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
-    tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
+    tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 4}])
+    tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 9}])
 
     ife1 = tx1 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
     ife2 = tx2 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
@@ -328,7 +328,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     DevHelper.import_unlock_fund(bob)
 
-    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 4}, {bob, 5}])
     ife1 = tx |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
 
     %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> WatcherHelper.submit()
@@ -362,11 +362,11 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     DevHelper.import_unlock_fund(bob)
 
-    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 4}])
     ife1 = tx |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
 
     %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> WatcherHelper.submit()
-    invalidating_tx = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 5}])
+    invalidating_tx = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 4}])
     %{"blknum" => invalidating_blknum} = WatcherHelper.submit(invalidating_tx)
     IntegrationTest.wait_for_block_fetch(invalidating_blknum, @timeout)
 
