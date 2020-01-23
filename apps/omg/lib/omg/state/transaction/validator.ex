@@ -17,8 +17,11 @@ defmodule OMG.State.Transaction.Validator do
   Provides functions for stateful transaction validation for transaction processing in OMG.State.Core.
   """
 
-  @maximum_fee_transactions 128
-  @maximum_block_size 65_536 - @maximum_fee_transactions
+  require OMG.State.Transaction.Payment
+
+  # NOTE: Last processed transaction could potentially take his room but also generate `max_inputs` fee transactions
+  @safety_margin 2 * OMG.State.Transaction.Payment.max_inputs()
+  @maximum_block_size 65_536 - @safety_margin
 
   alias OMG.Fees
   alias OMG.Output
@@ -100,12 +103,14 @@ defmodule OMG.State.Transaction.Validator do
 
   defp make_outputs(owner, fees_paid) do
     Enum.map(fees_paid, fn {currency, amount} ->
-      Transaction.FeeTokenClaim.make_output(owner, currency, amount)
+      Transaction.FeeTokenClaim.new_output(owner, currency, amount)
     end)
   end
 
-  defp validate_block_size(%Core{tx_index: number_of_transactions_in_block}) do
-    case number_of_transactions_in_block == @maximum_block_size do
+  defp validate_block_size(%Core{tx_index: number_of_transactions_in_block, fees_paid: fees_paid}) do
+    fee_transactions_count = Enum.count(fees_paid)
+
+    case number_of_transactions_in_block + fee_transactions_count >= @maximum_block_size do
       true -> {:error, :too_many_transactions_in_block}
       false -> :ok
     end
