@@ -128,12 +128,9 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
         with {:ok, txoutput} <- validate_txoutput_unspent(txoutput),
              {:ok, txoutput} <- validate_txoutput_unexited(txoutput) do
-          IO.puts("txoutput not spent nor exited")
           {:ok, txoutput}
         else
-          {:error, reason} ->
-            IO.puts("error: #{reason}")
-            {:error, reason}
+          {:error, reason} -> {:error, reason}
         end
       end)
       |> Multi.insert(

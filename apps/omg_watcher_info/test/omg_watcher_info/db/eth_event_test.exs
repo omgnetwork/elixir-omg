@@ -52,7 +52,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "deposit creation cannot partially fail" do
+    test "deposit insertion cannot partially fail" do
       block = insert(:block)
       insert(:txoutput, blknum: block.blknum)
 
@@ -167,6 +167,27 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
 
       assert DB.EthEvent.insert_exits!([new_exit_utxo_params]) == :error
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "exit insertion cannot partially fail" do
+      txoutput = build(:txoutput)
+
+      insert(:transaction)
+      |> with_inputs([txoutput])
+
+      exit_utxo_params = exit_params_from_txoutput(txoutput)
+
+      assert DB.EthEvent.insert_exits!([exit_utxo_params]) == :error
+
+      # insert of txoutput failed, so there should not be an ethevent as the entire transaction
+      # was rolled back 
+      {fetch_status, _} =
+        exit_utxo_params
+        |> to_fetch_by_params([:root_chain_txhash, :log_index])
+        |> DB.EthEvent.fetch_by()
+
+      assert fetch_status == :error
     end
   end
 

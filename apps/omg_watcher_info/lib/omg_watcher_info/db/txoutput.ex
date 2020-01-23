@@ -68,7 +68,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   def fetch_by(where_conditions) do
     DB.Repo.fetch(
       from(txoutputs in __MODULE__,
-        join: ethevents in assoc(txoutputs, :ethevents),
+        left_join: ethevents in assoc(txoutputs, :ethevents),
         preload: [ethevents: ethevents],
         where: ^where_conditions,
         order_by: [asc: ethevents.updated_at]
