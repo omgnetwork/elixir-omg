@@ -23,6 +23,7 @@ defmodule OMG.Eth.Fixtures do
   alias Support.DevHelper
   alias Support.DevNode
   alias Support.RootChainHelper
+  alias Support.SnapshotContracts
 
   @test_erc20_vault_id 2
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -39,7 +40,7 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    contracts = parse_contracts()
+    contracts = SnapshotContracts.parse_contracts()
 
     contract = %{
       authority_addr: Encoding.from_hex(contracts["AUTHORITY_ADDRESS"]),
@@ -66,7 +67,7 @@ defmodule OMG.Eth.Fixtures do
 
   deffixture token(root_chain_contract_config) do
     :ok = root_chain_contract_config
-    contracts = parse_contracts()
+    contracts = SnapshotContracts.parse_contracts()
 
     token_addr = Encoding.from_hex(contracts["CONTRACT_ERC20_MINTABLE"])
 
@@ -98,30 +99,5 @@ defmodule OMG.Eth.Fixtures do
     end)
 
     :ok
-  end
-
-  # taken from the plasma-contracts deployment snapshot
-  # this parsing occurs in several places around the codebase
-  defp parse_contracts() do
-    local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
-
-    contract_addreses_path =
-      case File.exists?(local_umbrella_path) do
-        true ->
-          local_umbrella_path
-
-        _ ->
-          # CI/CD
-          Path.join([File.cwd!(), "localchain_contract_addresses.env"])
-      end
-
-    contract_addreses_path
-    |> File.read!()
-    |> String.split("\n", trim: true)
-    |> List.flatten()
-    |> Enum.reduce(%{}, fn line, acc ->
-      [key, value] = String.split(line, "=")
-      Map.put(acc, key, value)
-    end)
   end
 end

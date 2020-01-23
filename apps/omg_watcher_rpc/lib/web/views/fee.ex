@@ -19,12 +19,14 @@ defmodule OMG.WatcherRPC.Web.View.Fee do
 
   use OMG.WatcherRPC.Web, :view
   alias OMG.Utils.HttpRPC.Response
+  alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
   def render("fees_all.json", %{response: fees}) do
     fees
     |> Enum.map(&parse_for_type/1)
     |> Enum.into(%{})
     |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
   end
 
   defp parse_for_type({tx_type, fees}) do

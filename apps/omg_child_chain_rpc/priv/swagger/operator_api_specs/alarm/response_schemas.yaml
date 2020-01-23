@@ -1,6 +1,6 @@
 AlarmResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../../shared/response_schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:

@@ -35,7 +35,11 @@ This is the recommended method of starting the blockchain services, with the aux
 Before attempting the start up please ensure that you are not running any services that are listening on the following TCP ports: 9656, 7434, 7534, 5000, 8545, 5432, 5433.
 All commands should be run from the root of the repo.
 
-To bring the entire system up:
+To bring the entire system up you will first need to bring in the compatible Geth snapshot of plasma contracts:
+
+```sh
+make init_test
+```
 
 ```sh
 docker-compose up
@@ -76,9 +80,9 @@ make init_test
 
 # Testing & development
 
-You can setup the docker environment to run testing and development tasks:
+Docker building of source code and dependencies used to directly use common `mix` folders like `_build` and `deps`. To support workflows that switch between bare metal and Docker containers we've introduced `_build_docker` and `deps_docker` folders.
 
-(Note: If they exist, be sure to delete the `deps` and `_build` dirs from your host drive. Otherwise these dirs will get mapped into the docker container and can create build discrepancies and breakages.)
+You can setup the docker environment to run testing and development tasks:
 
 ```sh
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --entrypoint bash elixir-omg

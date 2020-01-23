@@ -62,14 +62,10 @@ CreateTransactionsBodySchema:
           fee:
             type: object
             properties:
-              amount:
-                type: integer
-                format: int256
               currency:
                 type: string
                 format: binary
             required:
-              - amount
               - currency
           metadata:
             type: string
@@ -86,7 +82,6 @@ CreateTransactionsBodySchema:
               currency: '0x0000000000000000000000000000000000000000'
               owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
           fee:
-            amount: 5
             currency: '0x0000000000000000000000000000000000000000'
           metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
 

@@ -1,6 +1,6 @@
 GetInFlightExitDataResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
   - type: object
     properties:
       data:
@@ -20,7 +20,7 @@ GetInFlightExitDataResponseSchema:
 
 GetCompetitorResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
   - type: object
     properties:
       data:
@@ -40,7 +40,7 @@ GetCompetitorResponseSchema:
 
 ProveCanonicalResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
   - type: object
     properties:
       data:
@@ -54,7 +54,7 @@ ProveCanonicalResponseSchema:
 
 InputChallengeDataResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
   - type: object
     properties:
       data:
@@ -72,7 +72,7 @@ InputChallengeDataResponseSchema:
 
 OutputChallengeDataResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
   - type: object
     properties:
       data:

@@ -105,9 +105,19 @@ defmodule Support.Conformance.PropertyGenerators do
     ])
   end
 
-  defp valid_blknum(), do: non_neg_integer()
-  defp valid_txndex(), do: integer(0, 1_000_000_000 - 1)
-  defp valid_oindex(), do: integer(0, 10_000 - 1)
+  # taken from ex_plasma, where they have been taken from:
+  # Contract settings
+  # These are being hard-coded from the same values on the contracts.
+  # See: https://github.com/omisego/plasma-contracts/blob/master/plasma_framework/contracts/src/utils/PosLib.sol#L16-L23
+  # TODO: when this moves to `ex_plasma`, fix this properly
+  @block_offset 1_000_000_000
+  @transaction_offset 10_000
+  @max_txindex trunc(:math.pow(2, 16) - 1)
+  @max_blknum trunc((:math.pow(2, 54) - 1 - @max_txindex) / (@block_offset / @transaction_offset))
+
+  defp valid_blknum(), do: integer(0, @max_blknum)
+  defp valid_txndex(), do: integer(0, @max_txindex)
+  defp valid_oindex(), do: integer(0, @transaction_offset - 1)
 
   # TODO: revisit this to generate logic-wise invalid txs like zero inputs/outputs (H6)
   defp valid_input_tuple() do

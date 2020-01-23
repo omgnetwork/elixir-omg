@@ -1,6 +1,6 @@
 GetAllTransactionsResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseListResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherInfoBaseListResponseSchema'
   - type: object
     properties:
       data:
@@ -68,7 +68,7 @@ GetAllTransactionsResponseSchema:
 
 CreateTransactionResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherInfoBaseResponseSchema'
   - type: object
     properties:
       data:
@@ -203,7 +203,7 @@ CreateTransactionResponseSchema:
 
 GetTransactionResponseSchema:
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherInfoBaseResponseSchema'
   - type: object
     properties:
       data:

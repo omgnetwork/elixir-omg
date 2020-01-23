@@ -93,13 +93,15 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
                    "blknum" => 2000,
                    "eth_height" => 2,
                    "hash" => "0x02",
-                   "timestamp" => 200
+                   "timestamp" => 200,
+                   "tx_count" => 0
                  },
                  %{
                    "blknum" => 1000,
                    "eth_height" => 1,
                    "hash" => "0x01",
-                   "timestamp" => 100
+                   "timestamp" => 100,
+                   "tx_count" => 0
                  }
                ],
                "data_paging" => %{

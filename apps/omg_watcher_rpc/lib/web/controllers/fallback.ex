@@ -18,7 +18,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
   """
 
   use Phoenix.Controller
-  alias OMG.Utils.HttpRPC.Error
+  alias OMG.WatcherRPC.Web.Views
 
   @errors %{
     exit_not_found: %{
@@ -70,41 +70,54 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
     no_deposit_for_given_blknum: %{
       code: "exit:invalid",
       description: "Utxo was spent or does not exist."
+    },
+    operation_not_found: %{
+      code: "operation:not_found",
+      description: "Operation cannot be found. Check request URL."
+    },
+    operation_bad_request: %{
+      code: "operation:bad_request",
+      description: "Parameters required by this operation are missing or incorrect."
     }
   }
 
-  def call(conn, Route.NotFound),
-    do: json(conn, Error.serialize("operation:not_found", "Operation cannot be found. Check request URL."))
-
   def call(conn, {:error, {:validation_error, param_name, validator}}) do
-    response =
-      Error.serialize(
-        "operation:bad_request",
-        "Parameters required by this operation are missing or incorrect.",
-        %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
-      )
+    error = error_info(conn, :operation_bad_request)
 
-    json(conn, response)
+    conn
+    |> put_view(Views.Error)
+    |> render(:error, %{
+      code: error.code,
+      description: error.description,
+      messages: %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
+    })
   end
 
   def call(conn, {:error, {reason, data}}) do
     error = error_info(conn, reason)
-    respond(conn, Map.put(error, :messages, data))
+
+    conn
+    |> put_view(Views.Error)
+    |> render(:error, %{code: error.code, description: error.description, messages: data})
   end
 
-  def call(conn, {:error, reason}), do: respond(conn, error_info(conn, reason))
+  def call(conn, {:error, reason}) do
+    error = error_info(conn, reason)
+
+    conn
+    |> put_view(Views.Error)
+    |> render(:error, %{code: error.code, description: error.description})
+  end
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
 
   # Controller's action with expression has no match, e.g. on guard
   def call(conn, _), do: call(conn, {:error, :unknown_error})
 
-  defp respond(conn, %{code: code, description: description} = err_info) do
-    json(conn, Error.serialize(code, description, Map.get(err_info, :messages)))
+  defp error_info(conn, reason) do
+    case Map.get(@errors, reason) do
+      nil -> %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
+      error -> error
+    end
   end
-
-  defp error_info(conn, reason),
-    do:
-      @errors
-      |> Map.get(reason, %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil})
 end

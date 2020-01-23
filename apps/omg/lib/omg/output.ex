@@ -35,10 +35,9 @@ defmodule OMG.Output do
   Reconstructs the structure from a list of RLP items
   """
   def reconstruct([raw_type, [_owner, _currency, _amount]] = rlp_data) when is_binary(raw_type) do
-    with :ok <- validate_data(rlp_data) do
-      utxo = ExPlasma.Utxo.new(rlp_data)
-      %__MODULE__{output_type: utxo.output_type, owner: utxo.owner, currency: utxo.currency, amount: utxo.amount}
-    end
+    with :ok <- validate_data(rlp_data),
+         {:ok, utxo} <- ExPlasma.Utxo.new(rlp_data),
+         do: %__MODULE__{output_type: utxo.output_type, owner: utxo.owner, currency: utxo.currency, amount: utxo.amount}
   end
 
   def reconstruct([_raw_type, [_owner, _currency, _amount]]), do: {:error, :unrecognized_output_type}

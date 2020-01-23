@@ -55,13 +55,20 @@ help:
 	@echo "3. In the third terminal window, run:"
 	@echo "    make start-watcher"
 	@echo ""
-	@echo "4. Wait until they all boot. And run in the fourth terminal window:"
+	@echo ""
+	@echo "4. In the fourth terminal window, run:"
+	@echo "    make start-watcher_info"
+	@echo ""
+	@echo "5. Wait until they all boot. And run in the fifth terminal window:"
 	@echo "    make get-alarms"
 	@echo ""
 	@echo "If you want to attach yourself to running services, use:"
 	@echo "    make remote-child_chain"
 	@echo "or"
 	@echo "    make remote-watcher"
+	@echo ""
+	@echo "or"
+	@echo "    make remote-watcher_info"
 	@echo ""
 	@echo "MISCELLANEOUS"
 	@echo "-------------"
@@ -79,7 +86,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200104"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-5735fd5"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -109,6 +116,8 @@ clean: clean-elixir-omg
 clean-elixir-omg:
 	rm -rf _build/*
 	rm -rf deps/*
+	rm -rf _build_docker/*
+	rm -rf deps_docker/*
 
 
 .PHONY: clean clean-elixir-omg
@@ -183,11 +192,12 @@ init_test:
 	PLASMA_FRAMEWORK_TX_HASH=$$(cat plasma-contracts/build/plasma_framework_tx_hash) && \
 	PLASMA_FRAMEWORK=$$(cat plasma-contracts/build/plasma_framework) && \
 	PAYMENT_EIP712_LIBMOCK=$$(cat plasma-contracts/build/paymentEip712LibMock) && \
+	MERKLE_WRAPPER=$$(cat plasma-contracts/build/merkleWrapper) && \
 	ERC20_MINTABLE=$$(cat plasma-contracts/build/erc20Mintable) && \
 	sh ../bin/generate-localchain-env AUTHORITY_ADDRESS=$$AUTHORITY_ADDRESS ETH_VAULT=$$ETH_VAULT \
 	ERC20_VAULT=$$ERC20_VAULT PAYMENT_EXIT_GAME=$$PAYMENT_EXIT_GAME \
 	PLASMA_FRAMEWORK_TX_HASH=$$PLASMA_FRAMEWORK_TX_HASH PLASMA_FRAMEWORK=$$PLASMA_FRAMEWORK \
-	PAYMENT_EIP712_LIBMOCK=$$PAYMENT_EIP712_LIBMOCK ERC20_MINTABLE=$$ERC20_MINTABLE
+	PAYMENT_EIP712_LIBMOCK=$$PAYMENT_EIP712_LIBMOCK MERKLE_WRAPPER=$$MERKLE_WRAPPER ERC20_MINTABLE=$$ERC20_MINTABLE
 
 test:
 	mix test --include test --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
@@ -223,7 +233,6 @@ start-pre-lumphini-watcher:
 docker-child_chain-prod:
 	docker run --rm -it \
 		-v $(PWD):/app \
-		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
@@ -232,7 +241,6 @@ docker-child_chain-prod:
 docker-watcher-prod:
 	docker run --rm -it \
 		-v $(PWD):/app \
-		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
@@ -241,7 +249,6 @@ docker-watcher-prod:
 docker-watcher_info-prod:
 	docker run --rm -it \
 		-v $(PWD):/app \
-		-v $(IMAGE_BUILD_DIR)/deps:/app/deps \
 		-u root \
 		--entrypoint /bin/sh \
 		$(IMAGE_BUILDER) \
@@ -333,7 +340,7 @@ docker-remote-childchain:
 ###
 start-services:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
-	docker-compose up geth postgres 
+	docker-compose up geth postgres
 
 start-child_chain:
 	set -e; . ./bin/variables; \
@@ -359,15 +366,15 @@ start-watcher:
 
 start-watcher_info:
 	set -e; . ./bin/variables; \
-	echo "Building Watcher" && \
+	echo "Building Watcher Info" && \
 	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
-	echo "Init Watcher DBs" && \
+	echo "Init Watcher Info DBs" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_key_value_db && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_postgresql_db && \
-	echo "Init Watcher DBs DONE" && \
-	echo "Run Watcher" && \
+	echo "Init WatcherInfo DBs DONE" && \
+	echo "Run Watcher Info" && \
 	PORT=${WATCHER_INFO_PORT} _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
@@ -395,7 +402,7 @@ stop-watcher:
 	_build/dev/rel/watcher/bin/watcher stop
 
 stop-watcher_info:
-	_build/dev/rel/watcher/bin/watcher stop
+	_build/dev/rel/watcher_info/bin/watcher_info stop
 
 remote-child_chain:
 	set -e; . ./bin/variables && \
@@ -467,10 +474,3 @@ diagnostics:
 	echo "\n ---------- END OF DIAGNOSTICS REPORT ----------"
 
 .PHONY: diagnostics
-
-### UTILS
-OSFLAG := ''
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	OSFLAG = OSX
-endif

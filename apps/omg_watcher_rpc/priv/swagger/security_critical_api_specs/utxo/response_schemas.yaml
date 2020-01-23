@@ -1,7 +1,7 @@
 GetUtxoChallengeResponseSchema:
   description: The response schema for utxo challenge data
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
   - type: object
     properties:
       data:
@@ -18,7 +18,7 @@ GetUtxoChallengeResponseSchema:
 GetUtxoExitResponseSchema:
   description: The response schema for utxo exit data
   allOf:
-  - $ref: '../../shared/schemas.yaml#/BaseResponseSchema'
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
   - type: object
     properties:
       data:

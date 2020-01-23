@@ -14,13 +14,16 @@
 
 defmodule OMG.WatcherRPC.Web.View.Alarm do
   @moduledoc """
-  The status view for rendering json
+  The alarm view for rendering json
   """
 
   use OMG.WatcherRPC.Web, :view
   alias OMG.Utils.HttpRPC.Response
+  alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
   def render("alarm.json", %{response: alarms}) do
-    Response.serialize(alarms)
+    alarms
+    |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
   end
 end

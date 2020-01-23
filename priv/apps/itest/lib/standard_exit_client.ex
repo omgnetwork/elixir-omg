@@ -99,34 +99,26 @@ defmodule Itest.StandardExitClient do
       _ = Logger.info("Exit queue was already added.")
       se
     else
-      # if we want to keep running async... exit queue adding is a shared resource operation
-      # so we set a resource lock so that we don't compete in adding a queue
-      case :global.set_lock({:exit_queue, self()}, [Node.self()], 1) do
-        true ->
-          _ = Logger.info("Exit queue missing. Adding...")
+      _ = Logger.info("Exit queue missing. Adding...")
 
-          data =
-            ABI.encode(
-              "addExitQueue(uint256,address)",
-              [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
-            )
+      data =
+        ABI.encode(
+          "addExitQueue(uint256,address)",
+          [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
+        )
 
-          txmap = %{
-            from: se.address,
-            to: Itest.Account.plasma_framework(),
-            value: Encoding.to_hex(0),
-            data: Encoding.to_hex(data),
-            gas: Encoding.to_hex(@gas_add_exit_queue)
-          }
+      txmap = %{
+        from: se.address,
+        to: Itest.Account.plasma_framework(),
+        value: Encoding.to_hex(0),
+        data: Encoding.to_hex(data),
+        gas: Encoding.to_hex(@gas_add_exit_queue)
+      }
 
-          {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-          wait_on_receipt_confirmed(receipt_hash, @retry_count)
-          wait_for_exit_queue(se, @retry_count)
-          %{se | add_exit_queue_hash: receipt_hash}
-
-        _ ->
-          se
-      end
+      {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+      wait_on_receipt_confirmed(receipt_hash, @retry_count)
+      wait_for_exit_queue(se, @retry_count)
+      %{se | add_exit_queue_hash: receipt_hash}
     end
   end
 

@@ -62,7 +62,7 @@ defmodule Itest.Client do
           owner: output_address
         }
       ],
-      fee: %TransactionCreateFee{amount: 0, currency: Encoding.to_hex(currency)}
+      fee: %TransactionCreateFee{currency: Encoding.to_hex(currency)}
     }
 
     {:ok, response} = Transaction.create_transaction(WatcherInfo.new(), transaction)
@@ -102,8 +102,6 @@ defmodule Itest.Client do
 
   def get_balance(address), do: Itest.Poller.get_balance(address)
   def get_balance(address, amount), do: Itest.Poller.pull_balance_until_amount(address, amount)
-
-  def eth_get_balance(address), do: Itest.Poller.eth_get_balance(address)
 
   defp deposit_transaction(amount_in_wei, address, currency) do
     address

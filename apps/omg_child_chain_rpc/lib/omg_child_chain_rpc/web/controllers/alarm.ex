@@ -21,13 +21,9 @@ defmodule OMG.ChildChainRPC.Web.Controller.Alarm do
   use OMG.ChildChainRPC.Web, :controller
 
   alias OMG.ChildChain
-  alias OMG.ChildChainRPC.Web.View
 
   def get_alarms(conn, _params) do
     {:ok, alarms} = ChildChain.get_alarms()
-
-    conn
-    |> put_view(View.Alarm)
-    |> render(:alarm, response: alarms)
+    api_response(alarms, conn, :alarm)
   end
 end
