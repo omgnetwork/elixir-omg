@@ -33,6 +33,7 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   import ExUnit.CaptureLog
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @seconds_in_twenty_four_hours 86_400
 
   @tag fixtures: [:initial_blocks]
   test "the associated block can be preloaded" do
