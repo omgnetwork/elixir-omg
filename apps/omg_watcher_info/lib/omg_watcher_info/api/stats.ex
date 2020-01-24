@@ -36,7 +36,7 @@ defmodule OMG.WatcherInfo.API.Stats do
         all_time: Block.get_count(),
         last_24_hours: Block.get_count_last_24_hour()
       },
-      average_block_interval: %{
+      average_block_interval_seconds: %{
         all_time: get_average_block_interval(timestamps_all_time),
         last_24_hours: get_average_block_interval(timestamps_last_24_hours)
       }
@@ -47,22 +47,23 @@ defmodule OMG.WatcherInfo.API.Stats do
 
   @spec get_average_block_interval([%{timestamp: integer}]) :: float | String.t()
   def get_average_block_interval(timestamps) do
-    case length(timestamps) do
-      n when n < 2 ->
-        String.to_atom("N/A")
+    case timestamps do
+      [_, _ | _] ->
+        first =
+          timestamps
+          |> List.first()
+          |> Map.get(:timestamp)
 
-      n when n >= 2 ->
-        timestamps
-        |> Enum.chunk_every(2, 1, :discard)
-        |> Enum.map(fn [a, b] -> b.timestamp - a.timestamp end)
-        |> average()
+        last =
+          timestamps
+          |> List.last()
+          |> Map.get(:timestamp)
+
+        # Formula for average of difference
+        (last - first) / (length(timestamps) - 1)
+
+      _ ->
+        nil
     end
-  end
-
-  @spec average([integer]) :: float
-  def average(diff_array) do
-    diff_array
-    |> Enum.reduce(0, fn current, acc -> current + acc end)
-    |> Kernel./(length(diff_array))
   end
 end

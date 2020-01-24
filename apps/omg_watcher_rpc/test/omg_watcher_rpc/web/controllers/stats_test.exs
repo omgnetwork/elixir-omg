@@ -62,7 +62,7 @@ defmodule OMG.WatcherRPC.Web.Controller.StatsTet do
       expected = %{
         "block_count" => %{"all_time" => 2, "last_24_hours" => 1},
         "transaction_count" => %{"all_time" => 4, "last_24_hours" => 2},
-        "average_block_interval" => %{"all_time" => 200.0, "last_24_hours" => "N/A"}
+        "average_block_interval_seconds" => %{"all_time" => 200.0, "last_24_hours" => nil}
       }
 
       assert data == expected
