@@ -217,5 +217,4 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
       end
     end)
   end
- end
 end

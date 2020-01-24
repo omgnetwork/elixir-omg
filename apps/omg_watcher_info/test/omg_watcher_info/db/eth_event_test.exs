@@ -43,15 +43,6 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "inserting duplicate deposits results in an error and has no effect on the DB" do
-      block = insert(:block)
-      insert_deposit_params = deposit_params(block.blknum)
-
-      assert DB.EthEvent.insert_deposits!([insert_deposit_params]) == :ok
-      assert DB.EthEvent.insert_deposits!([insert_deposit_params]) == :error
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "deposit insertion cannot partially fail" do
       block = insert(:block)
       insert(:txoutput, blknum: block.blknum)
@@ -73,10 +64,14 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "inserting duplicate deposits results in an error and has no effect on the DB" do
-      %{root_chain_txhash: root_chain_txhash, log_index: log_index} = insert_deposit_params = Factory.deposit_params()
+      block = insert(:block)
+      insert(:txoutput, blknum: block.blknum)
 
-      assert :ok == DB.EthEvent.insert_deposits!([deposit])
-      assert :error == DB.EthEvent.insert_deposits!([deposit])
+      # create a deposit with a txoutput that already exists, which will cause a failure
+      insert_deposit_params = deposit_params(block.blknum)
+
+      assert :ok == DB.EthEvent.insert_deposits!([insert_deposit_params])
+      assert :error == DB.EthEvent.insert_deposits!([insert_deposit_params])
 
       {:ok, deposit_ethevent} =
         insert_deposit_params

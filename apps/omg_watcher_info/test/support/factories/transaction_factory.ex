@@ -111,9 +111,3 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
   end
 end
 
-<<<<<<< HEAD
-=======
-# has_many(:inputs, DB.TxOutput, foreign_key: :spending_txhash)
-# has_many(:outputs, DB.TxOutput, foreign_key: :creating_txhash)
-# belongs_to(:block, DB.Block, foreign_key: :blknum, references: :blknum, type: :integer)
->>>>>>> 2e036d34f... move test code to watcherinfo, introduce ExMachina
