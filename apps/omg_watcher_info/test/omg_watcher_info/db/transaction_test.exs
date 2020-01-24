@@ -25,8 +25,6 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   use OMG.Fixtures
   use Plug.Test
 
-  import Ecto.Query
-
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
@@ -66,8 +64,6 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
       _another_transaction = insert(:transaction, block: transaction.block)
 
       db_transaction = DB.Transaction.get(transaction.txhash)
-
-      IO.inspect(db_transaction, label: "db_transaction")
 
       assert transaction.txhash == db_transaction.txhash
       assert transaction.blknum == db_transaction.blknum

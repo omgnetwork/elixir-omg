@@ -215,7 +215,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Map.new()
   end
 
-   # select txoutputs that have neither been spent nor have a corresponding ethevents exit events
+  # select txoutputs that have neither been spent nor have a corresponding ethevents exit events
   # using the provided query params
   defp filter_where_unspent(params) do
     where_clause =
