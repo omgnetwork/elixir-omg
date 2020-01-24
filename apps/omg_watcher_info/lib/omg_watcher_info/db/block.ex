@@ -92,20 +92,27 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> Paginator.set_data(paginator)
   end
 
-  @spec query_last_24_hour(Ecto.Query.t()) :: Ecto.Query.t()
-  def query_last_24_hour(query) do
-    now = DateTime.to_unix(DateTime.utc_now())
-    twenty_four_hours = 86_400
-    from(block in query, where: block.timestamp >= ^(now - twenty_four_hours))
+  @spec query_count :: Ecto.Query.t()
+  defp query_count do
+    from(block in __MODULE__, select: count())
+  end
+
+  @spec query_timestamp_between(Ecto.Query.t(), non_neg_integer(), non_neg_integer()) :: Ecto.Query.t()
+  def query_timestamp_between(query, start_datetime, end_datetime) do
+    from(block in query,
+      where:
+        block.timestamp >= ^start_datetime and
+          block.timestamp <= ^end_datetime
+    )
   end
 
   @doc """
-  Returns the total number of blocks in the last 24 hours
+  Returns the total number of blocks in between given timestamps
   """
-  @spec get_count_last_24_hour() :: non_neg_integer()
-  def get_count_last_24_hour do
+  @spec count_all_timestamp_between(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  def count_all_timestamp_between(start_datetime, end_datetime) do
     query_count()
-    |> query_last_24_hour()
+    |> query_timestamp_between(start_datetime, end_datetime)
     |> DB.Repo.all()
     |> Enum.at(0)
   end
@@ -113,16 +120,11 @@ defmodule OMG.WatcherInfo.DB.Block do
   @doc """
   Returns the total number of blocks
   """
-  @spec get_count() :: non_neg_integer()
-  def get_count do
+  @spec count_all() :: non_neg_integer()
+  def count_all() do
     query_count()
     |> DB.Repo.all()
     |> Enum.at(0)
-  end
-
-  @spec query_count :: Ecto.Query.t()
-  defp query_count do
-    from(block in __MODULE__, select: count())
   end
 
   @spec query_timestamps :: Ecto.Query.t()
@@ -130,15 +132,21 @@ defmodule OMG.WatcherInfo.DB.Block do
     from(block in __MODULE__, select: %{timestamp: block.timestamp})
   end
 
-  @spec get_timestamps :: []
-  def get_timestamps() do
+  @doc """
+  Returns a list of all timestamps
+  """
+  @spec all_timestamps :: [%{timestamp: non_neg_integer()}]
+  def all_timestamps() do
     DB.Repo.all(query_timestamps())
   end
 
-  @spec get_timestamps_last_24_hours :: []
-  def get_timestamps_last_24_hours() do
+  @doc """
+  Returns a list of all timestamps between the two given timestamps
+  """
+  @spec all_timestamps_between(non_neg_integer(), non_neg_integer()) :: [%{timestamp: non_neg_integer()}]
+  def all_timestamps_between(start_datetime, end_datetime) do
     query_timestamps()
-    |> query_last_24_hour()
+    |> query_timestamp_between(start_datetime, end_datetime)
     |> DB.Repo.all()
   end
 

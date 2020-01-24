@@ -17,20 +17,19 @@ defmodule OMG.WatcherInfo.API.StatsTest do
   use ExUnit.Case, async: false
   use OMG.WatcherInfo.Fixtures
 
-  import OMG.WatcherInfo.Factory
-
   alias OMG.WatcherInfo.API.Stats
   alias OMG.WatcherInfo.DB
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @seconds_in_twenty_four_hours 86_400
 
   describe "get/0" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "retrieves expected statistics" do
       now = DateTime.to_unix(DateTime.utc_now())
-      twenty_four_hours = 86_400
-      within_today = now - twenty_four_hours + 100
-      before_today = now - twenty_four_hours - 100
+
+      within_today = now - @seconds_in_twenty_four_hours + 100
+      before_today = now - @seconds_in_twenty_four_hours - 100
 
       alice = OMG.TestHelper.generate_entity()
       bob = OMG.TestHelper.generate_entity()
@@ -79,12 +78,13 @@ defmodule OMG.WatcherInfo.API.StatsTest do
       base = 100
       [diff_1, diff_2, diff_3] = [10, 10, 30]
 
-      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: base)
-      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: base + diff_1)
-      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: base + diff_1 + diff_2)
-      _ = insert(:block, blknum: 4000, hash: "0x4000", eth_height: 4, timestamp: base + diff_1 + diff_2 + diff_3)
+      timestamps = [
+        %{timestamp: base},
+        %{timestamp: base + diff_1},
+        %{timestamp: base + diff_1 + diff_2},
+        %{timestamp: base + diff_1 + diff_2 + diff_3}
+      ]
 
-      timestamps = DB.Block.get_timestamps()
       result = Stats.get_average_block_interval(timestamps)
 
       assert result == (diff_1 + diff_2 + diff_3) / 3
@@ -92,18 +92,15 @@ defmodule OMG.WatcherInfo.API.StatsTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns nil if number of blocks is smaller than 2" do
-      timestamps_1 = DB.Block.get_timestamps()
+      timestamps_1 = []
       result_1 = Stats.get_average_block_interval(timestamps_1)
       assert result_1 == nil
-      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
 
-      timestamps_2 = DB.Block.get_timestamps()
+      timestamps_2 = [%{timestamp: 100}]
       result_2 = Stats.get_average_block_interval(timestamps_2)
       assert result_2 == nil
 
-      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
-
-      timestamps_3 = DB.Block.get_timestamps()
+      timestamps_3 = [%{timestamp: 100}, %{timestamp: 200}]
       result_3 = Stats.get_average_block_interval(timestamps_3)
       assert result_3 == 100
     end

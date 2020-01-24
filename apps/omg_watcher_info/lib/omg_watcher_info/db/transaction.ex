@@ -96,38 +96,37 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     )
   end
 
-  @spec query_last_24_hour(Ecto.Query.t()) :: Ecto.Query.t()
-  def query_last_24_hour(query) do
-    now = DateTime.to_unix(DateTime.utc_now())
-    twenty_four_hours = 86_400
-
-    from(transaction in query,
-      left_join: block in assoc(transaction, :block),
-      where: block.timestamp >= ^(now - twenty_four_hours)
-    )
-  end
-
-  @doc """
-  Returns the total number of blocks in the last 24 hours
-  """
-  @spec get_count_last_24_hour() :: non_neg_integer()
-  def get_count_last_24_hour do
-    query_count()
-    |> query_last_24_hour()
-    |> DB.Repo.all()
-    |> Enum.at(0)
-  end
-
   @spec query_count :: Ecto.Query.t()
   defp query_count do
     from(transaction in __MODULE__, select: count())
   end
 
+  @spec query_timestamp_between(Ecto.Query.t(), non_neg_integer(), non_neg_integer()) :: Ecto.Query.t()
+  def query_timestamp_between(query, start_datetime, end_datetime) do
+    from(transaction in query,
+      left_join: block in assoc(transaction, :block),
+      where:
+        block.timestamp >= ^start_datetime and
+          block.timestamp <= ^end_datetime
+    )
+  end
+
+  @doc """
+  Returns the total number of transactions between the given timestamps.
+  """
+  @spec count_all_timestamp_between(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  def count_all_timestamp_between(start_datetime, end_datetime) do
+    query_count()
+    |> query_timestamp_between(start_datetime, end_datetime)
+    |> DB.Repo.all()
+    |> Enum.at(0)
+  end
+
   @doc """
   Returns the total number of transactions
   """
-  @spec get_count() :: non_neg_integer()
-  def get_count do
+  @spec count_all() :: non_neg_integer()
+  def count_all() do
     query_count()
     |> DB.Repo.all()
     |> Enum.at(0)

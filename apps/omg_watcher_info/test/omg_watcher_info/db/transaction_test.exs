@@ -73,7 +73,7 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
              "Constraint on :nothing does not exist in schema and was dropped from the query"
   end
 
-  describe "get_count/0" do
+  describe "count_all/0" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct transaction count" do
       alice = OMG.TestHelper.generate_entity()
@@ -91,17 +91,17 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
 
       _ = DB.Block.insert_with_transactions(mined_block)
 
-      tx_count = DB.Transaction.get_count()
+      tx_count = DB.Transaction.count_all()
 
       assert tx_count == 2
     end
   end
 
-  describe "get_count_last_24_hour/0" do
+  describe "count_all_timestamp_between/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns correct count if transactions have been made in the last twenty four hours" do
-      now = DateTime.to_unix(DateTime.utc_now())
-      twenty_four_hours = 86_400
+    test "returns correct count if transactions have been made between the given timestamps" do
+      end_datetime = DateTime.to_unix(DateTime.utc_now())
+      start_datetime = end_datetime - @seconds_in_twenty_four_hours
 
       alice = OMG.TestHelper.generate_entity()
       bob = OMG.TestHelper.generate_entity()
@@ -112,21 +112,21 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
         transactions: [tx_1, tx_2],
         blknum: 1000,
         blkhash: "0x1000",
-        timestamp: now - twenty_four_hours + 100,
+        timestamp: start_datetime + 100,
         eth_height: 1
       }
 
       _ = DB.Block.insert_with_transactions(mined_block)
 
-      tx_count = DB.Transaction.get_count_last_24_hour()
+      tx_count = DB.Transaction.count_all_timestamp_between(start_datetime, end_datetime)
 
       assert tx_count == 2
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns correct count if no transactions have been made in the last twenty four hours" do
-      now = DateTime.to_unix(DateTime.utc_now())
-      twenty_four_hours = 86_400
+    test "returns correct count if no transactions have been made between the given timestamps" do
+      end_datetime = DateTime.to_unix(DateTime.utc_now())
+      start_datetime = end_datetime - @seconds_in_twenty_four_hours
 
       alice = OMG.TestHelper.generate_entity()
       bob = OMG.TestHelper.generate_entity()
@@ -137,13 +137,13 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
         transactions: [tx_1, tx_2],
         blknum: 1000,
         blkhash: "0x1000",
-        timestamp: now - twenty_four_hours - 100,
+        timestamp: start_datetime - 100,
         eth_height: 1
       }
 
       _ = DB.Block.insert_with_transactions(mined_block)
 
-      tx_count = DB.Transaction.get_count_last_24_hour()
+      tx_count = DB.Transaction.count_all_timestamp_between(start_datetime, end_datetime)
 
       assert tx_count == 0
     end

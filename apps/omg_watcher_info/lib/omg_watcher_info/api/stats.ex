@@ -20,32 +20,40 @@ defmodule OMG.WatcherInfo.API.Stats do
   alias OMG.WatcherInfo.DB.Block
   alias OMG.WatcherInfo.DB.Transaction
 
+  @seconds_in_twenty_four_hours 86_400
+
   @doc """
   Retrieves network statistics.
   """
   def get() do
-    timestamps_all_time = Block.get_timestamps()
-    timestamps_last_24_hours = Block.get_timestamps_last_24_hours()
+    end_datetime = DateTime.to_unix(DateTime.utc_now())
+    start_datetime_24_hours = end_datetime - @seconds_in_twenty_four_hours
+
+    timestamps_all_time = Block.all_timestamps()
+    timestamps_24_hours = Block.all_timestamps_between(start_datetime_24_hours, end_datetime)
 
     response = %{
       transaction_count: %{
-        all_time: Transaction.get_count(),
-        last_24_hours: Transaction.get_count_last_24_hour()
+        all_time: Transaction.count_all(),
+        last_24_hours: Transaction.count_all_timestamp_between(start_datetime_24_hours, end_datetime)
       },
       block_count: %{
-        all_time: Block.get_count(),
-        last_24_hours: Block.get_count_last_24_hour()
+        all_time: Block.count_all(),
+        last_24_hours: Block.count_all_timestamp_between(start_datetime_24_hours, end_datetime)
       },
       average_block_interval_seconds: %{
         all_time: get_average_block_interval(timestamps_all_time),
-        last_24_hours: get_average_block_interval(timestamps_last_24_hours)
+        last_24_hours: get_average_block_interval(timestamps_24_hours)
       }
     }
 
     {:ok, response}
   end
 
-  @spec get_average_block_interval([%{timestamp: integer}]) :: float | String.t()
+  @doc """
+  Calculates the average of the differences between timestamps.
+  """
+  @spec get_average_block_interval([%{timestamp: non_neg_integer()}]) :: float | String.t()
   def get_average_block_interval(timestamps) do
     case timestamps do
       [_, _ | _] ->
