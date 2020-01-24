@@ -22,6 +22,8 @@ defmodule OMG.Output do
   alias OMG.Crypto
   alias OMG.RawData
 
+  @output_types Map.keys(OMG.WireFormatTypes.output_type_modules())
+
   @type t :: %__MODULE__{
           output_type: binary(),
           owner: Crypto.address_t(),
@@ -59,8 +61,8 @@ defmodule OMG.Output do
   # TODO(achiurizo)
   # remove the validation here and port the error tuple response handling into ex_plasma.
   defp validate_data([raw_type, [owner, currency, amount]]) do
-    with {:ok, _} <- RawData.parse_uint256(raw_type),
-         {:ok, _} <- valid_output_type?(raw_type),
+    with {:ok, type} <- RawData.parse_uint256(raw_type),
+         {:ok, _} <- valid_output_type?(type),
          {:ok, _} <- RawData.parse_address(owner),
          {:ok, _} <- non_zero_owner?(owner),
          {:ok, _} <- RawData.parse_address(currency),
@@ -71,6 +73,6 @@ defmodule OMG.Output do
   defp non_zero_owner?(<<0::160>>), do: {:error, :output_guard_cant_be_zero}
   defp non_zero_owner?(_), do: {:ok, :valid}
 
-  defp valid_output_type?(type) when type in [<<1>>, <<2>>], do: {:ok, :valid}
+  defp valid_output_type?(type) when type in @output_types, do: {:ok, :valid}
   defp valid_output_type?(_), do: {:error, :unrecognized_output_type}
 end

@@ -32,7 +32,7 @@ defmodule OMG.State.Transaction.Validator do
 
   require Utxo
 
-  @type exec_error ::
+  @type can_apply_error ::
           :amounts_do_not_add_up
           | :fees_not_covered
           | :input_utxo_ahead_of_state
@@ -44,30 +44,31 @@ defmodule OMG.State.Transaction.Validator do
 
   @type fee_claim_error :: :claiming_unsupported_token | :claiming_more_than_collected
 
-  @type process_error :: exec_error | fee_claim_error
+  @type can_process_tx_error :: can_apply_error | fee_claim_error
 
   @doc """
-  can process transaction?
+  Checks, whether at a given state of the ledger, a particular transaction can be applied (!) to it,
+  subject to particular fee requirements
   """
-  @spec can_process(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
-          {:ok, :apply_spend, map()} | {:ok, :claim_fees, map()} | {{:error, process_error()}, Core.t()}
-  def can_process(
+  @spec can_process_tx(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
+          {:ok, :apply_spend, map()} | {:ok, :claim_fees, map()} | {{:error, can_process_tx_error()}, Core.t()}
+  def can_process_tx(
         %Core{} = state,
         %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}} = tx,
         fees
       ) do
     case raw_tx do
       %Transaction.Payment{} ->
-        can_apply_spend(state, tx, fees)
+        can_apply_tx(state, tx, fees)
 
       %Transaction.FeeTokenClaim{} ->
         can_claim_fees(state, tx)
     end
   end
 
-  @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
-          {:ok, :apply_spend, map()} | {{:error, exec_error()}, Core.t()}
-  defp can_apply_spend(
+  @spec can_apply_tx(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
+          {:ok, :apply_spend, map()} | {{:error, can_apply_error()}, Core.t()}
+  defp can_apply_tx(
          %Core{utxos: utxos} = state,
          %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses} = tx,
          fees

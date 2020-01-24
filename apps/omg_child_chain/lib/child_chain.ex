@@ -36,7 +36,7 @@ defmodule OMG.ChildChain do
           | {:error, submit_error()}
   def submit(transaction) do
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
-         true <- is_supported(recovered_tx) || {:error, :transaction_not_supported},
+         :ok <- is_supported(recovered_tx),
          {:ok, fees} <- FeeServer.transaction_fees(),
          fees = Fees.for_transaction(recovered_tx, fees),
          {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
@@ -63,10 +63,10 @@ defmodule OMG.ChildChain do
     |> result_with_logging()
   end
 
-  defp is_supported(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}})
-       when is_map(raw_tx) do
-    Map.get(raw_tx, :__struct__) in [Transaction.Payment]
-  end
+  defp is_supported(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.FeeTokenClaim{}}}),
+    do: {:error, :transaction_not_supported}
+
+  defp is_supported(%Transaction.Recovered{}), do: :ok
 
   defp result_with_logging(result) do
     _ = Logger.debug(" resulted with #{inspect(result)}")

@@ -37,7 +37,7 @@ defmodule OMG.State do
   # owner of the output cannot be zero-address
   @no_fee_claimer_address "NO FEE CLAIMER ADDR!"
 
-  @type exec_error :: Validator.exec_error()
+  @type exec_error :: Validator.can_process_tx_error()
 
   ### Client
 

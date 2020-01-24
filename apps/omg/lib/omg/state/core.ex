@@ -183,24 +183,24 @@ defmodule OMG.State.Core do
   """
   @spec exec(state :: t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
-          | {{:error, Validator.process_error()}, t()}
+          | {{:error, Validator.can_process_tx_error()}, t()}
   def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
     tx_hash = Transaction.raw_txhash(tx)
 
-    case Validator.can_process(state, tx, fees) do
+    case Validator.can_process_tx(state, tx, fees) do
       {:ok, :apply_spend, fees_paid} ->
         {:ok, {tx_hash, state.height, state.tx_index},
          state
-         |> apply_spend(tx)
+         |> apply_tx(tx)
          |> add_pending_tx(tx)
          |> collect_fees(fees_paid)}
 
       {:ok, :claim_fees, claimed_token} ->
         {:ok, {tx_hash, state.height, state.tx_index},
          state
-         |> apply_spend(tx)
+         |> apply_tx(tx)
          |> add_pending_tx(tx)
-         |> claim_token(claimed_token |> Map.keys() |> hd())
+         |> flush_collected_fees_for_token(claimed_token |> Map.keys() |> hd())
          |> disallow_payments()}
 
       {{:error, _reason}, _state} = error ->
@@ -263,9 +263,7 @@ defmodule OMG.State.Core do
         height: height + child_block_interval,
         pending_txs: [],
         utxo_db_updates: [],
-        recently_spent: MapSet.new(),
-        fees_paid: %{},
-        fee_claiming_started: false
+        recently_spent: MapSet.new()
     }
 
     {:ok, {block, db_updates}, new_state}
@@ -401,7 +399,7 @@ defmodule OMG.State.Core do
     }
   end
 
-  defp apply_spend(
+  defp apply_tx(
          %Core{
            height: blknum,
            tx_index: tx_index,
@@ -425,24 +423,24 @@ defmodule OMG.State.Core do
     }
   end
 
-  defp collect_fees(%Core{fees_paid: fees_paid} = state, tx_diffs) do
-    tx_fees =
-      tx_diffs
+  defp collect_fees(%Core{fees_paid: fees_paid} = state, token_surplussed) do
+    fees_paid_with_new =
+      token_surplussed
       |> Enum.reject(fn {_token, amount} -> amount == 0 end)
       |> Map.new()
 
     %Core{
       state
       | fees_paid:
-          Map.merge(fees_paid, tx_fees, fn
-            _token, collected, tx_paid -> collected + tx_paid
+          Map.merge(fees_paid, fees_paid_with_new, fn
+            _token, collected, tx_surplus -> collected + tx_surplus
           end)
     }
   end
 
   defp disallow_payments(state), do: %Core{state | fee_claiming_started: true}
 
-  defp claim_token(state, token), do: %Core{state | fees_paid: Map.delete(state.fees_paid, token)}
+  defp flush_collected_fees_for_token(state, token), do: %Core{state | fees_paid: Map.delete(state.fees_paid, token)}
 
   @spec claim_fees(state :: t()) :: t()
   defp claim_fees(
@@ -452,15 +450,19 @@ defmodule OMG.State.Core do
            fee_claimer_address: owner
          } = state
        ) do
-    Transaction.FeeTokenClaim.claim_collected(height, owner, fees_paid)
-    |> Enum.map(fn fee_tx ->
-      Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
-    end)
-    |> Enum.reduce(state, fn rlp_tx, curr_state ->
-      {:ok, tx} = Transaction.Recovered.recover_from(rlp_tx)
-      {:ok, _, new_state} = exec(curr_state, tx, :no_fees_required)
-      new_state
-    end)
+    new_state =
+      height
+      |> Transaction.FeeTokenClaim.claim_collected(owner, fees_paid)
+      |> Enum.map(fn fee_tx ->
+        Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
+      end)
+      |> Enum.reduce(state, fn rlp_tx, curr_state ->
+        {:ok, tx} = Transaction.Recovered.recover_from(rlp_tx)
+        {:ok, _, new_state} = exec(curr_state, tx, :no_fees_required)
+        new_state
+      end)
+
+    %Core{new_state | fees_paid: %{}, fee_claiming_started: false}
   end
 
   # Effects of a payment transaction - spends all inputs and creates all outputs

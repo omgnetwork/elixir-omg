@@ -43,7 +43,7 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
   def new(blknum, {owner, currency, amount}) do
     %__MODULE__{
       tx_type: @fee_token_claim_tx_type,
-      outputs: [make_output(owner, currency, amount)],
+      outputs: [new_output(owner, currency, amount)],
       nonce: to_nonce(blknum, currency)
     }
   end
@@ -51,9 +51,9 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
   @doc """
   Creates output for fee transaction
   """
-  @spec make_output(owner :: Crypto.address_t(), currency :: Transaction.Payment.currency(), amount :: pos_integer()) ::
+  @spec new_output(owner :: Crypto.address_t(), currency :: Transaction.Payment.currency(), amount :: pos_integer()) ::
           Output.t()
-  def make_output(owner, currency, amount) do
+  def new_output(owner, currency, amount) do
     %Output{
       owner: owner,
       currency: currency,
@@ -138,7 +138,8 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @doc """
   Tells whether Fee claiming transaction is valid
   """
-  @spec valid?(Transaction.FeeTokenClaim.t(), Transaction.Signed.t()) :: {:error, atom()}
+  @spec valid?(Transaction.FeeTokenClaim.t(), Transaction.Signed.t()) ::
+          {:error, :wrong_number_of_fee_outputs | :fee_output_amount_has_to_be_positive}
   def valid?(%Transaction.FeeTokenClaim{} = fee_tx, _signed_tx) do
     # we're able to check structure validity => single output with amount > 0
     with outputs = Transaction.get_outputs(fee_tx),
@@ -151,12 +152,13 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @doc """
   Fee claiming transaction is not used to transfer funds
   """
-  @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.t())) :: {:ok, map()} | {:error, atom()}
+  @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.t())) ::
+          {:ok, map()}
+          | {:error, :surplus_in_token_not_collected | :claimed_and_collected_amounts_mismatch}
   def can_apply?(%Transaction.FeeTokenClaim{outputs: [claimed]}, outputs) do
     with %Output{} = collected <-
            Enum.find(outputs, {:error, :surplus_in_token_not_collected}, fn o -> o.currency == claimed.currency end),
-         true <- collected.amount == claimed.amount || {:error, :claimed_and_collected_amounts_mismatch},
-         true <- collected.owner == claimed.owner || {:error, :only_fee_claimer_address_can_claim} do
+         true <- collected.amount == claimed.amount || {:error, :claimed_and_collected_amounts_mismatch} do
       {:ok, %{collected.currency => collected.amount}}
     end
   end

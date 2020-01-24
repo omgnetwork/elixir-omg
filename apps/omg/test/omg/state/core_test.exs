@@ -1005,21 +1005,6 @@ defmodule OMG.State.CoreTest do
       |> fail?(:claimed_and_collected_amounts_mismatch)
     end
 
-    test "cannot claim for address other than fee claimer", %{
-      alice: alice,
-      state: state,
-      fees: fees,
-      fee_claimer: fee_claimer
-    } do
-      assert alice != fee_claimer
-
-      fee_tx = create_recovered_fee_tx(1000, alice.addr, @eth, 3)
-
-      state
-      |> Core.exec(fee_tx, fees)
-      |> fail?(:only_fee_claimer_address_can_claim)
-    end
-
     test "no fees can be claimed after block is formed", %{state: state, fees: fees} do
       fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 3)
 
