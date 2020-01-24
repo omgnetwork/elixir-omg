@@ -98,7 +98,7 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
     end
   end
 
-  describe "count_all_timestamp_between/2" do
+  describe "count_all_between_timestamp/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if transactions have been made between the given timestamps" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
@@ -119,7 +119,7 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
 
       _ = DB.Block.insert_with_transactions(mined_block)
 
-      tx_count = DB.Transaction.count_all_timestamp_between(start_datetime, end_datetime)
+      tx_count = DB.Transaction.count_all_between_timestamps(start_datetime, end_datetime)
 
       assert tx_count == 2
     end
@@ -144,7 +144,7 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
 
       _ = DB.Block.insert_with_transactions(mined_block)
 
-      tx_count = DB.Transaction.count_all_timestamp_between(start_datetime, end_datetime)
+      tx_count = DB.Transaction.count_all_between_timestamps(start_datetime, end_datetime)
 
       assert tx_count == 0
     end

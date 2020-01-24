@@ -35,11 +35,11 @@ defmodule OMG.WatcherInfo.API.Stats do
     response = %{
       transaction_count: %{
         all_time: Transaction.count_all(),
-        last_24_hours: Transaction.count_all_timestamp_between(start_datetime_24_hours, end_datetime)
+        last_24_hours: Transaction.count_all_between_timestamps(start_datetime_24_hours, end_datetime)
       },
       block_count: %{
         all_time: Block.count_all(),
-        last_24_hours: Block.count_all_timestamp_between(start_datetime_24_hours, end_datetime)
+        last_24_hours: Block.count_all_between_timestamps(start_datetime_24_hours, end_datetime)
       },
       average_block_interval_seconds: %{
         all_time: get_average_block_interval(timestamps_all_time),

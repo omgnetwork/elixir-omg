@@ -114,8 +114,8 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   @doc """
   Returns the total number of transactions between the given timestamps.
   """
-  @spec count_all_timestamp_between(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
-  def count_all_timestamp_between(start_datetime, end_datetime) do
+  @spec count_all_between_timestamps(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  def count_all_between_timestamps(start_datetime, end_datetime) do
     query_count()
     |> query_timestamp_between(start_datetime, end_datetime)
     |> DB.Repo.all()

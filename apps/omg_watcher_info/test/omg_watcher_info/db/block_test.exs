@@ -275,7 +275,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     end
   end
 
-  describe "count_all_timestamp_between/2" do
+  describe "count_all_between_timestamps/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if blocks have been produced between the two given timestamps" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
@@ -285,7 +285,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: start_datetime)
       _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: start_datetime - 100)
 
-      block_count = DB.Block.count_all_timestamp_between(start_datetime, end_datetime)
+      block_count = DB.Block.count_all_between_timestamps(start_datetime, end_datetime)
 
       assert block_count == 2
     end
@@ -299,7 +299,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: start_datetime - 100)
       _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: start_datetime - 100)
 
-      block_count = DB.Block.count_all_timestamp_between(start_datetime, end_datetime)
+      block_count = DB.Block.count_all_between_timestamps(start_datetime, end_datetime)
 
       assert block_count == 0
     end
