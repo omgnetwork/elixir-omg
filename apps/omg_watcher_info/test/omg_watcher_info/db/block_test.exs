@@ -320,11 +320,24 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
                %{timestamp: 300}
              ] == timestamps
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "retrieves timestamps in ascending order" do
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 200)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 3, timestamp: 100)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
+
+      timestamps = DB.Block.all_timestamps()
+
+      assert timestamps |> Enum.at(0) |> Map.get(:timestamp) == 100
+      assert timestamps |> Enum.at(1) |> Map.get(:timestamp) == 200
+      assert timestamps |> Enum.at(2) |> Map.get(:timestamp) == 300
+    end
   end
 
   describe "all_timestamps_between/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "retrieves timestamps filtered by timestamps correctly" do
+    test "retrieves timestamps filtered by timestamp range correctly" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours
 
@@ -335,8 +348,8 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       timestamps = DB.Block.all_timestamps_between(start_datetime, end_datetime)
 
       assert [
-               %{timestamp: start_datetime + 100},
-               %{timestamp: start_datetime}
+               %{timestamp: start_datetime},
+               %{timestamp: start_datetime + 100}
              ] == timestamps
     end
   end

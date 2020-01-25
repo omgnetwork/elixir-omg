@@ -129,7 +129,10 @@ defmodule OMG.WatcherInfo.DB.Block do
 
   @spec query_timestamps :: Ecto.Query.t()
   defp query_timestamps do
-    from(block in __MODULE__, select: %{timestamp: block.timestamp})
+    from(block in __MODULE__,
+      select: %{timestamp: block.timestamp},
+      order_by: [asc: :timestamp]
+    )
   end
 
   @doc """
