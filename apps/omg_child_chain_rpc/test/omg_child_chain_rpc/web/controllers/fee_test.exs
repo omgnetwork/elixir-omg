@@ -105,7 +105,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                      "updated_at" => "2019-01-01T10:00:00Z"
                    },
                    %{
-                     "amount" => 1,
+                     "amount" => 2,
                      "currency" => "0x0000000000000000000000000000000000000001",
                      "subunit_to_unit" => 1_000_000_000_000_000_000,
                      "pegged_amount" => 1,
@@ -145,7 +145,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                      "updated_at" => "2019-01-01T10:00:00Z"
                    },
                    %{
-                     "amount" => 1,
+                     "amount" => 2,
                      "currency" => "0x0000000000000000000000000000000000000001",
                      "subunit_to_unit" => 1_000_000_000_000_000_000,
                      "pegged_amount" => 1,
@@ -231,7 +231,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                      "updated_at" => "2019-01-01T10:00:00Z"
                    },
                    %{
-                     "amount" => 1,
+                     "amount" => 2,
                      "currency" => "0x0000000000000000000000000000000000000001",
                      "subunit_to_unit" => 1_000_000_000_000_000_000,
                      "pegged_amount" => 1,
@@ -260,7 +260,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
                      "updated_at" => "2019-01-01T10:00:00Z"
                    },
                    %{
-                     "amount" => 1,
+                     "amount" => 2,
                      "currency" => "0x0000000000000000000000000000000000000001",
                      "subunit_to_unit" => 1_000_000_000_000_000_000,
                      "pegged_amount" => 1,

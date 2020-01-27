@@ -59,9 +59,6 @@ defmodule OMG.Fees do
   def check_if_covered(_, :no_fees_required), do: :ok
 
   def check_if_covered(implicit_paid_fee_by_currency, fees) do
-    IO.inspect(implicit_paid_fee_by_currency)
-    IO.inspect(fees)
-    # Check for zero fees?
     implicit_fees = remove_zero_fees(implicit_paid_fee_by_currency)
 
     case length(implicit_fees) > 1 do
