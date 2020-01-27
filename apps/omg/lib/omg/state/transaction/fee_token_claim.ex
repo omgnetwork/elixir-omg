@@ -159,7 +159,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
     with %Output{} = collected <-
            Enum.find(outputs, {:error, :surplus_in_token_not_collected}, fn o -> o.currency == claimed.currency end),
          true <- collected.amount == claimed.amount || {:error, :claimed_and_collected_amounts_mismatch} do
-      {:ok, %{collected.currency => collected.amount}}
+      {:ok, %{}}
     end
   end
 end

@@ -213,7 +213,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
     output_amounts_by_currency = get_amounts_by_currency(outputs)
 
     with :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
-         do: {:ok, input_output_diffs(input_amounts_by_currency, output_amounts_by_currency)}
+         do: {:ok, fees_paid(input_amounts_by_currency, output_amounts_by_currency)}
   end
 
   defp all_inputs_signed?(non_zero_inputs, sigs) do
@@ -227,7 +227,7 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
     end
   end
 
-  defp input_output_diffs(input_amounts_by_currency, output_amounts_by_currency) do
+  defp fees_paid(input_amounts_by_currency, output_amounts_by_currency) do
     Enum.into(
       input_amounts_by_currency,
       %{},

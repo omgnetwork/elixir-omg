@@ -61,7 +61,7 @@ defmodule OMG.State.Core do
   alias OMG.Block
   alias OMG.Crypto
   alias OMG.Fees
-
+  alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
@@ -135,6 +135,8 @@ defmodule OMG.State.Core do
           oindex: non_neg_integer()
         }
 
+  @type exec_mode :: :apply_spend | :claim_fees
+
   @doc """
   Initializes the state from the values stored in `OMG.DB`
   """
@@ -187,25 +189,32 @@ defmodule OMG.State.Core do
   def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
     tx_hash = Transaction.raw_txhash(tx)
 
-    case Validator.can_process_tx(state, tx, fees) do
-      {:ok, :apply_spend, fees_paid} ->
-        {:ok, {tx_hash, state.height, state.tx_index},
-         state
-         |> apply_tx(tx)
-         |> add_pending_tx(tx)
-         |> collect_fees(fees_paid)}
-
-      {:ok, :claim_fees, claimed_token} ->
-        {:ok, {tx_hash, state.height, state.tx_index},
-         state
-         |> apply_tx(tx)
-         |> add_pending_tx(tx)
-         |> flush_collected_fees_for_token(claimed_token |> Map.keys() |> hd())
-         |> disallow_payments()}
-
+    with {:ok, mode, fees_paid} <- Validator.can_process_tx(state, tx, fees) do
+      {:ok, {tx_hash, state.height, state.tx_index},
+       state
+       |> apply_tx(tx)
+       |> add_pending_tx(tx)
+       |> handle_fees(mode, tx, fees_paid)}
+    else
       {{:error, _reason}, _state} = error ->
         error
     end
+  end
+
+  # Post-processing step of transaction execution. It either collect fees from `Payment` transaction
+  # or claim fees with `FeeTokenClaim` transaction
+  @spec handle_fees(state :: t(), oper :: exec_mode(), Transaction.Recovered.t(), map()) :: t()
+  defp handle_fees(state, :apply_spend, _tx, fees_paid) do
+    state
+    |> collect_fees(fees_paid)
+  end
+
+  defp handle_fees(state, :claim_fees, tx, _fees_paid) do
+    [output] = Transaction.get_outputs(tx)
+
+    state
+    |> flush_collected_fees_for_token(output)
+    |> disallow_payments()
   end
 
   @doc """
@@ -440,7 +449,8 @@ defmodule OMG.State.Core do
 
   defp disallow_payments(state), do: %Core{state | fee_claiming_started: true}
 
-  defp flush_collected_fees_for_token(state, token), do: %Core{state | fees_paid: Map.delete(state.fees_paid, token)}
+  defp flush_collected_fees_for_token(state, %Output{currency: token}),
+    do: %Core{state | fees_paid: Map.delete(state.fees_paid, token)}
 
   @spec claim_fees(state :: t()) :: t()
   defp claim_fees(
