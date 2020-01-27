@@ -89,7 +89,7 @@ defmodule OMG.State.Transaction.Validator do
   end
 
   @spec can_claim_fees(Core.t(), Transaction.Recovered.t()) ::
-          {:ok, :claim_fees} | {{:error, fee_claim_error()}, Core.t()}
+          {:ok, :claim_fees, map()} | {{:error, fee_claim_error()}, Core.t()}
   defp can_claim_fees(
          %Core{fee_claimer_address: owner, fees_paid: fees_paid} = state,
          %Transaction.Recovered{signed_tx: %{raw_tx: fee_tx}}
