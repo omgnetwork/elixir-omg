@@ -34,9 +34,10 @@ defmodule OMG.ChildChain.Supervisor do
     # prevent booting if contracts are not ready
     :ok = RootChain.contract_ready()
     {:ok, _contract_deployment_height} = RootChain.get_root_deployment_height()
+    fee_claimer_address = Application.fetch_env!(:omg, :fee_claimer_address)
 
     children = [
-      {State, []},
+      {State, [fee_claimer_address: fee_claimer_address]},
       {FreshBlocks, []},
       {FeeServer, []},
       {Monitor,

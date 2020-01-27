@@ -141,6 +141,7 @@ release :child_chain do
       {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, []},
       {OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval, []},
       {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
+      {OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress, []},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
       {OMG.Eth.ReleaseTasks.SetContract, []},
       {OMG.DB.ReleaseTasks.SetKeyValueDB, []},

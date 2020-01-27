@@ -34,15 +34,14 @@ defmodule OMG.State do
 
   require Utxo
 
-  # owner of the output cannot be zero-address
-  @no_fee_claimer_address "NO FEE CLAIMER ADDR!"
-
   @type exec_error :: Validator.can_process_tx_error()
+
+  @fallback_fee_claimer_address Application.fetch_env!(:omg, :fee_claimer_address)
 
   ### Client
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   @spec exec(tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
@@ -94,10 +93,11 @@ defmodule OMG.State do
   @doc """
   Initializes the state. UTXO set is not loaded now.
   """
-  def init(:ok) do
+  def init(opts) do
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    fee_claimer_address = Application.get_env(:omg, :fee_claimer_address, @no_fee_claimer_address)
+
+    fee_claimer_address = Keyword.get(opts, :fee_claimer_address, @fallback_fee_claimer_address)
 
     {:ok, state} =
       with {:ok, _data} = result <-
