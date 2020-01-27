@@ -17,11 +17,11 @@ defmodule OMG.WatcherRPC.Web.Controller.StatsTet do
   use ExUnit.Case, async: false
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
 
+  import OMG.WatcherInfo.Factory
+
   @seconds_in_twenty_four_hours 86_400
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "get/0" do
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -30,32 +30,13 @@ defmodule OMG.WatcherRPC.Web.Controller.StatsTet do
       within_today = now - @seconds_in_twenty_four_hours + 100
       before_today = now - @seconds_in_twenty_four_hours - 100
 
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
+      block_1 = insert(:block, blknum: 1000, timestamp: within_today)
+      _ = insert(:transaction, block: block_1, txindex: 0)
+      _ = insert(:transaction, block: block_1, txindex: 1)
 
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-      tx_3 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 700}])
-      tx_4 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 900}])
-
-      mined_block_1 = %{
-        transactions: [tx_1, tx_2],
-        blknum: 1000,
-        blkhash: "0x1000",
-        timestamp: before_today,
-        eth_height: 1
-      }
-
-      mined_block_2 = %{
-        transactions: [tx_3, tx_4],
-        blknum: 2000,
-        blkhash: "0x2000",
-        timestamp: within_today,
-        eth_height: 1
-      }
-
-      _ = DB.Block.insert_with_transactions(mined_block_1)
-      _ = DB.Block.insert_with_transactions(mined_block_2)
+      block_2 = insert(:block, blknum: 2000, timestamp: before_today)
+      _ = insert(:transaction, block: block_2, txindex: 0)
+      _ = insert(:transaction, block: block_2, txindex: 1)
 
       %{"data" => data} = WatcherHelper.rpc_call("stats.get", %{}, 200)
 

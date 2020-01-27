@@ -61,21 +61,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "includes the transaction count corresponding to a block" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-
-      mined_block = %{
-        transactions: [tx_1, tx_2],
-        blknum: 1000,
-        blkhash: "0x1000",
-        timestamp: 1_576_500_000,
-        eth_height: 1
-      }
-
-      _ = DB.Block.insert_with_transactions(mined_block)
+      block = insert(:block)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
 
       tx_count =
         DB.Block.base_query()
@@ -101,20 +89,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     test "returns a correct transaction count if block contains transactions" do
       blknum = 1000
 
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-
-      mined_block = %{
-        transactions: [tx_1, tx_2],
-        blknum: blknum,
-        blkhash: "0x#{blknum}",
-        timestamp: 1_576_500_000,
-        eth_height: 1
-      }
-
-      _ = DB.Block.insert_with_transactions(mined_block)
+      block = insert(:block, blknum: 1000)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
 
       result = DB.Block.get(blknum)
 
@@ -208,20 +185,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct transaction count if block contains transactions" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-
-      mined_block = %{
-        transactions: [tx_1, tx_2],
-        blknum: 1000,
-        blkhash: "0x1000",
-        timestamp: 1_576_500_000,
-        eth_height: 1
-      }
-
-      _ = DB.Block.insert_with_transactions(mined_block)
+      block = insert(:block, blknum: 1000)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
 
       paginator = %Paginator{
         data: [],
@@ -309,7 +275,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "retrieves all timestamps correctly" do
       _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
-      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 3, timestamp: 200)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
       _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
 
       timestamps = DB.Block.all_timestamps()
@@ -324,7 +290,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "retrieves timestamps in ascending order" do
       _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 200)
-      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 3, timestamp: 100)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 100)
       _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
 
       timestamps = DB.Block.all_timestamps()
@@ -342,7 +308,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       start_datetime = end_datetime - @seconds_in_twenty_four_hours
 
       _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: start_datetime + 100)
-      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 3, timestamp: start_datetime)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: start_datetime)
       _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: start_datetime - 100)
 
       timestamps = DB.Block.all_timestamps_between(start_datetime, end_datetime)

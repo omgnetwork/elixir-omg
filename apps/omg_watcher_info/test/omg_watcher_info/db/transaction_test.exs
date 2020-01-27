@@ -31,8 +31,8 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
 
   require Utxo
   import ExUnit.CaptureLog
+  import OMG.WatcherInfo.Factory
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
   @seconds_in_twenty_four_hours 86_400
 
   @tag fixtures: [:initial_blocks]
@@ -77,20 +77,9 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   describe "count_all/0" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct transaction count" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-
-      mined_block = %{
-        transactions: [tx_1, tx_2],
-        blknum: 1000,
-        blkhash: "0x1000",
-        timestamp: 1_576_500_000,
-        eth_height: 1
-      }
-
-      _ = DB.Block.insert_with_transactions(mined_block)
+      block = insert(:block, blknum: 1000)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
 
       tx_count = DB.Transaction.count_all()
 
@@ -104,20 +93,9 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours
 
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-
-      mined_block = %{
-        transactions: [tx_1, tx_2],
-        blknum: 1000,
-        blkhash: "0x1000",
-        timestamp: start_datetime + 100,
-        eth_height: 1
-      }
-
-      _ = DB.Block.insert_with_transactions(mined_block)
+      block = insert(:block, blknum: 1000, timestamp: start_datetime + 100)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
 
       tx_count = DB.Transaction.count_all_between_timestamps(start_datetime, end_datetime)
 
@@ -129,20 +107,9 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours
 
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-
-      mined_block = %{
-        transactions: [tx_1, tx_2],
-        blknum: 1000,
-        blkhash: "0x1000",
-        timestamp: start_datetime - 100,
-        eth_height: 1
-      }
-
-      _ = DB.Block.insert_with_transactions(mined_block)
+      block = insert(:block, blknum: 1000, timestamp: start_datetime - 100)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
 
       tx_count = DB.Transaction.count_all_between_timestamps(start_datetime, end_datetime)
 
