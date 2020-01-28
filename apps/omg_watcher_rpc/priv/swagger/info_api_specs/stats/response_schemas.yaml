@@ -17,4 +17,4 @@ StatsGetResponseSchema:
             last_24_hours: 1
           average_block_interval:
             all_time: 100
-            last_24_hours: "N/A"
+            last_24_hours: null
