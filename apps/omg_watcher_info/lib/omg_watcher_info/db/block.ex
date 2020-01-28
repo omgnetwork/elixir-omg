@@ -97,7 +97,8 @@ defmodule OMG.WatcherInfo.DB.Block do
     from(block in __MODULE__, select: count())
   end
 
-  @spec query_timestamp_between(Ecto.Query.t(), non_neg_integer(), non_neg_integer()) :: Ecto.Query.t()
+  @spec query_timestamp_between(Ecto.Query.t(), non_neg_integer(), non_neg_integer()) ::
+          Ecto.Query.t()
   def query_timestamp_between(query, start_datetime, end_datetime) do
     from(block in query,
       where:
@@ -124,30 +125,35 @@ defmodule OMG.WatcherInfo.DB.Block do
     DB.Repo.one!(query_count())
   end
 
-  @spec query_timestamps :: Ecto.Query.t()
-  defp query_timestamps do
+  @spec query_timestamp_range() :: Ecto.Query.t()
+  defp query_timestamp_range() do
     from(block in __MODULE__,
-      select: %{timestamp: block.timestamp},
-      order_by: [asc: :timestamp]
+      select: %{
+        max: max(block.timestamp),
+        min: min(block.timestamp)
+      }
     )
   end
 
   @doc """
-  Returns a list of all timestamps
+  Returns a map with the timestamps of the earliest and latest blocks of all time.
   """
-  @spec all_timestamps :: [%{timestamp: non_neg_integer()}]
-  def all_timestamps() do
-    DB.Repo.all(query_timestamps())
+  @spec get_timestamp_range_all :: %{min: non_neg_integer(), max: non_neg_integer()}
+  def get_timestamp_range_all() do
+    DB.Repo.one!(query_timestamp_range())
   end
 
   @doc """
-  Returns a list of all timestamps between the two given timestamps
+  Returns a map with the timestamps of the earliest and latest blocks within a given time range.
   """
-  @spec all_timestamps_between(non_neg_integer(), non_neg_integer()) :: [%{timestamp: non_neg_integer()}]
-  def all_timestamps_between(start_datetime, end_datetime) do
-    query_timestamps()
+  @spec get_timestamp_range_between(non_neg_integer(), non_neg_integer()) :: %{
+          min: non_neg_integer(),
+          max: non_neg_integer()
+        }
+  def get_timestamp_range_between(start_datetime, end_datetime) do
+    query_timestamp_range()
     |> query_timestamp_between(start_datetime, end_datetime)
-    |> DB.Repo.all()
+    |> DB.Repo.one!()
   end
 
   defp query_get_last(%{limit: limit, page: page}) do

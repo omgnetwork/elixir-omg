@@ -271,52 +271,46 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     end
   end
 
-  describe "all_timestamps/0" do
+  describe "get_timestamp_range_all/0" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "retrieves all timestamps correctly" do
-      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
-      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
-      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
+    test "retrieves the timestamps of the earliest and latest block of all time correctly" do
+      earliest_datetime = 100
 
-      timestamps = DB.Block.all_timestamps()
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: earliest_datetime)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: earliest_datetime + 100)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: earliest_datetime + 200)
+      _ = insert(:block, blknum: 4000, hash: "0x4000", eth_height: 3, timestamp: earliest_datetime + 300)
 
-      assert [
-               %{timestamp: 100},
-               %{timestamp: 200},
-               %{timestamp: 300}
-             ] == timestamps
-    end
+      expected = %{
+        max: earliest_datetime + 300,
+        min: earliest_datetime
+      }
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "retrieves timestamps in ascending order" do
-      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 200)
-      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 100)
-      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
+      actual = DB.Block.get_timestamp_range_all()
 
-      timestamps = DB.Block.all_timestamps()
-
-      assert timestamps |> Enum.at(0) |> Map.get(:timestamp) == 100
-      assert timestamps |> Enum.at(1) |> Map.get(:timestamp) == 200
-      assert timestamps |> Enum.at(2) |> Map.get(:timestamp) == 300
+      assert expected == actual
     end
   end
 
-  describe "all_timestamps_between/2" do
+  describe "get_timestamp_range_between/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "retrieves timestamps filtered by timestamp range correctly" do
+    test "retrieves the timestamps of the earliest and latest block within a given time range correctly" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours
 
-      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: start_datetime + 100)
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: start_datetime - 100)
       _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: start_datetime)
-      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: start_datetime - 100)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: start_datetime + 100)
+      _ = insert(:block, blknum: 4000, hash: "0x4000", eth_height: 4, timestamp: start_datetime + 200)
 
-      timestamps = DB.Block.all_timestamps_between(start_datetime, end_datetime)
+      expected = %{
+        max: start_datetime + 200,
+        min: start_datetime
+      }
 
-      assert [
-               %{timestamp: start_datetime},
-               %{timestamp: start_datetime + 100}
-             ] == timestamps
+      actual = DB.Block.get_timestamp_range_between(start_datetime, end_datetime)
+
+      assert expected == actual
     end
   end
 

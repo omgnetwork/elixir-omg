@@ -29,9 +29,6 @@ defmodule OMG.WatcherInfo.API.Stats do
     end_datetime = DateTime.to_unix(DateTime.utc_now())
     start_datetime_24_hours = end_datetime - @seconds_in_twenty_four_hours
 
-    timestamps_all_time = Block.all_timestamps()
-    timestamps_24_hours = Block.all_timestamps_between(start_datetime_24_hours, end_datetime)
-
     response = %{
       transaction_count: %{
         all_time: Transaction.count_all(),
@@ -42,8 +39,8 @@ defmodule OMG.WatcherInfo.API.Stats do
         last_24_hours: Block.count_all_between_timestamps(start_datetime_24_hours, end_datetime)
       },
       average_block_interval_seconds: %{
-        all_time: get_average_block_interval(timestamps_all_time),
-        last_24_hours: get_average_block_interval(timestamps_24_hours)
+        all_time: get_average_block_interval_all_time(),
+        last_24_hours: get_average_block_interval_between(start_datetime_24_hours, end_datetime)
       }
     }
 
@@ -51,27 +48,47 @@ defmodule OMG.WatcherInfo.API.Stats do
   end
 
   @doc """
-  Calculates the average of the differences between timestamps.
+  Calculates the all-time average block interval.
   """
-  @spec get_average_block_interval([%{timestamp: non_neg_integer()}]) :: float | String.t()
-  def get_average_block_interval(timestamps) do
-    case timestamps do
-      [_, _ | _] ->
-        first =
-          timestamps
-          |> List.first()
-          |> Map.get(:timestamp)
+  @spec get_average_block_interval_all_time() :: float() | nil
+  def get_average_block_interval_all_time() do
+    block_count = Block.count_all()
 
-        last =
-          timestamps
-          |> List.last()
-          |> Map.get(:timestamp)
-
-        # Formula for average of difference
-        (last - first) / (length(timestamps) - 1)
+    case block_count do
+      n when n < 2 ->
+        nil
 
       _ ->
+        %{:max => max, :min => min} = Block.get_timestamp_range_all()
+
+        # Formula for average of difference
+
+        max
+        |> Kernel.-(min)
+        |> Kernel./(block_count - 1)
+    end
+  end
+
+  @doc """
+  Calculates the average block interval between two given timestamps.
+  """
+  @spec get_average_block_interval_between(non_neg_integer(), non_neg_integer()) ::
+          float() | nil
+  def get_average_block_interval_between(start_datetime, end_datetime) do
+    block_count = Block.count_all_between_timestamps(start_datetime, end_datetime)
+
+    case block_count do
+      n when n < 2 ->
         nil
+
+      _ ->
+        %{:max => max, :min => min} = Block.get_timestamp_range_between(start_datetime, end_datetime)
+
+        # Formula for average of difference
+
+        max
+        |> Kernel.-(min)
+        |> Kernel./(block_count - 1)
     end
   end
 end
