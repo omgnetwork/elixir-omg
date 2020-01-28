@@ -33,6 +33,10 @@ defmodule OMG.Eth.Supervisor do
          event_bus: OMG.Bus,
          ws_url: Application.get_env(:omg_eth, :ws_url)
        ]},
+      {OMG.Eth.EthereumHeightMonitor,
+       [
+         alarm_module: Alarm
+       ]},
       {OMG.Eth.EthereumHeight, [event_bus: OMG.Bus]}
     ]
 
