@@ -22,20 +22,7 @@ in_flight_exit.get_competitor:
     description: Note that if the competing transaction has not been put into a block `competing_tx_pos` and `competing_proof` will not be returned.
     operationId: in_flight_exit_get_competitor
     requestBody:
-      description: In-flight transaction bytes body
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              txbytes:
-                type: string
-                format: binary
-            required:
-              - txbytes
-            example:
-              txbytes: '0xf3170101c0940000...'
+      $ref: 'request_bodies.yaml#/InFlightExitTxBytesBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/GetCompetitorResponse'
@@ -50,20 +37,7 @@ in_flight_exit.prove_canonical:
     description: To respond to a challenge to an in-flight exit, this proves that the transaction has been put into a block (and therefore is canonical).
     operationId: in_flight_exit_prove_canonical
     requestBody:
-      description: In-flight transaction bytes body
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              txbytes:
-                type: string
-                format: binary
-            required:
-              - txbytes
-            example:
-              txbytes: '0xf3170101c0940000...'
+      $ref: 'request_bodies.yaml#/InFlightExitTxBytesBodySchema'
     responses:
       200:
         $ref: 'responses.yaml#/ProveCanonicalResponse'
