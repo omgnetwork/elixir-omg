@@ -138,7 +138,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     # create transaction & data for in-flight exit, start in-flight exit
     %Transaction.Signed{sigs: in_flight_tx_sigs} =
       in_flight_tx =
-      OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
+      OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 8}])
 
     proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], txindex)
 
@@ -166,7 +166,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
     %Transaction.Signed{sigs: sigs} =
-      in_flight_tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+      in_flight_tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 6}, {alice, 3}])
 
     {:ok, %{"blknum" => blknum}} = in_flight_tx2 |> Transaction.Signed.encode() |> submit_transaction()
 
@@ -205,7 +205,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     first_output_double_spend = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 7}])
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(first_output_double_spend)
 
-    second_output_spend = OMG.TestHelper.create_encoded([{blknum, 0, 1, alice}], @eth, [{alice, 3}])
+    second_output_spend = OMG.TestHelper.create_encoded([{blknum, 0, 1, alice}], @eth, [{alice, 2}])
     assert {:ok, _} = submit_transaction(second_output_spend)
   end
 
