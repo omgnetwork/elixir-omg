@@ -148,7 +148,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     %{"blknum" => deposit_blknum} = WatcherHelper.submit(tx)
 
-    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 8}])
     %{"blknum" => tx_blknum, "txhash" => _tx_hash} = WatcherHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
