@@ -77,6 +77,7 @@ services:
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      - ETHEREUM_STALLED_SYNC_CHECK_INTERVAL_MS=20000
     restart: always
     ports:
       - "9656:9656"
@@ -110,6 +111,7 @@ services:
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      - ETHEREUM_STALLED_SYNC_CHECK_INTERVAL_MS=20000
     restart: always
     ports:
       - "7434:7434"
@@ -144,6 +146,7 @@ services:
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      - ETHEREUM_STALLED_SYNC_CHECK_INTERVAL_MS=20000
     restart: always
     ports:
       - "7534:7534"

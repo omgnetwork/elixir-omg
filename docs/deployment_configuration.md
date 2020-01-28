@@ -15,7 +15,7 @@
 - "BATCH_SIZE" - Datadog batch size for APM
 - "SYNC_THRESHOLD" - Datadog sync threshold for APM
 - "ETHEREUM_EVENTS_CHECK_INTERVAL_MS" - the frequency of HTTP requests towards the Ethereum clients and scanning for interested events. Should be less then average block time (10 to 20 seconds) on Ethereum mainnet.
-
+- "ETHEREUM_STALLED_SYNC_CHECK_INTERVAL_MS" - the interval to check for Ethereum block height increase, before being considered a stalled sync. Should be slightly larger than the expected block time.
 
 ***Erlang VM configuration***
 
