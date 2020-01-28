@@ -118,8 +118,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   def count_all_between_timestamps(start_datetime, end_datetime) do
     query_count()
     |> query_timestamp_between(start_datetime, end_datetime)
-    |> DB.Repo.all()
-    |> Enum.at(0)
+    |> DB.Repo.one!()
   end
 
   @doc """
@@ -127,9 +126,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   """
   @spec count_all() :: non_neg_integer()
   def count_all() do
-    query_count()
-    |> DB.Repo.all()
-    |> Enum.at(0)
+    DB.Repo.one!(query_count())
   end
 
   defp query_get_by_address(query, nil), do: query
