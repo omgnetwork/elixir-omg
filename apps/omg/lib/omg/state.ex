@@ -211,7 +211,12 @@ defmodule OMG.State do
   """
   def handle_cast(:form_block, state) do
     _ = Logger.debug("Forming new block...")
-    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = do_form_block(state)
+
+    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} =
+      state
+      |> Core.claim_fees()
+      |> do_form_block()
+
     _ = Logger.debug("Formed new block ##{blknum}")
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the

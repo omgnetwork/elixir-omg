@@ -243,20 +243,37 @@ defmodule OMG.State.Core do
   end
 
   @doc """
+  Generates `FeeTokenClaim` transactions and executes them on state.
+  Returns modified state.
+  """
+  @spec claim_fees(state :: t()) :: t()
+  def claim_fees(
+        %Core{
+          height: height,
+          fees_paid: fees_paid,
+          fee_claimer_address: owner
+        } = state
+      ) do
+    height
+    |> Transaction.FeeTokenClaim.claim_collected(owner, fees_paid)
+    |> Stream.map(&to_recovered_fee_tx/1)
+    |> Enum.reduce(state, fn tx, curr_state ->
+      {:ok, _, new_state} = exec(curr_state, tx, :no_fees_required)
+      new_state
+    end)
+  end
+
+  @doc """
    - Generates block and calculates it's root hash for submission
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
    - clears `recently_spent` collection
   """
   @spec form_block(pos_integer(), state :: t()) :: {:ok, {Block.t(), [db_update]}, new_state :: t()}
-  def form_block(child_block_interval, %Core{} = state) do
-    # important: `claim_fees` changes state significantly, overriding the parameter
-    %Core{
-      height: height,
-      pending_txs: reversed_txs,
-      utxo_db_updates: reversed_utxo_db_updates
-    } = state = claim_fees(state)
-
+  def form_block(
+        child_block_interval,
+        %Core{height: height, pending_txs: reversed_txs, utxo_db_updates: reversed_utxo_db_updates} = state
+      ) do
     txs = Enum.reverse(reversed_txs)
 
     block = Block.hashed_txs_at(txs, height)
@@ -272,7 +289,8 @@ defmodule OMG.State.Core do
         height: height + child_block_interval,
         pending_txs: [],
         utxo_db_updates: [],
-        recently_spent: MapSet.new()
+        recently_spent: MapSet.new(),
+        fee_claiming_started: false
     }
 
     {:ok, {block, db_updates}, new_state}
@@ -452,29 +470,6 @@ defmodule OMG.State.Core do
   defp flush_collected_fees_for_token(state, %Output{currency: token}),
     do: %Core{state | fees_paid: Map.delete(state.fees_paid, token)}
 
-  @spec claim_fees(state :: t()) :: t()
-  defp claim_fees(
-         %Core{
-           height: height,
-           fees_paid: fees_paid,
-           fee_claimer_address: owner
-         } = state
-       ) do
-    new_state =
-      height
-      |> Transaction.FeeTokenClaim.claim_collected(owner, fees_paid)
-      |> Enum.map(fn fee_tx ->
-        Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
-      end)
-      |> Enum.reduce(state, fn rlp_tx, curr_state ->
-        {:ok, tx} = Transaction.Recovered.recover_from(rlp_tx)
-        {:ok, _, new_state} = exec(curr_state, tx, :no_fees_required)
-        new_state
-      end)
-
-    %Core{new_state | fees_paid: %{}, fee_claiming_started: false}
-  end
-
   # Effects of a payment transaction - spends all inputs and creates all outputs
   # Relies on the polymorphic `get_inputs` and `get_outputs` of `Transaction`
   defp get_effects(tx, blknum, tx_index) do
@@ -511,4 +506,10 @@ defmodule OMG.State.Core do
          %Core{utxos: utxos}
        ),
        do: UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
+
+  defp to_recovered_fee_tx(%Transaction.FeeTokenClaim{} = fee_tx) do
+    %Transaction.Signed{raw_tx: fee_tx, sigs: []}
+    |> Transaction.Signed.encode()
+    |> Transaction.Recovered.recover_from!()
+  end
 end

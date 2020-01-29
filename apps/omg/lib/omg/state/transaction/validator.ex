@@ -19,6 +19,7 @@ defmodule OMG.State.Transaction.Validator do
 
   require OMG.State.Transaction.Payment
 
+  # FIXME: make it tighter `1 + #inputs` do the "Big Block test"
   # NOTE: Last processed transaction could potentially take his room but also generate `max_inputs` fee transactions
   @safety_margin 2 * OMG.State.Transaction.Payment.max_inputs()
   @maximum_block_size 65_536 - @safety_margin

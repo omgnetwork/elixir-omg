@@ -1066,6 +1066,7 @@ defmodule OMG.State.CoreTest do
   # used to check the invariants in form_block
   # use this throughout this test module instead of Core.form_block
   defp form_block_check(state) do
+    state = Core.claim_fees(state)
     {_, {block, db_updates}, _} = result = Core.form_block(@interval, state)
 
     # check if block returned and sent to db_updates is the same
