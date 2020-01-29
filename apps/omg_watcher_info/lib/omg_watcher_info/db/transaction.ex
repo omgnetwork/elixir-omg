@@ -104,7 +104,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   @spec query_timestamp_between(Ecto.Query.t(), non_neg_integer(), non_neg_integer()) :: Ecto.Query.t()
   def query_timestamp_between(query, start_datetime, end_datetime) do
     from(transaction in query,
-      left_join: block in assoc(transaction, :block),
+      join: block in assoc(transaction, :block),
       where:
         block.timestamp >= ^start_datetime and
           block.timestamp <= ^end_datetime
