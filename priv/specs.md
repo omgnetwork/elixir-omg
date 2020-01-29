@@ -720,7 +720,7 @@ OMG.WatcherRPC.Web.Controller.ChallengeTest
 OMG.WatcherRPC.Web.Controller.EnforceContentPlugTest
   * test Content type header is no longer required (excluded)
 
-OMG.Eth.EthereumClientMonitorTest
+OMG.Eth.EthereumHeightMonitorTest
   * test that alarms get raised when we kill the connection (excluded)
   * test that we don't overflow the message queue with timers when Eth client needs time to respond (excluded)
   * test that alarm gets raised if there's no ethereum client running and cleared when it's running (excluded)

@@ -27,11 +27,10 @@ defmodule OMG.Eth.Supervisor do
 
   def init(:ok) do
     children = [
-      {OMG.Eth.EthereumClientMonitor,
+      {OMG.Eth.EthereumHeightMonitor,
        [
          alarm_module: Alarm,
-         event_bus: OMG.Bus,
-         ws_url: Application.get_env(:omg_eth, :ws_url)
+         event_bus: OMG.Bus
        ]},
       {OMG.Eth.EthereumHeight, [event_bus: OMG.Bus]}
     ]

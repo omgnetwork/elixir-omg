@@ -14,8 +14,8 @@
 
 defmodule OMG.Eth.EthereumHeight do
   @moduledoc """
-  A GenServer that subscribes to `newHeads` events coming from the internal event bus, decodes and saves only the height to be consumed
-  by other services.
+  A GenServer that subscribes to `ethereum_new_height` events coming from the internal event bus,
+  decodes and saves only the height to be consumed by other services.
   """
 
   use GenServer
@@ -34,7 +34,7 @@ defmodule OMG.Eth.EthereumHeight do
 
   def init(opts) do
     event_bus = Keyword.get(opts, :event_bus)
-    :ok = event_bus.subscribe("newHeads", link: true)
+    :ok = event_bus.subscribe("ethereum_new_height", link: true)
     {:ok, get_ethereum_height()}
   end
 
@@ -46,21 +46,20 @@ defmodule OMG.Eth.EthereumHeight do
     {:reply, {:ok, ethereum_height}, ethereum_height}
   end
 
-  def handle_info({:internal_event_bus, :newHeads, new_heads}, state) do
-    value = new_heads["params"]["result"]["number"]
-
-    case is_binary(value) do
+  def handle_info({:internal_event_bus, :ethereum_new_height, new_height}, state) do
+    case is_integer(new_height) do
       true ->
-        ethereum_height = Encoding.int_from_hex(value)
-        _ = Logger.debug("Got a newHeads event for new Ethereum height #{ethereum_height}.")
+        _ = Logger.debug("Got an internal :ethereum_new_height event with height: #{new_height}.")
 
         _ =
-          if rem(ethereum_height, 1000) == 0,
-            do: Logger.info("Got a newHeads event for new Ethereum height #{ethereum_height}. (log every 1000)")
+          if rem(new_height, 1000) == 0 do
+            Logger.info("Got an internal :ethereum_new_height event with height: #{new_height}. (log every 1000)")
+          end
 
-        {:noreply, ethereum_height}
+        {:noreply, new_height}
 
       false ->
+        _ = Logger.warn("Got an internal :ethereum_new_height event with unrecognized height: #{new_height}.")
         {:noreply, state}
     end
   end
