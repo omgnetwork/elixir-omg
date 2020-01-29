@@ -19,7 +19,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold do
 
   @app :omg_eth
   @config_key :ethereum_stalled_sync_threshold_ms
-  @env_name "ETHEREUM_STALLED_SYNC_CHECK_INTERVAL_MS"
+  @env_name "ETHEREUM_STALLED_SYNC_THRESHOLD_MS"
 
   @impl Provider
   def init(_args) do
