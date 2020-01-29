@@ -119,7 +119,6 @@ clean-elixir-omg:
 	rm -rf _build_docker/*
 	rm -rf deps_docker/*
 
-
 .PHONY: clean clean-elixir-omg
 
 #

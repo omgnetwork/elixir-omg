@@ -3,7 +3,7 @@ defmodule Itest.ContractEvent do
   Listens for contract events passed in as `listen_to`.
   """
   use WebSockex
-
+  alias Itest.Transactions.Encoding
   @subscription_id 1
 
   require Logger
@@ -52,13 +52,14 @@ defmodule Itest.ContractEvent do
             event =
               ABI.Event.find_and_decode(
                 abi,
-                Itest.Transactions.Encoding.to_binary(Enum.at(topics, 0)),
-                Enum.at(topics, 1),
-                Enum.at(topics, 2),
-                Enum.at(topics, 3),
-                result["data"]
+                Encoding.to_binary(Enum.at(topics, 0)),
+                Encoding.to_binary(Enum.at(topics, 1)),
+                Encoding.to_binary(Enum.at(topics, 2)),
+                Encoding.to_binary(Enum.at(topics, 3)),
+                Encoding.to_binary(result["data"])
               )
 
+            Kernel.send(Keyword.fetch!(state, :subscribe), {:event, event})
             _ = Logger.info("Event detected: #{inspect(event)}")
 
           _ ->

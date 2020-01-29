@@ -5,9 +5,7 @@ defmodule Itest.Account do
 
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
-  import Itest.Poller, only: [wait_on_receipt_confirmed: 2]
-
-  @retry_count 60
+  import Itest.Poller, only: [wait_on_receipt_confirmed: 1]
 
   def plasma_framework() do
     contracts = parse_contracts()
@@ -54,7 +52,7 @@ defmodule Itest.Account do
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(data)
 
-    wait_on_receipt_confirmed(receipt_hash, @retry_count)
+    wait_on_receipt_confirmed(receipt_hash)
 
     {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], [])
 
