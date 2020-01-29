@@ -55,17 +55,22 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     # is here: https://hexdocs.pm/ecto/Ecto.Repo.html#c:update_all/3
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "spend_utxos updates the updated_at timestamp correctly" do
-      txoutput = insert(:txoutput)
+      deposit = build(:txoutput) |> with_deposit()
 
-      utxo_inputs = [{Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex), nil, nil}]
+      transaction =
+        insert(:transaction)
+        |> with_inputs([deposit])
 
-      DB.TxOutput.spend_utxos(utxo_inputs)
+      spend_utxo_params =
+        deposit
+        |> spend_uxto_params_from_txoutput() 
+      
+      assert DB.TxOutput.spend_utxos([spend_utxo_params]) == :ok
 
-      updated_txoutput = DB.TxOutput.get_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
-
-      assert DateTime.compare(txoutput.inserted_at, updated_txoutput.inserted_at) == :eq
-
-      assert DateTime.compare(updated_txoutput.inserted_at, updated_txoutput.updated_at) == :lt
+      spent_txoutput = DB.TxOutput.fetch_by([blknum: deposit.blknum, txindex: deposit.txindex, oindex: deposit.oindex])
+      
+      assert DateTime.compare(deposit.inserted_at, spent_txoutput.inserted_at) == :eq
+      assert DateTime.compare(deposit.updated_at, spent_txoutput.updated_at) == :lt
     end
   end
 
@@ -249,5 +254,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     #        {input_utxo_pos, index, spending_txhash}
     #      end)
     #    end
+
+    assert true == false
   end
 end

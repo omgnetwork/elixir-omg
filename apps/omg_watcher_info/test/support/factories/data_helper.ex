@@ -17,7 +17,6 @@ defmodule OMG.WatcherInfo.Factory.DataHelper do
     A data helper module with functions to generate useful data for testing. Unlike the factories,
     the data generated in this module is not constrained to the sructures defined in the DB models.
   """
-
   defmacro __using__(_opts) do
     quote do
       alias OMG.Eth.Encoding
@@ -63,6 +62,11 @@ defmodule OMG.WatcherInfo.Factory.DataHelper do
         }
       end
 
+      # creates event data specifically for the TxOutput.spend_utxos/3function
+      def spend_uxto_params_from_txoutput(txoutput) do
+        {Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex), txoutput, nil}
+      end
+
       def to_fetch_by_params(params, params_names) do
         to_keyword_list(Map.take(params, params_names))
       end
@@ -77,6 +81,34 @@ defmodule OMG.WatcherInfo.Factory.DataHelper do
 
           {String.to_atom("#{k}"), v}
         end)
+      end
+
+      # def get_counter(i \\1) do
+      #   fn -> {i, get_counter(i + 1)} end
+      # end
+
+      # custom sequencer for block.blknum handling both real and 'virtual' deposit blocks
+      def next_blknum(block_type \\ :standard, current_blknum \\ 0) do
+        case block_type do
+          :standard ->
+            case Integer.floor_div(current_blknum, 1000) do
+              # plasma transaction blknums start at 1000
+              0 -> {next_blknum(block_type, 1000), 1000}
+
+              blknum -> {next_blknum(blknum + 1000, block_type), current_blknum}
+            end
+
+          # note: if more than 998 deposits are made before a new block is
+          # formed results may be unpredicatable, so exception is raised here
+          :deposit ->
+            case rem(current_blknum, 1000) do
+              0 -> {next_blknum(block_type, current_blknum), 1}
+            
+              999 -> raise "Too many deposits in block"
+
+              blknum -> {next_blknum(blknum + 1, block_type), current_blknum}
+            end  
+        end
       end
     end
   end

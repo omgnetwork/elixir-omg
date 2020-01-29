@@ -50,7 +50,7 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
           outputs: []
         }
 
-        # not returning `merge_attributes(transaction, attrs)` to avoid dialyzer errors
+        # not returning `merge_attributes(transaction, attrs)` directly to avoid dialyzer errors
         transaction = merge_attributes(transaction, attrs)
         transaction
       end
@@ -61,7 +61,6 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
           |> Enum.with_index()
           |> Enum.map_reduce(transaction, fn {txoutput, index}, transaction ->
             input_fields = %{
-              proof: insecure_random_bytes(32),
               spending_transaction: transaction,
               spending_tx_oindex: index
             }

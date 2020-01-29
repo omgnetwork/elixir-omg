@@ -60,4 +60,26 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
       end)
     end
   end
+
+  describe "test_arbitrary_factory" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "can use arbitrary factory" do
+      # IO.inspect(insert(:transaction), label: "insert(:transaction)")
+      # IO.inspect(build(:deposit), label: "build(:deposit)")
+      # IO.inspect(params_for(:deposit), label: "params_for(:deposit)")
+      # IO.inspect(params_for(:txoutput), label: "params_for(:txoutput)")
+      # IO.inspect(insert(:txoutput), label: "inspect(:txoutput)")
+      # IO.inspect(insert(:deposit), label: "inspect(:deposit)")
+      
+      #build(:block) |> IO.inspect(label: "block") 
+      build(:block) |> IO.inspect(label: "block")
+      build(:block) |> IO.inspect(label: "block")
+      build(:block, %{block_type: "deposit"}) |> IO.inspect(label: "block") 
+      build(:block, %{block_type: "deposit"}) |> IO.inspect(label: "block") 
+      build(:block, %{block_type: "deposit"}) |> IO.inspect(label: "block") 
+      build(:block) |> IO.inspect(label: "block") 
+
+    end 
+  end
 end
+

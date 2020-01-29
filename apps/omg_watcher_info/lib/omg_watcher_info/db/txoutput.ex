@@ -152,12 +152,12 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     utc_now = DateTime.utc_now()
 
     db_inputs
-    |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} ->
+    |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), spending_txhash} ->
       _ =
         DB.TxOutput
         |> where(blknum: ^blknum, txindex: ^txindex, oindex: ^oindex)
         |> Repo.update_all(
-          set: [spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash, updated_at: utc_now]
+          set: [spending_txhash: spending_txhash, updated_at: utc_now]
         )
     end)
   end

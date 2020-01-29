@@ -26,55 +26,60 @@ defmodule OMG.WatcherInfo.Factory.Block do
   defmacro __using__(_opts) do
     quote do
       alias OMG.WatcherInfo.DB
-
-      def block_factory() do
-        %DB.Block{
-          blknum: sequence(:block_blknum, fn seq -> seq * 1000 + 1 end),
+      def block_factory(attrs \\ %{}) do
+        {block_type, attrs} = Map.pop(attrs, :block_type)
+        
+        block = %DB.Block{
+          blknum: next_blknum(block_type),
           hash: insecure_random_bytes(32),
           eth_height: sequence(:block_eth_height, fn seq -> seq end),
           timestamp: sequence(:block_timestamp, fn seq -> seq end),
           transactions: [],
           tx_count: 0
         }
+
+        # not returning `merge_attributes(block, attrs)` directly to avoid dialyzer errors
+        block = merge_attributes(block, attrs)
+        block
       end
 
-      def with_transactions(block, transactions) do
-        transactions =
-          transactions
-          |> Enum.with_index()
-          |> Enum.map(fn {transaction, txindex} ->
-            transaction =
-              Map.put(transaction, :block, block)
-              |> Map.put(:txindex, txindex)
-              |> insert()
-              |> Map.put(:inputs, inputs)
-              |> Map.put(:outputs, outputs)
+      # def with_transactions(block, transactions) do
+      #   transactions =
+      #     transactions
+      #     |> Enum.with_index()
+      #     |> Enum.map(fn {transaction, txindex} ->
+      #       transaction =
+      #         Map.put(transaction, :block, block)
+      #         |> Map.put(:txindex, txindex)
+      #         |> insert()
+      #         |> Map.put(:inputs, inputs)
+      #         |> Map.put(:outputs, outputs)
 
-            insert(transaction)
+      #       insert(transaction)
 
-            inputs =
-              transaction.inputs
-              |> Enum.with_index()
-              |> Enum.map(fn {input, spending_tx_oindex} ->
-                Map.put(input, :spending_tx_oindex, spending_tx_oindex)
-                |> Map.put(:spending_transaction, transaction)
-                |> Map.put(:proof, insecure_random_bytes(32))
-              end)
+      #       inputs =
+      #         transaction.inputs
+      #         |> Enum.with_index()
+      #         |> Enum.map(fn {input, spending_tx_oindex} ->
+      #           Map.put(input, :spending_tx_oindex, spending_tx_oindex)
+      #           |> Map.put(:spending_transaction, transaction)
+      #           |> Map.put(:proof, insecure_random_bytes(32))
+      #         end)
 
-            outputs =
-              transaction.outputs
-              |> Enum.with_index()
-              |> Enum.map(fn {output, oindex} ->
-                Map.put(output, :blknum, block.blknum)
-                |> Map.put(:txindex, txindex)
-                |> Map.put(:oindex, oindex)
-                |> Map.put(:creating_transaction, transaction)
-              end)
-          end)
+      #       outputs =
+      #         transaction.outputs
+      #         |> Enum.with_index()
+      #         |> Enum.map(fn {output, oindex} ->
+      #           Map.put(output, :blknum, block.blknum)
+      #           |> Map.put(:txindex, txindex)
+      #           |> Map.put(:oindex, oindex)
+      #           |> Map.put(:creating_transaction, transaction)
+      #         end)
+      #     end)
 
-        Map.put(block, :transactions, transactions)
-        |> Map.put(:tx_count, length(transactions))
-      end
+      #   Map.put(block, :transactions, transactions)
+      #   |> Map.put(:tx_count, length(transactions))
+      # end
     end
   end
 end
