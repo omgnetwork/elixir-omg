@@ -26,6 +26,8 @@ tags:
     description: Transaction related API.
   - name: Fees
     description: Fees related API.
+  - name: Stats
+    description: Stats related API.
 
 paths:
   /alarm.get:
@@ -50,3 +52,6 @@ paths:
     $ref: 'transaction/paths.yaml#/transaction.submit_typed'
   /fees.all:
     $ref: 'fees/paths.yaml#/fees.all'
+  /stats.get: 
+    $ref: 'stats/paths.yaml#/stats.get'
+

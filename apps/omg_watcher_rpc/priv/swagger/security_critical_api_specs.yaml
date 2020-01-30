@@ -1300,6 +1300,7 @@ paths:
         content:
           application/json:
             schema:
+              title: InFlightExitTxBytesBodySchema
               type: object
               properties:
                 txbytes:
@@ -1451,6 +1452,7 @@ paths:
         content:
           application/json:
             schema:
+              title: InFlightExitTxBytesBodySchema
               type: object
               properties:
                 txbytes:

@@ -1,16 +1,37 @@
 defmodule Itest.ApiModel.ExitData do
   @moduledoc """
-  The ExitData payload structure
+  The purpose of this module is to represent a specific API response as a struct and validates it's response and validates it's response
   """
 
   defstruct [:proof, :utxo_pos, :txbytes]
 
   @type t() :: %__MODULE__{
           # outputTxInclusionProof
-          proof: String.t(),
+          proof: binary(),
           # rlpOutputTx
-          txbytes: String.t(),
+          txbytes: binary(),
           # utxoPos
           utxo_pos: non_neg_integer()
         }
+
+  def to_struct(attrs) do
+    struct = struct(__MODULE__)
+
+    result =
+      Enum.reduce(Map.to_list(struct), struct, fn {k, _}, acc ->
+        case Map.fetch(attrs, Atom.to_string(k)) do
+          {:ok, v} -> %{acc | k => v}
+          :error -> acc
+        end
+      end)
+
+    true = is_valid(result)
+    result
+  end
+
+  defp is_valid(struct) do
+    is_binary(struct.proof) &&
+      is_binary(struct.txbytes) &&
+      is_integer(struct.utxo_pos)
+  end
 end

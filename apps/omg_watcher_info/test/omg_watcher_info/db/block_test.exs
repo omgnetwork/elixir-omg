@@ -24,6 +24,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   alias OMG.WatcherInfo.DB
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @seconds_in_twenty_four_hours 86_400
 
   describe "base_query" do
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -60,21 +61,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "includes the transaction count corresponding to a block" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-
-      mined_block = %{
-        transactions: [tx_1, tx_2],
-        blknum: 1000,
-        blkhash: "0x1000",
-        timestamp: 1_576_500_000,
-        eth_height: 1
-      }
-
-      _ = DB.Block.insert_with_transactions(mined_block)
+      block = insert(:block)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
 
       tx_count =
         DB.Block.base_query()
@@ -100,20 +89,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     test "returns a correct transaction count if block contains transactions" do
       blknum = 1000
 
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-
-      mined_block = %{
-        transactions: [tx_1, tx_2],
-        blknum: blknum,
-        blkhash: "0x#{blknum}",
-        timestamp: 1_576_500_000,
-        eth_height: 1
-      }
-
-      _ = DB.Block.insert_with_transactions(mined_block)
+      block = insert(:block, blknum: 1000)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
 
       result = DB.Block.get(blknum)
 
@@ -207,20 +185,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct transaction count if block contains transactions" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-
-      mined_block = %{
-        transactions: [tx_1, tx_2],
-        blknum: 1000,
-        blkhash: "0x1000",
-        timestamp: 1_576_500_000,
-        eth_height: 1
-      }
-
-      _ = DB.Block.insert_with_transactions(mined_block)
+      block = insert(:block, blknum: 1000)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
 
       paginator = %Paginator{
         data: [],
@@ -258,6 +225,92 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
         |> Map.get(:tx_count)
 
       assert tx_count == 0
+    end
+  end
+
+  describe "count_all/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns correct number of blocks" do
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: 300)
+
+      block_count = DB.Block.count_all()
+
+      assert block_count == 3
+    end
+  end
+
+  describe "count_all_between_timestamps/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns correct count if blocks have been produced between the two given timestamps" do
+      end_datetime = DateTime.to_unix(DateTime.utc_now())
+      start_datetime = end_datetime - @seconds_in_twenty_four_hours
+
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: start_datetime + 100)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: start_datetime)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: start_datetime - 100)
+
+      block_count = DB.Block.count_all_between_timestamps(start_datetime, end_datetime)
+
+      assert block_count == 2
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns correct count if no blocks have been produced between the two given timestamps" do
+      end_datetime = DateTime.to_unix(DateTime.utc_now())
+      start_datetime = end_datetime - @seconds_in_twenty_four_hours
+
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: start_datetime - 100)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: start_datetime - 100)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: start_datetime - 100)
+
+      block_count = DB.Block.count_all_between_timestamps(start_datetime, end_datetime)
+
+      assert block_count == 0
+    end
+  end
+
+  describe "get_timestamp_range_all/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "retrieves the timestamps of the earliest and latest block of all time correctly" do
+      earliest_datetime = 100
+
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: earliest_datetime)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: earliest_datetime + 100)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: earliest_datetime + 200)
+      _ = insert(:block, blknum: 4000, hash: "0x4000", eth_height: 3, timestamp: earliest_datetime + 300)
+
+      expected = %{
+        max: earliest_datetime + 300,
+        min: earliest_datetime
+      }
+
+      actual = DB.Block.get_timestamp_range_all()
+
+      assert expected == actual
+    end
+  end
+
+  describe "get_timestamp_range_between/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "retrieves the timestamps of the earliest and latest block within a given time range correctly" do
+      end_datetime = DateTime.to_unix(DateTime.utc_now())
+      start_datetime = end_datetime - @seconds_in_twenty_four_hours
+
+      _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: start_datetime - 100)
+      _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: start_datetime)
+      _ = insert(:block, blknum: 3000, hash: "0x3000", eth_height: 3, timestamp: start_datetime + 100)
+      _ = insert(:block, blknum: 4000, hash: "0x4000", eth_height: 4, timestamp: start_datetime + 200)
+
+      expected = %{
+        max: start_datetime + 200,
+        min: start_datetime
+      }
+
+      actual = DB.Block.get_timestamp_range_between(start_datetime, end_datetime)
+
+      assert expected == actual
     end
   end
 

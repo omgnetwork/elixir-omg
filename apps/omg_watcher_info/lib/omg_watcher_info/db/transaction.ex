@@ -96,6 +96,39 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     )
   end
 
+  @spec query_count :: Ecto.Query.t()
+  defp query_count do
+    from(transaction in __MODULE__, select: count())
+  end
+
+  @spec query_timestamp_between(Ecto.Query.t(), non_neg_integer(), non_neg_integer()) :: Ecto.Query.t()
+  def query_timestamp_between(query, start_datetime, end_datetime) do
+    from(transaction in query,
+      join: block in assoc(transaction, :block),
+      where:
+        block.timestamp >= ^start_datetime and
+          block.timestamp <= ^end_datetime
+    )
+  end
+
+  @doc """
+  Returns the total number of transactions between the given timestamps.
+  """
+  @spec count_all_between_timestamps(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  def count_all_between_timestamps(start_datetime, end_datetime) do
+    query_count()
+    |> query_timestamp_between(start_datetime, end_datetime)
+    |> DB.Repo.one!()
+  end
+
+  @doc """
+  Returns the total number of transactions
+  """
+  @spec count_all() :: non_neg_integer()
+  def count_all() do
+    DB.Repo.one!(query_count())
+  end
+
   defp query_get_by_address(query, nil), do: query
 
   defp query_get_by_address(query, address) do
