@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# FIXME: /r FeeTokenClaim -> Fee
 defmodule OMG.State.Transaction.FeeTokenClaim do
   @moduledoc """
   Internal representation of a fee claiming transaction in plasma chain.

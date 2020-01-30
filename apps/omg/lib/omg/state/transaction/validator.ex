@@ -19,10 +19,10 @@ defmodule OMG.State.Transaction.Validator do
 
   require OMG.State.Transaction.Payment
 
-  # FIXME: make it tighter `1 + #inputs` do the "Big Block test"
+  @maximum_block_size 65_536
   # NOTE: Last processed transaction could potentially take his room but also generate `max_inputs` fee transactions
-  @safety_margin 2 * OMG.State.Transaction.Payment.max_inputs()
-  @maximum_block_size 65_536 - @safety_margin
+  @safety_margin 1 + OMG.State.Transaction.Payment.max_inputs()
+  @available_block_size @maximum_block_size - @safety_margin
 
   alias OMG.Fees
   alias OMG.State.Core
@@ -42,11 +42,11 @@ defmodule OMG.State.Transaction.Validator do
     with :ok <- validate_block_size(state), do: dispatch_validation(state, tx, fees)
   end
 
-  defp validate_block_size(%Core{tx_index: number_of_transactions_in_block, fees_paid: fees_paid}) do
+  defp validate_block_size(%Core{tx_index: number_of_transactions_in_block, fees_paid: fees_paid} = state) do
     fee_transactions_count = Enum.count(fees_paid)
 
-    case number_of_transactions_in_block + fee_transactions_count >= @maximum_block_size do
-      true -> {:error, :too_many_transactions_in_block}
+    case number_of_transactions_in_block + fee_transactions_count > @available_block_size do
+      true -> {{:error, :too_many_transactions_in_block}, state}
       false -> :ok
     end
   end
