@@ -54,7 +54,7 @@ defmodule OMG.Utxo.Position do
   """
   @spec encode(t()) :: non_neg_integer()
   def encode(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
-    do: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+    do: ExPlasma.Utxo.pos(%ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex})
 
   @doc """
   Decode an integer or binary into a utxo position tuple.
