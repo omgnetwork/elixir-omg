@@ -1,0 +1,6 @@
+StatsGetResponse:
+    description: Stats Successful Response
+    content:
+      application/json:
+        schema:
+          $ref: 'response_schemas.yaml#/StatsGetResponseSchema'

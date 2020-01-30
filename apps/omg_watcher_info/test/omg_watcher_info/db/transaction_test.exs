@@ -31,6 +31,9 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
 
   require Utxo
   import ExUnit.CaptureLog
+  import OMG.WatcherInfo.Factory
+
+  @seconds_in_twenty_four_hours 86_400
 
   @tag fixtures: [:initial_blocks]
   test "the associated block can be preloaded" do
@@ -63,7 +66,54 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   @tag fixtures: [:initial_blocks]
   test "passing constrains out of allowed takes no effect and print a warning" do
     assert capture_log([level: :warn], fn ->
-             DB.Transaction.get_by_filters([blknum: 2000, nothing: "there's no such thing"], %Paginator{})
-           end) =~ "Constraint on :nothing does not exist in schema and was dropped from the query"
+             DB.Transaction.get_by_filters(
+               [blknum: 2000, nothing: "there's no such thing"],
+               %Paginator{}
+             )
+           end) =~
+             "Constraint on :nothing does not exist in schema and was dropped from the query"
+  end
+
+  describe "count_all/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a correct transaction count" do
+      block = insert(:block, blknum: 1000)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
+
+      tx_count = DB.Transaction.count_all()
+
+      assert tx_count == 2
+    end
+  end
+
+  describe "count_all_between_timestamp/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns correct count if transactions have been made between the given timestamps" do
+      end_datetime = DateTime.to_unix(DateTime.utc_now())
+      start_datetime = end_datetime - @seconds_in_twenty_four_hours
+
+      block = insert(:block, blknum: 1000, timestamp: start_datetime + 100)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
+
+      tx_count = DB.Transaction.count_all_between_timestamps(start_datetime, end_datetime)
+
+      assert tx_count == 2
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns correct count if no transactions have been made between the given timestamps" do
+      end_datetime = DateTime.to_unix(DateTime.utc_now())
+      start_datetime = end_datetime - @seconds_in_twenty_four_hours
+
+      block = insert(:block, blknum: 1000, timestamp: start_datetime - 100)
+      _ = insert(:transaction, block: block, txindex: 0)
+      _ = insert(:transaction, block: block, txindex: 1)
+
+      tx_count = DB.Transaction.count_all_between_timestamps(start_datetime, end_datetime)
+
+      assert tx_count == 0
+    end
   end
 end

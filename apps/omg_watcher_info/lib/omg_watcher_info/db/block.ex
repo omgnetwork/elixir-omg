@@ -92,6 +92,70 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> Paginator.set_data(paginator)
   end
 
+  @spec query_count :: Ecto.Query.t()
+  defp query_count do
+    from(block in __MODULE__, select: count())
+  end
+
+  @spec query_timestamp_between(Ecto.Query.t(), non_neg_integer(), non_neg_integer()) ::
+          Ecto.Query.t()
+  def query_timestamp_between(query, start_datetime, end_datetime) do
+    from(block in query,
+      where:
+        block.timestamp >= ^start_datetime and
+          block.timestamp <= ^end_datetime
+    )
+  end
+
+  @doc """
+  Returns the total number of blocks in between given timestamps
+  """
+  @spec count_all_between_timestamps(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  def count_all_between_timestamps(start_datetime, end_datetime) do
+    query_count()
+    |> query_timestamp_between(start_datetime, end_datetime)
+    |> DB.Repo.one!()
+  end
+
+  @doc """
+  Returns the total number of blocks
+  """
+  @spec count_all() :: non_neg_integer()
+  def count_all() do
+    DB.Repo.one!(query_count())
+  end
+
+  @spec query_timestamp_range() :: Ecto.Query.t()
+  defp query_timestamp_range() do
+    from(block in __MODULE__,
+      select: %{
+        max: max(block.timestamp),
+        min: min(block.timestamp)
+      }
+    )
+  end
+
+  @doc """
+  Returns a map with the timestamps of the earliest and latest blocks of all time.
+  """
+  @spec get_timestamp_range_all :: %{min: non_neg_integer(), max: non_neg_integer()}
+  def get_timestamp_range_all() do
+    DB.Repo.one!(query_timestamp_range())
+  end
+
+  @doc """
+  Returns a map with the timestamps of the earliest and latest blocks within a given time range.
+  """
+  @spec get_timestamp_range_between(non_neg_integer(), non_neg_integer()) :: %{
+          min: non_neg_integer(),
+          max: non_neg_integer()
+        }
+  def get_timestamp_range_between(start_datetime, end_datetime) do
+    query_timestamp_range()
+    |> query_timestamp_between(start_datetime, end_datetime)
+    |> DB.Repo.one!()
+  end
+
   defp query_get_last(%{limit: limit, page: page}) do
     offset = (page - 1) * limit
 
