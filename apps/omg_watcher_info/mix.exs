@@ -43,8 +43,10 @@ defmodule OMG.WatcherInfo.MixProject do
       {:spandex, "~> 2.4",
        git: "https://github.com/omisego/spandex.git", branch: "fix_dialyzer_in_macro", override: true},
       {:distillery, "~> 2.1", runtime: false},
+      {:jason, "~> 1.0"},
 
       # UMBRELLA
+      {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},
       {:omg_utils, in_umbrella: true},
 

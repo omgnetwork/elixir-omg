@@ -1,0 +1,20 @@
+StatsGetResponseSchema:
+    allOf:
+    - $ref: '../response_schemas.yaml#/WatcherInfoBaseListResponseSchema'
+    - type: object
+      properties:
+        data:
+          type: object
+          items:
+            $ref: 'schemas.yaml#/StatsSchema'
+      example:
+        data:
+          transaction_count:
+            all_time: 4
+            last_24_hours: 2
+          block_count:
+            all_time: 2
+            last_24_hours: 1
+          average_block_interval:
+            all_time: 100
+            last_24_hours: null

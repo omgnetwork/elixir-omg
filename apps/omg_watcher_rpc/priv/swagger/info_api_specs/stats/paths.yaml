@@ -1,0 +1,14 @@
+stats.get:
+    post:
+      tags:
+        - Stats
+      summary: Retrieves network statistics
+      description: >
+        Retrieves transaction count, block count and average block interval, both for all time and the last 24 hours.
+  
+      operationId: stats_get
+      responses:
+        200:
+          $ref: 'responses.yaml#/StatsGetResponse'
+        500:
+          $ref: '../responses.yaml#/InternalServerError'

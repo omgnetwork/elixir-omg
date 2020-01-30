@@ -83,6 +83,8 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/block.get", Controller.Block, :get_block)
 
     post("/fees.all", Controller.Fee, :fees_all)
+
+    post("/stats.get", Controller.Stats, :get_statistics)
   end
 
   # Fallbacks
