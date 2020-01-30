@@ -44,6 +44,9 @@ defmodule InFlightExitsTests do
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
   @gas_process_exit 5_712_388
   @gas_process_exit_price 1_000_000_000
+
+  @transaction_fee 1
+
   setup do
     # as we're testing IFEs, queue needs to be empty
     0 = get_next_exit_from_queue()
@@ -170,7 +173,7 @@ defmodule InFlightExitsTests do
   #   OMG.TestHelper.create_signed(
   #     [{alice_deposit_blknum, txindex, oindex, alice}, {bob_deposit_blknum, txindex, oindex, bob}],
   #     @eth,
-  #     [{alice, 5}, {bob, 15}]
+  #     [{alice, 4.999999999999999999}, {bob, 15}]
   #   )
   defgiven ~r/^Alice and Bob create a transaction for "(?<amount>[^"]+)" ETH$/,
            %{amount: amount},
@@ -209,7 +212,7 @@ defmodule InFlightExitsTests do
     alice_output = %ExPlasma.Utxo{
       currency: Currency.ether(),
       owner: alice_address,
-      amount: alice_child_chain_balance - Currency.to_wei(5)
+      amount: alice_child_chain_balance - Currency.to_wei(5) - @transaction_fee
     }
 
     bob_output = %ExPlasma.Utxo{
@@ -348,7 +351,13 @@ defmodule InFlightExitsTests do
       amount: Currency.to_wei(3)
     }
 
-    transaction = %Payment{inputs: [bob_input], outputs: [alice_output1, alice_output2]}
+    bob_output = %ExPlasma.Utxo{
+      currency: Currency.ether(),
+      owner: bob_address,
+      amount: Currency.to_wei(10) - @transaction_fee
+    }
+
+    transaction = %Payment{inputs: [bob_input], outputs: [alice_output1, alice_output2, bob_output]}
 
     submitted_tx =
       ExPlasma.Transaction.sign(transaction,
@@ -471,7 +480,6 @@ defmodule InFlightExitsTests do
     # only a single non_canonical event, since one of the IFE txs is included!
     # I’m waiting for these three, and only these three to appear
     assert all?(["invalid_piggyback", "non_canonical_ife", "piggyback_available"]) == true
-
     payload = %InFlightExitInputChallengeDataBodySchema{txbytes: Encoding.to_hex(unsigned_txbytes), input_index: 1}
     response = pull_api_until_successful(InFlightExit, :in_flight_exit_get_input_challenge_data, Watcher.new(), payload)
     ife_input_challenge = IfeInputChallenge.to_struct(response)
