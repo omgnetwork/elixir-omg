@@ -81,13 +81,16 @@ defmodule Itest.Client do
     {:ok, [sign_hash, typed_data, txbytes]}
   end
 
-  def submit_transaction(typed_data, sign_hash, private_key) do
-    signature =
-      sign_hash
-      |> Encoding.to_binary()
-      |> Encoding.signature_digest(private_key)
+  def submit_transaction(typed_data, sign_hash, private_keys) do
+    signatures =
+      Enum.map(private_keys, fn private_key ->
+        sign_hash
+        |> Encoding.to_binary()
+        |> Encoding.signature_digest(private_key)
+        |> Encoding.to_hex()
+      end)
 
-    typed_data_signed = Map.put_new(typed_data, "signatures", [Encoding.to_hex(signature)])
+    typed_data_signed = Map.put_new(typed_data, "signatures", signatures)
 
     submit_typed(typed_data_signed)
   end
