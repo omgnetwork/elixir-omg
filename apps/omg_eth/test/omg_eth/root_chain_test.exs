@@ -70,7 +70,7 @@ defmodule OMG.Eth.RootChainTest do
       # payment tx_type, no inputs, one output, metadata
       tx =
         [owner: contracts.authority_address, currency: @eth, amount: 1]
-        |> ExPlasma.Transactions.Deposit.new()
+        |> ExPlasma.Transaction.Deposit.new()
         |> ExPlasma.Transaction.encode()
 
       {:ok, tx_hash} =
@@ -128,7 +128,7 @@ defmodule OMG.Eth.RootChainTest do
   defp deposit_then_start_exit(owner, amount, currency, contracts) do
     rlp =
       [owner: owner, currency: currency, amount: amount]
-      |> ExPlasma.Transactions.Deposit.new()
+      |> ExPlasma.Transaction.Deposit.new()
       |> ExPlasma.Transaction.encode()
 
     {:ok, deposit_tx} =
