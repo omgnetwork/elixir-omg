@@ -8,6 +8,7 @@ defmodule Itest.Client do
   alias Itest.Transactions.Encoding
   alias WatcherInfoAPI.Api.Account
   alias WatcherInfoAPI.Api.Transaction
+  alias WatcherInfoAPI.Api.Fees
   alias WatcherInfoAPI.Connection, as: WatcherInfo
   alias WatcherInfoAPI.Model.AddressBodySchema1
   alias WatcherInfoAPI.Model.CreateTransactionsBodySchema
@@ -104,6 +105,11 @@ defmodule Itest.Client do
 
   def get_balance(address), do: Itest.Poller.get_balance(address)
   def get_balance(address, amount), do: Itest.Poller.pull_balance_until_amount(address, amount)
+
+  def get_fees() do
+    {:ok, response} = Fees.fees_all(WatcherInfo.new())
+    {:ok, Jason.decode!(response.body)["data"]}
+  end
 
   defp deposit_transaction(amount_in_wei, address, currency) do
     address

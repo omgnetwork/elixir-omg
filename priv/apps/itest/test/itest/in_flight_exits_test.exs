@@ -12,6 +12,7 @@ defmodule InFlightExitsTests do
   alias Itest.ApiModel.IfeOutputChallenge
   alias Itest.ApiModel.SubmitTransactionResponse
   alias Itest.Client
+  alias Itest.Fee
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
   alias Itest.Transactions.PaymentType
@@ -45,8 +46,6 @@ defmodule InFlightExitsTests do
   @gas_process_exit 5_712_388
   @gas_process_exit_price 1_000_000_000
 
-  @transaction_fee 1
-
   setup do
     # as we're testing IFEs, queue needs to be empty
     0 = get_next_exit_from_queue()
@@ -60,11 +59,18 @@ defmodule InFlightExitsTests do
         subscribe: self()
       )
 
+    eth_fee =
+      Currency.ether()
+      |> Encoding.to_hex()
+      |> Fee.get_for_currency()
+      |> Map.get("amount")
+
     [{alice_address, alice_pkey}, {bob_address, bob_pkey}] = Account.take_accounts(2)
 
     %{
       "exit_game_contract_address" => get_exit_game_contract_address(),
       "in_flight_exit_bond_size" => get_in_flight_exit_bond_size(get_exit_game_contract_address()),
+      "fee" => eth_fee,
       "Alice" => %{
         address: alice_address,
         pkey: "0x" <> alice_pkey,
@@ -173,8 +179,9 @@ defmodule InFlightExitsTests do
   #   OMG.TestHelper.create_signed(
   #     [{alice_deposit_blknum, txindex, oindex, alice}, {bob_deposit_blknum, txindex, oindex, bob}],
   #     @eth,
-  #     [{alice, 4.999999999999999999}, {bob, 15}]
+  #     [{alice, 5}, {bob, 15}]
   #   )
+  # Note that alice ooutput will not be 5, but 5 - tx fees
   defgiven ~r/^Alice and Bob create a transaction for "(?<amount>[^"]+)" ETH$/,
            %{amount: amount},
            state do
@@ -212,7 +219,7 @@ defmodule InFlightExitsTests do
     alice_output = %ExPlasma.Utxo{
       currency: Currency.ether(),
       owner: alice_address,
-      amount: alice_child_chain_balance - Currency.to_wei(5) - @transaction_fee
+      amount: alice_child_chain_balance - Currency.to_wei(5) - state["fee"]
     }
 
     bob_output = %ExPlasma.Utxo{
@@ -354,7 +361,7 @@ defmodule InFlightExitsTests do
     bob_output = %ExPlasma.Utxo{
       currency: Currency.ether(),
       owner: bob_address,
-      amount: Currency.to_wei(10) - @transaction_fee
+      amount: Currency.to_wei(10) - state["fee"]
     }
 
     transaction = %Payment{inputs: [bob_input], outputs: [alice_output1, alice_output2, bob_output]}
