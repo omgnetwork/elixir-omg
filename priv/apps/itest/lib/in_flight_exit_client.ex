@@ -23,6 +23,8 @@ defmodule Itest.InFlightExitClient do
   @sleep_retry_sec 2_000
   @gas_process_exit 5_712_388
   @gas_process_exit_price 1_000_000_000
+  @transaction_fee 1
+  @exit_amount Currency.to_wei(1) - @transaction_fee
 
   defstruct [
     :address,
@@ -64,7 +66,7 @@ defmodule Itest.InFlightExitClient do
 
   defp create_transaction(%{address: address, receiver_address: receiver_address} = ife) do
     {:ok, [sign_hash, _typed_data, txbytes]} =
-      Client.create_transaction(Currency.to_wei(1), address, receiver_address, Currency.ether())
+      Client.create_transaction(@exit_amount, address, receiver_address, Currency.ether())
 
     %{ife | txbytes: txbytes, sign_hash: sign_hash}
   end
