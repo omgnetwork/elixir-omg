@@ -45,8 +45,8 @@ OMG.FeesTest
 OMG.ChildChainRPC.Plugs.HealthTest
   * test testing for boot_in_progress alarm if block.get endpoint rejects request because alarms are raised (excluded)
   * test testing for boot_in_progress alarm if block.get endpoint rejects the request because of bad params when alarm is cleared (excluded)
-  * test testing for ethereum_client_connection alarm  if block.get endpoint rejects the request because of bad params when alarm is cleared (excluded)
-  * test testing for ethereum_client_connection alarm  if block.get endpoint rejects request because alarms are raised (excluded)
+  * test testing for ethereum_connection_error alarm  if block.get endpoint rejects the request because of bad params when alarm is cleared (excluded)
+  * test testing for ethereum_connection_error alarm  if block.get endpoint rejects request because alarms are raised (excluded)
 
 OMG.ChildChain.SupTest
   * test syncs services correctly (excluded)

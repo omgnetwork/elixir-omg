@@ -74,7 +74,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
     assert_receive {:trace, ^pid, :receive, {:EXIT, ^ws_connection, :testkill}}
     assert_receive {:trace, ^pid, :receive, {:"$gen_cast", :set_alarm}}
 
-    alarm = [ethereum_client_connection: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumClientMonitor}]
+    alarm = [ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumClientMonitor}]
 
     ^alarm = Alarm.all()
 
@@ -100,7 +100,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
 
     :ok =
       pull_client_alarm(300,
-        ethereum_client_connection: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumClientMonitor}
+        ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumClientMonitor}
       )
 
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
@@ -130,7 +130,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
 
     :ok =
       pull_client_alarm(100,
-        ethereum_client_connection: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumClientMonitor}
+        ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumClientMonitor}
       )
 
     {:message_queue_len, 0} = Process.info(pid, :message_queue_len)

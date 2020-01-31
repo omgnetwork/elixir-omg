@@ -96,11 +96,11 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
   test "sanitize alarm types" do
     system_alarm = {:system_memory_high_watermark, []}
     system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
-    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
+    app_alarm = {:ethereum_connection_error, %{node: Node.self(), reporter: __MODULE__}}
 
     assert %{disk_almost_full: "/dev/null"} == Response.sanitize(system_disk_alarm)
 
-    assert %{ethereum_client_connection: %{node: Node.self(), reporter: __MODULE__}} ==
+    assert %{ethereum_connection_error: %{node: Node.self(), reporter: __MODULE__}} ==
              Response.sanitize(app_alarm)
 
     assert %{system_memory_high_watermark: []} == Response.sanitize(system_alarm)

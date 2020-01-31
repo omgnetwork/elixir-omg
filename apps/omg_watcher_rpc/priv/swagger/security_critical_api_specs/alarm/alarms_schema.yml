@@ -1,9 +1,9 @@
 components:
   schemas:
-    ethereum_client_connection:
+    ethereum_connection_error:
       type: object
       properties:
-        ethereum_client_connection:
+        ethereum_connection_error:
           type: object
           properties:
             node:
@@ -13,7 +13,7 @@ components:
     invalid_fee_file:
       type: object
       properties:
-        ethereum_client_connection:
+        invalid_fee_file:
           type: object
           properties:
             node:
@@ -40,6 +40,6 @@ components:
           default: []
     disk_almost_full:
       type: object
-      properties: 
+      properties:
         disk_almost_full:
           type: string

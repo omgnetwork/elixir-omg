@@ -14,7 +14,7 @@
 
 defmodule OMG.Eth.EthereumHeightMonitor.AlarmHandler do
   @moduledoc """
-  Listens for :ethereum_client_connection and :ethereum_stalled_sync alarms and reflect
+  Listens for :ethereum_connection_error and :ethereum_stalled_sync alarms and reflect
   the alarm's state back to the monitor.
   """
   use GenServer
@@ -31,15 +31,15 @@ defmodule OMG.Eth.EthereumHeightMonitor.AlarmHandler do
 
   def handle_call(_request, state), do: {:ok, :ok, state}
 
-  def handle_event({:set_alarm, {:ethereum_client_connection, %{reporter: @reporter}}}, state) do
-    _ = Logger.warn(":ethereum_client_connection alarm raised.")
-    :ok = GenServer.cast(@monitor, {:set_alarm, :ethereum_client_connection})
+  def handle_event({:set_alarm, {:ethereum_connection_error, %{reporter: @reporter}}}, state) do
+    _ = Logger.warn(":ethereum_connection_error alarm raised.")
+    :ok = GenServer.cast(@monitor, {:set_alarm, :ethereum_connection_error})
     {:ok, state}
   end
 
-  def handle_event({:clear_alarm, {:ethereum_client_connection, %{reporter: @reporter}}}, state) do
-    _ = Logger.warn(":ethereum_client_connection alarm cleared.")
-    :ok = GenServer.cast(@monitor, {:clear_alarm, :ethereum_client_connection})
+  def handle_event({:clear_alarm, {:ethereum_connection_error, %{reporter: @reporter}}}, state) do
+    _ = Logger.warn(":ethereum_connection_error alarm cleared.")
+    :ok = GenServer.cast(@monitor, {:clear_alarm, :ethereum_connection_error})
     {:ok, state}
   end
 

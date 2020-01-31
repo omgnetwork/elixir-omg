@@ -28,7 +28,7 @@ defmodule OMG.ChildChainTest do
   setup %{} do
     system_alarm = {:system_memory_high_watermark, []}
     system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
-    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: Reporter}}
+    app_alarm = {:ethereum_connection_error, %{node: Node.self(), reporter: Reporter}}
 
     on_exit(fn ->
       :alarm_handler.clear_alarm(app_alarm)
@@ -59,7 +59,7 @@ defmodule OMG.ChildChainTest do
     {:ok,
      [
        {{:disk_almost_full, "/dev/null"}, []},
-       {:ethereum_client_connection, %{node: :nonode@nohost, reporter: Reporter}},
+       {:ethereum_connection_error, %{node: :nonode@nohost, reporter: Reporter}},
        {:system_memory_high_watermark, []}
      ]} = ChildChain.get_alarms()
   end

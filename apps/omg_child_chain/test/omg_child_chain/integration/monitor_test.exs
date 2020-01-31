@@ -54,7 +54,7 @@ defmodule OMG.ChildChain.MonitorTest do
   test "when a child is specified as a map spec child gets restarted after alarm is cleared" do
     child = ChildProcess.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([Alarm, child])
-    app_alarm = Alarm.ethereum_client_connection(__MODULE__)
+    app_alarm = Alarm.ethereum_connection_error(__MODULE__)
     :ok = :alarm_handler.set_alarm(app_alarm)
     true = Process.unlink(monitor_pid)
     {:links, [child_pid]} = Process.info(monitor_pid, :links)
@@ -86,7 +86,7 @@ defmodule OMG.ChildChain.MonitorTest do
   test "that a child process does not get restarted if an alarm is cleared but it was not down" do
     child = ChildProcess.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([Alarm, child])
-    app_alarm = Alarm.ethereum_client_connection(__MODULE__)
+    app_alarm = Alarm.ethereum_connection_error(__MODULE__)
     :ok = :alarm_handler.set_alarm(app_alarm)
     :erlang.trace(monitor_pid, true, [:receive])
     {:links, links} = Process.info(monitor_pid, :links)
