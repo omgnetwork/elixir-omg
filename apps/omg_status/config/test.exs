@@ -3,7 +3,7 @@ use Mix.Config
 config :omg_status,
   metrics: false,
   environment: :test,
-  ethereum_height_check_interval_ms: 100
+  statsd_reconnect_backoff_ms: 100
 
 config :omg_status, OMG.Status.Metric.Tracer,
   env: "test",
