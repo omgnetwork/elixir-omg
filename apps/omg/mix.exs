@@ -34,8 +34,7 @@ defmodule OMG.MixProject do
     [
       {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git"},
       {:ex_rlp, "~> 0.5.2"},
-      {:merkle_tree,
-       git: "https://github.com/omisego/merkle_tree.git", branch: "prevent_second_preimage_attack", override: true},
+      {:merkle_tree, "~> 2.0.0"},
       {:telemetry, "~> 0.4.0"},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},

@@ -1,0 +1,30 @@
+StatsSchema:
+    type: object
+    properties:
+        transaction_count:
+            type: object
+            properties: 
+                all_time:
+                    type: integer
+                    format: int64
+                last_24_hours:
+                    type: integer
+                    format: int64
+        block_count:
+            type: object
+            properties: 
+                all_time:
+                    type: integer
+                    format: int64
+                last_24_hours:
+                    type: integer
+                    format: int64
+        average_block_interval:
+            type: object
+            properties: 
+                all_time:
+                    type: number
+                    format: int64
+                last_24_hours:
+                    type: number
+                    format: int64        
