@@ -117,7 +117,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
              )
 
     # check if the utxo is no longer available
-    exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
+    exiters_finality_margin = Configuration.deposit_finality_margin() + 1
     {:ok, _} = DevHelper.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
 
     invalid_raw_tx = Transaction.Payment.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
@@ -156,7 +156,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       )
       |> DevHelper.transact_sync!()
 
-    exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
+    exiters_finality_margin = Configuration.deposit_finality_margin() + 1
     DevHelper.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     # check that output of 1st transaction was spend by in-flight exit
@@ -238,7 +238,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       |> RootChainHelper.piggyback_in_flight_exit_on_input(0, alice.addr)
       |> DevHelper.transact_sync!()
 
-    exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
+    exiters_finality_margin = Configuration.deposit_finality_margin() + 1
     DevHelper.wait_for_root_chain_block(eth_height + exiters_finality_margin)
     # sanity check everything still lives
     assert {:error, %{"code" => "submit:utxo_not_found"}} = tx |> Transaction.Signed.encode() |> submit_transaction()

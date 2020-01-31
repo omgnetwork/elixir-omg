@@ -12,21 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.CoordinatorSetup do
+defmodule OMG.WatcherRPC.Web.View.Configuration do
   @moduledoc """
-   The setup of `OMG.RootChainCoordinator` for the child chain server - configures the relations between different
-   event listeners
+  The Configuration view for rendering json
   """
-  alias OMG.Configuration
 
-  def coordinator_setup() do
-    deposit_finality_margin = Configuration.deposit_finality_margin()
+  use OMG.WatcherRPC.Web, :view
+  alias OMG.Utils.HttpRPC.Response
+  alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
-    %{
-      depositor: [finality_margin: deposit_finality_margin],
-      exiter: [waits_for: :depositor, finality_margin: 0],
-      in_flight_exit: [waits_for: :depositor, finality_margin: 0],
-      piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
-    }
+  def render("configuration.json", %{response: configuration}) do
+    configuration
+    |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
   end
 end

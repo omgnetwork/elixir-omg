@@ -28,7 +28,6 @@ defmodule OMG.ChildChain do
   alias OMG.Fees.FeeFilter
   alias OMG.State
   alias OMG.State.Transaction
-  alias OMG.Status.Alert.Alarm
 
   @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error()
 
@@ -53,9 +52,6 @@ defmodule OMG.ChildChain do
     end
     |> result_with_logging()
   end
-
-  @spec get_alarms() :: {:ok, Alarm.alarms()}
-  def get_alarms, do: {:ok, Alarm.all()}
 
   @spec get_filtered_fees(list(pos_integer()), list(String.t()) | nil) ::
           {:ok, Fees.full_fee_t()} | {:error, :currency_fee_not_supported}

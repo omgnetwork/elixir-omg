@@ -16,9 +16,10 @@ defmodule OMG.Watcher.CoordinatorSetup do
   @moduledoc """
   The setup of `OMG.RootChainCoordinator` for the Watcher - configures the relations between different event listeners
   """
+  alias OMG.Configuration
 
   def coordinator_setup do
-    deposit_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin)
+    deposit_finality_margin = Configuration.deposit_finality_margin()
     finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
 
     %{

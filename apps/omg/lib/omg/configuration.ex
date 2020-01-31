@@ -12,21 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.CoordinatorSetup do
+defmodule OMG.Configuration do
   @moduledoc """
-   The setup of `OMG.RootChainCoordinator` for the child chain server - configures the relations between different
-   event listeners
+  Provides access to applications configuration
   """
-  alias OMG.Configuration
+  @app :omg
+  def deposit_finality_margin() do
+    Application.get_env(@app, :deposit_finality_margin)
+  end
 
-  def coordinator_setup() do
-    deposit_finality_margin = Configuration.deposit_finality_margin()
-
-    %{
-      depositor: [finality_margin: deposit_finality_margin],
-      exiter: [waits_for: :depositor, finality_margin: 0],
-      in_flight_exit: [waits_for: :depositor, finality_margin: 0],
-      piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
-    }
+  def contract_semver() do
+    Application.get_env(@app, :contract_semver)
   end
 end

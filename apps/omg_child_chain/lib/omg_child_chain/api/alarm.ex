@@ -12,21 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.CoordinatorSetup do
+defmodule OMG.ChildChain.API.Alarm do
   @moduledoc """
-   The setup of `OMG.RootChainCoordinator` for the child chain server - configures the relations between different
-   event listeners
+  Watcher alarm API
   """
-  alias OMG.Configuration
 
-  def coordinator_setup() do
-    deposit_finality_margin = Configuration.deposit_finality_margin()
+  alias OMG.Status.Alert.Alarm
 
-    %{
-      depositor: [finality_margin: deposit_finality_margin],
-      exiter: [waits_for: :depositor, finality_margin: 0],
-      in_flight_exit: [waits_for: :depositor, finality_margin: 0],
-      piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
-    }
-  end
+  @spec get_alarms() :: {:ok, Alarm.alarms()}
+  def get_alarms(), do: {:ok, Alarm.all()}
 end
