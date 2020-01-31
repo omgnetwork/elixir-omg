@@ -134,7 +134,14 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   end
 
   def handle_cast({:set_alarm, :ethereum_stalled_sync}, state) do
-    events = [%Event.EthereumStalledSync{ethereum_height: state.ethereum_height, synced_at: state.synced_at} | state.events]
+    events = [
+      %Event.EthereumStalledSync{
+        ethereum_height: state.ethereum_height,
+        synced_at: state.synced_at
+      }
+      | state.events
+    ]
+
     {:noreply, %{state | stall_stall_alarm_raised: true, events: events}}
   end
 

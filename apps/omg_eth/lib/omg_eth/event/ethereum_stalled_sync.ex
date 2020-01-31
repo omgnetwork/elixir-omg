@@ -24,5 +24,4 @@ defmodule OMG.Eth.Event.EthereumStalledSync do
         }
 
   defstruct [:ethereum_height, :synced_at, name: :ethereum_stalled_sync]
-
 end

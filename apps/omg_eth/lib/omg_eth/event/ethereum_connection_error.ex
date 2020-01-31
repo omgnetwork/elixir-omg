@@ -21,5 +21,5 @@ defmodule OMG.Eth.Event.EthereumConnectionError do
           name: atom()
         }
 
-  defstruct [name: :ethereum_connection_error]
+  defstruct name: :ethereum_connection_error
 end
