@@ -183,7 +183,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   defp eth(), do: Application.get_env(:omg_child_chain, :eth_integration_module, OMG.Eth)
 
   @spec broadcast_on_new_height(module(), non_neg_integer(), non_neg_integer() | :error) :: :ok | {:error, term()}
-  defp broadcast_on_new_height(event_bus, previous_height, :error), do: :ok
+  defp broadcast_on_new_height(_event_bus, _previous_height, :error), do: :ok
 
   defp broadcast_on_new_height(event_bus, previous_height, height) when height > previous_height do
     apply(event_bus, :broadcast, ["ethereum_new_height", {:ethereum_new_height, height}])
