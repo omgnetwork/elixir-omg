@@ -22,7 +22,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   block height is higher than the previously published height.
 
   When the call to the Ethereum client fails or returns an invalid responnse, it raises an
-  `:ethereum_client_connection` alarm. The alarm is cleared once a valid block height is seen.
+  `:ethereum_connection_error` alarm. The alarm is cleared once a valid block height is seen.
 
   When the call to the Ethereum client returns the same block height for longer than
   `:ethereum_stalled_sync_threshold_ms`, it raises an `:ethereum_stalled_sync` alarm.
@@ -30,6 +30,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   """
   use GenServer
   require Logger
+  alias OMG.Eth.Event
 
   @type t() :: %__MODULE__{
           check_interval_ms: pos_integer(),
@@ -38,7 +39,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
           alarm_module: module(),
           event_bus: module(),
           ethereum_height: integer(),
-          last_height_increased_at: DateTime.t(),
+          synced_at: DateTime.t(),
           connection_alarm_raised: boolean(),
           stall_alarm_raised: boolean()
         }
@@ -48,13 +49,31 @@ defmodule OMG.Eth.EthereumHeightMonitor do
             alarm_module: nil,
             event_bus: nil,
             ethereum_height: 0,
-            last_height_increased_at: nil,
+            synced_at: nil,
             connection_alarm_raised: false,
             stall_alarm_raised: false
+
+  @type events_t() :: [Event.t()]
+
+  #
+  # GenServer APIs
+  #
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
+
+  @doc """
+  Return current events that are associated with `EthereumHeightMonitor`.
+  """
+  @spec get_events() :: {:ok, events_t()}
+  def get_events() do
+    GenServer.call(__MODULE__, :get_events)
+  end
+
+  #
+  # GenServer behaviors
+  #
 
   @spec init(Keyword.t()) :: {:ok, t()}
   def init(opts) do
@@ -64,7 +83,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     state = %__MODULE__{
       check_interval_ms: Application.fetch_env!(:omg_eth, :ethereum_height_check_interval_ms),
       stall_threshold_ms: Application.fetch_env!(:omg_eth, :ethereum_stalled_sync_threshold_ms),
-      last_height_increased_at: DateTime.utc_now(),
+      synced_at: DateTime.utc_now(),
       alarm_module: Keyword.fetch!(opts, :alarm_module),
       event_bus: Keyword.fetch!(opts, :event_bus)
     }
@@ -75,55 +94,83 @@ defmodule OMG.Eth.EthereumHeightMonitor do
 
   def handle_info(:check_new_height, state) do
     height = fetch_height()
-    stalled? = stalled?(height, state.ethereum_height, state.last_height_increased_at, state.stall_threshold_ms)
+    stalled? = stalled?(height, state.ethereum_height, state.synced_at, state.stall_threshold_ms)
 
     :ok = broadcast_on_new_height(state.event_bus, state.ethereum_height, height)
-    _ = conn_alarm(state.alarm_module, state.connection_alarm_raised, height)
+    _ = connection_alarm(state.alarm_module, state.connection_alarm_raised, height)
     _ = stall_alarm(state.alarm_module, state.stall_alarm_raised, stalled?)
 
     state =
       case stalled? do
         true -> state
-        false -> %{state | ethereum_height: height, last_height_increased_at: DateTime.utc_now()}
+        false -> %{state | ethereum_height: height, synced_at: DateTime.utc_now()}
       end
 
     {:ok, tref} = :timer.send_after(state.check_interval, :check_new_height)
     {:noreply, %{state | tref: tref}}
   end
 
-  # Handle alarm events from the AlarmHandler
-  def handle_cast({:set_alarm, :ethereum_client_connection}, state) do
-    {:noreply, %{state | connection_alarm_raised: true}}
+  def handle_call(:get_events, _from, state) do
+    {:reply, {:ok, state.events}, state}
   end
 
-  def handle_cast({:clear_alarm, :ethereum_client_connection}, state) do
-    {:noreply, %{state | connection_alarm_raised: false}}
+  #
+  # Handle incoming alarms
+  #
+  # These functions are called by the AlarmHandler so that this monitor process can update
+  # its internal state according to the raised alarms. Mainly these handlers do 2 things:
+  #
+  # 1. Reflect the internal state so that it does not re-raise an existing alarm
+  # 2. Maintain the list of events that the alarm corresponds to
+  #
+  def handle_cast({:set_alarm, :ethereum_connection_error}, state) do
+    events = [%Event.EthereumConnectionError{} | state.events]
+    {:noreply, %{state | connection_alarm_raised: true, events: events}}
+  end
+
+  def handle_cast({:clear_alarm, :ethereum_connection_error}, state) do
+    events = clear_events(state.events, Event.EthereumConnectionError)
+    {:noreply, %{state | connection_alarm_raised: false, events: events}}
   end
 
   def handle_cast({:set_alarm, :ethereum_stalled_sync}, state) do
-    {:noreply, %{state | stall_alarm_raised: true}}
+    events = [%Event.EthereumStalledSync{ethereum_height: state.ethereum_height, synced_at: state.synced_at} | state.events]
+    {:noreply, %{state | stall_stall_alarm_raised: true, events: events}}
   end
 
   def handle_cast({:clear_alarm, :ethereum_stalled_sync}, state) do
-    {:noreply, %{state | stall_alarm_raised: false}}
+    events = clear_events(state.events, Event.EthereumStalledSync)
+    {:noreply, %{state | stall_alarm_raised: false, events: events}}
   end
 
+  #
+  # Private functions
+  #
+
   @spec stalled?(non_neg_integer(), non_neg_integer(), DateTime.t(), non_neg_integer()) :: boolean()
-  defp stalled?(height, previous_height, last_height_increased_at, stall_threshold_ms) do
+  defp stalled?(height, previous_height, synced_at, stall_threshold_ms) do
     case height do
       height when is_integer(height) and height >= previous_height ->
         false
 
       _ ->
-        DateTime.diff(DateTime.utc_now(), last_height_increased_at, :millisecond) > stall_threshold_ms
+        DateTime.diff(DateTime.utc_now(), synced_at, :millisecond) > stall_threshold_ms
     end
   end
 
   @spec fetch_height() :: non_neg_integer() | :error
   defp fetch_height() do
     case eth().get_ethereum_height() do
-      {:ok, height} when is_integer(height) -> height
-      _error_or_not_integer -> :error
+      {:ok, height} when is_integer(height) ->
+        height
+
+      {:ok, non_integer} ->
+        _ = Logger.error("Invalid Ethereum height retrieved: #{inspect(non_integer)}")
+        :error
+
+      error ->
+        _ = Logger.error("Error retrieving Ethereum height: #{inspect(error)}")
+        :error
     end
   end
 
@@ -137,6 +184,11 @@ defmodule OMG.Eth.EthereumHeightMonitor do
 
   defp broadcast_on_new_height(_, _, _), do: :ok
 
+  @spec clear_events(events_t(), module()) :: events_t()
+  defp clear_events(events, module) do
+    Enum.reject(events, fn %struct_module{} -> struct_module == module end)
+  end
+
   #
   # Alarms management
   #
@@ -149,18 +201,18 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   end
 
   # Raise or clear the :ethereum_client_connnection alarm
-  @spec conn_alarm(module(), boolean(), boolean()) :: :ok | :duplicate
-  defp conn_alarm(alarm_module, connection_alarm_raised, raise_alarm)
+  @spec connection_alarm(module(), boolean(), non_neg_integer() | :error) :: :ok | :duplicate
+  defp connection_alarm(alarm_module, connection_alarm_raised, raise_alarm)
 
-  defp conn_alarm(alarm_module, false, :error) do
-    alarm_module.set(alarm_module.ethereum_client_connection(__MODULE__))
+  defp connection_alarm(alarm_module, false, :error) do
+    alarm_module.set(alarm_module.ethereum_connection_error(__MODULE__))
   end
 
-  defp conn_alarm(alarm_module, true, _) do
-    alarm_module.clear(alarm_module.ethereum_client_connection(__MODULE__))
+  defp connection_alarm(alarm_module, true, _) do
+    alarm_module.clear(alarm_module.ethereum_connection_error(__MODULE__))
   end
 
-  defp conn_alarm(_alarm_module, _, _), do: :ok
+  defp connection_alarm(_alarm_module, _, _), do: :ok
 
   # Raise or clear the :ethereum_stalled_sync alarm
   @spec stall_alarm(module(), boolean(), boolean()) :: :ok | :duplicate

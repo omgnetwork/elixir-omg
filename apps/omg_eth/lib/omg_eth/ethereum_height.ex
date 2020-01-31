@@ -21,7 +21,6 @@ defmodule OMG.Eth.EthereumHeight do
   use GenServer
   require Logger
   alias OMG.Eth
-  alias OMG.Eth.Encoding
 
   @spec get() :: {:ok, non_neg_integer()} | {:error, :error_ethereum_height}
   def get do

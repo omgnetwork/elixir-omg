@@ -19,6 +19,7 @@ defmodule OMG.Watcher.API.Status do
 
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
+  alias OMG.Eth.EthereumHeightMonitor
   alias OMG.RootChainCoordinator
   alias OMG.State
   alias OMG.Watcher.BlockGetter
@@ -66,6 +67,7 @@ defmodule OMG.Watcher.API.Status do
     {:ok, in_flight_exits} = ExitProcessor.get_active_in_flight_exits()
 
     {:ok, {_, events_block_getter}} = BlockGetter.get_events()
+    {:ok, ethereum_height_events} = EthereumHeightMonitor.get_events()
 
     status = %{
       last_validated_child_block_number: validated_child_block_number,
@@ -75,7 +77,7 @@ defmodule OMG.Watcher.API.Status do
       last_seen_eth_block_number: eth_block_number,
       last_seen_eth_block_timestamp: eth_block_timestamp,
       eth_syncing: eth_syncing,
-      byzantine_events: events_processor ++ events_block_getter,
+      byzantine_events: events_processor ++ events_block_getter ++ ethereum_height_events,
       in_flight_exits: in_flight_exits,
       contract_addr: contract_addr,
       services_synced_heights: services_synced_heights
