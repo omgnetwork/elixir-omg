@@ -74,7 +74,9 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     _ = EthereumClientMock.set_faulty_response(true)
 
     :ok =
-      pull_client_alarm(100, ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor})
+      pull_client_alarm(100,
+        ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}
+      )
 
     assert {:ok, [%Event.EthereumConnectionError{}]} = EthereumHeightMonitor.get_events()
 
