@@ -444,7 +444,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     invalid_piggybacks = ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input)
 
-    # TODO: late piggybacks are critical, to be implemented in OMG-408
+    # TODO: late piggybacks are critical, to be implemented in https://github.com/omisego/elixir-omg/issues/671
     late_invalid_piggybacks = []
 
     has_no_late_invalid_exits = Enum.empty?(late_invalid_exits) and Enum.empty?(late_invalid_piggybacks)
