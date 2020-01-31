@@ -18,13 +18,12 @@ defmodule OMG.ChildChain.API.Configuration do
   """
 
   alias OMG.Configuration
-  alias OMG.Eth.Configuration
 
   @spec get_configuration() :: {:ok, map()}
   def get_configuration() do
     configuration = %{
       deposit_finality_margin: Configuration.deposit_finality_margin(),
-      contract_semver: Eth.Configuration.contract_semver()
+      contract_semver: OMG.Eth.Configuration.contract_semver()
     }
 
     {:ok, configuration}
