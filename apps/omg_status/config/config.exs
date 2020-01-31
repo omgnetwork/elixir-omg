@@ -1,7 +1,7 @@
 use Mix.Config
 
 config :omg_status,
-  client_monitor_interval_ms: 10_000
+  ethereum_height_check_interval_ms: 10_000
 
 config :omg_status, OMG.Status.Metric.Tracer,
   service: :omg_status,

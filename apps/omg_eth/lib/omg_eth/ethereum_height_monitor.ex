@@ -62,7 +62,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     _ = install_alarm_handler()
 
     state = %__MODULE__{
-      check_interval_ms: Application.fetch_env!(:omg_eth, :client_monitor_interval_ms),
+      check_interval_ms: Application.fetch_env!(:omg_eth, :ethereum_height_check_interval_ms),
       stall_threshold_ms: Application.fetch_env!(:omg_eth, :ethereum_stalled_sync_threshold_ms),
       alarm_module: Keyword.fetch!(opts, :alarm_module),
       event_bus: Keyword.fetch!(opts, :event_bus)

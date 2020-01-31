@@ -17,7 +17,7 @@ config :omg_eth,
   child_block_interval: 1000,
   min_exit_period_seconds: 7 * 24 * 60 * 60,
   ws_url: "ws://localhost:8546/ws",
-  client_monitor_interval_ms: 10_000,
+  ethereum_height_check_interval_ms: 10_000,
   ethereum_stalled_sync_threshold_ms: 20_000
 
 import_config "#{Mix.env()}.exs"
