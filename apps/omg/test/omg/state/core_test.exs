@@ -944,7 +944,7 @@ defmodule OMG.State.CoreTest do
         Transaction.Recovered.recover_from!(fee_txbytes)
 
       assert %Transaction.Payment{} = payment_tx
-      assert %Transaction.FeeTokenClaim{} = fee_tx
+      assert %Transaction.Fee{} = fee_tx
     end
 
     test "fee txs are appended even when fees aren't required", %{state: state} do
@@ -1110,7 +1110,8 @@ defmodule OMG.State.CoreTest do
       |> fail?(:claimed_and_collected_amounts_mismatch)
     end
 
-    @tag skip: true # this test takes ~26 seconds on my machine
+    # this test takes ~26 seconds on my machine
+    @tag skip: true
     test "long running full block test", %{alice: alice, state_empty: state, fees: fees} do
       maximum_block_size = 65_536
       maximum_inputs_size = 4

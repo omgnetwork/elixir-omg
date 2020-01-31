@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# FIXME: /r FeeTokenClaim -> Fee
-defmodule OMG.State.Transaction.FeeTokenClaim do
+defmodule OMG.State.Transaction.Fee do
   @moduledoc """
   Internal representation of a fee claiming transaction in plasma chain.
   """
@@ -114,15 +113,15 @@ defmodule OMG.State.Transaction.FeeTokenClaim do
   end
 end
 
-defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim do
+defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Fee do
   alias OMG.Output
   alias OMG.State.Transaction
 
   @doc """
   Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
   """
-  @spec get_data_for_rlp(Transaction.FeeTokenClaim.t()) :: list(any())
-  def get_data_for_rlp(%Transaction.FeeTokenClaim{tx_type: tx_type, outputs: outputs, nonce: nonce}) do
+  @spec get_data_for_rlp(Transaction.Fee.t()) :: list(any())
+  def get_data_for_rlp(%Transaction.Fee{tx_type: tx_type, outputs: outputs, nonce: nonce}) do
     [
       tx_type,
       Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
@@ -130,18 +129,24 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
     ]
   end
 
-  @spec get_outputs(Transaction.FeeTokenClaim.t()) :: list(Output.t())
-  def get_outputs(%Transaction.FeeTokenClaim{outputs: outputs}), do: outputs
+  @doc """
+  Fee claiming transaction spends single pseudo-output from collected fees.
+  """
+  @spec get_outputs(Transaction.Fee.t()) :: list(Output.t())
+  def get_outputs(%Transaction.Fee{outputs: outputs}), do: outputs
 
-  @spec get_inputs(Transaction.FeeTokenClaim.t()) :: list(OMG.Utxo.Position.t())
-  def get_inputs(%Transaction.FeeTokenClaim{}), do: []
+  @doc """
+  Fee claiming transaction does not contain any inputs.
+  """
+  @spec get_inputs(Transaction.Fee.t()) :: list(OMG.Utxo.Position.t())
+  def get_inputs(%Transaction.Fee{}), do: []
 
   @doc """
   Tells whether Fee claiming transaction is valid
   """
-  @spec valid?(Transaction.FeeTokenClaim.t(), Transaction.Signed.t()) ::
+  @spec valid?(Transaction.Fee.t(), Transaction.Signed.t()) ::
           {:error, :wrong_number_of_fee_outputs | :fee_output_amount_has_to_be_positive}
-  def valid?(%Transaction.FeeTokenClaim{} = fee_tx, _signed_tx) do
+  def valid?(%Transaction.Fee{} = fee_tx, _signed_tx) do
     # we're able to check structure validity => single output with amount > 0
     with outputs = Transaction.get_outputs(fee_tx),
          true <- length(outputs) == 1 || {:error, :wrong_number_of_fee_outputs},
@@ -153,14 +158,18 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.FeeTokenClaim
   @doc """
   Fee claiming transaction is not used to transfer funds
   """
-  @spec can_apply?(Transaction.FeeTokenClaim.t(), list(Output.t())) ::
+  @spec can_apply?(Transaction.Fee.t(), list(Output.t())) ::
           {:ok, map()}
           | {:error, :surplus_in_token_not_collected | :claimed_and_collected_amounts_mismatch}
-  def can_apply?(%Transaction.FeeTokenClaim{outputs: [claimed]}, outputs) do
-    with %Output{} = collected <-
-           Enum.find(outputs, {:error, :surplus_in_token_not_collected}, fn o -> o.currency == claimed.currency end),
-         true <- collected.amount == claimed.amount || {:error, :claimed_and_collected_amounts_mismatch} do
-      {:ok, %{}}
-    end
+  def can_apply?(%Transaction.Fee{outputs: [claimed]}, outputs) do
+    with %Output{} = collected <- find_output_by_currency(outputs, claimed.currency),
+         true <- amounts_equal?(collected.amount, claimed.amount),
+         do: {:ok, %{}}
   end
+
+  defp find_output_by_currency(outputs, currency),
+    do: Enum.find(outputs, {:error, :surplus_in_token_not_collected}, fn o -> o.currency == currency end)
+
+  defp amounts_equal?(collected, claimed) when collected == claimed, do: true
+  defp amounts_equal?(_, _), do: {:error, :claimed_and_collected_amounts_mismatch}
 end

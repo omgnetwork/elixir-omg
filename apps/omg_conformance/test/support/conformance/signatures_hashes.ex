@@ -78,11 +78,11 @@ defmodule Support.Conformance.SignaturesHashes do
       {:error, :unrecognized_output_type} ->
         true
 
-      # NOTE: another temporary special case handling, until a better idea comes. `tx_type` 3 is `FeeTokenClaim`
+      # NOTE: another temporary special case handling, until a better idea comes. `tx_type` 3 is `Transaction.Fee`
       #       transaction which pops out as `malformed` in `elixir-omg` and is accepted by contracts
       {:error, :malformed_transaction} ->
         case ExRLP.decode(tx2_binary) do
-          # first RLP item of the transaction specifies the tx type as `FeeTokenClaim` - can't test further
+          # first RLP item of the transaction specifies the tx type as `Transaction.Fee` - can't test further
           [<<3>> | _] -> true
           # in all other cases the contract should revert
           _ -> verify_both_error(tx2_binary, contract)

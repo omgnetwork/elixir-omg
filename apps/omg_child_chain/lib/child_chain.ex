@@ -63,7 +63,7 @@ defmodule OMG.ChildChain do
     |> result_with_logging()
   end
 
-  defp is_supported(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.FeeTokenClaim{}}}),
+  defp is_supported(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.Fee{}}}),
     do: {:error, :transaction_not_supported}
 
   defp is_supported(%Transaction.Recovered{}), do: :ok

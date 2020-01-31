@@ -85,7 +85,7 @@ defmodule OMG.State.Core do
           # processed transaction before they get removed from DB on form_block.
           recently_spent: MapSet.t(OMG.Utxo.Position.t()),
           # Summarizes fees paid by pending transactions that will be formed into current block. Fees will be claimed
-          # by appending `FeeTokenClaim` txs after pending txs in current block.
+          # by appending `Transaction.Fee` txs after pending txs in current block.
           fees_paid: fee_summary_t(),
           # fees can be claimed at the end of the block, no other payments can be processed until next block
           fee_claiming_started: boolean(),
@@ -134,8 +134,6 @@ defmodule OMG.State.Core do
           txindex: non_neg_integer(),
           oindex: non_neg_integer()
         }
-
-  @type exec_mode :: :apply_spend | :claim_fees
 
   @doc """
   Initializes the state from the values stored in `OMG.DB`
@@ -189,32 +187,30 @@ defmodule OMG.State.Core do
   def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
     tx_hash = Transaction.raw_txhash(tx)
 
-    with {:ok, mode, fees_paid} <- Validator.can_process_tx(state, tx, fees) do
+    with {:ok, fees_paid} <- Validator.can_process_tx(state, tx, fees) do
       {:ok, {tx_hash, state.height, state.tx_index},
        state
        |> apply_tx(tx)
        |> add_pending_tx(tx)
-       |> handle_fees(mode, tx, fees_paid)}
+       |> handle_fees(tx, fees_paid)}
     else
       {{:error, _reason}, _state} = error ->
         error
     end
   end
 
-  # Post-processing step of transaction execution. It either collect fees from `Payment` transaction
-  # or claim fees with `FeeTokenClaim` transaction
-  @spec handle_fees(state :: t(), oper :: exec_mode(), Transaction.Recovered.t(), map()) :: t()
-  defp handle_fees(state, :apply_spend, _tx, fees_paid) do
-    state
-    |> collect_fees(fees_paid)
-  end
-
-  defp handle_fees(state, :claim_fees, tx, _fees_paid) do
+  # Post-processing step of transaction execution. It either claim for Transaction.Fee and collect for the rest.
+  @spec handle_fees(state :: t(), Transaction.Recovered.t(), map()) :: t()
+  defp handle_fees(state, %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Fee{}}} = tx, _fees_paid) do
     [output] = Transaction.get_outputs(tx)
 
     state
     |> flush_collected_fees_for_token(output)
     |> disallow_payments()
+  end
+
+  defp handle_fees(state, _tx, fees_paid) do
+    collect_fees(state, fees_paid)
   end
 
   @doc """
@@ -243,7 +239,7 @@ defmodule OMG.State.Core do
   end
 
   @doc """
-  Generates `FeeTokenClaim` transactions and executes them on state.
+  Generates `Transaction.Fee` transactions and executes them on state.
   Returns modified state.
   """
   @spec claim_fees(state :: t()) :: t()
@@ -255,7 +251,7 @@ defmodule OMG.State.Core do
         } = state
       ) do
     height
-    |> Transaction.FeeTokenClaim.claim_collected(owner, fees_paid)
+    |> Transaction.Fee.claim_collected(owner, fees_paid)
     |> Stream.map(&to_recovered_fee_tx/1)
     |> Enum.reduce(state, fn tx, curr_state ->
       {:ok, _, new_state} = exec(curr_state, tx, :no_fees_required)
@@ -450,19 +446,14 @@ defmodule OMG.State.Core do
     }
   end
 
-  defp collect_fees(%Core{fees_paid: fees_paid} = state, token_surplussed) do
+  defp collect_fees(%Core{fees_paid: fees_paid} = state, token_surpluses) do
     fees_paid_with_new =
-      token_surplussed
+      token_surpluses
       |> Enum.reject(fn {_token, amount} -> amount == 0 end)
       |> Map.new()
+      |> Map.merge(fees_paid, fn _token, collected, tx_surplus -> collected + tx_surplus end)
 
-    %Core{
-      state
-      | fees_paid:
-          Map.merge(fees_paid, fees_paid_with_new, fn
-            _token, collected, tx_surplus -> collected + tx_surplus
-          end)
-    }
+    %Core{state | fees_paid: fees_paid_with_new}
   end
 
   defp disallow_payments(state), do: %Core{state | fee_claiming_started: true}
@@ -507,7 +498,7 @@ defmodule OMG.State.Core do
        ),
        do: UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
 
-  defp to_recovered_fee_tx(%Transaction.FeeTokenClaim{} = fee_tx) do
+  defp to_recovered_fee_tx(%Transaction.Fee{} = fee_tx) do
     %Transaction.Signed{raw_tx: fee_tx, sigs: []}
     |> Transaction.Signed.encode()
     |> Transaction.Recovered.recover_from!()

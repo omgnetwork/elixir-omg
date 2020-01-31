@@ -37,7 +37,7 @@ defmodule OMG.State.Transaction.Validator.Payment do
           | :multiple_potential_currency_fees
 
   @spec can_apply_tx(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
-          {:ok, :apply_spend, map()} | {{:error, can_apply_error()}, Core.t()}
+          {:ok, map()} | {{:error, can_apply_error()}, Core.t()}
   def can_apply_tx(
         %Core{utxos: utxos} = state,
         %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses} = tx,
@@ -51,7 +51,7 @@ defmodule OMG.State.Transaction.Validator.Payment do
          :ok <- authorized?(outputs_spent, witnesses),
          {:ok, implicit_paid_fee_by_currency} <- Transaction.Protocol.can_apply?(raw_tx, outputs_spent),
          :ok <- Fees.check_if_covered(implicit_paid_fee_by_currency, fees) do
-      {:ok, :apply_spend, implicit_paid_fee_by_currency}
+      {:ok, implicit_paid_fee_by_currency}
     else
       {:error, _reason} = error -> {error, state}
     end

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.State.Transaction.FeeTokenClaimTest do
+defmodule OMG.State.Transaction.FeeTest do
   @moduledoc false
 
   use ExUnitFixtures
@@ -27,7 +27,7 @@ defmodule OMG.State.Transaction.FeeTokenClaimTest do
   describe "new/2" do
     @tag fixtures: [:alice]
     test "can be encoded to binary form and back", %{alice: owner} do
-      fee_tx = Transaction.FeeTokenClaim.new(1000, {owner.addr, @eth, 1551})
+      fee_tx = Transaction.Fee.new(1000, {owner.addr, @eth, 1551})
 
       rlp_form = Transaction.raw_txbytes(fee_tx)
       assert fee_tx == Transaction.decode!(rlp_form)
@@ -35,18 +35,18 @@ defmodule OMG.State.Transaction.FeeTokenClaimTest do
 
     @tag fixtures: [:alice]
     test "hash can be computed with protocol implementation", %{alice: owner} do
-      fee_tx = Transaction.FeeTokenClaim.new(1000, {owner.addr, @eth, 1551})
+      fee_tx = Transaction.Fee.new(1000, {owner.addr, @eth, 1551})
       fee_txhash = Transaction.raw_txhash(fee_tx)
       assert <<_::256>> = fee_txhash
 
-      assert Transaction.raw_txhash(Transaction.FeeTokenClaim.new(1000, {owner.addr, @eth, 1551})) == fee_txhash
-      assert Transaction.raw_txhash(Transaction.FeeTokenClaim.new(1001, {owner.addr, @eth, 1551})) != fee_txhash
-      assert Transaction.raw_txhash(Transaction.FeeTokenClaim.new(1000, {owner.addr, @other_token, 1551})) != fee_txhash
+      assert Transaction.raw_txhash(Transaction.Fee.new(1000, {owner.addr, @eth, 1551})) == fee_txhash
+      assert Transaction.raw_txhash(Transaction.Fee.new(1001, {owner.addr, @eth, 1551})) != fee_txhash
+      assert Transaction.raw_txhash(Transaction.Fee.new(1000, {owner.addr, @other_token, 1551})) != fee_txhash
     end
 
     @tag fixtures: [:alice]
     test "fee-tx should be recoverable from binary form", %{alice: owner} do
-      fee_tx = Transaction.FeeTokenClaim.new(1000, {owner.addr, @eth, 1551})
+      fee_tx = Transaction.Fee.new(1000, {owner.addr, @eth, 1551})
       tx_rlp = Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
 
       assert {:ok,
@@ -59,7 +59,7 @@ defmodule OMG.State.Transaction.FeeTokenClaimTest do
   describe "claim_collected/3" do
     @tag fixtures: [:alice]
     test "no fees collected result in empty fee-txs list", %{alice: owner} do
-      assert [] == Transaction.FeeTokenClaim.claim_collected(1000, owner, %{})
+      assert [] == Transaction.Fee.claim_collected(1000, owner, %{})
     end
 
     @tag fixtures: [:alice]
@@ -72,7 +72,7 @@ defmodule OMG.State.Transaction.FeeTokenClaimTest do
       assert [
                eth_fee_tx,
                other_fee_tx
-             ] = Transaction.FeeTokenClaim.claim_collected(1000, owner, fees_paid)
+             ] = Transaction.Fee.claim_collected(1000, owner, fees_paid)
 
       assert [
                %Output{

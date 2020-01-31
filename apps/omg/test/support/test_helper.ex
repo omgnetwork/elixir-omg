@@ -101,7 +101,7 @@ defmodule OMG.TestHelper do
 
   def create_encoded_fee_tx(blknum, owner, currency, amount) do
     %Transaction.Signed{
-      raw_tx: Transaction.FeeTokenClaim.new(blknum, {owner, currency, amount}),
+      raw_tx: Transaction.Fee.new(blknum, {owner, currency, amount}),
       sigs: []
     }
     |> Transaction.Signed.encode()

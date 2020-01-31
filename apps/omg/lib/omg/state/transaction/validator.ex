@@ -37,7 +37,7 @@ defmodule OMG.State.Transaction.Validator do
   subject to particular fee requirements
   """
   @spec can_process_tx(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
-          {:ok, :apply_spend, map()} | {:ok, :claim_fees, map()} | {{:error, can_process_tx_error()}, Core.t()}
+          {:ok, map()} | {:ok, map()} | {{:error, can_process_tx_error()}, Core.t()}
   def can_process_tx(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
     with :ok <- validate_block_size(state), do: dispatch_validation(state, tx, fees)
   end
@@ -56,7 +56,7 @@ defmodule OMG.State.Transaction.Validator do
 
   defp dispatch_validation(
          state,
-         %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.FeeTokenClaim{}}} = tx,
+         %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Fee{}}} = tx,
          _fees
        ),
        do: Validator.FeeClaim.can_claim_fees(state, tx)
