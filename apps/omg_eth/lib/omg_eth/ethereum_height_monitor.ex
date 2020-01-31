@@ -30,27 +30,27 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   """
   use GenServer
   require Logger
-  alias OMG.Eth.Encoding
 
   @type t() :: %__MODULE__{
           check_interval_ms: pos_integer(),
+          stall_threshold_ms: pos_integer(),
           tref: reference() | nil,
           alarm_module: module(),
-          event_bus: module()
-          ethereum_height: integer | :error,
+          event_bus: module(),
+          ethereum_height: integer(),
           last_height_increased_at: DateTime.t(),
           connection_alarm_raised: boolean(),
-          stall_alarm_raised: boolean(),
+          stall_alarm_raised: boolean()
         }
   defstruct check_interval_ms: 10_000,
             stall_threshold_ms: 20_000,
             tref: nil,
             alarm_module: nil,
-            event_bus: nil
+            event_bus: nil,
             ethereum_height: 0,
             last_height_increased_at: nil,
             connection_alarm_raised: false,
-            stall_alarm_raised: false,
+            stall_alarm_raised: false
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -64,6 +64,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     state = %__MODULE__{
       check_interval_ms: Application.fetch_env!(:omg_eth, :ethereum_height_check_interval_ms),
       stall_threshold_ms: Application.fetch_env!(:omg_eth, :ethereum_stalled_sync_threshold_ms),
+      last_height_increased_at: DateTime.utc_now(),
       alarm_module: Keyword.fetch!(opts, :alarm_module),
       event_bus: Keyword.fetch!(opts, :event_bus)
     }
@@ -83,7 +84,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     state =
       case stalled? do
         true -> state
-        false -> %{state | ethereum_height: height, last_height_increased_at: DateTime.now()}
+        false -> %{state | ethereum_height: height, last_height_increased_at: DateTime.utc_now()}
       end
 
     {:ok, tref} = :timer.send_after(state.check_interval, :check_new_height)
@@ -107,14 +108,14 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     {:noreply, %{state | stall_alarm_raised: false}}
   end
 
-  @spec stalled?() :: boolean()
+  @spec stalled?(non_neg_integer(), non_neg_integer(), DateTime.t(), non_neg_integer()) :: boolean()
   defp stalled?(height, previous_height, last_height_increased_at, stall_threshold_ms) do
     case height do
       height when is_integer(height) and height >= previous_height ->
         false
 
       _ ->
-        DateTime.diff(DateTime.now(), last_height_increased_at, :millisecond) > stall_threshold_ms
+        DateTime.diff(DateTime.utc_now(), last_height_increased_at, :millisecond) > stall_threshold_ms
     end
   end
 
@@ -129,7 +130,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   @spec eth() :: module()
   defp eth(), do: Application.get_env(:omg_child_chain, :eth_integration_module, OMG.Eth)
 
-  @spec broadcast_on_new_height() :: :ok | {:error, term()}
+  @spec broadcast_on_new_height(module(), non_neg_integer(), non_neg_integer()) :: :ok | {:error, term()}
   defp broadcast_on_new_height(event_bus, previous_height, height) when height > previous_height do
     apply(event_bus, :broadcast, ["ethereum_new_height", {:ethereum_new_height, height}])
   end

@@ -36,10 +36,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold do
         Application.get_env(@app, @config_key)
       )
 
-    _ =
-      Logger.info(
-        "CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(threshold_ms)}."
-      )
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(threshold_ms)}.")
 
     threshold_ms
   end

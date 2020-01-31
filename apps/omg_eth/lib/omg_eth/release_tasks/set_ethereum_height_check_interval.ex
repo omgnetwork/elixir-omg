@@ -36,10 +36,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumHeightCheckInterval do
         Application.get_env(@app, @config_key)
       )
 
-    _ =
-      Logger.info(
-        "CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(interval_ms)}."
-      )
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(interval_ms)}.")
 
     interval_ms
   end

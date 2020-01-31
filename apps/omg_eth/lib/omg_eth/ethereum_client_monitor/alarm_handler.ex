@@ -18,8 +18,9 @@ defmodule OMG.Eth.EthereumHeightMonitor.AlarmHandler do
   the alarm's state back to the monitor.
   """
   use GenServer
+  require Logger
 
-  # The alarm reporter and monitor happens to be the same module here because we are just
+  # The alarm reporter and monitor happen to be the same module here because we are just
   # reflecting the alarm's state back to the reporter.
   @reporter OMG.Eth.EthereumHeightMonitor
   @monitor OMG.Eth.EthereumHeightMonitor
