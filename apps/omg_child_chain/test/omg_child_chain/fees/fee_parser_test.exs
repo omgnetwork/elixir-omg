@@ -35,7 +35,7 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
             },
             {
               "token": "0xd26114cd6ee289accf82350c8d8487fedb8a0c07",
-              "amount": 0,
+              "amount": 1,
               "subunit_to_unit": 1000000000000000000,
               "pegged_amount": 1,
               "pegged_currency": "USD",
@@ -68,7 +68,7 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
 
       assert {:ok, tx_type_map} = FeeParser.parse(json)
       assert tx_type_map[1][@eth][:amount] == 2
-      assert tx_type_map[1][Base.decode16!("d26114cd6ee289accf82350c8d8487fedb8a0c07", case: :mixed)][:amount] == 0
+      assert tx_type_map[1][Base.decode16!("d26114cd6ee289accf82350c8d8487fedb8a0c07", case: :mixed)][:amount] == 1
       assert tx_type_map[1][Base.decode16!("a74476443119a942de498590fe1f2454d7d4ac0d", case: :mixed)][:amount] == 4
       assert tx_type_map[2][@eth][:amount] == 4
     end

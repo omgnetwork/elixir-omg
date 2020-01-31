@@ -37,7 +37,7 @@ defmodule OMG.Fees do
   @type optional_fee_t() :: fee_t() | :no_fees_required
   @typedoc "A map representing a single fee"
   @type fee_spec_t() :: %{
-          amount: non_neg_integer(),
+          amount: pos_integer(),
           subunit_to_unit: pos_integer(),
           pegged_amount: pos_integer(),
           pegged_currency: String.t(),

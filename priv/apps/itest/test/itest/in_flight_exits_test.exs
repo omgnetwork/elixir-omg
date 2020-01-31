@@ -181,7 +181,7 @@ defmodule InFlightExitsTests do
   #     @eth,
   #     [{alice, 5}, {bob, 15}]
   #   )
-  # Note that alice ooutput will not be 5, but 5 - tx fees
+  # Note that alice output will not be 5, but 5 - tx fees
   defgiven ~r/^Alice and Bob create a transaction for "(?<amount>[^"]+)" ETH$/,
            %{amount: amount},
            state do
