@@ -35,6 +35,8 @@ defmodule OMG.State.Transaction.Validator do
           | :too_many_transactions_in_block
           | :unauthorized_spend
           | :utxo_not_found
+          | :overpaying_fees
+          | :multiple_potential_currency_fees
 
   @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           true | {{:error, exec_error()}, Core.t()}
