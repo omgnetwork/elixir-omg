@@ -62,14 +62,20 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     _ = EthereumClientMock.set_faulty_response(true)
 
     # Assert the alarm and event are present
-    assert pull_client_alarm(100, ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}) == :ok
+    assert pull_client_alarm(100,
+             ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}
+           ) == :ok
+
     assert {:ok, [%Event.EthereumConnectionError{}]} = EthereumHeightMonitor.get_events()
   end
 
   test "that the connection alarm gets cleared and without EthereumConnectionError event when connection becomes healthy" do
     # Initialize as unhealthy
     _ = EthereumClientMock.set_faulty_response(true)
-    :ok = pull_client_alarm(100, ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor})
+
+    :ok =
+      pull_client_alarm(100, ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor})
+
     assert {:ok, [%Event.EthereumConnectionError{}]} = EthereumHeightMonitor.get_events()
 
     # Toggle healthy response
@@ -94,14 +100,20 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     _ = EthereumClientMock.set_stalled(true)
 
     # Assert alarm now present
-    assert pull_client_alarm(200, ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}) == :ok
+    assert pull_client_alarm(200,
+             ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}
+           ) == :ok
+
     assert {:ok, [%Event.EthereumStalledSync{}]} = EthereumHeightMonitor.get_events()
   end
 
   test "that the stall alarm gets cleared and without EthereumStalledSync event when block height unstalls" do
     # Initialize as unhealthy
     _ = EthereumClientMock.set_stalled(true)
-    :ok = pull_client_alarm(300, ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor})
+
+    :ok =
+      pull_client_alarm(300, ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor})
+
     assert {:ok, [%Event.EthereumStalledSync{}]} = EthereumHeightMonitor.get_events()
 
     # Toggle unstalled height
