@@ -170,7 +170,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   defp get_contract_semver(nil), do: exit(@error)
 
   defp get_contract_semver(plasma_framework_contract) do
-    {:ok, [{contract_semver}]} =
+    {:ok, {contract_semver}} =
       Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "getVersion()", [], [{:tuple, [:string]}])
 
     contract_semver

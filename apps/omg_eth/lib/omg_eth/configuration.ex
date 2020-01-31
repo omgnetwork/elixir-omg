@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Configuration do
+defmodule OMG.Eth.Configuration do
   @moduledoc """
   Provides access to applications configuration
   """
-  @app :omg
-  def deposit_finality_margin() do
-    Application.get_env(@app, :deposit_finality_margin)
+  @app :omg_eth
+  def contract_semver() do
+    Application.get_env(@app, :contract_semver)
   end
 end

@@ -22,7 +22,12 @@ defmodule OMG.ChildChainRPC.Web.View.Configuration do
 
   def render("configuration.json", %{response: configuration}) do
     configuration
+    |> to_api_format()
     |> Response.serialize()
     |> ChildChainRPCResponse.add_app_infos()
+  end
+
+  defp to_api_format(%{contract_semver: contract_semver} = response) do
+    Map.put(response, :contract_semver, {:skip_hex_encode, contract_semver})
   end
 end
