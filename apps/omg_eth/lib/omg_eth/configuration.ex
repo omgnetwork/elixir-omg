@@ -20,4 +20,8 @@ defmodule OMG.Eth.Configuration do
   def contract_semver() do
     Application.get_env(@app, :contract_semver)
   end
+
+  def network() do
+    Application.get_env(@app, :network)
+  end
 end

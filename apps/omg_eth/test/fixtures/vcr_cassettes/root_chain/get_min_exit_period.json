@@ -10,7 +10,7 @@
     },
     "response": {
       "binary": false,
-      "body": "{\"authority_address\":\"authority_address_value\",\"erc20_vault\":\"erc20_vault_value\",\"eth_vault\":\"eth_vault_value\",\"payment_exit_game\":\"payment_exit_game_value\",\"plasma_framework\":\"0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7\",\"plasma_framework_tx_hash\":\"txhash_contract_value\"}",
+      "body": "{\"authority_address\":\"authority_address_value\",\"erc20_vault\":\"erc20_vault_value\",\"eth_vault\":\"eth_vault_value\",\"payment_exit_game\":\"payment_exit_game_value\",\"plasma_framework\":\"0xc673e4ffcb8464faff908a6804fe0e635af0ea2f\",\"plasma_framework_tx_hash\":\"txhash_contract_value\"}",
       "headers": [],
       "status_code": 200,
       "type": "ok"
@@ -18,7 +18,7 @@
   },
   {
     "request": {
-      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"data\":\"0xd4a2b4ef\",\"to\":\"0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7\"},\"latest\"]}",
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"data\":\"0xd4a2b4ef\",\"to\":\"0xc673e4ffcb8464faff908a6804fe0e635af0ea2f\"},\"latest\"]}",
       "headers": {
         "Content-Type": "application/json"
       },
@@ -32,12 +32,37 @@
     },
     "response": {
       "binary": false,
-      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"0x0000000000000000000000000000000000000000000000000000000000000258\"}",
+      "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x0000000000000000000000000000000000000000000000000000000000000014\"}\n",
       "headers": {
         "Content-Type": "application/json",
-        "Date": "Fri, 08 Nov 2019 21:50:59 GMT",
-        "Connection": "keep-alive",
-        "Transfer-Encoding": "chunked"
+        "Date": "Fri, 31 Jan 2020 20:03:49 GMT",
+        "Content-Length": "103"
+      },
+      "status_code": 200,
+      "type": "ok"
+    }
+  },
+  {
+    "request": {
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"data\":\"0x0d8e6e2c\",\"to\":\"0xc673e4ffcb8464faff908a6804fe0e635af0ea2f\"},\"latest\"]}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "method": "post",
+      "options": {
+        "recv_timeout": "infinity",
+        "pool": "default"
+      },
+      "request_body": "",
+      "url": "http://localhost:8545"
+    },
+    "response": {
+      "binary": false,
+      "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d312e302e312b6263333538366200000000000000000000000000000000000000\"}\n",
+      "headers": {
+        "Content-Type": "application/json",
+        "Date": "Fri, 31 Jan 2020 20:03:49 GMT",
+        "Content-Length": "231"
       },
       "status_code": 200,
       "type": "ok"

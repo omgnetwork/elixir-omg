@@ -12,21 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.API.Configuration do
+defmodule OMG.Watcher.Configuration do
   @moduledoc """
-  Watcher API for retrieving configuration
+  Provides access to applications configuration
   """
+  @app :omg_watcher
+  def exit_processor_sla_margin() do
+    Application.fetch_env!(@app, :exit_processor_sla_margin)
+  end
 
-  alias OMG.Configuration
-
-  @spec get_configuration() :: {:ok, map()}
-  def get_configuration() do
-    configuration = %{
-      deposit_finality_margin: Configuration.deposit_finality_margin(),
-      contract_semver: OMG.Eth.Configuration.contract_semver(),
-      network: OMG.Eth.Configuration.network()
-    }
-
-    {:ok, configuration}
+  def metrics_collection_interval() do
+    Application.fetch_env!(@app, :metrics_collection_interval)
   end
 end

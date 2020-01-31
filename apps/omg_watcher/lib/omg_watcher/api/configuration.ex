@@ -23,7 +23,9 @@ defmodule OMG.Watcher.API.Configuration do
   def get_configuration() do
     configuration = %{
       deposit_finality_margin: Configuration.deposit_finality_margin(),
-      contract_semver: OMG.Eth.Configuration.contract_semver()
+      contract_semver: OMG.Eth.Configuration.contract_semver(),
+      network: OMG.Eth.Configuration.network(),
+      exit_processor_sla_margin: OMG.Watcher.Configuration.exit_processor_sla_margin()
     }
 
     {:ok, configuration}

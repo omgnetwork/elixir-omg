@@ -133,6 +133,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
         ethereum_client_connection: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumClientMonitor}
       )
 
+    _ = Process.sleep(100)
     {:message_queue_len, 0} = Process.info(pid, :message_queue_len)
     :sys.replace_state(Process.whereis(EthereumClientMock), fn _ -> %{} end)
     {:ok, {server_ref, ^websocket_url}} = WebSockexServerMock.restart(websocket_url)

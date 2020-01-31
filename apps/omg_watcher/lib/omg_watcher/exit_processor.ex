@@ -36,8 +36,8 @@ defmodule OMG.Watcher.ExitProcessor do
 
   ### Client
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   @doc """
@@ -209,18 +209,21 @@ defmodule OMG.Watcher.ExitProcessor do
 
   use GenServer
 
-  def init(:ok) do
+  def init(
+        exit_processor_sla_margin: exit_processor_sla_margin,
+        metrics_collection_interval: metrics_collection_interval
+      ) do
     {:ok, db_exits} = DB.exit_infos()
     {:ok, db_ifes} = DB.in_flight_exits_info()
     {:ok, db_competitors} = DB.competitors_info()
 
-    sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
+    sla_margin = exit_processor_sla_margin
 
     processor = Core.init(db_exits, db_ifes, db_competitors, sla_margin)
 
     {:ok, _} =
       :timer.send_interval(
-        Application.fetch_env!(:omg_watcher, :metrics_collection_interval),
+        metrics_collection_interval,
         self(),
         :send_metrics
       )
@@ -461,7 +464,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, blocks} = OMG.DB.blocks(hashes)
     _ = Logger.debug("blocks_result: #{inspect(blocks)}")
 
-    blocks |> Enum.map(&Block.from_db_value/1)
+    Enum.map(blocks, &Block.from_db_value/1)
   end
 
   defp do_get_spent_blknum(position) do

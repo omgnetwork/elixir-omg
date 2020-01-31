@@ -11,6 +11,7 @@ defmodule InFlightExitsTests do
   alias Itest.ApiModel.IfeInputChallenge
   alias Itest.ApiModel.IfeOutputChallenge
   alias Itest.ApiModel.SubmitTransactionResponse
+  alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
@@ -104,9 +105,15 @@ defmodule InFlightExitsTests do
       |> Currency.to_wei()
       |> Client.deposit(address, Itest.Account.vault(Currency.ether()))
 
-    # retrieve finality margin from the API
     geth_block_every = 1
-    finality_margin_blocks = 6
+
+    {:ok, response} =
+      WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
+
+    watcher_security_critical_config =
+      WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
+
+    finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
     to_miliseconds = 1000
 
     finality_margin_blocks

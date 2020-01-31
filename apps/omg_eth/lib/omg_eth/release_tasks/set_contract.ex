@@ -21,7 +21,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   alias OMG.Eth.Encoding
 
   @app :omg_eth
-  @error "Set ETHEREUM_NETWORK to RINKEBY, ROPSTEN, GOERLI, MAINNET, or LOCALCHAIN with TXHASH_CONTRACT, AUTHORITY_ADDRESS and CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
+  @networks ["RINKEBY", "ROPSTEN", "GOERLI", "KOVAN", "MAINNET", "LOCALCHAIN"]
+  @error "Set ETHEREUM_NETWORK to #{Enum.join(@networks, ",")} with TXHASH_CONTRACT, AUTHORITY_ADDRESS and CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
 
   @doc """
   The contract values can currently come either from ENV variables for deployments in
@@ -40,10 +41,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
     case {exchanger, via_env} do
       {exchanger, _} when is_binary(exchanger) ->
-        _ =
-          unless is_binary(via_env) && (String.upcase(via_env) == "RINKEBY" or String.upcase(via_env) == "LOCALCHAIN") do
-            exit("Set ETHEREUM_NETWORK to RINKEBY and populate CONTRACT_EXCHANGER_URL")
-          end
+        network = get_network(via_env)
 
         _ = Application.ensure_all_started(:hackney)
 
@@ -79,7 +77,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           authority_address,
           contract_addresses,
           min_exit_period_seconds,
-          contract_semver
+          contract_semver,
+          network
         )
 
       {_, via_env} when is_binary(via_env) ->
@@ -91,26 +90,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   end
 
   defp apply_static_settings(network) do
-    _network =
-      case String.upcase(network) do
-        "RINKEBY" = network ->
-          network
-
-        "ROPSTEN" = network ->
-          network
-
-        "GOERLI" = network ->
-          network
-
-        "MAINNET" = network ->
-          network
-
-        "LOCALCHAIN" = network ->
-          network
-
-        _ ->
-          exit(@error)
-      end
+    network = get_network(network)
 
     txhash_contract = get_env("TXHASH_CONTRACT")
     authority_address = get_env("AUTHORITY_ADDRESS")
@@ -134,7 +114,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       authority_address,
       contract_addresses,
       min_exit_period_seconds,
-      contract_semver
+      contract_semver,
+      network
     )
   end
 
@@ -143,20 +124,22 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
          authority_address,
          contract_addresses,
          min_exit_period_seconds,
-         contract_semver
+         contract_semver,
+         network
        )
        when is_binary(txhash_contract) and
               is_binary(authority_address) and is_map(contract_addresses) and is_integer(min_exit_period_seconds) and
-              is_binary(contract_semver) do
+              is_binary(contract_semver) and is_binary(network) do
     contract_addresses = Enum.into(contract_addresses, %{}, fn {name, addr} -> {name, String.downcase(addr)} end)
     :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
     :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
     :ok = Application.put_env(@app, :contract_addr, contract_addresses, persistent: true)
     :ok = Application.put_env(@app, :min_exit_period_seconds, min_exit_period_seconds)
     :ok = Application.put_env(@app, :contract_semver, contract_semver)
+    :ok = Application.put_env(@app, :network, network)
   end
 
-  defp update_configuration(_, _, _, _, _), do: exit(@error)
+  defp update_configuration(_, _, _, _, _, _), do: exit(@error)
 
   defp get_min_exit_period(nil), do: exit(@error)
 
@@ -175,4 +158,14 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   end
 
   defp get_env(key), do: System.get_env(key)
+
+  defp get_network(data) do
+    case Enum.member?(@networks, String.upcase(data)) do
+      true ->
+        String.upcase(data)
+
+      _ ->
+        exit(@error)
+    end
+  end
 end
