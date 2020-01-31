@@ -167,8 +167,6 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     min_exit_period
   end
 
-  defp get_contract_semver(nil), do: exit(@error)
-
   defp get_contract_semver(plasma_framework_contract) do
     {:ok, {contract_semver}} =
       Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "getVersion()", [], [{:tuple, [:string]}])
