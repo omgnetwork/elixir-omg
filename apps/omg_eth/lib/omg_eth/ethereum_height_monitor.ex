@@ -153,7 +153,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   # Private functions
   #
 
-  @spec stalled?(non_neg_integer(), non_neg_integer(), DateTime.t(), non_neg_integer()) :: boolean()
+  @spec stalled?(non_neg_integer() | :error, non_neg_integer(), DateTime.t(), non_neg_integer()) :: boolean()
   defp stalled?(height, previous_height, synced_at, stall_threshold_ms) do
     case height do
       height when is_integer(height) and height >= previous_height ->
@@ -179,7 +179,9 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   @spec eth() :: module()
   defp eth(), do: Application.get_env(:omg_child_chain, :eth_integration_module, OMG.Eth)
 
-  @spec broadcast_on_new_height(module(), non_neg_integer(), non_neg_integer()) :: :ok | {:error, term()}
+  @spec broadcast_on_new_height(module(), non_neg_integer(), non_neg_integer() | :error) :: :ok | {:error, term()}
+  defp broadcast_on_new_height(event_bus, previous_height, :error), do: :ok
+
   defp broadcast_on_new_height(event_bus, previous_height, height) when height > previous_height do
     apply(event_bus, :broadcast, ["ethereum_new_height", {:ethereum_new_height, height}])
   end
