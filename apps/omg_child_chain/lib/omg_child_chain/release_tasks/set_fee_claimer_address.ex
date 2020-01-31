@@ -21,7 +21,6 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
   # is specific to Child-chain app. Watcher can go with defaults.
   @app :omg
 
-  @default_fee_claimer_address "DEAD000000000000000000000000000000000000"
   @zero_address <<0::160>>
 
   @impl Provider
@@ -38,16 +37,16 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
     address =
       "FEE_CLAIMER_ADDRESS"
       |> System.get_env()
-      |> validate_address(@default_fee_claimer_address)
+      |> validate_address()
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: FEE_CLAIMER_ADDRESS Value: #{inspect(address)}.")
 
     address
   end
 
-  defp validate_address("0x" <> value, default), do: validate_address(value, default)
+  defp validate_address("0x" <> value), do: validate_address(value)
 
-  defp validate_address(value, _default) when is_binary(value) do
+  defp validate_address(value) when is_binary(value) do
     with {:ok, address} when byte_size(address) == 20 and address != @zero_address <-
            value |> String.upcase() |> Base.decode16() do
       address
@@ -58,5 +57,5 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
     end
   end
 
-  defp validate_address(_, default), do: Base.decode16!(default)
+  defp validate_address(_), do: exit("Fee claimer address needs to be specified")
 end

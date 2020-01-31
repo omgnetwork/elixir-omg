@@ -30,6 +30,8 @@ defmodule OMG.State.PersistenceTest do
 
   require Utxo
 
+  @fee_claimer_address Base.decode16!("DEAD000000000000000000000000000000000000")
+
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @blknum1 @interval
@@ -42,7 +44,7 @@ defmodule OMG.State.PersistenceTest do
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
 
-    {:ok, _} = Supervisor.start_link([{OMG.State, []}], strategy: :one_for_one)
+    {:ok, _} = Supervisor.start_link([{OMG.State, [fee_claimer_address: @fee_claimer_address]}], strategy: :one_for_one)
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)

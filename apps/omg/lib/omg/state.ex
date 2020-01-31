@@ -36,8 +36,6 @@ defmodule OMG.State do
 
   @type exec_error :: Validator.can_process_tx_error()
 
-  @fallback_fee_claimer_address Application.fetch_env!(:omg, :fee_claimer_address)
-
   ### Client
 
   def start_link(opts) do
@@ -97,7 +95,7 @@ defmodule OMG.State do
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
-    fee_claimer_address = Keyword.get(opts, :fee_claimer_address, @fallback_fee_claimer_address)
+    {:ok, fee_claimer_address} = Keyword.fetch(opts, :fee_claimer_address)
 
     {:ok, state} =
       with {:ok, _data} = result <-
