@@ -75,7 +75,6 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   # GenServer behaviors
   #
 
-  @spec init(Keyword.t()) :: {:ok, t()}
   def init(opts) do
     _ = Logger.info("Starting Ethereum height monitor.")
     _ = install_alarm_handler()
@@ -88,7 +87,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
       event_bus: Keyword.fetch!(opts, :event_bus)
     }
 
-    {:ok, tref} = :timer.send_after(state.check_interval, :check_new_height)
+    {:ok, tref} = :timer.send_after(state.check_interval_ms, :check_new_height)
     {:ok, %{state | tref: tref}}
   end
 
@@ -168,12 +167,8 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   @spec fetch_height() :: non_neg_integer() | :error
   defp fetch_height() do
     case eth().get_ethereum_height() do
-      {:ok, height} when is_integer(height) ->
+      {:ok, height} ->
         height
-
-      {:ok, non_integer} ->
-        _ = Logger.error("Invalid Ethereum height retrieved: #{inspect(non_integer)}")
-        :error
 
       error ->
         _ = Logger.error("Error retrieving Ethereum height: #{inspect(error)}")
@@ -215,7 +210,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     alarm_module.set(alarm_module.ethereum_connection_error(__MODULE__))
   end
 
-  defp connection_alarm(alarm_module, true, _) do
+  defp connection_alarm(alarm_module, true, height) when is_integer(height) do
     alarm_module.clear(alarm_module.ethereum_connection_error(__MODULE__))
   end
 

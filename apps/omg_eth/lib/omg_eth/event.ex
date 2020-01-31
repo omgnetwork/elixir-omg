@@ -19,5 +19,7 @@ defmodule OMG.Eth.Event do
   This module is agnostic of mode of delivery of events - both push and poll events go here.
   """
 
-  @type t :: __MODULE__.StalledSync.t()
+  @type t ::
+          OMG.Eth.Event.EthereumStalledSync.t()
+          | OMG.Eth.Event.EthereumConnectionError.t()
 end

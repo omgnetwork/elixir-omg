@@ -58,7 +58,8 @@ defmodule OMG.Eth do
   @spec syncing?() :: boolean
   def syncing?, do: node_ready() != :ok
 
-  def get_ethereum_height do
+  @spec get_ethereum_height() :: {:ok, non_neg_integer()} | Ethereumex.Client.Behaviour.error()
+  def get_ethereum_height() do
     case Ethereumex.HttpClient.eth_block_number() do
       {:ok, height_hex} ->
         {:ok, int_from_hex(height_hex)}
