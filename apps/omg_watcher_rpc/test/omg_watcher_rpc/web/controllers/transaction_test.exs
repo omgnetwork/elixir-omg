@@ -54,7 +54,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns transaction in expected format" do
-<<<<<<< HEAD
       deposit_1 = build(:txoutput) |> with_deposit()
       deposit_2 = build(:txoutput) |> with_deposit()
 
@@ -130,83 +129,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       response = WatcherHelper.success?("transaction.get", %{"id" => Encoding.to_hex(spending_transaction.txhash)})
 
       assert response == expected_response
-=======
-      block = insert(:block)
-      input_1 = insert(:txoutput)
-      input_2 = insert(:txoutput)
-      output_1 = insert(:txoutput)
-      output_2 = insert(:txoutput)
-      transaction = insert(:transaction, block: block, inputs: [input_1, input_2], outputs: [output_1, output_2])
-
-      response = WatcherHelper.success?("transaction.get", %{"id" => Encoding.to_hex(transaction.txhash)})
-      # inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
-      # outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
-      inputs = [
-        %{
-          "amount" => input_1.amount,
-          "blknum" => input_1.blknum,
-          "currency" => Encoding.to_hex(input_1.currency),
-          "oindex" => input_1.oindex,
-          "owner" => Encoding.to_hex(input_1.owner),
-          "txindex" => input_1.txindex,
-          "utxo_pos" => Utxo.Position.encode({:utxo_position, input_1.blknum, input_1.txindex, input_1.oindex}),
-          "creating_txhash" => Encoding.to_hex(input_1.creating_txhash),
-          "spending_txhash" => Encoding.to_hex(transaction.txhash)
-        },
-        %{
-          "amount" => input_2.amount,
-          "blknum" => input_2.blknum,
-          "currency" => Encoding.to_hex(input_2.currency),
-          "oindex" => input_2.oindex,
-          "owner" => Encoding.to_hex(input_2.owner),
-          "txindex" => input_2.txindex,
-          "utxo_pos" => Utxo.Position.encode({:utxo_position, input_2.blknum, input_2.txindex, input_2.oindex}),
-          "creating_txhash" => Encoding.to_hex(input_2.creating_txhash),
-          "spending_txhash" => Encoding.to_hex(transaction.txhash)
-        }
-      ]
-
-      outputs = [
-        %{
-          "amount" => output_1.amount,
-          "blknum" => output_1.blknum,
-          "currency" => Encoding.to_hex(output_1.currency),
-          "oindex" => output_1.oindex,
-          "owner" => Encoding.to_hex(output_1.owner),
-          "txindex" => output_1.txindex,
-          "utxo_pos" => Utxo.Position.encode({:utxo_position, output_1.blknum, output_1.txindex, output_1.oindex}),
-          "creating_txhash" => Encoding.to_hex(transaction.txhash),
-          "spending_txhash" => nil
-        },
-        %{
-          "amount" => output_2.amount,
-          "blknum" => output_2.blknum,
-          "currency" => Encoding.to_hex(output_2.currency),
-          "oindex" => output_2.oindex,
-          "owner" => Encoding.to_hex(output_2.owner),
-          "txindex" => output_2.txindex,
-          "utxo_pos" => Utxo.Position.encode({:utxo_position, output_2.blknum, output_2.txindex, output_2.oindex}),
-          "creating_txhash" => Encoding.to_hex(transaction.txhash),
-          "spending_txhash" => nil
-        }
-      ]
-
-      assert response == %{
-               "block" => %{
-                 "blknum" => block.blknum,
-                 "eth_height" => block.eth_height,
-                 "hash" => Encoding.to_hex(block.hash),
-                 "timestamp" => block.timestamp,
-                 "tx_count" => 1
-               },
-               "inputs" => Enum.sort_by(inputs, fn input -> input["utxo_pos"] end),
-               "outputs" => Enum.sort_by(outputs, fn output -> output["utxo_pos"] end),
-               "txhash" => Encoding.to_hex(transaction.txhash),
-               "txbytes" => Encoding.to_hex(transaction.txbytes),
-               "txindex" => transaction.txindex,
-               "metadata" => Encoding.to_hex(transaction.metadata)
-             }
->>>>>>> fix: ordering of inputs and outputs
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
