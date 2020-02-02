@@ -199,8 +199,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  "timestamp" => block.timestamp,
                  "tx_count" => 1
                },
-               "inputs" => Enum.sort_by(inputs, fn input -> input["utxo_pos"] end, &>=/2),
-               "outputs" => Enum.sort_by(outputs, fn output -> output["utxo_pos"] end, &>=/2),
+               "inputs" => Enum.sort_by(inputs, fn input -> input["utxo_pos"] end),
+               "outputs" => Enum.sort_by(outputs, fn output -> output["utxo_pos"] end),
                "txhash" => Encoding.to_hex(transaction.txhash),
                "txbytes" => Encoding.to_hex(transaction.txbytes),
                "txindex" => transaction.txindex,

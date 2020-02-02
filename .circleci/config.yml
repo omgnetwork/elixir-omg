@@ -535,6 +535,7 @@ jobs:
             sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-tools
             sudo apt-get install --yes --no-install-recommends --no-install-suggests elixir=1.8.2-1
             sudo apt policy elixir
+            mix local.hex --force && mix local.rebar --force
             ./bin/setup
           no_output_timeout: 2400
       - run: make install-hex-rebar
@@ -691,8 +692,6 @@ workflows:
     jobs:
       - build
       - integration_tests:
-          requires: [build]
-      - barebuild:
           requires: [build]
       - barebuild_macos:
           requires: [build]
