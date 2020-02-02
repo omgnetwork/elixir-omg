@@ -73,10 +73,10 @@ jobs:
       - run:
           name: Integration Tests
           command: |
-            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration --trace` works
             export SHELL=/bin/bash
             make init_test
-            mix test --trace --only integration
+            mix test --only integration --trace
           no_output_timeout: 30m
   barebuild_macos:
     executor: metal_macos
