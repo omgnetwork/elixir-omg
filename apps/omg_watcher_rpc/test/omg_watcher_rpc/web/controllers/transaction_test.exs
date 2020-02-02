@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
-  import OMG.WatcherInfo.Factory
+  import OMG.WatcherInfo.Factory, only: [insert: 1, insert: 2]
 
   alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
