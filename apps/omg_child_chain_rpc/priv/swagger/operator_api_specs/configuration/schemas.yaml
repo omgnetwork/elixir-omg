@@ -7,3 +7,6 @@ ConfigurationSchema:
     contract_semver:
       type: string
       format: binary
+    network:
+      type: string
+      format: binary

@@ -1,6 +1,12 @@
 components:
   schemas:
     deposit_finality_margin:
-      type: int256
+      type: integer
+      format: int256
     contract_semver:
       type: string
+    network:
+      type: string
+    exit_processor_sla_margin:
+      type: integer
+      format: int256

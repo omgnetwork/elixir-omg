@@ -214,10 +214,14 @@ paths:
                             contract_semver:
                               type: string
                               format: binary
+                            network:
+                              type: string
+                              format: binary
                     example:
                       data:
                         - deposit_finality_margin: 10
                           contract_semver: 1.0.0.1+a1s29s8
+                          network: RINKEBY
         '500':
           description: Returns an internal server error
           content:

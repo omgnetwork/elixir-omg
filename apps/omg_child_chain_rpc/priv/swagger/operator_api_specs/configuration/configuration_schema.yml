@@ -4,3 +4,5 @@ components:
       type: int256
     contract_semver:
       type: string
+    network:
+      type: string

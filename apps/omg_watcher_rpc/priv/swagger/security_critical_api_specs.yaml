@@ -25,9 +25,6 @@ tags:
     description: Transaction related API.
   - name: InFlightExit
     description: InFlightExit related API.
-  - name: Configuration
-    description: Configuration related API.
-
 servers:
   - url: 'http://localhost:7434/'
 paths:
@@ -222,6 +219,12 @@ paths:
                               type: integer
                               format: int256
                             contract_semver:
+                              type: string
+                              format: binary
+                            exit_processor_sla_margin:
+                              type: integer
+                              format: int256
+                            network:
                               type: string
                               format: binary
                     example:
