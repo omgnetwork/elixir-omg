@@ -202,7 +202,8 @@ defmodule OMG.State do
   end
 
   @doc """
-  Wraps up accumulated transactions submissions into a block, triggers db update and:
+  Generates fee-transactions based on the fees paid in the block, wraps up accumulated transactions submissions
+  and fee transactions into a block, triggers db update and:
    - pushes the new block to subscribers of `"blocks"` internal event bus topic
 
   Does its on persistence!

@@ -933,6 +933,7 @@ defmodule OMG.State.CoreTest do
     end
 
     test "should append fee txs in block", %{state: state} do
+      state = Core.claim_fees(state)
       {:ok, {block, _dbupdates}, _state} = form_block_check(state)
 
       assert [payment_txbytes, fee_txbytes] = block.transactions
@@ -948,12 +949,14 @@ defmodule OMG.State.CoreTest do
     end
 
     test "fee txs are appended even when fees aren't required", %{state: state} do
+      state = Core.claim_fees(state)
       {:ok, {block, _dbupdates}, _state} = form_block_check(state)
 
       assert 2 = length(block.transactions)
     end
 
     test "should create utxos from claimed fee", %{alice: alice, state: state, fee_claimer: fee_claimer} do
+      state = Core.claim_fees(state)
       {:ok, _, state} = form_block_check(state)
 
       state
@@ -1111,8 +1114,11 @@ defmodule OMG.State.CoreTest do
     end
 
     # this test takes ~26 seconds on my machine
-    @tag skip: true
+    @tag slow: true
     test "long running full block test", %{alice: alice, state_empty: state, fees: fees} do
+      require Logger
+      Logger.warn("slow test is running, use --exclude slow to skip")
+
       maximum_block_size = 65_536
       maximum_inputs_size = 4
       eth_fee_rate = fees[@eth].amount
@@ -1125,11 +1131,6 @@ defmodule OMG.State.CoreTest do
         |> do_deposit(alice, %{amount: amount_for_fees, currency: @eth, blknum: 1})
         |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, available_after_1st_tx}]), fees)
         |> success?()
-
-      # sanity check
-      assert 1 == Enum.count(state.fees_paid)
-      assert 1 == Enum.count(state.pending_txs)
-      assert 1 == state.tx_index
 
       # we just send 1 payment and this reserves 1 spot for fee
       already_reserved = 2
@@ -1149,10 +1150,6 @@ defmodule OMG.State.CoreTest do
 
           {new_state, new_amount}
         end)
-
-      # just another sanity check
-      assert 1 == Enum.count(state.fees_paid)
-      assert 65_531 == Enum.count(state.pending_txs)
 
       state
       # NOTE: I don't care about existing utxo actual position or available amount because block size is checked first
@@ -1188,7 +1185,6 @@ defmodule OMG.State.CoreTest do
   # used to check the invariants in form_block
   # use this throughout this test module instead of Core.form_block
   defp form_block_check(state) do
-    state = Core.claim_fees(state)
     {_, {block, db_updates}, _} = result = Core.form_block(@interval, state)
 
     # check if block returned and sent to db_updates is the same

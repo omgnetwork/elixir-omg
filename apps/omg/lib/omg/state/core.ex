@@ -286,6 +286,7 @@ defmodule OMG.State.Core do
         pending_txs: [],
         utxo_db_updates: [],
         recently_spent: MapSet.new(),
+        fees_paid: %{},
         fee_claiming_started: false
     }
 
