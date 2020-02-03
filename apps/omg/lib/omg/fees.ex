@@ -58,6 +58,12 @@ defmodule OMG.Fees do
           :ok | {:error, :fees_not_covered} | {:error, :overpaying_fees} | {:error, :multiple_potential_currency_fees}
   def check_if_covered(_, :no_fees_required), do: :ok
 
+  def check_if_covered(implicit_paid_fee_by_currency, :no_fees_allowed) do
+    Enum.all?(implicit_paid_fee_by_currency, fn {_currency, paid_fee} ->
+      paid_fee == 0
+    end)
+  end
+
   def check_if_covered(implicit_paid_fee_by_currency, fees) do
     implicit_fees = remove_zero_fees(implicit_paid_fee_by_currency)
 
@@ -156,7 +162,7 @@ defmodule OMG.Fees do
   @spec for_transaction(Transaction.Recovered.t(), full_fee_t()) :: optional_fee_t()
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do
-      true -> :no_fees_required
+      true -> :no_fees_allowed
       false -> get_fee_for_type(transaction, fee_map)
     end
   end

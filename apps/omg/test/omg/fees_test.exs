@@ -106,14 +106,14 @@ defmodule OMG.FeesTest do
     end
 
     @tag fixtures: [:alice]
-    test "returns :no_fees_required for merge transactions",
+    test "returns :no_fees_allowed for merge transactions",
          %{alice: alice} do
       transaction = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{alice, 10}])
-      assert Fees.for_transaction(transaction, @fees) == :no_fees_required
+      assert Fees.for_transaction(transaction, @fees) == :no_fees_allowed
     end
 
     @tag fixtures: [:alice]
-    test "returns :no_fees_required for valid merge transactions with multiple inputs/ouputs",
+    test "returns :no_fees_allowed for valid merge transactions with multiple inputs/ouputs",
          %{alice: alice} do
       transaction =
         create_recovered(
@@ -121,7 +121,7 @@ defmodule OMG.FeesTest do
           [{alice, @eth, 10}, {alice, @eth, 10}]
         )
 
-      assert Fees.for_transaction(transaction, @fees) == :no_fees_required
+      assert Fees.for_transaction(transaction, @fees) == :no_fees_allowed
     end
 
     test "returns an empty hash when given an unsuported tx type" do
