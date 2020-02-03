@@ -27,7 +27,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
   @moduletag :integration
   @moduletag timeout: 180_000
 
-  @number_of_transactions_to_send 50
+  @number_of_transactions_to_send 10
 
   # NOTE: still bound to fixtures :(, because of the child chain setup, but this will go eventually, so leaving as is
   deffixture perf_test(contract) do
