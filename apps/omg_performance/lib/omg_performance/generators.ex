@@ -112,7 +112,7 @@ defmodule OMG.Performance.Generators do
 
   defp get_block!(blknum, child_chain_url) do
     {:ok, {block_hash, _timestamp}} = RootChain.get_child_chain(blknum)
-    {:ok, block} = Client.get_block(block_hash, child_chain_url)
+    {:ok, block} = poll_get_block(block_hash, child_chain_url)
     block
   end
 
@@ -136,5 +136,22 @@ defmodule OMG.Performance.Generators do
       utxo_pos = Utxo.position(blknum, txindex, oindex)
       Utxo.Position.encode(utxo_pos)
     end)
+  end
+
+  defp poll_get_block(block_hash, child_chain_url) do
+    poll_get_block(block_hash, child_chain_url, 50)
+  end
+
+  defp poll_get_block(block_hash, child_chain_url, 0), do: Client.get_block(block_hash, child_chain_url)
+
+  defp poll_get_block(block_hash, child_chain_url, retry) do
+    case Client.get_block(block_hash, child_chain_url) do
+      {:ok, block} = result ->
+        result
+
+      _ ->
+        Process.sleep(10)
+        poll_get_block(block_hash, child_chain_url, retry - 1)
+    end
   end
 end
