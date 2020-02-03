@@ -84,8 +84,6 @@ brew "cmake"
 brew "rocksdb"
 brew "wget"
 EOF
-    # Pins solidity to 0.5.11
-    brew  install "https://raw.githubusercontent.com/ethereum/homebrew-ethereum/7fa7027f20cca27f76c679d0c5b35ee3c565f284/solidity.rb" || true
 }
 
 install_deps() {
