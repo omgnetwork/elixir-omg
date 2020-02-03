@@ -262,6 +262,19 @@ defmodule OMG.State.CoreTest do
       |> success?
     end
 
+    @tag fixtures: [:alice, :state_empty]
+    test "Merge transaction is rejected when overpaying", %{alice: alice, state_empty: state} do
+      fees = %{@eth => %{amount: 2}}
+      tx = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{alice, 9}])
+      fee = Fees.for_transaction(tx, fees)
+
+      state
+      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+      |> do_deposit(alice, %{amount: 5, currency: @eth, blknum: 2})
+      |> Core.exec(tx, fee)
+      |> fail?(:overpaying_fees)
+    end
+
     @tag fixtures: [:alice, :bob, :state_empty]
     test "respects fees for transactions with mixed currencies", %{
       alice: alice,

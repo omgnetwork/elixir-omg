@@ -55,8 +55,20 @@ defmodule OMG.FeesTest do
   }
 
   describe "check_if_covered/2" do
-    test "does not check the fees when :no_fees_required is passed" do
+    test "returns :ok when given fees are 0 and :no_fees_required is passed" do
       assert Fees.check_if_covered(%{@eth => 0}, :no_fees_required) == :ok
+    end
+
+    test "returns :ok when given positive fees and :no_fees_required is passed" do
+      assert Fees.check_if_covered(%{@eth => 1, @not_eth_1 => 2}, :no_fees_required) == :ok
+    end
+
+    test "returns :overpaying_fees when given positive fees and :no_fees_allowed is passed" do
+      assert Fees.check_if_covered(%{@not_eth_1 => 0, @eth => 1}, :no_fees_allowed) == {:error, :overpaying_fees}
+    end
+
+    test "returns :ok when given fees are 0 and :no_fees_allowed is passed" do
+      assert Fees.check_if_covered(%{@eth => 0}, :no_fees_allowed) == :ok
     end
 
     test "returns :ok when fees are exactly covered by one currency" do
@@ -68,16 +80,21 @@ defmodule OMG.FeesTest do
                {:error, :multiple_potential_currency_fees}
     end
 
-    test "returns fees_not_covered when the implicit fees currency does not match any of the supported fee currencies" do
+    test "returns :fees_not_covered when no positive implicit fees given" do
+      other_currency = <<2::160>>
+      assert Fees.check_if_covered(%{other_currency => 0}, @payment_fees) == {:error, :fees_not_covered}
+    end
+
+    test "returns :fees_not_covered when the implicit fees currency does not match any of the supported fee currencies" do
       other_currency = <<2::160>>
       assert Fees.check_if_covered(%{other_currency => 100}, @payment_fees) == {:error, :fees_not_covered}
     end
 
-    test "returns fees_not_covered when fees do not cover the fee price" do
+    test "returns :fees_not_covered when fees do not cover the fee price" do
       assert Fees.check_if_covered(%{@not_eth_1 => 1}, @payment_fees) == {:error, :fees_not_covered}
     end
 
-    test "returns overpaying_fees when fees cover more than the fee price" do
+    test "returns :overpaying_fees when fees cover more than the fee price" do
       assert Fees.check_if_covered(%{@not_eth_1 => 4}, @payment_fees) == {:error, :overpaying_fees}
     end
 

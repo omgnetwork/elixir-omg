@@ -34,7 +34,7 @@ defmodule OMG.Fees do
   where fees is itself a map of token to fee spec
   """
   @type full_fee_t() :: %{non_neg_integer() => fee_t()}
-  @type optional_fee_t() :: fee_t() | :no_fees_required
+  @type optional_fee_t() :: fee_t() | :no_fees_required | :no_fees_allowed
   @typedoc "A map representing a single fee"
   @type fee_spec_t() :: %{
           amount: pos_integer(),
@@ -46,54 +46,63 @@ defmodule OMG.Fees do
         }
 
   @doc ~S"""
-  Checks whether the transaction's inputs cover the fees.
+  Checks whether the surplus of tokens sent in a transaction (inputs - outputs) covers the fees
+  depending on the fee model.
 
   ## Examples
 
       iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 0}, %{"eth" => %{amount: 1}, "omg" => %{amount: 3}})
       :ok
+      iex> Fees.check_if_covered(%{"eth" => 1}, %{"eth" => %{amount: 2}})
+      {:error, :fees_not_covered}
+      iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 1}, %{"eth" => %{amount: 1}})
+      {:error, :multiple_potential_currency_fees}
+      iex> Fees.check_if_covered(%{"eth" => 2}, %{"eth" => %{amount: 1}})
+      {:error, :overpaying_fees}
+      iex> Fees.check_if_covered(%{"eth" => 1}, :no_fees_allowed)
+      {:error, :overpaying_fees}
+      iex> Fees.check_if_covered(%{"eth" => 1}, :no_fees_required)
+      :ok
 
   """
-  @spec check_if_covered(implicit_paid_fee_by_currency :: map(), fees :: optional_fee_t()) ::
+  @spec check_if_covered(implicit_paid_fee_by_currency :: map(), accepted_fees :: optional_fee_t()) ::
           :ok | {:error, :fees_not_covered} | {:error, :overpaying_fees} | {:error, :multiple_potential_currency_fees}
+  # If :no_fees_required is given, we ignore any surplus of tokens
   def check_if_covered(_, :no_fees_required), do: :ok
 
-  def check_if_covered(implicit_paid_fee_by_currency, :no_fees_allowed) do
-    Enum.all?(implicit_paid_fee_by_currency, fn {_currency, paid_fee} ->
-      paid_fee == 0
-    end)
+  # Otherwise we remove all non positive tokens from the map and process it
+  def check_if_covered(implicit_paid_fee_by_currency, accepted_fees) do
+    implicit_paid_fee_by_currency
+    |> remove_zero_fees()
+    |> check_positive_amounts(accepted_fees)
   end
 
-  def check_if_covered(implicit_paid_fee_by_currency, fees) do
-    implicit_fees = remove_zero_fees(implicit_paid_fee_by_currency)
+  # With :no_fees_allowed, we ensure that no surplus of token is given
+  # meaning that input amount == output amount. This is used for merge transactions.
+  defp check_positive_amounts([], :no_fees_allowed), do: :ok
+  defp check_positive_amounts(_, :no_fees_allowed), do: {:error, :overpaying_fees}
 
-    case length(implicit_fees) > 1 do
-      true ->
-        {:error, :multiple_potential_currency_fees}
+  # When accepting fees, we ensure that only one fee token is given
+  defp check_positive_amounts([], _), do: {:error, :fees_not_covered}
 
-      false ->
-        implicit_fees
-        |> Enum.at(0)
-        |> check_fees_coverage(fees)
-    end
-  end
-
-  defp remove_zero_fees(implicit_paid_fee_by_currency) do
-    Enum.filter(implicit_paid_fee_by_currency, fn {_currency, paid_fee} ->
-      paid_fee > 0
-    end)
-  end
-
-  defp check_fees_coverage(nil, _), do: {:error, :fees_not_covered}
-
-  defp check_fees_coverage({currency, paid_fee}, fees) do
-    case Map.get(fees, currency) do
+  # When accepting fees, we ensure that the paid amount matches exactly the required amount and that
+  # the given surplus token is accepted as a fee token
+  defp check_positive_amounts([{currency, paid_fee}], accepted_fees) do
+    case Map.get(accepted_fees, currency) do
       nil ->
         {:error, :fees_not_covered}
 
       %{amount: amount} ->
         check_if_exact_match(amount, paid_fee)
     end
+  end
+
+  defp check_positive_amounts(_, _), do: {:error, :multiple_potential_currency_fees}
+
+  defp remove_zero_fees(implicit_paid_fee_by_currency) do
+    Enum.filter(implicit_paid_fee_by_currency, fn {_currency, paid_fee} ->
+      paid_fee > 0
+    end)
   end
 
   defp check_if_exact_match(amount, paid_fee) do
