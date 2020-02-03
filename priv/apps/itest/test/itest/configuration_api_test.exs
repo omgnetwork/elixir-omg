@@ -14,7 +14,19 @@ defmodule ConfigurationRetrievalTests do
       |> Encoding.to_binary()
       |> ABI.TypeDecoder.decode([{:tuple, [:string]}])
 
-    %{assert_response: %{"contract_semver" => contract_semver, "deposit_finality_margin" => 10}}
+    %{
+      watcher_assert_response: %{
+        "contract_semver" => contract_semver,
+        "deposit_finality_margin" => 10,
+        "network" => "LOCALCHAIN",
+        "exit_processor_sla_margin" => 240
+      },
+      child_chain_assert_response: %{
+        "contract_semver" => contract_semver,
+        "deposit_finality_margin" => 10,
+        "network" => "LOCALCHAIN"
+      }
+    }
   end
 
   defwhen ~r/^Operator deploys "(?<service>[^"]+)"$/, %{service: service}, state do
@@ -31,10 +43,25 @@ defmodule ConfigurationRetrievalTests do
       end
 
     body = Jason.decode!(response.body)
-    {:ok, Map.put(state, :service_response, body)}
+
+    new_state =
+      state
+      |> Map.put(:service_response, body)
+      |> Map.put(:service, service)
+
+    {:ok, new_state}
   end
 
-  defthen ~r/^Operator can read its configurational values$/, _, state do
-    assert state.service_response["data"] == state.assert_response
+  defthen ~r/^Operator can read its configurational values$/, _, %{service: service} = state do
+    case service do
+      "Child Chain" ->
+        assert state.service_response["data"] == state.child_chain_assert_response
+
+      "Watcher" ->
+        assert state.service_response["data"] == state.watcher_assert_response
+
+      "Watcher Info" ->
+        assert state.service_response["data"] == state.watcher_assert_response
+    end
   end
 end
