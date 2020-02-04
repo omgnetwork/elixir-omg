@@ -241,7 +241,7 @@ defmodule Itest.Poller do
 
     _ =
       Logger.info(
-        "Revert reason for #{inspect(hash)}: revert string: #{decode_reason(reason)} revert binary: #{
+        "Revert reason for #{inspect(hash)}: revert string: #{inspect(decode_reason(reason))}, revert binary: #{
           inspect(Itest.Transactions.Encoding.to_binary(reason), limit: :infinity)
         }"
       )
