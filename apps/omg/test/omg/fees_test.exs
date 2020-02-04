@@ -55,20 +55,20 @@ defmodule OMG.FeesTest do
   }
 
   describe "check_if_covered/2" do
+    test "returns :ok when given fees are 0 and :ignore_fees is passed" do
+      assert Fees.check_if_covered(%{@eth => 0}, :ignore_fees) == :ok
+    end
+
+    test "returns :ok when given positive fees and :ignore_fees is passed" do
+      assert Fees.check_if_covered(%{@eth => 1, @not_eth_1 => 2}, :ignore_fees) == :ok
+    end
+
+    test "returns :overpaying_fees when given positive fees and :no_fees_required is passed" do
+      assert Fees.check_if_covered(%{@not_eth_1 => 0, @eth => 1}, :no_fees_required) == {:error, :overpaying_fees}
+    end
+
     test "returns :ok when given fees are 0 and :no_fees_required is passed" do
       assert Fees.check_if_covered(%{@eth => 0}, :no_fees_required) == :ok
-    end
-
-    test "returns :ok when given positive fees and :no_fees_required is passed" do
-      assert Fees.check_if_covered(%{@eth => 1, @not_eth_1 => 2}, :no_fees_required) == :ok
-    end
-
-    test "returns :overpaying_fees when given positive fees and :no_fees_allowed is passed" do
-      assert Fees.check_if_covered(%{@not_eth_1 => 0, @eth => 1}, :no_fees_allowed) == {:error, :overpaying_fees}
-    end
-
-    test "returns :ok when given fees are 0 and :no_fees_allowed is passed" do
-      assert Fees.check_if_covered(%{@eth => 0}, :no_fees_allowed) == :ok
     end
 
     test "returns :ok when fees are exactly covered by one currency" do
@@ -123,14 +123,14 @@ defmodule OMG.FeesTest do
     end
 
     @tag fixtures: [:alice]
-    test "returns :no_fees_allowed for merge transactions",
+    test "returns :no_fees_required for merge transactions",
          %{alice: alice} do
       transaction = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{alice, 10}])
-      assert Fees.for_transaction(transaction, @fees) == :no_fees_allowed
+      assert Fees.for_transaction(transaction, @fees) == :no_fees_required
     end
 
     @tag fixtures: [:alice]
-    test "returns :no_fees_allowed for valid merge transactions with multiple inputs/ouputs",
+    test "returns :no_fees_required for valid merge transactions with multiple inputs/ouputs",
          %{alice: alice} do
       transaction =
         create_recovered(
@@ -138,7 +138,7 @@ defmodule OMG.FeesTest do
           [{alice, @eth, 10}, {alice, @eth, 10}]
         )
 
-      assert Fees.for_transaction(transaction, @fees) == :no_fees_allowed
+      assert Fees.for_transaction(transaction, @fees) == :no_fees_required
     end
 
     test "returns an empty hash when given an unsuported tx type" do

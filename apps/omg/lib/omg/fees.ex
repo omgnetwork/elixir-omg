@@ -34,7 +34,7 @@ defmodule OMG.Fees do
   where fees is itself a map of token to fee spec
   """
   @type full_fee_t() :: %{non_neg_integer() => fee_t()}
-  @type optional_fee_t() :: fee_t() | :no_fees_required | :no_fees_allowed
+  @type optional_fee_t() :: fee_t() | :ignore_fees | :no_fees_required
   @typedoc "A map representing a single fee"
   @type fee_spec_t() :: %{
           amount: pos_integer(),
@@ -59,16 +59,16 @@ defmodule OMG.Fees do
       {:error, :multiple_potential_currency_fees}
       iex> Fees.check_if_covered(%{"eth" => 2}, %{"eth" => %{amount: 1}})
       {:error, :overpaying_fees}
-      iex> Fees.check_if_covered(%{"eth" => 1}, :no_fees_allowed)
-      {:error, :overpaying_fees}
       iex> Fees.check_if_covered(%{"eth" => 1}, :no_fees_required)
+      {:error, :overpaying_fees}
+      iex> Fees.check_if_covered(%{"eth" => 1}, :ignore_fees)
       :ok
 
   """
   @spec check_if_covered(implicit_paid_fee_by_currency :: map(), accepted_fees :: optional_fee_t()) ::
           :ok | {:error, :fees_not_covered} | {:error, :overpaying_fees} | {:error, :multiple_potential_currency_fees}
-  # If :no_fees_required is given, we ignore any surplus of tokens
-  def check_if_covered(_, :no_fees_required), do: :ok
+  # If :ignore_fees is given, we ignore any surplus of tokens
+  def check_if_covered(_, :ignore_fees), do: :ok
 
   # Otherwise we remove all non positive tokens from the map and process it
   def check_if_covered(implicit_paid_fee_by_currency, accepted_fees) do
@@ -77,10 +77,10 @@ defmodule OMG.Fees do
     |> check_positive_amounts(accepted_fees)
   end
 
-  # With :no_fees_allowed, we ensure that no surplus of token is given
+  # With :no_fees_required, we ensure that no surplus of token is given
   # meaning that input amount == output amount. This is used for merge transactions.
-  defp check_positive_amounts([], :no_fees_allowed), do: :ok
-  defp check_positive_amounts(_, :no_fees_allowed), do: {:error, :overpaying_fees}
+  defp check_positive_amounts([], :no_fees_required), do: :ok
+  defp check_positive_amounts(_, :no_fees_required), do: {:error, :overpaying_fees}
 
   # When accepting fees, we ensure that only one fee token is given
   defp check_positive_amounts([], _), do: {:error, :fees_not_covered}
@@ -171,7 +171,7 @@ defmodule OMG.Fees do
   @spec for_transaction(Transaction.Recovered.t(), full_fee_t()) :: optional_fee_t()
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do
-      true -> :no_fees_allowed
+      true -> :no_fees_required
       false -> get_fee_for_type(transaction, fee_map)
     end
   end
