@@ -12,7 +12,8 @@ config :omg_eth,
   contract_addr: %{plasma_framework: "0x0000000000000000000000000000000000000001"}
 
 config :omg_eth,
-  ethereum_height_check_interval_ms: 1_000,
+  # Set check interval at (:ethereum_events_check_interval_ms / 2) == 400 so the listeners always get the latest height
+  ethereum_height_check_interval_ms: 400,
   environment: :test,
   min_exit_period_seconds: 22,
   # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory
