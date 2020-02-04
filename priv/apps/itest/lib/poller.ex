@@ -107,7 +107,7 @@ defmodule Itest.Poller do
 
       {:ok, resp} ->
         revert_reason(resp)
-        %{"status" => ^expected_status} = resp
+        resp
     end
   end
 
