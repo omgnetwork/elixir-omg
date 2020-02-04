@@ -11,7 +11,7 @@ FeesAllBodySchema:
             type: array
             items: 
               type: string
-              format: binary
+               
           tx_types:
             type: array
             items: 

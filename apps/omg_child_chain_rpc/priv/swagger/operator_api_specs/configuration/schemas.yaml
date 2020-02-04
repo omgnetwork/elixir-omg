@@ -6,7 +6,7 @@ ConfigurationSchema:
       format: int256
     contract_semver:
       type: string
-      format: binary
+       
     network:
       type: string
-      format: binary
+       

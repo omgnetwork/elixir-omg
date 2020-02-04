@@ -220,13 +220,11 @@ paths:
                               format: int256
                             contract_semver:
                               type: string
-                              format: binary
                             exit_processor_sla_margin:
                               type: integer
                               format: int256
                             network:
                               type: string
-                              format: binary
                     example:
                       data:
                         - deposit_finality_margin: 10
@@ -355,7 +353,6 @@ paths:
                             properties:
                               plasma_framework:
                                 type: string
-                                format: binary
                           eth_syncing:
                             type: boolean
                           byzantine_events:
@@ -736,7 +733,6 @@ paths:
               properties:
                 address:
                   type: string
-                  format: binary
               required:
                 - address
               example:
@@ -790,10 +786,8 @@ paths:
                               format: int256
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -928,13 +922,10 @@ paths:
                             format: int8
                           sig:
                             type: string
-                            format: binary
                           txbytes:
                             type: string
-                            format: binary
                           exiting_tx:
                             type: string
-                            format: binary
                     example:
                       data:
                         exit_id: 1.7176118930141594e+45
@@ -1061,10 +1052,8 @@ paths:
                             format: int256
                           txbytes:
                             type: string
-                            format: binary
                           proof:
                             type: string
-                            format: binary
                     example:
                       data:
                         proof: 0xcedb8b31d1e4...
@@ -1145,7 +1134,6 @@ paths:
               properties:
                 transaction:
                   type: string
-                  format: binary
               required:
                 - transaction
               example:
@@ -1191,7 +1179,6 @@ paths:
                             format: int16
                           txhash:
                             type: string
-                            format: binary
                     example:
                       data:
                         blknum: 123000
@@ -1273,7 +1260,6 @@ paths:
               properties:
                 txbytes:
                   type: string
-                  format: binary
               required:
                 - txbytes
               example:
@@ -1314,22 +1300,18 @@ paths:
                         properties:
                           in_flight_tx:
                             type: string
-                            format: binary
                           input_txs:
                             type: array
                             items:
                               type: string
-                              format: binary
                           input_txs_inclusion_proofs:
                             type: array
                             items:
                               type: string
-                              format: binary
                           in_flight_tx_sigs:
                             type: array
                             items:
                               type: string
-                              format: binary
                           input_utxos_pos:
                             type: array
                             items:
@@ -1421,7 +1403,6 @@ paths:
               properties:
                 txbytes:
                   type: string
-                  format: binary
               required:
                 - txbytes
               example:
@@ -1462,28 +1443,23 @@ paths:
                         properties:
                           in_flight_txbytes:
                             type: string
-                            format: binary
                           in_flight_input_index:
                             type: integer
                             format: int8
                           competing_txbytes:
                             type: string
-                            format: binary
                           competing_input_index:
                             type: integer
                             format: int8
                           competing_sig:
                             type: string
-                            format: binary
                           competing_tx_pos:
                             type: integer
                             format: int256
                           competing_proof:
                             type: string
-                            format: binary
                           input_tx:
                             type: string
-                            format: binary
                           input_utxo_pos:
                             type: integer
                             format: int256
@@ -1573,7 +1549,6 @@ paths:
               properties:
                 txbytes:
                   type: string
-                  format: binary
               required:
                 - txbytes
               example:
@@ -1614,13 +1589,11 @@ paths:
                         properties:
                           in_flight_txbytes:
                             type: string
-                            format: binary
                           in_flight_tx_pos:
                             type: integer
                             format: int256
                           in_flight_proof:
                             type: string
-                            format: binary
                     example:
                       data:
                         in_flight_txbytes: 0xf3170101c0940000...
@@ -1701,7 +1674,6 @@ paths:
               properties:
                 txbytes:
                   type: string
-                  format: binary
                 input_index:
                   type: integer
                   format: int8
@@ -1747,22 +1719,18 @@ paths:
                         properties:
                           in_flight_txbytes:
                             type: string
-                            format: binary
                           in_flight_input_index:
                             type: integer
                             format: int8
                           spending_txbytes:
                             type: string
-                            format: binary
                           spending_input_index:
                             type: integer
                             format: int8
                           spending_sig:
                             type: string
-                            format: binary
                           input_tx:
                             type: string
-                            format: binary
                           input_utxo_pos:
                             type: integer
                             format: int256
@@ -1850,7 +1818,6 @@ paths:
               properties:
                 txbytes:
                   type: string
-                  format: binary
                 output_index:
                   type: integer
                   format: int8
@@ -1896,22 +1863,18 @@ paths:
                         properties:
                           in_flight_txbytes:
                             type: string
-                            format: binary
                           in_flight_output_pos:
                             type: integer
                             format: int256
                           in_flight_proof:
                             type: string
-                            format: binary
                           spending_txbytes:
                             type: string
-                            format: binary
                           spending_input_index:
                             type: integer
                             format: int8
                           spending_sig:
                             type: string
-                            format: binary
                     example:
                       data:
                         in_flight_txbytes: 0xf3170101c0940000...

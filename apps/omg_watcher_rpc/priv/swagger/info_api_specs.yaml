@@ -220,13 +220,11 @@ paths:
                               format: int256
                             contract_semver:
                               type: string
-                              format: binary
                             exit_processor_sla_margin:
                               type: integer
                               format: int256
                             network:
                               type: string
-                              format: binary
                     example:
                       data:
                         - deposit_finality_margin: 10
@@ -307,7 +305,6 @@ paths:
               properties:
                 address:
                   type: string
-                  format: binary
               required:
                 - address
               example:
@@ -349,7 +346,6 @@ paths:
                           properties:
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -433,7 +429,6 @@ paths:
               properties:
                 address:
                   type: string
-                  format: binary
               required:
                 - address
               example:
@@ -487,10 +482,8 @@ paths:
                               format: int256
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -576,13 +569,11 @@ paths:
               properties:
                 address:
                   type: string
-                  format: binary
                 blknum:
                   type: integer
                   format: int64
                 metadata:
                   type: string
-                  format: binary
                 page:
                   type: integer
                   format: int32
@@ -639,13 +630,10 @@ paths:
                               format: int16
                             txhash:
                               type: string
-                              format: binary
                             metadata:
                               type: string
-                              format: binary
                             txbytes:
                               type: string
-                              format: binary
                             block:
                               type: object
                               properties:
@@ -654,7 +642,6 @@ paths:
                                   format: int64
                                 hash:
                                   type: string
-                                  format: binary
                                 eth_height:
                                   type: integer
                                   format: int64
@@ -683,19 +670,15 @@ paths:
                                     format: int256
                                   owner:
                                     type: string
-                                    format: binary
                                   currency:
                                     type: string
-                                    format: binary
                                   amount:
                                     type: integer
                                     format: int256
                                   creating_txhash:
                                     type: string
-                                    format: binary
                                   spending_txhash:
                                     type: string
-                                    format: binary
                             outputs:
                               type: array
                               items:
@@ -715,19 +698,15 @@ paths:
                                     format: int256
                                   owner:
                                     type: string
-                                    format: binary
                                   currency:
                                     type: string
-                                    format: binary
                                   amount:
                                     type: integer
                                     format: int256
                                   creating_txhash:
                                     type: string
-                                    format: binary
                                   spending_txhash:
                                     type: string
-                                    format: binary
                       data_paging:
                         type: object
                         properties:
@@ -900,7 +879,6 @@ paths:
                             format: int64
                           hash:
                             type: string
-                            format: binary
                           eth_height:
                             type: integer
                             format: int64
@@ -1044,7 +1022,6 @@ paths:
                               format: int64
                             hash:
                               type: string
-                              format: binary
                             eth_height:
                               type: integer
                               format: int64
@@ -1150,13 +1127,11 @@ paths:
               properties:
                 address:
                   type: string
-                  format: binary
                 blknum:
                   type: integer
                   format: int64
                 metadata:
                   type: string
-                  format: binary
                 page:
                   type: integer
                   format: int32
@@ -1213,13 +1188,10 @@ paths:
                               format: int16
                             txhash:
                               type: string
-                              format: binary
                             metadata:
                               type: string
-                              format: binary
                             txbytes:
                               type: string
-                              format: binary
                             block:
                               type: object
                               properties:
@@ -1228,7 +1200,6 @@ paths:
                                   format: int64
                                 hash:
                                   type: string
-                                  format: binary
                                 eth_height:
                                   type: integer
                                   format: int64
@@ -1257,19 +1228,15 @@ paths:
                                     format: int256
                                   owner:
                                     type: string
-                                    format: binary
                                   currency:
                                     type: string
-                                    format: binary
                                   amount:
                                     type: integer
                                     format: int256
                                   creating_txhash:
                                     type: string
-                                    format: binary
                                   spending_txhash:
                                     type: string
-                                    format: binary
                             outputs:
                               type: array
                               items:
@@ -1289,19 +1256,15 @@ paths:
                                     format: int256
                                   owner:
                                     type: string
-                                    format: binary
                                   currency:
                                     type: string
-                                    format: binary
                                   amount:
                                     type: integer
                                     format: int256
                                   creating_txhash:
                                     type: string
-                                    format: binary
                                   spending_txhash:
                                     type: string
-                                    format: binary
                       data_paging:
                         type: object
                         properties:
@@ -1432,7 +1395,6 @@ paths:
               properties:
                 owner:
                   type: string
-                  format: binary
                 payments:
                   type: array
                   items:
@@ -1443,10 +1405,8 @@ paths:
                         format: int256
                       currency:
                         type: string
-                        format: binary
                       owner:
                         type: string
-                        format: binary
                     required:
                       - amount
                       - currency
@@ -1455,12 +1415,10 @@ paths:
                   properties:
                     currency:
                       type: string
-                      format: binary
                   required:
                     - currency
                 metadata:
                   type: string
-                  format: binary
               required:
                 - owner
                 - payments
@@ -1536,19 +1494,15 @@ paths:
                                         format: int256
                                       owner:
                                         type: string
-                                        format: binary
                                       currency:
                                         type: string
-                                        format: binary
                                       amount:
                                         type: integer
                                         format: int256
                                       creating_txhash:
                                         type: string
-                                        format: binary
                                       spending_txhash:
                                         type: string
-                                        format: binary
                                 outputs:
                                   type: array
                                   items:
@@ -1559,10 +1513,8 @@ paths:
                                         format: int256
                                       currency:
                                         type: string
-                                        format: binary
                                       owner:
                                         type: string
-                                        format: binary
                                 fee:
                                   type: object
                                   properties:
@@ -1571,16 +1523,12 @@ paths:
                                       format: int256
                                     currency:
                                       type: string
-                                      format: binary
                                 metadata:
                                   type: string
-                                  format: binary
                                 txbytes:
                                   type: string
-                                  format: binary
                                 sign_hash:
                                   type: string
-                                  format: binary
                                 typed_data:
                                   type: object
                                   properties:
@@ -1617,10 +1565,8 @@ paths:
                                           type: string
                                         salt:
                                           type: string
-                                          format: binary
                                         verifyingContract:
                                           type: string
-                                          format: binary
                                         version:
                                           type: string
                                       required:
@@ -1684,10 +1630,8 @@ paths:
                                           properties:
                                             owner:
                                               type: string
-                                              format: binary
                                             currency:
                                               type: string
-                                              format: binary
                                             amount:
                                               type: integer
                                               format: int256
@@ -1696,10 +1640,8 @@ paths:
                                           properties:
                                             owner:
                                               type: string
-                                              format: binary
                                             currency:
                                               type: string
-                                              format: binary
                                             amount:
                                               type: integer
                                               format: int256
@@ -1708,10 +1650,8 @@ paths:
                                           properties:
                                             owner:
                                               type: string
-                                              format: binary
                                             currency:
                                               type: string
-                                              format: binary
                                             amount:
                                               type: integer
                                               format: int256
@@ -1720,16 +1660,13 @@ paths:
                                           properties:
                                             owner:
                                               type: string
-                                              format: binary
                                             currency:
                                               type: string
-                                              format: binary
                                             amount:
                                               type: integer
                                               format: int256
                                         metadata:
                                           type: string
-                                          format: binary
                                       required:
                                         - input0
                                         - input1
@@ -1934,7 +1871,6 @@ paths:
               properties:
                 id:
                   type: string
-                  format: binary
               required:
                 - id
               example:
@@ -1977,13 +1913,10 @@ paths:
                             format: int16
                           txhash:
                             type: string
-                            format: binary
                           metadata:
                             type: string
-                            format: binary
                           txbytes:
                             type: string
-                            format: binary
                           block:
                             type: object
                             properties:
@@ -1992,7 +1925,6 @@ paths:
                                 format: int64
                               hash:
                                 type: string
-                                format: binary
                               eth_height:
                                 type: integer
                                 format: int64
@@ -2021,19 +1953,15 @@ paths:
                                   format: int256
                                 owner:
                                   type: string
-                                  format: binary
                                 currency:
                                   type: string
-                                  format: binary
                                 amount:
                                   type: integer
                                   format: int256
                                 creating_txhash:
                                   type: string
-                                  format: binary
                                 spending_txhash:
                                   type: string
-                                  format: binary
                           outputs:
                             type: array
                             items:
@@ -2053,19 +1981,15 @@ paths:
                                   format: int256
                                 owner:
                                   type: string
-                                  format: binary
                                 currency:
                                   type: string
-                                  format: binary
                                 amount:
                                   type: integer
                                   format: int256
                                 creating_txhash:
                                   type: string
-                                  format: binary
                                 spending_txhash:
                                   type: string
-                                  format: binary
                     example:
                       data:
                         txindex: 5113
@@ -2214,10 +2138,8 @@ paths:
                           type: string
                         salt:
                           type: string
-                          format: binary
                         verifyingContract:
                           type: string
-                          format: binary
                         version:
                           type: string
                       required:
@@ -2281,10 +2203,8 @@ paths:
                           properties:
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -2293,10 +2213,8 @@ paths:
                           properties:
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -2305,10 +2223,8 @@ paths:
                           properties:
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -2317,16 +2233,13 @@ paths:
                           properties:
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
                         metadata:
                           type: string
-                          format: binary
                       required:
                         - input0
                         - input1
@@ -2343,7 +2256,6 @@ paths:
                       type: array
                       items:
                         type: string
-                        format: binary
                   required:
                     - domain
                     - message
@@ -2431,7 +2343,6 @@ paths:
                             format: int16
                           txhash:
                             type: string
-                            format: binary
                     example:
                       data:
                         blknum: 123000
@@ -2513,7 +2424,6 @@ paths:
                   type: array
                   items:
                     type: string
-                    format: binary
                 tx_types:
                   type: array
                   items:
@@ -2562,7 +2472,6 @@ paths:
                             properties:
                               currency:
                                 type: string
-                                format: binary
                               amount:
                                 type: integer
                                 format: int256
@@ -2571,7 +2480,6 @@ paths:
                                 format: int256
                               pegged_currency:
                                 type: string
-                                format: binary
                               pegged_amount:
                                 type: integer
                                 format: int256

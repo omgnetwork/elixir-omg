@@ -6,10 +6,10 @@ ConfigurationSchema:
       format: int256
     contract_semver:
       type: string
-      format: binary
+       
     exit_processor_sla_margin:
       type: integer
       format: int256
     network:
       type: string
-      format: binary
+       

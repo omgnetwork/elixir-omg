@@ -213,10 +213,8 @@ paths:
                               format: int256
                             contract_semver:
                               type: string
-                              format: binary
                             network:
                               type: string
-                              format: binary
                     example:
                       data:
                         - deposit_finality_margin: 10
@@ -298,7 +296,6 @@ paths:
               properties:
                 transaction:
                   type: string
-                  format: binary
               required:
                 - transaction
               example:
@@ -344,7 +341,6 @@ paths:
                             format: int16
                           txhash:
                             type: string
-                            format: binary
                     example:
                       data:
                         blknum: 123000
@@ -424,7 +420,6 @@ paths:
               properties:
                 hash:
                   type: string
-                  format: binary
               required:
                 - hash
               example:
@@ -466,10 +461,8 @@ paths:
                             type: array
                             items:
                               type: string
-                              format: binary
                           hash:
                             type: string
-                            format: binary
                           blknum:
                             type: integer
                             format: int64
@@ -555,7 +548,6 @@ paths:
                   type: array
                   items:
                     type: string
-                    format: binary
                 tx_types:
                   type: array
                   items:
@@ -604,7 +596,6 @@ paths:
                             properties:
                               currency:
                                 type: string
-                                format: binary
                               amount:
                                 type: integer
                                 format: int256
@@ -613,7 +604,6 @@ paths:
                                 format: int256
                               pegged_currency:
                                 type: string
-                                format: binary
                               pegged_amount:
                                 type: integer
                                 format: int256
