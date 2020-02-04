@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true, common: true])
-ExUnit.start()
-{:ok, _} = Application.ensure_all_started(:ethereumex)
-{:ok, _} = Application.ensure_all_started(:briefly)
-{:ok, _} = Application.ensure_all_started(:erlexec)
+defmodule OMG.Watcher.ReleaseTasks.SetApplication do
+  @moduledoc false
+  use Distillery.Releases.Config.Provider
+  @app :omg_watcher
+
+  @impl Provider
+  def init(release: release, current_version: current_version) do
+    :ok = Application.put_env(@app, :release, release, persistent: true)
+    :ok = Application.put_env(@app, :current_version, current_version, persistent: true)
+  end
+end

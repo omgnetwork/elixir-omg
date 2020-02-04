@@ -21,6 +21,7 @@ defmodule OMG.Watcher.API.Status do
   alias OMG.Eth.EthereumHeight
   alias OMG.RootChainCoordinator
   alias OMG.State
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
@@ -60,7 +61,7 @@ defmodule OMG.Watcher.API.Status do
 
     {:ok, services_synced_heights} = RootChainCoordinator.get_ethereum_heights()
 
-    contract_addr = Eth.Diagnostics.get_child_chain_config()[:contract_addr] |> Eth.RootChain.contract_map_from_hex()
+    contract_addr = Eth.Diagnostics.get_child_chain_config()[:contract_addr] |> contract_map_from_hex()
 
     {_, events_processor} = ExitProcessor.check_validity()
     {:ok, in_flight_exits} = ExitProcessor.get_active_in_flight_exits()
@@ -88,5 +89,9 @@ defmodule OMG.Watcher.API.Status do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
     {state_current_block, _} = State.get_status()
     state_current_block - child_block_interval
+  end
+
+  defp contract_map_from_hex(contract_map) do
+    Enum.into(contract_map, %{}, fn {name, addr} -> {name, Encoding.from_hex!(addr)} end)
   end
 end

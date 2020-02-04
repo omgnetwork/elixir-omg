@@ -2,7 +2,7 @@
 export REPLACE_OS_VARS=true
 export NODE_HOST=127.0.0.1
 export ERLANG_COOKIE=develop
-export APP_ENV=local_development
+export APP_ENV=local_docker_development
 export HOSTNAME=yolo
 export DB_PATH=~/plasma-data/
 export ETHEREUM_RPC_URL=http://127.0.0.1:8545
@@ -15,6 +15,8 @@ export ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
 export ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
 export EXIT_PROCESSOR_SLA_MARGIN=5520
 export FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
+export DD_HOSTNAME=localhost
+export DD_DISABLED=false
 # expects it's executed from the root of the project
 FILE='./localchain_contract_addresses.env'
 while IFS= read -r line; do

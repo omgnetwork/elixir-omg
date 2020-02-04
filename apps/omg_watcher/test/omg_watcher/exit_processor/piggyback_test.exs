@@ -16,6 +16,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
   @moduledoc """
   Test of the logic of exit processor - detecting conditions related to piggybacks
   """
+  # this is where the setup comes from!!!
   use OMG.Watcher.ExitProcessor.Case, async: true
 
   alias OMG.Block

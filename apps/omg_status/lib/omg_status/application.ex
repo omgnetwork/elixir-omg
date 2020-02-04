@@ -21,6 +21,7 @@ defmodule OMG.Status.Application do
   alias OMG.Status.AlarmPrinter
   alias OMG.Status.Alert.Alarm
   alias OMG.Status.Alert.AlarmHandler
+  alias OMG.Status.DatadogEvent.AlarmConsumer
   alias OMG.Status.Metric.Datadog
   alias OMG.Status.Metric.Tracer
   alias OMG.Status.Metric.VmstatsSink
@@ -38,7 +39,14 @@ defmodule OMG.Status.Application do
         [
           {OMG.Status.Metric.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
           VmstatsSink.prepare_child(),
-          {SpandexDatadog.ApiServer, spandex_datadog_options()}
+          {SpandexDatadog.ApiServer, spandex_datadog_options()},
+          {AlarmConsumer,
+           [
+             alarm_handler: OMG.Status.DatadogEvent.AlarmHandler,
+             release: Application.get_env(:omg_status, :release),
+             current_version: Application.get_env(:omg_status, :current_version),
+             publisher: OMG.Status.Metric.Datadog
+           ]}
         ]
       end
 

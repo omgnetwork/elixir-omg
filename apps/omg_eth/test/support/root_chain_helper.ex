@@ -331,7 +331,7 @@ defmodule Support.RootChainHelper do
     [%{blknum: deposit_blknum}] =
       logs
       |> Enum.filter(&(topic in &1["topics"]))
-      |> Enum.map(&RootChain.decode_deposit/1)
+      |> Enum.map(&RootChain.Decode.deposit/1)
 
     deposit_blknum
   end

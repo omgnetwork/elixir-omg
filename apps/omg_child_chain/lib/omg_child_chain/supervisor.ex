@@ -18,6 +18,7 @@ defmodule OMG.ChildChain.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
+  alias OMG.ChildChain.DatadogEvent.ContractEventConsumer
   alias OMG.ChildChain.FeeServer
   alias OMG.ChildChain.FreshBlocks
   alias OMG.ChildChain.Monitor
@@ -36,25 +37,48 @@ defmodule OMG.ChildChain.Supervisor do
     {:ok, _contract_deployment_height} = RootChain.get_root_deployment_height()
     fee_claimer_address = OMG.Configuration.fee_claimer_address()
 
-    children = [
-      {State, [fee_claimer_address: fee_claimer_address]},
-      {FreshBlocks, []},
-      {FeeServer, []},
-      {Monitor,
-       [
-         Alarm,
-         %{
-           id: SyncSupervisor,
-           start: {SyncSupervisor, :start_link, []},
-           restart: :permanent,
-           type: :supervisor
-         }
-       ]}
-    ]
+    children =
+      create_event_consumer_children() ++
+        [
+          {State, [fee_claimer_address: fee_claimer_address]},
+          {FreshBlocks, []},
+          {FeeServer, []},
+          {Monitor,
+           [
+             Alarm,
+             %{
+               id: SyncSupervisor,
+               start: {SyncSupervisor, :start_link, []},
+               restart: :permanent,
+               type: :supervisor
+             }
+           ]}
+        ]
 
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     Supervisor.init(children, opts)
+  end
+
+  defp create_event_consumer_children() do
+    Enum.map(
+      [
+        "blocks",
+        "DepositCreated",
+        "InFlightExitStarted",
+        "InFlightExitInputPiggybacked",
+        "InFlightExitOutputPiggybacked",
+        "ExitStarted"
+      ],
+      fn event ->
+        ContractEventConsumer.prepare_child(
+          event: event,
+          release: Application.get_env(:omg_child_chain, :release),
+          current_version: Application.get_env(:omg_child_chain, :current_version),
+          publisher: OMG.Status.Metric.Datadog
+        )
+      end
+    )
   end
 end

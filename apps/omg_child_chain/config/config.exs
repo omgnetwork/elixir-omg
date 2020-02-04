@@ -11,4 +11,10 @@ config :omg_child_chain,
   fee_adapter: OMG.ChildChain.Fees.FileAdapter,
   fee_specs_file_name: "fee_specs.json"
 
+config :omg_child_chain, OMG.ChildChain.Tracer,
+  service: :omg_child_chain,
+  adapter: SpandexDatadog.Adapter,
+  disabled?: true,
+  type: :omg_child_chain
+
 import_config "#{Mix.env()}.exs"

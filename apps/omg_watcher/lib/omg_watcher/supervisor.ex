@@ -21,6 +21,7 @@ defmodule OMG.Watcher.Supervisor do
   use OMG.Utils.LoggerExt
 
   alias OMG.Status.Alert.Alarm
+  alias OMG.Watcher.DatadogEvent.ContractEventConsumer
   alias OMG.Watcher.Monitor
   alias OMG.Watcher.SyncSupervisor
 
@@ -44,6 +45,36 @@ defmodule OMG.Watcher.Supervisor do
 
     opts = [strategy: :one_for_one]
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(children, opts)
+    Supervisor.init(create_event_consumer_children() ++ children, opts)
+  end
+
+  defp create_event_consumer_children() do
+    Enum.map(
+      [
+        "blocks",
+        "DepositCreated",
+        "InFlightExitInputPiggybacked",
+        "InFlightExitOutputPiggybacked",
+        "BlockSubmitted",
+        "ExitFinalized",
+        "ExitChallenged",
+        "InFlightExitChallenged",
+        "InFlightExitChallengeResponded",
+        "InFlightExitInputBlocked",
+        "InFlightExitOutputBlocked",
+        "InFlightExitInputWithdrawn",
+        "InFlightExitOutputWithdrawn",
+        "InFlightExitStarted",
+        "ExitStarted"
+      ],
+      fn event ->
+        ContractEventConsumer.prepare_child(
+          event: event,
+          release: Application.get_env(:omg_watcher, :release),
+          current_version: Application.get_env(:omg_watcher, :current_version),
+          publisher: OMG.Status.Metric.Datadog
+        )
+      end
+    )
   end
 end

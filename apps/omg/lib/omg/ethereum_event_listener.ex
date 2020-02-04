@@ -40,7 +40,6 @@ defmodule OMG.EthereumEventListener do
   """
 
   alias OMG.EthereumEventListener.Core
-  alias OMG.EthereumEventListener.Preprocessor
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
 
@@ -98,7 +97,9 @@ defmodule OMG.EthereumEventListener do
       }) do
     _ = Logger.info("Starting #{inspect(__MODULE__)} for #{service_name}.")
     {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
+
     {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
+
     # we don't need to ever look at earlier than contract deployment
     last_event_block_height = max(last_event_block_height, contract_deployment_height)
     {initial_state, height_to_check_in} = Core.init(update_key, service_name, last_event_block_height)
@@ -167,7 +168,6 @@ defmodule OMG.EthereumEventListener do
 
     {:ok, db_updates_from_callback} =
       events
-      |> Enum.map(&Preprocessor.apply/1)
       |> publish_data()
       |> callbacks.process_events_callback.()
 
