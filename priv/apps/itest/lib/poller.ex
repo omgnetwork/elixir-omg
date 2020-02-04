@@ -241,10 +241,15 @@ defmodule Itest.Poller do
 
     _ =
       Logger.info(
-        "Revert reason for #{inspect(hash)}: revert string: #{inspect(reason)} revert string: #{
-          inspect(Itest.Transactions.Encoding.to_binary(reason))
+        "Revert reason for #{inspect(hash)}: revert string: #{decode_reason(reason)} revert binary: #{
+          inspect(Itest.Transactions.Encoding.to_binary(reason), limit: :infinity)
         }"
       )
+  end
+
+  defp decode_reason(reason) do
+    # https://ethereum.stackexchange.com/questions/48383/how-to-receive-revert-reason-for-past-transactions
+    reason |> String.split_at(138) |> elem(1) |> Base.decode16!(case: :lower) |> String.chunk(:printable)
   end
 
   defp pull_for_utxo_until_recognized_deposit(payload, _, _, _, 0) do
