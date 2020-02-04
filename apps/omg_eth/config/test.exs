@@ -13,7 +13,6 @@ config :omg_eth,
 
 config :omg_eth,
   ethereum_height_check_interval_ms: 100,
-  ethereum_stalled_sync_threshold_ms: 200,
   environment: :test,
   min_exit_period_seconds: 22,
   # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory

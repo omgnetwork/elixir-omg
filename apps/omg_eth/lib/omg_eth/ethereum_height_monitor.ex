@@ -174,7 +174,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
         height
 
       error ->
-        _ = Logger.error("Error retrieving Ethereum height: #{inspect(error)}")
+        _ = Logger.warn("Error retrieving Ethereum height: #{inspect(error)}")
         :error
     end
   end
