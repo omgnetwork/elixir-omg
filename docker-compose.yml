@@ -76,6 +76,7 @@ services:
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
+      - ETHEREUM_HEIGHT_CHECK_INTERVAL_MS=800
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
     restart: always
@@ -110,6 +111,7 @@ services:
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
+      - ETHEREUM_HEIGHT_CHECK_INTERVAL_MS=800
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
     restart: always
@@ -145,6 +147,7 @@ services:
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
+      - ETHEREUM_HEIGHT_CHECK_INTERVAL_MS=800
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
     restart: always
