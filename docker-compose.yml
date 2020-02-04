@@ -21,7 +21,6 @@ services:
       - /bin/sh
       - -c
       - |
-          
           apk add --update curl
           # Configures geth with the deployer and authority accounts. This includes:
           #   1. Configuring the deployer's keystore
@@ -30,7 +29,6 @@ services:
           #   4. Unlocking the accounts by their indexes
           echo "" > /tmp/geth-blank-password
           # Starts geth
-          
           geth --syncmode 'fast' --miner.gastarget 7500000 \
             --miner.gasprice "10" \
             --nodiscover \

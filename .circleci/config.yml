@@ -415,8 +415,8 @@ jobs:
       - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
-      - run: 
-          name: Run specs
+      - run:
+          name: Start services
           command: |
             cd priv/
             make start_daemon_services
