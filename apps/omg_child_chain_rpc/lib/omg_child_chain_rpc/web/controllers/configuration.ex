@@ -14,8 +14,7 @@
 
 defmodule OMG.ChildChainRPC.Web.Controller.Configuration do
   @moduledoc """
-  Module provides operation related to the child chain raised alarms that might point to
-  faulty childchain node.
+  Module provides operation related to the child chain configuration retrieval
   """
 
   use OMG.ChildChainRPC.Web, :controller

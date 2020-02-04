@@ -29,11 +29,11 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
       erc20_vault: "erc20_vault_value",
       eth_vault: "eth_vault_value",
       payment_exit_game: "payment_exit_game_value",
-      plasma_framework: nil
+      plasma_framework: plasma_framework
     }
 
     %{
-      contract_addresses_value: Map.put(contract_addresses_value, :plasma_framework, plasma_framework),
+      contract_addresses_value: contract_addresses_value,
       plasma_framework: plasma_framework
     }
   end

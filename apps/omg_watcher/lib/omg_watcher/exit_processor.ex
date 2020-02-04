@@ -217,9 +217,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, db_ifes} = DB.in_flight_exits_info()
     {:ok, db_competitors} = DB.competitors_info()
 
-    sla_margin = exit_processor_sla_margin
-
-    processor = Core.init(db_exits, db_ifes, db_competitors, sla_margin)
+    processor = Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_margin)
 
     {:ok, _} =
       :timer.send_interval(
