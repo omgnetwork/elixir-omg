@@ -19,7 +19,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumHeightCheckInterval do
 
   @app :omg_eth
   @config_key :ethereum_height_check_interval_ms
-  @env_name "ETHEREUM_STALLED_SYNC_THRESHOLD_MS"
+  @env_name "ETHEREUM_HEIGHT_CHECK_INTERVAL_MS"
 
   @impl Provider
   def init(_args) do
