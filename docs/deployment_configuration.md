@@ -70,6 +70,10 @@ The contract addresses that are required to be included in the `contract_addr` f
 }
 ```
 
+***Child Chain only***
+
+- "IGNORE_FEES" - Allows transactions to be submitted without requiring fees if set to _true_. Defaults to _false_ (fee is required).
+
 ***Watcher security-critical only***
 
 - "CHILD_CHAIN_URL" - Location of the Child Chain API *mandatory*
