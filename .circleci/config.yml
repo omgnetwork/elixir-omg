@@ -728,87 +728,87 @@ workflows:
       #     requires: [build]
       # - property_tests:
       #     requires: [build]
-      - build_and_deploy_staging:
-          requires:
-            - build
-            - lint
-            - sobelow
-            - dialyzer
-            - test
-            - child_chain_coveralls_and_integration_tests
-            - watcher_coveralls_and_integration_tests
-            - watcher_info_coveralls_and_integration_tests
-            - common_coveralls_and_integration_tests
-            - property_tests
-          filters:
-            branches:
-              only:
-                - v0.1
-      # Publish in case of master branch.
-      - publish_child_chain:
-          requires:
-            [
-              child_chain_coveralls_and_integration_tests,
-              watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              property_tests,
-              dialyzer,
-              lint,
-            ]
-          filters:
-            branches:
-              only:
-                - master
-      - publish_watcher:
-          requires:
-            [
-              child_chain_coveralls_and_integration_tests,
-              watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              property_tests,
-              dialyzer,
-              lint,
-            ]
-          filters:
-            branches:
-              only:
-                - master
-      - publish_watcher_info:
-          requires:
-            [
-              child_chain_coveralls_and_integration_tests,
-              watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              property_tests,
-              dialyzer,
-              lint,
-            ]
-          filters:
-            branches:
-              only:
-                - master
-      # Release deploy to development in case of master branch.
-      - deploy_child_chain:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters:
-            branches:
-              only:
-                - master
-      - deploy_watcher:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters:
-            branches:
-              only:
-                - master
-      - deploy_watcher_info:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters:
-            branches:
-              only:
-                - master
+      # - build_and_deploy_staging:
+      #     requires:
+      #       - build
+      #       - lint
+      #       - sobelow
+      #       - dialyzer
+      #       - test
+      #       - child_chain_coveralls_and_integration_tests
+      #       - watcher_coveralls_and_integration_tests
+      #       - watcher_info_coveralls_and_integration_tests
+      #       - common_coveralls_and_integration_tests
+      #       - property_tests
+      #     filters:
+      #       branches:
+      #         only:
+      #           - v0.1
+      # # Publish in case of master branch.
+      # - publish_child_chain:
+      #     requires:
+      #       [
+      #         child_chain_coveralls_and_integration_tests,
+      #         watcher_coveralls_and_integration_tests,
+      #         watcher_info_coveralls_and_integration_tests,
+      #         common_coveralls_and_integration_tests,
+      #         test,
+      #         property_tests,
+      #         dialyzer,
+      #         lint,
+      #       ]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      # - publish_watcher:
+      #     requires:
+      #       [
+      #         child_chain_coveralls_and_integration_tests,
+      #         watcher_coveralls_and_integration_tests,
+      #         watcher_info_coveralls_and_integration_tests,
+      #         common_coveralls_and_integration_tests,
+      #         test,
+      #         property_tests,
+      #         dialyzer,
+      #         lint,
+      #       ]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      # - publish_watcher_info:
+      #     requires:
+      #       [
+      #         child_chain_coveralls_and_integration_tests,
+      #         watcher_coveralls_and_integration_tests,
+      #         watcher_info_coveralls_and_integration_tests,
+      #         common_coveralls_and_integration_tests,
+      #         test,
+      #         property_tests,
+      #         dialyzer,
+      #         lint,
+      #       ]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      # # Release deploy to development in case of master branch.
+      # - deploy_child_chain:
+      #     requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      # - deploy_watcher:
+      #     requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      # - deploy_watcher_info:
+      #     requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
