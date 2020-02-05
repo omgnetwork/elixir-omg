@@ -304,7 +304,7 @@ defmodule InFlightExitsTests do
     %{txbytes: txbytes} = alice_state = state["Alice"]
 
     transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
-    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema)
+    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema) |> IO.inspect()
 
     submit_transaction_response =
       response
