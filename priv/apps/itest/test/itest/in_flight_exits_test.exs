@@ -227,7 +227,7 @@ defmodule InFlightExitsTests do
       amount: amount + bob_child_chain_balance
     }
 
-    transaction = %Payment{inputs: [alice_deposit_input, bob_deposit_input], outputs: [alice_output, bob_output]}
+    transaction = %Payment{inputs: [alice_deposit_input, bob_deposit_input], outputs: [alice_output, bob_output]} |> IO.inspect(label: "transaction data")
 
     submitted_tx =
       ExPlasma.Transaction.sign(transaction,
