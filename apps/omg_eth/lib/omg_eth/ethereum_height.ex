@@ -68,7 +68,7 @@ defmodule OMG.Eth.EthereumHeight do
     {:ok, rootchain_height} = eth().get_ethereum_height()
     rootchain_height
   rescue
-    _check_error -> 0
+    _check_error -> :error_ethereum_height
   end
 
   defp eth, do: Application.get_env(:omg_eth, :eth_integration_module, Eth)
