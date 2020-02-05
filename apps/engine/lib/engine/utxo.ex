@@ -27,6 +27,9 @@ defmodule Engine.Utxo do
     field(:amount, :integer, default: 0)
 
     field(:spent, :boolean)
+
+    belongs_to(:spending_transaction, Engine.Utxo)
+    belongs_to(:creating_transaction, Engine.Utxo)
   end
 
   @doc """
