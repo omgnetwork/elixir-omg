@@ -63,7 +63,7 @@ defmodule OMG.Eth.EthereumHeight do
     end
   end
 
-  @spec get_ethereum_height :: non_neg_integer()
+  @spec get_ethereum_height :: non_neg_integer() | :error_ethereum_height
   defp get_ethereum_height do
     {:ok, rootchain_height} = eth().get_ethereum_height()
     rootchain_height
