@@ -312,6 +312,14 @@ defmodule InFlightExitsTests do
   defand ~r/^Alice sends the most recently created transaction$/, _, state do
     %{txbytes: txbytes} = alice_state = state["Alice"]
 
+    WatcherSecurityCriticalAPI.Connection.new()
+    |> WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(%{"address" => state["Alice"].address})
+    |> IO.inspect(label: "Alice's exitable utxos")
+
+    WatcherSecurityCriticalAPI.Connection.new()
+    |> WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(%{"address" => state["Bob"].address})
+    |> IO.inspect(label: "Bob's exitable utxos")
+
     transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
     {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema) |> IO.inspect()
 
