@@ -314,10 +314,16 @@ defmodule InFlightExitsTests do
 
     WatcherSecurityCriticalAPI.Connection.new()
     |> WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(%{"address" => state["Alice"].address})
+    |> elem(1)
+    |> Map.get(:body)
+    |> Jason.decode!()
     |> IO.inspect(label: "Alice's exitable utxos")
 
     WatcherSecurityCriticalAPI.Connection.new()
     |> WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(%{"address" => state["Bob"].address})
+    |> elem(1)
+    |> Map.get(:body)
+    |> Jason.decode!()
     |> IO.inspect(label: "Bob's exitable utxos")
 
     transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
