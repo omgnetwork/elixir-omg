@@ -28,6 +28,7 @@ defmodule OMG.State.CoreTest do
 
   import OMG.TestHelper
 
+  require Logger
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -922,11 +923,10 @@ defmodule OMG.State.CoreTest do
       alice = OMG.TestHelper.generate_entity()
       fees = %{@eth => %{amount: 2}}
 
-      # Transaction requires fee of 2wei ETH but Alice actually is paying 3wei
       state =
         state_empty
         |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}]), fees)
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}]), fees)
         |> success?()
 
       {:ok, [state: state, alice: alice, fees: fees, fee_claimer: fee_claimer, state_empty: state_empty]}
@@ -960,12 +960,12 @@ defmodule OMG.State.CoreTest do
       {:ok, _, state} = form_block_check(state)
 
       state
-      |> Core.exec(create_recovered([{1000, 1, 0, fee_claimer}], @eth, [{alice, 3}]), :no_fees_required)
+      |> Core.exec(create_recovered([{1000, 1, 0, fee_claimer}], @eth, [{alice, 2}]), :no_fees_required)
       |> success?()
     end
 
     test "fee txs cannot be intermixed with payments", %{alice: alice, state: state, fees: fees} do
-      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 3)
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2)
 
       state
       # fees from 1st tx are available to claim
@@ -977,7 +977,7 @@ defmodule OMG.State.CoreTest do
     end
 
     test "cannot claim the same token twice", %{state: state, fees: fees} do
-      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 3)
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2)
 
       state
       # fees from 1st tx are available to claim
@@ -989,7 +989,7 @@ defmodule OMG.State.CoreTest do
     end
 
     test "cannot claim more than collected", %{state: state, fees: fees} do
-      paid_fee = 3
+      paid_fee = 2
 
       fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, paid_fee + 1)
 
@@ -999,7 +999,7 @@ defmodule OMG.State.CoreTest do
     end
 
     test "cannot claim less than collected", %{state: state, fees: fees} do
-      paid_fee = 3
+      paid_fee = 2
 
       fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, paid_fee - 1)
 
@@ -1009,7 +1009,7 @@ defmodule OMG.State.CoreTest do
     end
 
     test "no fees can be claimed after block is formed", %{state: state, fees: fees} do
-      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 3)
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2)
 
       # now it's possible to claim Eth fee (note: no state modification)
       state
@@ -1025,22 +1025,14 @@ defmodule OMG.State.CoreTest do
       |> fail?(:surplus_in_token_not_collected)
     end
 
-    test "surplus in non-fee token is also claimed", %{alice: alice, state: state, fees: fees} do
-      state =
-        state
-        |> do_deposit(alice, %{amount: 100, currency: @not_eth, blknum: 2})
-        |> Core.exec(
-          create_recovered([{1000, 0, 0, alice}, {2, 0, 0, alice}], [{alice, @eth, 5}, {alice, @not_eth, 90}]),
-          fees
-        )
-        |> success?()
-
-      # eth and not_eth currencies can both be claimed
+    test "fee is paid in one token only, many surpluses prohibited", %{alice: alice, state: state, fees: fees} do
       state
-      |> Core.exec(create_recovered_fee_tx(1000, state.fee_claimer_address, @not_eth, 10), fees)
-      |> success?()
-      |> Core.exec(create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 5), fees)
-      |> success?()
+      |> do_deposit(alice, %{amount: 100, currency: @not_eth, blknum: 2})
+      |> Core.exec(
+        create_recovered([{1000, 0, 0, alice}, {2, 0, 0, alice}], [{alice, @eth, 5}, {alice, @not_eth, 90}]),
+        fees
+      )
+      |> fail?(:multiple_potential_currency_fees)
     end
 
     test "zero surplus is not collectable", %{alice: alice, state: state, fees: fees} do
@@ -1048,7 +1040,7 @@ defmodule OMG.State.CoreTest do
         state
         |> do_deposit(alice, %{amount: 100, currency: @not_eth, blknum: 2})
         |> Core.exec(
-          create_recovered([{1000, 0, 0, alice}, {2, 0, 0, alice}], [{alice, @eth, 5}, {alice, @not_eth, 100}]),
+          create_recovered([{1000, 0, 0, alice}, {2, 0, 0, alice}], [{alice, @eth, 6}, {alice, @not_eth, 100}]),
           fees
         )
         |> success?()
@@ -1059,7 +1051,7 @@ defmodule OMG.State.CoreTest do
       |> fail?(:surplus_in_token_not_collected)
     end
 
-    test "all fees paid from multi-input/output transactions are claimable",
+    test "multi-input/output transaction - pay fees from no-zero index",
          %{alice: alice, state_empty: state, fees: fees} do
       not_eth_1 = <<123::160>>
       not_eth_2 = <<234::160>>
@@ -1072,51 +1064,35 @@ defmodule OMG.State.CoreTest do
         |> do_deposit(alice, %{amount: 10, currency: not_eth_2, blknum: 4})
         |> Core.exec(
           create_recovered(
-            [{1, 0, 0, alice}, {2, 0, 0, alice}, {3, 0, 0, alice}, {4, 0, 0, alice}],
-            [{alice, @eth, 8}, {alice, @not_eth, 7}, {alice, not_eth_1, 6}, {alice, not_eth_2, 5}]
+            [{3, 0, 0, alice}, {2, 0, 0, alice}, {1, 0, 0, alice}, {4, 0, 0, alice}],
+            [{alice, @not_eth, 10}, {alice, @eth, 8}, {alice, not_eth_2, 10}, {alice, not_eth_1, 10}]
           ),
           fees
         )
         |> success?()
 
-      can_claim_fees = [
-        create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2),
-        create_recovered_fee_tx(1000, state.fee_claimer_address, @not_eth, 3),
-        create_recovered_fee_tx(1000, state.fee_claimer_address, not_eth_1, 4),
-        create_recovered_fee_tx(1000, state.fee_claimer_address, not_eth_2, 5)
-      ]
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2)
 
-      %Core{pending_txs: pending_txs} = Core.claim_fees(state)
-
-      # Is it too low? NOTE: pending_txs are reversed with payment tx last on list
-      assert can_claim_fees == pending_txs |> Enum.take(4) |> Enum.reverse()
+      assert %Core{pending_txs: [^fee_tx | _]} = Core.claim_fees(state)
     end
 
     test "surpluses adding up for same-token-fees paid in a block", %{alice: alice, state: state, fees: fees} do
       state =
         state
-        |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 5}]), fees)
+        |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 6}]), fees)
         |> success?()
 
       # we can claim sum of the surpluses from 2 txs (one in setup & one above)
-      collected = 3 + 2
+      collected = 2 + 2
 
       state
       |> Core.exec(create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, collected), fees)
       |> success?()
-
-      # but we have to claim the exact amount
-      state
-      |> Core.exec(create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, collected + 1), fees)
-      |> fail?(:claimed_and_collected_amounts_mismatch)
-      |> Core.exec(create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, collected - 1), fees)
-      |> fail?(:claimed_and_collected_amounts_mismatch)
     end
 
     # this test takes ~26 seconds on my machine
     @tag slow: true
     test "long running full block test", %{alice: alice, state_empty: state, fees: fees} do
-      require Logger
       Logger.warn("slow test is running, use --exclude slow to skip")
 
       maximum_block_size = 65_536
