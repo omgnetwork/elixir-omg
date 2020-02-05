@@ -627,6 +627,7 @@ defmodule InFlightExitsTests do
     result =
       case pull_api_until_successful(Status, :status_get, Watcher.new()) do
         %{"byzantine_events" => byzantine_events} ->
+          IO.inspect(byzantine_events, label: "byzantine_events")
           byzantine_events =
             byzantine_events
             |> Enum.map_reduce([], fn
