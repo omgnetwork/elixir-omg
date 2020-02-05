@@ -494,7 +494,8 @@ jobs:
           name: Compile
           command: |
             set -e
-            make deps-elixir-omg &&
+            mix local.hex --force && mix local.rebar --force
+            make deps-elixir-omg
             mix compile
           no_output_timeout: 2400
       - run:
@@ -512,7 +513,6 @@ jobs:
             cd priv/
             make install
             make generate_api_code
-            mix local.hex --force && mix local.rebar --force
             mix deps.get
       - run:
           name: Print docker and process states
