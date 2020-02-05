@@ -46,5 +46,5 @@ defmodule OMG.ChildChain.ReleaseTasks.SetIgnoreFees do
   defp validate_boolean("true", _default), do: true
   defp validate_boolean("false", _default), do: false
   defp validate_boolean(nil, default), do: default
-  defp validate_boolean(_, _default), do: exit("#{@env_name} can only be \"true\" or \"false\" or unset.")
+  defp validate_boolean(_, _default), do: exit(~s/#{@env_name} can only be "true" or "false" or unset./)
 end
