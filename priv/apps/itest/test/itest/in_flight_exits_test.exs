@@ -11,7 +11,9 @@ defmodule InFlightExitsTests do
   alias Itest.ApiModel.IfeInputChallenge
   alias Itest.ApiModel.IfeOutputChallenge
   alias Itest.ApiModel.SubmitTransactionResponse
+  alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
+  alias Itest.Fee
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
   alias Itest.Transactions.PaymentType
@@ -44,6 +46,7 @@ defmodule InFlightExitsTests do
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
   @gas_process_exit 5_712_388
   @gas_process_exit_price 1_000_000_000
+
   setup do
     # as we're testing IFEs, queue needs to be empty
     0 = get_next_exit_from_queue()
@@ -57,11 +60,18 @@ defmodule InFlightExitsTests do
         subscribe: self()
       )
 
+    eth_fee =
+      Currency.ether()
+      |> Encoding.to_hex()
+      |> Fee.get_for_currency()
+      |> Map.get("amount")
+
     [{alice_address, alice_pkey}, {bob_address, bob_pkey}] = Account.take_accounts(2)
 
     %{
       "exit_game_contract_address" => get_exit_game_contract_address(),
       "in_flight_exit_bond_size" => get_in_flight_exit_bond_size(get_exit_game_contract_address()),
+      "fee" => eth_fee,
       "Alice" => %{
         address: alice_address,
         pkey: "0x" <> alice_pkey,
@@ -104,9 +114,15 @@ defmodule InFlightExitsTests do
       |> Currency.to_wei()
       |> Client.deposit(address, Itest.Account.vault(Currency.ether()))
 
-    # retrieve finality margin from the API
     geth_block_every = 1
-    finality_margin_blocks = 6
+
+    {:ok, response} =
+      WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
+
+    watcher_security_critical_config =
+      WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
+
+    finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
     to_miliseconds = 1000
 
     finality_margin_blocks
@@ -172,6 +188,7 @@ defmodule InFlightExitsTests do
   #     @eth,
   #     [{alice, 5}, {bob, 15}]
   #   )
+  # Note that alice output will not be 5, but 5 - tx fees
   defgiven ~r/^Alice and Bob create a transaction for "(?<amount>[^"]+)" ETH$/,
            %{amount: amount},
            state do
@@ -209,7 +226,7 @@ defmodule InFlightExitsTests do
     alice_output = %ExPlasma.Utxo{
       currency: Currency.ether(),
       owner: alice_address,
-      amount: alice_child_chain_balance - Currency.to_wei(5)
+      amount: alice_child_chain_balance - Currency.to_wei(5) - state["fee"]
     }
 
     bob_output = %ExPlasma.Utxo{
@@ -303,17 +320,7 @@ defmodule InFlightExitsTests do
   defand ~r/^Alice sends the most recently created transaction$/, _, state do
     %{txbytes: txbytes} = alice_state = state["Alice"]
 
-    Process.sleep(1_000)
-
-    transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
-    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema)
-
-    submit_transaction_response =
-      response
-      |> Map.get(:body)
-      |> Jason.decode!()
-      |> Map.get("data")
-      |> SubmitTransactionResponse.to_struct()
+    submit_transaction_response = send_transaction(txbytes)
 
     alice_state = Map.put(alice_state, :transaction_submit, submit_transaction_response)
 
@@ -350,7 +357,13 @@ defmodule InFlightExitsTests do
       amount: Currency.to_wei(3)
     }
 
-    transaction = %Payment{inputs: [bob_input], outputs: [alice_output1, alice_output2]}
+    bob_output = %ExPlasma.Utxo{
+      currency: Currency.ether(),
+      owner: bob_address,
+      amount: Currency.to_wei(10) - state["fee"]
+    }
+
+    transaction = %Payment{inputs: [bob_input], outputs: [alice_output1, alice_output2, bob_output]}
 
     submitted_tx =
       ExPlasma.Transaction.sign(transaction,
@@ -359,15 +372,7 @@ defmodule InFlightExitsTests do
 
     txbytes = ExPlasma.Transaction.encode(submitted_tx)
 
-    transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
-    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema)
-
-    submit_transaction_response =
-      response
-      |> Map.get(:body)
-      |> Jason.decode!()
-      |> Map.get("data")
-      |> SubmitTransactionResponse.to_struct()
+    submit_transaction_response = send_transaction(txbytes)
 
     bob_state =
       bob_state
@@ -473,7 +478,6 @@ defmodule InFlightExitsTests do
     # only a single non_canonical event, since one of the IFE txs is included!
     # I’m waiting for these three, and only these three to appear
     assert all?(["invalid_piggyback", "non_canonical_ife", "piggyback_available"]) == true
-
     payload = %InFlightExitInputChallengeDataBodySchema{txbytes: Encoding.to_hex(unsigned_txbytes), input_index: 1}
     response = pull_api_until_successful(InFlightExit, :in_flight_exit_get_input_challenge_data, Watcher.new(), payload)
     ife_input_challenge = IfeInputChallenge.to_struct(response)
@@ -542,6 +546,24 @@ defmodule InFlightExitsTests do
   #### PRIVATE
   ####
   ###############################################################################################
+
+  defp send_transaction(txbytes) do
+    transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
+    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema)
+
+    try do
+      response
+      |> Map.get(:body)
+      |> Jason.decode!()
+      |> Map.get("data")
+      |> SubmitTransactionResponse.to_struct()
+    rescue
+      _x in [MatchError] ->
+        _ = Process.sleep(5_000)
+        send_transaction(txbytes)
+    end
+  end
+
   defp process_exit(address, ife_exit_id) do
     _ = Logger.info("Process exit #{__MODULE__}")
 

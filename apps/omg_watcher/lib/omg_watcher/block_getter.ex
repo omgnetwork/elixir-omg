@@ -109,7 +109,7 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   def handle_continue({:apply_block_step, :execute_transactions, block_application}, state) do
-    tx_exec_results = for(tx <- block_application.transactions, do: OMG.State.exec(tx, :no_fees_required))
+    tx_exec_results = for(tx <- block_application.transactions, do: OMG.State.exec(tx, :ignore_fees))
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
       {:ok, state} ->

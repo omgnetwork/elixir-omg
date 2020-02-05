@@ -138,7 +138,7 @@ defmodule OMG.Performance.SimplePerftest do
   defp create_deposits(spenders, ntx_to_send) do
     spenders
     |> Enum.with_index(1)
-    |> Enum.map(&create_deposit(&1, ntx_to_send))
+    |> Enum.map(&create_deposit(&1, ntx_to_send * 2))
   end
 
   defp create_deposit({spender, index}, ntx_to_send) do

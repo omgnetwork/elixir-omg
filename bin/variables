@@ -13,6 +13,7 @@ export DATABASE_URL=postgresql://omisego_dev:omisego_dev@127.0.0.1:5432/omisego_
 export CHILD_CHAIN_URL=http://127.0.0.1:9656
 export ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
 export ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+export EXIT_PROCESSOR_SLA_MARGIN=5520
 # expects it's executed from the root of the project
 FILE='./localchain_contract_addresses.env'
 while IFS= read -r line; do

@@ -1,0 +1,13 @@
+configuration.get:
+  get:
+    tags:
+      - Configuration
+    summary: Provides configuration values
+    description: >
+      **Note:** Configuration values.
+    operationId: configuration_get
+    responses:
+      200:
+        $ref: 'responses.yaml#/ConfigurationResponse'
+      500:
+        $ref: '../../shared/responses.yaml#/InternalServerError'

@@ -9,7 +9,8 @@ config :ethereumex,
 config :omg_eth,
   # Needed for test only to have some value of address when `:contract_address` is not set explicitly
   # required by the EIP-712 struct hash code
-  contract_addr: %{plasma_framework: "0x0000000000000000000000000000000000000001"}
+  contract_addr: %{plasma_framework: "0x0000000000000000000000000000000000000001"},
+  node_logging_in_debug: true
 
 config :omg_eth,
   # Set check interval at (:ethereum_events_check_interval_ms / 2) == 400 so the listeners always get the latest height

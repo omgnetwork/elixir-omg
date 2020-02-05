@@ -27,6 +27,8 @@ servers:
 paths:
   /alarm.get:
     $ref: 'alarm/paths.yaml#/alarm.get'
+  /configuration.get:
+    $ref: 'configuration/paths.yaml#/configuration.get'
   /transaction.submit:
     $ref: 'transaction/paths.yaml#/transaction.submit'
   /block.get:

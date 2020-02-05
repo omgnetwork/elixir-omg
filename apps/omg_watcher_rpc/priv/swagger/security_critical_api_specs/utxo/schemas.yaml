@@ -9,13 +9,13 @@ GetUtxoChallengeSchema:
       format: int8
     sig:
       type: string
-      format: binary
+       
     txbytes:
       type: string
-      format: binary
+       
     exiting_tx:
       type: string
-      format: binary
+       
 
 GetUtxoExitSchema:
   type: object
@@ -25,7 +25,7 @@ GetUtxoExitSchema:
       format: int256
     txbytes:
       type: string
-      format: binary
+       
     proof:
       type: string
-      format: binary
+       

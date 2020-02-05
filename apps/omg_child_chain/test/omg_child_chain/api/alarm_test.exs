@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainTest do
-  alias OMG.ChildChain
+defmodule OMG.ChildChain.API.AlarmTest do
+  alias OMG.ChildChain.API.Alarm
   alias OMG.Status.Alert.AlarmHandler
   use ExUnit.Case, async: false
 
@@ -44,7 +44,7 @@ defmodule OMG.ChildChainTest do
   test "if alarms are returned when there are no alarms raised", _ do
     all = :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
     :ok = Enum.each(all, &:alarm_handler.clear_alarm(&1))
-    {:ok, []} = ChildChain.get_alarms()
+    {:ok, []} = Alarm.get_alarms()
   end
 
   test "if alarms are returned when there are alarms raised", %{
@@ -61,6 +61,6 @@ defmodule OMG.ChildChainTest do
        {{:disk_almost_full, "/dev/null"}, []},
        {:ethereum_connection_error, %{node: :nonode@nohost, reporter: Reporter}},
        {:system_memory_high_watermark, []}
-     ]} = ChildChain.get_alarms()
+     ]} = Alarm.get_alarms()
   end
 end

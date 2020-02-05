@@ -86,7 +86,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-5735fd5"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200205"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev

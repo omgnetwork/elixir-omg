@@ -48,10 +48,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       WatcherHelper.get_exit_data(deposit_blknum, 0, 0)
 
     %{"blknum" => first_tx_blknum} =
-      OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}]) |> WatcherHelper.submit()
+      OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}]) |> WatcherHelper.submit()
 
     %{"blknum" => second_tx_blknum} =
-      OMG.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 10}]) |> WatcherHelper.submit()
+      OMG.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 8}]) |> WatcherHelper.submit()
 
     IntegrationTest.wait_for_block_fetch(second_tx_blknum, @timeout)
 
@@ -102,12 +102,12 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
-    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
 
     # Here we're preparing invalid block
     bad_block_number = 2_000
-    bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
 
     %{hash: bad_block_hash, number: _, transactions: _} =
       bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
@@ -145,10 +145,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}
   } do
-    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     %{"blknum" => deposit_blknum} = WatcherHelper.submit(tx)
 
-    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 8}])
     %{"blknum" => tx_blknum, "txhash" => _tx_hash} = WatcherHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)

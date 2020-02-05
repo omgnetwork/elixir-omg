@@ -15,19 +15,19 @@ TransactionOutputSchema:
       format: int256
     owner:
       type: string
-      format: binary
+       
     currency:
       type: string
-      format: binary
+       
     amount:
       type: integer
       format: int256
     creating_txhash:
       type: string
-      format: binary
+       
     spending_txhash:
       type: string
-      format: binary
+       
 
 TransactionSchema:
   type: object
@@ -37,13 +37,13 @@ TransactionSchema:
       format: int16
     txhash:
       type: string
-      format: binary
+       
     metadata:
       type: string
-      format: binary
+       
     txbytes:
       type: string
-      format: binary
+       
     block:
       $ref: '../block/schemas.yaml#/BlockSchema'
     inputs:
@@ -62,10 +62,10 @@ Eip712DomainSchema:
       type: string
     salt:
       type: string
-      format: binary
+       
     verifyingContract:
       type: string
-      format: binary
+       
     version:
       type: string
   required:
@@ -92,10 +92,10 @@ Eip712MsgOutputSchema:
   properties:
     owner:
       type: string
-      format: binary
+       
     currency:
       type: string
-      format: binary
+       
     amount:
       type: integer
       format: int256
@@ -121,7 +121,7 @@ Eip712MsgTransactionSchema:
       $ref: '#/Eip712MsgOutputSchema'
     metadata:
       type: string
-      format: binary
+       
   required:
     - input0
     - input1
@@ -192,10 +192,10 @@ CreateTransactionSchema:
                   format: int256
                 currency:
                   type: string
-                  format: binary
+                   
                 owner:
                   type: string
-                  format: binary
+                   
           fee:
             type: object
             properties:
@@ -204,15 +204,15 @@ CreateTransactionSchema:
                 format: int256
               currency:
                 type: string
-                format: binary
+                 
           metadata:
             type: string
-            format: binary
+             
           txbytes:
             type: string
-            format: binary
+             
           sign_hash:
             type: string
-            format: binary
+             
           typed_data:
             $ref: '#/Eip712SignRequestSchema'

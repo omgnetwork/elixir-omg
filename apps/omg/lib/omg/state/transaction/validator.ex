@@ -35,6 +35,8 @@ defmodule OMG.State.Transaction.Validator do
           | :too_many_transactions_in_block
           | :unauthorized_spend
           | :utxo_not_found
+          | :overpaying_fees
+          | :multiple_potential_currency_fees
 
   @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           true | {{:error, exec_error()}, Core.t()}
@@ -50,7 +52,7 @@ defmodule OMG.State.Transaction.Validator do
          {:ok, outputs_spent} <- UtxoSet.get_by_inputs(utxos, inputs),
          :ok <- authorized?(outputs_spent, witnesses),
          {:ok, implicit_paid_fee_by_currency} <- Transaction.Protocol.can_apply?(raw_tx, outputs_spent),
-         true <- Fees.covered?(implicit_paid_fee_by_currency, fees) || {:error, :fees_not_covered} do
+         :ok <- Fees.check_if_covered(implicit_paid_fee_by_currency, fees) do
       true
     else
       {:error, _reason} = error -> {error, state}

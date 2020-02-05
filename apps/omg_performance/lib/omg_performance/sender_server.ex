@@ -19,6 +19,7 @@ defmodule OMG.Performance.SenderServer do
 
   # Waiting time (in milliseconds) before unsuccessful Tx submission is retried.
   @tx_retry_waiting_time_ms 333
+  @fees_amount 1
 
   use GenServer
   use OMG.Utils.LoggerExt
@@ -124,17 +125,17 @@ defmodule OMG.Performance.SenderServer do
 
   defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx, randomized: randomized}) do
     to_spend = 1
-    newamount = last_tx.amount - to_spend
+    new_amount = last_tx.amount - to_spend - @fees_amount
     recipient = if randomized, do: TestHelper.generate_entity(), else: spender
 
     _ =
       Logger.debug(
-        "[#{inspect(seqnum)}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{inspect(newamount)}"
+        "[#{inspect(seqnum)}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{inspect(new_amount)}"
       )
 
     recipient_output = [{recipient.addr, @eth, to_spend}]
     # we aren't allowed to create zero-amount outputs, so if this is the last tx and no change is due, leave it out
-    change_output = if newamount > 0, do: [{spender.addr, @eth, newamount}], else: []
+    change_output = if new_amount > 0, do: [{spender.addr, @eth, new_amount}], else: []
 
     # create and return signed transaction
     [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
@@ -144,7 +145,7 @@ defmodule OMG.Performance.SenderServer do
 
   # Submits new transaction to the blockchain server.
   @spec submit_tx(Transaction.Signed.t(), __MODULE__.state()) ::
-          {:ok, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
+          {:ok, blknum :: pos_integer, txindex :: pos_integer, new_amount :: pos_integer}
           | {:error, any()}
           | :retry
   defp submit_tx(tx, %__MODULE__{seqnum: seqnum, child_chain_url: child_chain_url}) do

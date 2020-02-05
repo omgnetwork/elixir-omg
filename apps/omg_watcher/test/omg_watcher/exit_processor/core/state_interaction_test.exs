@@ -144,7 +144,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     assert Utxo.position(1, 0, 0) not in spends_to_get
 
     # spend and see that Core now requests the relevant utxo checks and spends to get
-    {:ok, _, state} = State.Core.exec(state, comp, :no_fees_required)
+    {:ok, _, state} = State.Core.exec(state, comp, :ignore_fees)
     {:ok, {block, _}, state} = State.Core.form_block(1000, state)
 
     assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
@@ -171,7 +171,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
       state
       |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
       |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
-      |> State.Core.exec(ife_exit_tx1, :no_fees_required)
+      |> State.Core.exec(ife_exit_tx1, :ignore_fees)
 
     {:ok, {block, _}, state} = State.Core.form_block(1000, state)
 
@@ -237,8 +237,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     ife_id = 1
 
     state = TestHelper.do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
-    {:ok, {tx_hash, _, _}, state} = State.Core.exec(state, ife_exit_tx, :no_fees_required)
-    {:ok, {_, _, _}, state} = State.Core.exec(state, spending_tx, :no_fees_required)
+    {:ok, {tx_hash, _, _}, state} = State.Core.exec(state, ife_exit_tx, :ignore_fees)
+    {:ok, {_, _, _}, state} = State.Core.exec(state, spending_tx, :ignore_fees)
     {:ok, {block, _}, state} = State.Core.form_block(1000, state)
 
     request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: [block]}

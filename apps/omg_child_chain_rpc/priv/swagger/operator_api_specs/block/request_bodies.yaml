@@ -9,7 +9,7 @@ GetBlockBodySchema:
         properties:
           hash:
             type: string
-            format: binary
+             
         required:
           - hash
         example:

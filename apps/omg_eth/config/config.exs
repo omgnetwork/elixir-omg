@@ -13,11 +13,11 @@ config :omg_eth,
   authority_addr: nil,
   txhash_contract: nil,
   eth_node: :geth,
-  node_logging_in_debug: true,
   child_block_interval: 1000,
-  min_exit_period_seconds: 7 * 24 * 60 * 60,
+  min_exit_period_seconds: nil,
   ws_url: "ws://localhost:8546/ws",
   ethereum_height_check_interval_ms: 10_000,
-  ethereum_stalled_sync_threshold_ms: 20_000
+  ethereum_stalled_sync_threshold_ms: 20_000,
+  node_logging_in_debug: false
 
 import_config "#{Mix.env()}.exs"

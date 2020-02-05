@@ -4,6 +4,7 @@ defmodule DepositsTests do
   require Logger
 
   alias Itest.Account
+  alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
   alias Itest.Transactions.Currency
 
@@ -39,6 +40,23 @@ defmodule DepositsTests do
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
+    geth_block_every = 1
+
+    {:ok, response} =
+      WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
+
+    watcher_security_critical_config =
+      WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
+
+    finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
+    to_miliseconds = 1000
+
+    finality_margin_blocks
+    |> Kernel.*(geth_block_every)
+    |> Kernel.*(to_miliseconds)
+    |> Kernel.round()
+    |> Process.sleep()
+
     expecting_amount = Currency.to_wei(amount)
 
     balance = Client.get_balance(alice_account, expecting_amount)
@@ -58,7 +76,8 @@ defmodule DepositsTests do
         bob_account
       )
 
-    _ = Client.submit_transaction(typed_data, sign_hash, alice_pkey)
+    # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
+    _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
 
     {:ok, state}
   end

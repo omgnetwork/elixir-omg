@@ -7,6 +7,7 @@ defmodule Itest.Client do
   alias Itest.Transactions.Deposit
   alias Itest.Transactions.Encoding
   alias WatcherInfoAPI.Api.Account
+  alias WatcherInfoAPI.Api.Fees
   alias WatcherInfoAPI.Api.Transaction
   alias WatcherInfoAPI.Connection, as: WatcherInfo
   alias WatcherInfoAPI.Model.AddressBodySchema1
@@ -19,18 +20,6 @@ defmodule Itest.Client do
   require Logger
 
   @gas 180_000
-
-  def get_watcher_alarms() do
-    WatcherSecurityCriticalAPI.Api.Alarm.alarm_get(WatcherSecurityCriticalAPI.Connection.new())
-  end
-
-  def get_watcher_info_alarms() do
-    WatcherInfoAPI.Api.Alarm.alarm_get(WatcherInfoAPI.Connection.new())
-  end
-
-  def get_child_chain_alarms() do
-    ChildChainAPI.Api.Alarm.alarm_get(ChildChainAPI.Connection.new())
-  end
 
   def deposit(amount_in_wei, output_address, vault_address, currency \\ Currency.ether()) do
     deposit_transaction = deposit_transaction(amount_in_wei, output_address, currency)
@@ -80,13 +69,16 @@ defmodule Itest.Client do
     {:ok, [sign_hash, typed_data, txbytes]}
   end
 
-  def submit_transaction(typed_data, sign_hash, private_key) do
-    signature =
-      sign_hash
-      |> Encoding.to_binary()
-      |> Encoding.signature_digest(private_key)
+  def submit_transaction(typed_data, sign_hash, private_keys) do
+    signatures =
+      Enum.map(private_keys, fn private_key ->
+        sign_hash
+        |> Encoding.to_binary()
+        |> Encoding.signature_digest(private_key)
+        |> Encoding.to_hex()
+      end)
 
-    typed_data_signed = Map.put_new(typed_data, "signatures", [Encoding.to_hex(signature)])
+    typed_data_signed = Map.put_new(typed_data, "signatures", signatures)
 
     submit_typed(typed_data_signed)
   end
@@ -101,6 +93,11 @@ defmodule Itest.Client do
 
   def get_balance(address), do: Itest.Poller.get_balance(address)
   def get_balance(address, amount), do: Itest.Poller.pull_balance_until_amount(address, amount)
+
+  def get_fees() do
+    {:ok, response} = Fees.fees_all(WatcherInfo.new())
+    {:ok, Jason.decode!(response.body)["data"]}
+  end
 
   defp deposit_transaction(amount_in_wei, address, currency) do
     address
