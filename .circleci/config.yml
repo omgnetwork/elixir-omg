@@ -417,15 +417,12 @@ jobs:
       - run: make docker-watcher
       - run: make docker-watcher_info
       - run:
-          name: Start services
+          name: Run specs
           command: |
             cd priv/
             make start_daemon_services
-      - run:
-          name: Print docker states
-          command: |
-            docker image ls
-            docker-compose ps
+      - run: docker image ls
+      - run: docker-compose ps
       - run:
           name: Install Erlang and Elixir
           command: |
