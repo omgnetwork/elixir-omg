@@ -303,8 +303,6 @@ defmodule InFlightExitsTests do
   defand ~r/^Alice sends the most recently created transaction$/, _, state do
     %{txbytes: txbytes} = alice_state = state["Alice"]
 
-    Process.sleep(10_000)
-
     transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
     {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema) |> IO.inspect()
 
