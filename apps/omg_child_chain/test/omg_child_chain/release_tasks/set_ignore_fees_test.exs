@@ -18,18 +18,17 @@ defmodule OMG.ChildChain.ReleaseTasks.SetIgnoreFeesTest do
 
   @app :omg_child_chain
   @config_key :ignore_fees
-  @configuration_old Application.get_all_env(@app)
 
   setup do
+    original_config = Application.get_all_env(@app)
+
     on_exit(fn ->
       # configuration is global state so we reset it to known values in case
       # it got fiddled before
-
-      :ok =
-        Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
+      :ok = Enum.each(original_config, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
     end)
 
-    :ok
+    {:ok, %{original_config: original_config}}
   end
 
   test "that :ignore_fees is set to true when given IGNORE_FEES=true" do
@@ -46,21 +45,21 @@ defmodule OMG.ChildChain.ReleaseTasks.SetIgnoreFeesTest do
     :ok = System.delete_env("IGNORE_FEES")
   end
 
-  test "that no other configurations got affected" do
+  test "that no other configurations got affected", context do
     :ok = System.put_env("IGNORE_FEES", "true")
     :ok = SetIgnoreFees.init([])
     new_configs = @app |> Application.get_all_env() |> Keyword.delete(@config_key) |> Enum.sort()
-    old_configs = @configuration_old |> Keyword.delete(@config_key) |> Enum.sort()
+    old_configs = context.original_config |> Keyword.delete(@config_key) |> Enum.sort()
 
     assert new_configs == old_configs
   end
 
   test "that default configuration is used when there's no environment variables" do
+    old_config = Application.get_env(@app, @config_key)
     :ok = System.delete_env("IGNORE_FEES")
     :ok = SetIgnoreFees.init([])
-    new_configs = @app |> Application.get_all_env() |> Enum.sort()
-    old_configs = @configuration_old |> Enum.sort()
+    new_config = Application.get_env(@app, @config_key)
 
-    assert new_configs == old_configs
+    assert new_config == old_config
   end
 end
