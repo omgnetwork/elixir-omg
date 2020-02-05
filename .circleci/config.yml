@@ -699,7 +699,7 @@ workflows:
             branches:
               only:
                 - master
-      - coveralls_report:
+      - coveralls_merge:
           requires:
             - child_chain_coveralls_and_integration_tests
             - watcher_coveralls_and_integration_tests
