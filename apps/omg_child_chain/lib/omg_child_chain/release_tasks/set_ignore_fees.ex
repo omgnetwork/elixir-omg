@@ -26,7 +26,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetIgnoreFees do
     _ = Application.ensure_all_started(:logger)
     ignore_fees = ignore_fees()
 
-    :ok = Application.put_env(@app, @config_key, interval_ms, persistent: true)
+    :ok = Application.put_env(@app, @config_key, ignore_fees, persistent: true)
   end
 
   defp ignore_fees() do
