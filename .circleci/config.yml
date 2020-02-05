@@ -530,7 +530,8 @@ jobs:
             mix test
 
   publish_child_chain:
-    executor: machine
+    machine:
+      image: ubuntu-1604:201903-01
     environment:
       CHILD_CHAIN_IMAGE_NAME: "omisego/child_chain"
     steps:
@@ -539,7 +540,8 @@ jobs:
       - run: IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher:
-    executor: machine
+    machine:
+      image: ubuntu-1604:201903-01
     environment:
       WATCHER_IMAGE_NAME: "omisego/watcher"
     steps:
@@ -548,7 +550,8 @@ jobs:
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher_info:
-    executor: machine
+    machine:
+      image: ubuntu-1604:201903-01
     environment:
       WATCHER_INFO_IMAGE_NAME: "omisego/watcher_info"
     steps:
