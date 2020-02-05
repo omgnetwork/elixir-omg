@@ -689,41 +689,45 @@ workflows:
   build-deploy:
     jobs:
       - build
-      - test_barebone_release:
-          requires: [build]
-      - notify_services:
-          requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
-          filters:
-            branches:
-              only:
-                - master
-      - coveralls_merge:
-          requires:
-            - child_chain_coveralls_and_integration_tests
-            - watcher_coveralls_and_integration_tests
-            - watcher_info_coveralls_and_integration_tests
-            - common_coveralls_and_integration_tests
-            - test
-      - child_chain_coveralls_and_integration_tests:
-          requires: [build]
-      - watcher_coveralls_and_integration_tests:
-          requires: [build]
-      - watcher_info_coveralls_and_integration_tests:
-          requires: [build]
-      - common_coveralls_and_integration_tests:
-          requires: [build]
+      # If you see these build steps commented out, @unnawut did it for debugging and is a goldfish
+      # forgetting to uncomment it after #1283 merge.
+      # - test_barebone_release:
+      #     requires: [build]
+      # - notify_services:
+      #     requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      # - coveralls_report:
+      #     requires:
+      #       - child_chain_coveralls_and_integration_tests
+      #       - watcher_coveralls_and_integration_tests
+      #       - watcher_info_coveralls_and_integration_tests
+      #       - common_coveralls_and_integration_tests
+      #       - test
+      # - child_chain_coveralls_and_integration_tests:
+      #     requires: [build]
+      # - watcher_coveralls_and_integration_tests:
+      #     requires: [build]
+      # - watcher_info_coveralls_and_integration_tests:
+      #     requires: [build]
+      # - common_coveralls_and_integration_tests:
+      #     requires: [build]
       - test_docker_compose_release:
           requires: [build]
-      - lint:
-          requires: [build]
-      - sobelow:
-          requires: [build]
-      - dialyzer:
-          requires: [build]
-      - test:
-          requires: [build]
-      - property_tests:
-          requires: [build]
+      # If you see these build steps commented out, @unnawut did it for debugging and is a goldfish
+      # forgetting to uncomment it after #1283 merge.
+      # - lint:
+      #     requires: [build]
+      # - sobelow:
+      #     requires: [build]
+      # - dialyzer:
+      #     requires: [build]
+      # - test:
+      #     requires: [build]
+      # - property_tests:
+      #     requires: [build]
       - build_and_deploy_staging:
           requires:
             - build
