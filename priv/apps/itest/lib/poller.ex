@@ -9,7 +9,6 @@ defmodule Itest.Poller do
   alias WatcherInfoAPI.Api.Account
   alias WatcherInfoAPI.Api.Transaction
   alias WatcherInfoAPI.Connection, as: WatcherInfo
-  alias WatcherSecurityCriticalAPI.Connection, as: WatcherSecurity
   alias WatcherInfoAPI.Model.AddressBodySchema1
 
   @sleep_retry_sec 1_000
@@ -18,11 +17,6 @@ defmodule Itest.Poller do
   def pull_for_utxo_until_recognized_deposit(account, amount, currency, blknum) do
     payload = %AddressBodySchema1{address: account}
     pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, @retry_count)
-  end
-
-  def pull_for_utxo_from_security_api_until_recognized_deposit(account, amount, currency, blknum) do
-    payload = %AddressBodySchema1{address: account}
-    pull_for_utxo_from_security_api_until_recognized_deposit(payload, amount, currency, blknum, @retry_count)
   end
 
   def pull_api_until_successful(module, function, connection, payload \\ nil),
@@ -273,24 +267,6 @@ defmodule Itest.Poller do
       _ ->
         Process.sleep(@sleep_retry_sec)
         pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter)
-    end
-  end
-
-  defp pull_for_utxo_from_security_api_until_recognized_deposit(payload, _, _, _, 0) do
-    {:ok, data} = WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(WatcherSecurity.new(), payload)
-    Jason.decode!(data.body)
-  end
-
-  defp pull_for_utxo_from_security_api_until_recognized_deposit(payload, amount, currency, blknum, counter) do
-    response = WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(WatcherSecurity.new(), payload)
-
-    case response do
-      {:ok, data} ->
-        find_deposit(Jason.decode!(data.body), payload, {amount, currency, blknum}, counter)
-
-      _ ->
-        Process.sleep(@sleep_retry_sec)
-        pull_for_utxo_from_security_api_until_recognized_deposit(payload, amount, currency, blknum, counter)
     end
   end
 

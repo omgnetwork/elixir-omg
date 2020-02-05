@@ -227,7 +227,7 @@ defmodule InFlightExitsTests do
       amount: amount + bob_child_chain_balance
     }
 
-    transaction = %Payment{inputs: [alice_deposit_input, bob_deposit_input], outputs: [alice_output, bob_output]} |> IO.inspect(label: "transaction data")
+    transaction = %Payment{inputs: [alice_deposit_input, bob_deposit_input], outputs: [alice_output, bob_output]}
 
     submitted_tx =
       ExPlasma.Transaction.sign(transaction,
@@ -312,24 +312,10 @@ defmodule InFlightExitsTests do
   defand ~r/^Alice sends the most recently created transaction$/, _, state do
     %{txbytes: txbytes} = alice_state = state["Alice"]
 
-    WatcherSecurityCriticalAPI.Connection.new()
-    |> WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(%{"address" => state["Alice"].address})
-    |> elem(1)
-    |> Map.get(:body)
-    |> Jason.decode!()
-    |> IO.inspect(label: "Alice's exitable utxos")
-
-    WatcherSecurityCriticalAPI.Connection.new()
-    |> WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(%{"address" => state["Bob"].address})
-    |> elem(1)
-    |> Map.get(:body)
-    |> Jason.decode!()
-    |> IO.inspect(label: "Bob's exitable utxos")
-
-    Process.sleep(10_000)
+    Process.sleep(1_000)
 
     transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
-    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema) |> IO.inspect()
+    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema)
 
     submit_transaction_response =
       response
