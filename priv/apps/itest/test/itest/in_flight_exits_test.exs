@@ -154,14 +154,6 @@ defmodule InFlightExitsTests do
         blknum
       )
 
-    _ =
-      pull_for_utxo_from_security_api_until_recognized_deposit(
-        address,
-        Currency.to_wei(amount),
-        Encoding.to_hex(Currency.ether()),
-        blknum
-      )
-
     balance = Itest.Poller.eth_get_balance(address)
 
     entity_state =
