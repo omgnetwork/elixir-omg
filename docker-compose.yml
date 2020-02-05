@@ -21,7 +21,6 @@ services:
       - /bin/sh
       - -c
       - |
-          
           apk add --update curl
           # Configures geth with the deployer and authority accounts. This includes:
           #   1. Configuring the deployer's keystore
@@ -30,7 +29,6 @@ services:
           #   4. Unlocking the accounts by their indexes
           echo "" > /tmp/geth-blank-password
           # Starts geth
-          
           geth --syncmode 'fast' --miner.gastarget 7500000 \
             --miner.gasprice "10" \
             --nodiscover \
@@ -44,8 +42,7 @@ services:
             --unlock "0,1" \
             --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 \
             --ws --wsaddr 0.0.0.0 --wsorigins='*' \
-            --mine 
-            
+            --mine
     ports:
       - "8545:8545"
       - "8546:8546"
@@ -69,7 +66,6 @@ services:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
       - ETHEREUM_WS_RPC_URL=ws://geth:8546
-      - CHILD_CHAIN_URL=http://childchain:9656
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - APP_ENV=local_development
