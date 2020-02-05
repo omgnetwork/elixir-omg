@@ -164,7 +164,6 @@ jobs:
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
-      - run: make init_test
       - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, credo, format --check-formatted --dry-run
 
   sobelow:
