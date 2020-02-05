@@ -11,6 +11,7 @@ defmodule InFlightExitsTests do
   alias Itest.ApiModel.IfeInputChallenge
   alias Itest.ApiModel.IfeOutputChallenge
   alias Itest.ApiModel.SubmitTransactionResponse
+  alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
   alias Itest.Fee
   alias Itest.Transactions.Currency
@@ -113,9 +114,15 @@ defmodule InFlightExitsTests do
       |> Currency.to_wei()
       |> Client.deposit(address, Itest.Account.vault(Currency.ether()))
 
-    # retrieve finality margin from the API
     geth_block_every = 1
-    finality_margin_blocks = 6
+
+    {:ok, response} =
+      WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
+
+    watcher_security_critical_config =
+      WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
+
+    finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
     to_miliseconds = 1000
 
     finality_margin_blocks
@@ -313,15 +320,7 @@ defmodule InFlightExitsTests do
   defand ~r/^Alice sends the most recently created transaction$/, _, state do
     %{txbytes: txbytes} = alice_state = state["Alice"]
 
-    transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
-    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema)
-
-    submit_transaction_response =
-      response
-      |> Map.get(:body)
-      |> Jason.decode!()
-      |> Map.get("data")
-      |> SubmitTransactionResponse.to_struct()
+    submit_transaction_response = send_transaction(txbytes)
 
     alice_state = Map.put(alice_state, :transaction_submit, submit_transaction_response)
 
@@ -373,15 +372,7 @@ defmodule InFlightExitsTests do
 
     txbytes = ExPlasma.Transaction.encode(submitted_tx)
 
-    transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
-    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema)
-
-    submit_transaction_response =
-      response
-      |> Map.get(:body)
-      |> Jason.decode!()
-      |> Map.get("data")
-      |> SubmitTransactionResponse.to_struct()
+    submit_transaction_response = send_transaction(txbytes)
 
     bob_state =
       bob_state
@@ -555,6 +546,24 @@ defmodule InFlightExitsTests do
   #### PRIVATE
   ####
   ###############################################################################################
+
+  defp send_transaction(txbytes) do
+    transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
+    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema)
+
+    try do
+      response
+      |> Map.get(:body)
+      |> Jason.decode!()
+      |> Map.get("data")
+      |> SubmitTransactionResponse.to_struct()
+    rescue
+      _x in [MatchError] ->
+        _ = Process.sleep(5_000)
+        send_transaction(txbytes)
+    end
+  end
+
   defp process_exit(address, ife_exit_id) do
     _ = Logger.info("Process exit #{__MODULE__}")
 

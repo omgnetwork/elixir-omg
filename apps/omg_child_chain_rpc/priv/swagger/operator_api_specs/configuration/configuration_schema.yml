@@ -1,0 +1,8 @@
+components:
+  schemas:
+    deposit_finality_margin:
+      type: int256
+    contract_semver:
+      type: string
+    network:
+      type: string

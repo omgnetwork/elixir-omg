@@ -22,21 +22,21 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   @app :omg_eth
   @configuration_old Application.get_all_env(@app)
 
-  @exchanger_body %{
-    plasma_framework_tx_hash: "txhash_contract_value",
-    plasma_framework: "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7",
-    eth_vault: "eth_vault_value",
-    erc20_vault: "erc20_vault_value",
-    payment_exit_game: "payment_exit_game_value",
-    authority_address: "authority_address_value"
-  }
+  setup_all do
+    plasma_framework = Support.SnapshotContracts.parse_contracts()["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
 
-  @contract_addresses_value %{
-    erc20_vault: "erc20_vault_value",
-    eth_vault: "eth_vault_value",
-    payment_exit_game: "payment_exit_game_value",
-    plasma_framework: "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7"
-  }
+    contract_addresses_value = %{
+      erc20_vault: "erc20_vault_value",
+      eth_vault: "eth_vault_value",
+      payment_exit_game: "payment_exit_game_value",
+      plasma_framework: plasma_framework
+    }
+
+    %{
+      contract_addresses_value: contract_addresses_value,
+      plasma_framework: plasma_framework
+    }
+  end
 
   setup %{} do
     vcr_path = Path.join(__DIR__, "../../fixtures/vcr_cassettes")
@@ -50,7 +50,9 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok
   end
 
-  test "fetching from contract exchanger" do
+  test "fetching from contract exchanger", %{
+    contract_addresses_value: contract_addresses_value
+  } do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       port = 9009
 
@@ -58,7 +60,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
       :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
       :ok = SetContract.init([])
       "authority_address_value" = Application.get_env(@app, :authority_addr)
-      @contract_addresses_value = Application.get_env(@app, :contract_addr)
+      ^contract_addresses_value = Application.get_env(@app, :contract_addr)
       "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
       :ok = System.delete_env("ETHEREUM_NETWORK")
@@ -72,7 +74,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
       :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
       :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
       :ok = SetContract.init([])
-      600 = Application.get_env(@app, :min_exit_period_seconds)
+      20 = Application.get_env(@app, :min_exit_period_seconds)
 
       :ok = System.delete_env("ETHEREUM_NETWORK")
       :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
@@ -97,18 +99,21 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
   end
 
-  test "contract details from env" do
+  test "contract details from env", %{
+    plasma_framework: plasma_framework,
+    contract_addresses_value: contract_addresses_value
+  } do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
       :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
       :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
       :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
       :ok = SetContract.init([])
       "authority_address_value" = Application.get_env(@app, :authority_addr)
-      @contract_addresses_value = Application.get_env(@app, :contract_addr)
+      ^contract_addresses_value = Application.get_env(@app, :contract_addr)
       "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
       :ok = System.delete_env("ETHEREUM_NETWORK")
@@ -121,18 +126,21 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     end
   end
 
-  test "contract details from env, mixed case" do
+  test "contract details from env, mixed case", %{
+    plasma_framework: plasma_framework,
+    contract_addresses_value: contract_addresses_value
+  } do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
       :ok = System.put_env("TXHASH_CONTRACT", "Txhash_contract_value")
       :ok = System.put_env("AUTHORITY_ADDRESS", "Authority_address_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
       :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "Eth_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "Erc20_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "Payment_exit_game_value")
       :ok = SetContract.init([])
       "authority_address_value" = Application.get_env(@app, :authority_addr)
-      @contract_addresses_value = Application.get_env(@app, :contract_addr)
+      ^contract_addresses_value = Application.get_env(@app, :contract_addr)
       "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
       :ok = System.delete_env("ETHEREUM_NETWORK")
@@ -145,18 +153,21 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     end
   end
 
-  test "contract details from env for localchain" do
+  test "contract details from env for localchain", %{
+    plasma_framework: plasma_framework,
+    contract_addresses_value: contract_addresses_value
+  } do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "localchain")
       :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
       :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
       :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
       :ok = SetContract.init([])
       "authority_address_value" = Application.get_env(@app, :authority_addr)
-      @contract_addresses_value = Application.get_env(@app, :contract_addr)
+      ^contract_addresses_value = Application.get_env(@app, :contract_addr)
       "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
       :ok = System.delete_env("ETHEREUM_NETWORK")
@@ -169,17 +180,19 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     end
   end
 
-  test "contract details from env sets default exit period seconds" do
+  test "contract details from env sets default exit period seconds", %{
+    plasma_framework: plasma_framework
+  } do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
       :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
       :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
       :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
       :ok = SetContract.init([])
-      600 = Application.get_env(@app, :min_exit_period_seconds)
+      20 = Application.get_env(@app, :min_exit_period_seconds)
 
       :ok = System.delete_env("ETHEREUM_NETWORK")
       :ok = System.delete_env("TXHASH_CONTRACT")
@@ -191,20 +204,23 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     end
   end
 
-  test "contract details and exit period seconds from env" do
+  test "contract details and exit period seconds from env", %{
+    plasma_framework: plasma_framework,
+    contract_addresses_value: contract_addresses_value
+  } do
     use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
       :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
       :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
       :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
       :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
       :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
 
       :ok = SetContract.init([])
-      600 = Application.get_env(@app, :min_exit_period_seconds)
+      20 = Application.get_env(@app, :min_exit_period_seconds)
       "authority_address_value" = Application.get_env(@app, :authority_addr)
-      @contract_addresses_value = Application.get_env(@app, :contract_addr)
+      ^contract_addresses_value = Application.get_env(@app, :contract_addr)
       "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
       :ok = System.delete_env("ETHEREUM_NETWORK")
       :ok = System.delete_env("TXHASH_CONTRACT")
@@ -216,11 +232,13 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     end
   end
 
-  test "that exit is thrown when env configuration is faulty for network name" do
+  test "that exit is thrown when env configuration is faulty for network name", %{
+    plasma_framework: plasma_framework
+  } do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby is what we are, rinkeby is what we know")
     :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", "0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7")
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
     :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
     :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
@@ -283,7 +301,18 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   end
 
   defp handle(conn) do
-    body = Jason.encode!(@exchanger_body)
+    plasma_framework = Support.SnapshotContracts.parse_contracts()["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
+
+    exchanger_body = %{
+      plasma_framework_tx_hash: "txhash_contract_value",
+      plasma_framework: nil,
+      eth_vault: "eth_vault_value",
+      erc20_vault: "erc20_vault_value",
+      payment_exit_game: "payment_exit_game_value",
+      authority_address: "authority_address_value"
+    }
+
+    body = Jason.encode!(Map.put(exchanger_body, :plasma_framework, plasma_framework))
 
     :ok = :gen_tcp.send(conn, ["HTTP/1.0 ", Integer.to_charlist(200), "\r\n", [], "\r\n", body])
 

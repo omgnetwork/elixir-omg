@@ -3,22 +3,22 @@ InFlightExitDataSchema:
   properties:
     in_flight_tx:
       type: string
-      format: binary
+       
     input_txs:
       type: array
       items:
         type: string
-        format: binary
+         
     input_txs_inclusion_proofs:
       type: array
       items:
         type: string
-        format: binary
+         
     in_flight_tx_sigs:
       type: array
       items:
         type: string
-        format: binary
+         
     input_utxos_pos:
       type: array
       items:
@@ -30,28 +30,28 @@ CompetitorSchema:
   properties:
     in_flight_txbytes:
       type: string
-      format: binary
+       
     in_flight_input_index:
       type: integer
       format: int8
     competing_txbytes:
       type: string
-      format: binary
+       
     competing_input_index:
       type: integer
       format: int8
     competing_sig:
       type: string
-      format: binary
+       
     competing_tx_pos:
       type: integer
       format: int256
     competing_proof:
       type: string
-      format: binary
+       
     input_tx:
       type: string
-      format: binary
+       
     input_utxo_pos:
       type: integer
       format: int256
@@ -61,13 +61,13 @@ ProveCanonicalSchema:
   properties:
     in_flight_txbytes:
       type: string
-      format: binary
+       
     in_flight_tx_pos:
       type: integer
       format: int256
     in_flight_proof:
       type: string
-      format: binary
+       
 
 
 InputChallengeDataSchema:
@@ -75,22 +75,22 @@ InputChallengeDataSchema:
   properties:
     in_flight_txbytes:
       type: string
-      format: binary
+       
     in_flight_input_index:
       type: integer
       format: int8
     spending_txbytes:
       type: string
-      format: binary
+       
     spending_input_index:
       type: integer
       format: int8
     spending_sig:
       type: string
-      format: binary
+       
     input_tx:
       type: string
-      format: binary
+       
     input_utxo_pos:
       type: integer
       format: int256
@@ -100,19 +100,19 @@ OutputChallengeDataSchema:
   properties:
     in_flight_txbytes:
       type: string
-      format: binary
+       
     in_flight_output_pos:
       type: integer
       format: int256
     in_flight_proof:
       type: string
-      format: binary
+       
     spending_txbytes:
       type: string
-      format: binary
+       
     spending_input_index:
       type: integer
       format: int8
     spending_sig:
       type: string
-      format: binary
+       

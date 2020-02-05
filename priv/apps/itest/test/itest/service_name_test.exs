@@ -2,19 +2,18 @@ defmodule ServiceNameTests do
   use Cabbage.Feature, async: false, file: "service_name.feature"
 
   require Logger
-  alias Itest.Client
 
   defwhen ~r/^Operator deploys "(?<service>[^"]+)"$/, %{service: service}, state do
     {:ok, response} =
       case service do
         "Child Chain" ->
-          Client.get_child_chain_alarms()
+          ChildChainAPI.Api.Alarm.alarm_get(ChildChainAPI.Connection.new())
 
         "Watcher" ->
-          Client.get_watcher_alarms()
+          WatcherSecurityCriticalAPI.Api.Alarm.alarm_get(WatcherSecurityCriticalAPI.Connection.new())
 
         "Watcher Info" ->
-          Client.get_watcher_info_alarms()
+          WatcherInfoAPI.Api.Alarm.alarm_get(WatcherInfoAPI.Connection.new())
       end
 
     body = Jason.decode!(response.body)

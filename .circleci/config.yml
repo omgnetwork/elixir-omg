@@ -19,12 +19,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:dev-5735fd5
+      - image: omisegoimages/elixir-omg-builder:stable-20200205
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:dev-5735fd5
+      - image: omisegoimages/elixir-omg-builder:stable-20200205
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -34,7 +34,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:dev-5735fd5
+      - image: omisegoimages/elixir-omg-tester:stable-20200205
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -78,6 +78,7 @@ jobs:
     steps:
       - checkout
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+      - run: mix do local.hex --force, local.rebar --force
       - run:
           command: ./bin/setup
           no_output_timeout: 2400
@@ -435,6 +436,7 @@ jobs:
             sudo apt-get update &&
             sudo apt-get install esl-erlang=1:21.3.8.10-1
             sudo apt-get install elixir=1.8.2-1
+            mix do local.hex --force, local.rebar --force
       - run: sh .circleci/status.sh
       - restore_cache:
           key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}

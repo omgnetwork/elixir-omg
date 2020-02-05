@@ -1,7 +1,7 @@
 [
   {
     "request": {
-      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"data\":\"0x4ca8714f\",\"to\":\"0xa22c34d7f2796e4af8d4082f747c90d75fe4b3a7\"},\"latest\"]}",
+      "body": "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"data\":\"0x4ca8714f\",\"to\":\"0xc673e4ffcb8464faff908a6804fe0e635af0ea2f\"},\"latest\"]}",
       "headers": {
         "Content-Type": "application/json"
       },

@@ -9,7 +9,7 @@ AddressBodySchema:
         properties:
           address:
             type: string
-            format: binary
+             
         required:
           - address
         example:

@@ -1,0 +1,14 @@
+ConfigurationResponseSchema:
+  allOf:
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: array
+        items:
+          $ref: 'schemas.yaml#/ConfigurationSchema'
+    example:
+      data:
+      -
+        deposit_finality_margin: 10
+        contract_semver: "1.0.0.1+a1s29s8"

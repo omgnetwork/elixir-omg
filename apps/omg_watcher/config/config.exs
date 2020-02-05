@@ -10,11 +10,7 @@ config :omg_watcher,
   maximum_number_of_unapplied_blocks: 50,
   exit_finality_margin: 12,
   block_getter_reorg_margin: 200,
-  metrics_collection_interval: 60_000,
-  # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory
-  # of the umbrella project. This is useful because `mix test` and `mix coveralls --umbrella`
-  # have different views on the root dir when testing.
-  umbrella_root_dir: Path.join(__DIR__, "../../..")
+  metrics_collection_interval: 60_000
 
 config :omg_watcher, OMG.Watcher.Tracer,
   service: :omg_watcher,
