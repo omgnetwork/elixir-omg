@@ -9,4 +9,4 @@ TransactionSubmitSchema:
       format: int16
     txhash:
       type: string
-      format: binary
+       

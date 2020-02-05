@@ -165,6 +165,118 @@ paths:
                         description: Something went wrong on the server
                         messages:
                           error_key: error_reason
+  /configuration.get:
+    get:
+      tags:
+        - Configuration
+      summary: Provides configuration values
+      description: |
+        **Note:** Configuration values.
+      operationId: configuration_get
+      responses:
+        '200':
+          description: Configuration response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            deposit_finality_margin:
+                              type: integer
+                              format: int256
+                            contract_semver:
+                              type: string
+                            network:
+                              type: string
+                    example:
+                      data:
+                        - deposit_finality_margin: 10
+                          contract_semver: 1.0.0.1+a1s29s8
+                          network: RINKEBY
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /transaction.submit:
     post:
       tags:
@@ -184,7 +296,6 @@ paths:
               properties:
                 transaction:
                   type: string
-                  format: binary
               required:
                 - transaction
               example:
@@ -230,7 +341,6 @@ paths:
                             format: int16
                           txhash:
                             type: string
-                            format: binary
                     example:
                       data:
                         blknum: 123000
@@ -310,7 +420,6 @@ paths:
               properties:
                 hash:
                   type: string
-                  format: binary
               required:
                 - hash
               example:
@@ -352,10 +461,8 @@ paths:
                             type: array
                             items:
                               type: string
-                              format: binary
                           hash:
                             type: string
-                            format: binary
                           blknum:
                             type: integer
                             format: int64
@@ -441,7 +548,6 @@ paths:
                   type: array
                   items:
                     type: string
-                    format: binary
                 tx_types:
                   type: array
                   items:
@@ -490,7 +596,6 @@ paths:
                             properties:
                               currency:
                                 type: string
-                                format: binary
                               amount:
                                 type: integer
                                 format: int256
@@ -499,7 +604,6 @@ paths:
                                 format: int256
                               pegged_currency:
                                 type: string
-                                format: binary
                               pegged_amount:
                                 type: integer
                                 format: int256

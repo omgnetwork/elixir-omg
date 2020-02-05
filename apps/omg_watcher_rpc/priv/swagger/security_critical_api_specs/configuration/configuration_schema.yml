@@ -1,0 +1,11 @@
+components:
+  schemas:
+    deposit_finality_margin:
+      type: integer
+    contract_semver:
+      type: string
+    exit_processor_sla_margin:
+      type: integer
+    network:
+      type: string
+      

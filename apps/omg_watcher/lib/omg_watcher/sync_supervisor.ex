@@ -24,7 +24,9 @@ defmodule OMG.Watcher.SyncSupervisor do
   alias OMG.EthereumEventListener
   alias OMG.Watcher
   alias OMG.Watcher.ChildManager
+  alias OMG.Watcher.Configuration
   alias OMG.Watcher.CoordinatorSetup
+  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.Monitor
 
   def start_link do
@@ -53,7 +55,11 @@ defmodule OMG.Watcher.SyncSupervisor do
         get_events_callback: &Eth.RootChain.get_deposits/2,
         process_events_callback: &OMG.State.deposit/1
       ),
-      {Watcher.ExitProcessor, []},
+      {ExitProcessor,
+       [
+         exit_processor_sla_margin: Configuration.exit_processor_sla_margin(),
+         metrics_collection_interval: Configuration.metrics_collection_interval()
+       ]},
       EthereumEventListener.prepare_child(
         service_name: :exit_processor,
         synced_height_update_key: :last_exit_processor_eth_height,

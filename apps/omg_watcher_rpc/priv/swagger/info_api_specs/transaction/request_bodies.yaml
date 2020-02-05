@@ -8,13 +8,13 @@ GetAllTransactionsBodySchema:
         properties:
           address:
             type: string
-            format: binary
+             
           blknum:
             type: integer
             format: int64
           metadata:
             type: string
-            format: binary
+             
           page:
             type: integer
             format: int32
@@ -41,7 +41,7 @@ CreateTransactionsBodySchema:
         properties:
           owner:
             type: string
-            format: binary
+             
           payments:
             type: array
             items: 
@@ -52,10 +52,10 @@ CreateTransactionsBodySchema:
                   format: int256
                 currency:
                   type: string
-                  format: binary
+                   
                 owner:
                   type: string
-                  format: binary
+                   
               required:
                 - amount
                 - currency
@@ -64,12 +64,12 @@ CreateTransactionsBodySchema:
             properties:
               currency:
                 type: string
-                format: binary
+                 
             required:
               - currency
           metadata:
             type: string
-            format: binary
+             
         required:
           - owner
           - payments
@@ -96,7 +96,7 @@ GetTransactionBodySchema:
         properties:
           id:
             type: string
-            format: binary
+             
         required:
           - id
         example:
@@ -117,7 +117,7 @@ TransactionSubmitTypedBodySchema:
               type: array
               items:
                 type: string
-                format: binary
+                 
           required:
             - domain
             - message
@@ -176,7 +176,7 @@ GetTransactionByPosBodySchema:
         properties:
           blknum:
             type: string
-            format: binary
+             
           txindex:
             type: integer
             format: int16

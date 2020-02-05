@@ -2,6 +2,9 @@ defmodule Itest.ApiModel.SubmitTransactionResponse do
   @moduledoc """
   The purpose of this module is to represent a specific API response as a struct and validates it's response
   """
+
+  require Logger
+
   defstruct [:blknum, :txhash, :txindex]
 
   @type t() :: %__MODULE__{
@@ -21,7 +24,16 @@ defmodule Itest.ApiModel.SubmitTransactionResponse do
         end
       end)
 
-    true = is_valid(result)
+    :ok =
+      case is_valid(result) do
+        false ->
+          _ = Logger.warn("Transaction response came as #{inspect(attrs)}")
+          false
+
+        true ->
+          :ok
+      end
+
     result
   end
 

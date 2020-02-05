@@ -9,7 +9,7 @@ InFlightExitTxBytesBodySchema:
         properties:
           txbytes:
             type: string
-            format: binary
+             
         required:
           - txbytes
         example:
@@ -26,7 +26,7 @@ InFlightExitInputChallengeDataBodySchema:
         properties:
           txbytes:
             type: string
-            format: binary
+             
           input_index:
             type: integer
             format: int8
@@ -48,7 +48,7 @@ InFlightExitOutputChallengeDataBodySchema:
         properties:
           txbytes:
             type: string
-            format: binary
+             
           output_index:
             type: integer
             format: int8
