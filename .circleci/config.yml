@@ -42,7 +42,7 @@ executors:
           POSTGRES_DB: omisego_test
     working_directory: ~/src
 
-  deploy:
+  deployer:
     docker:
       - image: omisegoimages/elixir-omg-deploy:stable-20191024
     working_directory: ~/src
@@ -560,19 +560,19 @@ jobs:
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
   deploy_child_chain:
-    executor: deploy
+    executor: deployer
     steps:
       - checkout
       - run: DEPLOY=child_chain sh .circleci/ci_deploy.sh
 
   deploy_watcher:
-    executor: deploy
+    executor: deployer
     steps:
       - checkout
       - run: DEPLOY=watcher sh .circleci/ci_deploy.sh
 
   deploy_watcher_info:
-    executor: deploy
+    executor: deployer
     steps:
       - checkout
       - run: DEPLOY=watcher_info sh .circleci/ci_deploy.sh
