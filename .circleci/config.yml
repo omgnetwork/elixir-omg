@@ -578,11 +578,9 @@ jobs:
 
   coveralls_report:
     docker:
-      # Ensure .tool-versions matches
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
           MIX_ENV: test
-
     steps:
       - run:
           name: Tell coveralls.io build is done
@@ -647,7 +645,7 @@ workflows:
           requires: [build]
       - test_barebone_release:
           requires: [build]
-  build-deploy:
+  build-test-deploy:
     jobs:
       - build
       - test_barebone_release:
