@@ -21,7 +21,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   alias OMG.Eth.Encoding
 
   @app :omg_eth
-  @error "Set ETHEREUM_NETWORK to RINKEBY, ROPSTEN, MAINNET, or LOCALCHAIN with TXHASH_CONTRACT, AUTHORITY_ADDRESS and CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
+  @error "Set ETHEREUM_NETWORK to RINKEBY, ROPSTEN, GOERLI, MAINNET, or LOCALCHAIN with TXHASH_CONTRACT, AUTHORITY_ADDRESS and CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
 
   @doc """
   The contract values can currently come either from ENV variables for deployments in
@@ -90,6 +90,9 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           network
 
         "ROPSTEN" = network ->
+          network
+
+        "GOERLI" = network ->
           network
 
         "MAINNET" = network ->
