@@ -30,6 +30,7 @@ defmodule InFlightExitsTests do
   import Itest.Poller,
     only: [
       pull_for_utxo_until_recognized_deposit: 4,
+      pull_for_utxo_from_security_api_until_recognized_deposit: 4,
       pull_api_until_successful: 3,
       pull_api_until_successful: 4,
       wait_on_receipt_confirmed: 1
@@ -148,6 +149,14 @@ defmodule InFlightExitsTests do
 
     all_utxos =
       pull_for_utxo_until_recognized_deposit(
+        address,
+        Currency.to_wei(amount),
+        Encoding.to_hex(Currency.ether()),
+        blknum
+      )
+
+    _ =
+      pull_for_utxo_from_security_api_until_recognized_deposit(
         address,
         Currency.to_wei(amount),
         Encoding.to_hex(Currency.ether()),
