@@ -137,6 +137,7 @@ release :child_chain do
       {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
       {OMG.Eth.ReleaseTasks.SetContract, []},
       {OMG.DB.ReleaseTasks.SetKeyValueDB, []},
+      {OMG.ChildChain.ReleaseTasks.SetIgnoreFees, []},
       {OMG.ChildChainRPC.ReleaseTasks.SetEndpoint, []},
       {OMG.ChildChainRPC.ReleaseTasks.SetTracer, []},
       {OMG.Status.ReleaseTasks.SetSentry, []},
