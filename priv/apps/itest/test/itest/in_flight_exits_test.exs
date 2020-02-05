@@ -326,6 +326,8 @@ defmodule InFlightExitsTests do
     |> Jason.decode!()
     |> IO.inspect(label: "Bob's exitable utxos")
 
+    Process.sleep(10_000)
+
     transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
     {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema) |> IO.inspect()
 
