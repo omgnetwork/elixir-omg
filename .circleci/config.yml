@@ -47,21 +47,6 @@ executors:
       - image: omisegoimages/elixir-omg-deploy:stable-20191024
     working_directory: ~/src
 
-  metal_child_chain:
-    machine: true
-    environment:
-      CHILD_CHAIN_IMAGE_NAME: "omisego/child_chain"
-
-  metal_watcher:
-    machine: true
-    environment:
-      WATCHER_IMAGE_NAME: "omisego/watcher"
-
-  metal_watcher_info:
-    machine: true
-    environment:
-      WATCHER_INFO_IMAGE_NAME: "omisego/watcher_info"
-
 commands:
   setup_elixir-omg_workspace:
     description: "Setup workspace"
@@ -224,7 +209,7 @@ jobs:
               mix coveralls.html --parallel --umbrella --include child_chain --exclude watcher --exclude watcher_info --exclude common --exclude test --trace
             else
               mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude watcher_info --exclude common --exclude test --trace ||
-                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
@@ -250,7 +235,7 @@ jobs:
               mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace
             else
               mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace ||
-                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
@@ -275,7 +260,7 @@ jobs:
               mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace
             else
               mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace ||
-                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
@@ -301,7 +286,7 @@ jobs:
               mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace
             else
               mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace ||
-                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
@@ -327,7 +312,7 @@ jobs:
               mix coveralls.html --parallel --umbrella --trace
             else
               mix coveralls.circle --parallel --umbrella --trace ||
-                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
@@ -416,13 +401,16 @@ jobs:
       - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
-      - run: 
-          name: Run specs
+      - run:
+          name: Start daemon services
           command: |
             cd priv/
             make start_daemon_services
-      - run: docker image ls
-      - run: docker-compose ps
+      - run:
+          name: Print docker states
+          command: |
+            docker image ls
+            docker-compose ps
       - run:
           name: Install Erlang and Elixir
           command: |
@@ -527,10 +515,13 @@ jobs:
             make generate_api_code
             mix local.hex --force && mix local.rebar --force
             mix deps.get
-      - run: docker ps
-      - run: ps axww | grep watcher
-      - run: ps axww | grep watcher_info
-      - run: ps axww | grep child_chain
+      - run:
+          name: Print docker and process states
+          command: |
+            docker ps
+            ps axww | grep watcher
+            ps axww | grep watcher_info
+            ps axww | grep child_chain
       - run: sh .circleci/status.sh
       - run:
           name: Run specs
@@ -539,21 +530,27 @@ jobs:
             mix test
 
   publish_child_chain:
-    executor: metal_child_chain
+    executor: machine
+    environment:
+      CHILD_CHAIN_IMAGE_NAME: "omisego/child_chain"
     steps:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME
       - run: IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher:
-    executor: metal_watcher
+    executor: machine
+    environment:
+      WATCHER_IMAGE_NAME: "omisego/watcher"
     steps:
       - checkout
       - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher_info:
-    executor: metal_watcher_info
+    executor: machine
+    environment:
+      WATCHER_INFO_IMAGE_NAME: "omisego/watcher_info"
     steps:
       - checkout
       - run: make docker-watcher_info WATCHER_INFO_IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME
@@ -577,7 +574,7 @@ jobs:
       - checkout
       - run: DEPLOY=watcher_info sh .circleci/ci_deploy.sh
 
-  coveralls_merge:
+  coveralls_report:
     docker:
       # Ensure .tool-versions matches
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
@@ -628,46 +625,6 @@ jobs:
               ] \
             }" ${SLACK_WEBHOOK}
 
-  build_and_deploy_staging:
-    docker:
-      - image: ubuntu:16.04
-    working_directory: ~/repo
-    steps:
-      - setup_remote_docker
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            apt-get update && apt-get install -y lsb-release curl cmake
-            curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
-      - run:
-          name: Install gcloud SDK
-          command: |
-            export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
-            echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-            apt-get update -y && apt-get install -y google-cloud-sdk kubectl
-      - run:
-          name: Initialise & authenticate gcloud SDK
-          command: |
-            echo "${GCP_KEY_FILE}" | base64 --decode >> /tmp/gcp_key.json
-            gcloud auth activate-service-account --key-file /tmp/gcp_key.json
-            gcloud config set project ${GCP_ACCOUNT_ID}
-            gcloud config set compute/zone ${GCP_ZONE}
-            gcloud container clusters get-credentials ${GCP_CLUSTER_STAGING}
-      - run:
-          name: Build & Deploy Services
-          command: |
-            docker build -t elixir-omg .
-            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
-            export DOCKER_IMAGE=jakebunce/elixir-omg:$CIRCLE_SHA1
-            docker tag elixir-omg $DOCKER_IMAGE
-            docker push jakebunce/elixir-omg:$CIRCLE_SHA1
-            kubectl set image statefulset childchain childchain=$DOCKER_IMAGE
-            while true; do if [ "$(kubectl get pods childchain-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
-            kubectl set image statefulset watcher watcher=$DOCKER_IMAGE
-            kubectl set image statefulset watcher_info watcher_info=$DOCKER_IMAGE
-
 workflows:
   version: 2
   nightly:
@@ -699,7 +656,7 @@ workflows:
             branches:
               only:
                 - master
-      - coveralls_merge:
+      - coveralls_report:
           requires:
             - child_chain_coveralls_and_integration_tests
             - watcher_coveralls_and_integration_tests
@@ -726,22 +683,6 @@ workflows:
           requires: [build]
       - property_tests:
           requires: [build]
-      - build_and_deploy_staging:
-          requires:
-            - build
-            - lint
-            - sobelow
-            - dialyzer
-            - test
-            - child_chain_coveralls_and_integration_tests
-            - watcher_coveralls_and_integration_tests
-            - watcher_info_coveralls_and_integration_tests
-            - common_coveralls_and_integration_tests
-            - property_tests
-          filters:
-            branches:
-              only:
-                - v0.1
       # Publish in case of master branch.
       - publish_child_chain:
           requires:
