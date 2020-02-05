@@ -13,6 +13,7 @@ defmodule InFlightExitsTests do
   alias Itest.ApiModel.SubmitTransactionResponse
   alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
+  alias Itest.Fee
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
   alias Itest.Transactions.PaymentType
@@ -45,6 +46,7 @@ defmodule InFlightExitsTests do
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
   @gas_process_exit 5_712_388
   @gas_process_exit_price 1_000_000_000
+
   setup do
     # as we're testing IFEs, queue needs to be empty
     0 = get_next_exit_from_queue()
@@ -58,11 +60,18 @@ defmodule InFlightExitsTests do
         subscribe: self()
       )
 
+    eth_fee =
+      Currency.ether()
+      |> Encoding.to_hex()
+      |> Fee.get_for_currency()
+      |> Map.get("amount")
+
     [{alice_address, alice_pkey}, {bob_address, bob_pkey}] = Account.take_accounts(2)
 
     %{
       "exit_game_contract_address" => get_exit_game_contract_address(),
       "in_flight_exit_bond_size" => get_in_flight_exit_bond_size(get_exit_game_contract_address()),
+      "fee" => eth_fee,
       "Alice" => %{
         address: alice_address,
         pkey: "0x" <> alice_pkey,
@@ -179,6 +188,7 @@ defmodule InFlightExitsTests do
   #     @eth,
   #     [{alice, 5}, {bob, 15}]
   #   )
+  # Note that alice output will not be 5, but 5 - tx fees
   defgiven ~r/^Alice and Bob create a transaction for "(?<amount>[^"]+)" ETH$/,
            %{amount: amount},
            state do
@@ -216,7 +226,7 @@ defmodule InFlightExitsTests do
     alice_output = %ExPlasma.Utxo{
       currency: Currency.ether(),
       owner: alice_address,
-      amount: alice_child_chain_balance - Currency.to_wei(5)
+      amount: alice_child_chain_balance - Currency.to_wei(5) - state["fee"]
     }
 
     bob_output = %ExPlasma.Utxo{
@@ -347,7 +357,13 @@ defmodule InFlightExitsTests do
       amount: Currency.to_wei(3)
     }
 
-    transaction = %Payment{inputs: [bob_input], outputs: [alice_output1, alice_output2]}
+    bob_output = %ExPlasma.Utxo{
+      currency: Currency.ether(),
+      owner: bob_address,
+      amount: Currency.to_wei(10) - state["fee"]
+    }
+
+    transaction = %Payment{inputs: [bob_input], outputs: [alice_output1, alice_output2, bob_output]}
 
     submitted_tx =
       ExPlasma.Transaction.sign(transaction,
@@ -462,7 +478,6 @@ defmodule InFlightExitsTests do
     # only a single non_canonical event, since one of the IFE txs is included!
     # I’m waiting for these three, and only these three to appear
     assert all?(["invalid_piggyback", "non_canonical_ife", "piggyback_available"]) == true
-
     payload = %InFlightExitInputChallengeDataBodySchema{txbytes: Encoding.to_hex(unsigned_txbytes), input_index: 1}
     response = pull_api_until_successful(InFlightExit, :in_flight_exit_get_input_challenge_data, Watcher.new(), payload)
     ife_input_challenge = IfeInputChallenge.to_struct(response)

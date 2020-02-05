@@ -56,6 +56,12 @@ defmodule OMG.ChildChain.Fees.SingleSpecParserTest do
       assert {:error, :invalid_fee} == SingleSpecParser.parse(spec)
     end
 
+    test "returns an `invalid_fee` error when given a zero fee" do
+      spec = Map.put(@valid_spec, "amount", 0)
+
+      assert {:error, :invalid_fee} == SingleSpecParser.parse(spec)
+    end
+
     test "returns a `bad_address_encoding` error when given an invalid token" do
       spec = Map.put(@valid_spec, "token", "Not a token")
 

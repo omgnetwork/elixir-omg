@@ -54,30 +54,52 @@ defmodule OMG.FeesTest do
     @payment_tx_type => @payment_fees
   }
 
-  describe "covered?/2" do
-    test "does not check the fees when :no_fees_required is passed" do
-      assert Fees.covered?(%{@eth => 0}, :no_fees_required)
+  describe "check_if_covered/2" do
+    test "returns :ok when given fees are 0 and :ignore_fees is passed" do
+      assert Fees.check_if_covered(%{@eth => 0}, :ignore_fees) == :ok
     end
 
-    test "returns true when fees are covered by another currency" do
-      assert Fees.covered?(%{@not_eth_1 => 5}, @payment_fees)
+    test "returns :ok when given positive fees and :ignore_fees is passed" do
+      assert Fees.check_if_covered(%{@eth => 1, @not_eth_1 => 2}, :ignore_fees) == :ok
     end
 
-    test "returns true when multiple implicit fees are given and fee is covered by eth" do
-      assert Fees.covered?(%{@eth => 2, @not_eth_1 => 2}, @payment_fees)
+    test "returns :overpaying_fees when given positive fees and :no_fees_required is passed" do
+      assert Fees.check_if_covered(%{@not_eth_1 => 0, @eth => 1}, :no_fees_required) == {:error, :overpaying_fees}
     end
 
-    test "returns true when multiple implicit fees are given and fee is covered by another currency" do
-      assert Fees.covered?(%{@eth => 0.5, @not_eth_1 => 4}, @payment_fees)
+    test "returns :ok when given fees are 0 and :no_fees_required is passed" do
+      assert Fees.check_if_covered(%{@eth => 0}, :no_fees_required) == :ok
     end
 
-    test "returns false when the implicit fees currency does not match any of the supported fee currencies" do
+    test "returns :ok when fees are exactly covered by one currency" do
+      assert Fees.check_if_covered(%{@not_eth_1 => 3, @eth => 0}, @payment_fees) == :ok
+    end
+
+    test "returns :multiple_potential_currency_fees when multiple implicit fees are given" do
+      assert Fees.check_if_covered(%{@eth => 2, @not_eth_1 => 2}, @payment_fees) ==
+               {:error, :multiple_potential_currency_fees}
+    end
+
+    test "returns :fees_not_covered when no positive implicit fees given" do
       other_currency = <<2::160>>
-      refute Fees.covered?(%{other_currency => 100}, @payment_fees)
+      assert Fees.check_if_covered(%{other_currency => 0}, @payment_fees) == {:error, :fees_not_covered}
+    end
+
+    test "returns :fees_not_covered when the implicit fees currency does not match any of the supported fee currencies" do
+      other_currency = <<2::160>>
+      assert Fees.check_if_covered(%{other_currency => 100}, @payment_fees) == {:error, :fees_not_covered}
+    end
+
+    test "returns :fees_not_covered when fees do not cover the fee price" do
+      assert Fees.check_if_covered(%{@not_eth_1 => 1}, @payment_fees) == {:error, :fees_not_covered}
+    end
+
+    test "returns :overpaying_fees when fees cover more than the fee price" do
+      assert Fees.check_if_covered(%{@not_eth_1 => 4}, @payment_fees) == {:error, :overpaying_fees}
     end
 
     @tag fixtures: [:alice, :bob]
-    test "returns true when one input is dedicated for fee payment, and outputs are other tokens",
+    test "returns :ok when one input is dedicated for fee payment, and outputs are other tokens",
          %{alice: alice, bob: bob} do
       # a token that we don't allow to pay the fees in
       other_token = <<2::160>>
@@ -88,8 +110,8 @@ defmodule OMG.FeesTest do
         create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, other_token, 5}, {alice, other_token, 5}])
 
       fees = Fees.for_transaction(transaction, @fees)
-      # here we tell `Fees` that 5 `@not_eth_1` was sent to cover the fee
-      assert Fees.covered?(%{@not_eth_1 => 5, other_token => 0}, fees)
+      # here we tell `Fees` that 3 `@not_eth_1` was sent to cover the fee
+      assert Fees.check_if_covered(%{@not_eth_1 => 3, other_token => 0}, fees) == :ok
     end
   end
 

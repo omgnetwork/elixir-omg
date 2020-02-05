@@ -116,7 +116,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
             _} = Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
     # check feasibility of transactions from block to consume at the OMG.State
-    assert {:ok, tx_result, _} = OMG.State.Core.exec(state_alice_deposit, tx, :no_fees_required)
+    assert {:ok, tx_result, _} = OMG.State.Core.exec(state_alice_deposit, tx, :ignore_fees)
 
     assert {:ok, ^state} = Core.validate_executions([{:ok, tx_result}], block, state)
 

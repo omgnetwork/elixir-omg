@@ -49,7 +49,7 @@ defmodule OMG.ChildChain.Fees.SingleSpecParser do
         "updated_at" => updated_at
       }) do
     # defensive code against user input
-    with {:ok, fee} <- validate_fee_amount(fee, :invalid_fee),
+    with {:ok, fee} <- validate_positive_amount(fee, :invalid_fee),
          {:ok, addr} <- decode_address(token),
          {:ok, subunit_to_unit} <- validate_positive_amount(subunit_to_unit, :invalid_subunit_to_unit),
          {:ok, pegged_amount} <- validate_positive_amount(pegged_amount, :invalid_pegged_amount),
@@ -71,8 +71,6 @@ defmodule OMG.ChildChain.Fees.SingleSpecParser do
   end
 
   def parse(_), do: {:error, :invalid_fee_spec}
-  defp validate_fee_amount(amount, _error) when is_integer(amount) and amount >= 0, do: {:ok, amount}
-  defp validate_fee_amount(_amount, error), do: {:error, error}
   defp validate_positive_amount(amount, _error) when is_integer(amount) and amount > 0, do: {:ok, amount}
   defp validate_positive_amount(_amount, error), do: {:error, error}
   defp validate_pegged_currency(pegged_currency) when is_binary(pegged_currency), do: {:ok, pegged_currency}

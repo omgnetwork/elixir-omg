@@ -76,7 +76,8 @@ defmodule DepositsTests do
         bob_account
       )
 
-    _ = Client.submit_transaction(typed_data, sign_hash, alice_pkey)
+    # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
+    _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
 
     {:ok, state}
   end

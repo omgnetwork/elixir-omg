@@ -56,7 +56,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =
              WatcherHelper.get_utxos(alice.addr)
 
-    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 6}, {bob, 3}])
     %{"blknum" => block_nr} = WatcherHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
@@ -171,11 +171,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
-    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
 
     # Here we're preparing invalid block
-    bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     bad_block_number = 2_000
 
     %{hash: bad_block_hash, number: _, transactions: _} =

@@ -189,7 +189,7 @@ defmodule OMG.State.PersistenceTest do
   defp exec(:ok, tx), do: exec(tx)
 
   defp exec(tx) do
-    case OMG.State.exec(tx, :no_fees_required) do
+    case OMG.State.exec(tx, :ignore_fees) do
       {:ok, _} -> :ok
       {:error, reason} -> reason
     end
