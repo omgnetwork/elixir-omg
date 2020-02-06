@@ -38,6 +38,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
           check_interval_ms: pos_integer(),
           stall_threshold_ms: pos_integer(),
           tref: reference() | nil,
+          eth_module: module(),
           alarm_module: module(),
           event_bus: module(),
           ethereum_height: integer(),
@@ -50,6 +51,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   defstruct check_interval_ms: 10_000,
             stall_threshold_ms: 20_000,
             tref: nil,
+            eth_module: nil,
             alarm_module: nil,
             event_bus: nil,
             ethereum_height: 0,
@@ -86,6 +88,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
       check_interval_ms: Keyword.fetch!(opts, :check_interval_ms),
       stall_threshold_ms: Keyword.fetch!(opts, :stall_threshold_ms),
       synced_at: DateTime.utc_now(),
+      eth_module: Keyword.fetch!(opts, :eth_module),
       alarm_module: Keyword.fetch!(opts, :alarm_module),
       event_bus: Keyword.fetch!(opts, :event_bus)
     }
@@ -95,7 +98,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   end
 
   def handle_info(:check_new_height, state) do
-    height = fetch_height()
+    height = fetch_height(state.eth_module)
     stalled? = stalled?(height, state.ethereum_height, state.synced_at, state.stall_threshold_ms)
 
     :ok = broadcast_on_new_height(state.event_bus, state.ethereum_height, height)
@@ -167,9 +170,9 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     end
   end
 
-  @spec fetch_height() :: non_neg_integer() | :error
-  defp fetch_height() do
-    case eth().get_ethereum_height() do
+  @spec fetch_height(module()) :: non_neg_integer() | :error
+  defp fetch_height(eth_module) do
+    case eth_module.get_ethereum_height() do
       {:ok, height} ->
         height
 
@@ -178,9 +181,6 @@ defmodule OMG.Eth.EthereumHeightMonitor do
         :error
     end
   end
-
-  @spec eth() :: module()
-  defp eth(), do: Application.get_env(:omg_eth, :eth_integration_module, OMG.Eth)
 
   @spec broadcast_on_new_height(module(), non_neg_integer(), non_neg_integer() | :error) :: :ok | {:error, term()}
   defp broadcast_on_new_height(_event_bus, _previous_height, :error), do: :ok
