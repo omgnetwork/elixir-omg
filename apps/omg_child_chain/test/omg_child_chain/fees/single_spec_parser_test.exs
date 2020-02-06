@@ -44,6 +44,43 @@ defmodule OMG.ChildChain.Fees.SingleSpecParserTest do
               }} == SingleSpecParser.parse(@valid_spec)
     end
 
+    test "accepts a nil value for all pegged fields" do
+      spec =
+        @valid_spec
+        |> Map.put("pegged_amount", nil)
+        |> Map.put("pegged_currency", nil)
+        |> Map.put("pegged_subunit_to_unit", nil)
+
+      assert {:ok,
+              %{
+                token: @eth,
+                amount: 1,
+                subunit_to_unit: 1_000_000_000_000_000_000,
+                pegged_amount: nil,
+                pegged_currency: nil,
+                pegged_subunit_to_unit: nil,
+                updated_at: "2019-01-01T10:10:00+00:00" |> DateTime.from_iso8601() |> elem(1)
+              }} == SingleSpecParser.parse(spec)
+    end
+
+    test "returns an `invalid_pegged_fields` error when given a nil pegged_amount alone" do
+      spec = Map.put(@valid_spec, "pegged_amount", nil)
+
+      assert {:error, :invalid_pegged_fields} == SingleSpecParser.parse(spec)
+    end
+
+    test "returns an `invalid_pegged_fields` error when given a nil pegged_currency alone" do
+      spec = Map.put(@valid_spec, "pegged_currency", nil)
+
+      assert {:error, :invalid_pegged_fields} == SingleSpecParser.parse(spec)
+    end
+
+    test "returns an `invalid_pegged_fields` error when given a nil pegged_subunit_to_unit alone" do
+      spec = Map.put(@valid_spec, "pegged_subunit_to_unit", nil)
+
+      assert {:error, :invalid_pegged_fields} == SingleSpecParser.parse(spec)
+    end
+
     test "returns an `invalid_fee_spec` error when given an invalid map" do
       spec = %{"invalid_key" => "something"}
 
