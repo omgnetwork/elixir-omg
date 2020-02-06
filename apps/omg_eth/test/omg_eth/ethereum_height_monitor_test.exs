@@ -61,16 +61,14 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
   test "that the connection alarm gets raised and with EthereumConnectionError event when connection becomes unhealthy" do
     # Initialize as healthy and alarm not present
     _ = EthereumClientMock.set_faulty_response(false)
-    :ok = pull_client_alarm(100, [])
+    :ok = pull_client_alarm([], 100)
     assert EthereumHeightMonitor.get_events() == {:ok, []}
 
     # Toggle faulty response
     _ = EthereumClientMock.set_faulty_response(true)
 
     # Assert the alarm and event are present
-    assert pull_client_alarm(100,
-             ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}
-           ) == :ok
+    assert pull_client_alarm(ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}, 100) == :ok
 
     assert {:ok, [%Event.EthereumConnectionError{}]} = EthereumHeightMonitor.get_events()
   end
@@ -79,10 +77,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     # Initialize as unhealthy
     _ = EthereumClientMock.set_faulty_response(true)
 
-    :ok =
-      pull_client_alarm(100,
-        ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}
-      )
+    :ok = pull_client_alarm(ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}, 100)
 
     assert {:ok, [%Event.EthereumConnectionError{}]} = EthereumHeightMonitor.get_events()
 
@@ -90,7 +85,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     _ = EthereumClientMock.set_faulty_response(false)
 
     # Assert the alarm and event are no longer present
-    assert pull_client_alarm(100, []) == :ok
+    assert pull_client_alarm([], 100) == :ok
     assert EthereumHeightMonitor.get_events() == {:ok, []}
   end
 
@@ -101,16 +96,14 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
   test "that the stall alarm gets raised and with EthereumStalledSync event when block height stalls" do
     # Initialize as healthy and alarm not present
     _ = EthereumClientMock.set_stalled(false)
-    :ok = pull_client_alarm(200, [])
+    :ok = pull_client_alarm([], 200)
     assert EthereumHeightMonitor.get_events() == {:ok, []}
 
     # Toggle stalled height
     _ = EthereumClientMock.set_stalled(true)
 
     # Assert alarm now present
-    assert pull_client_alarm(200,
-             ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}
-           ) == :ok
+    assert pull_client_alarm(ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}, 200) == :ok
 
     assert {:ok, [%Event.EthereumStalledSync{}]} = EthereumHeightMonitor.get_events()
   end
@@ -120,7 +113,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     _ = EthereumClientMock.set_stalled(true)
 
     :ok =
-      pull_client_alarm(300, ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor})
+      pull_client_alarm(ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}, 300)
 
     assert {:ok, [%Event.EthereumStalledSync{}]} = EthereumHeightMonitor.get_events()
 
@@ -128,20 +121,20 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     _ = EthereumClientMock.set_stalled(false)
 
     # Assert alarm no longer present
-    assert pull_client_alarm(300, []) == :ok
+    assert pull_client_alarm([], 300) == :ok
     assert EthereumHeightMonitor.get_events() == {:ok, []}
   end
 
-  defp pull_client_alarm(0, _), do: {:cant_match, Alarm.all()}
+  defp pull_client_alarm(_, 0), do: {:cant_match, Alarm.all()}
 
-  defp pull_client_alarm(n, match) do
+  defp pull_client_alarm(match, n) do
     case Alarm.all() do
       ^match ->
         :ok
 
       _ ->
         Process.sleep(50)
-        pull_client_alarm(n - 1, match)
+        pull_client_alarm(match, n - 1)
     end
   end
 
