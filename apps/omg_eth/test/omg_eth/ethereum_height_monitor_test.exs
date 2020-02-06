@@ -15,7 +15,6 @@
 defmodule OMG.Eth.EthereumHeightMonitorTest do
   # async:false since `eth_integration_module` is being overridden
   use ExUnit.Case, async: false
-  alias __MODULE__.EthereumClientMock
   alias OMG.Eth.EthereumHeightMonitor
   alias OMG.Eth.Event
   alias OMG.Status.Alert.Alarm
@@ -24,7 +23,6 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
 
   setup_all do
     _ = Agent.start_link(fn -> 55_555 end, name: :port_holder)
-    _ = Application.put_env(:omg_eth, :eth_integration_module, EthereumClientMock)
     {:ok, status_apps} = Application.ensure_all_started(:omg_status)
     {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
     apps = status_apps ++ bus_apps
@@ -33,7 +31,6 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
 
     on_exit(fn ->
       _ = apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
-      _ = Application.put_env(:omg_eth, :eth_integration_module, nil)
     end)
   end
 
@@ -42,7 +39,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
       EthereumHeightMonitor.start_link(
         check_interval_ms: 10,
         stall_threshold_ms: 100,
-        eth_module: OMG.Eth,
+        eth_module: EthereumClientMock,
         alarm_module: Alarm,
         event_bus: OMG.Bus
       )
