@@ -9,6 +9,7 @@ defmodule Engine.TransactionTest do
   describe "build/1" do
     test "creates a deposit transaction" do
       {:ok, deposit} = Deposit.new(%ExPlasma.Utxo{owner: <<1::160>>, currency: <<0::160>>, amount: 1})
+
       # FIXME: fix ex_plasma or here for better defaults
       deposit = %{deposit | tx_type: 1, tx_data: 0, metadata: <<0::160>>}
       changeset = Transaction.build(deposit)
@@ -20,6 +21,7 @@ defmodule Engine.TransactionTest do
 
     test "creates a transaction from rlp" do
       {:ok, deposit} = Deposit.new(%ExPlasma.Utxo{owner: <<1::160>>, currency: <<0::160>>, amount: 1})
+
       changeset = deposit |> ExPlasma.encode() |> Transaction.build()
       output = hd(changeset.changes[:outputs])
 

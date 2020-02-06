@@ -46,8 +46,19 @@ defmodule Engine.Utxo do
     |> validate_required([:output_type, :owner, :currency, :amount])
     |> validate_output()
     |> validate_input()
+    |> set_position()
     |> unique_constraint(:pos)
   end
+
+  def set_position(changeset),
+    do:
+      set_position(changeset, %{
+        blknum: get_field(changeset, :blknum),
+        txindex: get_field(changeset, :txindex),
+        oindex: get_field(changeset, :oindex)
+      })
+
+  def set_position(changeset, %{blknum: nil, txindex: nil, oindex: _}), do: changeset
 
   def set_position(changeset, %{blknum: _, txindex: _, oindex: _} = position) do
     params = Map.put_new(position, :pos, ExPlasma.Utxo.pos(position))
