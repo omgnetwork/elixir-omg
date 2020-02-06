@@ -49,12 +49,6 @@ defmodule OMG.Eth.EthereumHeight do
     case is_integer(new_height) do
       true ->
         _ = Logger.debug("Got an internal :ethereum_new_height event with height: #{new_height}.")
-
-        _ =
-          if rem(new_height, 1000) == 0 do
-            Logger.info("Got an internal :ethereum_new_height event with height: #{new_height}. (log every 1000)")
-          end
-
         {:noreply, new_height}
 
       false ->
