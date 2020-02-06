@@ -142,7 +142,7 @@ defmodule OMG.EthereumEventListener do
   @decorate span(service: :ethereum_event_listener, type: :backend, name: "maybe_update_event_cache/2")
   defp maybe_update_event_cache({:dont_fetch_events, state}, _callback), do: state
 
-  defp schedule_get_events do
+  defp schedule_get_events() do
     Application.fetch_env!(:omg, :ethereum_events_check_interval_ms)
     |> :timer.send_after(self(), :sync)
   end

@@ -33,7 +33,7 @@ if Code.ensure_loaded?(:rocksdb) do
       @server_name.start_link(args)
     end
 
-    def child_spec do
+    def child_spec() do
       db_path = Application.fetch_env!(:omg_db, :path)
       [server_module: server_module, server_name: server_name] = Application.fetch_env!(:omg_db, :rocksdb)
       args = [db_path: db_path, name: server_name]
@@ -125,7 +125,7 @@ if Code.ensure_loaded?(:rocksdb) do
     @doc """
     Does all of the initialization of `OMG.DB` based on the configured path
     """
-    def init, do: do_init(@server_name, Application.fetch_env!(:omg_db, :path))
+    def init(), do: do_init(@server_name, Application.fetch_env!(:omg_db, :path))
     def init(path) when is_binary(path), do: do_init(@server_name, path)
     def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :path))
     def init(server_name, path), do: do_init(server_name, path)

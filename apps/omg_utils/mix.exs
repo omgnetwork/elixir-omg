@@ -1,7 +1,7 @@
 defmodule Utils.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_utils,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -17,7 +17,7 @@ defmodule Utils.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     []
   end
 

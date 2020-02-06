@@ -1,7 +1,7 @@
 defmodule OMG.Status.Mixfile do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_status,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -22,7 +22,7 @@ defmodule OMG.Status.Mixfile do
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  def application do
+  def application() do
     [
       mod: {OMG.Status.Application, []},
       start_phases: [{:install_alarm_handler, []}],
@@ -31,7 +31,7 @@ defmodule OMG.Status.Mixfile do
     ]
   end
 
-  defp deps,
+  defp deps(),
     do: [
       {:telemetry, "~> 0.4.0"},
       {:sentry, "~> 7.0"},

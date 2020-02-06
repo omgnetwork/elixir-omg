@@ -1,7 +1,7 @@
 defmodule OMG.WatcherInfo.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_watcher_info,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -18,7 +18,7 @@ defmodule OMG.WatcherInfo.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     [
       mod: {OMG.WatcherInfo.Application, []},
       extra_applications: [:logger, :runtime_tools, :telemetry]
@@ -30,7 +30,7 @@ defmodule OMG.WatcherInfo.MixProject do
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps do
+  defp deps() do
     [
       {:postgrex, "~> 0.14"},
       {:ecto_sql, "~> 3.1"},

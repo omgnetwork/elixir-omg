@@ -31,7 +31,7 @@ defmodule OMG.WatcherRPC.Web do
   and import those modules here.
   """
 
-  def controller do
+  def controller() do
     quote do
       use Phoenix.Controller, namespace: OMG.WatcherRPC.Web, log: :debug
       import Plug.Conn
@@ -67,7 +67,7 @@ defmodule OMG.WatcherRPC.Web do
     end
   end
 
-  def view do
+  def view() do
     quote do
       use Phoenix.View,
         root: "lib/omg_watcher_rpc_web/templates",
@@ -81,7 +81,7 @@ defmodule OMG.WatcherRPC.Web do
     end
   end
 
-  def router do
+  def router() do
     quote do
       use Phoenix.Router
       import Plug.Conn
@@ -89,7 +89,7 @@ defmodule OMG.WatcherRPC.Web do
     end
   end
 
-  def channel do
+  def channel() do
     quote do
       use Phoenix.Channel
     end

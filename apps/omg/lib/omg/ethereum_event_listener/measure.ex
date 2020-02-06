@@ -32,7 +32,7 @@ defmodule OMG.EthereumEventListener.Measure do
     [:trace, OMG.EthereumEventListener],
     [:trace, OMG.EthereumEventListener.Core]
   ]
-  def supported_events, do: @supported_events
+  def supported_events(), do: @supported_events
 
   def handle_event([:process, OMG.EthereumEventListener], %{events: events}, state, _config) do
     _ = Datadog.gauge(name(state.service_name, :events), length(events))

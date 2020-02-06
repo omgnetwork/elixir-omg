@@ -170,7 +170,7 @@ defmodule OMG.Eth.EthereumClientMonitor do
   end
 
   @spec check :: non_neg_integer() | :error
-  defp check do
+  defp check() do
     {:ok, rootchain_height} = eth().get_ethereum_height()
     rootchain_height
   rescue
@@ -191,9 +191,9 @@ defmodule OMG.Eth.EthereumClientMonitor do
 
   defp raise_clear(_alarm_module, false, _), do: :ok
 
-  defp eth, do: Application.get_env(:omg_child_chain, :eth_integration_module, Eth)
+  defp eth(), do: Application.get_env(:omg_child_chain, :eth_integration_module, Eth)
 
-  defp install_alarm_handler do
+  defp install_alarm_handler() do
     case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
       true -> :ok
       _ -> :alarm_handler.add_alarm_handler(__MODULE__)

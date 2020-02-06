@@ -162,15 +162,15 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
     Mocking the ETH module integration point.
     """
     use GenServer
-    def start_link, do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
-    def get_ethereum_height, do: GenServer.call(__MODULE__, :get_ethereum_height)
+    def get_ethereum_height(), do: GenServer.call(__MODULE__, :get_ethereum_height)
 
-    def set_faulty_response, do: GenServer.call(__MODULE__, :set_faulty_response)
+    def set_faulty_response(), do: GenServer.call(__MODULE__, :set_faulty_response)
 
     def set_long_response(milliseconds), do: GenServer.call(__MODULE__, {:set_long_response, milliseconds})
 
-    def stop, do: GenServer.stop(__MODULE__, :normal)
+    def stop(), do: GenServer.stop(__MODULE__, :normal)
 
     def init(_), do: {:ok, %{}}
 
@@ -216,7 +216,7 @@ defmodule OMG.Eth.EthereumClientMonitorTest do
       Plug.Adapters.Cowboy.shutdown(ref)
     end
 
-    defp dispatch do
+    defp dispatch() do
       [{:_, [{"/ws", WebSockexMockTestSocket, []}]}]
     end
 

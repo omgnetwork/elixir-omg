@@ -23,7 +23,7 @@ defmodule OMG.WatcherRPC.Application do
     start_root_supervisor()
   end
 
-  def start_root_supervisor do
+  def start_root_supervisor() do
     # root supervisor must stop whenever any of its children supervisors goes down (children carry the load of restarts)
     children = [
       %{

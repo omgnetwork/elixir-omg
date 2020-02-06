@@ -62,7 +62,7 @@ defmodule OMG.TypedDataHash.Types do
     Output: @output_spec
   }
 
-  def eip712_types_specification,
+  def eip712_types_specification(),
     do: %{
       types: @types,
       primaryType: "Transaction"

@@ -3,7 +3,7 @@ defmodule OMG.Eth.MixProject do
 
   require Logger
 
-  def project do
+  def project() do
     [
       app: :omg_eth,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -19,7 +19,7 @@ defmodule OMG.Eth.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     [
       mod: {OMG.Eth.Application, []},
       extra_applications: [:sasl, :logger]
@@ -32,7 +32,7 @@ defmodule OMG.Eth.MixProject do
   defp elixirc_paths(:dev), do: ["lib", "test/support"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps do
+  defp deps() do
     [
       {:ex_abi, "~> 0.2.1"},
       {:ethereumex, "~> 0.5.5"},

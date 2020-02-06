@@ -17,7 +17,7 @@ defmodule OMG.WatcherInfo.DB.Types.AtomType do
   Custom Ecto type that converts DB's string value into atom.
   """
   @behaviour Ecto.Type
-  def type, do: :string
+  def type(), do: :string
 
   def cast(value), do: {:ok, value}
 

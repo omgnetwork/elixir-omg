@@ -75,11 +75,11 @@ defmodule OMG.Status.Alert.AlarmHandler do
   def terminate(:swap, state), do: {__MODULE__, state}
   def terminate(_, _), do: :ok
 
-  defp table_setup do
+  defp table_setup() do
     _ = if :undefined == :ets.info(@table_name), do: @table_name = :ets.new(@table_name, table_settings())
   end
 
-  defp table_settings, do: [:named_table, :set, :protected, read_concurrency: true]
+  defp table_settings(), do: [:named_table, :set, :protected, read_concurrency: true]
 
   defp write_raise(alarm) when is_tuple(alarm), do: write_raise(elem(alarm, 0))
   defp write_raise(key) when is_atom(key), do: :ets.update_counter(@table_name, key, {2, 1, 1, 1}, {key, 0})

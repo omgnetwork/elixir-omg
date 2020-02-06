@@ -24,7 +24,7 @@ defmodule OMG.Eth.EthereumHeight do
   alias OMG.Eth.Encoding
 
   @spec get() :: {:ok, non_neg_integer()} | {:error, :error_ethereum_height}
-  def get do
+  def get() do
     GenServer.call(__MODULE__, :get)
   end
 
@@ -65,13 +65,13 @@ defmodule OMG.Eth.EthereumHeight do
     end
   end
 
-  @spec get_ethereum_height :: non_neg_integer() | :error_ethereum_height
-  defp get_ethereum_height do
+  @spec get_ethereum_height() :: non_neg_integer() | :error_ethereum_height
+  defp get_ethereum_height() do
     {:ok, rootchain_height} = eth().get_ethereum_height()
     rootchain_height
   rescue
     _check_error -> :error_ethereum_height
   end
 
-  defp eth, do: Application.get_env(:omg_eth, :eth_integration_module, Eth)
+  defp eth(), do: Application.get_env(:omg_eth, :eth_integration_module, Eth)
 end

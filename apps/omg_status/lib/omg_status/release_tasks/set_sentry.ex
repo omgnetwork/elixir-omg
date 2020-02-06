@@ -60,13 +60,13 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
       end
   end
 
-  defp get_app_env do
+  defp get_app_env() do
     env = validate_string(get_env("APP_ENV"), Application.get_env(@app, :environment_name))
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
     env
   end
 
-  defp get_hostname do
+  defp get_hostname() do
     hostname =
       validate_string(
         get_env("HOSTNAME"),
@@ -77,7 +77,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
     hostname
   end
 
-  defp get_application do
+  defp get_application() do
     app =
       case Code.ensure_loaded?(OMG.Watcher) do
         true -> :watcher
@@ -89,7 +89,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
     app
   end
 
-  defp get_rpc_client_type do
+  defp get_rpc_client_type() do
     rpc_client_type = validate_rpc_client_type(get_env("ETH_NODE"), Application.get_env(@app, :tags)[:eth_node])
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: ETH_NODE Value: #{inspect(rpc_client_type)}.")
 

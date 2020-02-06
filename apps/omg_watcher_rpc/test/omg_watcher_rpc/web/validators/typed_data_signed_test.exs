@@ -38,7 +38,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
     verifyingContract: @ari_network_address
   }
 
-  defp get_message do
+  defp get_message() do
     alice_addr = Encoding.to_hex(@alice.addr)
     bob_addr = Encoding.to_hex(@bob.addr)
 

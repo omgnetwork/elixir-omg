@@ -151,7 +151,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     {result, filtered_events}
   end
 
-  defp not_included_competitor_pos do
+  defp not_included_competitor_pos() do
     <<long::256>> =
       List.duplicate(<<255::8>>, 32)
       |> Enum.reduce(fn val, acc -> val <> acc end)

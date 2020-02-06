@@ -89,7 +89,7 @@ defmodule OMG.Eth.SubscriptionWorkerTest do
       Plug.Adapters.Cowboy.shutdown(ref)
     end
 
-    defp dispatch do
+    defp dispatch() do
       [{:_, [{"/ws", WebSockexMockTestSocket, []}]}]
     end
 

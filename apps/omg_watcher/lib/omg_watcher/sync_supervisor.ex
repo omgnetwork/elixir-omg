@@ -29,7 +29,7 @@ defmodule OMG.Watcher.SyncSupervisor do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.Monitor
 
-  def start_link do
+  def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
