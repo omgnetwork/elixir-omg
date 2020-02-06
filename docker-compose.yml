@@ -29,7 +29,7 @@ services:
           #   4. Unlocking the accounts by their indexes
           echo "" > /tmp/geth-blank-password
           # Starts geth
-          geth --syncmode 'fast' --miner.gastarget 7500000 \
+          geth --miner.gastarget 7500000 \
             --miner.gasprice "10" \
             --nodiscover \
             --maxpeers 0 \
