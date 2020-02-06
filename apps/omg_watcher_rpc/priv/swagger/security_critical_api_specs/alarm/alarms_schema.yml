@@ -10,6 +10,18 @@ components:
               type: string
             reporter:
               type: string
+    ethereum_stalled_sync:
+      type: object
+      properties:
+        ethereum_stalled_sync:
+          type: object
+          properties:
+            ethereum_height:
+              type: integer
+              minimum: 0
+            synced_at:
+              type: string
+              format: date-time
     invalid_fee_file:
       type: object
       properties:
