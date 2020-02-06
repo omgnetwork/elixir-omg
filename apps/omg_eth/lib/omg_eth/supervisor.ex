@@ -26,9 +26,14 @@ defmodule OMG.Eth.Supervisor do
   end
 
   def init(:ok) do
+    check_interval_ms = Application.fetch_env!(:omg_eth, :ethereum_height_check_interval_ms)
+    stall_threshold_ms = Application.fetch_env!(:omg_eth, :ethereum_stalled_sync_threshold_ms)
+
     children = [
       {OMG.Eth.EthereumHeightMonitor,
        [
+         check_interval_ms: check_interval_ms,
+         stall_threshold_ms: stall_threshold_ms,
          alarm_module: Alarm,
          event_bus: OMG.Bus
        ]},

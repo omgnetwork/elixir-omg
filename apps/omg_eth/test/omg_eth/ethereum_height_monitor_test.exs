@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.Eth.EthereumHeightMonitorTest do
-  # async:false since `ethereum_stalled_sync_threshold_ms` needs to be lowered temporarily for quicker testing.
+  # async:false since `eth_integration_module` is being overridden
   use ExUnit.Case, async: false
   alias __MODULE__.EthereumClientMock
   alias OMG.Eth.EthereumHeightMonitor
@@ -23,11 +23,8 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
   @moduletag :capture_log
 
   setup_all do
-    interval_ms = Application.get_env(:omg_eth, :ethereum_height_check_interval_ms)
-    original_stall_threshold_ms = Application.get_env(:omg_eth, :ethereum_stalled_sync_threshold_ms)
     _ = Agent.start_link(fn -> 55_555 end, name: :port_holder)
     _ = Application.put_env(:omg_eth, :eth_integration_module, EthereumClientMock)
-    _ = Application.put_env(:omg_eth, :ethereum_stalled_sync_threshold_ms, interval_ms * 2)
     {:ok, status_apps} = Application.ensure_all_started(:omg_status)
     {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
     apps = status_apps ++ bus_apps
@@ -37,12 +34,18 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     on_exit(fn ->
       _ = apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
       _ = Application.put_env(:omg_eth, :eth_integration_module, nil)
-      _ = Application.put_env(:omg_eth, :ethereum_stalled_sync_threshold_ms, original_stall_threshold_ms)
     end)
   end
 
   setup do
-    {:ok, ethereum_height_monitor} = EthereumHeightMonitor.start_link(alarm_module: Alarm, event_bus: OMG.Bus)
+    {:ok, ethereum_height_monitor} =
+      EthereumHeightMonitor.start_link(
+        check_interval_ms: 10,
+        stall_threshold_ms: 100,
+        alarm_module: Alarm,
+        event_bus: OMG.Bus
+      )
+
     _ = Alarm.clear_all()
 
     on_exit(fn ->
