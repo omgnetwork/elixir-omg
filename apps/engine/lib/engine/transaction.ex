@@ -22,13 +22,18 @@ defmodule Engine.Transaction do
     timestamps(type: :utc_datetime)
   end
 
-  def build(txn) do
+  def build(%{} = txn) do
     fields = [tx_type: txn.tx_type, tx_data: txn.tx_data, metadata: txn.metadata]
 
     %__MODULE__{}
     |> change(fields)
     |> put_assoc(:inputs, Enum.map(txn.inputs, &Map.from_struct/1))
     |> put_assoc(:outputs, Enum.map(txn.outputs, &Map.from_struct/1))
+  end
+
+  def build(txn) do
+    with {:ok, transaction} <- ExPlasma.decode(txn),
+         do: build(transaction)
   end
 
   def changeset(struct, params) do

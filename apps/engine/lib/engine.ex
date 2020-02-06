@@ -15,4 +15,10 @@ defmodule Engine do
   def hello do
     :world
   end
+
+  def submit(tx_bytes) do
+    tx_bytes
+    |> Engine.Transaction.build()
+    |> Engine.Repo.insert()
+  end
 end

@@ -17,5 +17,14 @@ defmodule Engine.TransactionTest do
       assert 1 == output.changes[:amount]
       assert <<1::160>> == output.changes[:owner]
     end
+
+    test "creates a transaction from rlp" do
+      {:ok, deposit} = Deposit.new(%ExPlasma.Utxo{owner: <<1::160>>, currency: <<0::160>>, amount: 1})
+      changeset = deposit |> ExPlasma.encode() |> Transaction.build()
+      output = hd(changeset.changes[:outputs])
+
+      assert 1 == output.changes[:amount]
+      assert <<1::160>> == output.changes[:owner]
+    end
   end
 end
