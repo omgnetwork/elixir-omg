@@ -22,29 +22,18 @@ defmodule Engine.Transaction do
     timestamps(type: :utc_datetime)
   end
 
-  def build(transaction) do
-    # record = Ecto.Changeset.change(%__MODULE__, [
-    # tx_type: transaction.tx_type,
-    # tx_data: transaction.tx_data,
-    # metadata: transaction.metadata
-    # ])
+  def build(txn) do
+    fields = [tx_type: txn.tx_type, tx_data: txn.tx_data, metadata: txn.metadata]
 
-    # record = %Engine.Transaction{
-    # }
-
-    # Ecto.build_assoc(record, :inputs, 
-
-    # inputs: Enum.map(transaction.inputs, fn input -> Map.from_struct(input) end),
-    # outputs: Enum.map(transaction.outputs, fn output -> Map.from_struct(output) end),
+    %__MODULE__{}
+    |> change(fields)
+    |> put_assoc(:inputs, Enum.map(txn.inputs, &Map.from_struct/1))
+    |> put_assoc(:outputs, Enum.map(txn.outputs, &Map.from_struct/1))
   end
 
   def changeset(struct, params) do
     struct
     |> cast(params, [:tx_type, :tx_data, :metadata])
     |> validate_required([:tx_type, :tx_data, :metadata])
-  end
-
-  defp build_output_utxos(utxos) do
-    Enum.map(utxos, fn utxo -> struct(Engine.Utxo, Map.to_list(utxo)) end)
   end
 end

@@ -54,8 +54,8 @@ defmodule Engine.Utxo do
     change(changeset, params)
   end
 
-  defp validate_output(changeset), do: validate_protocol([:owner, :currency, :amount])
-  defp validate_input(changeset), do: validate_protocol([:blknum, :txindex, :oindex])
+  defp validate_output(changeset), do: validate_protocol(changeset, [:owner, :currency, :amount])
+  defp validate_input(changeset), do: validate_protocol(changeset, [:blknum, :txindex, :oindex])
 
   defp validate_protocol(changeset, keys) do
     params = Enum.map(keys, fn key -> {key, get_field(changeset, key)} end)
