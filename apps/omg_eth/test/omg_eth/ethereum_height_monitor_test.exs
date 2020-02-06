@@ -68,7 +68,10 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     _ = EthereumClientMock.set_faulty_response(true)
 
     # Assert the alarm and event are present
-    assert pull_client_alarm(ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}, 100) == :ok
+    assert pull_client_alarm(
+             [ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}],
+             100
+           ) == :ok
 
     assert {:ok, [%Event.EthereumConnectionError{}]} = EthereumHeightMonitor.get_events()
   end
@@ -77,7 +80,11 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     # Initialize as unhealthy
     _ = EthereumClientMock.set_faulty_response(true)
 
-    :ok = pull_client_alarm(ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}, 100)
+    :ok =
+      pull_client_alarm(
+        [ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}],
+        100
+      )
 
     assert {:ok, [%Event.EthereumConnectionError{}]} = EthereumHeightMonitor.get_events()
 
@@ -103,7 +110,10 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     _ = EthereumClientMock.set_stalled(true)
 
     # Assert alarm now present
-    assert pull_client_alarm(ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}, 200) == :ok
+    assert pull_client_alarm(
+             [ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}],
+             200
+           ) == :ok
 
     assert {:ok, [%Event.EthereumStalledSync{}]} = EthereumHeightMonitor.get_events()
   end
@@ -113,7 +123,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     _ = EthereumClientMock.set_stalled(true)
 
     :ok =
-      pull_client_alarm(ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}, 300)
+      pull_client_alarm([ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}], 300)
 
     assert {:ok, [%Event.EthereumStalledSync{}]} = EthereumHeightMonitor.get_events()
 
