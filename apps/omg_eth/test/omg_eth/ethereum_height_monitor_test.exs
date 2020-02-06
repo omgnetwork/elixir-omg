@@ -42,6 +42,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
       EthereumHeightMonitor.start_link(
         check_interval_ms: 10,
         stall_threshold_ms: 100,
+        eth_module: OMG.Eth,
         alarm_module: Alarm,
         event_bus: OMG.Bus
       )
