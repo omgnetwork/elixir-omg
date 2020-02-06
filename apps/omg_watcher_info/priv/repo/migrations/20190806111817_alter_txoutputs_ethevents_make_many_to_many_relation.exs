@@ -4,7 +4,7 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.AlterTxOutputsTableAddRootchainTxnH
 
   # non-backward compatible migration, thus cannot use `change/0`
 
-  def up do
+  def up() do
     drop constraint(:txoutputs, "txoutputs_creating_deposit_fkey")
     drop constraint(:txoutputs, "txoutputs_spending_exit_fkey")
     drop constraint(:ethevents, "ethevents_pkey")
@@ -83,7 +83,7 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.AlterTxOutputsTableAddRootchainTxnH
     create index(:ethevents_txoutputs, :child_chain_utxohash)
   end
 
-  def down do
+  def down() do
     # non-backward compatible migration, thus cannot use `change/0`
     # no-op
   end

@@ -24,7 +24,7 @@ defmodule OMG.Watcher.BlockGetter.Status do
 
   alias OMG.Watcher.BlockGetter.Core
 
-  def start_link do
+  def start_link() do
     Agent.start_link(fn -> nil end, name: __MODULE__)
   end
 
@@ -39,5 +39,5 @@ defmodule OMG.Watcher.BlockGetter.Status do
   Prefer `OMG.Watcher.BlockGetter.get_events/0` to this
   """
   @spec get_events() :: {:ok, Core.chain_ok_response_t()}
-  def get_events, do: Agent.get(__MODULE__, fn status -> {:ok, status} end)
+  def get_events(), do: Agent.get(__MODULE__, fn status -> {:ok, status} end)
 end

@@ -27,7 +27,7 @@ defmodule OMG.Status.Metric.Datadog do
   use GenServer
   require Logger
 
-  def start_link, do: GenServer.start_link(__MODULE__, [], [])
+  def start_link(), do: GenServer.start_link(__MODULE__, [], [])
 
   def init(_opts) do
     _ = Process.flag(:trap_exit, true)

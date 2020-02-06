@@ -127,7 +127,7 @@ defmodule OMG.Status.Metric.StatsdMonitor do
 
   defp raise_clear(_alarm_module, false, _), do: :ok
 
-  defp install_alarm_handler do
+  defp install_alarm_handler() do
     case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
       true -> :ok
       _ -> :alarm_handler.add_alarm_handler(__MODULE__)

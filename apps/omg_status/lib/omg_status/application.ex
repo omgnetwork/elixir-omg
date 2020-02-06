@@ -53,7 +53,7 @@ defmodule OMG.Status.Application do
   @spec is_disabled?() :: boolean()
   defp is_disabled?(), do: Application.get_env(:omg_status, Tracer)[:disabled?]
 
-  defp spandex_datadog_options do
+  defp spandex_datadog_options() do
     config = Application.get_all_env(:spandex_datadog)
     config_host = config[:host]
     config_port = config[:port]

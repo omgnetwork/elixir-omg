@@ -31,7 +31,7 @@ defmodule OMG.ChildChainRPC.Web do
   and import those modules here.
   """
 
-  def controller do
+  def controller() do
     quote do
       use Phoenix.Controller, namespace: OMG.ChildChainRPC.Web
 
@@ -68,7 +68,7 @@ defmodule OMG.ChildChainRPC.Web do
     end
   end
 
-  def view do
+  def view() do
     quote do
       use Phoenix.View,
         root: "lib/omg_child_chain_rpc_web/templates",
@@ -76,7 +76,7 @@ defmodule OMG.ChildChainRPC.Web do
     end
   end
 
-  def router do
+  def router() do
     quote do
       use Phoenix.Router
       import Plug.Conn

@@ -21,7 +21,7 @@ defmodule OMG.Watcher.BlockGetter.Measure do
   alias OMG.Status.Metric.Datadog
 
   @supported_events [[:process, OMG.Watcher.BlockGetter]]
-  def supported_events, do: @supported_events
+  def supported_events(), do: @supported_events
 
   def handle_event([:process, OMG.Watcher.BlockGetter], _, _state, _config) do
     value =

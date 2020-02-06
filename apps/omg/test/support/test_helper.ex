@@ -24,7 +24,7 @@ defmodule OMG.TestHelper do
   @empty_metadata <<0::256>>
 
   # Deterministic entities. Use only when truly needed.
-  def entities_stable,
+  def entities_stable(),
     do: %{
       stable_alice: %{
         priv:
@@ -46,7 +46,7 @@ defmodule OMG.TestHelper do
       }
     }
 
-  def entities,
+  def entities(),
     do:
       Map.merge(
         %{
@@ -58,7 +58,7 @@ defmodule OMG.TestHelper do
       )
 
   @spec generate_entity :: entity()
-  def generate_entity do
+  def generate_entity() do
     {:ok, priv} = DevCrypto.generate_private_key()
     {:ok, pub} = DevCrypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)

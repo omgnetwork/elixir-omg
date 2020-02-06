@@ -28,7 +28,10 @@
       # If you create your own checks, you must specify the source files for
       # them here, so they can be loaded by Credo before running the analysis.
       #
-      requires: ["config/credo/license_header.ex"],
+      requires: [
+        "config/credo/license_header.ex",
+        "config/credo/require_parentheses_on_zero_arity_defs.ex"
+      ],
       #
       # If you want to enforce a style guide and need a more traditional linting
       # experience, you can change `strict` to `true` below:
@@ -50,6 +53,7 @@
       checks: [
         # custom checks
         {Credo.Check.Custom.LicenseHeader},
+        {Credo.Check.Custom.RequireParenthesesOnZeroArityDefs},
         #
         ## Consistency Checks
         #

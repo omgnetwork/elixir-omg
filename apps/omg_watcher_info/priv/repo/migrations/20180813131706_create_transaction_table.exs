@@ -1,7 +1,7 @@
 defmodule OMG.WatcherInfo.Repo.Migrations.CreateTransactionTable do
   use Ecto.Migration
 
-  def change do
+  def change() do
     create table(:transactions, primary_key: false) do
       add :txhash, :binary, primary_key: true
       add :txindex, :integer, null: false

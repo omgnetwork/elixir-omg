@@ -26,7 +26,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDB do
     :ok = Application.put_env(@app, OMG.WatcherInfo.DB.Repo, config, persistent: true)
   end
 
-  defp get_db_url do
+  defp get_db_url() do
     db_url = validate_string(get_env("DATABASE_URL"), Application.get_env(@app, OMG.WatcherInfo.DB.Repo)[:url])
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DATABASE_URL Value: #{inspect(db_url)}.")

@@ -165,11 +165,11 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
     end
   end
 
-  defp unload_ecto do
+  defp unload_ecto() do
     :code.purge(Ecto)
     :code.delete(Ecto)
     false = :code.is_loaded(Ecto)
   end
 
-  defp load_ecto, do: true = Code.ensure_loaded?(Ecto)
+  defp load_ecto(), do: true = Code.ensure_loaded?(Ecto)
 end

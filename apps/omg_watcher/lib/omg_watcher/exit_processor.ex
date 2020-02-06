@@ -148,7 +148,7 @@ defmodule OMG.Watcher.ExitProcessor do
   This function may also update some internal caches to make subsequent calls not redo the work,
   but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
   """
-  def check_validity do
+  def check_validity() do
     GenServer.call(__MODULE__, :check_validity)
   end
 
@@ -156,7 +156,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns a map of requested in flight exits, keyed by transaction hash
   """
   @spec get_active_in_flight_exits() :: {:ok, Core.in_flight_exits_response_t()}
-  def get_active_in_flight_exits do
+  def get_active_in_flight_exits() do
     GenServer.call(__MODULE__, :get_active_in_flight_exits)
   end
 

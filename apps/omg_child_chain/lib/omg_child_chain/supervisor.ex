@@ -26,7 +26,7 @@ defmodule OMG.ChildChain.Supervisor do
   alias OMG.State
   alias OMG.Status.Alert.Alarm
 
-  def start_link do
+  def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 

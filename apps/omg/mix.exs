@@ -1,7 +1,7 @@
 defmodule OMG.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -17,7 +17,7 @@ defmodule OMG.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     [
       mod: {OMG.Application, []},
       extra_applications: [:logger, :sentry, :telemetry]
@@ -30,7 +30,7 @@ defmodule OMG.MixProject do
   defp elixirc_paths(:dev), do: ["lib", "test/support"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps do
+  defp deps() do
     [
       {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git"},
       {:ex_rlp, "~> 0.5.2"},

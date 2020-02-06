@@ -48,7 +48,7 @@ defmodule OMG.Watcher.API.Status do
   services are unavailable, it will crash
   """
   @spec get_status() :: {:ok, t()}
-  def get_status do
+  def get_status() do
     {:ok, eth_block_number} = EthereumHeight.get()
     {:ok, eth_block_timestamp} = Eth.get_block_timestamp_by_number(eth_block_number)
     eth_syncing = Eth.syncing?()
@@ -86,7 +86,7 @@ defmodule OMG.Watcher.API.Status do
     {:ok, status}
   end
 
-  defp get_validated_child_block_number do
+  defp get_validated_child_block_number() do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
     {state_current_block, _} = State.get_status()
     state_current_block - child_block_interval

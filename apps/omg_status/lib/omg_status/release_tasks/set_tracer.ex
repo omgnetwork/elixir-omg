@@ -46,7 +46,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     :ok = Application.put_env(:spandex_datadog, :sync_threshold, get_sync_threshold(), persistent: true)
   end
 
-  defp get_dd_disabled do
+  defp get_dd_disabled() do
     dd_disabled? =
       validate_bool(
         get_env("DD_DISABLED"),
@@ -57,7 +57,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     dd_disabled?
   end
 
-  defp get_app_env do
+  defp get_app_env() do
     env = validate_string(get_env("APP_ENV"), Application.get_env(@app, Tracer)[:env])
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
     env
@@ -81,14 +81,14 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     dd_spandex_port
   end
 
-  def get_batch_size do
+  def get_batch_size() do
     batch_size = validate_integer(get_env("BATCH_SIZE"), Application.get_env(:spandex_datadog, :batch_size))
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: BATCH_SIZE Value: #{inspect(batch_size)}.")
     batch_size
   end
 
-  def get_sync_threshold do
+  def get_sync_threshold() do
     sync_threshold =
       validate_integer(
         get_env("SYNC_THRESHOLD"),

@@ -34,7 +34,7 @@ defmodule OMG.DB.Measure do
                           [:update_multiread, service]
                         ]
                     end)
-  def supported_events, do: @supported_events
+  def supported_events(), do: @supported_events
 
   def handle_event([:process, service_name], _, state, _config) when service_name in @services do
     value =

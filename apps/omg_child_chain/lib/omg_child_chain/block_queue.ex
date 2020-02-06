@@ -208,7 +208,7 @@ defmodule OMG.ChildChain.BlockQueue do
       log_eth_node_error()
     end
 
-    defp log_eth_node_error do
+    defp log_eth_node_error() do
       eth_node_diagnostics = Eth.Diagnostics.get_node_diagnostics()
       Logger.error("Ethereum operation failed, additional diagnostics: #{inspect(eth_node_diagnostics)}")
     end

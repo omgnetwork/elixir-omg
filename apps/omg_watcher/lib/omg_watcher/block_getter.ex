@@ -45,7 +45,7 @@ defmodule OMG.Watcher.BlockGetter do
   Retrieves the freshest information about `OMG.Watcher.BlockGetter`'s status, as stored by the slave process `Status`
   """
   @spec get_events() :: {:ok, Core.chain_ok_response_t()}
-  def get_events, do: __MODULE__.Status.get_events()
+  def get_events(), do: __MODULE__.Status.get_events()
 
   def init(_opts) do
     {:ok, %{}, {:continue, :setup}}
@@ -274,12 +274,12 @@ defmodule OMG.Watcher.BlockGetter do
     new_state
   end
 
-  defp schedule_sync_height do
+  defp schedule_sync_height() do
     Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
     |> :timer.send_after(self(), :sync)
   end
 
-  defp schedule_producer do
+  defp schedule_producer() do
     Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
     |> :timer.send_after(self(), :producer)
   end

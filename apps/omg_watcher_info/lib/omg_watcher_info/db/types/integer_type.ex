@@ -20,7 +20,7 @@ defmodule OMG.WatcherInfo.DB.Types.IntegerType do
   and we only work with whole numbers, we can safely convert to Elixir's primitive integer for easier operations.
   """
   @behaviour Ecto.Type
-  def type, do: :integer
+  def type(), do: :integer
 
   def cast(value) do
     {:ok, value}

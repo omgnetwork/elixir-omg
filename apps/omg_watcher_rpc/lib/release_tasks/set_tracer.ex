@@ -28,7 +28,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
     :ok = Application.put_env(:spandex_phoenix, :tracer, OMG.WatcherRPC.Tracer, persistent: true)
   end
 
-  defp get_dd_disabled do
+  defp get_dd_disabled() do
     dd_disabled? =
       validate_bool(
         get_env("DD_DISABLED"),
@@ -39,7 +39,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
     dd_disabled?
   end
 
-  defp get_app_env do
+  defp get_app_env() do
     env = validate_string(get_env("APP_ENV"), Application.get_env(@app, OMG.WatcherRPC.Tracer)[:env])
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
     env
