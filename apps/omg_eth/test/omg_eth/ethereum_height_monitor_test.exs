@@ -15,6 +15,7 @@
 defmodule OMG.Eth.EthereumHeightMonitorTest do
   # async:false since `eth_integration_module` is being overridden
   use ExUnit.Case, async: false
+  alias __MODULE__.EthereumClientMock
   alias OMG.Eth.EthereumHeightMonitor
   alias OMG.Eth.Event
   alias OMG.Status.Alert.Alarm
