@@ -1,7 +1,7 @@
 defmodule OMG.Conformance.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_conformance,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -17,7 +17,7 @@ defmodule OMG.Conformance.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     [
       extra_applications: [:logger]
     ]
@@ -27,7 +27,7 @@ defmodule OMG.Conformance.MixProject do
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps do
+  defp deps() do
     [
       {:propcheck, "~> 1.1", only: [:test]},
       {:omg, in_umbrella: true}

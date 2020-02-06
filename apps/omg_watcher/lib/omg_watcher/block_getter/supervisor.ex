@@ -20,7 +20,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
 
-  def start_link do
+  def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 

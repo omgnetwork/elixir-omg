@@ -42,7 +42,7 @@ defmodule OMG.TypedDataHash.Config do
   This value is taken to structured hash computation when no domain separator is passed.
   """
   @spec domain_separator_from_config() :: OMG.Crypto.hash_t()
-  def domain_separator_from_config do
+  def domain_separator_from_config() do
     Tools.domain_separator(domain_data_from_config())
   end
 end

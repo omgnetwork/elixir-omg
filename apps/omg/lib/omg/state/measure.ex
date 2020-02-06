@@ -24,7 +24,7 @@ defmodule OMG.State.Measure do
   alias OMG.Status.Metric.Datadog
 
   @supported_events [[:process, OMG.State]]
-  def supported_events, do: @supported_events
+  def supported_events(), do: @supported_events
 
   def handle_event([:process, OMG.State], _, %Core{} = state, _config) do
     execute = fn ->

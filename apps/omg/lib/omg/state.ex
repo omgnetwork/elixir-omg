@@ -48,7 +48,7 @@ defmodule OMG.State do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
-  def form_block do
+  def form_block() do
     GenServer.cast(__MODULE__, :form_block)
   end
 
@@ -79,8 +79,8 @@ defmodule OMG.State do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
-  @spec get_status :: {non_neg_integer(), boolean()}
-  def get_status do
+  @spec get_status() :: {non_neg_integer(), boolean()}
+  def get_status() do
     GenServer.call(__MODULE__, :get_status)
   end
 

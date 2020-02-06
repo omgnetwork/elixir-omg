@@ -59,7 +59,7 @@ defmodule OMG.RootChainCoordinator do
   """
   @decorate span(service: :ethereum_event_listener, type: :backend, name: "get_sync_info/0")
   @spec get_sync_info() :: SyncGuide.t() | :nosync
-  def get_sync_info do
+  def get_sync_info() do
     GenServer.call(__MODULE__, :get_sync_info)
   end
 
@@ -67,7 +67,7 @@ defmodule OMG.RootChainCoordinator do
   Gets all the current synced height for all the services checked in
   """
   @spec get_ethereum_heights() :: {:ok, Core.ethereum_heights_result_t()}
-  def get_ethereum_heights do
+  def get_ethereum_heights() do
     GenServer.call(__MODULE__, :get_ethereum_heights)
   end
 

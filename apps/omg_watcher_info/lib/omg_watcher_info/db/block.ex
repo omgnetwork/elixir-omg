@@ -56,7 +56,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   end
 
   @spec get_max_blknum() :: non_neg_integer()
-  def get_max_blknum do
+  def get_max_blknum() do
     DB.Repo.aggregate(__MODULE__, :max, :blknum)
   end
 
@@ -92,8 +92,8 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> Paginator.set_data(paginator)
   end
 
-  @spec query_count :: Ecto.Query.t()
-  defp query_count do
+  @spec query_count() :: Ecto.Query.t()
+  defp query_count() do
     from(block in __MODULE__, select: count())
   end
 

@@ -28,7 +28,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
     :ok = Application.put_env(@app, @app_env_name, get_exit_processor_sla_margin(), persistent: true)
   end
 
-  defp get_exit_processor_sla_margin do
+  defp get_exit_processor_sla_margin() do
     config_value = validate_int(get_env(@system_env_name), Application.get_env(@app, @app_env_name))
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@system_env_name} Value: #{inspect(config_value)}.")
     config_value

@@ -200,7 +200,7 @@ if Code.ensure_loaded?(:rocksdb) do
       end
     end
 
-    defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
+    defp table_settings(), do: [:named_table, :set, :public, write_concurrency: true]
 
     # Argument order flipping tools :(
     # write options

@@ -69,14 +69,14 @@ defmodule OMG.DB do
 
   def start_link(args), do: driver().start_link(args)
 
-  def child_spec, do: driver().child_spec()
+  def child_spec(), do: driver().child_spec()
   def child_spec(args), do: driver().child_spec(args)
 
   def init(path) do
     driver().init(path)
   end
 
-  def init do
+  def init() do
     driver().init()
   end
 
@@ -84,7 +84,7 @@ defmodule OMG.DB do
   Puts all zeroes and other init values to a generically initialized `OMG.DB`
   """
 
-  def initiation_multiupdate, do: driver().initiation_multiupdate
+  def initiation_multiupdate(), do: driver().initiation_multiupdate
   def initiation_multiupdate(server), do: driver().initiation_multiupdate(server)
 
   @decorate span(service: :ethereum_event_listener, type: :backend, name: "multi_update/1")
@@ -94,19 +94,19 @@ defmodule OMG.DB do
   def blocks(blocks_to_fetch), do: driver().blocks(blocks_to_fetch)
   def blocks(blocks_to_fetch, server), do: driver().blocks(blocks_to_fetch, server)
 
-  def utxos, do: driver().utxos()
+  def utxos(), do: driver().utxos()
   def utxos(server), do: driver().utxos(server)
 
   def utxo(utxo_pos), do: driver().utxo(utxo_pos)
   def utxo(utxo_pos, server), do: driver().utxo(utxo_pos, server)
 
-  def exit_infos, do: driver().exit_infos
+  def exit_infos(), do: driver().exit_infos
   def exit_infos(server), do: driver().exit_infos(server)
 
-  def in_flight_exits_info, do: driver().in_flight_exits_info()
+  def in_flight_exits_info(), do: driver().in_flight_exits_info()
   def in_flight_exits_info(server), do: driver().in_flight_exits_info(server)
 
-  def competitors_info, do: driver().competitors_info
+  def competitors_info(), do: driver().competitors_info
   def competitors_info(server), do: driver().competitors_info(server)
 
   def exit_info(utxo_pos), do: driver().exit_info(utxo_pos)
@@ -117,7 +117,7 @@ defmodule OMG.DB do
   def block_hashes(block_numbers_to_fetch), do: driver().block_hashes(block_numbers_to_fetch)
   def block_hashes(block_numbers_to_fetch, server), do: driver().block_hashes(block_numbers_to_fetch, server)
 
-  def child_top_block_number, do: driver().child_top_block_number
+  def child_top_block_number(), do: driver().child_top_block_number
 
   def get_single_value(parameter_name), do: driver().get_single_value(parameter_name)
   def get_single_value(parameter_name, server), do: driver().get_single_value(parameter_name, server)
@@ -125,7 +125,7 @@ defmodule OMG.DB do
   @doc """
   A list of all atoms that we use as single-values stored in the database (i.e. markers/flags of all kinds)
   """
-  def single_value_parameter_names do
+  def single_value_parameter_names() do
     [
       # child chain - used at block forming
       :child_top_block_number,
@@ -148,5 +148,5 @@ defmodule OMG.DB do
     ]
   end
 
-  defp driver, do: OMG.DB.RocksDB
+  defp driver(), do: OMG.DB.RocksDB
 end

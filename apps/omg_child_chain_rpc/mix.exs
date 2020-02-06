@@ -1,7 +1,7 @@
 defmodule OMG.ChildChainRPC.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_child_chain_rpc,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -21,7 +21,7 @@ defmodule OMG.ChildChainRPC.MixProject do
   # Configuration for the OTP application.
   #
   # Type `mix help compile.app` for more information.
-  def application do
+  def application() do
     [
       mod: {OMG.ChildChainRPC.Application, []},
       extra_applications: [:logger, :runtime_tools, :sasl, :telemetry]
@@ -36,7 +36,7 @@ defmodule OMG.ChildChainRPC.MixProject do
   # Specifies your project dependencies.
   #
   # Type `mix help deps` for examples and options.
-  defp deps do
+  defp deps() do
     [
       {:phoenix, "~> 1.3"},
       {:plug_cowboy, "~> 1.0"},

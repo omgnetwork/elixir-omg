@@ -41,7 +41,7 @@ defmodule OMG.Eth do
   @type send_transaction_option() :: {:passphrase, binary()}
 
   @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
-  def node_ready do
+  def node_ready() do
     case Ethereumex.HttpClient.eth_syncing() do
       {:ok, false} -> :ok
       {:ok, _} -> {:error, :geth_still_syncing}
@@ -56,9 +56,9 @@ defmodule OMG.Eth do
   * true  - geth is still syncing.
   """
   @spec syncing?() :: boolean
-  def syncing?, do: node_ready() != :ok
+  def syncing?(), do: node_ready() != :ok
 
-  def get_ethereum_height do
+  def get_ethereum_height() do
     case Ethereumex.HttpClient.eth_block_number() do
       {:ok, height_hex} ->
         {:ok, int_from_hex(height_hex)}
@@ -81,8 +81,8 @@ defmodule OMG.Eth do
   @doc """
   Returns placeholder for non-existent Ethereum address
   """
-  @spec zero_address :: address()
-  def zero_address, do: <<0::160>>
+  @spec zero_address() :: address()
+  def zero_address(), do: <<0::160>>
 
   def call_contract(contract, signature, args, return_types) do
     data = signature |> ABI.encode(args)

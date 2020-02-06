@@ -118,7 +118,7 @@ defmodule OMG.ChildChain.MonitorTest do
     use GenServer
 
     @spec prepare_child() :: %{id: atom(), start: tuple()}
-    def prepare_child do
+    def prepare_child() do
       %{id: __MODULE__, start: {__MODULE__, :start_link, [[]]}}
     end
 

@@ -27,7 +27,7 @@ defmodule OMG.DevCrypto do
   Generates private key. Internally uses OpenSSL RAND_bytes. May throw if there is not enough entropy.
   """
   @spec generate_private_key() :: {:ok, Crypto.priv_key_t()}
-  def generate_private_key, do: {:ok, :crypto.strong_rand_bytes(32)}
+  def generate_private_key(), do: {:ok, :crypto.strong_rand_bytes(32)}
 
   @doc """
   Given a private key, returns public key.

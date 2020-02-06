@@ -96,8 +96,8 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     )
   end
 
-  @spec query_count :: Ecto.Query.t()
-  defp query_count do
+  @spec query_count() :: Ecto.Query.t()
+  defp query_count() do
     from(transaction in __MODULE__, select: count())
   end
 
