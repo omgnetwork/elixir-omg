@@ -9,6 +9,7 @@ defmodule Engine.Application do
     children = [
       # Starts a worker by calling: Engine.Worker.start_link(arg)
       # {Engine.Worker, arg}
+      Engine.Repo
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

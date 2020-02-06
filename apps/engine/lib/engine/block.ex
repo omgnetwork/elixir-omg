@@ -10,5 +10,7 @@ defmodule Engine.Block do
     field(:number, :integer)
 
     has_many(:transactions, Engine.Transaction)
+
+    timestamps(type: :utc_datetime)
   end
 end
