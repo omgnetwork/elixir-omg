@@ -64,7 +64,7 @@ defmodule Credo.Check.Readability.RequireParenthesesOnZeroArityDefs do
     line_no = meta[:line]
     text = remaining_line_after(issue_meta, line_no, name)
 
-    case String.match?(text, ~r/^\((\w*)\)(.)*/) do
+    case String.match?(text, ~r/^\(([\w\?]*)\)(.)*/) do
       true -> issues
       false -> issues ++ [issue_for(issue_meta, line_no)]
     end
