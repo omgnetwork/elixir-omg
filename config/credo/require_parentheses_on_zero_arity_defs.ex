@@ -1,4 +1,4 @@
-defmodule Credo.Check.Custom.RequireParenthesesOnZeroArityDefs do
+defmodule Credo.Check.Readability.RequireParenthesesOnZeroArityDefs do
   @moduledoc false
 
   @checkdoc """
@@ -25,7 +25,7 @@ defmodule Credo.Check.Custom.RequireParenthesesOnZeroArityDefs do
   @explanation [check: @checkdoc]
   @def_ops [:def, :defp, :defmacro, :defmacrop]
 
-  use Credo.Check, base_priority: :low
+  use Credo.Check, base_priority: :normal
 
   @doc false
   def run(source_file, params \\ []) do
