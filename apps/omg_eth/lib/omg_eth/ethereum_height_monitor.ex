@@ -80,8 +80,14 @@ defmodule OMG.Eth.EthereumHeightMonitor do
       event_bus: Keyword.fetch!(opts, :event_bus)
     }
 
-    {:ok, tref} = :timer.send_after(state.check_interval_ms, :check_new_height)
-    {:ok, %{state | tref: tref}}
+    {:ok, state, {:continue, :first_check}}
+  end
+
+  # We want the first check immediately upon start, but we cannot do it while the monitor
+  # is not fully initialized, so we need to trigger it in a :continue instruction.
+  def handle_continue(:first_check, state) do
+    _ = send(self(), :check_new_height)
+    {:noreply, state}
   end
 
   def handle_info(:check_new_height, state) do
