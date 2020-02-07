@@ -18,7 +18,6 @@ defmodule OMG.State do
   """
 
   alias OMG.Block
-  alias OMG.ChildChain.Fees
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Fees

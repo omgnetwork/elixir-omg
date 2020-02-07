@@ -67,7 +67,7 @@ defmodule OMG.Fees do
   """
   @spec check_if_covered(implicit_paid_fee_by_currency :: map(), accepted_fees :: optional_fee_t()) ::
           :ok | {:error, :fees_not_covered} | {:error, :overpaying_fees} | {:error, :multiple_potential_currency_fees}
-  # If :ignore_fees is given, we ignore any surplus of tokens
+  # If :ignore_fees is given, we don't require any surplus of tokens. If surplus exists, it will be collected.
   def check_if_covered(_, :ignore_fees), do: :ok
 
   # Otherwise we remove all non positive tokens from the map and process it
