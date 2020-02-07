@@ -1,4 +1,4 @@
-defmodule Credo.Check.Custom.LicenseHeader do
+defmodule Credo.Check.Warning.LicenseHeader do
   @moduledoc """
   Checks whether license header has been included in every file, except those where it shouldn't be
 

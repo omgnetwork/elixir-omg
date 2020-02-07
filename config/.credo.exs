@@ -52,8 +52,8 @@
       #
       checks: [
         # custom checks
-        {Credo.Check.Custom.LicenseHeader},
-        {Credo.Check.Custom.RequireParenthesesOnZeroArityDefs},
+        {Credo.Check.Warning.LicenseHeader},
+        {Credo.Check.Readability.RequireParenthesesOnZeroArityDefs},
         #
         ## Consistency Checks
         #
