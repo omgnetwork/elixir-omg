@@ -9,7 +9,6 @@ config :omg_child_chain,
   block_submit_every_nth: 1,
   metrics_collection_interval: 60_000,
   fee_adapter: OMG.ChildChain.Fees.FileAdapter,
-  fee_specs_file_name: "fee_specs.json",
-  ignore_fees: false
+  fee_specs_file_name: "fee_specs.json"
 
 import_config "#{Mix.env()}.exs"

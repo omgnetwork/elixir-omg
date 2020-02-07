@@ -38,6 +38,12 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   @utxo_pos1 Utxo.position(2, 0, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
+  @fee %{
+    @eth => %{
+      amount: 1
+    }
+  }
+
   setup do
     {:ok, processor_empty} = Core.init([], [], [])
     {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
@@ -132,7 +138,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     processor = start_ife_from(processor, TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 1}]))
 
     state = state_empty |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    comp = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}])
+    comp = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}])
 
     # first sanity-check as if the utxo was not spent yet
     assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
@@ -145,7 +151,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     assert Utxo.position(1, 0, 0) not in spends_to_get
 
     # spend and see that Core now requests the relevant utxo checks and spends to get
-    {:ok, _, state} = State.Core.exec(state, comp, :ignore_fees)
+    {:ok, _, state} = State.Core.exec(state, comp, @fee)
     {:ok, {block, _}, state} = State.Core.form_block(1000, state)
 
     assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
@@ -161,10 +167,10 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   test "can work with State to exit utxos from in-flight transactions",
        %{processor_empty: processor, state_empty: state, alice: alice} do
     # canonical & included
-    ife_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    ife_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}])
     ife_id1 = 1
     # non-canonical
-    ife_exit_tx2 = TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{alice, 20}])
+    ife_exit_tx2 = TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{alice, 19}])
     tx_hash2 = State.Transaction.raw_txhash(ife_exit_tx2)
     ife_id2 = 2
 
@@ -172,7 +178,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
       state
       |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
       |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
-      |> State.Core.exec(ife_exit_tx1, :ignore_fees)
+      |> State.Core.exec(ife_exit_tx1, @fee)
 
     {:ok, {block, _}, state} = State.Core.form_block(1000, state)
 
@@ -232,14 +238,14 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   test "acts on invalidities reported when exiting utxos in State",
        %{processor_empty: processor, state_empty: state, alice: alice} do
     # canonical & included
-    ife_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    ife_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}])
     # double-spending the piggybacked ouptut
-    spending_tx = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 10}])
+    spending_tx = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 8}])
     ife_id = 1
 
     state = TestHelper.do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
-    {:ok, {tx_hash, _, _}, state} = State.Core.exec(state, ife_exit_tx, :ignore_fees)
-    {:ok, {_, _, _}, state} = State.Core.exec(state, spending_tx, :ignore_fees)
+    {:ok, {tx_hash, _, _}, state} = State.Core.exec(state, ife_exit_tx, @fee)
+    {:ok, {_, _, _}, state} = State.Core.exec(state, spending_tx, @fee)
     {:ok, {block, _}, state} = State.Core.form_block(1000, state)
 
     request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: [block]}

@@ -77,7 +77,7 @@ defmodule OMG.State.PersistenceTest do
   test "utxos are persisted", %{alice: alice} do
     [%{owner: alice, currency: @eth, amount: 20, blknum: 1}]
     |> persist_deposit()
-    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
+    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 19}]))
     |> persist_form()
 
     assert not OMG.State.utxo_exists?(Utxo.position(1, 0, 0))
@@ -88,8 +88,8 @@ defmodule OMG.State.PersistenceTest do
   test "utxos are available after restart", %{alice: alice, bob: bob} do
     [%{owner: alice, currency: @eth, amount: 20, blknum: 1}]
     |> persist_deposit()
-    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
-    |> exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{bob, 10}]))
+    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 17}, {alice, 2}]))
+    |> exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{bob, 18}]))
     |> persist_form()
 
     :ok = restart_state()
@@ -106,13 +106,13 @@ defmodule OMG.State.PersistenceTest do
     # after the restart newly up state won't have deposit's utxo in memory
     :ok = restart_state()
 
-    assert :ok == exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
+    assert :ok == exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}]))
     assert :utxo_not_found == exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]))
   end
 
   @tag fixtures: [:alice]
   test "blocks and spends are persisted", %{alice: alice} do
-    tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}])
+    tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 19}])
 
     [%{owner: alice, currency: @eth, amount: 20, blknum: 1}]
     |> persist_deposit()
@@ -173,7 +173,7 @@ defmodule OMG.State.PersistenceTest do
 
     [%{owner: alice, currency: @eth, amount: 20, blknum: 1}]
     |> persist_deposit()
-    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
+    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 19}]))
     |> persist_form()
     |> persist_exit_utxos(utxo_positions)
 
@@ -223,7 +223,13 @@ defmodule OMG.State.PersistenceTest do
   defp exec(:ok, tx), do: exec(tx)
 
   defp exec(tx) do
-    case OMG.State.exec(tx, :ignore_fees) do
+    fee = %{
+      @eth => %{
+        amount: 1
+      }
+    }
+
+    case OMG.State.exec(tx, fee) do
       {:ok, _} -> :ok
       {:error, reason} -> reason
     end
