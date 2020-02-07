@@ -30,9 +30,6 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   """
   use GenServer
   require Logger
-  alias OMG.Eth.Event
-
-  @type events_t() :: [Event.t()]
 
   @type t() :: %__MODULE__{
           check_interval_ms: pos_integer(),
@@ -44,8 +41,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
           ethereum_height: integer(),
           synced_at: DateTime.t(),
           connection_alarm_raised: boolean(),
-          stall_alarm_raised: boolean(),
-          events: events_t()
+          stall_alarm_raised: boolean()
         }
 
   defstruct check_interval_ms: 10_000,
@@ -57,8 +53,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
             ethereum_height: 0,
             synced_at: nil,
             connection_alarm_raised: false,
-            stall_alarm_raised: false,
-            events: []
+            stall_alarm_raised: false
 
   #
   # GenServer APIs
@@ -66,14 +61,6 @@ defmodule OMG.Eth.EthereumHeightMonitor do
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
-  end
-
-  @doc """
-  Return current events that are associated with `EthereumHeightMonitor`.
-  """
-  @spec get_events() :: {:ok, events_t()}
-  def get_events() do
-    GenServer.call(__MODULE__, :get_events)
   end
 
   #
@@ -115,10 +102,6 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     {:noreply, %{state | tref: tref}}
   end
 
-  def handle_call(:get_events, _from, state) do
-    {:reply, {:ok, state.events}, state}
-  end
-
   #
   # Handle incoming alarms
   #
@@ -137,20 +120,11 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   end
 
   def handle_cast({:set_alarm, :ethereum_stalled_sync}, state) do
-    events = [
-      %Event.EthereumStalledSync{
-        ethereum_height: state.ethereum_height,
-        synced_at: state.synced_at
-      }
-      | state.events
-    ]
-
-    {:noreply, %{state | stall_alarm_raised: true, events: events}}
+    {:noreply, %{state | stall_alarm_raised: true}}
   end
 
   def handle_cast({:clear_alarm, :ethereum_stalled_sync}, state) do
-    events = clear_events(state.events, Event.EthereumStalledSync)
-    {:noreply, %{state | stall_alarm_raised: false, events: events}}
+    {:noreply, %{state | stall_alarm_raised: false}}
   end
 
   #
@@ -188,11 +162,6 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   end
 
   defp broadcast_on_new_height(_, _, _), do: :ok
-
-  @spec clear_events(events_t(), module()) :: events_t()
-  defp clear_events(events, module) do
-    Enum.reject(events, fn %struct_module{} -> struct_module == module end)
-  end
 
   #
   # Alarms management

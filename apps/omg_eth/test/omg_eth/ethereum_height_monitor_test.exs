@@ -17,7 +17,6 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
   use ExUnit.Case, async: false
   alias __MODULE__.EthereumClientMock
   alias OMG.Eth.EthereumHeightMonitor
-  alias OMG.Eth.Event
   alias OMG.Status.Alert.Alarm
 
   @moduletag :capture_log
@@ -94,11 +93,10 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
   # Stalling sync
   #
 
-  test "that the stall alarm gets raised and with EthereumStalledSync event when block height stalls" do
+  test "that the stall alarm gets raised when block height stalls" do
     # Initialize as healthy and alarm not present
     _ = EthereumClientMock.set_stalled(false)
     :ok = pull_client_alarm([], 200)
-    assert EthereumHeightMonitor.get_events() == {:ok, []}
 
     # Toggle stalled height
     _ = EthereumClientMock.set_stalled(true)
@@ -108,25 +106,20 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
              [ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}],
              200
            ) == :ok
-
-    assert {:ok, [%Event.EthereumStalledSync{}]} = EthereumHeightMonitor.get_events()
   end
 
-  test "that the stall alarm gets cleared and without EthereumStalledSync event when block height unstalls" do
+  test "that the stall alarm gets cleared when block height unstalls" do
     # Initialize as unhealthy
     _ = EthereumClientMock.set_stalled(true)
 
     :ok =
       pull_client_alarm([ethereum_stalled_sync: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}], 300)
 
-    assert {:ok, [%Event.EthereumStalledSync{}]} = EthereumHeightMonitor.get_events()
-
     # Toggle unstalled height
     _ = EthereumClientMock.set_stalled(false)
 
     # Assert alarm no longer present
     assert pull_client_alarm([], 300) == :ok
-    assert EthereumHeightMonitor.get_events() == {:ok, []}
   end
 
   defp pull_client_alarm(_, 0), do: {:cant_match, Alarm.all()}
