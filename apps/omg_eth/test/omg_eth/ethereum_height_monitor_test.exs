@@ -49,11 +49,12 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
 
     _ = Alarm.clear_all()
 
-    _ = on_exit(fn ->
-      _ = EthereumClientMock.reset_state()
-      _ = Process.sleep(10)
-      true = Process.exit(monitor, :kill)
-    end)
+    _ =
+      on_exit(fn ->
+        _ = EthereumClientMock.reset_state()
+        _ = Process.sleep(10)
+        true = Process.exit(monitor, :kill)
+      end)
 
     {:ok,
      %{

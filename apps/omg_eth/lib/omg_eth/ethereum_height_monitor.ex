@@ -98,11 +98,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     _ = connection_alarm(state.alarm_module, state.connection_alarm_raised, height)
     _ = stall_alarm(state.alarm_module, state.stall_alarm_raised, stalled?)
 
-    state =
-      case height > state.ethereum_height do
-        true -> %{state | ethereum_height: height, synced_at: DateTime.utc_now()}
-        false -> state
-      end
+    state = update_height(state, height)
 
     {:ok, tref} = :timer.send_after(state.check_interval_ms, :check_new_height)
     {:noreply, %{state | tref: tref}}
@@ -133,6 +129,16 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   #
   # Private functions
   #
+
+  @spec update_height(t(), non_neg_integer() | :error) :: t()
+  defp update_height(state, :error), do: state
+
+  defp update_height(state, height) do
+    case height > state.ethereum_height do
+      true -> %{state | ethereum_height: height, synced_at: DateTime.utc_now()}
+      false -> state
+    end
+  end
 
   @spec stalled?(non_neg_integer() | :error, non_neg_integer(), DateTime.t(), non_neg_integer()) :: boolean()
   defp stalled?(height, previous_height, synced_at, stall_threshold_ms) do
