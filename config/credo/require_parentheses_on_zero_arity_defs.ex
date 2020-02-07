@@ -64,7 +64,7 @@ defmodule Credo.Check.Readability.RequireParenthesesOnZeroArityDefs do
     line_no = meta[:line]
     text = remaining_line_after(issue_meta, line_no, name)
 
-    case String.match?(text, ~r/^\(([\w\?]*)\)(.)*/) do
+    case String.match?(text, ~r/^\(([\w]*)\)(.)*/) do
       true -> issues
       false -> issues ++ [issue_for(issue_meta, line_no)]
     end
@@ -74,7 +74,7 @@ defmodule Credo.Check.Readability.RequireParenthesesOnZeroArityDefs do
     source_file = IssueMeta.source_file(issue_meta)
     line = SourceFile.line_at(source_file, line_no)
     name_size = text |> to_string |> String.length()
-    skip = (SourceFile.column(source_file, line_no, text) || -1) + name_size - 1
+    skip = (column(source_file, line_no, text) || -1) + name_size - 1
 
     String.slice(line, skip..-1)
   end
@@ -86,4 +86,24 @@ defmodule Credo.Check.Readability.RequireParenthesesOnZeroArityDefs do
       line_no: line_no
     )
   end
+
+  # A modified version of https://github.com/rrrene/credo/blob/master/lib/credo/source_file.ex#L140-L161
+  # that removes `Regex.escape()` as it's breaking question-mark ending functions.
+  defp column(source_file, line_no, trigger)
+
+  defp column(source_file, line_no, trigger) when is_binary(trigger) or is_atom(trigger) do
+    line = SourceFile.line_at(source_file, line_no)
+    regexed = to_string(trigger)
+
+    case Regex.run(~r/\b#{regexed}\b/, line, return: :index) do
+      nil ->
+        nil
+
+      result ->
+        {col, _} = List.first(result)
+        col + 1
+    end
+  end
+
+  defp column(_, _, _), do: nil
 end
