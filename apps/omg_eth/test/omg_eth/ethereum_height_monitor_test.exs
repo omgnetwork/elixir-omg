@@ -58,11 +58,10 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
   # Connection error
   #
 
-  test "that the connection alarm gets raised and with EthereumConnectionError event when connection becomes unhealthy" do
+  test "that the connection alarm gets raised when connection becomes unhealthy" do
     # Initialize as healthy and alarm not present
     _ = EthereumClientMock.set_faulty_response(false)
     :ok = pull_client_alarm([], 100)
-    assert EthereumHeightMonitor.get_events() == {:ok, []}
 
     # Toggle faulty response
     _ = EthereumClientMock.set_faulty_response(true)
@@ -72,11 +71,9 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
              [ethereum_connection_error: %{node: :nonode@nohost, reporter: OMG.Eth.EthereumHeightMonitor}],
              100
            ) == :ok
-
-    assert {:ok, [%Event.EthereumConnectionError{}]} = EthereumHeightMonitor.get_events()
   end
 
-  test "that the connection alarm gets cleared and without EthereumConnectionError event when connection becomes healthy" do
+  test "that the connection alarm gets cleared when connection becomes healthy" do
     # Initialize as unhealthy
     _ = EthereumClientMock.set_faulty_response(true)
 
@@ -86,14 +83,11 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
         100
       )
 
-    assert {:ok, [%Event.EthereumConnectionError{}]} = EthereumHeightMonitor.get_events()
-
     # Toggle healthy response
     _ = EthereumClientMock.set_faulty_response(false)
 
     # Assert the alarm and event are no longer present
     assert pull_client_alarm([], 100) == :ok
-    assert EthereumHeightMonitor.get_events() == {:ok, []}
   end
 
   #

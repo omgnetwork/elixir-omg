@@ -129,13 +129,11 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   # 2. Maintain the list of events that the alarm corresponds to
   #
   def handle_cast({:set_alarm, :ethereum_connection_error}, state) do
-    events = [%Event.EthereumConnectionError{} | state.events]
-    {:noreply, %{state | connection_alarm_raised: true, events: events}}
+    {:noreply, %{state | connection_alarm_raised: true}}
   end
 
   def handle_cast({:clear_alarm, :ethereum_connection_error}, state) do
-    events = clear_events(state.events, Event.EthereumConnectionError)
-    {:noreply, %{state | connection_alarm_raised: false, events: events}}
+    {:noreply, %{state | connection_alarm_raised: false}}
   end
 
   def handle_cast({:set_alarm, :ethereum_stalled_sync}, state) do
