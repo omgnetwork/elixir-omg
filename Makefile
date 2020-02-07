@@ -121,7 +121,10 @@ clean-elixir-omg:
 	rm -rf _build_docker/*
 	rm -rf deps_docker/*
 
-.PHONY: clean clean-elixir-omg
+clean-contracts:
+	rm -rf data/*
+
+.PHONY: clean clean-elixir-omg clean-contracts
 
 #
 # Linting
@@ -170,17 +173,15 @@ build-test: deps-elixir-omg
 .PHONY: build-prod build-dev build-test
 
 #
-# Testing
+# Contracts initialization
 #
 
-# get the SNAPSHOT url from the snapshots file based on the SNAPSHOT env value
+# Get the SNAPSHOT url from the snapshots file based on the SNAPSHOT env value
 # untar the snapshot and fetch values from the files in build dir that came from plasma-deployer
 # put these values into an localchain_contract_addresses.env via the script in bin
 # localchain_contract_addresses.env is used by docker, exunit tests and end2end tests
-
-init_test:
+init-contracts: clean-contracts
 	mkdir data/ || true && \
-	rm -rf data/* || true && \
 	URL=$$(grep "^$(SNAPSHOT)" snapshots.env | cut -d'=' -f2-) && \
 	wget $$URL -O data/snapshot.tar.gz && \
 	cd data && \
@@ -199,6 +200,14 @@ init_test:
 	ERC20_VAULT=$$ERC20_VAULT PAYMENT_EXIT_GAME=$$PAYMENT_EXIT_GAME \
 	PLASMA_FRAMEWORK_TX_HASH=$$PLASMA_FRAMEWORK_TX_HASH PLASMA_FRAMEWORK=$$PLASMA_FRAMEWORK \
 	PAYMENT_EIP712_LIBMOCK=$$PAYMENT_EIP712_LIBMOCK MERKLE_WRAPPER=$$MERKLE_WRAPPER ERC20_MINTABLE=$$ERC20_MINTABLE
+
+.PHONY: init-contracts
+
+#
+# Testing
+#
+
+init_test: init-contracts
 
 test:
 	mix test --include test --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
@@ -328,6 +337,7 @@ docker-stop-cluster-with-datadog:
 docker-nuke:
 	docker-compose down --remove-orphans
 	docker system prune --all
+	$(MAKE) clean
 
 docker-remote-watcher:
 	docker-compose exec watcher /watcher_entrypoint bin/watcher remote_console
