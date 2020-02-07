@@ -35,10 +35,13 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
   end
 
   setup do
-    {:ok, ethereum_height_monitor} =
+    check_interval_ms = 10
+    stall_threshold_ms = 100
+
+    {:ok, monitor} =
       EthereumHeightMonitor.start_link(
-        check_interval_ms: 10,
-        stall_threshold_ms: 100,
+        check_interval_ms: check_interval_ms,
+        stall_threshold_ms: stall_threshold_ms,
         eth_module: EthereumClientMock,
         alarm_module: Alarm,
         event_bus: OMG.Bus
@@ -49,8 +52,55 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     on_exit(fn ->
       _ = EthereumClientMock.reset_state()
       _ = Process.sleep(10)
-      true = Process.exit(ethereum_height_monitor, :kill)
+      true = Process.exit(monitor, :kill)
     end)
+
+    {:ok,
+     %{
+       monitor: monitor,
+       check_interval_ms: check_interval_ms,
+       stall_threshold_ms: stall_threshold_ms
+     }}
+  end
+
+  defmodule EventBusListener do
+    use GenServer
+
+    def start(parent), do: GenServer.start(__MODULE__, parent)
+
+    def init(parent) do
+      :ok = OMG.Bus.subscribe("ethereum_new_height", link: true)
+      {:ok, parent}
+    end
+
+    def handle_info({:internal_event_bus, :ethereum_new_height, _height}, parent) do
+      _ = send(parent, :got_ethereum_new_height)
+      {:noreply, parent}
+    end
+  end
+
+  #
+  # Internal event publishing
+  #
+
+  test "that an ethereum_new_height event is published when the height increases", context do
+    _ = EthereumClientMock.set_stalled(false)
+
+    {:ok, listener} = __MODULE__.EventBusListener.start(self())
+    on_exit(fn -> GenServer.stop(listener) end)
+
+    assert_receive(:got_ethereum_new_height, Kernel.trunc(context.check_interval_ms * 10))
+  end
+
+  test "that an ethereum_new_height event is not published when the height stalls", context do
+    _ = EthereumClientMock.set_stalled(true)
+
+    # Sleep for 2 intervals to make sure the listener doesn't pick up anything before set_stalled(true)
+    _ = Process.sleep(context.check_interval_ms * 2)
+    {:ok, listener} = __MODULE__.EventBusListener.start(self())
+    on_exit(fn -> GenServer.stop(listener) end)
+
+    refute_receive(:got_ethereum_new_height, Kernel.trunc(context.check_interval_ms * 10))
   end
 
   #

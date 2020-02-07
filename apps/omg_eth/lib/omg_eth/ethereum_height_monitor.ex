@@ -106,10 +106,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   # Handle incoming alarms
   #
   # These functions are called by the AlarmHandler so that this monitor process can update
-  # its internal state according to the raised alarms. Mainly these handlers do 2 things:
-  #
-  # 1. Reflect the internal state so that it does not re-raise an existing alarm
-  # 2. Maintain the list of events that the alarm corresponds to
+  # its internal state according to the raised alarms.
   #
   def handle_cast({:set_alarm, :ethereum_connection_error}, state) do
     {:noreply, %{state | connection_alarm_raised: true}}
