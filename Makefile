@@ -13,7 +13,7 @@ help:
 	@echo "  - \`make start-pre-lumphini-watcher\` \c"
 	@echo ""
 	@echo
-	@echo "DOCKER DEVELOPMENT"
+	@echo "DOCKER CLUSTER USAGE"
 	@echo "------------------"
 	@echo ""
 	@echo "  - \`make docker-start-cluster\`: start everything for you, but if there are no local images \c"
@@ -23,8 +23,11 @@ help:
 	@echo "instead of your own local geth network. Note: you will need to configure the environment \c"
 	@echo "variables defined in docker-compose-infura.yml"
 	@echo ""
-	@echo "  - \`make docker-watcher && make docker-watcher_info && make docker-child_chain\`: \c"
-	@echo "use your own image containers for Watcher, Watcher Info and Child Chain"
+	@echo "DOCKER DEVELOPMENT"
+	@echo "------------------"
+	@echo ""
+	@echo "  - \`make docker-build-cluster\`: build child_chain, watcher and watcher_info images \c"
+	@echo "from your current code base, then start a cluster with these freshly built images."
 	@echo ""
 	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_info\` or \c"
 	@echo "\`make docker-update-child_chain\`: replaces containers with your code changes\c"
@@ -54,7 +57,6 @@ help:
 	@echo ""
 	@echo "3. In the third terminal window, run:"
 	@echo "    make start-watcher"
-	@echo ""
 	@echo ""
 	@echo "4. In the fourth terminal window, run:"
 	@echo "    make start-watcher_info"
@@ -285,6 +287,10 @@ docker-push: docker
 
 ###OTHER
 docker-start-cluster:
+	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
+	docker-compose build --no-cache && docker-compose up
+
+docker-build-cluster: docker-child_chain docker-watcher docker-watcher_info
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
