@@ -23,7 +23,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumHeightCheckInterval do
 
   @app :omg_eth
   @env_key "ETHEREUM_EVENTS_CHECK_INTERVAL_MS"
-  @config_key @ethereum_events_check_interval_ms
+  @config_key :ethereum_events_check_interval_ms
 
   @impl Provider
   def init(_args) do
