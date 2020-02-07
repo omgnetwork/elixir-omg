@@ -46,13 +46,13 @@ defmodule OMG.State.Transaction.Payment do
   @max_inputs 4
   @max_outputs 4
 
-  defmacro max_inputs do
+  defmacro max_inputs() do
     quote do
       unquote(@max_inputs)
     end
   end
 
-  defmacro max_outputs do
+  defmacro max_outputs() do
     quote do
       unquote(@max_outputs)
     end
