@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.ReleaseTasks.SetEthereumHeightCheckInterval do
+defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval do
   @moduledoc """
   Configures the interval to check for new events from Ethereum, including checking for new heights.
 
