@@ -4,7 +4,7 @@ defmodule Engine.Repo.Migrations.CreateUtxos do
   def change do
     create table(:utxos) do
       # UTXO position information
-      add :pos, :integer
+      add :pos, :bigint
       add :blknum, :integer
       add :txindex, :integer
       add :oindex, :integer
