@@ -40,14 +40,7 @@ defmodule OMG.State.CoreTest do
   @empty_block_hash <<246, 9, 190, 253, 254, 144, 102, 254, 20, 231, 67, 179, 98, 62, 174, 135, 143, 188, 70, 128, 5,
                       96, 136, 22, 131, 44, 157, 70, 15, 42, 149, 210>>
 
-  @fee %{
-    @eth => %{
-      amount: 1
-    },
-    @not_eth => %{
-      amount: 1
-    }
-  }
+  @fee %{@eth => %{amount: 1}, @not_eth => %{amount: 1}}
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do

@@ -541,11 +541,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
   end
 
   defp assert_tx_usable(signed, state_core) do
-    fee = %{
-      @eth => %{
-        amount: 1
-      }
-    }
+    fee = %{@eth => %{amount: 1}}
 
     {:ok, transaction} = signed |> Transaction.Signed.encode() |> Transaction.Recovered.recover_from()
     assert {:ok, {_, _, _}, _state} = State.Core.exec(state_core, transaction, fee)

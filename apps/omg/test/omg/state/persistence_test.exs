@@ -223,11 +223,7 @@ defmodule OMG.State.PersistenceTest do
   defp exec(:ok, tx), do: exec(tx)
 
   defp exec(tx) do
-    fee = %{
-      @eth => %{
-        amount: 1
-      }
-    }
+    fee = %{@eth => %{amount: 1}}
 
     case OMG.State.exec(tx, fee) do
       {:ok, _} -> :ok

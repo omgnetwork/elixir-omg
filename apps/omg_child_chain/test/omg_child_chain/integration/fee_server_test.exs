@@ -161,7 +161,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end
   end
 
-  defp start_fee_server do
+  defp start_fee_server() do
     log = capture_log(fn -> GenServer.start(FeeServer, [], name: TestFeeServer) end)
 
     case GenServer.whereis(TestFeeServer) do
