@@ -143,9 +143,9 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
 
     @initial_state %{height: 0, faulty: false, stalled: false}
 
-    def start_link, do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
-    def get_ethereum_height, do: GenServer.call(__MODULE__, :get_ethereum_height)
+    def get_ethereum_height(), do: GenServer.call(__MODULE__, :get_ethereum_height)
 
     def set_faulty_response(faulty), do: GenServer.call(__MODULE__, {:set_faulty_response, faulty})
 
@@ -155,7 +155,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
 
     def reset_state(), do: GenServer.call(__MODULE__, :reset_state)
 
-    def stop, do: GenServer.stop(__MODULE__, :normal)
+    def stop(), do: GenServer.stop(__MODULE__, :normal)
 
     def init(_), do: {:ok, @initial_state}
 

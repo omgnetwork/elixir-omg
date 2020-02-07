@@ -167,7 +167,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   # Alarms management
   #
 
-  defp install_alarm_handler do
+  defp install_alarm_handler() do
     case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__.AlarmHandler) do
       true -> :ok
       _ -> :alarm_handler.add_alarm_handler(__MODULE__.AlarmHandler)
