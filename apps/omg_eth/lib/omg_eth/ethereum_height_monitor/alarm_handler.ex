@@ -17,7 +17,6 @@ defmodule OMG.Eth.EthereumHeightMonitor.AlarmHandler do
   Listens for :ethereum_connection_error and :ethereum_stalled_sync alarms and reflect
   the alarm's state back to the monitor.
   """
-  use GenServer
   require Logger
 
   # The alarm reporter and monitor happen to be the same module here because we are just
