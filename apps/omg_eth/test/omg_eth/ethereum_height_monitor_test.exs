@@ -49,7 +49,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
 
     _ = Alarm.clear_all()
 
-    on_exit(fn ->
+    _ = on_exit(fn ->
       _ = EthereumClientMock.reset_state()
       _ = Process.sleep(10)
       true = Process.exit(monitor, :kill)
@@ -61,22 +61,6 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
        check_interval_ms: check_interval_ms,
        stall_threshold_ms: stall_threshold_ms
      }}
-  end
-
-  defmodule EventBusListener do
-    use GenServer
-
-    def start(parent), do: GenServer.start(__MODULE__, parent)
-
-    def init(parent) do
-      :ok = OMG.Bus.subscribe("ethereum_new_height", link: true)
-      {:ok, parent}
-    end
-
-    def handle_info({:internal_event_bus, :ethereum_new_height, _height}, parent) do
-      _ = send(parent, :got_ethereum_new_height)
-      {:noreply, parent}
-    end
   end
 
   #
@@ -185,6 +169,10 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     end
   end
 
+  #
+  # Test submodules
+  #
+
   defmodule EthereumClientMock do
     @moduledoc """
     Mocking the ETH module integration point.
@@ -238,5 +226,21 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
 
     defp next_height(height, false), do: height + 1
     defp next_height(height, true), do: height
+  end
+
+  defmodule EventBusListener do
+    use GenServer
+
+    def start(parent), do: GenServer.start(__MODULE__, parent)
+
+    def init(parent) do
+      :ok = OMG.Bus.subscribe("ethereum_new_height", link: true)
+      {:ok, parent}
+    end
+
+    def handle_info({:internal_event_bus, :ethereum_new_height, _height}, parent) do
+      _ = send(parent, :got_ethereum_new_height)
+      {:noreply, parent}
+    end
   end
 end
