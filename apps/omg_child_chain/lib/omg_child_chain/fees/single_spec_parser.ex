@@ -34,6 +34,8 @@ defmodule OMG.ChildChain.Fees.SingleSpecParser do
           | :invalid_timestamp
           # the token address is invalid (must be a valid Ethereum address)
           | :bad_address_encoding
+          # pegged fields must either be all nil or all not nil
+          | :invalid_pegged_fields
 
   @doc """
   Parses and validates a single fee spec
@@ -52,10 +54,11 @@ defmodule OMG.ChildChain.Fees.SingleSpecParser do
     with {:ok, fee} <- validate_positive_amount(fee, :invalid_fee),
          {:ok, addr} <- decode_address(token),
          {:ok, subunit_to_unit} <- validate_positive_amount(subunit_to_unit, :invalid_subunit_to_unit),
-         {:ok, pegged_amount} <- validate_positive_amount(pegged_amount, :invalid_pegged_amount),
+         {:ok, pegged_amount} <- validate_optional_positive_amount(pegged_amount, :invalid_pegged_amount),
          {:ok, pegged_currency} <- validate_pegged_currency(pegged_currency),
          {:ok, pegged_subunit_to_unit} <-
-           validate_positive_amount(pegged_subunit_to_unit, :invalid_pegged_subunit_to_unit),
+           validate_optional_positive_amount(pegged_subunit_to_unit, :invalid_pegged_subunit_to_unit),
+         :ok <- validate_pegged_fields(pegged_currency, pegged_amount, pegged_subunit_to_unit),
          {:ok, updated_at} <- validate_updated_at(updated_at) do
       {:ok,
        %{
@@ -71,10 +74,26 @@ defmodule OMG.ChildChain.Fees.SingleSpecParser do
   end
 
   def parse(_), do: {:error, :invalid_fee_spec}
+
   defp validate_positive_amount(amount, _error) when is_integer(amount) and amount > 0, do: {:ok, amount}
   defp validate_positive_amount(_amount, error), do: {:error, error}
+
+  defp validate_optional_positive_amount(nil, _error), do: {:ok, nil}
+  defp validate_optional_positive_amount(amount, _error) when is_integer(amount) and amount > 0, do: {:ok, amount}
+  defp validate_optional_positive_amount(_amount, error), do: {:error, error}
+
+  defp validate_pegged_currency(nil), do: {:ok, nil}
   defp validate_pegged_currency(pegged_currency) when is_binary(pegged_currency), do: {:ok, pegged_currency}
   defp validate_pegged_currency(_pegged_currency), do: {:error, :invalid_pegged_currency}
+
+  defp validate_pegged_fields(nil, nil, nil), do: :ok
+
+  defp validate_pegged_fields(currency, amount, subunit_to_unit)
+       when not is_nil(currency) and not is_nil(amount) and not is_nil(subunit_to_unit) do
+    :ok
+  end
+
+  defp validate_pegged_fields(_, _, _), do: {:error, :invalid_pegged_fields}
 
   defp validate_updated_at(updated_at) do
     case DateTime.from_iso8601(updated_at) do
