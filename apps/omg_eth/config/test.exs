@@ -13,8 +13,8 @@ config :omg_eth,
   node_logging_in_debug: true
 
 config :omg_eth,
-  # Set check interval at (:ethereum_events_check_interval_ms / 2) == 400 so the listeners always get the latest height
-  ethereum_height_check_interval_ms: 400,
+  # Lower the event check interval too low and geth will die
+  ethereum_events_check_interval_ms: 400,
   environment: :test,
   min_exit_period_seconds: 22,
   # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory

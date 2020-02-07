@@ -46,7 +46,7 @@ release :watcher do
   set(
     config_providers: [
       {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, []},
-      {OMG.Eth.ReleaseTasks.SetEthereumHeightCheckInterval, []},
+      {OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval, []},
       {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
       {OMG.Eth.ReleaseTasks.SetContract, []},
@@ -91,7 +91,7 @@ release :watcher_info do
   set(
     config_providers: [
       {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, []},
-      {OMG.Eth.ReleaseTasks.SetEthereumHeightCheckInterval, []},
+      {OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval, []},
       {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
       {OMG.Eth.ReleaseTasks.SetContract, []},
@@ -139,7 +139,7 @@ release :child_chain do
   set(
     config_providers: [
       {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, []},
-      {OMG.Eth.ReleaseTasks.SetEthereumHeightCheckInterval, []},
+      {OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval, []},
       {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
       {OMG.Eth.ReleaseTasks.SetContract, []},

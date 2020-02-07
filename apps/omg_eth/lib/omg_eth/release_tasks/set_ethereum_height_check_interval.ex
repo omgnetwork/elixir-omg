@@ -13,26 +13,30 @@
 # limitations under the License.
 
 defmodule OMG.Eth.ReleaseTasks.SetEthereumHeightCheckInterval do
-  @moduledoc false
+  @moduledoc """
+  Configures the interval to check for new events from Ethereum, including checking for new heights.
+
+  This is essentially the same as `OMG.ReleaseTasks.SetEthereumEventsCheckInterval` but for a different subapp.
+  """
   use Distillery.Releases.Config.Provider
   require Logger
 
   @app :omg_eth
-  @config_key :ethereum_height_check_interval_ms
-  @env_name "ETHEREUM_HEIGHT_CHECK_INTERVAL_MS"
+  @env_key "ETHEREUM_EVENTS_CHECK_INTERVAL_MS"
+  @config_key @ethereum_events_check_interval_ms
 
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
-    interval_ms = ethereum_height_check_interval_ms()
 
+    interval_ms = get_interval_ms()
     :ok = Application.put_env(@app, @config_key, interval_ms, persistent: true)
   end
 
-  defp ethereum_height_check_interval_ms() do
+  defp get_interval_ms() do
     interval_ms =
       validate_integer(
-        get_env(@env_name),
+        get_env(@env_key),
         Application.get_env(@app, @config_key)
       )
 

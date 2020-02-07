@@ -66,7 +66,7 @@ defmodule OMG.RootChainCoordinatorTest do
     {:ok, _} = DevHelper.import_unlock_fund(alice)
     assert 1 = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
-    check_interval_ms = Application.get_env(:omg_eth, :ethereum_height_check_interval_ms)
+    check_interval_ms = Application.get_env(:omg_eth, :ethereum_events_check_interval_ms)
     assert_receive([%{amount: 10}], check_interval_ms * 2)
   end
 end

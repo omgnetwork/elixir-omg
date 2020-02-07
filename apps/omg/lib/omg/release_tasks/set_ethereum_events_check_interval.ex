@@ -13,36 +13,36 @@
 # limitations under the License.
 
 defmodule OMG.ReleaseTasks.SetEthereumEventsCheckInterval do
-  @moduledoc false
+  @moduledoc """
+  Configures the interval to check for new events from Ethereum.
+
+  This is essentially the same as `OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval` but for a different subapp.
+  """
   use Distillery.Releases.Config.Provider
   require Logger
+
   @app :omg
+  @env_key "ETHEREUM_EVENTS_CHECK_INTERVAL_MS"
+  @config_key @ethereum_events_check_interval_ms
 
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
 
-    ethereum_events_check_interval_ms = ethereum_events_check_interval_ms()
-
-    :ok =
-      Application.put_env(@app, :ethereum_events_check_interval_ms, ethereum_events_check_interval_ms, persistent: true)
+    interval_ms = get_interval_ms()
+    :ok = Application.put_env(@app, @config_key, interval_ms, persistent: true)
   end
 
-  defp ethereum_events_check_interval_ms() do
-    ethereum_events_check_interval_ms =
+  defp get_interval_ms() do
+    interval_ms =
       validate_integer(
-        get_env("ETHEREUM_EVENTS_CHECK_INTERVAL_MS"),
-        Application.get_env(@app, :ethereum_events_check_interval_ms)
+        get_env(@env_key),
+        Application.get_env(@app, @config_key)
       )
 
-    _ =
-      Logger.info(
-        "CONFIGURATION: App: #{@app} Key: ethereum_events_check_interval_ms Value: #{
-          inspect(ethereum_events_check_interval_ms)
-        }."
-      )
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(interval_ms)}.")
 
-    ethereum_events_check_interval_ms
+    interval_ms
   end
 
   defp get_env(key), do: System.get_env(key)
