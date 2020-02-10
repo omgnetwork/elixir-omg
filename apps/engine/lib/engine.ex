@@ -3,6 +3,9 @@ defmodule Engine do
   Documentation for Engine.
   """
 
+  alias Engine.Transaction
+  alias Engine.Repo
+
   @doc """
   Hello world.
 
@@ -16,9 +19,11 @@ defmodule Engine do
     :world
   end
 
+  @doc """
+  Submits a transaction to the Engine.
+  """
   def submit(tx_bytes) do
-    tx_bytes
-    |> Engine.Transaction.build()
-    |> Engine.Repo.insert()
+    changeset = Transaction.changeset(%Transaction{}, tx_bytes)
+    Repo.insert(changeset)
   end
 end

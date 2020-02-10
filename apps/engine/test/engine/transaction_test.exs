@@ -3,31 +3,7 @@ defmodule Engine.TransactionTest do
   doctest Engine.Transaction
 
   alias Engine.Transaction
-  alias Engine.Utxo
   alias ExPlasma.Transaction.Deposit
-
-  describe "build/1" do
-    test "creates a deposit transaction" do
-      {:ok, deposit} = Deposit.new(%ExPlasma.Utxo{owner: <<1::160>>, currency: <<0::160>>, amount: 1})
-
-      deposit = %{deposit | tx_type: 1, tx_data: 0, metadata: <<0::160>>}
-      changeset = Transaction.build(deposit)
-      output = hd(changeset.changes[:outputs])
-
-      assert 1 == output.changes[:amount]
-      assert <<1::160>> == output.changes[:owner]
-    end
-
-    test "creates a transaction from rlp" do
-      {:ok, deposit} = Deposit.new(%ExPlasma.Utxo{owner: <<1::160>>, currency: <<0::160>>, amount: 1})
-
-      changeset = deposit |> ExPlasma.encode() |> Transaction.build()
-      output = hd(changeset.changes[:outputs])
-
-      assert 1 == output.changes[:amount]
-      assert <<1::160>> == output.changes[:owner]
-    end
-  end
 
   describe "changeset/2" do
     test "validates transactions against non-existing utxo inputs" do
@@ -41,7 +17,8 @@ defmodule Engine.TransactionTest do
           amount: 1
         })
 
-      {:ok, output} = ExPlasma.Utxo.new(%ExPlasma.Utxo{owner: <<1::160>>, currency: <<0::160>>, amount: 1})
+      {:ok, output} =
+        ExPlasma.Utxo.new(%ExPlasma.Utxo{owner: <<1::160>>, currency: <<0::160>>, amount: 1})
 
       {:ok, payment} = ExPlasma.Transaction.Payment.new(%{inputs: [input], outputs: [output]})
 
@@ -49,6 +26,32 @@ defmodule Engine.TransactionTest do
 
       refute changeset.valid?
       assert {"missing/spent input positions for 2000000000", _} = changeset.errors[:inputs]
+    end
+
+    test "validates a transaction from rlp" do
+      {:ok, deposit} =
+        Deposit.new(%ExPlasma.Utxo{owner: <<1::160>>, currency: <<0::160>>, amount: 1})
+
+      tx_bytes = deposit |> ExPlasma.encode()
+      changeset = Transaction.changeset(%Transaction{}, tx_bytes)
+      output = hd(changeset.changes[:outputs])
+
+      assert 1 == output.changes[:amount]
+      assert <<1::160>> == output.changes[:owner]
+    end
+
+    test "changeset includes an error for invalid rlp" do
+      # RLP encoded Transaction with a zero value owner.
+      tx_bytes =
+        <<248, 80, 1, 193, 0, 246, 245, 1, 243, 148, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 148, 46, 38, 45, 41, 28, 46, 150, 159, 176, 132, 157, 153, 217, 206, 65,
+          226, 241, 55, 0, 110, 136, 0, 0, 0, 0, 0, 0, 0, 1, 0, 148, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
+
+      changeset = Transaction.changeset(%Transaction{}, tx_bytes)
+
+      refute changeset.valid?
+      assert {"can't be zero", _} = changeset.errors[:owner]
     end
   end
 end

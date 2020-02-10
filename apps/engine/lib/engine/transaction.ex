@@ -7,9 +7,12 @@ defmodule Engine.Transaction do
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
-  alias __MODULE__
-
   @default_metadata <<0::160>>
+
+  @error_messages [
+    cannot_be_zero: "can't be zero",
+    exceeds_maximum: "can't exceed maximum value"
+  ]
 
   schema "transactions" do
     field(:tx_type, :integer, default: 1)
@@ -23,20 +26,6 @@ defmodule Engine.Transaction do
     timestamps(type: :utc_datetime)
   end
 
-  def build(%{} = txn) do
-    fields = [tx_type: txn.tx_type, tx_data: txn.tx_data, metadata: txn.metadata]
-
-    %__MODULE__{}
-    |> change(fields)
-    |> put_assoc(:inputs, Enum.map(txn.inputs, &Map.from_struct/1))
-    |> put_assoc(:outputs, Enum.map(txn.outputs, &Map.from_struct/1))
-  end
-
-  def build(txn) do
-    with {:ok, transaction} <- ExPlasma.decode(txn),
-         do: build(transaction)
-  end
-
   def changeset(struct, %ExPlasma.Transaction.Payment{} = params),
     do: changeset(struct, params_from_ex_plasma(params))
 
@@ -46,7 +35,7 @@ defmodule Engine.Transaction do
   def changeset(struct, %ExPlasma.Transaction{} = params),
     do: changeset(struct, params_from_ex_plasma(params))
 
-  def changeset(struct, params) do
+  def changeset(struct, %{} = params) do
     struct
     |> Engine.Repo.preload(:inputs)
     |> Engine.Repo.preload(:outputs)
@@ -55,6 +44,16 @@ defmodule Engine.Transaction do
     |> cast_assoc(:inputs)
     |> cast_assoc(:outputs)
     |> validate_usable_inputs()
+  end
+
+  def changeset(struct, txbytes) when is_binary(txbytes) do
+    case ExPlasma.decode(txbytes) do
+      {:ok, transaction} ->
+        changeset(struct, transaction)
+
+      {:error, {field, message}} ->
+        struct |> changeset(%{}) |> add_error(field, @error_messages[message])
+    end
   end
 
   @doc """

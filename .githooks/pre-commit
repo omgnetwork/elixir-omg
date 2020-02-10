@@ -1,3 +1,0 @@
-#!/bin/sh
-echo "Is your code formatted?"
-exec mix format --check-formatted
