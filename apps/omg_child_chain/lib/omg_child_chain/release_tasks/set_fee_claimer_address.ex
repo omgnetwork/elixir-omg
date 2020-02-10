@@ -33,7 +33,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
     :ok
   end
 
-  defp get_fee_claimer_address do
+  defp get_fee_claimer_address() do
     address =
       "FEE_CLAIMER_ADDRESS"
       |> System.get_env()

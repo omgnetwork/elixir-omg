@@ -49,12 +49,12 @@ defmodule OMG.State do
   end
 
   @spec form_block() :: :ok
-  def form_block do
+  def form_block() do
     GenServer.cast(__MODULE__, :form_block)
   end
 
   @spec close_block() :: {:ok, list(Core.db_update())}
-  def close_block do
+  def close_block() do
     GenServer.call(__MODULE__, :close_block)
   end
 
@@ -94,7 +94,7 @@ defmodule OMG.State do
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
-    {:ok, fee_claimer_address} = Keyword.fetch(opts, :fee_claimer_address)
+    fee_claimer_address = Keyword.fetch!(opts, :fee_claimer_address)
 
     {:ok, state} =
       with {:ok, _data} = result <-

@@ -58,9 +58,7 @@ defmodule OMG.State.Transaction.Validator.Payment do
   end
 
   defp inputs_not_from_future_block?(%Core{height: blknum}, inputs) do
-    no_utxo_from_future_block =
-      inputs
-      |> Enum.all?(fn Utxo.position(input_blknum, _, _) -> blknum >= input_blknum end)
+    no_utxo_from_future_block = Enum.all?(inputs, fn Utxo.position(input_blknum, _, _) -> blknum >= input_blknum end)
 
     if no_utxo_from_future_block, do: :ok, else: {:error, :input_utxo_ahead_of_state}
   end
@@ -71,7 +69,7 @@ defmodule OMG.State.Transaction.Validator.Payment do
   defp authorized?(outputs_spent, witnesses) do
     outputs_spent
     |> Enum.with_index()
-    |> Enum.map(fn {output_spent, idx} -> can_spend?(output_spent, witnesses[idx]) end)
+    |> Enum.map(fn {output_spent, index} -> can_spend?(output_spent, witnesses[index]) end)
     |> Enum.all?()
     |> if(do: :ok, else: {:error, :unauthorized_spend})
   end

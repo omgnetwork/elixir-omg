@@ -938,14 +938,11 @@ defmodule OMG.State.CoreTest do
 
       assert [payment_txbytes, fee_txbytes] = block.transactions
 
-      %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: payment_tx}} =
-        Transaction.Recovered.recover_from!(payment_txbytes)
+      assert %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.Payment{}}} =
+               Transaction.Recovered.recover_from!(payment_txbytes)
 
-      %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: fee_tx}} =
-        Transaction.Recovered.recover_from!(fee_txbytes)
-
-      assert %Transaction.Payment{} = payment_tx
-      assert %Transaction.Fee{} = fee_tx
+      assert %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.Fee{}}} =
+               Transaction.Recovered.recover_from!(fee_txbytes)
     end
 
     test "fee txs are appended even when fees aren't required", %{state: state} do
@@ -1115,13 +1112,12 @@ defmodule OMG.State.CoreTest do
       ntx_to_apply = maximum_block_size - (1 + maximum_inputs_size + already_reserved)
 
       {state, _} =
-        0..ntx_to_apply
-        |> Enum.reduce({state, available_after_1st_tx}, fn idx, {curr_state, amount} ->
+        Enum.reduce(0..ntx_to_apply, {state, available_after_1st_tx}, fn index, {curr_state, amount} ->
           new_amount = amount - eth_fee_rate
 
           new_state =
             curr_state
-            |> Core.exec(create_recovered([{1000, idx, 0, alice}], @eth, [{alice, new_amount}]), fees)
+            |> Core.exec(create_recovered([{1000, index, 0, alice}], @eth, [{alice, new_amount}]), fees)
             |> success?()
 
           {new_state, new_amount}

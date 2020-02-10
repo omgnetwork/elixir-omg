@@ -38,7 +38,7 @@ defmodule FeeClaimingTests do
   defwhen ~r/^"(?<entity>[^"]+)" deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{entity: entity, amount: amount},
           state do
-    entity_address = get_entity(state, entity).address
+    entity_address = state[entity].address
 
     {:ok, receipt_hash} =
       amount
@@ -58,8 +58,8 @@ defmodule FeeClaimingTests do
   defwhen ~r/^"(?<sender>[^"]+)" sends "(?<receiver>[^"]+)" "(?<amount>[^"]+)" ETH on the child chain$/,
           %{sender: sender, receiver: receiver, amount: amount},
           state do
-    sender = get_entity(state, sender)
-    receiver = get_entity(state, receiver)
+    sender = state[sender]
+    receiver = state[receiver]
 
     {:ok, [sign_hash, typed_data, _txbytes]} =
       Client.create_transaction(
@@ -76,7 +76,7 @@ defmodule FeeClaimingTests do
   defthen ~r/^"(?<entity>[^"]+)" should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{entity: entity, amount: amount},
           state do
-    entity_address = get_entity(state, entity).address
+    entity_address = state[entity].address
     expecting_amount = Currency.to_wei(amount)
 
     balance =
@@ -106,10 +106,6 @@ defmodule FeeClaimingTests do
 
   defp assert_equal(left, right, message) do
     assert(left == right, "Expected #{left}, but have #{right}." <> message)
-  end
-
-  defp get_entity(state, entity) do
-    state[entity]
   end
 
   # TODO: Remove when fixed. See issue: omisego/elixir-omg/issues/1293

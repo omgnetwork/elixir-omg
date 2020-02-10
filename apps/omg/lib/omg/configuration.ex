@@ -17,7 +17,12 @@ defmodule OMG.Configuration do
   Provides access to applications configuration
   """
   @app :omg
+
   def deposit_finality_margin() do
     Application.get_env(@app, :deposit_finality_margin)
+  end
+
+  def fee_claimer_address() do
+    Application.fetch_env!(@app, :fee_claimer_address)
   end
 end

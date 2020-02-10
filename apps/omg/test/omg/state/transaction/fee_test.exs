@@ -24,8 +24,11 @@ defmodule OMG.State.Transaction.FeeTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @other_token <<127::160>>
 
+  setup do
+    {:ok, [alice: OMG.TestHelper.generate_entity()]}
+  end
+
   describe "new/2" do
-    @tag fixtures: [:alice]
     test "can be encoded to binary form and back", %{alice: owner} do
       fee_tx = Transaction.Fee.new(1000, {owner.addr, @eth, 1551})
 
@@ -33,7 +36,6 @@ defmodule OMG.State.Transaction.FeeTest do
       assert fee_tx == Transaction.decode!(rlp_form)
     end
 
-    @tag fixtures: [:alice]
     test "hash can be computed with protocol implementation", %{alice: owner} do
       fee_tx = Transaction.Fee.new(1000, {owner.addr, @eth, 1551})
       fee_txhash = Transaction.raw_txhash(fee_tx)
@@ -44,7 +46,6 @@ defmodule OMG.State.Transaction.FeeTest do
       assert Transaction.raw_txhash(Transaction.Fee.new(1000, {owner.addr, @other_token, 1551})) != fee_txhash
     end
 
-    @tag fixtures: [:alice]
     test "fee-tx should be recoverable from binary form", %{alice: owner} do
       fee_tx = Transaction.Fee.new(1000, {owner.addr, @eth, 1551})
       tx_rlp = Transaction.Signed.encode(%Transaction.Signed{raw_tx: fee_tx, sigs: []})
@@ -57,12 +58,10 @@ defmodule OMG.State.Transaction.FeeTest do
   end
 
   describe "claim_collected/3" do
-    @tag fixtures: [:alice]
     test "no fees collected result in empty fee-txs list", %{alice: owner} do
-      assert [] == Transaction.Fee.claim_collected(1000, owner, %{})
+      assert Transaction.Fee.claim_collected(1000, owner, %{}) == []
     end
 
-    @tag fixtures: [:alice]
     test "fee-txs are sorted by currency", %{alice: owner} do
       fees_paid = %{
         @other_token => 111,

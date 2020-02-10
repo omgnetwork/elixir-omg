@@ -21,7 +21,7 @@ defmodule OMG.State.Transaction.Validator.FeeClaim do
   alias OMG.State.Core
   alias OMG.State.Transaction
 
-  @type fee_claim_error :: :claiming_unsupported_token | :claiming_more_than_collected
+  @type fee_claim_error :: :surplus_in_token_not_collected | :claimed_and_collected_amounts_mismatch
 
   @spec can_claim_fees(Core.t(), Transaction.Recovered.t()) ::
           {:ok, %{}} | {{:error, fee_claim_error()}, Core.t()}
