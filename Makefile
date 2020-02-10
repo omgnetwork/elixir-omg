@@ -483,8 +483,6 @@ diagnostics:
 	docker-compose logs watcher
 	echo "\n---------- WATCHER_INFO LOGS ----------"
 	docker-compose logs watcher_info
-	echo "\n---------- PLASMA CONTRACTS ----------"
-	curl -s localhost:8000/contracts | echo "Could not retrieve the deployed plasma contracts."
 	echo "\n---------- GIT ----------"
 	echo "Git commit: $$(git rev-parse HEAD)"
 	git status
