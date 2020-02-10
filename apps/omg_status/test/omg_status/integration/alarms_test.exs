@@ -57,24 +57,24 @@ defmodule OMG.Status.Alert.AlarmTest do
     :alarm_handler.set_alarm({:some_system_alarm, "description_1"})
     assert not Enum.empty?(get_alarms([:some_system_alarm]))
     Alarm.clear_all()
-    Alarm.set(Alarm.ethereum_client_connection(__MODULE__))
-    assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 1
+    Alarm.set(Alarm.ethereum_connection_error(__MODULE__))
+    assert Enum.count(get_alarms([:some_system_alarm, :ethereum_connection_error])) == 1
 
-    Alarm.set(Alarm.ethereum_client_connection(__MODULE__.SecondProcess))
-    assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 2
+    Alarm.set(Alarm.ethereum_connection_error(__MODULE__.SecondProcess))
+    assert Enum.count(get_alarms([:some_system_alarm, :ethereum_connection_error])) == 2
 
-    Alarm.clear(Alarm.ethereum_client_connection(__MODULE__))
-    assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 1
+    Alarm.clear(Alarm.ethereum_connection_error(__MODULE__))
+    assert Enum.count(get_alarms([:some_system_alarm, :ethereum_connection_error])) == 1
 
     Alarm.clear_all()
-    assert Enum.empty?(get_alarms([:some_system_alarm, :ethereum_client_connection])) == true
+    assert Enum.empty?(get_alarms([:some_system_alarm, :ethereum_connection_error])) == true
   end
 
   test "an alarm raise twice is reported once" do
-    Alarm.set(Alarm.ethereum_client_connection(__MODULE__))
-    first_count = Enum.count(get_alarms([:ethereum_client_connection]))
-    Alarm.set(Alarm.ethereum_client_connection(__MODULE__))
-    ^first_count = Enum.count(get_alarms([:ethereum_client_connection]))
+    Alarm.set(Alarm.ethereum_connection_error(__MODULE__))
+    first_count = Enum.count(get_alarms([:ethereum_connection_error]))
+    Alarm.set(Alarm.ethereum_connection_error(__MODULE__))
+    ^first_count = Enum.count(get_alarms([:ethereum_connection_error]))
   end
 
   test "memsup alarms" do

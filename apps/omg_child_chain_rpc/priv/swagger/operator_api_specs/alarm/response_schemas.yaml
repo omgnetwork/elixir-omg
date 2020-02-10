@@ -11,5 +11,6 @@ AlarmResponseSchema:
       data:
       -
         disk_almost_full: "/dev/null"
-        ethereum_client_connection: {}
+        ethereum_connection_error: {}
+        ethereum_stalled_sync: {}
         system_memory_high_watermark: []

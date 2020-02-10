@@ -21,7 +21,7 @@ defmodule OMG.Watcher.API.AlarmTest do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
     system_alarm = {:system_memory_high_watermark, []}
     system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
-    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: Reporter}}
+    app_alarm = {:ethereum_connection_error, %{node: Node.self(), reporter: Reporter}}
 
     on_exit(fn ->
       apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
@@ -46,7 +46,7 @@ defmodule OMG.Watcher.API.AlarmTest do
 
     find_alarms = [
       {{:disk_almost_full, "/dev/null"}, []},
-      {:ethereum_client_connection, %{node: Node.self(), reporter: Reporter}},
+      {:ethereum_connection_error, %{node: Node.self(), reporter: Reporter}},
       {:system_memory_high_watermark, []}
     ]
 

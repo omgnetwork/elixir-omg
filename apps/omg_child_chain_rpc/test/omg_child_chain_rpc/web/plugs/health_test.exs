@@ -18,7 +18,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
 
   alias OMG.ChildChainRPC.Web.TestHelper
   @alarm_1 {:boot_in_progress, %{node: Node.self(), reporter: __MODULE__}}
-  @alarm_2 {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
+  @alarm_2 {:ethereum_connection_error, %{node: Node.self(), reporter: __MODULE__}}
 
   describe "testing for boot_in_progress alarm" do
     @tag fixtures: [:phoenix_sandbox]
@@ -65,7 +65,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
     end
   end
 
-  describe "testing for ethereum_client_connection alarm " do
+  describe "testing for ethereum_connection_error alarm " do
     @tag fixtures: [:phoenix_sandbox]
     test "if alarm.get endpoint works even though alarms are raised" do
       :ok = :alarm_handler.set_alarm(@alarm_2)
@@ -78,7 +78,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
             %{
               "data" => [
                 %{
-                  "ethereum_client_connection" => %{
+                  "ethereum_connection_error" => %{
                     "node" => "nonode@nohost",
                     "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
                   }

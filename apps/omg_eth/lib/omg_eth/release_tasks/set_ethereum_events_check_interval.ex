@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ReleaseTasks.SetEthereumEventsCheckInterval do
+defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval do
   @moduledoc """
-  Configures the interval to check for new events from Ethereum.
+  Configures the interval to check for new events from Ethereum, including checking for new heights.
 
-  This is essentially the same as `OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval` but for a different subapp.
+  This is essentially the same as `OMG.ReleaseTasks.SetEthereumEventsCheckInterval` but for a different subapp.
   """
   use Distillery.Releases.Config.Provider
   require Logger
 
-  @app :omg
+  @app :omg_eth
   @env_key "ETHEREUM_EVENTS_CHECK_INTERVAL_MS"
   @config_key :ethereum_events_check_interval_ms
 

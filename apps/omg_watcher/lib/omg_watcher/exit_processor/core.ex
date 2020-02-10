@@ -443,11 +443,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     invalid_ife_challenges_events = ExitProcessor.Canonicity.get_invalid_ife_challenges(state)
 
     invalid_piggybacks = ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input)
-
-    # TODO: late piggybacks are critical, to be implemented in OMG-408
-    late_invalid_piggybacks = []
-
-    has_no_late_invalid_exits = Enum.empty?(late_invalid_exits) and Enum.empty?(late_invalid_piggybacks)
+    has_no_late_invalid_exits = Enum.empty?(late_invalid_exits)
 
     available_piggybacks_events =
       get_ifes_to_piggyback(state)
@@ -458,7 +454,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         late_invalid_exits_events,
         invalid_exit_events,
         invalid_piggybacks,
-        late_invalid_piggybacks,
         ifes_with_competitors_events,
         invalid_ife_challenges_events,
         available_piggybacks_events
