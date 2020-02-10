@@ -33,7 +33,7 @@ defmodule OMG.Eth.DevGeth do
     keystore = Path.join([homedir, "/geth/keystore"])
     datadir = Path.join([homedir, "/geth"])
     :ok = File.write!("/tmp/geth-blank-password", "")
-    geth = ~s(geth --syncmode 'fast' --miner.gastarget 7500000 \
+    geth = ~s(geth --miner.gastarget 7500000 \
             --nodiscover \
             --maxpeers 0 \
             --miner.gasprice \"10\" \

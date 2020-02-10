@@ -30,6 +30,8 @@ defmodule OMG.State.PersistenceTest do
 
   require Utxo
 
+  @fee_claimer_address Base.decode16!("DEAD000000000000000000000000000000000000")
+
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @blknum1 @interval
@@ -42,7 +44,7 @@ defmodule OMG.State.PersistenceTest do
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
 
-    {:ok, _} = Supervisor.start_link([{OMG.State, []}], strategy: :one_for_one)
+    {:ok, _} = Supervisor.start_link([{OMG.State, [fee_claimer_address: @fee_claimer_address]}], strategy: :one_for_one)
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
@@ -110,7 +112,7 @@ defmodule OMG.State.PersistenceTest do
 
   @tag fixtures: [:alice]
   test "blocks and spends are persisted", %{alice: alice} do
-    tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}])
+    tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}])
 
     [%{owner: alice, currency: @eth, amount: 20, blknum: 1}]
     |> persist_deposit()
@@ -128,6 +130,38 @@ defmodule OMG.State.PersistenceTest do
 
     assert {:ok, 1000} ==
              tx |> Transaction.get_inputs() |> hd() |> Utxo.Position.to_input_db_key() |> OMG.DB.spent_blknum()
+  end
+
+  @tag fixtures: [:alice]
+  test "collected surpluses are persisted", %{alice: alice} do
+    token1 = <<1::160>>
+    token2 = <<2::160>>
+
+    tx =
+      create_recovered(
+        [{1, 0, 0, alice}, {2, 0, 0, alice}, {3, 0, 0, alice}],
+        [{alice, @eth, 10}, {alice, token1, 10}, {alice, token2, 10}]
+      )
+
+    [
+      %{owner: alice, currency: @eth, amount: 20, blknum: 1},
+      %{owner: alice, currency: token1, amount: 60, blknum: 2},
+      %{owner: alice, currency: token2, amount: 110, blknum: 3}
+    ]
+    |> persist_deposit()
+    |> exec(tx)
+    |> persist_form()
+
+    assert {:ok, [hash]} = OMG.DB.block_hashes([@blknum1])
+
+    :ok = restart_state()
+
+    assert {:ok, [db_block]} = OMG.DB.blocks([hash])
+    assert %Block{transactions: [_payment_tx, eth_fee_tx, token1_fee_tx, token2_fee_tx]} = Block.from_db_value(db_block)
+
+    assert OMG.State.utxo_exists?(Utxo.position(1000, 1, 0))
+    assert OMG.State.utxo_exists?(Utxo.position(1000, 2, 0))
+    assert OMG.State.utxo_exists?(Utxo.position(1000, 3, 0))
   end
 
   @tag fixtures: [:alice]

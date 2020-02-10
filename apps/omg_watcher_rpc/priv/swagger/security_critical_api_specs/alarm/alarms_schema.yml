@@ -1,19 +1,31 @@
 components:
   schemas:
-    ethereum_client_connection:
+    ethereum_connection_error:
       type: object
       properties:
-        ethereum_client_connection:
+        ethereum_connection_error:
           type: object
           properties:
             node:
               type: string
             reporter:
               type: string
+    ethereum_stalled_sync:
+      type: object
+      properties:
+        ethereum_stalled_sync:
+          type: object
+          properties:
+            ethereum_height:
+              type: integer
+              minimum: 0
+            synced_at:
+              type: string
+              format: date-time
     invalid_fee_file:
       type: object
       properties:
-        ethereum_client_connection:
+        invalid_fee_file:
           type: object
           properties:
             node:
@@ -40,6 +52,6 @@ components:
           default: []
     disk_almost_full:
       type: object
-      properties: 
+      properties:
         disk_almost_full:
           type: string

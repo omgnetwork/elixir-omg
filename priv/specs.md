@@ -45,8 +45,8 @@ OMG.FeesTest
 OMG.ChildChainRPC.Plugs.HealthTest
   * test testing for boot_in_progress alarm if block.get endpoint rejects request because alarms are raised (excluded)
   * test testing for boot_in_progress alarm if block.get endpoint rejects the request because of bad params when alarm is cleared (excluded)
-  * test testing for ethereum_client_connection alarm  if block.get endpoint rejects the request because of bad params when alarm is cleared (excluded)
-  * test testing for ethereum_client_connection alarm  if block.get endpoint rejects request because alarms are raised (excluded)
+  * test testing for ethereum_connection_error alarm  if block.get endpoint rejects the request because of bad params when alarm is cleared (excluded)
+  * test testing for ethereum_connection_error alarm  if block.get endpoint rejects request because alarms are raised (excluded)
 
 OMG.ChildChain.SupTest
   * test syncs services correctly (excluded)
@@ -720,7 +720,7 @@ OMG.WatcherRPC.Web.Controller.ChallengeTest
 OMG.WatcherRPC.Web.Controller.EnforceContentPlugTest
   * test Content type header is no longer required (excluded)
 
-OMG.Eth.EthereumClientMonitorTest
+OMG.Eth.EthereumHeightMonitorTest
   * test that alarms get raised when we kill the connection (excluded)
   * test that we don't overflow the message queue with timers when Eth client needs time to respond (excluded)
   * test that alarm gets raised if there's no ethereum client running and cleared when it's running (excluded)

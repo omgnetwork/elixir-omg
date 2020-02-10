@@ -74,7 +74,7 @@ paths:
                             anyOf:
                               - type: object
                                 properties:
-                                  ethereum_client_connection:
+                                  ethereum_connection_error:
                                     type: object
                                     properties:
                                       node:
@@ -83,7 +83,7 @@ paths:
                                         type: string
                               - type: object
                                 properties:
-                                  ethereum_client_connection:
+                                  invalid_fee_file:
                                     type: object
                                     properties:
                                       node:
@@ -113,7 +113,7 @@ paths:
                     example:
                       data:
                         - disk_almost_full: /dev/null
-                          ethereum_client_connection: {}
+                          ethereum_connection_error: {}
                           system_memory_high_watermark: []
         '500':
           description: Returns an internal server error

@@ -28,6 +28,7 @@ defmodule OMG.State.CoreTest do
 
   import OMG.TestHelper
 
+  require Logger
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -374,7 +375,8 @@ defmodule OMG.State.CoreTest do
   end
 
   test "extract_initial_state function returns error when passed top block number as :not_found" do
-    assert {:error, :top_block_number_not_found} = Core.extract_initial_state(:not_found, @interval)
+    assert {:error, :top_block_number_not_found} =
+             Core.extract_initial_state(:not_found, @interval, "NO FEE CLAIMER ADDR!")
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -909,6 +911,223 @@ defmodule OMG.State.CoreTest do
              ]),
              MapSet.new(Core.standard_exitable_utxos(utxos_query_result, bob.addr))
            )
+  end
+
+  describe "Automatic fees claiming" do
+    setup do
+      fee_claimer = OMG.TestHelper.generate_entity()
+
+      {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
+      {:ok, state_empty} = Core.extract_initial_state(0, child_block_interval, fee_claimer.addr)
+
+      alice = OMG.TestHelper.generate_entity()
+      fees = %{@eth => %{amount: 2}}
+
+      state =
+        state_empty
+        |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}]), fees)
+        |> success?()
+
+      {:ok, [state: state, alice: alice, fees: fees, fee_claimer: fee_claimer, state_empty: state_empty]}
+    end
+
+    test "should append fee txs in block", %{state: state} do
+      state = Core.claim_fees(state)
+      {:ok, {block, _dbupdates}, _state} = form_block_check(state)
+
+      assert [payment_txbytes, fee_txbytes] = block.transactions
+
+      assert %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.Payment{}}} =
+               Transaction.Recovered.recover_from!(payment_txbytes)
+
+      assert %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.Fee{}}} =
+               Transaction.Recovered.recover_from!(fee_txbytes)
+    end
+
+    test "fee txs are appended even when fees aren't required", %{state: state} do
+      state = Core.claim_fees(state)
+      {:ok, {block, _dbupdates}, _state} = form_block_check(state)
+
+      assert 2 = length(block.transactions)
+    end
+
+    test "should create utxos from claimed fee", %{alice: alice, state: state, fee_claimer: fee_claimer} do
+      state = Core.claim_fees(state)
+      {:ok, _, state} = form_block_check(state)
+
+      state
+      |> Core.exec(create_recovered([{1000, 1, 0, fee_claimer}], @eth, [{alice, 2}]), :no_fees_required)
+      |> success?()
+    end
+
+    test "fee txs cannot be intermixed with payments", %{alice: alice, state: state, fees: fees} do
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2)
+
+      state
+      # fees from 1st tx are available to claim
+      |> Core.exec(fee_tx, fees)
+      |> success?()
+      # at this point no other payment can be processed
+      |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 5}]), fees)
+      |> fail?(:payments_rejected_during_fee_claiming)
+    end
+
+    test "cannot claim the same token twice", %{state: state, fees: fees} do
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2)
+
+      state
+      # fees from 1st tx are available to claim
+      |> Core.exec(fee_tx, fees)
+      |> success?()
+      # at this point no other payment can be processed
+      |> Core.exec(fee_tx, fees)
+      |> fail?(:surplus_in_token_not_collected)
+    end
+
+    test "cannot claim more than collected", %{state: state, fees: fees} do
+      paid_fee = 2
+
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, paid_fee + 1)
+
+      state
+      |> Core.exec(fee_tx, fees)
+      |> fail?(:claimed_and_collected_amounts_mismatch)
+    end
+
+    test "cannot claim less than collected", %{state: state, fees: fees} do
+      paid_fee = 2
+
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, paid_fee - 1)
+
+      state
+      |> Core.exec(fee_tx, fees)
+      |> fail?(:claimed_and_collected_amounts_mismatch)
+    end
+
+    test "no fees can be claimed after block is formed", %{state: state, fees: fees} do
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2)
+
+      # now it's possible to claim Eth fee (note: no state modification)
+      state
+      |> Core.exec(fee_tx, fees)
+      |> success?()
+
+      # block is formed without claiming fees
+      {:ok, {_block, _dbupdates}, new_state} = form_block_check(state)
+
+      # it's no longer possible to claim fees
+      new_state
+      |> Core.exec(fee_tx, fees)
+      |> fail?(:surplus_in_token_not_collected)
+    end
+
+    test "fee is paid in one token only, many surpluses prohibited", %{alice: alice, state: state, fees: fees} do
+      state
+      |> do_deposit(alice, %{amount: 100, currency: @not_eth, blknum: 2})
+      |> Core.exec(
+        create_recovered([{1000, 0, 0, alice}, {2, 0, 0, alice}], [{alice, @eth, 5}, {alice, @not_eth, 90}]),
+        fees
+      )
+      |> fail?(:multiple_potential_currency_fees)
+    end
+
+    test "zero surplus is not collectable", %{alice: alice, state: state, fees: fees} do
+      state =
+        state
+        |> do_deposit(alice, %{amount: 100, currency: @not_eth, blknum: 2})
+        |> Core.exec(
+          create_recovered([{1000, 0, 0, alice}, {2, 0, 0, alice}], [{alice, @eth, 6}, {alice, @not_eth, 100}]),
+          fees
+        )
+        |> success?()
+
+      # not_eth currency is transferred in full - no surplus exists
+      state
+      |> Core.exec(create_recovered_fee_tx(1000, state.fee_claimer_address, @not_eth, 1), fees)
+      |> fail?(:surplus_in_token_not_collected)
+    end
+
+    test "multi-input/output transaction - pay fees from no-zero index",
+         %{alice: alice, state_empty: state, fees: fees} do
+      not_eth_1 = <<123::160>>
+      not_eth_2 = <<234::160>>
+
+      state =
+        state
+        |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+        |> do_deposit(alice, %{amount: 10, currency: @not_eth, blknum: 2})
+        |> do_deposit(alice, %{amount: 10, currency: not_eth_1, blknum: 3})
+        |> do_deposit(alice, %{amount: 10, currency: not_eth_2, blknum: 4})
+        |> Core.exec(
+          create_recovered(
+            [{3, 0, 0, alice}, {2, 0, 0, alice}, {1, 0, 0, alice}, {4, 0, 0, alice}],
+            [{alice, @not_eth, 10}, {alice, @eth, 8}, {alice, not_eth_2, 10}, {alice, not_eth_1, 10}]
+          ),
+          fees
+        )
+        |> success?()
+
+      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2)
+
+      assert %Core{pending_txs: [^fee_tx | _]} = Core.claim_fees(state)
+    end
+
+    test "surpluses adding up for same-token-fees paid in a block", %{alice: alice, state: state, fees: fees} do
+      state =
+        state
+        |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 6}]), fees)
+        |> success?()
+
+      # we can claim sum of the surpluses from 2 txs (one in setup & one above)
+      collected = 2 + 2
+
+      state
+      |> Core.exec(create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, collected), fees)
+      |> success?()
+    end
+
+    # this test takes ~26 seconds on my machine
+    @tag slow: true
+    test "long running full block test", %{alice: alice, state_empty: state, fees: fees} do
+      Logger.warn("slow test is running, use --exclude slow to skip")
+
+      maximum_block_size = 65_536
+      maximum_inputs_size = 4
+      eth_fee_rate = fees[@eth].amount
+      amount_for_fees = (1 + eth_fee_rate) * maximum_block_size
+      available_after_1st_tx = amount_for_fees - eth_fee_rate
+
+      # First tx is applied just to make below transactions generation easier
+      state =
+        state
+        |> do_deposit(alice, %{amount: amount_for_fees, currency: @eth, blknum: 1})
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, available_after_1st_tx}]), fees)
+        |> success?()
+
+      # we just send 1 payment and this reserves 1 spot for fee
+      already_reserved = 2
+
+      # available space is block_size
+      ntx_to_apply = maximum_block_size - (1 + maximum_inputs_size + already_reserved)
+
+      {state, _} =
+        Enum.reduce(0..ntx_to_apply, {state, available_after_1st_tx}, fn index, {curr_state, amount} ->
+          new_amount = amount - eth_fee_rate
+
+          new_state =
+            curr_state
+            |> Core.exec(create_recovered([{1000, index, 0, alice}], @eth, [{alice, new_amount}]), fees)
+            |> success?()
+
+          {new_state, new_amount}
+        end)
+
+      state
+      # NOTE: I don't care about existing utxo actual position or available amount because block size is checked first
+      |> Core.exec(create_recovered([{2, 0, 0, alice}], @eth, [{alice, 1_000_000}]), fees)
+      |> fail?(:too_many_transactions_in_block)
+    end
   end
 
   defp success?(result) do

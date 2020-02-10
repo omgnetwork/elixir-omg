@@ -137,3 +137,15 @@ components:
               type: array
               items:
                 type: integer
+    ethereum_stalled_sync:
+      type: object
+      properties:
+        ethereum_stalled_sync:
+          type: object
+          properties:
+            ethereum_height:
+              type: integer
+              minimum: 0
+            synced_at:
+              type: string
+              format: date-time
