@@ -64,7 +64,10 @@ defmodule OMG.State.Transaction.Signed do
   @doc """
   Recovers the witnesses for non-empty signatures, in the order they appear in transaction's signatures
   """
-  @spec get_witnesses(Transaction.Signed.t()) :: {:ok, list(Crypto.address_t())} | {:error, atom}
+  @spec get_witnesses(Transaction.Signed.t()) ::
+          {:ok, %{(index :: non_neg_integer) => Crypto.address_t()}} | {:error, atom}
+  def get_witnesses(%Transaction.Signed{sigs: []}), do: {:ok, %{}}
+
   def get_witnesses(%Transaction.Signed{raw_tx: raw_tx, sigs: raw_witnesses}) do
     raw_txhash = TypedDataHash.hash_struct(raw_tx)
 

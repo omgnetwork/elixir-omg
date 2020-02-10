@@ -28,6 +28,7 @@ defmodule OMG.StateTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @fee_claimer_address Base.decode16!("DEAD000000000000000000000000000000000000")
 
   deffixture standalone_state_server(db_initialized) do
     # match variables to hide "unused var" warnings (can't be fixed by underscoring in line above, breaks macro):
@@ -43,7 +44,7 @@ defmodule OMG.StateTest do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
-    {:ok, _} = Supervisor.start_link([{OMG.State, []}], strategy: :one_for_one)
+    {:ok, _} = Supervisor.start_link([{OMG.State, [fee_claimer_address: @fee_claimer_address]}], strategy: :one_for_one)
 
     :ok
   end
