@@ -124,9 +124,9 @@ defmodule OMG.State.PersistenceTest do
     :ok = restart_state()
 
     assert {:ok, [db_block]} = OMG.DB.blocks([hash])
-    %Block{number: @blknum1, transactions: [block_tx], hash: ^hash} = Block.from_db_value(db_block)
+    %Block{number: @blknum1, transactions: [payment_tx, _fee_tx], hash: ^hash} = Block.from_db_value(db_block)
 
-    assert {:ok, tx} == Transaction.Recovered.recover_from(block_tx)
+    assert {:ok, tx} == Transaction.Recovered.recover_from(payment_tx)
 
     assert {:ok, 1000} ==
              tx |> Transaction.get_inputs() |> hd() |> Utxo.Position.to_input_db_key() |> OMG.DB.spent_blknum()
