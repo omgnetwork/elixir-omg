@@ -29,7 +29,8 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
     # If Block Getter fails, it starts from the last checkpoint while State might have had executed some transactions
     # such a situation will cause error when trying to execute already executed transaction
     children = [
-      {OMG.State, []},
+      # NOTE: Watcher doesn't need the actual fee claimer address
+      {OMG.State, [fee_claimer_address: Base.decode16!("DEAD000000000000000000000000000000000000")]},
       %{
         id: OMG.Watcher.BlockGetter,
         start: {OMG.Watcher.BlockGetter, :start_link, [[]]},

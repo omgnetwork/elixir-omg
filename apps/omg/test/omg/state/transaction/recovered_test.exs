@@ -116,8 +116,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode(23))
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, 1]))
 
-      # looks like a payment transaction but type points to a `FeeTokenClaim` transaction, hence malformed not
-      # unrecognized
+      # looks like a payment transaction but type points to a `Transaction.Fee`, hence malformed not unrecognized
       assert {:error, :malformed_transaction} =
                Transaction.Recovered.recover_from(ExRLP.encode([sigs, 3, inputs, outputs, 0, <<0::256>>]))
 

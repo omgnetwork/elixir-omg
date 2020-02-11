@@ -242,7 +242,7 @@ defmodule OMG.WatcherInfo.DB.Block do
         ]
   defp prepare_db_transaction(recovered_tx, block_number, txindex) do
     tx = Map.fetch!(recovered_tx, :signed_tx)
-    metadata = tx |> Map.fetch!(:raw_tx) |> Map.fetch!(:metadata)
+    metadata = tx |> Map.fetch!(:raw_tx) |> Map.get(:metadata)
     signed_tx_bytes = Map.fetch!(recovered_tx, :signed_tx_bytes)
     tx_hash = State.Transaction.raw_txhash(tx)
 

@@ -26,12 +26,12 @@ defmodule OMG.WireFormatTypes do
 
   @tx_type_modules %{
     1 => OMG.State.Transaction.Payment,
-    3 => OMG.State.Transaction.FeeTokenClaim
+    3 => OMG.State.Transaction.Fee
   }
 
   @module_tx_types %{
     OMG.State.Transaction.Payment => 1,
-    OMG.State.Transaction.FeeTokenClaim => 3
+    OMG.State.Transaction.Fee => 3
   }
 
   @input_pointer_type_values %{

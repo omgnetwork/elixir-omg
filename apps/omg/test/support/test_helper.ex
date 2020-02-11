@@ -99,6 +99,17 @@ defmodule OMG.TestHelper do
     create_signed(inputs, outputs) |> Transaction.Signed.encode()
   end
 
+  def create_encoded_fee_tx(blknum, owner, currency, amount) do
+    %Transaction.Signed{
+      raw_tx: Transaction.Fee.new(blknum, {owner, currency, amount}),
+      sigs: []
+    }
+    |> Transaction.Signed.encode()
+  end
+
+  def create_recovered_fee_tx(blknum, owner, currency, amount),
+    do: create_encoded_fee_tx(blknum, owner, currency, amount) |> Transaction.Recovered.recover_from!()
+
   @doc """
   convenience function around Transaction.new to create signed transactions (see create_recovered)
   """

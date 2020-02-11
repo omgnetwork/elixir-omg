@@ -16,7 +16,7 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumer do
   @moduledoc """
   Subscribes for new blocks and inserts them to WatcherInfo.DB.
   """
-  alias OMG.WatcherInfo.DB.Block
+  alias OMG.WatcherInfo.DB
   require Logger
 
   ### Client
@@ -41,7 +41,7 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumer do
     _ =
       block_application
       |> to_mined_block()
-      |> Block.insert_with_transactions()
+      |> DB.Block.insert_with_transactions()
 
     {:noreply, state}
   end
