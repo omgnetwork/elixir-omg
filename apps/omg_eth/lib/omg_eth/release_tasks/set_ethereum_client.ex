@@ -26,9 +26,6 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
     rpc_url = get_ethereum_rpc_url()
     Application.put_env(:ethereumex, :url, rpc_url, persistent: true)
 
-    ws_url = get_ethereum_ws_rpc_url()
-    Application.put_env(@app, :ws_url, ws_url, persistent: true)
-
     rpc_client_type = get_rpc_client_type()
     Application.put_env(@app, :eth_node, rpc_client_type, persistent: true)
     :ok
@@ -37,14 +34,6 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   defp get_ethereum_rpc_url() do
     url = validate_string(get_env("ETHEREUM_RPC_URL"), Application.get_env(:ethereumex, :url))
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: ETHEREUM_RPC_URL Value: #{inspect(url)}.")
-
-    url
-  end
-
-  defp get_ethereum_ws_rpc_url() do
-    url = validate_string(get_env("ETHEREUM_WS_RPC_URL"), Application.get_env(@app, :ws_url))
-
-    _ = Logger.info("CONFIGURATION: App: #{@app} Key: ETHEREUM_WS_RPC_URL Value: #{inspect(url)}.")
 
     url
   end

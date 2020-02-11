@@ -36,36 +36,29 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
 
   test "if defaults are used when env vars are not set" do
     url = Application.get_env(:ethereumex, :url)
-    ws_url = Application.get_env(:omg_eth, :ws_url)
     eth_node = Application.get_env(@app, :eth_node)
     :ok = SetEthereumClient.init([])
     ^url = Application.get_env(:ethereumex, :url)
-    ^ws_url = Application.get_env(:omg_eth, :ws_url)
     ^eth_node = Application.get_env(@app, :eth_node)
   end
 
   test "if values are used when env vars set" do
-    :ok = System.put_env("ETHEREUM_WS_RPC_URL", "ws_url")
     :ok = System.put_env("ETHEREUM_RPC_URL", "url")
     :ok = System.put_env("ETH_NODE", "geth")
     :ok = SetEthereumClient.init([])
     "url" = Application.get_env(:ethereumex, :url)
-    "ws_url" = Application.get_env(:omg_eth, :ws_url)
     :geth = Application.get_env(@app, :eth_node)
 
     :ok = System.put_env("ETH_NODE", "parity")
     :ok = SetEthereumClient.init([])
     "url" = Application.get_env(:ethereumex, :url)
-    "ws_url" = Application.get_env(:omg_eth, :ws_url)
     :parity = Application.get_env(@app, :eth_node)
 
     :ok = System.put_env("ETH_NODE", "infura")
     :ok = SetEthereumClient.init([])
     "url" = Application.get_env(:ethereumex, :url)
-    "ws_url" = Application.get_env(:omg_eth, :ws_url)
     :infura = Application.get_env(@app, :eth_node)
     # cleanup
-    :ok = System.delete_env("ETHEREUM_WS_RPC_URL")
     :ok = System.delete_env("ETHEREUM_RPC_URL")
     :ok = System.delete_env("ETH_NODE")
   end

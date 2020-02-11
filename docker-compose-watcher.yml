@@ -21,7 +21,6 @@ services:
     command: "full_local"
     environment:
       - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
-      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/${INFURA_API_KEY}
       - CHILD_CHAIN_URL=https://childchain-pre-lumphini.omg.network/
       - ETHEREUM_NETWORK=RINKEBY
       - TXHASH_CONTRACT=0xefc216dcfb01223253172514355fbe65e60acc043f214a9cdfad1e6f5cb566b4
@@ -49,7 +48,6 @@ services:
     command: "full_local"
     environment:
       - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
-      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/${INFURA_API_KEY}
       - CHILD_CHAIN_URL=https://childchain-pre-lumphini.omg.network/
       - ETHEREUM_NETWORK=RINKEBY
       - TXHASH_CONTRACT=0xefc216dcfb01223253172514355fbe65e60acc043f214a9cdfad1e6f5cb566b4
