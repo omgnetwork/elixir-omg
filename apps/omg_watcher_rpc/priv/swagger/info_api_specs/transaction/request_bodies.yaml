@@ -1,5 +1,6 @@
 GetAllTransactionsBodySchema:
   description: Account address, block number and other criteria
+  required: true
   content:
     application/json:
       schema:
@@ -8,13 +9,11 @@ GetAllTransactionsBodySchema:
         properties:
           address:
             type: string
-             
           blknum:
             type: integer
             format: int64
           metadata:
-            type: string
-             
+            type: string    
           page:
             type: integer
             format: int32
@@ -23,6 +22,8 @@ GetAllTransactionsBodySchema:
             type: integer
             format: int32
             default: 200
+        required:
+          - limit
         example:
           address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
           metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
@@ -40,8 +41,7 @@ CreateTransactionsBodySchema:
         type: object
         properties:
           owner:
-            type: string
-             
+            type: string    
           payments:
             type: array
             items: 
@@ -52,10 +52,8 @@ CreateTransactionsBodySchema:
                   format: int256
                 currency:
                   type: string
-                   
                 owner:
-                  type: string
-                   
+                  type: string                
               required:
                 - amount
                 - currency
