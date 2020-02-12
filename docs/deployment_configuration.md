@@ -6,7 +6,6 @@
 - "APP_ENV" - environment name in which the the application was deployed *mandatory*
 - "DB_PATH" - directory of the KV db *mandatory*
 - "ETHEREUM_RPC_URL" - address of Geth or Parity instance *mandatory*
-- "ETHEREUM_WS_RPC_URL" - address of Geth or Parity instance with websocket flags *mandatory*
 - "ETH_NODE" - Geth, Parity or Infura *mandatory*
 - "SENTRY_DSN" - if not set, Sentry is disabled
 - "DD_HOSTNAME" - Datadog hostname
