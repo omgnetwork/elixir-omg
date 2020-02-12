@@ -217,7 +217,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   end
 
   @tag fixtures: [:in_beam_watcher, :mix_based_child_chain, :test_server, :stable_alice, :stable_alice_deposits]
-  test "operator claim more fees than collected", %{
+  test "operator claimed fees incorrectly (too much | little amount, not collected token)", %{
     stable_alice: alice,
     test_server: context,
     stable_alice_deposits: {deposit_blknum, _}
