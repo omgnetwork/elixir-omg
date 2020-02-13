@@ -17,7 +17,7 @@ defmodule OMG.ChildChain.FeeServer do
   Maintains current fee rates and tokens in which fees may be paid.
 
   Periodically updates fees information from an external source (defined in config
-  by fee_adapter) until switched off with config :omg_child_chain, :ignore_fees.
+  by fee_adapter).
 
   Fee's file parsing and rules of transaction's fee validation are in `OMG.Fees`
   """
@@ -41,19 +41,10 @@ defmodule OMG.ChildChain.FeeServer do
     {:ok, fee_adapter} = get_fee_adapter()
     args = Keyword.put(args, :fee_adapter, fee_adapter)
 
-    args =
-      case Application.get_env(:omg_child_chain, :ignore_fees) do
-        true ->
-          :ok = save_fees(:ignore_fees, 0)
-          _ = Logger.warn("Fees are ignored.")
-          args
-
-        opt when is_nil(opt) or is_boolean(opt) ->
-          :ok = update_fee_specs(fee_adapter)
-          interval = Keyword.get(args, :interval_ms, @fee_file_check_interval_ms)
-          {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_specs)
-          Keyword.put(args, :tref, tref)
-      end
+    :ok = update_fee_specs(fee_adapter)
+    interval = Keyword.get(args, :interval_ms, @fee_file_check_interval_ms)
+    {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_specs)
+    args = Keyword.put(args, :tref, tref)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
 
@@ -70,18 +61,12 @@ defmodule OMG.ChildChain.FeeServer do
 
   def handle_info(:update_fee_specs, state) do
     _ =
-      case Application.get_env(:omg_child_chain, :ignore_fees) do
-        true ->
-          _ = Logger.warn("Fees are ignored. Updates have no effect.")
+      case update_fee_specs(state[:fee_adapter]) do
+        :ok ->
+          Alarm.clear(Alarm.invalid_fee_file(__MODULE__))
 
         _ ->
-          case update_fee_specs(state[:fee_adapter]) do
-            :ok ->
-              Alarm.clear(Alarm.invalid_fee_file(__MODULE__))
-
-            _ ->
-              Alarm.set(Alarm.invalid_fee_file(__MODULE__))
-          end
+          Alarm.set(Alarm.invalid_fee_file(__MODULE__))
       end
 
     {:noreply, state}

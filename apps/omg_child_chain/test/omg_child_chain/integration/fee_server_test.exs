@@ -73,7 +73,6 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end)
     |> Enum.take_while(fn b -> not b end)
 
-    ignore_option = Application.fetch_env!(:omg_child_chain, :ignore_fees)
     old_file_name = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
 
     {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
@@ -82,7 +81,6 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     on_exit(fn ->
       apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
       File.rm(file_path)
-      Application.put_env(:omg_child_chain, :ignore_fees, ignore_option)
       Application.put_env(:omg_child_chain, :fee_specs_file_name, old_file_name)
     end)
 
@@ -160,30 +158,6 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
       assert log =~ ~r/\[error\].*Unable to update fees/
       assert false == server_alive?()
-    end
-  end
-
-  describe "fees ignored" do
-    setup do
-      Application.put_env(:omg_child_chain, :ignore_fees, true)
-      {:started, log, exit_fn} = start_fee_server()
-      assert log =~ "ignored"
-
-      on_exit(fn ->
-        exit_fn.()
-        Application.put_env(:omg_child_chain, :ignore_fees, false)
-      end)
-
-      :ok
-    end
-
-    test "fee server ignores file updates" do
-      assert {:ok, :ignore_fees} == FeeServer.transaction_fees()
-
-      assert refresh_fees() =~ "Updates have no effect"
-
-      assert {:ok, :ignore_fees} == FeeServer.transaction_fees()
-      assert server_alive?()
     end
   end
 

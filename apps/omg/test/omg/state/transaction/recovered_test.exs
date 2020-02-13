@@ -43,7 +43,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
     test "using created transaction in child chain", %{alice: alice, bob: bob, state_alice_deposit: state} do
       state = TestHelper.do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 2})
 
-      payment = Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, @eth, 12}])
+      payment = Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, @eth, 19}])
 
       payment
       |> DevCrypto.sign([alice.priv, alice.priv])
@@ -56,7 +56,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
       bob: bob,
       state_alice_deposit: state
     } do
-      payment = Transaction.Payment.new([{1, 0, 0}], [{bob.addr, @eth, 4}])
+      payment = Transaction.Payment.new([{1, 0, 0}], [{bob.addr, @eth, 9}])
 
       payment
       |> DevCrypto.sign([alice.priv])
@@ -552,8 +552,10 @@ defmodule OMG.State.Transaction.RecoveredTest do
   end
 
   defp assert_tx_usable(signed, state_core) do
+    fee = %{@eth => %{amount: 1}}
+
     {:ok, transaction} = signed |> Transaction.Signed.encode() |> Transaction.Recovered.recover_from()
-    assert {:ok, {_, _, _}, _state} = State.Core.exec(state_core, transaction, :ignore_fees)
+    assert {:ok, {_, _, _}, _state} = State.Core.exec(state_core, transaction, fee)
   end
 
   defp parametrized_tester({inputs, outputs}) do
