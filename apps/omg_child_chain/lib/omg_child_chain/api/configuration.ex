@@ -23,8 +23,10 @@ defmodule OMG.ChildChain.API.Configuration do
   def get_configuration() do
     configuration = %{
       deposit_finality_margin: Configuration.deposit_finality_margin(),
+
       contract_semver: OMG.Eth.Configuration.contract_semver(),
-      network: OMG.Eth.Configuration.network()
+      min_exit_period_seconds: OMG.Eth.Configuration.min_exit_period_seconds(),
+      network: OMG.Eth.Configuration.network(),
     }
 
     {:ok, configuration}

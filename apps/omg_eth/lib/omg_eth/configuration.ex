@@ -14,14 +14,19 @@
 
 defmodule OMG.Eth.Configuration do
   @moduledoc """
-  Provides access to applications configuration
+  Provides access to plasma-contracts configuration
   """
   @app :omg_eth
+
   def contract_semver() do
     Application.get_env(@app, :contract_semver)
   end
 
   def network() do
     Application.get_env(@app, :network)
+  end
+
+  def min_exit_period_seconds() do
+    Application.get_env(@app, :min_exit_period_seconds)
   end
 end
