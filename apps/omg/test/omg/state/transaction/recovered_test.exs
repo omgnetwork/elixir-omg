@@ -478,6 +478,17 @@ defmodule OMG.State.Transaction.RecoveredTest do
                |> Transaction.Recovered.recover_from()
     end
 
+    test "Decoding transaction with a bad RLP (non-optimal encoding) fails" do
+      # NOTE: it's hard to build a bad RLP encoding of a full transaction, so just check if invalidity of RLP is a
+      # specific error. This is a regression test for the underlying RLP implementation for
+      # https://github.com/mana-ethereum/ex_rlp/issues/26
+
+      # sanity check - correct RLP but nonsense
+      assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<10>>)
+      # non-optimally encoded `<<10>>` in RLP, a specific error is returned
+      assert {:error, :malformed_transaction_rlp} = Transaction.Recovered.recover_from(<<129, 10>>)
+    end
+
     test "Decoding transaction with >32 bytes in output amount fails" do
       outputs_index_in_rlp = 3
       [[type, [owner, currency, _amount]]] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)

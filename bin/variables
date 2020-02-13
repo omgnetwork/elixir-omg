@@ -6,7 +6,6 @@ export APP_ENV=local_development
 export HOSTNAME=yolo
 export DB_PATH=~/plasma-data/
 export ETHEREUM_RPC_URL=http://127.0.0.1:8545
-export ETHEREUM_WS_RPC_URL=ws://127.0.0.1:8546
 export ETH_NODE=geth
 export ETHEREUM_NETWORK=LOCALCHAIN
 export DATABASE_URL=postgresql://omisego_dev:omisego_dev@127.0.0.1:5432/omisego_dev
