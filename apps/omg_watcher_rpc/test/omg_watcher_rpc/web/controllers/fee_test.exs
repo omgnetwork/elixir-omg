@@ -59,8 +59,8 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "raises an error gracefully when childchain is unreachable" do
       assert %{
-               "code" => "client:econnrefused",
-               "description" => "Cannot communicate with the server.",
+               "code" => "connection:childchain_unreachable",
+               "description" => "Cannot communicate with the childchain.",
                "object" => "error"
              } = WatcherHelper.no_success?("/fees.all")
     end

@@ -36,9 +36,14 @@ defmodule OMG.WatcherInfo.HttpRPC.AdapterTest do
       assert response == {:malformed_response, %{"malformed" => "body"}}
     end
 
-    test "returns the HTTPoison error reason when present" do
-      assert {:error, :econnrefused} =
+    test "returns a `childchain_unreachable` error when `econnrefused` is returned" do
+      assert {:error, :childchain_unreachable} =
                Adapter.get_unparsed_response_body({:error, %HTTPoison.Error{id: nil, reason: :econnrefused}})
+    end
+
+    test "returns the HTTPoison error reason when present" do
+      assert {:error, :a_reason} =
+               Adapter.get_unparsed_response_body({:error, %HTTPoison.Error{id: nil, reason: :a_reason}})
     end
   end
 
