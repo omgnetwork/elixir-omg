@@ -47,6 +47,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     field(:txindex, :integer, primary_key: true)
     field(:oindex, :integer, primary_key: true)
     field(:owner, :binary)
+    field(:otype, :integer)
     field(:amount, OMG.WatcherInfo.DB.Types.IntegerType)
     field(:currency, :binary)
     field(:proof, :binary)
@@ -147,18 +148,19 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
       tx
       |> Transaction.get_outputs()
       |> Enum.with_index()
-      |> Enum.flat_map(fn {%{currency: currency, owner: owner, amount: amount}, oindex} ->
-        create_output(blknum, txindex, oindex, txhash, owner, currency, amount)
+      |> Enum.flat_map(fn {%{currency: currency, owner: owner, amount: amount, output_type: otype}, oindex} ->
+        create_output(otype, blknum, txindex, oindex, txhash, owner, currency, amount)
       end)
 
     outputs
   end
 
-  defp create_output(_blknum, _txindex, _txhash, _oindex, _owner, _currency, 0), do: []
+  defp create_output(_otype, _blknum, _txindex, _txhash, _oindex, _owner, _currency, 0), do: []
 
-  defp create_output(blknum, txindex, oindex, txhash, owner, currency, amount) when amount > 0,
+  defp create_output(otype, blknum, txindex, oindex, txhash, owner, currency, amount) when amount > 0,
     do: [
       %{
+        otype: otype,
         blknum: blknum,
         txindex: txindex,
         oindex: oindex,

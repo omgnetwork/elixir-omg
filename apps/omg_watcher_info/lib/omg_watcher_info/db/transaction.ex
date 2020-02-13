@@ -32,6 +32,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   @derive {Jason.Encoder, except: [:__meta__]}
   schema "transactions" do
     field(:txindex, :integer)
+    field(:txtype, :integer)
     field(:txbytes, :binary)
     field(:sent_at, :utc_datetime)
     field(:metadata, :binary)
@@ -66,7 +67,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   """
   @spec get_by_filters(Keyword.t(), Paginator.t()) :: Paginator.t()
   def get_by_filters(constraints, paginator) do
-    allowed_constraints = [:address, :blknum, :txindex, :metadata]
+    allowed_constraints = [:address, :blknum, :txindex, :txtype, :metadata]
 
     constraints = filter_constraints(constraints, allowed_constraints)
 

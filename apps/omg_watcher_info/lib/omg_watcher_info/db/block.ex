@@ -242,22 +242,24 @@ defmodule OMG.WatcherInfo.DB.Block do
         ]
   defp prepare_db_transaction(recovered_tx, block_number, txindex) do
     tx = Map.fetch!(recovered_tx, :signed_tx)
-    metadata = tx |> Map.fetch!(:raw_tx) |> Map.get(:metadata)
+    %{tx_type: tx_type} = raw_tx = Map.fetch!(tx, :raw_tx)
+    metadata = Map.get(raw_tx, :metadata)
     signed_tx_bytes = Map.fetch!(recovered_tx, :signed_tx_bytes)
     tx_hash = State.Transaction.raw_txhash(tx)
 
-    transaction = create(block_number, txindex, tx_hash, signed_tx_bytes, metadata)
+    transaction = create(block_number, txindex, tx_hash, tx_type, signed_tx_bytes, metadata)
     outputs = DB.TxOutput.create_outputs(block_number, txindex, tx_hash, tx)
     inputs = DB.TxOutput.create_inputs(tx, tx_hash)
 
     {transaction, outputs, inputs}
   end
 
-  @spec create(pos_integer(), integer(), binary(), binary(), State.Transaction.metadata()) ::
+  @spec create(pos_integer(), integer(), binary(), pos_integer(), binary(), State.Transaction.metadata()) ::
           map()
-  defp create(block_number, txindex, txhash, txbytes, metadata) do
+  defp create(block_number, txindex, txhash, txtype, txbytes, metadata) do
     %{
       txhash: txhash,
+      txtype: txtype,
       txbytes: txbytes,
       blknum: block_number,
       txindex: txindex,

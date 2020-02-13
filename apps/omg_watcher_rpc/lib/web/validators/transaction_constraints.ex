@@ -28,6 +28,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraints do
       {"address", [:address, :optional]},
       {"blknum", [:pos_integer, :optional]},
       {"metadata", [:hash, :optional]},
+      {"txtype", [:pos_integer, :optional]},
       {"limit", [:pos_integer, :optional]},
       {"page", [:pos_integer, :optional]}
     ]

@@ -89,6 +89,7 @@ defmodule OMG.WatcherInfo.Factory do
       txbytes: insecure_random_bytes(32),
       sent_at: DateTime.utc_now(),
       metadata: insecure_random_bytes(32),
+      txtype: 1,
       block: nil,
       inputs: [],
       outputs: []
@@ -113,6 +114,7 @@ defmodule OMG.WatcherInfo.Factory do
       blknum: block.blknum,
       txindex: 0,
       oindex: 0,
+      otype: 1,
       owner: insecure_random_bytes(20),
       amount: 100,
       currency: @eth,
