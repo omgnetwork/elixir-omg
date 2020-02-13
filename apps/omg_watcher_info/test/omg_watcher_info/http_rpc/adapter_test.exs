@@ -37,7 +37,8 @@ defmodule OMG.WatcherInfo.HttpRPC.AdapterTest do
     end
 
     test "returns the HTTPoison error reason when present" do
-      assert {:error, :econnrefused} = Adapter.get_unparsed_response_body({:error, %HTTPoison.Error{id: nil, reason: :econnrefused}})
+      assert {:error, :econnrefused} =
+               Adapter.get_unparsed_response_body({:error, %HTTPoison.Error{id: nil, reason: :econnrefused}})
     end
   end
 
