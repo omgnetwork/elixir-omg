@@ -35,7 +35,7 @@ defmodule OMG.Watcher.BlockGetter do
     - Applies the block by statefully validating and executing the txs on `OMG.State`
     - after the block is fully validated it gathers all the updates to `OMG.DB` and executes them. This includes marking
       a respective Ethereum height (that contained the `BlockSubmitted` event) as processed
-    - checks in to `OMG.RootChainCoordinator` to let other servies know about progress
+    - checks in to `OMG.RootChainCoordinator` to let other services know about progress
 
   The process of downloading and stateless validation of blocks is done in `Task`s for concurrency.
 
