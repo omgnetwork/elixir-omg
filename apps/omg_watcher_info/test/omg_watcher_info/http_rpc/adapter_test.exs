@@ -35,6 +35,10 @@ defmodule OMG.WatcherInfo.HttpRPC.AdapterTest do
       assert {:error, response} = Adapter.get_unparsed_response_body(%HTTPoison.Response{status_code: 200, body: body})
       assert response == {:malformed_response, %{"malformed" => "body"}}
     end
+
+    test "returns the HTTPoison error reason when present" do
+      assert {:error, :econnrefused} = Adapter.get_unparsed_response_body({:error, %HTTPoison.Error{id: nil, reason: :econnrefused}})
+    end
   end
 
   describe "get_response_body/1" do
