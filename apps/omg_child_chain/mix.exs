@@ -32,7 +32,6 @@ defmodule OMG.ChildChain.MixProject do
 
   defp deps() do
     [
-      {:ex_rlp, "~> 0.5.2"},
       {:telemetry, "~> 0.4.0"},
       #
       {:omg_bus, in_umbrella: true},

@@ -91,7 +91,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.RootChain.get_child_chain(spend_child_block2)
 
-    assert {:ok, %{"transactions" => [transaction2]}} = get_block(block_hash2)
+    assert {:ok, %{"transactions" => [transaction2, fee_tx_hex]}} = get_block(block_hash2)
     {:ok, decoded_tx2_bytes} = Encoding.from_hex(transaction2)
     assert %{raw_tx: ^raw_tx2} = Transaction.Signed.decode!(decoded_tx2_bytes)
 
@@ -103,7 +103,8 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(token_tx)
 
     # try to exit from transaction2's output
-    proof = Block.inclusion_proof([tx2], 0)
+    {:ok, fee_bytes} = Encoding.from_hex(fee_tx_hex)
+    proof = Block.inclusion_proof([tx2, fee_bytes], 0)
     encoded_utxo_pos = Utxo.Position.encode(Utxo.position(spend_child_block2, 0, 0))
     raw_txbytes = Transaction.raw_txbytes(raw_tx2)
 
@@ -141,7 +142,10 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       in_flight_tx =
       OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 8}])
 
-    proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], txindex)
+    fee_claimer = OMG.Configuration.fee_claimer_address()
+    fee_tx = OMG.TestHelper.create_encoded_fee_tx(blknum, fee_claimer, @eth, 1)
+
+    proof = Block.inclusion_proof([Transaction.Signed.encode(tx), fee_tx], txindex)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       RootChainHelper.in_flight_exit(
@@ -220,7 +224,11 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     %Transaction.Signed{sigs: in_flight_tx_sigs} =
       in_flight_tx = OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}], @eth, [{alice, 5}])
 
-    proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], 0)
+    # We need to consider fee tx in block, as 10 ETH deposited = 9 transferred with `tx` + 1 collected as fees
+    fee_claimer = OMG.Configuration.fee_claimer_address()
+    fee_tx = OMG.TestHelper.create_encoded_fee_tx(blknum, fee_claimer, @eth, 1)
+
+    proof = Block.inclusion_proof([Transaction.Signed.encode(tx), fee_tx], 0)
 
     {:ok, %{"status" => "0x1"}} =
       RootChainHelper.in_flight_exit(
@@ -243,6 +251,13 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     DevHelper.wait_for_root_chain_block(eth_height + exiters_finality_margin)
     # sanity check everything still lives
     assert {:error, %{"code" => "submit:utxo_not_found"}} = tx |> Transaction.Signed.encode() |> submit_transaction()
+  end
+
+  @tag fixtures: [:alice, :in_beam_child_chain]
+  test "check submitted fee transaction is rejected", %{alice: alice} do
+    fee_tx = OMG.TestHelper.create_encoded_fee_tx(1000, alice.addr, @eth, 1000)
+
+    assert {:error, %{"code" => "submit:transaction_not_supported"}} = submit_transaction(fee_tx)
   end
 
   defp submit_transaction(tx) do

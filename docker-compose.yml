@@ -29,6 +29,7 @@ services:
           #   4. Unlocking the accounts by their indexes
           echo "" > /tmp/geth-blank-password
           # Starts geth
+          # Websocket is not used by the applications but enabled for debugging/testing convenience
           geth --miner.gastarget 7500000 \
             --miner.gasprice "10" \
             --nodiscover \
@@ -65,16 +66,15 @@ services:
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
-      - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - APP_ENV=local_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
-      - ETHEREUM_HEIGHT_CHECK_INTERVAL_MS=800
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+      - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
     restart: always
     ports:
       - "9656:9656"
@@ -98,7 +98,6 @@ services:
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
-      - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
@@ -107,7 +106,6 @@ services:
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
-      - ETHEREUM_HEIGHT_CHECK_INTERVAL_MS=800
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
       - EXIT_PROCESSOR_SLA_MARGIN=5520
@@ -134,7 +132,6 @@ services:
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
-      - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
       - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - ERLANG_COOKIE=develop
@@ -144,7 +141,6 @@ services:
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
-      - ETHEREUM_HEIGHT_CHECK_INTERVAL_MS=800
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - EXIT_PROCESSOR_SLA_MARGIN=5520
     restart: always

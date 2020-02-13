@@ -6,7 +6,6 @@
 - "APP_ENV" - environment name in which the the application was deployed *mandatory*
 - "DB_PATH" - directory of the KV db *mandatory*
 - "ETHEREUM_RPC_URL" - address of Geth or Parity instance *mandatory*
-- "ETHEREUM_WS_RPC_URL" - address of Geth or Parity instance with websocket flags *mandatory*
 - "ETH_NODE" - Geth, Parity or Infura *mandatory*
 - "SENTRY_DSN" - if not set, Sentry is disabled
 - "DD_HOSTNAME" - Datadog hostname
@@ -16,6 +15,7 @@
 - "SYNC_THRESHOLD" - Datadog sync threshold for APM
 - "ETHEREUM_EVENTS_CHECK_INTERVAL_MS" - the frequency of HTTP requests towards the Ethereum clients and scanning for interested events. Should be less then average block time (10 to 20 seconds) on Ethereum mainnet.
 - "ETHEREUM_STALLED_SYNC_THRESHOLD_MS" - the threshold before considering an unchanging Ethereum block height to be considered a stalled sync. Should be slightly larger than the expected block time.
+- "FEE_CLAIMER_ADDRESS" - [Child Chain only!] 20-bytes HEX-encoded string of Ethereum address of Fee Claimer. Set via ENV vars only for Child Chain. For the Watcher this values is not important and fallbacks to "DEAD000000000000000000000000000000000000".
 
 ***Erlang VM configuration***
 

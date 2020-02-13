@@ -228,12 +228,16 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   end
 
   defp fees_paid(input_amounts_by_currency, output_amounts_by_currency) do
-    input_amounts_by_currency
-    |> Enum.into(%{}, fn {input_currency, input_amount} ->
-      # fee is implicit - it's the difference between funds owned and spend
-      implicit_paid_fee = input_amount - Map.get(output_amounts_by_currency, input_currency, 0)
-      {input_currency, implicit_paid_fee}
-    end)
+    Enum.into(
+      input_amounts_by_currency,
+      %{},
+      fn {input_currency, input_amount} ->
+        # fee is implicit - it's the difference between funds owned and spend
+        implicit_paid_fee = input_amount - Map.get(output_amounts_by_currency, input_currency, 0)
+
+        {input_currency, implicit_paid_fee}
+      end
+    )
   end
 
   defp get_amounts_by_currency(outputs) do

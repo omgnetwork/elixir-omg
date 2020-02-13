@@ -28,6 +28,7 @@ defmodule OMG.StateTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @fee_claimer_address Base.decode16!("DEAD000000000000000000000000000000000000")
 
   deffixture standalone_state_server(db_initialized) do
     # match variables to hide "unused var" warnings (can't be fixed by underscoring in line above, breaks macro):
@@ -43,18 +44,20 @@ defmodule OMG.StateTest do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
-    {:ok, _} = Supervisor.start_link([{OMG.State, []}], strategy: :one_for_one)
+    {:ok, _} = Supervisor.start_link([{OMG.State, [fee_claimer_address: @fee_claimer_address]}], strategy: :one_for_one)
 
     :ok
   end
 
   @tag fixtures: [:alice, :standalone_state_server]
   test "can execute various calls on OMG.State, one happy path only", %{alice: alice} do
+    fee = %{@eth => %{amount: 1}}
+
     # deposits, transactions, utxo existence
     assert {:ok, _} = State.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}])
     assert true == State.utxo_exists?(Utxo.position(1, 0, 0))
 
-    assert {:ok, _} = State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]), :ignore_fees)
+    assert {:ok, _} = State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}]), fee)
 
     # block forming & status
     assert {blknum, _} = State.get_status()

@@ -203,8 +203,6 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 
 * **`fee_specs_file_name`** - path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
 
-* **`ignore_fees`** - boolean option allowing to turn off fee charging altogether
-
 ## Watcher configuration - `:omg_watcher` app
 
 * **`exit_processor_sla_margin`** - the margin to define the notion of a "late", invalid exit.

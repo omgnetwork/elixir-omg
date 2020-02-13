@@ -33,7 +33,7 @@ defmodule Itest.MixProject do
       {:ethereumex, "~> 0.5.5"},
       {:websockex, "~> 0.4.2"},
       {:ex_abi, "~> 0.2.2"},
-      {:ex_rlp, "~> 0.5.2"},
+      {:ex_rlp, "~> 0.5.3"},
       {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
       {:poison, "~> 3.0"},
       {:tesla, "~> 1.3"},
