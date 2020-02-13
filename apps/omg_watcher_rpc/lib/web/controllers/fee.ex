@@ -24,7 +24,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Fee do
   def fees_all(conn, params) do
     with {:ok, _} <- expect(params, "currencies", list: &to_currency/1, optional: true),
          {:ok, _} <- expect(params, "tx_types", list: &to_tx_type/1, optional: true),
-         child_chain_url <- Application.get_env(:omg_watcher, :child_chain_url),
+         child_chain_url <- Application.get_env(:omg_watcher_info, :child_chain_url),
          {:ok, fees} <- Client.get_fees(params, child_chain_url) do
       api_response(fees, conn, :fees_all)
     end

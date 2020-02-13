@@ -53,7 +53,11 @@ defmodule OMG.WatcherInfo.HttpRPC.Adapter do
   def get_unparsed_response_body(%HTTPoison.Response{body: error}),
     do: {:error, {:server_error, error}}
 
-  def get_unparsed_response_body(error), do: {:error, {:client_error, error}}
+  def get_unparsed_response_body({:error, %HTTPoison.Error{reason: reason}}) do
+    {:error, reason}
+  end
+
+  def get_unparsed_response_body(error), do: error
 
   @doc """
   Retrieves body from response structure. When response is successful

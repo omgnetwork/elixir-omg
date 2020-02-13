@@ -42,8 +42,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       description: "No transaction that created input."
     },
     econnrefused: %{
-      code: "get_status:econnrefused",
-      description: "Cannot connect to the Ethereum node."
+      code: "client:econnrefused",
+      description: "Cannot communicate with the server."
     },
     insufficient_funds: %{
       code: "transaction.create:insufficient_funds",
