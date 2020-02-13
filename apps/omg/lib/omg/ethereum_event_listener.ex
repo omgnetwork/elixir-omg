@@ -23,15 +23,20 @@ defmodule OMG.EthereumEventListener do
   `OMG.RootChainCoordinator` for that.
   The `OMG.RootChainCoordinator` provides the `SyncGuide` that indicates what's eligible to scan, taking into account:
    - finality margin
-   - mutual ordering and dependencies of various types of Ethereum events to be respected
+   - mutual ordering and dependencies of various types of Ethereum events to be respected.
 
-  It **is** responsible for processing all events from all blocks and processing them only once. It accomplishes that
-  by keeping a persisted value in `OMG.DB` and its state that reflects till which Ethereum height the events were
-  processed (`synced_height`).
+  It **is** responsible for processing all events from all blocks and processing them only once.
 
-  What specific Ethereum events it fetches, and what it does with them is up to predefined `callbacks`
+  It accomplishes that by keeping a persisted value in `OMG.DB` and its state that reflects till which Ethereum height
+  the events were processed (`synced_height`).
+  This `synced_height` is updated after every batch of Ethereum events get successfully consumed by
+  `callbacks.process_events_callback`, as called in `sync_height/2`, together with all the `OMG.DB` updates this
+  callback returns, atomically.
+  The key in `OMG.DB` used to persist `synced_height` is defined by the value of `synced_height_update_key`.
 
-  See `OMG.EthereumEventListener.Core` for the implementation of the business logic for the listener
+  What specific Ethereum events it fetches, and what it does with them is up to predefined `callbacks`.
+
+  See `OMG.EthereumEventListener.Core` for the implementation of the business logic for the listener.
   """
 
   alias OMG.EthereumEventListener.Core
@@ -62,8 +67,8 @@ defmodule OMG.EthereumEventListener do
   end
 
   @doc """
-  Returns child_specs for the given `EthereumEventListener` setup, to be included e.g. in Supervisor's children
-  See `handle_continue/2` for the required keyword arguments
+  Returns child_specs for the given `EthereumEventListener` setup, to be included e.g. in Supervisor's children.
+  See `handle_continue/2` for the required keyword arguments.
   """
   @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
   def prepare_child(opts \\ []) do
@@ -74,7 +79,7 @@ defmodule OMG.EthereumEventListener do
   ### Server
 
   @doc """
-  Initializes the GenServer state, most work done in `handle_continue/2`
+  Initializes the GenServer state, most work done in `handle_continue/2`.
   """
   def init(init) do
     {:ok, init, {:continue, :setup}}
@@ -83,7 +88,7 @@ defmodule OMG.EthereumEventListener do
   @doc """
   Reads the status of listening (till which Ethereum height were the events processed) from the `OMG.DB` and initializes
   the logic `OMG.EthereumEventListener.Core` with it. Does an initial `OMG.RootChainCoordinator.check_in` with the
-  Ethereum height it last stopped on. Next, it continues to monitor and fetch the events as usual
+  Ethereum height it last stopped on. Next, it continues to monitor and fetch the events as usual.
   """
   def handle_continue(:setup, %{
         synced_height_update_key: update_key,
@@ -127,7 +132,7 @@ defmodule OMG.EthereumEventListener do
    - (`sync_height/2`) executes the related event-consuming callback with events as arguments
    - (`sync_height/2`) does `OMG.DB` updates that persist the processes Ethereum height as well as whatever the
       callbacks returned to persist
-   - (`sync_height/2`) `OMG.RootChainCoordinator.check_in` to tell the rest what Ethereum height was processed
+   - (`sync_height/2`) `OMG.RootChainCoordinator.check_in` to tell the rest what Ethereum height was processed.
   """
   @decorate trace(service: :ethereum_event_listener, type: :backend)
   def handle_info(:sync, {%Core{} = state, callbacks}) do

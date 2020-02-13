@@ -166,7 +166,11 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   """
   @spec child_block_nums_to_init_with(non_neg_integer, non_neg_integer, pos_integer, non_neg_integer) :: list
   def child_block_nums_to_init_with(mined_num, until_child_block_num, interval, finality_threshold) do
-    make_range(max(interval, mined_num - finality_threshold * interval), until_child_block_num, interval)
+    first = max(interval, mined_num - finality_threshold * interval)
+    last = until_child_block_num
+    step = interval
+    # :lists.seq/3 throws, so we need to wrap
+    if first > last, do: [], else: :lists.seq(first, last, step)
   end
 
   @doc """
@@ -204,9 +208,9 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   end
 
   @doc """
-  Compares the child blocks mined in contract with formed blocks
+  Compares the child blocks mined in contract with formed blocks.
 
-  Picks for submission child blocks that haven't yet been seen mined on Ethereum
+  Picks for submission child blocks that haven't yet been seen mined on Ethereum.
   """
   @spec get_blocks_to_submit(Core.t()) :: [BlockQueue.encoded_signed_tx()]
   def get_blocks_to_submit(%{blocks: blocks, formed_child_block_num: formed} = state) do
@@ -220,6 +224,22 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   end
 
   # TODO: consider moving this logic to separate module
+  @doc """
+  Based on the result of a submission transaction returned from the Ethereum node, figures out what to do (namely:
+  crash on or ignore an error response that is expected).
+
+  It caters for the differences of those responses between Ethereum node RPC implementations.
+
+  In general terms, those are the responses handled:
+    - **known transaction** - this is common and expected to occur, since we are tracking submissions ourselves and
+      liberally resubmitting same transactions; this is ignored
+    - **low replacement price** - due to the gas price selection mechanism, there are cases where transaction will get
+      resubmitted with a lower gas price; this is ignored
+    - **account locked** - Ethereum node reports the authority account is locked; this causes a crash
+    - **nonce too low** - there is an inherent race condition - when we're resubmitting a block, we do it with the same
+      nonce, meanwhile it might happen that Ethereum mines this submission in this very instant; this is ignored if we
+      indeed have just mined that submission, causes a crash otherwise
+  """
   @spec process_submit_result(BlockSubmission.t(), submit_result_t(), BlockSubmission.plasma_block_num()) ::
           :ok | {:error, atom}
   def process_submit_result(submission, submit_result, newest_mined_blknum)
@@ -489,13 +509,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
   defp calc_nonce(height, interval) do
     trunc(height / interval)
-  end
-
-  # :lists.seq/3 throws, so wrapper
-  defp make_range(first, last, _) when first > last, do: []
-
-  defp make_range(first, last, step) do
-    :lists.seq(first, last, step)
   end
 
   # When restarting, we don't actually know what was the state of submission process to Ethereum.

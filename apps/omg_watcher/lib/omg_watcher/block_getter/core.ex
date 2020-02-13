@@ -14,14 +14,14 @@
 
 defmodule OMG.Watcher.BlockGetter.Core do
   @moduledoc """
-  Logic module for the `OMG.Watcher.BlockGetter`
+  Logic module for the `OMG.Watcher.BlockGetter`.
 
   Responsible for:
     - figuring out the range of child chain blocks needed to be downloaded
     - tracking the block downloading process and signaling withholding if need be
     - doing the stateless validation of blocks (and transactions within those blocks)
     - tracking the progress of stateful validation of blocks
-    - matching up `BlockSubmitted` root chain events with the downloaded blocks, to discover submission `eth_height`
+    - matching up `BlockSubmitted` root chain events with the downloaded blocks, to discover submission `eth_height`.
   """
 
   alias OMG.Block
@@ -52,7 +52,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   defmodule PotentialWithholdingReport do
     @moduledoc """
-    Represents a downloading error interpreted as a potential block withholding event
+    Represents a downloading error interpreted as a potential block withholding event.
     """
 
     defstruct [:blknum, :hash, :time]
@@ -66,7 +66,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   defmodule PotentialWithholding do
     @moduledoc """
-    Used to track a recognized potential withholding and track work towards resolving it
+    Used to track a recognized potential withholding and track work towards resolving it.
     """
     defstruct time: nil, downloading: false
 
@@ -124,12 +124,12 @@ defmodule OMG.Watcher.BlockGetter.Core do
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another,
   `synced_height` as the root chain height up to witch all published blocked were processed
-  and `block_getter_reorg_margin` as number of root chain blocks that may change during an reorg
+  and `block_getter_reorg_margin` as number of root chain blocks that may change during an reorg.
 
   Opts can be:
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it
-      a block withholding byzantine condition of the child chain (0 ms)
+      a block withholding byzantine condition of the child chain (0 ms).
   """
   @spec init(
           non_neg_integer,
@@ -179,7 +179,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
     Returns:
       1. `chain_status` which is based on BlockGetter events and ExitProcessor events
-      2. BlockGetter events
+      2. BlockGetter events.
   """
   @spec chain_ok(t()) :: chain_ok_response_t()
   def chain_ok(%__MODULE__{chain_status: chain_status, events: events}), do: {chain_status, events}
@@ -208,7 +208,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Produces root chain block height range to search for events of block submission.
   If the range is not empty it spans from current synced root chain height to `coordinator_height`.
-  Empty range case is solved naturally with {a, b}, a > b
+  Empty range case is solved naturally with {a, b}, a > b.
   """
   @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) :: {pos_integer(), pos_integer()}
   def get_eth_range_for_block_submitted_events(
@@ -306,9 +306,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   @doc """
-  Statelessly decodes and validates a downloaded block, does all the checks before handing off to State.exec-checking
-  requested_hash is given to compare to always have a consistent data structure coming out
-  requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
+  Statelessly decodes and validates a downloaded block, does all the checks before handing off to State.exec-checking.
+  Requested_hash is given to compare to always have a consistent data structure coming out.
+  Requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
   """
   @spec validate_download_response(
           {:ok, map()} | {:error, block_error()},
@@ -431,9 +431,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   defp init_opts_valid?(opts) do
     maximum_number_of_pending_blocks = Keyword.get(opts, :maximum_number_of_pending_blocks, 1)
-
-    with true <- maximum_number_of_pending_blocks >= 1 || {:error, :maximum_number_of_pending_blocks_too_low},
-         do: true
+    maximum_number_of_pending_blocks >= 1 || {:error, :maximum_number_of_pending_blocks_too_low}
   end
 
   # height served as syncable from the `OMG.RootChainCoordinator` is older, nothing we can do about it, so noop

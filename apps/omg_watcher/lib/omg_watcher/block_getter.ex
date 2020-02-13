@@ -61,13 +61,13 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   @doc """
-  Retrieves the freshest information about `OMG.Watcher.BlockGetter`'s status, as stored by the slave process `Status`
+  Retrieves the freshest information about `OMG.Watcher.BlockGetter`'s status, as stored by the slave process `Status`.
   """
   @spec get_events() :: {:ok, Core.chain_ok_response_t()}
   def get_events(), do: __MODULE__.Status.get_events()
 
   @doc """
-  Initializes the GenServer state, most work done in `handle_continue/2`
+  Initializes the GenServer state, most work done in `handle_continue/2`.
   """
   def init(_opts) do
     {:ok, %{}, {:continue, :setup}}
@@ -75,7 +75,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   @doc """
   Reads the status of block getting and application from `OMG.DB`, reads the current state of the contract and root
-  chain and starts the pollers that will take care of getting blocks
+  chain and starts the pollers that will take care of getting blocks.
   """
   def handle_continue(:setup, %{}) do
     {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
@@ -137,7 +137,7 @@ defmodule OMG.Watcher.BlockGetter do
   # :apply_block pipeline of steps
 
   @doc """
-  Stateful validation and execution of transactions on `OMG.State`. Reacts in case that returns any failed transactions
+  Stateful validation and execution of transactions on `OMG.State`. Reacts in case that returns any failed transactions.
   """
   def handle_continue({:apply_block_step, :execute_transactions, block_application}, state) do
     tx_exec_results = for(tx <- block_application.transactions, do: OMG.State.exec(tx, :ignore_fees))
@@ -156,7 +156,7 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   @doc """
-  Schedules more blocks to download in case some work downloading is finished and we want to progress
+  Schedules more blocks to download in case some work downloading is finished and we want to progress.
   """
   def handle_continue({:apply_block_step, :run_block_download_task, block_application}, state),
     do:
@@ -165,7 +165,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   @doc """
   Marks a block as applied and updates `OMG.DB` values. Also commits the updates to `OMG.DB` that `OMG.State` handed off
-  containing the data coming from the newly applied block
+  containing the data coming from the newly applied block.
   """
   def handle_continue({:apply_block_step, :close_and_apply_block, block_application}, state) do
     {:ok, db_updates_from_state} = OMG.State.close_block()
@@ -189,7 +189,7 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   @doc """
-  Updates its view of validity of the chain
+  Updates its view of validity of the chain.
   """
   def handle_continue({:apply_block_step, :check_validity}, state) do
     exit_processor_results = ExitProcessor.check_validity()
@@ -199,7 +199,7 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   @doc """
-  Statefully apply a statelessly validated block, coming in as a `BlockApplication` structure
+  Statefully apply a statelessly validated block, coming in as a `BlockApplication` structure.
   """
   def handle_cast({:apply_block, %BlockApplication{} = block_application}, state) do
     case Core.chain_ok(state) do
