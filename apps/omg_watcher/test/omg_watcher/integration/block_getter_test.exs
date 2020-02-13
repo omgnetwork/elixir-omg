@@ -215,4 +215,34 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # we should still be able to challenge this "unchallenged exit" - just smoke testing the endpoint, details elsewhere
     WatcherHelper.get_exit_challenge(exit_blknum, 0, 0)
   end
+
+  @tag fixtures: [:in_beam_watcher, :mix_based_child_chain, :test_server, :stable_alice, :stable_alice_deposits]
+  test "operator claimed fees incorrectly (too much | little amount, not collected token)", %{
+    stable_alice: alice,
+    test_server: context,
+    stable_alice_deposits: {deposit_blknum, _}
+  } do
+    fee_claimer = OMG.Configuration.fee_claimer_address()
+
+    # preparing transactions for a fake block that overclaim fees
+    txs = [
+      OMG.TestHelper.create_recovered([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}]),
+      OMG.TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 8}]),
+      OMG.TestHelper.create_recovered_fee_tx(1000, fee_claimer, @eth, 3)
+    ]
+
+    block_overclaiming_fees = OMG.Block.hashed_txs_at(txs, 1000)
+
+    # from now on the child chain server is broken until end of test
+    BadChildChainServer.prepare_route_to_inject_bad_block(
+      context,
+      block_overclaiming_fees
+    )
+
+    # checking if both machines and humans learn about the byzantine condition
+    assert WatcherHelper.capture_log(fn ->
+             {:ok, _txhash} = Eth.submit_block(block_overclaiming_fees.hash, 1, 20_000_000_000)
+             IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
+           end) =~ inspect({:tx_execution, :claimed_and_collected_amounts_mismatch})
+  end
 end
