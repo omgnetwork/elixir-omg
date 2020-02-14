@@ -247,7 +247,7 @@ defmodule OMG.Watcher.ExitProcessor do
         events,
         fn %{call_data: %{in_flight_tx: bytes}} ->
           {:ok, contract_ife_id} = Eth.RootChain.get_in_flight_exit_id(bytes)
-          {:ok, status} = Eth.RootChain.get_in_flight_exit_struct(contract_ife_id)
+          {:ok, status} = Eth.RootChain.get_in_flight_exits_structs([contract_ife_id])
           {status, contract_ife_id}
         end
       )

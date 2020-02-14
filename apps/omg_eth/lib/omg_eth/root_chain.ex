@@ -115,25 +115,29 @@ defmodule OMG.Eth.RootChain do
   Returns in flight exit for a specific id. Calls contract method.
   #TODO - can exits accept a list of in_flight_exit_id? Look at ExitProcessor.handle_call({:new_in_flight_exits, events})
   """
-  def get_in_flight_exit_struct(in_flight_exit_id, contract \\ %{}) do
+  def get_in_flight_exits_structs(in_flight_exit_ids, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
     # solidity does not return arrays of structs
     return_struct = [
-      :bool,
-      {:uint, 64},
-      {:uint, 256},
-      {:uint, 256},
-      # NOTE: there are these two more fields in the return but they can be ommitted,
-      #       both have withdraw_data_struct type
-      # withdraw_data_struct,
-      # withdraw_data_struct,
-      :address,
-      {:uint, 256},
-      {:uint, 256}
+      {:array,
+        {
+          :bool,
+          {:uint, 64},
+          {:uint, 256},
+          {:uint, 256},
+          # NOTE: there are these two more fields in the return but they can be ommitted,
+          #       both have withdraw_data_struct type
+          # withdraw_data_struct,
+          # withdraw_data_struct,
+          :address,
+          {:uint, 256},
+          {:uint, 256}
+        }
+      }
     ]
 
-    Eth.call_contract(contract, "inFlightExits(uint160)", [in_flight_exit_id], return_struct)
+    Eth.call_contract(contract, "inFlightExits(uint160[])", [in_flight_exit_ids], return_struct)
   end
 
   # TODO: we're storing exit_ids for SEs, we should do the same for IFEs and remove this (requires exit_id to be
