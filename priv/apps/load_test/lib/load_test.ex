@@ -1,18 +1,5 @@
 defmodule LoadTest do
   @moduledoc """
-  Documentation for LoadTest.
+  Dummy module to keep the app name
   """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> LoadTest.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
 end
