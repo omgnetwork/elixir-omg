@@ -14,16 +14,15 @@
 
 defmodule OMG.EthereumEventListener.Core do
   @moduledoc """
-  Periodically fetches events made on dynamically changing block range
-  on parent chain and feeds them to a callback.
+  Logic module for the `OMG.EthereumEventListener`
 
-  It is **not** responsible for figuring out which ranges of eth-blocks to scan and when, see
-  `OMG.RootChainCoordinator.Core` for that.
+  Responsible for:
+    - deciding what ranges of Ethereum events should be fetched from the Ethereum node
+    - deciding the right size of event batches to read (too little means many RPC requests, too big can timeout)
+    - deciding what to check in into the `OMG.RootChainCoordinator`
+    - deciding what to put into the `OMG.DB` in terms of Ethereum height till which the events are already processed
 
-  It **is** responsible for processing all events and processing them only once. The only "help" from the coordinator
-  it gets is in that it receives the `SyncGuide` that takes some finality (reorg) margin into account.
-
-  NOTE: this could and should at some point be implemented as a `@behavior` instead, to avoid using callbacks
+  Leverages a rudimentary in-memory cache for events, to be able to ask for right-sized batches of events
   """
   alias OMG.RootChainCoordinator.SyncGuide
 
@@ -52,6 +51,10 @@ defmodule OMG.EthereumEventListener.Core do
           }
         }
 
+  @doc """
+  Initializes the listener logic based on its configuration and the last persisted Ethereum height, till which events
+  were processed
+  """
   @spec init(atom(), atom(), non_neg_integer(), non_neg_integer()) :: {t(), non_neg_integer()} | {:error, :invalid_init}
   def init(update_key, service_name, last_synced_ethereum_height, request_max_size \\ 1000)
 
