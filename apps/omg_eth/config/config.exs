@@ -15,6 +15,7 @@ config :omg_eth,
   eth_node: :geth,
   child_block_interval: 1000,
   min_exit_period_seconds: nil,
+  ethereum_block_time_seconds: 15,
   ethereum_events_check_interval_ms: 8_000,
   ethereum_stalled_sync_threshold_ms: 20_000,
   node_logging_in_debug: false

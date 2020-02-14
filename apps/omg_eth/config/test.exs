@@ -17,6 +17,7 @@ config :omg_eth,
   ethereum_events_check_interval_ms: 400,
   environment: :test,
   min_exit_period_seconds: 22,
+  ethereum_block_time_seconds: 1,
   # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory
   # of the umbrella project. This is useful because `mix test` and `mix coveralls --umbrella`
   # have different views on the root dir when testing.

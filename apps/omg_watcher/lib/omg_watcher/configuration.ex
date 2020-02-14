@@ -21,6 +21,10 @@ defmodule OMG.Watcher.Configuration do
     Application.fetch_env!(@app, :exit_processor_sla_margin)
   end
 
+  def exit_processor_sla_margin_force() do
+    Application.fetch_env!(@app, :exit_processor_sla_margin_force)
+  end
+
   def metrics_collection_interval() do
     Application.fetch_env!(@app, :metrics_collection_interval)
   end

@@ -121,6 +121,26 @@ defmodule OMG.Watcher.ExitProcessor.Core do
      }}
   end
 
+  @doc """
+  Use to check if the settings regarding the `:exit_processor_sla_margin` config of `:omg_watcher` are OK.
+  """
+  @spec check_sla_margin(pos_integer(), boolean(), pos_integer(), pos_integer()) :: :ok | {:error, :sla_margin_too_big}
+  def check_sla_margin(sla_margin, sla_margin_force, min_exit_period_seconds, ethereum_block_time_seconds)
+
+  def check_sla_margin(sla_margin, true, min_exit_period_seconds, ethereum_block_time_seconds) do
+    _ =
+      if !sla_margin_safe?(sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
+        do: Logger.warn("Allowing unsafe sla margin of #{sla_margin} blocks")
+
+    :ok
+  end
+
+  def check_sla_margin(sla_margin, false, min_exit_period_seconds, ethereum_block_time_seconds) do
+    if sla_margin_safe?(sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
+      do: :ok,
+      else: {:error, :sla_margin_too_big}
+  end
+
   def exit_key_by_exit_id(%__MODULE__{exit_ids: exit_ids}, exit_id), do: exit_ids[exit_id]
 
   @doc """
@@ -566,4 +586,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp zero_address?(address) do
     address != @zero_address
   end
+
+  defp sla_margin_safe?(exit_processor_sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
+    do: exit_processor_sla_margin * ethereum_block_time_seconds < min_exit_period_seconds
 end

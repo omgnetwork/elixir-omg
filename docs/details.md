@@ -211,6 +211,10 @@ Such event will prompt a mass exit and stop processing new blocks.
 See [exit validation documentation](docs/exit_validation.md) for details.
 Override using the `EXIT_PROCESSOR_SLA_MARGIN` system environment variable.
 
+* **`exit_processor_sla_margin_force`** - if set to `true`, will allow one to set a `exit_processor_sla_margin` that is larger than the `min_exit_period_seconds` of the child chain we're running for.
+Set to `false` only when you know what you are doing.
+Defaults to `false`, override using the `EXIT_PROCESSOR_SLA_MARGIN_FORCE` system environment variable.
+
 * **`maximum_block_withholding_time_ms`** - for how long the Watcher will tolerate failures to get a submitted child chain block, before reporting a block withholding attack and stopping
 
 * **`block_getter_loops_interval_ms`** - polling interval for checking new child chain blocks submissions being mined on the root chain
@@ -248,3 +252,7 @@ If you set this to false, remember to set the logging level to `:debug` to see t
 * **`child_block_interval`** - mirror of contract configuration `uint256 constant public CHILD_BLOCK_INTERVAL` from `RootChain.sol`
 
 * **`min_exit_period_seconds`** - mirror of contract configuration `uint256 public minExitPeriod`
+
+* **`ethereum_block_time_seconds`** - mirror the block time of the underlying root chain.
+Defaults to 15 seconds, suitable for public networks (`mainnet` and testnets).
+Override using the `ETHEREUM_BLOCK_TIME_SECONDS` system environment variable.

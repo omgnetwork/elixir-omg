@@ -211,23 +211,33 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def init(
         exit_processor_sla_margin: exit_processor_sla_margin,
+        exit_processor_sla_margin_force: exit_processor_sla_margin_force,
+        min_exit_period_seconds: min_exit_period_seconds,
+        ethereum_block_time_seconds: ethereum_block_time_seconds,
         metrics_collection_interval: metrics_collection_interval
       ) do
     {:ok, db_exits} = DB.exit_infos()
     {:ok, db_ifes} = DB.in_flight_exits_info()
     {:ok, db_competitors} = DB.competitors_info()
 
-    processor = Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_margin)
+    with :ok <-
+           Core.check_sla_margin(
+             exit_processor_sla_margin,
+             exit_processor_sla_margin_force,
+             min_exit_period_seconds,
+             ethereum_block_time_seconds
+           ),
+         {:ok, processor} <- Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_margin) do
+      {:ok, _} =
+        :timer.send_interval(
+          metrics_collection_interval,
+          self(),
+          :send_metrics
+        )
 
-    {:ok, _} =
-      :timer.send_interval(
-        metrics_collection_interval,
-        self(),
-        :send_metrics
-      )
-
-    _ = Logger.info("Initializing with: #{inspect(processor)}")
-    processor
+      _ = Logger.info("Initializing with: #{inspect(processor)}")
+      {:ok, processor}
+    end
   end
 
   def handle_call({:new_exits, exits}, _from, state) do

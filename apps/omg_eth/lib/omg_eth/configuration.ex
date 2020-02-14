@@ -24,4 +24,12 @@ defmodule OMG.Eth.Configuration do
   def network() do
     Application.get_env(@app, :network)
   end
+
+  def min_exit_period_seconds() do
+    Application.fetch_env!(@app, :min_exit_period_seconds)
+  end
+
+  def ethereum_block_time_seconds() do
+    Application.fetch_env!(@app, :ethereum_block_time_seconds)
+  end
 end

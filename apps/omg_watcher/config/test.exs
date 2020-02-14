@@ -7,6 +7,8 @@ config :omg_watcher,
   # NOTE `exit_processor_sla_margin` can't be made shorter. At 3 it sometimes
   # causes :unchallenged_exit because `geth --dev` is too fast
   exit_processor_sla_margin: 5,
+  # this means we allow the `sla_margin` above be larger than the `min_exit_period`
+  exit_processor_sla_margin_force: true,
   # NOTE: `maximum_block_withholding_time_ms` must be here - one of our integration tests
   # actually fakes block withholding to test something
   maximum_block_withholding_time_ms: 1_000,
