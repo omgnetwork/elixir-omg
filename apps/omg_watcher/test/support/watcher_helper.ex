@@ -61,7 +61,11 @@ defmodule Support.WatcherHelper do
   end
 
   def rpc_call(path, body \\ nil, expected_resp_status \\ 200) do
-    response = post(put_req_header(build_conn(), "content-type", "application/json"), path, body)
+    response =
+      build_conn()
+      |> put_req_header("content-type", "application/json")
+      |> post(path, body)
+
     # CORS check
     assert ["*"] == get_resp_header(response, "access-control-allow-origin")
 

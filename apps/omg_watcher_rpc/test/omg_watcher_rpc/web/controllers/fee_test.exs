@@ -18,9 +18,53 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
 
+  alias OMG.Eth
+  alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.WatcherInfo.TestServer
+  alias OMG.WireFormatTypes
   alias Support.WatcherHelper
 
+  @eth Eth.zero_address()
+  @tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
+  @str_tx_type Integer.to_string(@tx_type)
+
+  setup do
+    context = TestServer.start()
+    on_exit(fn -> TestServer.stop(context) end)
+    context
+  end
+
   describe "fees_all/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "forward a successful childchain response", context do
+      childchain_response = %{
+        @str_tx_type => [
+          %{
+            "currency" => Encoding.to_hex(@eth),
+            "amount" => 2,
+            "subunit_to_unit" => 1_000_000_000_000_000_000,
+            "pegged_amount" => 4,
+            "pegged_currency" => "USD",
+            "pegged_subunit_to_unit" => 100,
+            "updated_at" => "2019-01-01T10:10:00+00:00"
+          }
+        ]
+      }
+
+      prepare_test_server(context, childchain_response)
+
+      assert childchain_response = WatcherHelper.success?("/fees.all")
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "raises an error gracefully when childchain is unreachable" do
+      assert %{
+               "code" => "connection:childchain_unreachable",
+               "description" => "Cannot communicate with the childchain.",
+               "object" => "error"
+             } = WatcherHelper.no_success?("/fees.all")
+    end
+
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "fees.all endpoint rejects request with non list currencies" do
       assert %{
@@ -76,5 +120,11 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
                }
              } = WatcherHelper.no_success?("/fees.all", %{tx_types: [-5]})
     end
+  end
+
+  defp prepare_test_server(context, response) do
+    response
+    |> TestServer.make_response()
+    |> TestServer.with_response(context, "/fees.all")
   end
 end
