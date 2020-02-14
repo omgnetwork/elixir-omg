@@ -397,6 +397,31 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                }
              ] = transaction_all_result(%{"metadata" => expected_metadata})
     end
+
+    @tag fixtures: [:blocks_inserter, :initial_deposits, :alice]
+    test "returns transactions with matching txtype", %{
+      blocks_inserter: blocks_inserter,
+      alice: alice,
+    } do
+      blocks_inserter.([
+        {1000,
+         [
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 300}]),
+           Test.create_recovered([{2, 0, 0, alice}], @eth, [{alice, 300}]),
+           Test.create_recovered([{1000, 1, 0, alice}], @eth, [{alice, 300}]),
+           Test.create_recovered_fee_tx(1000, alice.addr, @eth, 5)
+         ]}
+      ])
+
+      assert [%{"txindex" => 2}, %{"txindex" => 1}, %{"txindex" => 0}] = transaction_all_result(%{"txtypes" => [1]})
+      assert [%{"txindex" => 3}] = transaction_all_result(%{"txtypes" => [3]})
+
+      assert [%{"txindex" => 3}, %{"txindex" => 2}, %{"txindex" => 1}, %{"txindex" => 0}] =
+               transaction_all_result(%{"txtypes" => [1, 3]})
+
+      assert [%{"txindex" => 3}, %{"txindex" => 2}, %{"txindex" => 1}, %{"txindex" => 0}] =
+               transaction_all_result(%{"txtypes" => []})
+    end
   end
 
   describe "/transaction.all pagination" do
