@@ -117,23 +117,25 @@ defmodule OMG.Eth.RootChain do
   """
   def get_in_flight_exits_structs(in_flight_exit_ids, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
 
     # solidity does not return arrays of structs
     return_struct = [
       {:array,
-       {
-         :bool,
-         {:uint, 64},
-         {:uint, 256},
-         {:uint, 256},
-         # NOTE: there are these two more fields in the return but they can be ommitted,
-         #       both have withdraw_data_struct type
-         # withdraw_data_struct,
-         # withdraw_data_struct,
-         :address,
-         {:uint, 256},
-         {:uint, 256}
-       }}
+       {:tuple,
+        [
+          :bool,
+          {:uint, 64},
+          {:uint, 256},
+          {:uint, 256},
+          # NOTE: there are these two more fields in the return but they can be ommitted,
+          #       both have withdraw_data_struct type
+          # withdraw_data_struct,
+          # withdraw_data_struct,
+          :address,
+          {:uint, 256},
+          {:uint, 256}
+        ]}}
     ]
 
     Eth.call_contract(contract, "inFlightExits(uint160[])", [in_flight_exit_ids], return_struct)
