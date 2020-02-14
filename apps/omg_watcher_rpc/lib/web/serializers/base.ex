@@ -22,7 +22,21 @@ defmodule OMG.WatcherRPC.Web.Serializer.Base do
     require Utxo
 
     db_entry
-    |> Map.take([:amount, :currency, :blknum, :txindex, :oindex, :otype, :owner, :creating_txhash, :spending_txhash])
+    |> Map.take([
+      :amount,
+      :currency,
+      :blknum,
+      :txindex,
+      :oindex,
+      :otype,
+      :owner,
+      :creating_txhash,
+      :spending_txhash,
+      :spending_tx_oindex,
+      :proof,
+      :inserted_at,
+      :updated_at
+    ])
     |> Map.put(:utxo_pos, Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode())
   end
 end

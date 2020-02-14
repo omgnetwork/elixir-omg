@@ -34,12 +34,13 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     field(:txindex, :integer)
     field(:txtype, :integer)
     field(:txbytes, :binary)
-    field(:sent_at, :utc_datetime)
     field(:metadata, :binary)
 
     has_many(:inputs, DB.TxOutput, foreign_key: :spending_txhash)
     has_many(:outputs, DB.TxOutput, foreign_key: :creating_txhash)
     belongs_to(:block, DB.Block, foreign_key: :blknum, references: :blknum, type: :integer)
+
+    timestamps(type: :utc_datetime_usec)
   end
 
   @doc """
