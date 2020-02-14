@@ -42,8 +42,12 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       description: "No transaction that created input."
     },
     econnrefused: %{
-      code: "get_status:econnrefused",
+      code: "connection:econnrefused",
       description: "Cannot connect to the Ethereum node."
+    },
+    childchain_unreachable: %{
+      code: "connection:childchain_unreachable",
+      description: "Cannot communicate with the childchain."
     },
     insufficient_funds: %{
       code: "transaction.create:insufficient_funds",
