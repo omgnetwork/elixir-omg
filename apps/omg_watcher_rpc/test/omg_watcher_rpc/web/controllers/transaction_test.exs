@@ -401,7 +401,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice]
     test "returns transactions with matching txtype", %{
       blocks_inserter: blocks_inserter,
-      alice: alice,
+      alice: alice
     } do
       blocks_inserter.([
         {1000,
