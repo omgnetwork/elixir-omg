@@ -229,10 +229,11 @@ defmodule OMG.State.Core do
 
   # attempts to build a standard response data about a single UTXO, based on an abstract `output` structure
   # so that the data can be useful to discover exitable UTXOs
-  defp utxo_to_exitable_utxo_map(%Utxo{output: output}, Utxo.position(blknum, txindex, oindex)) do
+  defp utxo_to_exitable_utxo_map(%Utxo{output: %{output_type: otype} = output}, Utxo.position(blknum, txindex, oindex)) do
     output
     |> Map.from_struct()
     |> Map.take([:owner, :currency, :amount])
+    |> Map.put(:otype, otype)
     |> Map.put(:blknum, blknum)
     |> Map.put(:txindex, txindex)
     |> Map.put(:oindex, oindex)

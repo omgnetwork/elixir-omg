@@ -83,6 +83,17 @@ paths:
                                         type: string
                               - type: object
                                 properties:
+                                  ethereum_stalled_sync:
+                                    type: object
+                                    properties:
+                                      ethereum_height:
+                                        type: integer
+                                        minimum: 0
+                                      synced_at:
+                                        type: string
+                                        format: date-time
+                              - type: object
+                                properties:
                                   invalid_fee_file:
                                     type: object
                                     properties:
@@ -114,6 +125,7 @@ paths:
                       data:
                         - disk_almost_full: /dev/null
                           ethereum_connection_error: {}
+                          ethereum_stalled_sync: {}
                           system_memory_high_watermark: []
         '500':
           description: Returns an internal server error
@@ -492,6 +504,7 @@ paths:
                         - blknum: 123000
                           txindex: 111
                           oindex: 0
+                          otype: 1
                           utxo_pos: 123000001110000
                           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                           currency: '0x0000000000000000000000000000000000000000'
@@ -573,6 +586,9 @@ paths:
                 blknum:
                   type: integer
                   format: int64
+                txtype:
+                  type: integer
+                  format: int64
                 metadata:
                   type: string
                 page:
@@ -631,6 +647,9 @@ paths:
                             txindex:
                               type: integer
                               format: int16
+                            txtype:
+                              type: integer
+                              format: int16
                             txhash:
                               type: string
                             metadata:
@@ -668,6 +687,9 @@ paths:
                                   oindex:
                                     type: integer
                                     format: int8
+                                  otype:
+                                    type: integer
+                                    format: int8
                                   utxo_pos:
                                     type: integer
                                     format: int256
@@ -694,6 +716,9 @@ paths:
                                     type: integer
                                     format: int16
                                   oindex:
+                                    type: integer
+                                    format: int8
+                                  otype:
                                     type: integer
                                     format: int8
                                   utxo_pos:
@@ -729,12 +754,14 @@ paths:
                             eth_height: 97424
                             blknum: 68290000
                           txindex: 0
+                          txtype: 1
                           txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                           metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                           txbytes: 0x5df13a6bee20000...
                           inputs:
                             - blknum: 1000
                               txindex: 111
+                              otype: 1
                               oindex: 0
                               utxo_pos: 1000001110000
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
@@ -745,6 +772,7 @@ paths:
                           outputs:
                             - blknum: 68290000
                               txindex: 5113
+                              otype: 1
                               oindex: 0
                               utxo_pos: 68290000051130000
                               owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
@@ -754,6 +782,7 @@ paths:
                               spending_txhash: null
                             - blknum: 68290000
                               txindex: 5113
+                              otype: 1
                               oindex: 1
                               utxo_pos: 68290000051130000
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
@@ -1134,6 +1163,9 @@ paths:
                 blknum:
                   type: integer
                   format: int64
+                txtype:
+                  type: integer
+                  format: int64
                 metadata:
                   type: string
                 page:
@@ -1192,6 +1224,9 @@ paths:
                             txindex:
                               type: integer
                               format: int16
+                            txtype:
+                              type: integer
+                              format: int16
                             txhash:
                               type: string
                             metadata:
@@ -1229,6 +1264,9 @@ paths:
                                   oindex:
                                     type: integer
                                     format: int8
+                                  otype:
+                                    type: integer
+                                    format: int8
                                   utxo_pos:
                                     type: integer
                                     format: int256
@@ -1255,6 +1293,9 @@ paths:
                                     type: integer
                                     format: int16
                                   oindex:
+                                    type: integer
+                                    format: int8
+                                  otype:
                                     type: integer
                                     format: int8
                                   utxo_pos:
@@ -1290,12 +1331,14 @@ paths:
                             eth_height: 97424
                             blknum: 68290000
                           txindex: 0
+                          txtype: 1
                           txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                           metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                           txbytes: 0x5df13a6bee20000...
                           inputs:
                             - blknum: 1000
                               txindex: 111
+                              otype: 1
                               oindex: 0
                               utxo_pos: 1000001110000
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
@@ -1306,6 +1349,7 @@ paths:
                           outputs:
                             - blknum: 68290000
                               txindex: 5113
+                              otype: 1
                               oindex: 0
                               utxo_pos: 68290000051130000
                               owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
@@ -1315,6 +1359,7 @@ paths:
                               spending_txhash: null
                             - blknum: 68290000
                               txindex: 5113
+                              otype: 1
                               oindex: 1
                               utxo_pos: 68290000051130000
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
@@ -1493,6 +1538,9 @@ paths:
                                         type: integer
                                         format: int16
                                       oindex:
+                                        type: integer
+                                        format: int8
+                                      otype:
                                         type: integer
                                         format: int8
                                       utxo_pos:
@@ -1692,6 +1740,7 @@ paths:
                                 txindex: 111
                                 oindex: 0
                                 utxo_pos: 123000001110000
+                                otype: 1
                                 owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                                 currency: '0x0000000000000000000000000000000000000000'
                                 amount: 50
@@ -1701,6 +1750,7 @@ paths:
                                 txindex: 2340
                                 oindex: 3
                                 utxo_pos: 277000023400003
+                                otype: 1
                                 owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                                 currency: '0x0000000000000000000000000000000000000000'
                                 amount: 75
@@ -1917,6 +1967,9 @@ paths:
                           txindex:
                             type: integer
                             format: int16
+                          txtype:
+                            type: integer
+                            format: int16
                           txhash:
                             type: string
                           metadata:
@@ -1954,6 +2007,9 @@ paths:
                                 oindex:
                                   type: integer
                                   format: int8
+                                otype:
+                                  type: integer
+                                  format: int8
                                 utxo_pos:
                                   type: integer
                                   format: int256
@@ -1982,6 +2038,9 @@ paths:
                                 oindex:
                                   type: integer
                                   format: int8
+                                otype:
+                                  type: integer
+                                  format: int8
                                 utxo_pos:
                                   type: integer
                                   format: int256
@@ -1999,6 +2058,7 @@ paths:
                     example:
                       data:
                         txindex: 5113
+                        txtype: 1
                         txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                         metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                         txbytes: 0x5df13a6bee20000...
@@ -2011,6 +2071,7 @@ paths:
                           - blknum: 1000
                             txindex: 111
                             oindex: 0
+                            otype: 1
                             utxo_pos: 1000001110000
                             owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                             currency: '0x0000000000000000000000000000000000000000'
@@ -2021,6 +2082,7 @@ paths:
                           - blknum: 68290000
                             txindex: 5113
                             oindex: 0
+                            otype: 1
                             utxo_pos: 68290000051130000
                             owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
                             currency: '0x0000000000000000000000000000000000000000'
@@ -2030,6 +2092,7 @@ paths:
                           - blknum: 68290000
                             txindex: 5113
                             oindex: 1
+                            otype: 1
                             utxo_pos: 68290000051130000
                             owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                             currency: '0x0000000000000000000000000000000000000000'

@@ -76,7 +76,7 @@ paths:
                                         type: string
                               - type: object
                                 properties:
-                                  ethereum_connection_error:
+                                  invalid_fee_file:
                                     type: object
                                     properties:
                                       node:
@@ -107,6 +107,7 @@ paths:
                       data:
                         - disk_almost_full: /dev/null
                           ethereum_connection_error: {}
+                          ethereum_stalled_sync: {}
                           system_memory_high_watermark: []
         '500':
           description: Returns an internal server error

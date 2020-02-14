@@ -12,6 +12,9 @@ GetAllTransactionsBodySchema:
           blknum:
             type: integer
             format: int64
+          txtype:
+            type: integer
+            format: int64
           metadata:
             type: string    
           page:

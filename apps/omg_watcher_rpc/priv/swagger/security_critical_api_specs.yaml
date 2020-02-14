@@ -83,6 +83,17 @@ paths:
                                         type: string
                               - type: object
                                 properties:
+                                  ethereum_stalled_sync:
+                                    type: object
+                                    properties:
+                                      ethereum_height:
+                                        type: integer
+                                        minimum: 0
+                                      synced_at:
+                                        type: string
+                                        format: date-time
+                              - type: object
+                                properties:
                                   invalid_fee_file:
                                     type: object
                                     properties:
@@ -114,6 +125,7 @@ paths:
                       data:
                         - disk_almost_full: /dev/null
                           ethereum_connection_error: {}
+                          ethereum_stalled_sync: {}
                           system_memory_high_watermark: []
         '500':
           description: Returns an internal server error
@@ -498,6 +510,17 @@ paths:
                                           type: array
                                           items:
                                             type: integer
+                                - type: object
+                                  properties:
+                                    ethereum_stalled_sync:
+                                      type: object
+                                      properties:
+                                        ethereum_height:
+                                          type: integer
+                                          minimum: 0
+                                        synced_at:
+                                          type: string
+                                          format: date-time
                           in_flight_txs:
                             type: array
                             items:
@@ -615,6 +638,10 @@ paths:
                                 - 1
                               outputs:
                                 - 0
+                          - event: ethereum_stalled_sync
+                            details:
+                              eth_height: 615440
+                              synced_at: '2020-02-07T10:10:10+00:00'
                         in_flight_txs:
                           - txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'
                             txbytes: 0x3eb6ae5b06f3...
@@ -778,6 +805,9 @@ paths:
                             txindex:
                               type: integer
                               format: int16
+                            otype:
+                              type: integer
+                              format: int16
                             oindex:
                               type: integer
                               format: int8
@@ -796,6 +826,7 @@ paths:
                         - blknum: 123000
                           txindex: 111
                           oindex: 0
+                          otype: 1
                           utxo_pos: 123000001110000
                           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                           currency: '0x0000000000000000000000000000000000000000'
