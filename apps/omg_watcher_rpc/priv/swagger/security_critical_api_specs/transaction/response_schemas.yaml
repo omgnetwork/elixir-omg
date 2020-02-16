@@ -1,4 +1,4 @@
-TransactionSubmitResponseSchema:
+    TransactionSubmitResponseSchema:
   allOf:
   - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
   - type: object
