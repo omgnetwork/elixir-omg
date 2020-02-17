@@ -53,7 +53,6 @@ defmodule OMG.Utils.HttpRPC.Response do
   def sanitize(response)
 
   # serialize all DateTimes to ISO8601 formatted strings
-  @spec sanitize(DateTime.t()) :: String.t()
   def sanitize(%DateTime{} = datetime) do
     datetime |> DateTime.truncate(:second) |> DateTime.to_iso8601()
   end
