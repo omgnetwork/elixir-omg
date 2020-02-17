@@ -56,7 +56,7 @@ defmodule InFlightExitsTests do
         ws_url: "ws://127.0.0.1:8546",
         name: :eth_vault,
         listen_to: %{"address" => Itest.Account.vault(Currency.ether())},
-        abi_path: Path.join([File.cwd!(), "../../../data/plasma-contracts/contracts/", "EthVault.json"]),
+        abi_path: Path.join([File.cwd!(), "../../../../data/plasma-contracts/contracts/", "EthVault.json"]),
         subscribe: self()
       )
 
