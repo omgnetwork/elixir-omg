@@ -662,7 +662,7 @@ defmodule InFlightExitsTests do
        Encoding.to_binary(ife_competitor.in_flight_txbytes), ife_competitor.in_flight_input_index,
        Encoding.to_binary(ife_competitor.competing_txbytes), ife_competitor.competing_input_index,
        ife_competitor.competing_tx_pos, Encoding.to_binary(ife_competitor.competing_proof),
-       Encoding.to_binary(ife_competitor.competing_sig)
+       Encoding.to_binary(ife_competitor.competing_sig)}
     ]
 
     data =
