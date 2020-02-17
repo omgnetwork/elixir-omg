@@ -24,11 +24,13 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
   alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.TestServer
   alias OMG.WireFormatTypes
   alias Support.WatcherHelper
+
 
   require OMG.State.Transaction.Payment
 
@@ -79,8 +81,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
           "hash" => Encoding.to_hex(spending_transaction.block.hash),
           "timestamp" => spending_transaction.block.timestamp,
           "tx_count" => spending_transaction.block.tx_count,
-          "inserted_at" => DateTime.to_iso8601(spending_transaction.block.inserted_at),
-          "updated_at" => DateTime.to_iso8601(spending_transaction.block.updated_at)
+          "inserted_at" => Response.serialize(spending_transaction.block.inserted_at).data,
+          "updated_at" => Response.serialize(spending_transaction.block.updated_at).data
         },
         "inputs" =>
           Enum.map(spending_transaction.inputs, fn input ->
@@ -97,8 +99,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
               "spending_txhash" => to_hex_or_nil(input.spending_txhash),
               "spending_tx_oindex" => input.spending_tx_oindex,
               "proof" => Encoding.to_hex(input.proof),
-              "inserted_at" => DateTime.to_iso8601(input.inserted_at),
-              "updated_at" => DateTime.to_iso8601(input.updated_at)
+              "inserted_at" => Response.serialize(input.inserted_at).data,
+              "updated_at" => Response.serialize(input.updated_at).data
             }
           end),
         "outputs" =>
@@ -116,8 +118,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
               "spending_txhash" => to_hex_or_nil(output.spending_txhash),
               "spending_tx_oindex" => output.spending_tx_oindex,
               "proof" => Encoding.to_hex(output.proof),
-              "inserted_at" => DateTime.to_iso8601(output.inserted_at),
-              "updated_at" => DateTime.to_iso8601(output.updated_at)
+              "inserted_at" => Response.serialize(output.inserted_at).data,
+              "updated_at" => Response.serialize(output.updated_at).data
             }
           end),
         "txhash" => Encoding.to_hex(spending_transaction.txhash),
@@ -125,8 +127,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
         "txindex" => spending_transaction.txindex,
         "txtype" => spending_transaction.txtype,
         "metadata" => Encoding.to_hex(spending_transaction.metadata),
-        "inserted_at" => DateTime.to_iso8601(spending_transaction.inserted_at),
-        "updated_at" => DateTime.to_iso8601(spending_transaction.updated_at)
+        "inserted_at" => Response.serialize(spending_transaction.inserted_at).data,
+        "updated_at" => Response.serialize(spending_transaction.updated_at).data
       }
 
       response = WatcherHelper.success?("transaction.get", %{"id" => Encoding.to_hex(spending_transaction.txhash)})
