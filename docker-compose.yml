@@ -16,7 +16,7 @@ services:
       retries: 5
 
   geth:
-    image: ethereum/client-go:v1.8.27
+    image: ethereum/client-go:v1.9.10
     entrypoint:
       - /bin/sh
       - -c
@@ -27,6 +27,7 @@ services:
           #   2. Configuring the authority's keystore
           #   3. Configuring the keystores' password
           #   4. Unlocking the accounts by their indexes
+          # CAREFUL with --allow-insecure-unlock!
           echo "" > /tmp/geth-blank-password
           # Starts geth
           # Websocket is not used by the applications but enabled for debugging/testing convenience
@@ -43,7 +44,8 @@ services:
             --unlock "0,1" \
             --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 \
             --ws --wsaddr 0.0.0.0 --wsorigins='*' \
-            --mine
+            --mine \
+            --allow-insecure-unlock
     ports:
       - "8545:8545"
       - "8546:8546"
