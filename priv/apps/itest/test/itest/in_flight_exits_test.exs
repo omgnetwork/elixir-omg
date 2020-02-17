@@ -652,11 +652,7 @@ defmodule InFlightExitsTests do
     end
   end
 
-  defp challenge_in_flight_exit_not_canonical(
-         exit_game_contract_address,
-         "0x" <> rest_address = address,
-         ife_competitor
-       ) do
+  defp challenge_in_flight_exit_not_canonical(exit_game_contract_address, ife_competitor) do
     values = [
       {Encoding.to_binary(ife_competitor.input_tx), ife_competitor.input_utxo_pos,
        Encoding.to_binary(ife_competitor.in_flight_txbytes), ife_competitor.in_flight_input_index,
