@@ -97,9 +97,9 @@ defmodule OMG.Eth.RootChainTest do
     end
   end
 
-  describe "get_standard_exits_structs/2" do
+  describe "get_standard_exit_structs/2" do
     test "returns a list of standard exits by the given exit ids", %{contracts: contracts} do
-      use_cassette "ganache/get_standard_exits_structs", match_requests_on: [:request_body] do
+      use_cassette "ganache/get_standard_exit_structs", match_requests_on: [:request_body] do
         # Make 3 deposits so we can do 3 exits. 1 exit will not be queried, so we can check for false positives
         {utxo_pos_1, exit_1} = deposit_then_start_exit(contracts.authority_address, 1, @eth, contracts)
         {utxo_pos_2, _exit_2} = deposit_then_start_exit(contracts.authority_address, 2, @eth, contracts)
@@ -113,7 +113,7 @@ defmodule OMG.Eth.RootChainTest do
         exit_id_1 = exit_id_from_receipt(exit_1)
         exit_id_3 = exit_id_from_receipt(exit_3)
 
-        {:ok, exits} = RootChain.get_standard_exits_structs([exit_id_1, exit_id_3], contracts)
+        {:ok, exits} = RootChain.get_standard_exit_structs([exit_id_1, exit_id_3], contracts)
 
         assert length(exits) == 2
         assert Enum.any?(exits, fn e -> elem(e, 1) == utxo_pos_1 end)
