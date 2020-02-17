@@ -116,7 +116,7 @@ defmodule OMG.Eth.RootChainTest do
       exit_id_1 = exit_id_from_receipt(exit_1)
       exit_id_3 = exit_id_from_receipt(exit_3)
 
-      {:ok, exits} = RootChain.get_standard_exits_structs([exit_id_1, exit_id_3], contracts)
+      {:ok, exits} = RootChain.get_standard_exit_structs([exit_id_1, exit_id_3], contracts)
 
       assert length(exits) == 2
       assert Enum.any?(exits, fn e -> elem(e, 1) == utxo_pos_1 end)
