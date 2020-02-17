@@ -32,6 +32,10 @@ defmodule Itest.ApiModel.IfeExits do
     result
   end
 
+  def to_struct([values], attrs, struct) when is_tuple(values) do
+    to_struct(Tuple.to_list(values), attrs, struct)
+  end
+
   def to_struct([value | values], [attr | attrs], struct) do
     to_struct(values, attrs, Map.put(struct, attr, value))
   end

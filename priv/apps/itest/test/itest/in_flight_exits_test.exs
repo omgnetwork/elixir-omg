@@ -407,7 +407,7 @@ defmodule InFlightExitsTests do
     %{exit_data: exit_data} = alice_state = state["Alice"]
 
     in_flight_exit_id = get_in_flight_exit_id(exit_game_contract_address, exit_data)
-    in_flight_exit_ids = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    [in_flight_exit_ids] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
     assert in_flight_exit_ids.exit_map == 0
 
     alice_state =
@@ -438,7 +438,7 @@ defmodule InFlightExitsTests do
         Enum.concat([receipt_hash_1, receipt_hash_2], bob_state.receipt_hashes)
       )
 
-    in_flight_exit_ids = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    [in_flight_exit_ids] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
     # bits is flagged when output is piggybacked
     assert in_flight_exit_ids.exit_map != 0
     entity = "Bob"
@@ -484,7 +484,7 @@ defmodule InFlightExitsTests do
     assert ife_input_challenge.in_flight_txbytes == Encoding.to_hex(unsigned_txbytes)
     receipt_hash_0 = challenge_in_flight_exit_input_spent(exit_game_contract_address, address, ife_input_challenge)
     # sanity check
-    in_flight_exit_ids1 = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    [in_flight_exit_ids1] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
     assert in_flight_exit_ids1.exit_map != in_flight_exit_ids.exit_map
     assert in_flight_exit_ids1.exit_map != 0
 
@@ -498,7 +498,7 @@ defmodule InFlightExitsTests do
     assert ife_output_challenge.in_flight_txbytes == Encoding.to_hex(unsigned_txbytes)
     receipt_hash_1 = challenge_in_flight_exit_output_spent(exit_game_contract_address, address, ife_output_challenge)
     # observe the result - piggybacks are gone
-    in_flight_exit_ids2 = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    [in_flight_exit_ids2] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
     assert in_flight_exit_ids2.exit_map == 0
 
     # observe the byzantine events gone
@@ -652,18 +652,23 @@ defmodule InFlightExitsTests do
     end
   end
 
-  defp challenge_in_flight_exit_not_canonical(exit_game_contract_address, address, ife_competitor) do
+  defp challenge_in_flight_exit_not_canonical(
+         exit_game_contract_address,
+         "0x" <> rest_address = address,
+         ife_competitor
+       ) do
     values = [
       {Encoding.to_binary(ife_competitor.input_tx), ife_competitor.input_utxo_pos,
        Encoding.to_binary(ife_competitor.in_flight_txbytes), ife_competitor.in_flight_input_index,
        Encoding.to_binary(ife_competitor.competing_txbytes), ife_competitor.competing_input_index,
        ife_competitor.competing_tx_pos, Encoding.to_binary(ife_competitor.competing_proof),
-       Encoding.to_binary(ife_competitor.competing_sig)}
+       Encoding.to_binary(ife_competitor.competing_sig),
+       rest_address |> Base.decode16!(case: :lower) |> :keccakf1600.sha3_256()}
     ]
 
     data =
       ABI.encode(
-        "challengeInFlightExitNotCanonical((bytes,uint256,bytes,uint16,bytes,uint16,uint256,bytes,bytes))",
+        "challengeInFlightExitNotCanonical((bytes,uint256,bytes,uint16,bytes,uint16,uint256,bytes,bytes,bytes32))",
         values
       )
 
@@ -682,17 +687,21 @@ defmodule InFlightExitsTests do
     receipt_hash
   end
 
-  defp challenge_in_flight_exit_input_spent(exit_game_contract_address, address, ife_input_challenge) do
+  defp challenge_in_flight_exit_input_spent(
+         exit_game_contract_address,
+         "0x" <> rest_address = address,
+         ife_input_challenge
+       ) do
     values = [
       {Encoding.to_binary(ife_input_challenge.in_flight_txbytes), ife_input_challenge.in_flight_input_index,
        Encoding.to_binary(ife_input_challenge.spending_txbytes), ife_input_challenge.spending_input_index,
        Encoding.to_binary(ife_input_challenge.spending_sig), Encoding.to_binary(ife_input_challenge.input_tx),
-       ife_input_challenge.input_utxo_pos}
+       ife_input_challenge.input_utxo_pos, rest_address |> Base.decode16!(case: :lower) |> :keccakf1600.sha3_256()}
     ]
 
     data =
       ABI.encode(
-        "challengeInFlightExitInputSpent((bytes,uint16,bytes,uint16,bytes,bytes,uint256))",
+        "challengeInFlightExitInputSpent((bytes,uint16,bytes,uint16,bytes,bytes,uint256,bytes32))",
         values
       )
 
@@ -712,17 +721,22 @@ defmodule InFlightExitsTests do
     receipt_hash
   end
 
-  defp challenge_in_flight_exit_output_spent(exit_game_contract_address, address, ife_output_challenge) do
+  defp challenge_in_flight_exit_output_spent(
+         exit_game_contract_address,
+         "0x" <> rest_address = address,
+         ife_output_challenge
+       ) do
     values = [
       {Encoding.to_binary(ife_output_challenge.in_flight_txbytes),
        Encoding.to_binary(ife_output_challenge.in_flight_proof), ife_output_challenge.in_flight_output_pos,
        Encoding.to_binary(ife_output_challenge.spending_txbytes), ife_output_challenge.spending_input_index,
-       Encoding.to_binary(ife_output_challenge.spending_sig)}
+       Encoding.to_binary(ife_output_challenge.spending_sig),
+       rest_address |> Base.decode16!(case: :lower) |> :keccakf1600.sha3_256()}
     ]
 
     data =
       ABI.encode(
-        "challengeInFlightExitOutputSpent((bytes,bytes,uint256,bytes,uint16,bytes))",
+        "challengeInFlightExitOutputSpent((bytes,bytes,uint256,bytes,uint16,bytes,bytes32))",
         values
       )
 
@@ -797,21 +811,27 @@ defmodule InFlightExitsTests do
 
   defp get_in_flight_exits(exit_game_contract_address, ife_exit_id) do
     _ = Logger.info("Get in flight exits...")
-    data = ABI.encode("inFlightExits(uint160)", [ife_exit_id])
+    data = ABI.encode("inFlightExits(uint160[])", [[ife_exit_id]])
     {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: exit_game_contract_address, data: Encoding.to_hex(data)})
 
     return_struct = [
-      :bool,
-      {:uint, 64},
-      {:uint, 256},
-      {:uint, 256},
-      # NOTE: there are these two more fields in the return but they can be ommitted,
-      #       both have withdraw_data_struct type
-      # withdraw_data_struct,
-      # withdraw_data_struct,
-      :address,
-      {:uint, 256},
-      {:uint, 256}
+      {:array,
+       {
+         :tuple,
+         [
+           :bool,
+           {:uint, 64},
+           {:uint, 256},
+           {:uint, 256},
+           # NOTE: there are these two more fields in the return but they can be ommitted,
+           #       both have withdraw_data_struct type
+           # withdraw_data_struct,
+           # withdraw_data_struct,
+           :address,
+           {:uint, 256},
+           {:uint, 256}
+         ]
+       }}
     ]
 
     return_fields = [
@@ -824,11 +844,14 @@ defmodule InFlightExitsTests do
       :oldest_competitor_position
     ]
 
+    # A temporary work around for `ex_abi` incorrectly decoding arrays.
+    # See https://github.com/poanetwork/ex_abi/issues/22
+    <<32::size(32)-unit(8), raw_array_data::binary>> = Encoding.to_binary(result)
+
     ife_exit_ids =
-      result
-      |> Encoding.to_binary()
+      raw_array_data
       |> ABI.TypeDecoder.decode(return_struct)
-      |> IfeExits.to_struct(return_fields)
+      |> Enum.map(&IfeExits.to_struct(&1, return_fields))
 
     _ = Logger.info("IFEs #{inspect(ife_exit_ids)}")
     ife_exit_ids
