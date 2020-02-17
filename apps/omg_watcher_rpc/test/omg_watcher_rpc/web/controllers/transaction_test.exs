@@ -31,7 +31,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias OMG.WireFormatTypes
   alias Support.WatcherHelper
 
-
   require OMG.State.Transaction.Payment
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
