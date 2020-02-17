@@ -149,11 +149,11 @@ defmodule Support.RootChainHelper do
       ) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
     opts = Keyword.merge(defaults, opts)
-    sender_hash = from |> String.trim_leading("0x") |> Base.decode16!(case: :lower) |> BitHelper.kec()
+    sender_data = from |> String.trim_leading("0x") |> Base.decode16!(case: :lower) |> BitHelper.kec()
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "challengeStandardExit((uint160,bytes,bytes,uint16,bytes,bytes32))"
-    args = [{exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig, sender_hash}]
+    args = [{exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig, sender_data}]
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
