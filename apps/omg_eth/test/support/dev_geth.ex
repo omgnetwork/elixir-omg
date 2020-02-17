@@ -46,7 +46,8 @@ defmodule OMG.Eth.DevGeth do
             --unlock \"0,1\" \
             --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts='*' --rpcport=8545 \
             --ws --wsaddr 0.0.0.0 --wsorigins='*' \
-            --mine --datadir --allow-insecure-unlock #{datadir} 2>&1)
+            --allow-insecure-unlock \
+            --mine --datadir #{datadir} 2>&1)
     geth_pid = launch(geth)
 
     {:ok, :ready} = WaitFor.eth_rpc()
