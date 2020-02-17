@@ -516,7 +516,7 @@ defmodule InFlightExitsTests do
 
     assert ife_competitor.competing_tx_pos > 0
     assert ife_competitor.competing_proof != ""
-    challenge_in_flight_exit_not_canonical(exit_game_contract_address, bob_address, ife_competitor)
+    challenge_in_flight_exit_not_canonical(exit_game_contract_address, ife_competitor)
     # I’m waiting for these one, and only this one to appear
     assert all?(["piggyback_available"]) == true
 
