@@ -337,4 +337,24 @@ defmodule OMG.Eth.RootChain do
     contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
     Eth.call_contract(contract, "authority()", [], [:address])
   end
+
+  # TODO: see above in where it is called - temporary function
+  defp call_contract_manual_exits(contract, signature, args, return_types) do
+    data = ABI.encode(signature, args)
+
+    {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: to_hex(contract), data: to_hex(data)})
+    decode_answer_manual_exits(return, return_types)
+  end
+
+  # TODO: see above in where it is called - temporary function
+  defp decode_answer_manual_exits(enc_return, return_types) do
+    <<32::size(32)-unit(8), raw_array_data::binary>> = from_hex(enc_return)
+
+    raw_array_data
+    |> ABI.TypeDecoder.decode(return_types)
+    |> case do
+      [single_return] -> {:ok, single_return}
+      other when is_list(other) -> {:ok, List.to_tuple(other)}
+    end
+  end
 end

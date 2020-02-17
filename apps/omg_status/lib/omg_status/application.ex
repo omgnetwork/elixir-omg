@@ -42,7 +42,7 @@ defmodule OMG.Status.Application do
           {SpandexDatadog.ApiServer, spandex_datadog_options()},
           {AlarmConsumer,
            [
-             alarm_handler: OMG.Status.DatadogEvent.AlarmHandler,
+             dd_alarm_handler: OMG.Status.DatadogEvent.AlarmHandler,
              release: Application.get_env(:omg_status, :release),
              current_version: Application.get_env(:omg_status, :current_version),
              publisher: OMG.Status.Metric.Datadog

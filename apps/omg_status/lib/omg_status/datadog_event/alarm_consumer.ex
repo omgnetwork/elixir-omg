@@ -36,7 +36,9 @@ defmodule OMG.Status.DatadogEvent.AlarmConsumer do
   use GenServer
 
   def init(args) do
-    :ok = install_alarm_handler(Keyword.fetch!(args, :alarm_handler))
+    alarm_handler_process = Keyword.get(args, :alarm_handler, :alarm_handler)
+    dd_alarm_handler = Keyword.fetch!(args, :dd_alarm_handler)
+    :ok = install_alarm_handler(alarm_handler_process, dd_alarm_handler)
     publisher = Keyword.fetch!(args, :publisher)
 
     release = Keyword.fetch!(args, :release)
@@ -63,6 +65,7 @@ defmodule OMG.Status.DatadogEvent.AlarmConsumer do
     options = tags(aggregation_key, state.release, state.current_version, timestamp)
     title = "#{action} - #{inspect(alarm_type)}"
     message = "#{inspect(data)} - Timestamp: #{timestamp}"
+
     :ok = apply(state.publisher, :event, create_event_data(title, message, level ++ options))
 
     {:noreply, state}
@@ -76,16 +79,14 @@ defmodule OMG.Status.DatadogEvent.AlarmConsumer do
   defp tags(aggregation_key, release, current_version, _timestamp) do
     [
       {:aggregation_key, aggregation_key},
-      {:tags, ["#{aggregation_key}", "#{release}", "vsn-#{current_version}"]},
-      {:alert_type, "success"}
-      # {:timestamp, timestamp}
+      {:tags, ["#{aggregation_key}", "#{release}", "vsn-#{current_version}"]}
     ]
   end
 
-  defp install_alarm_handler(alarm_consumer) do
-    case Enum.member?(:gen_event.which_handlers(:alarm_handler), alarm_consumer) do
+  defp install_alarm_handler(alarm_handler, dd_alarm_handler) do
+    case Enum.member?(:gen_event.which_handlers(alarm_handler), dd_alarm_handler) do
       true -> :ok
-      _ -> :alarm_handler.add_alarm_handler(alarm_consumer, [self()])
+      _ -> alarm_handler.add_alarm_handler(dd_alarm_handler, [self()])
     end
   end
 end

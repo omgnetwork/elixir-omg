@@ -14,8 +14,7 @@
 
 defmodule OMG.Status.DatadogEvent.AlarmHandler do
   @moduledoc """
-     The alarm reporter and monitor happen to be the same module here because we are just
-   reflecting the alarm's state back to the reporter.
+     Is notified of raise and cleared alarms and forwards them to AlarmConsumer process.
   """
 
   require Logger

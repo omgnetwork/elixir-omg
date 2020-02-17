@@ -89,8 +89,7 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
     [
       {:aggregation_key, aggregation_key},
       {:tags, ["#{aggregation_key}", "#{release}", "vsn-#{current_version}"]},
-      {:alert_type, "success"}
-      # {:timestamp, timestamp}
+      {:alert_type, "info"}
     ]
   end
 end
