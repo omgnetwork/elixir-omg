@@ -58,6 +58,13 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraintsTest do
       assert constraints == []
     end
 
+    test "returns validation errors when given invalid tx_types" do
+      assert TransactionConstraints.parse(%{"txtypes" => 1}) == {:error, {:validation_error, "txtypes", :list}}
+
+      assert TransactionConstraints.parse(%{"txtypes" => ["1"]}) ==
+               {:error, {:validation_error, "txtypes.txtype", :integer}}
+    end
+
     test "returns a :validation_error when the given page == 0" do
       assert TransactionConstraints.parse(%{"page" => 0}) == {:error, {:validation_error, "page", {:greater, 0}}}
     end
