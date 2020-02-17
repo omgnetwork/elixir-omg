@@ -92,6 +92,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
                challenge_exit_deposit["txbytes"],
                challenge_exit_deposit["input_index"],
                challenge_exit_deposit["sig"],
+               sender_hash,
                alice.addr
              )
              |> DevHelper.transact_sync!()
