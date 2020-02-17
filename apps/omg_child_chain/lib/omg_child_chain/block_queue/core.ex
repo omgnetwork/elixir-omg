@@ -14,22 +14,34 @@
 
 defmodule OMG.ChildChain.BlockQueue.Core do
   @moduledoc """
-  Responsible for keeping a queue of blocks lined up for submission to Ethereum.
-  Responsible for determining the cadence of forming/submitting blocks to Ethereum.
-  Responsible for determining correct gas price and ensuring submissions get mined eventually.
+  Logic module for the `OMG.ChildChain.BlockQueue`
 
-  In particular responsible for picking up, where it's left off (crashed) gracefully.
+  Responsible for
+   - keeping a queue of blocks lined up for submission to Ethereum.
+   - determining the cadence of forming/submitting blocks to Ethereum.
+   - determining correct gas price and ensuring submissions get mined eventually
 
-  Relies on RootChain contract having reorg protection ('decimals for deposits' part).
-  Relies on RootChain contract's 'authority' account not being used to send any other transaction.
+  Relies on RootChain contract's 'authority' account not being used to send any other transactions, beginning from the
+  nonce=1 transaction.
 
-  Calculates gas price and resubmits block submission transactions not being mined, using a higher gas price.
+  Calculates gas price and resubmits using a higher gas price, if submissions are not being mined.
   See [section](#gas-price-selection)
 
-  Note that first nonce (zero) of authority account is used to deploy RootChain.
-  Every next nonce is used to submit operator blocks.
+  ### Form block deciding
 
-  This is the functional core: has no side-effects or side-causes, for the effectful shell see `OMG.ChildChain.BlockQueue`
+  Orders to form a new block when:
+    - a given number of new Ethereum blocks have been mined (e.g. once every approximately X * 15 seconds) since last
+    submission done (`submitBlock` call on the root chain contract), and,
+    - there is >= 1 transactions pending in `OMG.State`, that have been successfully executed
+
+  ### Block Queue management
+
+  Keeps track of all the recently formed child chain blocks. Decides when they can be considered definitely mined, in
+  light of any reasonably deep reorgs of the root chains. In case resubmission is needed, applies the current gas price.
+
+  Respects the [nonces restriction](https://github.com/omisego/elixir-omg/blob/master/docs/details.md#nonces-restriction)
+  mechanism, i.e. the submission nonce is derived from the child chain block number to submit. Currently it is:
+  nonce=1 blknum=1000, nonce=2 blknum=2000 etc.
 
   ### Gas price selection
 
@@ -64,7 +76,10 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   use OMG.Utils.LoggerExt
 
   defmodule BlockSubmission do
-    @moduledoc false
+    @moduledoc """
+    Represents all the parts of a `submitBlock` transaction to be done on behalf of the authority address, that is
+    determined by the `OMG.ChildChain.BlockQueue`
+    """
 
     @type hash() :: <<_::256>>
     @type plasma_block_num() :: non_neg_integer()
@@ -123,6 +138,9 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
+  @doc """
+  Initializes the state of the `OMG.ChildChain.BlockQueue` based on data from `OMG.DB` and configuration
+  """
   @spec new(keyword()) ::
           {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
   def new(opts \\ []) do
@@ -142,20 +160,181 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
   end
 
+  @doc """
+  Generates an enumerable of block numbers to be starting the BlockQueue with
+  (inclusive and it takes `finality_threshold` blocks before the youngest mined block)
+  """
+  @spec child_block_nums_to_init_with(non_neg_integer, non_neg_integer, pos_integer, non_neg_integer) :: list
+  def child_block_nums_to_init_with(mined_num, until_child_block_num, interval, finality_threshold) do
+    first = max(interval, mined_num - finality_threshold * interval)
+    last = until_child_block_num
+    step = interval
+    # :lists.seq/3 throws, so we need to wrap
+    if first > last, do: [], else: :lists.seq(first, last, step)
+  end
+
+  @doc """
+  Sets height of Ethereum chain and the height of the child chain mined on Ethereum.
+
+  Based on that, decides whether new block forming should be triggered as well as the gas price to use for subsequent
+  submissions.
+  """
+  @spec set_ethereum_status(Core.t(), BlockQueue.eth_height(), BlockQueue.plasma_block_num(), boolean()) ::
+          {:do_form_block, Core.t()} | {:dont_form_block, Core.t()}
+  def set_ethereum_status(state, parent_height, mined_child_block_num, is_empty_block) do
+    new_state =
+      %{state | parent_height: parent_height}
+      |> set_mined(mined_child_block_num)
+      |> adjust_gas_price()
+
+    if should_form_block?(new_state, is_empty_block) do
+      {:do_form_block, %{new_state | wait_for_enqueue: true}}
+    else
+      {:dont_form_block, new_state}
+    end
+  end
+
+  @doc """
+  Enqueues a new block to the queue of child chain blocks awaiting submission, i.e. ones not yet seen mined.
+  """
   @spec enqueue_block(Core.t(), BlockQueue.hash(), BlockQueue.plasma_block_num(), pos_integer()) ::
           Core.t() | {:error, :unexpected_block_number}
   def enqueue_block(state, hash, expected_block_number, parent_height) do
     own_height = state.formed_child_block_num + state.child_block_interval
 
     with :ok <- validate_block_number(expected_block_number, own_height) do
-      enqueue_block(state, hash, parent_height)
+      do_enqueue_block(state, hash, parent_height)
     end
   end
+
+  @doc """
+  Compares the child blocks mined in contract with formed blocks.
+
+  Picks for submission child blocks that haven't yet been seen mined on Ethereum.
+  """
+  @spec get_blocks_to_submit(Core.t()) :: [BlockQueue.encoded_signed_tx()]
+  def get_blocks_to_submit(%{blocks: blocks, formed_child_block_num: formed} = state) do
+    _ = Logger.debug("preparing blocks #{inspect(next_blknum_to_mine(state))}..#{inspect(formed)} for submission")
+
+    blocks
+    |> Enum.filter(to_mined_block_filter(state))
+    |> Enum.map(fn {_blknum, block} -> block end)
+    |> Enum.sort_by(& &1.num)
+    |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
+  end
+
+  # TODO: consider moving this logic to separate module
+  @doc """
+  Based on the result of a submission transaction returned from the Ethereum node, figures out what to do (namely:
+  crash on or ignore an error response that is expected).
+
+  It caters for the differences of those responses between Ethereum node RPC implementations.
+
+  In general terms, those are the responses handled:
+    - **known transaction** - this is common and expected to occur, since we are tracking submissions ourselves and
+      liberally resubmitting same transactions; this is ignored
+    - **low replacement price** - due to the gas price selection mechanism, there are cases where transaction will get
+      resubmitted with a lower gas price; this is ignored
+    - **account locked** - Ethereum node reports the authority account is locked; this causes a crash
+    - **nonce too low** - there is an inherent race condition - when we're resubmitting a block, we do it with the same
+      nonce, meanwhile it might happen that Ethereum mines this submission in this very instant; this is ignored if we
+      indeed have just mined that submission, causes a crash otherwise
+  """
+  @spec process_submit_result(BlockSubmission.t(), submit_result_t(), BlockSubmission.plasma_block_num()) ::
+          :ok | {:error, atom}
+  def process_submit_result(submission, submit_result, newest_mined_blknum)
+
+  def process_submit_result(submission, {:ok, txhash}, _newest_mined_blknum) do
+    log_success(submission, txhash)
+    :ok
+  end
+
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}},
+        _newest_mined_blknum
+      ) do
+    log_known_tx(submission)
+    :ok
+  end
+
+  # parity error code for duplicated tx
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_010, "message" => "Transaction with the same hash was already imported."}},
+        _newest_mined_blknum
+      ) do
+    log_known_tx(submission)
+    :ok
+  end
+
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}},
+        _newest_mined_blknum
+      ) do
+    log_low_replacement_price(submission)
+    :ok
+  end
+
+  # parity version
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_010, "message" => "Transaction gas price is too low. There is another" <> _}},
+        _newest_mined_blknum
+      ) do
+    log_low_replacement_price(submission)
+    :ok
+  end
+
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}},
+        newest_mined_blknum
+      ) do
+    diagnostic = prepare_diagnostic(submission, newest_mined_blknum)
+    log_locked(diagnostic)
+    {:error, :account_locked}
+  end
+
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "nonce too low"}},
+        newest_mined_blknum
+      ) do
+    process_nonce_too_low(submission, newest_mined_blknum)
+  end
+
+  # parity specific error for nonce-too-low
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_010, "message" => "Transaction nonce is too low." <> _}},
+        newest_mined_blknum
+      ) do
+    process_nonce_too_low(submission, newest_mined_blknum)
+  end
+
+  # ganache has this error, but these are valid nonce_too_low errors, that just don't make any sense
+  # `process_nonce_too_low/2` would mark it as a genuine failure and crash the BlockQueue :(
+  # however, everything seems to just work regardless, things get retried and mined eventually
+  # NOTE: we decide to degrade the severity to warn and continue, considering it's just `ganache`
+  def process_submit_result(
+        _submission,
+        {:error, %{"code" => -32_000, "data" => %{"stack" => "n: the tx doesn't have the correct nonce" <> _}}} = error,
+        _newest_mined_blknum
+      ) do
+    log_ganache_nonce_too_low(error)
+    :ok
+  end
+
+  #
+  # Private functions
+  #
 
   defp validate_block_number(block_number, block_number), do: :ok
   defp validate_block_number(_, _), do: {:error, :unexpected_block_number}
 
-  defp enqueue_block(state, hash, parent_height) do
+  defp do_enqueue_block(state, hash, parent_height) do
     own_height = state.formed_child_block_num + state.child_block_interval
 
     block = %BlockSubmission{
@@ -188,24 +367,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     top_known_block = max(mined_child_block_num, state.formed_child_block_num)
 
     %{state | formed_child_block_num: top_known_block, mined_child_block_num: mined_child_block_num, blocks: blocks}
-  end
-
-  @doc """
-  Set height of Ethereum chain and the height of the child chain mined on Ethereum.
-  """
-  @spec set_ethereum_status(Core.t(), BlockQueue.eth_height(), BlockQueue.plasma_block_num(), boolean()) ::
-          {:do_form_block, Core.t()} | {:dont_form_block, Core.t()}
-  def set_ethereum_status(state, parent_height, mined_child_block_num, is_empty_block) do
-    new_state =
-      %{state | parent_height: parent_height}
-      |> set_mined(mined_child_block_num)
-      |> adjust_gas_price()
-
-    if should_form_block?(new_state, is_empty_block) do
-      {:do_form_block, %{new_state | wait_for_enqueue: true}}
-    else
-      {:dont_form_block, new_state}
-    end
   end
 
   # Updates gas price to use basing on :calculate_gas_price function, updates current parent height
@@ -307,37 +468,12 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     %{state | gas_price_to_use: price}
   end
 
-  @doc """
-  Compares the child blocks mined in contract with formed blocks
-
-  Picks for submission child blocks that haven't yet been seen mined on Ethereum
-  """
-  @spec get_blocks_to_submit(Core.t()) :: [BlockQueue.encoded_signed_tx()]
-  def get_blocks_to_submit(%{blocks: blocks, formed_child_block_num: formed} = state) do
-    _ = Logger.debug("preparing blocks #{inspect(first_to_mined(state))}..#{inspect(formed)} for submission")
-
-    blocks
-    |> Enum.filter(to_mined_block_filter(state))
-    |> Enum.map(fn {_blknum, block} -> block end)
-    |> Enum.sort_by(& &1.num)
-    |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
-  end
-
-  @spec first_to_mined(Core.t()) :: pos_integer()
-  defp first_to_mined(%{mined_child_block_num: mined, child_block_interval: interval}), do: mined + interval
+  @spec next_blknum_to_mine(Core.t()) :: pos_integer()
+  defp next_blknum_to_mine(%{mined_child_block_num: mined, child_block_interval: interval}), do: mined + interval
 
   @spec to_mined_block_filter(Core.t()) :: ({pos_integer, BlockSubmission.t()} -> boolean)
   defp to_mined_block_filter(%{formed_child_block_num: formed} = state),
-    do: fn {blknum, _} -> first_to_mined(state) <= blknum and blknum <= formed end
-
-  @doc """
-  Generates an enumberable of block numbers to be starting the BlockQueue with
-  (inclusive and it takes `finality_threshold` blocks before the youngest mined block)
-  """
-  @spec child_block_nums_to_init_with(non_neg_integer, non_neg_integer, pos_integer, non_neg_integer) :: list
-  def child_block_nums_to_init_with(mined_num, until_child_block_num, interval, finality_threshold) do
-    make_range(max(interval, mined_num - finality_threshold * interval), until_child_block_num, interval)
-  end
+    do: fn {blknum, _} -> next_blknum_to_mine(state) <= blknum and blknum <= formed end
 
   @spec should_form_block?(Core.t(), boolean()) :: boolean()
   defp should_form_block?(
@@ -373,13 +509,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
   defp calc_nonce(height, interval) do
     trunc(height / interval)
-  end
-
-  # :lists.seq/3 throws, so wrapper
-  defp make_range(first, last, _) when first > last, do: []
-
-  defp make_range(first, last, step) do
-    :lists.seq(first, last, step)
   end
 
   # When restarting, we don't actually know what was the state of submission process to Ethereum.
@@ -423,7 +552,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
       _ = Logger.info("Loaded with #{inspect(mined_blocks)} mined and #{inspect(fresh_blocks)} enqueued")
 
-      {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> enqueue_block(acc, hash, state.parent_height) end)}
+      {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> do_enqueue_block(acc, hash, state.parent_height) end)}
     end
   end
 
@@ -456,94 +585,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   defp validate_block_hash(expected, {_blknum, blkhash}) when expected == blkhash, do: :ok
   defp validate_block_hash(_, nil), do: {:error, :mined_blknum_not_found_in_db}
   defp validate_block_hash(_, _), do: {:error, :hashes_dont_match}
-
-  # TODO: consider moving this logic to separate module
-  @spec process_submit_result(BlockSubmission.t(), submit_result_t(), BlockSubmission.plasma_block_num()) ::
-          :ok | {:error, atom}
-  def process_submit_result(submission, submit_result, newest_mined_blknum)
-
-  def process_submit_result(submission, {:ok, txhash}, _newest_mined_blknum) do
-    log_success(submission, txhash)
-    :ok
-  end
-
-  def process_submit_result(
-        submission,
-        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}},
-        _newest_mined_blknum
-      ) do
-    log_known_tx(submission)
-    :ok
-  end
-
-  # parity error code for duplicated tx
-  def process_submit_result(
-        submission,
-        {:error, %{"code" => -32_010, "message" => "Transaction with the same hash was already imported."}},
-        _newest_mined_blknum
-      ) do
-    log_known_tx(submission)
-    :ok
-  end
-
-  def process_submit_result(
-        submission,
-        {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}},
-        _newest_mined_blknum
-      ) do
-    log_low_replacement_price(submission)
-    :ok
-  end
-
-  # parity version
-  def process_submit_result(
-        submission,
-        {:error, %{"code" => -32_010, "message" => "Transaction gas price is too low. There is another" <> _}},
-        _newest_mined_blknum
-      ) do
-    log_low_replacement_price(submission)
-    :ok
-  end
-
-  def process_submit_result(
-        submission,
-        {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}},
-        newest_mined_blknum
-      ) do
-    diagnostic = prepare_diagnostic(submission, newest_mined_blknum)
-    log_locked(diagnostic)
-    {:error, :account_locked}
-  end
-
-  def process_submit_result(
-        submission,
-        {:error, %{"code" => -32_000, "message" => "nonce too low"}},
-        newest_mined_blknum
-      ) do
-    process_nonce_too_low(submission, newest_mined_blknum)
-  end
-
-  # parity specific error for nonce-too-low
-  def process_submit_result(
-        submission,
-        {:error, %{"code" => -32_010, "message" => "Transaction nonce is too low." <> _}},
-        newest_mined_blknum
-      ) do
-    process_nonce_too_low(submission, newest_mined_blknum)
-  end
-
-  # ganache has this error, but these are valid nonce_too_low errors, that just don't make any sense
-  # `process_nonce_too_low/2` would mark it as a genuine failure and crash the BlockQueue :(
-  # however, everything seems to just work regardless, things get retried and mined eventually
-  # NOTE: we decide to degrade the severity to warn and continue, considering it's just `ganache`
-  def process_submit_result(
-        _submission,
-        {:error, %{"code" => -32_000, "data" => %{"stack" => "n: the tx doesn't have the correct nonce" <> _}}} = error,
-        _newest_mined_blknum
-      ) do
-    log_ganache_nonce_too_low(error)
-    :ok
-  end
 
   defp log_ganache_nonce_too_low(error) do
     # runtime sanity check if we're actually running `ganache`, if we aren't and we're here, we must crash

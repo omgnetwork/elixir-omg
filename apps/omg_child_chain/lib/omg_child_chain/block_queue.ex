@@ -14,9 +14,25 @@
 
 defmodule OMG.ChildChain.BlockQueue do
   @moduledoc """
-  Imperative shell for `OMG.ChildChain.BlockQueue.Core`, see there for more info
+  Manages the process of submitting new blocks to the root chain contract.
 
-  The new blocks to enqueue arrive here via `OMG.Bus`
+  On startup uses information persisted in `OMG.DB` and the root chain contract to recover the status of the
+  submissions.
+
+  Tracks the current Ethereum height as well as the mined child chain block submissions to date. Based on this,
+  `OMG.ChildChain.BlockQueue.Core` triggers the forming of a new child chain block (by `OMG.State.form_block`).
+
+  Listens to newly formed blocks to enqueue arriving via an `OMG.Bus` subscription, hands them off to
+  `OMG.ChildChain.BlockQueue.Core` to track and submits them with appropriate gas price.
+
+  Uses `OMG.ChildChain.BlockQueue.Core` to determine whether to resubmit blocks not yet mined on the root chain with
+  a higher gas price.
+
+  Receives responses from the Ethereum RPC (or another submitting agent) and uses `OMG.ChildChain.BlockQueue.Core` to
+  determine what they mean to the process of submitting - see `OMG.ChildChain.BlockQueue.Core.process_submit_result/3`
+  for details.
+
+  See `OMG.ChildChain.BlockQueue.Core` for the implementation of the business logic for the block queue.
   """
 
   alias OMG.Block
@@ -48,10 +64,19 @@ defmodule OMG.ChildChain.BlockQueue do
       GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
     end
 
+    @doc """
+    Initializes the GenServer state, most work done in `handle_continue/2`.
+    """
     def init(:ok) do
       {:ok, %{}, {:continue, :setup}}
     end
 
+    @doc """
+    Reads the status of submitting from `OMG.DB` (the blocks persisted there). Iniitializes the state based on this and
+    configuration.
+
+    In particular it re-enqueues any blocks whose submissions have not yet been seen mined.
+    """
     def handle_continue(:setup, %{}) do
       _ = Logger.info("Starting #{__MODULE__} service.")
       :ok = Eth.node_ready()
@@ -132,7 +157,9 @@ defmodule OMG.ChildChain.BlockQueue do
 
     @doc """
     Checks the status of the Ethereum root chain, the top mined child block number
-    and status of State to decide what to do
+    and status of State to decide what to do.
+
+    `OMG.ChildChain.BlockQueue.Core` decides whether a new block should be formed or not.
     """
     def handle_info(:check_ethereum_status, %Core{} = state) do
       {:ok, ethereum_height} = EthereumHeight.get()
@@ -155,6 +182,10 @@ defmodule OMG.ChildChain.BlockQueue do
       {:noreply, state1}
     end
 
+    @doc """
+    Lines up a new block for submission. Presumably `OMG.State.form_block` wrote to the `:internal_event_bus` having
+    formed a new child chain block.
+    """
     def handle_info(
           {:internal_event_bus, :enqueue_block, %Block{number: block_number, hash: block_hash} = block},
           %Core{} = state
