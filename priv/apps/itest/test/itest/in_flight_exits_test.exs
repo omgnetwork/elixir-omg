@@ -662,13 +662,12 @@ defmodule InFlightExitsTests do
        Encoding.to_binary(ife_competitor.in_flight_txbytes), ife_competitor.in_flight_input_index,
        Encoding.to_binary(ife_competitor.competing_txbytes), ife_competitor.competing_input_index,
        ife_competitor.competing_tx_pos, Encoding.to_binary(ife_competitor.competing_proof),
-       Encoding.to_binary(ife_competitor.competing_sig),
-       rest_address |> Base.decode16!(case: :lower) |> :keccakf1600.sha3_256()}
+       Encoding.to_binary(ife_competitor.competing_sig)
     ]
 
     data =
       ABI.encode(
-        "challengeInFlightExitNotCanonical((bytes,uint256,bytes,uint16,bytes,uint16,uint256,bytes,bytes,bytes32))",
+        "challengeInFlightExitNotCanonical((bytes,uint256,bytes,uint16,bytes,uint16,uint256,bytes,bytes))",
         values
       )
 
