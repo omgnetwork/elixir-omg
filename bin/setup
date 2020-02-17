@@ -46,7 +46,7 @@ install_linux_postgres(){
 install_linux_geth(){
   echo "Installing Geth 1.9.10"
   mkdir gethDownload \
-  && wget -qO- "https://github.com/ethereum/go-ethereum/archive/v1.9.10.tar.gz" | tar xvz -C gethDownload --strip-components 1 \
+  && wget -qO- "https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.9.10-58cf5686.tar.gz" | tar xvz -C gethDownload --strip-components 1 \
   && cd gethDownload \
   && mkdir -p /usr/local/bin \
   && sudo mv geth /usr/local/bin/ \
