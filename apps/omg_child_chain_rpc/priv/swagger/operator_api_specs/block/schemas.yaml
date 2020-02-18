@@ -12,8 +12,3 @@ BlockSchema:
     blknum:
       type: integer
       format: int64
-
-    inserted_at:
-      type: string
-    updated_at:
-      type: string

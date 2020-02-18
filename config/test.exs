@@ -1,6 +1,6 @@
 use Mix.Config
 
-config :logger, level: :debug
+config :logger, level: :warn
 
 config :sentry,
   dsn: nil,

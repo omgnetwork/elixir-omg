@@ -12,5 +12,3 @@ BlockResponseSchema:
         hash: '0x2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f'
         transactions:
         - '0xf8d083015ba98080808080940000...'
-        inserted_at: '2020-02-10T12:07:32Z'
-        updated_at: '2020-02-15T04:07:57Z'
