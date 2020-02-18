@@ -404,7 +404,7 @@ jobs:
       - run:
           name: Start daemon services
           command: |
-            cd priv/
+            cd priv/cabbage
             make start_daemon_services
       - run:
           name: Print docker states
@@ -431,7 +431,7 @@ jobs:
       - run:
           name: Run specs
           command: |
-            cd priv/
+            cd priv/cabbage
             make install
             make generate_api_code
             mix deps.get
@@ -439,7 +439,7 @@ jobs:
       - run:
           name: Format generated code and check for warnings
           command: |
-            cd priv
+            cd priv/cabbage
             # run format ONLY on formatted code so that it cleans up quoted atoms because
             # we cannot exclude folders to --warnings-as-errors
             mix format apps/child_chain_api/lib/child_chain_api/model/*.ex
@@ -449,11 +449,11 @@ jobs:
       - save_cache:
           key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
           paths:
-            - "priv/deps"
+            - "priv/cabbage/deps"
       - run:
           name: Credo and formatting
           command: |
-            cd priv/
+            cd priv/cabbage
             mix do credo, format --check-formatted --dry-run
 
   test_barebone_release:
@@ -509,7 +509,7 @@ jobs:
       - run:
           name: Install specs
           command: |
-            cd priv/
+            cd priv/cabbage
             make install
             make generate_api_code
             mix deps.get
@@ -524,7 +524,7 @@ jobs:
       - run:
           name: Run specs
           command: |
-            cd priv/
+            cd priv/cabbage
             mix test
 
   publish_child_chain:
