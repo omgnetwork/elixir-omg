@@ -76,14 +76,15 @@ defmodule OMG.Eth.RootChain.Rpc do
   end
 
   defp handle_result([log | logs], topics, topics_and_signatures, acc) do
-    case Enum.find(topics, fn topic -> Enum.at(log["topics"], 0) == topic end) do
-      nil ->
-        handle_result(logs, topics, topics_and_signatures, acc)
+    # do
+    topic = Enum.find(topics, fn topic -> Enum.at(log["topics"], 0) == topic end)
+    # nil ->
+    # handle_result(logs, topics, topics_and_signatures, acc)
 
-      topic ->
-        enriched_log = put_signature(log, Map.get(topics_and_signatures, topic))
-        handle_result(logs, topics, topics_and_signatures, [enriched_log | acc])
-    end
+    # topic ->
+    enriched_log = put_signature(log, Map.get(topics_and_signatures, topic))
+    handle_result(logs, topics, topics_and_signatures, [enriched_log | acc])
+    # end
   end
 
   defp put_signature(log, signature), do: Map.put(log, :event_signature, signature)
