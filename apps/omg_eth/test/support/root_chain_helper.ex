@@ -21,6 +21,7 @@ defmodule Support.RootChainHelper do
   alias OMG.Eth.Blockchain.BitHelper
   alias OMG.Eth.Config
   alias OMG.Eth.RootChain
+  alias OMG.Eth.RootChain.Decode
   alias OMG.Eth.TransactionHelper
 
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1]
@@ -331,7 +332,7 @@ defmodule Support.RootChainHelper do
     [%{blknum: deposit_blknum}] =
       logs
       |> Enum.filter(&(topic in &1["topics"]))
-      |> Enum.map(&RootChain.Decode.deposit/1)
+      |> Enum.map(&Decode.deposit/1)
 
     deposit_blknum
   end

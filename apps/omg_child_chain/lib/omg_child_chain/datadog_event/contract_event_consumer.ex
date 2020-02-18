@@ -23,13 +23,20 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
 
   require Logger
   alias OMG.ChildChain.DatadogEvent.Encode
+  use GenServer
 
   @doc """
   Returns child_specs for the given `EventConsumer`, to be included e.g. in Supervisor's children.
+  Mandatory params are in Keyword form:
+  - :publisher is Module that implements a function `event/3` (title, message, option). It's purpose is to forward
+  events to a collector (for example, Datadog)
+  - :event is a OMG.Bus topic from which this process recieves data and sends them to the publisher and onwards 
+  - :release is the mode this current process is runing under (for example, currently we support watcher, child chain or watcher info)
+  - :current_version is semver of the current code
   """
   # sobelow_skip ["DOS.StringToAtom"]
   @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
-  def prepare_child(opts \\ []) do
+  def prepare_child(opts) do
     event = Keyword.fetch!(opts, :event)
 
     %{
@@ -40,14 +47,18 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
     }
   end
 
+  @moduledoc """
+  args are documented above
+  """
   def start_link(args) do
     GenServer.start_link(__MODULE__, args)
   end
 
   ### Server
 
-  use GenServer
-
+  @moduledoc """
+  args are documented in prepare_child.
+  """
   def init(args) do
     publisher = Keyword.fetch!(args, :publisher)
     event = Keyword.fetch!(args, :event)

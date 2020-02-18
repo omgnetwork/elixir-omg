@@ -18,32 +18,42 @@ defmodule OMG.Status.DatadogEvent.AlarmConsumer do
   """
 
   require Logger
+  use GenServer
 
   @doc """
   Returns child_specs for the given `AlarmConsumer` setup, to be included e.g. in Supervisor's children.
+  Mandatory params are in Keyword form:
+  - :publisher is Module that implements a function `event/3` (title, message, option). It's purpose is to forward
+  alarms to a collector (for example, Datadog)
+  - :alarm_handler (http://erlang.org/doc/man/alarm_handler.html) is a gen_event process that allows us to install our alarm handler ontu. Our installed handler will than receive 
+  system alarms (set and cleared) and cast us the alarms.
+  - :dd_alarm_handler is the module that we install as alarm_handler and will get notified of set and cleared alarms and forward them to THIS AlarmConsumer process.
+  - :release is the mode this current process is runing under (for example, currently we support watcher, child chain or watcher info)
+  - :current_version is semver of the current code
   """
   @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
-  def prepare_child(opts \\ []) do
+  def prepare_child(opts) do
     %{id: :alarm_consumer, start: {__MODULE__, :start_link, [opts]}, shutdown: :brutal_kill, type: :worker}
   end
 
+  @doc """
+  args explained above in prepare_child/1
+  """
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  ### Server
-
-  use GenServer
-
+  @doc """
+  args explained above in prepare_child/1
+  """
   def init(args) do
+    publisher = Keyword.fetch!(args, :publisher)
     alarm_handler_process = Keyword.get(args, :alarm_handler, :alarm_handler)
     dd_alarm_handler = Keyword.fetch!(args, :dd_alarm_handler)
-    :ok = install_alarm_handler(alarm_handler_process, dd_alarm_handler)
-    publisher = Keyword.fetch!(args, :publisher)
-
     release = Keyword.fetch!(args, :release)
     current_version = Keyword.fetch!(args, :current_version)
 
+    :ok = install_alarm_handler(alarm_handler_process, dd_alarm_handler)
     _ = Logger.info("Started #{inspect(__MODULE__)}")
     {:ok, %{publisher: publisher, release: release, current_version: current_version}}
   end

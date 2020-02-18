@@ -14,7 +14,7 @@
 
 defmodule OMG.Status.DatadogEvent.AlarmHandler do
   @moduledoc """
-     Is notified of raise and cleared alarms and forwards them to AlarmConsumer process.
+     Is notified of raised and cleared alarms and casts them to AlarmConsumer process.
   """
 
   require Logger

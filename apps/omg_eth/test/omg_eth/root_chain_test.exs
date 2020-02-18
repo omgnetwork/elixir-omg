@@ -70,8 +70,6 @@ defmodule OMG.Eth.RootChainTest do
   end
 
   test "get_deposits/3 returns deposit events", %{contracts: contracts} do
-    # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
-    # payment tx_type, no inputs, one output, metadata
     {:ok, deposit} = ExPlasma.Transaction.Deposit.new(owner: contracts.authority_address, currency: @eth, amount: 1)
     rlp = ExPlasma.Transaction.encode(deposit)
 
@@ -159,7 +157,7 @@ defmodule OMG.Eth.RootChainTest do
       logs
       |> Enum.filter(&(topic in &1["topics"]))
       |> Enum.map(fn log ->
-        OMG.Eth.RootChain.Decode.exit_started(log)
+        Decode.exit_started(log)
       end)
 
     exit_id
