@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.RootChain.DecodeTest do
+defmodule OMG.Eth.RootChain.DecodeLogTest do
   @moduledoc false
 
   use ExUnit.Case, async: true
-  alias OMG.Eth.RootChain.Decode
+  alias OMG.Eth.RootChain.DecodeLog
 
   test "if deposit created event can be decoded from log" do
     deposit_created_log = %{
@@ -50,7 +50,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
           152, 233, 21, 63, 227, 216, 238>>
     }
 
-    assert Decode.deposit(deposit_created_log) == expected_event_parsed
+    assert DecodeLog.deposit(deposit_created_log) == expected_event_parsed
   end
 
   test "if input piggybacked event log can be decoded" do
@@ -86,7 +86,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
       omg_data: %{piggyback_type: :input}
     }
 
-    assert Decode.piggybacked(input_piggybacked_log) == expected_event_parsed
+    assert DecodeLog.piggybacked(input_piggybacked_log) == expected_event_parsed
   end
 
   test "if output piggybacked event log can be decoded" do
@@ -122,7 +122,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
       omg_data: %{piggyback_type: :output}
     }
 
-    assert Decode.piggybacked(output_piggybacked_log) == expected_event_parsed
+    assert DecodeLog.piggybacked(output_piggybacked_log) == expected_event_parsed
   end
 
   test "if block emitted event log can be decoded" do
@@ -149,7 +149,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
           75, 49, 251, 12, 182, 220, 235, 244>>
     }
 
-    assert Decode.block_submitted(block_submitted_log) == expected_event_parsed
+    assert DecodeLog.block_submitted(block_submitted_log) == expected_event_parsed
   end
 
   test "if exit finalized event log can be decoded" do
@@ -169,7 +169,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
       "transactionIndex" => "0x0"
     }
 
-    assert Decode.exit_finalized(exit_finalized_log) == %{
+    assert DecodeLog.exit_finalized(exit_finalized_log) == %{
              eth_height: 330,
              event_signature: "ExitFinalized(uint160)",
              exit_id: 1_423_280_346_484_099_708_949_144_162_169_101_241_792_387_057,
@@ -198,7 +198,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
       "transactionIndex" => "0x0"
     }
 
-    assert Decode.in_flight_exit_challenged(in_flight_exit_challanged_log) == %{
+    assert DecodeLog.in_flight_exit_challenged(in_flight_exit_challanged_log) == %{
              challenger: <<122, 232, 25, 13, 153, 104, 203, 179, 181, 46, 86, 165, 107, 44, 212, 205, 94, 21, 164, 79>>,
              competitor_position:
                115_792_089_237_316_195_423_570_985_008_687_907_853_269_984_665_640_564_039_457_584_007_913_129_639_935,
@@ -231,7 +231,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
       "transactionIndex" => "0x0"
     }
 
-    assert Decode.exit_challenged(exit_challenged_log) == %{
+    assert DecodeLog.exit_challenged(exit_challenged_log) == %{
              eth_height: 287,
              event_signature: "ExitChallenged(uint256)",
              log_index: 0,
@@ -260,7 +260,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
       "transactionIndex" => "0x0"
     }
 
-    assert Decode.in_flight_exit_challenge_responded(in_flight_exit_challenge_responded_log) == %{
+    assert DecodeLog.in_flight_exit_challenge_responded(in_flight_exit_challenge_responded_log) == %{
              challenge_position: 1_000_000_000_000,
              challenger: <<24, 230, 136, 50, 159, 249, 214, 25, 113, 8, 166, 102, 25, 145, 44, 218, 93, 158, 161, 99>>,
              eth_height: 293,
@@ -308,7 +308,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
         3, 187, 179, 69, 65, 239, 135, 219, 72, 233, 93, 232, 14, 157, 74, 187, 190, 63, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
 
-    assert Decode.challenge_in_flight_exit_not_canonical(eth_tx_input) ==
+    assert DecodeLog.challenge_in_flight_exit_not_canonical(eth_tx_input) ==
              %{
                competing_tx:
                  <<248, 116, 1, 225, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -357,7 +357,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
       "transactionIndex" => "0x0"
     }
 
-    assert Decode.in_flight_exit_blocked(in_flight_exit_output_blocked_log) == %{
+    assert DecodeLog.in_flight_exit_blocked(in_flight_exit_output_blocked_log) == %{
              challenger: <<213, 8, 156, 250, 64, 58, 96, 49, 161, 243, 131, 189, 70, 126, 152, 14, 208, 189, 92, 186>>,
              eth_height: 438,
              event_signature: "InFlightExitOutputBlocked(address,bytes32,uint16)",
@@ -391,7 +391,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
       "transactionIndex" => "0x0"
     }
 
-    assert Decode.in_flight_exit_started(in_flight_exit_started_log) == %{
+    assert DecodeLog.in_flight_exit_started(in_flight_exit_started_log) == %{
              eth_height: 726,
              event_signature: "InFlightExitStarted(address,bytes32)",
              initiator: <<44, 106, 159, 66, 49, 128, 37, 205, 102, 39, 186, 242, 28, 70, 130, 1, 98, 32, 32, 223>>,
@@ -456,7 +456,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
         207, 237, 254, 185, 95, 207, 246, 144, 69, 242, 160, 58, 161, 96, 70, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
 
-    assert Decode.start_in_flight_exit(in_flight_exit_start_log) == %{
+    assert DecodeLog.start_in_flight_exit(in_flight_exit_start_log) == %{
              in_flight_tx:
                <<248, 124, 1, 225, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
                  210, 32, 127, 180, 0, 246, 245, 1, 243, 148, 118, 78, 248, 3, 28, 17, 248, 220, 42, 92, 18, 141, 145,
@@ -520,7 +520,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
       "transactionIndex" => "0x0"
     }
 
-    assert Decode.in_flight_exit_finalized(in_flight_exit_finalized_log) == %{
+    assert DecodeLog.in_flight_exit_finalized(in_flight_exit_finalized_log) == %{
              eth_height: 335,
              event_signature: "InFlightExitOutputWithdrawn(uint160,uint16)",
              in_flight_exit_id: 3_853_567_223_408_339_354_111_409_210_931_346_801_537_991_844,
@@ -550,7 +550,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
       "transactionIndex" => "0x0"
     }
 
-    assert Decode.exit_started(exit_started_log) == %{
+    assert DecodeLog.exit_started(exit_started_log) == %{
              eth_height: 759,
              event_signature: "ExitStarted(address,uint160)",
              exit_id: 961_120_214_746_159_734_848_620_722_848_998_552_444_082_017,
@@ -595,7 +595,7 @@ defmodule OMG.Eth.RootChain.DecodeTest do
         120, 30, 38, 242, 5, 0, 36, 12, 55, 146, 116, 254, 145, 9, 110, 96, 209, 84, 90, 128, 69, 87, 31, 218, 185, 181,
         48, 208, 214, 231, 232, 116, 110, 120, 191, 159, 32, 244, 232, 111, 6>>
 
-    assert Decode.start_standard_exit(start_standard_exit_log) == %{
+    assert DecodeLog.start_standard_exit(start_standard_exit_log) == %{
              output_tx:
                <<248, 91, 1, 192, 246, 245, 1, 243, 148, 8, 133, 129, 36, 179, 184, 128, 198, 139, 54, 15, 211, 25, 204,
                  97, 218, 39, 84, 94, 154, 148, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 136, 13,

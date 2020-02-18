@@ -23,7 +23,7 @@ defmodule OMG.Eth.RootChain do
 
   alias OMG.Eth
   alias OMG.Eth.Config
-  alias OMG.Eth.RootChain.Decode
+  alias OMG.Eth.RootChain.DecodeLog
   alias OMG.Eth.RootChain.Rpc
   require Logger
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
@@ -138,7 +138,7 @@ defmodule OMG.Eth.RootChain do
     event_signature = "DepositCreated(address,uint256,address,uint256)"
     {:ok, logs} = Rpc.get_ethereum_events(block_from, block_to, event_signature, [contract_eth, contract_erc20])
 
-    {:ok, Enum.map(logs, &Decode.deposit/1)}
+    {:ok, Enum.map(logs, &DecodeLog.deposit/1)}
   end
 
   @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_address_t) ::
@@ -149,7 +149,7 @@ defmodule OMG.Eth.RootChain do
     output_signature = "InFlightExitOutputPiggybacked(address,bytes32,uint16)"
     {:ok, logs} = Rpc.get_ethereum_events(block_from, block_to, [input_signature, output_signature], contract)
 
-    {:ok, Enum.map(logs, &Decode.piggybacked/1)}
+    {:ok, Enum.map(logs, &DecodeLog.piggybacked/1)}
   end
 
   @doc """
@@ -160,7 +160,7 @@ defmodule OMG.Eth.RootChain do
     signature = "BlockSubmitted(uint256)"
     {:ok, logs} = Rpc.get_ethereum_events(block_from, block_to, signature, contract)
 
-    {:ok, Enum.map(logs, &Decode.block_submitted/1)}
+    {:ok, Enum.map(logs, &DecodeLog.block_submitted/1)}
   end
 
   @doc """
@@ -171,7 +171,7 @@ defmodule OMG.Eth.RootChain do
     signature = "ExitFinalized(uint160)"
     {:ok, logs} = Rpc.get_ethereum_events(block_from, block_to, signature, contract)
 
-    {:ok, Enum.map(logs, &Decode.exit_finalized/1)}
+    {:ok, Enum.map(logs, &DecodeLog.exit_finalized/1)}
   end
 
   @doc """
@@ -183,7 +183,7 @@ defmodule OMG.Eth.RootChain do
     signature = "ExitChallenged(uint256)"
     {:ok, logs} = Rpc.get_ethereum_events(block_from, block_to, signature, contract)
 
-    {:ok, Enum.map(logs, &Decode.exit_challenged/1)}
+    {:ok, Enum.map(logs, &DecodeLog.exit_challenged/1)}
   end
 
   @doc """
@@ -199,9 +199,9 @@ defmodule OMG.Eth.RootChain do
     # we got the logs that were emitted, but now we need to enrich them with call data
     enriched_logs =
       Enum.map(logs, fn log ->
-        decoded_log = Decode.in_flight_exit_challenged(log)
+        decoded_log = DecodeLog.in_flight_exit_challenged(log)
         {:ok, enriched_log} = Rpc.get_call_data(decoded_log.root_chain_txhash)
-        enriched_decoded_log = Decode.challenge_in_flight_exit_not_canonical(from_hex(enriched_log))
+        enriched_decoded_log = DecodeLog.challenge_in_flight_exit_not_canonical(from_hex(enriched_log))
         Map.put(decoded_log, :call_data, enriched_decoded_log)
       end)
 
@@ -217,7 +217,7 @@ defmodule OMG.Eth.RootChain do
     signature = "InFlightExitChallengeResponded(address,bytes32,uint256)"
     {:ok, logs} = Rpc.get_ethereum_events(block_from, block_to, signature, contract)
 
-    {:ok, Enum.map(logs, &Decode.in_flight_exit_challenge_responded/1)}
+    {:ok, Enum.map(logs, &DecodeLog.in_flight_exit_challenge_responded/1)}
   end
 
   @doc """
@@ -230,7 +230,7 @@ defmodule OMG.Eth.RootChain do
     output_signature = "InFlightExitOutputBlocked(address,bytes32,uint16)"
     {:ok, logs} = Rpc.get_ethereum_events(block_from, block_to, [input_signature, output_signature], contract)
 
-    {:ok, Enum.map(logs, &Decode.in_flight_exit_blocked/1)}
+    {:ok, Enum.map(logs, &DecodeLog.in_flight_exit_blocked/1)}
   end
 
   @doc """
@@ -243,7 +243,7 @@ defmodule OMG.Eth.RootChain do
     output_signature = "InFlightExitOutputWithdrawn(uint160,uint16)"
     {:ok, logs} = Rpc.get_ethereum_events(block_from, block_to, [input_signature, output_signature], contract)
 
-    {:ok, Enum.map(logs, &Decode.in_flight_exit_finalized/1)}
+    {:ok, Enum.map(logs, &DecodeLog.in_flight_exit_finalized/1)}
   end
 
   @doc """
@@ -257,9 +257,9 @@ defmodule OMG.Eth.RootChain do
     # we got the logs that were emitted, but now we need to enrich them with call data
     enriched_logs =
       Enum.map(logs, fn log ->
-        decoded_log = Decode.exit_started(log)
+        decoded_log = DecodeLog.exit_started(log)
         {:ok, enriched_log} = Rpc.get_call_data(decoded_log.root_chain_txhash)
-        enriched_decoded_log = Decode.start_standard_exit(from_hex(enriched_log))
+        enriched_decoded_log = DecodeLog.start_standard_exit(from_hex(enriched_log))
         Map.put(decoded_log, :call_data, enriched_decoded_log)
       end)
 
@@ -278,9 +278,9 @@ defmodule OMG.Eth.RootChain do
     # we got the logs that were emitted, but now we need to enrich them with call data
     enriched_logs =
       Enum.map(logs, fn log ->
-        decoded_log = Decode.in_flight_exit_started(log)
+        decoded_log = DecodeLog.in_flight_exit_started(log)
         {:ok, enriched_log} = Rpc.get_call_data(decoded_log.root_chain_txhash)
-        enriched_decoded_log = Decode.start_in_flight_exit(from_hex(enriched_log))
+        enriched_decoded_log = DecodeLog.start_in_flight_exit(from_hex(enriched_log))
         Map.put(decoded_log, :call_data, enriched_decoded_log)
       end)
 

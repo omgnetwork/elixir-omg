@@ -16,7 +16,7 @@ defmodule OMG.Eth.RootChainTest do
   alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
-  alias OMG.Eth.RootChain.Decode
+  alias OMG.Eth.RootChain.DecodeLog
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.SnapshotContracts
@@ -157,7 +157,7 @@ defmodule OMG.Eth.RootChainTest do
       logs
       |> Enum.filter(&(topic in &1["topics"]))
       |> Enum.map(fn log ->
-        Decode.exit_started(log)
+        DecodeLog.exit_started(log)
       end)
 
     exit_id

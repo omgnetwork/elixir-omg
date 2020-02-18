@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.Eth.RootChain.Decode do
+defmodule OMG.Eth.RootChain.DecodeLog do
   @moduledoc """
   Functions that provide ethereum log decoding 
   """
@@ -307,7 +307,7 @@ defmodule OMG.Eth.RootChain.Decode do
       function: "InFlightExitOutputPiggybacked",
       input_names: ["exitTarget", "txHash", "outputIndex"],
       inputs_indexed: [true, true, false],
-      method_id: "n͎y",
+      method_id: <<110, 205, 142, 121>>,
       returns: [],
       type: :event,
       types: [:address, {:bytes, 32}, {:uint, 16}]
@@ -351,11 +351,14 @@ defmodule OMG.Eth.RootChain.Decode do
   end
 
   defp in_flight_exit_challenge_responded() do
+    # <<99, 124, 196, 167>> == "c|ħ"
+    # IO.inspect method_id, binaries: :as_binaries
     %ABI.FunctionSelector{
       function: "InFlightExitChallengeResponded",
       input_names: ["challenger", "txHash", "challengeTxPosition"],
       inputs_indexed: [true, true, false],
-      method_id: "c|ħ",
+      # method_id: "c|ħ",
+      method_id: <<99, 124, 196, 167>>,
       returns: [],
       type: :event,
       types: [:address, {:bytes, 32}, {:uint, 256}]
