@@ -72,7 +72,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns standard exits data from the contract for a list of `exit_id`s. Calls contract method.
   """
-  def get_standard_exits_structs(exit_ids, contract \\ %{}) do
+  def get_standard_exit_structs(exit_ids, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
 
     return_types = [
@@ -83,7 +83,7 @@ defmodule OMG.Eth.RootChain do
     #       We procure a hacky version of `OMG.Eth.call_contract` which strips the offending offsets from
     #       the ABI-encoded binary and proceeds to decode the array without the offset
     #       Revert to `call_contract` when that issue is resolved
-    call_contract_manual_standard_exits(
+    call_contract_manual_exits(
       contract,
       "standardExits(uint160[])",
       [exit_ids],
@@ -91,49 +91,24 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  # TODO: see above in where it is called - temporary function
-  defp call_contract_manual_standard_exits(contract, signature, args, return_types) do
-    data = ABI.encode(signature, args)
-
-    with {:ok, return} <- Ethereumex.HttpClient.eth_call(%{to: to_hex(contract), data: to_hex(data)}),
-         do: decode_answer_manual_standard_exits(return, return_types)
-  end
-
-  # TODO: see above in where it is called - temporary function
-  defp decode_answer_manual_standard_exits(enc_return, return_types) do
-    <<32::size(32)-unit(8), raw_array_data::binary>> = from_hex(enc_return)
-
-    raw_array_data
-    |> ABI.TypeDecoder.decode(return_types)
-    |> case do
-      [single_return] -> {:ok, single_return}
-      other when is_list(other) -> {:ok, List.to_tuple(other)}
-    end
-  end
-
   @doc """
-  Returns in flight exit for a specific id. Calls contract method.
-  #TODO - can exits accept a list of in_flight_exit_id? Look at ExitProcessor.handle_call({:new_in_flight_exits, events})
+  Returns in flight exits of the specified ids. Calls a contract method.
   """
-  def get_in_flight_exit_struct(in_flight_exit_id, contract \\ %{}) do
+  def get_in_flight_exit_structs(in_flight_exit_ids, contract \\ %{}) do
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
 
     # solidity does not return arrays of structs
-    return_struct = [
-      :bool,
-      {:uint, 64},
-      {:uint, 256},
-      {:uint, 256},
-      # NOTE: there are these two more fields in the return but they can be ommitted,
-      #       both have withdraw_data_struct type
-      # withdraw_data_struct,
-      # withdraw_data_struct,
-      :address,
-      {:uint, 256},
-      {:uint, 256}
+    return_types = [
+      {:array, {:tuple, [:bool, {:uint, 64}, {:uint, 256}, {:uint, 256}, :address, {:uint, 256}, {:uint, 256}]}}
     ]
 
-    Eth.call_contract(contract, "inFlightExits(uint160)", [in_flight_exit_id], return_struct)
+    call_contract_manual_exits(
+      contract,
+      "inFlightExits(uint160[])",
+      [in_flight_exit_ids],
+      return_types
+    )
   end
 
   # TODO: we're storing exit_ids for SEs, we should do the same for IFEs and remove this (requires exit_id to be
@@ -373,6 +348,26 @@ defmodule OMG.Eth.RootChain do
       {non_indexed_keys, non_indexed_key_types},
       {indexed_keys, indexed_keys_types}
     )
+  end
+
+  # A temporary function to work around `ex_abi` incorrectly decoding arrays. See its caller for more details.
+  defp call_contract_manual_exits(contract, signature, args, return_types) do
+    data = ABI.encode(signature, args)
+
+    {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: to_hex(contract), data: to_hex(data)})
+    decode_answer_manual_exits(return, return_types)
+  end
+
+  # A temporary function to work around `ex_abi` incorrectly decoding arrays. See its caller for more details.
+  defp decode_answer_manual_exits(enc_return, return_types) do
+    <<32::size(32)-unit(8), raw_array_data::binary>> = from_hex(enc_return)
+
+    raw_array_data
+    |> ABI.TypeDecoder.decode(return_types)
+    |> case do
+      [single_return] -> {:ok, single_return}
+      other when is_list(other) -> {:ok, List.to_tuple(other)}
+    end
   end
 
   defp decode_exit_started(log) do

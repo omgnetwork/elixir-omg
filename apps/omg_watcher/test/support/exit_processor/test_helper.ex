@@ -63,7 +63,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     processor
   end
 
-  # See `OMG.Eth.RootChain.get_in_flight_exit_struct/2` for reference of where this comes from
+  # See `OMG.Eth.RootChain.get_in_flight_exits_structs/2` for reference of where this comes from
   # `nil`s are unused portions of the returns data from the contract
   def active_ife_status(), do: {nil, 1, nil, nil, nil, nil, nil}
   def inactive_ife_status(), do: {nil, 0, nil, nil, nil, nil, nil}
