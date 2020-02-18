@@ -123,9 +123,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @doc """
   Use to check if the settings regarding the `:exit_processor_sla_margin` config of `:omg_watcher` are OK.
+
+  Since there are combinations of our configuration that may lead to a dangerous setup of the Watcher
+  (in particular - muting the reports of unchallenged_exits), we're enforcing that the `exit_processor_sla_margin`
+  be not larger than `min_exit_period`.
   """
   @spec check_sla_margin(pos_integer(), boolean(), pos_integer(), pos_integer()) :: :ok | {:error, :sla_margin_too_big}
-  def check_sla_margin(sla_margin, sla_margin_force, min_exit_period_seconds, ethereum_block_time_seconds)
+  def check_sla_margin(sla_margin, sla_margin_forced, min_exit_period_seconds, ethereum_block_time_seconds)
 
   def check_sla_margin(sla_margin, true, min_exit_period_seconds, ethereum_block_time_seconds) do
     _ =

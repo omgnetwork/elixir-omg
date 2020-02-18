@@ -23,13 +23,13 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
   @system_env_name_margin "EXIT_PROCESSOR_SLA_MARGIN"
   @app_env_name_margin :exit_processor_sla_margin
 
-  @system_env_name_force "EXIT_PROCESSOR_SLA_MARGIN_FORCE"
-  @app_env_name_force :exit_processor_sla_margin_force
+  @system_env_name_force "EXIT_PROCESSOR_SLA_MARGIN_FORCED"
+  @app_env_name_force :exit_processor_sla_margin_forced
 
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
     :ok = Application.put_env(@app, @app_env_name_margin, get_exit_processor_sla_margin(), persistent: true)
-    :ok = Application.put_env(@app, @app_env_name_force, get_exit_processor_sla_force(), persistent: true)
+    :ok = Application.put_env(@app, @app_env_name_force, get_exit_processor_sla_forced(), persistent: true)
   end
 
   defp get_exit_processor_sla_margin() do
@@ -38,7 +38,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
     config_value
   end
 
-  defp get_exit_processor_sla_force() do
+  defp get_exit_processor_sla_forced() do
     config_value = validate_bool(get_env(@system_env_name_force), Application.get_env(@app, @app_env_name_force))
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@system_env_name_force} Value: #{inspect(config_value)}.")
     config_value

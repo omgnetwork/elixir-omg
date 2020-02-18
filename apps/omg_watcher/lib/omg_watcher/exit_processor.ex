@@ -211,7 +211,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def init(
         exit_processor_sla_margin: exit_processor_sla_margin,
-        exit_processor_sla_margin_force: exit_processor_sla_margin_force,
+        exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
         min_exit_period_seconds: min_exit_period_seconds,
         ethereum_block_time_seconds: ethereum_block_time_seconds,
         metrics_collection_interval: metrics_collection_interval
@@ -223,7 +223,7 @@ defmodule OMG.Watcher.ExitProcessor do
     with :ok <-
            Core.check_sla_margin(
              exit_processor_sla_margin,
-             exit_processor_sla_margin_force,
+             exit_processor_sla_margin_forced,
              min_exit_period_seconds,
              ethereum_block_time_seconds
            ),
