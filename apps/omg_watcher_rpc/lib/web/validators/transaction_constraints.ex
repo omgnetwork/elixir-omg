@@ -19,6 +19,8 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraints do
 
   import OMG.Utils.HttpRPC.Validator.Base
 
+  @max_tx_types 16
+
   @doc """
   Validates possible query constraints, stops on first error.
   """
@@ -28,7 +30,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraints do
       {"address", [:address, :optional], :address},
       {"blknum", [:pos_integer, :optional], :blknum},
       {"metadata", [:hash, :optional], :metadata},
-      {"txtypes", [list: &to_tx_type/1, optional: true], :txtypes},
+      {"txtypes", [list: &to_tx_type/1, max_length: @max_tx_types, optional: true], :txtypes},
       {"limit", [:pos_integer, :optional], :limit},
       {"page", [:pos_integer, :optional], :page}
     ]

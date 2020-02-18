@@ -132,6 +132,11 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
 
   def length({val, []}, len), do: {val, length: len}
 
+  @spec max_length({any(), list()}, non_neg_integer()) :: {any(), list()}
+  def max_length({_, [_ | _]} = err, _len), do: err
+  def max_length({list, []}, len) when is_list(list) and length(list) <= len, do: {list, []}
+  def max_length({val, []}, len), do: {val, max_length: len}
+
   @spec greater({any(), list()}, integer()) :: {any(), list()}
   def greater({_, [_ | _]} = err, _b), do: err
   def greater({val, []}, bound) when is_integer(val) and val > bound, do: {val, []}

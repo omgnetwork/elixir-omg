@@ -31,7 +31,8 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     "hex_3" => "0xB3256026863EB6AE5B06FA396AB09069784EA8EA",
     "nhex_1" => "b3256026863eb6ae5b06fa396ab09069784ea8ea",
     "len_1" => "1",
-    "len_2" => <<1, 2, 3, 4, 5>>
+    "len_2" => <<1, 2, 3, 4, 5>>,
+    "max_len_1" => [1, 2, 3, 4, 5]
   }
 
   describe "Basic validation:" do
@@ -84,11 +85,23 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     test "length, positive" do
       assert {:ok, "1"} == expect(@params, "len_1", length: 1)
       assert {:ok, <<1, 2, 3, 4, 5>>} == expect(@params, "len_2", length: 5)
+      assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 10)
+      assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 5)
     end
 
     test "length, negative" do
       assert {:error, {:validation_error, "len_1", {:length, 5}}} == expect(@params, "len_1", length: 5)
       assert {:error, {:validation_error, "len_2", {:length, 1}}} == expect(@params, "len_2", length: 1)
+      assert {:error, {:validation_error, "max_len_1", {:max_length, 3}}} == expect(@params, "max_len_1", max_length: 3)
+    end
+
+    test "max_length, positive" do
+      assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 10)
+      assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 5)
+    end
+
+    test "max_length, negative" do
+      assert {:error, {:validation_error, "max_len_1", {:max_length, 3}}} == expect(@params, "max_len_1", max_length: 3)
     end
 
     test "list, positive" do
