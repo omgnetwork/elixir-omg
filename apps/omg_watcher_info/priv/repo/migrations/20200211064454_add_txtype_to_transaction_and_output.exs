@@ -31,31 +31,51 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.AddTxtypeToTransactionAndOutput do
   def down() do
     # This migration only supports outputs of type 1 and 2, we prevent rollback so we
     # don't have problems if new types are introduced in the future.
-    raise "can't rollback this migration"
+    # raise "can't rollback this migration"
+    alter table(:transactions) do
+      remove(:txtype)
+    end
+    alter table(:txoutputs) do
+      remove(:otype)
+    end
   end
 
   # Update existing transactions and output that don't have a type
   defp set_txtypes() do
-    :ok =
-      Repo
-      |> SQL.query!("SELECT txhash, txbytes FROM transactions")
-      |> Map.get(:rows)
-      |> Enum.reduce(%{}, fn [txhash, txbytes], acc ->
-        %{raw_tx: %{tx_type: txtype}} = Transaction.Signed.decode!(txbytes)
-        hashes = [txhash | acc[txtype] || []]
-        Map.put(acc, txtype, hashes)
-      end)
-      |> Enum.each(fn {txtype, txhashes} ->
-        count = length(txhashes)
+    :ok = update_transaction_types()
+    {_, nil} = update_fee_outputs()
+    {_, nil} = update_payment_outputs()
+  end
 
-        {^count, nil} = Repo.update_all(
-          from(t in "transactions", where: t.txhash in ^txhashes),
-          set: [txtype: txtype]
-        )
-      end)
+  defp update_transaction_types() do
+    Repo
+    |> SQL.query!("SELECT txhash, txbytes FROM transactions")
+    |> Map.get(:rows)
+    |> Enum.reduce(%{}, &reduce_txhash_txbytes/2)
+    |> Enum.each(&update_txtype_for_txhashes/1)
+  end
 
-    # Fee outputs
-    {_, nil} = Repo.update_all(
+  defp reduce_txhash_txbytes([txhash, txbytes], txtype_to_txhashes) do
+    %{raw_tx: %{tx_type: txtype}} = Transaction.Signed.decode!(txbytes)
+
+    hashes = case txtype_to_txhashes[txtype] do
+      nil -> [txhash]
+      hashes -> [txhash | hashes]
+    end
+    Map.put(txtype_to_txhashes, txtype, hashes)
+  end
+
+  defp update_txtype_for_txhashes({txtype, txhashes}) do
+    count = length(txhashes)
+
+    {^count, nil} = Repo.update_all(
+      from(t in "transactions", where: t.txhash in ^txhashes),
+      set: [txtype: txtype]
+    )
+  end
+
+  defp update_fee_outputs() do
+    Repo.update_all(
       from(
         o in "txoutputs",
         join: t in "transactions",
@@ -64,12 +84,12 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.AddTxtypeToTransactionAndOutput do
       ),
       set: [otype: 2]
     )
+  end
 
-    # Payment outputs
-    {_, nil} = Repo.update_all(
+  defp update_payment_outputs() do
+     Repo.update_all(
       from(o in "txoutputs", where: is_nil(o.otype)),
       set: [otype: 1]
     )
-
   end
 end
