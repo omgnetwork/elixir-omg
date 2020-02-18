@@ -47,7 +47,7 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
     }
   end
 
-  @moduledoc """
+  @doc """
   args are documented above
   """
   def start_link(args) do
@@ -56,7 +56,7 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
 
   ### Server
 
-  @moduledoc """
+  @doc """
   args are documented in prepare_child.
   """
   def init(args) do

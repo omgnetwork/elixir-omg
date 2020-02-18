@@ -194,5 +194,5 @@ defmodule OMG.EthereumEventListener do
     OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
   end
 
-  defp publish_data([] = data), do: :ok
+  defp publish_data([]), do: :ok
 end

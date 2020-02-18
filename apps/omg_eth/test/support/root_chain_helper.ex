@@ -20,7 +20,6 @@ defmodule Support.RootChainHelper do
   alias OMG.Eth
   alias OMG.Eth.Blockchain.BitHelper
   alias OMG.Eth.Config
-  alias OMG.Eth.RootChain
   alias OMG.Eth.RootChain.Decode
   alias OMG.Eth.TransactionHelper
 

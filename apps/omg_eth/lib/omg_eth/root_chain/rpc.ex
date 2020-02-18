@@ -20,7 +20,7 @@ defmodule OMG.Eth.RootChain.Rpc do
 
   def get_ethereum_events(block_from, block_to, [_ | _] = signatures, [_ | _] = contracts) do
     topics = Enum.map(signatures, fn signature -> event_topic_for_signature(signature) end)
-    contract_topics = Enum.map(topics, fn topic -> [topic, nil] end)
+    contract_topics = permutate(topics)
 
     topics_and_signatures =
       Enum.reduce(Enum.zip(topics, signatures), %{}, fn {topic, signature}, acc -> Map.put(acc, topic, signature) end)
@@ -76,16 +76,17 @@ defmodule OMG.Eth.RootChain.Rpc do
   end
 
   defp handle_result([log | logs], topics, topics_and_signatures, acc) do
-    # do
     topic = Enum.find(topics, fn topic -> Enum.at(log["topics"], 0) == topic end)
-    # nil ->
-    # handle_result(logs, topics, topics_and_signatures, acc)
-
-    # topic ->
     enriched_log = put_signature(log, Map.get(topics_and_signatures, topic))
     handle_result(logs, topics, topics_and_signatures, [enriched_log | acc])
-    # end
   end
 
   defp put_signature(log, signature), do: Map.put(log, :event_signature, signature)
+
+  # this is a very simple permutation on topics and what we want is basically:
+  # [[A, B], [B, A]] "(A OR B) in first position AND (B OR A) in second position (and anything after)"
+  # https://github.com/ethereum/wiki/wiki/json-rpc#eth_newfilter
+  @spec permutate(Enum.t()) :: [list]
+  defp permutate([]), do: [[]]
+  defp permutate(list), do: for(elem <- list, rest <- permutate(list -- [elem]), do: [elem | rest])
 end
