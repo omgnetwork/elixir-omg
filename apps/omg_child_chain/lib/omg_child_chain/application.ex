@@ -41,7 +41,13 @@ defmodule OMG.ChildChain.Application do
         &OMG.EthereumEventListener.Measure.handle_event/4,
         nil
       ],
-      ["measure-state", OMG.State.Measure.supported_events(), &OMG.State.Measure.handle_event/4, nil]
+      ["measure-state", OMG.State.Measure.supported_events(), &OMG.State.Measure.handle_event/4, nil],
+      [
+        "measure-submit-transaction",
+        OMG.ChildChain.Measure.supported_events(),
+        &OMG.ChildChain.Measure.handle_event/4,
+        nil
+      ]
     ]
 
     Enum.each(handlers, fn handler ->

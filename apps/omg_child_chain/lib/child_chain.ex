@@ -35,12 +35,23 @@ defmodule OMG.ChildChain do
           {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
           | {:error, submit_error()}
   def submit(transaction) do
+    :ok = :telemetry.execute([:txn_submission, __MODULE__], 1, transaction)
+
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
          :ok <- is_supported(recovered_tx),
          {:ok, fees} <- FeeServer.accepted_fees(),
          fees = Fees.for_transaction(recovered_tx, fees),
          {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
-      {:ok, %{txhash: tx_hash, blknum: blknum, txindex: tx_index}}
+
+      txn_data = %{txhash: tx_hash, blknum: blknum, txindex: tx_index}
+
+      :ok = :telemetry.execute([:txn_submission_success, __MODULE__], 1, txn_data)
+
+      {:ok, txn_data}
+    else
+      {:error, error_data} ->
+        :ok = :telemetry.execute([:txn_submission_error, __MODULE__], 1, error_data)
+        {:error, error_data}
     end
     |> result_with_logging()
   end
