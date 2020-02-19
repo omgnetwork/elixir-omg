@@ -24,13 +24,6 @@ defmodule OMG.WireFormatTypesTest do
     end
   end
 
-  describe "tx_type_for_transaction/1" do
-    test "returns the tx type for the given raw tx" do
-      tx = OMG.State.Transaction.Payment.new([], [])
-      assert WireFormatTypes.tx_type_for_transaction(tx) == 1
-    end
-  end
-
   describe "input_pointer_type_for/1" do
     test "returns the input type for the given input" do
       assert WireFormatTypes.input_pointer_type_for(:input_pointer_utxo_position) == 1

@@ -889,17 +889,25 @@ defmodule OMG.State.CoreTest do
 
     assert MapSet.equal?(
              MapSet.new([
-               %{blknum: 1000, txindex: 0, oindex: 0, owner: alice.addr, currency: @eth, amount: 1},
-               %{blknum: 1000, txindex: 2, oindex: 0, owner: alice.addr, currency: @not_eth, amount: 3},
-               %{blknum: 1000, txindex: 3, oindex: 1, owner: alice.addr, currency: @eth, amount: 4}
+               %{blknum: 1000, txindex: 0, oindex: 0, otype: output_type, owner: alice.addr, currency: @eth, amount: 1},
+               %{
+                 blknum: 1000,
+                 txindex: 2,
+                 oindex: 0,
+                 otype: output_type,
+                 owner: alice.addr,
+                 currency: @not_eth,
+                 amount: 3
+               },
+               %{blknum: 1000, txindex: 3, oindex: 1, otype: output_type, owner: alice.addr, currency: @eth, amount: 4}
              ]),
              MapSet.new(Core.standard_exitable_utxos(utxos_query_result, alice.addr))
            )
 
     assert Map.equal?(
              MapSet.new([
-               %{blknum: 1000, txindex: 4, oindex: 0, owner: bob.addr, currency: @eth, amount: 5},
-               %{blknum: 2000, txindex: 1, oindex: 1, owner: bob.addr, currency: @eth, amount: 2}
+               %{blknum: 1000, txindex: 4, oindex: 0, otype: output_type, owner: bob.addr, currency: @eth, amount: 5},
+               %{blknum: 2000, txindex: 1, oindex: 1, otype: output_type, owner: bob.addr, currency: @eth, amount: 2}
              ]),
              MapSet.new(Core.standard_exitable_utxos(utxos_query_result, bob.addr))
            )

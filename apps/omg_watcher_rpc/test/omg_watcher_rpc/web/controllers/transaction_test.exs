@@ -78,6 +78,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => input_2.oindex,
                    "owner" => Encoding.to_hex(input_2.owner),
                    "txindex" => input_2.txindex,
+                   "otype" => input_2.otype,
                    "utxo_pos" =>
                      Utxo.Position.encode({:utxo_position, input_2.blknum, input_2.txindex, input_2.oindex}),
                    "creating_txhash" => Encoding.to_hex(input_2.creating_txhash),
@@ -90,6 +91,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => input_1.oindex,
                    "owner" => Encoding.to_hex(input_1.owner),
                    "txindex" => input_1.txindex,
+                   "otype" => input_1.otype,
                    "utxo_pos" =>
                      Utxo.Position.encode({:utxo_position, input_1.blknum, input_1.txindex, input_1.oindex}),
                    "creating_txhash" => Encoding.to_hex(input_1.creating_txhash),
@@ -104,6 +106,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => output_2.oindex,
                    "owner" => Encoding.to_hex(output_2.owner),
                    "txindex" => output_2.txindex,
+                   "otype" => output_2.otype,
                    "utxo_pos" =>
                      Utxo.Position.encode({:utxo_position, output_2.blknum, output_2.txindex, output_2.oindex}),
                    "creating_txhash" => Encoding.to_hex(transaction.txhash),
@@ -116,6 +119,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                    "oindex" => output_1.oindex,
                    "owner" => Encoding.to_hex(output_1.owner),
                    "txindex" => output_1.txindex,
+                   "otype" => output_1.otype,
                    "utxo_pos" =>
                      Utxo.Position.encode({:utxo_position, output_1.blknum, output_1.txindex, output_1.oindex}),
                    "creating_txhash" => Encoding.to_hex(transaction.txhash),
@@ -125,6 +129,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "txhash" => Encoding.to_hex(transaction.txhash),
                "txbytes" => Encoding.to_hex(transaction.txbytes),
                "txindex" => transaction.txindex,
+               "txtype" => transaction.txtype,
                "metadata" => Encoding.to_hex(transaction.metadata)
              }
     end
@@ -391,6 +396,31 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  "txindex" => ^txindex
                }
              ] = transaction_all_result(%{"metadata" => expected_metadata})
+    end
+
+    @tag fixtures: [:blocks_inserter, :initial_deposits, :alice]
+    test "returns transactions with matching txtype", %{
+      blocks_inserter: blocks_inserter,
+      alice: alice
+    } do
+      blocks_inserter.([
+        {1000,
+         [
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 300}]),
+           Test.create_recovered([{2, 0, 0, alice}], @eth, [{alice, 300}]),
+           Test.create_recovered([{1000, 1, 0, alice}], @eth, [{alice, 300}]),
+           Test.create_recovered_fee_tx(1000, alice.addr, @eth, 5)
+         ]}
+      ])
+
+      assert [%{"txindex" => 2}, %{"txindex" => 1}, %{"txindex" => 0}] = transaction_all_result(%{"txtypes" => [1]})
+      assert [%{"txindex" => 3}] = transaction_all_result(%{"txtypes" => [3]})
+
+      assert [%{"txindex" => 3}, %{"txindex" => 2}, %{"txindex" => 1}, %{"txindex" => 0}] =
+               transaction_all_result(%{"txtypes" => [1, 3]})
+
+      assert [%{"txindex" => 3}, %{"txindex" => 2}, %{"txindex" => 1}, %{"txindex" => 0}] =
+               transaction_all_result(%{"txtypes" => []})
     end
   end
 

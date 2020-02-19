@@ -122,6 +122,7 @@ defmodule OMG.WatcherInfo.Fixtures do
         owner: alice.addr,
         currency: @eth,
         amount: 333,
+        otype: 1,
         blknum: 1
       },
       %{
@@ -130,6 +131,7 @@ defmodule OMG.WatcherInfo.Fixtures do
         owner: bob.addr,
         currency: @eth,
         amount: 100,
+        otype: 1,
         blknum: 2
       }
     ]

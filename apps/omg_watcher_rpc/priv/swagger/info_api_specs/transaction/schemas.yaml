@@ -10,6 +10,9 @@ TransactionOutputSchema:
     oindex:
       type: integer
       format: int8
+    otype:
+      type: integer
+      format: int8
     utxo_pos:
       type: integer
       format: int256
@@ -33,6 +36,9 @@ TransactionSchema:
   type: object
   properties:
     txindex:
+      type: integer
+      format: int16
+    txtype:
       type: integer
       format: int16
     txhash:

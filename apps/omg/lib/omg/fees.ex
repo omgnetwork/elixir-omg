@@ -21,7 +21,6 @@ defmodule OMG.Fees do
   alias OMG.MergeTransactionValidator
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.WireFormatTypes
 
   require Utxo
 
@@ -176,8 +175,8 @@ defmodule OMG.Fees do
     end
   end
 
-  defp get_fee_for_type(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
-    case WireFormatTypes.tx_type_for_transaction(raw_tx) do
+  defp get_fee_for_type(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %{tx_type: type}}}, fee_map) do
+    case type do
       nil -> %{}
       type -> Map.get(fee_map, type, %{})
     end

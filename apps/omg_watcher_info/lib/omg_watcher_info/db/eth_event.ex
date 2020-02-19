@@ -25,6 +25,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   alias OMG.Eth.Encoding
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
+  alias OMG.WireFormatTypes
 
   require Utxo
 
@@ -83,6 +84,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
               blknum: blknum,
               txindex: 0,
               oindex: 0,
+              otype: WireFormatTypes.output_type_for(:output_payment_v1),
               owner: owner,
               currency: currency,
               amount: amount

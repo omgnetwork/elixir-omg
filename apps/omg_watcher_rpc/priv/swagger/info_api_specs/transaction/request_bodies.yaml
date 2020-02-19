@@ -12,6 +12,10 @@ GetAllTransactionsBodySchema:
           blknum:
             type: integer
             format: int64
+          txtypes:
+            type: array
+            items: 
+              type: integer
           metadata:
             type: string    
           page:
@@ -27,6 +31,7 @@ GetAllTransactionsBodySchema:
         example:
           address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
           metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+          txtypes: [1]
           blknum: 68290000
           limit: 100
           page: 2

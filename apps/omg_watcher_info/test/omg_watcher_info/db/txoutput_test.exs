@@ -43,4 +43,37 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     assert not is_nil(utxo)
     assert utxo.amount == big_amount
   end
+
+  describe "create_outputs/4" do
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "create outputs according to params", %{alice: alice} do
+      blknum = 11_000
+      amount_1 = 1000
+      amount_2 = 2000
+      tx = OMG.TestHelper.create_recovered([], @eth, [{alice, amount_1}, {alice, amount_2}])
+
+      assert [
+               %{
+                 amount: amount_1,
+                 blknum: blknum,
+                 creating_txhash: tx.tx_hash,
+                 currency: @eth,
+                 oindex: 0,
+                 otype: 1,
+                 owner: alice.addr,
+                 txindex: 0
+               },
+               %{
+                 amount: amount_2,
+                 blknum: blknum,
+                 creating_txhash: tx.tx_hash,
+                 currency: @eth,
+                 oindex: 1,
+                 otype: 1,
+                 owner: alice.addr,
+                 txindex: 0
+               }
+             ] == DB.TxOutput.create_outputs(blknum, 0, tx.tx_hash, tx)
+    end
+  end
 end
