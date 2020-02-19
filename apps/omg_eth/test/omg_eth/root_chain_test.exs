@@ -28,7 +28,6 @@ defmodule OMG.Eth.RootChainTest do
 
   setup do
     {:ok, exit_fn} = Support.DevNode.start()
-
     data = SnapshotContracts.parse_contracts()
 
     contracts = %{
@@ -40,14 +39,6 @@ defmodule OMG.Eth.RootChainTest do
       plasma_framework: Encoding.from_hex(data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
     }
 
-    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [data["AUTHORITY_ADDRESS"], "", 0], [])
-
-    add_exit_queue =
-      RootChainHelper.add_exit_queue(1, @eth, %{
-        plasma_framework: contracts.plasma_framework
-      })
-
-    {:ok, _} = Support.DevHelper.transact_sync!(add_exit_queue)
     on_exit(exit_fn)
     {:ok, contracts: contracts}
   end
@@ -70,6 +61,7 @@ defmodule OMG.Eth.RootChainTest do
   end
 
   test "get_deposits/3 returns deposit events", %{contracts: contracts} do
+    _ = add_queue(contracts.authority_address, contracts.plasma_framework)
     {:ok, deposit} = ExPlasma.Transaction.Deposit.new(owner: contracts.authority_address, currency: @eth, amount: 1)
     rlp = ExPlasma.Transaction.encode(deposit)
 
@@ -101,7 +93,7 @@ defmodule OMG.Eth.RootChainTest do
   describe "get_standard_exit_structs/2" do
     test "returns a list of standard exits by the given exit ids", %{contracts: contracts} do
       # Make 3 deposits so we can do 3 exits. 1 exit will not be queried, so we can check for false positives
-
+      _ = add_queue(contracts.authority_address, contracts.plasma_framework)
       {utxo_pos_1, exit_1} = deposit_then_start_exit(contracts.authority_address, 1, @eth, contracts)
       {utxo_pos_2, _exit_2} = deposit_then_start_exit(contracts.authority_address, 2, @eth, contracts)
       {utxo_pos_3, exit_3} = deposit_then_start_exit(contracts.authority_address, 3, @eth, contracts)
@@ -161,5 +153,17 @@ defmodule OMG.Eth.RootChainTest do
       end)
 
     exit_id
+  end
+
+  defp add_queue(authority_address, plasma_framework_address) do
+    {:ok, true} =
+      Ethereumex.HttpClient.request("personal_unlockAccount", [Encoding.to_hex(authority_address), "", 0], [])
+
+    add_exit_queue =
+      RootChainHelper.add_exit_queue(1, @eth, %{
+        plasma_framework: plasma_framework_address
+      })
+
+    {:ok, %{"status" => "0x1"}} = Support.DevHelper.transact_sync!(add_exit_queue)
   end
 end

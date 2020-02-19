@@ -23,6 +23,7 @@ defmodule OMG.ChildChain.Supervisor do
   alias OMG.ChildChain.FreshBlocks
   alias OMG.ChildChain.Monitor
   alias OMG.ChildChain.SyncSupervisor
+  alias OMG.ChildChain.Tracer
   alias OMG.Eth.RootChain
   alias OMG.State
   alias OMG.Status.Alert.Alarm
@@ -37,28 +38,35 @@ defmodule OMG.ChildChain.Supervisor do
     {:ok, _contract_deployment_height} = RootChain.get_root_deployment_height()
     fee_claimer_address = OMG.Configuration.fee_claimer_address()
 
-    children =
-      create_event_consumer_children() ++
-        [
-          {State, [fee_claimer_address: fee_claimer_address]},
-          {FreshBlocks, []},
-          {FeeServer, []},
-          {Monitor,
-           [
-             Alarm,
-             %{
-               id: SyncSupervisor,
-               start: {SyncSupervisor, :start_link, []},
-               restart: :permanent,
-               type: :supervisor
-             }
-           ]}
-        ]
+    children = [
+      {State, [fee_claimer_address: fee_claimer_address]},
+      {FreshBlocks, []},
+      {FeeServer, []},
+      {Monitor,
+       [
+         Alarm,
+         %{
+           id: SyncSupervisor,
+           start: {SyncSupervisor, :start_link, []},
+           restart: :permanent,
+           type: :supervisor
+         }
+       ]}
+    ]
+
+    is_datadog_disabled = is_disabled?()
+
+    rest_children =
+      if is_datadog_disabled do
+        children
+      else
+        create_event_consumer_children() ++ children
+      end
 
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(children, opts)
+    Supervisor.init(rest_children, opts)
   end
 
   defp create_event_consumer_children() do
@@ -81,4 +89,7 @@ defmodule OMG.ChildChain.Supervisor do
       end
     )
   end
+
+  @spec is_disabled?() :: boolean()
+  defp is_disabled?(), do: Application.get_env(:omg_child_chain, Tracer)[:disabled?]
 end

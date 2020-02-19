@@ -24,6 +24,7 @@ defmodule OMG.Watcher.Supervisor do
   alias OMG.Watcher.DatadogEvent.ContractEventConsumer
   alias OMG.Watcher.Monitor
   alias OMG.Watcher.SyncSupervisor
+  alias OMG.Watcher.Tracer
 
   def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -43,9 +44,19 @@ defmodule OMG.Watcher.Supervisor do
        ]}
     ]
 
+    is_datadog_disabled = is_disabled?()
+
+    rest_children =
+      if is_datadog_disabled do
+        children
+      else
+        create_event_consumer_children() ++ children
+      end
+
     opts = [strategy: :one_for_one]
+
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(create_event_consumer_children() ++ children, opts)
+    Supervisor.init(rest_children, opts)
   end
 
   defp create_event_consumer_children() do
@@ -77,4 +88,7 @@ defmodule OMG.Watcher.Supervisor do
       end
     )
   end
+
+  @spec is_disabled?() :: boolean()
+  defp is_disabled?(), do: Application.get_env(:omg_watcher, Tracer)[:disabled?]
 end
