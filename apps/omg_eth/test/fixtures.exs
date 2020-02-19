@@ -59,7 +59,7 @@ defmodule OMG.Eth.Fixtures do
 
     add_exit_queue = RootChainHelper.add_exit_queue(@test_eth_vault_id, @eth, contract.contract_addr)
 
-    {:ok, true} = Support.DevHelper.transact_sync!(add_exit_queue)
+    {:ok, %{"status" => "0x1"}} = Support.DevHelper.transact_sync!(add_exit_queue)
 
     contract
   end
