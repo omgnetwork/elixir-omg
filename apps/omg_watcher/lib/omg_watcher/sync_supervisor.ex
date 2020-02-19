@@ -58,6 +58,9 @@ defmodule OMG.Watcher.SyncSupervisor do
       {ExitProcessor,
        [
          exit_processor_sla_margin: Configuration.exit_processor_sla_margin(),
+         exit_processor_sla_margin_forced: Configuration.exit_processor_sla_margin_forced(),
+         min_exit_period_seconds: OMG.Eth.Configuration.min_exit_period_seconds(),
+         ethereum_block_time_seconds: OMG.Eth.Configuration.ethereum_block_time_seconds(),
          metrics_collection_interval: Configuration.metrics_collection_interval()
        ]},
       EthereumEventListener.prepare_child(

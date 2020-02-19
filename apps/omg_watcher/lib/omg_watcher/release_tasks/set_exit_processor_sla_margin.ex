@@ -20,17 +20,27 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
 
   @impl Provider
 
-  @system_env_name "EXIT_PROCESSOR_SLA_MARGIN"
-  @app_env_name :exit_processor_sla_margin
+  @system_env_name_margin "EXIT_PROCESSOR_SLA_MARGIN"
+  @app_env_name_margin :exit_processor_sla_margin
+
+  @system_env_name_force "EXIT_PROCESSOR_SLA_MARGIN_FORCED"
+  @app_env_name_force :exit_processor_sla_margin_forced
 
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
-    :ok = Application.put_env(@app, @app_env_name, get_exit_processor_sla_margin(), persistent: true)
+    :ok = Application.put_env(@app, @app_env_name_margin, get_exit_processor_sla_margin(), persistent: true)
+    :ok = Application.put_env(@app, @app_env_name_force, get_exit_processor_sla_forced(), persistent: true)
   end
 
   defp get_exit_processor_sla_margin() do
-    config_value = validate_int(get_env(@system_env_name), Application.get_env(@app, @app_env_name))
-    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@system_env_name} Value: #{inspect(config_value)}.")
+    config_value = validate_int(get_env(@system_env_name_margin), Application.get_env(@app, @app_env_name_margin))
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@system_env_name_margin} Value: #{inspect(config_value)}.")
+    config_value
+  end
+
+  defp get_exit_processor_sla_forced() do
+    config_value = validate_bool(get_env(@system_env_name_force), Application.get_env(@app, @app_env_name_force))
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@system_env_name_force} Value: #{inspect(config_value)}.")
     config_value
   end
 
@@ -39,10 +49,17 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
   defp validate_int(value, _default) when is_binary(value), do: to_int(value)
   defp validate_int(_, default), do: default
 
+  defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
+  defp validate_bool(_, default), do: default
+
+  defp to_bool("TRUE"), do: true
+  defp to_bool("FALSE"), do: false
+  defp to_bool(_), do: exit("#{@system_env_name_force} either true or false.")
+
   defp to_int(value) do
     case Integer.parse(value) do
       {result, ""} -> result
-      _ -> exit("#{@system_env_name} must be an integer.")
+      _ -> exit("#{@system_env_name_margin} must be an integer.")
     end
   end
 end

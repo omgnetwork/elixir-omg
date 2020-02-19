@@ -110,7 +110,9 @@ services:
       - DB_PATH=/app/.omg/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+      - ETHEREUM_BLOCK_TIME_SECONDS=1
       - EXIT_PROCESSOR_SLA_MARGIN=5520
+      - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
     restart: always
     ports:
       - "7434:7434"
@@ -144,7 +146,9 @@ services:
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      - ETHEREUM_BLOCK_TIME_SECONDS=1
       - EXIT_PROCESSOR_SLA_MARGIN=5520
+      - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
     restart: always
     ports:
       - "7534:7534"
