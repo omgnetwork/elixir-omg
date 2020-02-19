@@ -249,9 +249,10 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     :ok
   end
 
+  # https://github.com/ethereum/go-ethereum/commit/9938d954c8391682947682543cf9b52196507a88#diff-8fecce9bb4c486ebc22226cf681416e2
   def process_submit_result(
         submission,
-        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}},
+        {:error, %{"code" => -32_000, "message" => "already known"}},
         _newest_mined_blknum
       ) do
     log_known_tx(submission)
