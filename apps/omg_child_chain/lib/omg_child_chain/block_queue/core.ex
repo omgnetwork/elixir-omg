@@ -259,6 +259,17 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     :ok
   end
 
+  # maybe this will get deprecated soon once the network migrated to 1.9.11. look at the previos function header
+  # `fmt.Errorf("known transaction: %x", hash)`  has been removed
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}},
+        _newest_mined_blknum
+      ) do
+    log_known_tx(submission)
+    :ok
+  end
+
   # parity error code for duplicated tx
   def process_submit_result(
         submission,
