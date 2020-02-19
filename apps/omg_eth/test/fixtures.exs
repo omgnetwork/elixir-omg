@@ -25,6 +25,7 @@ defmodule OMG.Eth.Fixtures do
   alias Support.RootChainHelper
   alias Support.SnapshotContracts
 
+  @test_eth_vault_id 1
   @test_erc20_vault_id 2
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -56,15 +57,9 @@ defmodule OMG.Eth.Fixtures do
     {:ok, true} =
       Ethereumex.HttpClient.request("personal_unlockAccount", ["0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d", "", 0], [])
 
-    case RootChainHelper.has_exit_queue(1, @eth, contract.contract_addr) do
-      {:ok, false} ->
-        add_exit_queue = RootChainHelper.add_exit_queue(1, @eth, contract.contract_addr)
+    add_exit_queue = RootChainHelper.add_exit_queue(@test_eth_vault_id, @eth, contract.contract_addr)
 
-        {:ok, _} = Support.DevHelper.transact_sync!(add_exit_queue)
-
-      _ ->
-        :ok
-    end
+    {:ok, true} = Support.DevHelper.transact_sync!(add_exit_queue)
 
     contract
   end

@@ -259,7 +259,8 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     :ok
   end
 
-  # maybe this will get deprecated soon once the network migrates to 1.9.11. Look at the previous function header for commit reference.
+  # maybe this will get deprecated soon once the network migrates to 1.9.11.
+  # Look at the previous function header for commit reference.
   # `fmt.Errorf("known transaction: %x", hash)`  has been removed
   def process_submit_result(
         submission,
