@@ -100,7 +100,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   end
 
   @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
-  test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event",
+  test "transaction which is spending an exiting output before the `sla_margin` causes an invalid_exit event only",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
@@ -177,7 +177,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> DevHelper.transact_sync!()
 
-    IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
+    IntegrationTest.wait_for_byzantine_events([%Event.BlockWithholding{}.name, %Event.InvalidExit{}.name], @timeout)
   end
 
   defp get_next_blknum_nonce(blknum) do

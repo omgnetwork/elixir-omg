@@ -169,7 +169,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   end
 
   @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
-  test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
+  test "transaction which is spending an exiting output after the `sla_margin` causes an unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
@@ -201,7 +201,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       )
       |> DevHelper.transact_sync!()
 
-    # Here we're waiting for passing of margin of slow validator(m_sv)
     exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
     DevHelper.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
 
@@ -209,7 +208,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert WatcherHelper.capture_log(fn ->
              # Here we're manually submitting invalid block to the root chain
              {:ok, _} = Eth.submit_block(bad_block_hash, 2, 1)
-             IntegrationTest.wait_for_byzantine_events([%Event.UnchallengedExit{}.name], @timeout)
+
+             IntegrationTest.wait_for_byzantine_events(
+               [%Event.InvalidExit{}.name, %Event.UnchallengedExit{}.name],
+               @timeout
+             )
            end) =~ inspect(:unchallenged_exit)
 
     # we should still be able to challenge this "unchallenged exit" - just smoke testing the endpoint, details elsewhere
