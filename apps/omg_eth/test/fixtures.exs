@@ -30,7 +30,6 @@ defmodule OMG.Eth.Fixtures do
 
   deffixture eth_node do
     if Application.get_env(:omg_eth, :run_test_eth_dev_node, true) do
-      IO.inspect("yolo")
       {:ok, exit_fn} = DevNode.start()
       Process.sleep(5000)
       on_exit(exit_fn)
