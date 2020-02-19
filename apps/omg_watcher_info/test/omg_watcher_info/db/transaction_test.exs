@@ -87,6 +87,21 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
     end
   end
 
+  describe "get/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the transaction from its hash with all data" do
+      block = insert(:block, blknum: 1000)
+      %{txhash: txhash} = insert(:transaction, block: block, txindex: 0, txtype: 1)
+      _ = insert(:transaction, block: block, txindex: 1, txtype: 3)
+
+      tx = DB.Transaction.get(txhash)
+
+      assert tx.txindex == 0
+      assert tx.txtype == 1
+      assert tx.txhash == txhash
+    end
+  end
+
   describe "count_all_between_timestamp/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if transactions have been made between the given timestamps" do
