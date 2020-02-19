@@ -31,13 +31,7 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.AddTxtypeToTransactionAndOutput do
   def down() do
     # This migration only supports outputs of type 1 and 2, we prevent rollback so we
     # don't have problems if new types are introduced in the future.
-    # raise "can't rollback this migration"
-    alter table(:transactions) do
-      remove(:txtype)
-    end
-    alter table(:txoutputs) do
-      remove(:otype)
-    end
+    raise "can't rollback this migration"
   end
 
   # Update existing transactions and output that don't have a type
