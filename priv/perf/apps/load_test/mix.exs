@@ -25,7 +25,16 @@ defmodule LoadTest.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:chaperon, "~> 0.3.1"}
+      {:chaperon, "~> 0.3.1"},
+      {:jason, "~> 1.1"},
+
+      # Better adapter for tesla.
+      # default httpc would fail when doing post request without param.
+      # https://github.com/googleapis/elixir-google-api/issues/26#issuecomment-360209019
+      {:hackney, "~> 1.15.2"},
+      {:watcher_info_api, in_umbrella: true},
+      {:watcher_security_critical_api, in_umbrella: true},
+      {:child_chain_api, in_umbrella: true}
     ]
   end
 end
