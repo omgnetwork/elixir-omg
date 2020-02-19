@@ -19,7 +19,7 @@ miliseconds =
   |> Kernel.+(180_000 * 4)
 
 ### parse contract addresses:
-local_umbrella_path = Path.join([File.cwd!(), "../../../", "localchain_contract_addresses.env"])
+local_umbrella_path = Path.join([File.cwd!(), "../../../../", "localchain_contract_addresses.env"])
 
 contract_addreses_path =
   case File.exists?(local_umbrella_path) do
