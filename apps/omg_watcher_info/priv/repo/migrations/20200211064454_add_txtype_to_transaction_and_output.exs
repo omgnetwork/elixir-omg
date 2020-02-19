@@ -6,6 +6,7 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.AddTxtypeToTransactionAndOutput do
   alias Ecto.Adapters.SQL
   alias OMG.State.Transaction
   alias OMG.WatcherInfo.DB.Repo
+  alias OMG.WireFormatTypes
 
   def up() do
     alter table(:transactions) do
@@ -69,21 +70,22 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.AddTxtypeToTransactionAndOutput do
   end
 
   defp update_fee_outputs() do
+    fee_tx_type = WireFormatTypes.tx_type_for(:tx_fee_token_claim)
     Repo.update_all(
       from(
         o in "txoutputs",
         join: t in "transactions",
         on: o.creating_txhash == t.txhash,
-        where: t.txtype == 3
+        where: t.txtype == ^fee_tx_type
       ),
-      set: [otype: 2]
+      set: [otype: WireFormatTypes.output_type_for(:output_fee_token_claim)]
     )
   end
 
   defp update_payment_outputs() do
      Repo.update_all(
       from(o in "txoutputs", where: is_nil(o.otype)),
-      set: [otype: 1]
+      set: [otype: WireFormatTypes.output_type_for(:output_payment_v1)]
     )
   end
 end
