@@ -16,110 +16,102 @@ defmodule OMG.Eth.RootChainTest do
   alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
+  alias OMG.Eth.RootChain.DecodeLog
   alias Support.DevHelper
   alias Support.RootChainHelper
+  alias Support.SnapshotContracts
 
   use ExUnit.Case, async: false
-  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @moduletag :common
 
   setup do
-    vcr_path = Path.join(__DIR__, "../fixtures/vcr_cassettes")
-    ExVCR.Config.cassette_library_dir(vcr_path)
+    {:ok, exit_fn} = Support.DevNode.start()
+    data = SnapshotContracts.parse_contracts()
 
     contracts = %{
-      plasma_framework_tx_hash: Encoding.from_hex("0xcd96b40b8324a4e10b421d6dd9796d200c64f7af6799f85262fa8951aed2f10c"),
-      plasma_framework: Encoding.from_hex("0xc673e4ffcb8464faff908a6804fe0e635af0ea2f"),
-      eth_vault: Encoding.from_hex("0x0433420dee34412b5bf1e29fbf988ad037cc5db7"),
-      erc20_vault: Encoding.from_hex("0x04badc20426bc146453c5b879417b25029fa6c73"),
-      payment_exit_game: Encoding.from_hex("0x92ce4d7773c57d96210c46a07b89acf725057f21"),
-      authority_address: Encoding.from_hex("0xc0f780dfc35075979b0def588d999225b7ecc56f")
+      authority_address: Encoding.from_hex(data["AUTHORITY_ADDRESS"]),
+      plasma_framework_tx_hash: Encoding.from_hex(data["TXHASH_CONTRACT"]),
+      erc20_vault: Encoding.from_hex(data["CONTRACT_ADDRESS_ERC20_VAULT"]),
+      eth_vault: Encoding.from_hex(data["CONTRACT_ADDRESS_ETH_VAULT"]),
+      payment_exit_game: Encoding.from_hex(data["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"]),
+      plasma_framework: Encoding.from_hex(data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
     }
 
+    on_exit(exit_fn)
     {:ok, contracts: contracts}
   end
 
   test "get_root_deployment_height/2 returns current block number", %{contracts: contracts} do
-    use_cassette "ganache/get_root_deployment_height", match_requests_on: [:request_body] do
-      {:ok, number} = RootChain.get_root_deployment_height(contracts.plasma_framework_tx_hash, contracts)
-      assert is_integer(number)
-    end
+    {:ok, number} = RootChain.get_root_deployment_height(contracts.plasma_framework_tx_hash, contracts)
+    assert is_integer(number)
   end
 
   test "get_next_child_block/1 returns next blknum to be mined by operator", %{contracts: contracts} do
-    use_cassette "ganache/get_next_child_block", match_requests_on: [:request_body] do
-      assert {:ok, 1000} = RootChain.get_next_child_block(contracts)
-    end
+    assert {:ok, 1000} = RootChain.get_next_child_block(contracts)
   end
 
   test "get_child_chain/2 returns the current block hash and timestamp", %{contracts: contracts} do
-    use_cassette "ganache/get_child_chain", match_requests_on: [:request_body] do
-      {:ok, {child_chain_hash, child_chain_time}} = RootChain.get_child_chain(0, contracts)
+    {:ok, {child_chain_hash, child_chain_time}} = RootChain.get_child_chain(0, contracts)
 
-      assert is_binary(child_chain_hash)
-      assert byte_size(child_chain_hash) == 32
-      assert is_integer(child_chain_time)
-    end
+    assert is_binary(child_chain_hash)
+    assert byte_size(child_chain_hash) == 32
+    assert is_integer(child_chain_time)
   end
 
   test "get_deposits/3 returns deposit events", %{contracts: contracts} do
-    use_cassette "ganache/get_deposits", match_requests_on: [:request_body] do
-      # not using OMG.ChildChain.Transaction to not depend on that in omg_eth tests
-      # payment tx_type, no inputs, one output, metadata
-      {:ok, deposit} = ExPlasma.Transaction.Deposit.new(owner: contracts.authority_address, currency: @eth, amount: 1)
-      rlp = ExPlasma.Transaction.encode(deposit)
+    _ = add_queue(contracts.authority_address, contracts.plasma_framework)
+    {:ok, deposit} = ExPlasma.Transaction.Deposit.new(owner: contracts.authority_address, currency: @eth, amount: 1)
+    rlp = ExPlasma.Transaction.encode(deposit)
 
-      {:ok, tx_hash} =
-        RootChainHelper.deposit(rlp, 1, contracts.authority_address, contracts)
-        |> DevHelper.transact_sync!()
+    {:ok, tx_hash} =
+      RootChainHelper.deposit(rlp, 1, contracts.authority_address, contracts)
+      |> DevHelper.transact_sync!()
 
-      {:ok, height} = Eth.get_ethereum_height()
+    {:ok, height} = Eth.get_ethereum_height()
 
-      authority_addr = contracts.authority_address
-      root_chain_txhash = Encoding.from_hex(tx_hash["transactionHash"])
+    authority_addr = contracts.authority_address
+    root_chain_txhash = Encoding.from_hex(tx_hash["transactionHash"])
 
-      deposits = RootChain.get_deposits(1, height, contracts)
+    deposits = RootChain.get_deposits(1, height, contracts)
 
-      assert {:ok,
-              [
-                %{
-                  amount: 1,
-                  blknum: 1,
-                  owner: ^authority_addr,
-                  currency: @eth,
-                  eth_height: height,
-                  log_index: 0,
-                  root_chain_txhash: ^root_chain_txhash
-                }
-              ]} = deposits
-    end
+    assert {:ok,
+            [
+              %{
+                amount: 1,
+                blknum: 1,
+                owner: ^authority_addr,
+                currency: @eth,
+                eth_height: height,
+                log_index: 0,
+                root_chain_txhash: ^root_chain_txhash
+              }
+            ]} = deposits
   end
 
   describe "get_standard_exit_structs/2" do
     test "returns a list of standard exits by the given exit ids", %{contracts: contracts} do
-      use_cassette "ganache/get_standard_exit_structs", match_requests_on: [:request_body] do
-        # Make 3 deposits so we can do 3 exits. 1 exit will not be queried, so we can check for false positives
-        {utxo_pos_1, exit_1} = deposit_then_start_exit(contracts.authority_address, 1, @eth, contracts)
-        {utxo_pos_2, _exit_2} = deposit_then_start_exit(contracts.authority_address, 2, @eth, contracts)
-        {utxo_pos_3, exit_3} = deposit_then_start_exit(contracts.authority_address, 3, @eth, contracts)
+      # Make 3 deposits so we can do 3 exits. 1 exit will not be queried, so we can check for false positives
+      _ = add_queue(contracts.authority_address, contracts.plasma_framework)
+      {utxo_pos_1, exit_1} = deposit_then_start_exit(contracts.authority_address, 1, @eth, contracts)
+      {utxo_pos_2, _exit_2} = deposit_then_start_exit(contracts.authority_address, 2, @eth, contracts)
+      {utxo_pos_3, exit_3} = deposit_then_start_exit(contracts.authority_address, 3, @eth, contracts)
 
-        # Exit queue has not been added for some reason. We need it here so we add it.
-        vault_id = 1
-        {:ok, _} = RootChainHelper.add_exit_queue(vault_id, @eth, contracts)
+      # Exit queue has not been added for some reason. We need it here so we add it.
+      vault_id = 1
+      {:ok, _} = RootChainHelper.add_exit_queue(vault_id, @eth, contracts)
 
-        # Now get the exits by their ids and asserts the result
-        exit_id_1 = exit_id_from_receipt(exit_1)
-        exit_id_3 = exit_id_from_receipt(exit_3)
+      # Now get the exits by their ids and asserts the result
+      exit_id_1 = exit_id_from_receipt(exit_1)
+      exit_id_3 = exit_id_from_receipt(exit_3)
 
-        {:ok, exits} = RootChain.get_standard_exit_structs([exit_id_1, exit_id_3], contracts)
+      {:ok, exits} = RootChain.get_standard_exit_structs([exit_id_1, exit_id_3], contracts)
 
-        assert length(exits) == 2
-        assert Enum.any?(exits, fn e -> elem(e, 1) == utxo_pos_1 end)
-        refute Enum.any?(exits, fn e -> elem(e, 1) == utxo_pos_2 end)
-        assert Enum.any?(exits, fn e -> elem(e, 1) == utxo_pos_3 end)
-      end
+      assert length(exits) == 2
+      assert Enum.any?(exits, fn e -> elem(e, 1) == utxo_pos_1 end)
+      refute Enum.any?(exits, fn e -> elem(e, 1) == utxo_pos_2 end)
+      assert Enum.any?(exits, fn e -> elem(e, 1) == utxo_pos_3 end)
     end
   end
 
@@ -157,13 +149,21 @@ defmodule OMG.Eth.RootChainTest do
       logs
       |> Enum.filter(&(topic in &1["topics"]))
       |> Enum.map(fn log ->
-        Eth.parse_events_with_indexed_fields(
-          log,
-          {[:exit_id], [{:uint, 160}]},
-          {[:owner], [:address]}
-        )
+        DecodeLog.exit_started(log)
       end)
 
     exit_id
+  end
+
+  defp add_queue(authority_address, plasma_framework_address) do
+    {:ok, true} =
+      Ethereumex.HttpClient.request("personal_unlockAccount", [Encoding.to_hex(authority_address), "", 0], [])
+
+    add_exit_queue =
+      RootChainHelper.add_exit_queue(1, @eth, %{
+        plasma_framework: plasma_framework_address
+      })
+
+    {:ok, %{"status" => "0x1"}} = Support.DevHelper.transact_sync!(add_exit_queue)
   end
 end

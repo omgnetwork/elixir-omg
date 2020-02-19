@@ -40,7 +40,6 @@ defmodule OMG.EthereumEventListener do
   """
 
   alias OMG.EthereumEventListener.Core
-  alias OMG.EthereumEventListener.Preprocessor
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
 
@@ -98,7 +97,9 @@ defmodule OMG.EthereumEventListener do
       }) do
     _ = Logger.info("Starting #{inspect(__MODULE__)} for #{service_name}.")
     {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
+
     {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
+
     # we don't need to ever look at earlier than contract deployment
     last_event_block_height = max(last_event_block_height, contract_deployment_height)
     {initial_state, height_to_check_in} = Core.init(update_key, service_name, last_event_block_height)
@@ -165,12 +166,8 @@ defmodule OMG.EthereumEventListener do
 
     :ok = :telemetry.execute([:process, __MODULE__], %{events: events}, state)
 
-    {:ok, db_updates_from_callback} =
-      events
-      |> Enum.map(&Preprocessor.apply/1)
-      |> publish_data()
-      |> callbacks.process_events_callback.()
-
+    {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
+    :ok = publish_data(events)
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
     :ok = RootChainCoordinator.check_in(height_to_check_in, state.service_name)
 
@@ -194,11 +191,8 @@ defmodule OMG.EthereumEventListener do
   defp publish_data([%{event_signature: event_signature} | _] = data) do
     # String.split("DepositCreated(address,uint256,address,uint256)", "(")
     [event_signature, _] = String.split(event_signature, "(")
-    :ok = OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
-    data
+    OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
   end
 
-  defp publish_data([] = data) do
-    data
-  end
+  defp publish_data([]), do: :ok
 end

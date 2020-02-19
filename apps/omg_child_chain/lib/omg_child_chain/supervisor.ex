@@ -18,10 +18,12 @@ defmodule OMG.ChildChain.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
+  alias OMG.ChildChain.DatadogEvent.ContractEventConsumer
   alias OMG.ChildChain.FeeServer
   alias OMG.ChildChain.FreshBlocks
   alias OMG.ChildChain.Monitor
   alias OMG.ChildChain.SyncSupervisor
+  alias OMG.ChildChain.Tracer
   alias OMG.Eth.RootChain
   alias OMG.State
   alias OMG.Status.Alert.Alarm
@@ -52,9 +54,42 @@ defmodule OMG.ChildChain.Supervisor do
        ]}
     ]
 
+    is_datadog_disabled = is_disabled?()
+
+    rest_children =
+      if is_datadog_disabled do
+        children
+      else
+        create_event_consumer_children() ++ children
+      end
+
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(children, opts)
+    Supervisor.init(rest_children, opts)
   end
+
+  defp create_event_consumer_children() do
+    Enum.map(
+      [
+        "blocks",
+        "DepositCreated",
+        "InFlightExitStarted",
+        "InFlightExitInputPiggybacked",
+        "InFlightExitOutputPiggybacked",
+        "ExitStarted"
+      ],
+      fn event ->
+        ContractEventConsumer.prepare_child(
+          event: event,
+          release: Application.get_env(:omg_child_chain, :release),
+          current_version: Application.get_env(:omg_child_chain, :current_version),
+          publisher: OMG.Status.Metric.Datadog
+        )
+      end
+    )
+  end
+
+  @spec is_disabled?() :: boolean()
+  defp is_disabled?(), do: Application.get_env(:omg_child_chain, Tracer)[:disabled?]
 end

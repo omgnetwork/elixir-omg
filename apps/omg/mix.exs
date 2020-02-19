@@ -40,12 +40,7 @@ defmodule OMG.MixProject do
       {:omg_bus, in_umbrella: true},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
-      {:omg_status, in_umbrella: true},
-
-      # TEST ONLY
-
-      # Used for mocking websocket servers
-      {:plug_cowboy, "~> 1.0", only: [:dev, :test]}
+      {:omg_status, in_umbrella: true}
     ]
   end
 end

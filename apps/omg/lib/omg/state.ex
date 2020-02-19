@@ -53,6 +53,7 @@ defmodule OMG.State do
     GenServer.cast(__MODULE__, :form_block)
   end
 
+  # watcher
   @spec close_block() :: {:ok, list(Core.db_update())}
   def close_block() do
     GenServer.call(__MODULE__, :close_block)

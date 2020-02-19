@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,25 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Endpoint do
-  use Phoenix.Endpoint, otp_app: :omg_watcher_rpc
-  use Sentry.Phoenix.Endpoint
+defmodule OMG.Status.ReleaseTasks.SetApplication do
+  @moduledoc false
+  use Distillery.Releases.Config.Provider
+  @app :omg_status
 
-  plug(Plug.RequestId)
-  plug(Plug.Logger, log: :debug)
-
-  plug(
-    Plug.Parsers,
-    parsers: [:urlencoded, :multipart, :json],
-    pass: ["*/*"],
-    json_decoder: Jason
-  )
-
-  plug(Plug.MethodOverride)
-  plug(Plug.Head)
-
-  if Application.get_env(:omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint)[:enable_cors],
-    do: plug(CORSPlug)
-
-  plug(OMG.WatcherRPC.Web.Router)
+  @impl Provider
+  def init(release: release, current_version: current_version) do
+    :ok = Application.put_env(@app, :release, release, persistent: true)
+    :ok = Application.put_env(@app, :current_version, current_version, persistent: true)
+  end
 end

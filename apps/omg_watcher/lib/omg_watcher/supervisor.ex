@@ -21,8 +21,10 @@ defmodule OMG.Watcher.Supervisor do
   use OMG.Utils.LoggerExt
 
   alias OMG.Status.Alert.Alarm
+  alias OMG.Watcher.DatadogEvent.ContractEventConsumer
   alias OMG.Watcher.Monitor
   alias OMG.Watcher.SyncSupervisor
+  alias OMG.Watcher.Tracer
 
   def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -42,8 +44,51 @@ defmodule OMG.Watcher.Supervisor do
        ]}
     ]
 
+    is_datadog_disabled = is_disabled?()
+
+    rest_children =
+      if is_datadog_disabled do
+        children
+      else
+        create_event_consumer_children() ++ children
+      end
+
     opts = [strategy: :one_for_one]
+
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(children, opts)
+    Supervisor.init(rest_children, opts)
   end
+
+  defp create_event_consumer_children() do
+    Enum.map(
+      [
+        "blocks",
+        "DepositCreated",
+        "InFlightExitInputPiggybacked",
+        "InFlightExitOutputPiggybacked",
+        "BlockSubmitted",
+        "ExitFinalized",
+        "ExitChallenged",
+        "InFlightExitChallenged",
+        "InFlightExitChallengeResponded",
+        "InFlightExitInputBlocked",
+        "InFlightExitOutputBlocked",
+        "InFlightExitInputWithdrawn",
+        "InFlightExitOutputWithdrawn",
+        "InFlightExitStarted",
+        "ExitStarted"
+      ],
+      fn event ->
+        ContractEventConsumer.prepare_child(
+          event: event,
+          release: Application.get_env(:omg_watcher, :release),
+          current_version: Application.get_env(:omg_watcher, :current_version),
+          publisher: OMG.Status.Metric.Datadog
+        )
+      end
+    )
+  end
+
+  @spec is_disabled?() :: boolean()
+  defp is_disabled?(), do: Application.get_env(:omg_watcher, Tracer)[:disabled?]
 end

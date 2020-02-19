@@ -19,7 +19,6 @@ defmodule OMG.Eth.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   alias OMG.Eth.Encoding
-  alias OMG.Eth.RootChain
   alias Support.DevHelper
   alias Support.DevNode
   alias Support.RootChainHelper
@@ -32,6 +31,7 @@ defmodule OMG.Eth.Fixtures do
   deffixture eth_node do
     if Application.get_env(:omg_eth, :run_test_eth_dev_node, true) do
       {:ok, exit_fn} = DevNode.start()
+
       on_exit(exit_fn)
     end
 
@@ -79,7 +79,7 @@ defmodule OMG.Eth.Fixtures do
   end
 
   deffixture root_chain_contract_config(contract) do
-    contract_addr = RootChain.contract_map_to_hex(contract.contract_addr)
+    contract_addr = contract_map_to_hex(contract.contract_addr)
     Application.put_env(:omg_eth, :contract_addr, contract_addr, persistent: true)
     Application.put_env(:omg_eth, :authority_addr, Encoding.to_hex(contract.authority_addr), persistent: true)
     Application.put_env(:omg_eth, :txhash_contract, Encoding.to_hex(contract.txhash_contract), persistent: true)
@@ -99,4 +99,9 @@ defmodule OMG.Eth.Fixtures do
 
     :ok
   end
+
+  # Hexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
+
+  defp contract_map_to_hex(contract_map),
+    do: Enum.into(contract_map, %{}, fn {name, addr} -> {name, Encoding.to_hex(addr)} end)
 end

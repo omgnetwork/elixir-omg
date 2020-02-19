@@ -56,9 +56,13 @@ release :watcher do
       {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher},
       {OMG.Status.ReleaseTasks.SetSentry, []},
       {OMG.Status.ReleaseTasks.SetTracer, []},
+      {OMG.Status.ReleaseTasks.SetApplication,
+       [release: :watcher, current_version: current_version(:omg_child_chain) <> "+" <> sha]},
       {OMG.Watcher.ReleaseTasks.SetChildChain, []},
       {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, []},
-      {OMG.Watcher.ReleaseTasks.SetTracer, []}
+      {OMG.Watcher.ReleaseTasks.SetTracer, []},
+      {OMG.Watcher.ReleaseTasks.SetApplication,
+       [release: :watcher, current_version: current_version(:omg_child_chain) <> "+" <> sha]}
     ]
   )
 
@@ -101,10 +105,14 @@ release :watcher_info do
       {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher_info},
       {OMG.Status.ReleaseTasks.SetSentry, []},
       {OMG.Status.ReleaseTasks.SetTracer, []},
+      {OMG.Status.ReleaseTasks.SetApplication,
+       [release: :watcher_info, current_version: current_version(:omg_child_chain) <> "+" <> sha]},
       {OMG.Watcher.ReleaseTasks.SetChildChain, []},
       {OMG.WatcherInfo.ReleaseTasks.SetChildChain, []},
       {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, []},
       {OMG.Watcher.ReleaseTasks.SetTracer, []},
+      {OMG.Watcher.ReleaseTasks.SetApplication,
+       [release: :watcher_info, current_version: current_version(:omg_child_chain) <> "+" <> sha]},
       {OMG.WatcherInfo.ReleaseTasks.SetDB, []},
       {OMG.WatcherInfo.ReleaseTasks.SetTracer, []}
     ]
@@ -142,13 +150,18 @@ release :child_chain do
       {OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval, []},
       {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
       {OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress, []},
+      {OMG.ChildChain.ReleaseTasks.SetTracer, []},
+      {OMG.ChildChain.ReleaseTasks.SetApplication,
+       [release: :child_chain, current_version: current_version(:omg_child_chain) <> "+" <> sha]},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
       {OMG.Eth.ReleaseTasks.SetContract, []},
       {OMG.DB.ReleaseTasks.SetKeyValueDB, []},
       {OMG.ChildChainRPC.ReleaseTasks.SetEndpoint, []},
       {OMG.ChildChainRPC.ReleaseTasks.SetTracer, []},
       {OMG.Status.ReleaseTasks.SetSentry, []},
-      {OMG.Status.ReleaseTasks.SetTracer, []}
+      {OMG.Status.ReleaseTasks.SetTracer, []},
+      {OMG.Status.ReleaseTasks.SetApplication,
+       [release: :child_chain, current_version: current_version(:omg_child_chain) <> "+" <> sha]}
     ]
   )
 
