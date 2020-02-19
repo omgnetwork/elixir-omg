@@ -1,7 +1,7 @@
 version: "2.3"
 services:
   elixir-omg:
-    image: omisegoimages/elixir-omg-builder:stable-20200217
+    image: omisegoimages/elixir-omg-builder:stable-20200219
     environment:
       DATABASE_URL: postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
     volumes:
