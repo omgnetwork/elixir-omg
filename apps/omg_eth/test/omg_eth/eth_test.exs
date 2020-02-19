@@ -30,7 +30,7 @@ defmodule OMG.EthTest do
 
   @moduletag :common
 
-  setup do
+  setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
 
     data = SnapshotContracts.parse_contracts()
