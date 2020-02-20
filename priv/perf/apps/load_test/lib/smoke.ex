@@ -1,4 +1,4 @@
-defmodule LoadTest.WatcherInfo do
+defmodule LoadTest.Smoke do
   @moduledoc """
   Load tests for watcher info
   """
@@ -7,9 +7,6 @@ defmodule LoadTest.WatcherInfo do
 
   def scenarios,
     do: [
-      {{5, LoadTest.Scenario.Dummy},
-       %{
-         iterations: 2
-       }}
+      {{1, LoadTest.Scenario.Smoke}, %{}}
     ]
 end
