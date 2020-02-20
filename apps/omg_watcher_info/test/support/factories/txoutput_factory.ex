@@ -35,19 +35,10 @@ defmodule OMG.WatcherInfo.Factory.TxOutput do
       @eth OMG.Eth.RootChain.eth_pseudo_address()
 
       def txoutput_factory(attrs \\ %{}) do
-        # use the blknum sequence for block.blknum
-        {blknum, attrs} =
-          case attrs[:blknum] do
-            nil ->
-              block = build(:block)
-              {block.blknum, attrs}
-
-            blknum ->
-              {blknum, Map.delete(attrs, :blknum)}
-          end
+        attrs = Map.put_new_lazy(attrs, :blknum, fn -> build(:block).blknum end)
 
         txoutput = %DB.TxOutput{
-          blknum: blknum,
+          blknum: 0,
           txindex: 0,
           oindex: 0,
           otype: 1,

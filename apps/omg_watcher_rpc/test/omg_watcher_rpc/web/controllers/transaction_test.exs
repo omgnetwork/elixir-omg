@@ -96,8 +96,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
               "utxo_pos" => Utxo.Position.encode({:utxo_position, input.blknum, input.txindex, input.oindex}),
               "creating_txhash" => to_hex_or_nil(input.creating_txhash),
               "spending_txhash" => to_hex_or_nil(input.spending_txhash),
-              "spending_tx_oindex" => input.spending_tx_oindex,
-              "proof" => Encoding.to_hex(input.proof),
               "inserted_at" => Response.serialize(input.inserted_at).data,
               "updated_at" => Response.serialize(input.updated_at).data
             }
@@ -115,8 +113,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
               "utxo_pos" => Utxo.Position.encode({:utxo_position, output.blknum, output.txindex, output.oindex}),
               "creating_txhash" => to_hex_or_nil(output.creating_txhash),
               "spending_txhash" => to_hex_or_nil(output.spending_txhash),
-              "spending_tx_oindex" => output.spending_tx_oindex,
-              "proof" => Encoding.to_hex(output.proof),
               "inserted_at" => Response.serialize(output.inserted_at).data,
               "updated_at" => Response.serialize(output.updated_at).data
             }

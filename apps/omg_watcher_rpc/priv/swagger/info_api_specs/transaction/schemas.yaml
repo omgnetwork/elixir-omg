@@ -27,7 +27,7 @@ TransactionOutputSchema:
       format: int256
     creating_txhash:
       type: string
-       
+
     spending_txhash:
       type: string
 

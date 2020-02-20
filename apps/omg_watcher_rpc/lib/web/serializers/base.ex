@@ -32,8 +32,6 @@ defmodule OMG.WatcherRPC.Web.Serializer.Base do
       :owner,
       :creating_txhash,
       :spending_txhash,
-      :spending_tx_oindex,
-      :proof,
       :inserted_at,
       :updated_at
     ])

@@ -27,8 +27,7 @@ BlocksAllResponseSchema:
         timestamp: 1540365586
         tx_count: 2
         inserted_at: '2020-02-10T12:07:32Z'
-        updated_at: '2020-02-15T04:07:57Z'
-BlocksAllResponse        
+        updated_at: '2020-02-15T04:07:57Z'      
       data_paging:
         page: 1
         limit: 100
