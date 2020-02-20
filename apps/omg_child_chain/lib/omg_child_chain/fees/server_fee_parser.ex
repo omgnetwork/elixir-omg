@@ -77,6 +77,7 @@ defmodule OMG.ChildChain.Fees.ServerFeeParser do
     Map.merge(current_specs, previous_specs, &resolve_merge_conflict_for_currency/3)
   end
 
+  defp resolve_merge_conflict_for_currency(_currency, [amount], [amount]), do: [amount]
   defp resolve_merge_conflict_for_currency(_currency, [current_amount], [previous_amount]) do
     [current_amount, previous_amount]
   end
