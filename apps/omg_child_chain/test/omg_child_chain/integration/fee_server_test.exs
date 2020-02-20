@@ -131,7 +131,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         updated_at: DateTime.from_unix!(1_546_423_200)
       }
 
-      assert {:ok, default_fees} == FeeServer.transaction_fees()
+      assert {:ok, default_fees} == FeeServer.current_fees()
 
       # corrupt file, refresh, check fees did not change
       assert capture_log(fn ->
@@ -139,14 +139,14 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
                refresh_fees()
              end) =~ ~r/\[error\].*Unable to update fees/
 
-      assert {:ok, default_fees} == FeeServer.transaction_fees()
+      assert {:ok, default_fees} == FeeServer.current_fees()
       assert server_alive?()
 
       # fix file, reload, check changes applied
       overwrite_fee_file(file_name, %{@payment_tx_type => %{@eth_hex => new_fee}})
       refresh_fees()
 
-      assert {:ok, %{@payment_tx_type => %{@eth => new_fee}}} == FeeServer.transaction_fees()
+      assert {:ok, %{@payment_tx_type => %{@eth => new_fee}}} == FeeServer.current_fees()
       assert server_alive?()
 
       exit_fn.()
@@ -167,7 +167,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     case GenServer.whereis(TestFeeServer) do
       pid when is_pid(pid) ->
         # switch of internal timer to don't interfere with tests
-        if tref = Keyword.get(:sys.get_state(TestFeeServer), :tref) do
+        if tref = Map.get(:sys.get_state(TestFeeServer), :tref) do
           {:ok, :cancel} = :timer.cancel(tref)
         end
 

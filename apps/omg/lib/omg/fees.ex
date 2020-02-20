@@ -33,7 +33,7 @@ defmodule OMG.Fees do
   where fees is itself a map of token to fee spec
   """
   @type full_fee_t() :: %{non_neg_integer() => fee_t()}
-  @type optional_fee_t() :: fee_t() | :ignore_fees | :no_fees_required
+  @type optional_fee_t() :: %{Crypto.address_t() => [pos_integer()]} | :ignore_fees | :no_fees_required
   @typedoc "A map representing a single fee"
   @type fee_spec_t() :: %{
           amount: pos_integer(),
@@ -50,13 +50,19 @@ defmodule OMG.Fees do
 
   ## Examples
 
-      iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 0}, %{"eth" => %{amount: 1}, "omg" => %{amount: 3}})
+      iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 0}, %{"eth" => [1], "omg" => [3]})
       :ok
-      iex> Fees.check_if_covered(%{"eth" => 1}, %{"eth" => %{amount: 2}})
+      iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 0}, %{"eth" => [2, 1], "omg" => [1, 3]})
+      :ok
+      iex> Fees.check_if_covered(%{"eth" => 1}, %{"eth" => [2]})
       {:error, :fees_not_covered}
-      iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 1}, %{"eth" => %{amount: 1}})
+      iex> Fees.check_if_covered(%{"eth" => 2}, %{"eth" => [3, 1]})
+      {:error, :fees_not_covered}
+      iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 1}, %{"eth" => [1]})
       {:error, :multiple_potential_currency_fees}
-      iex> Fees.check_if_covered(%{"eth" => 2}, %{"eth" => %{amount: 1}})
+      iex> Fees.check_if_covered(%{"eth" => 2}, %{"eth" => [1]})
+      {:error, :overpaying_fees}
+      iex> Fees.check_if_covered(%{"eth" => 2}, %{"eth" => [1, 3]})
       {:error, :overpaying_fees}
       iex> Fees.check_if_covered(%{"eth" => 1}, :no_fees_required)
       {:error, :overpaying_fees}
@@ -91,8 +97,8 @@ defmodule OMG.Fees do
       nil ->
         {:error, :fees_not_covered}
 
-      %{amount: amount} ->
-        check_if_exact_match(amount, paid_fee)
+      amounts ->
+        check_if_exact_match(amounts, paid_fee)
     end
   end
 
@@ -104,15 +110,15 @@ defmodule OMG.Fees do
     end)
   end
 
-  defp check_if_exact_match(amount, paid_fee) do
+  defp check_if_exact_match([current_amount | _] = amounts, paid_fee) do
     cond do
-      amount == paid_fee ->
+      paid_fee in amounts ->
         :ok
 
-      amount > paid_fee ->
+      current_amount > paid_fee ->
         {:error, :fees_not_covered}
 
-      amount < paid_fee ->
+      current_amount < paid_fee ->
         {:error, :overpaying_fees}
     end
   end
@@ -167,6 +173,7 @@ defmodule OMG.Fees do
   }
 
   """
+  # TODO: update spec
   @spec for_transaction(Transaction.Recovered.t(), full_fee_t()) :: optional_fee_t()
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do

@@ -32,22 +32,8 @@ defmodule OMG.FeesTest do
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
 
   @payment_fees %{
-    @eth => %{
-      amount: 1,
-      subunit_to_unit: 1_000_000_000_000_000_000,
-      pegged_amount: 4,
-      pegged_currency: "USD",
-      pegged_subunit_to_unit: 100,
-      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-    },
-    @not_eth_1 => %{
-      amount: 3,
-      subunit_to_unit: 1000,
-      pegged_amount: 4,
-      pegged_currency: "USD",
-      pegged_subunit_to_unit: 100,
-      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-    }
+    @eth => [1],
+    @not_eth_1 => [3]
   }
 
   @fees %{
