@@ -10,7 +10,7 @@ Umbrella app for performance/load/stress tests
     WATCHER_INFO_URL=http://localhost:7534
     ```
 
-1. To test with a local services (by docker-compose): `make services_up`
+1. To test with local services (by docker-compose): `make start-services`
 1. To generate the open-api client: `make init`
 1. To run the test: `make test`
-1. To turn the local services down: `make services_down`
+1. To turn the local services down: `make stop-services`
