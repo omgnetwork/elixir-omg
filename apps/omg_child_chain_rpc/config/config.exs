@@ -1,3 +1,6 @@
+use Mix.Config
+
+# Configures the endpoint
 # https://ninenines.eu/docs/en/cowboy/2.4/manual/cowboy_http/
 # defaults are:
 # protocol_options:[max_header_name_length: 64,
@@ -5,9 +8,6 @@
 # max_headers: 100,
 # max_request_line_length: 8096
 # ]
-use Mix.Config
-
-# Configures the endpoint
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
   render_errors: [view: OMG.ChildChainRPC.Web.Views.Error, accepts: ~w(json)],
   instrumenters: [SpandexPhoenix.Instrumenter],
