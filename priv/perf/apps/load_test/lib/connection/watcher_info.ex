@@ -1,6 +1,6 @@
 defmodule LoadTest.Connection.WatcherInfo do
   @moduledoc """
-  Modele that overrides the Tesla middleware with the url in config.
+  Module that overrides the Tesla middleware with the url in config.
   """
 
   def client() do

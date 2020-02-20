@@ -24,7 +24,7 @@ defmodule LoadTest.Scenario.Smoke do
       "data" => %{
         "contract_semver" => _contract_semver,
         "deposit_finality_margin" => _deposit_finality_margin,
-        "network" => _netowork
+        "network" => _network
       },
       "service_name" => "child_chain"
     } = Jason.decode!(response.body)
