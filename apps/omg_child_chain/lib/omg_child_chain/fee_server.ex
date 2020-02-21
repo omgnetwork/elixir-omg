@@ -62,7 +62,7 @@ defmodule OMG.ChildChain.FeeServer do
   Returns a list of amounts that are accepted as a fee for each token/type.
   These amounts include the currently supported fees plus the buffered ones.
   """
-  @spec accepted_fees() :: {:ok, FeeMerger.merged_fee_t()}
+  @spec accepted_fees() :: {:ok, Fees.full_merged_fee_t()}
   def accepted_fees() do
     {:ok, load_accepted_fees()}
   end
@@ -152,7 +152,7 @@ defmodule OMG.ChildChain.FeeServer do
 
   defp start_expiration_timer(timer) do
     # If a timer was already started, we cancel it
-    if timer != nil, do: Process.cancel_timer(timer)
+    _ = if timer != nil, do: Process.cancel_timer(timer)
     # We then start a new timer that will set the previous fees to nil uppon expiration
     Process.send_after(self(), :expire_previous_fees, @fee_buffer_duration_ms)
   end

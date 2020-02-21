@@ -61,6 +61,15 @@ defmodule OMG.FeesTest do
       assert Fees.check_if_covered(%{@not_eth_1 => 3, @eth => 0}, @payment_fees) == :ok
     end
 
+    test "returns :ok when fees are exactly covered by one currency with previous fees" do
+      fees =
+        @payment_fees
+        |> Map.put(@eth, [1, 2])
+        |> Map.put(@not_eth_1, [1, 3])
+
+      assert Fees.check_if_covered(%{@not_eth_1 => 3, @eth => 0}, fees) == :ok
+    end
+
     test "returns :multiple_potential_currency_fees when multiple implicit fees are given" do
       assert Fees.check_if_covered(%{@eth => 2, @not_eth_1 => 2}, @payment_fees) ==
                {:error, :multiple_potential_currency_fees}
@@ -80,8 +89,26 @@ defmodule OMG.FeesTest do
       assert Fees.check_if_covered(%{@not_eth_1 => 1}, @payment_fees) == {:error, :fees_not_covered}
     end
 
+    test "returns :fees_not_covered when fees do not cover the fee price with previous fees" do
+      fees =
+        @payment_fees
+        |> Map.put(@eth, [1, 2])
+        |> Map.put(@not_eth_1, [3, 1])
+
+      assert Fees.check_if_covered(%{@not_eth_1 => 2}, fees) == {:error, :fees_not_covered}
+    end
+
     test "returns :overpaying_fees when fees cover more than the fee price" do
       assert Fees.check_if_covered(%{@not_eth_1 => 4}, @payment_fees) == {:error, :overpaying_fees}
+    end
+
+    test "returns :overpaying_fees when fees cover more than the fee price with previous fees" do
+      fees =
+        @payment_fees
+        |> Map.put(@eth, [1, 2])
+        |> Map.put(@not_eth_1, [1, 3])
+
+      assert Fees.check_if_covered(%{@not_eth_1 => 2}, fees) == {:error, :overpaying_fees}
     end
 
     @tag fixtures: [:alice, :bob]

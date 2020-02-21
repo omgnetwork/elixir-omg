@@ -33,7 +33,7 @@ defmodule OMG.Fees do
   where fees is itself a map of token to fee spec
   """
   @type full_fee_t() :: %{non_neg_integer() => fee_t()}
-  @type optional_fee_t() :: %{Crypto.address_t() => [pos_integer()]} | :ignore_fees | :no_fees_required
+  @type optional_fee_t() :: merged_fee_t() | :ignore_fees | :no_fees_required
   @typedoc "A map representing a single fee"
   @type fee_spec_t() :: %{
           amount: pos_integer(),
@@ -43,6 +43,12 @@ defmodule OMG.Fees do
           pegged_subunit_to_unit: pos_integer(),
           updated_at: DateTime.t()
         }
+
+  @typedoc """
+  A map of currency to amounts used internally where amounts is a list of supported fee amounts.
+  """
+  @type full_merged_fee_t() :: %{non_neg_integer() => merged_fee_t()}
+  @type merged_fee_t() :: %{Crypto.address_t() => list(pos_integer())}
 
   @doc ~S"""
   Checks whether the surplus of tokens sent in a transaction (inputs - outputs) covers the fees
@@ -134,47 +140,21 @@ defmodule OMG.Fees do
   ...> },
   ...> %{
   ...>   1 => %{
-  ...>     "eth" => %{
-  ...>       amount: 1,
-  ...>       subunit_to_unit: 1_000_000_000_000_000_000,
-  ...>       pegged_amount: 4,
-  ...>       pegged_currency: "USD",
-  ...>       pegged_subunit_to_unit: 100,
-  ...>       updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-  ...>     },
-  ...>     "omg" => %{
-  ...>       amount: 3,
-  ...>       subunit_to_unit: 1_000_000_000_000_000_000,
-  ...>       pegged_amount: 4,
-  ...>       pegged_currency: "USD",
-  ...>       pegged_subunit_to_unit: 100,
-  ...>       updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-  ...>     }
+  ...>     "eth" => [1],
+  ...>     "omg" => [3]
+  ...>   },
+  ...>   2 => %{
+  ...>     "eth" => [4],
+  ...>     "omg" => [5]
   ...>   }
   ...> }
   ...> )
   %{
-    "eth" => %{
-      amount: 1,
-      subunit_to_unit: 1000000000000000000,
-      pegged_amount: 4,
-      pegged_currency: "USD",
-      pegged_subunit_to_unit: 100,
-      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-    },
-    "omg" => %{
-      amount: 3,
-      subunit_to_unit: 1000000000000000000,
-      pegged_amount: 4,
-      pegged_currency: "USD",
-      pegged_subunit_to_unit: 100,
-      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-    }
+    "eth" => [1],
+    "omg" => [3]
   }
-
   """
-  # TODO: update spec
-  @spec for_transaction(Transaction.Recovered.t(), full_fee_t()) :: optional_fee_t()
+  @spec for_transaction(Transaction.Recovered.t(), merged_fee_t()) :: optional_fee_t()
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do
       true -> :no_fees_required

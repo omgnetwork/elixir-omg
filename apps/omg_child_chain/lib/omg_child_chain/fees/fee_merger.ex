@@ -16,8 +16,6 @@ defmodule OMG.ChildChain.Fees.FeeMerger do
   Handles the parsing and formatting and merging of previous and current fees
   """
 
-  @type merged_fee_t() :: %{non_neg_integer() => %{Crypto.address_t() => list(pos_integer())}}
-
   @doc """
   Merges a current and previous server fee specs into a formatted map
 
