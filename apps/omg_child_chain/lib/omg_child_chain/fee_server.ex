@@ -24,7 +24,7 @@ defmodule OMG.ChildChain.FeeServer do
   use GenServer
   use OMG.Utils.LoggerExt
 
-  alias OMG.ChildChain.Fees.ServerFeeParser
+  alias OMG.ChildChain.Fees.FeeMerger
   alias OMG.Fees
   alias OMG.Status.Alert.Alarm
 
@@ -62,7 +62,7 @@ defmodule OMG.ChildChain.FeeServer do
   Returns a list of amounts that are accepted as a fee for each token/type.
   These amounts include the currently supported fees plus the buffered ones.
   """
-  @spec accepted_fees() :: {:ok, ServerFeeParser.merged_fee_t()}
+  @spec accepted_fees() :: {:ok, FeeMerger.merged_fee_t()}
   def accepted_fees() do
     {:ok, load_accepted_fees()}
   end
@@ -145,7 +145,7 @@ defmodule OMG.ChildChain.FeeServer do
     current_fee_specs = :ets.lookup_element(:fees_bucket, :fees, 2)
     previous_fees_specs = :ets.lookup_element(:fees_bucket, :previous_fees, 2)
 
-    merged_fees = ServerFeeParser.merge_specs(current_fee_specs, previous_fees_specs)
+    merged_fees = FeeMerger.merge_specs(current_fee_specs, previous_fees_specs)
 
     :ets.update_element(:fees_bucket, :merged_fees, {2, merged_fees})
   end

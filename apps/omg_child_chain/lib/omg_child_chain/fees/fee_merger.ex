@@ -11,19 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.ChildChain.Fees.ServerFeeParser do
+defmodule OMG.ChildChain.Fees.FeeMerger do
   @moduledoc """
-  Handles the parsing and formatting of fees stored in the fee server
+  Handles the parsing and formatting and merging of previous and current fees
   """
 
   @type merged_fee_t() :: %{non_neg_integer() => %{Crypto.address_t() => list(pos_integer())}}
 
-  @doc ~S"""
+  @doc """
   Merges a current and previous server fee specs into a formatted map
 
   ## Examples
 
-      iex> OMG.ChildChain.Fees.ServerFeeParser(
+      iex> OMG.ChildChain.Fees.FeeMerger.merge_specs(
       ...>   %{
       ...>     1 => %{
       ...>       "eth" => %{
@@ -42,18 +42,19 @@ defmodule OMG.ChildChain.Fees.ServerFeeParser do
       ...>         pegged_subunit_to_unit: 100,
       ...>         updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
       ...>       }
-      ...>     },
-      ...>     %{
-      ...>       1 => %{
-      ...>         "eth" => %{
-      ...>           amount: 2,
-      ...>           subunit_to_unit: 1_000_000_000_000_000_000,
-      ...>           pegged_amount: 4,
-      ...>           pegged_currency: "USD",
-      ...>           pegged_subunit_to_unit: 100,
-      ...>           updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-      ...>         }
+      ...>     }
+      ...>   },
+      ...>   %{
+      ...>     1 => %{
+      ...>       "eth" => %{
+      ...>         amount: 2,
+      ...>         subunit_to_unit: 1_000_000_000_000_000_000,
+      ...>         pegged_amount: 4,
+      ...>         pegged_currency: "USD",
+      ...>         pegged_subunit_to_unit: 100,
+      ...>         updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
       ...>       }
+      ...>     }
       ...>   }
       ...> )
       %{
