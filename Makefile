@@ -478,6 +478,8 @@ info_api_specs:
 operator_api_specs:
 	swagger-cli bundle -r -t yaml -o apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml apps/omg_child_chain_rpc/priv/swagger/operator_api_specs/swagger.yaml
 
+api_specs: security_critical_api_specs info_api_specs operator_api_specs
+
 ###
 ### Diagnostics report
 ###
