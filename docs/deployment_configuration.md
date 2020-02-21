@@ -50,15 +50,6 @@ Static configuration
 - "CONTRACT_ADDRESS_ERC20_VAULT
 - "CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"
 
-or
-
-- "TXHASH_CONTRACT"
-- "AUTHORITY_ADDRESS"
-- "CONTRACT_ADDRESS_PLASMA_FRAMEWORK"
-- "CONTRACT_ADDRESS_ETH_VAULT
-- "CONTRACT_ADDRESS_ERC20_VAULT
-- "CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"
-
 ***Required contract addresses***
 
 The contract addresses that are required to be included in the `contract_addr` field (or `_CONTRACT_ADDRESS` JSON) are:
