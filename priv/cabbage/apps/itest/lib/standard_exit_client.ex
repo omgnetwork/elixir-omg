@@ -37,18 +37,40 @@ defmodule Itest.StandardExitClient do
   @sleep_retry_sec 5_000
   @retry_count 120
 
-  def start_standard_exit(address) do
-    _ = Logger.info("Starting standard exit for #{address}")
+  def start_standard_exit(%__MODULE__{utxo: %Utxo{utxo_pos: utxo_pos}} = se) do
+    _ = Logger.info("Starting standard exit for UTXO at #{utxo_pos}")
 
-    %__MODULE__{address: address}
-    |> get_utxo()
+    se
     |> get_exit_data()
     |> get_exit_game_contract_address()
     |> add_exit_queue()
     |> get_bond_size_for_standard_exit()
     |> do_start_standard_exit()
-    |> wait_for_exit_period()
     |> get_standard_exit_id()
+  end
+
+  def start_standard_exit(address) do
+    _ = Logger.info("Starting standard exit for #{address}")
+
+    %__MODULE__{address: address}
+    |> get_utxo()
+    |> start_standard_exit()
+  end
+
+  def complete_standard_exit(address) do
+    _ = Logger.info("Completing a full standard exit for #{address}")
+
+    address
+    |> start_standard_exit()
+    |> wait_and_process_standard_exit()
+  end
+
+  def wait_and_process_standard_exit(%__MODULE__{address: address} = se) do
+    _ = Logger.info("Waiting and processing a standard exit by #{address}")
+
+    se
+    |> get_exit_game_contract_address()
+    |> wait_for_exit_period()
     |> process_exit()
     |> calculate_total_gas_used()
   end
@@ -207,18 +229,19 @@ defmodule Itest.StandardExitClient do
       |> hd()
 
     # double check correctness, our exit ID must be the first one in the priority queue
-    ^standard_exit_id = next_exit_id &&& (1 <<< 160) - 1
+    # FIXME: think how to have this sanity check
+    # ^standard_exit_id = next_exit_id &&& (1 <<< 160) - 1
 
     %{se | standard_exit_id: standard_exit_id}
   end
 
-  defp process_exit(%__MODULE__{address: address} = se) do
+  defp process_exit(%__MODULE__{address: address, standard_exit_id: standard_exit_id} = se) do
     _ = Logger.info("Process exit #{__MODULE__}")
 
     data =
       ABI.encode(
         "processExits(uint256,address,uint160,uint256)",
-        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), se.standard_exit_id, 1]
+        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), standard_exit_id, 1]
       )
 
     txmap = %{

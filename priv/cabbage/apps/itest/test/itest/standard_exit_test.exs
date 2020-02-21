@@ -49,8 +49,8 @@ defmodule StandardExitsTests do
     {:ok, state}
   end
 
-  defwhen ~r/^Alice starts a standard exit on the child chain$/, _, %{alice_account: alice_account} = state do
-    se = StandardExitClient.start_standard_exit(alice_account)
+  defwhen ~r/^Alice completes a standard exit on the child chain$/, _, %{alice_account: alice_account} = state do
+    se = StandardExitClient.complete_standard_exit(alice_account)
     state = Map.put_new(state, :standard_exit_total_gas_used, se.total_gas_used)
 
     {:ok, state}
