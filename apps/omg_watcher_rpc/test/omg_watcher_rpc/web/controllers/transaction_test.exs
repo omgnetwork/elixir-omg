@@ -24,6 +24,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
   alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.TestServer
@@ -53,85 +54,81 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns transaction in expected format" do
-      block = insert(:block)
-      input_1 = insert(:txoutput)
-      input_2 = insert(:txoutput)
-      output_1 = insert(:txoutput)
-      output_2 = insert(:txoutput)
-      transaction = insert(:transaction, block: block, inputs: [input_1, input_2], outputs: [output_1, output_2])
+      deposit_1 = build(:txoutput) |> with_deposit()
+      deposit_2 = build(:txoutput) |> with_deposit()
 
-      response = WatcherHelper.success?("transaction.get", %{"id" => Encoding.to_hex(transaction.txhash)})
+      input_1 = build(:txoutput)
+      input_2 = build(:txoutput)
 
-      assert response == %{
-               "block" => %{
-                 "blknum" => block.blknum,
-                 "eth_height" => block.eth_height,
-                 "hash" => Encoding.to_hex(block.hash),
-                 "timestamp" => block.timestamp,
-                 "tx_count" => 1
-               },
-               "inputs" => [
-                 %{
-                   "amount" => input_2.amount,
-                   "blknum" => input_2.blknum,
-                   "currency" => Encoding.to_hex(input_2.currency),
-                   "oindex" => input_2.oindex,
-                   "owner" => Encoding.to_hex(input_2.owner),
-                   "txindex" => input_2.txindex,
-                   "otype" => input_2.otype,
-                   "utxo_pos" =>
-                     Utxo.Position.encode({:utxo_position, input_2.blknum, input_2.txindex, input_2.oindex}),
-                   "creating_txhash" => Encoding.to_hex(input_2.creating_txhash),
-                   "spending_txhash" => Encoding.to_hex(transaction.txhash)
-                 },
-                 %{
-                   "amount" => input_1.amount,
-                   "blknum" => input_1.blknum,
-                   "currency" => Encoding.to_hex(input_1.currency),
-                   "oindex" => input_1.oindex,
-                   "owner" => Encoding.to_hex(input_1.owner),
-                   "txindex" => input_1.txindex,
-                   "otype" => input_1.otype,
-                   "utxo_pos" =>
-                     Utxo.Position.encode({:utxo_position, input_1.blknum, input_1.txindex, input_1.oindex}),
-                   "creating_txhash" => Encoding.to_hex(input_1.creating_txhash),
-                   "spending_txhash" => Encoding.to_hex(transaction.txhash)
-                 }
-               ],
-               "outputs" => [
-                 %{
-                   "amount" => output_2.amount,
-                   "blknum" => output_2.blknum,
-                   "currency" => Encoding.to_hex(output_2.currency),
-                   "oindex" => output_2.oindex,
-                   "owner" => Encoding.to_hex(output_2.owner),
-                   "txindex" => output_2.txindex,
-                   "otype" => output_2.otype,
-                   "utxo_pos" =>
-                     Utxo.Position.encode({:utxo_position, output_2.blknum, output_2.txindex, output_2.oindex}),
-                   "creating_txhash" => Encoding.to_hex(transaction.txhash),
-                   "spending_txhash" => nil
-                 },
-                 %{
-                   "amount" => output_1.amount,
-                   "blknum" => output_1.blknum,
-                   "currency" => Encoding.to_hex(output_1.currency),
-                   "oindex" => output_1.oindex,
-                   "owner" => Encoding.to_hex(output_1.owner),
-                   "txindex" => output_1.txindex,
-                   "otype" => output_1.otype,
-                   "utxo_pos" =>
-                     Utxo.Position.encode({:utxo_position, output_1.blknum, output_1.txindex, output_1.oindex}),
-                   "creating_txhash" => Encoding.to_hex(transaction.txhash),
-                   "spending_txhash" => nil
-                 }
-               ],
-               "txhash" => Encoding.to_hex(transaction.txhash),
-               "txbytes" => Encoding.to_hex(transaction.txbytes),
-               "txindex" => transaction.txindex,
-               "txtype" => transaction.txtype,
-               "metadata" => Encoding.to_hex(transaction.metadata)
-             }
+      output_1 = build(:txoutput)
+      output_2 = build(:txoutput)
+
+      creating_transaction =
+        insert(:transaction)
+        |> with_inputs([deposit_1, deposit_2])
+        |> with_outputs([input_1, input_2])
+
+      spending_transaction =
+        insert(:transaction)
+        |> with_inputs(creating_transaction.outputs)
+        |> with_outputs([output_1, output_2])
+
+      expected_response = %{
+        "block" => %{
+          "blknum" => spending_transaction.block.blknum,
+          "eth_height" => spending_transaction.block.eth_height,
+          "hash" => Encoding.to_hex(spending_transaction.block.hash),
+          "timestamp" => spending_transaction.block.timestamp,
+          "tx_count" => spending_transaction.block.tx_count,
+          "inserted_at" => Response.serialize(spending_transaction.block.inserted_at).data,
+          "updated_at" => Response.serialize(spending_transaction.block.updated_at).data
+        },
+        "inputs" =>
+          Enum.map(spending_transaction.inputs, fn input ->
+            %{
+              "amount" => input.amount,
+              "blknum" => input.blknum,
+              "currency" => Encoding.to_hex(input.currency),
+              "oindex" => input.oindex,
+              "owner" => Encoding.to_hex(input.owner),
+              "txindex" => input.txindex,
+              "otype" => input.otype,
+              "utxo_pos" => Utxo.Position.encode({:utxo_position, input.blknum, input.txindex, input.oindex}),
+              "creating_txhash" => to_hex_or_nil(input.creating_txhash),
+              "spending_txhash" => to_hex_or_nil(input.spending_txhash),
+              "inserted_at" => Response.serialize(input.inserted_at).data,
+              "updated_at" => Response.serialize(input.updated_at).data
+            }
+          end),
+        "outputs" =>
+          Enum.map(spending_transaction.outputs, fn output ->
+            %{
+              "amount" => output.amount,
+              "blknum" => output.blknum,
+              "currency" => Encoding.to_hex(output.currency),
+              "oindex" => output.oindex,
+              "owner" => Encoding.to_hex(output.owner),
+              "txindex" => output.txindex,
+              "otype" => output.otype,
+              "utxo_pos" => Utxo.Position.encode({:utxo_position, output.blknum, output.txindex, output.oindex}),
+              "creating_txhash" => to_hex_or_nil(output.creating_txhash),
+              "spending_txhash" => to_hex_or_nil(output.spending_txhash),
+              "inserted_at" => Response.serialize(output.inserted_at).data,
+              "updated_at" => Response.serialize(output.updated_at).data
+            }
+          end),
+        "txhash" => Encoding.to_hex(spending_transaction.txhash),
+        "txbytes" => Encoding.to_hex(spending_transaction.txbytes),
+        "txindex" => spending_transaction.txindex,
+        "txtype" => spending_transaction.txtype,
+        "metadata" => Encoding.to_hex(spending_transaction.metadata),
+        "inserted_at" => Response.serialize(spending_transaction.inserted_at).data,
+        "updated_at" => Response.serialize(spending_transaction.updated_at).data
+      }
+
+      response = WatcherHelper.success?("transaction.get", %{"id" => Encoding.to_hex(spending_transaction.txhash)})
+
+      assert response == expected_response
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -1445,5 +1442,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   defp from_hex!(hex) do
     {:ok, result} = Encoding.from_hex(hex)
     result
+  end
+
+  defp to_hex_or_nil(hash) do
+    case hash do
+      nil -> nil
+      hash -> Encoding.to_hex(hash)
+    end
   end
 end

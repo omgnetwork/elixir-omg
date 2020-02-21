@@ -52,6 +52,11 @@ defmodule OMG.Utils.HttpRPC.Response do
   @spec sanitize(any()) :: any()
   def sanitize(response)
 
+  # serialize all DateTimes to ISO8601 formatted strings
+  def sanitize(%DateTime{} = datetime) do
+    datetime |> DateTime.truncate(:second) |> DateTime.to_iso8601()
+  end
+
   def sanitize(list) when is_list(list) do
     list |> Enum.map(&sanitize/1)
   end

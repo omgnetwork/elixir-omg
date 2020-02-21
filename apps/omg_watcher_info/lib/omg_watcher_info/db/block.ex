@@ -43,6 +43,8 @@ defmodule OMG.WatcherInfo.DB.Block do
     field(:tx_count, :integer, virtual: true, default: nil)
 
     has_many(:transactions, DB.Transaction, foreign_key: :blknum)
+
+    timestamps(type: :utc_datetime_usec)
   end
 
   defp changeset(block, params) do
