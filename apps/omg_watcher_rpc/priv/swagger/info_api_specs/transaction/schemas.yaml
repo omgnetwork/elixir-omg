@@ -27,9 +27,15 @@ TransactionOutputSchema:
       format: int256
     creating_txhash:
       type: string
-       
+
     spending_txhash:
       type: string
+
+    inserted_at:
+      type: string
+    updated_at:
+      type: string
+  
        
 
 TransactionSchema:
@@ -49,7 +55,12 @@ TransactionSchema:
        
     txbytes:
       type: string
-       
+
+    inserted_at:
+      type: string
+    updated_at:
+      type: string
+   
     block:
       $ref: '../block/schemas.yaml#/BlockSchema'
     inputs:

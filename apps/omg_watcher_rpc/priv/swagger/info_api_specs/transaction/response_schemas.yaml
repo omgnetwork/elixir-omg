@@ -26,11 +26,15 @@ GetAllTransactionsResponseSchema:
           hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
           eth_height: 97424
           blknum: 68290000
+          inserted_at: '2020-02-10T12:07:32Z'
+          updated_at: '2020-02-15T04:07:57Z'
         txindex: 0
         txtype: 1
         txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
         metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
         txbytes: '0x5df13a6bee20000...'
+        inserted_at: '2020-02-10T12:07:32Z'
+        updated_at: '2020-02-15T04:07:57Z'
         inputs:
         -
           blknum: 1000
@@ -43,6 +47,8 @@ GetAllTransactionsResponseSchema:
           creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
           spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
           amount: 20000000
+          inserted_at: '2020-02-10T12:07:32Z'
+          updated_at: '2020-02-15T04:07:57Z'
         outputs:
         -
           blknum: 68290000
@@ -55,6 +61,8 @@ GetAllTransactionsResponseSchema:
           amount: 15000000
           creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
           spending_txhash: null
+          inserted_at: '2020-02-10T12:07:32Z'
+          updated_at: '2020-02-15T04:07:57Z'
         -
           blknum: 68290000
           txindex: 5113
@@ -66,6 +74,8 @@ GetAllTransactionsResponseSchema:
           amount: 5000000
           creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
           spending_txhash: null
+          inserted_at: '2020-02-10T12:07:32Z'
+          updated_at: '2020-02-15T04:07:57Z'
       data_paging:
         page: 1
         limit: 200
@@ -222,11 +232,15 @@ GetTransactionResponseSchema:
         txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
         metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
         txbytes: '0x5df13a6bee20000...'
+        inserted_at: '2020-02-10T12:07:32Z'
+        updated_at: '2020-02-15T04:07:57Z'
         block:
           timestamp: 1540365586
           hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
           eth_height: 97424
           blknum: 68290000
+          inserted_at: '2020-02-10T12:07:32Z'
+          updated_at: '2020-02-15T04:07:57Z'
         inputs:
         -
           blknum: 1000
@@ -239,6 +253,8 @@ GetTransactionResponseSchema:
           amount: 10
           creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
           spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+          inserted_at: '2020-02-10T12:07:32Z'
+          updated_at: '2020-02-15T04:07:57Z'
         outputs:
         -
           blknum: 68290000
@@ -251,6 +267,8 @@ GetTransactionResponseSchema:
           amount: 2
           creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
           spending_txhash: null
+          inserted_at: '2020-02-10T12:07:32Z'
+          updated_at: '2020-02-15T04:07:57Z'
         -
           blknum: 68290000
           txindex: 5113
@@ -262,3 +280,5 @@ GetTransactionResponseSchema:
           amount: 7
           creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
           spending_txhash: null
+          inserted_at: '2020-02-10T12:07:32Z'
+          updated_at: '2020-02-15T04:07:57Z'

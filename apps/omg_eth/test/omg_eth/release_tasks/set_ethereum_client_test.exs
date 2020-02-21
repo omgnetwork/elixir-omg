@@ -38,8 +38,9 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
     url = Application.get_env(:ethereumex, :url)
     eth_node = Application.get_env(@app, :eth_node)
     :ok = SetEthereumClient.init([])
-    ^url = Application.get_env(:ethereumex, :url)
-    ^eth_node = Application.get_env(@app, :eth_node)
+
+    assert Application.get_env(:ethereumex, :url) == url
+    assert Application.get_env(@app, :eth_node) == eth_node
   end
 
   test "if values are used when env vars set" do

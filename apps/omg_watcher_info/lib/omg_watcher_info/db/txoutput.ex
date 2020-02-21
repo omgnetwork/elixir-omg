@@ -60,11 +60,11 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     many_to_many(
       :ethevents,
       DB.EthEvent,
-      join_through: "ethevents_txoutputs",
+      join_through: DB.EthEventTxOutput,
       join_keys: [child_chain_utxohash: :child_chain_utxohash, root_chain_txhash_event: :root_chain_txhash_event]
     )
 
-    timestamps(type: :utc_datetime)
+    timestamps(type: :utc_datetime_usec)
   end
 
   # preload ethevents in a single query as there will not be a large number of them
@@ -127,12 +127,20 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   @spec spend_utxos([map()]) :: :ok
   def spend_utxos(db_inputs) do
+    utc_now = DateTime.utc_now()
+
     db_inputs
     |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} ->
       _ =
         DB.TxOutput
         |> where(blknum: ^blknum, txindex: ^txindex, oindex: ^oindex)
-        |> Repo.update_all(set: [spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash])
+        |> Repo.update_all(
+          set: [
+            spending_tx_oindex: spending_oindex,
+            spending_txhash: spending_txhash,
+            updated_at: utc_now
+          ]
+        )
     end)
   end
 

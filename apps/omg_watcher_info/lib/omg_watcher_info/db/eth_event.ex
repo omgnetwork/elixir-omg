@@ -41,11 +41,11 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     many_to_many(
       :txoutputs,
       DB.TxOutput,
-      join_through: "ethevents_txoutputs",
+      join_through: DB.EthEventTxOutput,
       join_keys: [root_chain_txhash_event: :root_chain_txhash_event, child_chain_utxohash: :child_chain_utxohash]
     )
 
-    timestamps(type: :utc_datetime)
+    timestamps(type: :utc_datetime_usec)
   end
 
   @doc """

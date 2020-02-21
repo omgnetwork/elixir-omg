@@ -18,3 +18,6 @@ AccountUtxoResponseSchema:
         owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
         currency: '0x0000000000000000000000000000000000000000'
         amount: 10
+        inserted_at: '2020-02-10T12:07:32Z'
+        updated_at: '2020-02-15T04:07:57Z'
+        
