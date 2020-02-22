@@ -6,7 +6,6 @@ defmodule DrockerBuild do
       exexec_opts_for_mix = [
         stdout: :stream,
         cd: "/opt/Omise/elixir-omg/",
-        env: %{"TERM" => "xterm-256color"},
         # group 0 will create a new process group, equal to the OS pid of that process
         group: 0,
         kill_group: true
