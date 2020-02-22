@@ -3,20 +3,22 @@ require Logger
 alias Itest.Transactions.Currency
 alias Itest.Transactions.Encoding
 import Itest.Poller, only: [wait_on_receipt_confirmed: 1]
-
 Application.ensure_all_started(:ethereumex)
-data = ABI.encode("minExitPeriod()", [])
-{:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+###
+Logger.info("Connecting to the Drocker node and starting application.")
+cookie = :drocker
+Node.start(:cabbage)
+Node.set_cookie(cookie)
 
-miliseconds =
-  result
-  |> Encoding.to_binary()
-  |> ABI.TypeDecoder.decode([{:uint, 160}])
-  |> hd()
-  # to milliseconds
-  |> Kernel.*(1_000)
-  # add three minutes for the rest of the test
-  |> Kernel.+(180_000 * 4)
+:pong =
+  ('drocker@' ++ :net_adm.localhost())
+  |> :erlang.list_to_atom()
+  |> :net_adm.ping()
+
+remote_node = :erlang.list_to_atom('drocker@' ++ :net_adm.localhost())
+Logger.info("Connection OK. Calling operator to execute start.")
+GenServer.call({Operator, remote_node}, :start, 120_000)
+###
 
 ### parse contract addresses:
 local_umbrella_path = Path.join([File.cwd!(), "../../../../", "localchain_contract_addresses.env"])
@@ -95,4 +97,5 @@ else
 end
 
 ### add exit queue
-ExUnit.start(trace: "--trace" in System.argv(), timeout: miliseconds)
+# 30 mins
+ExUnit.start(trace: "--trace" in System.argv(), timeout: 1_800_000)

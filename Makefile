@@ -256,7 +256,7 @@ start-pre-lumphini-watcher:
 # Docker
 #
 docker-child_chain-prod:
-	docker run --rm -it \
+	docker run --rm \
 		-v $(PWD):/app \
 		-u root \
 		--entrypoint /bin/sh \
@@ -264,7 +264,7 @@ docker-child_chain-prod:
 		-c "cd /app && make build-child_chain-prod"
 
 docker-watcher-prod:
-	docker run --rm -it \
+	docker run --rm \
 		-v $(PWD):/app \
 		-u root \
 		--entrypoint /bin/sh \
@@ -272,7 +272,7 @@ docker-watcher-prod:
 		-c "cd /app && make build-watcher-prod"
 
 docker-watcher_info-prod:
-	docker run --rm -it \
+	docker run --rm \
 		-v $(PWD):/app \
 		-u root \
 		--entrypoint /bin/sh \

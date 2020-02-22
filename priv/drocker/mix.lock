@@ -1,0 +1,4 @@
+%{
+  "erlexec": {:hex, :erlexec, "1.10.9", "3cbb3476f942bfb8b68b85721c21c1835061cf6dd35f5285c2362e85b100ddc7", [:rebar3], [], "hexpm", "271e5b5f2d91cdb9887efe74d89026c199bfc69f074cade0d08dab60993fa14e"},
+  "exexec": {:git, "https://github.com/pthomalla/exexec.git", "213658a4ccb96d7a84ffddc642b2596c86acc5d0", [branch: "add_streams"]},
+}
