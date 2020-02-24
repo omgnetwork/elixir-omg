@@ -37,7 +37,7 @@ if [ -n "$CIRCLE_TAG" ]; then
     _ver_in_file="$(head -n 1 ./VERSION | sed 's/^[ \t]*v//;s/[ \t]*$//')"
 
     if [ "$_ver" != "$_ver_in_file" ]; then
-      echo "The version tag differs from the value in VERSION file. Failing."
+      echo_warn "The git tag \"${CIRCLE_TAG}\" expects the VERSION to be \"${_ver}\". Got \"${_ver_in_file}\"."
       exit 1
     fi
 
