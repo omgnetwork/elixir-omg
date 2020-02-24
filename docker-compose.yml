@@ -70,7 +70,7 @@ services:
       - ETHEREUM_RPC_URL=http://geth:8545
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
-      - APP_ENV=local_docker_development
+      - APP_ENV=jacob_docker_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
@@ -106,7 +106,7 @@ services:
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - PORT=7434
-      - APP_ENV=local_docker_development
+      - APP_ENV=jacob_docker_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
@@ -144,7 +144,7 @@ services:
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - PORT=7534
-      - APP_ENV=local_docker_development
+      - APP_ENV=jacob_docker_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
