@@ -40,8 +40,6 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration do
     buffer_ms
   end
 
-  defp get_env(key), do: System.get_env(key)
-
   defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
   defp validate_integer(_, default), do: default
 end
