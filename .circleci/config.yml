@@ -167,6 +167,25 @@ jobs:
       - run: make install-hex-rebar
       - run: mix do compile --warnings-as-errors --force, credo, format --check-formatted --dry-run
 
+  lint_version:
+    executor: builder
+    steps:
+      - setup_elixir-omg_workspace
+      - run:
+          command: |
+            if [ -n "$CIRCLE_TAG" ]; then
+              _tagged_version="${CIRCLE_TAG#*v}"
+              _filed_version="$(head -n 1 ./VERSION | sed 's/^[ \t]*//;s/[ \t]*$//')"
+
+              if [ "$_tagged_version" != "$_filed_version" ]; then
+                echo "The git tag \"${CIRCLE_TAG}\" expects the VERSION to be \"${_tagged_version}\". Got \"${_filed_version}\"."
+                exit 1
+              fi
+            else
+              echo "This build is not version-tagged. Skipping version lint."
+              exit 0
+            fi
+
   sobelow:
     executor: builder_pg
     environment:
@@ -674,6 +693,8 @@ workflows:
           requires: [build]
       - lint:
           requires: [build]
+      - lint_version:
+          requires: [build]
       - sobelow:
           requires: [build]
       - dialyzer:
@@ -682,7 +703,7 @@ workflows:
           requires: [build]
       - property_tests:
           requires: [build]
-      # Publish in case of master branch.
+      # Publish in case of master branch, version branches and version tags.
       - publish_child_chain:
           requires:
             [
@@ -694,6 +715,7 @@ workflows:
               property_tests,
               dialyzer,
               lint,
+              lint_version,
             ]
           filters:
             branches:
@@ -716,6 +738,7 @@ workflows:
               property_tests,
               dialyzer,
               lint,
+              lint_version,
             ]
           filters:
             branches:
@@ -738,6 +761,7 @@ workflows:
               property_tests,
               dialyzer,
               lint,
+              lint_version,
             ]
           filters:
             branches:
