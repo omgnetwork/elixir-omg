@@ -40,10 +40,10 @@ defmodule InvalidStandardExitsTests do
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end
 
-  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
-          %{amount: amount},
-          %{alice_account: alice_account} = state do
-    initial_balance = Itest.Poller.eth_get_balance(alice_account)
+  defgiven ~r/^Alice has "(?<amount>[^"]+)" ETH on the child chain$/,
+           %{amount: amount},
+           %{alice_account: alice_account} = state do
+    initial_balance_on_root_chain = Itest.Poller.eth_get_balance(alice_account)
 
     {:ok, receipt_hash} =
       amount
@@ -55,18 +55,19 @@ defmodule InvalidStandardExitsTests do
     new_state =
       state
       |> Map.put_new(:alice_gas, gas_used)
-      |> Map.put_new(:alice_initial_balance, initial_balance)
+      |> Map.put_new(:alice_initial_balance_on_root_chain, initial_balance_on_root_chain)
 
-    {:ok, new_state}
-  end
-
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
-          %{amount: amount},
-          %{alice_account: alice_account} = state do
     expecting_amount = Currency.to_wei(amount)
     %{"amount" => balance} = Client.get_balance(alice_account, expecting_amount)
     assert expecting_amount == balance
 
+    {:ok, new_state}
+  end
+
+  defthen ~r/^The child chain is secure$/,
+          _,
+          %{} = state do
+    assert all?([])
     {:ok, state}
   end
 
@@ -90,13 +91,6 @@ defmodule InvalidStandardExitsTests do
     {:ok, Map.put_new(state, :alice_recently_spent_utxo_pos, alice_recently_spent_utxo_pos)}
   end
 
-  defthen ~r/^The child chain is secure$/,
-          _,
-          %{} = state do
-    assert all?([])
-    {:ok, state}
-  end
-
   defwhen ~r/^Alice starts a standard exit on the child chain from her recently spent input$/,
           _,
           %{alice_account: alice_account, alice_recently_spent_utxo_pos: alice_recently_spent_utxo_pos} = state do
@@ -115,7 +109,7 @@ defmodule InvalidStandardExitsTests do
     {:ok, new_state}
   end
 
-  defwhen ~r/^Bob detects a "(?<event>[^"]+)" and challenges it$/,
+  defwhen ~r/^Bob detects a[n]? "(?<event>[^"]+)" and challenges it$/,
           %{event: event},
           %{bob_account: bob_account} = state do
     assert all?([event])
@@ -143,32 +137,18 @@ defmodule InvalidStandardExitsTests do
     {:ok, new_state}
   end
 
-  defthen ~r/^Alice should have no more than "(?<amount>[^"]+)" ETH on the child chain$/,
-          %{amount: amount},
-          %{alice_account: alice_account} = state do
-    expecting_amount = Currency.to_wei(amount)
-    # FIXME: can this be that sometimes get_balance returns an array, sometimes not. Workaround:
-    [%{"amount" => balance}] =
-      case Client.get_balance(alice_account) do
-        [%{"amount" => balance}] -> [%{"amount" => balance}]
-        %{"amount" => balance} -> [%{"amount" => balance}]
-      end
-
-    assert expecting_amount >= balance
-
-    {:ok, state}
-  end
-
   defthen ~r/^Alice should have "(?<difference>[^"]+)" ETH less on the blockchain$/,
           %{difference: difference},
           %{
-            alice_initial_balance: alice_initial_balance,
+            alice_initial_balance_on_root_chain: alice_initial_balance_on_root_chain,
             alice_account: alice_account,
             alice_gas: alice_gas,
             alice_bond: alice_bond
           } = state do
     alice_ethereum_balance = Itest.Poller.eth_get_balance(alice_account)
-    assert alice_ethereum_balance == alice_initial_balance - Currency.to_wei(difference) - alice_gas - alice_bond
+
+    assert alice_ethereum_balance ==
+             alice_initial_balance_on_root_chain - Currency.to_wei(difference) - alice_gas - alice_bond
 
     {:ok, state}
   end
