@@ -34,7 +34,7 @@ fi
 
 if [ -n "$CIRCLE_TAG" ]; then
     _ver="${CIRCLE_TAG#*v}"
-    _ver_in_file="$(head -n 1 ./VERSION | sed 's/^[ \t]*//;s/[ \t]*$//')"
+    _ver_in_file="$(head -n 1 ./VERSION | sed 's/^[ \t]*v//;s/[ \t]*$//')"
 
     if [ "$_ver" != "$_ver_in_file" ]; then
       echo "The version tag differs from the value in VERSION file. Failing."
