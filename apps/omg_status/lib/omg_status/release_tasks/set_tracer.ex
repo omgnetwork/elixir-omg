@@ -20,7 +20,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   @app :omg_status
 
   @impl Provider
-  def init(_args) do
+  def init(args) do
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(:omg_status, Tracer)
     config = Keyword.put(config, :disabled?, get_dd_disabled())
@@ -30,6 +30,9 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     # statix setup
     :ok = Application.put_env(:statix, :host, get_dd_hostname(Application.get_env(:statix, :host)), persistent: true)
     :ok = Application.put_env(:statix, :port, get_dd_port(Application.get_env(:statix, :port)), persistent: true)
+    release = Keyword.get(args, :release)
+    tags = ["application:#{release}", "app_env:#{get_app_env()}", "hostname:#{get_hostname()}"]
+    :ok = Application.put_env(:statix, :tags, tags, persistent: true)
     # spandex_datadog setup
 
     :ok =
@@ -44,6 +47,13 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
 
     :ok = Application.put_env(:spandex_datadog, :batch_size, get_batch_size(), persistent: true)
     :ok = Application.put_env(:spandex_datadog, :sync_threshold, get_sync_threshold(), persistent: true)
+  end
+
+  defp get_hostname() do
+    hostname = validate_hostname(get_env("HOSTNAME"))
+
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: HOSTNAME Value: #{inspect(hostname)}.")
+    hostname
   end
 
   defp get_dd_disabled() do
@@ -87,6 +97,9 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: BATCH_SIZE Value: #{inspect(batch_size)}.")
     batch_size
   end
+
+  defp validate_hostname(value) when is_binary(value), do: value
+  defp validate_hostname(_), do: exit("HOSTNAME is not set correctly.")
 
   def get_sync_threshold() do
     sync_threshold =
