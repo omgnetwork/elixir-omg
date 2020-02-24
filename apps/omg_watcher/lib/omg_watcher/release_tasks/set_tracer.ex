@@ -19,13 +19,15 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
   @app :omg_watcher
 
   @impl Provider
-  def init(_args) do
+  def init(args) do
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(@app, OMG.Watcher.Tracer)
     config = Keyword.put(config, :disabled?, get_dd_disabled())
     config = Keyword.put(config, :env, get_app_env())
 
-    :ok = Application.put_env(:statix, :tags, ["application:watcher", "app_env:#{get_app_env()}"], persistent: true)
+    release = Keyword.get(args, :release)
+    tags = ["application:#{release}", "app_env:#{get_app_env()}", "hostname:#{get_hostname()}"]
+    :ok = Application.put_env(:statix, :tags, tags, persistent: true)
 
     :ok = Application.put_env(@app, OMG.Watcher.Tracer, config, persistent: true)
   end
@@ -43,6 +45,13 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
     env
   end
 
+  defp get_hostname() do
+    hostname = validate_hostname(get_env("HOSTNAME"))
+
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: HOSTNAME Value: #{inspect(hostname)}.")
+    hostname
+  end
+
   defp get_env(key), do: System.get_env(key)
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
@@ -54,4 +63,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
 
   defp validate_app_env(value) when is_binary(value), do: value
   defp validate_app_env(nil), do: exit("APP_ENV must be set.")
+
+  defp validate_hostname(value) when is_binary(value), do: value
+  defp validate_hostname(_), do: exit("HOSTNAME is not set correctly.")
 end

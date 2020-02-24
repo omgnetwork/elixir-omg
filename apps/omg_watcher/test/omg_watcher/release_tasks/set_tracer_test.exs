@@ -31,6 +31,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("DD_DISABLED", "TRUE")
     :ok = System.put_env("APP_ENV", "YOLO")
+    :ok = System.put_env("HOSTNAME", "this is my tracer test 1")
     :ok = SetTracer.init([])
     configuration = Application.get_env(@app, Tracer)
     disabled_updated = configuration[:disabled?]
@@ -46,6 +47,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
 
   test "if default configuration is used when there's no environment variables" do
     :ok = System.delete_env("DD_DISABLED")
+    :ok = System.put_env("HOSTNAME", "this is my tracer test2")
     :ok = System.put_env("APP_ENV", "YOLO")
     :ok = SetTracer.init([])
     configuration = Application.get_env(@app, Tracer)
@@ -56,6 +58,20 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
   test "if exit is thrown when faulty configuration is used" do
     :ok = System.put_env("DD_DISABLED", "TRUEeee")
     catch_exit(SetTracer.init([]))
+    :ok = System.delete_env("DD_DISABLED")
+  end
+
+  test "if environment variables get applied in the statix tags configuration" do
+    :ok = System.put_env("HOSTNAME", "this is my tracer test")
+    :ok = System.put_env("APP_ENV", "YOLO")
+    :ok = SetTracer.init([])
+    assert Enum.member?(Application.get_env(:statix, :tags), "hostname:this is my tracer test")
+  end
+
+  test "if exit is thrown when faulty configuration for hostname is used" do
+    :ok = System.put_env("DD_DISABLED", "TRUE")
+    :ok = System.put_env("APP_ENV", "YOLO")
+    assert catch_exit(SetTracer.init([])) == "HOSTNAME is not set correctly."
     :ok = System.delete_env("DD_DISABLED")
   end
 end

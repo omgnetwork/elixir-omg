@@ -60,7 +60,7 @@ release :watcher do
        [release: :watcher, current_version: current_version(:omg_child_chain) <> "+" <> sha]},
       {OMG.Watcher.ReleaseTasks.SetChildChain, []},
       {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, []},
-      {OMG.Watcher.ReleaseTasks.SetTracer, []},
+      {OMG.Watcher.ReleaseTasks.SetTracer, [release: :watcher]},
       {OMG.Watcher.ReleaseTasks.SetApplication,
        [release: :watcher, current_version: current_version(:omg_child_chain) <> "+" <> sha]}
     ]
@@ -110,7 +110,7 @@ release :watcher_info do
       {OMG.Watcher.ReleaseTasks.SetChildChain, []},
       {OMG.WatcherInfo.ReleaseTasks.SetChildChain, []},
       {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, []},
-      {OMG.Watcher.ReleaseTasks.SetTracer, []},
+      {OMG.Watcher.ReleaseTasks.SetTracer, [release: :watcher_info]},
       {OMG.Watcher.ReleaseTasks.SetApplication,
        [release: :watcher_info, current_version: current_version(:omg_child_chain) <> "+" <> sha]},
       {OMG.WatcherInfo.ReleaseTasks.SetDB, []},
