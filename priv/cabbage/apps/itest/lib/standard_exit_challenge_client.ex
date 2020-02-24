@@ -22,7 +22,7 @@ defmodule Itest.StandardExitChallengeClient do
 
   @gas 540_000
 
-  def challenge_standard_exit(address, utxo_pos) do
+  def challenge_standard_exit(utxo_pos, address) do
     _ = Logger.info("Address #{address} challenging standard exit for UTXO at #{utxo_pos}")
 
     %__MODULE__{address: address, utxo_pos: utxo_pos}

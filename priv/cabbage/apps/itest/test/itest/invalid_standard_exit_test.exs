@@ -70,22 +70,6 @@ defmodule InvalidStandardExitsTests do
     {:ok, state}
   end
 
-  defthen ~r/^Alice should have no more than "(?<amount>[^"]+)" ETH on the child chain$/,
-          %{amount: amount},
-          %{alice_account: alice_account} = state do
-    expecting_amount = Currency.to_wei(amount)
-    # FIXME: can this be that sometimes get_balance returns an array, sometimes not. Workaround:
-    [%{"amount" => balance}] =
-      case Client.get_balance(alice_account) do
-        [%{"amount" => balance}] -> [%{"amount" => balance}]
-        %{"amount" => balance} -> [%{"amount" => balance}]
-      end
-
-    assert expecting_amount >= balance
-
-    {:ok, state}
-  end
-
   defwhen ~r/^Alice sends Bob "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account} = state do
@@ -106,26 +90,11 @@ defmodule InvalidStandardExitsTests do
     {:ok, Map.put_new(state, :alice_recently_spent_utxo_pos, alice_recently_spent_utxo_pos)}
   end
 
-  # FIXME move
-  defp get_particular_utxo(address, utxo_pos) do
-    payload = %WatcherInfoAPI.Model.AddressBodySchema1{address: address}
-
-    response =
-      pull_api_until_successful(
-        WatcherInfoAPI.Api.Account,
-        :account_get_utxos,
-        WatcherInfoAPI.Connection.new(),
-        payload
-      )
-
-    response |> Enum.find(&(&1["utxo_pos"] == utxo_pos)) |> Utxo.to_struct()
-  end
-
-  defwhen ~r/^Some state of the chain$/,
+  defthen ~r/^The child chain is secure$/,
           _,
-          state do
-    status = pull_api_until_successful(Status, :status_get, WatcherSecurityCriticalAPI.Connection.new())
-    {:ok, Map.put(state, :prior_byzantine_events, status["byzantine_events"])}
+          %{} = state do
+    assert all?([])
+    {:ok, state}
   end
 
   defwhen ~r/^Alice starts a standard exit on the child chain from her recently spent input$/,
@@ -146,39 +115,48 @@ defmodule InvalidStandardExitsTests do
     {:ok, new_state}
   end
 
-  # FIXME: change to "challenges it"
-  defwhen ~r/^Bob detects the new "(?<event>[^"]+)" and challenges all$/,
+  defwhen ~r/^Bob detects a "(?<event>[^"]+)" and challenges it$/,
           %{event: event},
-          %{bob_account: bob_account, prior_byzantine_events: prior_byzantine_events} = state do
-    prior_byzantine_events_names = Enum.map(prior_byzantine_events, & &1["event"])
-    assert all?([event | prior_byzantine_events_names])
+          %{bob_account: bob_account} = state do
+    assert all?([event])
 
     pull_api_until_successful(Status, :status_get, WatcherSecurityCriticalAPI.Connection.new())
     |> Map.fetch!("byzantine_events")
-    |> Enum.filter(&(&1["event"] == "invalid_exit"))
-    |> Enum.map(& &1["details"]["utxo_pos"])
-    |> Enum.map(&StandardExitChallengeClient.challenge_standard_exit(bob_account, &1))
+    |> hd
+    |> get_in(["details", "utxo_pos"])
+    |> StandardExitChallengeClient.challenge_standard_exit(bob_account)
 
-    {:ok, state}
-  end
-
-  defthen ~r/^The child chain is secure$/,
-          _,
-          %{} = state do
-    assert all?([])
     {:ok, state}
   end
 
   defthen ~r/^Alice tries to process exits$/, _, %{alice_account: alice_account} = state do
-    # need n_exits: 20, because we're trying to prove that Alice's processing of the challenged exit fails
+    # need n_exits: <many>, because we're trying to prove that Alice's processing of the challenged exit fails
+    # otherwise, you're risking not processing "enough" exits and it will seem like Alice's exit got challenged, while
+    # it is not necessarily true
     se =
       %StandardExitClient{address: alice_account, standard_exit_id: 0}
-      |> StandardExitClient.wait_and_process_standard_exit(n_exits: 20)
+      |> StandardExitClient.wait_and_process_standard_exit(n_exits: 2000)
 
     gas_used = Client.get_gas_used(se.process_exit_receipt_hash)
     new_state = Map.update!(state, :alice_gas, fn current_gas -> current_gas + gas_used end)
 
     {:ok, new_state}
+  end
+
+  defthen ~r/^Alice should have no more than "(?<amount>[^"]+)" ETH on the child chain$/,
+          %{amount: amount},
+          %{alice_account: alice_account} = state do
+    expecting_amount = Currency.to_wei(amount)
+    # FIXME: can this be that sometimes get_balance returns an array, sometimes not. Workaround:
+    [%{"amount" => balance}] =
+      case Client.get_balance(alice_account) do
+        [%{"amount" => balance}] -> [%{"amount" => balance}]
+        %{"amount" => balance} -> [%{"amount" => balance}]
+      end
+
+    assert expecting_amount >= balance
+
+    {:ok, state}
   end
 
   defthen ~r/^Alice should have "(?<difference>[^"]+)" ETH less on the blockchain$/,
@@ -193,5 +171,19 @@ defmodule InvalidStandardExitsTests do
     assert alice_ethereum_balance == alice_initial_balance - Currency.to_wei(difference) - alice_gas - alice_bond
 
     {:ok, state}
+  end
+
+  defp get_particular_utxo(address, utxo_pos) do
+    payload = %WatcherInfoAPI.Model.AddressBodySchema1{address: address}
+
+    response =
+      pull_api_until_successful(
+        WatcherInfoAPI.Api.Account,
+        :account_get_utxos,
+        WatcherInfoAPI.Connection.new(),
+        payload
+      )
+
+    response |> Enum.find(&(&1["utxo_pos"] == utxo_pos)) |> Utxo.to_struct()
   end
 end

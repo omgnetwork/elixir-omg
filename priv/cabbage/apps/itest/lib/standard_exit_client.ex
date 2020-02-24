@@ -77,7 +77,7 @@ defmodule Itest.StandardExitClient do
     se
     |> get_exit_game_contract_address()
     |> wait_for_exit_period()
-    |> process_exit(opts[:n_exits])
+    |> process_exit(Keyword.get(opts, :n_exits, 1))
     |> calculate_total_gas_used()
   end
 
@@ -235,14 +235,12 @@ defmodule Itest.StandardExitClient do
       |> hd()
 
     # double check correctness, our exit ID must be the first one in the priority queue
-    # FIXME: think how to have this sanity check
-    # ^standard_exit_id = next_exit_id &&& (1 <<< 160) - 1
+    ^standard_exit_id = next_exit_id &&& (1 <<< 160) - 1
 
     %{se | standard_exit_id: standard_exit_id}
   end
 
-  defp process_exit(%__MODULE__{address: address, standard_exit_id: standard_exit_id} = se, n_exits \\ nil) do
-    n_exits = n_exits || 1
+  defp process_exit(%__MODULE__{address: address, standard_exit_id: standard_exit_id} = se, n_exits) do
     _ = Logger.info("Process exit #{__MODULE__}")
 
     data =
