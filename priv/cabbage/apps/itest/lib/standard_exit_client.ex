@@ -65,13 +65,19 @@ defmodule Itest.StandardExitClient do
     |> wait_and_process_standard_exit()
   end
 
-  def wait_and_process_standard_exit(%__MODULE__{address: address} = se) do
+  @doc """
+  Waits and processes standard exits
+
+  Options:
+    - :n_exits - provide how many exits should `processExits` attempt to process in the contract, defaults to 1
+  """
+  def wait_and_process_standard_exit(%__MODULE__{address: address} = se, opts \\ []) do
     _ = Logger.info("Waiting and processing a standard exit by #{address}")
 
     se
     |> get_exit_game_contract_address()
     |> wait_for_exit_period()
-    |> process_exit()
+    |> process_exit(opts[:n_exits])
     |> calculate_total_gas_used()
   end
 
@@ -235,13 +241,14 @@ defmodule Itest.StandardExitClient do
     %{se | standard_exit_id: standard_exit_id}
   end
 
-  defp process_exit(%__MODULE__{address: address, standard_exit_id: standard_exit_id} = se) do
+  defp process_exit(%__MODULE__{address: address, standard_exit_id: standard_exit_id} = se, n_exits \\ nil) do
+    n_exits = n_exits || 1
     _ = Logger.info("Process exit #{__MODULE__}")
 
     data =
       ABI.encode(
         "processExits(uint256,address,uint160,uint256)",
-        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), standard_exit_id, 1]
+        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), standard_exit_id, n_exits]
       )
 
     txmap = %{

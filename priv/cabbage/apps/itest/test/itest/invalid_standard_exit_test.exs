@@ -170,9 +170,10 @@ defmodule InvalidStandardExitsTests do
   end
 
   defthen ~r/^Alice tries to process exits$/, _, %{alice_account: alice_account} = state do
+    # need n_exits: 20, because we're trying to prove that Alice's processing of the challenged exit fails
     se =
       %StandardExitClient{address: alice_account, standard_exit_id: 0}
-      |> StandardExitClient.wait_and_process_standard_exit()
+      |> StandardExitClient.wait_and_process_standard_exit(n_exits: 20)
 
     gas_used = Client.get_gas_used(se.process_exit_receipt_hash)
     new_state = Map.update!(state, :alice_gas, fn current_gas -> current_gas + gas_used end)
