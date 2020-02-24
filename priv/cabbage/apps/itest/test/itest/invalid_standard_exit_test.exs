@@ -13,18 +13,19 @@ defmodule InvalidStandardExitsTests do
 
   import Itest.Poller, only: [pull_api_until_successful: 3, pull_api_until_successful: 4]
 
-  @retry_count 60
+  @retry_count 20
   @sleep_retry_sec 5_000
 
   # FIXME: consider applying in other files
   defp all?(expected_events), do: all?(expected_events, @retry_count)
-  defp all?(_, 0), do: false
+
+  defp all?(expected, 0) do
+    _ = Logger.warn("Byzantine events stuck on: #{inspect(get_byzantine_events())}, expecting: #{inspect(expected)}")
+    false
+  end
 
   defp all?(expected_events, counter) do
-    byzantine_events =
-      pull_api_until_successful(Status, :status_get, WatcherSecurityCriticalAPI.Connection.new())
-      |> Map.fetch!("byzantine_events")
-      |> Enum.map(& &1["event"])
+    byzantine_events = get_byzantine_events()
 
     if Enum.sort(byzantine_events) == Enum.sort(expected_events) do
       true
@@ -32,6 +33,12 @@ defmodule InvalidStandardExitsTests do
       Process.sleep(@sleep_retry_sec)
       all?(expected_events, counter - 1)
     end
+  end
+
+  defp get_byzantine_events() do
+    pull_api_until_successful(Status, :status_get, WatcherSecurityCriticalAPI.Connection.new())
+    |> Map.fetch!("byzantine_events")
+    |> Enum.map(& &1["event"])
   end
 
   setup do
