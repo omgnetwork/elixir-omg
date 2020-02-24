@@ -27,8 +27,13 @@ defmodule OMG.WatcherRPC.Web.Plugs.SupportedWatcherModes do
   @spec call(Plug.Conn.t(), [atom()]) :: Plug.Conn.t()
   def call(conn, supported_modes) do
     case Application.get_env(@app, :api_mode) in supported_modes do
-      true -> conn
-      false -> Controller.Fallback.call(conn, {:error, :operation_not_found})
+      true ->
+        conn
+
+      false ->
+        conn
+        |> Controller.Fallback.call({:error, :operation_not_found})
+        |> Plug.Conn.halt()
     end
   end
 end
