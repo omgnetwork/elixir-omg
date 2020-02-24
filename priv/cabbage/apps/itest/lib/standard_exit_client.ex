@@ -212,7 +212,7 @@ defmodule Itest.StandardExitClient do
        ) do
     data =
       ABI.encode("getStandardExitId(bool,bytes,uint256)", [
-        true,
+        from_deposit?(exit_data.utxo_pos),
         Encoding.to_binary(exit_data.txbytes),
         exit_data.utxo_pos
       ])
@@ -309,5 +309,10 @@ defmodule Itest.StandardExitClient do
     |> Encoding.to_binary()
     |> ABI.TypeDecoder.decode([:bool])
     |> hd()
+  end
+
+  defp from_deposit?(encoded_utxo_pos) do
+    {:ok, %ExPlasma.Utxo{blknum: blknum, txindex: 0, oindex: 0}} = ExPlasma.Utxo.new(encoded_utxo_pos)
+    rem(blknum, 1000) != 0
   end
 end

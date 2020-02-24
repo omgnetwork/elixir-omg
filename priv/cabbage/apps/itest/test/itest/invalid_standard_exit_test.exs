@@ -42,31 +42,69 @@ defmodule InvalidStandardExitsTests do
   end
 
   setup do
-    [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
+    [{alice_account, alice_pkey}, {bob_account, _bob_pkey}, {carol_account, carol_pkey}] = Account.take_accounts(3)
 
-    %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
+    %{
+      alice_account: alice_account,
+      alice_pkey: alice_pkey,
+      bob_account: bob_account,
+      carol_account: carol_account,
+      carol_pkey: carol_pkey,
+      alice_gas: 0
+    }
   end
 
-  defgiven ~r/^Alice has "(?<amount>[^"]+)" ETH on the child chain$/,
+  defgiven ~r/^Alice deposited "(?<amount>[^"]+)" ETH on the child chain$/,
            %{amount: amount},
            %{alice_account: alice_account} = state do
     initial_balance_on_root_chain = Itest.Poller.eth_get_balance(alice_account)
 
-    {:ok, receipt_hash} =
-      amount
-      |> Currency.to_wei()
-      |> Client.deposit(alice_account, Itest.Account.vault(Currency.ether()))
+    expecting_amount = Currency.to_wei(amount)
 
+    {:ok, receipt_hash} = Client.deposit(expecting_amount, alice_account, Itest.Account.vault(Currency.ether()))
     gas_used = Client.get_gas_used(receipt_hash)
+
+    %{"amount" => ^expecting_amount} = Client.get_balance(alice_account, expecting_amount)
 
     new_state =
       state
-      |> Map.put_new(:alice_gas, gas_used)
+      |> Map.update!(:alice_gas, fn current_gas -> current_gas + gas_used end)
       |> Map.put_new(:alice_initial_balance_on_root_chain, initial_balance_on_root_chain)
 
+    {:ok, new_state}
+  end
+
+  defgiven ~r/^Alice received "(?<amount>[^"]+)" ETH on the child chain$/,
+           %{amount: amount},
+           %{alice_account: alice_account, carol_account: carol_account, carol_pkey: carol_pkey} = state do
+    initial_balance_on_root_chain = Itest.Poller.eth_get_balance(alice_account)
+
+    carol_amount =
+      amount
+      |> Currency.to_wei()
+      # a little extra to cover fees etc and let Alice get amount
+      |> Kernel.+(1_000_000_000_000_000_000)
+
+    {:ok, _receipt_hash} = Client.deposit(carol_amount, carol_account, Itest.Account.vault(Currency.ether()))
+
+    %{"amount" => ^carol_amount} = Client.get_balance(carol_account, carol_amount)
+
+    {:ok, [sign_hash, typed_data, _txbytes]} =
+      Client.create_transaction(
+        Currency.to_wei(amount),
+        carol_account,
+        alice_account
+      )
+
+    # pattern match just to check success, since this is what `Client` returns to us
+    # TODO: improve with an `{:ok, ...}` perhaps?
+    %Itest.ApiModel.SubmitTransactionResponse{blknum: _} =
+      Client.submit_transaction(typed_data, sign_hash, [carol_pkey])
+
     expecting_amount = Currency.to_wei(amount)
-    %{"amount" => balance} = Client.get_balance(alice_account, expecting_amount)
-    assert expecting_amount == balance
+    %{"amount" => ^expecting_amount} = Client.get_balance(alice_account, expecting_amount)
+
+    new_state = Map.put_new(state, :alice_initial_balance_on_root_chain, initial_balance_on_root_chain)
 
     {:ok, new_state}
   end
@@ -93,7 +131,8 @@ defmodule InvalidStandardExitsTests do
     alice_recently_spent_utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, oindex: oindex, txindex: txindex})
     alice_recently_spent_utxo_pos = get_particular_utxo(alice_account, alice_recently_spent_utxo_pos)
 
-    _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey])
+    %Itest.ApiModel.SubmitTransactionResponse{blknum: _} =
+      Client.submit_transaction(typed_data, sign_hash, [alice_pkey])
 
     {:ok, Map.put_new(state, :alice_recently_spent_utxo_pos, alice_recently_spent_utxo_pos)}
   end
