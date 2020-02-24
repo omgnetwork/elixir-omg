@@ -47,7 +47,7 @@ defmodule OMG.Fees do
   @typedoc """
   A map of currency to amounts used internally where amounts is a list of supported fee amounts.
   """
-  @type full_merged_fee_t() :: %{non_neg_integer() => merged_fee_t()}
+  @type typed_merged_fee_t() :: %{non_neg_integer() => merged_fee_t()}
   @type merged_fee_t() :: %{Crypto.address_t() => list(pos_integer())}
 
   @doc ~S"""

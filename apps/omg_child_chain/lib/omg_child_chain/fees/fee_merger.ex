@@ -13,7 +13,7 @@
 # limitations under the License.
 defmodule OMG.ChildChain.Fees.FeeMerger do
   @moduledoc """
-  Handles the parsing and formatting and merging of previous and current fees
+  Handles the parsing, formatting and merging of previous and current fees
   """
 
   @doc """

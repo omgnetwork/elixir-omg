@@ -62,7 +62,7 @@ defmodule OMG.ChildChain.FeeServer do
   Returns a list of amounts that are accepted as a fee for each token/type.
   These amounts include the currently supported fees plus the buffered ones.
   """
-  @spec accepted_fees() :: {:ok, Fees.full_merged_fee_t()}
+  @spec accepted_fees() :: {:ok, Fees.typed_merged_fee_t()}
   def accepted_fees() do
     {:ok, load_accepted_fees()}
   end
