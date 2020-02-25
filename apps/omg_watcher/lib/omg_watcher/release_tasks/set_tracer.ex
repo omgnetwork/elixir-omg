@@ -19,7 +19,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
   @app :omg_watcher
 
   @impl Provider
-  def init(args) do
+  def init(_args) do
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(@app, OMG.Watcher.Tracer)
     config = Keyword.put(config, :disabled?, get_dd_disabled())
