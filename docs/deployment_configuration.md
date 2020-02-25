@@ -18,7 +18,7 @@
 - "FEE_CLAIMER_ADDRESS" - [Child Chain only!] 20-bytes HEX-encoded string of Ethereum address of Fee Claimer. Set via ENV vars only for Child Chain. For the Watcher this values is not important and fallbacks to "DEAD000000000000000000000000000000000000".
 - "EXIT_PROCESSOR_SLA_MARGIN" - [Watcher only!] - number of Ethereum blocks since start of an invalid exit, before `unchallenged_exit` is reported to prompt to mass exit. Must be smaller than "MIN_EXIT_PERIOD_SECONDS", unless "EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE"
 - "ETHEREUM_BLOCK_TIME_SECONDS" - should mirror Ethereum network's setting, defaults to 15 seconds
-
+- "LOGGER_BACKEND" - Ink or console. Ink will encode logs as json (useful for Datadog). Console will use the default elixir Logger backend. Default is Ink.
 ***Erlang VM configuration***
 
 - "NODE_HOST" - The fully qualified host name of the current host.

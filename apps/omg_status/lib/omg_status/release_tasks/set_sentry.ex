@@ -21,7 +21,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
   @app :sentry
   @impl Provider
 
-  def init(_args) do
+  def init(release: release, current_version: current_version) do
     _ = Application.ensure_all_started(:logger)
     app_env = get_app_env()
     sentry_dsn = System.get_env("SENTRY_DSN")
@@ -45,9 +45,12 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
 
           :ok =
             Application.put_env(@app, :tags, %{
-              application: get_application(),
+              application: release,
               eth_network: get_env("ETHEREUM_NETWORK"),
-              eth_node: get_rpc_client_type()
+              eth_node: get_rpc_client_type(),
+              current_version: "vsn-#{current_version}",
+              app_env: "#{app_env}",
+              hostname: "#{hostname}"
             })
 
         _ ->
@@ -75,18 +78,6 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: HOSTNAME, server_name Value: #{inspect(hostname)}.")
     hostname
-  end
-
-  defp get_application() do
-    app =
-      case Code.ensure_loaded?(OMG.Watcher) do
-        true -> :watcher
-        _ -> :child_chain
-      end
-
-    _ = Logger.info("CONFIGURATION: App: #{@app} Key: application Value: #{inspect(app)}.")
-
-    app
   end
 
   defp get_rpc_client_type() do
