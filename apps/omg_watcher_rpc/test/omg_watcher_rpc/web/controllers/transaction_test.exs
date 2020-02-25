@@ -24,7 +24,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.TestServer

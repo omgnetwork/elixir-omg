@@ -65,6 +65,7 @@ defmodule OMG.Utils.HttpRPC.Response do
     map_or_struct
     |> to_map()
     |> do_filter()
+    |> remove_timestamps()
     |> sanitize_map()
   end
 
@@ -93,6 +94,10 @@ defmodule OMG.Utils.HttpRPC.Response do
     else
       map_or_struct
     end
+  end
+
+  defp remove_timestamps(map) do
+    Map.drop(map, [:inserted_at, :updated_at])
   end
 
   # Allows to skip sanitize on specifies keys provided in list in key :skip_hex_encode
