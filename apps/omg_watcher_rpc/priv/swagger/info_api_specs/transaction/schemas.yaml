@@ -31,13 +31,6 @@ TransactionOutputSchema:
     spending_txhash:
       type: string
 
-    inserted_at:
-      type: string
-    updated_at:
-      type: string
-  
-       
-
 TransactionSchema:
   type: object
   properties:
@@ -54,11 +47,6 @@ TransactionSchema:
       type: string
        
     txbytes:
-      type: string
-
-    inserted_at:
-      type: string
-    updated_at:
       type: string
    
     block:

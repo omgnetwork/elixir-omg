@@ -79,9 +79,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
           "eth_height" => spending_transaction.block.eth_height,
           "hash" => Encoding.to_hex(spending_transaction.block.hash),
           "timestamp" => spending_transaction.block.timestamp,
-          "tx_count" => spending_transaction.block.tx_count,
-          "inserted_at" => Response.serialize(spending_transaction.block.inserted_at).data,
-          "updated_at" => Response.serialize(spending_transaction.block.updated_at).data
+          "tx_count" => spending_transaction.block.tx_count
         },
         "inputs" =>
           Enum.map(spending_transaction.inputs, fn input ->
@@ -95,9 +93,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
               "otype" => input.otype,
               "utxo_pos" => Utxo.Position.encode({:utxo_position, input.blknum, input.txindex, input.oindex}),
               "creating_txhash" => to_hex_or_nil(input.creating_txhash),
-              "spending_txhash" => to_hex_or_nil(input.spending_txhash),
-              "inserted_at" => Response.serialize(input.inserted_at).data,
-              "updated_at" => Response.serialize(input.updated_at).data
+              "spending_txhash" => to_hex_or_nil(input.spending_txhash)
             }
           end),
         "outputs" =>
@@ -112,18 +108,14 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
               "otype" => output.otype,
               "utxo_pos" => Utxo.Position.encode({:utxo_position, output.blknum, output.txindex, output.oindex}),
               "creating_txhash" => to_hex_or_nil(output.creating_txhash),
-              "spending_txhash" => to_hex_or_nil(output.spending_txhash),
-              "inserted_at" => Response.serialize(output.inserted_at).data,
-              "updated_at" => Response.serialize(output.updated_at).data
+              "spending_txhash" => to_hex_or_nil(output.spending_txhash)
             }
           end),
         "txhash" => Encoding.to_hex(spending_transaction.txhash),
         "txbytes" => Encoding.to_hex(spending_transaction.txbytes),
         "txindex" => spending_transaction.txindex,
         "txtype" => spending_transaction.txtype,
-        "metadata" => Encoding.to_hex(spending_transaction.metadata),
-        "inserted_at" => Response.serialize(spending_transaction.inserted_at).data,
-        "updated_at" => Response.serialize(spending_transaction.updated_at).data
+        "metadata" => Encoding.to_hex(spending_transaction.metadata)
       }
 
       response = WatcherHelper.success?("transaction.get", %{"id" => Encoding.to_hex(spending_transaction.txhash)})

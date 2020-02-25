@@ -33,7 +33,3 @@ AccountUtxoSchema:
       type: integer
       format: int256
 
-      inserted_at:
-        type: string
-      updated_at:
-        type: string

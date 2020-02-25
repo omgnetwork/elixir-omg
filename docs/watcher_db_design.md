@@ -45,8 +45,8 @@ Stores inputs and outputs of transactions. Utxo is a record in `txoutputs` table
 |currency|bytea||
 |proof|bytea||
 |child_chain_utxohash|bytea|UI|
-|inserted_at|datetime|UTC (w/o TZ)|
-|updated_at|datetime|UTC (w/o TZ)|
+|inserted_at|datetime|UTC (w/ TZ)|
+|updated_at|datetime|UTC (w/ TZ)|
 
 ## The Ethereum events table
 Stores events logged in root contract, such as _deposits_ or _exits_.
@@ -57,8 +57,8 @@ Stores events logged in root contract, such as _deposits_ or _exits_.
 |event_type|integer|Pk^|
 |event_type|varchar(124)||
 |root_chain_txhash_event|bytea|UI|
-|inserted_at|datetime|UTC (w/o TZ)|
-|updated_at|datetime|UTC (w/o TZ)|
+|inserted_at|datetime|UTC (w/ TZ)|
+|updated_at|datetime|UTC (w/ TZ)|
 
 
 ## The ethevents_txoutputs table
@@ -68,8 +68,8 @@ A table for many-to-many relationships between Ethereum events and UTXOs.
 |:-:|:-|:-|
 |root_chain_txhash_event|bytea|Pk(root_chain_txhash_event, child_chain_utxohash), FK(ethevents, (root_chain_txhash_event))|
 |child_chain_utxohash|bytea|Pk^, FK(txoutputs, (child_chain_utxohash))|
-|inserted_at|datetime|UTC (w/o TZ)|
-|updated_at|datetime|UTC (w/o TZ)|
+|inserted_at|datetime|UTC (w/ TZ)|
+|updated_at|datetime|UTC (w/ TZ)|
 
 
 ## Examples of queries against the tables

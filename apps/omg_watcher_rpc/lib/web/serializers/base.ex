@@ -31,9 +31,7 @@ defmodule OMG.WatcherRPC.Web.Serializer.Base do
       :otype,
       :owner,
       :creating_txhash,
-      :spending_txhash,
-      :inserted_at,
-      :updated_at
+      :spending_txhash
     ])
     |> Map.put(:utxo_pos, Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode())
   end
