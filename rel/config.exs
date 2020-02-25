@@ -55,7 +55,7 @@ release :watcher do
       {OMG.WatcherRPC.ReleaseTasks.SetTracer, []},
       {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher},
       {OMG.Status.ReleaseTasks.SetSentry, []},
-      {OMG.Status.ReleaseTasks.SetTracer, []},
+      {OMG.Status.ReleaseTasks.SetTracer, [release: :watcher]},
       {OMG.Status.ReleaseTasks.SetApplication,
        [release: :watcher, current_version: current_version(:omg_child_chain) <> "+" <> sha]},
       {OMG.Watcher.ReleaseTasks.SetChildChain, []},
@@ -104,7 +104,7 @@ release :watcher_info do
       {OMG.WatcherRPC.ReleaseTasks.SetTracer, []},
       {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher_info},
       {OMG.Status.ReleaseTasks.SetSentry, []},
-      {OMG.Status.ReleaseTasks.SetTracer, []},
+      {OMG.Status.ReleaseTasks.SetTracer, [release: :watcher_info]},
       {OMG.Status.ReleaseTasks.SetApplication,
        [release: :watcher_info, current_version: current_version(:omg_child_chain) <> "+" <> sha]},
       {OMG.Watcher.ReleaseTasks.SetChildChain, []},
@@ -159,7 +159,7 @@ release :child_chain do
       {OMG.ChildChainRPC.ReleaseTasks.SetEndpoint, []},
       {OMG.ChildChainRPC.ReleaseTasks.SetTracer, []},
       {OMG.Status.ReleaseTasks.SetSentry, []},
-      {OMG.Status.ReleaseTasks.SetTracer, []},
+      {OMG.Status.ReleaseTasks.SetTracer, [release: :child_chain]},
       {OMG.Status.ReleaseTasks.SetApplication,
        [release: :child_chain, current_version: current_version(:omg_child_chain) <> "+" <> sha]}
     ]

@@ -31,6 +31,14 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
       # it got fiddled before
       :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
       :ok = Application.put_env(@app, :spandex_datadog, @configuration_old_spandex_datadog, persistent: true)
+      :ok = System.delete_env("HOSTNAME")
+      :ok = System.delete_env("DD_DISABLED")
+      :ok = System.delete_env("APP_ENV")
+      :ok = System.delete_env("DD_PORT")
+      :ok = System.delete_env("DD_HOSTNAME")
+      :ok = System.delete_env("DD_APM_PORT")
+      :ok = System.delete_env("BATCH_SIZE")
+      :ok = System.delete_env("SYNC_THRESHOLD")
     end)
 
     :ok
@@ -39,6 +47,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("DD_DISABLED", "TRUE")
     :ok = System.put_env("APP_ENV", "YOLO")
+    :ok = System.put_env("HOSTNAME", "this is my tracer test 3")
     :ok = SetTracer.init([])
     configuration = Application.get_env(@app, Tracer)
     disabled_updated = configuration[:disabled?]
@@ -56,6 +65,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
     :ok = System.delete_env("DD_DISABLED")
     :ok = System.delete_env("APP_ENV")
+    :ok = System.put_env("HOSTNAME", "this is my tracer test 3")
     :ok = SetTracer.init([])
     configuration = Application.get_env(@app, Tracer)
     sorted_configuration = Enum.sort(configuration)
@@ -65,7 +75,9 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   test "if environment variables get applied in the statix configuration" do
     :ok = System.put_env("DD_HOSTNAME", "cluster")
     :ok = System.put_env("DD_PORT", "1919")
-    :ok = SetTracer.init([])
+    :ok = System.put_env("HOSTNAME", "this is my tracer test 1")
+    :ok = System.put_env("APP_ENV", "test 1")
+    :ok = SetTracer.init(release: :test_case_1)
     configuration = Enum.sort(Application.get_all_env(:statix))
     host = configuration[:host]
     port = configuration[:port]
@@ -76,7 +88,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
              @configuration_old_statix
              |> Keyword.put(:host, "cluster")
              |> Keyword.put(:port, 1919)
-             |> Keyword.put(:tags, nil)
+             |> Keyword.put(:tags, ["application:test_case_1", "app_env:test 1", "hostname:this is my tracer test 1"])
              |> Enum.sort()
   end
 
@@ -88,11 +100,13 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
 
     :ok = System.delete_env("DD_HOSTNAME")
     :ok = System.delete_env("DD_PORT")
-    :ok = SetTracer.init([])
+    :ok = System.put_env("HOSTNAME", "this is my tracer test 2")
+    :ok = System.put_env("APP_ENV", "test 2")
+    :ok = SetTracer.init(release: :test_case_2)
     configuration = Application.get_all_env(:statix)
     sorted_configuration = Enum.sort(configuration)
-
-    assert sorted_configuration == @configuration_old_statix |> Keyword.put(:tags, nil) |> Enum.sort()
+    expected_tags = ["application:test_case_2", "app_env:test 2", "hostname:this is my tracer test 2"]
+    assert sorted_configuration == @configuration_old_statix |> Keyword.put(:tags, expected_tags) |> Enum.sort()
   end
 
   test "if environment variables get applied in the spandex_datadog configuration" do
@@ -100,6 +114,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     :ok = System.put_env("DD_APM_PORT", "1919")
     :ok = System.put_env("BATCH_SIZE", "7000")
     :ok = System.put_env("SYNC_THRESHOLD", "900")
+    :ok = System.put_env("HOSTNAME", "this is my tracer test 4")
     :ok = SetTracer.init([])
     configuration = Enum.sort(Application.get_all_env(:spandex_datadog))
     host = configuration[:host]
@@ -130,6 +145,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     :ok = System.delete_env("DD_APM_PORT")
     :ok = System.delete_env("BATCH_SIZE")
     :ok = System.delete_env("SYNC_THRESHOLD")
+    :ok = System.put_env("HOSTNAME", "this is my tracer test 5")
     :ok = SetTracer.init([])
     configuration = Application.get_all_env(:spandex_datadog)
     sorted_configuration = Enum.sort(configuration)
@@ -140,6 +156,20 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   test "if exit is thrown when faulty configuration is used" do
     :ok = System.put_env("DD_DISABLED", "TRUEeee")
     catch_exit(SetTracer.init([]))
+    :ok = System.delete_env("DD_DISABLED")
+  end
+
+  test "if environment variables get applied in the statix tags configuration" do
+    :ok = System.put_env("HOSTNAME", "this is my tracer test")
+    :ok = System.put_env("APP_ENV", "YOLO")
+    :ok = SetTracer.init([])
+    assert Enum.member?(Application.get_env(:statix, :tags), "hostname:this is my tracer test")
+  end
+
+  test "if exit is thrown when faulty configuration for hostname is used" do
+    :ok = System.put_env("DD_DISABLED", "TRUE")
+    :ok = System.put_env("APP_ENV", "YOLO")
+    assert catch_exit(SetTracer.init([])) == "HOSTNAME is not set correctly."
     :ok = System.delete_env("DD_DISABLED")
   end
 end
