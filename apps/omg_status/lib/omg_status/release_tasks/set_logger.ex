@@ -15,8 +15,10 @@
 defmodule OMG.Status.ReleaseTasks.SetLogger do
   @moduledoc false
   use Distillery.Releases.Config.Provider
-  @app :logger
   require Logger
+
+  @app :logger
+  @default_backend Ink
 
   @impl Provider
   def init(_) do
@@ -37,7 +39,7 @@ defmodule OMG.Status.ReleaseTasks.SetLogger do
     logger =
       "LOGGER_BACKEND"
       |> get_env()
-      |> validate_string(Ink)
+      |> validate_string(@default_backend)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: LOGGER_BACKEND Value: #{inspect(logger)}.")
     logger
