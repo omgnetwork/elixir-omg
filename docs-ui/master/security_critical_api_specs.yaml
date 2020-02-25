@@ -26,6 +26,7 @@ tags:
   - name: InFlightExit
     description: InFlightExit related API.
 servers:
+  - url: 'https://watcher.ropsten.v1.omg.network/'
   - url: 'http://localhost:7434/'
 paths:
   /alarm.get:

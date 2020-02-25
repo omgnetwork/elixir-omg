@@ -19,6 +19,7 @@ tags:
   - name: Fees
     description: Fees related API.
 servers:
+  - url: 'https://childchain.ropsten.v1.omg.network/'
   - url: 'http://localhost:9656/'
 paths:
   /alarm.get:
