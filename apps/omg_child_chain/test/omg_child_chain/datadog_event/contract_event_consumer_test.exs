@@ -50,6 +50,15 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumerTest do
     assert_receive {:event, _, _}
   end
 
+  test "if a list of event message are put on omg bus is consumed by the event consumer and published on the publisher interface" do
+    pid = :erlang.pid_to_list(self())
+    topic = "#{pid}"
+    data = [%{event_signature: "#{pid}(bytes32)"}, %{event_signature: "#{pid}(bytes32)"}]
+    OMG.Bus.direct_local_broadcast(topic, {:data, data})
+
+    assert_receive {:event, _, _}
+  end
+
   defmodule DatadogEventMock do
     def event(title, message, options) do
       pid =
