@@ -248,7 +248,7 @@ changelog:
 .PHONY: changelog
 
 ###
-start-pre-lumphini-watcher:
+start-integration-watcher:
 	docker-compose -f docker-compose-watcher.yml up
 ###
 
