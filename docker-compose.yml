@@ -77,6 +77,7 @@ services:
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
       - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
+      - LOGGER_BACKEND=console
     restart: always
     ports:
       - "9656:9656"
@@ -113,6 +114,7 @@ services:
       - ETHEREUM_BLOCK_TIME_SECONDS=1
       - EXIT_PROCESSOR_SLA_MARGIN=5520
       - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
+      - LOGGER_BACKEND=console
     restart: always
     ports:
       - "7434:7434"
@@ -149,6 +151,7 @@ services:
       - ETHEREUM_BLOCK_TIME_SECONDS=1
       - EXIT_PROCESSOR_SLA_MARGIN=5520
       - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
+      - LOGGER_BACKEND=console
     restart: always
     ports:
       - "7534:7534"
