@@ -18,6 +18,7 @@ defmodule OMG.WatcherInfo.DB.Repo do
     adapter: Ecto.Adapters.Postgres
 
   @max_params_count 0xFFFF
+  def max_params_count(), do: @max_params_count
 
   @doc """
   Inserts all entries to the database in chunks to avoid `too many parameters` error.
@@ -33,15 +34,23 @@ defmodule OMG.WatcherInfo.DB.Repo do
   def insert_all_chunked(_schema_or_source, [], _opts), do: :ok
 
   def insert_all_chunked(schema_or_source, entries, opts) do
-    entries = Enum.map(entries, fn entry -> Map.merge(entry, %{inserted_at: utc_now, updated_at: utc_now}) end)
-    
-    chunk_size = @max_params_count |> div(entries |> hd |> fields_count)
-
     utc_now = DateTime.utc_now()
+    entries = Enum.map(entries, fn entry -> Map.merge(entry, %{inserted_at: utc_now, updated_at: utc_now}) end)
+
+    chunk_size = chunk_size(entries |> hd)
 
     entries
     |> Stream.chunk_every(chunk_size)
     |> Enum.each(&insert_all(schema_or_source, &1, opts))
+  end
+
+  # Note: an entry with 0 fields will cause a divide-by-zero error.
+  #
+  # DB.Repo.chunk_size(%{}) ==> (ArithmeticError) bad argument in arithmetic expression
+  # 
+  # Do we want/need to be that defensive?
+  def chunk_size(entry) do
+    @max_params_count |> div(entry |> fields_count)
   end
 
   defp fields_count(map) when is_map(map), do: map |> Kernel.map_size()
