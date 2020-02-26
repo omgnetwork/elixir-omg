@@ -14,11 +14,8 @@
 
 defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
   @moduledoc """
-  Subscribes to new events from EthereumEventListeners and pushes them to Datadog
+  Subscribes to new events from EthereumEventListeners and BlockGetter and pushes them to Datadog
   Integrated with the help of: https://docs.datadoghq.com/api/?lang=bash#post-an-event
-  Most things from the doc doesn't work. Either because Statix doesn't work or Datadog.
-  Date_happened, aggregation_key, source_type_name doesn't seem to appear in Events list.
-  Hence we transform everything into a tag.
   """
 
   require Logger
@@ -75,9 +72,12 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
     {:noreply, state}
   end
 
-  # Listens to events via OMG BUS and send them off
-  def handle_info({:internal_event_bus, :data, [data]}, state) do
-    %{event_signature: event_signature} = data
+  @doc """
+    Listens to events via OMG BUS and send them off
+    the assumption is all events are of the same type
+  """
+  def handle_info({:internal_event_bus, :data, data}, state) do
+    %{event_signature: event_signature} = hd(data)
     [event_name, _] = String.split(event_signature, "(")
     aggregation_key = :root_chain
     timestamp = DateTime.to_unix(DateTime.utc_now(), :millisecond)

@@ -189,7 +189,8 @@ defmodule OMG.EthereumEventListener do
   end
 
   defp publish_data([%{event_signature: event_signature} | _] = data) do
-    # String.split("DepositCreated(address,uint256,address,uint256)", "(")
+    # event signature is string with a method name with arguments,
+    # for example: BlockSubmitted(uint256)
     [event_signature, _] = String.split(event_signature, "(")
     OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
   end

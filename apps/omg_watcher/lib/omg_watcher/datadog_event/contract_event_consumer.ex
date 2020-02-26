@@ -64,9 +64,12 @@ defmodule OMG.Watcher.DatadogEvent.ContractEventConsumer do
     {:noreply, state}
   end
 
-  # Listens to events via OMG BUS and send them off
-  def handle_info({:internal_event_bus, :data, [data]}, state) do
-    %{event_signature: event_signature} = data
+  @doc """
+    Listens to events via OMG BUS and send them off
+    the assumption is all events are of the same type
+  """
+  def handle_info({:internal_event_bus, :data, data}, state) do
+    %{event_signature: event_signature} = hd(data)
     [event_name, _] = String.split(event_signature, "(")
     aggregation_key = :root_chain
     timestamp = DateTime.to_unix(DateTime.utc_now(), :millisecond)
