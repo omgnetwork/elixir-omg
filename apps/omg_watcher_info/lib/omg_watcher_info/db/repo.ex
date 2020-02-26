@@ -47,7 +47,7 @@ defmodule OMG.WatcherInfo.DB.Repo do
   # Note: an entry with 0 fields will cause a divide-by-zero error.
   #
   # DB.Repo.chunk_size(%{}) ==> (ArithmeticError) bad argument in arithmetic expression
-  # 
+  #
   # Do we want/need to be that defensive?
   def chunk_size(entry) do
     @max_params_count |> div(entry |> fields_count)
