@@ -19,7 +19,6 @@ defmodule InFlightExitsTests do
   alias Itest.Transactions.PaymentType
   alias WatcherSecurityCriticalAPI.Api.InFlightExit
   alias WatcherSecurityCriticalAPI.Api.InFlightExit
-  alias WatcherSecurityCriticalAPI.Api.Status
   alias WatcherSecurityCriticalAPI.Api.Transaction
   alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Model.InFlightExitInputChallengeDataBodySchema
@@ -32,17 +31,15 @@ defmodule InFlightExitsTests do
   import Itest.Poller,
     only: [
       pull_for_utxo_until_recognized_deposit: 4,
-      pull_api_until_successful: 3,
       pull_api_until_successful: 4,
-      wait_on_receipt_confirmed: 1
+      wait_on_receipt_confirmed: 1,
+      all_events_in_status?: 1
     ]
 
   @ife_gas 2_000_000
   @ife_gas_price 1_000_000_000
   @gas_piggyback 1_000_000
 
-  @retry_count 60
-  @sleep_retry_sec 5_000
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
   @gas_process_exit 5_712_388
   @gas_process_exit_price 1_000_000_000
@@ -480,7 +477,7 @@ defmodule InFlightExitsTests do
     # (piggybacks for index 0)
     # only a single non_canonical event, since one of the IFE txs is included!
     # I’m waiting for these three, and only these three to appear
-    assert all?(["invalid_piggyback", "non_canonical_ife", "piggyback_available"]) == true
+    assert all_events_in_status?(["invalid_piggyback", "non_canonical_ife", "piggyback_available"])
     payload = %InFlightExitInputChallengeDataBodySchema{txbytes: Encoding.to_hex(unsigned_txbytes), input_index: 1}
     response = pull_api_until_successful(InFlightExit, :in_flight_exit_get_input_challenge_data, Watcher.new(), payload)
     ife_input_challenge = IfeInputChallenge.to_struct(response)
@@ -506,7 +503,7 @@ defmodule InFlightExitsTests do
 
     # observe the byzantine events gone
     # I’m waiting for these two, and only these two to appear
-    assert all?(["non_canonical_ife", "piggyback_available"]) == true
+    assert all_events_in_status?(["non_canonical_ife", "piggyback_available"])
 
     ###
     # CANONICITY GAME
@@ -521,7 +518,7 @@ defmodule InFlightExitsTests do
     assert ife_competitor.competing_proof != ""
     challenge_in_flight_exit_not_canonical(exit_game_contract_address, bob_address, ife_competitor)
     # I’m waiting for these one, and only this one to appear
-    assert all?(["piggyback_available"]) == true
+    assert all_events_in_status?(["piggyback_available"])
 
     alice_state =
       Map.put(
@@ -623,38 +620,6 @@ defmodule InFlightExitsTests do
     # twice the amount of min exit period for for a freshly submitted utxo IFE
     |> Kernel.*(2)
     |> Process.sleep()
-  end
-
-  defp all?(events), do: all?(Enum.sort(events), @retry_count)
-  defp all?(_, 0), do: false
-
-  defp all?(events, counter) do
-    result =
-      case pull_api_until_successful(Status, :status_get, Watcher.new()) do
-        %{"byzantine_events" => byzantine_events} ->
-          byzantine_events =
-            byzantine_events
-            |> Enum.map_reduce([], fn
-              %{"event" => event}, acc -> {byzantine_events, [event | acc]}
-              _, acc -> {byzantine_events, acc}
-            end)
-            |> elem(1)
-            |> Enum.sort()
-
-          byzantine_events == events
-
-        _ ->
-          false
-      end
-
-    case result do
-      true ->
-        result
-
-      false ->
-        Process.sleep(@sleep_retry_sec)
-        all?(events, counter - 1)
-    end
   end
 
   defp challenge_in_flight_exit_not_canonical(exit_game_contract_address, address, ife_competitor) do

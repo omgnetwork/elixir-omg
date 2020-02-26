@@ -11,35 +11,7 @@ defmodule InvalidStandardExitsTests do
   alias Itest.Transactions.Currency
   alias WatcherSecurityCriticalAPI.Api.Status
 
-  import Itest.Poller, only: [pull_api_until_successful: 3, pull_api_until_successful: 4]
-
-  @retry_count 20
-  @sleep_retry_sec 5_000
-
-  # FIXME: consider applying in other files
-  defp all?(expected_events), do: all?(expected_events, @retry_count)
-
-  defp all?(expected, 0) do
-    _ = Logger.warn("Byzantine events stuck on: #{inspect(get_byzantine_events())}, expecting: #{inspect(expected)}")
-    false
-  end
-
-  defp all?(expected_events, counter) do
-    byzantine_events = get_byzantine_events()
-
-    if Enum.sort(byzantine_events) == Enum.sort(expected_events) do
-      true
-    else
-      Process.sleep(@sleep_retry_sec)
-      all?(expected_events, counter - 1)
-    end
-  end
-
-  defp get_byzantine_events() do
-    pull_api_until_successful(Status, :status_get, WatcherSecurityCriticalAPI.Connection.new())
-    |> Map.fetch!("byzantine_events")
-    |> Enum.map(& &1["event"])
-  end
+  import Itest.Poller, only: [pull_api_until_successful: 3, pull_api_until_successful: 4, all_events_in_status?: 1]
 
   setup do
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}, {carol_account, carol_pkey}] = Account.take_accounts(3)
@@ -112,7 +84,7 @@ defmodule InvalidStandardExitsTests do
   defthen ~r/^The child chain is secure$/,
           _,
           %{} = state do
-    assert all?([])
+    assert all_events_in_status?([])
     {:ok, Map.put(state, :prior_byzantine_events, [])}
   end
 
@@ -158,7 +130,7 @@ defmodule InvalidStandardExitsTests do
   defwhen ~r/^Bob detects a new "(?<event>[^"]+)"$/,
           %{event: event},
           %{prior_byzantine_events: prior_byzantine_events} = state do
-    assert all?([event | prior_byzantine_events])
+    assert all_events_in_status?([event | prior_byzantine_events])
     {:ok, Map.put(state, :prior_byzantine_events, [event | prior_byzantine_events])}
   end
 
