@@ -352,7 +352,8 @@ defmodule OMG.Watcher.BlockGetter do
   defp update_status(%Core{} = state), do: Status.update(Core.chain_ok(state))
 
   defp publish_data([%{event_signature: event_signature} | _] = data) do
-    # String.split("BlockSubmitted(uint256)", "(")
+    # event signature is string with a method name with arguments,
+    # for example: BlockSubmitted(uint256)
     [event_signature, _] = String.split(event_signature, "(")
     OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
   end
