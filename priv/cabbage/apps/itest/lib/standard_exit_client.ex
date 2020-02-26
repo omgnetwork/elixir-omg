@@ -183,10 +183,13 @@ defmodule Itest.StandardExitClient do
     %{se | start_standard_exit_hash: receipt_hash}
   end
 
-  defp wait_for_exit_period(se) do
+  defp wait_for_exit_period(%__MODULE__{exit_data: exit_data} = se) do
     _ = Logger.info("Wait for exit period to pass.")
     data = ABI.encode("minExitPeriod()", [])
     {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
+
+    not_from_deposit_multiplier = if exit_data && from_deposit?(exit_data.utxo_pos), do: 1, else: 2
+
     # result is in seconds
     result
     |> Encoding.to_binary()
@@ -194,6 +197,8 @@ defmodule Itest.StandardExitClient do
     |> hd()
     # to milliseconds
     |> Kernel.*(1000)
+    # non-deposit UTXOs exiting wait twice the min exit period, if they're fresh (which is a fair assumption in tests)
+    |> Kernel.*(not_from_deposit_multiplier)
     # needs a be a tiny more than exit period seconds
     |> Kernel.+(500)
     |> Process.sleep()
