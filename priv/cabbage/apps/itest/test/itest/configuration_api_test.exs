@@ -7,7 +7,7 @@ defmodule ConfigurationRetrievalTests do
     data = ABI.encode("getVersion()", [])
 
     {:ok, response} =
-      Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+      Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
     [{contract_semver}] =
       response

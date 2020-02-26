@@ -55,7 +55,7 @@ defmodule InFlightExitsTests do
       Itest.ContractEvent.start_link(
         ws_url: "ws://127.0.0.1:8546",
         name: :eth_vault,
-        listen_to: %{"address" => Itest.Account.vault(Currency.ether())},
+        listen_to: %{"address" => Itest.PlasmaFramework.vault(Currency.ether())},
         abi_path: Path.join([File.cwd!(), "../../../../data/plasma-contracts/contracts/", "EthVault.json"]),
         subscribe: self()
       )
@@ -68,9 +68,12 @@ defmodule InFlightExitsTests do
 
     [{alice_address, alice_pkey}, {bob_address, bob_pkey}] = Account.take_accounts(2)
 
+    exit_game_contract_address =
+      Itest.PlasmaFramework.exit_game_contract_address(PaymentType.simple_payment_transaction())
+
     %{
-      "exit_game_contract_address" => get_exit_game_contract_address(),
-      "in_flight_exit_bond_size" => get_in_flight_exit_bond_size(get_exit_game_contract_address()),
+      "exit_game_contract_address" => exit_game_contract_address,
+      "in_flight_exit_bond_size" => get_in_flight_exit_bond_size(exit_game_contract_address),
       "fee" => eth_fee,
       "Alice" => %{
         address: alice_address,
@@ -112,7 +115,7 @@ defmodule InFlightExitsTests do
     {:ok, receipt_hash} =
       amount
       |> Currency.to_wei()
-      |> Client.deposit(address, Itest.Account.vault(Currency.ether()))
+      |> Client.deposit(address, Itest.PlasmaFramework.vault(Currency.ether()))
 
     geth_block_every = 1
 
@@ -570,12 +573,12 @@ defmodule InFlightExitsTests do
     data =
       ABI.encode(
         "processExits(uint256,address,uint160,uint256)",
-        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), ife_exit_id, 1]
+        [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether(), ife_exit_id, 1]
       )
 
     txmap = %{
       from: address,
-      to: Itest.Account.plasma_framework(),
+      to: Itest.PlasmaFramework.address(),
       value: Encoding.to_hex(0),
       data: Encoding.to_hex(data),
       gas: Encoding.to_hex(@gas_process_exit),
@@ -589,8 +592,10 @@ defmodule InFlightExitsTests do
   end
 
   defp get_next_exit_from_queue() do
-    data = ABI.encode("getNextExit(uint256,address)", [Itest.Account.vault_id(Currency.ether()), Currency.ether()])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+    data =
+      ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()])
+
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
     case Encoding.to_binary(result) do
       "" ->
@@ -605,7 +610,7 @@ defmodule InFlightExitsTests do
   defp wait_for_min_exit_period() do
     _ = Logger.info("Wait for exit period to pass.")
     data = ABI.encode("minExitPeriod()", [])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
     # result is in seconds
     result
     |> Encoding.to_binary()
@@ -879,17 +884,6 @@ defmodule InFlightExitsTests do
       5_000 ->
         throw(:deposit_event_didnt_arrive)
     end
-  end
-
-  defp get_exit_game_contract_address() do
-    data = ABI.encode("exitGames(uint256)", [PaymentType.simple_payment_transaction()])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
-
-    result
-    |> Encoding.to_binary()
-    |> ABI.TypeDecoder.decode([:address])
-    |> hd()
-    |> Encoding.to_hex()
   end
 
   defp get_in_flight_exit_bond_size(exit_game_contract_address) do

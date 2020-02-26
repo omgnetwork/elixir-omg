@@ -43,7 +43,7 @@ defmodule FeeClaimingTests do
     {:ok, receipt_hash} =
       amount
       |> Currency.to_wei()
-      |> Client.deposit(entity_address, Itest.Account.vault(Currency.ether()))
+      |> Client.deposit(entity_address, Itest.PlasmaFramework.vault(Currency.ether()))
 
     gas_used = Client.get_gas_used(receipt_hash)
 

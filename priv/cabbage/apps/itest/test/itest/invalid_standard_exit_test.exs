@@ -61,7 +61,7 @@ defmodule InvalidStandardExitsTests do
 
     expecting_amount = Currency.to_wei(amount)
 
-    {:ok, receipt_hash} = Client.deposit(expecting_amount, alice_account, Itest.Account.vault(Currency.ether()))
+    {:ok, receipt_hash} = Client.deposit(expecting_amount, alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
     gas_used = Client.get_gas_used(receipt_hash)
 
     %{"amount" => ^expecting_amount} = Client.get_balance(alice_account, expecting_amount)
@@ -85,7 +85,7 @@ defmodule InvalidStandardExitsTests do
       # a little extra to cover fees etc and let Alice get amount
       |> Kernel.+(1_000_000_000_000_000_000)
 
-    {:ok, _receipt_hash} = Client.deposit(carol_amount, carol_account, Itest.Account.vault(Currency.ether()))
+    {:ok, _receipt_hash} = Client.deposit(carol_amount, carol_account, Itest.PlasmaFramework.vault(Currency.ether()))
 
     %{"amount" => ^carol_amount} = Client.get_balance(carol_account, carol_amount)
 

@@ -40,19 +40,12 @@ defmodule Itest.StandardExitChallengeClient do
     %{challenge | challenge_data: Itest.ApiModel.ChallengeData.to_struct(response)}
   end
 
-  # FIXME: this will repeat, DRY?
   defp get_exit_game_contract_address(challenge) do
-    data = ABI.encode("exitGames(uint256)", [PaymentType.simple_payment_transaction()])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
-
-    exit_game_contract_address =
-      result
-      |> Encoding.to_binary()
-      |> ABI.TypeDecoder.decode([:address])
-      |> hd()
-      |> Encoding.to_hex()
-
-    %{challenge | exit_game_contract_address: exit_game_contract_address}
+    %{
+      challenge
+      | exit_game_contract_address:
+          Itest.PlasmaFramework.exit_game_contract_address(PaymentType.simple_payment_transaction())
+    }
   end
 
   defp do_challenge_standard_exit(
