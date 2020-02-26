@@ -50,6 +50,6 @@ defmodule OMG.Status.ReleaseTasks.SetLogger do
   defp validate_string(nil, default), do: default
   defp validate_string(value, default), do: do_validate_string(String.upcase(value), default)
   defp do_validate_string("CONSOLE", _default), do: :console
-  defp do_validate_string("INK", default), do: default
+  defp do_validate_string("INK", _default), do: Ink
   defp do_validate_string(_, default), do: default
 end
