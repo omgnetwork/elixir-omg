@@ -16,6 +16,8 @@ defmodule OMG.ChildChain.Fees.FeeMerger do
   Handles the parsing, formatting and merging of previous and current fees
   """
 
+  alias OMG.Fees
+
   @doc """
   Merges a current and previous server fee specs into a formatted map
 
@@ -63,6 +65,7 @@ defmodule OMG.ChildChain.Fees.FeeMerger do
       }
 
   """
+  @spec merge_specs(Fees.full_fee_t(), Fees.full_fee_t() | nil) :: Fees.typed_merged_fee_t()
   def merge_specs(current_specs, nil), do: remove_unused_fields(current_specs)
 
   def merge_specs(current_specs, previous_specs) do

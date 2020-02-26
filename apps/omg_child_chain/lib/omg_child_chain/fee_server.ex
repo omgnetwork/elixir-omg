@@ -76,9 +76,18 @@ defmodule OMG.ChildChain.FeeServer do
   end
 
   def handle_info(:expire_previous_fees, state) do
-    true = :ets.update_element(:fees_bucket, :previous_fees, {2, nil})
+    merged_fee_specs =
+      :fees_bucket
+      |> :ets.lookup_element(:fees, 2)
+      |> FeeMerger.merge_specs(nil)
+
+    true =
+      :ets.insert(:fees_bucket, [
+        {:previous_fees, nil},
+        {:merged_fees, merged_fee_specs}
+      ])
+
     _ = Logger.info("Previous fees are now invalid and current fees must be paid")
-    true = save_merged_fees()
     {:noreply, state}
   end
 
@@ -89,15 +98,19 @@ defmodule OMG.ChildChain.FeeServer do
           Alarm.clear(Alarm.invalid_fee_file(__MODULE__))
           updated_state
 
-        {:error, _, updated_state} ->
+        :ok ->
+          Alarm.clear(Alarm.invalid_fee_file(__MODULE__))
+          state
+
+        _ ->
           Alarm.set(Alarm.invalid_fee_file(__MODULE__))
-          updated_state
+          state
       end
 
     {:noreply, new_state}
   end
 
-  @spec update_fee_specs(map()) :: :ok | {:error, atom() | [{:error, atom()}, ...]}
+  @spec update_fee_specs(map()) :: :ok | {:ok, map()} | {:error, list({:error, atom(), any(), non_neg_integer() | nil})}
   defp update_fee_specs(%{fee_adapter: adapter, expire_fee_timer: current_timer} = state) do
     source_updated_at = :ets.lookup_element(:fees_bucket, :fee_specs_source_updated_at, 2)
 
@@ -115,39 +128,28 @@ defmodule OMG.ChildChain.FeeServer do
         {:ok, Map.put(state, :expire_fee_timer, new_timer)}
 
       :ok ->
-        {:ok, state}
+        :ok
 
       error ->
         _ = Logger.error("Unable to update fees from file. Reason: #{inspect(error)}")
-        {:error, error, state}
+        error
     end
   end
 
   defp save_fees(new_fee_specs, last_updated_at) do
-    current_fee_specs = :ets.lookup_element(:fees_bucket, :fees, 2)
+    previous_fees_specs = :ets.lookup_element(:fees_bucket, :fees, 2)
+    merged_fee_specs = FeeMerger.merge_specs(new_fee_specs, previous_fees_specs)
 
     true =
       :ets.insert(:fees_bucket, [
         {:updated_at, :os.system_time(:second)},
         {:fee_specs_source_updated_at, last_updated_at},
         {:fees, new_fee_specs},
-        {:previous_fees, current_fee_specs}
+        {:previous_fees, previous_fees_specs},
+        {:merged_fees, merged_fee_specs}
       ])
 
-    true = save_merged_fees()
-
     :ok
-  end
-
-  # We save the merged fees in ets so we don't have to parse/merge specs
-  # to get the accepted fees for each transaction.
-  defp save_merged_fees() do
-    current_fee_specs = :ets.lookup_element(:fees_bucket, :fees, 2)
-    previous_fees_specs = :ets.lookup_element(:fees_bucket, :previous_fees, 2)
-
-    merged_fees = FeeMerger.merge_specs(current_fee_specs, previous_fees_specs)
-
-    :ets.update_element(:fees_bucket, :merged_fees, {2, merged_fees})
   end
 
   defp start_expiration_timer(timer) do
