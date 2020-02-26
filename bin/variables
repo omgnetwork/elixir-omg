@@ -2,8 +2,8 @@
 export REPLACE_OS_VARS=true
 export NODE_HOST=127.0.0.1
 export ERLANG_COOKIE=develop
-export APP_ENV=local_docker_development
-export HOSTNAME=yolo
+export APP_ENV=local-development
+export HOSTNAME=http://localhost/
 export DB_PATH=~/plasma-data/
 export ETHEREUM_RPC_URL=http://127.0.0.1:8545
 export ETH_NODE=geth
