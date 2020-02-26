@@ -57,7 +57,6 @@ defmodule Itest.StandardExitChallengeClient do
        ) do
     _ = Logger.info("Challenging standard exit.")
 
-    # FIXME: move somehow to challenge_data?
     sender_data = address |> Encoding.to_binary() |> :keccakf1600.sha3_256()
 
     data =
