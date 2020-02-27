@@ -25,7 +25,7 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
   require Utxo
 
   describe "DB.Repo.insert_all_chunked/3" do
-    # The current number of columns on the transaction table allow up to 8190
+    # The current number of columns on the transaction table allow up to 8191
     # transactions to be inserted using `DB.Repo.insert_all/3` before chunking must
     # be done to avoid hitting postgres limits.
     @max_txns_before_chunking 8191
