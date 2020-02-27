@@ -40,7 +40,7 @@ defmodule OMG.WatcherInfo.DB.Repo do
     utc_now = DateTime.utc_now()
     entries = Enum.map(entries, fn entry -> Map.merge(entry, %{inserted_at: utc_now, updated_at: utc_now}) end)
 
-    chunk_size = chunk_size(entries |> hd)
+    chunk_size = entries |> hd() |> chunk_size()
 
     entries
     |> Stream.chunk_every(chunk_size)
