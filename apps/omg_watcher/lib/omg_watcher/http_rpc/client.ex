@@ -47,9 +47,9 @@ defmodule OMG.Watcher.HttpRPC.Client do
   defp decode_response({:ok, %{transactions: transactions, blknum: number, hash: hash}}) do
     {:ok,
      %{
-       number: number,
-       hash: decode16!(hash),
-       transactions: Enum.map(transactions, &decode16!/1)
+       "number" => number,
+       "hash" => decode16!(hash),
+       "transactions" => Enum.map(transactions, &decode16!/1)
      }}
   end
 

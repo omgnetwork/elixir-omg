@@ -318,7 +318,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           pos_integer()
         ) :: validate_download_response_result_t()
   def validate_download_response(
-        {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
+        {:ok, %{"hash" => returned_hash, "transactions" => transactions, "number" => number}},
         requested_hash,
         requested_number,
         block_timestamp,
