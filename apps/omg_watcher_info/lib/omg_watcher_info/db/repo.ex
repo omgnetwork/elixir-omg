@@ -18,7 +18,6 @@ defmodule OMG.WatcherInfo.DB.Repo do
     adapter: Ecto.Adapters.Postgres
 
   @max_params_count 0xFFFF
-  def max_params_count(), do: @max_params_count
 
   @doc """
   Inserts all entries to the database in chunks to avoid `too many parameters` error.
@@ -54,7 +53,8 @@ defmodule OMG.WatcherInfo.DB.Repo do
   #
   # Do we want/need to be that defensive?
   def chunk_size(entry) do
-    @max_params_count |> div(entry |> fields_count)
+    fields_count = fields_count(entry)
+    div(@max_params_count, fields_count)
   end
 
   defp fields_count(map) when is_map(map), do: map |> Kernel.map_size()

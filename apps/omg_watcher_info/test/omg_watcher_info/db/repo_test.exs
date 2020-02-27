@@ -74,6 +74,29 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
     end
   end
 
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "DB.Repo.insert_all for transactions (via postgres INSERT) is limited to #{@max_txns_before_chunking} transactions" do
+    utc_now = DateTime.utc_now()
+
+    # test that transaction inseration at the max limit succeeds
+    block = insert(:block)
+    transactions = new_transactions(block.blknum, @max_txns_before_chunking, utc_now)
+
+    {transactions_inserted, _} = DB.Repo.insert_all(OMG.WatcherInfo.DB.Transaction, transactions)
+
+    assert transactions_inserted == @max_txns_before_chunking
+
+    # test that transaction inseration above the max limit raises an exception
+    block = insert(:block)
+    transactions = new_transactions(block.blknum, @max_txns_before_chunking + 1, utc_now)
+
+    assert_raise(
+      Postgrex.QueryError,
+      "postgresql protocol can not handle 65536 parameters, the maximum is 65535",
+      fn -> DB.Repo.insert_all(OMG.WatcherInfo.DB.Transaction, transactions) end
+    )
+  end
+
   describe "DB.Repo timestamps" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "all tables have inserted_at and updated_at timestamps set correctly on inserts and udpates" do
@@ -92,9 +115,9 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
 
   # Prefer using `ExMachina.build_list/3 which uses `OMG.WatcherInfo.Factory.Transaction`
   # over this function. This function is built to be fast and simple.
-  defp new_transactions(blknum, count) do
+  defp new_transactions(blknum, count, utc_now \\ nil) do
     Enum.reduce(1..count, [], fn index, acc ->
-      [new_transaction(blknum, index) | acc]
+      [new_transaction(blknum, index, utc_now) | acc]
     end)
   end
 
@@ -107,8 +130,8 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
   # tweaking of the map it returns because `OMG.WatcherInfo.DB.Repo.insert_all_chunked` is the code
   # being tested rather than `Ecto.Repo.insert_all/3`. The 2 functions differ in the inputs they
   # expect.
-  defp new_transaction(blknum, index) do
-    %{
+  defp new_transaction(blknum, index, utc_now \\ nil) do
+    transaction = %{
       txhash: to_string(index),
       txindex: index,
       txbytes: to_string(index),
@@ -116,5 +139,11 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
       txtype: 1,
       blknum: blknum
     }
+
+    if utc_now != nil do
+      Map.merge(transaction, %{inserted_at: utc_now, updated_at: utc_now})
+    else
+      transaction
+    end
   end
 end
