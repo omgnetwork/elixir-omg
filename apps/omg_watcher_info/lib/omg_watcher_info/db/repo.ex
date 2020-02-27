@@ -55,6 +55,6 @@ defmodule OMG.WatcherInfo.DB.Repo do
   # checks here.
   def chunk_size(entry), do: div(@max_params_count, fields_count(entry))
 
-  defp fields_count(map) when is_map(map), do: map |> Kernel.map_size()
+  defp fields_count(map) when is_map(map), do: Kernel.map_size(map)
   defp fields_count(list) when is_list(list), do: length(list)
 end
