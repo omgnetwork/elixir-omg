@@ -51,11 +51,9 @@ defmodule OMG.WatcherInfo.DB.Repo do
   #
   # DB.Repo.chunk_size(%{}) ==> (ArithmeticError) bad argument in arithmetic expression
   #
-  # Do we want/need to be that defensive?
-  def chunk_size(entry) do
-    fields_count = fields_count(entry)
-    div(@max_params_count, fields_count)
-  end
+  # But we could not think of a case where this code happen, so no defensive
+  # checks here.
+  def chunk_size(entry), do: div(@max_params_count, fields_count(entry))
 
   defp fields_count(map) when is_map(map), do: map |> Kernel.map_size()
   defp fields_count(list) when is_list(list), do: length(list)
