@@ -32,10 +32,6 @@ defmodule OMG.WatcherInfo.DB.Repo do
 
   def insert_all_chunked(_schema_or_source, [], _opts), do: :ok
 
-  # Note that while this function allows us to get around postgres' max parameters limit
-  # by breaking large single INSERT statements into smaller ones, it also creates a bottleneck
-  # where out-of-memory errors could become a problem. See this issue for more information:
-  # https://github.com/omisego/elixir-omg/issues/1357
   def insert_all_chunked(schema_or_source, entries, opts) do
     utc_now = DateTime.utc_now()
     entries = Enum.map(entries, fn entry -> Map.merge(entry, %{inserted_at: utc_now, updated_at: utc_now}) end)
