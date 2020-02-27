@@ -35,9 +35,9 @@ defmodule OMG.Watcher.Integration.TestServerTest do
 
       assert {:ok,
               %{
-                transactions: [],
-                number: 123_000,
-                hash: @expected_block_hash
+                "transactions" => [],
+                "number" => 123_000,
+                "hash" => @expected_block_hash
               }} == Client.get_block(@expected_block_hash, context.fake_addr)
     end
   end
