@@ -169,6 +169,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   test "if exit is thrown when faulty configuration for hostname is used" do
     :ok = System.put_env("DD_DISABLED", "TRUE")
     :ok = System.put_env("APP_ENV", "YOLO")
+    :ok = System.delete_env("HOSTNAME")
     assert catch_exit(SetTracer.init([])) == "HOSTNAME is not set correctly."
     :ok = System.delete_env("DD_DISABLED")
   end
