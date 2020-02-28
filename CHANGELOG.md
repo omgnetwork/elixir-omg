@@ -13,7 +13,7 @@ See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.3...v0.4
 - [Feature] Publish BlockSubmitted event (#1351)
 - [Fix] watcher_info crashing on receiving a block with large number of transactions (#1356)
 
-#### Internal
+#### Miscellaneous
 - None
 
 ## [v0.4.3](https://github.com/omisego/elixir-omg/tree/v0.4.3) (2020-02-26)
@@ -31,7 +31,7 @@ See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.2...v0.4
 - [Feature] Add release name, app env and hostname to datadog events (#1345)
 - [Fix] Align `docker-compose-watcher.yml` with the latest version (#1341)
 
-#### Internal
+#### Miscellaneous
 - [Feature] Use open-api generated client to run tests (#1330)
 - [Feature] Add `make api_specs` that generates all API specs at once (#1335)
 - [Feature] Publish docker images on version tags (#1343)
