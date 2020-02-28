@@ -7,10 +7,10 @@ Feature: In Flight Exits
     Given Alice and Bob create a transaction for "5" ETH
     And Bob gets in flight exit data for "5" ETH from his most recent deposit
     And Alice sends the most recently created transaction
-    And Bob sends the most recently created transaction
+    And Bob spends an output from the most recently sent transaction
     And Alice starts an in flight exit from the most recently created transaction
     Then Alice verifies its in flight exit from the most recently created transaction
     Given Bob piggybacks inputs and outputs from Alices most recent in flight exit
-    And Bob starts an in flight exit from his most recently created transaction
+    And Bob starts an in flight exit using his most recently prepared in flight exit data
     And Alice fully challenges Bobs most recent invalid in flight exit
     Then Alice can processes her own most recent in flight exit

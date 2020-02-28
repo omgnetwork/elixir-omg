@@ -329,7 +329,7 @@ defmodule InFlightExitsTests do
     {:ok, Map.put(state, entity, alice_state)}
   end
 
-  defand ~r/^Bob sends the most recently created transaction$/, _, state do
+  defand ~r/^Bob spends an output from the most recently sent transaction$/, _, state do
     %{address: alice_address, transaction_submit: alice_transaction_submit} = state["Alice"]
 
     %{address: bob_address, pkey: bob_pkey} = bob_state = state["Bob"]
@@ -447,7 +447,7 @@ defmodule InFlightExitsTests do
   end
 
   # ### start the competing IFE, to double-spend some inputs
-  defand ~r/^Bob starts an in flight exit from his most recently created transaction$/, _, state do
+  defand ~r/^Bob starts an in flight exit using his most recently prepared in flight exit data$/, _, state do
     exit_game_contract_address = state["exit_game_contract_address"]
     in_flight_exit_bond_size = state["in_flight_exit_bond_size"]
     %{address: address, exit_data: exit_data} = bob_state = state["Bob"]
