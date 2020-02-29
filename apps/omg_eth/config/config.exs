@@ -6,7 +6,8 @@ ethereum_client_timeout_ms = 20_000
 
 config :ethereumex,
   url: "http://localhost:8545",
-  http_options: [recv_timeout: ethereum_client_timeout_ms]
+  http_options: [recv_timeout: ethereum_client_timeout_ms],
+  adapter: OMG.Status.Metric.Datadog
 
 config :omg_eth,
   contract_addr: nil,
