@@ -21,6 +21,7 @@ defmodule OMG.WatcherInfo.MixProject do
   def application() do
     [
       mod: {OMG.WatcherInfo.Application, []},
+      start_phases: [{:attach_telemetry, []}],
       extra_applications: [:logger, :runtime_tools, :telemetry]
     ]
   end
@@ -34,7 +35,7 @@ defmodule OMG.WatcherInfo.MixProject do
     [
       {:postgrex, "~> 0.14"},
       {:ecto_sql, "~> 3.1"},
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4.1"},
       {:spandex_ecto, "~> 0.6.0"},
       # there's no apparent reason why libsecp256k1, spandex and distillery need to be included as dependencies
       # to this umbrella application apart from mix ecto.gen.migration not working, so here they are, copied from

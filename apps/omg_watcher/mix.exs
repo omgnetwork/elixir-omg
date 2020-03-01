@@ -33,7 +33,7 @@ defmodule OMG.Watcher.MixProject do
 
   defp deps() do
     [
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4.1"},
       # there's no apparent reason why libsecp256k1, spandex and distillery need to be included as dependencies
       # to this umbrella application apart from mix ecto.gen.migration not working, so here they are, copied from
       # the parent (main) mix.exs
