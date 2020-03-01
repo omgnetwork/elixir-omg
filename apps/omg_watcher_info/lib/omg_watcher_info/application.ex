@@ -44,23 +44,4 @@ defmodule OMG.WatcherInfo.Application do
     Supervisor.start_link(children, opts)
   end
 
-  def start_phase(:attach_telemetry, :normal, _phase_args) do
-    handlers = [
-      [
-        "spandex-query-tracer",
-        [:omg, :watcher, :db, :repo, :query],
-        &SpandexEcto.TelemetryAdapter.handle_event/4,
-        nil
-      ]
-    ]
-
-    IO.inspect("yolo")
-
-    Enum.each(handlers, fn handler ->
-      case apply(:telemetry, :attach_many, handler) do
-        :ok -> :ok
-        {:error, :already_exists} -> :ok
-      end
-    end)
-  end
 end

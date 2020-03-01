@@ -21,7 +21,6 @@ defmodule OMG.WatcherInfo.MixProject do
   def application() do
     [
       mod: {OMG.WatcherInfo.Application, []},
-      start_phases: [{:attach_telemetry, []}],
       extra_applications: [:logger, :runtime_tools, :telemetry]
     ]
   end

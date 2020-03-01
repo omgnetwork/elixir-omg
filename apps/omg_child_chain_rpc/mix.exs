@@ -43,7 +43,7 @@ defmodule OMG.ChildChainRPC.MixProject do
       {:httpoison, "~> 1.4.0"},
       {:cors_plug, "~> 2.0"},
       {:spandex_phoenix, "~> 0.4.1"},
-      {:spandex_datadog, "~> 0.4.1"},
+      {:spandex_datadog, "~> 0.4"},
       {:telemetry, "~> 0.4.1"},
       #
       {:omg_bus, in_umbrella: true},
