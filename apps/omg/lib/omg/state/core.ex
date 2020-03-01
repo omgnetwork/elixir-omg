@@ -187,13 +187,14 @@ defmodule OMG.State.Core do
   def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
     tx_hash = Transaction.raw_txhash(tx)
 
-    with {:ok, fees_paid} <- Validator.can_process_tx(state, tx, fees) do
-      {:ok, {tx_hash, state.height, state.tx_index},
-       state
-       |> apply_tx(tx)
-       |> add_pending_tx(tx)
-       |> handle_fees(tx, fees_paid)}
-    else
+    case Validator.can_process_tx(state, tx, fees) do
+      {:ok, fees_paid} ->
+        {:ok, {tx_hash, state.height, state.tx_index},
+         state
+         |> apply_tx(tx)
+         |> add_pending_tx(tx)
+         |> handle_fees(tx, fees_paid)}
+
       {{:error, _reason}, _state} = error ->
         error
     end

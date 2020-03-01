@@ -148,8 +148,9 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Fee do
           {:error, :wrong_number_of_fee_outputs | :fee_output_amount_has_to_be_positive}
   def valid?(%Transaction.Fee{} = fee_tx, _signed_tx) do
     # we're able to check structure validity => single output with amount > 0
-    with outputs = Transaction.get_outputs(fee_tx),
-         true <- length(outputs) == 1 || {:error, :wrong_number_of_fee_outputs},
+    outputs = Transaction.get_outputs(fee_tx)
+
+    with true <- length(outputs) == 1 || {:error, :wrong_number_of_fee_outputs},
          [output] = outputs,
          true <- output.amount > 0 || {:error, :fee_output_amount_has_to_be_positive},
          do: true
