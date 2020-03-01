@@ -25,4 +25,18 @@ defmodule OMG.Eth.Application do
 
     OMG.Eth.Supervisor.start_link()
   end
+
+  def start_phase(:attach_telemetry, :normal, _phase_args) do
+    handler = [
+      "measure-ethereumex-rpc",
+      OMG.Eth.Metric.Ethereumex.supported_events(),
+      &OMG.Eth.Metric.Ethereumex.handle_event/4,
+      nil
+    ]
+
+    case apply(:telemetry, :attach, handler) do
+      :ok -> :ok
+      {:error, :already_exists} -> :ok
+    end
+  end
 end

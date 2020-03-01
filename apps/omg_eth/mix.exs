@@ -22,6 +22,7 @@ defmodule OMG.Eth.MixProject do
   def application() do
     [
       mod: {OMG.Eth.Application, []},
+      start_phases: [{:attach_telemetry, []}],
       extra_applications: [:sasl, :logger]
     ]
   end
