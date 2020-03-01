@@ -26,4 +26,8 @@ defmodule OMG.WatcherInfo.DB.Types.AtomType do
   def dump(value) when is_atom(value), do: {:ok, Atom.to_string(value)}
 
   def dump(_), do: :error
+  # https://hexdocs.pm/ecto/Ecto.Type.html#c:embed_as/1
+  def embed_as(_), do: :self
+
+  def equal?(value1, value2), do: value1 == value2
 end
