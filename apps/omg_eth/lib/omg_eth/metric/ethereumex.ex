@@ -13,6 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.Eth.Metric.Ethereumex do
+  @moduledoc """
+  Telemetry handler for Ethereumex events
+  """
   alias OMG.Status.Metric.Datadog
   def supported_events(), do: [:ethereumex]
 

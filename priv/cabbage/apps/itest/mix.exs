@@ -32,6 +32,7 @@ defmodule Itest.MixProject do
       {:eip_55, "~> 0.1"},
       {:ethereumex,
        git: "https://github.com/mana-ethereum/ethereumex.git", ref: "b5b8a6057bb26ce6dc6365bbb8b699d72b13b7b1"},
+      {:telemetry, "~> 0.4.1"},
       {:websockex, "~> 0.4.2"},
       {:ex_abi, "~> 0.2.2"},
       {:ex_rlp, "~> 0.5.3"},
