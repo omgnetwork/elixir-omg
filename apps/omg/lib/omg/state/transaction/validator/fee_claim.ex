@@ -30,10 +30,10 @@ defmodule OMG.State.Transaction.Validator.FeeClaim do
         %Transaction.Recovered{signed_tx: %{raw_tx: fee_tx}}
       ) do
     # NOTE: Fee claiming transaction does not transfer funds. It spends pseudo-output resultant of fees collection
-    with outputs = make_outputs(owner, fees_paid),
-         {:ok, _} <- Transaction.Protocol.can_apply?(fee_tx, outputs) do
-      {:ok, %{}}
-    else
+    outputs = make_outputs(owner, fees_paid)
+
+    case Transaction.Protocol.can_apply?(fee_tx, outputs) do
+      {:ok, _} -> {:ok, %{}}
       {:error, _reason} = error -> {error, state}
     end
   end

@@ -404,9 +404,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
           t()
         ) :: {:ok, t()} | {{:error, {:tx_execution, any()}}, t()}
   def validate_executions(tx_execution_results, %{hash: hash, number: blknum}, state) do
-    with true <- all_tx_executions_ok?(tx_execution_results) do
-      {:ok, state}
-    else
+    case all_tx_executions_ok?(tx_execution_results) do
+      true ->
+        {:ok, state}
+
       {:error, reason} ->
         event = %Event.InvalidBlock{error_type: :tx_execution, hash: hash, blknum: blknum}
         state = state |> set_chain_status(:error) |> add_distinct_event(event)

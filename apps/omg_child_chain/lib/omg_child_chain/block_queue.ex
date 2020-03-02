@@ -106,18 +106,18 @@ defmodule OMG.ChildChain.BlockQueue do
       _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Encoding.to_hex(top_mined_hash))}")
 
       {:ok, state} =
-        with {:ok, _state} = result <-
-               Core.new(
-                 mined_child_block_num: mined_num,
-                 known_hashes: Enum.zip(range, known_hashes),
-                 top_mined_hash: top_mined_hash,
-                 parent_height: parent_height,
-                 child_block_interval: child_block_interval,
-                 block_submit_every_nth: Application.fetch_env!(:omg_child_chain, :block_submit_every_nth),
-                 finality_threshold: finality_threshold
-               ) do
-          result
-        else
+        case Core.new(
+               mined_child_block_num: mined_num,
+               known_hashes: Enum.zip(range, known_hashes),
+               top_mined_hash: top_mined_hash,
+               parent_height: parent_height,
+               child_block_interval: child_block_interval,
+               block_submit_every_nth: Application.fetch_env!(:omg_child_chain, :block_submit_every_nth),
+               finality_threshold: finality_threshold
+             ) do
+          {:ok, _state} = result ->
+            result
+
           {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
             _ =
               log_init_error(

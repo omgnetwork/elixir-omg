@@ -47,12 +47,10 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
   defp validate_address("0x" <> value), do: validate_address(value)
 
   defp validate_address(value) when is_binary(value) do
-    with {:ok, address} when byte_size(address) == 20 and address != @zero_address <-
-           value |> String.upcase() |> Base.decode16() do
-      address
-    else
-      :error -> exit("Fee claimer address has to be HEX-encoded string")
+    case value |> String.upcase() |> Base.decode16() do
       {:ok, @zero_address} -> exit("Fee claimer address cannot be zero-bytes")
+      {:ok, address} when byte_size(address) == 20 -> address
+      :error -> exit("Fee claimer address has to be HEX-encoded string")
       _ -> exit("Fee claimer address has to be 20-bytes long")
     end
   end

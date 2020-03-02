@@ -40,7 +40,7 @@ defmodule OMG.DB.MixProject do
       #       OMG-373 (Elixir 1.8) should fix this
       # TEST ONLY
       {:briefly, "~> 0.3.0", only: [:dev, :test]},
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4.1"},
       {:omg_utils, in_umbrella: true}
     ]
   end
