@@ -14,8 +14,8 @@ info:
     url: 'https://omisego.network/'
 
 servers:
+  - url: https://watcher-info.ropsten.v1.omg.network/
   - url: http://localhost:7534/
-  - url: http://localhost:7434/
 
 tags:
   - name: Account
