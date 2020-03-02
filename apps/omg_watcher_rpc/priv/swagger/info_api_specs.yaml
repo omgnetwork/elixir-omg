@@ -499,6 +499,10 @@ paths:
                             amount:
                               type: integer
                               format: int256
+                              inserted_at:
+                                type: string
+                              updated_at:
+                                type: string
                     example:
                       data:
                         - blknum: 123000
@@ -509,6 +513,8 @@ paths:
                           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                           currency: '0x0000000000000000000000000000000000000000'
                           amount: 10
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          updated_at: '2020-02-15T04:07:57Z'
         '500':
           description: Returns an internal server error
           content:
@@ -659,6 +665,10 @@ paths:
                               type: string
                             txbytes:
                               type: string
+                            inserted_at:
+                              type: string
+                            updated_at:
+                              type: string
                             block:
                               type: object
                               properties:
@@ -676,6 +686,10 @@ paths:
                                 tx_count:
                                   type: integer
                                   format: int64
+                                inserted_at:
+                                  type: string
+                                updated_at:
+                                  type: string
                             inputs:
                               type: array
                               items:
@@ -706,6 +720,10 @@ paths:
                                   creating_txhash:
                                     type: string
                                   spending_txhash:
+                                    type: string
+                                  inserted_at:
+                                    type: string
+                                  updated_at:
                                     type: string
                             outputs:
                               type: array
@@ -738,6 +756,10 @@ paths:
                                     type: string
                                   spending_txhash:
                                     type: string
+                                  inserted_at:
+                                    type: string
+                                  updated_at:
+                                    type: string
                       data_paging:
                         type: object
                         properties:
@@ -756,11 +778,15 @@ paths:
                             hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
                             eth_height: 97424
                             blknum: 68290000
+                            inserted_at: '2020-02-10T12:07:32Z'
+                            updated_at: '2020-02-15T04:07:57Z'
                           txindex: 0
                           txtype: 1
                           txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                           metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                           txbytes: 0x5df13a6bee20000...
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          updated_at: '2020-02-15T04:07:57Z'
                           inputs:
                             - blknum: 1000
                               txindex: 111
@@ -772,6 +798,8 @@ paths:
                               creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                               spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               amount: 20000000
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                           outputs:
                             - blknum: 68290000
                               txindex: 5113
@@ -783,6 +811,8 @@ paths:
                               amount: 15000000
                               creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                               spending_txhash: null
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                             - blknum: 68290000
                               txindex: 5113
                               otype: 1
@@ -793,6 +823,8 @@ paths:
                               amount: 5000000
                               creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                               spending_txhash: null
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                       data_paging:
                         page: 1
                         limit: 200
@@ -923,6 +955,10 @@ paths:
                           tx_count:
                             type: integer
                             format: int64
+                          inserted_at:
+                            type: string
+                          updated_at:
+                            type: string
                     example:
                       data:
                         timestamp: 1540365586
@@ -930,6 +966,8 @@ paths:
                         eth_height: 97424
                         blknum: 68290000
                         tx_count: 2
+                        inserted_at: '2020-02-10T12:07:32Z'
+                        updated_at: '2020-02-15T04:07:57Z'
         '500':
           description: Returns an internal server error
           content:
@@ -1066,6 +1104,10 @@ paths:
                             tx_count:
                               type: integer
                               format: int64
+                            inserted_at:
+                              type: string
+                            updated_at:
+                              type: string
                       data_paging:
                         type: object
                         properties:
@@ -1084,6 +1126,8 @@ paths:
                           eth_height: 97424
                           timestamp: 1540365586
                           tx_count: 2
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          updated_at: '2020-02-15T04:07:57Z'
                       data_paging:
                         page: 1
                         limit: 100
@@ -1239,6 +1283,10 @@ paths:
                               type: string
                             txbytes:
                               type: string
+                            inserted_at:
+                              type: string
+                            updated_at:
+                              type: string
                             block:
                               type: object
                               properties:
@@ -1256,6 +1304,10 @@ paths:
                                 tx_count:
                                   type: integer
                                   format: int64
+                                inserted_at:
+                                  type: string
+                                updated_at:
+                                  type: string
                             inputs:
                               type: array
                               items:
@@ -1286,6 +1338,10 @@ paths:
                                   creating_txhash:
                                     type: string
                                   spending_txhash:
+                                    type: string
+                                  inserted_at:
+                                    type: string
+                                  updated_at:
                                     type: string
                             outputs:
                               type: array
@@ -1318,6 +1374,10 @@ paths:
                                     type: string
                                   spending_txhash:
                                     type: string
+                                  inserted_at:
+                                    type: string
+                                  updated_at:
+                                    type: string
                       data_paging:
                         type: object
                         properties:
@@ -1336,11 +1396,15 @@ paths:
                             hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
                             eth_height: 97424
                             blknum: 68290000
+                            inserted_at: '2020-02-10T12:07:32Z'
+                            updated_at: '2020-02-15T04:07:57Z'
                           txindex: 0
                           txtype: 1
                           txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                           metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                           txbytes: 0x5df13a6bee20000...
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          updated_at: '2020-02-15T04:07:57Z'
                           inputs:
                             - blknum: 1000
                               txindex: 111
@@ -1352,6 +1416,8 @@ paths:
                               creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                               spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               amount: 20000000
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                           outputs:
                             - blknum: 68290000
                               txindex: 5113
@@ -1363,6 +1429,8 @@ paths:
                               amount: 15000000
                               creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                               spending_txhash: null
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                             - blknum: 68290000
                               txindex: 5113
                               otype: 1
@@ -1373,6 +1441,8 @@ paths:
                               amount: 5000000
                               creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                               spending_txhash: null
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                       data_paging:
                         page: 1
                         limit: 200
@@ -1562,6 +1632,10 @@ paths:
                                       creating_txhash:
                                         type: string
                                       spending_txhash:
+                                        type: string
+                                      inserted_at:
+                                        type: string
+                                      updated_at:
                                         type: string
                                 outputs:
                                   type: array
@@ -1982,6 +2056,10 @@ paths:
                             type: string
                           txbytes:
                             type: string
+                          inserted_at:
+                            type: string
+                          updated_at:
+                            type: string
                           block:
                             type: object
                             properties:
@@ -1999,6 +2077,10 @@ paths:
                               tx_count:
                                 type: integer
                                 format: int64
+                              inserted_at:
+                                type: string
+                              updated_at:
+                                type: string
                           inputs:
                             type: array
                             items:
@@ -2029,6 +2111,10 @@ paths:
                                 creating_txhash:
                                   type: string
                                 spending_txhash:
+                                  type: string
+                                inserted_at:
+                                  type: string
+                                updated_at:
                                   type: string
                           outputs:
                             type: array
@@ -2061,6 +2147,10 @@ paths:
                                   type: string
                                 spending_txhash:
                                   type: string
+                                inserted_at:
+                                  type: string
+                                updated_at:
+                                  type: string
                     example:
                       data:
                         txindex: 5113
@@ -2068,11 +2158,15 @@ paths:
                         txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                         metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                         txbytes: 0x5df13a6bee20000...
+                        inserted_at: '2020-02-10T12:07:32Z'
+                        updated_at: '2020-02-15T04:07:57Z'
                         block:
                           timestamp: 1540365586
                           hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
                           eth_height: 97424
                           blknum: 68290000
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          updated_at: '2020-02-15T04:07:57Z'
                         inputs:
                           - blknum: 1000
                             txindex: 111
@@ -2084,6 +2178,8 @@ paths:
                             amount: 10
                             creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                             spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                            inserted_at: '2020-02-10T12:07:32Z'
+                            updated_at: '2020-02-15T04:07:57Z'
                         outputs:
                           - blknum: 68290000
                             txindex: 5113
@@ -2095,6 +2191,8 @@ paths:
                             amount: 2
                             creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                             spending_txhash: null
+                            inserted_at: '2020-02-10T12:07:32Z'
+                            updated_at: '2020-02-15T04:07:57Z'
                           - blknum: 68290000
                             txindex: 5113
                             oindex: 1
@@ -2105,6 +2203,8 @@ paths:
                             amount: 7
                             creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                             spending_txhash: null
+                            inserted_at: '2020-02-10T12:07:32Z'
+                            updated_at: '2020-02-15T04:07:57Z'
         '500':
           description: Returns an internal server error
           content:
