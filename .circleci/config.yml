@@ -665,7 +665,12 @@ workflows:
           requires: [build]
   build-test-deploy:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              only: /.+/
+            tags:
+              only: /.+/
       - test_barebone_release:
           requires: [build]
       - notify_services:
