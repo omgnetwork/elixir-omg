@@ -18,7 +18,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDurationTest do
 
   @app :omg_child_chain
   @config_key :fee_buffer_duration_ms
-  @env_key "FEE_BUFFER_DURATION_MS"
+  @env_var_name "FEE_BUFFER_DURATION_MS"
 
   setup do
     original_config = Application.get_all_env(@app)
@@ -32,14 +32,14 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDurationTest do
   end
 
   test "duration is set when the env var is present" do
-    :ok = System.put_env(@env_key, "30000")
+    :ok = System.put_env(@env_var_name, "30000")
     :ok = SetFeeBufferDuration.init([])
     assert Application.get_env(@app, @config_key) == 30_000
-    :ok = System.delete_env(@env_key)
+    :ok = System.delete_env(@env_var_name)
   end
 
   test "no other configurations got affected", context do
-    :ok = System.put_env(@env_key, "30000")
+    :ok = System.put_env(@env_var_name, "30000")
     :ok = SetFeeBufferDuration.init([])
     new_configs = @app |> Application.get_all_env() |> Keyword.delete(@config_key) |> Enum.sort()
     old_configs = context.original_config |> Keyword.delete(@config_key) |> Enum.sort()
@@ -48,19 +48,19 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDurationTest do
   end
 
   test "takes the default app env value if not defined in sys ENV" do
-    :ok = System.delete_env(@env_key)
+    :ok = System.delete_env(@env_var_name)
     current_value = Application.get_env(@app, @config_key)
     :ok = SetFeeBufferDuration.init([])
     assert current_value == Application.get_env(@app, @config_key)
   end
 
   test "fails if FEE_BUFFER_DURATION_MS is not a valid stringified integer" do
-    :ok = System.put_env(@env_key, "invalid")
+    :ok = System.put_env(@env_var_name, "invalid")
 
     assert []
            |> SetFeeBufferDuration.init()
            |> catch_error() == :badarg
 
-    :ok = System.delete_env(@env_key)
+    :ok = System.delete_env(@env_var_name)
   end
 end

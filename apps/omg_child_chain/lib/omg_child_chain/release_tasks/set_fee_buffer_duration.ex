@@ -19,7 +19,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration do
 
   @app :omg_child_chain
   @config_key :fee_buffer_duration_ms
-  @env_name "FEE_BUFFER_DURATION_MS"
+  @env_var_name "FEE_BUFFER_DURATION_MS"
 
   @impl Provider
   def init(_args) do
@@ -31,7 +31,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration do
 
   defp fee_buffer_ms() do
     buffer_ms =
-      @env_name
+      @env_var_name
       |> System.get_env()
       |> validate_integer(Application.get_env(@app, @config_key))
 
