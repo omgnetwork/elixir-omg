@@ -16,7 +16,7 @@ defmodule OMG.Eth.Application do
   @moduledoc false
 
   alias OMG.Eth
-
+  alias OMG.Eth.Metric.Ethereumex
   use Application
   use OMG.Utils.LoggerExt
 
@@ -29,8 +29,8 @@ defmodule OMG.Eth.Application do
   def start_phase(:attach_telemetry, :normal, _phase_args) do
     handler = [
       "measure-ethereumex-rpc",
-      OMG.Eth.Metric.Ethereumex.supported_events(),
-      &OMG.Eth.Metric.Ethereumex.handle_event/4,
+      Ethereumex.supported_events(),
+      &Ethereumex.handle_event/4,
       nil
     ]
 
