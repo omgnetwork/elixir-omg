@@ -12,6 +12,7 @@ info:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
     url: 'https://omisego.network/'
 servers:
+  - url: 'https://watcher-info.ropsten.v1.omg.network/'
   - url: 'http://localhost:7534/'
   - url: 'http://localhost:7434/'
 tags:
