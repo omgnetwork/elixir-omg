@@ -36,8 +36,7 @@ defmodule OMG.Eth.MixProject do
   defp deps() do
     [
       {:ex_abi, "~> 0.2.1"},
-      {:ethereumex,
-       git: "https://github.com/mana-ethereum/ethereumex.git", ref: "b5b8a6057bb26ce6dc6365bbb8b699d72b13b7b1"},
+      {:ethereumex, "~> 0.6.0"},
       # Umbrella
       {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},
