@@ -23,6 +23,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
+    _ = Application.ensure_all_started(:omg_status)
     rpc_url = get_ethereum_rpc_url()
     Application.put_env(:ethereumex, :url, rpc_url, persistent: true)
 

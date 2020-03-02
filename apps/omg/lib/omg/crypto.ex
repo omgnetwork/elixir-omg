@@ -48,11 +48,15 @@ defmodule OMG.Crypto do
   """
   @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt | binary}
   def recover_address(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
-    with {:ok, pub} <- Signature.recover_public(digest, packed_signature) do
-      generate_address(pub)
-    else
-      {:error, "Recovery id invalid 0-3"} -> {:error, :signature_corrupt}
-      other -> other
+    case Signature.recover_public(digest, packed_signature) do
+      {:ok, pub} ->
+        generate_address(pub)
+
+      {:error, "Recovery id invalid 0-3"} ->
+        {:error, :signature_corrupt}
+
+      other ->
+        other
     end
   end
 
