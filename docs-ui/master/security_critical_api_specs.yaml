@@ -11,6 +11,9 @@ info:
   license:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
     url: 'https://omisego.network/'
+servers:
+  - url: 'https://watcher.ropsten.v1.omg.network/'
+  - url: 'http://localhost:7434/'
 tags:
   - name: Status
     description: Status of the child chain.
@@ -25,9 +28,6 @@ tags:
     description: Transaction related API.
   - name: InFlightExit
     description: InFlightExit related API.
-servers:
-  - url: 'https://watcher.ropsten.v1.omg.network/'
-  - url: 'http://localhost:7434/'
 paths:
   /alarm.get:
     get:
