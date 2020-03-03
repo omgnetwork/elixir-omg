@@ -22,12 +22,13 @@ defmodule OMG.ChildChain.SyncSupervisor do
 
   alias OMG.ChildChain.ChildManager
   alias OMG.ChildChain.CoordinatorSetup
+  alias OMG.ChildChain.EventFetcher
   alias OMG.ChildChain.Monitor
-  alias OMG.Eth.RootChain
   alias OMG.EthereumEventListener
   alias OMG.RootChainCoordinator
   alias OMG.State
 
+  @events_bucket :events_bucket
   def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
@@ -36,6 +37,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
+    :ok = ensure_ets_init()
     Supervisor.init(children(), opts)
   end
 
@@ -43,28 +45,38 @@ defmodule OMG.ChildChain.SyncSupervisor do
     [
       {OMG.ChildChain.BlockQueue.Server, []},
       {RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
+      {EventFetcher,
+       contracts: Application.fetch_env!(:omg_eth, :contract_addr),
+       ets_bucket: @events_bucket,
+       events: [
+         [name: :deposit_created, enrich: false],
+         [name: :in_flight_exit_started, enrich: true],
+         [name: :in_flight_exit_input_piggybacked, enrich: false],
+         [name: :in_flight_exit_output_piggybacked, enrich: false],
+         [name: :exit_started, enrich: true]
+       ]},
       EthereumEventListener.prepare_child(
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
-        get_events_callback: &RootChain.get_deposits/2,
+        get_events_callback: &EventFetcher.deposit_created/2,
         process_events_callback: &State.deposit/1
       ),
       EthereumEventListener.prepare_child(
         service_name: :in_flight_exit,
         synced_height_update_key: :last_in_flight_exit_eth_height,
-        get_events_callback: &RootChain.get_in_flight_exits_started/2,
+        get_events_callback: &EventFetcher.in_flight_exit_started/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
       EthereumEventListener.prepare_child(
         service_name: :piggyback,
         synced_height_update_key: :last_piggyback_exit_eth_height,
-        get_events_callback: &RootChain.get_piggybacks/2,
+        get_events_callback: &EventFetcher.in_flight_exit_piggybacked/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
       EthereumEventListener.prepare_child(
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,
-        get_events_callback: &RootChain.get_standard_exits_started/2,
+        get_events_callback: &EventFetcher.exit_started/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
       {ChildManager, [monitor: Monitor]}
@@ -74,5 +86,10 @@ defmodule OMG.ChildChain.SyncSupervisor do
   defp exit_and_ignore_validities(exits) do
     {status, db_updates, _validities} = State.exit_utxos(exits)
     {status, db_updates}
+  end
+
+  defp ensure_ets_init() do
+    _ = if :undefined == :ets.info(@events_bucket), do: :ets.new(@events_bucket, [:ordered_set, :public, :named_table])
+    :ok
   end
 end

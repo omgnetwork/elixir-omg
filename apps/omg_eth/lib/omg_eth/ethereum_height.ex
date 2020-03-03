@@ -45,16 +45,9 @@ defmodule OMG.Eth.EthereumHeight do
     {:reply, {:ok, ethereum_height}, ethereum_height}
   end
 
-  def handle_info({:internal_event_bus, :ethereum_new_height, new_height}, state) do
-    case is_integer(new_height) do
-      true ->
-        _ = Logger.debug("Got an internal :ethereum_new_height event with height: #{new_height}.")
-        {:noreply, new_height}
-
-      false ->
-        _ = Logger.warn("Got an internal :ethereum_new_height event with unrecognized height: #{new_height}.")
-        {:noreply, state}
-    end
+  def handle_info({:internal_event_bus, :ethereum_new_height, new_height}, _state) do
+    _ = Logger.debug("Got an internal :ethereum_new_height event with height: #{new_height}.")
+    {:noreply, new_height}
   end
 
   @spec get_ethereum_height() :: non_neg_integer() | :error_ethereum_height
