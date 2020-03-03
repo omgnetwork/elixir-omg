@@ -338,25 +338,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _}} = ife) do
     @outputs_index_range
-    |> Enum.filter(&is_output_piggybacked?(ife, &1))
+    |> Enum.filter(&is_piggybacked?(ife, {:output, &1}))
     |> Enum.map(&Utxo.position(blknum, txindex, &1))
-  end
-
-  @spec is_piggybacked?(t(), combined_index_t()) :: boolean()
-  def is_piggybacked?(%__MODULE__{exit_map: map}, combined_index) when is_tuple(combined_index) do
-    if exit = exit_map_get(map, combined_index) do
-      Map.get(exit, :is_piggybacked, false)
-    else
-      false
-    end
-  end
-
-  def is_input_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_inputs do
-    is_piggybacked?(ife, {:input, index})
-  end
-
-  def is_output_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_outputs do
-    is_piggybacked?(ife, {:output, index})
   end
 
   def indexed_piggybacks_by_ife(%__MODULE__{tx: tx} = ife, :input) do
@@ -364,7 +347,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       tx
       |> Transaction.get_inputs()
       |> Enum.with_index()
-      |> Enum.filter(fn {_input, index} -> is_input_piggybacked?(ife, index) end)
+      |> Enum.filter(fn {_input, index} -> is_piggybacked?(ife, {:input, index}) end)
 
     {ife, indexed_piggybacked_inputs}
   end
@@ -385,12 +368,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def piggybacked_inputs(ife) do
     @inputs_index_range
-    |> Enum.filter(&is_input_piggybacked?(ife, &1))
+    |> Enum.filter(&is_piggybacked?(ife, {:input, &1}))
   end
 
   def piggybacked_outputs(ife) do
     @outputs_index_range
-    |> Enum.filter(&is_output_piggybacked?(ife, &1))
+    |> Enum.filter(&is_piggybacked?(ife, {:output, &1}))
   end
 
   @spec is_finalized?(t(), combined_index_t()) :: boolean()
@@ -449,6 +432,15 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def is_relevant?(%__MODULE__{relevant_from_blknum: relevant_from_blknum}, blknum_now),
     do: relevant_from_blknum < blknum_now
+
+  @spec is_piggybacked?(t(), combined_index_t()) :: boolean()
+  defp is_piggybacked?(%__MODULE__{exit_map: map}, combined_index) when is_tuple(combined_index) do
+    if exit = exit_map_get(map, combined_index) do
+      Map.get(exit, :is_piggybacked, false)
+    else
+      false
+    end
+  end
 
   # there's nothing with any position, so there's nothing older than competitor, so it's good to challenge with
   defp do_is_viable_competitor?(nil, nil, _competitor_pos), do: true

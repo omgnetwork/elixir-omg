@@ -513,14 +513,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     available_inputs =
       input_witnesses
-      |> Enum.filter(fn {index, _} -> not InFlightExitInfo.is_input_piggybacked?(ife, index) end)
+      |> Enum.filter(fn {index, _} -> not InFlightExitInfo.is_active?(ife, {:input, index}) end)
       |> Enum.map(fn {index, owner} -> %{index: index, address: owner} end)
 
     available_outputs =
       outputs
       |> Enum.filter(fn %{owner: owner} -> zero_address?(owner) end)
       |> Enum.with_index()
-      |> Enum.filter(fn {_, index} -> not InFlightExitInfo.is_output_piggybacked?(ife, index) end)
+      |> Enum.filter(fn {_, index} -> not InFlightExitInfo.is_active?(ife, {:output, index}) end)
       |> Enum.map(fn {%{owner: owner}, index} -> %{index: index, address: owner} end)
 
     if Enum.empty?(available_inputs) and Enum.empty?(available_outputs) do
