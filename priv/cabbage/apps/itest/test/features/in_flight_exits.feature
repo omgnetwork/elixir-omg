@@ -11,6 +11,6 @@ Feature: In Flight Exits
     And Alice starts an in flight exit from the most recently created transaction
     Then Alice verifies its in flight exit from the most recently created transaction
     Given Bob piggybacks inputs and outputs from Alices most recent in flight exit
-    And Bob starts an in flight exit using his most recently prepared in flight exit data
+    And Bob starts a piggybacked in flight exit using his most recently prepared in flight exit data
     And Alice fully challenges Bobs most recent invalid in flight exit
     Then Alice can processes her own most recent in flight exit
