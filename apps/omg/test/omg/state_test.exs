@@ -51,7 +51,7 @@ defmodule OMG.StateTest do
 
   @tag fixtures: [:alice, :standalone_state_server]
   test "can execute various calls on OMG.State, one happy path only", %{alice: alice} do
-    fee = %{@eth => %{amount: 1}}
+    fee = %{@eth => [1]}
 
     # deposits, transactions, utxo existence
     assert {:ok, _} = State.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}])

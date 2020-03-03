@@ -37,7 +37,7 @@ defmodule OMG.ChildChain do
   def submit(transaction) do
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
          :ok <- is_supported(recovered_tx),
-         {:ok, fees} <- FeeServer.transaction_fees(),
+         {:ok, fees} <- FeeServer.accepted_fees(),
          fees = Fees.for_transaction(recovered_tx, fees),
          {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
       {:ok, %{txhash: tx_hash, blknum: blknum, txindex: tx_index}}
@@ -57,7 +57,7 @@ defmodule OMG.ChildChain do
   @spec get_filtered_fees(list(pos_integer()), list(String.t()) | nil) ::
           {:ok, Fees.full_fee_t()} | {:error, :currency_fee_not_supported}
   def get_filtered_fees(tx_types, currencies) do
-    with {:ok, fees} <- FeeServer.transaction_fees() do
+    with {:ok, fees} <- FeeServer.current_fees() do
       FeeFilter.filter(fees, tx_types, currencies)
     end
     |> result_with_logging()

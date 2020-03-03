@@ -38,7 +38,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   @utxo_pos1 Utxo.position(2, 0, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
-  @fee %{@eth => %{amount: 1}}
+  @fee %{@eth => [1]}
 
   setup do
     {:ok, processor_empty} = Core.init([], [], [])

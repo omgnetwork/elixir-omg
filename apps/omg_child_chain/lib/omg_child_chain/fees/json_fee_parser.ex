@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.ChildChain.Fees.FeeParser do
+defmodule OMG.ChildChain.Fees.JSONFeeParser do
   @moduledoc """
   Transaction's fee validation functions
   """
   require Logger
 
-  alias OMG.ChildChain.Fees.SingleSpecParser
+  alias OMG.ChildChain.Fees.JSONSingleSpecParser
 
   @type parsing_error() ::
-          SingleSpecParser.parsing_error()
+          JSONSingleSpecParser.parsing_error()
           # There is a duplicated token for the same tx type
           | :duplicate_token
           # the format of the json is invalid (ie: it's an array)
@@ -59,7 +59,7 @@ defmodule OMG.ChildChain.Fees.FeeParser do
 
   defp parse_for_type({tx_type, ""}, fee_spec) do
     fee_spec
-    |> Enum.map(&SingleSpecParser.parse/1)
+    |> Enum.map(&JSONSingleSpecParser.parse/1)
     |> Enum.reduce({[], %{}, 1, tx_type}, &spec_reducer/2)
   end
 
