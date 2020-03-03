@@ -28,7 +28,7 @@ defmodule OMG.ChildChain.FeeServer do
   alias OMG.Fees
   alias OMG.Status.Alert.Alarm
 
-  @fee_file_check_interval_ms Application.fetch_env!(:omg_child_chain, :fee_file_check_interval_ms)
+  @fee_adapter_check_interval_ms Application.fetch_env!(:omg_child_chain, :fee_adapter_check_interval_ms)
   @fee_buffer_duration_ms Application.fetch_env!(:omg_child_chain, :fee_buffer_duration_ms)
 
   def start_link(opts) do
@@ -49,7 +49,7 @@ defmodule OMG.ChildChain.FeeServer do
       |> Map.put(:expire_fee_timer, nil)
       |> update_fee_specs()
 
-    interval = Map.get(state, :interval_ms, @fee_file_check_interval_ms)
+    interval = Map.get(state, :interval_ms, @fee_adapter_check_interval_ms)
     {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_specs)
     state = Map.put(state, :tref, tref)
 

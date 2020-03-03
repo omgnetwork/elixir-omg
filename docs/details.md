@@ -197,13 +197,15 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 
 * **`block_queue_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `BlockQueue` exclusively
 
-* **`fee_file_check_interval_ms`** - interval for checking updates in the `fee_specs.json` file to update the fees required.
+* **`fee_adapter_check_interval_ms`** - interval for checking fees updates from the fee adapter.
 * 
 * **`fee_buffer_duration_ms`** - duration for which a fee is still valid after beeing updated.
 
 * **`block_submit_every_nth`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
 
-* **`fee_specs_file_name`** - path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
+* **`fee_adapter_opts`** - options of the fee adapter, depends on adapter
+  - **`specs_file_name`** - [FileAdaper only] path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
+  - **`fee_feed_url`** - [FeedAdapter only] url to the fee service, that privides actual fees prices. Response should follow the file specs format.
 
 ## Watcher configuration - `:omg_watcher` app
 

@@ -104,15 +104,15 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end)
     |> Enum.take_while(fn b -> not b end)
 
-    old_file_name = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
+    old_value = Application.fetch_env!(:omg_child_chain, :fee_adapter_opts)
 
     {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
-    Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name)
+    Application.put_env(:omg_child_chain, :fee_adapter_opts, [specs_file_name: file_name], persistent: true)
 
     on_exit(fn ->
       apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
       File.rm(file_path)
-      Application.put_env(:omg_child_chain, :fee_specs_file_name, old_file_name)
+      Application.put_env(:omg_child_chain, :fee_adapter_opts, old_value)
     end)
 
     %{fee_file: file_name}
