@@ -222,6 +222,29 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
                )
     end
 
+    test "when output is already piggybacked, it is not reported in piggyback available event, even if challenged",
+         %{alice: alice, processor_empty: processor} do
+      tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [{alice, @eth, 1}])
+      tx_hash = Transaction.raw_txhash(tx)
+
+      {processor, _} =
+        processor
+        |> start_ife_from(tx)
+        |> piggyback_ife_from(tx_hash, 0, :output)
+        |> Core.challenge_piggybacks([%{tx_hash: tx_hash, output_index: 0, omg_data: %{piggyback_type: :output}}])
+
+      assert {:ok,
+              [
+                %Event.PiggybackAvailable{
+                  available_inputs: [%{index: 0}, %{index: 1}],
+                  available_outputs: []
+                }
+              ]} =
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+                 only: [Event.PiggybackAvailable]
+               )
+    end
+
     test "when ife is finalized, it's outputs are not reported as available for piggyback",
          %{alice: alice, processor_empty: processor} do
       tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [{alice, @eth, 1}])
