@@ -10,7 +10,7 @@ defmodule Credo.Check.Warning.LicenseHeader do
   ]
 
   # you can configure the basics of your check via the `use Credo.Check` call
-  use Credo.Check, base_priority: :high, category: :custom, exit_status: 1
+  use Credo.Check, base_priority: :high, category: :custom
 
   @doc false
   def run(%SourceFile{filename: source_path} = source_file, params \\ []) do

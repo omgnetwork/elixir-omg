@@ -97,25 +97,21 @@ defmodule OMG.State do
 
     fee_claimer_address = Keyword.fetch!(opts, :fee_claimer_address)
 
-    {:ok, state} =
-      with {:ok, _data} = result <-
-             Core.extract_initial_state(height_query_result, child_block_interval, fee_claimer_address) do
+    case Core.extract_initial_state(height_query_result, child_block_interval, fee_claimer_address) do
+      {:ok, _data} = result ->
         _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{height_query_result}}")
-
-        {:ok, _} =
-          :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
+        metrics_collection_interval = Application.fetch_env!(:omg, :metrics_collection_interval)
+        {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
         result
-      else
-        {:error, reason} = error when reason in [:top_block_number_not_found] ->
-          _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
-          error
 
-        other ->
-          other
-      end
+      {:error, reason} = error when reason in [:top_block_number_not_found] ->
+        _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
+        error
 
-    {:ok, state}
+      other ->
+        other
+    end
   end
 
   def handle_info(:send_metrics, state) do

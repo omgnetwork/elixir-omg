@@ -37,4 +37,9 @@ defmodule OMG.WatcherInfo.DB.Types.IntegerType do
   def dump(value) do
     {:ok, value}
   end
+
+  # https://hexdocs.pm/ecto/Ecto.Type.html#c:embed_as/1
+  def embed_as(_), do: :self
+
+  def equal?(value1, value2), do: value1 == value2
 end

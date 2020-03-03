@@ -12,22 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.DB.Types.AtomType do
+defmodule OMG.Eth.Metric.Ethereumex do
   @moduledoc """
-  Custom Ecto type that converts DB's string value into atom.
+  Telemetry handler for Ethereumex events
   """
-  @behaviour Ecto.Type
-  def type(), do: :string
+  alias OMG.Status.Metric.Datadog
+  def supported_events(), do: [:ethereumex]
 
-  def cast(value), do: {:ok, value}
-
-  def load(value), do: {:ok, String.to_existing_atom(value)}
-
-  def dump(value) when is_atom(value), do: {:ok, Atom.to_string(value)}
-
-  def dump(_), do: :error
-  # https://hexdocs.pm/ecto/Ecto.Type.html#c:embed_as/1
-  def embed_as(_), do: :self
-
-  def equal?(value1, value2), do: value1 == value2
+  def handle_event([:ethereumex], %{counter: counter}, %{method_name: method_name} = _metadata, _config) do
+    Datadog.increment(method_name, counter)
+  end
 end

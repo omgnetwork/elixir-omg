@@ -22,6 +22,7 @@ defmodule OMG.Eth.MixProject do
   def application() do
     [
       mod: {OMG.Eth.Application, []},
+      start_phases: [{:attach_telemetry, []}],
       extra_applications: [:sasl, :logger]
     ]
   end
@@ -35,7 +36,7 @@ defmodule OMG.Eth.MixProject do
   defp deps() do
     [
       {:ex_abi, "~> 0.2.1"},
-      {:ethereumex, "~> 0.5.5"},
+      {:ethereumex, "~> 0.6.0"},
       # Umbrella
       {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},
