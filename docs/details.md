@@ -198,6 +198,8 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 * **`block_queue_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `BlockQueue` exclusively
 
 * **`fee_file_check_interval_ms`** - interval for checking updates in the `fee_specs.json` file to update the fees required.
+* 
+* **`fee_buffer_duration_ms`** - duration for which a fee is still valid after beeing updated.
 
 * **`block_submit_every_nth`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
 

@@ -40,7 +40,7 @@ defmodule OMG.State.CoreTest do
   @empty_block_hash <<246, 9, 190, 253, 254, 144, 102, 254, 20, 231, 67, 179, 98, 62, 174, 135, 143, 188, 70, 128, 5,
                       96, 136, 22, 131, 44, 157, 70, 15, 42, 149, 210>>
 
-  @fee %{@eth => %{amount: 1}, @not_eth => %{amount: 1}}
+  @fee %{@eth => [1], @not_eth => [1]}
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
@@ -299,7 +299,7 @@ defmodule OMG.State.CoreTest do
       bob: bob,
       state_empty: state
     } do
-      fees = %{@eth => %{amount: 1}, @not_eth => %{amount: 1}}
+      fees = %{@eth => [1], @not_eth => [1]}
       not_fee_token = <<2::160>>
 
       assert not_fee_token not in Map.keys(fees)
@@ -325,7 +325,7 @@ defmodule OMG.State.CoreTest do
       state
       |> Core.exec(
         create_recovered([{1, 0, 0, alice}, {4, 0, 0, alice}], [{bob, not_fee_token, 9}, {bob, not_fee_token, 1}]),
-        %{@eth => %{amount: 10}}
+        %{@eth => [10]}
       )
       |> success?
 
@@ -921,7 +921,7 @@ defmodule OMG.State.CoreTest do
       {:ok, state_empty} = Core.extract_initial_state(0, child_block_interval, fee_claimer.addr)
 
       alice = OMG.TestHelper.generate_entity()
-      fees = %{@eth => %{amount: 2}}
+      fees = %{@eth => [2]}
 
       state =
         state_empty
@@ -1094,7 +1094,7 @@ defmodule OMG.State.CoreTest do
 
       maximum_block_size = 65_536
       maximum_inputs_size = 4
-      eth_fee_rate = fees[@eth].amount
+      eth_fee_rate = Enum.at(fees[@eth], 0)
       amount_for_fees = (1 + eth_fee_rate) * maximum_block_size
       available_after_1st_tx = amount_for_fees - eth_fee_rate
 

@@ -11,9 +11,6 @@ start-services:
 stop-services:
 	docker-compose down
 
-test:
-	mix test
-
 init:
 	. scripts/generate_api_client.sh
 	mix deps.get
