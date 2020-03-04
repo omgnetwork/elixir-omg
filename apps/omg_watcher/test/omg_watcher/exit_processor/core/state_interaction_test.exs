@@ -40,6 +40,9 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   @fee %{@eth => [1]}
 
+  # needs to match up with the default from `ExitProcessor.Case` :(
+  @exit_id 9876
+
   setup do
     {:ok, processor_empty} = Core.init([], [], [])
     {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
@@ -121,7 +124,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              |> Core.check_validity(processor)
 
     # exit validly finalizes and continues to not emit any events
-    {:ok, {_, spends}, _} = [1] |> Enum.map(&Core.exit_key_by_exit_id(processor, &1)) |> State.Core.exit_utxos(state)
+    {:ok, {_, spends}, _} =
+      [@exit_id] |> Enum.map(&Core.exit_key_by_exit_id(processor, &1)) |> State.Core.exit_utxos(state)
 
     assert {processor, [{:put, :exit_info, {{2, 0, 0}, _}}]} = Core.finalize_exits(processor, spends)
 

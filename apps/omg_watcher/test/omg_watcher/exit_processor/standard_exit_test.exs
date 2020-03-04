@@ -48,7 +48,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
   @deposit_input2 {@deposit_blknum2, 0, 0}
 
-  @exit_id 1
+  # needs to match up with the default from `ExitProcessor.Case` :(
+  @exit_id 9876
 
   setup do
     {:ok, empty} = Core.init([], [], [])
