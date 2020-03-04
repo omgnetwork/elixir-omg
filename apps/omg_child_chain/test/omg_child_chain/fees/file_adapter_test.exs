@@ -40,6 +40,8 @@ defmodule OMG.ChildChain.FileAdapterTest do
     }
   }
 
+  @ignored_actual_fees %{}
+
   setup do
     old_value = Application.get_env(:omg_child_chain, :fee_adapter_opts)
 
@@ -57,7 +59,7 @@ defmodule OMG.ChildChain.FileAdapterTest do
       {:ok, %File.Stat{mtime: mtime}} = File.stat(file_path, time: :posix)
       :ok = Application.put_env(:omg_child_chain, :fee_adapter_opts, specs_file_name: file_name)
 
-      assert FileAdapter.get_fee_specs(recorded_file_updated_at) == {
+      assert FileAdapter.get_fee_specs(@ignored_actual_fees, recorded_file_updated_at) == {
                :ok,
                %{@payment_tx_type => %{@eth => @fees[1][@eth_hex]}},
                mtime
@@ -72,13 +74,13 @@ defmodule OMG.ChildChain.FileAdapterTest do
       :ok = Application.put_env(:omg_child_chain, :fee_adapter_opts, specs_file_name: file_name)
       recorded_file_updated_at = :os.system_time(:second) + 10
 
-      assert FileAdapter.get_fee_specs(recorded_file_updated_at) == :ok
+      assert FileAdapter.get_fee_specs(@ignored_actual_fees, recorded_file_updated_at) == :ok
       File.rm(file_path)
     end
 
     test "returns an error if the file is not found" do
       :ok = Application.put_env(:omg_child_chain, :fee_adapter_opts, specs_file_name: "fake_file")
-      assert FileAdapter.get_fee_specs(1) == {:error, :enoent}
+      assert FileAdapter.get_fee_specs(@ignored_actual_fees, 1) == {:error, :enoent}
     end
   end
 end

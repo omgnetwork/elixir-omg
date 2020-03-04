@@ -30,7 +30,7 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
   """
   # sobelow_skip ["Traversal"]
   @impl true
-  def get_fee_specs(recorded_file_updated_at) do
+  def get_fee_specs(_actual_fee_specs, recorded_file_updated_at) do
     path = get_path()
 
     with {:changed, file_updated_at} <- check_file_changes(path, recorded_file_updated_at),

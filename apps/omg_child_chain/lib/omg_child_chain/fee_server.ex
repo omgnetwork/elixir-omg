@@ -113,8 +113,9 @@ defmodule OMG.ChildChain.FeeServer do
   @spec update_fee_specs(map()) :: :ok | {:ok, map()} | {:error, list({:error, atom(), any(), non_neg_integer() | nil})}
   defp update_fee_specs(%{fee_adapter: adapter, expire_fee_timer: current_timer} = state) do
     source_updated_at = :ets.lookup_element(:fees_bucket, :fee_specs_source_updated_at, 2)
+    actual_fee_specs = load_current_fees()
 
-    case adapter.get_fee_specs(source_updated_at) do
+    case adapter.get_fee_specs(actual_fee_specs, source_updated_at) do
       {:ok, fee_specs, source_updated_at} ->
         :ok = save_fees(fee_specs, source_updated_at)
         _ = Logger.info("Reloaded fee specs from #{inspect(adapter)}, changed at #{inspect(source_updated_at)}")

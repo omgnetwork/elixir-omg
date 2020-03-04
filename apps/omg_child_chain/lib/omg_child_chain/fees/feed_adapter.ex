@@ -12,12 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.Fees.Adapter do
+defmodule OMG.ChildChain.Fees.FeedAdapter do
   @moduledoc """
-  Behaviour for fee adapters.
+  Adapter pulls actual fees prices from fee feed.
   """
+  @behaviour OMG.ChildChain.Fees.Adapter
 
-  @callback get_fee_specs(OMG.Fees.full_fee_t(), pos_integer()) ::
-              {:ok, OMG.Fees.full_fee_t(), pos_integer()}
-              | {:error, atom() | [{:error, atom()}, ...]}
+  use OMG.Utils.LoggerExt
+
+  alias OMG.ChildChain.Fees.FeeParser
+
+  @doc """
+  Pulls the fee specification from fees feed. Feed updates fee prices based on Ethereum's gas price.
+  """
+  # sobelow_skip ["Traversal"]
+  @impl true
+  def get_fee_specs(actual_fee_specs, updated_at) do
+  end
 end
