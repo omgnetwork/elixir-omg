@@ -560,13 +560,8 @@ defmodule InFlightExitsTests do
     assert in_flight_exit_ids_2.exit_map == 0
 
     # observe the byzantine events gone
-    # I’m waiting for this one, and only this one to remain
-    # NOTE: the piggyback pops back to being available after the challenge due to a bug in the Watcher
-    #       https://github.com/omisego/elixir-omg/issues/1371. Remove after this had been fixed
-    assert all_events_in_status?(["piggyback_available"])
-    # should be like this instead:
     # I’m waiting for clean state / secure chain to remain after all the challenges
-    # assert all_events_in_status?([])
+    assert all_events_in_status?([])
 
     alice_state =
       Map.put(
