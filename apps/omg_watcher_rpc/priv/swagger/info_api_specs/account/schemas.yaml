@@ -3,7 +3,7 @@ AccountBalanceSchema:
   properties:
     currency:
       type: string
-       
+
     amount:
       type: integer
       format: int256
@@ -25,15 +25,12 @@ AccountUtxoSchema:
       format: int256
     owner:
       type: string
-       
     currency:
       type: string
-       
     amount:
       type: integer
       format: int256
-
-      inserted_at:
-        type: string
-      updated_at:
-        type: string
+    inserted_at:
+      type: string
+    updated_at:
+      type: string
