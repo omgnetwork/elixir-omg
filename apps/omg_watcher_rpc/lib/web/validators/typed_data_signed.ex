@@ -47,9 +47,10 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
 
   @spec parse_domain(map()) :: {:ok, Tools.eip712_domain_t()} | Base.validation_error_t()
   def parse_domain(map) when is_map(map) do
-    with name = Map.get(map, "name"),
-         version = Map.get(map, "version"),
-         {:ok, salt} <- expect(map, "salt", :hash),
+    name = Map.get(map, "name")
+    version = Map.get(map, "version")
+
+    with {:ok, salt} <- expect(map, "salt", :hash),
          {:ok, contract} <- expect(map, "verifyingContract", :address),
          do: {:ok, %{name: name, version: version, salt: salt, verifyingContract: contract}}
   end

@@ -244,12 +244,13 @@ defmodule OMG.Watcher.BlockGetter do
   #
 
   defp do_producer(state) do
-    with {:ok, _} <- Core.chain_ok(state) do
-      new_state = run_block_download_task(state)
-      {:ok, _} = schedule_producer()
-      :ok = update_status(new_state)
-      {:noreply, new_state}
-    else
+    case Core.chain_ok(state) do
+      {:ok, _} ->
+        new_state = run_block_download_task(state)
+        {:ok, _} = schedule_producer()
+        :ok = update_status(new_state)
+        {:noreply, new_state}
+
       {:error, _} = error ->
         :ok = update_status(state)
         _ = Logger.warn("Chain invalid when trying to download blocks, because of #{inspect(error)}, won't try again")
@@ -260,11 +261,12 @@ defmodule OMG.Watcher.BlockGetter do
   defp do_downloaded_block(response, state) do
     # 1/ process the block that arrived and consume
 
-    with {:ok, state} <- Core.handle_downloaded_block(state, response) do
-      state = run_block_download_task(state)
-      :ok = update_status(state)
-      {:noreply, state}
-    else
+    case Core.handle_downloaded_block(state, response) do
+      {:ok, state} ->
+        state = run_block_download_task(state)
+        :ok = update_status(state)
+        {:noreply, state}
+
       {{:error, _} = error, state} ->
         :ok = update_status(state)
         _ = Logger.error("Error while handling downloaded block because of #{inspect(error)}")

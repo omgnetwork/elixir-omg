@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.ChildChain.Fees.FeeParserTest do
+defmodule OMG.ChildChain.Fees.JSONFeeParserTest do
   @moduledoc false
   use ExUnitFixtures
   use ExUnit.Case, async: true
-  alias OMG.ChildChain.Fees.FeeParser
+  alias OMG.ChildChain.Fees.JSONFeeParser
   alias OMG.Eth
 
   @eth Eth.zero_address()
@@ -66,7 +66,7 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
         }
       )
 
-      assert {:ok, tx_type_map} = FeeParser.parse(json)
+      assert {:ok, tx_type_map} = JSONFeeParser.parse(json)
       assert tx_type_map[1][@eth][:amount] == 2
       assert tx_type_map[1][Base.decode16!("d26114cd6ee289accf82350c8d8487fedb8a0c07", case: :mixed)][:amount] == 1
       assert tx_type_map[1][Base.decode16!("a74476443119a942de498590fe1f2454d7d4ac0d", case: :mixed)][:amount] == 4
@@ -74,11 +74,11 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
     end
 
     test "successfuly parses an empty fee spec list" do
-      assert {:ok, %{}} = FeeParser.parse("[]")
+      assert {:ok, %{}} = JSONFeeParser.parse("[]")
     end
 
     test "successfuly parses an empty fee spec map" do
-      assert {:ok, %{}} = FeeParser.parse("{}")
+      assert {:ok, %{}} = JSONFeeParser.parse("{}")
     end
 
     test "returns an `invalid_tx_type` error when given a non integer tx type" do
@@ -97,7 +97,7 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
         ]
       })
 
-      assert {:error, [{:error, :invalid_tx_type, "non_integer_key", 0}]} == FeeParser.parse(json)
+      assert {:error, [{:error, :invalid_tx_type, "non_integer_key", 0}]} == JSONFeeParser.parse(json)
     end
 
     test "returns an `invalid_json_format` error when json is not in the correct format" do
@@ -115,7 +115,7 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
           }
         ]
       }])
-      assert {:error, [{:error, :invalid_json_format, nil, nil}]} = FeeParser.parse(json)
+      assert {:error, [{:error, :invalid_json_format, nil, nil}]} = JSONFeeParser.parse(json)
     end
 
     test "returns a `duplicate_token` error when tokens are duplicated for the same tx type" do
@@ -141,7 +141,7 @@ defmodule OMG.ChildChain.Fees.FeeParserTest do
           }
         ]
       })
-      assert {:error, [{:error, :duplicate_token, 1, 2}]} = FeeParser.parse(json)
+      assert {:error, [{:error, :duplicate_token, 1, 2}]} = JSONFeeParser.parse(json)
     end
   end
 end

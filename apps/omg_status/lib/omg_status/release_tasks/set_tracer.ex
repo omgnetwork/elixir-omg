@@ -21,6 +21,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
 
   @impl Provider
   def init(args) do
+    nil = Process.put(:system_adapter, Keyword.get(args, :system_adapter, System))
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(:omg_status, Tracer)
     config = Keyword.put(config, :disabled?, get_dd_disabled())
@@ -112,7 +113,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     sync_threshold
   end
 
-  defp get_env(key), do: System.get_env(key)
+  defp get_env(key), do: Process.get(:system_adapter).get_env(key)
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default

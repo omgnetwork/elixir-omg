@@ -92,6 +92,13 @@ defmodule OMG.Eth.RootChainTest do
 
   describe "get_standard_exit_structs/2" do
     test "returns a list of standard exits by the given exit ids", %{contracts: contracts} do
+      {:ok, true} =
+        Ethereumex.HttpClient.request(
+          "personal_unlockAccount",
+          [Encoding.to_hex(contracts.authority_address), "", 0],
+          []
+        )
+
       # Make 3 deposits so we can do 3 exits. 1 exit will not be queried, so we can check for false positives
       _ = add_queue(contracts.authority_address, contracts.plasma_framework)
       {utxo_pos_1, exit_1} = deposit_then_start_exit(contracts.authority_address, 1, @eth, contracts)

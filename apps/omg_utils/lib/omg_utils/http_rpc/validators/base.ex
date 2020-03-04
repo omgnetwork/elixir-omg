@@ -114,10 +114,12 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   def hex({_, [_ | _]} = err), do: err
 
   def hex({str, []}) do
-    with {:ok, bin} <- Encoding.from_hex(str) do
-      {bin, []}
-    else
-      _ -> {str, [:hex]}
+    case Encoding.from_hex(str) do
+      {:ok, bin} ->
+        {bin, []}
+
+      _ ->
+        {str, [:hex]}
     end
   end
 

@@ -456,7 +456,13 @@ jobs:
             mix deps.get
             mix test
       - run:
-          name: Format generated code and check for warnings
+          name: Run load test
+          command: |
+            cd priv/perf
+            make init
+            mix test
+      - run:
+          name: (Cabbage) Format generated code and check for warnings
           command: |
             cd priv/cabbage
             # run format ONLY on formatted code so that it cleans up quoted atoms because
@@ -465,14 +471,28 @@ jobs:
             mix format apps/watcher_info_api/lib/watcher_info_api/model/*.ex
             mix format apps/watcher_security_critical_api/lib/watcher_security_critical_api/model/*.ex
             MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
+      - run:
+          name: (Perf) Format generated code and check for warnings
+          command: |
+            cd priv/perf
+            # run format ONLY on formatted code so that it cleans up quoted atoms because
+            # we cannot exclude folders to --warnings-as-errors
+            mix format apps/*_api/lib/*_api/model/*.ex
+            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
       - save_cache:
           key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
           paths:
             - "priv/cabbage/deps"
+            - "priv/perf/deps"
       - run:
-          name: Credo and formatting
+          name: (Cabbage) Credo and formatting
           command: |
             cd priv/cabbage
+            mix do credo, format --check-formatted --dry-run
+      - run:
+          name: (Perf) Credo and formatting
+          command: |
+            cd priv/perf
             mix do credo, format --check-formatted --dry-run
 
   test_barebone_release:
@@ -545,6 +565,12 @@ jobs:
           command: |
             cd priv/cabbage
             mix test
+      - run:
+          name: Run load test
+          command: |
+            cd priv/perf
+            make init
+            mix test
 
   publish_child_chain:
     machine:
@@ -593,6 +619,32 @@ jobs:
     steps:
       - checkout
       - run: DEPLOY=watcher_info sh .circleci/ci_deploy.sh
+
+  run_load_test_on_deployed_env:
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - checkout
+      - run:
+          name: Install Erlang and Elixir
+          command: |
+            set -e
+            wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
+            sudo killall dpkg || true &&
+            sudo rm /var/lib/dpkg/lock || true &&
+            sudo rm /var/cache/apt/archives/lock || true &&
+            sudo dpkg --configure -a || true &&
+            sudo dpkg -i erlang-solutions_2.0_all.deb  &&
+            sudo apt-get update &&
+            sudo apt-get install esl-erlang=1:21.3.8.10-1
+            sudo apt-get install elixir=1.8.2-1
+      - run: make install-hex-rebar
+      - run:
+          name: Run load test
+          command: |
+            cd priv/perf
+            make init
+            MIX_ENV=dev mix test
 
   coveralls_report:
     docker:
@@ -665,9 +717,15 @@ workflows:
           requires: [build]
   build-test-deploy:
     jobs:
-      - build
+      - build:
+          filters: &all_branches_and_tags
+            branches:
+              only: /.+/
+            tags:
+              only: /.+/
       - test_barebone_release:
           requires: [build]
+          filters: *all_branches_and_tags
       - notify_services:
           requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
           filters:
@@ -683,26 +741,37 @@ workflows:
             - test
       - child_chain_coveralls_and_integration_tests:
           requires: [build]
+          filters: *all_branches_and_tags
       - watcher_coveralls_and_integration_tests:
           requires: [build]
+          filters: *all_branches_and_tags
       - watcher_info_coveralls_and_integration_tests:
           requires: [build]
+          filters: *all_branches_and_tags
       - common_coveralls_and_integration_tests:
           requires: [build]
+          filters: *all_branches_and_tags
       - test_docker_compose_release:
           requires: [build]
+          filters: *all_branches_and_tags
       - lint:
           requires: [build]
+          filters: *all_branches_and_tags
       - lint_version:
           requires: [build]
+          filters: *all_branches_and_tags
       - sobelow:
           requires: [build]
+          filters: *all_branches_and_tags
       - dialyzer:
           requires: [build]
+          filters: *all_branches_and_tags
       - test:
           requires: [build]
+          filters: *all_branches_and_tags
       - property_tests:
           requires: [build]
+          filters: *all_branches_and_tags
       # Publish in case of master branch, version branches and version tags.
       - publish_child_chain:
           requires:
@@ -717,7 +786,7 @@ workflows:
               lint,
               lint_version,
             ]
-          filters:
+          filters: &master_and_version_branches_and_all_tags
             branches:
               only:
                 - master
@@ -725,8 +794,7 @@ workflows:
                 - /^v[0-9]+\.[0-9]+/
             tags:
               only:
-                # vMAJOR.MINOR.PATCH (e.g. v0.1.0, v0.2.9, v1.0.0, v2.1.3 etc.)
-                - /^v[0-9]+\.[0-9]+\.[0-9]+/
+                - /.+/
       - publish_watcher:
           requires:
             [
@@ -740,16 +808,7 @@ workflows:
               lint,
               lint_version,
             ]
-          filters:
-            branches:
-              only:
-                - master
-                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
-                - /^v[0-9]+\.[0-9]+/
-            tags:
-              only:
-                # vMAJOR.MINOR.PATCH (e.g. v0.1.0, v0.2.9, v1.0.0, v2.1.3 etc.)
-                - /^v[0-9]+\.[0-9]+\.[0-9]+/
+          filters: *master_and_version_branches_and_all_tags
       - publish_watcher_info:
           requires:
             [
@@ -763,16 +822,7 @@ workflows:
               lint,
               lint_version,
             ]
-          filters:
-            branches:
-              only:
-                - master
-                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
-                - /^v[0-9]+\.[0-9]+/
-            tags:
-              only:
-                # vMAJOR.MINOR.PATCH (e.g. v0.1.0, v0.2.9, v1.0.0, v2.1.3 etc.)
-                - /^v[0-9]+\.[0-9]+\.[0-9]+/
+          filters: *master_and_version_branches_and_all_tags
       # Release deploy to development in case of master branch.
       - deploy_child_chain:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
@@ -788,6 +838,12 @@ workflows:
                 - master
       - deploy_watcher_info:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          filters:
+            branches:
+              only:
+                - master
+      - run_load_test_on_deployed_env:
+          requires: [deploy_child_chain, deploy_watcher, deploy_watcher_info]
           filters:
             branches:
               only:

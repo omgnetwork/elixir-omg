@@ -10,6 +10,8 @@ defmodule Perf.MixProject do
   end
 
   defp deps do
-    []
+    [
+      {:credo, "~> 1.2", only: [:dev, :test], runtime: false}
+    ]
   end
 end
