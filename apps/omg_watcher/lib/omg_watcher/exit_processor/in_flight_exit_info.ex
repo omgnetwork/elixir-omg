@@ -343,21 +343,21 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         %__MODULE__{tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _}} = ife
       ) do
     @outputs_index_range
-    |> Enum.filter(&is_active?(ife, {:output, &1}))
+    |> Enum.filter(&is_unchallenged?(ife, {:output, &1}))
     |> Enum.map(&Utxo.position(blknum, txindex, &1))
   end
 
-  def indexed_active_piggybacks_by_ife(%__MODULE__{tx: tx} = ife, :input) do
+  def unchallenged_piggybacks_by_ife(%__MODULE__{tx: tx} = ife, :input) do
     indexed_piggybacked_inputs =
       tx
       |> Transaction.get_inputs()
       |> Enum.with_index()
-      |> Enum.filter(fn {_input, index} -> is_active?(ife, {:input, index}) end)
+      |> Enum.filter(fn {_input, index} -> is_unchallenged?(ife, {:input, index}) end)
 
     {ife, indexed_piggybacked_inputs}
   end
 
-  def indexed_active_piggybacks_by_ife(%__MODULE__{} = ife, :output) do
+  def unchallenged_piggybacks_by_ife(%__MODULE__{} = ife, :output) do
     indexed_piggybacked_outputs =
       ife
       |> get_active_output_piggybacks_positions()
@@ -385,6 +385,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def is_active?(%__MODULE__{} = ife, combined_index) do
     is_piggybacked?(ife, combined_index) and
       !is_finalized?(ife, combined_index) and
+      !is_challenged?(ife, combined_index)
+  end
+
+  @spec is_unchallenged?(t(), combined_index_t()) :: boolean()
+  def is_unchallenged?(%__MODULE__{} = ife, combined_index) do
+    is_piggybacked?(ife, combined_index) and
       !is_challenged?(ife, combined_index)
   end
 
