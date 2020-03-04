@@ -16,7 +16,6 @@ defmodule OMG.ChildChain.Measure do
   @moduledoc """
   Counting business metrics sent to Datadog
   """
-
   alias OMG.Status.Metric.Datadog
 
   # <prefix>.[<subprefix>.]<instrumented_section>.<target (noun)>.<action (past tense verb)>
@@ -32,31 +31,36 @@ defmodule OMG.ChildChain.Measure do
   @supported_events [[@txn_submission_submitted], [@txn_submission_succeeded], [@txn_submission_failed]]
   def supported_events(), do: @supported_events
 
-  def handle_event(@txn_submission_submitted, event_measurements, _event_metadata, _config) do
+  @increment 1
+  
+  def measure(), do: %{increment: @increment}
+
+  def measurements(measurements), do: Map.get(measurements, :increment, 1)
+
+  def handle_event([@txn_submission_submitted], measurements, _event_metadata, _config) do
     IO.puts("************** handle_event(): '#{@txn_submission_submitted}' **************")
-    IO.inspect(event_measurements, label: "event_measurements")
+    IO.inspect(measurements, label: "measurements")
     IO.inspect(_event_metadata, label: "_event_metadata")
     IO.inspect(_config, label: "_config")
-    Datadog.increment(to_string(@txn_submission_submitted), increment_by_amount(event_measurements))
+
+    Datadog.increment(to_string(@txn_submission_submitted), measurements(measurements))
   end
 
-  def handle_event(@txn_submission_succeeded, event_measurements, _event_metadata, _config) do
+  def handle_event([@txn_submission_succeeded], measurements, _event_metadata, _config) do
     IO.puts("************** handle_event(): '#{@txn_submission_succeeded}' **************")
-    IO.inspect(event_measurements, label: "event_measurements")
+    IO.inspect(measurements, label: "measurements")
     IO.inspect(_event_metadata, label: "_event_metadata")
     IO.inspect(_config, label: "_config")
-    Datadog.increment(to_string(@txn_submission_succeeded), increment_by_amount(event_measurements))
+
+    Datadog.increment(to_string(@txn_submission_succeeded), measurements(measurements))
   end
 
-  def handle_event(@txn_submission_failed, event_measurements, _event_metadata, _config) do
+  def handle_event([@txn_submission_failed], measurements, _event_metadata, _config) do
     IO.puts("************** handle_event(): '#{@txn_submission_failed}' **************")
-    IO.inspect(event_measurements, label: "event_measurements")
+    IO.inspect(measurements, label: "measurements")
     IO.inspect(_event_metadata, label: "_event_metadata")
     IO.inspect(_config, label: "_config")
-    Datadog.increment(to_string(@txn_submission_failed), increment_by_amount(event_measurements))
-  end
 
-  def handle_event([@txn_submission_error, OMG.ChildChain], event_value, _event_metadata, _config) do
-    Datadog.increment(@txn_submission_error, event_value, tags: ["OMG.ChildChain.submit", "error"])
+    Datadog.increment(to_string(@txn_submission_failed), measurements(measurements))
   end
 end
