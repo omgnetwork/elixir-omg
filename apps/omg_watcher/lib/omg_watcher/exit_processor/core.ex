@@ -343,7 +343,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.filter(&InFlightExitInfo.is_relevant?(&1, blknum_now))
 
     ife_inputs_pos = active_relevant_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
-    ife_outputs_pos = active_relevant_ifes |> Enum.flat_map(&InFlightExitInfo.get_piggybacked_outputs_positions/1)
+    ife_outputs_pos = active_relevant_ifes |> Enum.flat_map(&InFlightExitInfo.get_active_output_piggybacks_positions/1)
 
     (ife_outputs_pos ++ ife_inputs_pos ++ standard_exits_pos)
     |> :lists.usort()
@@ -374,7 +374,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.flat_map(fn %{tx: tx} = ife ->
-        InFlightExitInfo.get_piggybacked_outputs_positions(ife) ++ Transaction.get_inputs(tx)
+        InFlightExitInfo.get_active_output_piggybacks_positions(ife) ++ Transaction.get_inputs(tx)
       end)
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> :lists.usort()
