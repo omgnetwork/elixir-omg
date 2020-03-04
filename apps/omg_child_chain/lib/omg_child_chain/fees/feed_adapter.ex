@@ -20,13 +20,17 @@ defmodule OMG.ChildChain.Fees.FeedAdapter do
 
   use OMG.Utils.LoggerExt
 
-  alias OMG.ChildChain.Fees.FeeParser
+  # alias OMG.ChildChain.Fees.FeeParser
 
   @doc """
   Pulls the fee specification from fees feed. Feed updates fee prices based on Ethereum's gas price.
   """
   # sobelow_skip ["Traversal"]
   @impl true
-  def get_fee_specs(actual_fee_specs, updated_at) do
+  def get_fee_specs(_actual_fee_specs, _updated_at) do
+    opts = Application.fetch_env!(:omg_child_chain, :fee_adapter_opts)
+    _feed_url = Keyword.fetch!(opts, :feed_url)
+    _stored_fee_update_interval_minutes = Keyword.fetch!(opts, :stored_fee_update_interval_minutes)
+    _fee_change_tolerance_percent = Keyword.fetch!(opts, :fee_change_tolerance_percent)
   end
 end

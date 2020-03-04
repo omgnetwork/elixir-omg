@@ -95,15 +95,15 @@ defmodule OMG.ChildChain.FeeServer do
     new_state =
       case update_fee_specs(state) do
         {:ok, updated_state} ->
-          Alarm.clear(Alarm.invalid_fee_file(__MODULE__))
+          Alarm.clear(Alarm.invalid_fee_source(__MODULE__))
           updated_state
 
         :ok ->
-          Alarm.clear(Alarm.invalid_fee_file(__MODULE__))
+          Alarm.clear(Alarm.invalid_fee_source(__MODULE__))
           state
 
         _ ->
-          Alarm.set(Alarm.invalid_fee_file(__MODULE__))
+          Alarm.set(Alarm.invalid_fee_source(__MODULE__))
           state
       end
 
