@@ -11,6 +11,9 @@ info:
   license:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
     url: 'https://omisego.network/'
+servers:
+  - url: 'https://watcher.ropsten.v1.omg.network/'
+  - url: 'http://localhost:7434/'
 tags:
   - name: Status
     description: Status of the child chain.
@@ -25,8 +28,6 @@ tags:
     description: Transaction related API.
   - name: InFlightExit
     description: InFlightExit related API.
-servers:
-  - url: 'http://localhost:7434/'
 paths:
   /alarm.get:
     get:
@@ -821,6 +822,10 @@ paths:
                             amount:
                               type: integer
                               format: int256
+                            inserted_at:
+                              type: string
+                            updated_at:
+                              type: string
                     example:
                       data:
                         - blknum: 123000
@@ -831,6 +836,8 @@ paths:
                           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                           currency: '0x0000000000000000000000000000000000000000'
                           amount: 10
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          updated_at: '2020-02-15T04:07:57Z'
         '500':
           description: Returns an internal server error
           content:
