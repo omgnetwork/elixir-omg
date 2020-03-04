@@ -324,6 +324,24 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
               }} = Core.get_input_challenge_data(request, state, txbytes, 0)
     end
 
+    test "doesn't detect double-spend of an input, found in IFE, if challenged",
+         %{processor_filled: state, transactions: [tx | _], competing_tx: comp, ife_tx_hashes: [tx_hash | _]} do
+      txbytes = txbytes(tx)
+
+      {state, _} =
+        state
+        |> start_ife_from(comp)
+        |> piggyback_ife_from(tx_hash, 0, :input)
+        |> Core.challenge_piggybacks([%{tx_hash: tx_hash, output_index: 0, omg_data: %{piggyback_type: :input}}])
+
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+
+      assert {:ok, []} = check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      assert {:error, :no_double_spend_on_particular_piggyback} =
+               Core.get_input_challenge_data(request, state, txbytes, 0)
+    end
+
     test "detects double-spend of an input, found in a block",
          %{processor_filled: state, transactions: [tx | _], competing_tx: comp, ife_tx_hashes: [ife_id | _]} do
       txbytes = txbytes(tx)
@@ -386,6 +404,32 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
               }} = Core.get_output_challenge_data(request, state, txbytes, 0)
 
       assert_proof_sound(proof_bytes)
+    end
+
+    test "doesn't detect double-spend of an output, found in a IFE, if challenged",
+         %{alice: alice, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [tx_hash | _]} do
+      txbytes = txbytes(tx)
+      tx_blknum = 3000
+
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [{alice, @eth, 1}])
+
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
+      }
+
+      {state, _} =
+        state
+        |> start_ife_from(comp)
+        |> piggyback_ife_from(tx_hash, 0, :output)
+        |> Core.find_ifes_in_blocks(request)
+        |> Core.challenge_piggybacks([%{tx_hash: tx_hash, output_index: 0, omg_data: %{piggyback_type: :output}}])
+
+      assert {:ok, []} = check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      assert {:error, :no_double_spend_on_particular_piggyback} =
+               Core.get_output_challenge_data(request, state, txbytes, 0)
     end
 
     test "detects and proves double-spend of an output, found in a block",
