@@ -499,10 +499,10 @@ paths:
                             amount:
                               type: integer
                               format: int256
-                              inserted_at:
-                                type: string
-                              updated_at:
-                                type: string
+                            inserted_at:
+                              type: string
+                            updated_at:
+                              type: string
                     example:
                       data:
                         - blknum: 123000
