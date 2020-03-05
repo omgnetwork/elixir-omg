@@ -25,6 +25,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   require Utxo
 
+  # default exit_id used when starting exits using `start_se_from` and `start_ife_from`
   @exit_id 9876
 
   def start_se_from(%Core{} = processor, tx, exiting_pos, opts \\ []) do
