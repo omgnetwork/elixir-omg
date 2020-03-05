@@ -1,12 +1,18 @@
 version: 2
 
 jobs:
-  print-skip-message:
+  skip-build:
+    docker:
+      # This weird-looking docker image is CircleCI Base Image (https://circleci.com/docs/2.0/circleci-images/#circleci-base-image)
+      image: cimg/base:2020.01
     steps:
       - run: echo "Skipping CI on `gh-pages` branch."
+    branches:
+      ignore:
+        - gh-pages
 
 workflows:
   version: 2
   ignore-gh-pages:
     jobs:
-      - print-skip-message
+      - skip-build
