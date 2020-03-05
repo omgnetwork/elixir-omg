@@ -23,9 +23,7 @@ defmodule OMG.WatcherInfo.Fixtures do
   use OMG.ChildChain.Integration.Fixtures
   use OMG.Utils.LoggerExt
 
-  alias Ecto.Adapters.SQL
   alias OMG.Crypto
-  alias OMG.WatcherInfo
   alias OMG.WatcherInfo.DB
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -70,25 +68,6 @@ defmodule OMG.WatcherInfo.Fixtures do
     end)
   end
 
-  @doc "run only database in sandbox and endpoint to make request"
-  deffixture phoenix_ecto_sandbox(web_endpoint) do
-    :ok = web_endpoint
-
-    {:ok, pid} =
-      Supervisor.start_link(
-        [%{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor}],
-        strategy: :one_for_one,
-        name: WatcherInfo.Supervisor
-      )
-
-    :ok = SQL.Sandbox.checkout(DB.Repo)
-    # setup and body test are performed in one process, `on_exit` is performed in another
-    on_exit(fn ->
-      wait_for_process(pid)
-      :ok
-    end)
-  end
-
   deffixture initial_blocks(alice, bob, blocks_inserter, initial_deposits) do
     :ok = initial_deposits
 
@@ -112,9 +91,7 @@ defmodule OMG.WatcherInfo.Fixtures do
     blocks_inserter.(blocks)
   end
 
-  deffixture initial_deposits(alice, bob, phoenix_ecto_sandbox) do
-    :ok = phoenix_ecto_sandbox
-
+  deffixture initial_deposits(alice, bob) do
     deposits = [
       %{
         root_chain_txhash: Crypto.hash(<<1000::256>>),
@@ -141,9 +118,7 @@ defmodule OMG.WatcherInfo.Fixtures do
     :ok
   end
 
-  deffixture blocks_inserter(phoenix_ecto_sandbox) do
-    :ok = phoenix_ecto_sandbox
-
+  deffixture blocks_inserter() do
     fn blocks -> Enum.flat_map(blocks, &prepare_one_block/1) end
   end
 

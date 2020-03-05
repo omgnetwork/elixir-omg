@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.DB.EthEventTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.WatcherInfo.DataCase, async: false
   use OMG.Fixtures
 
   alias OMG.Crypto
@@ -26,7 +26,6 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "insert deposits: creates deposit event and utxo" do
     expected_root_chain_txnhash = Crypto.hash(<<1::256>>)
     expected_log_index = 0
@@ -114,7 +113,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
            ] = txoutput.ethevents
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+  @tag fixtures: [:alice]
   test "insert deposits: creates deposits and retrieves them by hash", %{alice: alice} do
     expected_event_type = :deposit
     expected_owner = alice.addr
@@ -197,7 +196,6 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
              end)
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "insert exits: creates exit event and marks utxo as spent" do
     expected_owner = <<1::160>>
     expected_log_index = 0

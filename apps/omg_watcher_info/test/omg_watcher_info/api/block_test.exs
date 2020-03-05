@@ -13,33 +13,28 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.API.BlockTest do
-  use ExUnitFixtures
-  use ExUnit.Case, async: false
-  use OMG.WatcherInfo.Fixtures
-
+  use OMG.WatcherInfo.DataCase, async: true
   import OMG.WatcherInfo.Factory
 
   alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.API
   alias OMG.WatcherInfo.DB
 
-  describe "get_block/1" do
-    @tag fixtures: [:initial_blocks]
+  describe "get/1" do
     test "returns block by block number" do
-      blknum = 1000
-      block = DB.Block.get(blknum)
-      assert {:ok, block} == API.Block.get(blknum)
+      inserted = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+
+      {:ok, block} = API.Block.get(inserted.blknum)
+      assert block.hash == inserted.hash
     end
 
-    @tag fixtures: [:initial_blocks]
     test "returns expected error if block not found" do
       non_existent_block = 5000
-      assert {:error, :block_not_found} == API.Block.get(non_existent_block)
+      assert API.Block.get(non_existent_block) == {:error, :block_not_found}
     end
   end
 
   describe "get_blocks/1" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a paginator with a list of blocks" do
       _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
       _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
@@ -53,7 +48,6 @@ defmodule OMG.WatcherInfo.API.BlockTest do
       assert Enum.all?(results.data, fn block -> %DB.Block{} = block end)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a paginator according to the provided paginator constraints" do
       _inserted_1 = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
       inserted_2 = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)

@@ -13,26 +13,22 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
-  use ExUnitFixtures
-  use ExUnit.Case, async: false
-  use OMG.WatcherInfo.Fixtures
-
+  use OMG.WatcherInfo.DataCase, async: true
   import OMG.WatcherInfo.Factory
 
   alias Support.WatcherHelper
 
   describe "get_block/2" do
-    @tag fixtures: [:initial_blocks]
     test "/block.get returns correct block if existent" do
-      existent_blknum = 1000
+      inserted = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
 
-      %{"success" => success, "data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: existent_blknum}, 200)
+      %{"success" => success, "data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: inserted.blknum}, 200)
 
-      assert data["blknum"] == existent_blknum
       assert success == true
+      assert data["blknum"] == inserted.blknum
+      assert data["eth_height"] == inserted.eth_height
     end
 
-    @tag fixtures: [:initial_blocks]
     test "/block.get rejects parameter of wrong type" do
       string_blknum = "1000"
       %{"data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: string_blknum}, 200)
@@ -47,7 +43,6 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       assert data == expected
     end
 
-    @tag fixtures: [:initial_blocks]
     test "/block.get endpoint rejects request without parameters" do
       missing_param = %{}
       %{"data" => data} = WatcherHelper.rpc_call("block.get", missing_param, 200)
@@ -62,7 +57,6 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       assert data == expected
     end
 
-    @tag fixtures: [:initial_blocks]
     test "/block.get returns expected error if block not found" do
       non_existent_block = 5000
       %{"data" => data} = WatcherHelper.rpc_call("block.get", %{blknum: non_existent_block}, 200)
@@ -78,7 +72,6 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   end
 
   describe "get_blocks/2" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns the API response with the blocks" do
       _ = insert(:block, blknum: 1000, hash: <<1>>, eth_height: 1, timestamp: 100)
       _ = insert(:block, blknum: 2000, hash: <<2>>, eth_height: 2, timestamp: 200)
@@ -113,7 +106,6 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
              } = response
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns the error API response when an error occurs" do
       request_data = %{"limit" => "this should error", "page" => 1}
       response = WatcherHelper.rpc_call("block.all", request_data, 200)

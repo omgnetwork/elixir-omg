@@ -13,18 +13,14 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.API.StatsTest do
-  use ExUnitFixtures
-  use ExUnit.Case, async: false
-  use OMG.WatcherInfo.Fixtures
+  use OMG.WatcherInfo.DataCase, async: true
+  import OMG.WatcherInfo.Factory
 
   alias OMG.WatcherInfo.API.Stats
-
-  import OMG.WatcherInfo.Factory
 
   @seconds_in_twenty_four_hours 86_400
 
   describe "get/0" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "retrieves expected statistics" do
       now = DateTime.to_unix(DateTime.utc_now())
 
@@ -54,7 +50,6 @@ defmodule OMG.WatcherInfo.API.StatsTest do
   end
 
   describe "get_average_block_interval_all_time/0" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "correctly returns the average difference of block timestamps for all time" do
       base = 100
       [diff_1, diff_2, diff_3] = [10, 10, 30]
@@ -71,7 +66,6 @@ defmodule OMG.WatcherInfo.API.StatsTest do
       assert expected == actual
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns nil if the number of blocks is less than 2" do
       result_1 = Stats.get_average_block_interval_all_time()
       assert result_1 == nil
@@ -87,7 +81,6 @@ defmodule OMG.WatcherInfo.API.StatsTest do
   end
 
   describe "get_average_block_interval_between/2" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "correctly returns the average difference of block timestamps in the given time range" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours
@@ -105,7 +98,6 @@ defmodule OMG.WatcherInfo.API.StatsTest do
       assert expected == actual
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns nil if the number of blocks in the given time range is less than 2" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours

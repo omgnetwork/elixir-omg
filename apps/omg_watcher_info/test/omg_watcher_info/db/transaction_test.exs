@@ -19,19 +19,17 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   The reason is that we are treating the DB schema etc. as implementation detail. In case testing through controllers
   becomes hard/slow or otherwise unreasnable, refactor these two kinds of tests appropriately
   """
-
   use ExUnitFixtures
-  use ExUnit.Case, async: false
   use OMG.Fixtures
+  use OMG.WatcherInfo.DataCase, async: true
   use Plug.Test
+  require OMG.Utxo
 
-  alias OMG.Utils.Paginator
-  alias OMG.Utxo
-  alias OMG.WatcherInfo.DB
-
-  require Utxo
   import ExUnit.CaptureLog
   import OMG.WatcherInfo.Factory
+
+  alias OMG.Utils.Paginator
+  alias OMG.WatcherInfo.DB
 
   @seconds_in_twenty_four_hours 86_400
 
@@ -75,7 +73,6 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   end
 
   describe "count_all/0" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct transaction count" do
       block = insert(:block, blknum: 1000)
       _ = insert(:transaction, block: block, txindex: 0)
@@ -88,7 +85,6 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   end
 
   describe "get/1" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns the transaction from its hash with all data" do
       block = insert(:block, blknum: 1000)
       %{txhash: txhash} = insert(:transaction, block: block, txindex: 0, txtype: 1)
@@ -103,7 +99,6 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
   end
 
   describe "count_all_between_timestamp/2" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if transactions have been made between the given timestamps" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours
@@ -117,7 +112,6 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
       assert tx_count == 2
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if no transactions have been made between the given timestamps" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours

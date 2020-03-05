@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.View.TransactionTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.WatcherInfo.DataCase, async: true
   use OMG.WatcherInfo.Fixtures
 
   alias OMG.Utils.Paginator

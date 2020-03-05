@@ -13,10 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
-  use ExUnitFixtures
-  use ExUnit.Case, async: false
-  use OMG.Fixtures
-  use OMG.WatcherInfo.Fixtures
+  use ExUnit.Case, async: true
 
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
@@ -35,7 +32,6 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
   end
 
   describe "fees_all/2" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "forward a successful childchain response", context do
       childchain_response = %{
         @str_tx_type => [
@@ -56,7 +52,6 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
       assert childchain_response = WatcherHelper.success?("/fees.all")
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "raises an error gracefully when childchain is unreachable" do
       assert %{
                "code" => "connection:childchain_unreachable",
@@ -65,7 +60,6 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
              } = WatcherHelper.no_success?("/fees.all")
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "fees.all endpoint rejects request with non list currencies" do
       assert %{
                "object" => "error",
@@ -79,7 +73,6 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
              } = WatcherHelper.no_success?("/fees.all", %{currencies: "0x0000000000000000000000000000000000000000"})
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "fees.all endpoint rejects request with non hex currencies" do
       assert %{
                "object" => "error",
@@ -93,7 +86,6 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
              } = WatcherHelper.no_success?("/fees.all", %{currencies: ["invalid"]})
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "fees.all endpoint rejects request with non list tx_types" do
       assert %{
                "object" => "error",
@@ -107,7 +99,6 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
              } = WatcherHelper.no_success?("/fees.all", %{tx_types: 1})
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "fees.all endpoint rejects request with negative tx_types" do
       assert %{
                "object" => "error",

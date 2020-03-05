@@ -36,7 +36,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
 
   ### a very basic test of empty alarms should be sufficient, alarms encoding is
   ### covered in OMG.Utils.HttpRPC.ResponseTest
-  @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
+  @tag fixtures: [:db_initialized]
   test "if the controller returns the correct result when there's no alarms raised", _ do
     assert [] == get("alarm.get")
   end

@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.Controller.StatsTet do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.WatcherInfo.DataCase, async: true
   use OMG.WatcherInfo.Fixtures
 
   alias Support.WatcherHelper
@@ -24,7 +24,6 @@ defmodule OMG.WatcherRPC.Web.Controller.StatsTet do
   @seconds_in_twenty_four_hours 86_400
 
   describe "get/0" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "retrieves expected statistics" do
       now = DateTime.to_unix(DateTime.utc_now())
       within_today = now - @seconds_in_twenty_four_hours + 100

@@ -14,9 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.RouterTest do
   # async: false as we need to change :api_mode application env.
-  use ExUnitFixtures
-  use ExUnit.Case, async: false
-  use OMG.WatcherInfo.Fixtures
+  use OMG.WatcherInfo.DataCase, async: false
 
   alias Support.WatcherHelper
 
@@ -27,13 +25,11 @@ defmodule OMG.WatcherRPC.Web.RouterTest do
     :ok
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "returns a successful response when calling an :info_api endpoint from :watcher_info mode" do
     :ok = Application.put_env(:omg_watcher_rpc, :api_mode, :watcher_info)
     assert WatcherHelper.success?("transaction.all", %{})
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "returns an error response when calling an :info_api endpoint from :watcher mode" do
     :ok = Application.put_env(:omg_watcher_rpc, :api_mode, :watcher)
 

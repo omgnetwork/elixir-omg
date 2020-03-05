@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.WatcherInfo.DataCase, async: false
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
@@ -52,7 +52,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       end)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns transaction in expected format" do
       deposit_1 = build(:txoutput) |> with_deposit()
       deposit_2 = build(:txoutput) |> with_deposit()
@@ -163,7 +162,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              } = WatcherHelper.success?("transaction.get", %{"id" => txhash})
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns error for non existing transaction" do
       txhash = <<0::256>> |> Encoding.to_hex()
 
@@ -174,7 +172,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              } == WatcherHelper.no_success?("transaction.get", %{"id" => txhash})
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "handles improper length of id parameter" do
       assert %{
                "object" => "error",
@@ -535,7 +532,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   end
 
   describe "/transaction.submit with binary-encoded transaction" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "handles incorrectly encoded parameter" do
       hex_without_0x = "5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21"
 
@@ -552,7 +548,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              } == WatcherHelper.no_success?("transaction.submit", %{"transaction" => hex_without_0x})
     end
 
-    @tag fixtures: [:alice, :phoenix_ecto_sandbox]
+    @tag fixtures: [:alice]
     test "provides stateless validation", %{alice: alice} do
       signed_bytes = Test.create_encoded([{1, 0, 0, alice}, {1, 0, 0, alice}], @eth, [{alice, 100}])
 
@@ -593,7 +589,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       }
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :typed_data_request]
+    @tag fixtures: [:typed_data_request]
     test "ensures all required fields are passed", %{typed_data_request: typed_data_request} do
       req_without_domain = Map.drop(typed_data_request, ["domain"])
 
@@ -638,7 +634,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              } == WatcherHelper.no_success?("transaction.submit_typed", req_without_sigs)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :typed_data_request]
+    @tag fixtures: [:typed_data_request]
     test "input & sigs count should match", %{typed_data_request: typed_data_request} do
       # Providing 2 non-zero inputs & 1 signature
       too_little_sigs =
@@ -1325,7 +1321,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "owner should be hex-encoded address" do
       assert %{
                "object" => "error",
@@ -1344,7 +1339,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:alice]
     test "metadata should be hex-encoded hash", %{alice: alice} do
       assert %{
                "object" => "error",
@@ -1368,7 +1363,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:alice]
     test "payment should have valid fields", %{alice: alice} do
       assert %{
                "object" => "error",
@@ -1391,7 +1386,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:alice]
     test "fee should have valid fields", %{alice: alice} do
       assert %{
                "object" => "error",
@@ -1414,7 +1409,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:alice]
     test "request's fee object is mandatory", %{alice: alice} do
       assert %{
                "object" => "error",

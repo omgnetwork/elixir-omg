@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.WatcherInfo.DataCase, async: false
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
 
@@ -53,7 +53,6 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
            ] == data |> Enum.sort(&(Map.get(&1, "currency") <= Map.get(&2, "currency")))
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "Account balance for non-existing account responds with empty array" do
     no_account = %{addr: <<0::160>>}
 
@@ -74,7 +73,6 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
     assert [_] = WatcherHelper.success?("account.get_transactions", %{"address" => alice_addr, "limit" => 1})
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "account.get_balance handles improper type of parameter" do
     assert %{
              "object" => "error",
@@ -90,12 +88,12 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   end
 
   describe "standard_exitable" do
-    @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :carol]
+    @tag fixtures: [:db_initialized, :carol]
     test "no utxos are returned for non-existing addresses", %{carol: carol} do
       assert [] == WatcherHelper.get_exitable_utxos(carol.addr)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :alice, :bob]
+    @tag fixtures: [:db_initialized, :alice, :bob]
     test "get_utxos and get_exitable_utxos have the same return values", %{alice: alice, bob: bob} do
       DB.EthEvent.insert_deposits!([
         %{
@@ -144,7 +142,6 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
       assert utxos == exitable_utxos
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "account.get_exitable_utxos handles improper type of parameter" do
       assert %{
                "object" => "error",
@@ -294,7 +291,6 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
            ] = WatcherHelper.get_utxos(carol.addr)
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "account.get_utxos handles improper type of parameter" do
     assert %{
              "object" => "error",

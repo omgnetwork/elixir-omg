@@ -13,13 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Controller.FallbackTest do
-  use ExUnitFixtures
-  use ExUnit.Case, async: false
-  use OMG.WatcherInfo.Fixtures
+  use ExUnit.Case, async: true
 
   alias Support.WatcherHelper
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "returns error for non existing method" do
     assert %{
              "object" => "error",

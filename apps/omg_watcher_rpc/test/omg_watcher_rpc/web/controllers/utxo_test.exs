@@ -24,7 +24,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
+  @tag fixtures: [:db_initialized]
   test "get_exit_data should return error when there is no txs in specfic block" do
     assert %{
              "code" => "exit:invalid",
@@ -36,7 +36,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
              })
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
+  @tag fixtures: [:db_initialized]
   test "get_exit_data should return error when there is no tx in specfic block" do
     assert %{
              "code" => "exit:invalid",
@@ -48,7 +48,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
              })
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :bob]
+  @tag fixtures: [:db_initialized, :bob]
   test "getting exit data returns properly formatted response", %{bob: bob} do
     tx = OMG.TestHelper.create_signed([{1, 0, 0, bob}], @eth, [{bob, 100}])
     tx_encode = tx |> OMG.State.Transaction.Signed.encode()
@@ -69,7 +69,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
     assert <<_proof::bytes-size(512)>> = proof
   end
 
-  @tag fixtures: [:web_endpoint, :db_initialized]
+  @tag fixtures: [:db_initialized]
   test "getting exit data returns error when there is no txs in specfic block" do
     utxo_pos = Utxo.position(7000, 1, 0) |> Utxo.Position.encode()
 
@@ -80,7 +80,6 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
            } = WatcherHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles improper type of parameter" do
     assert %{
              "object" => "error",
@@ -95,7 +94,6 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
            } == WatcherHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => "1200000120000"})
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles too low utxo position inputs" do
     assert %{
              "object" => "error",

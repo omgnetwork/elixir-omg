@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.WatcherInfo.DataCase, async: false
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
 
@@ -27,7 +27,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag skip: true
-  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+  @tag fixtures: [:alice]
   test "challenge data is properly formatted", %{alice: alice} do
     DB.EthEvent.insert_deposits!([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1}])
 
@@ -52,7 +52,6 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   end
 
   @tag skip: true
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "challenging non-existent utxo returns error" do
     utxo_pos = Utxo.position(1, 1, 0) |> Utxo.Position.encode()
 
@@ -62,7 +61,6 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
     } = WatcherHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles improper type of parameter" do
     assert %{
              "object" => "error",
@@ -77,7 +75,6 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
            } == WatcherHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => "1200000120000"})
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles too low utxo position inputs" do
     assert %{
              "object" => "error",
