@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   use ExUnitFixtures
-  use OMG.WatcherInfo.DataCase, async: false
+  use OMG.WatcherInfo.DataCase, async: true
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
 

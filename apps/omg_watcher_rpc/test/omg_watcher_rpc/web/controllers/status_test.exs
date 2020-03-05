@@ -13,8 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Controller.StatusTest do
-  use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   @moduletag :integration
   @moduletag :watcher
