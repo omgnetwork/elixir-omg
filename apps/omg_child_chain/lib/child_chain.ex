@@ -36,8 +36,7 @@ defmodule OMG.ChildChain do
           {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
           | {:error, submit_error()}
   def submit(transaction) do
-    IO.puts("OMG.ChildChain.submit(): executing handler for '#{Measure.txn_submission_submitted()}'")
-    :ok = :telemetry.execute([Measure.txn_submission_submitted()], Measure.measure(), %{transaction: transaction})
+    :ok = :telemetry.execute(Measure.txn_submission_submitted(), Measure.measurements(), %{transaction: transaction})
 
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
          :ok <- is_supported(recovered_tx),
@@ -47,14 +46,12 @@ defmodule OMG.ChildChain do
 
       txn_data = %{txhash: tx_hash, blknum: blknum, txindex: tx_index}
 
-      IO.puts("OMG.ChildChain.submit(): executing handler for '#{Measure.txn_submission_succeeded()}'")
-      :ok = :telemetry.execute([Measure.txn_submission_succeeded()], Measure.measure(), %{transaction: txn_data})
+      :ok = :telemetry.execute(Measure.txn_submission_succeeded(), Measure.measurements(), %{transaction: txn_data})
 
       {:ok, txn_data}
     else
       {:error, error_data} ->
-        IO.puts("OMG.ChildChain.submit(): executing handler for '#{Measure.txn_submission_failed()}'")
-        :ok = :telemetry.execute([Measure.txn_submission_failed()], Measure.measure(), %{error: error_data})
+        :ok = :telemetry.execute(Measure.txn_submission_failed(), Measure.measurements(), %{error: error_data})
         {:error, error_data}
     end
     |> result_with_logging()

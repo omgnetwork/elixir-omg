@@ -18,49 +18,48 @@ defmodule OMG.ChildChain.Measure do
   """
   alias OMG.Status.Metric.Datadog
 
-  # <prefix>.[<subprefix>.]<instrumented_section>.<target (noun)>.<action (past tense verb)>
-  @txn_submission_submitted :"omg.childchain.transaction.submission.submitted"
+  # Configuration of global tags and metric name prefixes can be added in the apps config.exs file, like so:
+  # ```
+  # config :statix,
+  #   prefix: "omg.childchain",
+  #   tags: ["application:childchain"]
+  # ```
+
+  @txn_submission_subprefix [:transaction, :submission]
+
+  @txn_submission_submitted @txn_submission_subprefix ++ [:submitted]
   def txn_submission_submitted(), do: @txn_submission_submitted
 
-  @txn_submission_succeeded :"omg.childchain.transaction.submission.succeeded"
+  @txn_submission_succeeded @txn_submission_subprefix ++ [:succeeded]
   def txn_submission_succeeded(), do: @txn_submission_succeeded
 
-  @txn_submission_failed :"omg.childchain.transaction.submission.failed"
+  @txn_submission_failed @txn_submission_subprefix ++ [:failed]
   def txn_submission_failed(), do: @txn_submission_failed
 
-  @supported_events [[@txn_submission_submitted], [@txn_submission_succeeded], [@txn_submission_failed]]
+  @supported_events [@txn_submission_submitted, @txn_submission_succeeded, @txn_submission_failed]
   def supported_events(), do: @supported_events
 
   @increment 1
   
-  def measure(), do: %{increment: @increment}
+  def measurements(), do: %{increment: @increment}
 
-  def measurements(measurements), do: Map.get(measurements, :increment, 1)
+  def measurements(measurements) when is_map(measurements), do: Map.get(measurements, :increment, 1)
 
-  def handle_event([@txn_submission_submitted], measurements, _event_metadata, _config) do
-    IO.puts("************** handle_event(): '#{@txn_submission_submitted}' **************")
-    IO.inspect(measurements, label: "measurements")
-    IO.inspect(_event_metadata, label: "_event_metadata")
-    IO.inspect(_config, label: "_config")
-
-    Datadog.increment(to_string(@txn_submission_submitted), measurements(measurements))
+  def handle_event(@txn_submission_submitted, measurements, _event_metadata, _config) do
+    Datadog.increment(event_name_to_metric_name(@txn_submission_submitted), measurements(measurements), tags: [])
   end
 
-  def handle_event([@txn_submission_succeeded], measurements, _event_metadata, _config) do
-    IO.puts("************** handle_event(): '#{@txn_submission_succeeded}' **************")
-    IO.inspect(measurements, label: "measurements")
-    IO.inspect(_event_metadata, label: "_event_metadata")
-    IO.inspect(_config, label: "_config")
-
-    Datadog.increment(to_string(@txn_submission_succeeded), measurements(measurements))
+  def handle_event(@txn_submission_succeeded, measurements, _event_metadata, _config) do
+    Datadog.increment(event_name_to_metric_name(@txn_submission_succeeded), measurements(measurements), tags: [])
   end
 
-  def handle_event([@txn_submission_failed], measurements, _event_metadata, _config) do
-    IO.puts("************** handle_event(): '#{@txn_submission_failed}' **************")
-    IO.inspect(measurements, label: "measurements")
-    IO.inspect(_event_metadata, label: "_event_metadata")
-    IO.inspect(_config, label: "_config")
+  def handle_event(@txn_submission_failed, measurements, _event_metadata, _config) do
+    Datadog.increment(event_name_to_metric_name(@txn_submission_failed), measurements(measurements), tags: [])
+  end
 
-    Datadog.increment(to_string(@txn_submission_failed), measurements(measurements))
+  defp event_name_to_metric_name(event_atoms) do
+    event_atoms
+    |> Enum.map(fn event_atom -> to_string(event_atom) end)
+    |> Enum.reduce(fn event_name_part, metric_name -> metric_name <> "." <> event_name_part end)
   end
 end
