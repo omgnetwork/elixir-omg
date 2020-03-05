@@ -1,6 +1,12 @@
 version: 2
 
 jobs:
-  build:
+  print-skip-message:
     steps:
       - run: echo "Skipping CI on `gh-pages` branch."
+
+workflows:
+  version: 2
+  ignore-gh-pages:
+    jobs:
+      - print-skip-message
