@@ -24,4 +24,3 @@ Mix.Task.run("ecto.create", ~w(--quiet))
 Mix.Task.run("ecto.migrate", ~w(--quiet))
 
 {:ok, _pid} = OMG.WatcherRPC.Web.Endpoint.start_link([])
-_ = Application.load(:omg_watcher_rpc)
