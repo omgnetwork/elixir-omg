@@ -11,8 +11,9 @@ jobs:
 workflows:
   version: 2
   ignore-gh-pages:
-    branches:
-      ignore:
-        - gh-pages
     jobs:
-      - skip-build
+      - skip-build:
+          filters:
+            branches:
+              ignore:
+                - /.*/
