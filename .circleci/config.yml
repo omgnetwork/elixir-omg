@@ -1,1 +1,6 @@
 version: 2
+
+jobs:
+  build:
+    steps:
+      - run: echo "Skipping CI on `gh-pages` branch."
