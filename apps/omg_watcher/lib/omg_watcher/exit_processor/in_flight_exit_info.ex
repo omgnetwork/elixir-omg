@@ -69,7 +69,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @type exit_map_t() :: %{
           {:input | :output, non_neg_integer()} => %{
             is_piggybacked: boolean(),
-            is_finalized: boolean()
+            is_finalized: boolean(),
+            is_challenged: boolean()
           }
         }
 
@@ -270,8 +271,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def piggyback(%__MODULE__{}, _), do: {:error, :non_existent_exit}
 
-  defp piggyback_exit(%{is_piggybacked: false, is_finalized: false}),
-    do: {:ok, %{is_piggybacked: true, is_finalized: false}}
+  defp piggyback_exit(%{is_piggybacked: false, is_finalized: false, is_challenged: false} = exit_map_entry),
+    do: {:ok, %{exit_map_entry | is_piggybacked: true}}
 
   defp piggyback_exit(_), do: {:error, :cannot_piggyback}
 
@@ -292,8 +293,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   @spec challenge_piggyback(t(), combined_index_t()) :: t()
   def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, combined_index) when is_tuple(combined_index) do
-    %{is_piggybacked: true, is_finalized: false} = exit_map_get(exit_map, combined_index)
-    %{ife | exit_map: Map.replace!(exit_map, combined_index, %{is_piggybacked: false, is_finalized: false})}
+    %{is_piggybacked: true, is_finalized: false, is_challenged: false} =
+      exit_map_entry = exit_map_get(exit_map, combined_index)
+
+    %{ife | exit_map: Map.replace!(exit_map, combined_index, %{exit_map_entry | is_challenged: true})}
   end
 
   @spec respond_to_challenge(t(), Utxo.Position.t()) ::
@@ -333,46 +336,31 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]
-  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
+  @spec get_active_output_piggybacks_positions(t()) :: [Utxo.Position.t()]
+  def get_active_output_piggybacks_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
 
-  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _}} = ife) do
+  def get_active_output_piggybacks_positions(
+        %__MODULE__{tx_seen_in_blocks_at: {Utxo.position(blknum, txindex, _), _}} = ife
+      ) do
     @outputs_index_range
-    |> Enum.filter(&is_output_piggybacked?(ife, &1))
+    |> Enum.filter(&is_unchallenged?(ife, {:output, &1}))
     |> Enum.map(&Utxo.position(blknum, txindex, &1))
   end
 
-  @spec is_piggybacked?(t(), combined_index_t()) :: boolean()
-  def is_piggybacked?(%__MODULE__{exit_map: map}, combined_index) when is_tuple(combined_index) do
-    if exit = exit_map_get(map, combined_index) do
-      Map.get(exit, :is_piggybacked, false)
-    else
-      false
-    end
-  end
-
-  def is_input_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_inputs do
-    is_piggybacked?(ife, {:input, index})
-  end
-
-  def is_output_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_outputs do
-    is_piggybacked?(ife, {:output, index})
-  end
-
-  def indexed_piggybacks_by_ife(%__MODULE__{tx: tx} = ife, :input) do
+  def unchallenged_piggybacks_by_ife(%__MODULE__{tx: tx} = ife, :input) do
     indexed_piggybacked_inputs =
       tx
       |> Transaction.get_inputs()
       |> Enum.with_index()
-      |> Enum.filter(fn {_input, index} -> is_input_piggybacked?(ife, index) end)
+      |> Enum.filter(fn {_input, index} -> is_unchallenged?(ife, {:input, index}) end)
 
     {ife, indexed_piggybacked_inputs}
   end
 
-  def indexed_piggybacks_by_ife(%__MODULE__{} = ife, :output) do
+  def unchallenged_piggybacks_by_ife(%__MODULE__{} = ife, :output) do
     indexed_piggybacked_outputs =
       ife
-      |> get_piggybacked_outputs_positions()
+      |> get_active_output_piggybacks_positions()
       |> Enum.map(&index_output_position/1)
 
     {ife, indexed_piggybacked_outputs}
@@ -383,28 +371,27 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     {position, oindex}
   end
 
-  def piggybacked_inputs(ife) do
+  def actively_piggybacked_inputs(ife) do
     @inputs_index_range
-    |> Enum.filter(&is_input_piggybacked?(ife, &1))
+    |> Enum.filter(&is_active?(ife, {:input, &1}))
   end
 
-  def piggybacked_outputs(ife) do
+  def actively_piggybacked_outputs(ife) do
     @outputs_index_range
-    |> Enum.filter(&is_output_piggybacked?(ife, &1))
-  end
-
-  @spec is_finalized?(t(), combined_index_t()) :: boolean()
-  def is_finalized?(%__MODULE__{exit_map: map}, combined_index) do
-    if exit = exit_map_get(map, combined_index) do
-      Map.get(exit, :is_finalized, false)
-    else
-      false
-    end
+    |> Enum.filter(&is_active?(ife, {:output, &1}))
   end
 
   @spec is_active?(t(), combined_index_t()) :: boolean()
   def is_active?(%__MODULE__{} = ife, combined_index) do
-    is_piggybacked?(ife, combined_index) and !is_finalized?(ife, combined_index)
+    is_piggybacked?(ife, combined_index) and
+      !is_finalized?(ife, combined_index) and
+      !is_challenged?(ife, combined_index)
+  end
+
+  @spec is_unchallenged?(t(), combined_index_t()) :: boolean()
+  def is_unchallenged?(%__MODULE__{} = ife, combined_index) do
+    is_piggybacked?(ife, combined_index) and
+      !is_challenged?(ife, combined_index)
   end
 
   def activate(%__MODULE__{} = ife) do
@@ -450,6 +437,33 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def is_relevant?(%__MODULE__{relevant_from_blknum: relevant_from_blknum}, blknum_now),
     do: relevant_from_blknum < blknum_now
 
+  @spec is_piggybacked?(t(), combined_index_t()) :: boolean()
+  def is_piggybacked?(%__MODULE__{exit_map: map}, combined_index) when is_tuple(combined_index) do
+    if exit = exit_map_get(map, combined_index) do
+      Map.get(exit, :is_piggybacked, false)
+    else
+      false
+    end
+  end
+
+  @spec is_finalized?(t(), combined_index_t()) :: boolean()
+  defp is_finalized?(%__MODULE__{exit_map: map}, combined_index) do
+    if exit = exit_map_get(map, combined_index) do
+      Map.get(exit, :is_finalized, false)
+    else
+      false
+    end
+  end
+
+  @spec is_challenged?(t(), combined_index_t()) :: boolean()
+  defp is_challenged?(%__MODULE__{exit_map: map}, combined_index) do
+    if exit = exit_map_get(map, combined_index) do
+      Map.get(exit, :is_challenged, false)
+    else
+      false
+    end
+  end
+
   # there's nothing with any position, so there's nothing older than competitor, so it's good to challenge with
   defp do_is_viable_competitor?(nil, nil, _competitor_pos), do: true
   # there's something with position and the competitor doesn't have any - not good to challenge with
@@ -480,8 +494,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  @spec exit_map_get(exit_map_t(), combined_index_t()) :: %{is_piggybacked: boolean(), is_finalized: boolean()}
+  @spec exit_map_get(exit_map_t(), combined_index_t()) :: %{
+          is_piggybacked: boolean(),
+          is_finalized: boolean(),
+          is_challenged: boolean()
+        }
   defp exit_map_get(exit_map, {type, index} = combined_index)
        when (type == :input and index < @max_inputs) or (type == :output and index < @max_outputs),
-       do: Map.get(exit_map, combined_index, %{is_piggybacked: false, is_finalized: false})
+       do: Map.get(exit_map, combined_index, %{is_piggybacked: false, is_finalized: false, is_challenged: false})
 end

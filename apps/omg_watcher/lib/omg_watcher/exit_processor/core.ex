@@ -343,7 +343,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.filter(&InFlightExitInfo.is_relevant?(&1, blknum_now))
 
     ife_inputs_pos = active_relevant_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
-    ife_outputs_pos = active_relevant_ifes |> Enum.flat_map(&InFlightExitInfo.get_piggybacked_outputs_positions/1)
+    ife_outputs_pos = active_relevant_ifes |> Enum.flat_map(&InFlightExitInfo.get_active_output_piggybacks_positions/1)
 
     (ife_outputs_pos ++ ife_inputs_pos ++ standard_exits_pos)
     |> :lists.usort()
@@ -374,7 +374,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.flat_map(fn %{tx: tx} = ife ->
-        InFlightExitInfo.get_piggybacked_outputs_positions(ife) ++ Transaction.get_inputs(tx)
+        InFlightExitInfo.get_active_output_piggybacks_positions(ife) ++ Transaction.get_inputs(tx)
       end)
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> :lists.usort()
@@ -513,14 +513,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     available_inputs =
       input_witnesses
-      |> Enum.filter(fn {index, _} -> not InFlightExitInfo.is_input_piggybacked?(ife, index) end)
+      |> Enum.filter(fn {index, _} -> not InFlightExitInfo.is_piggybacked?(ife, {:input, index}) end)
       |> Enum.map(fn {index, owner} -> %{index: index, address: owner} end)
 
     available_outputs =
       outputs
       |> Enum.filter(fn %{owner: owner} -> zero_address?(owner) end)
       |> Enum.with_index()
-      |> Enum.filter(fn {_, index} -> not InFlightExitInfo.is_output_piggybacked?(ife, index) end)
+      |> Enum.filter(fn {_, index} -> not InFlightExitInfo.is_piggybacked?(ife, {:output, index}) end)
       |> Enum.map(fn {%{owner: owner}, index} -> %{index: index, address: owner} end)
 
     if Enum.empty?(available_inputs) and Enum.empty?(available_outputs) do
@@ -553,8 +553,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       txhash: txhash,
       txbytes: Transaction.raw_txbytes(tx),
       eth_height: eth_height,
-      piggybacked_inputs: InFlightExitInfo.piggybacked_inputs(ife_info),
-      piggybacked_outputs: InFlightExitInfo.piggybacked_outputs(ife_info)
+      piggybacked_inputs: InFlightExitInfo.actively_piggybacked_inputs(ife_info),
+      piggybacked_outputs: InFlightExitInfo.actively_piggybacked_outputs(ife_info)
     }
   end
 
