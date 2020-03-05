@@ -26,6 +26,7 @@ defmodule OMG.WatcherInfo.DataCase do
   of the test unless the test case is marked as async.
   """
   use ExUnit.CaseTemplate
+  alias Ecto.Adapters.SQL.Sandbox
 
   using do
     quote do
@@ -34,10 +35,10 @@ defmodule OMG.WatcherInfo.DataCase do
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
+    :ok = Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
+      Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
     end
 
     :ok
