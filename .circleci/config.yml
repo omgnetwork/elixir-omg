@@ -7,12 +7,12 @@ jobs:
       image: cimg/base:2020.01
     steps:
       - run: echo "Skipping CI on `gh-pages` branch."
-    branches:
-      ignore:
-        - gh-pages
 
 workflows:
   version: 2
   ignore-gh-pages:
+    branches:
+      ignore:
+        - gh-pages
     jobs:
       - skip-build
