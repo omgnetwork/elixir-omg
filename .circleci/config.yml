@@ -1,10 +1,10 @@
 version: 2
 
 jobs:
-  print-skipping-message:
+  skip-gh-pages-branch:
     docker:
       # This weird-looking docker image is CircleCI Base Image (https://circleci.com/docs/2.0/circleci-images/#circleci-base-image)
-      image: cimg/base:2020.01
+      - image: cimg/base:2020.01
     steps:
       - run: echo "Skipping CI on `gh-pages` branch."
 
@@ -14,6 +14,6 @@ workflows:
   # "No workflows to execute for this pipeline" which can be scary among other commits
   # that we expect CI to trigger. So we let a simple job run that would inform that
   # we are skipping the `gh-pages` branch.
-  ignore-gh-pages:
+  skip-gh-pages:
     jobs:
-      - print-skipping-message
+      - skip-gh-pages-branch
