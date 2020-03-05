@@ -255,9 +255,8 @@ defmodule OMG.Watcher.ExitProcessor do
     contract_ife_ids =
       Enum.map(
         events,
-        fn %{call_data: %{in_flight_tx: bytes}} ->
-          {:ok, contract_ife_id} = Eth.RootChain.get_in_flight_exit_id(bytes)
-          contract_ife_id
+        fn %{call_data: %{in_flight_tx: txbytes}} ->
+          ExPlasma.InFlightExit.txbytes_to_id(txbytes)
         end
       )
 
