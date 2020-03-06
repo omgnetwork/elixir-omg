@@ -8,7 +8,7 @@ defmodule LoadTest.Connection.WatcherInfo do
 
     middleware = [
       {Tesla.Middleware.BaseUrl, base_url},
-      {Tesla.Middleware.EncodeJson, engine: Poison},
+      {Tesla.Middleware.EncodeJson, engine: Jason},
       {Tesla.Middleware.Headers, [{"user-agent", "Elixir"}]}
     ]
 
