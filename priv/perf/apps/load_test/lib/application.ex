@@ -3,7 +3,6 @@ defmodule LoadTest.Application do
   Application for the load test
   """
 
-  @impl true
   def start(_type, _args) do
     pool_size = Application.get_env(:load_test, :pool_size)
     max_connections = Application.get_env(:load_test, :max_connection)
@@ -19,7 +18,6 @@ defmodule LoadTest.Application do
     {:ok, self()}
   end
 
-  @impl true
   def stop(_app) do
     :hackney_pool.stop_pool(:perf_pool)
   end
