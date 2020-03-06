@@ -75,7 +75,7 @@ defmodule InvalidStandardExitsTests do
           _,
           %{} = state do
     assert all?([])
-    {:ok, state}
+    {:ok, Map.put(state, :prior_byzantine_events, [])}
   end
 
   defwhen ~r/^Alice sends Bob "(?<amount>[^"]+)" ETH on the child chain$/,
@@ -116,11 +116,16 @@ defmodule InvalidStandardExitsTests do
     {:ok, new_state}
   end
 
-  defwhen ~r/^Bob detects a[n]? "(?<event>[^"]+)" and challenges it$/,
+  defwhen ~r/^Bob detects a new "(?<event>[^"]+)"$/,
           %{event: event},
-          %{bob_account: bob_account} = state do
-    assert all?([event])
+          %{prior_byzantine_events: prior_byzantine_events} = state do
+    assert all?([event | prior_byzantine_events])
+    {:ok, Map.put(state, :prior_byzantine_events, [event | prior_byzantine_events])}
+  end
 
+  defwhen ~r/^Bob challenges an invalid exit$/,
+          _,
+          %{bob_account: bob_account} = state do
     pull_api_until_successful(Status, :status_get, WatcherSecurityCriticalAPI.Connection.new())
     |> Map.fetch!("byzantine_events")
     |> hd
