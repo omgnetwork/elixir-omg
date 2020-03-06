@@ -9,6 +9,7 @@ defmodule LoadTest.Connection.WatcherInfo do
     base_url = Application.get_env(:load_test, :watcher_info_url)
 
     middleware = [
+      Tesla.Middleware.Logger,
       {Tesla.Middleware.BaseUrl, base_url},
       {Tesla.Middleware.EncodeJson, engine: Jason},
       {Tesla.Middleware.Headers, [{"user-agent", "Elixir"}]},
