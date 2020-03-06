@@ -12,7 +12,7 @@ defmodule LoadTest.Connection.WatcherSecurity do
       Tesla.Middleware.Logger,
       {Tesla.Middleware.BaseUrl, base_url},
       {Tesla.Middleware.EncodeJson, engine: Jason},
-      {Tesla.Middleware.Headers, [{"user-agent", "Elixir"}]},
+      {Tesla.Middleware.Headers, [{"user-agent", "Perf"}]},
       {Tesla.Middleware.Retry, delay: 500, max_retries: 10, max_delay: 45_000, should_retry: Utils.retry?()}
     ]
 
