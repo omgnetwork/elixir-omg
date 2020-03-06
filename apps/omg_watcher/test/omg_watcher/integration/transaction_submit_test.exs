@@ -44,7 +44,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @eth_hex Encoding.to_hex(@eth)
 
-  @tag fixtures: [:in_beam_watcher, :mix_based_child_chain, :stable_alice, :bob, :stable_alice_deposits]
+  @tag fixtures: [:mix_based_child_chain, :stable_alice, :bob, :stable_alice_deposits]
   test "Thin client scenario", %{
     stable_alice: alice,
     bob: bob

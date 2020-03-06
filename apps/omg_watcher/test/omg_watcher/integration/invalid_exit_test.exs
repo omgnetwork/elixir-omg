@@ -39,7 +39,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits]
+  @tag fixtures: [:stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits]
   test "exit which is using already spent utxo from transaction and deposit causes to emit invalid_exit event", %{
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}
@@ -99,7 +99,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     IntegrationTest.wait_for_byzantine_events([], @timeout)
   end
 
-  @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
+  @tag fixtures: [:stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
@@ -140,7 +140,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
   end
 
-  @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits]
+  @tag fixtures: [:stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits]
   test "invalid exit is detected after block withholding", %{
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}

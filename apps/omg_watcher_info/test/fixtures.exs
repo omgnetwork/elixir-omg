@@ -28,46 +28,6 @@ defmodule OMG.WatcherInfo.Fixtures do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
-  deffixture in_beam_watcher(db_initialized, root_chain_contract_config) do
-    :ok = db_initialized
-    :ok = root_chain_contract_config
-
-    {:ok, started_apps} = Application.ensure_all_started(:omg_db)
-    {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher_info)
-    {:ok, started_watcher_api} = Application.ensure_all_started(:omg_watcher_rpc)
-
-    [] = DB.Repo.all(DB.Block)
-
-    on_exit(fn ->
-      Application.put_env(:omg_db, :path, nil)
-
-      (started_apps ++ started_watcher ++ started_watcher_api)
-      |> Enum.reverse()
-      |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end)
-  end
-
-  deffixture web_endpoint do
-    Application.ensure_all_started(:spandex_ecto)
-    Application.ensure_all_started(:telemetry)
-
-    :telemetry.attach(
-      "spandex-query-tracer",
-      [:omg, :watcher, :db, :repo, :query],
-      &SpandexEcto.TelemetryAdapter.handle_event/4,
-      nil
-    )
-
-    {:ok, pid} = ensure_web_started(OMG.WatcherRPC.Web.Endpoint, :start_link, [], 100)
-
-    _ = Application.load(:omg_watcher_rpc)
-
-    on_exit(fn ->
-      wait_for_process(pid)
-      :ok
-    end)
-  end
-
   deffixture initial_blocks(alice, bob, blocks_inserter, initial_deposits) do
     :ok = initial_deposits
 

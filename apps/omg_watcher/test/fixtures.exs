@@ -162,24 +162,6 @@ defmodule OMG.Watcher.Fixtures do
     line
   end
 
-  deffixture in_beam_watcher(db_initialized, root_chain_contract_config) do
-    :ok = db_initialized
-    :ok = root_chain_contract_config
-
-    {:ok, started_apps} = Application.ensure_all_started(:omg_db)
-    {:ok, started_security_watcher} = Application.ensure_all_started(:omg_watcher)
-    {:ok, started_watcher_api} = Application.ensure_all_started(:omg_watcher_rpc)
-    wait_for_web()
-
-    on_exit(fn ->
-      Application.put_env(:omg_db, :path, nil)
-
-      (started_apps ++ started_security_watcher ++ started_watcher_api)
-      |> Enum.reverse()
-      |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end)
-  end
-
   deffixture test_server do
     {:ok, server_id, port} = Server.run()
     env = FakeServer.Env.new(port)
