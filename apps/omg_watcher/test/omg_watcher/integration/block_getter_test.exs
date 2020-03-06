@@ -20,7 +20,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   """
 
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.Watcher.IntegrationCase, async: false
   use OMG.Fixtures
   use OMG.Watcher.Integration.Fixtures
   use Plug.Test
