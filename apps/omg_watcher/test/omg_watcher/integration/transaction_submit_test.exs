@@ -20,8 +20,6 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   1. call `/transaction.create` to prepare transaction with data ready to be signed with `eth_signTypedData`
   2. call Ethereum node (e.g. MetaMask) with above data as request to sign transaction
   3. call `/transaction.submit_typed` with typed data and signatures to submit transaction  to child chain
-
-
   """
 
   use ExUnitFixtures

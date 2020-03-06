@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   # bumping the timeout to three minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 180_000
 
-  @tag fixtures: [:alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
+  @tag fixtures: [:db_initialized, :root_chain_contract_config, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
   test "in-flight exit competitor is detected by watcher and proven with position immediately",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     # tx1 is submitted then in-flight-exited
@@ -110,7 +110,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert %{"byzantine_events" => [%{"event" => "piggyback_available"}]} = WatcherHelper.success?("/status.get")
   end
 
-  @tag fixtures: [:alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
+  @tag fixtures: [:db_initialized, :root_chain_contract_config, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
   test "invalid in-flight exit challenge is detected by watcher, because it contains no position",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     # tx1 is submitted then in-flight-exited
@@ -198,7 +198,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
              WatcherHelper.success?("/status.get")
   end
 
-  @tag fixtures: [:alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
+  @tag fixtures: [:db_initialized, :root_chain_contract_config, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
   test "honest and cooperating users exit in-flight transaction",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     DevHelper.import_unlock_fund(bob)
@@ -220,7 +220,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
   # NOTE: if https://github.com/omisego/elixir-omg/issues/994 is taken care of, this behavior will change, see comments
   #       therein.
-  @tag fixtures: [:alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
+  @tag fixtures: [:db_initialized, :root_chain_contract_config, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
   test "finalization of output from non-included IFE tx - all is good",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     DevHelper.import_unlock_fund(bob)
@@ -232,7 +232,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherHelper.success?("/status.get")
   end
 
-  @tag fixtures: [:alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
+  @tag fixtures: [:db_initialized, :root_chain_contract_config, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
   test "finalization of utxo double-spent in state leaves in-flight exit active and invalid; warns",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     DevHelper.import_unlock_fund(bob)
