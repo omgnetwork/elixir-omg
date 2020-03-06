@@ -26,6 +26,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
+  alias Ecto.Adapters.SQL.Sandbox
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
@@ -45,6 +46,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @moduletag :watcher
 
   @moduletag timeout: 100_000
+
+  setup do
+    :ok = Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
+    Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
+    :ok
+  end
 
   @tag timeout: 200_000
   @tag fixtures: [:db_initialized, :root_chain_contract_config, :mix_based_child_chain, :alice, :bob, :alice_deposits, :token]
