@@ -69,7 +69,7 @@ defmodule OMG.ChildChain.EventFetcher do
 
     {:ok,
      %{
-       # 100 blocks of events will be kept in memory
+       # 200 blocks of events will be kept in memory
        delete_events_treshold_height_blknum: 200,
        ets_bucket: ets_bucket,
        event_signatures: events_signatures,
