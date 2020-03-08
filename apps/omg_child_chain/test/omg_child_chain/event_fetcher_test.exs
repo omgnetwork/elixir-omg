@@ -59,7 +59,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
     {time, _value} = :timer.tc(EventFetcher, :deposit_created, [event_fetcher_name, from_block, to_block])
     assert Enum.count(:ets.tab2list(table)) == Enum.count(events) * 80_000
     duration = time / 1_000_000
-    assert duration < 3
+    assert duration < 5
   end
 
   test "that events and event signatures are correctly initialized ", %{event_fetcher_name: event_fetcher_name} do
