@@ -1,4 +1,4 @@
-version: "2.1"
+version: "2.3"
 services:
   postgres:
     image: postgres:9.6.13-alpine
@@ -14,10 +14,30 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+  datadog:
+    image: datadog/agent:latest
+    restart: always
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_DOGSTATSD_TAGS=["env:local_development_event_fetcher"]
+      #- DD_LOG_LEVEL=debug
+      - DOCKER_CONTENT_TRUST=1
+      - DD_APM_ENABLED=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+    ports:
+      - "80:80"
+      - "2003-2004:2003-2004"
+      - "2023-2024:2023-2024"
+      - "8125:8125/udp"
+      - "8126:8126/tcp"
 
   watcher:
     #last stable integration watcher
-    image: omisego/watcher:4445aee
+    image: omisego/watcher:latest
     command: "full_local"
     environment:
       - ETHEREUM_RPC_URL=https://ropsten.infura.io/v3/${INFURA_API_KEY}
@@ -32,14 +52,16 @@ services:
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - NODE_HOST=127.0.0.1
       - PORT=7434
-      - DD_DISABLED=true
+      - DD_DISABLED=false
       - DB_PATH=/app/.omg/data
-      - APP_ENV=localwatcher
+      - APP_ENV=local-development
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=8000
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=60000
       - ETHEREUM_BLOCK_TIME_SECONDS=15
       - EXIT_PROCESSOR_SLA_MARGIN=5520
       - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
+      - LOGGER_BACKEND=console
+      - DD_HOSTNAME=datadog
     ports:
       - "7434:7434"
     healthcheck:
@@ -49,7 +71,7 @@ services:
       retries: 5
 
   watcher_info:
-    image: omisego/watcher_info:4445aee
+    image: omisego/watcher_info:latest
     command: "full_local"
     environment:
       - ETHEREUM_RPC_URL=https://ropsten.infura.io/v3/${INFURA_API_KEY}
@@ -64,14 +86,16 @@ services:
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - NODE_HOST=127.0.0.1
       - PORT=7534
-      - DD_DISABLED=true
+      - DD_DISABLED=false
       - DB_PATH=/app/.omg/data
-      - APP_ENV=localwatcher_info
+      - APP_ENV=local-development
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=8000
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=60000
       - ETHEREUM_BLOCK_TIME_SECONDS=15
       - EXIT_PROCESSOR_SLA_MARGIN=5520
       - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
+      - LOGGER_BACKEND=console
+      - DD_HOSTNAME=datadog
     restart: always
     ports:
       - "7534:7534"

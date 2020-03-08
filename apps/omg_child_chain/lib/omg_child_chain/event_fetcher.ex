@@ -132,7 +132,7 @@ defmodule OMG.ChildChain.EventFetcher do
   end
 
   def handle_continue(new_height_blknum, state) do
-    true = delete_old_logs(new_height_blknum, state)
+    _ = delete_old_logs(new_height_blknum, state)
     {:noreply, state}
   end
 
@@ -141,8 +141,6 @@ defmodule OMG.ChildChain.EventFetcher do
     |> get_logs(to_block, state)
     |> enrich_logs(state)
     |> insert_logs(from_block, to_block, state)
-
-    true
   end
 
   defp get_logs(from_height, to_heigh, state) do
@@ -151,7 +149,7 @@ defmodule OMG.ChildChain.EventFetcher do
   end
 
   # we get the logs from RPC and we cross check with the event definition if we need to enrich them
-  def enrich_logs(decoded_logs, state) do
+  defp enrich_logs(decoded_logs, state) do
     events = state.events
     rpc = state.rpc
 
@@ -173,7 +171,7 @@ defmodule OMG.ChildChain.EventFetcher do
     end)
   end
 
-  def insert_logs(decoded_logs, from_block, to_block, state) do
+  defp insert_logs(decoded_logs, from_block, to_block, state) do
     event_signatures = state.event_signatures
 
     # all logs come in a list of maps
@@ -230,8 +228,7 @@ defmodule OMG.ChildChain.EventFetcher do
        [true]}
     ]
 
-    _ = :ets.select_delete(state.ets_bucket, match_spec)
-    true
+    :ets.select_delete(state.ets_bucket, match_spec)
   end
 
   # allow ethereum event listeners to retrieve logs from ETS in bulk

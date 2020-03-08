@@ -504,7 +504,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   defp log_downloading_blocks(_next_child, []), do: :ok
 
   defp log_downloading_blocks(next_child, blocks_numbers) do
-    Logger.info("Child chain seen at block \##{inspect(next_child)}. Downloading blocks #{inspect(blocks_numbers)}")
+    # Logger.info("Child chain seen at block \##{inspect(next_child)}. Downloading blocks #{inspect(blocks_numbers)}")
   end
 
   defp get_blknum({:ok, %{number: number}}), do: number

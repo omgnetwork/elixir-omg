@@ -18,54 +18,56 @@ defmodule OMG.Watcher.EventFetcher do
   """
   use GenServer
   require Logger
+  use Spandex.Decorators
 
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.RootChain.Event
   alias OMG.Eth.RootChain.Rpc
 
+  @timeout 5_000
   def deposit_created(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:deposit_created, from_block, to_block})
+    GenServer.call(server, {:deposit_created, from_block, to_block}, @timeout)
   end
 
   def exit_started(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:exit_started, from_block, to_block})
+    GenServer.call(server, {:exit_started, from_block, to_block}, @timeout)
   end
 
   def exit_finalized(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:exit_finalized, from_block, to_block})
+    GenServer.call(server, {:exit_finalized, from_block, to_block}, @timeout)
   end
 
   def exit_challenged(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:exit_challenged, from_block, to_block})
+    GenServer.call(server, {:exit_challenged, from_block, to_block}, @timeout)
   end
 
   def in_flight_exit_started(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_started, from_block, to_block})
+    GenServer.call(server, {:in_flight_exit_started, from_block, to_block}, @timeout)
   end
 
   def in_flight_exit_piggybacked(server \\ __MODULE__, from_block, to_block) do
     # input and output
-    GenServer.call(server, {:in_flight_exit_piggybacked, from_block, to_block})
+    GenServer.call(server, {:in_flight_exit_piggybacked, from_block, to_block}, @timeout)
   end
 
   def in_flight_exit_challenged(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_challenged, from_block, to_block})
+    GenServer.call(server, {:in_flight_exit_challenged, from_block, to_block}, @timeout)
   end
 
   def in_flight_exit_challenge_responded(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_challenge_responded, from_block, to_block})
+    GenServer.call(server, {:in_flight_exit_challenge_responded, from_block, to_block}, @timeout)
   end
 
   def in_flight_exit_blocked(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_blocked, from_block, to_block})
+    GenServer.call(server, {:in_flight_exit_blocked, from_block, to_block}, @timeout)
   end
 
   def in_flight_exit_withdrawn(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_withdrawn, from_block, to_block})
+    GenServer.call(server, {:in_flight_exit_withdrawn, from_block, to_block}, @timeout)
   end
 
   def block_submitted(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:block_submitted, from_block, to_block})
+    GenServer.call(server, {:block_submitted, from_block, to_block}, @timeout)
   end
 
   def start_link(opts) do
@@ -171,21 +173,27 @@ defmodule OMG.Watcher.EventFetcher do
     {:reply, {:ok, logs}, state, {:continue, from_block}}
   end
 
+  def handle_continue(new_height_blknum, state) do
+    _num_deleted = delete_old_logs(new_height_blknum, state)
+
+    {:noreply, state}
+  end
+
   defp retrieve_and_store_logs(from_block, to_block, state) do
     from_block
     |> get_logs(to_block, state)
     |> enrich_logs(state)
     |> insert_logs(from_block, to_block, state)
-
-    true
   end
 
+  @decorate span(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "get_logs/3")
   defp get_logs(from_height, to_heigh, state) do
     {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_heigh, state.event_signatures, state.contracts)
     Enum.map(logs, &Abi.decode_log(&1))
   end
 
   # we get the logs from RPC and we cross check with the event definition if we need to enrich them
+  @decorate span(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "enrich_logs/2")
   defp enrich_logs(decoded_logs, state) do
     events = state.events
     rpc = state.rpc
@@ -207,12 +215,8 @@ defmodule OMG.Watcher.EventFetcher do
     end)
   end
 
-  def handle_continue(new_height_blknum, state) do
-    true = delete_old_logs(new_height_blknum, state)
-    {:noreply, state}
-  end
-
-  def insert_logs(decoded_logs, from_block, to_block, state) do
+  @decorate span(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "insert_logs/4")
+  defp insert_logs(decoded_logs, from_block, to_block, state) do
     event_signatures = state.event_signatures
 
     # all logs come in a list of maps
@@ -242,8 +246,7 @@ defmodule OMG.Watcher.EventFetcher do
     empty_blknum_signature_events =
       from_block..to_block
       |> Enum.to_list()
-      |> Enum.map(fn blknum -> Enum.map(event_signatures, fn signature -> {blknum, signature, []} end) end)
-      |> List.flatten()
+      |> into_empty_blocks(event_signatures)
 
     # we now merge the two lists
     # it is important that logs we got from RPC are first
@@ -260,6 +263,7 @@ defmodule OMG.Watcher.EventFetcher do
   end
 
   # delete everything older then (current block - delete_events_treshold)
+  # @decorate span(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "delete_old_logs/2")
   defp delete_old_logs(new_height_blknum, state) do
     # :ets.fun2ms(fn {block_number, _event_signature, _event} when
     # block_number <= new_height - delete_events_treshold -> true end)
@@ -269,11 +273,11 @@ defmodule OMG.Watcher.EventFetcher do
        [true]}
     ]
 
-    _ = :ets.select_delete(state.ets_bucket, match_spec)
-    true
+    :ets.select_delete(state.ets_bucket, match_spec)
   end
 
   # allow ethereum event listeners to retrieve logs from ETS in bulk
+  @decorate span(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handout_log/4")
   defp handout_log(signature, from_block, to_block, state) do
     # :ets.fun2ms(fn {block_number, event_signature, event} when
     # block_number >= from_block and block_number <= to_block
@@ -309,6 +313,7 @@ defmodule OMG.Watcher.EventFetcher do
         missing_blocks = Enum.sort(missing_blocks)
         missing_from_block = List.first(missing_blocks)
         missing_to_block = List.last(missing_blocks)
+        OMG.Status.Metric.Datadog.increment("missed_blocks", 1, tags: ["in_memory:200"])
 
         _ =
           Logger.info(
@@ -321,4 +326,18 @@ defmodule OMG.Watcher.EventFetcher do
   end
 
   defp from_hex("0x" <> encoded), do: Base.decode16!(encoded, case: :lower)
+
+  defp into_empty_blocks(blocks, event_signatures), do: into_empty_blocks(blocks, event_signatures, [])
+  defp into_empty_blocks([], _, acc), do: acc
+
+  defp into_empty_blocks([block | blocks], event_signatures, acc) do
+    acc = fill_block_with_signatures(block, event_signatures, acc)
+    into_empty_blocks(blocks, event_signatures, acc)
+  end
+
+  defp fill_block_with_signatures(_, [], acc), do: acc
+
+  defp fill_block_with_signatures(block, [signature | signatures], acc) do
+    fill_block_with_signatures(block, signatures, [{block, signature, []} | acc])
+  end
 end

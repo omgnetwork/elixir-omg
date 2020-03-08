@@ -53,7 +53,11 @@ defmodule OMG.Eth.RootChain.Rpc do
   end
 
   def get_call_data(root_chain_txhash) do
-    {:ok, %{"input" => input}} = Ethereumex.HttpClient.eth_get_transaction_by_hash(Encoding.to_hex(root_chain_txhash))
+    {:ok, %{"input" => input}} =
+      root_chain_txhash
+      |> Encoding.to_hex()
+      |> Ethereumex.HttpClient.eth_get_transaction_by_hash()
+
     {:ok, input}
   end
 

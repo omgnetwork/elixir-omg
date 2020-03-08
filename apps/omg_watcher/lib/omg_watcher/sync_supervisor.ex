@@ -145,7 +145,7 @@ defmodule OMG.Watcher.SyncSupervisor do
   end
 
   defp ensure_ets_init() do
-    _ = if :undefined == :ets.info(@events_bucket), do: :ets.new(@events_bucket, [:ordered_set, :public, :named_table])
+    _ = if :undefined == :ets.info(@events_bucket), do: :ets.new(@events_bucket, [:bag, :public, :named_table])
     :ok
   end
 end
