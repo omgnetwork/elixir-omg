@@ -38,6 +38,30 @@ defmodule OMG.Watcher.EventFetcherTest do
     {:ok, %{event_fetcher_name: event_fetcher_name, table: table}}
   end
 
+  test "the performance of event retrieving", %{table: table, event_fetcher_name: event_fetcher_name, test: test_name} do
+    defmodule test_name do
+      alias OMG.Watcher.EventFetcherTest
+
+      def get_ethereum_events(_from_block, to_block, _signatures, _contracts) do
+        deposits = for n <- 1..10_000, do: EventFetcherTest.deposit_created_log(n)
+        {:ok, [EventFetcherTest.in_flight_exit_input_piggybacked_log(to_block) | deposits]}
+      end
+
+      def get_call_data(_tx_hash) do
+        {:ok, EventFetcherTest.start_standard_exit_log()}
+      end
+    end
+
+    from_block = 1
+    to_block = 80_000
+    :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
+    events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
+    {time, _value} = :timer.tc(EventFetcher, :deposit_created, [event_fetcher_name, from_block, to_block])
+    assert Enum.count(:ets.tab2list(table)) == Enum.count(events) * 80_000
+    duration = time / 1_000_000
+    assert duration < 3
+  end
+
   test "that events and event signatures are correctly initialized ", %{event_fetcher_name: event_fetcher_name} do
     assert event_fetcher_name |> :sys.get_state() |> Map.get(:events) == [
              [

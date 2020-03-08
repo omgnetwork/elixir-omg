@@ -23,21 +23,23 @@ defmodule OMG.ChildChain.EventFetcher do
   alias OMG.Eth.RootChain.Event
   alias OMG.Eth.RootChain.Rpc
 
+  @timeout 55_000
+
   def deposit_created(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:deposit_created, from_block, to_block})
+    GenServer.call(server, {:deposit_created, from_block, to_block}, @timeout)
   end
 
   def in_flight_exit_started(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_started, from_block, to_block})
+    GenServer.call(server, {:in_flight_exit_started, from_block, to_block}, @timeout)
   end
 
   def in_flight_exit_piggybacked(server \\ __MODULE__, from_block, to_block) do
     # input and output
-    GenServer.call(server, {:in_flight_exit_piggybacked, from_block, to_block})
+    GenServer.call(server, {:in_flight_exit_piggybacked, from_block, to_block}, @timeout)
   end
 
   def exit_started(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:exit_started, from_block, to_block})
+    GenServer.call(server, {:exit_started, from_block, to_block}, @timeout)
   end
 
   def start_link(opts) do
@@ -89,34 +91,19 @@ defmodule OMG.ChildChain.EventFetcher do
   #     {:noreply, state}
   #   end
 
-  def handle_call({:in_flight_exit_started, from_block, to_block}, _, state) do
-    name = :in_flight_exit_started
-
-    signature =
-      state.events
-      |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
-      |> Keyword.fetch!(:signature)
-
-    logs = handout_log(signature, from_block, to_block, state)
-
-    {:reply, {:ok, logs}, state, {:continue, from_block}}
-  end
-
   def handle_call({:in_flight_exit_piggybacked, from_block, to_block}, _, state) do
     names = [:in_flight_exit_output_piggybacked, :in_flight_exit_input_piggybacked]
 
     handout_logs =
-      names
-      |> Enum.reduce([], fn name, acc ->
+      Enum.reduce(names, [], fn name, acc ->
         signature =
           state.events
           |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
           |> Keyword.fetch!(:signature)
 
         logs = handout_log(signature, from_block, to_block, state)
-        [logs | acc]
+        logs ++ acc
       end)
-      |> List.flatten()
 
     {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
   end
@@ -269,7 +256,7 @@ defmodule OMG.ChildChain.EventFetcher do
         missing_to_block = List.last(missing_blocks)
 
         _ =
-          Logger.info(
+          Logger.debug(
             "Missing block information (#{missing_from_block}, #{missing_to_block}) in event fetcher. Additional RPC call to gather logs."
           )
 

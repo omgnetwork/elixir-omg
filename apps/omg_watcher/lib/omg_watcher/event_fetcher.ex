@@ -24,7 +24,8 @@ defmodule OMG.Watcher.EventFetcher do
   alias OMG.Eth.RootChain.Event
   alias OMG.Eth.RootChain.Rpc
 
-  @timeout 5_000
+  @timeout 55_000
+
   def deposit_created(server \\ __MODULE__, from_block, to_block) do
     GenServer.call(server, {:deposit_created, from_block, to_block}, @timeout)
   end
@@ -106,25 +107,25 @@ defmodule OMG.Watcher.EventFetcher do
      }}
   end
 
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
   def handle_call({:in_flight_exit_withdrawn, from_block, to_block}, _, state) do
     names = [:in_flight_exit_input_withdrawn, :in_flight_exit_output_withdrawn]
 
     handout_logs =
-      names
-      |> Enum.reduce([], fn name, acc ->
+      Enum.reduce(names, [], fn name, acc ->
         signature =
           state.events
           |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
           |> Keyword.fetch!(:signature)
 
         logs = handout_log(signature, from_block, to_block, state)
-        [logs | acc]
+        logs ++ acc
       end)
-      |> List.flatten()
 
     {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
   end
 
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
   def handle_call({:in_flight_exit_blocked, from_block, to_block}, _, state) do
     names = [:in_flight_exit_input_blocked, :in_flight_exit_output_blocked]
 
@@ -137,13 +138,13 @@ defmodule OMG.Watcher.EventFetcher do
           |> Keyword.fetch!(:signature)
 
         logs = handout_log(signature, from_block, to_block, state)
-        [logs | acc]
+        logs ++ acc
       end)
-      |> List.flatten()
 
     {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
   end
 
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
   def handle_call({:in_flight_exit_piggybacked, from_block, to_block}, _, state) do
     names = [:in_flight_exit_output_piggybacked, :in_flight_exit_input_piggybacked]
 
@@ -156,13 +157,13 @@ defmodule OMG.Watcher.EventFetcher do
           |> Keyword.fetch!(:signature)
 
         logs = handout_log(signature, from_block, to_block, state)
-        [logs | acc]
+        logs ++ acc
       end)
-      |> List.flatten()
 
     {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
   end
 
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
   def handle_call({name, from_block, to_block}, _, state) do
     signature =
       state.events
@@ -186,14 +187,12 @@ defmodule OMG.Watcher.EventFetcher do
     |> insert_logs(from_block, to_block, state)
   end
 
-  @decorate span(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "get_logs/3")
   defp get_logs(from_height, to_heigh, state) do
     {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_heigh, state.event_signatures, state.contracts)
     Enum.map(logs, &Abi.decode_log(&1))
   end
 
   # we get the logs from RPC and we cross check with the event definition if we need to enrich them
-  @decorate span(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "enrich_logs/2")
   defp enrich_logs(decoded_logs, state) do
     events = state.events
     rpc = state.rpc
@@ -215,7 +214,6 @@ defmodule OMG.Watcher.EventFetcher do
     end)
   end
 
-  @decorate span(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "insert_logs/4")
   defp insert_logs(decoded_logs, from_block, to_block, state) do
     event_signatures = state.event_signatures
 
@@ -246,7 +244,8 @@ defmodule OMG.Watcher.EventFetcher do
     empty_blknum_signature_events =
       from_block..to_block
       |> Enum.to_list()
-      |> into_empty_blocks(event_signatures)
+      |> Enum.map(fn blknum -> Enum.map(event_signatures, fn signature -> {blknum, signature, []} end) end)
+      |> List.flatten()
 
     # we now merge the two lists
     # it is important that logs we got from RPC are first
@@ -263,7 +262,6 @@ defmodule OMG.Watcher.EventFetcher do
   end
 
   # delete everything older then (current block - delete_events_treshold)
-  # @decorate span(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "delete_old_logs/2")
   defp delete_old_logs(new_height_blknum, state) do
     # :ets.fun2ms(fn {block_number, _event_signature, _event} when
     # block_number <= new_height - delete_events_treshold -> true end)
@@ -277,7 +275,6 @@ defmodule OMG.Watcher.EventFetcher do
   end
 
   # allow ethereum event listeners to retrieve logs from ETS in bulk
-  @decorate span(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handout_log/4")
   defp handout_log(signature, from_block, to_block, state) do
     # :ets.fun2ms(fn {block_number, event_signature, event} when
     # block_number >= from_block and block_number <= to_block
@@ -300,11 +297,13 @@ defmodule OMG.Watcher.EventFetcher do
     ]
 
     events = state.ets_bucket |> :ets.select(event_match_spec) |> List.flatten()
+
     blknum_list = :ets.select(state.ets_bucket, block_range)
 
     # we may not have all the block information the ethereum event listener wants
     # so we check for that and find all logs for missing blocks
     # in one RPC call for all signatures
+
     case Enum.to_list(from_block..to_block) -- blknum_list do
       [] ->
         events
@@ -313,10 +312,9 @@ defmodule OMG.Watcher.EventFetcher do
         missing_blocks = Enum.sort(missing_blocks)
         missing_from_block = List.first(missing_blocks)
         missing_to_block = List.last(missing_blocks)
-        OMG.Status.Metric.Datadog.increment("missed_blocks", 1, tags: ["in_memory:200"])
 
         _ =
-          Logger.info(
+          Logger.debug(
             "Missing block information (#{missing_from_block}, #{missing_to_block}) in event fetcher. Retrieving from RPC."
           )
 
@@ -327,17 +325,25 @@ defmodule OMG.Watcher.EventFetcher do
 
   defp from_hex("0x" <> encoded), do: Base.decode16!(encoded, case: :lower)
 
-  defp into_empty_blocks(blocks, event_signatures), do: into_empty_blocks(blocks, event_signatures, [])
-  defp into_empty_blocks([], _, acc), do: acc
+  # defp merge_blocks(blocks, event_signatures, decoded_logs_in_keypair),
+  #   do: merge_blocks(blocks, event_signatures, decoded_logs_in_keypair, [])
 
-  defp into_empty_blocks([block | blocks], event_signatures, acc) do
-    acc = fill_block_with_signatures(block, event_signatures, acc)
-    into_empty_blocks(blocks, event_signatures, acc)
-  end
+  # defp merge_blocks([], _, _, acc), do: acc
 
-  defp fill_block_with_signatures(_, [], acc), do: acc
+  # defp merge_blocks([block | blocks], event_signatures, decoded_logs_in_keypair, acc) do
+  #   acc = fill_block_with_signatures(block, event_signatures, decoded_logs_in_keypair, acc)
+  #   merge_blocks(blocks, event_signatures, decoded_logs_in_keypair, acc)
+  # end
 
-  defp fill_block_with_signatures(block, [signature | signatures], acc) do
-    fill_block_with_signatures(block, signatures, [{block, signature, []} | acc])
-  end
+  # defp fill_block_with_signatures(_, [], _, acc), do: acc
+
+  # defp fill_block_with_signatures(block, [signature | signatures], decoded_logs_in_keypair, acc) do
+  #   case Enum.find(decoded_logs_in_keypair, fn {b, s, _data} -> block == b and signature == s end) do
+  #     nil ->
+  #       fill_block_with_signatures(block, signatures, decoded_logs_in_keypair, [{block, signature, []} | acc])
+
+  #     log ->
+  #       fill_block_with_signatures(block, signatures, decoded_logs_in_keypair, [log | acc])
+  #   end
+  # end
 end
