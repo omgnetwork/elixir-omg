@@ -17,13 +17,25 @@ defmodule OMG.Eth.Application do
 
   alias OMG.Eth
   alias OMG.Eth.Metric.Ethereumex
+  alias OMG.Eth.Configuration
+  alias OMG.Eth.Supervisor
   use Application
   use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
     _ = Logger.info("Started #{inspect(__MODULE__)}, config used: #{inspect(Eth.Diagnostics.get_child_chain_config())}")
 
-    OMG.Eth.Supervisor.start_link()
+    true =
+      case valid_contracts() do
+        true ->
+          true
+
+        false ->
+          _ = Logger.error("Contract addresses have changed since last boot!")
+          false
+      end
+
+    Supervisor.start_link()
   end
 
   def start_phase(:attach_telemetry, :normal, _phase_args) do
@@ -37,6 +49,19 @@ defmodule OMG.Eth.Application do
     case apply(:telemetry, :attach, handler) do
       :ok -> :ok
       {:error, :already_exists} -> :ok
+    end
+  end
+
+  defp valid_contracts() do
+    contracts = Configuration.contracts()
+    OMG.DB.get_single_value(:omg_eth_contracts)
+    # db_update = [{:put, update_key, height_to_check_in}]
+    case File.exists?("contracts") do
+      true ->
+        File.read!("contracts") == :erlang.term_to_binary(contracts)
+
+      false ->
+        :ok == File.write!("contracts", :erlang.term_to_binary(contracts))
     end
   end
 end

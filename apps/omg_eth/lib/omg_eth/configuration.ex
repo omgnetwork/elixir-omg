@@ -32,4 +32,8 @@ defmodule OMG.Eth.Configuration do
   def ethereum_block_time_seconds() do
     Application.fetch_env!(@app, :ethereum_block_time_seconds)
   end
+
+  def contracts() do
+    Application.fetch_env!(@app, :contract_addr)
+  end
 end
