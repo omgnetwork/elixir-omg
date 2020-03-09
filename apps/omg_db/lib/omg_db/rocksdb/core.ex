@@ -39,7 +39,9 @@ if Code.ensure_loaded?(:rocksdb) do
       # watcher only
       competitor_info: "compi",
       # watcher only
-      spend: "spend"
+      spend: "spend",
+      # watcher and child chain
+      omg_eth_contracts: "omg_eth_contracts"
     }
 
     @key_types Map.keys(@keys_prefixes)

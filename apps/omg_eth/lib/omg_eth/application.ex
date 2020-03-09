@@ -15,10 +15,12 @@
 defmodule OMG.Eth.Application do
   @moduledoc false
 
+  alias OMG.DB
   alias OMG.Eth
-  alias OMG.Eth.Metric.Ethereumex
   alias OMG.Eth.Configuration
+  alias OMG.Eth.Metric.Ethereumex
   alias OMG.Eth.Supervisor
+
   use Application
   use OMG.Utils.LoggerExt
 
@@ -54,14 +56,18 @@ defmodule OMG.Eth.Application do
 
   defp valid_contracts() do
     contracts = Configuration.contracts()
-    OMG.DB.get_single_value(:omg_eth_contracts)
-    # db_update = [{:put, update_key, height_to_check_in}]
-    case File.exists?("contracts") do
-      true ->
-        File.read!("contracts") == :erlang.term_to_binary(contracts)
+    contracts_hash = :erlang.phash2(contracts)
 
-      false ->
-        :ok == File.write!("contracts", :erlang.term_to_binary(contracts))
+    case DB.get_single_value(:omg_eth_contracts) do
+      result when result == :not_found or result == {:ok, 0} ->
+        multi_update = [{:put, :omg_eth_contracts, contracts_hash}]
+        :ok == DB.multi_update(multi_update)
+
+      {:ok, ^contracts_hash} ->
+        true
+
+      _ ->
+        false
     end
   end
 end
