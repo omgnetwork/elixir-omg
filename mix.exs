@@ -59,6 +59,11 @@ defmodule OMG.Umbrella.MixProject do
   defp aliases() do
     [
       test: ["test --no-start"],
+      coveralls: ["coveralls --no-start"],
+      "coveralls.html": ["coveralls.html --no-start"],
+      "coveralls.detail": ["coveralls.detail --no-start"],
+      "coveralls.post": ["coveralls.post --no-start"],
+      "coveralls.circle": ["coveralls.circle --no-start"],
       "ecto.setup": ["ecto.create", "ecto.migrate"],
       "ecto.reset": ["ecto.drop", "ecto.setup"]
     ]
