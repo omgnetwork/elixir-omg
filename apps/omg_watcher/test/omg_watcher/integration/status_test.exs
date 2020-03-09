@@ -27,7 +27,6 @@ defmodule OMG.Watcher.Integration.StatusTest do
     :ok = OMG.DB.init()
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
-    {:ok, started_security_watcher} = Application.ensure_all_started(:omg_watcher)
     {:ok, started_watcher_api} = Application.ensure_all_started(:omg_watcher_rpc)
     _ = wait_for_web()
 
