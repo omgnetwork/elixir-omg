@@ -48,11 +48,14 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
     :ok
   end
 
+
   @tag fixtures: [:db_initialized, :root_chain_contract_config, :mix_based_child_chain, :stable_alice, :bob, :stable_alice_deposits]
   test "Thin client scenario", %{
     stable_alice: alice,
     bob: bob
   } do
+    wait_for_web()
+
     alice_addr = Encoding.to_hex(alice.addr)
     bob_addr = Encoding.to_hex(bob.addr)
     # 10 = 5 to Bob + 0 fee + 5 rest to Alice
