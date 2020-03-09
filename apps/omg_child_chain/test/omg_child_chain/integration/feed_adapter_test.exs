@@ -1,0 +1,151 @@
+# Copyright 2019-2020 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+defmodule OMG.ChildChain.Integration.FeedAdapterTest do
+  @moduledoc false
+
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
+
+  alias FakeServer.Agents.EnvAgent
+  alias FakeServer.Env
+  alias FakeServer.HTTP.Server
+  alias OMG.ChildChain.Fees.FeedAdapter
+  alias OMG.ChildChain.Fees.JSONFeeParser
+  alias OMG.Eth
+
+  @moduletag :integration
+  @moduletag :child_chain
+
+  @server_id :fees_all_fake_server
+
+  @eth Eth.zero_address()
+  @eth_hex Eth.Encoding.to_hex(@eth)
+  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
+
+  @initial_price 100
+  @fee %{
+    token: @eth_hex,
+    amount: @initial_price,
+    pegged_amount: 1,
+    subunit_to_unit: 1_000_000_000_000_000_000,
+    pegged_currency: "USD",
+    pegged_subunit_to_unit: 100,
+    updated_at: DateTime.from_unix!(1_546_336_800)
+  }
+
+  describe "get_fee_specs/2" do
+    setup do
+      prev_opts = Application.get_env(:omg_child_chain, :fee_adapter_opts)
+
+      {initial_fees, port} = fees_all_endpoint_setup(@initial_price)
+
+      Application.put_env(:omg_child_chain, :fee_adapter_opts,
+        fee_change_tolerance_percent: 10,
+        stored_fee_update_interval_minutes: 5,
+        feed_url: "localhost:#{port}"
+      )
+
+      on_exit(fn ->
+        fees_all_endpoint_teardown()
+        :ok = Application.put_env(:omg_child_chain, :fee_adapter_opts, prev_opts)
+      end)
+
+      {:ok,
+       %{
+         initial_fees: initial_fees,
+         actual_updated_at: :os.system_time(:second),
+         after_period_updated_at: :os.system_time(:second) - 5 * 60 - 1
+       }}
+    end
+
+    test "Updates fees fetched from feed when no fees previously set", %{initial_fees: fees} do
+      assert {:ok, {_ts, ^fees}} = FeedAdapter.get_fee_specs(nil, 0)
+    end
+
+    test "No changes when fees has not changed in long time period", %{initial_fees: fees} do
+      assert :ok = FeedAdapter.get_fee_specs(fees, 0)
+    end
+
+    test "No changes when fees changed within tolerance", %{initial_fees: fees, actual_updated_at: updated_at} do
+      _ = update_feed_price(109)
+      assert :ok = FeedAdapter.get_fee_specs(fees, updated_at)
+    end
+
+    test "Updates when fees changed above tolerance in short time period", %{
+      initial_fees: fees,
+      actual_updated_at: updated_at
+    } do
+      updated_fees = update_feed_price(110)
+      assert {:ok, {_ts, ^updated_fees}} = FeedAdapter.get_fee_specs(fees, updated_at)
+    end
+
+    test "Updates when fees insignificant change happens a long ago", %{
+      initial_fees: fees,
+      after_period_updated_at: long_ago
+    } do
+      updated_fees = update_feed_price(109)
+      assert {:ok, {_ts, ^updated_fees}} = FeedAdapter.get_fee_specs(fees, long_ago)
+    end
+  end
+
+  defp make_fee_specs(amount), do: %{@payment_tx_type => [Map.put(@fee, :amount, amount)]}
+
+  defp parse_specs(map), do: map |> Jason.encode!() |> JSONFeeParser.parse()
+
+  defp get_current_fee_specs(),
+    do: :current_fee_specs |> Agent.get(& &1) |> parse_specs()
+
+  defp make_response(data) do
+    Jason.encode!(%{
+      version: "1.0",
+      success: true,
+      data: data
+    })
+  end
+
+  defp update_feed_price(amount) do
+    Agent.update(:current_fee_specs, fn _ -> make_fee_specs(amount) end)
+    {:ok, fees} = get_current_fee_specs()
+
+    fees
+  end
+
+  defp fees_all_endpoint_setup(initial_price) do
+    Agent.start(fn -> nil end, name: :current_fee_specs)
+
+    path = "/fees.all"
+    {:ok, @server_id, port} = Server.run(%{id: @server_id})
+    env = %FakeServer.Env{Env.new(port) | routes: [path]}
+    EnvAgent.save_env(@server_id, env)
+
+    Server.add_response(@server_id, path, fn _ ->
+      headers = %{"content-type" => "application/json"}
+
+      :current_fee_specs
+      |> Agent.get(& &1)
+      |> make_response()
+      |> FakeServer.HTTP.Response.ok(headers)
+    end)
+
+    {update_feed_price(initial_price), port}
+  end
+
+  defp fees_all_endpoint_teardown() do
+    :ok = Server.stop(@server_id)
+    EnvAgent.delete_env(@server_id)
+
+    Agent.stop(:current_fee_specs)
+  end
+end

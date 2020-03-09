@@ -18,19 +18,38 @@ defmodule OMG.ChildChain.Fees.FeedAdapter do
   """
   @behaviour OMG.ChildChain.Fees.Adapter
 
+  alias OMG.ChildChain.Fees.FeeUpdater
+  alias OMG.ChildChain.HttpRPC.Client
   use OMG.Utils.LoggerExt
-
-  # alias OMG.ChildChain.Fees.FeeParser
 
   @doc """
   Pulls the fee specification from fees feed. Feed updates fee prices based on Ethereum's gas price.
   """
   # sobelow_skip ["Traversal"]
   @impl true
-  def get_fee_specs(_actual_fee_specs, _updated_at) do
+  def get_fee_specs(actual_fee_specs, updated_at) do
     opts = Application.fetch_env!(:omg_child_chain, :fee_adapter_opts)
-    _feed_url = Keyword.fetch!(opts, :feed_url)
-    _stored_fee_update_interval_minutes = Keyword.fetch!(opts, :stored_fee_update_interval_minutes)
-    _fee_change_tolerance_percent = Keyword.fetch!(opts, :fee_change_tolerance_percent)
+    feed_url = Keyword.fetch!(opts, :feed_url)
+
+    with {:ok, fee_specs_from_feed} <- Client.all_fees(feed_url),
+         {:ok, new_updated_at, new_fee_specs} <- can_update(actual_fee_specs, fee_specs_from_feed, updated_at) do
+      {:ok, new_fee_specs, new_updated_at}
+    else
+      :no_changes -> :ok
+      error -> error
+    end
+  end
+
+  defp can_update(stored_specs, fetched_specs, updated_at) do
+    opts = Application.fetch_env!(:omg_child_chain, :fee_adapter_opts)
+    tolerance_percent = Keyword.fetch!(opts, :fee_change_tolerance_percent)
+    update_interval_minutes = Keyword.fetch!(opts, :stored_fee_update_interval_minutes)
+
+    FeeUpdater.can_update(
+      {updated_at, stored_specs},
+      {:os.system_time(:second), fetched_specs},
+      tolerance_percent,
+      update_interval_minutes * 60
+    )
   end
 end

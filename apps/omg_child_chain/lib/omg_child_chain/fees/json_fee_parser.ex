@@ -29,21 +29,23 @@ defmodule OMG.ChildChain.Fees.JSONFeeParser do
           | :invalid_tx_type
 
   @doc """
-  Parses and validates json encoded fee specifications file
+  Parses and validates json encoded fee specifications response
   Parses provided json string to token-fee map and returns the map together with possible parsing errors
   """
-  @spec parse(binary()) ::
+  @spec parse(binary() | map()) ::
           {:ok, OMG.Fees.full_fee_t()}
           | {:error, list({:error, parsing_error(), any(), non_neg_integer() | nil})}
-  def parse(file_content) do
-    with {:ok, json} <- Jason.decode(file_content) do
-      {errors, fee_specs} = Enum.reduce(json, {[], %{}}, &reduce_json/2)
+  def parse(file_content) when is_binary(file_content) do
+    with {:ok, json} <- Jason.decode(file_content), do: parse(json)
+  end
 
-      errors
-      |> Enum.reverse()
-      |> (&{&1, fee_specs}).()
-      |> handle_parser_output()
-    end
+  def parse(json) when is_map(json) do
+    {errors, fee_specs} = Enum.reduce(json, {[], %{}}, &reduce_json/2)
+
+    errors
+    |> Enum.reverse()
+    |> (&{&1, fee_specs}).()
+    |> handle_parser_output()
   end
 
   defp reduce_json({tx_type, fee_spec}, {all_errors, fee_specs}) do

@@ -16,8 +16,8 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
   Decides whether fees will be updated from the actual reading from feed.
   """
 
-  alias OMG.Fees
   alias OMG.ChildChain.Fees.FeeMerger
+  alias OMG.Fees
 
   @type feed_reading_t :: {pos_integer(), Fees.full_fee_t()}
   @type can_update_result_t :: {:ok, feed_reading_t()} | :no_changes

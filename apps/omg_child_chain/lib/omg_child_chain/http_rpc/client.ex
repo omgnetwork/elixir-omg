@@ -17,8 +17,8 @@ defmodule OMG.ChildChain.HttpRPC.Client do
   Provides functions to communicate with Child Chain API
   """
 
+  alias OMG.ChildChain.Fees.JSONFeeParser
   alias OMG.Utils.HttpRPC.Adapter
-  alias OMG.Utils.HttpRPC.Encoding
 
   require Logger
 
@@ -29,38 +29,22 @@ defmodule OMG.ChildChain.HttpRPC.Client do
              | {:malformed_response, any() | {:error, :invalid}}}
 
   @doc """
-  Gets Block of given hash
+  Fetches latest fee prices from the fees feed
   """
-  @spec get_block(binary(), binary()) :: response_t()
-  def get_block(hash, url), do: call(%{hash: Encoding.to_hex(hash)}, "block.get", url)
-
-  @doc """
-  Submits transaction
-  """
-  @spec submit(binary(), binary()) :: response_t()
-  def submit(tx, url), do: call(%{transaction: Encoding.to_hex(tx)}, "transaction.submit", url)
-
-  defp call(params, path, url),
-    do: Adapter.rpc_post(params, path, url) |> Adapter.get_response_body() |> decode_response()
-
-  # Translates response's body to known elixir structure, either block or tx submission response or error.
-  defp decode_response({:ok, %{transactions: transactions, blknum: number, hash: hash}}) do
-    {:ok,
-     %{
-       number: number,
-       hash: decode16!(hash),
-       transactions: Enum.map(transactions, &decode16!/1)
-     }}
+  @spec all_fees(binary()) :: response_t()
+  def all_fees(url) do
+    %{} |> Adapter.rpc_post("fees.all", url) |> handle_response()
   end
 
-  defp decode_response({:ok, %{txhash: _hash} = response}) do
-    {:ok, Map.update!(response, :txhash, &decode16!/1)}
-  end
-
-  defp decode_response(error), do: error
-
-  defp decode16!(hexstr) do
-    {:ok, bin} = Encoding.from_hex(hexstr)
-    bin
+  defp handle_response(http_response) do
+    with {:ok, body} <- Adapter.get_unparsed_response_body(http_response),
+         {:ok, response} <- Jason.decode(body),
+         %{"success" => true, "data" => data} <- response,
+         {:ok, fee_spec} <- JSONFeeParser.parse(data) do
+      {:ok, fee_spec}
+    else
+      %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
+      error -> error
+    end
   end
 end
