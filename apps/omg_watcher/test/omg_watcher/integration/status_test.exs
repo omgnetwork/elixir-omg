@@ -14,11 +14,28 @@
 
 defmodule OMG.Watcher.Integration.StatusTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.Watcher.Integration.Case, async: false
   alias Support.WatcherHelper
 
   @moduletag :integration
   @moduletag :watcher
+
+  setup do
+    {:ok, started_apps} = Application.ensure_all_started(:omg_db)
+    {:ok, started_security_watcher} = Application.ensure_all_started(:omg_watcher)
+    {:ok, started_watcher_api} = Application.ensure_all_started(:omg_watcher_rpc)
+    _ = wait_for_web()
+
+    on_exit(fn ->
+      Application.put_env(:omg_db, :path, nil)
+
+      (started_apps ++ started_security_watcher ++ started_watcher_api)
+      |> Enum.reverse()
+      |> Enum.map(fn app -> :ok = Application.stop(app) end)
+    end)
+
+    :ok
+  end
 
   @tag fixtures: [:db_initialized, :root_chain_contract_config]
   test "status endpoint returns expected response format" do
