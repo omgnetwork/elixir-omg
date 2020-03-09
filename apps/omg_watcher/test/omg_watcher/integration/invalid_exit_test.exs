@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.Integration.InvalidExitTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.Watcher.Integration.Case, async: false
   use OMG.Fixtures
   use OMG.ChildChain.Integration.Fixtures
   use Plug.Test
@@ -38,6 +38,11 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+
+  setup do
+    _ = wait_for_web()
+    :ok
+  end
 
   @tag fixtures: [:db_initialized, :root_chain_contract_config, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits]
   test "exit which is using already spent utxo from transaction and deposit causes to emit invalid_exit event", %{
