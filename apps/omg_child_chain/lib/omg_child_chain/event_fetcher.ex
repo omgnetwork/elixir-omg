@@ -130,8 +130,8 @@ defmodule OMG.ChildChain.EventFetcher do
     |> insert_logs(from_block, to_block, state)
   end
 
-  defp get_logs(from_height, to_heigh, state) do
-    {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_heigh, state.event_signatures, state.contracts)
+  defp get_logs(from_height, to_height, state) do
+    {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_height, state.event_signatures, state.contracts)
     Enum.map(logs, &Abi.decode_log(&1))
   end
 

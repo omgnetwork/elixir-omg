@@ -33,15 +33,17 @@ defmodule OMG.ChildChain.SyncSupervisor do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def init(_) do
+  def init(args) do
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     :ok = ensure_ets_init()
-    Supervisor.init(children(), opts)
+    Supervisor.init(children(args), opts)
   end
 
-  defp children() do
+  defp children(args) do
+    contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
+
     [
       {OMG.ChildChain.BlockQueue.Server, []},
       {RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
@@ -56,24 +58,28 @@ defmodule OMG.ChildChain.SyncSupervisor do
          [name: :exit_started, enrich: true]
        ]},
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &EventFetcher.deposit_created/2,
         process_events_callback: &State.deposit/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :in_flight_exit,
         synced_height_update_key: :last_in_flight_exit_eth_height,
         get_events_callback: &EventFetcher.in_flight_exit_started/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :piggyback,
         synced_height_update_key: :last_piggyback_exit_eth_height,
         get_events_callback: &EventFetcher.in_flight_exit_piggybacked/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,
         get_events_callback: &EventFetcher.exit_started/2,

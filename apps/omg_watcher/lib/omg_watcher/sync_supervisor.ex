@@ -31,19 +31,21 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   @events_bucket :events_bucket
 
-  def start_link() do
-    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(args) do
+    Supervisor.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init(:ok) do
+  def init(args) do
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     :ok = ensure_ets_init()
-    Supervisor.init(children(), opts)
+    Supervisor.init(children(args), opts)
   end
 
-  defp children() do
+  defp children(args) do
+    contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
+
     [
       %{
         id: OMG.Watcher.BlockGetter.Supervisor,
@@ -73,6 +75,7 @@ defmodule OMG.Watcher.SyncSupervisor do
          [name: :block_submitted, enrich: false]
        ]},
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &EventFetcher.deposit_created/2,
@@ -87,54 +90,63 @@ defmodule OMG.Watcher.SyncSupervisor do
          metrics_collection_interval: Configuration.metrics_collection_interval()
        ]},
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :exit_processor,
         synced_height_update_key: :last_exit_processor_eth_height,
         get_events_callback: &EventFetcher.exit_started/2,
         process_events_callback: &Watcher.ExitProcessor.new_exits/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :exit_finalizer,
         synced_height_update_key: :last_exit_finalizer_eth_height,
         get_events_callback: &EventFetcher.exit_finalized/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_exits/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :exit_challenger,
         synced_height_update_key: :last_exit_challenger_eth_height,
         get_events_callback: &EventFetcher.exit_challenged/2,
         process_events_callback: &Watcher.ExitProcessor.challenge_exits/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :in_flight_exit_processor,
         synced_height_update_key: :last_in_flight_exit_processor_eth_height,
         get_events_callback: &EventFetcher.in_flight_exit_started/2,
         process_events_callback: &Watcher.ExitProcessor.new_in_flight_exits/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :piggyback_processor,
         synced_height_update_key: :last_piggyback_processor_eth_height,
         get_events_callback: &EventFetcher.in_flight_exit_piggybacked/2,
         process_events_callback: &Watcher.ExitProcessor.piggyback_exits/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :competitor_processor,
         synced_height_update_key: :last_competitor_processor_eth_height,
         get_events_callback: &EventFetcher.in_flight_exit_challenged/2,
         process_events_callback: &Watcher.ExitProcessor.new_ife_challenges/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :challenges_responds_processor,
         synced_height_update_key: :last_challenges_responds_processor_eth_height,
         get_events_callback: &EventFetcher.in_flight_exit_challenge_responded/2,
         process_events_callback: &Watcher.ExitProcessor.respond_to_in_flight_exits_challenges/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :piggyback_challenges_processor,
         synced_height_update_key: :last_piggyback_challenges_processor_eth_height,
         get_events_callback: &EventFetcher.in_flight_exit_blocked/2,
         process_events_callback: &Watcher.ExitProcessor.challenge_piggybacks/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :ife_exit_finalizer,
         synced_height_update_key: :last_ife_exit_finalizer_eth_height,
         get_events_callback: &EventFetcher.in_flight_exit_withdrawn/2,

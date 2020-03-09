@@ -90,13 +90,13 @@ defmodule OMG.EthereumEventListener do
   Ethereum height it last stopped on. Next, it continues to monitor and fetch the events as usual.
   """
   def handle_continue(:setup, %{
+        contract_deployment_height: contract_deployment_height,
         synced_height_update_key: update_key,
         service_name: service_name,
         get_events_callback: get_events_callback,
         process_events_callback: process_events_callback
       }) do
     _ = Logger.info("Starting #{inspect(__MODULE__)} for #{service_name}.")
-    {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
 
     {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
 

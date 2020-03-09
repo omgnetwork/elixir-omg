@@ -145,11 +145,8 @@ defmodule OMG.Eth.RootChain do
   @spec get_root_deployment_height(binary() | nil, optional_address_t()) ::
           {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height(txhash \\ nil, contract \\ %{}) do
-    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
+    hex_contract = contract |> Config.maybe_fetch_addr!(:plasma_framework) |> to_hex()
     txhash = txhash || from_hex(Application.fetch_env!(:omg_eth, :txhash_contract))
-
-    # the back&forth is just the dumb but natural way to go about Ethereumex/Eth APIs conventions for encoding
-    hex_contract = to_hex(contract)
 
     case txhash |> to_hex() |> Ethereumex.HttpClient.eth_get_transaction_receipt() do
       {:ok, %{"contractAddress" => ^hex_contract, "blockNumber" => height}} ->

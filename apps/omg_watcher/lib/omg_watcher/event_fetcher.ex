@@ -183,17 +183,17 @@ defmodule OMG.Watcher.EventFetcher do
   defp retrieve_and_store_logs(from_block, to_block, state) do
     from_block
     |> get_logs(to_block, state)
-    |> enrich_logs(state)
-    |> insert_logs(from_block, to_block, state)
+    |> enrich_logs_with_call_data(state)
+    |> store_logs(from_block, to_block, state)
   end
 
-  defp get_logs(from_height, to_heigh, state) do
-    {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_heigh, state.event_signatures, state.contracts)
+  defp get_logs(from_height, to_height, state) do
+    {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_height, state.event_signatures, state.contracts)
     Enum.map(logs, &Abi.decode_log(&1))
   end
 
   # we get the logs from RPC and we cross check with the event definition if we need to enrich them
-  defp enrich_logs(decoded_logs, state) do
+  defp enrich_logs_with_call_data(decoded_logs, state) do
     events = state.events
     rpc = state.rpc
 
@@ -214,7 +214,7 @@ defmodule OMG.Watcher.EventFetcher do
     end)
   end
 
-  defp insert_logs(decoded_logs, from_block, to_block, state) do
+  defp store_logs(decoded_logs, from_block, to_block, state) do
     event_signatures = state.event_signatures
 
     # all logs come in a list of maps
