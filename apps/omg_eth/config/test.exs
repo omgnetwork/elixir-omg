@@ -10,7 +10,8 @@ config :omg_eth,
   # Needed for test only to have some value of address when `:contract_address` is not set explicitly
   # required by the EIP-712 struct hash code
   contract_addr: %{plasma_framework: "0x0000000000000000000000000000000000000001"},
-  node_logging_in_debug: true
+  node_logging_in_debug: true,
+  environment: :test
 
 config :omg_eth,
   # Lower the event check interval too low and geth will die

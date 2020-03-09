@@ -26,6 +26,9 @@ defmodule OMG.RootChainCoordinatorTest do
   @moduletag :common
   setup do
     {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
+    db_path = Briefly.create!(directory: true)
+    :ok = Application.put_env(:omg_db, :path, db_path, persistent: true)
+    :ok = OMG.DB.init()
     {:ok, eth_apps} = Application.ensure_all_started(:omg_eth)
     {:ok, status_apps} = Application.ensure_all_started(:omg_status)
     apps = bus_apps ++ eth_apps ++ status_apps

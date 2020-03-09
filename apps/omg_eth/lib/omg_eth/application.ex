@@ -16,8 +16,8 @@ defmodule OMG.Eth.Application do
   @moduledoc false
 
   alias OMG.DB
-  alias OMG.Eth
   alias OMG.Eth.Configuration
+  alias OMG.Eth.Diagnostics
   alias OMG.Eth.Metric.Ethereumex
   alias OMG.Eth.Supervisor
 
@@ -25,16 +25,22 @@ defmodule OMG.Eth.Application do
   use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
-    _ = Logger.info("Started #{inspect(__MODULE__)}, config used: #{inspect(Eth.Diagnostics.get_child_chain_config())}")
+    _ = Logger.info("Started #{inspect(__MODULE__)}, config used: #{inspect(Diagnostics.get_child_chain_config())}")
 
     true =
-      case valid_contracts() do
-        true ->
+      case Configuration.environment() do
+        :test ->
           true
 
-        false ->
-          _ = Logger.error("Contract addresses have changed since last boot!")
-          false
+        _ ->
+          case valid_contracts() do
+            true ->
+              true
+
+            false ->
+              _ = Logger.error("Contract addresses have changed since last boot!")
+              false
+          end
       end
 
     Supervisor.start_link()
@@ -55,7 +61,11 @@ defmodule OMG.Eth.Application do
   end
 
   defp valid_contracts() do
-    contracts = Configuration.contracts()
+    contracts =
+      Configuration.contracts()
+      |> Map.put(:txhash_contract, Configuration.txhash_contract())
+      |> Map.put(:authority_addr, Configuration.authority_addr())
+
     contracts_hash = :erlang.phash2(contracts)
 
     case DB.get_single_value(:omg_eth_contracts) do

@@ -21,15 +21,27 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
   that eventually recover the connection to Statsd handlers wouldn't exist anymore and metrics
   wouldn't be published.
   """
+  require Logger
+  import OMG.Status.Metric.Event, only: [name: 2, name: 1]
   alias OMG.Status.Metric.Datadog
-  import OMG.Status.Metric.Event, only: [name: 2]
 
-  def handle_event([:process, OMG.ChildChain.BlockQueue], _, state, _config) do
+  @supported_events [
+    [:process, OMG.ChildChain.BlockQueue],
+    [:gas, OMG.ChildChain.BlockQueue.GasAnalyzer]
+  ]
+  def supported_events(), do: @supported_events
+
+  def handle_event([:process, OMG.ChildChain.BlockQueue], _, _state, _config) do
     value =
       self()
       |> Process.info(:message_queue_len)
       |> elem(1)
 
-    _ = Datadog.gauge(name(state.service_name, :message_queue_len), value)
+    _ = Datadog.gauge(name(:block_queue, :message_queue_len), value)
+  end
+
+  def handle_event([:gas, OMG.ChildChain.BlockQueue.GasAnalyzer], %{gas: gas}, _, _config) do
+    gwei = div(gas, 1_000_000_000)
+    _ = Datadog.gauge(name(:block_subbmission), gwei)
   end
 end

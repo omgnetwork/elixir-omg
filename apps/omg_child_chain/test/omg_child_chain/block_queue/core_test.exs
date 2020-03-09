@@ -16,7 +16,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
   @moduledoc false
   use ExUnit.Case, async: true
 
-  import ExUnit.CaptureLog
+  import ExUnit.CaptureLog, only: [capture_log: 1]
 
   alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.BlockQueue.GasPriceAdjustment
@@ -700,10 +700,10 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "everything might be ok", %{submission: submission} do
       # no change in mined blknum
-      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 1000)
+      assert {:ok, <<0::160>>} = Core.process_submit_result(submission, {:ok, <<0::160>>}, 1000)
       # arbitrary ignored change in mined blknum
-      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 0)
-      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 2000)
+      assert {:ok, <<0::160>>} = Core.process_submit_result(submission, {:ok, <<0::160>>}, 0)
+      assert {:ok, <<0::160>>} = Core.process_submit_result(submission, {:ok, <<0::160>>}, 2000)
     end
 
     test "benign reports / warnings from geth", %{submission: submission} do
