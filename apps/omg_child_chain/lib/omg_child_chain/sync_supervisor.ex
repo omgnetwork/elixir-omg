@@ -29,8 +29,8 @@ defmodule OMG.ChildChain.SyncSupervisor do
   alias OMG.State
 
   @events_bucket :events_bucket
-  def start_link() do
-    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(args) do
+    Supervisor.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   def init(args) do

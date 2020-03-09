@@ -13,7 +13,6 @@
 # limitations under the License.
 
 defmodule OMG.Eth.RootChainTest do
-  alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
   alias OMG.Eth.RootChain.Abi
