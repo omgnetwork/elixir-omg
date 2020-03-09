@@ -22,12 +22,11 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   3. call `/transaction.submit_typed` with typed data and signatures to submit transaction  to child chain
   """
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.Watcher.Integration.Case, async: false
   use OMG.Fixtures
   use OMG.ChildChain.Integration.Fixtures
   use Plug.Test
 
-  alias Ecto.Adapters.SQL.Sandbox
   alias OMG.DevCrypto
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
@@ -41,12 +40,6 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @eth_hex Encoding.to_hex(@eth)
-
-  setup do
-    :ok = Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
-    Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
-    :ok
-  end
 
   @tag fixtures: [:db_initialized, :root_chain_contract_config, :mix_based_child_chain, :stable_alice, :bob, :stable_alice_deposits]
   test "Thin client scenario", %{
