@@ -36,7 +36,7 @@ defmodule OMG.Watcher.API.Status do
             eth_syncing: boolean(),
             byzantine_events: list(Event.t()),
             in_flight_exits: ExitProcessor.Core.in_flight_exits_response_t(),
-            contract_addr: binary,
+            contract_addr: Keyword.t(),
             services_synced_heights: RootChainCoordinator.Core.ethereum_heights_result_t()
           }
 
