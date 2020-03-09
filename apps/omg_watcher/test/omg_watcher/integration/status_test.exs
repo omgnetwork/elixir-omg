@@ -27,13 +27,12 @@ defmodule OMG.Watcher.Integration.StatusTest do
     :ok = OMG.DB.init()
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
-    {:ok, started_watcher_api} = Application.ensure_all_started(:omg_watcher_rpc)
     _ = wait_for_web()
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
 
-      (started_apps ++ started_watcher_api)
+      (started_apps)
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
