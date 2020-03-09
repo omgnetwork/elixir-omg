@@ -723,9 +723,9 @@ workflows:
               only: /.+/
             tags:
               only: /.+/
-      - test_barebone_release:
-          requires: [build]
-          filters: *all_branches_and_tags
+      # - test_barebone_release:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
       # - notify_services:
       #     requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
       #     filters:
