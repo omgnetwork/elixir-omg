@@ -126,7 +126,7 @@ defmodule OMG.ChildChain.EventFetcher do
   defp retrieve_and_store_logs(from_block, to_block, state) do
     from_block
     |> get_logs(to_block, state)
-    |> enrich_logs(state)
+    |> enrich_logs_with_call_data(state)
     |> insert_logs(from_block, to_block, state)
   end
 
@@ -136,7 +136,7 @@ defmodule OMG.ChildChain.EventFetcher do
   end
 
   # we get the logs from RPC and we cross check with the event definition if we need to enrich them
-  defp enrich_logs(decoded_logs, state) do
+  defp enrich_logs_with_call_data(decoded_logs, state) do
     events = state.events
     rpc = state.rpc
 

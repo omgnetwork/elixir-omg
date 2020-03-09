@@ -38,6 +38,7 @@ defmodule OMG.Watcher.EventFetcherTest do
     {:ok, %{event_fetcher_name: event_fetcher_name, table: table}}
   end
 
+  @tag common: true
   test "the performance of event retrieving", %{table: table, event_fetcher_name: event_fetcher_name, test: test_name} do
     defmodule test_name do
       alias OMG.Watcher.EventFetcherTest

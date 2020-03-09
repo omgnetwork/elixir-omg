@@ -38,6 +38,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
     {:ok, %{event_fetcher_name: event_fetcher_name, table: table}}
   end
 
+  @tag common: true
   test "the performance of event retrieving", %{table: table, event_fetcher_name: event_fetcher_name, test: test_name} do
     defmodule test_name do
       alias OMG.ChildChain.EventFetcherTest
@@ -320,6 +321,44 @@ defmodule OMG.ChildChain.EventFetcherTest do
     table: table,
     test: test_name
   } do
+    defmodule test_name do
+      alias OMG.Watcher.EventFetcherTest
+
+      def get_ethereum_events(_from_block, _to_block, _signatures, _contracts) do
+        {:ok,
+         [
+           %{
+             amount: 10,
+             blknum: 1,
+             currency: <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>,
+             eth_height: 1,
+             event_signature: "DepositCreated(address,uint256,address,uint256)",
+             log_index: 0,
+             owner: <<59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0, 140, 190, 184, 55>>,
+             root_chain_txhash:
+               <<77, 114, 166, 63, 244, 47, 29, 181, 10, 242, 195, 110, 139, 49, 65, 1, 210, 254, 163, 224, 0, 53, 117,
+                 243, 2, 152, 233, 21, 63, 227, 216, 238>>
+           },
+           %{
+             amount: 10,
+             blknum: 1,
+             currency: <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>,
+             eth_height: 2,
+             event_signature: "DepositCreated(address,uint256,address,uint256)",
+             log_index: 0,
+             owner: <<59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0, 140, 190, 184, 55>>,
+             root_chain_txhash:
+               <<77, 114, 166, 63, 244, 47, 29, 181, 10, 242, 195, 110, 139, 49, 65, 1, 210, 254, 163, 224, 0, 53, 117,
+                 243, 2, 152, 233, 21, 63, 227, 216, 238>>
+           }
+         ]}
+      end
+
+      def get_call_data(_tx_hash) do
+        {:ok, EventFetcherTest.start_standard_exit_log()}
+      end
+    end
+
     from_block = 1
     to_block = 3
 
@@ -361,44 +400,6 @@ defmodule OMG.ChildChain.EventFetcherTest do
     ]
 
     _ = :ets.insert(table, data)
-
-    defmodule test_name do
-      alias OMG.Watcher.EventFetcherTest
-
-      def get_ethereum_events(_from_block, _to_block, _signatures, _contracts) do
-        {:ok,
-         [
-           %{
-             amount: 10,
-             blknum: 1,
-             currency: <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>,
-             eth_height: 1,
-             event_signature: "DepositCreated(address,uint256,address,uint256)",
-             log_index: 0,
-             owner: <<59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0, 140, 190, 184, 55>>,
-             root_chain_txhash:
-               <<77, 114, 166, 63, 244, 47, 29, 181, 10, 242, 195, 110, 139, 49, 65, 1, 210, 254, 163, 224, 0, 53, 117,
-                 243, 2, 152, 233, 21, 63, 227, 216, 238>>
-           },
-           %{
-             amount: 10,
-             blknum: 1,
-             currency: <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>,
-             eth_height: 2,
-             event_signature: "DepositCreated(address,uint256,address,uint256)",
-             log_index: 0,
-             owner: <<59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0, 140, 190, 184, 55>>,
-             root_chain_txhash:
-               <<77, 114, 166, 63, 244, 47, 29, 181, 10, 242, 195, 110, 139, 49, 65, 1, 210, 254, 163, 224, 0, 53, 117,
-                 243, 2, 152, 233, 21, 63, 227, 216, 238>>
-           }
-         ]}
-      end
-
-      def get_call_data(_tx_hash) do
-        {:ok, EventFetcherTest.start_standard_exit_log()}
-      end
-    end
 
     :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
 
