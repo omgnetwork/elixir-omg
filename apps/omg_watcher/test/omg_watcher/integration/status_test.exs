@@ -21,6 +21,11 @@ defmodule OMG.Watcher.Integration.StatusTest do
   @moduletag :watcher
 
   setup do
+    db_path = Briefly.create!(directory: true)
+    Application.put_env(:omg_db, :path, db_path, persistent: true)
+
+    :ok = OMG.DB.init()
+
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_security_watcher} = Application.ensure_all_started(:omg_watcher)
     {:ok, started_watcher_api} = Application.ensure_all_started(:omg_watcher_rpc)
@@ -37,7 +42,7 @@ defmodule OMG.Watcher.Integration.StatusTest do
     :ok
   end
 
-  @tag fixtures: [:db_initialized, :root_chain_contract_config]
+  @tag fixtures: [:root_chain_contract_config]
   test "status endpoint returns expected response format" do
     assert %{
              "last_validated_child_block_number" => 0,
