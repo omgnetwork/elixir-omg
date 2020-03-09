@@ -12,6 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.start()
-ExUnit.start()
+defmodule OMG.LoadTest.LoadTest.WatcherInfo do
+  @moduledoc """
+  Load test for watcherInfo
+  """
+  use Chaperon.LoadTest
+
+  def scenarios,
+    do: [
+      {{1, OMG.LoadTest.Scenario.AccountTransactions},
+       %{
+         iterations: 1
+       }}
+    ]
+end

@@ -12,6 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.start()
-ExUnit.start()
+defmodule WatcherInfoTest do
+  @moduledoc """
+  watcher info load test
+  """
+  use ExUnit.Case
+
+  @tag timeout: 6_000_000
+  test "watcher info test" do
+    OMG.LoadTest.Utils.Ethereum.NonceTracker.start_link()
+    OMG.LoadTest.Utils.Faucet.start_link()
+    Chaperon.run_load_test(OMG.LoadTest.LoadTest.WatcherInfo, print_results: true)
+  end
+end
