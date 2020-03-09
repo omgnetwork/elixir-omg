@@ -1,7 +1,7 @@
 Feature: Status
   Scenario: Alice checks the Watcher's status
     When Alice checks the Watcher's status
-    Then Alice can read last_seen_eth_block_number as integer
+    Then Alice can read last_seen_eth_block_number as an integer
     Then Alice can read last_seen_eth_block_timestamp as a datetime
     Then Alice can read eth_syncing as a boolean
     Then Alice can read contract_addr as a map
