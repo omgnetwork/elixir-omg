@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Integration.StatusTest do
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
 
-      (started_apps ++ started_security_watcher ++ started_watcher_api)
+      (started_apps ++ started_watcher_api)
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
