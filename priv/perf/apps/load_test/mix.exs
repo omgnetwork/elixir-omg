@@ -31,9 +31,17 @@ defmodule LoadTest.MixProject do
 
       # Better adapter for tesla
       {:hackney, "~> 1.15.2"},
+      {:ex_plasma, "~> 0.1.0"},
       {:watcher_info_api, in_umbrella: true},
       {:watcher_security_critical_api, in_umbrella: true},
-      {:child_chain_api, in_umbrella: true}
+      {:child_chain_api, in_umbrella: true},
+
+      # Test dependencies
+      {:ex_unit_fixtures, "~> 0.3.1"},
+
+      # Overrides
+      {:cowboy, "~> 2.6", override: true},
+      {:httpoison, "~> 1.6.2", override: true}
     ]
   end
 end
