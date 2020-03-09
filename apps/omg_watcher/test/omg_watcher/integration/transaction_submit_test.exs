@@ -30,7 +30,6 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   alias Ecto.Adapters.SQL.Sandbox
   alias OMG.DevCrypto
   alias OMG.Eth
-  alias OMG.Status.Alert.Alarm
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.WatcherHelper
