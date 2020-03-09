@@ -101,17 +101,4 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
              }
            ] = WatcherHelper.get_utxos(bob.addr)
   end
-
-  defp wait_for_web(), do: wait_for_web(100)
-
-  defp wait_for_web(counter) do
-    case Keyword.has_key?(Alarm.all(), elem(Alarm.main_supervisor_halted(__MODULE__), 0)) do
-      true ->
-        Process.sleep(100)
-        wait_for_web(counter - 1)
-
-      false ->
-        :ok
-    end
-  end
 end
