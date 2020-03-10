@@ -5,7 +5,7 @@ config :logger, level: :info
 config :ethereumex,
   url: "http://localhost:8545"
 
-config :omg_load_test,
+config :omg_load_testing,
   child_chain_url: "http://localhost:9656",
   watcher_security_url: "http://localhost:7434",
   watcher_info_url: "http://localhost:7534",

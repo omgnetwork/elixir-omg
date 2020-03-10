@@ -15,7 +15,7 @@ ethereum_client_timeout_ms = 20_000
 config :ethereumex,
   http_options: [recv_timeout: ethereum_client_timeout_ms]
 
-config :omg_load_test,
+config :omg_load_testing,
   pool_size: 5000,
   max_connection: 5000,
   faucet_default_funds: (:math.pow(10, 18) * 50) |> trunc(),
