@@ -27,8 +27,8 @@ defmodule OMG.LoadTest.Utils.Ethereum.Transaction.Signature do
 
   require Integer
 
-  alias OMG.LoadTest.Utils.Ethereum.Transaction
   alias OMG.LoadTest.Utils.Ethereum.Hash
+  alias OMG.LoadTest.Utils.Ethereum.Transaction
 
   @type private_key :: <<_::256>>
 

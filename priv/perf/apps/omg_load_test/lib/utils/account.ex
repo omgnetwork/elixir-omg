@@ -25,8 +25,8 @@ defmodule OMG.LoadTest.Utils.Account do
   """
   require Logger
 
-  alias OMG.LoadTest.Utils.Crypto
   alias ExPlasma.Encoding
+  alias OMG.LoadTest.Utils.Crypto
 
   @type private_key_t :: <<_::256>>
   @type private_key_hex_t :: <<_::512>> | <<_::528>>

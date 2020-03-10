@@ -19,9 +19,9 @@ defmodule OMG.LoadTest.Utils.Ethereum do
   require Logger
 
   alias ExPlasma.Encoding
-  alias OMG.LoadTest.Utils.NonceTracker
-  alias OMG.LoadTest.Utils.Ethereum.Transaction.Signature
   alias OMG.LoadTest.Utils.Ethereum.Transaction
+  alias OMG.LoadTest.Utils.Ethereum.Transaction.Signature
+  alias OMG.LoadTest.Utils.NonceTracker
 
   @about_4_blocks_time 120_000
   @eth_amount_to_fund trunc(:math.pow(10, 18) * 0.1)

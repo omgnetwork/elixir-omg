@@ -57,8 +57,7 @@ defmodule OMG.LoadTest.Utils.ChildChain do
   end
 
   defp do_submit_tx(tx) do
-    result =
-      {:ok, response} =
+    {:ok, response} =
       tx
       |> Transaction.encode()
       |> do_submit_tx_rpc()

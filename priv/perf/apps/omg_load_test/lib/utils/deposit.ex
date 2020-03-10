@@ -15,13 +15,12 @@
 defmodule OMG.LoadTest.Utils.Deposit do
   require Logger
 
-  alias ExPlasma.Client.Event
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction.Deposit
   alias ExPlasma.Utxo
   alias OMG.LoadTest.Utils.Account
+  alias OMG.LoadTest.Utils.Ethereum
 
-  @address_padding "0x" <> String.duplicate("00", 12)
   @eth <<0::160>>
   @poll_interval 5_000
 
@@ -37,7 +36,7 @@ defmodule OMG.LoadTest.Utils.Deposit do
     eth_vault_address = Application.fetch_env!(:ex_plasma, :eth_vault_address)
     %{data: deposit_data} = OMG.LoadTest.Utils.Encoding.encode_deposit(deposit)
 
-    tx = %OMG.LoadTest.Utils.Ethereum.Transaction{
+    tx = %Ethereum.Transaction{
       to: Encoding.to_binary(eth_vault_address),
       value: value,
       gas_price: 20_000_000,
@@ -46,8 +45,8 @@ defmodule OMG.LoadTest.Utils.Deposit do
       data: Encoding.to_binary(deposit_data)
     }
 
-    {:ok, tx_hash} = OMG.LoadTest.Utils.Ethereum.send_raw_transaction(tx, account)
-    {:ok, %{"blockNumber" => eth_blknum}} = OMG.LoadTest.Utils.Ethereum.transact_sync(tx_hash)
+    {:ok, tx_hash} = Ethereum.send_raw_transaction(tx, account)
+    {:ok, %{"blockNumber" => eth_blknum}} = Ethereum.transact_sync(tx_hash)
 
     {:ok, %{"logs" => logs}} = Ethereumex.HttpClient.eth_get_transaction_receipt(tx_hash)
 

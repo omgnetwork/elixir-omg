@@ -17,12 +17,12 @@ defmodule OMG.LoadTest.Utils.Faucet do
 
   use GenServer
 
-  alias ExPlasma.Utxo
   alias ExPlasma.Encoding
+  alias ExPlasma.Utxo
   alias OMG.LoadTest.Utils.Account
+  alias OMG.LoadTest.Utils.ChildChain
   alias OMG.LoadTest.Utils.Deposit
   alias OMG.LoadTest.Utils.Ethereum, as: Eth
-  alias OMG.LoadTest.Utils.ChildChain
 
   @eth <<0::160>>
   @fund_child_chain_account_retries 100
@@ -94,12 +94,10 @@ defmodule OMG.LoadTest.Utils.Faucet do
     {faucet, {deposit_utxo, deposit_amount}}
   end
 
-  @doc """
-    Sends a transaction to a local instance of geth.
-
-    NOTE: Assumes existence of an unlocked account managed by Ethereum client.
-  """
   defp create_funded_faucet(opts) do
+    # Sends a transaction to a local instance of geth.
+    # NOTE: Assumes existence of an unlocked account managed by Ethereum client.
+
     faucet_initial_funds = Keyword.fetch!(opts, :faucet_default_funds)
     {:ok, account} = Account.new()
 

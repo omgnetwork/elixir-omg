@@ -21,9 +21,9 @@ defmodule OMG.LoadTest.Scenario.AccountTransactions do
 
   alias Chaperon.Timing
 
+  alias OMG.LoadTest.Connection.WatcherInfo, as: Connection
   alias OMG.LoadTest.Utils.Encoding
   alias OMG.LoadTest.Utils.Generators
-  alias OMG.LoadTest.Connection.WatcherInfo, as: Connection
   alias WatcherInfoAPI.Api
   alias WatcherInfoAPI.Model
 
@@ -82,9 +82,9 @@ defmodule OMG.LoadTest.Scenario.AccountTransactions do
     )
   end
 
-  defp test_api_account_get_transactions(session, sender) do
+  defp test_api_account_get_transactions(session, _sender) do
     start = Timing.timestamp()
-    {:ok, _} = get_transactions(sender)
+    {:ok, _} = get_transactions()
 
     add_metric(
       session,
@@ -199,7 +199,7 @@ defmodule OMG.LoadTest.Scenario.AccountTransactions do
     {:ok, response.body}
   end
 
-  defp get_transactions(sender) do
+  defp get_transactions() do
     {:ok, response} =
       Api.Account.account_get_transactions(
         Connection.client(),
