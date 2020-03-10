@@ -22,7 +22,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
 
   alias OMG.ChildChain.ChildManager
   alias OMG.ChildChain.CoordinatorSetup
-  alias OMG.ChildChain.EventFetcher
+  alias OMG.ChildChain.EthereumEventAggregator
   alias OMG.ChildChain.Monitor
   alias OMG.EthereumEventListener
   alias OMG.RootChainCoordinator
@@ -47,7 +47,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
     [
       {OMG.ChildChain.BlockQueue.Server, []},
       {RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
-      {EventFetcher,
+      {EthereumEventAggregator,
        contracts: Application.fetch_env!(:omg_eth, :contract_addr),
        ets_bucket: @events_bucket,
        events: [
@@ -61,28 +61,28 @@ defmodule OMG.ChildChain.SyncSupervisor do
         contract_deployment_height: contract_deployment_height,
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
-        get_events_callback: &EventFetcher.deposit_created/2,
+        get_events_callback: &EthereumEventAggregator.deposit_created/2,
         process_events_callback: &State.deposit/1
       ),
       EthereumEventListener.prepare_child(
         contract_deployment_height: contract_deployment_height,
         service_name: :in_flight_exit,
         synced_height_update_key: :last_in_flight_exit_eth_height,
-        get_events_callback: &EventFetcher.in_flight_exit_started/2,
+        get_events_callback: &EthereumEventAggregator.in_flight_exit_started/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
       EthereumEventListener.prepare_child(
         contract_deployment_height: contract_deployment_height,
         service_name: :piggyback,
         synced_height_update_key: :last_piggyback_exit_eth_height,
-        get_events_callback: &EventFetcher.in_flight_exit_piggybacked/2,
+        get_events_callback: &EthereumEventAggregator.in_flight_exit_piggybacked/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
       EthereumEventListener.prepare_child(
         contract_deployment_height: contract_deployment_height,
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,
-        get_events_callback: &EventFetcher.exit_started/2,
+        get_events_callback: &EthereumEventAggregator.exit_started/2,
         process_events_callback: &exit_and_ignore_validities/1
       ),
       {ChildManager, [monitor: Monitor]}

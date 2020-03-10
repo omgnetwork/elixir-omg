@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.ChildChain.EventFetcherTest do
+defmodule OMG.ChildChain.EthereumEventAggregatorTest do
   use ExUnit.Case, async: true
 
-  alias OMG.ChildChain.EventFetcher
+  alias OMG.ChildChain.EthereumEventAggregator
   alias OMG.Eth.RootChain.Abi
 
   setup do
@@ -22,7 +22,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
     event_fetcher_name = String.to_atom("test-#{:rand.uniform(1000)}")
 
     start_supervised(
-      {EventFetcher,
+      {EthereumEventAggregator,
        name: event_fetcher_name,
        contracts: %{},
        ets_bucket: table,
@@ -41,15 +41,15 @@ defmodule OMG.ChildChain.EventFetcherTest do
   @tag common: true
   test "the performance of event retrieving", %{table: table, event_fetcher_name: event_fetcher_name, test: test_name} do
     defmodule test_name do
-      alias OMG.ChildChain.EventFetcherTest
+      alias OMG.ChildChain.EthereumEventAggregatorTest
 
       def get_ethereum_events(_from_block, to_block, _signatures, _contracts) do
-        deposits = for n <- 1..10_000, do: EventFetcherTest.deposit_created_log(n)
-        {:ok, [EventFetcherTest.in_flight_exit_input_piggybacked_log(to_block) | deposits]}
+        deposits = for n <- 1..10_000, do: EthereumEventAggregatorTest.deposit_created_log(n)
+        {:ok, [EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block) | deposits]}
       end
 
       def get_call_data(_tx_hash) do
-        {:ok, EventFetcherTest.start_standard_exit_log()}
+        {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
       end
     end
 
@@ -57,7 +57,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
     to_block = 80_000
     :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
     events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
-    {time, _value} = :timer.tc(EventFetcher, :deposit_created, [event_fetcher_name, from_block, to_block])
+    {time, _value} = :timer.tc(EthereumEventAggregator, :deposit_created, [event_fetcher_name, from_block, to_block])
     assert Enum.count(:ets.tab2list(table)) == Enum.count(events) * 80_000
     duration = time / 1_000_000
     assert duration < 5
@@ -101,20 +101,20 @@ defmodule OMG.ChildChain.EventFetcherTest do
     test: test_name
   } do
     defmodule test_name do
-      alias OMG.ChildChain.EventFetcherTest
+      alias OMG.ChildChain.EthereumEventAggregatorTest
 
       def get_ethereum_events(from_block, to_block, _signatures, _contracts) do
         {:ok,
          [
-           EventFetcherTest.deposit_created_log(from_block),
-           EventFetcherTest.exit_started_log(to_block),
-           EventFetcherTest.in_flight_exit_output_piggybacked_log(from_block),
-           EventFetcherTest.in_flight_exit_input_piggybacked_log(to_block)
+           EthereumEventAggregatorTest.deposit_created_log(from_block),
+           EthereumEventAggregatorTest.exit_started_log(to_block),
+           EthereumEventAggregatorTest.in_flight_exit_output_piggybacked_log(from_block),
+           EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block)
          ]}
       end
 
       def get_call_data(_tx_hash) do
-        {:ok, EventFetcherTest.start_standard_exit_log()}
+        {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
       end
     end
 
@@ -164,7 +164,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
     from_block_2 = 2
     to_block_2 = 3
     # this should induce a ETS delete call
-    assert EventFetcher.deposit_created(event_fetcher_name, from_block_2, to_block_2) ==
+    assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block_2, to_block_2) ==
              {:ok, [deposit_created_2]}
 
     what_should_be_left_in_db = [
@@ -194,21 +194,21 @@ defmodule OMG.ChildChain.EventFetcherTest do
     test: test_name
   } do
     defmodule test_name do
-      alias OMG.ChildChain.EventFetcherTest
+      alias OMG.ChildChain.EthereumEventAggregatorTest
 
       def get_ethereum_events(from_block, to_block, _signatures, _contracts) do
         {:ok,
          [
-           EventFetcherTest.deposit_created_log(from_block),
-           EventFetcherTest.deposit_created_log(from_block + 1),
-           EventFetcherTest.exit_started_log(to_block),
-           EventFetcherTest.in_flight_exit_output_piggybacked_log(from_block),
-           EventFetcherTest.in_flight_exit_input_piggybacked_log(to_block)
+           EthereumEventAggregatorTest.deposit_created_log(from_block),
+           EthereumEventAggregatorTest.deposit_created_log(from_block + 1),
+           EthereumEventAggregatorTest.exit_started_log(to_block),
+           EthereumEventAggregatorTest.in_flight_exit_output_piggybacked_log(from_block),
+           EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block)
          ]}
       end
 
       def get_call_data(_tx_hash) do
-        {:ok, EventFetcherTest.start_standard_exit_log()}
+        {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
       end
     end
 
@@ -220,7 +220,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
     deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
     deposit_created_2 = from_block |> Kernel.+(1) |> deposit_created_log() |> Abi.decode_log()
 
-    assert EventFetcher.deposit_created(event_fetcher_name, from_block, to_block) ==
+    assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block) ==
              {:ok, [deposit_created, deposit_created_2]}
 
     exit_started_log =
@@ -229,12 +229,12 @@ defmodule OMG.ChildChain.EventFetcherTest do
       |> Abi.decode_log()
       |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
 
-    assert EventFetcher.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
+    assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
 
     in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
     in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
 
-    assert EventFetcher.in_flight_exit_piggybacked(event_fetcher_name, from_block, to_block) ==
+    assert EthereumEventAggregator.in_flight_exit_piggybacked(event_fetcher_name, from_block, to_block) ==
              {:ok, [in_flight_exit_input_piggybacked_log, in_flight_exit_output_piggybacked_log]}
 
     assert Enum.sort(:ets.tab2list(table)) ==
@@ -265,20 +265,20 @@ defmodule OMG.ChildChain.EventFetcherTest do
     test: test_name
   } do
     defmodule test_name do
-      alias OMG.ChildChain.EventFetcherTest
+      alias OMG.ChildChain.EthereumEventAggregatorTest
 
       def get_ethereum_events(from_block, to_block, _signatures, _contracts) do
         {:ok,
          [
-           EventFetcherTest.deposit_created_log(from_block),
-           EventFetcherTest.exit_started_log(to_block),
-           EventFetcherTest.in_flight_exit_output_piggybacked_log(from_block),
-           EventFetcherTest.in_flight_exit_input_piggybacked_log(to_block)
+           EthereumEventAggregatorTest.deposit_created_log(from_block),
+           EthereumEventAggregatorTest.exit_started_log(to_block),
+           EthereumEventAggregatorTest.in_flight_exit_output_piggybacked_log(from_block),
+           EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block)
          ]}
       end
 
       def get_call_data(_tx_hash) do
-        {:ok, EventFetcherTest.start_standard_exit_log()}
+        {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
       end
     end
 
@@ -286,7 +286,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
     from_block = 1
     to_block = 1
     deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
-    assert EventFetcher.deposit_created(event_fetcher_name, from_block, to_block) == {:ok, [deposit_created]}
+    assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block) == {:ok, [deposit_created]}
 
     exit_started_log =
       to_block
@@ -294,12 +294,12 @@ defmodule OMG.ChildChain.EventFetcherTest do
       |> Abi.decode_log()
       |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
 
-    assert EventFetcher.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
+    assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
 
     in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
     in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
 
-    assert EventFetcher.in_flight_exit_piggybacked(event_fetcher_name, from_block, to_block) ==
+    assert EthereumEventAggregator.in_flight_exit_piggybacked(event_fetcher_name, from_block, to_block) ==
              {:ok, [in_flight_exit_input_piggybacked_log, in_flight_exit_output_piggybacked_log]}
 
     events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
@@ -322,7 +322,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
     test: test_name
   } do
     defmodule test_name do
-      alias OMG.Watcher.EventFetcherTest
+      alias OMG.Watcher.EthereumEventAggregatorTest
 
       def get_ethereum_events(_from_block, _to_block, _signatures, _contracts) do
         {:ok,
@@ -355,7 +355,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
       end
 
       def get_call_data(_tx_hash) do
-        {:ok, EventFetcherTest.start_standard_exit_log()}
+        {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
       end
     end
 
@@ -403,7 +403,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
 
     :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
 
-    {:ok, data} = EventFetcher.deposit_created(event_fetcher_name, from_block, to_block)
+    {:ok, data} = EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block)
     assert Enum.at(data, 0) == deposit_created
     assert Enum.at(data, 1) == deposit_created_2
   end

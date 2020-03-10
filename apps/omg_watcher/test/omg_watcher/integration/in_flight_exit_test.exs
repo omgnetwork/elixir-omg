@@ -25,7 +25,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   alias OMG.Eth.RootChain
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.EventFetcher
+  alias OMG.Watcher.EthereumEventAggregator
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
@@ -61,7 +61,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
     {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
     # sanity check in-flight exit has started on root chain, wait for finality
-    assert {:ok, [_, _]} = EventFetcher.in_flight_exit_started(0, ife_eth_height)
+    assert {:ok, [_, _]} = EthereumEventAggregator.in_flight_exit_started(0, ife_eth_height)
 
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     DevHelper.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
@@ -139,7 +139,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
     {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
     # sanity check in-flight exit has started on root chain, wait for finality
-    assert {:ok, [_, _]} = EventFetcher.in_flight_exit_started(0, ife_eth_height)
+    assert {:ok, [_, _]} = EthereumEventAggregator.in_flight_exit_started(0, ife_eth_height)
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     DevHelper.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
 

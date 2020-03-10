@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.ChildChain.EventFetcher do
+defmodule OMG.Watcher.EthereumEventAggregator do
   @moduledoc """
   This process combines all plasma contract events we're interested in and does eth_getLogs + enriches them if needed
   for all Ethereum Event Listener processes. 
   """
   use GenServer
   require Logger
+  use Spandex.Decorators
 
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.RootChain.Event
@@ -29,6 +30,18 @@ defmodule OMG.ChildChain.EventFetcher do
     GenServer.call(server, {:deposit_created, from_block, to_block}, @timeout)
   end
 
+  def exit_started(server \\ __MODULE__, from_block, to_block) do
+    GenServer.call(server, {:exit_started, from_block, to_block}, @timeout)
+  end
+
+  def exit_finalized(server \\ __MODULE__, from_block, to_block) do
+    GenServer.call(server, {:exit_finalized, from_block, to_block}, @timeout)
+  end
+
+  def exit_challenged(server \\ __MODULE__, from_block, to_block) do
+    GenServer.call(server, {:exit_challenged, from_block, to_block}, @timeout)
+  end
+
   def in_flight_exit_started(server \\ __MODULE__, from_block, to_block) do
     GenServer.call(server, {:in_flight_exit_started, from_block, to_block}, @timeout)
   end
@@ -38,8 +51,24 @@ defmodule OMG.ChildChain.EventFetcher do
     GenServer.call(server, {:in_flight_exit_piggybacked, from_block, to_block}, @timeout)
   end
 
-  def exit_started(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:exit_started, from_block, to_block}, @timeout)
+  def in_flight_exit_challenged(server \\ __MODULE__, from_block, to_block) do
+    GenServer.call(server, {:in_flight_exit_challenged, from_block, to_block}, @timeout)
+  end
+
+  def in_flight_exit_challenge_responded(server \\ __MODULE__, from_block, to_block) do
+    GenServer.call(server, {:in_flight_exit_challenge_responded, from_block, to_block}, @timeout)
+  end
+
+  def in_flight_exit_blocked(server \\ __MODULE__, from_block, to_block) do
+    GenServer.call(server, {:in_flight_exit_blocked, from_block, to_block}, @timeout)
+  end
+
+  def in_flight_exit_withdrawn(server \\ __MODULE__, from_block, to_block) do
+    GenServer.call(server, {:in_flight_exit_withdrawn, from_block, to_block}, @timeout)
+  end
+
+  def block_submitted(server \\ __MODULE__, from_block, to_block) do
+    GenServer.call(server, {:block_submitted, from_block, to_block}, @timeout)
   end
 
   def start_link(opts) do
@@ -65,7 +94,6 @@ defmodule OMG.ChildChain.EventFetcher do
 
     ets_bucket = Keyword.fetch!(opts, :ets_bucket)
     rpc = Keyword.get(opts, :rpc, Rpc)
-    # :ok = event_bus.subscribe("ethereum_new_height", link: true)
 
     {:ok,
      %{
@@ -79,20 +107,9 @@ defmodule OMG.ChildChain.EventFetcher do
      }}
   end
 
-  # I've  not quite convinced this is benefical for us in any way.
-  # ETH listeners move at their own speed... But so is Event Fetcher.
-  # Each ETH listner request is providing a range of eth blocks - and since
-  # we gather events in bulk, they'll be here for other ETH listeners as well...
-  #   def handle_info({:internal_event_bus, :ethereum_new_height, new_height_blknum}, state) do
-  #     from_block = new_height_blknum
-  #     to_block = new_height_blknum
-  #     true = delete_old_logs(new_height_blknum, state)
-  #     true = retrieve_and_store_logs(from_block, to_block, state)
-  #     {:noreply, state}
-  #   end
-
-  def handle_call({:in_flight_exit_piggybacked, from_block, to_block}, _, state) do
-    names = [:in_flight_exit_output_piggybacked, :in_flight_exit_input_piggybacked]
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
+  def handle_call({:in_flight_exit_withdrawn, from_block, to_block}, _, state) do
+    names = [:in_flight_exit_input_withdrawn, :in_flight_exit_output_withdrawn]
 
     handout_logs =
       Enum.reduce(names, [], fn name, acc ->
@@ -108,6 +125,45 @@ defmodule OMG.ChildChain.EventFetcher do
     {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
   end
 
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
+  def handle_call({:in_flight_exit_blocked, from_block, to_block}, _, state) do
+    names = [:in_flight_exit_input_blocked, :in_flight_exit_output_blocked]
+
+    handout_logs =
+      names
+      |> Enum.reduce([], fn name, acc ->
+        signature =
+          state.events
+          |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
+          |> Keyword.fetch!(:signature)
+
+        logs = handout_log(signature, from_block, to_block, state)
+        logs ++ acc
+      end)
+
+    {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
+  end
+
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
+  def handle_call({:in_flight_exit_piggybacked, from_block, to_block}, _, state) do
+    names = [:in_flight_exit_output_piggybacked, :in_flight_exit_input_piggybacked]
+
+    handout_logs =
+      names
+      |> Enum.reduce([], fn name, acc ->
+        signature =
+          state.events
+          |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
+          |> Keyword.fetch!(:signature)
+
+        logs = handout_log(signature, from_block, to_block, state)
+        logs ++ acc
+      end)
+
+    {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
+  end
+
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
   def handle_call({name, from_block, to_block}, _, state) do
     signature =
       state.events
@@ -119,7 +175,8 @@ defmodule OMG.ChildChain.EventFetcher do
   end
 
   def handle_continue(new_height_blknum, state) do
-    _ = delete_old_logs(new_height_blknum, state)
+    _num_deleted = delete_old_logs(new_height_blknum, state)
+
     {:noreply, state}
   end
 
@@ -148,7 +205,6 @@ defmodule OMG.ChildChain.EventFetcher do
       case Keyword.fetch!(event, :enrich) do
         true ->
           {:ok, enriched_data} = rpc.get_call_data(decoded_log.root_chain_txhash)
-
           enriched_data_decoded = enriched_data |> from_hex |> Abi.decode_function()
           Map.put(decoded_log, :call_data, enriched_data_decoded)
 
@@ -241,11 +297,13 @@ defmodule OMG.ChildChain.EventFetcher do
     ]
 
     events = state.ets_bucket |> :ets.select(event_match_spec) |> List.flatten()
+
     blknum_list = :ets.select(state.ets_bucket, block_range)
 
     # we may not have all the block information the ethereum event listener wants
     # so we check for that and find all logs for missing blocks
     # in one RPC call for all signatures
+
     case Enum.to_list(from_block..to_block) -- blknum_list do
       [] ->
         events
@@ -257,7 +315,7 @@ defmodule OMG.ChildChain.EventFetcher do
 
         _ =
           Logger.debug(
-            "Missing block information (#{missing_from_block}, #{missing_to_block}) in event fetcher. Additional RPC call to gather logs."
+            "Missing block information (#{missing_from_block}, #{missing_to_block}) in event fetcher. Retrieving from RPC."
           )
 
         true = retrieve_and_store_logs(missing_from_block, missing_to_block, state)
