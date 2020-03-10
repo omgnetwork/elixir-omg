@@ -98,7 +98,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
     {:ok,
      %{
        # 200 blocks of events will be kept in memory
-       delete_events_treshold_height_blknum: 200,
+       delete_events_threshold_height_blknum: 200,
        ets_bucket: ets_bucket,
        event_signatures: events_signatures,
        events: events,
@@ -261,13 +261,13 @@ defmodule OMG.Watcher.EthereumEventAggregator do
     :ets.insert(state.ets_bucket, data)
   end
 
-  # delete everything older then (current block - delete_events_treshold)
+  # delete everything older then (current block - delete_events_threshold)
   defp delete_old_logs(new_height_blknum, state) do
     # :ets.fun2ms(fn {block_number, _event_signature, _event} when
-    # block_number <= new_height - delete_events_treshold -> true end)
+    # block_number <= new_height - delete_events_threshold -> true end)
     match_spec = [
       {{:"$1", :"$2", :"$3"},
-       [{:"=<", :"$1", {:-, {:const, new_height_blknum}, {:const, state.delete_events_treshold_height_blknum}}}],
+       [{:"=<", :"$1", {:-, {:const, new_height_blknum}, {:const, state.delete_events_threshold_height_blknum}}}],
        [true]}
     ]
 
