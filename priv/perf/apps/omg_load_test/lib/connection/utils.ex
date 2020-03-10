@@ -1,4 +1,4 @@
-defmodule LoadTest.Connection.Utils do
+defmodule OMG.LoadTest.Connection.Utils do
   @moduledoc """
   Utils functions that can be shared to all connection modules for Tesla clients
   """

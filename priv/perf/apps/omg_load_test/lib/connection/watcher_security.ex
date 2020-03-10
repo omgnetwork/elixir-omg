@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Connection.WatcherInfo do
+defmodule OMG.LoadTest.Connection.WatcherSecurity do
   @moduledoc """
   Module that overrides the Tesla middleware with the url in config.
   """
 
-  alias LoadTest.Connection.Utils
+  alias OMG.LoadTest.Connection.Utils
 
   def client() do
-    base_url = Application.get_env(:load_test, :watcher_info_url)
+    base_url = Application.get_env(:omg_load_test, :watcher_security_url)
 
     middleware = [
       Tesla.Middleware.Logger,

@@ -30,7 +30,7 @@ defmodule LoadTest.Scenario.Smoke do
 
   defp check_child_chain_up() do
     {:ok, response} =
-      LoadTest.Connection.ChildChain.client()
+      OMG.LoadTest.Connection.ChildChain.client()
       |> ChildChainAPI.Api.Configuration.configuration_get()
 
     # some sanity check
@@ -46,7 +46,7 @@ defmodule LoadTest.Scenario.Smoke do
 
   defp check_watcher_security_up() do
     {:ok, response} =
-      LoadTest.Connection.WatcherSecurity.client()
+      OMG.LoadTest.Connection.WatcherSecurity.client()
       |> WatcherSecurityCriticalAPI.Api.Status.status_get()
 
     # some sanity check
@@ -61,7 +61,7 @@ defmodule LoadTest.Scenario.Smoke do
 
   defp check_watcher_info_up() do
     {:ok, response} =
-      LoadTest.Connection.WatcherInfo.client()
+      OMG.LoadTest.Connection.WatcherInfo.client()
       |> WatcherInfoAPI.Api.Stats.stats_get()
 
     # some sanity check

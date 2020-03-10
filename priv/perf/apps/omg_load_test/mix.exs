@@ -3,7 +3,7 @@ defmodule LoadTest.MixProject do
 
   def project do
     [
-      app: :load_test,
+      app: :omg_load_test,
       version: "0.1.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
