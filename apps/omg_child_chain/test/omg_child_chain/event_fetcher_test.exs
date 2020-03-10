@@ -183,7 +183,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
 
     # we're just making sure that handle continue gets called after handle_call
     :ok = Process.sleep(100)
-    assert :ets.tab2list(table) -- what_should_be_left_in_db == []
+    assert Enum.sort(:ets.tab2list(table)) == Enum.sort(what_should_be_left_in_db)
   end
 
   # We also assert if blocks that did NOT have any events get commited to ETS as empty.
@@ -237,8 +237,8 @@ defmodule OMG.ChildChain.EventFetcherTest do
     assert EventFetcher.in_flight_exit_piggybacked(event_fetcher_name, from_block, to_block) ==
              {:ok, [in_flight_exit_input_piggybacked_log, in_flight_exit_output_piggybacked_log]}
 
-    assert :ets.tab2list(table) --
-             [
+    assert Enum.sort(:ets.tab2list(table)) ==
+             Enum.sort([
                {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
                {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
                 [in_flight_exit_output_piggybacked_log]},
@@ -256,7 +256,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
                {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
                 [in_flight_exit_input_piggybacked_log]},
                {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
-             ] == []
+             ])
   end
 
   test "if we get response for range where from equals to and that all events are commited to ETS", %{
@@ -304,8 +304,8 @@ defmodule OMG.ChildChain.EventFetcherTest do
 
     events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
 
-    assert :ets.tab2list(table) --
-             [
+    assert Enum.sort(:ets.tab2list(table)) ==
+             Enum.sort([
                {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
                {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
                {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
@@ -313,7 +313,7 @@ defmodule OMG.ChildChain.EventFetcherTest do
                {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
                 [in_flight_exit_input_piggybacked_log]},
                {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
-             ] == []
+             ])
   end
 
   test "that data and order (blknum) is preserved in ordered set", %{
