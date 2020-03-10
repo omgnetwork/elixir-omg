@@ -324,26 +324,4 @@ defmodule OMG.Watcher.EventFetcher do
   end
 
   defp from_hex("0x" <> encoded), do: Base.decode16!(encoded, case: :lower)
-
-  # defp merge_blocks(blocks, event_signatures, decoded_logs_in_keypair),
-  #   do: merge_blocks(blocks, event_signatures, decoded_logs_in_keypair, [])
-
-  # defp merge_blocks([], _, _, acc), do: acc
-
-  # defp merge_blocks([block | blocks], event_signatures, decoded_logs_in_keypair, acc) do
-  #   acc = fill_block_with_signatures(block, event_signatures, decoded_logs_in_keypair, acc)
-  #   merge_blocks(blocks, event_signatures, decoded_logs_in_keypair, acc)
-  # end
-
-  # defp fill_block_with_signatures(_, [], _, acc), do: acc
-
-  # defp fill_block_with_signatures(block, [signature | signatures], decoded_logs_in_keypair, acc) do
-  #   case Enum.find(decoded_logs_in_keypair, fn {b, s, _data} -> block == b and signature == s end) do
-  #     nil ->
-  #       fill_block_with_signatures(block, signatures, decoded_logs_in_keypair, [{block, signature, []} | acc])
-
-  #     log ->
-  #       fill_block_with_signatures(block, signatures, decoded_logs_in_keypair, [log | acc])
-  #   end
-  # end
 end

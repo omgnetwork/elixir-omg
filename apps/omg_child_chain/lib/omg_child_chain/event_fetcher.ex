@@ -127,7 +127,7 @@ defmodule OMG.ChildChain.EventFetcher do
     from_block
     |> get_logs(to_block, state)
     |> enrich_logs_with_call_data(state)
-    |> insert_logs(from_block, to_block, state)
+    |> store_logs(from_block, to_block, state)
   end
 
   defp get_logs(from_height, to_height, state) do
@@ -158,7 +158,7 @@ defmodule OMG.ChildChain.EventFetcher do
     end)
   end
 
-  defp insert_logs(decoded_logs, from_block, to_block, state) do
+  defp store_logs(decoded_logs, from_block, to_block, state) do
     event_signatures = state.event_signatures
 
     # all logs come in a list of maps
