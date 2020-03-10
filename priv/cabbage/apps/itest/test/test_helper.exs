@@ -6,7 +6,7 @@ import Itest.Poller, only: [wait_on_receipt_confirmed: 1]
 
 Application.ensure_all_started(:ethereumex)
 data = ABI.encode("minExitPeriod()", [])
-{:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+{:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
 miliseconds =
   result
@@ -57,11 +57,11 @@ has_exit_queue = fn ->
   data =
     ABI.encode(
       "hasExitQueue(uint256,address)",
-      [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
+      [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()]
     )
 
   {:ok, receipt_enc} =
-    Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+    Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
   receipt_enc
   |> Encoding.to_binary()
@@ -78,12 +78,12 @@ else
   data =
     ABI.encode(
       "addExitQueue(uint256,address)",
-      [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
+      [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()]
     )
 
   txmap = %{
     from: address,
-    to: Itest.Account.plasma_framework(),
+    to: Itest.PlasmaFramework.address(),
     value: Encoding.to_hex(0),
     data: Encoding.to_hex(data),
     gas: Encoding.to_hex(gas_add_exit_queue)

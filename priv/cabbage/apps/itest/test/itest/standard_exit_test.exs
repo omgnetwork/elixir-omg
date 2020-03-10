@@ -22,7 +22,7 @@ defmodule StandardExitsTests do
     {:ok, receipt_hash} =
       amount
       |> Currency.to_wei()
-      |> Client.deposit(alice_account, Itest.Account.vault(Currency.ether()))
+      |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
 
     gas_used = Client.get_gas_used(receipt_hash)
 
@@ -49,8 +49,8 @@ defmodule StandardExitsTests do
     {:ok, state}
   end
 
-  defwhen ~r/^Alice starts a standard exit on the child chain$/, _, %{alice_account: alice_account} = state do
-    se = StandardExitClient.start_standard_exit(alice_account)
+  defwhen ~r/^Alice completes a standard exit on the child chain$/, _, %{alice_account: alice_account} = state do
+    se = StandardExitClient.complete_standard_exit(alice_account)
     state = Map.put_new(state, :standard_exit_total_gas_used, se.total_gas_used)
 
     {:ok, state}
@@ -74,7 +74,7 @@ defmodule StandardExitsTests do
     {:ok, Map.put(state, :alice_ethereum_balance, balance)}
   end
 
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the blockchain$/,
+  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the root chain$/,
           %{amount: amount},
           %{
             alice_account: _alice_account,

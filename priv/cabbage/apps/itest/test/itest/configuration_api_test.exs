@@ -7,7 +7,7 @@ defmodule ConfigurationRetrievalTests do
     data = ABI.encode("getVersion()", [])
 
     {:ok, response} =
-      Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+      Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
     [{contract_semver}] =
       response
@@ -19,7 +19,7 @@ defmodule ConfigurationRetrievalTests do
         "contract_semver" => contract_semver,
         "deposit_finality_margin" => 10,
         "network" => "LOCALCHAIN",
-        "exit_processor_sla_margin" => 5520
+        "exit_processor_sla_margin" => 30
       },
       child_chain_assert_response: %{
         "contract_semver" => contract_semver,

@@ -540,9 +540,9 @@ jobs:
           name: Run Child Chain, Watcher and Watcher Info
           command: |
             set -e
-            make start-child_chain OVERRIDING_START=start &&
-            make start-watcher OVERRIDING_START=start &&
-            make start-watcher_info OVERRIDING_START=foreground
+            make start-child_chain OVERRIDING_START=start OVERRIDING_VARIABLES=./bin/variables_test_barebone &&
+            make start-watcher OVERRIDING_START=start OVERRIDING_VARIABLES=./bin/variables_test_barebone &&
+            make start-watcher_info OVERRIDING_START=foreground OVERRIDING_VARIABLES=./bin/variables_test_barebone
           background: true
           no_output_timeout: 2400
       - run:
