@@ -74,7 +74,7 @@ defmodule StandardExitsTests do
     {:ok, Map.put(state, :alice_ethereum_balance, balance)}
   end
 
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the blockchain$/,
+  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the root chain$/,
           %{amount: amount},
           %{
             alice_account: _alice_account,

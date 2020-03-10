@@ -146,7 +146,7 @@ defmodule InvalidStandardExitsTests do
     {:ok, state}
   end
 
-  defthen ~r/^Alice tries to process exits$/, _, %{alice_account: alice_account} = state do
+  defthen ~r/^Exits are processed$/, _, %{alice_account: alice_account} = state do
     # need n_exits: <many>, because we're trying to prove that Alice's processing of the challenged exit fails
     # otherwise, you're risking not processing "enough" exits and it will seem like Alice's exit got challenged, while
     # it is not necessarily true
@@ -160,7 +160,7 @@ defmodule InvalidStandardExitsTests do
     {:ok, new_state}
   end
 
-  defthen ~r/^Alice should have "(?<difference>[^"]+)" ETH less on the blockchain$/,
+  defthen ~r/^Alice should have "(?<difference>[^"]+)" ETH less on the root chain$/,
           %{difference: difference},
           %{
             alice_initial_balance_on_root_chain: alice_initial_balance_on_root_chain,

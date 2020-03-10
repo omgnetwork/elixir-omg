@@ -4,4 +4,4 @@ Feature: Standard Exits
     Then Alice should have "1" ETH on the child chain
     When Alice completes a standard exit on the child chain
     Then Alice should have "0" ETH on the child chain after finality margin
-    And Alice should have "100" ETH on the blockchain
+    And Alice should have "100" ETH on the root chain
