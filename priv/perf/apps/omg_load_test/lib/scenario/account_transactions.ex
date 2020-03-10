@@ -22,8 +22,8 @@ defmodule OMG.LoadTest.Scenario.AccountTransactions do
   alias Chaperon.Timing
 
   alias OMG.LoadTest.Utils.Encoding
-  alias OMG.LoadTest.Generators
-  alias WatcherInfoAPI.Connection
+  alias OMG.LoadTest.Utils.Generators
+  alias OMG.LoadTest.Connection.WatcherInfo, as: Connection
   alias WatcherInfoAPI.Api
   alias WatcherInfoAPI.Model
 
@@ -107,7 +107,7 @@ defmodule OMG.LoadTest.Scenario.AccountTransactions do
     typed_data_signed = sign_tx(sign_hash, typed_data, sender)
 
     start = Timing.timestamp()
-    {:ok, response} = Api.Transaction.submit_typed(Connection.new(), typed_data_signed)
+    {:ok, response} = Api.Transaction.submit_typed(Connection.client(), typed_data_signed)
 
     session =
       add_metric(
@@ -145,7 +145,7 @@ defmodule OMG.LoadTest.Scenario.AccountTransactions do
   defp create_transaction(sender) do
     {:ok, response} =
       Api.Transaction.create_transaction(
-        Connection.new(),
+        Connection.client(),
         %Model.CreateTransactionsBodySchema{
           owner: Encoding.to_hex(sender.addr),
           fee: %Model.TransactionCreateFee{
@@ -178,7 +178,7 @@ defmodule OMG.LoadTest.Scenario.AccountTransactions do
   defp get_balance(sender) do
     {:ok, response} =
       Api.Account.account_get_balance(
-        Connection.new(),
+        Connection.client(),
         %Model.AddressBodySchema{
           address: Encoding.to_hex(sender.addr)
         }
@@ -190,7 +190,7 @@ defmodule OMG.LoadTest.Scenario.AccountTransactions do
   defp get_utxos(sender) do
     {:ok, response} =
       Api.Account.account_get_utxos(
-        Connection.new(),
+        Connection.client(),
         %Model.AddressBodySchema1{
           address: Encoding.to_hex(sender.addr)
         }
@@ -202,7 +202,7 @@ defmodule OMG.LoadTest.Scenario.AccountTransactions do
   defp get_transactions(sender) do
     {:ok, response} =
       Api.Account.account_get_transactions(
-        Connection.new(),
+        Connection.client(),
         %Model.GetAllTransactionsBodySchema{}
       )
 
@@ -223,7 +223,7 @@ defmodule OMG.LoadTest.Scenario.AccountTransactions do
   defp wait_until_tx_sync_to_watcher(tx_id) do
     {:ok, response} =
       Api.Transaction.transaction_get(
-        Connection.new(),
+        Connection.client(),
         %Model.GetTransactionBodySchema{
           id: tx_id
         }
