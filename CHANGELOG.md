@@ -1,4 +1,19 @@
-# Change Log
+# Changelog
+
+## [v0.4.5](https://github.com/omisego/elixir-omg/releases/tag/v0.4.5)
+
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.4...v0.4.5).
+
+#### APIs
+- None
+
+#### Core
+- [Feature] Upgrade to plasma-contracts@v1.0.4 (#1382)
+- [Fix] Fix "piggyback_available" popping back after challenge (#1372)
+
+#### Miscellaneous
+- [Feature] Improvements to load test stability (#1381)
 
 ## [v0.4.4](https://github.com/omisego/elixir-omg/releases/tag/v0.4.4) (2020-03-02)
 
