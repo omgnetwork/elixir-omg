@@ -31,7 +31,7 @@ defmodule LoadTest.MixProject do
 
       # Better adapter for tesla
       {:hackney, "~> 1.15.2"},
-      {:ex_plasma, "~> 0.1.0"},
+      {:ex_plasma, env: :prod, git: "https://github.com/omisego/ex_plasma.git", override: true},
       {:watcher_info_api, in_umbrella: true},
       {:watcher_security_critical_api, in_umbrella: true},
       {:child_chain_api, in_umbrella: true},
