@@ -15,7 +15,7 @@
 defmodule OMG.ChildChain.Fees.FileAdapter do
   @moduledoc """
   Adapter for fees stored in a JSON file (defined in omg_child_chain/priv config :omg_child_chain,
-  :fee_specs_file_name).
+  :fee_specs_file_path).
   """
   @behaviour OMG.ChildChain.Fees.Adapter
 
@@ -70,6 +70,6 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
   end
 
   defp get_path() do
-    "#{:code.priv_dir(:omg_child_chain)}/#{Application.get_env(:omg_child_chain, :fee_specs_file_name)}"
+    Application.get_env(:omg_child_chain, :fee_specs_file_path)
   end
 end

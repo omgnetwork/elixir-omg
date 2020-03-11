@@ -10,7 +10,7 @@ config :omg_child_chain,
   block_submit_every_nth: 1,
   metrics_collection_interval: 60_000,
   fee_adapter: OMG.ChildChain.Fees.FileAdapter,
-  fee_specs_file_name: "fee_specs.json"
+  fee_specs_file_path: Path.join(System.get_env("HOME"), ".omg/fees/fee_specs.json")
 
 config :omg_child_chain, OMG.ChildChain.Tracer,
   service: :omg_child_chain,
