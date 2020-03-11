@@ -57,10 +57,8 @@ defmodule OMG.ChildChain.EthereumEventAggregatorTest do
     to_block = 80_000
     :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
     events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
-    {time, _value} = :timer.tc(EthereumEventAggregator, :deposit_created, [event_fetcher_name, from_block, to_block])
+    EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block)
     assert Enum.count(:ets.tab2list(table)) == Enum.count(events) * 80_000
-    duration = time / 1_000_000
-    assert duration < 5
   end
 
   test "that events and event signatures are correctly initialized ", %{event_fetcher_name: event_fetcher_name} do

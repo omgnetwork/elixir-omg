@@ -279,7 +279,8 @@ defmodule OMG.Watcher.EthereumEventAggregator do
         {blknum, signature}
       end)
 
-    if :ets.insert(state.ets_bucket, data), do: :ok, else: {:error, :could_not_store_logs}
+    true = :ets.insert(state.ets_bucket, data)
+    :ok
   end
 
   # delete everything older then (current block - delete_events_threshold)
