@@ -311,13 +311,12 @@ docker-push: docker
 	docker push $(WATCHER_INFO_IMAGE_NAME)
 
 ###OTHER
-docker-start-cluster:
-	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
-	docker-compose build --no-cache && docker-compose up
+docker-start-cluster: docker-build-cluster
+	docker-compose up
 
 docker-build-cluster: docker-child_chain docker-watcher docker-watcher_info
-	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
-	docker-compose build --no-cache && docker-compose up
+	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init-contracts && \
+	docker-compose build --no-cache
 
 docker-stop-cluster:
 	docker-compose down

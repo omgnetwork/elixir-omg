@@ -19,6 +19,7 @@ defmodule OMG.ChildChain.Application do
   """
   use Application
 
+  alias OMG.ChildChain.Transaction
   alias OMG.Status.Alert.Alarm
 
   require Logger
@@ -34,6 +35,22 @@ defmodule OMG.ChildChain.Application do
   end
 
   def start_phase(:attach_telemetry, :normal, _phase_args) do
+    config = %{
+      # DD reserved tag keys -- cannot use: host, device, service, source
+      # TODO(jacob) cleanup
+      tags: [
+        "application:#{Application.get_env(:omg_child_chain, :application)}",
+        "app_env:#{Application.get_env(:omg_child_chain, :app_env)}",
+        "contract_semver:#{Application.get_env(:omg_child_chain, :contract_semver)}",
+        "current_version:#{Application.get_env(:omg_child_chain, :current_version)}",
+        "env:#{Application.get_env(:omg_child_chain, :env)}",
+        "network:#{Application.get_env(:omg_child_chain, :network)}",
+        "release:#{Application.get_env(:omg_child_chain, :release)}",
+        # "service:#{Application.get_env(:omg_child_chain, :service)}",
+        "service_name:#{Application.get_env(:omg_child_chain, :service_name)}"
+      ]
+    }
+
     handlers = [
       [
         "measure-ethereum-event-listener",
@@ -42,12 +59,7 @@ defmodule OMG.ChildChain.Application do
         nil
       ],
       ["measure-state", OMG.State.Measure.supported_events(), &OMG.State.Measure.handle_event/4, nil],
-      [
-        "measure-submit-transaction",
-        OMG.ChildChain.Measure.supported_events(),
-        &OMG.ChildChain.Measure.handle_event/4,
-        nil
-      ]
+      Transaction.Metrics.events_handler(config)
     ]
 
     Enum.each(handlers, fn handler ->

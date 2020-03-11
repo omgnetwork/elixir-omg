@@ -18,8 +18,7 @@ config :omg_child_chain, OMG.ChildChain.Tracer,
   disabled?: true,
   type: :omg_child_chain
 
-config :statix,
-  prefix: "omg.childchain",
-  tags: ["application:childchain"]
+config :statix, OMG.ChildChain.Application
+  prefix: "omg"
 
 import_config "#{Mix.env()}.exs"

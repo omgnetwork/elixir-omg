@@ -24,35 +24,38 @@ defmodule OMG.ChildChain do
   alias OMG.Block
   alias OMG.ChildChain.FeeServer
   alias OMG.ChildChain.FreshBlocks
-  alias OMG.ChildChain.Measure
+  alias OMG.ChildChain.Transaction.Metrics
+  alias OMG.ChildChain.Transaction.Submitter
   alias OMG.Fees
   alias OMG.Fees.FeeFilter
-  alias OMG.State
   alias OMG.State.Transaction
 
-  @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error() | :transaction_not_supported
-
-  @spec submit(transaction :: binary) ::
+  @spec submit(transaction :: binary, submitter :: Submitter) ::
           {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
-          | {:error, submit_error()}
-  def submit(transaction) do
-    :ok = :telemetry.execute(Measure.txn_submission_submitted(), Measure.measurements(), %{transaction: transaction})
+          | {:error, Submitter.submit_error_t()}
+  def submit(transaction, submitter \\ Submitter, metrics \\ Metrics) do
+    try do
+      result = submitter.submit(transaction)
 
-    with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
-         :ok <- is_supported(recovered_tx),
-         {:ok, fees} <- FeeServer.accepted_fees(),
-         fees = Fees.for_transaction(recovered_tx, fees),
-         {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
+      metrics.emit_transaction_submit_event(result)
+    rescue
+      error_data ->
+        metrics.emit_transaction_submit_event({:error, %{error_data: error_data}})
 
-      txn_data = %{txhash: tx_hash, blknum: blknum, txindex: tx_index}
+        # TODO(PR) - what should be done here? -- particularly in the scope of this PR? don't
+        # what to change error flow, but do want to send the event to DD, for that reason
+        # propagating the error for now
 
-      :ok = :telemetry.execute(Measure.txn_submission_succeeded(), Measure.measurements(), %{transaction: txn_data})
+        raise error_data
+    catch
+      exception_data ->
+        metrics.emit_transaction_submit_event({:error, %{exception_data: exception_data}})
 
-      {:ok, txn_data}
-    else
-      {:error, error_data} ->
-        :ok = :telemetry.execute(Measure.txn_submission_failed(), Measure.measurements(), %{error: error_data})
-        {:error, error_data}
+        # TODO(PR) - what should be done here? -- particularly in the scope of this PR? don't
+        # what to change exception flow, but do want to send the event to DD, for that reason
+        # propagating the exception for now
+
+        throw exception_data
     end
     |> result_with_logging()
   end
@@ -74,11 +77,6 @@ defmodule OMG.ChildChain do
     end
     |> result_with_logging()
   end
-
-  defp is_supported(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.Fee{}}}),
-    do: {:error, :transaction_not_supported}
-
-  defp is_supported(%Transaction.Recovered{}), do: :ok
 
   defp result_with_logging(result) do
     _ = Logger.debug(" resulted with #{inspect(result)}")
