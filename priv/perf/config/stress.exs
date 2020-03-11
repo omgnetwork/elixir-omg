@@ -1,8 +1,5 @@
 use Mix.Config
 
-config :ethereumex,
-  url: System.get_env("ETHEREUM_RPC_URL")
-
 config :load_testing,
   pool_size: 20_000,
   max_connection: 20_000,

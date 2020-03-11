@@ -13,6 +13,7 @@ config :logger, :console,
 ethereum_client_timeout_ms = 20_000
 
 config :ethereumex,
+  url: System.get_env("ETHEREUM_RPC_URL"),
   http_options: [recv_timeout: ethereum_client_timeout_ms]
 
 config :load_testing,

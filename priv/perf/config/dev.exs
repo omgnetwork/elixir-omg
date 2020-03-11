@@ -1,8 +1,5 @@
 use Mix.Config
 
-config :ethereumex,
-  url: System.get_env("ETHEREUM_RPC_URL")
-
 config :load_testing,
   child_chain_url: "https://dev-7c3f796-childchain-ropsten-01.omg.network/",
   watcher_security_url: "https://dev-7c3f796-watcher-ropsten-01.omg.network/",

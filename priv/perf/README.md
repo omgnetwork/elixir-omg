@@ -2,6 +2,9 @@
 
 Umbrella app for performance/load/stress tests
 
+## Ethereum client
+Each environment, besides `test`, requires user to specify the url to an Ethereum client, which can be done by setting an environment variable `ETHEREUM_RPC_URL`. 
+
 ## How to run the test
 1. Change the urls inside the [config files](config/) for the environment you are targeting.
 1. To generate the open-api client (only need once): `make init`
