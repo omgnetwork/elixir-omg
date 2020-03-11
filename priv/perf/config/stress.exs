@@ -3,7 +3,7 @@ use Mix.Config
 config :ethereumex,
   url: System.get_env("ETHEREUM_RPC_URL")
 
-config :omg_load_testing,
+config :load_testing,
   pool_size: 20_000,
   max_connection: 20_000,
   child_chain_url: "https://stress-e043a92-childchain-ropsten-01.omg.network/",

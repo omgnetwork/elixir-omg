@@ -3,7 +3,7 @@ use Mix.Config
 config :ethereumex,
   url: System.get_env("ETHEREUM_RPC_URL")
 
-config :omg_load_testing,
+config :load_testing,
   child_chain_url: "https://dev-7c3f796-childchain-ropsten-01.omg.network/",
   watcher_security_url: "https://dev-7c3f796-watcher-ropsten-01.omg.network/",
   watcher_info_url: "https://dev-7c3f796-watcher-info-ropsten-01.omg.network/",
