@@ -13,6 +13,8 @@
 # limitation
 
 defmodule OMG.LoadTesting.Utils.Crypto do
+  @moduledoc false
+
   @type hash_t() :: <<_::256>>
   @type priv_key_t :: <<_::256>>
 

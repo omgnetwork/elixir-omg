@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule OMG.LoadTesting.Utils.Faucet do
+  @moduledoc false
+
   require Logger
 
   use GenServer

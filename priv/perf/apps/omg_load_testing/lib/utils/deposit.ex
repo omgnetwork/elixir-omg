@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule OMG.LoadTesting.Utils.Deposit do
+  @moduledoc false
+
   require Logger
 
   alias ExPlasma.Encoding

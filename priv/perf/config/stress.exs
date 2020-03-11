@@ -10,7 +10,7 @@ config :omg_load_testing,
   watcher_security_url: "https://stress-e043a92-watcher-ropsten-01.omg.network/",
   watcher_info_url: "https://stress-e043a92-watcher-info-ropsten-01.omg.network/",
   fee_wei: 1,
-  faucet_deposit_wei: (:math.pow(10, 18) * 1) |> trunc,
+  faucet_deposit_wei: :math.pow(10, 18) |> trunc,
   faucet_account: %{
     addr: "0x9133f35d9a964c894f152c0e7da66e832735a7a6",
     priv: "0x70ad9d48f90430607a340ea2e00495e1f84d2c50a4a3df0917e6161045b32378"
