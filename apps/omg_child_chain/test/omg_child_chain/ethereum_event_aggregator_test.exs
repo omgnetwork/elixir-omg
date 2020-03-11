@@ -13,7 +13,7 @@
 # limitations under the License.
 defmodule OMG.ChildChain.EthereumEventAggregatorTest do
   use ExUnit.Case, async: true
-
+  import ExUnit.CaptureLog, only: [capture_log: 1]
   alias OMG.ChildChain.EthereumEventAggregator
   alias OMG.Eth.RootChain.Abi
 
@@ -61,351 +61,397 @@ defmodule OMG.ChildChain.EthereumEventAggregatorTest do
     assert Enum.count(:ets.tab2list(table)) == Enum.count(events) * 80_000
   end
 
-  test "that events and event signatures are correctly initialized ", %{event_fetcher_name: event_fetcher_name} do
-    assert event_fetcher_name |> :sys.get_state() |> Map.get(:events) == [
-             [
-               signature: "InFlightExitStarted(address,bytes32)",
-               name: :in_flight_exit_started,
-               enrich: true
-             ],
-             [
-               signature: "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
-               name: :in_flight_exit_output_piggybacked,
-               enrich: false
-             ],
-             [
-               signature: "InFlightExitInputPiggybacked(address,bytes32,uint16)",
-               name: :in_flight_exit_input_piggybacked,
-               enrich: false
-             ],
-             [
-               signature: "ExitStarted(address,uint160)",
-               name: :exit_started,
-               enrich: true
-             ],
-             [
-               signature: "DepositCreated(address,uint256,address,uint256)",
-               name: :deposit_created,
-               enrich: false
+  describe "start_link/1 and init/1" do
+    test "that events are correctly initialized ", %{event_fetcher_name: event_fetcher_name} do
+      assert event_fetcher_name |> :sys.get_state() |> Map.get(:events) == [
+               [
+                 signature: "InFlightExitStarted(address,bytes32)",
+                 name: :in_flight_exit_started,
+                 enrich: true
+               ],
+               [
+                 signature: "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
+                 name: :in_flight_exit_output_piggybacked,
+                 enrich: false
+               ],
+               [
+                 signature: "InFlightExitInputPiggybacked(address,bytes32,uint16)",
+                 name: :in_flight_exit_input_piggybacked,
+                 enrich: false
+               ],
+               [
+                 signature: "ExitStarted(address,uint160)",
+                 name: :exit_started,
+                 enrich: true
+               ],
+               [
+                 signature: "DepositCreated(address,uint256,address,uint256)",
+                 name: :deposit_created,
+                 enrich: false
+               ]
              ]
-           ]
-  end
-
-  # we start the test with a completely empty ETS table, meaning to events were retrieved yet
-  # so the first call from a ETH event listener would actually retrieve values from Infura
-  test "that :delete_events_threshold_height_blknum is respected and that events get deleted from ETS", %{
-    event_fetcher_name: event_fetcher_name,
-    table: table,
-    test: test_name
-  } do
-    defmodule test_name do
-      alias OMG.ChildChain.EthereumEventAggregatorTest
-
-      def get_ethereum_events(from_block, to_block, _signatures, _contracts) do
-        {:ok,
-         [
-           EthereumEventAggregatorTest.deposit_created_log(from_block),
-           EthereumEventAggregatorTest.exit_started_log(to_block),
-           EthereumEventAggregatorTest.in_flight_exit_output_piggybacked_log(from_block),
-           EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block)
-         ]}
-      end
-
-      def get_call_data(_tx_hash) do
-        {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
-      end
     end
 
-    from_block = 1
-    to_block = 3
-    :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
-    :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :delete_events_threshold_height_blknum, 1) end)
-    events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
-
-    # create data that we need
-    deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
-    deposit_created_2 = from_block |> Kernel.+(1) |> deposit_created_log() |> Abi.decode_log()
-
-    exit_started_log =
-      to_block
-      |> exit_started_log()
-      |> Abi.decode_log()
-      |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
-
-    in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
-    in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
-
-    data = [
-      {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
-      {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
-       [in_flight_exit_output_piggybacked_log]},
-      {from_block, get_signature_from_event(events, :in_flight_exit_started), []},
-      {from_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
-       [in_flight_exit_input_piggybacked_log]},
-      {from_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
-      # this deposit will get called out below
-      {from_block + 1, get_signature_from_event(events, :deposit_created), [deposit_created_2]},
-      {from_block + 1, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
-      {from_block + 1, get_signature_from_event(events, :in_flight_exit_started), []},
-      {from_block + 1, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
-      {from_block + 1, get_signature_from_event(events, :exit_started), []},
-      {to_block, get_signature_from_event(events, :deposit_created), []},
-      {to_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
-      {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
-      {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
-       [in_flight_exit_input_piggybacked_log]},
-      {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
-    ]
-
-    _ = :ets.insert(table, data)
-
-    from_block_2 = 2
-    to_block_2 = 3
-    # this should induce a ETS delete call
-    assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block_2, to_block_2) ==
-             {:ok, [deposit_created_2]}
-
-    what_should_be_left_in_db = [
-      {from_block + 1, get_signature_from_event(events, :deposit_created), [deposit_created_2]},
-      {from_block + 1, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
-      {from_block + 1, get_signature_from_event(events, :in_flight_exit_started), []},
-      {from_block + 1, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
-      {from_block + 1, get_signature_from_event(events, :exit_started), []},
-      {to_block, get_signature_from_event(events, :deposit_created), []},
-      {to_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
-      {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
-      {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
-       [in_flight_exit_input_piggybacked_log]},
-      {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
-    ]
-
-    # we're just making sure that handle continue gets called after handle_call
-    :ok = Process.sleep(100)
-    assert Enum.sort(:ets.tab2list(table)) == Enum.sort(what_should_be_left_in_db)
+    test "that signatures are correctly initialized ", %{event_fetcher_name: event_fetcher_name} do
+      assert event_fetcher_name |> :sys.get_state() |> Map.get(:event_signatures) |> Enum.sort() ==
+               Enum.sort([
+                 "InFlightExitStarted(address,bytes32)",
+                 "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
+                 "InFlightExitInputPiggybacked(address,bytes32,uint16)",
+                 "ExitStarted(address,uint160)",
+                 "DepositCreated(address,uint256,address,uint256)"
+               ])
+    end
   end
 
-  # We also assert if blocks that did NOT have any events get commited to ETS as empty.
-  # This is important because we do not want to re-scan blocks for which we know contain nothing.
-  test "if we get response for range and all events are commited to ETS", %{
-    event_fetcher_name: event_fetcher_name,
-    table: table,
-    test: test_name
-  } do
-    defmodule test_name do
-      alias OMG.ChildChain.EthereumEventAggregatorTest
+  describe "delete_old_logs/2" do
+    # we start the test with a completely empty ETS table, meaning to events were retrieved yet
+    # so the first call from a ETH event listener would actually retrieve values from Infura
+    test "that :delete_events_threshold_height_blknum is respected and that events get deleted from ETS", %{
+      event_fetcher_name: event_fetcher_name,
+      table: table,
+      test: test_name
+    } do
+      defmodule test_name do
+        alias OMG.ChildChain.EthereumEventAggregatorTest
 
-      def get_ethereum_events(from_block, to_block, _signatures, _contracts) do
-        {:ok,
-         [
-           EthereumEventAggregatorTest.deposit_created_log(from_block),
-           EthereumEventAggregatorTest.deposit_created_log(from_block + 1),
-           EthereumEventAggregatorTest.exit_started_log(to_block),
-           EthereumEventAggregatorTest.in_flight_exit_output_piggybacked_log(from_block),
-           EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block)
-         ]}
+        def get_ethereum_events(from_block, to_block, _signatures, _contracts) do
+          {:ok,
+           [
+             EthereumEventAggregatorTest.deposit_created_log(from_block),
+             EthereumEventAggregatorTest.exit_started_log(to_block),
+             EthereumEventAggregatorTest.in_flight_exit_output_piggybacked_log(from_block),
+             EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block)
+           ]}
+        end
+
+        def get_call_data(_tx_hash) do
+          {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
+        end
       end
 
-      def get_call_data(_tx_hash) do
-        {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
+      from_block = 1
+      to_block = 3
+      :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
+      :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :delete_events_threshold_height_blknum, 1) end)
+      events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
+
+      # create data that we need
+      deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
+      deposit_created_2 = from_block |> Kernel.+(1) |> deposit_created_log() |> Abi.decode_log()
+
+      exit_started_log =
+        to_block
+        |> exit_started_log()
+        |> Abi.decode_log()
+        |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
+
+      in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
+      in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
+
+      data = [
+        {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
+        {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
+         [in_flight_exit_output_piggybacked_log]},
+        {from_block, get_signature_from_event(events, :in_flight_exit_started), []},
+        {from_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
+         [in_flight_exit_input_piggybacked_log]},
+        {from_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
+        # this deposit will get called out below
+        {from_block + 1, get_signature_from_event(events, :deposit_created), [deposit_created_2]},
+        {from_block + 1, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
+        {from_block + 1, get_signature_from_event(events, :in_flight_exit_started), []},
+        {from_block + 1, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
+        {from_block + 1, get_signature_from_event(events, :exit_started), []},
+        {to_block, get_signature_from_event(events, :deposit_created), []},
+        {to_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
+        {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
+        {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
+         [in_flight_exit_input_piggybacked_log]},
+        {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
+      ]
+
+      _ = :ets.insert(table, data)
+
+      from_block_2 = 2
+      to_block_2 = 3
+      # this should induce a ETS delete call
+      assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block_2, to_block_2) ==
+               {:ok, [deposit_created_2]}
+
+      what_should_be_left_in_db = [
+        {from_block + 1, get_signature_from_event(events, :deposit_created), [deposit_created_2]},
+        {from_block + 1, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
+        {from_block + 1, get_signature_from_event(events, :in_flight_exit_started), []},
+        {from_block + 1, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
+        {from_block + 1, get_signature_from_event(events, :exit_started), []},
+        {to_block, get_signature_from_event(events, :deposit_created), []},
+        {to_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
+        {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
+        {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
+         [in_flight_exit_input_piggybacked_log]},
+        {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
+      ]
+
+      # we're just making sure that handle continue gets called after handle_call
+      :ok = Process.sleep(100)
+      assert Enum.sort(:ets.tab2list(table)) == Enum.sort(what_should_be_left_in_db)
+    end
+  end
+
+  describe "api calls/2 calls/3 and store_logs/4" do
+    # We also assert if blocks that did NOT have any events get commited to ETS as empty.
+    # This is important because we do not want to re-scan blocks for which we know contain nothing.
+    test "if we get response for range and all events are commited to ETS", %{
+      event_fetcher_name: event_fetcher_name,
+      table: table,
+      test: test_name
+    } do
+      defmodule test_name do
+        alias OMG.ChildChain.EthereumEventAggregatorTest
+
+        def get_ethereum_events(from_block, to_block, _signatures, _contracts) do
+          {:ok,
+           [
+             EthereumEventAggregatorTest.deposit_created_log(from_block),
+             EthereumEventAggregatorTest.deposit_created_log(from_block + 1),
+             EthereumEventAggregatorTest.exit_started_log(to_block),
+             EthereumEventAggregatorTest.in_flight_exit_output_piggybacked_log(from_block),
+             EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block)
+           ]}
+        end
+
+        def get_call_data(_tx_hash) do
+          {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
+        end
       end
+
+      # we need to set the RPC module with our mocked implementation
+      :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
+      # we read the events from the aggregators state so that we're able to build the
+      # event data later
+      events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
+
+      from_block = 1
+      to_block = 3
+      # we need to create events that we later expect when we call the aggregator APIs
+      # for example, deposit_created and deposit_created_2 are expected if the range is from 1 to 3
+
+      deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
+      deposit_created_2 = from_block |> Kernel.+(1) |> deposit_created_log() |> Abi.decode_log()
+
+      exit_started_log =
+        to_block
+        |> exit_started_log()
+        |> Abi.decode_log()
+        |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
+
+      in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
+      in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
+
+      assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block) ==
+               {:ok, [deposit_created, deposit_created_2]}
+
+      assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
+
+      assert EthereumEventAggregator.in_flight_exit_piggybacked(event_fetcher_name, from_block, to_block) ==
+               {:ok, [in_flight_exit_input_piggybacked_log, in_flight_exit_output_piggybacked_log]}
+
+      # and now we're asserting that the API calls actually stored the events above
+      # also that the events were stored at the right blknum key
+      assert Enum.sort(:ets.tab2list(table)) ==
+               Enum.sort([
+                 {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
+                 {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
+                  [in_flight_exit_output_piggybacked_log]},
+                 {from_block, get_signature_from_event(events, :in_flight_exit_started), []},
+                 {from_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
+                 {from_block, get_signature_from_event(events, :exit_started), []},
+                 {from_block + 1, get_signature_from_event(events, :deposit_created), [deposit_created_2]},
+                 {from_block + 1, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
+                 {from_block + 1, get_signature_from_event(events, :in_flight_exit_started), []},
+                 {from_block + 1, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
+                 {from_block + 1, get_signature_from_event(events, :exit_started), []},
+                 {to_block, get_signature_from_event(events, :deposit_created), []},
+                 {to_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
+                 {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
+                 {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
+                  [in_flight_exit_input_piggybacked_log]},
+                 {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
+               ])
     end
 
-    :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
-    events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
+    test "if we get response for range where from equals to and that all events are commited to ETS", %{
+      event_fetcher_name: event_fetcher_name,
+      table: table,
+      test: test_name
+    } do
+      defmodule test_name do
+        alias OMG.ChildChain.EthereumEventAggregatorTest
 
-    from_block = 1
-    to_block = 3
-    deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
-    deposit_created_2 = from_block |> Kernel.+(1) |> deposit_created_log() |> Abi.decode_log()
+        def get_ethereum_events(from_block, to_block, _signatures, _contracts) do
+          {:ok,
+           [
+             EthereumEventAggregatorTest.deposit_created_log(from_block),
+             EthereumEventAggregatorTest.exit_started_log(to_block),
+             EthereumEventAggregatorTest.in_flight_exit_output_piggybacked_log(from_block),
+             EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block)
+           ]}
+        end
 
-    assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block) ==
-             {:ok, [deposit_created, deposit_created_2]}
-
-    exit_started_log =
-      to_block
-      |> exit_started_log()
-      |> Abi.decode_log()
-      |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
-
-    assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
-
-    in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
-    in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
-
-    assert EthereumEventAggregator.in_flight_exit_piggybacked(event_fetcher_name, from_block, to_block) ==
-             {:ok, [in_flight_exit_input_piggybacked_log, in_flight_exit_output_piggybacked_log]}
-
-    assert Enum.sort(:ets.tab2list(table)) ==
-             Enum.sort([
-               {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
-               {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
-                [in_flight_exit_output_piggybacked_log]},
-               {from_block, get_signature_from_event(events, :in_flight_exit_started), []},
-               {from_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
-               {from_block, get_signature_from_event(events, :exit_started), []},
-               {from_block + 1, get_signature_from_event(events, :deposit_created), [deposit_created_2]},
-               {from_block + 1, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
-               {from_block + 1, get_signature_from_event(events, :in_flight_exit_started), []},
-               {from_block + 1, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
-               {from_block + 1, get_signature_from_event(events, :exit_started), []},
-               {to_block, get_signature_from_event(events, :deposit_created), []},
-               {to_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
-               {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
-               {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
-                [in_flight_exit_input_piggybacked_log]},
-               {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
-             ])
-  end
-
-  test "if we get response for range where from equals to and that all events are commited to ETS", %{
-    event_fetcher_name: event_fetcher_name,
-    table: table,
-    test: test_name
-  } do
-    defmodule test_name do
-      alias OMG.ChildChain.EthereumEventAggregatorTest
-
-      def get_ethereum_events(from_block, to_block, _signatures, _contracts) do
-        {:ok,
-         [
-           EthereumEventAggregatorTest.deposit_created_log(from_block),
-           EthereumEventAggregatorTest.exit_started_log(to_block),
-           EthereumEventAggregatorTest.in_flight_exit_output_piggybacked_log(from_block),
-           EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block)
-         ]}
+        def get_call_data(_tx_hash) do
+          {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
+        end
       end
 
-      def get_call_data(_tx_hash) do
-        {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
-      end
+      :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
+      from_block = 1
+      to_block = 1
+      deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
+
+      assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block) ==
+               {:ok, [deposit_created]}
+
+      exit_started_log =
+        to_block
+        |> exit_started_log()
+        |> Abi.decode_log()
+        |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
+
+      assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
+
+      in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
+      in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
+
+      assert EthereumEventAggregator.in_flight_exit_piggybacked(event_fetcher_name, from_block, to_block) ==
+               {:ok, [in_flight_exit_input_piggybacked_log, in_flight_exit_output_piggybacked_log]}
+
+      events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
+
+      assert Enum.sort(:ets.tab2list(table)) ==
+               Enum.sort([
+                 {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
+                 {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
+                 {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
+                  [in_flight_exit_output_piggybacked_log]},
+                 {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
+                  [in_flight_exit_input_piggybacked_log]},
+                 {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
+               ])
     end
-
-    :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
-    from_block = 1
-    to_block = 1
-    deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
-    assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block) == {:ok, [deposit_created]}
-
-    exit_started_log =
-      to_block
-      |> exit_started_log()
-      |> Abi.decode_log()
-      |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
-
-    assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
-
-    in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
-    in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
-
-    assert EthereumEventAggregator.in_flight_exit_piggybacked(event_fetcher_name, from_block, to_block) ==
-             {:ok, [in_flight_exit_input_piggybacked_log, in_flight_exit_output_piggybacked_log]}
-
-    events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
-
-    assert Enum.sort(:ets.tab2list(table)) ==
-             Enum.sort([
-               {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
-               {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
-               {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
-                [in_flight_exit_output_piggybacked_log]},
-               {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
-                [in_flight_exit_input_piggybacked_log]},
-               {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
-             ])
   end
 
-  test "that data and order (blknum) is preserved in ordered set", %{
-    event_fetcher_name: event_fetcher_name,
-    table: table,
-    test: test_name
-  } do
-    defmodule test_name do
-      alias OMG.Watcher.EthereumEventAggregatorTest
+  describe "get_logs/3" do
+    test "that data and order (blknum) is preserved in returned data when we fetch deposits", %{
+      event_fetcher_name: event_fetcher_name,
+      table: table,
+      test: test_name
+    } do
+      defmodule test_name do
+        alias OMG.ChildChain.EthereumEventAggregatorTest
 
-      def get_ethereum_events(_from_block, _to_block, _signatures, _contracts) do
-        {:ok,
-         [
-           %{
-             amount: 10,
-             blknum: 1,
-             currency: <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>,
-             eth_height: 1,
-             event_signature: "DepositCreated(address,uint256,address,uint256)",
-             log_index: 0,
-             owner: <<59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0, 140, 190, 184, 55>>,
-             root_chain_txhash:
-               <<77, 114, 166, 63, 244, 47, 29, 181, 10, 242, 195, 110, 139, 49, 65, 1, 210, 254, 163, 224, 0, 53, 117,
-                 243, 2, 152, 233, 21, 63, 227, 216, 238>>
-           },
-           %{
-             amount: 10,
-             blknum: 1,
-             currency: <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>,
-             eth_height: 2,
-             event_signature: "DepositCreated(address,uint256,address,uint256)",
-             log_index: 0,
-             owner: <<59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0, 140, 190, 184, 55>>,
-             root_chain_txhash:
-               <<77, 114, 166, 63, 244, 47, 29, 181, 10, 242, 195, 110, 139, 49, 65, 1, 210, 254, 163, 224, 0, 53, 117,
-                 243, 2, 152, 233, 21, 63, 227, 216, 238>>
-           }
-         ]}
+        def get_ethereum_events(_from_block, _to_block, _signatures, _contracts) do
+          {:ok,
+           [
+             EthereumEventAggregatorTest.deposit_created_log(1),
+             EthereumEventAggregatorTest.deposit_created_log(2)
+           ]}
+        end
+
+        def get_call_data(_tx_hash) do
+          {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
+        end
       end
 
-      def get_call_data(_tx_hash) do
-        {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
-      end
+      from_block = 1
+      to_block = 3
+      # we get these events so that we're able to extract signatures
+      # where we construct custom data
+      events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
+
+      # create data that we need
+      # two deposits, one exit started and one in flight exit output piggybacked
+      # and one in flight exit input piggynacked
+      deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
+      deposit_created_2 = from_block |> Kernel.+(1) |> deposit_created_log() |> Abi.decode_log()
+
+      exit_started_log =
+        to_block
+        |> exit_started_log()
+        |> Abi.decode_log()
+        |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
+
+      in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
+      in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
+      # we put the events into a list of events below
+      # some are empty, others get filled by the data we created above
+      # we just need to make sure, that the block number (from_block, from_block + 1, to_block)
+      # coincides with the event data
+      data = [
+        {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
+        {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
+         [in_flight_exit_output_piggybacked_log]},
+        {from_block, get_signature_from_event(events, :in_flight_exit_started), []},
+        {from_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
+         [in_flight_exit_input_piggybacked_log]},
+        {from_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
+        # this deposit will get called out below
+        {from_block + 1, get_signature_from_event(events, :deposit_created), [deposit_created_2]},
+        {from_block + 1, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
+        {from_block + 1, get_signature_from_event(events, :in_flight_exit_started), []},
+        {from_block + 1, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
+        {from_block + 1, get_signature_from_event(events, :exit_started), []},
+        {to_block, get_signature_from_event(events, :deposit_created), []},
+        {to_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
+        {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
+        {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
+         [in_flight_exit_input_piggybacked_log]},
+        {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
+      ]
+
+      # data gets inserted into the ETS table that the event aggregator us using
+      true = :ets.insert(table, data)
+      # we want the event aggregator to use our mocked RPC module
+      :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
+      # we assert that if we pull deposits in the from_block and to_block range
+      # the deposits that we created above are returned in the correct order
+      # and that there's no more non *empty* deposits, only those that we defined
+      {:ok, data} = EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block)
+      assert Enum.at(data, 0) == deposit_created
+      assert Enum.at(data, 1) == deposit_created_2
+      # we defined two, so there shouldn't be any more!
+      assert Enum.at(data, 2) == nil
     end
-
-    from_block = 1
-    to_block = 3
-
-    events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
-
-    # create data that we need
-    deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
-    deposit_created_2 = from_block |> Kernel.+(1) |> deposit_created_log() |> Abi.decode_log()
-
-    exit_started_log =
-      to_block
-      |> exit_started_log()
-      |> Abi.decode_log()
-      |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
-
-    in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
-    in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
-
-    data = [
-      {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
-      {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
-       [in_flight_exit_output_piggybacked_log]},
-      {from_block, get_signature_from_event(events, :in_flight_exit_started), []},
-      {from_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
-       [in_flight_exit_input_piggybacked_log]},
-      {from_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
-      # this deposit will get called out below
-      {from_block + 1, get_signature_from_event(events, :deposit_created), [deposit_created_2]},
-      {from_block + 1, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
-      {from_block + 1, get_signature_from_event(events, :in_flight_exit_started), []},
-      {from_block + 1, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
-      {from_block + 1, get_signature_from_event(events, :exit_started), []},
-      {to_block, get_signature_from_event(events, :deposit_created), []},
-      {to_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
-      {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
-      {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
-       [in_flight_exit_input_piggybacked_log]},
-      {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
-    ]
-
-    _ = :ets.insert(table, data)
-
-    :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
-
-    {:ok, data} = EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block)
-    assert Enum.at(data, 0) == deposit_created
-    assert Enum.at(data, 1) == deposit_created_2
   end
 
+  describe "handle_call/3, forward_call/5" do
+    test "that APIs dont allow weird range (where from_block is bigger then to_block)", %{
+      event_fetcher_name: event_fetcher_name
+    } do
+      from = 3
+      to = 1
+
+      assert capture_log(fn ->
+               assert EthereumEventAggregator.deposit_created(event_fetcher_name, from, to) == {:error, :check_range}
+             end) =~ "[error]"
+
+      assert capture_log(fn ->
+               assert EthereumEventAggregator.in_flight_exit_started(event_fetcher_name, from, to) ==
+                        {:error, :check_range}
+             end) =~ "[error]"
+
+      assert capture_log(fn ->
+               assert EthereumEventAggregator.in_flight_exit_piggybacked(event_fetcher_name, from, to) ==
+                        {:error, :check_range}
+             end) =~ "[error]"
+
+      assert capture_log(fn ->
+               assert EthereumEventAggregator.exit_started(event_fetcher_name, from, to) == {:error, :check_range}
+             end) =~ "[error]"
+    end
+  end
+
+  # data that we extracted into helper functions
   def deposit_created_log(block_number) do
     %{
       :event_signature => "DepositCreated(address,uint256,address,uint256)",
