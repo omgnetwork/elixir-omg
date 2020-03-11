@@ -78,7 +78,7 @@ defmodule OMG.Watcher.Fixtures do
       config :omg_db, path: "#{db_path}"
       # this causes the inner test child chain server process to log info. To see these logs adjust test's log level
       config :logger, level: :info
-      config :omg_child_chain, fee_specs_file_name: "#{fee_file}"
+      config :omg_child_chain, fee_specs_file_path: "#{fee_file}"
     """)
     |> File.close()
 

@@ -203,7 +203,7 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 
 * **`block_submit_every_nth`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
 
-* **`fee_specs_file_name`** - path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
+* **`fee_specs_file_path`** - path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
 
 ## Watcher configuration - `:omg_watcher` app
 
