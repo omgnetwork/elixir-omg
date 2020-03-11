@@ -9,12 +9,12 @@ See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.4...v0.4
 - None
 
 #### Core
-- [Feature] Upgrade to plasma-contracts@v1.0.4 (#1382)
-- [Fix] Fix "piggyback_available" popping back after challenge (#1372)
+- [Changed] Upgrade to plasma-contracts@v1.0.4 (#1382)
+- [Fixed] Fix "piggyback_available" popping back after challenge (#1372)
 
 #### Miscellaneous
-- [Feature] Improvements to load test stability (#1381)
-- [Feature] Add end-to-end tests for invalid exits (#1344)
+- [Added] Add end-to-end tests for invalid exits (#1344)
+- [Changed] Improvements to load test stability (#1381)
 
 ## [v0.4.4](https://github.com/omisego/elixir-omg/releases/tag/v0.4.4) (2020-03-02)
 
@@ -25,11 +25,11 @@ See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.3...v0.4
 - None
 
 #### Core
-- [Feature] Set LOGGING_BACKEND=INK for json logging (#1352)
-- [Fix] watcher_info crashing when receiving a block with large number of transactions (#1356)
+- [Added] Set LOGGING_BACKEND=INK for json logging (#1352)
+- [Fixed] watcher_info crashing when receiving a block with large number of transactions (#1356)
 
 #### Miscellaneous
-- [Feature] Publish BlockSubmitted event internally (#1351)
+- [Added] Publish BlockSubmitted event internally (#1351)
 
 ## [v0.4.3](https://github.com/omisego/elixir-omg/tree/v0.4.3) (2020-02-26)
 
@@ -37,19 +37,19 @@ Compatible with [`plasma-contracts@v1.0.3`](https://github.com/omisego/plasma-co
 See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.2...v0.4.3).
 
 #### APIs
-- [Feature] [`watcher_info`](https://developer.omisego.co/elixir-omg/docs-ui/?urls.primaryName=0.4%2Finfo_api_specs) returns new `inserted_at` and `updated_at` fields in `/account.get_transactions`, `/block.get`, `/block.all`, `/transaction.all`, `/transaction.get` (#1322)
-- [Feature] [`watcher_info`](https://developer.omisego.co/elixir-omg/docs-ui/?urls.primaryName=0.4%2Finfo_api_specs) returns a new `updated_at` field in `/fees.all` (#1322)
-- [Fix] Increase a request's maximum header value length from 4096 to 8096 (#1331)
-- [Fix] Internal server errors returned when making requests to unsupported endpoints (#1339)
+- [Added] [`watcher_info`](https://developer.omisego.co/elixir-omg/docs-ui/?urls.primaryName=0.4%2Finfo_api_specs) returns new `inserted_at` and `updated_at` fields in `/account.get_transactions`, `/block.get`, `/block.all`, `/transaction.all`, `/transaction.get` (#1322)
+- [Added] [`watcher_info`](https://developer.omisego.co/elixir-omg/docs-ui/?urls.primaryName=0.4%2Finfo_api_specs) returns a new `updated_at` field in `/fees.all` (#1322)
+- [Fixed] Increase a request's maximum header value length from 4096 to 8096 (#1331)
+- [Fixed] Internal server errors returned when making requests to unsupported endpoints (#1339)
 
 #### Core
-- [Feature] Add release name, app env and hostname to datadog events (#1345)
-- [Fix] Align `docker-compose-watcher.yml` with the latest version (#1341)
+- [Added] Add release name, app env and hostname to datadog events (#1345)
+- [Fixed] Align `docker-compose-watcher.yml` with the latest version (#1341)
 
 #### Miscellaneous
-- [Feature] Use open-api generated client to run tests (#1330)
-- [Feature] Add `make api_specs` that generates all API specs at once (#1335)
-- [Feature] Publish docker images on version tags (#1343)
+- [Added] Use open-api generated client to run tests (#1330)
+- [Added] Add `make api_specs` that generates all API specs at once (#1335)
+- [Added] Publish docker images on version tags (#1343)
 
 ## [v0.4.2](https://github.com/omisego/elixir-omg/tree/v0.4.2) (2020-02-24)
 
@@ -57,13 +57,13 @@ Compatible with [`plasma-contracts@v1.0.3`](https://github.com/omisego/plasma-co
 See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.1...v0.4.2).
 
 #### APIs
-- [Fix] API responses return the current version 0.4.2 instead of 0.3.0 (#1338)
+- [Fixed] API responses return the current version 0.4.2 instead of 0.3.0 (#1338)
 
 #### Core
 - None
 
 #### Miscellaneous
-- [Feature] CI to publish docker images on version branches (#1340)
+- [Added] CI to publish docker images on version branches (#1340)
 
 ## [v0.4.1](https://github.com/omisego/elixir-omg/tree/v0.4.1) (2020-02-20)
 
@@ -71,16 +71,16 @@ Compatible with [`plasma-contracts@v1.0.3`](https://github.com/omisego/plasma-co
 See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.0...v0.4.1).
 
 #### APIs
-- [Feature] Add output types and transaction types to DB and API (#1314)
+- [Added] Add output types and transaction types to DB and API (#1314)
 
 #### Core
 - **[Breaking]** Upgrade compatibility to Geth 1.9.11 (#1329)
 - **[Breaking]** Upgrade compatibility to [plasma-contracts@v1.0.3](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.3) (#1329)
-- [Fix] Watchers refuse to boot when sla_margin is unsafe (#1321)
+- [Added] Watchers refuse to boot when sla_margin is unsafe (#1321)
 
 #### Miscellaneous
-- [Fix] Push events to DD (#1294)
-- [Fix] Formatter using * without wildcard (#1328)
+- [Fixed] Push events to DD (#1294)
+- [Fixed] Formatter using * without wildcard (#1328)
 
 ## [v0.4.0](https://github.com/omisego/elixir-omg/tree/v0.4.0) (2020-02-19)
 
