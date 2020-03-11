@@ -24,22 +24,27 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
   alias OMG.Eth.RootChain.Rpc
 
   @timeout 55_000
+  @type result() :: {:ok, list(map())} | {:error, :check_range}
 
+  @spec deposit_created(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def deposit_created(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:deposit_created, from_block, to_block}, @timeout)
+    forward_call(server, :deposit_created, from_block, to_block, @timeout)
   end
 
+  @spec in_flight_exit_started(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def in_flight_exit_started(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_started, from_block, to_block}, @timeout)
+    forward_call(server, :in_flight_exit_started, from_block, to_block, @timeout)
   end
 
+  @spec in_flight_exit_piggybacked(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def in_flight_exit_piggybacked(server \\ __MODULE__, from_block, to_block) do
     # input and output
-    GenServer.call(server, {:in_flight_exit_piggybacked, from_block, to_block}, @timeout)
+    forward_call(server, :in_flight_exit_piggybacked, from_block, to_block, @timeout)
   end
 
+  @spec exit_started(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def exit_started(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:exit_started, from_block, to_block}, @timeout)
+    forward_call(server, :exit_started, from_block, to_block, @timeout)
   end
 
   def start_link(opts) do
@@ -65,7 +70,6 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
 
     ets_bucket = Keyword.fetch!(opts, :ets_bucket)
     rpc = Keyword.get(opts, :rpc, Rpc)
-    # :ok = event_bus.subscribe("ethereum_new_height", link: true)
 
     {:ok,
      %{
@@ -78,18 +82,6 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
        rpc: rpc
      }}
   end
-
-  # I've  not quite convinced this is benefical for us in any way.
-  # ETH listeners move at their own speed... But so is Event Fetcher.
-  # Each ETH listner request is providing a range of eth blocks - and since
-  # we gather events in bulk, they'll be here for other ETH listeners as well...
-  #   def handle_info({:internal_event_bus, :ethereum_new_height, new_height_blknum}, state) do
-  #     from_block = new_height_blknum
-  #     to_block = new_height_blknum
-  #     true = delete_old_logs(new_height_blknum, state)
-  #     true = retrieve_and_store_logs(from_block, to_block, state)
-  #     {:noreply, state}
-  #   end
 
   def handle_call({:in_flight_exit_piggybacked, from_block, to_block}, _, state) do
     names = [:in_flight_exit_output_piggybacked, :in_flight_exit_input_piggybacked]
@@ -116,6 +108,15 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
 
     logs = handout_log(signature, from_block, to_block, state)
     {:reply, {:ok, logs}, state, {:continue, from_block}}
+  end
+
+  defp forward_call(server, event, from_block, to_block, timeout) when from_block <= to_block do
+    GenServer.call(server, {event, from_block, to_block}, timeout)
+  end
+
+  defp forward_call(_, _, from_block, to_block, _) when from_block > to_block do
+    _ = Logger.error("From block #{from_block} was bigger then to_block #{to_block}")
+    {:error, :check_range}
   end
 
   def handle_continue(new_height_blknum, state) do
@@ -202,7 +203,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
         {blknum, signature}
       end)
 
-    :ets.insert(state.ets_bucket, data)
+    if :ets.insert(state.ets_bucket, data), do: :ok, else: {:error, :could_not_store_logs}
   end
 
   # delete everything older then (current block - delete_events_threshold)
@@ -222,7 +223,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
   defp handout_log(signature, from_block, to_block, state) do
     # :ets.fun2ms(fn {block_number, event_signature, event} when
     # block_number >= from_block and block_number <= to_block
-    # and event_signature == signature -> event and
+    # and event_signature == signature -> event
     # end)
     event_match_spec = [
       {{:"$1", :"$2", :"$3"},
@@ -260,7 +261,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
             "Missing block information (#{missing_from_block}, #{missing_to_block}) in event fetcher. Additional RPC call to gather logs."
           )
 
-        true = retrieve_and_store_logs(missing_from_block, missing_to_block, state)
+        :ok = retrieve_and_store_logs(missing_from_block, missing_to_block, state)
         handout_log(signature, from_block, to_block, state)
     end
   end

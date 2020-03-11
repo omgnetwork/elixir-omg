@@ -25,50 +25,62 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   alias OMG.Eth.RootChain.Rpc
 
   @timeout 55_000
+  @type result() :: {:ok, list(map())} | {:error, :check_range}
 
+  @spec deposit_created(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def deposit_created(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:deposit_created, from_block, to_block}, @timeout)
+    forward_call(server, :deposit_created, from_block, to_block, @timeout)
   end
 
+  @spec exit_started(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def exit_started(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:exit_started, from_block, to_block}, @timeout)
+    forward_call(server, :exit_started, from_block, to_block, @timeout)
   end
 
+  @spec exit_finalized(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def exit_finalized(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:exit_finalized, from_block, to_block}, @timeout)
+    forward_call(server, :exit_finalized, from_block, to_block, @timeout)
   end
 
+  @spec exit_challenged(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def exit_challenged(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:exit_challenged, from_block, to_block}, @timeout)
+    forward_call(server, :exit_challenged, from_block, to_block, @timeout)
   end
 
+  @spec in_flight_exit_started(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def in_flight_exit_started(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_started, from_block, to_block}, @timeout)
+    forward_call(server, :in_flight_exit_started, from_block, to_block, @timeout)
   end
 
+  @spec in_flight_exit_piggybacked(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def in_flight_exit_piggybacked(server \\ __MODULE__, from_block, to_block) do
     # input and output
-    GenServer.call(server, {:in_flight_exit_piggybacked, from_block, to_block}, @timeout)
+    forward_call(server, :in_flight_exit_piggybacked, from_block, to_block, @timeout)
   end
 
+  @spec in_flight_exit_challenged(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def in_flight_exit_challenged(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_challenged, from_block, to_block}, @timeout)
+    forward_call(server, :in_flight_exit_challenged, from_block, to_block, @timeout)
   end
 
+  @spec in_flight_exit_challenge_responded(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def in_flight_exit_challenge_responded(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_challenge_responded, from_block, to_block}, @timeout)
+    forward_call(server, :in_flight_exit_challenge_responded, from_block, to_block, @timeout)
   end
 
+  @spec in_flight_exit_blocked(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def in_flight_exit_blocked(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_blocked, from_block, to_block}, @timeout)
+    forward_call(server, :in_flight_exit_blocked, from_block, to_block, @timeout)
   end
 
+  @spec in_flight_exit_withdrawn(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def in_flight_exit_withdrawn(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:in_flight_exit_withdrawn, from_block, to_block}, @timeout)
+    forward_call(server, :in_flight_exit_withdrawn, from_block, to_block, @timeout)
   end
 
+  @spec block_submitted(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def block_submitted(server \\ __MODULE__, from_block, to_block) do
-    GenServer.call(server, {:block_submitted, from_block, to_block}, @timeout)
+    forward_call(server, :block_submitted, from_block, to_block, @timeout)
   end
 
   def start_link(opts) do
@@ -174,6 +186,15 @@ defmodule OMG.Watcher.EthereumEventAggregator do
     {:reply, {:ok, logs}, state, {:continue, from_block}}
   end
 
+  defp forward_call(server, event, from_block, to_block, timeout) when from_block <= to_block do
+    GenServer.call(server, {event, from_block, to_block}, timeout)
+  end
+
+  defp forward_call(_, _, from_block, to_block, _) when from_block > to_block do
+    _ = Logger.error("From block #{from_block} was bigger then to_block #{to_block}")
+    {:error, :check_range}
+  end
+
   def handle_continue(new_height_blknum, state) do
     _num_deleted = delete_old_logs(new_height_blknum, state)
 
@@ -258,7 +279,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
         {blknum, signature}
       end)
 
-    :ets.insert(state.ets_bucket, data)
+    if :ets.insert(state.ets_bucket, data), do: :ok, else: {:error, :could_not_store_logs}
   end
 
   # delete everything older then (current block - delete_events_threshold)
@@ -278,7 +299,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   defp handout_log(signature, from_block, to_block, state) do
     # :ets.fun2ms(fn {block_number, event_signature, event} when
     # block_number >= from_block and block_number <= to_block
-    # and event_signature == signature -> event and
+    # and event_signature == signature -> event
     # end)
     event_match_spec = [
       {{:"$1", :"$2", :"$3"},
@@ -318,7 +339,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
             "Missing block information (#{missing_from_block}, #{missing_to_block}) in event fetcher. Retrieving from RPC."
           )
 
-        true = retrieve_and_store_logs(missing_from_block, missing_to_block, state)
+        :ok = retrieve_and_store_logs(missing_from_block, missing_to_block, state)
         handout_log(signature, from_block, to_block, state)
     end
   end

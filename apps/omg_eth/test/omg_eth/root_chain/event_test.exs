@@ -15,7 +15,7 @@ defmodule OMG.RootChain.EventTest do
   use ExUnit.Case, async: true
   alias OMG.Eth.RootChain.Event
 
-  test "that filter and building a event definition works as expected" do
+  test "that filter and building an event definition works as expected" do
     assert Event.get_events([:deposit_created]) == ["DepositCreated(address,uint256,address,uint256)"]
   end
 
