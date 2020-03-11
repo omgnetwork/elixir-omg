@@ -86,18 +86,18 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
   def handle_call({:in_flight_exit_piggybacked, from_block, to_block}, _, state) do
     names = [:in_flight_exit_output_piggybacked, :in_flight_exit_input_piggybacked]
 
-    handout_logs =
+    logs =
       Enum.reduce(names, [], fn name, acc ->
         signature =
           state.events
           |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
           |> Keyword.fetch!(:signature)
 
-        logs = handout_log(signature, from_block, to_block, state)
+        logs = retrieve_log(signature, from_block, to_block, state)
         logs ++ acc
       end)
 
-    {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
+    {:reply, {:ok, logs}, state, {:continue, from_block}}
   end
 
   def handle_call({name, from_block, to_block}, _, state) do
@@ -106,7 +106,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
       |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
       |> Keyword.fetch!(:signature)
 
-    logs = handout_log(signature, from_block, to_block, state)
+    logs = retrieve_log(signature, from_block, to_block, state)
     {:reply, {:ok, logs}, state, {:continue, from_block}}
   end
 
@@ -220,7 +220,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
   end
 
   # allow ethereum event listeners to retrieve logs from ETS in bulk
-  defp handout_log(signature, from_block, to_block, state) do
+  defp retrieve_log(signature, from_block, to_block, state) do
     # :ets.fun2ms(fn {block_number, event_signature, event} when
     # block_number >= from_block and block_number <= to_block
     # and event_signature == signature -> event
@@ -262,7 +262,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
           )
 
         :ok = retrieve_and_store_logs(missing_from_block, missing_to_block, state)
-        handout_log(signature, from_block, to_block, state)
+        retrieve_log(signature, from_block, to_block, state)
     end
   end
 

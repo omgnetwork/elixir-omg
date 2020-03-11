@@ -123,25 +123,25 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   def handle_call({:in_flight_exit_withdrawn, from_block, to_block}, _, state) do
     names = [:in_flight_exit_input_withdrawn, :in_flight_exit_output_withdrawn]
 
-    handout_logs =
+    logs =
       Enum.reduce(names, [], fn name, acc ->
         signature =
           state.events
           |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
           |> Keyword.fetch!(:signature)
 
-        logs = handout_log(signature, from_block, to_block, state)
+        logs = retrieve_log(signature, from_block, to_block, state)
         logs ++ acc
       end)
 
-    {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
+    {:reply, {:ok, logs}, state, {:continue, from_block}}
   end
 
   @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
   def handle_call({:in_flight_exit_blocked, from_block, to_block}, _, state) do
     names = [:in_flight_exit_input_blocked, :in_flight_exit_output_blocked]
 
-    handout_logs =
+    logs =
       names
       |> Enum.reduce([], fn name, acc ->
         signature =
@@ -149,18 +149,18 @@ defmodule OMG.Watcher.EthereumEventAggregator do
           |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
           |> Keyword.fetch!(:signature)
 
-        logs = handout_log(signature, from_block, to_block, state)
+        logs = retrieve_log(signature, from_block, to_block, state)
         logs ++ acc
       end)
 
-    {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
+    {:reply, {:ok, logs}, state, {:continue, from_block}}
   end
 
   @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
   def handle_call({:in_flight_exit_piggybacked, from_block, to_block}, _, state) do
     names = [:in_flight_exit_output_piggybacked, :in_flight_exit_input_piggybacked]
 
-    handout_logs =
+    logs =
       names
       |> Enum.reduce([], fn name, acc ->
         signature =
@@ -168,11 +168,11 @@ defmodule OMG.Watcher.EthereumEventAggregator do
           |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
           |> Keyword.fetch!(:signature)
 
-        logs = handout_log(signature, from_block, to_block, state)
+        logs = retrieve_log(signature, from_block, to_block, state)
         logs ++ acc
       end)
 
-    {:reply, {:ok, handout_logs}, state, {:continue, from_block}}
+    {:reply, {:ok, logs}, state, {:continue, from_block}}
   end
 
   @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
@@ -182,7 +182,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
       |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
       |> Keyword.fetch!(:signature)
 
-    logs = handout_log(signature, from_block, to_block, state)
+    logs = retrieve_log(signature, from_block, to_block, state)
     {:reply, {:ok, logs}, state, {:continue, from_block}}
   end
 
@@ -296,7 +296,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   end
 
   # allow ethereum event listeners to retrieve logs from ETS in bulk
-  defp handout_log(signature, from_block, to_block, state) do
+  defp retrieve_log(signature, from_block, to_block, state) do
     # :ets.fun2ms(fn {block_number, event_signature, event} when
     # block_number >= from_block and block_number <= to_block
     # and event_signature == signature -> event
@@ -340,7 +340,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
           )
 
         :ok = retrieve_and_store_logs(missing_from_block, missing_to_block, state)
-        handout_log(signature, from_block, to_block, state)
+        retrieve_log(signature, from_block, to_block, state)
     end
   end
 
