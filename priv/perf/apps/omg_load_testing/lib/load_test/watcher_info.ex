@@ -14,16 +14,16 @@
 
 defmodule OMG.LoadTesting.LoadTest.WatcherInfo do
   @moduledoc """
-  Load test for watcherInfo
+  Load test for watcher info
   """
   use Chaperon.LoadTest
 
-  def default_config,
+  def default_config(),
     do: %{
       merge_scenario_sessions: true
     }
 
-  def scenarios,
+  def scenarios(),
     do: [
       {{100, OMG.LoadTesting.Scenario.AccountTransactions},
        %{

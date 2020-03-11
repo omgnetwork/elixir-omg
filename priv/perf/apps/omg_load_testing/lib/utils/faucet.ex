@@ -31,7 +31,7 @@ defmodule OMG.LoadTesting.Utils.Faucet do
 
   defstruct [:account, :fee, utxos: %{}]
 
-  def start_link() do
+  def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
@@ -109,7 +109,7 @@ defmodule OMG.LoadTesting.Utils.Faucet do
     # NOTE: Assumes existence of an unlocked account managed by Ethereum client.
 
     faucet_initial_funds = Keyword.fetch!(opts, :faucet_default_funds)
-    {:ok, account} = Account.new()
+    account = Account.new()
 
     {:ok, _} = Eth.fund_address_from_default_faucet(account, initial_funds_wei: faucet_initial_funds)
 
@@ -120,7 +120,7 @@ defmodule OMG.LoadTesting.Utils.Faucet do
     faucet_opt =
       case Application.fetch_env(:omg_load_testing, :faucet_account) do
         {:ok, %{priv: priv}} ->
-          {:ok, faucet_account} = priv |> Encoding.to_binary() |> Account.new()
+          faucet_account = priv |> Encoding.to_binary() |> Account.new()
           [faucet: faucet_account]
 
         :error ->

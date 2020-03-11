@@ -19,7 +19,7 @@ defmodule LoadTest.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {LoadTest.Application, []}
+      mod: {LoadTesting.Application, []}
     ]
   end
 
@@ -36,11 +36,7 @@ defmodule LoadTest.MixProject do
       {:watcher_security_critical_api, in_umbrella: true},
       {:child_chain_api, in_umbrella: true},
 
-      # Test dependencies
-      {:ex_unit_fixtures, "~> 0.3.1"},
-
       # Overrides
-      {:cowboy, "~> 2.6", override: true},
       {:httpoison, "~> 1.6.2", override: true}
     ]
   end

@@ -47,7 +47,7 @@ defmodule OMG.LoadTesting.Utils.Generators do
   end
 
   defp generate_user(amount, token) do
-    {:ok, user} = Account.new()
+    user = Account.new()
     {:ok, user_utxo} = Faucet.fund_child_chain_account(user, amount, token)
     {user, user_utxo}
   end

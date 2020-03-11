@@ -20,6 +20,7 @@ defmodule OMG.LoadTesting.Utils.ChildChain do
 
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction
+  alias OMG.LoadTesting.Connection.ChildChain
 
   @retry_interval 1_000
 
@@ -79,7 +80,7 @@ defmodule OMG.LoadTesting.Utils.ChildChain do
 
   @spec do_submit_tx_rpc(binary) :: {:ok, map} | {:error, any}
   defp do_submit_tx_rpc(encoded_tx) do
-    ChildChainAPI.Connection.new()
+    ChildChain.client()
     |> ChildChainAPI.Api.Transaction.submit(%ChildChainAPI.Model.TransactionSubmitBodySchema{
       transaction: Encoding.to_hex(encoded_tx)
     })

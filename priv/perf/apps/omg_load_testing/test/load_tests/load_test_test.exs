@@ -17,6 +17,6 @@ defmodule LoadTestTest do
   doctest LoadTest
 
   test "smoke test" do
-    Chaperon.run_load_test(LoadTest.Smoke, print_results: false)
+    Chaperon.run_load_test(OMG.LoadTesting.Smoke, print_results: false)
   end
 end

@@ -40,19 +40,18 @@ defmodule OMG.LoadTesting.Utils.Account do
 
   defstruct [:priv, :pub, :addr]
 
-  @spec new(private_key_t()) :: {:ok, t()} | {:error, atom()}
+  @spec new(private_key_t()) :: t()
   def new(private_key) when byte_size(private_key) == 32 do
-    with {:ok, der_public_key} <- compute_public_key(private_key),
-         public_key <- der_to_raw(der_public_key),
-         {:ok, address} <- compute_address(public_key) do
-      {:ok, struct!(__MODULE__, priv: private_key, pub: public_key, addr: address)}
-    end
+    {:ok, der_public_key} = compute_public_key(private_key)
+    public_key = der_to_raw(der_public_key)
+    {:ok, address} = compute_address(public_key)
+    struct!(__MODULE__, priv: private_key, pub: public_key, addr: address)
   end
 
-  @spec new(private_key_hex_t()) :: {:ok, t()} | {:error, atom()}
+  @spec new(private_key_hex_t()) :: t()
   def new(private_key_hex), do: Encoding.to_binary(private_key_hex) |> new()
 
-  @spec new() :: {:ok, t()} | {:error, atom()}
+  @spec new() :: t()
   def new() do
     {:ok, priv} = Crypto.generate_private_key()
     new(priv)

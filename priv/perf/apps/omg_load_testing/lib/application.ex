@@ -1,7 +1,9 @@
-defmodule LoadTest.Application do
+defmodule LoadTesting.Application do
   @moduledoc """
   Application for the load test
   """
+
+  use Application
 
   def start(_type, _args) do
     pool_size = Application.get_env(:load_test, :pool_size)
@@ -15,7 +17,9 @@ defmodule LoadTest.Application do
         max_connections: max_connections
       )
 
-    {:ok, self()}
+    children = [{OMG.LoadTesting.Utils.NonceTracker, %{}}, {OMG.LoadTesting.Utils.Faucet, nil}]
+
+    Supervisor.start_link(children, name: OMG.LoadTesting.Supervisor, strategy: :one_for_one)
   end
 
   def stop(_app) do

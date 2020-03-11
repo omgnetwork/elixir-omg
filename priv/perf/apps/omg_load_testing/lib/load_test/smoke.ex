@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Smoke do
+defmodule OMG.LoadTesting.Smoke do
   @moduledoc """
   Load tests for watcher info
   """
 
   use Chaperon.LoadTest
 
-  def scenarios,
+  def scenarios(),
     do: [
       {{1, LoadTest.Scenario.Smoke}, %{}}
     ]

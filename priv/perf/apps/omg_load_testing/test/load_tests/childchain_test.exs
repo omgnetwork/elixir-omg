@@ -14,17 +14,12 @@
 
 defmodule ChildChainTest do
   @moduledoc """
-  childchain load test
+  child chain load test
   """
   use ExUnit.Case
 
-  alias OMG.LoadTesting.Utils.Faucet
-  alias OMG.LoadTesting.Utils.NonceTracker
-
   @tag timeout: 6_000_000
   test "childchain test" do
-    NonceTracker.start_link()
-    Faucet.start_link()
     Chaperon.run_load_test(OMG.LoadTesting.LoadTest.ChildChain, print_results: true)
   end
 end

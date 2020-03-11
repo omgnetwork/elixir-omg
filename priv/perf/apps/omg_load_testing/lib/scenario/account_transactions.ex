@@ -46,7 +46,7 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
     fee_wei = Application.fetch_env!(:omg_load_testing, :fee_wei)
 
     amount = iterations * (@test_output_amount + fee_wei)
-    {:ok, sender} = Account.new()
+    sender = Account.new()
     {:ok, _} = Faucet.fund_child_chain_account(sender, amount, @eth)
 
     {:ok, faucet} = Faucet.get_faucet()

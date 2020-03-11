@@ -46,7 +46,7 @@ defmodule OMG.LoadTesting.Scenario.DoChildChainTransactions do
   def run(session) do
     ntx_to_send = config(session, [:ntx_to_send])
     initial_funds = ntx_to_send + ntx_to_send * @fee_wei
-    {:ok, sender} = Account.new()
+    sender = Account.new()
     {:ok, {utxo, amount}} = Faucet.fund_child_chain_account(sender, initial_funds, @eth)
     {:ok, %{txindex: txindex, oindex: oindex, blknum: blknum}} = Utxo.new(utxo)
 
@@ -92,7 +92,7 @@ defmodule OMG.LoadTesting.Scenario.DoChildChainTransactions do
        }) do
     to_spend = 1
     new_amount = last_tx.amount - to_spend - fee_wei
-    {:ok, recipient} = Account.new()
+    recipient = Account.new()
     input = %Utxo{blknum: last_tx.blknum, txindex: last_tx.txindex, oindex: last_tx.oindex}
     recipient_output = [%Utxo{owner: recipient.addr, currency: @eth, amount: to_spend}]
 

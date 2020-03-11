@@ -14,14 +14,14 @@
 
 defmodule OMG.LoadTesting.LoadTest.ChildChain do
   @moduledoc """
-  Load test for childchain
+  Load test for child chain
   """
   use Chaperon.LoadTest
 
   @concurrent_session 100
   @transactions_per_session 100
 
-  def scenarios,
+  def scenarios(),
     do: [
       {{@concurrent_session, OMG.LoadTesting.Scenario.DoChildChainTransactions},
        %{

@@ -18,13 +18,8 @@ defmodule WatcherInfoTest do
   """
   use ExUnit.Case
 
-  alias OMG.LoadTesting.Utils.Faucet
-  alias OMG.LoadTesting.Utils.NonceTracker
-
   @tag timeout: 6_000_000
   test "watcher info test" do
-    NonceTracker.start_link()
-    Faucet.start_link()
     Chaperon.run_load_test(OMG.LoadTesting.LoadTest.WatcherInfo, print_results: true)
   end
 end
