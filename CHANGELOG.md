@@ -14,6 +14,7 @@ See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.4...v0.4
 
 #### Miscellaneous
 - [Feature] Improvements to load test stability (#1381)
+- [Feature] Add end-to-end tests for invalid exits (#1344)
 
 ## [v0.4.4](https://github.com/omisego/elixir-omg/releases/tag/v0.4.4) (2020-03-02)
 
