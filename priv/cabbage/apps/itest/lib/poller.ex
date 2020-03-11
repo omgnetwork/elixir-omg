@@ -10,6 +10,7 @@ defmodule Itest.Poller do
   alias WatcherInfoAPI.Api.Transaction
   alias WatcherInfoAPI.Connection, as: WatcherInfo
   alias WatcherInfoAPI.Model.AddressBodySchema1
+  alias WatcherSecurityCriticalAPI.Api.Status
 
   @sleep_retry_sec 1_000
   @retry_count 30
@@ -41,6 +42,11 @@ defmodule Itest.Poller do
     Ethereum:: pull Eth account balance until succeeds. We're solving connection issues with this.
   """
   def eth_get_balance(address), do: eth_get_balance(address, @retry_count)
+
+  @doc """
+  Checks status until the list of the byzantine events (by name, regardless of order) matches to `expected_events`
+  """
+  def all_events_in_status?(expected_events), do: all_events_in_status?(expected_events, @retry_count)
 
   @doc """
     Ethereum:: Waits on the receipt status as 'confirmed'
@@ -294,5 +300,27 @@ defmodule Itest.Poller do
   defp find_deposit(_, payload, {amount, currency, blknum}, counter) do
     Process.sleep(@sleep_retry_sec)
     pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, counter - 1)
+  end
+
+  defp all_events_in_status?(expected, 0) do
+    _ = Logger.warn("Byzantine events stuck on: #{inspect(get_byzantine_events())}, expecting: #{inspect(expected)}")
+    false
+  end
+
+  defp all_events_in_status?(expected_events, counter) do
+    byzantine_events = get_byzantine_events()
+
+    if Enum.sort(byzantine_events) == Enum.sort(expected_events) do
+      true
+    else
+      Process.sleep(@sleep_retry_sec)
+      all_events_in_status?(expected_events, counter - 1)
+    end
+  end
+
+  defp get_byzantine_events() do
+    pull_api_until_successful(Status, :status_get, WatcherSecurityCriticalAPI.Connection.new())
+    |> Map.fetch!("byzantine_events")
+    |> Enum.map(& &1["event"])
   end
 end

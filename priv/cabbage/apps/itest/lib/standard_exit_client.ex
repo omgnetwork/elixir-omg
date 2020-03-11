@@ -37,19 +37,47 @@ defmodule Itest.StandardExitClient do
   @sleep_retry_sec 5_000
   @retry_count 120
 
-  def start_standard_exit(address) do
-    _ = Logger.info("Starting standard exit for #{address}")
+  def start_standard_exit(%__MODULE__{utxo: %Utxo{utxo_pos: utxo_pos}} = se) do
+    _ = Logger.info("Starting standard exit for UTXO at #{utxo_pos}")
 
-    %__MODULE__{address: address}
-    |> get_utxo()
+    se
     |> get_exit_data()
     |> get_exit_game_contract_address()
     |> add_exit_queue()
     |> get_bond_size_for_standard_exit()
     |> do_start_standard_exit()
-    |> wait_for_exit_period()
     |> get_standard_exit_id()
-    |> process_exit()
+  end
+
+  def start_standard_exit(address) do
+    _ = Logger.info("Starting standard exit for #{address}")
+
+    %__MODULE__{address: address}
+    |> get_utxo()
+    |> start_standard_exit()
+  end
+
+  def complete_standard_exit(address) do
+    _ = Logger.info("Completing a full standard exit for #{address}")
+
+    address
+    |> start_standard_exit()
+    |> wait_and_process_standard_exit()
+  end
+
+  @doc """
+  Waits and processes standard exits
+
+  Options:
+    - :n_exits - provide how many exits should `processExits` attempt to process in the contract, defaults to 1
+  """
+  def wait_and_process_standard_exit(%__MODULE__{address: address} = se, opts \\ []) do
+    _ = Logger.info("Waiting and processing a standard exit by #{address}")
+
+    se
+    |> get_exit_game_contract_address()
+    |> wait_for_exit_period()
+    |> process_exit(Keyword.get(opts, :n_exits, 1))
     |> calculate_total_gas_used()
   end
 
@@ -78,17 +106,11 @@ defmodule Itest.StandardExitClient do
   end
 
   defp get_exit_game_contract_address(se) do
-    data = ABI.encode("exitGames(uint256)", [PaymentType.simple_payment_transaction()])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
-
-    exit_game_contract_address =
-      result
-      |> Encoding.to_binary()
-      |> ABI.TypeDecoder.decode([:address])
-      |> hd()
-      |> Encoding.to_hex()
-
-    %{se | exit_game_contract_address: exit_game_contract_address}
+    %{
+      se
+      | exit_game_contract_address:
+          Itest.PlasmaFramework.exit_game_contract_address(PaymentType.simple_payment_transaction())
+    }
   end
 
   defp add_exit_queue(%__MODULE__{} = se) do
@@ -101,12 +123,12 @@ defmodule Itest.StandardExitClient do
       data =
         ABI.encode(
           "addExitQueue(uint256,address)",
-          [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
+          [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()]
         )
 
       txmap = %{
         from: se.address,
-        to: Itest.Account.plasma_framework(),
+        to: Itest.PlasmaFramework.address(),
         value: Encoding.to_hex(0),
         data: Encoding.to_hex(data),
         gas: Encoding.to_hex(@gas_add_exit_queue)
@@ -161,10 +183,13 @@ defmodule Itest.StandardExitClient do
     %{se | start_standard_exit_hash: receipt_hash}
   end
 
-  defp wait_for_exit_period(se) do
+  defp wait_for_exit_period(%__MODULE__{exit_data: exit_data} = se) do
     _ = Logger.info("Wait for exit period to pass.")
     data = ABI.encode("minExitPeriod()", [])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
+
+    not_from_deposit_multiplier = if exit_data && from_deposit?(exit_data.utxo_pos), do: 1, else: 2
+
     # result is in seconds
     result
     |> Encoding.to_binary()
@@ -172,6 +197,8 @@ defmodule Itest.StandardExitClient do
     |> hd()
     # to milliseconds
     |> Kernel.*(1000)
+    # non-deposit UTXOs exiting wait twice the min exit period, if they're fresh (which is a fair assumption in tests)
+    |> Kernel.*(not_from_deposit_multiplier)
     # needs a be a tiny more than exit period seconds
     |> Kernel.+(500)
     |> Process.sleep()
@@ -184,7 +211,7 @@ defmodule Itest.StandardExitClient do
        ) do
     data =
       ABI.encode("getStandardExitId(bool,bytes,uint256)", [
-        true,
+        from_deposit?(exit_data.utxo_pos),
         Encoding.to_binary(exit_data.txbytes),
         exit_data.utxo_pos
       ])
@@ -197,8 +224,10 @@ defmodule Itest.StandardExitClient do
       |> ABI.TypeDecoder.decode([{:uint, 160}])
       |> hd()
 
-    data = ABI.encode("getNextExit(uint256,address)", [Itest.Account.vault_id(Currency.ether()), Currency.ether()])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+    data =
+      ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()])
+
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
     next_exit_id =
       result
@@ -212,18 +241,18 @@ defmodule Itest.StandardExitClient do
     %{se | standard_exit_id: standard_exit_id}
   end
 
-  defp process_exit(%__MODULE__{address: address} = se) do
+  defp process_exit(%__MODULE__{address: address, standard_exit_id: standard_exit_id} = se, n_exits) do
     _ = Logger.info("Process exit #{__MODULE__}")
 
     data =
       ABI.encode(
         "processExits(uint256,address,uint160,uint256)",
-        [Itest.Account.vault_id(Currency.ether()), Currency.ether(), se.standard_exit_id, 1]
+        [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether(), standard_exit_id, n_exits]
       )
 
     txmap = %{
       from: address,
-      to: Itest.Account.plasma_framework(),
+      to: Itest.PlasmaFramework.address(),
       value: Encoding.to_hex(0),
       data: Encoding.to_hex(data),
       gas: Encoding.to_hex(@gas_process_exit),
@@ -271,15 +300,20 @@ defmodule Itest.StandardExitClient do
     data =
       ABI.encode(
         "hasExitQueue(uint256,address)",
-        [Itest.Account.vault_id(Currency.ether()), Currency.ether()]
+        [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()]
       )
 
     {:ok, receipt_enc} =
-      Ethereumex.HttpClient.eth_call(%{to: Itest.Account.plasma_framework(), data: Encoding.to_hex(data)})
+      Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
     receipt_enc
     |> Encoding.to_binary()
     |> ABI.TypeDecoder.decode([:bool])
     |> hd()
+  end
+
+  defp from_deposit?(encoded_utxo_pos) do
+    {:ok, %ExPlasma.Utxo{blknum: blknum, txindex: 0, oindex: 0}} = ExPlasma.Utxo.new(encoded_utxo_pos)
+    rem(blknum, 1000) != 0
   end
 end

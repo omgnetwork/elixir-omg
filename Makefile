@@ -1,5 +1,6 @@
 MAKEFLAGS += --silent
 OVERRIDING_START ?= foreground
+OVERRIDING_VARIABLES ?= ./bin/variables
 SNAPSHOT ?= SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20
 BAREBUILD_ENV ?= dev
 help:
@@ -373,7 +374,7 @@ start-services:
 	docker-compose up geth postgres
 
 start-child_chain:
-	set -e; . ./bin/variables; \
+	set -e; . ${OVERRIDING_VARIABLES}; \
 	echo "Building Child Chain" && \
 	make build-child_chain-${BAREBUILD_ENV} && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
@@ -383,7 +384,7 @@ start-child_chain:
 	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
-	set -e; . ./bin/variables; \
+	set -e; . ${OVERRIDING_VARIABLES}; \
 	echo "Building Watcher" && \
 	make build-watcher-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
@@ -395,7 +396,7 @@ start-watcher:
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
 
 start-watcher_info:
-	set -e; . ./bin/variables; \
+	set -e; . ${OVERRIDING_VARIABLES}; \
 	echo "Building Watcher Info" && \
 	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
@@ -410,19 +411,19 @@ start-watcher_info:
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
 	$(ENV_DEV) mix do compile, distillery.release dev --name child_chain --silent && \
-	set -e; . ./bin/variables && \
+	set -e; . ${OVERRIDING_VARIABLES} && \
 	exec _build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START) &
 
 update-watcher:
 	_build/dev/rel/watcher/bin/watcher stop ; \
 	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --silent && \
-	set -e; . ./bin/variables && \
+	set -e; . ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_PORT} _build/dev/rel/watcher/bin/watcher $(OVERRIDING_START) &
 
 update-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop ; \
 	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_info --silent && \
-	set -e; . ./bin/variables && \
+	set -e; . ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_INFO_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
 
 stop-child_chain:
@@ -435,15 +436,15 @@ stop-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop
 
 remote-child_chain:
-	set -e; . ./bin/variables && \
+	set -e; . ${OVERRIDING_VARIABLES} && \
 	_build/dev/rel/child_chain/bin/child_chain remote_console
 
 remote-watcher:
-	set -e; . ./bin/variables && \
+	set -e; . ${OVERRIDING_VARIABLES} && \
 	_build/dev/rel/watcher/bin/watcher remote_console
 
 remote-watcher_info:
-	set -e; . ./bin/variables && \
+	set -e; . ${OVERRIDING_VARIABLES} && \
 	_build/dev/rel/watcher_info/bin/watcher_info remote_console
 
 get-alarms:
