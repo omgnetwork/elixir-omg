@@ -18,11 +18,16 @@ defmodule OMG.LoadTesting.LoadTest.WatcherInfo do
   """
   use Chaperon.LoadTest
 
+  def default_config,
+    do: %{
+      merge_scenario_sessions: true
+    }
+
   def scenarios,
     do: [
-      {{1, OMG.LoadTesting.Scenario.AccountTransactions},
+      {{100, OMG.LoadTesting.Scenario.AccountTransactions},
        %{
-         iterations: 1
+         iterations: 10
        }}
     ]
 end

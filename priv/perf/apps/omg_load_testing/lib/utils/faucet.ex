@@ -37,6 +37,10 @@ defmodule OMG.LoadTesting.Utils.Faucet do
     GenServer.call(__MODULE__, {:fund_child_chain, account, amount, token}, :infinity)
   end
 
+  def get_faucet() do
+    GenServer.call(__MODULE__, :get_faucet, :infinity)
+  end
+
   def init(_) do
     opts = fetch_default_opts()
     fee_wei = Keyword.fetch!(opts, :fee_wei)
@@ -46,6 +50,10 @@ defmodule OMG.LoadTesting.Utils.Faucet do
 
     state = struct!(__MODULE__, account: faucet, fee: fee_wei, utxos: %{@eth => eth_utxo})
     {:ok, state}
+  end
+
+  def handle_call(:get_faucet, _from, %__MODULE__{account: faucet} = state) do
+    {:reply, {:ok, faucet}, state}
   end
 
   def handle_call(

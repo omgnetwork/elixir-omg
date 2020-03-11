@@ -22,14 +22,17 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
   alias Chaperon.Timing
 
   alias OMG.LoadTesting.Connection.WatcherInfo, as: Connection
+  alias OMG.LoadTesting.Utils.Account
   alias OMG.LoadTesting.Utils.Encoding
-  alias OMG.LoadTesting.Utils.Generators
+  alias OMG.LoadTesting.Utils.Faucet
   alias WatcherInfoAPI.Api
   alias WatcherInfoAPI.Model
 
-  @poll_interval 1_000
+  @poll_interval 15_000
+  @default_retry_attempts 15
 
   @eth <<0::160>>
+  @test_output_amount 1
 
   @spec init(Chaperon.Session.t()) :: Chaperon.Session.t()
   def init(session) do
@@ -40,16 +43,32 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
 
   def run(session) do
     iterations = config(session, [:iterations])
+    fee_wei = Application.fetch_env!(:omg_load_testing, :fee_wei)
 
-    {:ok, [{sender, _sender_utxo} | _]} = Generators.generate_users(1)
+    amount = iterations * (@test_output_amount + fee_wei)
+    {:ok, sender} = Account.new()
+    {:ok, _} = Faucet.fund_child_chain_account(sender, amount, @eth)
 
-    :ok = wait_for_balance_update(sender)
-
-    session = log_info(session, "user created: " <> Encoding.to_hex(sender.addr))
+    {:ok, faucet} = Faucet.get_faucet()
 
     session
-    |> repeat(:test_apis, [sender], iterations)
+    |> assign(faucet: faucet, iteration: 1)
+    |> wait_for_balance_update(sender)
+    |> log_info("user created: " <> Encoding.to_hex(sender.addr))
+    |> repeat(:repeat_task, [sender], iterations)
     |> log_info("end...")
+  end
+
+  def wait_for_balance_update(session, sender, retry \\ @default_retry_attempts) do
+    {:ok, session} = do_wait_for_balance_update(session, sender, retry)
+    session
+  end
+
+  def repeat_task(session, sender) do
+    session
+    |> log_info("running iteration: " <> Integer.to_string(session.assigned.iteration))
+    |> retry_on_error(:test_apis, [sender], retries: @default_retry_attempts, random_delay: seconds(30))
+    |> update_assign(iteration: &(&1 + 1))
   end
 
   def test_apis(session, sender) do
@@ -57,7 +76,7 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
     |> test_api_account_get_balance(sender)
     |> test_api_account_get_utxos(sender)
     |> test_api_account_get_transactions(sender)
-    |> test_api_account_create_transactions(sender)
+    |> test_api_account_create_and_submit_transactions(sender)
   end
 
   defp test_api_account_get_balance(session, sender) do
@@ -82,9 +101,9 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
     )
   end
 
-  defp test_api_account_get_transactions(session, _sender) do
+  defp test_api_account_get_transactions(session, sender) do
     start = Timing.timestamp()
-    {:ok, _} = get_transactions()
+    {:ok, _} = get_transactions(sender)
 
     add_metric(
       session,
@@ -93,9 +112,9 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
     )
   end
 
-  defp test_api_account_create_transactions(session, sender) do
+  defp test_api_account_create_and_submit_transactions(session, sender) do
     start = Timing.timestamp()
-    {:ok, [sign_hash, typed_data, _txbytes]} = create_transaction(sender)
+    {:ok, [inputs, sign_hash, typed_data, _txbytes]} = create_transaction(session, sender)
 
     session =
       add_metric(
@@ -104,7 +123,7 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
         Timing.timestamp() - start
       )
 
-    typed_data_signed = sign_tx(sign_hash, typed_data, sender)
+    typed_data_signed = sign_tx(inputs, sign_hash, typed_data, sender)
 
     start = Timing.timestamp()
     {:ok, response} = Api.Transaction.submit_typed(Connection.client(), typed_data_signed)
@@ -120,29 +139,10 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
       "txhash" => tx_id
     } = Jason.decode!(response.body)["data"]
 
-    wait_until_tx_sync_to_watcher(tx_id)
-    session
+    wait_until_tx_sync_to_watcher(session, tx_id)
   end
 
-  defp wait_for_balance_update(sender) do
-    wait_for_balance_update(sender, 0)
-  end
-
-  defp wait_for_balance_update(_sender, 30), do: :timeout
-
-  defp wait_for_balance_update(sender, poll_count) do
-    {:ok, response_body} = get_balance(sender)
-    utxos = Jason.decode!(response_body)["data"]
-
-    if Enum.count(utxos) > 0 do
-      :ok
-    else
-      Process.sleep(@poll_interval)
-      wait_for_balance_update(sender, poll_count + 1)
-    end
-  end
-
-  defp create_transaction(sender) do
+  defp create_transaction(session, sender) do
     {:ok, response} =
       Api.Transaction.create_transaction(
         Connection.client(),
@@ -153,9 +153,9 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
           },
           payments: [
             %Model.TransactionCreatePayments{
-              amount: 1,
+              amount: @test_output_amount,
               currency: Encoding.to_hex(@eth),
-              owner: Encoding.to_hex(sender.addr)
+              owner: Encoding.to_hex(session.assigned.faucet.addr)
             }
           ]
         }
@@ -165,6 +165,7 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
       "result" => "complete",
       "transactions" => [
         %{
+          "inputs" => inputs,
           "sign_hash" => sign_hash,
           "typed_data" => typed_data,
           "txbytes" => txbytes
@@ -172,7 +173,7 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
       ]
     } = Jason.decode!(response.body)["data"]
 
-    {:ok, [sign_hash, typed_data, txbytes]}
+    {:ok, [inputs, sign_hash, typed_data, txbytes]}
   end
 
   defp get_balance(sender) do
@@ -199,7 +200,11 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
     {:ok, response.body}
   end
 
-  defp get_transactions() do
+  defp get_transactions(_sender) do
+    # There is an issue openapi generated client does not work well with optional request body
+    # https://github.com/OpenAPITools/openapi-generator/issues/5234
+    # So we are not filtering by sender now
+
     {:ok, response} =
       Api.Account.account_get_transactions(
         Connection.client(),
@@ -209,18 +214,41 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
     {:ok, response.body}
   end
 
-  defp sign_tx(sign_hash, typed_data, sender) do
+  defp sign_tx(inputs, sign_hash, typed_data, sender) do
     signature =
       sign_hash
       |> Encoding.to_binary()
       |> Encoding.signature_digest(Encoding.to_hex(sender.priv))
       |> Encoding.to_hex()
 
-    typed_data_signed = Map.put_new(typed_data, "signatures", [signature])
+    signatures = Enum.map(inputs, fn _ -> signature end)
+    typed_data_signed = Map.put_new(typed_data, "signatures", signatures)
     typed_data_signed
   end
 
-  defp wait_until_tx_sync_to_watcher(tx_id) do
+  defp do_wait_for_balance_update(_session, _sender, 0), do: :all_retry_failed
+
+  defp do_wait_for_balance_update(session, sender, retry) do
+    {:ok, response_body} = get_balance(sender)
+    utxos = Jason.decode!(response_body)["data"]
+
+    if Enum.count(utxos) > 0 do
+      {:ok, session}
+    else
+      session = log_debug(session, "retry for the balance update for sender: #{Encoding.to_hex(sender.addr)}")
+      Process.sleep(@poll_interval)
+      do_wait_for_balance_update(session, sender, retry - 1)
+    end
+  end
+
+  defp wait_until_tx_sync_to_watcher(session, tx_id) do
+    {:ok, session} = do_wait_until_tx_sync_to_watcher(session, tx_id, @default_retry_attempts)
+    session
+  end
+
+  defp do_wait_until_tx_sync_to_watcher(_session, _tx_id, 0), do: :all_retry_failed
+
+  defp do_wait_until_tx_sync_to_watcher(session, tx_id, retry) do
     {:ok, response} =
       Api.Transaction.transaction_get(
         Connection.client(),
@@ -232,10 +260,13 @@ defmodule OMG.LoadTesting.Scenario.AccountTransactions do
     case Jason.decode!(response.body)["success"] do
       false ->
         Process.sleep(@poll_interval)
-        wait_until_tx_sync_to_watcher(tx_id)
+
+        session
+        |> log_debug("retry for watcher info to sync the submitted tx_id: #{tx_id}")
+        |> do_wait_until_tx_sync_to_watcher(tx_id, retry - 1)
 
       true ->
-        {:ok, response.body}
+        {:ok, session}
     end
   end
 end
