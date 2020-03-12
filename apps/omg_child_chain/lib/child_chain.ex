@@ -46,7 +46,7 @@ defmodule OMG.ChildChain do
         # what to change error flow, but do want to send the event to DD, for that reason
         # propagating the error for now
 
-        raise error_data
+        reraise(error_data, __STACKTRACE__)
     catch
       exception_data ->
         metrics.emit_transaction_submit_event({:error, %{exception_data: exception_data}})
@@ -55,7 +55,7 @@ defmodule OMG.ChildChain do
         # what to change exception flow, but do want to send the event to DD, for that reason
         # propagating the exception for now
 
-        throw exception_data
+        throw(exception_data)
     end
     |> result_with_logging()
   end

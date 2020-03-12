@@ -14,49 +14,67 @@
 
 defmodule OMG.ChildChain.Transaction.Metrics do
   @moduledoc """
-  A Telemetry event listener for transaction events. It receives Telemetry
-  events and publishes them as tagged metrics to DataDog.
+  A telemetry-event-to-statsd-metric handler module for transaction metrics.
 
   Encapsulates the logic for:
     1. creating a handler for handling Telemetry events
+       (to begin listening to telemetry events, this handler needs to be attached Telemetry, usually
+       in the the umbrella app's `Application.start_phase(:attach_telemetry, ...)` function)
     2. receiving event data from Telemetry
-    3. delegating received event data to a metric handler for Telemetry
+    3. delegating received event data to a metric module for Telemetry
        event to DataDog metric conversion
-    4. publishing the Datadog metric
+    4. publishing the metric to DataDog
   """
   alias OMG.ChildChain.Transaction.Metric.Submit
   alias OMG.Status.Metric.Datadog
 
-  # A unique identifier for this handler that can be attached to one or more events.
   @handler_id "metrics-transaction-events-handler"
+  @doc """
+  Returns a unique telemetry handler_id for transaction-related events.
+  """
+  def handler_id(), do: @handler_id
 
-  # A list of each telemetry event the handler listens to. Each event is mapped to a `metric_module`
-  # for measurement and `publisher` for publishing the data.
+  # A list of each telemetry event the handler listens to. Each event is mapped to a metric module
+  # representing a specific metric. The `metric` module is responsible for creation, measurement and
+  # tagging of the metric and `publisher` for publishing the data.
   @transaction_event_mappings %{
     Submit.transaction_submit_event() => %{measure: &Submit.measure/3, publish: &Datadog.increment/3}
   }
-  
+
   # A list of transaction-related telemetry events.
   @transaction_events Map.keys(@transaction_event_mappings)
 
-  # Returns a handler for handling of transaction-related events.
+  @doc """
+  Returns a telemetry event handler for transaction-related events.
+  """
   def events_handler(config) do
     [@handler_id, @transaction_events, &handle_event/4, config]
   end
 
-  # Emits a telemetry event that a transaction has been submitted.
-  # Emitted event: `{[:transaction, :submit], %{data: %{blknum: 1, txhash: 0, txindex: 0}, result: :ok}, %{}}`
+  @doc """
+  Emits a telemetry event that a transaction has been submitted. An example emitted event looks like:
+
+    `{[:transaction, :submit], %{data: %{blknum: 1, txhash: 0, txindex: 0}, result: :ok}, %{}}`
+  """
   def emit_transaction_submit_event({result, _} = event_data, event_metadata \\ %{}) do
     case event_data do
       {:ok, data} ->
         # TODO(Jacob) clean
-        IO.puts("Metrics.emit_transaction_submit_event(): sending: #{inspect({Submit.transaction_submit_event(), %{result: result, data: data}, event_metadata})}")
+        IO.puts(
+          "Metrics.emit_transaction_submit_event(): sending: #{
+            inspect({Submit.transaction_submit_event(), %{result: result, data: data}, event_metadata})
+          }"
+        )
 
         :ok = :telemetry.execute(Submit.transaction_submit_event(), %{result: result, data: data}, event_metadata)
-      
+
       {:error, error_data} ->
         # TODO(Jacob) clean
-        IO.puts("Metrics.emit_transaction_submit_event(): sending: #{inspect({Submit.transaction_submit_event(), %{result: result, error_data: error_data}, event_metadata})}")
+        IO.puts(
+          "Metrics.emit_transaction_submit_event(): sending: #{
+            inspect({Submit.transaction_submit_event(), %{result: result, error_data: error_data}, event_metadata})
+          }"
+        )
 
         :ok = :telemetry.execute(Submit.transaction_submit_event(), %{result: result, data: error_data}, event_metadata)
     end
@@ -64,10 +82,14 @@ defmodule OMG.ChildChain.Transaction.Metrics do
     event_data
   end
 
-  # default behavior for `handle_event/4`
-  # Example received event:
-  #    `{[:transaction, :submit], %{data: %{blknum: 1, txhash: 0, txindex: 0}, result: :ok}, %{tags: [..]}}`
-  def handle_event(event_name, data, metadata, config) do when event_name in @transaction_events do
+  @doc """
+  A telemetry event handler that receives events, and delegates Telemetry
+  event to DataDog metric conversion to the corresponding metric module, finally
+  delegating publishing of the metric to Datadog. Example received event:
+
+    `{[:transaction, :submit], %{data: %{blknum: 1, txhash: 0, txindex: 0}, result: :ok}, %{tags: [..]}}`
+  """
+  def handle_event(event_name, data, metadata, config) when event_name in @transaction_events do
     IO.puts("Metrics.handle_event(): receiving: #{inspect({event_name, data, metadata, config})}")
 
     {metric, value, tags} = @transaction_event_mappings[event_name].measure.(data, metadata, config)
