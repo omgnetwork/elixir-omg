@@ -32,7 +32,7 @@ defmodule OMG.ChildChain.Fees.FeedAdapter do
     feed_url = Keyword.fetch!(opts, :feed_url)
 
     with {:ok, fee_specs_from_feed} <- Client.all_fees(feed_url),
-         {:ok, new_updated_at, new_fee_specs} <- can_update(actual_fee_specs, fee_specs_from_feed, updated_at) do
+         {:ok, {new_updated_at, new_fee_specs}} <- can_update(actual_fee_specs, fee_specs_from_feed, updated_at) do
       {:ok, new_fee_specs, new_updated_at}
     else
       :no_changes -> :ok

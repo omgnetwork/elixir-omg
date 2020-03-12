@@ -17,6 +17,9 @@
 - "ETHEREUM_STALLED_SYNC_THRESHOLD_MS" - the threshold before considering an unchanging Ethereum block height to be considered a stalled sync. Should be slightly larger than the expected block time.
 - "FEE_CLAIMER_ADDRESS" - [Child Chain only!] 20-bytes HEX-encoded string of Ethereum address of Fee Claimer. Set via ENV vars only for Child Chain. For the Watcher this values is not important and fallbacks to "DEAD000000000000000000000000000000000000".
 - "FEE_BUFFER_DURATION_MS" - [Child Chain only!] Buffer period during which a fee is still valid after being updated.
+- "FEE_FEED_URL" - [Child Chain, FeedAdapter only!] Url to fee feed service.
+- "FEE_FEED_TOLERANCE_PERCENT" - [Child Chain, FeedAdapter only!] positive integer describes significance of price change. When price in new reading changes above tolerance level, prices are updated immediately. Otherwise update interval is preserved.
+- "FEE_FEED_UPDATE_INTERVAL_MINUTES" - [Child Chain, FeedAdapter only!] positive integer describes time interval in minutes. The updates of token prices are carried out in update intervals as long as the changes are within tolerance.
 - "EXIT_PROCESSOR_SLA_MARGIN" - [Watcher only!] - number of Ethereum blocks since start of an invalid exit, before `unchallenged_exit` is reported to prompt to mass exit. Must be smaller than "MIN_EXIT_PERIOD_SECONDS", unless "EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE".
 - "ETHEREUM_BLOCK_TIME_SECONDS" - should mirror Ethereum network's setting, defaults to 15 seconds.
 - "LOGGER_BACKEND" - Ink or console. Ink will encode logs as json (useful for Datadog). Console will use the default elixir Logger backend. Default is Ink.
