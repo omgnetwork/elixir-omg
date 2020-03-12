@@ -13,30 +13,35 @@
 # limitations under the License.
 
 defmodule OMG.ChildChainRPC.Plugs.Counter do
-  @moduledoc """
-  Counts OK vs ERRORED transactions
-  """
+  defmacro __using__(_opts) do
+    quote do
+      @before_compile OMG.ChildChainRPC.Plugs.Counter
+    end
+  end
 
-  alias OMG.Utils.HttpRPC.Error
+  defmacro __before_compile__(_) do
+    quote do
+      defoverridable call: 2
 
-  alias OMG.Status.Metric.Datadog
-  import Plug.Conn
+      def call(conn, opts) do
+        try do
+          conn
+          |> Plug.Conn.register_before_send(fn conn ->
+            
+            case Map.get(conn.assigns, :response) do
+              nil -> :ok #Datadog.increment("transaction.submit.error", 1)
+              _ ->:ok# Datadog.increment("transaction.submit.error", 1)
+            end
 
-  use GenServer
-
-  ###
-  ### PLUG
-  ###
-  def init(options), do: options
-
-  def call(conn, _params) do
-    register_before_send(conn, fn conn ->
-      case Map.get(conn.assigns, :response) do
-        nil -> Datadog.increment("transaction.submit.error", 1)
-        _ -> Datadog.increment("transaction.submit.ok", 1)
+            conn
+          end)
+          |> super(opts)
+        catch
+          kind, reason ->
+           # Datadog.increment("transaction.submit.error", 1)
+            :erlang.raise(kind, reason, System.stacktrace())
+        end
       end
-
-      conn
-    end)
+    end
   end
 end

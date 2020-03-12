@@ -15,6 +15,7 @@
 defmodule OMG.ChildChainRPC.Web.Endpoint do
   use Phoenix.Endpoint, otp_app: :omg_child_chain_rpc
   use Sentry.Phoenix.Endpoint
+  #use OMG.ChildChainRPC.Plugs.Counter
 
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)
