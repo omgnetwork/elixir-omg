@@ -27,10 +27,11 @@ defmodule OMG.ChildChainRPC.Plugs.Counter do
         try do
           conn
           |> Plug.Conn.register_before_send(fn conn ->
-            
             case Map.get(conn.assigns, :response) do
-              nil -> :ok #Datadog.increment("transaction.submit.error", 1)
-              _ ->:ok# Datadog.increment("transaction.submit.error", 1)
+              # Datadog.increment("transaction.submit.error", 1)
+              nil -> :ok
+              # Datadog.increment("transaction.submit.error", 1)
+              _ -> :ok
             end
 
             conn
@@ -38,7 +39,7 @@ defmodule OMG.ChildChainRPC.Plugs.Counter do
           |> super(opts)
         catch
           kind, reason ->
-           # Datadog.increment("transaction.submit.error", 1)
+            # Datadog.increment("transaction.submit.error", 1)
             :erlang.raise(kind, reason, System.stacktrace())
         end
       end

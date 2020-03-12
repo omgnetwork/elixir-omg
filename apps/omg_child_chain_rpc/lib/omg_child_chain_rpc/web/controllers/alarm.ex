@@ -21,7 +21,8 @@ defmodule OMG.ChildChainRPC.Web.Controller.Alarm do
   use OMG.ChildChainRPC.Web, :controller
 
   alias OMG.ChildChain.API.Alarm
-plug(OMG.ChildChainRPC.Plugs.Counter)
+  plug(OMG.ChildChainRPC.Plugs.Counter)
+
   def get_alarms(conn, _params) do
     throw({:error, :ino})
     {:ok, alarms} = Alarm.get_alarms()
