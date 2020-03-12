@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-alias OMG.ChildChain.Transaction.Metrics
-
 defmodule OMG.ChildChainTest do
   @moduledoc false
   use ExUnit.Case, async: true
 
   alias OMG.ChildChain
+  alias OMG.ChildChain.Transaction.Metrics
 
   @valid_transaction 1
   @invalid_transaction 2
@@ -47,6 +45,10 @@ defmodule OMG.ChildChainTest do
     config = %{tags: ["foo:bar"]}
     apply(:telemetry, :attach_many, Metrics.events_handler(config))
 
+    pid = :erlang.pid_to_list(self())
+
+    {:ok, dd_pid} = start_supervised(OMG.Status.Metric.Datadog, dd_listener_pid: pid)
+
     on_exit(fn ->
       :ok = :telemetry.detach(Metrics.handler_id())
     end)
@@ -55,6 +57,9 @@ defmodule OMG.ChildChainTest do
   describe "submit/2" do
     test "submit sends a submission success metric to datadog when transaction submission succeeds" do
       assert ChildChain.submit(@valid_transaction, TestSubmitter) == {:ok, %{txhash: 0, blknum: 1, txindex: 0}}
+
+      transaction_submit_event = Submit.transaction_submit_event()
+      assert_receive({:counter, transaction_submit_event, 1, _})
     end
 
     test "submit sends a submission failure metric to datadog when transaction submission fails" do
