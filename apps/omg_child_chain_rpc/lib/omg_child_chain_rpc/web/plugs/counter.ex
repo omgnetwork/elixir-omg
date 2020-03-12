@@ -12,22 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Web.Controller.Transaction do
+defmodule OMG.ChildChainRPC.Plugs.Counter do
   @moduledoc """
-  Provides endpoint action to submit transaction to the Child Chain.
+  Counts OK vs ERRORED transactions
   """
 
-  use OMG.ChildChainRPC.Web, :controller
-  # check for health before calling action
-  plug(OMG.ChildChainRPC.Plugs.Health)
-  plug(OMG.ChildChainRPC.Plugs.Counter)
+  alias OMG.Utils.HttpRPC.Error
 
-  alias OMG.ChildChain
+  alias OMG.Status.Metric.Datadog
+  import Plug.Conn
 
-  def submit(conn, params) do
-    with {:ok, txbytes} <- expect(params, "transaction", :hex),
-         {:ok, details} <- ChildChain.submit(txbytes) do
-      api_response(details, conn, :submit)
-    end
+  use GenServer
+
+  ###
+  ### PLUG
+  ###
+  def init(options), do: options
+
+  def call(conn, _params) do
+    register_before_send(conn, fn conn ->
+      case Map.get(conn.assigns, :response) do
+        nil -> Datadog.increment("transaction.submit.error", 1)
+        _ -> Datadog.increment("transaction.submit.ok", 1)
+      end
+
+      conn
+    end)
   end
 end
