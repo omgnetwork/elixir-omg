@@ -20,6 +20,6 @@ defmodule WatcherInfoTest do
 
   @tag timeout: 6_000_000
   test "watcher info test" do
-    Chaperon.run_load_test(LoadTesting.LoadTest.WatcherInfo, print_results: true)
+    Chaperon.run_load_test(LoadTesting.Runner.WatcherInfo, print_results: true)
   end
 end

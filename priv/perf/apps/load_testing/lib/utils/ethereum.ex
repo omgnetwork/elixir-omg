@@ -19,9 +19,9 @@ defmodule LoadTesting.Utils.Ethereum do
   require Logger
 
   alias ExPlasma.Encoding
+  alias LoadTesting.Server.NonceTracker
   alias LoadTesting.Utils.Ethereum.Transaction
   alias LoadTesting.Utils.Ethereum.Transaction.Signature
-  alias LoadTesting.Utils.NonceTracker
 
   @about_4_blocks_time 120_000
   @eth_amount_to_fund trunc(:math.pow(10, 18) * 0.1)

@@ -20,11 +20,10 @@ defmodule LoadTesting.Scenario.AccountTransactions do
   use Chaperon.Scenario
 
   alias Chaperon.Timing
-
   alias LoadTesting.Connection.WatcherInfo, as: Connection
+  alias LoadTesting.Server.Faucet
   alias LoadTesting.Utils.Account
   alias LoadTesting.Utils.Encoding
-  alias LoadTesting.Utils.Faucet
   alias WatcherInfoAPI.Api
   alias WatcherInfoAPI.Model
 

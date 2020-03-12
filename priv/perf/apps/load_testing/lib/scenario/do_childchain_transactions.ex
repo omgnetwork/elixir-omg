@@ -21,8 +21,8 @@ defmodule LoadTesting.Scenario.DoChildChainTransactions do
 
   alias Chaperon.Timing
   alias ExPlasma.Utxo
+  alias LoadTesting.Server.Faucet
   alias LoadTesting.Utils.Account
-  alias LoadTesting.Utils.Faucet
 
   @eth <<0::160>>
   @fee_wei Application.fetch_env!(:load_testing, :fee_wei)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTesting.LoadTest.WatcherInfo do
+defmodule LoadTesting.Runner.WatcherInfo do
   @moduledoc """
   Load test for watcher info
   """

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTesting.Utils.Faucet do
+defmodule LoadTesting.Server.Faucet do
   @moduledoc false
 
   require Logger
@@ -31,8 +31,8 @@ defmodule LoadTesting.Utils.Faucet do
 
   defstruct [:account, :fee, utxos: %{}]
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   def fund_child_chain_account(account, amount, token) do
@@ -43,8 +43,7 @@ defmodule LoadTesting.Utils.Faucet do
     GenServer.call(__MODULE__, :get_faucet, :infinity)
   end
 
-  def init(_) do
-    opts = fetch_default_opts()
+  def init(opts) do
     fee_wei = Keyword.fetch!(opts, :fee_wei)
 
     {faucet, eth_utxo} = get_funded_faucet_account(opts)
@@ -78,10 +77,11 @@ defmodule LoadTesting.Utils.Faucet do
 
     {:ok, change_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 0})
     {:ok, user_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 1})
+    user_utxo_pos = Utxo.pos(user_utxo)
 
     updated_state = Map.put(state, :utxos, %{state.utxos | token => {change_utxo, change}})
 
-    {:reply, {:ok, {Utxo.pos(user_utxo), amount}}, updated_state}
+    {:reply, {:ok, {user_utxo_pos, amount}}, updated_state}
   end
 
   defp get_funded_faucet_account(opts) do
@@ -114,23 +114,5 @@ defmodule LoadTesting.Utils.Faucet do
     {:ok, _} = Eth.fund_address_from_default_faucet(account, initial_funds_wei: faucet_initial_funds)
 
     {:ok, account}
-  end
-
-  defp fetch_default_opts() do
-    faucet_opt =
-      case Application.fetch_env(:load_testing, :faucet_account) do
-        {:ok, %{priv: priv}} ->
-          faucet_account = priv |> Encoding.to_binary() |> Account.new()
-          [faucet: faucet_account]
-
-        :error ->
-          []
-      end
-
-    [:fee_wei, :faucet_default_funds, :faucet_deposit_wei, :deposit_finality_margin]
-    |> Enum.reduce([], fn key, acc ->
-      [{key, Application.fetch_env!(:load_testing, key)} | acc]
-    end)
-    |> Keyword.merge(faucet_opt)
   end
 end

@@ -14,9 +14,8 @@
 
 defmodule LoadTestTest do
   use ExUnit.Case
-  doctest LoadTest
 
   test "smoke test" do
-    Chaperon.run_load_test(LoadTesting.Smoke, print_results: false)
+    Chaperon.run_load_test(LoadTesting.Runner.Smoke, print_results: false)
   end
 end

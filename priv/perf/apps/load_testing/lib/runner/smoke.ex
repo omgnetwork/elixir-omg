@@ -12,20 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTesting.LoadTest.ChildChain do
+defmodule LoadTesting.Runner.Smoke do
   @moduledoc """
-  Load test for child chain
+  Load tests for watcher info
   """
-  use Chaperon.LoadTest
 
-  @concurrent_session 100
-  @transactions_per_session 100
+  use Chaperon.LoadTest
 
   def scenarios(),
     do: [
-      {{@concurrent_session, LoadTesting.Scenario.DoChildChainTransactions},
-       %{
-         ntx_to_send: @transactions_per_session
-       }}
+      {{1, LoadTesting.Scenario.Smoke}, %{}}
     ]
 end

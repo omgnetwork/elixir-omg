@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTesting.Utils.NonceTracker do
+defmodule LoadTesting.Server.NonceTracker do
   @moduledoc """
   Nonce tracker for sending Ethereum transactions
   """
@@ -20,16 +20,16 @@ defmodule LoadTesting.Utils.NonceTracker do
 
   alias ExPlasma.Encoding
 
-  def start_link(init_state \\ %{}) do
-    GenServer.start_link(__MODULE__, init_state, name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   def update_nonce(addr) do
     GenServer.call(__MODULE__, {:update_nonce, addr}, :infinity)
   end
 
-  def init(init_state) do
-    {:ok, init_state}
+  def init(_) do
+    {:ok, Map.new()}
   end
 
   def handle_call({:update_nonce, addr}, _from, state) do

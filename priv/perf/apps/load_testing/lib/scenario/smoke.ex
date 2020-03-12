@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Scenario.Smoke do
+defmodule LoadTesting.Scenario.Smoke do
   @moduledoc """
   Smoke test scenerio to ensure services are up
   """
