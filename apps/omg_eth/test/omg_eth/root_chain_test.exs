@@ -13,10 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.Eth.RootChainTest do
-  alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
-  alias OMG.Eth.RootChain.DecodeLog
+  alias OMG.Eth.RootChain.Abi
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.SnapshotContracts
@@ -58,36 +57,6 @@ defmodule OMG.Eth.RootChainTest do
     assert is_binary(child_chain_hash)
     assert byte_size(child_chain_hash) == 32
     assert is_integer(child_chain_time)
-  end
-
-  test "get_deposits/3 returns deposit events", %{contracts: contracts} do
-    _ = add_queue(contracts.authority_address, contracts.plasma_framework)
-    {:ok, deposit} = ExPlasma.Transaction.Deposit.new(owner: contracts.authority_address, currency: @eth, amount: 1)
-    rlp = ExPlasma.Transaction.encode(deposit)
-
-    {:ok, tx_hash} =
-      RootChainHelper.deposit(rlp, 1, contracts.authority_address, contracts)
-      |> DevHelper.transact_sync!()
-
-    {:ok, height} = Eth.get_ethereum_height()
-
-    authority_addr = contracts.authority_address
-    root_chain_txhash = Encoding.from_hex(tx_hash["transactionHash"])
-
-    deposits = RootChain.get_deposits(1, height, contracts)
-
-    assert {:ok,
-            [
-              %{
-                amount: 1,
-                blknum: 1,
-                owner: ^authority_addr,
-                currency: @eth,
-                eth_height: height,
-                log_index: 0,
-                root_chain_txhash: ^root_chain_txhash
-              }
-            ]} = deposits
   end
 
   describe "get_standard_exit_structs/2" do
@@ -156,7 +125,7 @@ defmodule OMG.Eth.RootChainTest do
       logs
       |> Enum.filter(&(topic in &1["topics"]))
       |> Enum.map(fn log ->
-        DecodeLog.exit_started(log)
+        Abi.decode_log(log)
       end)
 
     exit_id

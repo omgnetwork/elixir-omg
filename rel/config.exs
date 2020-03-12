@@ -34,6 +34,7 @@ release :watcher do
 
   set(
     applications: [
+      :tools,
       :runtime_tools,
       omg_watcher: :permanent,
       omg_watcher_rpc: :permanent,
@@ -81,6 +82,7 @@ release :watcher_info do
 
   set(
     applications: [
+      :tools,
       :runtime_tools,
       omg_watcher: :permanent,
       omg_watcher_info: :permanent,
@@ -133,6 +135,7 @@ release :child_chain do
 
   set(
     applications: [
+      :tools,
       :runtime_tools,
       omg_child_chain: :permanent,
       omg_child_chain_rpc: :permanent,

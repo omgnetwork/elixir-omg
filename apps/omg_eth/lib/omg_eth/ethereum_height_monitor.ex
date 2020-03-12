@@ -94,7 +94,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     height = fetch_height(state.eth_module)
     stalled? = stalled?(height, state.ethereum_height, state.synced_at, state.stall_threshold_ms)
 
-    :ok = broadcast_on_new_height(state.event_bus, state.ethereum_height, height)
+    :ok = broadcast_on_new_height(state.event_bus, height)
     _ = connection_alarm(state.alarm_module, state.connection_alarm_raised, height)
     _ = stall_alarm(state.alarm_module, state.stall_alarm_raised, stalled?)
 
@@ -163,14 +163,15 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     end
   end
 
-  @spec broadcast_on_new_height(module(), non_neg_integer(), non_neg_integer() | :error) :: :ok | {:error, term()}
-  defp broadcast_on_new_height(_event_bus, _previous_height, :error), do: :ok
+  @spec broadcast_on_new_height(module(), non_neg_integer() | :error) :: :ok | {:error, term()}
+  defp broadcast_on_new_height(_event_bus, :error), do: :ok
 
-  defp broadcast_on_new_height(event_bus, previous_height, height) when height > previous_height do
+  # we need to publish every height we fetched so that we can re-examine blocks in case of re-orgs
+  # clients subscribed to this topic need to be aware of that and if a block number repeats,
+  # it needs to re-write logs, for example
+  defp broadcast_on_new_height(event_bus, height) do
     apply(event_bus, :broadcast, ["ethereum_new_height", {:ethereum_new_height, height}])
   end
-
-  defp broadcast_on_new_height(_, _, _), do: :ok
 
   #
   # Alarms management

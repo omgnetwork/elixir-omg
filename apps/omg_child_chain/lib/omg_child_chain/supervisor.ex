@@ -35,7 +35,7 @@ defmodule OMG.ChildChain.Supervisor do
   def init(:ok) do
     # prevent booting if contracts are not ready
     :ok = RootChain.contract_ready()
-    {:ok, _contract_deployment_height} = RootChain.get_root_deployment_height()
+    {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
     fee_claimer_address = OMG.Configuration.fee_claimer_address()
 
     children = [
@@ -47,7 +47,7 @@ defmodule OMG.ChildChain.Supervisor do
          Alarm,
          %{
            id: SyncSupervisor,
-           start: {SyncSupervisor, :start_link, []},
+           start: {SyncSupervisor, :start_link, [[contract_deployment_height: contract_deployment_height]]},
            restart: :permanent,
            type: :supervisor
          }

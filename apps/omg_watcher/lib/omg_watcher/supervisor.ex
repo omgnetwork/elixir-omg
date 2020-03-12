@@ -20,6 +20,7 @@ defmodule OMG.Watcher.Supervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
 
+  alias OMG.Eth.RootChain
   alias OMG.Status.Alert.Alarm
   alias OMG.Watcher.DatadogEvent.ContractEventConsumer
   alias OMG.Watcher.Monitor
@@ -31,13 +32,17 @@ defmodule OMG.Watcher.Supervisor do
   end
 
   def init(:ok) do
+    # prevent booting if contracts are not ready
+    :ok = RootChain.contract_ready()
+    {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
+
     children = [
       {Monitor,
        [
          Alarm,
          %{
            id: SyncSupervisor,
-           start: {SyncSupervisor, :start_link, []},
+           start: {SyncSupervisor, :start_link, [[contract_deployment_height: contract_deployment_height]]},
            restart: :permanent,
            type: :supervisor
          }

@@ -524,6 +524,7 @@ jobs:
             sudo apt-get install --yes --no-install-recommends --no-install-suggests esl-erlang=1:21.3.8.10-1
             sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-os-mon
             sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-parsetools
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-tools
             sudo apt-get install --yes --no-install-recommends --no-install-suggests elixir=1.8.2-1
             sudo apt policy elixir
             ./bin/setup
