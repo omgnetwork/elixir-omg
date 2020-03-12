@@ -130,7 +130,7 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
   end
 
   @spec merge_types(Fees.full_fee_t(), Fees.full_fee_t()) ::
-          {:ok, %{non_neg_integer() => {Fees.fee_t(), Fees.fee_t()}}} | :disjoint_types
+          %{non_neg_integer() => {Fees.fee_t(), Fees.fee_t()}} | :disjoint_types
   defp merge_types(stored_specs, actual_specs) do
     merged_spec = Map.merge(stored_specs, actual_specs, fn _t, stored, actual -> {stored, actual} end)
 
