@@ -65,6 +65,10 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       code: "transaction.create:empty_transaction",
       description: "Requested payment transfers no funds."
     },
+    self_transaction_not_supported: %{
+      code: "transaction.create:self_transaction_not_supported",
+      description: "This endpoint cannot be used to create merge or split transactions."
+    },
     missing_signature: %{
       code: "submit_typed:missing_signature",
       description:

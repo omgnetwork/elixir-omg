@@ -1295,6 +1295,24 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
+    @tag fixtures: [:alice, :more_utxos]
+    test "returns an error when requester is equal to all the ouputs owner", %{alice: alice} do
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 1, "currency" => @eth_hex, "owner" => Encoding.to_hex(alice.addr)},
+          %{"amount" => 1, "currency" => @eth_hex, "owner" => Encoding.to_hex(alice.addr)}
+        ],
+        "fee" => %{"currency" => @default_fee_currency}
+      }
+
+      assert %{
+               "object" => "error",
+               "code" => "transaction.create:self_transaction_not_supported",
+               "description" => "This endpoint cannot be used to build merge or split transactions."
+             } == WatcherHelper.no_success?("transaction.create", params)
+    end
+
     defp balance_in_token(address, token) do
       currency = Encoding.to_hex(token)
 
