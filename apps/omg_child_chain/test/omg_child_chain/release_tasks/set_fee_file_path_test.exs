@@ -32,9 +32,9 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePathTest do
   end
 
   test "path is set when the env var is present" do
-    :ok = System.put_env(@env_var_name, "some/path")
+    :ok = System.put_env(@env_var_name, "/tmp/YOLO/")
     :ok = SetFeeFilePath.init([])
-    assert Application.get_env(@app, @config_key) == "some/path"
+    assert Application.get_env(@app, @config_key) == "/tmp/YOLO/"
     :ok = System.delete_env(@env_var_name)
   end
 
@@ -45,8 +45,22 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePathTest do
     assert current_value == Application.get_env(@app, @config_key)
   end
 
+  test "creates an empty json file at the destination" do
+    file_path = "/tmp/YOLO/"
+    file_name = Application.get_env(@app, :fee_specs_file_name)
+    :ok = System.put_env(@env_var_name, file_path)
+
+    :ok = SetFeeFilePath.init([])
+
+    assert file_path
+           |> Path.join(file_name)
+           |> File.read() == {:ok, "{}"}
+
+    :ok = System.delete_env(@env_var_name)
+  end
+
   test "no other configurations got affected", context do
-    :ok = System.put_env(@env_var_name, "some/path")
+    :ok = System.put_env(@env_var_name, "/tmp/YOLO/")
     :ok = SetFeeFilePath.init([])
     new_configs = @app |> Application.get_all_env() |> Keyword.delete(@config_key) |> Enum.sort()
     old_configs = context.original_config |> Keyword.delete(@config_key) |> Enum.sort()

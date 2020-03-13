@@ -41,10 +41,12 @@ defmodule OMG.ChildChain.FileAdapterTest do
   }
 
   setup do
-    old_value = Application.get_env(:omg_child_chain, :fee_specs_file_path)
+    old_file_path = Application.get_env(:omg_child_chain, :fee_specs_file_path)
+    old_file_name = Application.get_env(:omg_child_chain, :fee_specs_file_name)
 
     on_exit(fn ->
-      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_path, old_value)
+      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_path, old_file_path)
+      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_name, old_file_name)
     end)
   end
 
@@ -53,9 +55,11 @@ defmodule OMG.ChildChain.FileAdapterTest do
           actual_file_updated_at" do
       recorded_file_updated_at = :os.system_time(:second) - 10
 
-      {:ok, file_path} = TestHelper.write_fee_file(@fees)
+      {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
       {:ok, %File.Stat{mtime: mtime}} = File.stat(file_path, time: :posix)
+
       :ok = Application.put_env(:omg_child_chain, :fee_specs_file_path, file_path)
+      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name)
 
       assert FileAdapter.get_fee_specs(recorded_file_updated_at) == {
                :ok,
@@ -63,21 +67,24 @@ defmodule OMG.ChildChain.FileAdapterTest do
                mtime
              }
 
-      File.rm(file_path)
+      File.rm("#{file_path}/#{file_name}")
     end
 
     test "returns :ok (unchanged) if file_updated_at is more recent
           than file last change timestamp" do
-      {:ok, file_path} = TestHelper.write_fee_file(@fees)
+      {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
+
       :ok = Application.put_env(:omg_child_chain, :fee_specs_file_path, file_path)
+      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name)
+
       recorded_file_updated_at = :os.system_time(:second) + 10
 
       assert FileAdapter.get_fee_specs(recorded_file_updated_at) == :ok
-      File.rm(file_path)
+      File.rm("#{file_path}/#{file_name}")
     end
 
     test "returns an error if the file is not found" do
-      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_path, "fake_path/fake_file")
+      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_name, "fake_file")
       assert FileAdapter.get_fee_specs(1) == {:error, :enoent}
     end
   end

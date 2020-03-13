@@ -41,6 +41,11 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePath do
 
   defp set_path(path) do
     :ok = Application.put_env(@app, @config_key, path, persistent: true)
+    name = Application.get_env(@app, :fee_specs_file_name)
+    :ok = File.mkdir_p(path)
+    full_path = Path.join(path, name)
+    :ok = File.write(full_path, "{}")
+
     {:ok, path}
   end
 

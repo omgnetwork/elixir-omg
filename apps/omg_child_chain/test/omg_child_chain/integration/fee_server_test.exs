@@ -105,17 +105,20 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     |> Enum.take_while(fn b -> not b end)
 
     old_file_path = Application.fetch_env!(:omg_child_chain, :fee_specs_file_path)
+    old_file_name = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
 
-    {:ok, file_path} = TestHelper.write_fee_file(@fees)
+    {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
     Application.put_env(:omg_child_chain, :fee_specs_file_path, file_path)
+    Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name)
 
     on_exit(fn ->
       apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
       File.rm(file_path)
       Application.put_env(:omg_child_chain, :fee_specs_file_path, old_file_path)
+      Application.put_env(:omg_child_chain, :fee_specs_file_name, old_file_name)
     end)
 
-    %{fee_file_path: file_path}
+    %{fee_file_path: file_path, fee_file_name: file_name}
   end
 
   describe "fees in effect" do
@@ -325,6 +328,6 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
   defp overwrite_fee_file(file_path, content) do
     # file modification date is in seconds
     Process.sleep(1000)
-    {:ok, ^file_path} = TestHelper.write_fee_file(content, file_path)
+    {:ok, ^file_path, _} = TestHelper.write_fee_file(content, file_path)
   end
 end

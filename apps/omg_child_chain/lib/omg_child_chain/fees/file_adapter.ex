@@ -70,6 +70,8 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
   end
 
   defp get_path() do
-    Application.get_env(:omg_child_chain, :fee_specs_file_path)
+    path = Application.get_env(:omg_child_chain, :fee_specs_file_path)
+    name = Application.get_env(:omg_child_chain, :fee_specs_file_name)
+    Path.join(path, name)
   end
 end
