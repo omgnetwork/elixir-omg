@@ -77,17 +77,6 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     assert_receive(:got_ethereum_new_height, Kernel.trunc(context.check_interval_ms * 10))
   end
 
-  test "that an ethereum_new_height event is not published when the height stalls", context do
-    _ = EthereumClientMock.set_stalled(true)
-
-    # Sleep for 2 intervals to make sure the listener doesn't pick up anything before set_stalled(true)
-    _ = Process.sleep(context.check_interval_ms * 2)
-    {:ok, listener} = __MODULE__.EventBusListener.start(self())
-    on_exit(fn -> GenServer.stop(listener) end)
-
-    refute_receive(:got_ethereum_new_height, Kernel.trunc(context.check_interval_ms * 10))
-  end
-
   #
   # Connection error
   #

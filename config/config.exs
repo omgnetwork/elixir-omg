@@ -22,7 +22,8 @@ config :logger,
   backends: [Sentry.LoggerBackend, Ink]
 
 config :logger, Ink,
-  name: "elixir-omg"
+  name: "elixir-omg",
+  exclude_hostname: true
 
 config :logger, Sentry.LoggerBackend,
   include_logger_metadata: true,

@@ -41,6 +41,9 @@ defmodule OMG.Watcher.BlockGetter do
 
   See `OMG.Watcher.BlockGetter.Core` for the implementation of the business logic for the getter.
   """
+  use GenServer
+  use OMG.Utils.LoggerExt
+  use Spandex.Decorators
 
   alias OMG.Eth
   alias OMG.RootChainCoordinator
@@ -49,12 +52,9 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.BlockGetter.Status
+  alias OMG.Watcher.EthereumEventAggregator
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.HttpRPC.Client
-
-  use GenServer
-  use OMG.Utils.LoggerExt
-  use Spandex.Decorators
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -277,9 +277,9 @@ defmodule OMG.Watcher.BlockGetter do
   defp do_sync(state) do
     with {:ok, _} <- Core.chain_ok(state),
          %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
-      block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
+      {block_from, block_to} = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
 
-      {:ok, submissions} = get_block_submitted_events(block_range)
+      {:ok, submissions} = get_block_submitted_events(block_from, block_to)
 
       {blocks_to_apply, synced_height, db_updates, state} =
         Core.get_blocks_to_apply(state, submissions, next_synced_height)
@@ -309,14 +309,15 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: :block_getter)
-  defp get_block_submitted_events(block_range), do: Eth.RootChain.get_block_submitted_events(block_range)
+  defp get_block_submitted_events(block_from, block_to),
+    do: EthereumEventAggregator.block_submitted(block_from, block_to)
 
   defp run_block_download_task(state) do
     {:ok, next_child} = Eth.RootChain.get_next_child_block()
     {new_state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
 
-    blocks_numbers
-    |> Enum.each(
+    Enum.each(
+      blocks_numbers,
       # captures the result in handle_info/2 with the atom: downloaded_block
       &Task.async(fn -> {:downloaded_block, download_block(&1)} end)
     )
@@ -325,13 +326,13 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   defp schedule_sync_height() do
-    Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
-    |> :timer.send_after(self(), :sync)
+    block_getter_loops_interval_ms = Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
+    :timer.send_after(block_getter_loops_interval_ms, self(), :sync)
   end
 
   defp schedule_producer() do
-    Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
-    |> :timer.send_after(self(), :producer)
+    block_getter_loops_interval_ms = Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
+    :timer.send_after(block_getter_loops_interval_ms, self(), :producer)
   end
 
   @spec download_block(pos_integer()) :: Core.validate_download_response_result_t()
