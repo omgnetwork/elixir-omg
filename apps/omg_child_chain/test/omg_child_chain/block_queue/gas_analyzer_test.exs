@@ -19,7 +19,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
 
   setup do
     {:ok, gas_analyzer} = GasAnalyzer.start_link(name: String.to_atom("test-#{:rand.uniform(1000)}"))
-    handler_id = {:block_subbmission_handler, :rand.uniform(100)}
+    handler_id = {:gas_subbmission_handler, :rand.uniform(100)}
 
     on_exit(fn ->
       :telemetry.detach(handler_id)
@@ -43,13 +43,13 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, test_name) end)
       # creating a telemetry handler in this process so that when event gets executed, a message gets sent
       # to this process... hence the self() and parent
-      attach(handler_id, [:block_subbmission, GasAnalyzer], self())
+      attach(handler_id, [:gas, GasAnalyzer], self())
       # mimick a blockqueue wanting to submit a block to ethereum which would cause the hash to get to the gas analyzer
       GasAnalyzer.enqueue(gas_analyzer, "0xyolo")
       # manually invoking the info message which normally gets triggered by a 3second timeout
       send(gas_analyzer, :get_gas_used)
       # we're just waiting for the message to get processed
-      assert_receive({:event, [:block_subbmission, OMG.ChildChain.BlockQueue.GasAnalyzer], %{gas: 84_681}, %{}}, 100)
+      assert_receive({:event, [:gas, OMG.ChildChain.BlockQueue.GasAnalyzer], %{gas: 84_681}, %{}}, 100)
       state = :sys.get_state(gas_analyzer)
       # the gas analyzer queue needs to be empty now
       assert :queue.to_list(state.txhash_queue) == []
@@ -71,13 +71,13 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, test_name) end)
       # creating a telemetry handler in this process so that when event gets executed, a message gets sent
       # to this process... hence the self() and parent
-      attach(handler_id, [:block_subbmission, GasAnalyzer], self())
+      attach(handler_id, [:gas, GasAnalyzer], self())
       # mimick a blockqueue wanting to submit a block to ethereum which would cause the hash to get to the gas analyzer
       GasAnalyzer.enqueue(gas_analyzer, "0xyolo")
       # manually invoking the info message which normally gets triggered by a 3second timeout
       send(gas_analyzer, :get_gas_used)
       # we're just waiting for the message to get processed
-      assert_receive({:event, [:block_subbmission, OMG.ChildChain.BlockQueue.GasAnalyzer], %{gas: 84_681}, %{}}, 100)
+      assert_receive({:event, [:gas, OMG.ChildChain.BlockQueue.GasAnalyzer], %{gas: 84_681}, %{}}, 100)
     end
 
     test "that telemetry event is not executed when we cant calculate gas", %{
@@ -94,7 +94,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, test_name) end)
       # creating a telemetry handler in this process so that when event gets executed, a message gets sent
       # to this process... hence the self() and parent
-      attach(handler_id, [:block_subbmission, GasAnalyzer], self())
+      attach(handler_id, [:gas, GasAnalyzer], self())
       # mimick a blockqueue wanting to submit a block to ethereum which would cause the hash to get to the gas analyzer
       GasAnalyzer.enqueue(gas_analyzer, "0xyolo")
       # manually invoking the info message which normally gets triggered by a 3second timeout
@@ -103,7 +103,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
                send(gas_analyzer, :get_gas_used)
 
                refute_receive(
-                 {:event, [:block_subbmission, OMG.ChildChain.BlockQueue.GasAnalyzer], %{gas: 84_681}, %{}},
+                 {:event, [:gas, OMG.ChildChain.BlockQueue.GasAnalyzer], %{gas: 84_681}, %{}},
                  100
                )
              end) =~ "[error]"
@@ -125,7 +125,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, test_name) end)
       # creating a telemetry handler in this process so that when event gets executed, a message gets sent
       # to this process... hence the self() and parent
-      attach(handler_id, [:block_subbmission, GasAnalyzer], self())
+      attach(handler_id, [:gas, GasAnalyzer], self())
       # mimick a blockqueue wanting to submit a block to ethereum which would cause the hash to get to the gas analyzer
       GasAnalyzer.enqueue(gas_analyzer, "0xyolo")
       # now the hash has ben enqueued hopefully, lets check

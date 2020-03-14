@@ -62,7 +62,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzer do
               :queue.in_r(txhash, txhash_queue)
 
             gas ->
-              _ = :telemetry.execute([:block_subbmission, __MODULE__], %{gas: gas}, %{})
+              _ = :telemetry.execute([:gas, __MODULE__], %{gas: gas}, %{})
               txhash_queue
           end
       end
