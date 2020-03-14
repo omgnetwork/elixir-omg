@@ -28,6 +28,34 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
     {:ok, %{gas_analyzer: gas_analyzer, handler_id: handler_id}}
   end
 
+  describe "handle_info/2" do
+    test "queue gets emptied when gas gets callculated", %{
+      test: test_name,
+      gas_analyzer: gas_analyzer,
+      handler_id: handler_id
+    } do
+      defmodule test_name do
+        def eth_get_transaction_receipt(_), do: {:ok, %{"gasUsed" => "0x123"}}
+        def eth_get_transaction_by_hash(_), do: {:ok, %{"gasPrice" => "0x123"}}
+      end
+
+      # we're mocking ethereumex with our module
+      :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, test_name) end)
+      # creating a telemetry handler in this process so that when event gets executed, a message gets sent
+      # to this process... hence the self() and parent
+      attach(handler_id, [:block_subbmission, GasAnalyzer], self())
+      # mimick a blockqueue wanting to submit a block to ethereum which would cause the hash to get to the gas analyzer
+      GasAnalyzer.enqueue(gas_analyzer, "0xyolo")
+      # manually invoking the info message which normally gets triggered by a 3second timeout
+      send(gas_analyzer, :get_gas_used)
+      # we're just waiting for the message to get processed
+      assert_receive({:event, [:block_subbmission, OMG.ChildChain.BlockQueue.GasAnalyzer], %{gas: 84_681}, %{}}, 100)
+      state = :sys.get_state(gas_analyzer)
+      # the gas analyzer queue needs to be empty now
+      assert :queue.to_list(state.txhash_queue) == []
+    end
+  end
+
   describe "enqueue/1, telemetry subscription" do
     test "telemetry event gets executed when gas is retrieved and calculated", %{
       test: test_name,

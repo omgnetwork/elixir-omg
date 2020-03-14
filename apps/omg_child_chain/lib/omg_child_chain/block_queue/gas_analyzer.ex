@@ -79,7 +79,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzer do
         {gas_price_value, ""} = gas_price |> String.replace_prefix("0x", "") |> Integer.parse(16)
         {gas_used_value, ""} = gas_used |> String.replace_prefix("0x", "") |> Integer.parse(16)
         gas_used = gas_price_value * gas_used_value
-        _ = Logger.info("Block submitted with receipt hash #{receipt_hash} and gas used #{gas_used}")
+        _ = Logger.info("Block submitted with receipt hash #{receipt_hash} and gas used #{gas_used}wei")
         gas_used
 
       {eth_get_transaction_receipt, eth_get_transaction_by_hash} ->
