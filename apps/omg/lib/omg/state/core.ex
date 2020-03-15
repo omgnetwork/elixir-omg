@@ -292,6 +292,7 @@ defmodule OMG.State.Core do
         fee_claiming_started: false
     }
 
+    _ = :telemetry.execute([:block_transactions, __MODULE__], %{txs: txs}, %{})
     {:ok, {block, db_updates}, new_state}
   end
 
@@ -418,6 +419,8 @@ defmodule OMG.State.Core do
   end
 
   defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, %Transaction.Recovered{} = new_tx) do
+    _ = :telemetry.execute([:pending_transactions, __MODULE__], %{new_tx: new_tx}, %{})
+
     %Core{
       state
       | tx_index: tx_index + 1,

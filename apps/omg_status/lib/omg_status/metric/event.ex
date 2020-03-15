@@ -33,6 +33,16 @@ defmodule OMG.Status.Metric.Event do
   """
 
   @doc """
+  Childchain OMG.State mempool transactions
+  """
+  def name(:pending_transactions), do: "pending_transactions"
+
+  @doc """
+  Childchain OMG.State transactions in formed block
+  """
+  def name(:block_transactions), do: "block_transactions"
+
+  @doc """
   OMG.State balance per currency
   """
   def name(:balance), do: "balance"
