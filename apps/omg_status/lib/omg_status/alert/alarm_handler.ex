@@ -39,6 +39,7 @@ defmodule OMG.Status.Alert.AlarmHandler do
   # -----------------------------------------------------------------
   def init(_args) do
     table_setup()
+
     for n <- Alarm.alarm_types(), do: write_clear(n)
     {:ok, %{alarms: []}}
   end
@@ -47,6 +48,7 @@ defmodule OMG.Status.Alert.AlarmHandler do
 
   def handle_event({:set_alarm, new_alarm}, %{alarms: alarms} = state) do
     # was the alarm raised already and is this our type of alarm?
+
     case Enum.any?(alarms, &(&1 == new_alarm)) do
       true ->
         {:ok, state}

@@ -18,7 +18,7 @@ defmodule OMG.ChildChain.API.AlarmTest do
   use ExUnit.Case, async: false
 
   setup_all do
-    _ = Application.stop(:sasl)
+    Enum.each([:sasl, :os_mon, :omg_status], fn app -> Application.stop(app) end)
     {:ok, apps} = Application.ensure_all_started(:omg_status)
 
     on_exit(fn ->

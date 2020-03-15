@@ -29,6 +29,8 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
         Enum.each(@configuration_old_ethereumex, fn {key, value} ->
           Application.put_env(:ethereumex, key, value, persistent: true)
         end)
+
+      Enum.each([:sasl, :os_mon, :omg_status], fn app -> Application.stop(app) end)
     end)
 
     :ok
