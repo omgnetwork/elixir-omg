@@ -9,7 +9,11 @@ defmodule Itest.Account do
   @spec take_accounts(integer()) :: map()
   def take_accounts(number_of_accounts) do
     1..number_of_accounts
-    |> Task.async_stream(fn _ -> account() end, timeout: 60_000, on_timeout: :kill_task)
+    |> Task.async_stream(fn _ -> account() end,
+      timeout: 60_000,
+      on_timeout: :kill_task,
+      max_concurrency: System.schedulers_online() * 2
+    )
     |> Enum.map(fn {:ok, result} -> result end)
   end
 
