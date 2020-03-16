@@ -43,7 +43,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
     test "using created transaction in child chain", %{alice: alice, bob: bob, state_alice_deposit: state} do
       state = TestHelper.do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 2})
 
-      payment = Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, @eth, 12}])
+      payment = Transaction.Payment.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, @eth, 19}])
 
       payment
       |> DevCrypto.sign([alice.priv, alice.priv])
@@ -56,7 +56,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
       bob: bob,
       state_alice_deposit: state
     } do
-      payment = Transaction.Payment.new([{1, 0, 0}], [{bob.addr, @eth, 4}])
+      payment = Transaction.Payment.new([{1, 0, 0}], [{bob.addr, @eth, 9}])
 
       payment
       |> DevCrypto.sign([alice.priv])
@@ -116,8 +116,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode(23))
       assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(ExRLP.encode([sigs, 1]))
 
-      # looks like a payment transaction but type points to a `FeeTokenClaim` transaction, hence malformed not
-      # unrecognized
+      # looks like a payment transaction but type points to a `Transaction.Fee`, hence malformed not unrecognized
       assert {:error, :malformed_transaction} =
                Transaction.Recovered.recover_from(ExRLP.encode([sigs, 3, inputs, outputs, 0, <<0::256>>]))
 
@@ -479,6 +478,17 @@ defmodule OMG.State.Transaction.RecoveredTest do
                |> Transaction.Recovered.recover_from()
     end
 
+    test "Decoding transaction with a bad RLP (non-optimal encoding) fails" do
+      # NOTE: it's hard to build a bad RLP encoding of a full transaction, so just check if invalidity of RLP is a
+      # specific error. This is a regression test for the underlying RLP implementation for
+      # https://github.com/mana-ethereum/ex_rlp/issues/26
+
+      # sanity check - correct RLP but nonsense
+      assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<10>>)
+      # non-optimally encoded `<<10>>` in RLP, a specific error is returned
+      assert {:error, :malformed_transaction_rlp} = Transaction.Recovered.recover_from(<<129, 10>>)
+    end
+
     test "Decoding transaction with >32 bytes in output amount fails" do
       outputs_index_in_rlp = 3
       [[type, [owner, currency, _amount]]] = Enum.at(good_tx_rlp_items(), outputs_index_in_rlp)
@@ -542,8 +552,10 @@ defmodule OMG.State.Transaction.RecoveredTest do
   end
 
   defp assert_tx_usable(signed, state_core) do
+    fee = %{@eth => [1]}
+
     {:ok, transaction} = signed |> Transaction.Signed.encode() |> Transaction.Recovered.recover_from()
-    assert {:ok, {_, _, _}, _state} = State.Core.exec(state_core, transaction, :no_fees_required)
+    assert {:ok, {_, _, _}, _state} = State.Core.exec(state_core, transaction, fee)
   end
 
   defp parametrized_tester({inputs, outputs}) do

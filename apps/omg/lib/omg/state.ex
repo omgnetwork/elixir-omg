@@ -33,12 +33,12 @@ defmodule OMG.State do
 
   require Utxo
 
-  @type exec_error :: Validator.exec_error()
+  @type exec_error :: Validator.can_process_tx_error()
 
   ### Client
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   @spec exec(tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
@@ -48,10 +48,12 @@ defmodule OMG.State do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
-  def form_block do
+  @spec form_block() :: :ok
+  def form_block() do
     GenServer.cast(__MODULE__, :form_block)
   end
 
+  # watcher
   @spec close_block() :: {:ok, list(Core.db_update())}
   def close_block() do
     GenServer.call(__MODULE__, :close_block)
@@ -79,8 +81,8 @@ defmodule OMG.State do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
-  @spec get_status :: {non_neg_integer(), boolean()}
-  def get_status do
+  @spec get_status() :: {non_neg_integer(), boolean()}
+  def get_status() do
     GenServer.call(__MODULE__, :get_status)
   end
 
@@ -89,28 +91,27 @@ defmodule OMG.State do
   @doc """
   Initializes the state. UTXO set is not loaded now.
   """
-  def init(:ok) do
+  def init(opts) do
     {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
-    {:ok, state} =
-      with {:ok, _data} = result <- Core.extract_initial_state(height_query_result, child_block_interval) do
-        _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{height_query_result}}")
+    fee_claimer_address = Keyword.fetch!(opts, :fee_claimer_address)
 
-        {:ok, _} =
-          :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
+    case Core.extract_initial_state(height_query_result, child_block_interval, fee_claimer_address) do
+      {:ok, _data} = result ->
+        _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{height_query_result}}")
+        metrics_collection_interval = Application.fetch_env!(:omg, :metrics_collection_interval)
+        {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
         result
-      else
-        {:error, reason} = error when reason in [:top_block_number_not_found] ->
-          _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
-          error
 
-        other ->
-          other
-      end
+      {:error, reason} = error when reason in [:top_block_number_not_found] ->
+        _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
+        error
 
-    {:ok, state}
+      other ->
+        other
+    end
   end
 
   def handle_info(:send_metrics, state) do
@@ -197,14 +198,20 @@ defmodule OMG.State do
   end
 
   @doc """
-  Wraps up accumulated transactions submissions into a block, triggers db update and:
+  Generates fee-transactions based on the fees paid in the block, wraps up accumulated transactions submissions
+  and fee transactions into a block, triggers db update and:
    - pushes the new block to subscribers of `"blocks"` internal event bus topic
 
   Does its on persistence!
   """
   def handle_cast(:form_block, state) do
     _ = Logger.debug("Forming new block...")
-    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = do_form_block(state)
+
+    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} =
+      state
+      |> Core.claim_fees()
+      |> do_form_block()
+
     _ = Logger.debug("Formed new block ##{blknum}")
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the

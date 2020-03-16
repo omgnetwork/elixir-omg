@@ -85,12 +85,12 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
   finalized input exits and finalized output exits structures both fit into `OMG.State.exit_utxos/1`.
 
   When there are invalid finalizations, returns one of the following:
-    - {:unknown_piggybacks, list of piggybacks that exit processor state is not aware of}
+    - {:inactive_piggybacks_finalizing, list of piggybacks that exit processor state is not aware of}
     - {:unknown_in_flight_exit, set of in-flight exit ids that exit processor is not aware of}
   """
   @spec prepare_utxo_exits_for_in_flight_exit_finalizations(Core.t(), [map()]) ::
           {:ok, map()}
-          | {:unknown_piggybacks, list()}
+          | {:inactive_piggybacks_finalizing, list()}
           | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def prepare_utxo_exits_for_in_flight_exit_finalizations(%Core{in_flight_exits: ifes}, finalizations) do
     finalizations = finalizations |> Enum.map(&ife_id_to_binary/1)
@@ -140,7 +140,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
     |> Enum.filter(&finalization_not_piggybacked?(&1, ifes_by_id))
     |> case do
       [] -> {:ok, []}
-      not_piggybacked -> {:unknown_piggybacks, not_piggybacked}
+      not_piggybacked -> {:inactive_piggybacks_finalizing, not_piggybacked}
     end
   end
 
@@ -148,7 +148,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
          %{in_flight_exit_id: ife_id, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}},
          ifes_by_id
        ),
-       do: not InFlightExitInfo.is_piggybacked?(ifes_by_id[ife_id], {piggyback_type, output_index})
+       do: not InFlightExitInfo.is_active?(ifes_by_id[ife_id], {piggyback_type, output_index})
 
   defp prepare_utxo_exits_for_finalization(
          %{in_flight_exit_id: ife_id, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}},
@@ -182,12 +182,12 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
   Returns a tuple of {:ok, updated state, database updates}.
   When there are invalid finalizations, returns one of the following:
-    - {:unknown_piggybacks, list of piggybacks that exit processor state is not aware of}
+    - {:inactive_piggybacks_finalizing, list of piggybacks that exit processor state is not aware of}
     - {:unknown_in_flight_exit, set of in-flight exit ids that exit processor is not aware of}
   """
   @spec finalize_in_flight_exits(Core.t(), [map()], map()) ::
           {:ok, Core.t(), list()}
-          | {:unknown_piggybacks, list()}
+          | {:inactive_piggybacks_finalizing, list()}
           | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def finalize_in_flight_exits(%Core{in_flight_exits: ifes} = state, finalizations, invalidities_by_ife_id) do
     # convert ife_id from int (given by contract) to a binary

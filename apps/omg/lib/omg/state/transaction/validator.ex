@@ -14,74 +14,50 @@
 
 defmodule OMG.State.Transaction.Validator do
   @moduledoc """
-  Provides functions for stateful transaction validation for transaction processing in OMG.State.Core.
+  Dispatches validation flow to payments application or fee claiming modules
   """
 
+  require OMG.State.Transaction.Payment
+
   @maximum_block_size 65_536
+  # NOTE: Last processed transaction could potentially take his room but also generate `max_inputs` fee transactions
+  @safety_margin 1 + OMG.State.Transaction.Payment.max_inputs()
+  @available_block_size @maximum_block_size - @safety_margin
 
   alias OMG.Fees
-  alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
-  alias OMG.State.UtxoSet
-  alias OMG.Utxo
+  alias OMG.State.Transaction.Validator
 
-  require Utxo
+  @type can_process_tx_error ::
+          :too_many_transactions_in_block | Validator.Payment.can_apply_error() | Validator.FeeClaim.fee_claim_error()
 
-  @type exec_error ::
-          :amounts_do_not_add_up
-          | :fees_not_covered
-          | :input_utxo_ahead_of_state
-          | :too_many_transactions_in_block
-          | :unauthorized_spend
-          | :utxo_not_found
-
-  @spec can_apply_spend(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
-          true | {{:error, exec_error()}, Core.t()}
-  def can_apply_spend(
-        %Core{utxos: utxos} = state,
-        %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses} = tx,
-        fees
-      ) do
-    inputs = Transaction.get_inputs(tx)
-
-    with :ok <- validate_block_size(state),
-         :ok <- inputs_not_from_future_block?(state, inputs),
-         {:ok, outputs_spent} <- UtxoSet.get_by_inputs(utxos, inputs),
-         :ok <- authorized?(outputs_spent, witnesses),
-         {:ok, implicit_paid_fee_by_currency} <- Transaction.Protocol.can_apply?(raw_tx, outputs_spent),
-         true <- Fees.covered?(implicit_paid_fee_by_currency, fees) || {:error, :fees_not_covered} do
-      true
-    else
-      {:error, _reason} = error -> {error, state}
-    end
+  @doc """
+  Checks, whether at a given state of the ledger, a particular transaction can be applied (!) to it,
+  subject to particular fee requirements
+  """
+  @spec can_process_tx(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
+          {:ok, map()} | {:ok, map()} | {{:error, can_process_tx_error()}, Core.t()}
+  def can_process_tx(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
+    with :ok <- validate_block_size(state), do: dispatch_validation(state, tx, fees)
   end
 
-  defp validate_block_size(%Core{tx_index: number_of_transactions_in_block}) do
-    case number_of_transactions_in_block == @maximum_block_size do
-      true -> {:error, :too_many_transactions_in_block}
+  defp validate_block_size(%Core{tx_index: number_of_transactions_in_block, fees_paid: fees_paid} = state) do
+    fee_transactions_count = Enum.count(fees_paid)
+
+    case number_of_transactions_in_block + fee_transactions_count > @available_block_size do
+      true -> {{:error, :too_many_transactions_in_block}, state}
       false -> :ok
     end
   end
 
-  defp inputs_not_from_future_block?(%Core{height: blknum}, inputs) do
-    no_utxo_from_future_block =
-      inputs
-      |> Enum.all?(fn Utxo.position(input_blknum, _, _) -> blknum >= input_blknum end)
+  defp dispatch_validation(state, %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Payment{}}} = tx, fees),
+    do: Validator.Payment.can_apply_tx(state, tx, fees)
 
-    if no_utxo_from_future_block, do: :ok, else: {:error, :input_utxo_ahead_of_state}
-  end
-
-  # Checks the outputs spent by this transaction have been authorized by correct witnesses
-  @spec authorized?(list(Output.t()), list(Transaction.Witness.t())) ::
-          :ok | {:error, :unauthorized_spend}
-  defp authorized?(outputs_spent, witnesses) do
-    outputs_spent
-    |> Enum.with_index()
-    |> Enum.map(fn {output_spent, idx} -> can_spend?(output_spent, witnesses[idx]) end)
-    |> Enum.all?()
-    |> if(do: :ok, else: {:error, :unauthorized_spend})
-  end
-
-  defp can_spend?(%OMG.Output{owner: owner}, witness), do: owner == witness
+  defp dispatch_validation(
+         state,
+         %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Fee{}}} = tx,
+         _fees
+       ),
+       do: Validator.FeeClaim.can_claim_fees(state, tx)
 end

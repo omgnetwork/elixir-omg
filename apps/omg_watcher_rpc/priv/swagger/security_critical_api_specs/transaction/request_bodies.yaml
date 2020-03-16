@@ -9,7 +9,7 @@ TransactionSubmitBodySchema:
         properties:
           transaction:
             type: string
-            format: binary
+             
         required:
           - transaction
         example:

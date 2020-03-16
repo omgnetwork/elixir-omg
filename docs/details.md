@@ -198,12 +198,12 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 * **`block_queue_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `BlockQueue` exclusively
 
 * **`fee_file_check_interval_ms`** - interval for checking updates in the `fee_specs.json` file to update the fees required.
+* 
+* **`fee_buffer_duration_ms`** - duration for which a fee is still valid after beeing updated.
 
 * **`block_submit_every_nth`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
 
 * **`fee_specs_file_name`** - path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
-
-* **`ignore_fees`** - boolean option allowing to turn off fee charging altogether
 
 ## Watcher configuration - `:omg_watcher` app
 
@@ -211,7 +211,12 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 After this margin passes, every invalid exit is deemed a critical failure of the child chain (`unchallenged_exit`).
 Such event will prompt a mass exit and stop processing new blocks.
 See [exit validation documentation](docs/exit_validation.md) for details.
+Cannot be larger than `min_exit_period_seconds` because otherwise it leads to a dangerous setup of the Watcher (in particular - muting the reports of unchallenged_exits).
 Override using the `EXIT_PROCESSOR_SLA_MARGIN` system environment variable.
+
+* **`exit_processor_sla_margin_forced`** - if set to `true`, will allow one to set a `exit_processor_sla_margin` that is larger than the `min_exit_period_seconds` of the child chain we're running for.
+Set to `true` only when you know what you are doing.
+Defaults to `false`, override using the `EXIT_PROCESSOR_SLA_MARGIN_FORCED` system environment variable.
 
 * **`maximum_block_withholding_time_ms`** - for how long the Watcher will tolerate failures to get a submitted child chain block, before reporting a block withholding attack and stopping
 
@@ -250,3 +255,7 @@ If you set this to false, remember to set the logging level to `:debug` to see t
 * **`child_block_interval`** - mirror of contract configuration `uint256 constant public CHILD_BLOCK_INTERVAL` from `RootChain.sol`
 
 * **`min_exit_period_seconds`** - mirror of contract configuration `uint256 public minExitPeriod`
+
+* **`ethereum_block_time_seconds`** - mirror the block time of the underlying root chain.
+Defaults to 15 seconds, suitable for public networks (`mainnet` and testnets).
+Override using the `ETHEREUM_BLOCK_TIME_SECONDS` system environment variable.

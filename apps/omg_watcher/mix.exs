@@ -1,7 +1,7 @@
 defmodule OMG.Watcher.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_watcher,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -18,7 +18,7 @@ defmodule OMG.Watcher.MixProject do
   end
 
   # Run "mix help compile.app" to learn about applications.
-  def application do
+  def application() do
     [
       mod: {OMG.Watcher.Application, []},
       start_phases: [{:attach_telemetry, []}],
@@ -31,9 +31,9 @@ defmodule OMG.Watcher.MixProject do
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps do
+  defp deps() do
     [
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4.1"},
       # there's no apparent reason why libsecp256k1, spandex and distillery need to be included as dependencies
       # to this umbrella application apart from mix ecto.gen.migration not working, so here they are, copied from
       # the parent (main) mix.exs

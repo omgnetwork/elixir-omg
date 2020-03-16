@@ -1,7 +1,7 @@
 defmodule OMG.ChildChain.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_child_chain,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -17,7 +17,7 @@ defmodule OMG.ChildChain.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     [
       extra_applications: [:logger, :telemetry],
       start_phases: [{:boot_done, []}, {:attach_telemetry, []}],
@@ -30,10 +30,9 @@ defmodule OMG.ChildChain.MixProject do
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps do
+  defp deps() do
     [
-      {:ex_rlp, "~> 0.5.2"},
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4.1"},
       #
       {:omg_bus, in_umbrella: true},
       {:omg, in_umbrella: true},

@@ -46,7 +46,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetEndpoint do
     :ok = Application.put_env(@app, OMG.ChildChainRPC.Web.Endpoint, Enum.sort(config), persistent: true)
   end
 
-  defp get_port do
+  defp get_port() do
     port =
       validate_integer(
         get_env("PORT"),
@@ -57,7 +57,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetEndpoint do
     {:port, port}
   end
 
-  defp get_hostname do
+  defp get_hostname() do
     hostname =
       validate_string(
         get_env("HOSTNAME"),

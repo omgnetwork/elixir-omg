@@ -48,7 +48,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
     :ok = System.put_env("APP_ENV", "YOLO")
     :ok = System.put_env("HOSTNAME", "server name")
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
-    :ok = SetSentry.init([])
+    :ok = SetSentry.init(release: :watcher, current_version: "current_version")
     configuration = Enum.sort(Application.get_all_env(@app))
     dsn = configuration[:dsn]
     app_env = configuration[:environment_name]
@@ -64,18 +64,25 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
     "RINKEBY" = Map.get(tags, :eth_network)
     :geth = Map.get(tags, :eth_node)
 
-    ^configuration =
-      @configuration_old
-      |> Keyword.put(:dsn, "/dsn/dsn/dsn")
-      |> Keyword.put(:environment_name, "YOLO")
-      |> Keyword.put(:included_environments, ["YOLO"])
-      |> Keyword.put(:server_name, "server name")
-      |> Keyword.put(:tags, %{application: :watcher, eth_network: "RINKEBY", eth_node: :geth})
-      |> Enum.sort()
+    assert configuration ==
+             @configuration_old
+             |> Keyword.put(:dsn, "/dsn/dsn/dsn")
+             |> Keyword.put(:environment_name, "YOLO")
+             |> Keyword.put(:included_environments, ["YOLO"])
+             |> Keyword.put(:server_name, "server name")
+             |> Keyword.put(:tags, %{
+               application: :watcher,
+               eth_network: "RINKEBY",
+               eth_node: :geth,
+               app_env: "YOLO",
+               current_version: "vsn-current_version",
+               hostname: "server name"
+             })
+             |> Enum.sort()
   end
 
   test "if sentry is disabled if there's no SENTRY DSN env var set" do
-    :ok = SetSentry.init([])
+    :ok = SetSentry.init(release: :child_chain, current_version: "current_version")
     configuration = Enum.sort(Application.get_all_env(@app))
     dsn = configuration[:dsn]
     app_env = configuration[:environment_name]
@@ -106,7 +113,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
     :ok = System.put_env("SENTRY_DSN", "/dsn/dsn/dsn")
 
     try do
-      SetSentry.init([])
+      SetSentry.init(release: :child_chain, current_version: "current_version")
     catch
       :exit, _reason ->
         :ok

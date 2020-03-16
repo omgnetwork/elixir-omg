@@ -11,6 +11,9 @@ info:
   license:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
     url: 'https://omisego.network/'
+servers:
+  - url: 'https://watcher.ropsten.v1.omg.network/'
+  - url: 'http://localhost:7434/'
 tags:
   - name: Status
     description: Status of the child chain.
@@ -25,8 +28,6 @@ tags:
     description: Transaction related API.
   - name: InFlightExit
     description: InFlightExit related API.
-servers:
-  - url: 'http://localhost:7434/'
 paths:
   /alarm.get:
     get:
@@ -74,7 +75,7 @@ paths:
                             anyOf:
                               - type: object
                                 properties:
-                                  ethereum_client_connection:
+                                  ethereum_connection_error:
                                     type: object
                                     properties:
                                       node:
@@ -83,7 +84,18 @@ paths:
                                         type: string
                               - type: object
                                 properties:
-                                  ethereum_client_connection:
+                                  ethereum_stalled_sync:
+                                    type: object
+                                    properties:
+                                      ethereum_height:
+                                        type: integer
+                                        minimum: 0
+                                      synced_at:
+                                        type: string
+                                        format: date-time
+                              - type: object
+                                properties:
+                                  invalid_fee_file:
                                     type: object
                                     properties:
                                       node:
@@ -113,8 +125,123 @@ paths:
                     example:
                       data:
                         - disk_almost_full: /dev/null
-                          ethereum_client_connection: {}
+                          ethereum_connection_error: {}
+                          ethereum_stalled_sync: {}
                           system_memory_high_watermark: []
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                      service_name:
+                        type: string
+                    required:
+                      - service_name
+                      - version
+                      - success
+                      - data
+                    example:
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /configuration.get:
+    get:
+      tags:
+        - Configuration
+      summary: Provides configuration values
+      description: |
+        **Note:** Configuration values.
+      operationId: configuration_get
+      responses:
+        '200':
+          description: Configuration response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                      service_name:
+                        type: string
+                    required:
+                      - service_name
+                      - version
+                      - success
+                      - data
+                    example:
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            deposit_finality_margin:
+                              type: integer
+                              format: int256
+                            contract_semver:
+                              type: string
+                            exit_processor_sla_margin:
+                              type: integer
+                              format: int256
+                            network:
+                              type: string
+                    example:
+                      data:
+                        - deposit_finality_margin: 10
+                          contract_semver: 1.0.0.1+a1s29s8
         '500':
           description: Returns an internal server error
           content:
@@ -239,7 +366,6 @@ paths:
                             properties:
                               plasma_framework:
                                 type: string
-                                format: binary
                           eth_syncing:
                             type: boolean
                           byzantine_events:
@@ -385,6 +511,17 @@ paths:
                                           type: array
                                           items:
                                             type: integer
+                                - type: object
+                                  properties:
+                                    ethereum_stalled_sync:
+                                      type: object
+                                      properties:
+                                        ethereum_height:
+                                          type: integer
+                                          minimum: 0
+                                        synced_at:
+                                          type: string
+                                          format: date-time
                           in_flight_txs:
                             type: array
                             items:
@@ -502,6 +639,10 @@ paths:
                                 - 1
                               outputs:
                                 - 0
+                          - event: ethereum_stalled_sync
+                            details:
+                              eth_height: 615440
+                              synced_at: '2020-02-07T10:10:10+00:00'
                         in_flight_txs:
                           - txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'
                             txbytes: 0x3eb6ae5b06f3...
@@ -620,7 +761,6 @@ paths:
               properties:
                 address:
                   type: string
-                  format: binary
               required:
                 - address
               example:
@@ -666,6 +806,9 @@ paths:
                             txindex:
                               type: integer
                               format: int16
+                            otype:
+                              type: integer
+                              format: int16
                             oindex:
                               type: integer
                               format: int8
@@ -674,10 +817,8 @@ paths:
                               format: int256
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -686,6 +827,7 @@ paths:
                         - blknum: 123000
                           txindex: 111
                           oindex: 0
+                          otype: 1
                           utxo_pos: 123000001110000
                           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                           currency: '0x0000000000000000000000000000000000000000'
@@ -812,13 +954,10 @@ paths:
                             format: int8
                           sig:
                             type: string
-                            format: binary
                           txbytes:
                             type: string
-                            format: binary
                           exiting_tx:
                             type: string
-                            format: binary
                     example:
                       data:
                         exit_id: 1.7176118930141594e+45
@@ -945,10 +1084,8 @@ paths:
                             format: int256
                           txbytes:
                             type: string
-                            format: binary
                           proof:
                             type: string
-                            format: binary
                     example:
                       data:
                         proof: 0xcedb8b31d1e4...
@@ -1029,7 +1166,6 @@ paths:
               properties:
                 transaction:
                   type: string
-                  format: binary
               required:
                 - transaction
               example:
@@ -1075,7 +1211,6 @@ paths:
                             format: int16
                           txhash:
                             type: string
-                            format: binary
                     example:
                       data:
                         blknum: 123000
@@ -1157,7 +1292,6 @@ paths:
               properties:
                 txbytes:
                   type: string
-                  format: binary
               required:
                 - txbytes
               example:
@@ -1198,22 +1332,18 @@ paths:
                         properties:
                           in_flight_tx:
                             type: string
-                            format: binary
                           input_txs:
                             type: array
                             items:
                               type: string
-                              format: binary
                           input_txs_inclusion_proofs:
                             type: array
                             items:
                               type: string
-                              format: binary
                           in_flight_tx_sigs:
                             type: array
                             items:
                               type: string
-                              format: binary
                           input_utxos_pos:
                             type: array
                             items:
@@ -1305,7 +1435,6 @@ paths:
               properties:
                 txbytes:
                   type: string
-                  format: binary
               required:
                 - txbytes
               example:
@@ -1346,28 +1475,23 @@ paths:
                         properties:
                           in_flight_txbytes:
                             type: string
-                            format: binary
                           in_flight_input_index:
                             type: integer
                             format: int8
                           competing_txbytes:
                             type: string
-                            format: binary
                           competing_input_index:
                             type: integer
                             format: int8
                           competing_sig:
                             type: string
-                            format: binary
                           competing_tx_pos:
                             type: integer
                             format: int256
                           competing_proof:
                             type: string
-                            format: binary
                           input_tx:
                             type: string
-                            format: binary
                           input_utxo_pos:
                             type: integer
                             format: int256
@@ -1457,7 +1581,6 @@ paths:
               properties:
                 txbytes:
                   type: string
-                  format: binary
               required:
                 - txbytes
               example:
@@ -1498,13 +1621,11 @@ paths:
                         properties:
                           in_flight_txbytes:
                             type: string
-                            format: binary
                           in_flight_tx_pos:
                             type: integer
                             format: int256
                           in_flight_proof:
                             type: string
-                            format: binary
                     example:
                       data:
                         in_flight_txbytes: 0xf3170101c0940000...
@@ -1585,7 +1706,6 @@ paths:
               properties:
                 txbytes:
                   type: string
-                  format: binary
                 input_index:
                   type: integer
                   format: int8
@@ -1631,22 +1751,18 @@ paths:
                         properties:
                           in_flight_txbytes:
                             type: string
-                            format: binary
                           in_flight_input_index:
                             type: integer
                             format: int8
                           spending_txbytes:
                             type: string
-                            format: binary
                           spending_input_index:
                             type: integer
                             format: int8
                           spending_sig:
                             type: string
-                            format: binary
                           input_tx:
                             type: string
-                            format: binary
                           input_utxo_pos:
                             type: integer
                             format: int256
@@ -1734,7 +1850,6 @@ paths:
               properties:
                 txbytes:
                   type: string
-                  format: binary
                 output_index:
                   type: integer
                   format: int8
@@ -1780,22 +1895,18 @@ paths:
                         properties:
                           in_flight_txbytes:
                             type: string
-                            format: binary
                           in_flight_output_pos:
                             type: integer
                             format: int256
                           in_flight_proof:
                             type: string
-                            format: binary
                           spending_txbytes:
                             type: string
-                            format: binary
                           spending_input_index:
                             type: integer
                             format: int8
                           spending_sig:
                             type: string
-                            format: binary
                     example:
                       data:
                         in_flight_txbytes: 0xf3170101c0940000...

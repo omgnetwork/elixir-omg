@@ -20,7 +20,7 @@ defmodule OMG.WatcherInfo.DB.Types.IntegerType do
   and we only work with whole numbers, we can safely convert to Elixir's primitive integer for easier operations.
   """
   @behaviour Ecto.Type
-  def type, do: :integer
+  def type(), do: :integer
 
   def cast(value) do
     {:ok, value}
@@ -37,4 +37,9 @@ defmodule OMG.WatcherInfo.DB.Types.IntegerType do
   def dump(value) do
     {:ok, value}
   end
+
+  # https://hexdocs.pm/ecto/Ecto.Type.html#c:embed_as/1
+  def embed_as(_), do: :self
+
+  def equal?(value1, value2), do: value1 == value2
 end

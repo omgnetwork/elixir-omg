@@ -43,6 +43,8 @@ defmodule OMG.WatcherInfo.DB.Block do
     field(:tx_count, :integer, virtual: true, default: nil)
 
     has_many(:transactions, DB.Transaction, foreign_key: :blknum)
+
+    timestamps(type: :utc_datetime_usec)
   end
 
   defp changeset(block, params) do
@@ -56,7 +58,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   end
 
   @spec get_max_blknum() :: non_neg_integer()
-  def get_max_blknum do
+  def get_max_blknum() do
     DB.Repo.aggregate(__MODULE__, :max, :blknum)
   end
 
@@ -92,8 +94,8 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> Paginator.set_data(paginator)
   end
 
-  @spec query_count :: Ecto.Query.t()
-  defp query_count do
+  @spec query_count() :: Ecto.Query.t()
+  defp query_count() do
     from(block in __MODULE__, select: count())
   end
 
@@ -242,22 +244,25 @@ defmodule OMG.WatcherInfo.DB.Block do
         ]
   defp prepare_db_transaction(recovered_tx, block_number, txindex) do
     tx = Map.fetch!(recovered_tx, :signed_tx)
-    metadata = tx |> Map.fetch!(:raw_tx) |> Map.fetch!(:metadata)
+    raw_tx = Map.fetch!(tx, :raw_tx)
+    tx_type = Map.fetch!(raw_tx, :tx_type)
+    metadata = Map.get(raw_tx, :metadata)
     signed_tx_bytes = Map.fetch!(recovered_tx, :signed_tx_bytes)
     tx_hash = State.Transaction.raw_txhash(tx)
 
-    transaction = create(block_number, txindex, tx_hash, signed_tx_bytes, metadata)
+    transaction = create(block_number, txindex, tx_hash, tx_type, signed_tx_bytes, metadata)
     outputs = DB.TxOutput.create_outputs(block_number, txindex, tx_hash, tx)
     inputs = DB.TxOutput.create_inputs(tx, tx_hash)
 
     {transaction, outputs, inputs}
   end
 
-  @spec create(pos_integer(), integer(), binary(), binary(), State.Transaction.metadata()) ::
+  @spec create(pos_integer(), integer(), binary(), pos_integer(), binary(), State.Transaction.metadata()) ::
           map()
-  defp create(block_number, txindex, txhash, txbytes, metadata) do
+  defp create(block_number, txindex, txhash, txtype, txbytes, metadata) do
     %{
       txhash: txhash,
+      txtype: txtype,
       txbytes: txbytes,
       blknum: block_number,
       txindex: txindex,

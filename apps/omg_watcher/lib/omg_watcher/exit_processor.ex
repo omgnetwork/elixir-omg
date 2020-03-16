@@ -36,8 +36,8 @@ defmodule OMG.Watcher.ExitProcessor do
 
   ### Client
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   @doc """
@@ -148,7 +148,7 @@ defmodule OMG.Watcher.ExitProcessor do
   This function may also update some internal caches to make subsequent calls not redo the work,
   but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
   """
-  def check_validity do
+  def check_validity() do
     GenServer.call(__MODULE__, :check_validity)
   end
 
@@ -156,7 +156,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns a map of requested in flight exits, keyed by transaction hash
   """
   @spec get_active_in_flight_exits() :: {:ok, Core.in_flight_exits_response_t()}
-  def get_active_in_flight_exits do
+  def get_active_in_flight_exits() do
     GenServer.call(__MODULE__, :get_active_in_flight_exits)
   end
 
@@ -209,30 +209,41 @@ defmodule OMG.Watcher.ExitProcessor do
 
   use GenServer
 
-  def init(:ok) do
+  def init(
+        exit_processor_sla_margin: exit_processor_sla_margin,
+        exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
+        min_exit_period_seconds: min_exit_period_seconds,
+        ethereum_block_time_seconds: ethereum_block_time_seconds,
+        metrics_collection_interval: metrics_collection_interval
+      ) do
     {:ok, db_exits} = DB.exit_infos()
     {:ok, db_ifes} = DB.in_flight_exits_info()
     {:ok, db_competitors} = DB.competitors_info()
 
-    sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
+    with :ok <-
+           Core.check_sla_margin(
+             exit_processor_sla_margin,
+             exit_processor_sla_margin_forced,
+             min_exit_period_seconds,
+             ethereum_block_time_seconds
+           ),
+         {:ok, processor} <- Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_margin) do
+      {:ok, _} =
+        :timer.send_interval(
+          metrics_collection_interval,
+          self(),
+          :send_metrics
+        )
 
-    processor = Core.init(db_exits, db_ifes, db_competitors, sla_margin)
-
-    {:ok, _} =
-      :timer.send_interval(
-        Application.fetch_env!(:omg_watcher, :metrics_collection_interval),
-        self(),
-        :send_metrics
-      )
-
-    _ = Logger.info("Initializing with: #{inspect(processor)}")
-    processor
+      _ = Logger.info("Initializing with: #{inspect(processor)}")
+      {:ok, processor}
+    end
   end
 
   def handle_call({:new_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
-    {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exits_structs(get_in(exits, [Access.all(), :exit_id]))
+    {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exit_structs(get_in(exits, [Access.all(), :exit_id]))
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
@@ -241,16 +252,16 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:new_in_flight_exits, events}, _from, state) do
     _ = if not Enum.empty?(events), do: Logger.info("Recognized in-flight exits: #{inspect(events)}")
 
-    ife_contract_statuses =
+    contract_ife_ids =
       Enum.map(
         events,
-        fn %{call_data: %{in_flight_tx: bytes}} ->
-          {:ok, contract_ife_id} = Eth.RootChain.get_in_flight_exit_id(bytes)
-          {:ok, status} = Eth.RootChain.get_in_flight_exit_struct(contract_ife_id)
-          {status, contract_ife_id}
+        fn %{call_data: %{in_flight_tx: txbytes}} ->
+          ExPlasma.InFlightExit.txbytes_to_id(txbytes)
         end
       )
 
+    {:ok, statuses} = Eth.RootChain.get_in_flight_exit_structs(contract_ife_ids)
+    ife_contract_statuses = Enum.zip(statuses, contract_ife_ids)
     {new_state, db_updates} = Core.new_in_flight_exits(state, events, ife_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
   end
@@ -461,7 +472,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, blocks} = OMG.DB.blocks(hashes)
     _ = Logger.debug("blocks_result: #{inspect(blocks)}")
 
-    blocks |> Enum.map(&Block.from_db_value/1)
+    Enum.map(blocks, &Block.from_db_value/1)
   end
 
   defp do_get_spent_blknum(position) do

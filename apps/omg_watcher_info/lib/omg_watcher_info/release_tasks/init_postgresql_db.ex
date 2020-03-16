@@ -24,7 +24,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB do
   @start_apps [:crypto, :ssl, :postgrex, :phoenix_ecto, :ecto_sql, :telemetry]
   @apps [:omg_watcher_info]
 
-  def run do
+  def run() do
     Enum.each(@start_apps, &Application.ensure_all_started/1)
     Enum.each(@apps, &init_pg_db/1)
     :init.stop()

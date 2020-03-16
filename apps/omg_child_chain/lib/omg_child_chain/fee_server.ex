@@ -17,17 +17,19 @@ defmodule OMG.ChildChain.FeeServer do
   Maintains current fee rates and tokens in which fees may be paid.
 
   Periodically updates fees information from an external source (defined in config
-  by fee_adapter) until switched off with config :omg_child_chain, :ignore_fees.
+  by fee_adapter).
 
   Fee's file parsing and rules of transaction's fee validation are in `OMG.Fees`
   """
   use GenServer
   use OMG.Utils.LoggerExt
 
+  alias OMG.ChildChain.Fees.FeeMerger
   alias OMG.Fees
   alias OMG.Status.Alert.Alarm
 
   @fee_file_check_interval_ms Application.fetch_env!(:omg_child_chain, :fee_file_check_interval_ms)
+  @fee_buffer_duration_ms Application.fetch_env!(:omg_child_chain, :fee_buffer_duration_ms)
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -39,64 +41,91 @@ defmodule OMG.ChildChain.FeeServer do
     # This will crash the process by returning {:error, :fee_adapter_not_defined}
     # if the fee_adapter is not set in the config
     {:ok, fee_adapter} = get_fee_adapter()
-    args = Keyword.put(args, :fee_adapter, fee_adapter)
 
-    args =
-      case Application.get_env(:omg_child_chain, :ignore_fees) do
-        true ->
-          :ok = save_fees(:no_fees_required, 0)
-          _ = Logger.warn("Fees are ignored.")
-          args
+    {:ok, state} =
+      args
+      |> Enum.into(%{})
+      |> Map.put(:fee_adapter, fee_adapter)
+      |> Map.put(:expire_fee_timer, nil)
+      |> update_fee_specs()
 
-        opt when is_nil(opt) or is_boolean(opt) ->
-          :ok = update_fee_specs(fee_adapter)
-          interval = Keyword.get(args, :interval_ms, @fee_file_check_interval_ms)
-          {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_specs)
-          Keyword.put(args, :tref, tref)
-      end
+    interval = Map.get(state, :interval_ms, @fee_file_check_interval_ms)
+    {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_specs)
+    state = Map.put(state, :tref, tref)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
 
-    {:ok, args}
+    {:ok, state}
   end
 
   @doc """
-  Returns accepted tokens and amounts in which transaction fees are collected for each transaction type
+  Returns a list of amounts that are accepted as a fee for each token/type.
+  These amounts include the currently supported fees plus the buffered ones.
   """
-  @spec transaction_fees() :: {:ok, %{String.t() => [Fees.full_fee_t()]}}
-  def transaction_fees() do
-    {:ok, load_fees()}
+  @spec accepted_fees() :: {:ok, Fees.typed_merged_fee_t()}
+  def accepted_fees() do
+    {:ok, load_accepted_fees()}
   end
 
-  def handle_info(:update_fee_specs, state) do
-    _ =
-      case Application.get_env(:omg_child_chain, :ignore_fees) do
-        true ->
-          _ = Logger.warn("Fees are ignored. Updates have no effect.")
+  @doc """
+  Returns currently accepted tokens and amounts in which transaction fees are collected for each transaction type
+  """
+  @spec current_fees() :: {:ok, Fees.full_fee_t()}
+  def current_fees() do
+    {:ok, load_current_fees()}
+  end
 
-        _ ->
-          case update_fee_specs(state[:fee_adapter]) do
-            :ok ->
-              Alarm.clear(Alarm.invalid_fee_file(__MODULE__))
+  def handle_info(:expire_previous_fees, state) do
+    merged_fee_specs =
+      :fees_bucket
+      |> :ets.lookup_element(:fees, 2)
+      |> FeeMerger.merge_specs(nil)
 
-            _ ->
-              Alarm.set(Alarm.invalid_fee_file(__MODULE__))
-          end
-      end
+    true =
+      :ets.insert(:fees_bucket, [
+        {:previous_fees, nil},
+        {:merged_fees, merged_fee_specs}
+      ])
 
+    _ = Logger.info("Previous fees are now invalid and current fees must be paid")
     {:noreply, state}
   end
 
-  @spec update_fee_specs(module()) :: :ok | {:error, atom() | [{:error, atom()}, ...]}
-  defp update_fee_specs(adapter) do
+  def handle_info(:update_fee_specs, state) do
+    new_state =
+      case update_fee_specs(state) do
+        {:ok, updated_state} ->
+          Alarm.clear(Alarm.invalid_fee_file(__MODULE__))
+          updated_state
+
+        :ok ->
+          Alarm.clear(Alarm.invalid_fee_file(__MODULE__))
+          state
+
+        _ ->
+          Alarm.set(Alarm.invalid_fee_file(__MODULE__))
+          state
+      end
+
+    {:noreply, new_state}
+  end
+
+  @spec update_fee_specs(map()) :: :ok | {:ok, map()} | {:error, list({:error, atom(), any(), non_neg_integer() | nil})}
+  defp update_fee_specs(%{fee_adapter: adapter, expire_fee_timer: current_timer} = state) do
     source_updated_at = :ets.lookup_element(:fees_bucket, :fee_specs_source_updated_at, 2)
 
     case adapter.get_fee_specs(source_updated_at) do
       {:ok, fee_specs, source_updated_at} ->
         :ok = save_fees(fee_specs, source_updated_at)
-        _ = Logger.info("Reloaded #{inspect(Enum.count(fee_specs))} fee specs from
-                         #{inspect(adapter)}, changed at #{inspect(source_updated_at)}")
-        :ok
+        _ = Logger.info("Reloaded fee specs from #{inspect(adapter)}, changed at #{inspect(source_updated_at)}")
+        new_timer = start_expiration_timer(current_timer)
+
+        _ =
+          Logger.info(
+            "Timer started: previous fees will still be valid for #{inspect(@fee_buffer_duration_ms)} ms, or until new fees are set"
+          )
+
+        {:ok, Map.put(state, :expire_fee_timer, new_timer)}
 
       :ok ->
         :ok
@@ -107,25 +136,48 @@ defmodule OMG.ChildChain.FeeServer do
     end
   end
 
-  defp save_fees(fee_specs, last_updated_at) do
+  defp save_fees(new_fee_specs, last_updated_at) do
+    previous_fees_specs = :ets.lookup_element(:fees_bucket, :fees, 2)
+    merged_fee_specs = FeeMerger.merge_specs(new_fee_specs, previous_fees_specs)
+
     true =
       :ets.insert(:fees_bucket, [
         {:updated_at, :os.system_time(:second)},
         {:fee_specs_source_updated_at, last_updated_at},
-        {:fees, fee_specs}
+        {:fees, new_fee_specs},
+        {:previous_fees, previous_fees_specs},
+        {:merged_fees, merged_fee_specs}
       ])
 
     :ok
   end
 
-  defp load_fees() do
+  defp start_expiration_timer(timer) do
+    # If a timer was already started, we cancel it
+    _ = if timer != nil, do: Process.cancel_timer(timer)
+    # We then start a new timer that will set the previous fees to nil uppon expiration
+    Process.send_after(self(), :expire_previous_fees, @fee_buffer_duration_ms)
+  end
+
+  defp load_current_fees() do
     :ets.lookup_element(:fees_bucket, :fees, 2)
+  end
+
+  defp load_accepted_fees() do
+    :ets.lookup_element(:fees_bucket, :merged_fees, 2)
   end
 
   defp ensure_ets_init() do
     _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :public, :named_table])
 
-    true = :ets.insert(:fees_bucket, {:fee_specs_source_updated_at, 0})
+    true =
+      :ets.insert(:fees_bucket, [
+        {:fee_specs_source_updated_at, 0},
+        {:fees, nil},
+        {:previous_fees, nil},
+        {:merged_fees, nil}
+      ])
+
     :ok
   end
 

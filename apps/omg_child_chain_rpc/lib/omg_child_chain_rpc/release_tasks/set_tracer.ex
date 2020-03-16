@@ -25,8 +25,6 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracer do
     config = Keyword.put(config, :disabled?, get_dd_disabled())
     config = Keyword.put(config, :env, get_app_env())
 
-    :ok = Application.put_env(:statix, :tags, ["application:child_chain", "app_env:#{get_app_env()}"], persistent: true)
-
     :ok = Application.put_env(@app, OMG.ChildChainRPC.Tracer, config, persistent: true)
     :ok = Application.put_env(:spandex_phoenix, :tracer, OMG.ChildChainRPC.Tracer, persistent: true)
   end

@@ -16,22 +16,22 @@ services:
       retries: 5
 
   geth:
-    image: ethereum/client-go:v1.8.27
+    image: ethereum/client-go:v1.9.11
     entrypoint:
       - /bin/sh
       - -c
       - |
-          
           apk add --update curl
           # Configures geth with the deployer and authority accounts. This includes:
           #   1. Configuring the deployer's keystore
           #   2. Configuring the authority's keystore
           #   3. Configuring the keystores' password
           #   4. Unlocking the accounts by their indexes
+          # CAREFUL with --allow-insecure-unlock!
           echo "" > /tmp/geth-blank-password
           # Starts geth
-          
-          geth --syncmode 'fast' --miner.gastarget 7500000 \
+          # Websocket is not used by the applications but enabled for debugging/testing convenience
+          geth --miner.gastarget 7500000 \
             --miner.gasprice "10" \
             --nodiscover \
             --maxpeers 0 \
@@ -44,8 +44,8 @@ services:
             --unlock "0,1" \
             --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 \
             --ws --wsaddr 0.0.0.0 --wsorigins='*' \
-            --mine 
-            
+            --mine \
+            --allow-insecure-unlock
     ports:
       - "8545:8545"
       - "8546:8546"
@@ -68,15 +68,17 @@ services:
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
-      - ETHEREUM_WS_RPC_URL=ws://geth:8546
-      - CHILD_CHAIN_URL=http://childchain:9656
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
-      - APP_ENV=local_development
+      - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+      - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
+      - FEE_BUFFER_DURATION_MS=30000
+      - LOGGER_BACKEND=console
     restart: always
     ports:
       - "9656:9656"
@@ -100,16 +102,20 @@ services:
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
-      - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - PORT=7434
-      - APP_ENV=local_development
+      - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+      - ETHEREUM_BLOCK_TIME_SECONDS=1
+      - EXIT_PROCESSOR_SLA_MARGIN=5520
+      - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
+      - LOGGER_BACKEND=console
     restart: always
     ports:
       - "7434:7434"
@@ -133,17 +139,20 @@ services:
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
-      - ETHEREUM_WS_RPC_URL=ws://geth:8546
       - CHILD_CHAIN_URL=http://childchain:9656
       - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - ERLANG_COOKIE=develop
       - NODE_HOST=127.0.0.1
       - PORT=7534
-      - APP_ENV=local_development
+      - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      - ETHEREUM_BLOCK_TIME_SECONDS=1
+      - EXIT_PROCESSOR_SLA_MARGIN=5520
+      - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
+      - LOGGER_BACKEND=console
     restart: always
     ports:
       - "7534:7534"

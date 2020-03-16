@@ -1,7 +1,7 @@
 defmodule OMG.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -17,7 +17,7 @@ defmodule OMG.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     [
       mod: {OMG.Application, []},
       extra_applications: [:logger, :sentry, :telemetry]
@@ -30,22 +30,17 @@ defmodule OMG.MixProject do
   defp elixirc_paths(:dev), do: ["lib", "test/support"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps do
+  defp deps() do
     [
       {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git"},
-      {:ex_rlp, "~> 0.5.2"},
+      {:ex_rlp, "~> 0.5.3"},
       {:merkle_tree, "~> 2.0.0"},
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4.1"},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
-      {:omg_status, in_umbrella: true},
-
-      # TEST ONLY
-
-      # Used for mocking websocket servers
-      {:plug_cowboy, "~> 1.0", only: [:dev, :test]}
+      {:omg_status, in_umbrella: true}
     ]
   end
 end

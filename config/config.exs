@@ -19,7 +19,15 @@ config :logger, :console,
   metadata: [:module, :function, :request_id, :trace_id, :span_id]
 
 config :logger,
-  backends: [:console]
+  backends: [Sentry.LoggerBackend, Ink]
+
+config :logger, Ink,
+  name: "elixir-omg",
+  exclude_hostname: true
+
+config :logger, Sentry.LoggerBackend,
+  include_logger_metadata: true,
+  ignore_plug: true
 
 config :sentry,
   dsn: nil,

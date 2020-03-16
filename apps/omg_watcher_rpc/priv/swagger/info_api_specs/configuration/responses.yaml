@@ -1,0 +1,6 @@
+ConfigurationResponse:
+  description: Configuration response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/ConfigurationResponseSchema'

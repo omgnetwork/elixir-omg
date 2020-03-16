@@ -19,18 +19,19 @@ defmodule OMG.Eth.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   alias OMG.Eth.Encoding
-  alias OMG.Eth.RootChain
   alias Support.DevHelper
   alias Support.DevNode
   alias Support.RootChainHelper
   alias Support.SnapshotContracts
 
+  @test_eth_vault_id 1
   @test_erc20_vault_id 2
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   deffixture eth_node do
     if Application.get_env(:omg_eth, :run_test_eth_dev_node, true) do
       {:ok, exit_fn} = DevNode.start()
+
       on_exit(exit_fn)
     end
 
@@ -56,12 +57,10 @@ defmodule OMG.Eth.Fixtures do
     {:ok, true} =
       Ethereumex.HttpClient.request("personal_unlockAccount", ["0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d", "", 0], [])
 
-    add_exit_queue =
-      RootChainHelper.add_exit_queue(1, @eth, %{
-        plasma_framework: Encoding.from_hex("0xc673e4ffcb8464faff908a6804fe0e635af0ea2f")
-      })
+    add_exit_queue = RootChainHelper.add_exit_queue(@test_eth_vault_id, @eth, contract.contract_addr)
 
-    {:ok, _} = Support.DevHelper.transact_sync!(add_exit_queue)
+    {:ok, %{"status" => "0x1"}} = Support.DevHelper.transact_sync!(add_exit_queue)
+
     contract
   end
 
@@ -80,7 +79,7 @@ defmodule OMG.Eth.Fixtures do
   end
 
   deffixture root_chain_contract_config(contract) do
-    contract_addr = RootChain.contract_map_to_hex(contract.contract_addr)
+    contract_addr = contract_map_to_hex(contract.contract_addr)
     Application.put_env(:omg_eth, :contract_addr, contract_addr, persistent: true)
     Application.put_env(:omg_eth, :authority_addr, Encoding.to_hex(contract.authority_addr), persistent: true)
     Application.put_env(:omg_eth, :txhash_contract, Encoding.to_hex(contract.txhash_contract), persistent: true)
@@ -100,4 +99,9 @@ defmodule OMG.Eth.Fixtures do
 
     :ok
   end
+
+  # Hexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
+
+  defp contract_map_to_hex(contract_map),
+    do: Enum.into(contract_map, %{}, fn {name, addr} -> {name, Encoding.to_hex(addr)} end)
 end

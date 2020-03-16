@@ -1,7 +1,7 @@
 defmodule OMG.Status.Mixfile do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_status,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -22,7 +22,7 @@ defmodule OMG.Status.Mixfile do
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  def application do
+  def application() do
     [
       mod: {OMG.Status.Application, []},
       start_phases: [{:install_alarm_handler, []}],
@@ -31,14 +31,15 @@ defmodule OMG.Status.Mixfile do
     ]
   end
 
-  defp deps,
+  defp deps(),
     do: [
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4.1"},
       {:sentry, "~> 7.0"},
-      {:statix, git: "https://github.com/bleacherreport/statix.git", branch: "otp-21.3.8.4-support"},
+      {:statix, git: "https://github.com/omisego/statix.git", branch: "otp-21.3.8.4-support-global-tag-patch"},
       {:spandex_datadog, "~> 0.4"},
       {:decorator, "~> 1.2"},
       {:vmstats, "~> 2.3", runtime: false},
+      {:ink, "~> 1.0"},
       # umbrella apps
       {:omg_bus, in_umbrella: true}
     ]

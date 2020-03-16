@@ -121,6 +121,30 @@ defmodule OMG.Watcher.ExitProcessor.Core do
      }}
   end
 
+  @doc """
+  Use to check if the settings regarding the `:exit_processor_sla_margin` config of `:omg_watcher` are OK.
+
+  Since there are combinations of our configuration that may lead to a dangerous setup of the Watcher
+  (in particular - muting the reports of unchallenged_exits), we're enforcing that the `exit_processor_sla_margin`
+  be not larger than `min_exit_period`.
+  """
+  @spec check_sla_margin(pos_integer(), boolean(), pos_integer(), pos_integer()) :: :ok | {:error, :sla_margin_too_big}
+  def check_sla_margin(sla_margin, sla_margin_forced, min_exit_period_seconds, ethereum_block_time_seconds)
+
+  def check_sla_margin(sla_margin, true, min_exit_period_seconds, ethereum_block_time_seconds) do
+    _ =
+      if !sla_margin_safe?(sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
+        do: Logger.warn("Allowing unsafe sla margin of #{sla_margin} blocks")
+
+    :ok
+  end
+
+  def check_sla_margin(sla_margin, false, min_exit_period_seconds, ethereum_block_time_seconds) do
+    if sla_margin_safe?(sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
+      do: :ok,
+      else: {:error, :sla_margin_too_big}
+  end
+
   def exit_key_by_exit_id(%__MODULE__{exit_ids: exit_ids}, exit_id), do: exit_ids[exit_id]
 
   @doc """
@@ -319,7 +343,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.filter(&InFlightExitInfo.is_relevant?(&1, blknum_now))
 
     ife_inputs_pos = active_relevant_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
-    ife_outputs_pos = active_relevant_ifes |> Enum.flat_map(&InFlightExitInfo.get_piggybacked_outputs_positions/1)
+    ife_outputs_pos = active_relevant_ifes |> Enum.flat_map(&InFlightExitInfo.get_active_output_piggybacks_positions/1)
 
     (ife_outputs_pos ++ ife_inputs_pos ++ standard_exits_pos)
     |> :lists.usort()
@@ -350,7 +374,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.flat_map(fn %{tx: tx} = ife ->
-        InFlightExitInfo.get_piggybacked_outputs_positions(ife) ++ Transaction.get_inputs(tx)
+        InFlightExitInfo.get_active_output_piggybacks_positions(ife) ++ Transaction.get_inputs(tx)
       end)
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> :lists.usort()
@@ -443,11 +467,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     invalid_ife_challenges_events = ExitProcessor.Canonicity.get_invalid_ife_challenges(state)
 
     invalid_piggybacks = ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input)
-
-    # TODO: late piggybacks are critical, to be implemented in OMG-408
-    late_invalid_piggybacks = []
-
-    has_no_late_invalid_exits = Enum.empty?(late_invalid_exits) and Enum.empty?(late_invalid_piggybacks)
+    has_no_late_invalid_exits = Enum.empty?(late_invalid_exits)
 
     available_piggybacks_events =
       get_ifes_to_piggyback(state)
@@ -458,7 +478,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         late_invalid_exits_events,
         invalid_exit_events,
         invalid_piggybacks,
-        late_invalid_piggybacks,
         ifes_with_competitors_events,
         invalid_ife_challenges_events,
         available_piggybacks_events
@@ -494,14 +513,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     available_inputs =
       input_witnesses
-      |> Enum.filter(fn {index, _} -> not InFlightExitInfo.is_input_piggybacked?(ife, index) end)
+      |> Enum.filter(fn {index, _} -> not InFlightExitInfo.is_piggybacked?(ife, {:input, index}) end)
       |> Enum.map(fn {index, owner} -> %{index: index, address: owner} end)
 
     available_outputs =
       outputs
       |> Enum.filter(fn %{owner: owner} -> zero_address?(owner) end)
       |> Enum.with_index()
-      |> Enum.filter(fn {_, index} -> not InFlightExitInfo.is_output_piggybacked?(ife, index) end)
+      |> Enum.filter(fn {_, index} -> not InFlightExitInfo.is_piggybacked?(ife, {:output, index}) end)
       |> Enum.map(fn {%{owner: owner}, index} -> %{index: index, address: owner} end)
 
     if Enum.empty?(available_inputs) and Enum.empty?(available_outputs) do
@@ -534,8 +553,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       txhash: txhash,
       txbytes: Transaction.raw_txbytes(tx),
       eth_height: eth_height,
-      piggybacked_inputs: InFlightExitInfo.piggybacked_inputs(ife_info),
-      piggybacked_outputs: InFlightExitInfo.piggybacked_outputs(ife_info)
+      piggybacked_inputs: InFlightExitInfo.actively_piggybacked_inputs(ife_info),
+      piggybacked_outputs: InFlightExitInfo.actively_piggybacked_outputs(ife_info)
     }
   end
 
@@ -571,4 +590,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp zero_address?(address) do
     address != @zero_address
   end
+
+  defp sla_margin_safe?(exit_processor_sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
+    do: exit_processor_sla_margin * ethereum_block_time_seconds < min_exit_period_seconds
 end

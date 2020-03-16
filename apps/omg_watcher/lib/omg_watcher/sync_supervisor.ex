@@ -20,25 +20,32 @@ defmodule OMG.Watcher.SyncSupervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
 
-  alias OMG.Eth
   alias OMG.EthereumEventListener
   alias OMG.Watcher
   alias OMG.Watcher.ChildManager
+  alias OMG.Watcher.Configuration
   alias OMG.Watcher.CoordinatorSetup
+  alias OMG.Watcher.EthereumEventAggregator
+  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.Monitor
 
-  def start_link do
-    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
+  @events_bucket :events_bucket
+
+  def start_link(args) do
+    Supervisor.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init(:ok) do
+  def init(args) do
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(children(), opts)
+    :ok = ensure_ets_init()
+    Supervisor.init(children(args), opts)
   end
 
-  defp children() do
+  defp children(args) do
+    contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
+
     [
       %{
         id: OMG.Watcher.BlockGetter.Supervisor,
@@ -47,68 +54,110 @@ defmodule OMG.Watcher.SyncSupervisor do
         type: :supervisor
       },
       {OMG.RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
+      {EthereumEventAggregator,
+       contracts: Application.fetch_env!(:omg_eth, :contract_addr),
+       ets_bucket: @events_bucket,
+       events: [
+         [name: :deposit_created, enrich: false],
+         [name: :exit_started, enrich: true],
+         [name: :exit_finalized, enrich: false],
+         [name: :exit_challenged, enrich: false],
+         [name: :in_flight_exit_started, enrich: true],
+         [name: :in_flight_exit_input_piggybacked, enrich: false],
+         [name: :in_flight_exit_output_piggybacked, enrich: false],
+         [name: :in_flight_exit_challenged, enrich: true],
+         [name: :in_flight_exit_challenge_responded, enrich: false],
+         [name: :in_flight_exit_input_blocked, enrich: false],
+         [name: :in_flight_exit_output_blocked, enrich: false],
+         [name: :in_flight_exit_input_withdrawn, enrich: false],
+         [name: :in_flight_exit_output_withdrawn, enrich: false],
+         # blockgetter
+         [name: :block_submitted, enrich: false]
+       ]},
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
-        get_events_callback: &Eth.RootChain.get_deposits/2,
+        get_events_callback: &EthereumEventAggregator.deposit_created/2,
         process_events_callback: &OMG.State.deposit/1
       ),
-      {Watcher.ExitProcessor, []},
+      {ExitProcessor,
+       [
+         exit_processor_sla_margin: Configuration.exit_processor_sla_margin(),
+         exit_processor_sla_margin_forced: Configuration.exit_processor_sla_margin_forced(),
+         min_exit_period_seconds: OMG.Eth.Configuration.min_exit_period_seconds(),
+         ethereum_block_time_seconds: OMG.Eth.Configuration.ethereum_block_time_seconds(),
+         metrics_collection_interval: Configuration.metrics_collection_interval()
+       ]},
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :exit_processor,
         synced_height_update_key: :last_exit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_standard_exits_started/2,
+        get_events_callback: &EthereumEventAggregator.exit_started/2,
         process_events_callback: &Watcher.ExitProcessor.new_exits/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :exit_finalizer,
         synced_height_update_key: :last_exit_finalizer_eth_height,
-        get_events_callback: &Eth.RootChain.get_finalizations/2,
+        get_events_callback: &EthereumEventAggregator.exit_finalized/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_exits/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :exit_challenger,
         synced_height_update_key: :last_exit_challenger_eth_height,
-        get_events_callback: &Eth.RootChain.get_challenges/2,
+        get_events_callback: &EthereumEventAggregator.exit_challenged/2,
         process_events_callback: &Watcher.ExitProcessor.challenge_exits/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :in_flight_exit_processor,
         synced_height_update_key: :last_in_flight_exit_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_in_flight_exits_started/2,
+        get_events_callback: &EthereumEventAggregator.in_flight_exit_started/2,
         process_events_callback: &Watcher.ExitProcessor.new_in_flight_exits/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :piggyback_processor,
         synced_height_update_key: :last_piggyback_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_piggybacks/2,
+        get_events_callback: &EthereumEventAggregator.in_flight_exit_piggybacked/2,
         process_events_callback: &Watcher.ExitProcessor.piggyback_exits/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :competitor_processor,
         synced_height_update_key: :last_competitor_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_in_flight_exit_challenges/2,
+        get_events_callback: &EthereumEventAggregator.in_flight_exit_challenged/2,
         process_events_callback: &Watcher.ExitProcessor.new_ife_challenges/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :challenges_responds_processor,
         synced_height_update_key: :last_challenges_responds_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_responds_to_in_flight_exit_challenges/2,
+        get_events_callback: &EthereumEventAggregator.in_flight_exit_challenge_responded/2,
         process_events_callback: &Watcher.ExitProcessor.respond_to_in_flight_exits_challenges/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :piggyback_challenges_processor,
         synced_height_update_key: :last_piggyback_challenges_processor_eth_height,
-        get_events_callback: &Eth.RootChain.get_piggybacks_challenges/2,
+        get_events_callback: &EthereumEventAggregator.in_flight_exit_blocked/2,
         process_events_callback: &Watcher.ExitProcessor.challenge_piggybacks/1
       ),
       EthereumEventListener.prepare_child(
+        contract_deployment_height: contract_deployment_height,
         service_name: :ife_exit_finalizer,
         synced_height_update_key: :last_ife_exit_finalizer_eth_height,
-        get_events_callback: &Eth.RootChain.get_in_flight_exit_finalizations/2,
+        get_events_callback: &EthereumEventAggregator.in_flight_exit_withdrawn/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
       ),
       {ChildManager, [monitor: Monitor]}
     ]
+  end
+
+  defp ensure_ets_init() do
+    _ = if :undefined == :ets.info(@events_bucket), do: :ets.new(@events_bucket, [:bag, :public, :named_table])
+    :ok
   end
 end

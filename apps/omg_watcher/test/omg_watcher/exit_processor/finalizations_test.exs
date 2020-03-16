@@ -175,7 +175,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
         %{in_flight_exit_id: <<ife_id::192>>, output_index: 2, omg_data: %{piggyback_type: :input}}
       ]
 
-      {:unknown_piggybacks, ^expected_unknown_piggybacks} =
+      {:inactive_piggybacks_finalizing, ^expected_unknown_piggybacks} =
         Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, [finalization1, finalization2])
     end
   end
@@ -259,7 +259,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
       assert [] == Core.get_active_in_flight_exits(processor)
     end
 
-    test "finalizing multiple times does not change state or produce database updates",
+    test "finalizing multiple times returns an error since it is not possible",
          %{processor_empty: processor, transactions: [tx | _]} do
       ife_id = 123
       tx_hash = Transaction.raw_txhash(tx)
@@ -271,7 +271,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       finalization = %{in_flight_exit_id: ife_id, output_index: 1, omg_data: %{piggyback_type: :input}}
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization], %{})
-      {:ok, ^processor, []} = Core.finalize_in_flight_exits(processor, [finalization], %{})
+      {:inactive_piggybacks_finalizing, _} = Core.finalize_in_flight_exits(processor, [finalization], %{})
     end
 
     test "finalizing perserve in flights exits that are not being finalized",
@@ -316,7 +316,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
         %{in_flight_exit_id: <<ife_id::192>>, output_index: 2, omg_data: %{piggyback_type: :input}}
       ]
 
-      {:unknown_piggybacks, ^expected_unknown_piggybacks} =
+      {:inactive_piggybacks_finalizing, ^expected_unknown_piggybacks} =
         Core.finalize_in_flight_exits(processor, [finalization1, finalization2], %{})
     end
   end

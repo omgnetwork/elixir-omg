@@ -18,7 +18,7 @@ defmodule OMG.Status.Metric.Statix do
   defmacro __using__(_opts) do
     quote location: :keep do
       @behaviour Statix
-      def connect, do: :ok
+      def connect(), do: :ok
 
       def increment(_), do: :ok
       def increment(_, _, options \\ []), do: :ok
@@ -39,7 +39,7 @@ defmodule OMG.Status.Metric.Statix do
 
       def service_check(key, val, options), do: :ok
 
-      def current_conn, do: %Statix.Conn{sock: __MODULE__}
+      def current_conn(), do: %Statix.Conn{sock: __MODULE__}
     end
   end
 end

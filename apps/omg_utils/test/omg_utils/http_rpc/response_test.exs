@@ -20,11 +20,13 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
 
   @cleaned_tx %{
     blknum: nil,
-    sent_at: nil,
     txbytes: nil,
     txhash: nil,
     txindex: nil,
-    metadata: nil
+    txtype: nil,
+    metadata: nil,
+    inserted_at: nil,
+    updated_at: nil
   }
 
   setup %{} do
@@ -96,11 +98,11 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
   test "sanitize alarm types" do
     system_alarm = {:system_memory_high_watermark, []}
     system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
-    app_alarm = {:ethereum_client_connection, %{node: Node.self(), reporter: __MODULE__}}
+    app_alarm = {:ethereum_connection_error, %{node: Node.self(), reporter: __MODULE__}}
 
     assert %{disk_almost_full: "/dev/null"} == Response.sanitize(system_disk_alarm)
 
-    assert %{ethereum_client_connection: %{node: Node.self(), reporter: __MODULE__}} ==
+    assert %{ethereum_connection_error: %{node: Node.self(), reporter: __MODULE__}} ==
              Response.sanitize(app_alarm)
 
     assert %{system_memory_high_watermark: []} == Response.sanitize(system_alarm)
@@ -165,11 +167,11 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
     end
   end
 
-  defp unload_ecto do
+  defp unload_ecto() do
     :code.purge(Ecto)
     :code.delete(Ecto)
     false = :code.is_loaded(Ecto)
   end
 
-  defp load_ecto, do: true = Code.ensure_loaded?(Ecto)
+  defp load_ecto(), do: true = Code.ensure_loaded?(Ecto)
 end

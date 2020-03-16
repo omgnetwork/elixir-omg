@@ -46,12 +46,22 @@ defmodule OMG.State.Core do
   created and spent utxos are lost and the ledger state basically resets to the previous block.
   """
 
-  defstruct [:height, utxos: %{}, pending_txs: [], tx_index: 0, utxo_db_updates: [], recently_spent: MapSet.new()]
+  defstruct [
+    :height,
+    :fee_claimer_address,
+    utxos: %{},
+    pending_txs: [],
+    tx_index: 0,
+    utxo_db_updates: [],
+    recently_spent: MapSet.new(),
+    fees_paid: %{},
+    fee_claiming_started: false
+  ]
 
   alias OMG.Block
   alias OMG.Crypto
   alias OMG.Fees
-
+  alias OMG.Output
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Validator
@@ -60,6 +70,8 @@ defmodule OMG.State.Core do
 
   use OMG.Utils.LoggerExt
   require Utxo
+
+  @type fee_summary_t() :: %{Transaction.Payment.currency() => pos_integer()}
 
   @type t() :: %__MODULE__{
           height: non_neg_integer(),
@@ -71,7 +83,13 @@ defmodule OMG.State.Core do
           utxo_db_updates: list(db_update()),
           # NOTE: because UTXO set is not loaded from DB entirely, we need to remember the UTXOs spent in already
           # processed transaction before they get removed from DB on form_block.
-          recently_spent: MapSet.t(OMG.Utxo.Position.t())
+          recently_spent: MapSet.t(OMG.Utxo.Position.t()),
+          # Summarizes fees paid by pending transactions that will be formed into current block. Fees will be claimed
+          # by appending `Transaction.Fee` txs after pending txs in current block.
+          fees_paid: fee_summary_t(),
+          # fees can be claimed at the end of the block, no other payments can be processed until next block
+          fee_claiming_started: boolean(),
+          fee_claimer_address: Crypto.address_t()
         }
 
   @type deposit() :: %{
@@ -122,16 +140,20 @@ defmodule OMG.State.Core do
   """
   @spec extract_initial_state(
           height_query_result :: non_neg_integer() | :not_found,
-          child_block_interval :: pos_integer()
+          child_block_interval :: pos_integer(),
+          fee_claimer_address :: Crypto.address_t()
         ) :: {:ok, t()} | {:error, :top_block_number_not_found}
-  def extract_initial_state(height_query_result, child_block_interval)
+  def extract_initial_state(height_query_result, child_block_interval, fee_claimer_address)
       when is_integer(height_query_result) and is_integer(child_block_interval) do
-    state = %__MODULE__{height: height_query_result + child_block_interval}
+    state = %__MODULE__{
+      height: height_query_result + child_block_interval,
+      fee_claimer_address: fee_claimer_address
+    }
 
     {:ok, state}
   end
 
-  def extract_initial_state(:not_found, _child_block_interval) do
+  def extract_initial_state(:not_found, _child_block_interval, _fee_claimer_address) do
     {:error, :top_block_number_not_found}
   end
 
@@ -161,20 +183,35 @@ defmodule OMG.State.Core do
   """
   @spec exec(state :: t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
-          | {{:error, Validator.exec_error()}, t()}
+          | {{:error, Validator.can_process_tx_error()}, t()}
   def exec(%Core{} = state, %Transaction.Recovered{} = tx, fees) do
     tx_hash = Transaction.raw_txhash(tx)
 
-    case Validator.can_apply_spend(state, tx, fees) do
-      true ->
+    case Validator.can_process_tx(state, tx, fees) do
+      {:ok, fees_paid} ->
         {:ok, {tx_hash, state.height, state.tx_index},
          state
-         |> apply_spend(tx)
-         |> add_pending_tx(tx)}
+         |> apply_tx(tx)
+         |> add_pending_tx(tx)
+         |> handle_fees(tx, fees_paid)}
 
       {{:error, _reason}, _state} = error ->
         error
     end
+  end
+
+  # Post-processing step of transaction execution. It either claim for Transaction.Fee and collect for the rest.
+  @spec handle_fees(state :: t(), Transaction.Recovered.t(), map()) :: t()
+  defp handle_fees(state, %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Fee{}}} = tx, _fees_paid) do
+    [output] = Transaction.get_outputs(tx)
+
+    state
+    |> flush_collected_fees_for_token(output)
+    |> disallow_payments()
+  end
+
+  defp handle_fees(state, _tx, fees_paid) do
+    collect_fees(state, fees_paid)
   end
 
   @doc """
@@ -193,13 +230,35 @@ defmodule OMG.State.Core do
 
   # attempts to build a standard response data about a single UTXO, based on an abstract `output` structure
   # so that the data can be useful to discover exitable UTXOs
-  defp utxo_to_exitable_utxo_map(%Utxo{output: output}, Utxo.position(blknum, txindex, oindex)) do
+  defp utxo_to_exitable_utxo_map(%Utxo{output: %{output_type: otype} = output}, Utxo.position(blknum, txindex, oindex)) do
     output
     |> Map.from_struct()
     |> Map.take([:owner, :currency, :amount])
+    |> Map.put(:otype, otype)
     |> Map.put(:blknum, blknum)
     |> Map.put(:txindex, txindex)
     |> Map.put(:oindex, oindex)
+  end
+
+  @doc """
+  Generates `Transaction.Fee` transactions and executes them on state.
+  Returns modified state.
+  """
+  @spec claim_fees(state :: t()) :: t()
+  def claim_fees(
+        %Core{
+          height: height,
+          fees_paid: fees_paid,
+          fee_claimer_address: owner
+        } = state
+      ) do
+    height
+    |> Transaction.Fee.claim_collected(owner, fees_paid)
+    |> Stream.map(&to_recovered_fee_tx/1)
+    |> Enum.reduce(state, fn tx, curr_state ->
+      {:ok, _, new_state} = exec(curr_state, tx, :no_fees_required)
+      new_state
+    end)
   end
 
   @doc """
@@ -211,7 +270,7 @@ defmodule OMG.State.Core do
   @spec form_block(pos_integer(), state :: t()) :: {:ok, {Block.t(), [db_update]}, new_state :: t()}
   def form_block(
         child_block_interval,
-        %Core{pending_txs: reversed_txs, height: height, utxo_db_updates: reversed_utxo_db_updates} = state
+        %Core{height: height, pending_txs: reversed_txs, utxo_db_updates: reversed_utxo_db_updates} = state
       ) do
     txs = Enum.reverse(reversed_txs)
 
@@ -228,9 +287,12 @@ defmodule OMG.State.Core do
         height: height + child_block_interval,
         pending_txs: [],
         utxo_db_updates: [],
-        recently_spent: MapSet.new()
+        recently_spent: MapSet.new(),
+        fees_paid: %{},
+        fee_claiming_started: false
     }
 
+    _ = :telemetry.execute([:block_transactions, __MODULE__], %{txs: txs}, %{})
     {:ok, {block, db_updates}, new_state}
   end
 
@@ -357,6 +419,8 @@ defmodule OMG.State.Core do
   end
 
   defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, %Transaction.Recovered{} = new_tx) do
+    _ = :telemetry.execute([:pending_transactions, __MODULE__], %{new_tx: new_tx}, %{})
+
     %Core{
       state
       | tx_index: tx_index + 1,
@@ -364,7 +428,7 @@ defmodule OMG.State.Core do
     }
   end
 
-  defp apply_spend(
+  defp apply_tx(
          %Core{
            height: blknum,
            tx_index: tx_index,
@@ -387,6 +451,21 @@ defmodule OMG.State.Core do
         utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates
     }
   end
+
+  defp collect_fees(%Core{fees_paid: fees_paid} = state, token_surpluses) do
+    fees_paid_with_new =
+      token_surpluses
+      |> Enum.reject(fn {_token, amount} -> amount == 0 end)
+      |> Map.new()
+      |> Map.merge(fees_paid, fn _token, collected, tx_surplus -> collected + tx_surplus end)
+
+    %Core{state | fees_paid: fees_paid_with_new}
+  end
+
+  defp disallow_payments(state), do: %Core{state | fee_claiming_started: true}
+
+  defp flush_collected_fees_for_token(state, %Output{currency: token}),
+    do: %Core{state | fees_paid: Map.delete(state.fees_paid, token)}
 
   # Effects of a payment transaction - spends all inputs and creates all outputs
   # Relies on the polymorphic `get_inputs` and `get_outputs` of `Transaction`
@@ -424,4 +503,10 @@ defmodule OMG.State.Core do
          %Core{utxos: utxos}
        ),
        do: UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
+
+  defp to_recovered_fee_tx(%Transaction.Fee{} = fee_tx) do
+    %Transaction.Signed{raw_tx: fee_tx, sigs: []}
+    |> Transaction.Signed.encode()
+    |> Transaction.Recovered.recover_from!()
+  end
 end

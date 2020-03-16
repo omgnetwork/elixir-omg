@@ -20,7 +20,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
   @start_apps [:logger, :crypto, :ssl]
   require Logger
 
-  def run do
+  def run() do
     _ = Application.load(:omg_db)
     path = Application.get_env(:omg_db, :path)
     process(path)

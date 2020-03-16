@@ -32,13 +32,15 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   @derive {Jason.Encoder, except: [:__meta__]}
   schema "transactions" do
     field(:txindex, :integer)
+    field(:txtype, :integer)
     field(:txbytes, :binary)
-    field(:sent_at, :utc_datetime)
     field(:metadata, :binary)
 
     has_many(:inputs, DB.TxOutput, foreign_key: :spending_txhash)
     has_many(:outputs, DB.TxOutput, foreign_key: :creating_txhash)
     belongs_to(:block, DB.Block, foreign_key: :blknum, references: :blknum, type: :integer)
+
+    timestamps(type: :utc_datetime_usec)
   end
 
   @doc """
@@ -66,15 +68,17 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   """
   @spec get_by_filters(Keyword.t(), Paginator.t()) :: Paginator.t()
   def get_by_filters(constraints, paginator) do
-    allowed_constraints = [:address, :blknum, :txindex, :metadata]
+    allowed_constraints = [:address, :blknum, :txindex, :txtypes, :metadata]
 
     constraints = filter_constraints(constraints, allowed_constraints)
 
     # we need to handle complex constraints with dedicated modifier function
     {address, constraints} = Keyword.pop(constraints, :address)
+    {txtypes, constraints} = Keyword.pop(constraints, :txtypes)
 
     query_get_last(paginator.data_paging)
     |> query_get_by_address(address)
+    |> query_get_by_txtypes(txtypes)
     |> query_get_by(constraints)
     |> DB.Repo.all()
     |> Paginator.set_data(paginator)
@@ -96,8 +100,8 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     )
   end
 
-  @spec query_count :: Ecto.Query.t()
-  defp query_count do
+  @spec query_count() :: Ecto.Query.t()
+  defp query_count() do
     from(transaction in __MODULE__, select: count())
   end
 
@@ -137,6 +141,13 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     |> where([t, o], o.owner == ^address)
     |> select([t, o], t)
     |> distinct(true)
+  end
+
+  defp query_get_by_txtypes(query, nil), do: query
+  defp query_get_by_txtypes(query, []), do: query
+
+  defp query_get_by_txtypes(query, txtypes) do
+    where(query, [t], t.txtype in ^txtypes)
   end
 
   defp query_get_by(query, constraints) when is_list(constraints), do: query |> where(^constraints)

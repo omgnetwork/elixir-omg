@@ -1,4 +1,4 @@
-version: "2.1"
+version: "2.3"
 services:
   postgres:
     image: postgres:9.6.13-alpine
@@ -15,55 +15,69 @@ services:
       timeout: 3s
       retries: 5
 
-  watcher:
-    #last stable staging and production watcher with ALD, pre-lumphini
-    image: omisego/watcher:70e9a68
-    command: "full_local"
-    environment:
-      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
-      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/${INFURA_API_KEY}
-      - CHILD_CHAIN_URL=https://childchain-pre-lumphini.omg.network/
-      - ETHEREUM_NETWORK=RINKEBY
-      - TXHASH_CONTRACT=0xefc216dcfb01223253172514355fbe65e60acc043f214a9cdfad1e6f5cb566b4
-      - AUTHORITY_ADDRESS=0x3272b97b7f1b74b338cb0fdda167cf76bc4da3b6
-      - CONTRACT_ADDRESS_PLASMA_FRAMEWORK=0x24e0b6b701c941824b3eedc041f50be6e15bfdeb
-      - CONTRACT_ADDRESS_ETH_VAULT=0x9631a230eaf33b51012fca494e4030d852bb9386
-      - CONTRACT_ADDRESS_ERC20_VAULT=0x88d38a42946c62d32f159880fe2735c0149cca3f
-      - CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0x51db5309cc89165b5306417b63368acce690355b
-      - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
-      - NODE_HOST=127.0.0.1
-      - PORT=7434
-      - DD_DISABLED=true
-      - DB_PATH=/app/.omg/data
-      - APP_ENV=localwatcher
-    ports:
-      - "7434:7434"
-    healthcheck:
-      test: curl watcher:7434
-      interval: 5s
-      timeout: 3s
-      retries: 5
+  watcher:	
+    #last stable integration watcher	
+    image: omisego/watcher:4445aee	
+    command: "full_local"	
+    environment:	
+      - ETHEREUM_RPC_URL=https://ropsten.infura.io/v3/${INFURA_API_KEY}	
+      - CHILD_CHAIN_URL=https://childchain.ropsten.v1.omg.network	
+      - ETHEREUM_NETWORK=ROPSTEN	
+      - AUTHORITY_ADDRESS=0x3272b97b7f1b74b338cb0fdda167cf76bc4da3b6	
+      - TXHASH_CONTRACT=0x25e445594f425a7a94141a20b8831580953b92ddd0d12e9c775c571e4f3da08c	
+      - CONTRACT_ADDRESS_PLASMA_FRAMEWORK=0xa72c9dceeef26c9d103d55c53d411c36f5cdf7ec	
+      - CONTRACT_ADDRESS_ETH_VAULT=0x2c7533f76567241341d1c27f0f239a20b6115714	
+      - CONTRACT_ADDRESS_ERC20_VAULT=0x2bed2ff4ee93a208edbf4185c7813103d8c4ab7f	
+      - CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0x960ca6b9faa85118ba6badbe0097b1afd8827fac	
+      - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev	
+      - NODE_HOST=127.0.0.1	
+      - PORT=7434	
+      - DD_DISABLED=true	
+      - DB_PATH=/app/.omg/data	
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=8000	
+      - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=60000	
+      - ETHEREUM_BLOCK_TIME_SECONDS=15	
+      - EXIT_PROCESSOR_SLA_MARGIN=5520	
+      - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
+      - ERLANG_COOKIE=develop
+      - LOGGER_BACKEND=console
+      - DD_HOSTNAME=datadog
+      - APP_ENV=local-development
+    ports:	
+      - "7434:7434"	
+    healthcheck:	
+      test: curl watcher:7434	
+      interval: 5s	
+      timeout: 3s	
+      retries: 5	
 
   watcher_info:
-    image: omisego/watcher_info:latest
+    image: omisego/watcher_info:4445aee
     command: "full_local"
     environment:
-      - ETHEREUM_RPC_URL=https://rinkeby.infura.io/v3/${INFURA_API_KEY}
-      - ETHEREUM_WS_RPC_URL=wss://rinkeby.infura.io/ws/v3/${INFURA_API_KEY}
-      - CHILD_CHAIN_URL=https://childchain-pre-lumphini.omg.network/
-      - ETHEREUM_NETWORK=RINKEBY
-      - TXHASH_CONTRACT=0xefc216dcfb01223253172514355fbe65e60acc043f214a9cdfad1e6f5cb566b4
+      - ETHEREUM_RPC_URL=https://ropsten.infura.io/v3/${INFURA_API_KEY}
+      - CHILD_CHAIN_URL=https://childchain.ropsten.v1.omg.network
+      - ETHEREUM_NETWORK=ROPSTEN
       - AUTHORITY_ADDRESS=0x3272b97b7f1b74b338cb0fdda167cf76bc4da3b6
-      - CONTRACT_ADDRESS_PLASMA_FRAMEWORK=0x24e0b6b701c941824b3eedc041f50be6e15bfdeb
-      - CONTRACT_ADDRESS_ETH_VAULT=0x9631a230eaf33b51012fca494e4030d852bb9386
-      - CONTRACT_ADDRESS_ERC20_VAULT=0x88d38a42946c62d32f159880fe2735c0149cca3f
-      - CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0x51db5309cc89165b5306417b63368acce690355b
-      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
+      - TXHASH_CONTRACT=0x25e445594f425a7a94141a20b8831580953b92ddd0d12e9c775c571e4f3da08c
+      - CONTRACT_ADDRESS_PLASMA_FRAMEWORK=0xa72c9dceeef26c9d103d55c53d411c36f5cdf7ec
+      - CONTRACT_ADDRESS_ETH_VAULT=0x2c7533f76567241341d1c27f0f239a20b6115714
+      - CONTRACT_ADDRESS_ERC20_VAULT=0x2bed2ff4ee93a208edbf4185c7813103d8c4ab7f
+      - CONTRACT_ADDRESS_PAYMENT_EXIT_GAME=0x960ca6b9faa85118ba6badbe0097b1afd8827fac
+      - DATABASE_URL=postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - NODE_HOST=127.0.0.1
       - PORT=7534
       - DD_DISABLED=true
       - DB_PATH=/app/.omg/data
-      - APP_ENV=localwatcher_info
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=8000
+      - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=60000
+      - ETHEREUM_BLOCK_TIME_SECONDS=15
+      - EXIT_PROCESSOR_SLA_MARGIN=5520
+      - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
+      - ERLANG_COOKIE=develop
+      - LOGGER_BACKEND=console
+      - DD_HOSTNAME=datadog
+      - APP_ENV=local-development
     restart: always
     ports:
       - "7534:7534"

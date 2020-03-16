@@ -1,7 +1,7 @@
 defmodule OMG.WatcherInfo.Repo.Migrations.CreateTxoutputTable do
   use Ecto.Migration
 
-  def change do
+  def change() do
     create table(:txoutputs, primary_key: false) do
       add :blknum, :bigint, null: false, primary_key: true
       add :txindex, :integer, null: false, primary_key: true

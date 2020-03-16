@@ -20,7 +20,7 @@ defmodule OMG.Status.Metric.StatsdMonitor do
   use GenServer
 
   require Logger
-  @default_interval Application.get_env(:omg_status, :client_monitor_interval_ms)
+  @default_interval Application.get_env(:omg_status, :statsd_reconnect_backoff_ms)
   @type t :: %__MODULE__{
           alarm_module: module(),
           child_module: module(),
@@ -127,7 +127,7 @@ defmodule OMG.Status.Metric.StatsdMonitor do
 
   defp raise_clear(_alarm_module, false, _), do: :ok
 
-  defp install_alarm_handler do
+  defp install_alarm_handler() do
     case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
       true -> :ok
       _ -> :alarm_handler.add_alarm_handler(__MODULE__)

@@ -33,13 +33,23 @@ defmodule OMG.WatcherInfo.DB.Repo do
   def insert_all_chunked(_schema_or_source, [], _opts), do: :ok
 
   def insert_all_chunked(schema_or_source, entries, opts) do
-    chunk_size = @max_params_count |> div(entries |> hd |> fields_count)
+    utc_now = DateTime.utc_now()
+    entries = Enum.map(entries, fn entry -> Map.merge(entry, %{inserted_at: utc_now, updated_at: utc_now}) end)
+
+    chunk_size = entries |> hd() |> chunk_size()
 
     entries
     |> Stream.chunk_every(chunk_size)
     |> Enum.each(&insert_all(schema_or_source, &1, opts))
   end
 
-  defp fields_count(map) when is_map(map), do: map |> Kernel.map_size()
-  defp fields_count(list) when is_list(list), do: length(list)
+  # Note: an entry with 0 fields will cause a divide-by-zero error.
+  #
+  # DB.Repo.chunk_size(%{}) ==> (ArithmeticError) bad argument in arithmetic expression
+  #
+  # But we could not think of a case where this code happen, so no defensive
+  # checks here.
+  def chunk_size(entry), do: div(@max_params_count, fields_count(entry))
+
+  defp fields_count(map), do: Kernel.map_size(map)
 end

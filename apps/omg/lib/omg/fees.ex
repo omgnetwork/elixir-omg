@@ -21,7 +21,6 @@ defmodule OMG.Fees do
   alias OMG.MergeTransactionValidator
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.WireFormatTypes
 
   require Utxo
 
@@ -34,10 +33,10 @@ defmodule OMG.Fees do
   where fees is itself a map of token to fee spec
   """
   @type full_fee_t() :: %{non_neg_integer() => fee_t()}
-  @type optional_fee_t() :: fee_t() | :no_fees_required
+  @type optional_fee_t() :: merged_fee_t() | :ignore_fees | :no_fees_required
   @typedoc "A map representing a single fee"
   @type fee_spec_t() :: %{
-          amount: non_neg_integer(),
+          amount: pos_integer(),
           subunit_to_unit: pos_integer(),
           pegged_amount: pos_integer(),
           pegged_currency: String.t(),
@@ -45,26 +44,89 @@ defmodule OMG.Fees do
           updated_at: DateTime.t()
         }
 
+  @typedoc """
+  A map of currency to amounts used internally where amounts is a list of supported fee amounts.
+  """
+  @type typed_merged_fee_t() :: %{non_neg_integer() => merged_fee_t()}
+  @type merged_fee_t() :: %{Crypto.address_t() => list(pos_integer())}
+
   @doc ~S"""
-  Checks whether the transaction's inputs cover the fees.
+  Checks whether the surplus of tokens sent in a transaction (inputs - outputs) covers the fees
+  depending on the fee model.
 
   ## Examples
 
-      iex> Fees.covered?(%{"eth" => 2}, %{"eth" => %{amount: 1}, "omg" => %{amount: 3}})
-      true
+      iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 0}, %{"eth" => [1], "omg" => [3]})
+      :ok
+      iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 0}, %{"eth" => [2, 1], "omg" => [1, 3]})
+      :ok
+      iex> Fees.check_if_covered(%{"eth" => 1}, %{"eth" => [2]})
+      {:error, :fees_not_covered}
+      iex> Fees.check_if_covered(%{"eth" => 2}, %{"eth" => [3, 1]})
+      {:error, :fees_not_covered}
+      iex> Fees.check_if_covered(%{"eth" => 1, "omg" => 1}, %{"eth" => [1]})
+      {:error, :multiple_potential_currency_fees}
+      iex> Fees.check_if_covered(%{"eth" => 2}, %{"eth" => [1]})
+      {:error, :overpaying_fees}
+      iex> Fees.check_if_covered(%{"eth" => 2}, %{"eth" => [1, 3]})
+      {:error, :overpaying_fees}
+      iex> Fees.check_if_covered(%{"eth" => 1}, :no_fees_required)
+      {:error, :overpaying_fees}
+      iex> Fees.check_if_covered(%{"eth" => 1}, :ignore_fees)
+      :ok
 
   """
-  @spec covered?(implicit_paid_fee_by_currency :: map(), fees :: optional_fee_t()) :: boolean()
-  def covered?(_, :no_fees_required), do: true
+  @spec check_if_covered(implicit_paid_fee_by_currency :: map(), accepted_fees :: optional_fee_t()) ::
+          :ok | {:error, :fees_not_covered} | {:error, :overpaying_fees} | {:error, :multiple_potential_currency_fees}
+  # If :ignore_fees is given, we don't require any surplus of tokens. If surplus exists, it will be collected.
+  def check_if_covered(_, :ignore_fees), do: :ok
 
-  def covered?(implicit_paid_fee_by_currency, fees) do
-    for {input_currency, implicit_paid_fee} <- implicit_paid_fee_by_currency do
-      case Map.get(fees, input_currency) do
-        nil -> false
-        %{amount: amount} -> amount <= implicit_paid_fee
-      end
+  # Otherwise we remove all non positive tokens from the map and process it
+  def check_if_covered(implicit_paid_fee_by_currency, accepted_fees) do
+    implicit_paid_fee_by_currency
+    |> remove_zero_fees()
+    |> check_positive_amounts(accepted_fees)
+  end
+
+  # With :no_fees_required, we ensure that no surplus of token is given
+  # meaning that input amount == output amount. This is used for merge transactions.
+  defp check_positive_amounts([], :no_fees_required), do: :ok
+  defp check_positive_amounts(_, :no_fees_required), do: {:error, :overpaying_fees}
+
+  # When accepting fees, we ensure that only one fee token is given
+  defp check_positive_amounts([], _), do: {:error, :fees_not_covered}
+
+  # When accepting fees, we ensure that the paid amount matches exactly the required amount and that
+  # the given surplus token is accepted as a fee token
+  defp check_positive_amounts([{currency, paid_fee}], accepted_fees) do
+    case Map.get(accepted_fees, currency) do
+      nil ->
+        {:error, :fees_not_covered}
+
+      amounts ->
+        check_if_exact_match(amounts, paid_fee)
     end
-    |> Enum.any?()
+  end
+
+  defp check_positive_amounts(_, _), do: {:error, :multiple_potential_currency_fees}
+
+  defp remove_zero_fees(implicit_paid_fee_by_currency) do
+    Enum.filter(implicit_paid_fee_by_currency, fn {_currency, paid_fee} ->
+      paid_fee > 0
+    end)
+  end
+
+  defp check_if_exact_match([current_amount | _] = amounts, paid_fee) do
+    cond do
+      paid_fee in amounts ->
+        :ok
+
+      current_amount > paid_fee ->
+        {:error, :fees_not_covered}
+
+      current_amount < paid_fee ->
+        {:error, :overpaying_fees}
+    end
   end
 
   @doc ~S"""
@@ -78,46 +140,21 @@ defmodule OMG.Fees do
   ...> },
   ...> %{
   ...>   1 => %{
-  ...>     "eth" => %{
-  ...>       amount: 1,
-  ...>       subunit_to_unit: 1_000_000_000_000_000_000,
-  ...>       pegged_amount: 4,
-  ...>       pegged_currency: "USD",
-  ...>       pegged_subunit_to_unit: 100,
-  ...>       updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-  ...>     },
-  ...>     "omg" => %{
-  ...>       amount: 3,
-  ...>       subunit_to_unit: 1_000_000_000_000_000_000,
-  ...>       pegged_amount: 4,
-  ...>       pegged_currency: "USD",
-  ...>       pegged_subunit_to_unit: 100,
-  ...>       updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-  ...>     }
+  ...>     "eth" => [1],
+  ...>     "omg" => [3]
+  ...>   },
+  ...>   2 => %{
+  ...>     "eth" => [4],
+  ...>     "omg" => [5]
   ...>   }
   ...> }
   ...> )
   %{
-    "eth" => %{
-      amount: 1,
-      subunit_to_unit: 1000000000000000000,
-      pegged_amount: 4,
-      pegged_currency: "USD",
-      pegged_subunit_to_unit: 100,
-      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-    },
-    "omg" => %{
-      amount: 3,
-      subunit_to_unit: 1000000000000000000,
-      pegged_amount: 4,
-      pegged_currency: "USD",
-      pegged_subunit_to_unit: 100,
-      updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
-    }
+    "eth" => [1],
+    "omg" => [3]
   }
-
   """
-  @spec for_transaction(Transaction.Recovered.t(), full_fee_t()) :: optional_fee_t()
+  @spec for_transaction(Transaction.Recovered.t(), merged_fee_t()) :: optional_fee_t()
   def for_transaction(transaction, fee_map) do
     case MergeTransactionValidator.is_merge_transaction?(transaction) do
       true -> :no_fees_required
@@ -125,8 +162,8 @@ defmodule OMG.Fees do
     end
   end
 
-  defp get_fee_for_type(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
-    case WireFormatTypes.tx_type_for_transaction(raw_tx) do
+  defp get_fee_for_type(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %{tx_type: type}}}, fee_map) do
+    case type do
       nil -> %{}
       type -> Map.get(fee_map, type, %{})
     end

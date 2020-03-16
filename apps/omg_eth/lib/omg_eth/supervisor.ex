@@ -21,17 +21,22 @@ defmodule OMG.Eth.Supervisor do
   alias OMG.Status.Alert.Alarm
   require Logger
 
-  def start_link do
+  def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
+    check_interval_ms = Application.fetch_env!(:omg_eth, :ethereum_events_check_interval_ms)
+    stall_threshold_ms = Application.fetch_env!(:omg_eth, :ethereum_stalled_sync_threshold_ms)
+
     children = [
-      {OMG.Eth.EthereumClientMonitor,
+      {OMG.Eth.EthereumHeightMonitor,
        [
+         check_interval_ms: check_interval_ms,
+         stall_threshold_ms: stall_threshold_ms,
+         eth_module: OMG.Eth,
          alarm_module: Alarm,
-         event_bus: OMG.Bus,
-         ws_url: Application.get_env(:omg_eth, :ws_url)
+         event_bus: OMG.Bus
        ]},
       {OMG.Eth.EthereumHeight, [event_bus: OMG.Bus]}
     ]

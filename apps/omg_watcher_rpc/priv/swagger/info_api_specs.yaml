@@ -12,8 +12,8 @@ info:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
     url: 'https://omisego.network/'
 servers:
+  - url: 'https://watcher-info.ropsten.v1.omg.network/'
   - url: 'http://localhost:7534/'
-  - url: 'http://localhost:7434/'
 tags:
   - name: Account
     description: Account related API.
@@ -25,6 +25,8 @@ tags:
     description: Fees related API.
   - name: Stats
     description: Stats related API.
+  - name: Configuration
+    description: Configuration related API.
 paths:
   /alarm.get:
     get:
@@ -72,7 +74,7 @@ paths:
                             anyOf:
                               - type: object
                                 properties:
-                                  ethereum_client_connection:
+                                  ethereum_connection_error:
                                     type: object
                                     properties:
                                       node:
@@ -81,7 +83,18 @@ paths:
                                         type: string
                               - type: object
                                 properties:
-                                  ethereum_client_connection:
+                                  ethereum_stalled_sync:
+                                    type: object
+                                    properties:
+                                      ethereum_height:
+                                        type: integer
+                                        minimum: 0
+                                      synced_at:
+                                        type: string
+                                        format: date-time
+                              - type: object
+                                properties:
+                                  invalid_fee_file:
                                     type: object
                                     properties:
                                       node:
@@ -111,8 +124,125 @@ paths:
                     example:
                       data:
                         - disk_almost_full: /dev/null
-                          ethereum_client_connection: {}
+                          ethereum_connection_error: {}
+                          ethereum_stalled_sync: {}
                           system_memory_high_watermark: []
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                      service_name:
+                        type: string
+                    required:
+                      - service_name
+                      - version
+                      - success
+                      - data
+                    example:
+                      service_name: watcher_info
+                      version: 1.0.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /configuration.get:
+    get:
+      tags:
+        - Configuration
+      summary: Provides configuration values
+      description: |
+        **Note:** Configuration values.
+      operationId: configuration_get
+      responses:
+        '200':
+          description: Configuration response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                      service_name:
+                        type: string
+                    required:
+                      - service_name
+                      - version
+                      - success
+                      - data
+                    example:
+                      service_name: watcher_info
+                      version: 1.0.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            deposit_finality_margin:
+                              type: integer
+                              format: int256
+                            contract_semver:
+                              type: string
+                            exit_processor_sla_margin:
+                              type: integer
+                              format: int256
+                            network:
+                              type: string
+                    example:
+                      data:
+                        - deposit_finality_margin: 10
+                          contract_semver: 1.0.0.1+a1s29s8
+                          exit_processor_sla_margin: 5520
+                          network: RINKEBY
         '500':
           description: Returns an internal server error
           content:
@@ -187,7 +317,6 @@ paths:
               properties:
                 address:
                   type: string
-                  format: binary
               required:
                 - address
               example:
@@ -229,7 +358,6 @@ paths:
                           properties:
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -313,7 +441,6 @@ paths:
               properties:
                 address:
                   type: string
-                  format: binary
               required:
                 - address
               example:
@@ -359,30 +486,44 @@ paths:
                             txindex:
                               type: integer
                               format: int16
+                            otype:
+                              type: integer
+                              format: int16
                             oindex:
                               type: integer
                               format: int8
                             utxo_pos:
                               type: integer
                               format: int256
+                            creating_txhash:
+                              type: string
+                            spending_txhash:
+                              type: string
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
+                            inserted_at:
+                              type: string
+                            updated_at:
+                              type: string
                     example:
                       data:
-                        - blknum: 123000
-                          txindex: 111
-                          oindex: 0
-                          utxo_pos: 123000001110000
-                          owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                        - amount: 10
+                          blknum: 123000
+                          creating_txhash: '0x2c499b95ccb6bf7b923049b32b03a613d30882a448102136e544b302119eb722'
                           currency: '0x0000000000000000000000000000000000000000'
-                          amount: 10
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          oindex: 0
+                          otype: 1
+                          owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                          spending_txhash: null
+                          txindex: 111
+                          updated_at: '2020-02-15T04:07:57Z'
+                          utxo_pos: 123000001110000
         '500':
           description: Returns an internal server error
           content:
@@ -448,6 +589,7 @@ paths:
       operationId: account_get_transactions
       requestBody:
         description: 'Account address, block number and other criteria'
+        required: true
         content:
           application/json:
             schema:
@@ -456,13 +598,15 @@ paths:
               properties:
                 address:
                   type: string
-                  format: binary
                 blknum:
                   type: integer
                   format: int64
+                txtypes:
+                  type: array
+                  items:
+                    type: integer
                 metadata:
                   type: string
-                  format: binary
                 page:
                   type: integer
                   format: int32
@@ -471,9 +615,13 @@ paths:
                   type: integer
                   format: int32
                   default: 200
+              required:
+                - limit
               example:
                 address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                 metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                txtypes:
+                  - 1
                 blknum: 68290000
                 limit: 100
                 page: 2
@@ -517,15 +665,19 @@ paths:
                             txindex:
                               type: integer
                               format: int16
+                            txtype:
+                              type: integer
+                              format: int16
                             txhash:
                               type: string
-                              format: binary
                             metadata:
                               type: string
-                              format: binary
                             txbytes:
                               type: string
-                              format: binary
+                            inserted_at:
+                              type: string
+                            updated_at:
+                              type: string
                             block:
                               type: object
                               properties:
@@ -534,7 +686,6 @@ paths:
                                   format: int64
                                 hash:
                                   type: string
-                                  format: binary
                                 eth_height:
                                   type: integer
                                   format: int64
@@ -544,6 +695,10 @@ paths:
                                 tx_count:
                                   type: integer
                                   format: int64
+                                inserted_at:
+                                  type: string
+                                updated_at:
+                                  type: string
                             inputs:
                               type: array
                               items:
@@ -558,24 +713,27 @@ paths:
                                   oindex:
                                     type: integer
                                     format: int8
+                                  otype:
+                                    type: integer
+                                    format: int8
                                   utxo_pos:
                                     type: integer
                                     format: int256
                                   owner:
                                     type: string
-                                    format: binary
                                   currency:
                                     type: string
-                                    format: binary
                                   amount:
                                     type: integer
                                     format: int256
                                   creating_txhash:
                                     type: string
-                                    format: binary
                                   spending_txhash:
                                     type: string
-                                    format: binary
+                                  inserted_at:
+                                    type: string
+                                  updated_at:
+                                    type: string
                             outputs:
                               type: array
                               items:
@@ -590,24 +748,27 @@ paths:
                                   oindex:
                                     type: integer
                                     format: int8
+                                  otype:
+                                    type: integer
+                                    format: int8
                                   utxo_pos:
                                     type: integer
                                     format: int256
                                   owner:
                                     type: string
-                                    format: binary
                                   currency:
                                     type: string
-                                    format: binary
                                   amount:
                                     type: integer
                                     format: int256
                                   creating_txhash:
                                     type: string
-                                    format: binary
                                   spending_txhash:
                                     type: string
-                                    format: binary
+                                  inserted_at:
+                                    type: string
+                                  updated_at:
+                                    type: string
                       data_paging:
                         type: object
                         properties:
@@ -626,13 +787,19 @@ paths:
                             hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
                             eth_height: 97424
                             blknum: 68290000
+                            inserted_at: '2020-02-10T12:07:32Z'
+                            updated_at: '2020-02-15T04:07:57Z'
                           txindex: 0
+                          txtype: 1
                           txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                           metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                           txbytes: 0x5df13a6bee20000...
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          updated_at: '2020-02-15T04:07:57Z'
                           inputs:
                             - blknum: 1000
                               txindex: 111
+                              otype: 1
                               oindex: 0
                               utxo_pos: 1000001110000
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
@@ -640,25 +807,33 @@ paths:
                               creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                               spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               amount: 20000000
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                           outputs:
                             - blknum: 68290000
                               txindex: 5113
+                              otype: 1
                               oindex: 0
                               utxo_pos: 68290000051130000
                               owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 15000000
-                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               spending_txhash: null
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                             - blknum: 68290000
                               txindex: 5113
+                              otype: 1
                               oindex: 1
                               utxo_pos: 68290000051130000
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 5000000
-                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               spending_txhash: null
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                       data_paging:
                         page: 1
                         limit: 200
@@ -780,7 +955,6 @@ paths:
                             format: int64
                           hash:
                             type: string
-                            format: binary
                           eth_height:
                             type: integer
                             format: int64
@@ -790,6 +964,10 @@ paths:
                           tx_count:
                             type: integer
                             format: int64
+                          inserted_at:
+                            type: string
+                          updated_at:
+                            type: string
                     example:
                       data:
                         timestamp: 1540365586
@@ -797,6 +975,8 @@ paths:
                         eth_height: 97424
                         blknum: 68290000
                         tx_count: 2
+                        inserted_at: '2020-02-10T12:07:32Z'
+                        updated_at: '2020-02-15T04:07:57Z'
         '500':
           description: Returns an internal server error
           content:
@@ -924,7 +1104,6 @@ paths:
                               format: int64
                             hash:
                               type: string
-                              format: binary
                             eth_height:
                               type: integer
                               format: int64
@@ -934,6 +1113,10 @@ paths:
                             tx_count:
                               type: integer
                               format: int64
+                            inserted_at:
+                              type: string
+                            updated_at:
+                              type: string
                       data_paging:
                         type: object
                         properties:
@@ -952,6 +1135,8 @@ paths:
                           eth_height: 97424
                           timestamp: 1540365586
                           tx_count: 2
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          updated_at: '2020-02-15T04:07:57Z'
                       data_paging:
                         page: 1
                         limit: 100
@@ -1022,6 +1207,7 @@ paths:
       operationId: transactions_all
       requestBody:
         description: 'Account address, block number and other criteria'
+        required: true
         content:
           application/json:
             schema:
@@ -1030,13 +1216,15 @@ paths:
               properties:
                 address:
                   type: string
-                  format: binary
                 blknum:
                   type: integer
                   format: int64
+                txtypes:
+                  type: array
+                  items:
+                    type: integer
                 metadata:
                   type: string
-                  format: binary
                 page:
                   type: integer
                   format: int32
@@ -1045,9 +1233,13 @@ paths:
                   type: integer
                   format: int32
                   default: 200
+              required:
+                - limit
               example:
                 address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                 metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                txtypes:
+                  - 1
                 blknum: 68290000
                 limit: 100
                 page: 2
@@ -1091,15 +1283,19 @@ paths:
                             txindex:
                               type: integer
                               format: int16
+                            txtype:
+                              type: integer
+                              format: int16
                             txhash:
                               type: string
-                              format: binary
                             metadata:
                               type: string
-                              format: binary
                             txbytes:
                               type: string
-                              format: binary
+                            inserted_at:
+                              type: string
+                            updated_at:
+                              type: string
                             block:
                               type: object
                               properties:
@@ -1108,7 +1304,6 @@ paths:
                                   format: int64
                                 hash:
                                   type: string
-                                  format: binary
                                 eth_height:
                                   type: integer
                                   format: int64
@@ -1118,6 +1313,10 @@ paths:
                                 tx_count:
                                   type: integer
                                   format: int64
+                                inserted_at:
+                                  type: string
+                                updated_at:
+                                  type: string
                             inputs:
                               type: array
                               items:
@@ -1132,24 +1331,27 @@ paths:
                                   oindex:
                                     type: integer
                                     format: int8
+                                  otype:
+                                    type: integer
+                                    format: int8
                                   utxo_pos:
                                     type: integer
                                     format: int256
                                   owner:
                                     type: string
-                                    format: binary
                                   currency:
                                     type: string
-                                    format: binary
                                   amount:
                                     type: integer
                                     format: int256
                                   creating_txhash:
                                     type: string
-                                    format: binary
                                   spending_txhash:
                                     type: string
-                                    format: binary
+                                  inserted_at:
+                                    type: string
+                                  updated_at:
+                                    type: string
                             outputs:
                               type: array
                               items:
@@ -1164,24 +1366,27 @@ paths:
                                   oindex:
                                     type: integer
                                     format: int8
+                                  otype:
+                                    type: integer
+                                    format: int8
                                   utxo_pos:
                                     type: integer
                                     format: int256
                                   owner:
                                     type: string
-                                    format: binary
                                   currency:
                                     type: string
-                                    format: binary
                                   amount:
                                     type: integer
                                     format: int256
                                   creating_txhash:
                                     type: string
-                                    format: binary
                                   spending_txhash:
                                     type: string
-                                    format: binary
+                                  inserted_at:
+                                    type: string
+                                  updated_at:
+                                    type: string
                       data_paging:
                         type: object
                         properties:
@@ -1200,13 +1405,19 @@ paths:
                             hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
                             eth_height: 97424
                             blknum: 68290000
+                            inserted_at: '2020-02-10T12:07:32Z'
+                            updated_at: '2020-02-15T04:07:57Z'
                           txindex: 0
+                          txtype: 1
                           txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                           metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                           txbytes: 0x5df13a6bee20000...
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          updated_at: '2020-02-15T04:07:57Z'
                           inputs:
                             - blknum: 1000
                               txindex: 111
+                              otype: 1
                               oindex: 0
                               utxo_pos: 1000001110000
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
@@ -1214,25 +1425,33 @@ paths:
                               creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                               spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               amount: 20000000
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                           outputs:
                             - blknum: 68290000
                               txindex: 5113
+                              otype: 1
                               oindex: 0
                               utxo_pos: 68290000051130000
                               owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 15000000
-                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               spending_txhash: null
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                             - blknum: 68290000
                               txindex: 5113
+                              otype: 1
                               oindex: 1
                               utxo_pos: 68290000051130000
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 5000000
-                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               spending_txhash: null
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-15T04:07:57Z'
                       data_paging:
                         page: 1
                         limit: 200
@@ -1312,7 +1531,6 @@ paths:
               properties:
                 owner:
                   type: string
-                  format: binary
                 payments:
                   type: array
                   items:
@@ -1323,10 +1541,8 @@ paths:
                         format: int256
                       currency:
                         type: string
-                        format: binary
                       owner:
                         type: string
-                        format: binary
                     required:
                       - amount
                       - currency
@@ -1335,12 +1551,10 @@ paths:
                   properties:
                     currency:
                       type: string
-                      format: binary
                   required:
                     - currency
                 metadata:
                   type: string
-                  format: binary
               required:
                 - owner
                 - payments
@@ -1411,24 +1625,27 @@ paths:
                                       oindex:
                                         type: integer
                                         format: int8
+                                      otype:
+                                        type: integer
+                                        format: int8
                                       utxo_pos:
                                         type: integer
                                         format: int256
                                       owner:
                                         type: string
-                                        format: binary
                                       currency:
                                         type: string
-                                        format: binary
                                       amount:
                                         type: integer
                                         format: int256
                                       creating_txhash:
                                         type: string
-                                        format: binary
                                       spending_txhash:
                                         type: string
-                                        format: binary
+                                      inserted_at:
+                                        type: string
+                                      updated_at:
+                                        type: string
                                 outputs:
                                   type: array
                                   items:
@@ -1439,10 +1656,8 @@ paths:
                                         format: int256
                                       currency:
                                         type: string
-                                        format: binary
                                       owner:
                                         type: string
-                                        format: binary
                                 fee:
                                   type: object
                                   properties:
@@ -1451,16 +1666,12 @@ paths:
                                       format: int256
                                     currency:
                                       type: string
-                                      format: binary
                                 metadata:
                                   type: string
-                                  format: binary
                                 txbytes:
                                   type: string
-                                  format: binary
                                 sign_hash:
                                   type: string
-                                  format: binary
                                 typed_data:
                                   type: object
                                   properties:
@@ -1497,10 +1708,8 @@ paths:
                                           type: string
                                         salt:
                                           type: string
-                                          format: binary
                                         verifyingContract:
                                           type: string
-                                          format: binary
                                         version:
                                           type: string
                                       required:
@@ -1564,10 +1773,8 @@ paths:
                                           properties:
                                             owner:
                                               type: string
-                                              format: binary
                                             currency:
                                               type: string
-                                              format: binary
                                             amount:
                                               type: integer
                                               format: int256
@@ -1576,10 +1783,8 @@ paths:
                                           properties:
                                             owner:
                                               type: string
-                                              format: binary
                                             currency:
                                               type: string
-                                              format: binary
                                             amount:
                                               type: integer
                                               format: int256
@@ -1588,10 +1793,8 @@ paths:
                                           properties:
                                             owner:
                                               type: string
-                                              format: binary
                                             currency:
                                               type: string
-                                              format: binary
                                             amount:
                                               type: integer
                                               format: int256
@@ -1600,16 +1803,13 @@ paths:
                                           properties:
                                             owner:
                                               type: string
-                                              format: binary
                                             currency:
                                               type: string
-                                              format: binary
                                             amount:
                                               type: integer
                                               format: int256
                                         metadata:
                                           type: string
-                                          format: binary
                                       required:
                                         - input0
                                         - input1
@@ -1629,6 +1829,7 @@ paths:
                                 txindex: 111
                                 oindex: 0
                                 utxo_pos: 123000001110000
+                                otype: 1
                                 owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                                 currency: '0x0000000000000000000000000000000000000000'
                                 amount: 50
@@ -1638,6 +1839,7 @@ paths:
                                 txindex: 2340
                                 oindex: 3
                                 utxo_pos: 277000023400003
+                                otype: 1
                                 owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                                 currency: '0x0000000000000000000000000000000000000000'
                                 amount: 75
@@ -1814,7 +2016,6 @@ paths:
               properties:
                 id:
                   type: string
-                  format: binary
               required:
                 - id
               example:
@@ -1855,15 +2056,19 @@ paths:
                           txindex:
                             type: integer
                             format: int16
+                          txtype:
+                            type: integer
+                            format: int16
                           txhash:
                             type: string
-                            format: binary
                           metadata:
                             type: string
-                            format: binary
                           txbytes:
                             type: string
-                            format: binary
+                          inserted_at:
+                            type: string
+                          updated_at:
+                            type: string
                           block:
                             type: object
                             properties:
@@ -1872,7 +2077,6 @@ paths:
                                 format: int64
                               hash:
                                 type: string
-                                format: binary
                               eth_height:
                                 type: integer
                                 format: int64
@@ -1882,6 +2086,10 @@ paths:
                               tx_count:
                                 type: integer
                                 format: int64
+                              inserted_at:
+                                type: string
+                              updated_at:
+                                type: string
                           inputs:
                             type: array
                             items:
@@ -1896,24 +2104,27 @@ paths:
                                 oindex:
                                   type: integer
                                   format: int8
+                                otype:
+                                  type: integer
+                                  format: int8
                                 utxo_pos:
                                   type: integer
                                   format: int256
                                 owner:
                                   type: string
-                                  format: binary
                                 currency:
                                   type: string
-                                  format: binary
                                 amount:
                                   type: integer
                                   format: int256
                                 creating_txhash:
                                   type: string
-                                  format: binary
                                 spending_txhash:
                                   type: string
-                                  format: binary
+                                inserted_at:
+                                  type: string
+                                updated_at:
+                                  type: string
                           outputs:
                             type: array
                             items:
@@ -1928,64 +2139,81 @@ paths:
                                 oindex:
                                   type: integer
                                   format: int8
+                                otype:
+                                  type: integer
+                                  format: int8
                                 utxo_pos:
                                   type: integer
                                   format: int256
                                 owner:
                                   type: string
-                                  format: binary
                                 currency:
                                   type: string
-                                  format: binary
                                 amount:
                                   type: integer
                                   format: int256
                                 creating_txhash:
                                   type: string
-                                  format: binary
                                 spending_txhash:
                                   type: string
-                                  format: binary
+                                inserted_at:
+                                  type: string
+                                updated_at:
+                                  type: string
                     example:
                       data:
                         txindex: 5113
+                        txtype: 1
                         txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                         metadata: '0x00000000000000000000000000000000000000000000000000000048656c6c6f'
                         txbytes: 0x5df13a6bee20000...
+                        inserted_at: '2020-02-10T12:07:32Z'
+                        updated_at: '2020-02-15T04:07:57Z'
                         block:
                           timestamp: 1540365586
                           hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
                           eth_height: 97424
                           blknum: 68290000
+                          inserted_at: '2020-02-10T12:07:32Z'
+                          updated_at: '2020-02-15T04:07:57Z'
                         inputs:
                           - blknum: 1000
                             txindex: 111
                             oindex: 0
+                            otype: 1
                             utxo_pos: 1000001110000
                             owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                             currency: '0x0000000000000000000000000000000000000000'
                             amount: 10
                             creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
                             spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                            inserted_at: '2020-02-10T12:07:32Z'
+                            updated_at: '2020-02-15T04:07:57Z'
                         outputs:
                           - blknum: 68290000
                             txindex: 5113
                             oindex: 0
+                            otype: 1
                             utxo_pos: 68290000051130000
                             owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
                             currency: '0x0000000000000000000000000000000000000000'
                             amount: 2
-                            creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                            creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                             spending_txhash: null
+                            inserted_at: '2020-02-10T12:07:32Z'
+                            updated_at: '2020-02-15T04:07:57Z'
                           - blknum: 68290000
                             txindex: 5113
                             oindex: 1
+                            otype: 1
                             utxo_pos: 68290000051130000
                             owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                             currency: '0x0000000000000000000000000000000000000000'
                             amount: 7
-                            creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                            creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                             spending_txhash: null
+                            inserted_at: '2020-02-10T12:07:32Z'
+                            updated_at: '2020-02-15T04:07:57Z'
         '500':
           description: Returns an internal server error
           content:
@@ -2094,10 +2322,8 @@ paths:
                           type: string
                         salt:
                           type: string
-                          format: binary
                         verifyingContract:
                           type: string
-                          format: binary
                         version:
                           type: string
                       required:
@@ -2161,10 +2387,8 @@ paths:
                           properties:
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -2173,10 +2397,8 @@ paths:
                           properties:
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -2185,10 +2407,8 @@ paths:
                           properties:
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
@@ -2197,16 +2417,13 @@ paths:
                           properties:
                             owner:
                               type: string
-                              format: binary
                             currency:
                               type: string
-                              format: binary
                             amount:
                               type: integer
                               format: int256
                         metadata:
                           type: string
-                          format: binary
                       required:
                         - input0
                         - input1
@@ -2223,7 +2440,6 @@ paths:
                       type: array
                       items:
                         type: string
-                        format: binary
                   required:
                     - domain
                     - message
@@ -2311,7 +2527,6 @@ paths:
                             format: int16
                           txhash:
                             type: string
-                            format: binary
                     example:
                       data:
                         blknum: 123000
@@ -2393,7 +2608,6 @@ paths:
                   type: array
                   items:
                     type: string
-                    format: binary
                 tx_types:
                   type: array
                   items:
@@ -2442,7 +2656,6 @@ paths:
                             properties:
                               currency:
                                 type: string
-                                format: binary
                               amount:
                                 type: integer
                                 format: int256
@@ -2451,7 +2664,6 @@ paths:
                                 format: int256
                               pegged_currency:
                                 type: string
-                                format: binary
                               pegged_amount:
                                 type: integer
                                 format: int256

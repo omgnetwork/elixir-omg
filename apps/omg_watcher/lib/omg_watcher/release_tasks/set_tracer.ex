@@ -25,8 +25,6 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
     config = Keyword.put(config, :disabled?, get_dd_disabled())
     config = Keyword.put(config, :env, get_app_env())
 
-    :ok = Application.put_env(:statix, :tags, ["application:watcher", "app_env:#{get_app_env()}"], persistent: true)
-
     :ok = Application.put_env(@app, OMG.Watcher.Tracer, config, persistent: true)
   end
 

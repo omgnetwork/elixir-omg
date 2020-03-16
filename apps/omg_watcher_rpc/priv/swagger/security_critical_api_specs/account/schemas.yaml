@@ -7,6 +7,9 @@ AccountUtxoSchema:
     txindex:
       type: integer
       format: int16
+    otype:
+      type: integer
+      format: int16
     oindex:
       type: integer
       format: int8
@@ -15,10 +18,8 @@ AccountUtxoSchema:
       format: int256
     owner:
       type: string
-      format: binary
     currency:
       type: string
-      format: binary
     amount:
       type: integer
       format: int256

@@ -28,43 +28,59 @@ defmodule OMG.ChildChain do
   alias OMG.Fees.FeeFilter
   alias OMG.State
   alias OMG.State.Transaction
-  alias OMG.Status.Alert.Alarm
 
-  @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error()
+  @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error() | :transaction_not_supported
 
   @spec submit(transaction :: binary) ::
           {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
           | {:error, submit_error()}
   def submit(transaction) do
-    with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
-         {:ok, fees} <- FeeServer.transaction_fees(),
-         fees = Fees.for_transaction(recovered_tx, fees),
-         {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
-      {:ok, %{txhash: tx_hash, blknum: blknum, txindex: tx_index}}
-    end
-    |> result_with_logging()
+    result =
+      with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
+           :ok <- is_supported(recovered_tx),
+           {:ok, fees} <- FeeServer.accepted_fees(),
+           fees = Fees.for_transaction(recovered_tx, fees),
+           {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
+        {:ok, %{txhash: tx_hash, blknum: blknum, txindex: tx_index}}
+      end
+
+    result_with_logging(result)
   end
 
   @spec get_block(hash :: binary) ::
           {:ok, %{hash: binary, transactions: list, blknum: integer}} | {:error, :not_found | :internal_error}
   def get_block(hash) do
-    with {:ok, struct_block} <- FreshBlocks.get(hash) do
-      {:ok, Block.to_api_format(struct_block)}
-    end
-    |> result_with_logging()
-  end
+    result =
+      case FreshBlocks.get(hash) do
+        {:ok, struct_block} ->
+          {:ok, Block.to_api_format(struct_block)}
 
-  @spec get_alarms() :: {:ok, Alarm.alarms()}
-  def get_alarms, do: {:ok, Alarm.all()}
+        error ->
+          error
+      end
+
+    result_with_logging(result)
+  end
 
   @spec get_filtered_fees(list(pos_integer()), list(String.t()) | nil) ::
           {:ok, Fees.full_fee_t()} | {:error, :currency_fee_not_supported}
   def get_filtered_fees(tx_types, currencies) do
-    with {:ok, fees} <- FeeServer.transaction_fees() do
-      FeeFilter.filter(fees, tx_types, currencies)
-    end
-    |> result_with_logging()
+    result =
+      case FeeServer.current_fees() do
+        {:ok, fees} ->
+          FeeFilter.filter(fees, tx_types, currencies)
+
+        error ->
+          error
+      end
+
+    result_with_logging(result)
   end
+
+  defp is_supported(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.Fee{}}}),
+    do: {:error, :transaction_not_supported}
+
+  defp is_supported(%Transaction.Recovered{}), do: :ok
 
   defp result_with_logging(result) do
     _ = Logger.debug(" resulted with #{inspect(result)}")

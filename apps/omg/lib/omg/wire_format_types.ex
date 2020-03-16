@@ -26,12 +26,12 @@ defmodule OMG.WireFormatTypes do
 
   @tx_type_modules %{
     1 => OMG.State.Transaction.Payment,
-    3 => OMG.State.Transaction.FeeTokenClaim
+    3 => OMG.State.Transaction.Fee
   }
 
   @module_tx_types %{
     OMG.State.Transaction.Payment => 1,
-    OMG.State.Transaction.FeeTokenClaim => 3
+    OMG.State.Transaction.Fee => 3
   }
 
   @input_pointer_type_values %{
@@ -69,12 +69,6 @@ defmodule OMG.WireFormatTypes do
   """
   @spec module_tx_types() :: %{atom() => non_neg_integer()}
   def module_tx_types(), do: @module_tx_types
-
-  @doc """
-  Returns the tx type corresponding to the given raw transaction
-  """
-  @spec tx_type_for_transaction(any()) :: non_neg_integer() | nil
-  def tx_type_for_transaction(%module{}), do: @module_tx_types[module]
 
   @doc """
   Returns wire format type value of known input pointer type

@@ -114,10 +114,12 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   def hex({_, [_ | _]} = err), do: err
 
   def hex({str, []}) do
-    with {:ok, bin} <- Encoding.from_hex(str) do
-      {bin, []}
-    else
-      _ -> {str, [:hex]}
+    case Encoding.from_hex(str) do
+      {:ok, bin} ->
+        {bin, []}
+
+      _ ->
+        {str, [:hex]}
     end
   end
 
@@ -131,6 +133,11 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   end
 
   def length({val, []}, len), do: {val, length: len}
+
+  @spec max_length({any(), list()}, non_neg_integer()) :: {any(), list()}
+  def max_length({_, [_ | _]} = err, _len), do: err
+  def max_length({list, []}, len) when is_list(list) and length(list) <= len, do: {list, []}
+  def max_length({val, []}, len), do: {val, max_length: len}
 
   @spec greater({any(), list()}, integer()) :: {any(), list()}
   def greater({_, [_ | _]} = err, _b), do: err

@@ -31,12 +31,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
       %{"byzantine_events" => emitted_events} = WatcherHelper.success?("/status.get")
       emitted_event_names = Enum.map(emitted_events, &String.to_atom(&1["event"]))
 
-      all_events =
-        Enum.all?(event_names, fn x ->
-          x in emitted_event_names
-        end)
-
-      if all_events,
+      if Enum.sort(emitted_event_names) == Enum.sort(event_names),
         do: {:ok, emitted_event_names},
         else: :repeat
     end
@@ -68,7 +63,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   end
 
   def process_exits(vault_id, token, user) do
-    min_exit_period_ms = Application.fetch_env!(:omg_eth, :min_exit_period_seconds) * 1000
+    min_exit_period_ms = OMG.Eth.Configuration.min_exit_period_seconds() * 1000
     # enough to wait out the exit period on the contract
     Process.sleep(2 * min_exit_period_ms)
 

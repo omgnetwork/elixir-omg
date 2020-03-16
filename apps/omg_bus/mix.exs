@@ -1,7 +1,7 @@
 defmodule OMG.Bus.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_bus,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -17,7 +17,7 @@ defmodule OMG.Bus.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     [
       mod: {OMG.Bus.Application, []},
       extra_applications: [:logger],
@@ -30,5 +30,5 @@ defmodule OMG.Bus.MixProject do
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps, do: [{:phoenix_pubsub, "~> 1.0"}]
+  defp deps(), do: [{:phoenix_pubsub, "~> 1.0"}]
 end

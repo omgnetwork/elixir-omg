@@ -1,7 +1,7 @@
 defmodule OMG.DB.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_db,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -17,7 +17,7 @@ defmodule OMG.DB.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     [
       extra_applications: [:logger, :telemetry],
       start_phases: [{:attach_telemetry, []}],
@@ -30,7 +30,7 @@ defmodule OMG.DB.MixProject do
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps do
+  defp deps() do
     [
       {:rocksdb, "~> 1.3", system_env: [{"ERLANG_ROCKSDB_OPTS", "-DWITH_SYSTEM_ROCKSDB=ON"}]},
       {:omg_status, in_umbrella: true},
@@ -40,7 +40,7 @@ defmodule OMG.DB.MixProject do
       #       OMG-373 (Elixir 1.8) should fix this
       # TEST ONLY
       {:briefly, "~> 0.3.0", only: [:dev, :test]},
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4.1"},
       {:omg_utils, in_umbrella: true}
     ]
   end

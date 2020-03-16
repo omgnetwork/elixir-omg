@@ -1,7 +1,7 @@
 defmodule OMG.WatcherInfo.Repo.Migrations.CreateBlockTable do
   use Ecto.Migration
 
-  def change do
+  def change() do
     create table(:blocks, primary_key: false) do
       add :blknum, :bigint, null: false, primary_key: true
       add :hash, :binary, null: false

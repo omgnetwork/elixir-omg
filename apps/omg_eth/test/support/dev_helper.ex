@@ -34,7 +34,7 @@ defmodule Support.DevHelper do
   @passphrase "ThisIsATestnetPassphrase"
 
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
-    contract_addr = Eth.RootChain.contract_map_to_hex(contract_addr)
+    contract_addr = contract_map_to_hex(contract_addr)
 
     """
     use Mix.Config
@@ -76,23 +76,6 @@ defmodule Support.DevHelper do
         {:ok, %{"status" => "0x0"} = receipt} -> {:error, receipt |> Map.put("reason", get_reason(txhash))}
         other -> other
       end
-  end
-
-  # gets the `revert` reason for a failed transaction by txhash
-  # based on https://gist.github.com/gluk64/fdea559472d957f1138ed93bcbc6f78a
-  defp get_reason(txhash) do
-    # we get the exact transaction details
-    {:ok, tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(to_hex(txhash))
-    # we use them (with minor tweak) to be called on the Ethereum client at the exact block of the original call
-    {:ok, call_result} = tx |> Map.put("data", tx["input"]) |> Ethereumex.HttpClient.eth_call(tx["blockNumber"])
-    # this call result is hex decoded and then additionally decoded with ABI, should yield a readable ascii-string
-    if call_result == "0x", do: "out of gas, reason is 0x", else: call_result |> from_hex() |> abi_decode_reason()
-  end
-
-  defp abi_decode_reason(result) do
-    bytes_to_throw_away = 2 * 32 + 4
-    # trimming the 4-byte function selector, 32 byte size of size and 32 byte size
-    result |> binary_part(bytes_to_throw_away, byte_size(result) - bytes_to_throw_away) |> String.trim(<<0>>)
   end
 
   @doc """
@@ -180,4 +163,26 @@ defmodule Support.DevHelper do
   defp backend() do
     Application.fetch_env!(:omg_eth, :eth_node)
   end
+
+  # gets the `revert` reason for a failed transaction by txhash
+  # based on https://gist.github.com/gluk64/fdea559472d957f1138ed93bcbc6f78a
+  defp get_reason(txhash) do
+    # we get the exact transaction details
+    {:ok, tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(to_hex(txhash))
+    # we use them (with minor tweak) to be called on the Ethereum client at the exact block of the original call
+    {:ok, call_result} = tx |> Map.put("data", tx["input"]) |> Ethereumex.HttpClient.eth_call(tx["blockNumber"])
+    # this call result is hex decoded and then additionally decoded with ABI, should yield a readable ascii-string
+    if call_result == "0x", do: "out of gas, reason is 0x", else: call_result |> from_hex() |> abi_decode_reason()
+  end
+
+  defp abi_decode_reason(result) do
+    bytes_to_throw_away = 2 * 32 + 4
+    # trimming the 4-byte function selector, 32 byte size of size and 32 byte size
+    result |> binary_part(bytes_to_throw_away, byte_size(result) - bytes_to_throw_away) |> String.trim(<<0>>)
+  end
+
+  # Hexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
+
+  defp contract_map_to_hex(contract_map),
+    do: Enum.into(contract_map, %{}, fn {name, addr} -> {name, to_hex(addr)} end)
 end

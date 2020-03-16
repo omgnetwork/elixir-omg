@@ -14,8 +14,8 @@ info:
     url: 'https://omisego.network/'
 
 servers:
+  - url: https://watcher-info.ropsten.v1.omg.network/
   - url: http://localhost:7534/
-  - url: http://localhost:7434/
 
 tags:
   - name: Account
@@ -28,10 +28,14 @@ tags:
     description: Fees related API.
   - name: Stats
     description: Stats related API.
+  - name: Configuration
+    description: Configuration related API.
 
 paths:
   /alarm.get:
     $ref: 'alarm/paths.yaml#/alarm.get'
+  /configuration.get:
+    $ref: 'configuration/paths.yaml#/configuration.get'
   /account.get_balance:
     $ref: 'account/paths.yaml#/account.get_balance'
   /account.get_utxos:

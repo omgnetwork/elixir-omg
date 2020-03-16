@@ -38,6 +38,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   require Utxo
 
+  import ExUnit.CaptureLog, only: [capture_log: 1]
+
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -56,7 +58,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =
              WatcherHelper.get_utxos(alice.addr)
 
-    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 6}, {bob, 3}])
     %{"blknum" => block_nr} = WatcherHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
@@ -169,13 +171,54 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   end
 
   @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
-  test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
+  test "transaction which is spending an exiting output before the `sla_margin` causes an invalid_exit event only",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
-    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
 
     # Here we're preparing invalid block
-    bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    bad_block_number = 2_000
+    bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
+
+    %{hash: bad_block_hash, number: _, transactions: _} =
+      bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
+
+    # from now on the child chain server is broken until end of test
+    BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+
+    IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
+
+    %{
+      "txbytes" => txbytes,
+      "proof" => proof,
+      "utxo_pos" => utxo_pos
+    } = WatcherHelper.get_exit_data(exit_blknum, 0, 0)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
+      RootChainHelper.start_exit(
+        utxo_pos,
+        txbytes,
+        proof,
+        alice.addr
+      )
+      |> DevHelper.transact_sync!()
+
+    # Here we're manually submitting invalid block to the root chain
+    # NOTE: this **must** come after `start_exit` is mined (see just above) but still not later than
+    #       `sla_margin` after exit start, hence the `config/test.exs` entry for the margin is rather high
+    {:ok, _} = Eth.submit_block(bad_block_hash, 2, 1)
+
+    IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
+  end
+
+  @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
+  test "transaction which is spending an exiting output after the `sla_margin` causes an unchallenged_exit event",
+       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
+    %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
+
+    # Here we're preparing invalid block
+    bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     bad_block_number = 2_000
 
     %{hash: bad_block_hash, number: _, transactions: _} =
@@ -201,7 +244,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       )
       |> DevHelper.transact_sync!()
 
-    # Here we're waiting for passing of margin of slow validator(m_sv)
     exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
     DevHelper.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
 
@@ -209,10 +251,90 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert WatcherHelper.capture_log(fn ->
              # Here we're manually submitting invalid block to the root chain
              {:ok, _} = Eth.submit_block(bad_block_hash, 2, 1)
-             IntegrationTest.wait_for_byzantine_events([%Event.UnchallengedExit{}.name], @timeout)
+
+             IntegrationTest.wait_for_byzantine_events(
+               [%Event.InvalidExit{}.name, %Event.UnchallengedExit{}.name],
+               @timeout
+             )
            end) =~ inspect(:unchallenged_exit)
 
     # we should still be able to challenge this "unchallenged exit" - just smoke testing the endpoint, details elsewhere
     WatcherHelper.get_exit_challenge(exit_blknum, 0, 0)
+  end
+
+  @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits]
+  test "block getting halted by block withholding doesn't halt detection of new invalid exits", %{
+    stable_alice: alice,
+    stable_alice_deposits: {deposit_blknum, _}
+  } do
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
+    %{"blknum" => deposit_blknum} = WatcherHelper.submit(tx)
+
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 8}])
+    %{"blknum" => tx_blknum, "txhash" => _tx_hash} = WatcherHelper.submit(tx)
+
+    IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
+
+    {_, nonce} = get_next_blknum_nonce(tx_blknum)
+
+    {:ok, _txhash} = Eth.submit_block(<<0::256>>, nonce, 20_000_000_000)
+
+    # checking if both machines and humans learn about the byzantine condition
+    assert capture_log(fn ->
+             IntegrationTest.wait_for_byzantine_events([%Event.BlockWithholding{}.name], @timeout)
+           end) =~ inspect(:withholding)
+
+    %{
+      "txbytes" => txbytes,
+      "proof" => proof,
+      "utxo_pos" => utxo_pos
+    } = WatcherHelper.get_exit_data(deposit_blknum, 0, 0)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
+      RootChainHelper.start_exit(
+        utxo_pos,
+        txbytes,
+        proof,
+        alice.addr
+      )
+      |> DevHelper.transact_sync!()
+
+    IntegrationTest.wait_for_byzantine_events([%Event.BlockWithholding{}.name, %Event.InvalidExit{}.name], @timeout)
+  end
+
+  @tag fixtures: [:in_beam_watcher, :mix_based_child_chain, :test_server, :stable_alice, :stable_alice_deposits]
+  test "operator claimed fees incorrectly (too much | little amount, not collected token)", %{
+    stable_alice: alice,
+    test_server: context,
+    stable_alice_deposits: {deposit_blknum, _}
+  } do
+    fee_claimer = OMG.Configuration.fee_claimer_address()
+
+    # preparing transactions for a fake block that overclaim fees
+    txs = [
+      OMG.TestHelper.create_recovered([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}]),
+      OMG.TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 8}]),
+      OMG.TestHelper.create_recovered_fee_tx(1000, fee_claimer, @eth, 3)
+    ]
+
+    block_overclaiming_fees = OMG.Block.hashed_txs_at(txs, 1000)
+
+    # from now on the child chain server is broken until end of test
+    BadChildChainServer.prepare_route_to_inject_bad_block(
+      context,
+      block_overclaiming_fees
+    )
+
+    # checking if both machines and humans learn about the byzantine condition
+    assert WatcherHelper.capture_log(fn ->
+             {:ok, _txhash} = Eth.submit_block(block_overclaiming_fees.hash, 1, 20_000_000_000)
+             IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
+           end) =~ inspect({:tx_execution, :claimed_and_collected_amounts_mismatch})
+  end
+
+  defp get_next_blknum_nonce(blknum) do
+    child_block_interval = Application.fetch_env!(:omg_eth, :child_block_interval)
+    next_blknum = blknum + child_block_interval
+    {next_blknum, trunc(next_blknum / child_block_interval)}
   end
 end

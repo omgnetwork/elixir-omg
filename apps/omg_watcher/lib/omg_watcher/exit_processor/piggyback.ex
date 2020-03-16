@@ -130,9 +130,8 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   @spec invalid_piggybacks_by_ife(KnownTx.known_txs_by_input_t(), piggyback_type_t(), list(InFlightExitInfo.t())) ::
           list({InFlightExitInfo.t(), piggyback_type_t(), %{non_neg_integer => DoubleSpend.t()}})
   defp invalid_piggybacks_by_ife(known_txs_by_input, pb_type, ifes) do
-    # getting invalid piggybacks on inputs
     ifes
-    |> Enum.map(&InFlightExitInfo.indexed_piggybacks_by_ife(&1, pb_type))
+    |> Enum.map(&InFlightExitInfo.unchallenged_piggybacks_by_ife(&1, pb_type))
     |> Enum.filter(&ife_has_something?/1)
     |> Enum.map(fn {ife, indexed_piggybacked_utxo_positions} ->
       proof_materials =

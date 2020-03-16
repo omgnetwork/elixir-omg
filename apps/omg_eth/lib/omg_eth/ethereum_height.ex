@@ -14,17 +14,16 @@
 
 defmodule OMG.Eth.EthereumHeight do
   @moduledoc """
-  A GenServer that subscribes to `newHeads` events coming from the internal event bus, decodes and saves only the height to be consumed
-  by other services.
+  A GenServer that subscribes to `ethereum_new_height` events coming from the internal event bus,
+  decodes and saves only the height to be consumed by other services.
   """
 
   use GenServer
   require Logger
   alias OMG.Eth
-  alias OMG.Eth.Encoding
 
   @spec get() :: {:ok, non_neg_integer()} | {:error, :error_ethereum_height}
-  def get do
+  def get() do
     GenServer.call(__MODULE__, :get)
   end
 
@@ -34,7 +33,7 @@ defmodule OMG.Eth.EthereumHeight do
 
   def init(opts) do
     event_bus = Keyword.get(opts, :event_bus)
-    :ok = event_bus.subscribe("newHeads", link: true)
+    :ok = event_bus.subscribe("ethereum_new_height", link: true)
     {:ok, get_ethereum_height()}
   end
 
@@ -46,32 +45,18 @@ defmodule OMG.Eth.EthereumHeight do
     {:reply, {:ok, ethereum_height}, ethereum_height}
   end
 
-  def handle_info({:internal_event_bus, :newHeads, new_heads}, state) do
-    value = new_heads["params"]["result"]["number"]
-
-    case is_binary(value) do
-      true ->
-        ethereum_height = Encoding.int_from_hex(value)
-        _ = Logger.debug("Got a newHeads event for new Ethereum height #{ethereum_height}.")
-
-        _ =
-          if rem(ethereum_height, 1000) == 0,
-            do: Logger.info("Got a newHeads event for new Ethereum height #{ethereum_height}. (log every 1000)")
-
-        {:noreply, ethereum_height}
-
-      false ->
-        {:noreply, state}
-    end
+  def handle_info({:internal_event_bus, :ethereum_new_height, new_height}, _state) do
+    _ = Logger.debug("Got an internal :ethereum_new_height event with height: #{new_height}.")
+    {:noreply, new_height}
   end
 
-  @spec get_ethereum_height :: non_neg_integer() | :error_ethereum_height
-  defp get_ethereum_height do
+  @spec get_ethereum_height() :: non_neg_integer() | :error_ethereum_height
+  defp get_ethereum_height() do
     {:ok, rootchain_height} = eth().get_ethereum_height()
     rootchain_height
   rescue
     _check_error -> :error_ethereum_height
   end
 
-  defp eth, do: Application.get_env(:omg_eth, :eth_integration_module, Eth)
+  defp eth(), do: Application.get_env(:omg_eth, :eth_integration_module, Eth)
 end

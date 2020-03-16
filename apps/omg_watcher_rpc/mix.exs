@@ -1,7 +1,7 @@
 defmodule OMG.WatcherRPC.Mixfile do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :omg_watcher_rpc,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -18,7 +18,7 @@ defmodule OMG.WatcherRPC.Mixfile do
     ]
   end
 
-  def application do
+  def application() do
     [
       mod: {OMG.WatcherRPC.Application, []},
       extra_applications: [:logger, :runtime_tools, :telemetry]
@@ -30,14 +30,14 @@ defmodule OMG.WatcherRPC.Mixfile do
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps do
+  defp deps() do
     [
       {:phoenix, "~> 1.3"},
       {:plug_cowboy, "~> 1.0"},
       {:cors_plug, "~> 2.0"},
       {:spandex_phoenix, "~> 0.4.1"},
       {:spandex_datadog, "~> 0.4"},
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4.1"},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
       {:omg_utils, in_umbrella: true},

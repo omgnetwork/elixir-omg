@@ -6,7 +6,7 @@ defmodule OMG.XomgTasks.MixProject do
   """
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :xomg_tasks,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -20,7 +20,7 @@ defmodule OMG.XomgTasks.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     []
   end
 end

@@ -6,7 +6,7 @@ BlockSchema:
       format: int64
     hash:
       type: string
-      format: binary
+       
     eth_height:
       type: integer
       format: int64
@@ -16,3 +16,9 @@ BlockSchema:
     tx_count:
       type: integer
       format: int64
+
+    inserted_at:
+      type: string
+    updated_at:
+      type: string
+  

@@ -48,7 +48,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
   @deposit_input2 {@deposit_blknum2, 0, 0}
 
-  @exit_id 1
+  # needs to match up with the default from `ExitProcessor.Case` :(
+  @exit_id 9876
 
   setup do
     {:ok, empty} = Core.init([], [], [])
@@ -503,7 +504,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     end
 
     test "can process challenged exits", %{processor_empty: processor, alice: alice} do
-      # see the contract and `Eth.RootChain.get_standard_exits_structs/1` for some explanation why like this
+      # see the contract and `Eth.RootChain.get_standard_exit_structs/1` for some explanation why like this
       # this is what an exit looks like after a challenge
       zero_status = {false, 0, 0, 0, 0, 0}
       standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])

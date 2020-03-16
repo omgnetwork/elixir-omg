@@ -20,7 +20,8 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   @app :omg_status
 
   @impl Provider
-  def init(_args) do
+  def init(args) do
+    nil = Process.put(:system_adapter, Keyword.get(args, :system_adapter, System))
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(:omg_status, Tracer)
     config = Keyword.put(config, :disabled?, get_dd_disabled())
@@ -30,6 +31,9 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     # statix setup
     :ok = Application.put_env(:statix, :host, get_dd_hostname(Application.get_env(:statix, :host)), persistent: true)
     :ok = Application.put_env(:statix, :port, get_dd_port(Application.get_env(:statix, :port)), persistent: true)
+    release = Keyword.get(args, :release)
+    tags = ["application:#{release}", "app_env:#{get_app_env()}", "hostname:#{get_hostname()}"]
+    :ok = Application.put_env(:statix, :tags, tags, persistent: true)
     # spandex_datadog setup
 
     :ok =
@@ -46,7 +50,14 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     :ok = Application.put_env(:spandex_datadog, :sync_threshold, get_sync_threshold(), persistent: true)
   end
 
-  defp get_dd_disabled do
+  defp get_hostname() do
+    hostname = validate_hostname(get_env("HOSTNAME"))
+
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: HOSTNAME Value: #{inspect(hostname)}.")
+    hostname
+  end
+
+  defp get_dd_disabled() do
     dd_disabled? =
       validate_bool(
         get_env("DD_DISABLED"),
@@ -57,7 +68,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     dd_disabled?
   end
 
-  defp get_app_env do
+  defp get_app_env() do
     env = validate_string(get_env("APP_ENV"), Application.get_env(@app, Tracer)[:env])
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: APP_ENV Value: #{inspect(env)}.")
     env
@@ -81,14 +92,17 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     dd_spandex_port
   end
 
-  def get_batch_size do
+  def get_batch_size() do
     batch_size = validate_integer(get_env("BATCH_SIZE"), Application.get_env(:spandex_datadog, :batch_size))
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: BATCH_SIZE Value: #{inspect(batch_size)}.")
     batch_size
   end
 
-  def get_sync_threshold do
+  defp validate_hostname(value) when is_binary(value), do: value
+  defp validate_hostname(_), do: exit("HOSTNAME is not set correctly.")
+
+  def get_sync_threshold() do
     sync_threshold =
       validate_integer(
         get_env("SYNC_THRESHOLD"),
@@ -99,7 +113,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     sync_threshold
   end
 
-  defp get_env(key), do: System.get_env(key)
+  defp get_env(key), do: Process.get(:system_adapter).get_env(key)
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default

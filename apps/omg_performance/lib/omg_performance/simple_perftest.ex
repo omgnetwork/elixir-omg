@@ -102,7 +102,7 @@ defmodule OMG.Performance.SimplePerftest do
   defp start_simple_perftest_chain(opts) do
     children = [
       {OMG.ChildChainRPC.Web.Endpoint, []},
-      {OMG.State, []},
+      {OMG.State, [fee_claimer_address: Base.decode16!("DEAD000000000000000000000000000000000000")]},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, []},
       {OMG.Performance.BlockCreator, opts[:block_every_ms]}
@@ -138,7 +138,7 @@ defmodule OMG.Performance.SimplePerftest do
   defp create_deposits(spenders, ntx_to_send) do
     spenders
     |> Enum.with_index(1)
-    |> Enum.map(&create_deposit(&1, ntx_to_send))
+    |> Enum.map(&create_deposit(&1, ntx_to_send * 2))
   end
 
   defp create_deposit({spender, index}, ntx_to_send) do

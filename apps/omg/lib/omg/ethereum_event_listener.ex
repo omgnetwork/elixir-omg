@@ -14,11 +14,32 @@
 
 defmodule OMG.EthereumEventListener do
   @moduledoc """
-  GenServer running the listener, see `OMG.EthereumEventListener.Core`
+  GenServer running the listener.
+
+  Periodically fetches events made on dynamically changing block range
+  from the root chain contract and feeds them to a callback.
+
+  It is **not** responsible for figuring out which ranges of Ethereum blocks are eligible to scan and when, see
+  `OMG.RootChainCoordinator` for that.
+  The `OMG.RootChainCoordinator` provides the `SyncGuide` that indicates what's eligible to scan, taking into account:
+   - finality margin
+   - mutual ordering and dependencies of various types of Ethereum events to be respected.
+
+  It **is** responsible for processing all events from all blocks and processing them only once.
+
+  It accomplishes that by keeping a persisted value in `OMG.DB` and its state that reflects till which Ethereum height
+  the events were processed (`synced_height`).
+  This `synced_height` is updated after every batch of Ethereum events get successfully consumed by
+  `callbacks.process_events_callback`, as called in `sync_height/2`, together with all the `OMG.DB` updates this
+  callback returns, atomically.
+  The key in `OMG.DB` used to persist `synced_height` is defined by the value of `synced_height_update_key`.
+
+  What specific Ethereum events it fetches, and what it does with them is up to predefined `callbacks`.
+
+  See `OMG.EthereumEventListener.Core` for the implementation of the business logic for the listener.
   """
 
   alias OMG.EthereumEventListener.Core
-  alias OMG.EthereumEventListener.Preprocessor
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
 
@@ -45,8 +66,8 @@ defmodule OMG.EthereumEventListener do
   end
 
   @doc """
-  Returns child_specs for the given `EthereumEventListener` setup, to be included e.g. in Supervisor's children
-  See `handle_continue/2` for the required keyword arguments
+  Returns child_specs for the given `EthereumEventListener` setup, to be included e.g. in Supervisor's children.
+  See `handle_continue/2` for the required keyword arguments.
   """
   @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
   def prepare_child(opts \\ []) do
@@ -56,24 +77,34 @@ defmodule OMG.EthereumEventListener do
 
   ### Server
 
+  @doc """
+  Initializes the GenServer state, most work done in `handle_continue/2`.
+  """
   def init(init) do
     {:ok, init, {:continue, :setup}}
   end
 
+  @doc """
+  Reads the status of listening (till which Ethereum height were the events processed) from the `OMG.DB` and initializes
+  the logic `OMG.EthereumEventListener.Core` with it. Does an initial `OMG.RootChainCoordinator.check_in` with the
+  Ethereum height it last stopped on. Next, it continues to monitor and fetch the events as usual.
+  """
   def handle_continue(:setup, %{
+        contract_deployment_height: contract_deployment_height,
         synced_height_update_key: update_key,
         service_name: service_name,
         get_events_callback: get_events_callback,
         process_events_callback: process_events_callback
       }) do
     _ = Logger.info("Starting #{inspect(__MODULE__)} for #{service_name}.")
-    {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
+
     {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
+
     # we don't need to ever look at earlier than contract deployment
     last_event_block_height = max(last_event_block_height, contract_deployment_height)
     {initial_state, height_to_check_in} = Core.init(update_key, service_name, last_event_block_height)
 
-    callbacks_map = %{
+    callbacks = %{
       get_ethereum_events_callback: get_events_callback,
       process_events_callback: process_events_callback
     }
@@ -84,77 +115,85 @@ defmodule OMG.EthereumEventListener do
 
     _ = Logger.info("Started #{inspect(__MODULE__)} for #{service_name}, synced_height: #{inspect(height_to_check_in)}")
 
-    {:noreply, {initial_state, callbacks_map}}
+    {:noreply, {initial_state, callbacks}}
   end
 
-  def handle_info(:send_metrics, {core, _callbacks} = state) do
-    :ok = :telemetry.execute([:process, __MODULE__], %{}, core)
-    {:noreply, state}
+  def handle_info(:send_metrics, {%Core{} = state, callbacks}) do
+    :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+    {:noreply, {state, callbacks}}
   end
 
+  @doc """
+  Main worker function, called on a cadence as initialized in `handle_continue/2`.
+
+  Does the following:
+   - asks `OMG.RootChainCoordinator` about how to sync, with respect to other services listening to Ethereum
+   - (`sync_height/2`) figures out what is the suitable range of Ethereum blocks to download events for
+   - (`sync_height/2`) if necessary fetches those events to the in-memory cache in `OMG.EthereumEventListener.Core`
+   - (`sync_height/2`) executes the related event-consuming callback with events as arguments
+   - (`sync_height/2`) does `OMG.DB` updates that persist the processes Ethereum height as well as whatever the
+      callbacks returned to persist
+   - (`sync_height/2`) `OMG.RootChainCoordinator.check_in` to tell the rest what Ethereum height was processed.
+  """
   @decorate trace(service: :ethereum_event_listener, type: :backend)
-  def handle_info(:sync, {%Core{} = core, _callbacks} = state) do
-    :ok = :telemetry.execute([:trace, __MODULE__], %{}, core)
+  def handle_info(:sync, {%Core{} = state, callbacks}) do
+    :ok = :telemetry.execute([:trace, __MODULE__], %{}, state)
 
     case RootChainCoordinator.get_sync_info() do
       :nosync ->
-        :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(core), core.service_name)
+        :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(state), state.service_name)
         {:ok, _} = schedule_get_events()
-        {:noreply, state}
+        {:noreply, {state, callbacks}}
 
       sync_info ->
-        new_state = sync_height(state, sync_info)
+        new_state = sync_height(state, callbacks, sync_info)
         {:ok, _} = schedule_get_events()
-        {:noreply, new_state}
+        {:noreply, {new_state, callbacks}}
     end
   end
 
+  # see `handle_info/2`, clause for `:sync`
   @decorate span(service: :ethereum_event_listener, type: :backend, name: "sync_height/2")
   defp sync_height(
-         {%Core{} = core, callbacks},
+         %Core{} = state,
+         callbacks,
          %SyncGuide{sync_height: sync_height} = sync_info
        ) do
     {:ok, events, db_updates, height_to_check_in, new_state} =
-      Core.get_events_range_for_download(core, sync_info)
+      Core.get_events_range_for_download(state, sync_info)
       |> maybe_update_event_cache(callbacks.get_ethereum_events_callback)
       |> Core.get_events(sync_height)
 
-    :ok = :telemetry.execute([:process, __MODULE__], %{events: events}, core)
+    :ok = :telemetry.execute([:process, __MODULE__], %{events: events}, state)
 
-    {:ok, db_updates_from_callback} =
-      events
-      |> Enum.map(&Preprocessor.apply/1)
-      |> publish_data()
-      |> callbacks.process_events_callback.()
-
+    {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
+    :ok = publish_data(events)
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
-    :ok = RootChainCoordinator.check_in(height_to_check_in, core.service_name)
+    :ok = RootChainCoordinator.check_in(height_to_check_in, state.service_name)
 
-    {new_state, callbacks}
+    new_state
   end
 
   @decorate span(service: :ethereum_event_listener, type: :backend, name: "maybe_update_event_cache/2")
-  defp maybe_update_event_cache({:get_events, {from, to}, state_with_cache}, get_ethereum_events_callback) do
+  defp maybe_update_event_cache({:get_events, {from, to}, %Core{} = state}, get_ethereum_events_callback) do
     {:ok, new_events} = get_ethereum_events_callback.(from, to)
-    Core.add_new_events(state_with_cache, new_events)
+    Core.add_new_events(state, new_events)
   end
 
   @decorate span(service: :ethereum_event_listener, type: :backend, name: "maybe_update_event_cache/2")
-  defp maybe_update_event_cache({:dont_fetch_events, state}, _callback), do: state
+  defp maybe_update_event_cache({:dont_fetch_events, %Core{} = state}, _callback), do: state
 
-  defp schedule_get_events do
+  defp schedule_get_events() do
     Application.fetch_env!(:omg, :ethereum_events_check_interval_ms)
     |> :timer.send_after(self(), :sync)
   end
 
   defp publish_data([%{event_signature: event_signature} | _] = data) do
-    # String.split("DepositCreated(address,uint256,address,uint256)", "(")
+    # event signature is string with a method name with arguments,
+    # for example: BlockSubmitted(uint256)
     [event_signature, _] = String.split(event_signature, "(")
-    :ok = OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
-    data
+    OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
   end
 
-  defp publish_data([] = data) do
-    data
-  end
+  defp publish_data([]), do: :ok
 end

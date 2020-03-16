@@ -56,14 +56,15 @@ if Code.ensure_loaded?(:rocksdb) do
 
       setup = [{:create_if_missing, false}, {:prefix_extractor, {:fixed_prefix_transform, 5}}]
 
-      with {:ok, db_ref} <- :rocksdb.open(db_path, setup) do
-        {:ok, _} =
-          :timer.send_interval(Application.fetch_env!(:omg_db, :metrics_collection_interval), self(), :send_metrics)
+      case :rocksdb.open(db_path, setup) do
+        {:ok, db_ref} ->
+          {:ok, _} =
+            :timer.send_interval(Application.fetch_env!(:omg_db, :metrics_collection_interval), self(), :send_metrics)
 
-        _ = Logger.info("Started #{inspect(__MODULE__)}")
+          _ = Logger.info("Started #{inspect(__MODULE__)}")
 
-        {:ok, %__MODULE__{name: name, db_ref: db_ref}}
-      else
+          {:ok, %__MODULE__{name: name, db_ref: db_ref}}
+
         error ->
           _ = Logger.error("It seems that database is not initialized. Check README.md")
           error
@@ -200,7 +201,7 @@ if Code.ensure_loaded?(:rocksdb) do
       end
     end
 
-    defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
+    defp table_settings(), do: [:named_table, :set, :public, write_concurrency: true]
 
     # Argument order flipping tools :(
     # write options

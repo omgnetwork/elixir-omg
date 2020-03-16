@@ -88,7 +88,7 @@ defmodule OMG.Status.Metric.StatsdMonitorTest do
   defmodule StasdWrapper do
     use GenServer
 
-    def start_link do
+    def start_link() do
       GenServer.start_link(__MODULE__, [], [])
     end
 

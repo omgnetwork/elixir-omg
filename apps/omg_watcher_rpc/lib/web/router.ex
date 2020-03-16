@@ -21,13 +21,13 @@ defmodule OMG.WatcherRPC.Web.Router do
   end
 
   pipeline :security_api do
-    plug(SupportedWatcherModes, [:watcher, :watcher_info])
     plug(:accepts, ["json"])
+    plug(SupportedWatcherModes, [:watcher, :watcher_info])
   end
 
   pipeline :info_api do
-    plug(SupportedWatcherModes, [:watcher_info])
     plug(:accepts, ["json"])
+    plug(SupportedWatcherModes, [:watcher_info])
   end
 
   # A note on scope ordering.
@@ -48,6 +48,7 @@ defmodule OMG.WatcherRPC.Web.Router do
 
     post("/status.get", Controller.Status, :get_status)
     get("/alarm.get", Controller.Alarm, :get_alarms)
+    get("/configuration.get", Controller.Configuration, :get_configuration)
 
     post("/account.get_exitable_utxos", Controller.Account, :get_exitable_utxos)
 

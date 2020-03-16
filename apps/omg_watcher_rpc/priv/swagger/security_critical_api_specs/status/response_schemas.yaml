@@ -75,6 +75,11 @@ StatusResponseSchema:
             txbytes: "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec"
             inputs: [1]
             outputs: [0]
+        -
+          event: "ethereum_stalled_sync"
+          details:
+            eth_height: 615440
+            synced_at: "2020-02-07T10:10:10+00:00"
         in_flight_txs:
         -
           txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'

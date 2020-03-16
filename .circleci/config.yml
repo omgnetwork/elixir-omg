@@ -19,12 +19,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:dev-5735fd5
+      - image: omisegoimages/elixir-omg-builder:stable-20200219
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:dev-5735fd5
+      - image: omisegoimages/elixir-omg-builder:stable-20200219
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -34,7 +34,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:dev-5735fd5
+      - image: omisegoimages/elixir-omg-tester:stable-20200219
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -42,25 +42,10 @@ executors:
           POSTGRES_DB: omisego_test
     working_directory: ~/src
 
-  deploy:
+  deployer:
     docker:
-      - image: omisegoimages/elixir-omg-deploy:stable-20191024
+      - image: omisegoimages/elixir-omg-deploy:stable-20200219
     working_directory: ~/src
-
-  metal_child_chain:
-    machine: true
-    environment:
-      CHILD_CHAIN_IMAGE_NAME: "omisego/child_chain"
-
-  metal_watcher:
-    machine: true
-    environment:
-      WATCHER_IMAGE_NAME: "omisego/watcher"
-
-  metal_watcher_info:
-    machine: true
-    environment:
-      WATCHER_INFO_IMAGE_NAME: "omisego/watcher_info"
 
 commands:
   setup_elixir-omg_workspace:
@@ -77,6 +62,7 @@ jobs:
       MIX_ENV: test
     steps:
       - checkout
+      - run: make install-hex-rebar
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
       - run:
           command: ./bin/setup
@@ -172,14 +158,41 @@ jobs:
             - snapshots.env
             - contract_addresses_template.env
 
-  lint:
-    executor: builder_pg
+  audit_deps:
+    executor: builder
     environment:
       MIX_ENV: test
     steps:
       - setup_elixir-omg_workspace
-      - run: make init_test
-      - run: mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, ecto.create, ecto.migrate, test --exclude test, credo, format --check-formatted --dry-run
+      - run: mix deps.audit
+
+  lint:
+    executor: builder
+    environment:
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - run: make install-hex-rebar
+      - run: mix do compile --warnings-as-errors --force, credo, format --check-formatted --dry-run
+
+  lint_version:
+    executor: builder
+    steps:
+      - setup_elixir-omg_workspace
+      - run:
+          command: |
+            if [ -n "$CIRCLE_TAG" ]; then
+              _tagged_version="${CIRCLE_TAG#*v}"
+              _filed_version="$(head -n 1 ./VERSION | sed 's/^[ \t]*//;s/[ \t]*$//')"
+
+              if [ "$_tagged_version" != "$_filed_version" ]; then
+                echo "The git tag \"${CIRCLE_TAG}\" expects the VERSION to be \"${_tagged_version}\". Got \"${_filed_version}\"."
+                exit 1
+              fi
+            else
+              echo "This build is not version-tagged. Skipping version lint."
+              exit 0
+            fi
 
   sobelow:
     executor: builder_pg
@@ -223,7 +236,7 @@ jobs:
               mix coveralls.html --parallel --umbrella --include child_chain --exclude watcher --exclude watcher_info --exclude common --exclude test --trace
             else
               mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude watcher_info --exclude common --exclude test --trace ||
-                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
@@ -249,7 +262,7 @@ jobs:
               mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace
             else
               mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace ||
-                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
@@ -274,7 +287,7 @@ jobs:
               mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace
             else
               mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace ||
-                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
@@ -300,7 +313,7 @@ jobs:
               mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace
             else
               mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace ||
-                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
@@ -323,10 +336,10 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --trace
+              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
             else
-              mix coveralls.circle --parallel --umbrella --trace ||
-                # if mix failed, then coveralls_merge won't run, so signal done here and return original exit status
+              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info --exclude child_chain ||
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
@@ -415,13 +428,16 @@ jobs:
       - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
-      - run: 
-          name: Run specs
+      - run:
+          name: Start daemon services
           command: |
-            cd priv/
+            cd priv/cabbage
             make start_daemon_services
-      - run: docker image ls
-      - run: docker-compose ps
+      - run:
+          name: Print docker states
+          command: |
+            docker image ls
+            docker-compose ps
       - run:
           name: Install Erlang and Elixir
           command: |
@@ -435,37 +451,56 @@ jobs:
             sudo apt-get update &&
             sudo apt-get install esl-erlang=1:21.3.8.10-1
             sudo apt-get install elixir=1.8.2-1
+      - run: make install-hex-rebar
       - run: sh .circleci/status.sh
       - restore_cache:
           key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
           name: Run specs
           command: |
-            cd priv/
+            cd priv/cabbage
             make install
             make generate_api_code
-            mix local.hex --force && mix local.rebar --force
             mix deps.get
             mix test
       - run:
-          name: Format generated code and check for warnings
+          name: Run load test
           command: |
-            cd priv
+            cd priv/perf
+            make init
+            mix test
+      - run:
+          name: (Cabbage) Format generated code and check for warnings
+          command: |
+            cd priv/cabbage
             # run format ONLY on formatted code so that it cleans up quoted atoms because
             # we cannot exclude folders to --warnings-as-errors
             mix format apps/child_chain_api/lib/child_chain_api/model/*.ex
             mix format apps/watcher_info_api/lib/watcher_info_api/model/*.ex
             mix format apps/watcher_security_critical_api/lib/watcher_security_critical_api/model/*.ex
-            mix local.hex --force && mix local.rebar --force
-            MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
+            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
+      - run:
+          name: (Perf) Format generated code and check for warnings
+          command: |
+            cd priv/perf
+            # run format ONLY on formatted code so that it cleans up quoted atoms because
+            # we cannot exclude folders to --warnings-as-errors
+            mix format apps/*_api/lib/*_api/model/*.ex
+            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
       - save_cache:
           key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
           paths:
-            - "priv/deps"
+            - "priv/cabbage/deps"
+            - "priv/perf/deps"
       - run:
-          name: Credo and formatting
+          name: (Cabbage) Credo and formatting
           command: |
-            cd priv/
+            cd priv/cabbage
+            mix do credo, format --check-formatted --dry-run
+      - run:
+          name: (Perf) Credo and formatting
+          command: |
+            cd priv/perf
             mix do credo, format --check-formatted --dry-run
 
   test_barebone_release:
@@ -497,91 +532,134 @@ jobs:
             sudo apt-get install --yes --no-install-recommends --no-install-suggests esl-erlang=1:21.3.8.10-1
             sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-os-mon
             sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-parsetools
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-tools
             sudo apt-get install --yes --no-install-recommends --no-install-suggests elixir=1.8.2-1
             sudo apt policy elixir
             ./bin/setup
           no_output_timeout: 2400
+      - run: make install-hex-rebar
       - run:
           name: Compile
           command: |
             set -e
-            make deps-elixir-omg &&
+            make deps-elixir-omg
             mix compile
           no_output_timeout: 2400
       - run:
           name: Run Child Chain, Watcher and Watcher Info
           command: |
             set -e
-            make start-child_chain OVERRIDING_START=start &&
-            make start-watcher OVERRIDING_START=start &&
-            make start-watcher_info OVERRIDING_START=foreground
+            make start-child_chain OVERRIDING_START=start OVERRIDING_VARIABLES=./bin/variables_test_barebone &&
+            make start-watcher OVERRIDING_START=start OVERRIDING_VARIABLES=./bin/variables_test_barebone &&
+            make start-watcher_info OVERRIDING_START=foreground OVERRIDING_VARIABLES=./bin/variables_test_barebone
           background: true
           no_output_timeout: 2400
       - run:
           name: Install specs
           command: |
-            cd priv/
+            cd priv/cabbage
             make install
             make generate_api_code
-            mix local.hex --force && mix local.rebar --force
             mix deps.get
-      - run: docker ps
-      - run: ps axww | grep watcher
-      - run: ps axww | grep watcher_info
-      - run: ps axww | grep child_chain
+      - run:
+          name: Print docker and process states
+          command: |
+            docker ps
+            ps axww | grep watcher
+            ps axww | grep watcher_info
+            ps axww | grep child_chain
       - run: sh .circleci/status.sh
       - run:
           name: Run specs
           command: |
-            cd priv/
+            cd priv/cabbage
+            mix test
+      - run:
+          name: Run load test
+          command: |
+            cd priv/perf
+            make init
             mix test
 
   publish_child_chain:
-    executor: metal_child_chain
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      CHILD_CHAIN_IMAGE_NAME: "omisego/child_chain"
     steps:
       - checkout
       - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME
       - run: IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher:
-    executor: metal_watcher
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      WATCHER_IMAGE_NAME: "omisego/watcher"
     steps:
       - checkout
       - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher_info:
-    executor: metal_watcher_info
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      WATCHER_INFO_IMAGE_NAME: "omisego/watcher_info"
     steps:
       - checkout
       - run: make docker-watcher_info WATCHER_INFO_IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
   deploy_child_chain:
-    executor: deploy
+    executor: deployer
     steps:
       - checkout
       - run: DEPLOY=child_chain sh .circleci/ci_deploy.sh
 
   deploy_watcher:
-    executor: deploy
+    executor: deployer
     steps:
       - checkout
       - run: DEPLOY=watcher sh .circleci/ci_deploy.sh
 
   deploy_watcher_info:
-    executor: deploy
+    executor: deployer
     steps:
       - checkout
       - run: DEPLOY=watcher_info sh .circleci/ci_deploy.sh
 
-  coveralls_merge:
+  run_load_test_on_deployed_env:
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - checkout
+      - run:
+          name: Install Erlang and Elixir
+          command: |
+            set -e
+            wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
+            sudo killall dpkg || true &&
+            sudo rm /var/lib/dpkg/lock || true &&
+            sudo rm /var/cache/apt/archives/lock || true &&
+            sudo dpkg --configure -a || true &&
+            sudo dpkg -i erlang-solutions_2.0_all.deb  &&
+            sudo apt-get update &&
+            sudo apt-get install esl-erlang=1:21.3.8.10-1
+            sudo apt-get install elixir=1.8.2-1
+      - run: make install-hex-rebar
+      - run:
+          name: Run load test
+          command: |
+            cd priv/perf
+            make init
+            MIX_ENV=dev mix test
+
+  coveralls_report:
     docker:
-      # Ensure .tool-versions matches
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
           MIX_ENV: test
-
     steps:
       - run:
           name: Tell coveralls.io build is done
@@ -626,46 +704,6 @@ jobs:
               ] \
             }" ${SLACK_WEBHOOK}
 
-  build_and_deploy_staging:
-    docker:
-      - image: ubuntu:16.04
-    working_directory: ~/repo
-    steps:
-      - setup_remote_docker
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            apt-get update && apt-get install -y lsb-release curl cmake
-            curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
-      - run:
-          name: Install gcloud SDK
-          command: |
-            export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
-            echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-            apt-get update -y && apt-get install -y google-cloud-sdk kubectl
-      - run:
-          name: Initialise & authenticate gcloud SDK
-          command: |
-            echo "${GCP_KEY_FILE}" | base64 --decode >> /tmp/gcp_key.json
-            gcloud auth activate-service-account --key-file /tmp/gcp_key.json
-            gcloud config set project ${GCP_ACCOUNT_ID}
-            gcloud config set compute/zone ${GCP_ZONE}
-            gcloud container clusters get-credentials ${GCP_CLUSTER_STAGING}
-      - run:
-          name: Build & Deploy Services
-          command: |
-            docker build -t elixir-omg .
-            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
-            export DOCKER_IMAGE=jakebunce/elixir-omg:$CIRCLE_SHA1
-            docker tag elixir-omg $DOCKER_IMAGE
-            docker push jakebunce/elixir-omg:$CIRCLE_SHA1
-            kubectl set image statefulset childchain childchain=$DOCKER_IMAGE
-            while true; do if [ "$(kubectl get pods childchain-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
-            kubectl set image statefulset watcher watcher=$DOCKER_IMAGE
-            kubectl set image statefulset watcher_info watcher_info=$DOCKER_IMAGE
-
 workflows:
   version: 2
   nightly:
@@ -686,18 +724,24 @@ workflows:
           requires: [build]
       - test_barebone_release:
           requires: [build]
-  build-deploy:
+  build-test-deploy:
     jobs:
-      - build
+      - build:
+          filters: &all_branches_and_tags
+            branches:
+              only: /.+/
+            tags:
+              only: /.+/
       - test_barebone_release:
           requires: [build]
+          filters: *all_branches_and_tags
       - notify_services:
           requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
           filters:
             branches:
               only:
                 - master
-      - coveralls_merge:
+      - coveralls_report:
           requires:
             - child_chain_coveralls_and_integration_tests
             - watcher_coveralls_and_integration_tests
@@ -706,41 +750,41 @@ workflows:
             - test
       - child_chain_coveralls_and_integration_tests:
           requires: [build]
+          filters: *all_branches_and_tags
       - watcher_coveralls_and_integration_tests:
           requires: [build]
+          filters: *all_branches_and_tags
       - watcher_info_coveralls_and_integration_tests:
           requires: [build]
+          filters: *all_branches_and_tags
       - common_coveralls_and_integration_tests:
           requires: [build]
+          filters: *all_branches_and_tags
       - test_docker_compose_release:
           requires: [build]
+          filters: *all_branches_and_tags
+      - audit_deps:
+          requires: [build]
+          filters: *all_branches_and_tags
       - lint:
           requires: [build]
+          filters: *all_branches_and_tags
+      - lint_version:
+          requires: [build]
+          filters: *all_branches_and_tags
       - sobelow:
           requires: [build]
+          filters: *all_branches_and_tags
       - dialyzer:
           requires: [build]
+          filters: *all_branches_and_tags
       - test:
           requires: [build]
+          filters: *all_branches_and_tags
       - property_tests:
           requires: [build]
-      - build_and_deploy_staging:
-          requires:
-            - build
-            - lint
-            - sobelow
-            - dialyzer
-            - test
-            - child_chain_coveralls_and_integration_tests
-            - watcher_coveralls_and_integration_tests
-            - watcher_info_coveralls_and_integration_tests
-            - common_coveralls_and_integration_tests
-            - property_tests
-          filters:
-            branches:
-              only:
-                - v0.1
-      # Publish in case of master branch.
+          filters: *all_branches_and_tags
+      # Publish in case of master branch, version branches and version tags.
       - publish_child_chain:
           requires:
             [
@@ -752,11 +796,18 @@ workflows:
               property_tests,
               dialyzer,
               lint,
+              lint_version,
+              audit_deps
             ]
-          filters:
+          filters: &master_and_version_branches_and_all_tags
             branches:
               only:
                 - master
+                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
+                - /^v[0-9]+\.[0-9]+/
+            tags:
+              only:
+                - /.+/
       - publish_watcher:
           requires:
             [
@@ -768,11 +819,10 @@ workflows:
               property_tests,
               dialyzer,
               lint,
+              lint_version,
+              audit_deps
             ]
-          filters:
-            branches:
-              only:
-                - master
+          filters: *master_and_version_branches_and_all_tags
       - publish_watcher_info:
           requires:
             [
@@ -784,11 +834,10 @@ workflows:
               property_tests,
               dialyzer,
               lint,
+              lint_version,
+              audit_deps
             ]
-          filters:
-            branches:
-              only:
-                - master
+          filters: *master_and_version_branches_and_all_tags
       # Release deploy to development in case of master branch.
       - deploy_child_chain:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
@@ -804,6 +853,12 @@ workflows:
                 - master
       - deploy_watcher_info:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          filters:
+            branches:
+              only:
+                - master
+      - run_load_test_on_deployed_env:
+          requires: [deploy_child_chain, deploy_watcher, deploy_watcher_info]
           filters:
             branches:
               only:

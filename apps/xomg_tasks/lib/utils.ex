@@ -40,7 +40,7 @@ defmodule XomgTasks.Utils do
     |> ensure_doesnt_contain("--no-halt")
   end
 
-  defp iex_running? do
+  defp iex_running?() do
     Code.ensure_loaded?(IEx) and IEx.started?()
   end
 

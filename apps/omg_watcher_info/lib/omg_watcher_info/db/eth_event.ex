@@ -25,6 +25,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   alias OMG.Eth.Encoding
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
+  alias OMG.WireFormatTypes
 
   require Utxo
 
@@ -40,11 +41,11 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     many_to_many(
       :txoutputs,
       DB.TxOutput,
-      join_through: "ethevents_txoutputs",
+      join_through: DB.EthEventTxOutput,
       join_keys: [root_chain_txhash_event: :root_chain_txhash_event, child_chain_utxohash: :child_chain_utxohash]
     )
 
-    timestamps(type: :utc_datetime)
+    timestamps(type: :utc_datetime_usec)
   end
 
   @doc """
@@ -83,6 +84,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
               blknum: blknum,
               txindex: 0,
               oindex: 0,
+              otype: WireFormatTypes.output_type_for(:output_payment_v1),
               owner: owner,
               currency: currency,
               amount: amount

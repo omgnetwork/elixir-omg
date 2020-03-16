@@ -18,8 +18,9 @@ defmodule Support.RootChainHelper do
   """
 
   alias OMG.Eth
+  alias OMG.Eth.Blockchain.BitHelper
   alias OMG.Eth.Config
-  alias OMG.Eth.RootChain
+  alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.TransactionHelper
 
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1]
@@ -148,10 +149,11 @@ defmodule Support.RootChainHelper do
       ) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
     opts = Keyword.merge(defaults, opts)
+    sender_data = from |> BitHelper.kec()
 
     contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    signature = "challengeStandardExit((uint160,bytes,bytes,uint16,bytes))"
-    args = [{exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig}]
+    signature = "challengeStandardExit((uint160,bytes,bytes,uint16,bytes,bytes32))"
+    args = [{exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig, sender_data}]
 
     backend = Application.fetch_env!(:omg_eth, :eth_node)
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
@@ -329,7 +331,7 @@ defmodule Support.RootChainHelper do
     [%{blknum: deposit_blknum}] =
       logs
       |> Enum.filter(&(topic in &1["topics"]))
-      |> Enum.map(&RootChain.decode_deposit/1)
+      |> Enum.map(&Abi.decode_log/1)
 
     deposit_blknum
   end

@@ -26,7 +26,6 @@ StatusSchema:
       properties:
         plasma_framework:
           type: string
-          format: binary
     eth_syncing:
       type: boolean
     byzantine_events:
@@ -41,6 +40,7 @@ StatusSchema:
           - $ref: 'byzantine_events_schema.yml#/components/schemas/invalid_ife_challenge'
           - $ref: 'byzantine_events_schema.yml#/components/schemas/piggyback_available'
           - $ref: 'byzantine_events_schema.yml#/components/schemas/invalid_piggyback'
+          - $ref: 'byzantine_events_schema.yml#/components/schemas/ethereum_stalled_sync'
     in_flight_txs:
       type: array
       items:

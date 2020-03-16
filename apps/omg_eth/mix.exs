@@ -3,7 +3,7 @@ defmodule OMG.Eth.MixProject do
 
   require Logger
 
-  def project do
+  def project() do
     [
       app: :omg_eth,
       version: "#{String.trim(File.read!("../../VERSION"))}",
@@ -19,9 +19,10 @@ defmodule OMG.Eth.MixProject do
     ]
   end
 
-  def application do
+  def application() do
     [
       mod: {OMG.Eth.Application, []},
+      start_phases: [{:attach_telemetry, []}],
       extra_applications: [:sasl, :logger]
     ]
   end
@@ -32,10 +33,10 @@ defmodule OMG.Eth.MixProject do
   defp elixirc_paths(:dev), do: ["lib", "test/support"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps do
+  defp deps() do
     [
       {:ex_abi, "~> 0.2.1"},
-      {:ethereumex, "~> 0.5.5"},
+      {:ethereumex, "~> 0.6.0"},
       # Umbrella
       {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},
@@ -43,10 +44,7 @@ defmodule OMG.Eth.MixProject do
       # TEST ONLY
       {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test]},
       {:briefly, "~> 0.3.0", only: [:dev, :test]},
-      {:exvcr, "~> 0.10", only: :test},
-      {:websockex, "~> 0.4.2"},
-      # Used for mocking websocket servers
-      {:plug_cowboy, "~> 1.0", only: [:dev, :test]}
+      {:exvcr, "~> 0.10", only: :test}
     ]
   end
 end

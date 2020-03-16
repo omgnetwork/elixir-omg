@@ -1,0 +1,33 @@
+#!/usr/bin/env sh
+
+# this is a version of the bin/variables script which enables cabbage integration tests to run against a test-friendly
+# setup of our services
+
+# test_barebone_release taylored values. Compare also with priv/cabbage/docker-compose-cabbage.yml
+export EXIT_PROCESSOR_SLA_MARGIN=30
+
+# the rest stays same as bin/variables
+export REPLACE_OS_VARS=true
+export NODE_HOST=127.0.0.1
+export ERLANG_COOKIE=develop
+export APP_ENV=local-development
+export HOSTNAME=http://localhost/
+export DB_PATH=~/plasma-data/
+export ETHEREUM_RPC_URL=http://127.0.0.1:8545
+export ETH_NODE=geth
+export ETHEREUM_NETWORK=LOCALCHAIN
+export DATABASE_URL=postgresql://omisego_dev:omisego_dev@127.0.0.1:5432/omisego_dev
+export CHILD_CHAIN_URL=http://127.0.0.1:9656
+export ETHEREUM_HEIGHT_CHECK_INTERVAL_MS=800
+export ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+export ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+export FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
+export DD_HOSTNAME=localhost
+export DD_DISABLED=false
+export LOGGER_BACKEND=console
+# expects it's executed from the root of the project
+FILE='./localchain_contract_addresses.env'
+while IFS= read -r line; do
+    DATA_TO_EXPORT='export '$line
+    eval $DATA_TO_EXPORT
+done < ${FILE}
