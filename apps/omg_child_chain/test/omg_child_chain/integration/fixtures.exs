@@ -64,6 +64,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
         path
         |> Path.join(name)
         |> File.rm()
+
       Application.put_env(:omg_child_chain, :fee_specs_file_path, default_file_path)
       Application.put_env(:omg_child_chain, :fee_specs_file_name, default_file_name)
     end)

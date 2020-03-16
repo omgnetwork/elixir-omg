@@ -108,12 +108,18 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     old_file_name = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
 
     {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
+
     Application.put_env(:omg_child_chain, :fee_specs_file_path, file_path)
     Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name)
 
     on_exit(fn ->
       apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
-      File.rm(file_path)
+
+      :ok =
+        file_path
+        |> Path.join(file_name)
+        |> File.rm()
+
       Application.put_env(:omg_child_chain, :fee_specs_file_path, old_file_path)
       Application.put_env(:omg_child_chain, :fee_specs_file_name, old_file_name)
     end)
@@ -122,7 +128,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
   end
 
   describe "fees in effect" do
-    test "corrupted file does not make server crash", %{fee_file_path: file_path} do
+    test "corrupted file does not make server crash", %{fee_file_path: file_path, fee_file_name: file_name} do
       {:started, _log, exit_fn} = start_fee_server()
 
       new_fee = %{
@@ -138,7 +144,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
       # corrupt file, refresh, check fees did not change
       assert capture_log(fn ->
-               overwrite_fee_file(file_path, "[not a json]")
+               overwrite_fee_file(file_path, file_name, "[not a json]")
                refresh_fees()
              end) =~ ~r/\[error\].*Unable to update fees/
 
@@ -146,7 +152,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       assert server_alive?()
 
       # fix file, reload, check changes applied
-      overwrite_fee_file(file_path, %{@payment_tx_type => %{@eth_hex => new_fee}})
+      overwrite_fee_file(file_path, file_name, %{@payment_tx_type => %{@eth_hex => new_fee}})
       refresh_fees()
 
       assert {:ok, %{@payment_tx_type => %{@eth => new_fee}}} == FeeServer.current_fees()
@@ -155,8 +161,8 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       exit_fn.()
     end
 
-    test "starting with corrupted file makes server die", %{fee_file_path: file_path} do
-      overwrite_fee_file(file_path, "[not a json]")
+    test "starting with corrupted file makes server die", %{fee_file_path: file_path, fee_file_name: file_name} do
+      overwrite_fee_file(file_path, file_name, "[not a json]")
       {:died, log} = start_fee_server()
 
       assert log =~ ~r/\[error\].*Unable to update fees/
@@ -170,7 +176,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       exit_fn.()
     end
 
-    test "previous fees are set when fees are updated", %{fee_file_path: file_path} do
+    test "previous fees are set when fees are updated", %{fee_file_path: file_path, fee_file_name: file_name} do
       new_fee = %{
         amount: 5,
         subunit_to_unit: 100,
@@ -185,7 +191,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       assert nil == :ets.lookup_element(:fees_bucket, :previous_fees, 2)
       assert {:ok, %{1 => %{@eth => [1], @not_eth => [2]}, 2 => %{@eth => [1]}}} == FeeServer.accepted_fees()
 
-      overwrite_fee_file(file_path, %{@payment_tx_type => %{@eth_hex => new_fee}})
+      overwrite_fee_file(file_path, file_name, %{@payment_tx_type => %{@eth_hex => new_fee}})
       refresh_fees()
 
       assert @parsed_fees == :ets.lookup_element(:fees_bucket, :previous_fees, 2)
@@ -194,7 +200,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       exit_fn.()
     end
 
-    test "previous fees expire after the set duration", %{fee_file_path: file_path} do
+    test "previous fees expire after the set duration", %{fee_file_path: file_path, fee_file_name: file_name} do
       new_fee = %{
         amount: 5,
         subunit_to_unit: 100,
@@ -206,7 +212,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
       {:started, _log, exit_fn} = start_fee_server()
 
-      overwrite_fee_file(file_path, %{@payment_tx_type => %{@eth_hex => new_fee}})
+      overwrite_fee_file(file_path, file_name, %{@payment_tx_type => %{@eth_hex => new_fee}})
       refresh_fees()
 
       assert @parsed_fees == :ets.lookup_element(:fees_bucket, :previous_fees, 2)
@@ -221,7 +227,10 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       exit_fn.()
     end
 
-    test "previous fees are not nil if fees updated during buffer period", %{fee_file_path: file_path} do
+    test "previous fees are not nil if fees updated during buffer period", %{
+      fee_file_path: file_path,
+      fee_file_name: file_name
+    } do
       # This test is to ensure that the timer is correcly cancelled when new fees
       # come in while in buffer period.
       new_fee_1 = %{
@@ -244,7 +253,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
       {:started, _log, exit_fn} = start_fee_server()
 
-      overwrite_fee_file(file_path, %{@payment_tx_type => %{@eth_hex => new_fee_1}})
+      overwrite_fee_file(file_path, file_name, %{@payment_tx_type => %{@eth_hex => new_fee_1}})
       refresh_fees()
 
       assert @parsed_fees == :ets.lookup_element(:fees_bucket, :previous_fees, 2)
@@ -257,7 +266,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
       Process.sleep(half_buffer_duration)
 
-      overwrite_fee_file(file_path, %{@payment_tx_type => %{@eth_hex => new_fee_2}})
+      overwrite_fee_file(file_path, file_name, %{@payment_tx_type => %{@eth_hex => new_fee_2}})
       refresh_fees()
 
       Process.sleep(half_buffer_duration)
@@ -325,9 +334,9 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end
   end
 
-  defp overwrite_fee_file(file_path, content) do
+  defp overwrite_fee_file(file_path, file_name, content) do
     # file modification date is in seconds
     Process.sleep(1000)
-    {:ok, ^file_path, _} = TestHelper.write_fee_file(content, file_path)
+    {:ok, ^file_path, ^file_name} = TestHelper.write_fee_file(content, file_path, file_name)
   end
 end
