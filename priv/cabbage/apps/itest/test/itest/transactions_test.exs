@@ -129,7 +129,7 @@ defmodule TransactionsTests do
           )
 
         # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
-        submitted = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
+        _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
       end,
       timeout: 60_000,
       on_timeout: :kill_task,
