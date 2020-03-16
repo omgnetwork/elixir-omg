@@ -158,6 +158,14 @@ jobs:
             - snapshots.env
             - contract_addresses_template.env
 
+  audit_deps:
+    executor: builder
+    environment:
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - run: mix deps.audit
+
   lint:
     executor: builder
     environment:
@@ -786,6 +794,7 @@ workflows:
               dialyzer,
               lint,
               lint_version,
+              audit_deps
             ]
           filters: &master_and_version_branches_and_all_tags
             branches:
@@ -808,6 +817,7 @@ workflows:
               dialyzer,
               lint,
               lint_version,
+              audit_deps
             ]
           filters: *master_and_version_branches_and_all_tags
       - publish_watcher_info:
@@ -822,6 +832,7 @@ workflows:
               dialyzer,
               lint,
               lint_version,
+              audit_deps
             ]
           filters: *master_and_version_branches_and_all_tags
       # Release deploy to development in case of master branch.
