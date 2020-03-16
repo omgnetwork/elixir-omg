@@ -55,12 +55,15 @@ defmodule OMG.ChildChain.Integration.Fixtures do
       })
 
     default_file_path = Application.fetch_env!(:omg_child_chain, :fee_specs_file_path)
-    default_file_name = Application.fetch_env!(:omg_child_chain, :fee_specs_file_path)
+    default_file_name = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
     Application.put_env(:omg_child_chain, :fee_specs_file_path, path, persistent: true)
     Application.put_env(:omg_child_chain, :fee_specs_file_name, name, persistent: true)
 
     on_exit(fn ->
-      :ok = File.rm(path)
+      :ok =
+        path
+        |> Path.join(name)
+        |> File.rm()
       Application.put_env(:omg_child_chain, :fee_specs_file_path, default_file_path)
       Application.put_env(:omg_child_chain, :fee_specs_file_name, default_file_name)
     end)

@@ -39,6 +39,8 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePath do
     :ok
   end
 
+  # File.mkdir_p is called at the application start
+  # sobelow_skip ["Traversal"]
   defp set_path(path) do
     :ok = Application.put_env(@app, @config_key, path, persistent: true)
     name = Application.get_env(@app, :fee_specs_file_name)
