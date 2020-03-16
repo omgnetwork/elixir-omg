@@ -763,6 +763,9 @@ workflows:
       - test_docker_compose_release:
           requires: [build]
           filters: *all_branches_and_tags
+      - audit_deps:
+          requires: [build]
+          filters: *all_branches_and_tags
       - lint:
           requires: [build]
           filters: *all_branches_and_tags
