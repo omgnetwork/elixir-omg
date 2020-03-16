@@ -1,3 +1,17 @@
+# Copyright 2019-2020 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 defmodule TransactionsTests do
   use Cabbage.Feature, async: true, file: "transactions.feature"
 
@@ -60,33 +74,33 @@ defmodule TransactionsTests do
   defthen ~r/^they should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{alices: alices} = state do
+    {:ok, response} =
+      WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
+
+    watcher_security_critical_config =
+      WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
+
+    finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
+
     alices
     |> Enum.with_index()
     |> Task.async_stream(
       fn {{alice_account, alice_pkey}, index} ->
+        to_milliseconds = 1000
         geth_block_every = 1
-
-        {:ok, response} =
-          WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
-
-        watcher_security_critical_config =
-          WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
-
-        finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
-        to_miliseconds = 1000
 
         finality_margin_blocks
         |> Kernel.*(geth_block_every)
-        |> Kernel.*(to_miliseconds)
+        |> Kernel.*(to_milliseconds)
         |> Kernel.round()
         |> Process.sleep()
 
-        expecting_amount = Currency.to_wei(amount)
+        expected_amount = Currency.to_wei(amount)
 
-        balance = Client.get_balance(alice_account, expecting_amount)
+        balance = Client.get_balance(alice_account, expected_amount)
 
         balance = balance["amount"]
-        assert_equal(expecting_amount, balance, "For #{alice_account}")
+        assert_equal(expected_amount, balance, "For #{alice_account}")
       end,
       timeout: 60_000,
       on_timeout: :kill_task,
@@ -114,7 +128,6 @@ defmodule TransactionsTests do
 
         # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
         submitted = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
-        Logger.warn("submitted #{inspect(submitted)}")
       end,
       timeout: 60_000,
       on_timeout: :kill_task,
