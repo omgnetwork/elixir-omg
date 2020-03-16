@@ -80,7 +80,7 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
       false
   """
   @spec is_change_significant?(list(Fees.merged_fee_t()), non_neg_integer()) :: boolean()
-  def is_change_significant?(token_amounts, tolerance_percent) do
+  defp is_change_significant?(token_amounts, tolerance_percent) do
     tolerance_rate = tolerance_percent / 100
 
     token_amounts

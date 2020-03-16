@@ -24,17 +24,23 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
 
-    if OMG.ChildChain.Fees.FeedAdapter == Application.get_env(@app, :fee_adapter) do
-      adapter_opts =
-        @app
-        |> Application.fetch_env!(@config_key)
-        |> replace_with_env(&validate_string/2, feed_url: "FEE_FEED_URL")
-        |> replace_with_env(&validate_integer/2, fee_change_tolerance_percent: "FEE_FEED_TOLERANCE_PERCENT")
-        |> replace_with_env(&validate_integer/2, stored_fee_update_interval_minutes: "FEE_FEED_UPDATE_INTERVAL_MINUTES")
+    @app
+    |> Application.get_env(:fee_adapter)
+    |> update_adapter_opts_with_env()
+  end
 
-      :ok = Application.put_env(@app, @config_key, adapter_opts, persistent: true)
-      _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(adapter_opts)}.")
-    end
+  defp update_adapter_opts_with_env(nil), do: :ok
+
+  defp update_adapter_opts_with_env(OMG.ChildChain.Fees.FeedAdapter) do
+    adapter_opts =
+      @app
+      |> Application.fetch_env!(@config_key)
+      |> replace_with_env(&validate_string/2, feed_url: "FEE_FEED_URL")
+      |> replace_with_env(&validate_integer/2, fee_change_tolerance_percent: "FEE_FEED_TOLERANCE_PERCENT")
+      |> replace_with_env(&validate_integer/2, stored_fee_update_interval_minutes: "FEE_FEED_UPDATE_INTERVAL_MINUTES")
+
+    :ok = Application.put_env(@app, @config_key, adapter_opts, persistent: true)
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(adapter_opts)}.")
 
     :ok
   end

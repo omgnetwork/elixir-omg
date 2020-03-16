@@ -71,7 +71,7 @@ defmodule OMG.ChildChain.Integration.FeedAdapterTest do
     end
 
     test "Updates fees fetched from feed when no fees previously set", %{initial_fees: fees} do
-      assert {:ok, {_ts, ^fees}} = FeedAdapter.get_fee_specs(nil, 0)
+      assert {:ok, ^fees, _ts} = FeedAdapter.get_fee_specs(nil, 0)
     end
 
     test "No changes when fees has not changed in long time period", %{initial_fees: fees} do
@@ -88,7 +88,7 @@ defmodule OMG.ChildChain.Integration.FeedAdapterTest do
       actual_updated_at: updated_at
     } do
       updated_fees = update_feed_price(110)
-      assert {:ok, {_ts, ^updated_fees}} = FeedAdapter.get_fee_specs(fees, updated_at)
+      assert {:ok, ^updated_fees, _ts} = FeedAdapter.get_fee_specs(fees, updated_at)
     end
 
     test "Updates when fees insignificant change happens a long ago", %{
@@ -96,7 +96,7 @@ defmodule OMG.ChildChain.Integration.FeedAdapterTest do
       after_period_updated_at: long_ago
     } do
       updated_fees = update_feed_price(109)
-      assert {:ok, {_ts, ^updated_fees}} = FeedAdapter.get_fee_specs(fees, long_ago)
+      assert {:ok, ^updated_fees, _ts} = FeedAdapter.get_fee_specs(fees, long_ago)
     end
   end
 
