@@ -22,6 +22,8 @@ defmodule TransactionsTests do
   alias Itest.Client
   alias Itest.Transactions.Currency
 
+  # needs to be an even number, because we split the accounts in half, the first half sends ETH
+  # to the other half
   @num_accounts 50
   setup do
     {alices, bobs} =
