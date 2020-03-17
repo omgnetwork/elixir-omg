@@ -28,13 +28,15 @@ AccountUtxoResponseSchema:
     example:
       data:
       -
+        amount: 10
         blknum: 123000
-        txindex: 111
+        creating_txhash: '0x2c499b95ccb6bf7b923049b32b03a613d30882a448102136e544b302119eb722'
+        currency: '0x0000000000000000000000000000000000000000'
+        inserted_at: '2020-02-10T12:07:32Z'
         oindex: 0
         otype: 1
-        utxo_pos: 123000001110000
         owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
-        currency: '0x0000000000000000000000000000000000000000'
-        amount: 10
-        inserted_at: '2020-02-10T12:07:32Z'
+        spending_txhash: null
+        txindex: 111
         updated_at: '2020-02-15T04:07:57Z'
+        utxo_pos: 123000001110000
