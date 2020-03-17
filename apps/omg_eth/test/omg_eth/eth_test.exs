@@ -50,11 +50,6 @@ defmodule OMG.EthTest do
     {:ok, contracts: contracts}
   end
 
-  test "get_ethereum_height/0 returns the block number" do
-    {:ok, number} = Eth.get_ethereum_height()
-    assert is_integer(number)
-  end
-
   test "get_block_timestamp_by_number/1 the block timestamp by block number" do
     {:ok, timestamp} = Eth.get_block_timestamp_by_number(2)
     assert is_integer(timestamp)

@@ -91,7 +91,7 @@ defmodule Support.DevHelper do
 
   def wait_for_root_chain_block(awaited_eth_height, timeout \\ 600_000) do
     f = fn ->
-      {:ok, eth_height} = Eth.get_ethereum_height()
+      {:ok, eth_height} = get_ethereum_height()
 
       if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
     end
@@ -185,4 +185,15 @@ defmodule Support.DevHelper do
 
   defp contract_map_to_hex(contract_map),
     do: Enum.into(contract_map, %{}, fn {name, addr} -> {name, to_hex(addr)} end)
+
+  @spec get_ethereum_height() :: {:ok, non_neg_integer()} | Ethereumex.Client.Behaviour.error()
+  defp get_ethereum_height() do
+    case Ethereumex.HttpClient.eth_block_number() do
+      {:ok, height_hex} ->
+        {:ok, int_from_hex(height_hex)}
+
+      other ->
+        other
+    end
+  end
 end

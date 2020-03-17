@@ -108,6 +108,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
     min_exit_period_seconds = get_min_exit_period(env_contract_address_plasma_framework)
     contract_semver = get_contract_semver(env_contract_address_plasma_framework)
+    child_block_interval = get_child_block_interval(env_contract_address_plasma_framework)
 
     update_configuration(
       txhash_contract,
@@ -115,7 +116,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       contract_addresses,
       min_exit_period_seconds,
       contract_semver,
-      network
+      network,
+      child_block_interval
     )
   end
 
@@ -125,7 +127,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
          contract_addresses,
          min_exit_period_seconds,
          contract_semver,
-         network
+         network,
+         child_block_interval
        )
        when is_binary(txhash_contract) and
               is_binary(authority_address) and is_map(contract_addresses) and is_integer(min_exit_period_seconds) and
@@ -137,6 +140,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     :ok = Application.put_env(@app, :min_exit_period_seconds, min_exit_period_seconds)
     :ok = Application.put_env(@app, :contract_semver, contract_semver)
     :ok = Application.put_env(@app, :network, network)
+    :ok = Application.put_env(@app, :child_block_interval, child_block_interval)
   end
 
   defp update_configuration(_, _, _, _, _, _), do: exit(@error)
@@ -155,6 +159,26 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "getVersion()", [], [{:tuple, [:string]}])
 
     contract_semver
+  end
+
+  defp get_child_block_interval(plasma_framework_contract) do
+    {:ok, child_block_interval} =
+      Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "childBlockInterval()", [], [{:uint, 256}])
+
+    child_block_interval
+  end
+
+  def exit_game_contract_address(plasma_framework_contract, tx_type) do
+    {:ok, result} =
+      Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "exitGames(uint256)", [tx_type], [:address])
+
+    Encoding.to_hex(result)
+  end
+
+  def get_vault(plasma_framework_contract, id) do
+    {:ok, result} = Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "vaults(uint256)", [id], [:address])
+
+    Encoding.to_hex(result)
   end
 
   defp get_env(key), do: System.get_env(key)
