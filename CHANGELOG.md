@@ -28,10 +28,6 @@ See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.3...v0.4
 - [Added] Set LOGGING_BACKEND=INK for json logging (#1352)
 - [Fixed] watcher_info crashing when receiving a block with large number of transactions (#1356)
 
-#### Miscellaneous
-- [Added] Publish BlockSubmitted event internally (#1351)
-
-## [v0.4.3](https://github.com/omisego/elixir-omg/tree/v0.4.3) (2020-02-26)
 
 Compatible with [`plasma-contracts@v1.0.3`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.3).
 See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.2...v0.4.3).
