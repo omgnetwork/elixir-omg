@@ -108,22 +108,3 @@ mix test
 Longer-running integration tests (requires compiling contracts):
 ```bash
 mix test --trace --only integration
-```
-
-For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/omisego/workflows/elixir-omg) or build steps (https://github.com/omisego/elixir-omg/blob/master/.circleci/config.yml).
-
-To run a development `iex` REPL with all code loaded:
-```bash
-MIX_ENV=test iex -S mix run --no-start
-```
-
-# Working with API Spec's
-
-This repo contains `gh-pages` branch intended to host [Swagger-based](https://developer.omisego.co/elixir-omg/) API specification.
-Branch `gh-pages` is totally diseparated from other development branches and contains just Slate generated page's files.
-
-See [gh-pages README](https://github.com/omisego/elixir-omg/blob/gh-pages/docs/api_specs/README.md) for more details.
-
-# More details about the design and arhitecture
-
-Details about the repository, code, arhitecture and design decisions are available **[here](docs/details.md)**.
