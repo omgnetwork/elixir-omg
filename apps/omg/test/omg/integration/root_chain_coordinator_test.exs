@@ -22,9 +22,6 @@ defmodule OMG.RootChainCoordinatorTest do
   use OMG.DB.Fixtures
   use OMG.Eth.Fixtures
 
-  alias Support.DevHelper
-  alias Support.Integration.DepositHelper
-
   @moduletag :integration
   @moduletag :common
   setup do
@@ -38,35 +35,5 @@ defmodule OMG.RootChainCoordinatorTest do
     end)
 
     :ok
-  end
-
-  @tag fixtures: [:alice, :db_initialized, :root_chain_contract_config]
-  test "can do a simplest sync",
-       %{alice: alice} do
-    coordinator_setup = %{test: [finality_margin: 0]}
-    test_process = self()
-    # we're starting a mock event listening machinery, which will send all deposit events to the test process to assert
-    {:ok, _} =
-      Supervisor.start_link(
-        [
-          {OMG.RootChainCoordinator, coordinator_setup},
-          OMG.EthereumEventListener.prepare_child(
-            service_name: :test,
-            synced_height_update_key: :last_depositor_eth_height,
-            get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
-            process_events_callback: fn events ->
-              send(test_process, events)
-              {:ok, []}
-            end
-          )
-        ],
-        strategy: :one_for_one
-      )
-
-    {:ok, _} = DevHelper.import_unlock_fund(alice)
-    assert 1 = DepositHelper.deposit_to_child_chain(alice.addr, 10)
-
-    check_interval_ms = Application.get_env(:omg_eth, :ethereum_events_check_interval_ms)
-    assert_receive([%{amount: 10}], check_interval_ms * 2)
   end
 end

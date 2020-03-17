@@ -486,12 +486,19 @@ paths:
                             txindex:
                               type: integer
                               format: int16
+                            otype:
+                              type: integer
+                              format: int16
                             oindex:
                               type: integer
                               format: int8
                             utxo_pos:
                               type: integer
                               format: int256
+                            creating_txhash:
+                              type: string
+                            spending_txhash:
+                              type: string
                             owner:
                               type: string
                             currency:
@@ -505,16 +512,18 @@ paths:
                               type: string
                     example:
                       data:
-                        - blknum: 123000
-                          txindex: 111
+                        - amount: 10
+                          blknum: 123000
+                          creating_txhash: '0x2c499b95ccb6bf7b923049b32b03a613d30882a448102136e544b302119eb722'
+                          currency: '0x0000000000000000000000000000000000000000'
+                          inserted_at: '2020-02-10T12:07:32Z'
                           oindex: 0
                           otype: 1
-                          utxo_pos: 123000001110000
                           owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
-                          currency: '0x0000000000000000000000000000000000000000'
-                          amount: 10
-                          inserted_at: '2020-02-10T12:07:32Z'
+                          spending_txhash: null
+                          txindex: 111
                           updated_at: '2020-02-15T04:07:57Z'
+                          utxo_pos: 123000001110000
         '500':
           description: Returns an internal server error
           content:
@@ -809,7 +818,7 @@ paths:
                               owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 15000000
-                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               spending_txhash: null
                               inserted_at: '2020-02-10T12:07:32Z'
                               updated_at: '2020-02-15T04:07:57Z'
@@ -821,7 +830,7 @@ paths:
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 5000000
-                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               spending_txhash: null
                               inserted_at: '2020-02-10T12:07:32Z'
                               updated_at: '2020-02-15T04:07:57Z'
@@ -1427,7 +1436,7 @@ paths:
                               owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 15000000
-                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               spending_txhash: null
                               inserted_at: '2020-02-10T12:07:32Z'
                               updated_at: '2020-02-15T04:07:57Z'
@@ -1439,7 +1448,7 @@ paths:
                               owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                               currency: '0x0000000000000000000000000000000000000000'
                               amount: 5000000
-                              creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                              creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                               spending_txhash: null
                               inserted_at: '2020-02-10T12:07:32Z'
                               updated_at: '2020-02-15T04:07:57Z'
@@ -2189,7 +2198,7 @@ paths:
                             owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
                             currency: '0x0000000000000000000000000000000000000000'
                             amount: 2
-                            creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                            creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                             spending_txhash: null
                             inserted_at: '2020-02-10T12:07:32Z'
                             updated_at: '2020-02-15T04:07:57Z'
@@ -2201,7 +2210,7 @@ paths:
                             owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                             currency: '0x0000000000000000000000000000000000000000'
                             amount: 7
-                            creating_txhash: '0x40d65df1c3b1156d813d6bf96d5bd3b5bcf6e6588fc18c2a2ba564c6a64d4320'
+                            creating_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                             spending_txhash: null
                             inserted_at: '2020-02-10T12:07:32Z'
                             updated_at: '2020-02-15T04:07:57Z'

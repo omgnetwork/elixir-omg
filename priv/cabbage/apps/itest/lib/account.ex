@@ -1,3 +1,17 @@
+# Copyright 2019-2020 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 defmodule Itest.Account do
   @moduledoc """
     Maintaining used accounts state so that we're able to run tests multiple times.
@@ -9,7 +23,11 @@ defmodule Itest.Account do
   @spec take_accounts(integer()) :: map()
   def take_accounts(number_of_accounts) do
     1..number_of_accounts
-    |> Task.async_stream(fn _ -> account() end, timeout: 60_000, on_timeout: :kill_task)
+    |> Task.async_stream(fn _ -> account() end,
+      timeout: 60_000,
+      on_timeout: :kill_task,
+      max_concurrency: System.schedulers_online() * 2
+    )
     |> Enum.map(fn {:ok, result} -> result end)
   end
 
@@ -40,7 +58,7 @@ defmodule Itest.Account do
     %{priv: priv, addr: address}
   end
 
-  defp generate_private_key, do: {:ok, :crypto.strong_rand_bytes(32)}
+  defp generate_private_key(), do: {:ok, :crypto.strong_rand_bytes(32)}
 
   defp generate_public_key(<<priv::binary-size(32)>>) do
     {:ok, der_pub} = get_public_key(priv)
