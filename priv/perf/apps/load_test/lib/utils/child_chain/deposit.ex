@@ -15,13 +15,12 @@
 defmodule LoadTest.Utils.ChildChain.Deposit do
   require Logger
 
-  alias ExPlasma.Client.Event
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction.Deposit
   alias ExPlasma.Utxo
-  alias LoadTest.Ethereum.Account
+  alias LoadTest.Utils.Ethereum.Account
+  alias LoadTest.Utils.Ethereum
 
-  @address_padding "0x" <> String.duplicate("00", 12)
   @eth <<0::160>>
   @poll_interval 5_000
 
@@ -46,8 +45,8 @@ defmodule LoadTest.Utils.ChildChain.Deposit do
       data: Encoding.to_binary(deposit_data)
     }
 
-    {:ok, tx_hash} = LoadTest.Utils.Eth.send_raw_transaction(tx, account)
-    {:ok, %{"blockNumber" => eth_blknum}} = LoadTest.Utils.Eth.transact_sync(tx_hash)
+    {:ok, tx_hash} = Ethereum.send_raw_transaction(tx, account)
+    {:ok, %{"blockNumber" => eth_blknum}} = Ethereum.transact_sync(tx_hash)
 
     {:ok, %{"logs" => logs}} = Ethereumex.HttpClient.eth_get_transaction_receipt(tx_hash)
 

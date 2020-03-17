@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Faucet do
+defmodule LoadTest.Utils.Faucet do
   @moduledoc """
   Handles funding accounts on child chain.
   """
@@ -23,9 +23,9 @@ defmodule LoadTest.Faucet do
 
   alias ExPlasma.Utxo
   alias ExPlasma.Encoding
-  alias LoadTest.Account
-  alias LoadTest.Deposit
-  alias LoadTest.Utils.Eth
+  alias LoadTest.Utils.Ethereum.Account
+  alias LoadTest.Utils.ChildChain.Deposit
+  alias LoadTest.Utils.Ethereum
   alias LoadTest.Utils.ChildChain
 
   @eth <<0::160>>
@@ -92,15 +92,12 @@ defmodule LoadTest.Faucet do
     {faucet, {deposit_utxo, deposit_amount}}
   end
 
-  @doc """
-    Sends a transaction to a local instance of geth.
-
-    NOTE: Assumes existence of an unlocked account managed by Ethereum client.
-  """
+  # Sends a transaction to a local instance of geth.
+  # NOTE: Assumes existence of an unlocked account managed by Ethereum client.
   defp create_funded_faucet(opts) do
     faucet_initial_funds = Keyword.fetch!(opts, :faucet_default_funds)
     {:ok, account} = Account.new()
-    {:ok, _} = Eth.fund_address_from_default_faucet(account, initial_funds_wei: faucet_initial_funds)
+    {:ok, _} = Ethereum.fund_address_from_default_faucet(account, initial_funds_wei: faucet_initial_funds)
     {:ok, account}
   end
 

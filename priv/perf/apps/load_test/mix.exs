@@ -30,16 +30,15 @@ defmodule LoadTest.MixProject do
   defp deps do
     [
       {:chaperon, "~> 0.3.1"},
-      {:jason, "~> 1.1"},
       {:tesla, "~> 1.3.0"},
+      {:httpoison, "~> 1.6.2", override: true},
       {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git", override: true},
 
       # Better adapter for tesla
       {:hackney, "~> 1.15.2"},
       {:watcher_info_api, in_umbrella: true},
       {:watcher_security_critical_api, in_umbrella: true},
-      {:child_chain_api, in_umbrella: true},
-      {:httpoison, "~> 1.6.2", override: true}
+      {:child_chain_api, in_umbrella: true}
     ]
   end
 end

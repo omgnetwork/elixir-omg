@@ -19,9 +19,9 @@ defmodule LoadTest.Scenario.CreateUtxos do
 
   use Chaperon.Scenario
 
-  alias Chaperon.Timing
+  alias Chaperon.Session
   alias ExPlasma.Utxo
-  alias OMG.Perf.Faucet
+  alias LoadTest.Utils.Faucet
 
   @eth <<0::160>>
   @spawned_outputs_per_transaction 3
@@ -39,8 +39,7 @@ defmodule LoadTest.Scenario.CreateUtxos do
     min_final_change = transactions_per_session * fee_wei + 1
 
     amount_per_utxo = get_amount_per_created_utxo(fee_wei)
-    initial_funds =
-      number_of_transactions * fee_wei + utxos_to_create_per_session * amount_per_utxo + min_final_change
+    initial_funds = number_of_transactions * fee_wei + utxos_to_create_per_session * amount_per_utxo + min_final_change
 
     {:ok, {utxo, amount}} = Faucet.fund_child_chain_account(sender, initial_funds, @eth)
     {:ok, %{txindex: txindex, oindex: oindex, blknum: blknum}} = Utxo.new(utxo)
@@ -55,7 +54,7 @@ defmodule LoadTest.Scenario.CreateUtxos do
     fee_wei = session.assigned.fee_wei
     {inputs, outputs, change} = create_transaction(sender, last_change, fee_wei)
 
-    {:ok, blknum, txindex} = OMG.Perf.Utils.ChildChain.submit_tx(inputs, outputs, [sender])
+    {:ok, blknum, txindex} = LoadTest.Utils.ChildChain.submit_tx(inputs, outputs, [sender])
 
     last_change = %{blknum: blknum, txindex: txindex, oindex: 3, amount: change}
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Perf.Scenario.SpendUtxos do
+defmodule LoadTest.Scenario.SpendUtxos do
   @moduledoc """
   Repeatedly spend an utxo in a transaction with a single output which is then spent again
   """
@@ -41,12 +41,12 @@ defmodule OMG.Perf.Scenario.SpendUtxos do
     {inputs, outputs = [%{amount: change}]} = create_transaction(sender, last_change, fee_wei)
 
     start = Timing.timestamp()
-    {:ok, blknum, txindex} = OMG.Perf.Utils.ChildChain.submit_tx(inputs, outputs, [sender])
+    {:ok, blknum, txindex} = LoadTest.Utils.ChildChain.submit_tx(inputs, outputs, [sender])
 
     session =
       Chaperon.Session.add_metric(
         session,
-        {:call, {OMG.Perf.Scenario.SpendUtxos, "ChildChainAPI.Api.Transaction.submit"}},
+        {:call, {LoadTest.Scenario.SpendUtxos, "submit_transaction"}},
         Timing.timestamp() - start
       )
 

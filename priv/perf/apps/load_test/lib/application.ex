@@ -4,8 +4,8 @@ defmodule LoadTest.Application do
   """
 
   def start(_type, _args) do
-    pool_size = Application.get_env(:load_test, :pool_size)
-    max_connections = Application.get_env(:load_test, :max_connection)
+    pool_size = Application.fetch_env!(:load_test, :pool_size)
+    max_connections = Application.fetch_env!(:load_test, :max_connection)
 
     :ok =
       :hackney_pool.start_pool(

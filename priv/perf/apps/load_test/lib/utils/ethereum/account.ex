@@ -25,7 +25,7 @@ defmodule LoadTest.Utils.Ethereum.Account do
   """
   require Logger
 
-  alias LoadTest.Utils.Crypto
+  alias LoadTest.Utils.Ethereum.Crypto
   alias ExPlasma.Encoding
 
   @type private_key_t :: <<_::256>>

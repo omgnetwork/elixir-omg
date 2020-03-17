@@ -21,19 +21,17 @@ defmodule LoadTest.Connection.Utils do
   """
   def middleware(),
     do: [
-      Tesla.Middleware.Logger,
-      {Tesla.Middleware.EncodeJson, engine: Jason},
+      {Tesla.Middleware.EncodeJson, engine: Poison},
       {Tesla.Middleware.Headers, [{"user-agent", "Load-Test"}]},
-      {Tesla.Middleware.Retry, delay: 500, max_retries: 10, max_delay: 45_000, should_retry: Utils.retry?()},
+      {Tesla.Middleware.Retry, delay: 500, max_retries: 10, max_delay: 45_000, should_retry: retry?()},
       {Tesla.Middleware.Timeout, timeout: 30_000},
       {Tesla.Middleware.Opts, [adapter: [recv_timeout: 30_000, pool: :perf_pool]]}
     ]
 
-  defp retry?() do
-    fn
-      {:ok, %{status: status}} when status in 400..599 -> true
+  defp retry?(),
+    do: fn
+      {:ok, %{status: status}} when status in 500..599 -> true
       {:ok, _} -> false
       {:error, _} -> true
     end
-  end
 end
