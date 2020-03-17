@@ -1,7 +1,7 @@
 defmodule Itest.MixProject do
   use Mix.Project
 
-  def project do
+  def project() do
     [
       app: :itest,
       version: "0.1.0",
@@ -15,15 +15,13 @@ defmodule Itest.MixProject do
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
-  def application do
+  def application() do
     [
       extra_applications: [:logger]
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
-  defp deps do
+  defp deps() do
     [
       {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git"},
       {:watcher_info_api, in_umbrella: true},
