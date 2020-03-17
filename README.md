@@ -29,7 +29,6 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
 A public testnet for the OMG Network is coming soon.
 However, if you are brave and want to test being a Plasma chain operator, read on!
 
-## Service start up using Docker Compose
 This is the recommended method of starting the blockchain services, with the auxiliary services automatically provisioned through Docker.
 
 Before attempting the start up please ensure that you are not running any services that are listening on the following TCP ports: 9656, 7434, 7534, 5000, 8545, 5432, 5433.
