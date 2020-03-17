@@ -4,7 +4,7 @@ This document describes the exit validation (processing) done by the Watcher in 
 
 ## Definitions
 
-* **scheduled finalization time** - a point in time when an exit will be able to process, see [docs/tesuji_blockchain_design.md#finalization-of-exits]
+* **scheduled finalization time** - a point in time when an exit will be able to process, see [this section in the blockchain design document](docs/tesuji_blockchain_design.md#finalization-of-exits).
 * **`exit_finality_margin`** - margin of the exit processor (in Ethereum blocks) - how many blocks to wait for finality of exit-related events
 * **Child Chain exit recognition SLA** - a form of a Service Level Agreement - how fast will the child chain recognize newly stated exits and block spending of exiting utxos
 * **`sla_margin`** - margin of the Child Chain exit recognition SLA (in Ethereum blocks).
@@ -29,7 +29,7 @@ This is acceptable as long as the delay doesn't exceed the `sla_margin`.
 
 ## Choice of the `sla_margin` setting value
 
-`sla_margin` is a set on the Watcher (via `exit_processor_sla_margin`/`EXIT_PROCESSOR_SLA_MARGIN` see [./details.md#configuration-parameters]), which needs to be determined correctly for various deployments and environments.
+`sla_margin` is a set on the Watcher (via [`exit_processor_sla_margin`/`EXIT_PROCESSOR_SLA_MARGIN`](./details.md#configuration-parameters)), which needs to be determined correctly for various deployments and environments.
 It should reflect the exit period and the intended usage patterns and security requirements of the environment.
 
 `sla margin` should be large enough:
