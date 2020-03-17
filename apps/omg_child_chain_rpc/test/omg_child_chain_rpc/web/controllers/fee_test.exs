@@ -57,15 +57,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
     {:ok, pid} = setup_server()
 
     on_exit(fn ->
-      ref = Process.monitor(pid)
-
-      receive do
-        {:DOWN, ^ref, :process, _, _} ->
-          # a tiny wait to allow the endpoint to be brought down for good, not sure how to get rid of the sleep
-          # without it one might get `eaddrinuse`
-          Process.sleep(10)
-          :ok
-      end
+      teardown_server(pid)
     end)
 
     %{}
@@ -340,6 +332,18 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
     table_setup()
 
     {:ok, pid}
+  end
+
+  defp teardown_server(pid) do
+    ref = Process.monitor(pid)
+
+    receive do
+      {:DOWN, ^ref, :process, _, _} ->
+        # a tiny wait to allow the endpoint to be brought down for good, not sure how to get rid of the sleep
+        # without it one might get `eaddrinuse`
+        Process.sleep(10)
+        :ok
+    end
   end
 
   defp table_setup() do

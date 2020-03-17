@@ -34,6 +34,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       gas_analyzer: gas_analyzer,
       handler_id: handler_id
     } do
+      # this is our mock that we will use as a mock of ethereumex
       defmodule test_name do
         def eth_get_transaction_receipt(_), do: {:ok, %{"gasUsed" => "0x123"}}
         def eth_get_transaction_by_hash(_), do: {:ok, %{"gasPrice" => "0x123"}}
@@ -62,6 +63,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       gas_analyzer: gas_analyzer,
       handler_id: handler_id
     } do
+      # this is our mock that we will use as a mock of ethereumex
       defmodule test_name do
         def eth_get_transaction_receipt(_), do: {:ok, %{"gasUsed" => "0x123"}}
         def eth_get_transaction_by_hash(_), do: {:ok, %{"gasPrice" => "0x123"}}
@@ -85,6 +87,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       gas_analyzer: gas_analyzer,
       handler_id: handler_id
     } do
+      # this is our mock that we will use as a mock of ethereumex
       defmodule test_name do
         def eth_get_transaction_receipt(_), do: {:error, %{"bruv" => "0x123"}}
         def eth_get_transaction_by_hash(_), do: {:error, %{"bruv" => "0x123"}}
@@ -116,6 +119,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       gas_analyzer: gas_analyzer,
       handler_id: handler_id
     } do
+      # this is our mock that we will use as a mock of ethereumex
       defmodule test_name do
         def eth_get_transaction_receipt(_), do: {:error, %{"bruv" => "0x123"}}
         def eth_get_transaction_by_hash(_), do: {:error, %{"bruv" => "0x123"}}

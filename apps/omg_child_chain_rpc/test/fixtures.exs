@@ -17,14 +17,14 @@ defmodule OMG.ChildChainRPC.Fixtures do
 
   @doc "run only endpoint to make request"
   deffixture phoenix_sandbox do
-    :ok = Enum.each([:sasl, :os_mon, :omg_status], fn app -> Application.stop(app) end)
+    :ok = Enum.each([:sasl, :os_mon, :omg_status], &Application.stop/1)
     {:ok, apps} = Application.ensure_all_started(:omg_status)
     {:ok, apps2} = Application.ensure_all_started(:plug_cowboy)
     {:ok, pid} = OMG.ChildChainRPC.Application.start([], [])
     _ = Application.load(:omg_child_chain_rpc)
 
     on_exit(fn ->
-      (apps ++ apps2) |> Enum.reverse() |> Enum.each(&Application.stop(&1))
+      (apps ++ apps2) |> Enum.reverse() |> Enum.each(&Application.stop/1)
 
       ref = Process.monitor(pid)
 

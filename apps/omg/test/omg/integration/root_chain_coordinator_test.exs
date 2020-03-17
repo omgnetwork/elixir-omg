@@ -34,7 +34,7 @@ defmodule OMG.RootChainCoordinatorTest do
     apps = bus_apps ++ eth_apps ++ status_apps
 
     on_exit(fn ->
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     end)
 
     :ok

@@ -39,8 +39,7 @@ defmodule OMG.Status.Alert.AlarmHandler do
   # -----------------------------------------------------------------
   def init(_args) do
     table_setup()
-
-    for n <- Alarm.alarm_types(), do: write_clear(n)
+    :ok = Enum.each(Alarm.alarm_types(), &write_clear/1)
     {:ok, %{alarms: []}}
   end
 

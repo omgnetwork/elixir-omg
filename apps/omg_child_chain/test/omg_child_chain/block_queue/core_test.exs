@@ -29,6 +29,8 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
   @nonce_too_low_response {:error, %{"code" => -32_000, "message" => "nonce too low"}}
   @account_locked_response {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}}
 
+  @block_hash <<0::160>>
+
   setup do
     {:ok, empty} =
       Core.new(
@@ -700,10 +702,10 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "everything might be ok", %{submission: submission} do
       # no change in mined blknum
-      assert {:ok, <<0::160>>} = Core.process_submit_result(submission, {:ok, <<0::160>>}, 1000)
+      assert {:ok, @block_hash} = Core.process_submit_result(submission, {:ok, @block_hash}, 1000)
       # arbitrary ignored change in mined blknum
-      assert {:ok, <<0::160>>} = Core.process_submit_result(submission, {:ok, <<0::160>>}, 0)
-      assert {:ok, <<0::160>>} = Core.process_submit_result(submission, {:ok, <<0::160>>}, 2000)
+      assert {:ok, @block_hash} = Core.process_submit_result(submission, {:ok, @block_hash}, 0)
+      assert {:ok, @block_hash} = Core.process_submit_result(submission, {:ok, @block_hash}, 2000)
     end
 
     test "benign reports / warnings from geth", %{submission: submission} do

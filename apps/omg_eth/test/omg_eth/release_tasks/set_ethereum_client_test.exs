@@ -30,7 +30,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
           Application.put_env(:ethereumex, key, value, persistent: true)
         end)
 
-      Enum.each([:sasl, :os_mon, :omg_status], fn app -> Application.stop(app) end)
+      Enum.each([:sasl, :os_mon, :omg_status], &Application.stop/1)
     end)
 
     :ok

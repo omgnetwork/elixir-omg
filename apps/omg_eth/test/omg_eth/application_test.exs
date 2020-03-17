@@ -27,7 +27,7 @@ defmodule OMG.Eth.ApplicationTest do
     on_exit(fn ->
       contracts_hash = DB.get_single_value(:omg_eth_contracts)
       :ok = DB.multi_update([{:delete, :omg_eth_contracts, contracts_hash}])
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     end)
 
     {:ok, %{apps: apps}}
@@ -53,7 +53,7 @@ defmodule OMG.Eth.ApplicationTest do
 
       assert DB.get_single_value(:omg_eth_contracts) == {:ok, contracts_hash}
 
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
       contracts = Configuration.contracts()
       Application.put_env(:omg_eth, :contract_addr, %{"test" => "test"})
 

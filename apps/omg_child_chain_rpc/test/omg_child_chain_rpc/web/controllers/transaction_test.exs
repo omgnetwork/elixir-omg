@@ -19,20 +19,10 @@ defmodule OMG.ChildChainRPC.Web.Controller.TransactionTest do
   alias OMG.ChildChainRPC.Web.TestHelper
   @table_name :alarms
   setup_all do
-    {:ok, pid} = OMG.ChildChainRPC.Application.start([], [])
-    _ = Application.load(:omg_child_chain_rpc)
-    table_setup()
+    {:ok, pid} = setup_server()
 
     on_exit(fn ->
-      ref = Process.monitor(pid)
-
-      receive do
-        {:DOWN, ^ref, :process, _, _} ->
-          # a tiny wait to allow the endpoint to be brought down for good, not sure how to get rid of the sleep
-          # without it one might get `eaddrinuse`
-          Process.sleep(10)
-          :ok
-      end
+      teardown_server(pid)
     end)
 
     :ok
@@ -70,6 +60,26 @@ defmodule OMG.ChildChainRPC.Web.Controller.TransactionTest do
                }
              }
            } = TestHelper.rpc_call(:post, "/transaction.submit", %{transaction: "hello"})
+  end
+
+  defp setup_server() do
+    {:ok, pid} = OMG.ChildChainRPC.Application.start([], [])
+    _ = Application.load(:omg_child_chain_rpc)
+    table_setup()
+
+    {:ok, pid}
+  end
+
+  defp teardown_server(pid) do
+    ref = Process.monitor(pid)
+
+    receive do
+      {:DOWN, ^ref, :process, _, _} ->
+        # a tiny wait to allow the endpoint to be brought down for good, not sure how to get rid of the sleep
+        # without it one might get `eaddrinuse`
+        Process.sleep(10)
+        :ok
+    end
   end
 
   defp table_setup() do
