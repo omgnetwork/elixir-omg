@@ -19,8 +19,8 @@ defmodule LoadTest.Connection.Utils do
   @doc """
   Returns Tesla middleware common for all connections.
   """
-  def middleware() do:
-    [
+  def middleware(),
+    do: [
       Tesla.Middleware.Logger,
       {Tesla.Middleware.EncodeJson, engine: Jason},
       {Tesla.Middleware.Headers, [{"user-agent", "Load-Test"}]},
