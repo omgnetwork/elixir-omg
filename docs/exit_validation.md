@@ -6,7 +6,7 @@ This document describes the exit validation (processing) done by the Watcher in 
 
 * **scheduled finalization time** - a point in time when an exit will be able to process, see [this section in the blockchain design document](docs/tesuji_blockchain_design.md#finalization-of-exits).
 * **`exit_finality_margin`** - margin of the exit processor (in Ethereum blocks) - how many blocks to wait for finality of exit-related events
-* **child chain exit recognition SLA** - a form of a Service Level Agreement - how fast will the child chain recognize newly stated exits and prohibit spending of exiting utxos
+* **child chain exit recognition SLA** - a form of a Service Level Agreement - how fast will the child chain recognize newly started exits and prohibit spending of exiting UTXOs
 * **unchallenged exit tolerance** - a Watcher's tolerance to an invalid exit not having a challenge for a long time since its start.
    - **NOTE**: in practice, violation of the child chain exit recognition SLA and violation of the unchallenged exit tolerance are similar.
   The correct reaction to both is a prompt to mass exit and a challenge of the invalid exit.
@@ -21,12 +21,14 @@ This document focuses on the Watcher, but for completeness we give a quick run-d
 
 1. The child chain operator's objective is to pro-actively minimize the risk of chain becoming insecure or, in worst case scenario, insolvent.
 The child chain becomes insolvent if any invalid exit gets finalized, which leads to loss of child chain funds.
-2. To satisfy this objective:
-    - the Child Chain Server listens to every `ExitStarted` Root Chain event and _immediately_ "spends" the exited utxo.
-    - the Child Chain Server listens to every `InFlightExitStarted` Root Chain event and _immediately_ "spends" the exiting tx's **inputs**
-    - the Child Chain Server listens to every `InFlightExitPiggybacked` Root Chain event (on outputs) and _immediately_ "spends" the piggybacked outputs - as long as the IFEing tx has been included in the chain and the output exists
-  These rules prohibit the user from spending an UTXO exiting this way or another, preventing exit invalidation.
-  This immediacy is limited because the server must process deposits before exits and deposits _must_ wait for finality on the root chain.
+2. To satisfy this objective, the Child Chain Server:
+    - listens to every `ExitStarted` root chain event and _immediately_ marks as spent the exiting UTXO,
+    - listens to every `InFlightExitStarted` root chain event and _immediately_ marks as spent the exiting transaction's **inputs**,
+    - listens to every `InFlightExitOutputPiggybacked` root chain event and _immediately_ marks as spent the piggybacked outputs - as long as the IFEing transaction has been included in the chain and the output exists,
+
+  prohibiting spending of the exiting UTXO, preventing exit invalidation.
+
+    - **NOTE**: This immediacy is limited because the server must process deposits before exits and deposits _must_ wait for finality on the root chain.
 
 There are scenarios, when a race condition/reorg on the root chain might make the Child Chain Server prohibit spending of a particular UTXO **late**, regardless of the immediacy mentioned above.
 This is acceptable as long as the delay doesn't exceed the `sla_margin`.
@@ -90,7 +92,7 @@ This section treats this particular condition in-depth and explains the rational
 `unchallenged_exit` is raised and reported in the `byzantine_events` in `/status.get`'s response, whenever there is _any_ exit, which is invalid and old.
 "Old" means that its respective challenge required _might be_ approaching scheduled finalization time, or just has been unchallenged for an unjustified amount of time.
 
-The action to take, when such condition is detected is to _exit all utxos_ held on the child chain.
+The action to take, when such condition is detected is to _exit all UTXOs_ held on the child chain.
 The rationale is that we suspect that the chain is imminent to become invalid, because some funds that shouldn't be exiting are being allowed to exit.
 We do not wait until it's "too late" and report _post factum_ - if we did, our mass exit could end up having too low a priority.
 
@@ -115,7 +117,7 @@ This is another reason, why resuming syncing is not currently supported.
 
 ##### Notes on implementation
 
-1. We don't want to have any type of exit-related flags in `OMG.State`'s utxos
+1. We don't want to have any type of exit-related flags in `OMG.State`'s UTXOs
 2. The reason to wait `exit_finality_margin` is to not have a situation, where due to a reorg, an exit is tracked and then vanishes.
 If we didn't handle that, it could grow old and at some point raise prompts to mass exit (`:unchallenged_exit`).
 An alternative is to always check the current status of every exit, before taking action, but that might create excessive load on the Ethereum RPC and be quite complex
