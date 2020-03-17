@@ -6,7 +6,7 @@ This document describes the exit validation (processing) done by the Watcher in 
 
 * **scheduled finalization time** - a point in time when an exit will be able to process, see [this section in the blockchain design document](docs/tesuji_blockchain_design.md#finalization-of-exits).
 * **`exit_finality_margin`** - margin of the exit processor (in Ethereum blocks) - how many blocks to wait for finality of exit-related events
-* **child chain exit recognition SLA** - a form of a Service Level Agreement - how fast will the child chain recognize newly stated exits and block spending of exiting utxos
+* **child chain exit recognition SLA** - a form of a Service Level Agreement - how fast will the child chain recognize newly stated exits and prohibit spending of exiting utxos
 * **unchallenged exit tolerance** - a Watcher's tolerance to an invalid exit not having a challenge for a long time since its start.
    - **NOTE**: in practice, violation of the child chain exit recognition SLA and violation of the unchallenged exit tolerance are similar.
   The correct reaction to both is a prompt to mass exit and a challenge of the invalid exit.
@@ -25,10 +25,10 @@ The child chain becomes insolvent if any invalid exit gets finalized, which lead
     - the Child Chain Server listens to every `ExitStarted` Root Chain event and _immediately_ "spends" the exited utxo.
     - the Child Chain Server listens to every `InFlightExitStarted` Root Chain event and _immediately_ "spends" the exiting tx's **inputs**
     - the Child Chain Server listens to every `InFlightExitPiggybacked` Root Chain event (on outputs) and _immediately_ "spends" the piggybacked outputs - as long as the IFEing tx has been included in the chain and the output exists
-  These rules block the user from spending an UTXO exiting this way or another, preventing exit invalidation.
+  These rules prohibit the user from spending an UTXO exiting this way or another, preventing exit invalidation.
   This immediacy is limited because the server must process deposits before exits and deposits _must_ wait for finality on the root chain.
 
-There are scenarios, when a race condition/reorg on the root chain might make the Child Chain Server block spending of a particular UTXO **late**, regardless of the immediacy mentioned above.
+There are scenarios, when a race condition/reorg on the root chain might make the Child Chain Server prohibit spending of a particular UTXO **late**, regardless of the immediacy mentioned above.
 This is acceptable as long as the delay doesn't exceed the `sla_margin`.
 
 ## Watcher
