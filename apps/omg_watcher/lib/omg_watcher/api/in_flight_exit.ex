@@ -106,6 +106,9 @@ defmodule OMG.Watcher.API.InFlightExit do
 
       {:error, :utxo_not_found} ->
         {:halt, {:error, :tx_for_input_not_found}}
+
+      {:error, error} = e when is_atom(error) ->
+        {:halt, e}
     end
   end
 end
