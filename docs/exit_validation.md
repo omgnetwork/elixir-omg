@@ -6,46 +6,52 @@ This document describes the exit validation (processing) done by the Watcher in 
 
 * **scheduled finalization time** - a point in time when an exit will be able to process, see [this section in the blockchain design document](docs/tesuji_blockchain_design.md#finalization-of-exits).
 * **`exit_finality_margin`** - margin of the exit processor (in Ethereum blocks) - how many blocks to wait for finality of exit-related events
-* **Child Chain exit recognition SLA** - a form of a Service Level Agreement - how fast will the child chain recognize newly stated exits and block spending of exiting utxos
-* **`sla_margin`** - margin of the Child Chain exit recognition SLA (in Ethereum blocks).
-This is a number of blocks after the start of an exit (or piggyback), indicating a period of time when a child chain still might include a transaction invalidating a previously valid exit, without violating the Child Chain exit recognition SLA.
+* **child chain exit recognition SLA** - a form of a Service Level Agreement - how fast will the child chain recognize newly stated exits and block spending of exiting utxos
+* **unchallenged exit tolerance** - a Watcher's tolerance to an invalid exit not having a challenge for a long time since its start.
+   - **NOTE**: in practice, violation of the child chain exit recognition SLA and violation of the unchallenged exit tolerance are similar.
+  The correct reaction to both is a prompt to mass exit and a challenge of the invalid exit.
+  Because of this, only `sla_margin` is used as a configurable setting on the Watcher, covering for both conditions.
+* **`sla_margin`** - margin of the child chain exit recognition SLA (in Ethereum blocks).
+This is a number of blocks after the start of an exit (or piggyback), during which a Child Chain Server still might include a transaction invalidating a previously valid exit, without violating the child chain exit recognition SLA.
+Similarly, this is a number of blocks after the start of an exit (or piggyback), during which the Watcher will not report [unchallenged exits](#unchallenged_exit-condition).
 
 ## Notes on the Child Chain Server
 
 This document focuses on the Watcher, but for completeness we give a quick run-down of the rules followed by the Child Chain Server, in terms of processing exits events from the root chain contract.
 
-1. The Child Chain operator's objective is to pro-actively minimize the risk of chain becoming insecure or, in worst case scenario, insolvent.
-The Child Chain becomes insolvent if any invalid exit gets finalized, which leads to loss of child chain funds.
+1. The child chain operator's objective is to pro-actively minimize the risk of chain becoming insecure or, in worst case scenario, insolvent.
+The child chain becomes insolvent if any invalid exit gets finalized, which leads to loss of child chain funds.
 2. To satisfy this objective:
-    - the Child Chain server listens to every `ExitStarted` Root Chain event and _immediately_ "spends" the exited utxo.
-    - the Child Chain server listens to every `InFlightExitStarted` Root Chain event and _immediately_ "spends" the exiting tx's **inputs**
-    - the Child Chain server listens to every `InFlightExitPiggybacked` Root Chain event (on outputs) and _immediately_ "spends" the piggybacked outputs - as long as the IFEing tx has been included in the chain and the output exists
-  These rules block the user from spending an UTXO exiting this way or another, thus preventing exit invalidation.
-  This immediacy is however limited; the server must process deposits before exits.
-  Otherwise, an exit from a fresh deposit might be processed before that deposit (and deposits _must_ wait for finality on the root chain).
+    - the Child Chain Server listens to every `ExitStarted` Root Chain event and _immediately_ "spends" the exited utxo.
+    - the Child Chain Server listens to every `InFlightExitStarted` Root Chain event and _immediately_ "spends" the exiting tx's **inputs**
+    - the Child Chain Server listens to every `InFlightExitPiggybacked` Root Chain event (on outputs) and _immediately_ "spends" the piggybacked outputs - as long as the IFEing tx has been included in the chain and the output exists
+  These rules block the user from spending an UTXO exiting this way or another, preventing exit invalidation.
+  This immediacy is limited because the server must process deposits before exits and deposits _must_ wait for finality on the root chain.
 
 There are scenarios, when a race condition/reorg on the root chain might make the Child Chain Server block spending of a particular UTXO **late**, regardless of the immediacy mentioned above.
 This is acceptable as long as the delay doesn't exceed the `sla_margin`.
 
-## Choice of the `sla_margin` setting value
+## Watcher
+
+### Choice of the `sla_margin` setting value
 
 `sla_margin` is a set on the Watcher (via [`exit_processor_sla_margin`/`EXIT_PROCESSOR_SLA_MARGIN`](./details.md#configuration-parameters)), which needs to be determined correctly for various deployments and environments.
 It should reflect the exit period and the intended usage patterns and security requirements of the environment.
 
 `sla margin` should be large enough:
- - for the Child Chain server (that runs the child chain the Watcher validates), to recognize exiting UTXOs, to prevent an invalidating transaction going through
+ - for the Child Chain Server (that runs the child chain the Watcher validates), to recognize exiting UTXOs, to prevent an invalidating transaction going through
  - for anyone concerned with challenging to challenge invalid exits.
 
 `sla_margin` should be tight enough:
- - to allow a successful mass exit in case of an `unchallenged_exit` condition (explained below)
+ - to allow a successful mass exit in case of an [`unchallenged_exit` condition](#unchallenged_exit-condition).
 
-**NOTE** The `sla_margin` is usually much larger and unrelated to any margins that the Child Chain may wait before recognizing exits.
+**NOTE** The `sla_margin` is usually much larger and unrelated to any margins that the Child Chain Server may wait before recognizing exits.
 So, if everything is functioning correctly, the spending of exiting UTXOs is blocked _much_ earlier than the `sla_margin`.
-In other words, `sla_margin` is usually picked to be ample (to avoid spurious mass exit prompts), and this doesn't impact the immediacy of the Child Chain reaction to exits.
+In other words, `sla_margin` is usually picked to be ample (to avoid spurious mass exit prompts), and this doesn't impact the immediacy of the Child Chain Server's reaction to exits.
 
-## Standard Exits
+### Standard Exits
 
-### Actions that the Watcher should prompt
+#### Actions that the Watcher should prompt
 
 1. If an exit is known to be invalid it should be challenged. The Watcher prompts by an `:invalid_exit` event.
 2. If an exit is invalidated with a transaction submitted *before* `start_eth_height + sla_margin` it must be challenged (`:invalid_exit` event)
@@ -53,7 +59,7 @@ In other words, `sla_margin` is usually picked to be ample (to avoid spurious ma
 4. If an exit is invalid and remains unchallenged *after* `start_eth_height + sla_margin` it must be challenged **AND** the Watcher prompts to exit. The Watcher prompts by both `:invalid_exit` and `:unchallenged_exit` events. Users should not deposit or spend.
 5. The `unchallenged_exit` event also covers the case where the invalid exit finalizes, causing an insolvent chain until [issue #1318 is solved](github.com/omisego/elixir-omg/issues/1318).
 
-More on the [`unchallenged_exit` condition](#unchallenged-exit-condition).
+More on the [`unchallenged_exit` condition](#unchallenged_exit-condition).
 
 The occurrence of the `unchallenged_exit` condition is checked for on every child chain block being synced.
 
@@ -61,7 +67,7 @@ Assumptions:
   - the user's funds must be safe even if the user only syncs and validates the chain periodically (but not less frequently than required)
   - the user needs to have the ability to spend their UTXOs at any time, thereby requiring more stringent validity checking of exits
 
-### Implementation
+#### Implementation
 
 2. `ExitProcessor` pulls new start exit events from root chain contract logs, as soon as they're `exit_finality_margin` blocks old (~12 blocks)
 3. For every open exit request run `OMG.State.utxo_exists?` method
@@ -77,11 +83,11 @@ This is the current behavior ("inactive on recognition"), to be substituted by a
 6. Checking the validation of exits is user's responsibility.
 This is done by calling `/status.get` endpoint.
 
-### `unchallenged_exit` condition
+#### `unchallenged_exit` condition
 
 This section treats this particular condition in-depth and explains the rationale.
 
-To reiterate, `unchallenged_exit` is raised and reported in the `byzantine_events` in `/status.get`'s response, whenever there is _any_ exit, which is invalid and old.
+`unchallenged_exit` is raised and reported in the `byzantine_events` in `/status.get`'s response, whenever there is _any_ exit, which is invalid and old.
 "Old" means that its respective challenge required _might be_ approaching scheduled finalization time, or just has been unchallenged for an unjustified amount of time.
 
 The action to take, when such condition is detected is to _exit all utxos_ held on the child chain.
@@ -107,14 +113,14 @@ for simplicity's sake and to avoid resuming when one shouldn't by error.
 From the protocol point of view, the first moment `unchallenged_exit` is spotted, the user should have commenced their mass exit.
 This is another reason, why resuming syncing is not currently supported.
 
-#### Notes on implementation
+##### Notes on implementation
 
 1. We don't want to have any type of exit-related flags in `OMG.State`'s utxos
 2. The reason to wait `exit_finality_margin` is to not have a situation, where due to a reorg, an exit is tracked and then vanishes.
 If we didn't handle that, it could grow old and at some point raise prompts to mass exit (`:unchallenged_exit`).
 An alternative is to always check the current status of every exit, before taking action, but that might create excessive load on the Ethereum RPC and be quite complex
 
-## In-flight exits
+### In-flight exits
 
 All the above rules will apply analogically to in-flight exits.
 See [MoreVP](./morevp.md) for specs and introduction to in-flight exits.
