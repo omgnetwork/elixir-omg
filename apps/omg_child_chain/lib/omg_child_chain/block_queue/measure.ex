@@ -25,16 +25,16 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
   import OMG.Status.Metric.Event, only: [name: 2, name: 1]
 
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
-  alias OMG.ChildChain.BlockQueue.Server
+  alias OMG.ChildChain.BlockQueue
   alias OMG.Status.Metric.Datadog
 
   @supported_events [
-    [:process, Server],
+    [:process, BlockQueue],
     [:gas, GasAnalyzer]
   ]
   def supported_events(), do: @supported_events
 
-  def handle_event([:process, Server], _, _state, _config) do
+  def handle_event([:process, BlockQueue], _, _state, _config) do
     value =
       self()
       |> Process.info(:message_queue_len)

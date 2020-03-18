@@ -49,7 +49,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
 
     [
       {GasAnalyzer, []},
-      {BlockQueue.Server,
+      {BlockQueue,
        [
          metrics_collection_interval: Configuration.metrics_collection_interval(),
          block_queue_eth_height_check_interval_ms: Configuration.block_queue_eth_height_check_interval_ms(),
