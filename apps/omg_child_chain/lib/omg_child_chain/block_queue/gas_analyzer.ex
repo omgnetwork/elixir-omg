@@ -76,8 +76,8 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzer do
 
     case result do
       {{:ok, %{"gasUsed" => gas_used}}, {:ok, %{"gasPrice" => gas_price}}} ->
-        {gas_price_value, ""} = gas_price |> String.replace_prefix("0x", "") |> Integer.parse(16)
-        {gas_used_value, ""} = gas_used |> String.replace_prefix("0x", "") |> Integer.parse(16)
+        gas_price_value = parse_gas(gas_price)
+        gas_used_value = parse_gas(gas_used)
         gas_used = gas_price_value * gas_used_value
         _ = Logger.info("Block submitted with receipt hash #{receipt_hash} and gas used #{gas_used}wei")
         gas_used
@@ -95,4 +95,9 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzer do
   end
 
   defp to_hex(raw) when is_binary(raw), do: "0x" <> Base.encode16(raw, case: :lower)
+
+  defp parse_gas(data) do
+    {value, ""} = data |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    value
+  end
 end

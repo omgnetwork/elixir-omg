@@ -29,19 +29,12 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
   end
 
   describe "handle_info/2" do
-    test "queue gets emptied when gas gets callculated", %{
-      test: test_name,
+    test "queue gets emptied when gas gets calculated", %{
       gas_analyzer: gas_analyzer,
       handler_id: handler_id
     } do
-      # this is our mock that we will use as a mock of ethereumex
-      defmodule test_name do
-        def eth_get_transaction_receipt(_), do: {:ok, %{"gasUsed" => "0x123"}}
-        def eth_get_transaction_by_hash(_), do: {:ok, %{"gasPrice" => "0x123"}}
-      end
-
       # we're mocking ethereumex with our module
-      :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, test_name) end)
+      :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, __MODULE__.EthExSuccessMock) end)
       # creating a telemetry handler in this process so that when event gets executed, a message gets sent
       # to this process... hence the self() and parent
       attach(handler_id, [:gas, GasAnalyzer], self())
@@ -59,18 +52,11 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
 
   describe "enqueue/1, telemetry subscription" do
     test "telemetry event gets executed when gas is retrieved and calculated", %{
-      test: test_name,
       gas_analyzer: gas_analyzer,
       handler_id: handler_id
     } do
-      # this is our mock that we will use as a mock of ethereumex
-      defmodule test_name do
-        def eth_get_transaction_receipt(_), do: {:ok, %{"gasUsed" => "0x123"}}
-        def eth_get_transaction_by_hash(_), do: {:ok, %{"gasPrice" => "0x123"}}
-      end
-
       # we're mocking ethereumex with our module
-      :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, test_name) end)
+      :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, __MODULE__.EthExSuccessMock) end)
       # creating a telemetry handler in this process so that when event gets executed, a message gets sent
       # to this process... hence the self() and parent
       attach(handler_id, [:gas, GasAnalyzer], self())
@@ -83,18 +69,11 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
     end
 
     test "that telemetry event is not executed when we cant calculate gas", %{
-      test: test_name,
       gas_analyzer: gas_analyzer,
       handler_id: handler_id
     } do
-      # this is our mock that we will use as a mock of ethereumex
-      defmodule test_name do
-        def eth_get_transaction_receipt(_), do: {:error, %{"bruv" => "0x123"}}
-        def eth_get_transaction_by_hash(_), do: {:error, %{"bruv" => "0x123"}}
-      end
-
       # we're mocking ethereumex with our module
-      :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, test_name) end)
+      :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, __MODULE__.EthExErrorMock) end)
       # creating a telemetry handler in this process so that when event gets executed, a message gets sent
       # to this process... hence the self() and parent
       attach(handler_id, [:gas, GasAnalyzer], self())
@@ -115,18 +94,11 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
 
   describe "enqueue/1, handle_info queue behaviour" do
     test "that the order of txhashes is preserved when they can't get processed", %{
-      test: test_name,
       gas_analyzer: gas_analyzer,
       handler_id: handler_id
     } do
-      # this is our mock that we will use as a mock of ethereumex
-      defmodule test_name do
-        def eth_get_transaction_receipt(_), do: {:error, %{"bruv" => "0x123"}}
-        def eth_get_transaction_by_hash(_), do: {:error, %{"bruv" => "0x123"}}
-      end
-
       # we're mocking ethereumex with our module
-      :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, test_name) end)
+      :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, __MODULE__.EthExErrorMock) end)
       # creating a telemetry handler in this process so that when event gets executed, a message gets sent
       # to this process... hence the self() and parent
       attach(handler_id, [:gas, GasAnalyzer], self())
@@ -140,7 +112,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
                assert :queue.len(state.txhash_queue) == 1
              end)
 
-      # we're addiing two more hashes into the queue and verifing the oder in the queue
+      # we're adding two more hashes into the queue and verifing the order in the queue
       GasAnalyzer.enqueue(gas_analyzer, "0xyolo2")
       GasAnalyzer.enqueue(gas_analyzer, "0xyolo3")
 
@@ -165,5 +137,17 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       end,
       nil
     )
+  end
+
+  # this module serves as a mock of the ethereumex
+  defmodule EthExErrorMock do
+    def eth_get_transaction_receipt(_), do: {:error, %{"bruv" => "0x123"}}
+    def eth_get_transaction_by_hash(_), do: {:error, %{"bruv" => "0x123"}}
+  end
+
+  # this module serves as a success mock of the ethereumex
+  defmodule EthExSuccessMock do
+    def eth_get_transaction_receipt(_), do: {:ok, %{"gasUsed" => "0x123"}}
+    def eth_get_transaction_by_hash(_), do: {:ok, %{"gasPrice" => "0x123"}}
   end
 end

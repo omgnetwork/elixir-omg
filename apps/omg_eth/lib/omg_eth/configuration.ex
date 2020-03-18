@@ -41,10 +41,14 @@ defmodule OMG.Eth.Configuration do
   end
 
   @spec txhash_contract() :: no_return | binary()
-  def txhash_contract(), do: Application.fetch_env!(:omg_eth, :txhash_contract)
+  def txhash_contract() do
+    Application.fetch_env!(:omg_eth, :txhash_contract)
+  end
 
   @spec authority_addr() :: no_return | binary()
-  def authority_addr(), do: Application.fetch_env!(:omg_eth, :authority_addr)
+  def authority_addr() do
+    Application.fetch_env!(:omg_eth, :authority_addr)
+  end
 
   @spec environment() :: :test | nil
   def environment() do

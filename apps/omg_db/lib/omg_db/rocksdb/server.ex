@@ -35,7 +35,9 @@ defmodule OMG.DB.RocksDB.Server do
   NOTE: `init` here is to init the GenServer and that assumes that `init_storage` has already been called
   """
   @spec init_storage(binary) :: :ok | {:error, atom}
-  def init_storage(db_path), do: do_init_storage(String.to_charlist(db_path))
+  def init_storage(db_path) do
+    do_init_storage(String.to_charlist(db_path))
+  end
 
   defp do_init_storage(db_path) do
     with {:ok, db_ref} <- :rocksdb.open(db_path, create_if_missing: true),
@@ -76,27 +78,55 @@ defmodule OMG.DB.RocksDB.Server do
     {:noreply, state}
   end
 
-  def handle_call({:multi_update, db_updates}, _from, state), do: do_multi_update(db_updates, state)
-  def handle_call({:blocks, blocks_to_fetch}, _from, state), do: do_blocks(blocks_to_fetch, state)
-  def handle_call(:utxos, _from, state), do: do_utxos(state)
-  def handle_call({:utxo, utxo_pos}, _from, state), do: do_utxo(utxo_pos, state)
-  def handle_call(:exit_infos, _from, state), do: do_exit_infos(state)
+  def handle_call({:multi_update, db_updates}, _from, state) do
+    do_multi_update(db_updates, state)
+  end
 
-  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state),
-    do: do_block_hashes(block_numbers_to_fetch, state)
+  def handle_call({:blocks, blocks_to_fetch}, _from, state) do
+    do_blocks(blocks_to_fetch, state)
+  end
 
-  def handle_call(:in_flight_exits_info, _from, state), do: do_in_flight_exits_info(state)
-  def handle_call(:competitors_info, _from, state), do: do_competitors_info(state)
+  def handle_call(:utxos, _from, state) do
+    do_utxos(state)
+  end
+
+  def handle_call({:utxo, utxo_pos}, _from, state) do
+    do_utxo(utxo_pos, state)
+  end
+
+  def handle_call(:exit_infos, _from, state) do
+    do_exit_infos(state)
+  end
+
+  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state) do
+    do_block_hashes(block_numbers_to_fetch, state)
+  end
+
+  def handle_call(:in_flight_exits_info, _from, state) do
+    do_in_flight_exits_info(state)
+  end
+
+  def handle_call(:competitors_info, _from, state) do
+    do_competitors_info(state)
+  end
 
   def handle_call({:get_single_value, parameter}, _from, state)
-      when is_atom(parameter),
-      do: do_get_single_value(parameter, state)
+      when is_atom(parameter) do
+    do_get_single_value(parameter, state)
+  end
 
-  def handle_call({:exit_info, utxo_pos}, _from, state), do: do_exit_info(utxo_pos, state)
-  def handle_call({:spent_blknum, utxo_pos}, _from, state), do: do_spent_blknum(utxo_pos, state)
+  def handle_call({:exit_info, utxo_pos}, _from, state) do
+    do_exit_info(utxo_pos, state)
+  end
+
+  def handle_call({:spent_blknum, utxo_pos}, _from, state) do
+    do_spent_blknum(utxo_pos, state)
+  end
 
   # WARNING, terminate below will be called only if :trap_exit is set to true
-  def terminate(_reason, %__MODULE__{db_ref: db_ref}), do: :ok = :rocksdb.close(db_ref)
+  def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
+    :ok = :rocksdb.close(db_ref)
+  end
 
   defp do_multi_update(db_updates, state) do
     result =
@@ -187,7 +217,9 @@ defmodule OMG.DB.RocksDB.Server do
   # iterator options
   # same as read options
   # this might be a use case for seek() https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes
-  defp do_get_all_by_type(type, db_ref), do: Core.decode_values(Core.filter_keys(db_ref, type), type)
+  defp do_get_all_by_type(type, db_ref) do
+    Core.decode_values(Core.filter_keys(db_ref, type), type)
+  end
 
   defp create_stats_table(name) do
     case :ets.whereis(name) do
@@ -201,7 +233,9 @@ defmodule OMG.DB.RocksDB.Server do
     end
   end
 
-  defp table_settings(), do: [:named_table, :set, :public, write_concurrency: true]
+  defp table_settings() do
+    [:named_table, :set, :public, write_concurrency: true]
+  end
 
   # Argument order flipping tools :(
   # write options

@@ -17,15 +17,22 @@ defmodule OMG.ChildChain.Configuration do
   Interface for accessing all Child Chain configuration
   """
   @spec metrics_collection_interval() :: no_return | pos_integer()
-  def metrics_collection_interval(), do: Application.fetch_env!(:omg_child_chain, :metrics_collection_interval)
+  def metrics_collection_interval() do
+    Application.fetch_env!(:omg_child_chain, :metrics_collection_interval)
+  end
 
   @spec block_queue_eth_height_check_interval_ms() :: no_return | pos_integer()
-  def block_queue_eth_height_check_interval_ms(),
-    do: Application.fetch_env!(:omg_child_chain, :block_queue_eth_height_check_interval_ms)
+  def block_queue_eth_height_check_interval_ms() do
+    Application.fetch_env!(:omg_child_chain, :block_queue_eth_height_check_interval_ms)
+  end
 
   @spec submission_finality_margin() :: no_return | pos_integer()
-  def submission_finality_margin(), do: Application.fetch_env!(:omg_child_chain, :submission_finality_margin)
+  def submission_finality_margin() do
+    Application.fetch_env!(:omg_child_chain, :submission_finality_margin)
+  end
 
   @spec block_submit_every_nth() :: no_return | pos_integer()
-  def block_submit_every_nth(), do: Application.fetch_env!(:omg_child_chain, :block_submit_every_nth)
+  def block_submit_every_nth() do
+    Application.fetch_env!(:omg_child_chain, :block_submit_every_nth)
+  end
 end
