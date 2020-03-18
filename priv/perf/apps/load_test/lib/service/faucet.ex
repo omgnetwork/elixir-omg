@@ -23,10 +23,10 @@ defmodule LoadTest.Service.Faucet do
 
   alias ExPlasma.Encoding
   alias ExPlasma.Utxo
-  alias LoadTest.Utils.ChildChain
-  alias LoadTest.Utils.ChildChain.Deposit
-  alias LoadTest.Utils.Ethereum
-  alias LoadTest.Utils.Ethereum.Account
+  alias LoadTest.ChildChain
+  alias LoadTest.ChildChain.Deposit
+  alias LoadTest.Ethereum
+  alias LoadTest.Ethereum.Account
 
   @eth <<0::160>>
   @fund_child_chain_account_retries 100
@@ -69,8 +69,9 @@ defmodule LoadTest.Service.Faucet do
     {:ok, user_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 1})
 
     updated_state = Map.put(state, :utxos, %{state.utxos | token => {change_utxo, change}})
+    utxo = Utxo.pos(user_utxo)
 
-    {:reply, {:ok, {Utxo.pos(user_utxo), amount}}, updated_state}
+    {:reply, {:ok, {utxo, amount}}, updated_state}
   end
 
   defp get_funded_faucet_account(opts) do
@@ -81,7 +82,7 @@ defmodule LoadTest.Service.Faucet do
 
         :error ->
           Logger.debug("Generating a faucet")
-          {:ok, faucet} = create_funded_faucet(opts)
+          {:ok, faucet} = create_and_fund_faucet(opts)
           faucet
       end
 
@@ -94,7 +95,8 @@ defmodule LoadTest.Service.Faucet do
 
   # Sends a transaction to a local instance of geth.
   # NOTE: Assumes existence of an unlocked account managed by Ethereum client.
-  defp create_funded_faucet(opts) do
+  # Does not work with Infura. Used with geth dev instance.
+  defp create_and_fund_faucet(opts) do
     faucet_initial_funds = Keyword.fetch!(opts, :faucet_default_funds)
     {:ok, account} = Account.new()
     {:ok, _} = Ethereum.fund_address_from_default_faucet(account, initial_funds_wei: faucet_initial_funds)

@@ -19,7 +19,7 @@ defmodule LoadTest.Runner.UtxosLoadTest do
   """
   use Chaperon.LoadTest
 
-  alias LoadTest.Utils.Ethereum.Account
+  alias LoadTest.Ethereum.Account
 
   @concurrent_session 4
   @default_config %{

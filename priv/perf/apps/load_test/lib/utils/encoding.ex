@@ -17,12 +17,6 @@ defmodule LoadTest.Utils.Encoding do
   Utility module for converting between hex strings and other types.
   """
 
-  @spec encode_data(String.t(), list()) :: binary
-  defp encode_data(function_signature, data) do
-    data = ABI.encode(function_signature, data)
-    "0x" <> Base.encode16(data, case: :lower)
-  end
-
   def to_binary(hex) do
     hex
     |> String.replace_prefix("0x", "")
@@ -48,26 +42,9 @@ defmodule LoadTest.Utils.Encoding do
     %{data: data}
   end
 
-  @doc """
-  Produces a stand-alone, 65 bytes long, signature for message hash.
-  """
-  @spec signature_digest(<<_::256>>, <<_::256>>) :: <<_::520>>
-  def signature_digest(hash_digest, private_key_hash) do
-    private_key_binary = to_binary(private_key_hash)
-
-    {:ok, <<r::size(256), s::size(256)>>, recovery_id} =
-      :libsecp256k1.ecdsa_sign_compact(
-        hash_digest,
-        private_key_binary,
-        :default,
-        <<>>
-      )
-
-    # EIP-155
-    # See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
-    base_recovery_id = 27
-    recovery_id = base_recovery_id + recovery_id
-
-    <<r::integer-size(256), s::integer-size(256), recovery_id::integer-size(8)>>
+  @spec encode_data(String.t(), list()) :: binary
+  defp encode_data(function_signature, data) do
+    data = ABI.encode(function_signature, data)
+    "0x" <> Base.encode16(data, case: :lower)
   end
 end

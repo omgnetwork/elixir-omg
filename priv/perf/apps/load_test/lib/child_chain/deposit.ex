@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Utils.ChildChain.Deposit do
+defmodule LoadTest.ChildChain.Deposit do
   @moduledoc """
   Utility functions for deposits on a child chain
   """
@@ -21,8 +21,8 @@ defmodule LoadTest.Utils.ChildChain.Deposit do
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction.Deposit
   alias ExPlasma.Utxo
-  alias LoadTest.Utils.Ethereum
-  alias LoadTest.Utils.Ethereum.Account
+  alias LoadTest.Ethereum
+  alias LoadTest.Ethereum.Account
 
   @eth <<0::160>>
   @poll_interval 5_000
@@ -39,7 +39,7 @@ defmodule LoadTest.Utils.ChildChain.Deposit do
     eth_vault_address = Application.fetch_env!(:ex_plasma, :eth_vault_address)
     %{data: deposit_data} = LoadTest.Utils.Encoding.encode_deposit(deposit)
 
-    tx = %LoadTest.Utils.Ethereum.Transaction{
+    tx = %LoadTest.Ethereum.Transaction{
       to: Encoding.to_binary(eth_vault_address),
       value: value,
       gas_price: 20_000_000,

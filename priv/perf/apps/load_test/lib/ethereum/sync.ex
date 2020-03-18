@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Utils.Ethereum.Sync do
+defmodule LoadTest.Ethereum.Sync do
   @moduledoc """
   Utility module for repeating a function call until a given criteria is met.
   """
@@ -24,24 +24,24 @@ defmodule LoadTest.Utils.Ethereum.Sync do
 
   Simple throws and :badmatch are treated as signals to repeat
   """
-  def ok(f, timeout) do
-    fn -> repeat_until_ok(f) end
+  def repeat_until_success(f, timeout) do
+    fn -> do_repeat_until_success(f) end
     |> Task.async()
     |> Task.await(timeout)
   end
 
-  defp repeat_until_ok(f) do
+  defp do_repeat_until_success(f) do
     Process.sleep(@sleep_interval_ms)
 
     try do
       case f.() do
         :ok = return -> return
         {:ok, _} = return -> return
-        _ -> repeat_until_ok(f)
+        _ -> do_repeat_until_success(f)
       end
     catch
-      _ -> repeat_until_ok(f)
-      :error, {:badmatch, _} -> repeat_until_ok(f)
+      _ -> do_repeat_until_success(f)
+      :error, {:badmatch, _} -> do_repeat_until_success(f)
     end
   end
 end

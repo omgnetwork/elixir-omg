@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Utils.Ethereum.BitHelper do
+defmodule LoadTest.Ethereum.BitHelper do
   @moduledoc """
   Helpers for common operations on the blockchain.
   Extracted from: https://github.com/exthereum/blockchain

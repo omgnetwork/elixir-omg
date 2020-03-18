@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Utils.Ethereum.Transaction do
-  alias LoadTest.Utils.Ethereum.BitHelper
+defmodule LoadTest.Ethereum.Transaction do
+  alias LoadTest.Ethereum.BitHelper
 
   @moduledoc """
   This module encodes the transaction object, defined in Section 4.3
@@ -62,16 +62,16 @@ defmodule LoadTest.Utils.Ethereum.Transaction do
 
   ## Examples
 
-      iex> LoadTest.Utils.Ethereum.Transaction.serialize(%LoadTest.Utils.Ethereum.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<1::160>>, value: 8, v: 27, r: 9, s: 10, data: "hi"})
+      iex> LoadTest.Ethereum.Transaction.serialize(%LoadTest.Ethereum.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<1::160>>, value: 8, v: 27, r: 9, s: 10, data: "hi"})
       [<<5>>, <<6>>, <<7>>, <<1::160>>, <<8>>, "hi", <<27>>, <<9>>, <<10>>]
 
-      iex> LoadTest.Utils.Ethereum.Transaction.serialize(%LoadTest.Utils.Ethereum.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 8, v: 27, r: 9, s: 10, init: <<1, 2, 3>>})
+      iex> LoadTest.Ethereum.Transaction.serialize(%LoadTest.Ethereum.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 8, v: 27, r: 9, s: 10, init: <<1, 2, 3>>})
       [<<5>>, <<6>>, <<7>>, <<>>, <<8>>, <<1, 2, 3>>, <<27>>, <<9>>, <<10>>]
 
-      iex> LoadTest.Utils.Ethereum.Transaction.serialize(%LoadTest.Utils.Ethereum.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 8, v: 27, r: 9, s: 10, init: <<1, 2, 3>>}, false)
+      iex> LoadTest.Ethereum.Transaction.serialize(%LoadTest.Ethereum.Transaction{nonce: 5, gas_price: 6, gas_limit: 7, to: <<>>, value: 8, v: 27, r: 9, s: 10, init: <<1, 2, 3>>}, false)
       [<<5>>, <<6>>, <<7>>, <<>>, <<8>>, <<1, 2, 3>>]
 
-      iex> LoadTest.Utils.Ethereum.Transaction.serialize(%LoadTest.Utils.Ethereum.Transaction{ data: "", gas_limit: 21000, gas_price: 20000000000, init: "", nonce: 9, r: 0, s: 0, to: "55555555555555555555", v: 1, value: 1000000000000000000 })
+      iex> LoadTest.Ethereum.Transaction.serialize(%LoadTest.Ethereum.Transaction{ data: "", gas_limit: 21000, gas_price: 20000000000, init: "", nonce: 9, r: 0, s: 0, to: "55555555555555555555", v: 1, value: 1000000000000000000 })
       ["\t", <<4, 168, 23, 200, 0>>, "R\b", "55555555555555555555", <<13, 224, 182, 179, 167, 100, 0, 0>>, "", <<1>>, "", ""]
   """
   @spec serialize(t) :: ExRLP.t()

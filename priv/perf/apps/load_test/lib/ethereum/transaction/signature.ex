@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Utils.Ethereum.Transaction.Signature do
+defmodule LoadTest.Ethereum.Transaction.Signature do
   @moduledoc """
   Defines helper functions for signing and getting the signature
   of a transaction, as defined in Appendix F of the Yellow Paper.
@@ -27,8 +27,8 @@ defmodule LoadTest.Utils.Ethereum.Transaction.Signature do
 
   require Integer
 
-  alias LoadTest.Utils.Ethereum.Hash
-  alias LoadTest.Utils.Ethereum.Transaction
+  alias LoadTest.Ethereum.Hash
+  alias LoadTest.Ethereum.Transaction
 
   @type private_key :: <<_::256>>
 

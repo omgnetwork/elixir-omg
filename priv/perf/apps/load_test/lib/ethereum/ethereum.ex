@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Utils.Ethereum do
+defmodule LoadTest.Ethereum do
   @moduledoc """
   Utility module that supports synchronous transactions.
   """
   require Logger
 
   alias ExPlasma.Encoding
+  alias LoadTest.Ethereum.Sync
+  alias LoadTest.Ethereum.Transaction
+  alias LoadTest.Ethereum.Transaction.Signature
   alias LoadTest.Service.NonceTracker
-  alias LoadTest.Utils.Ethereum.Sync
-  alias LoadTest.Utils.Ethereum.Transaction
-  alias LoadTest.Utils.Ethereum.Transaction.Signature
 
   @about_4_blocks_time 120_000
   @eth_amount_to_fund trunc(:math.pow(10, 18) * 0.1)
@@ -40,27 +40,11 @@ defmodule LoadTest.Utils.Ethereum do
       |> eth_receipt(timeout)
       |> case do
         {:ok, %{"status" => "0x1"} = receipt} ->
-          {:ok, receipt |> Map.update!("blockNumber", &Encoding.to_int(&1))}
+          {:ok, Map.update!(receipt, "blockNumber", &Encoding.to_int(&1))}
 
         {:ok, %{"status" => "0x0"} = receipt} ->
           {:error, receipt}
-
-        other ->
-          other
       end
-  end
-
-  defp eth_receipt(txhash, timeout) do
-    f = fn ->
-      txhash
-      |> Ethereumex.HttpClient.eth_get_transaction_receipt()
-      |> case do
-        {:ok, receipt} when receipt != nil -> {:ok, receipt}
-        _ -> :repeat
-      end
-    end
-
-    Sync.ok(f, timeout)
   end
 
   def fund_address_from_default_faucet(account, opts) do
@@ -82,8 +66,6 @@ defmodule LoadTest.Utils.Ethereum do
     end
   end
 
-  def send_transaction(txmap), do: Ethereumex.HttpClient.eth_send_transaction(txmap)
-
   def send_raw_transaction(txmap, sender) do
     {:ok, nonce} = NonceTracker.update_nonce(sender.addr)
 
@@ -102,5 +84,20 @@ defmodule LoadTest.Utils.Ethereum do
   def get_next_nonce_for_account("0x" <> _ = address) do
     {:ok, nonce} = Ethereumex.HttpClient.eth_get_transaction_count(address)
     ExPlasma.Encoding.to_int(nonce)
+  end
+
+  defp send_transaction(txmap), do: Ethereumex.HttpClient.eth_send_transaction(txmap)
+
+  defp eth_receipt(txhash, timeout) do
+    f = fn ->
+      txhash
+      |> Ethereumex.HttpClient.eth_get_transaction_receipt()
+      |> case do
+        {:ok, receipt} when receipt != nil -> {:ok, receipt}
+        _ -> :repeat
+      end
+    end
+
+    Sync.repeat_until_success(f, timeout)
   end
 end

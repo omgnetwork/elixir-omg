@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Utils.Ethereum.Account do
+defmodule LoadTest.Ethereum.Account do
   @moduledoc """
   Utility module for utxo
   """
@@ -26,7 +26,7 @@ defmodule LoadTest.Utils.Ethereum.Account do
   require Logger
 
   alias ExPlasma.Encoding
-  alias LoadTest.Utils.Ethereum.Crypto
+  alias LoadTest.Ethereum.Crypto
 
   @type private_key_t :: <<_::256>>
   @type private_key_hex_t :: <<_::512>> | <<_::528>>

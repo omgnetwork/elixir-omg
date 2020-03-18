@@ -41,7 +41,7 @@ defmodule LoadTest.Scenario.SpendUtxos do
     {inputs, outputs = [%{amount: change}]} = create_transaction(sender, last_change, fee_wei)
 
     start = Timing.timestamp()
-    {:ok, blknum, txindex} = LoadTest.Utils.ChildChain.submit_tx(inputs, outputs, [sender])
+    {:ok, blknum, txindex} = LoadTest.ChildChain.submit_tx(inputs, outputs, [sender])
 
     session =
       Chaperon.Session.add_metric(

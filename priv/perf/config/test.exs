@@ -4,7 +4,7 @@ config :ethereumex,
   url: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545"
 
 config :load_test,
-  faucet_deposit_wei: (:math.pow(10, 18) * 10) |> trunc,
+  faucet_deposit_wei: trunc(:math.pow(10, 18) * 10),
   child_chain_url: System.get_env("CHILD_CHAIN_URL") || "http://localhost:9656",
   fee_wei: 1,
   utxo_load_test_config: %{

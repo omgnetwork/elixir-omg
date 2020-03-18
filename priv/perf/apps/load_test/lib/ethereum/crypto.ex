@@ -1,4 +1,4 @@
-defmodule LoadTest.Utils.Ethereum.Crypto do
+defmodule LoadTest.Ethereum.Crypto do
   @moduledoc """
   Cryptography related utility functions
   """

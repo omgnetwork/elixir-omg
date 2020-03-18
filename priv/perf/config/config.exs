@@ -8,8 +8,8 @@ config :tesla, adapter: Tesla.Adapter.Hackney
 config :load_test,
   pool_size: 5000,
   max_connection: 5000,
-  faucet_default_funds: (:math.pow(10, 18) * 50) |> trunc(),
-  initial_funds_wei: :math.pow(10, 17) |> trunc(),
+  faucet_default_funds: trunc(:math.pow(10, 18) * 50),
+  initial_funds_wei: trunc(:math.pow(10, 17)),
   deposit_finality_margin: 10
 
 config :logger, :console,
