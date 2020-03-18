@@ -75,5 +75,5 @@
   "statix": {:git, "https://github.com/omisego/statix.git", "50745f14fd1d44297818a48336f041c228a0920f", [branch: "otp-21.3.8.4-support-global-tag-patch"]},
   "telemetry": {:hex, :telemetry, "0.4.1", "ae2718484892448a24470e6aa341bc847c3277bfb8d4e9289f7474d752c09c7f", [:rebar3], [], "hexpm", "4738382e36a0a9a2b6e25d67c960e40e1a2c95560b9f936d8e29de8cd858480f"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.4.1", "d869e4c68901dd9531385bb0c8c40444ebf624e60b6962d95952775cac5e90cd", [:rebar3], [], "hexpm", "1d1848c40487cdb0b30e8ed975e34e025860c02e419cb615d255849f3427439d"},
-  "vmstats": {:hex, :vmstats, "2.4.0", "57763d3edc861da2de02b2f0df3adc37e5a140117147937e83908cac40a10c9b", [:rebar3], [], "hexpm", "266f464e64b459f614ed64e25bda270f8a77951868bbaf0e2209274efc3d9b6d"},
+  "vmstats": {:hex, :, "2.4.0", "57763d3edc861da2de02b2f0df3adc37e5a140117147937e83908cac40a10c9b", [:rebar3], [], "hexpm", "266f464e64b459f614ed64e25bda270f8a77951868bbaf0e2209274efc3d9b6d"},
 }
