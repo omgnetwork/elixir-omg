@@ -30,7 +30,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     {:ok, _} = EthereumClientMock.start_link()
 
     on_exit(fn ->
-      _ = apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      _ = apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     end)
   end
 

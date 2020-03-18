@@ -54,11 +54,16 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
 
     _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :public, :named_table])
     true = :ets.insert(:fees_bucket, [{:fees, fee_specs}])
+    {:ok, pid} = setup_server()
+
+    on_exit(fn ->
+      teardown_server(pid)
+    end)
+
     %{}
   end
 
   describe "fees_all/2" do
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint filters the result when given currencies" do
       assert %{
                "success" => true,
@@ -89,7 +94,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: ["0x0000000000000000000000000000000000000000"]})
     end
 
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint does not filter when given empty currencies" do
       assert %{
                "success" => true,
@@ -129,7 +133,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: []})
     end
 
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint does not filter without an empty body" do
       assert %{
                "success" => true,
@@ -169,7 +172,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{})
     end
 
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all returns an error when given unsupported currency" do
       assert %{
                "success" => false,
@@ -181,7 +183,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: ["0x0000000000000000000000000000000000000005"]})
     end
 
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint rejects request with non list currencies" do
       assert %{
                "success" => false,
@@ -198,7 +199,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: "0x0000000000000000000000000000000000000000"})
     end
 
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint rejects request with non hex currencies" do
       assert %{
                "success" => false,
@@ -215,7 +215,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{currencies: ["invalid"]})
     end
 
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint filters the result when given tx_types" do
       assert %{
                "success" => true,
@@ -244,7 +243,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: [@payment_tx_type]})
     end
 
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint does not filter when given empty tx_types" do
       assert %{
                "success" => true,
@@ -284,7 +282,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: []})
     end
 
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all returns an error when given unsupported tx_types" do
       assert %{
                "success" => false,
@@ -296,7 +293,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: [99_999]})
     end
 
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint rejects request with non list tx_types" do
       assert %{
                "success" => false,
@@ -313,7 +309,6 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: 1})
     end
 
-    @tag fixtures: [:phoenix_sandbox]
     test "fees.all endpoint rejects request with negative integer" do
       assert %{
                "success" => false,
@@ -330,4 +325,38 @@ defmodule OMG.ChildChainRPC.Web.Controller.FeeTest do
              } = TestHelper.rpc_call(:post, "/fees.all", %{tx_types: [-5]})
     end
   end
+
+  defp setup_server() do
+    {:ok, pid} = OMG.ChildChainRPC.Application.start([], [])
+    _ = Application.load(:omg_child_chain_rpc)
+    table_setup()
+
+    {:ok, pid}
+  end
+
+  defp teardown_server(pid) do
+    ref = Process.monitor(pid)
+
+    receive do
+      {:DOWN, ^ref, :process, _, _} ->
+        # a tiny wait to allow the endpoint to be brought down for good, not sure how to get rid of the sleep
+        # without it one might get `eaddrinuse`
+        Process.sleep(10)
+        :ok
+    end
+  end
+
+  defp table_setup() do
+    case :ets.info(:alarms) do
+      :undefined ->
+        :alarms = :ets.new(:alarms, table_settings())
+
+      _ ->
+        # we have to cleanup the owner of the alarms table which is alarm_handler part of sasl, check omg_status
+        :ok = Application.stop(:sasl)
+        table_setup()
+    end
+  end
+
+  defp table_settings(), do: [:named_table, :set, :protected, read_concurrency: true]
 end

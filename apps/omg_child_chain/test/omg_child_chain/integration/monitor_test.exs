@@ -29,7 +29,7 @@ defmodule OMG.ChildChain.MonitorTest do
     on_exit(fn ->
       apps
       |> Enum.reverse()
-      |> Enum.each(fn app -> Application.stop(app) end)
+      |> Enum.each(&Application.stop/1)
     end)
 
     :ok

@@ -24,7 +24,7 @@ defmodule OMG.Status.Alert.AlarmTest do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
 
     on_exit(fn ->
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     end)
 
     :ok
