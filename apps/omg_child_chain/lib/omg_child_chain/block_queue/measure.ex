@@ -24,8 +24,8 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
   require Logger
   import OMG.Status.Metric.Event, only: [name: 2, name: 1]
 
-  alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.ChildChain.BlockQueue
+  alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.Status.Metric.Datadog
 
   @supported_events [
