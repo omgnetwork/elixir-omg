@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Utils.Ethereum.NonceTracker do
+defmodule LoadTest.Service.NonceTracker do
   @moduledoc """
   Nonce tracker for sending ethereum transactions
   """

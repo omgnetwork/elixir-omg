@@ -19,7 +19,7 @@ defmodule LoadTest.Utils.Ethereum do
   require Logger
 
   alias ExPlasma.Encoding
-  alias LoadTest.Utils.Ethereum.NonceTracker
+  alias LoadTest.Service.NonceTracker
   alias LoadTest.Utils.Ethereum.Sync
   alias LoadTest.Utils.Ethereum.Transaction.Signature
   alias LoadTest.Utils.Ethereum.Transaction

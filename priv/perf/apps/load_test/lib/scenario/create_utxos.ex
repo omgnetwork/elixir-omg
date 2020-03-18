@@ -21,7 +21,7 @@ defmodule LoadTest.Scenario.CreateUtxos do
 
   alias Chaperon.Session
   alias ExPlasma.Utxo
-  alias LoadTest.Utils.Faucet
+  alias LoadTest.Service.Faucet
 
   @eth <<0::160>>
   @spawned_outputs_per_transaction 3

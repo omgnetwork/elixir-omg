@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Utils.Faucet do
+defmodule LoadTest.Service.Faucet do
   @moduledoc """
   Handles funding accounts on child chain.
   """

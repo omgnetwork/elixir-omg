@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.ChildChain.UtxosLoadTest do
+defmodule LoadTest.Runner.UtxosLoadTest do
   @moduledoc """
   Creates utxos and submits transactions to test
   how child chain performs when there are many utxos in it's state.
