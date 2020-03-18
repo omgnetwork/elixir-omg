@@ -33,42 +33,43 @@ defmodule OMG.ChildChain.BlockQueue do
   for details.
 
   See `OMG.ChildChain.BlockQueue.Core` for the implementation of the business logic for the block queue.
+
+  Handles timing of calls to root chain.
+    Driven by block height and mined transaction data delivered by local geth node and new blocks
+    formed by server. Resubmits transaction until it is mined.
   """
+
+  use OMG.Utils.LoggerExt
 
   alias OMG.Block
   alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
+  alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.ChildChain.FreshBlocks
+  alias OMG.Eth
+  alias OMG.Eth.Encoding
+  alias OMG.Eth.EthereumHeight
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
   @type plasma_block_num() :: BlockSubmission.plasma_block_num()
   # child chain block number, as assigned by plasma contract
   @type encoded_signed_tx() :: binary()
-
   defmodule Server do
     @moduledoc """
-    Handles timing of calls to root chain.
-    Driven by block height and mined transaction data delivered by local geth node and new blocks
-    formed by server. Resubmits transaction until it is mined.
+      not sure what the purpose of this submodule Server is but I'll remove it later
     """
-
     use GenServer
-    use OMG.Utils.LoggerExt
 
-    alias OMG.Eth
-    alias OMG.Eth.Encoding
-    alias OMG.Eth.EthereumHeight
-
-    def start_link(_args) do
-      GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+    def start_link(args) do
+      GenServer.start_link(__MODULE__, args, name: __MODULE__)
     end
 
     @doc """
     Initializes the GenServer state, most work done in `handle_continue/2`.
     """
-    def init(:ok) do
-      {:ok, %{}, {:continue, :setup}}
+    def init(args) do
+      {:ok, args, {:continue, :setup}}
     end
 
     @doc """
@@ -77,19 +78,17 @@ defmodule OMG.ChildChain.BlockQueue do
 
     In particular it re-enqueues any blocks whose submissions have not yet been seen mined.
     """
-    def handle_continue(:setup, %{}) do
+    def handle_continue(:setup, args) do
       _ = Logger.info("Starting #{__MODULE__} service.")
       :ok = Eth.node_ready()
 
-      # prevent booting if contracts are not ready
-      :ok = Eth.RootChain.contract_ready()
       {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
 
       {:ok, parent_height} = EthereumHeight.get()
       {:ok, mined_num} = Eth.RootChain.get_mined_child_block()
       {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
       {:ok, stored_child_top_num} = OMG.DB.get_single_value(:child_top_block_number)
-      {:ok, finality_threshold} = Application.fetch_env(:omg_child_chain, :submission_finality_margin)
+      finality_threshold = Keyword.fetch!(args, :submission_finality_margin)
 
       _ =
         Logger.info(
@@ -105,6 +104,8 @@ defmodule OMG.ChildChain.BlockQueue do
       {:ok, {top_mined_hash, _}} = Eth.RootChain.get_child_chain(mined_num)
       _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Encoding.to_hex(top_mined_hash))}")
 
+      block_submit_every_nth = Keyword.fetch!(args, :block_submit_every_nth)
+
       {:ok, state} =
         case Core.new(
                mined_child_block_num: mined_num,
@@ -112,7 +113,7 @@ defmodule OMG.ChildChain.BlockQueue do
                top_mined_hash: top_mined_hash,
                parent_height: parent_height,
                child_block_interval: child_block_interval,
-               block_submit_every_nth: Application.fetch_env!(:omg_child_chain, :block_submit_every_nth),
+               block_submit_every_nth: block_submit_every_nth,
                finality_threshold: finality_threshold
              ) do
           {:ok, _state} = result ->
@@ -133,18 +134,13 @@ defmodule OMG.ChildChain.BlockQueue do
             other
         end
 
-      interval = Application.fetch_env!(:omg_child_chain, :block_queue_eth_height_check_interval_ms)
+      interval = Keyword.fetch!(args, :block_queue_eth_height_check_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
       # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
       :ok = OMG.Bus.subscribe("blocks", link: true)
-
-      {:ok, _} =
-        :timer.send_interval(
-          Application.fetch_env!(:omg_child_chain, :metrics_collection_interval),
-          self(),
-          :send_metrics
-        )
+      metrics_collection_interval = Keyword.fetch!(args, :metrics_collection_interval)
+      {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
       _ = Logger.info("Started #{inspect(__MODULE__)}")
       {:noreply, %Core{} = state}
@@ -216,10 +212,18 @@ defmodule OMG.ChildChain.BlockQueue do
 
       final_result = Core.process_submit_result(submission, submit_result, newest_mined_blknum)
 
-      _ =
+      final_result =
         case final_result do
-          {:error, _} -> log_eth_node_error()
-          _ -> :ok
+          {:error, _} = error ->
+            _ = log_eth_node_error()
+            error
+
+          {:ok, txhash} ->
+            GasAnalyzer.enqueue(txhash)
+            :ok
+
+          :ok ->
+            :ok
         end
 
       :ok = final_result
