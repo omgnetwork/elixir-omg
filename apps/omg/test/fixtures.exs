@@ -14,10 +14,10 @@
 
 defmodule OMG.Fixtures do
   use ExUnitFixtures.FixtureModule
-
-  alias OMG.State.Core
-
   import OMG.TestHelper
+
+  alias OMG.Eth.Configuration
+  alias OMG.State.Core
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @fee_claimer_address "NO FEE CLAIMER ADDR!"
@@ -33,7 +33,7 @@ defmodule OMG.Fixtures do
   deffixture(stable_mallory(entities), do: entities.stable_mallory)
 
   deffixture state_empty() do
-    {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
+    child_block_interval = Configuration.child_block_interval()
     {:ok, state} = Core.extract_initial_state(0, child_block_interval, @fee_claimer_address)
     state
   end

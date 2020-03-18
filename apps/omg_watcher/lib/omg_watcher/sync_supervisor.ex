@@ -47,9 +47,18 @@ defmodule OMG.Watcher.SyncSupervisor do
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
 
     [
+      {ExitProcessor,
+       [
+         exit_processor_sla_margin: Configuration.exit_processor_sla_margin(),
+         exit_processor_sla_margin_forced: Configuration.exit_processor_sla_margin_forced(),
+         min_exit_period_seconds: OMG.Eth.Configuration.min_exit_period_seconds(),
+         ethereum_block_time_seconds: OMG.Eth.Configuration.ethereum_block_time_seconds(),
+         metrics_collection_interval: Configuration.metrics_collection_interval()
+       ]},
       %{
         id: OMG.Watcher.BlockGetter.Supervisor,
-        start: {OMG.Watcher.BlockGetter.Supervisor, :start_link, []},
+        start:
+          {OMG.Watcher.BlockGetter.Supervisor, :start_link, [[contract_deployment_height: contract_deployment_height]]},
         restart: :permanent,
         type: :supervisor
       },
@@ -81,14 +90,6 @@ defmodule OMG.Watcher.SyncSupervisor do
         get_events_callback: &EthereumEventAggregator.deposit_created/2,
         process_events_callback: &OMG.State.deposit/1
       ),
-      {ExitProcessor,
-       [
-         exit_processor_sla_margin: Configuration.exit_processor_sla_margin(),
-         exit_processor_sla_margin_forced: Configuration.exit_processor_sla_margin_forced(),
-         min_exit_period_seconds: OMG.Eth.Configuration.min_exit_period_seconds(),
-         ethereum_block_time_seconds: OMG.Eth.Configuration.ethereum_block_time_seconds(),
-         metrics_collection_interval: Configuration.metrics_collection_interval()
-       ]},
       EthereumEventListener.prepare_child(
         contract_deployment_height: contract_deployment_height,
         service_name: :exit_processor,

@@ -29,7 +29,7 @@ defmodule OMG.State do
 
   alias OMG.Block
   alias OMG.DB
-  alias OMG.Eth
+
   alias OMG.Fees
 
   alias OMG.State.Core
@@ -147,26 +147,18 @@ defmodule OMG.State do
   Initializes the state. UTXO set is not loaded now.
   """
   def init(opts) do
-    {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-
+    {:ok, child_top_block_number} = DB.get_single_value(:child_top_block_number)
+    child_block_interval = Keyword.fetch!(opts, :child_block_interval)
     fee_claimer_address = Keyword.fetch!(opts, :fee_claimer_address)
 
-    case Core.extract_initial_state(height_query_result, child_block_interval, fee_claimer_address) do
-      {:ok, _data} = result ->
-        _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{height_query_result}}")
-        metrics_collection_interval = Application.fetch_env!(:omg, :metrics_collection_interval)
-        {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
+    {:ok, _data} =
+      result = Core.extract_initial_state(child_top_block_number, child_block_interval, fee_claimer_address)
 
-        result
+    _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{child_top_block_number}}")
+    metrics_collection_interval = Application.fetch_env!(:omg, :metrics_collection_interval)
+    {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
-      {:error, reason} = error when reason in [:top_block_number_not_found] ->
-        _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
-        error
-
-      other ->
-        other
-    end
+    result
   end
 
   def handle_info(:send_metrics, state) do
@@ -284,7 +276,7 @@ defmodule OMG.State do
   end
 
   defp do_form_block(state) do
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+    child_block_interval = state.child_block_interval
     Core.form_block(child_block_interval, state)
   end
 

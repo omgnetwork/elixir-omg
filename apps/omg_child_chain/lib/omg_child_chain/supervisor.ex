@@ -18,12 +18,15 @@ defmodule OMG.ChildChain.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
+
   alias OMG.ChildChain.DatadogEvent.ContractEventConsumer
   alias OMG.ChildChain.FeeServer
   alias OMG.ChildChain.FreshBlocks
   alias OMG.ChildChain.Monitor
   alias OMG.ChildChain.SyncSupervisor
   alias OMG.ChildChain.Tracer
+  alias OMG.Eth.Client
+  alias OMG.Eth.Configuration
   alias OMG.Eth.RootChain
   alias OMG.State
   alias OMG.Status.Alert.Alarm
@@ -33,14 +36,14 @@ defmodule OMG.ChildChain.Supervisor do
   end
 
   def init(:ok) do
-    # prevent booting if contracts are not ready
-    :ok = RootChain.contract_ready()
+    :ok = Client.node_ready()
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
     fee_claimer_address = OMG.Configuration.fee_claimer_address()
     fee_server_opts = OMG.ChildChain.Configuration.fee_server_opts()
+    child_block_interval = Configuration.child_block_interval()
 
     children = [
-      {State, [fee_claimer_address: fee_claimer_address]},
+      {State, [fee_claimer_address: fee_claimer_address, child_block_interval: child_block_interval]},
       {FreshBlocks, []},
       {FeeServer, fee_server_opts},
       {Monitor,

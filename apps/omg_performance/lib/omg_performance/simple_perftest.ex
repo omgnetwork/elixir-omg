@@ -19,11 +19,11 @@ defmodule OMG.Performance.SimplePerftest do
   This allows to easily test the critical path of processing transactions, and profile it using `:fprof`.
   """
   use OMG.Utils.LoggerExt
+  require OMG.Utxo
 
+  alias OMG.Eth.Configuration
   alias OMG.TestHelper
   alias OMG.Utxo
-
-  require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -102,7 +102,11 @@ defmodule OMG.Performance.SimplePerftest do
   defp start_simple_perftest_chain(opts) do
     children = [
       {OMG.ChildChainRPC.Web.Endpoint, []},
-      {OMG.State, [fee_claimer_address: Base.decode16!("DEAD000000000000000000000000000000000000")]},
+      {OMG.State,
+       [
+         fee_claimer_address: Base.decode16!("DEAD000000000000000000000000000000000000"),
+         child_block_interval: Configuration.child_block_interval()
+       ]},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, OMG.ChildChain.Configuration.fee_server_opts()},
       {OMG.Performance.BlockCreator, opts[:block_every_ms]}

@@ -17,13 +17,17 @@ defmodule Support.DevHelper do
   Helpers used when setting up development environment and test fixtures, related to contracts and ethereum.
   Run against `geth --dev` and similar.
   """
-
-  alias OMG.Eth
-  alias OMG.Eth.Transaction
-  alias Support.WaitFor
-  import Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
+  import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   require Logger
+
+  alias OMG.Eth
+  alias OMG.Eth.Client
+  alias OMG.Eth.Configuration
+  alias OMG.Eth.RootChain.Abi
+  alias OMG.Eth.RootChain.Rpc
+  alias OMG.Eth.Transaction
+  alias Support.WaitFor
 
   @one_hundred_eth trunc(:math.pow(10, 18) * 100)
 
@@ -91,7 +95,7 @@ defmodule Support.DevHelper do
 
   def wait_for_root_chain_block(awaited_eth_height, timeout \\ 600_000) do
     f = fn ->
-      {:ok, eth_height} = get_ethereum_height()
+      {:ok, eth_height} = Client.get_ethereum_height()
 
       if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
     end
@@ -99,9 +103,12 @@ defmodule Support.DevHelper do
     WaitFor.ok(f, timeout)
   end
 
-  def wait_for_next_child_block(blknum, timeout \\ 10_000, contract \\ nil) do
+  def wait_for_next_child_block(blknum) do
+    timeout = 10_000
+
     f = fn ->
-      {:ok, next_num} = Eth.RootChain.get_next_child_block(contract)
+      %{"block_number" => next_num} =
+        get_external_data(Configuration.contracts().plasma_framework, "nextChildBlock()", [])
 
       if next_num < blknum, do: :repeat, else: {:ok, next_num}
     end
@@ -183,17 +190,12 @@ defmodule Support.DevHelper do
 
   # Hexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
 
-  defp contract_map_to_hex(contract_map),
-    do: Enum.into(contract_map, %{}, fn {name, addr} -> {name, to_hex(addr)} end)
+  defp contract_map_to_hex(contract_map) do
+    Enum.into(contract_map, %{}, fn {name, addr} -> {name, to_hex(addr)} end)
+  end
 
-  @spec get_ethereum_height() :: {:ok, non_neg_integer()} | Ethereumex.Client.Behaviour.error()
-  defp get_ethereum_height() do
-    case Ethereumex.HttpClient.eth_block_number() do
-      {:ok, height_hex} ->
-        {:ok, int_from_hex(height_hex)}
-
-      other ->
-        other
-    end
+  defp get_external_data(contract_address, signature, args) do
+    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
+    Abi.decode_function(data, signature)
   end
 end

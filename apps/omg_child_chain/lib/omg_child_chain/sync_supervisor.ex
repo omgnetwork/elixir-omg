@@ -23,7 +23,6 @@ defmodule OMG.ChildChain.SyncSupervisor do
   alias OMG.ChildChain.BlockQueue
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.ChildChain.ChildManager
-  alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.CoordinatorSetup
   alias OMG.ChildChain.EthereumEventAggregator
   alias OMG.ChildChain.Monitor
@@ -46,19 +45,29 @@ defmodule OMG.ChildChain.SyncSupervisor do
 
   defp children(args) do
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
+    metrics_collection_interval = OMG.ChildChain.Configuration.metrics_collection_interval()
+    block_queue_eth_height_check_interval_ms = OMG.ChildChain.Configuration.block_queue_eth_height_check_interval_ms()
+    submission_finality_margin = OMG.ChildChain.Configuration.submission_finality_margin()
+    block_submit_every_nth = OMG.ChildChain.Configuration.block_submit_every_nth()
+    child_block_interval = OMG.Eth.Configuration.child_block_interval()
+    contracts = OMG.Eth.Configuration.contracts()
+    plasma_framework = contracts.plasma_framework
 
     [
       {GasAnalyzer, []},
       {BlockQueue,
        [
-         metrics_collection_interval: Configuration.metrics_collection_interval(),
-         block_queue_eth_height_check_interval_ms: Configuration.block_queue_eth_height_check_interval_ms(),
-         submission_finality_margin: Configuration.submission_finality_margin(),
-         block_submit_every_nth: Configuration.block_submit_every_nth()
+         contract_deployment_height: contract_deployment_height,
+         metrics_collection_interval: metrics_collection_interval,
+         block_queue_eth_height_check_interval_ms: block_queue_eth_height_check_interval_ms,
+         submission_finality_margin: submission_finality_margin,
+         block_submit_every_nth: block_submit_every_nth,
+         child_block_interval: child_block_interval,
+         plasma_framework: plasma_framework
        ]},
       {RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
       {EthereumEventAggregator,
-       contracts: Application.fetch_env!(:omg_eth, :contract_addr),
+       contracts: contracts,
        ets_bucket: @events_bucket,
        events: [
          [name: :deposit_created, enrich: false],

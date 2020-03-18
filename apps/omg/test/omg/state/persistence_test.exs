@@ -19,21 +19,20 @@ defmodule OMG.State.PersistenceTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Utils.LoggerExt
+  import OMG.TestHelper
+
+  require OMG.Utxo
 
   alias OMG.Block
-
+  alias OMG.Eth.Configuration
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias Support.WaitFor
 
-  import OMG.TestHelper
-
-  require Utxo
-
   @fee_claimer_address Base.decode16!("DEAD000000000000000000000000000000000000")
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
+  @interval Configuration.child_block_interval()
   @blknum1 @interval
 
   setup do
@@ -44,7 +43,10 @@ defmodule OMG.State.PersistenceTest do
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
 
-    {:ok, _} = Supervisor.start_link([{OMG.State, [fee_claimer_address: @fee_claimer_address]}], strategy: :one_for_one)
+    {:ok, _} =
+      Supervisor.start_link([{OMG.State, [fee_claimer_address: @fee_claimer_address, child_block_interval: @interval]}],
+        strategy: :one_for_one
+      )
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)

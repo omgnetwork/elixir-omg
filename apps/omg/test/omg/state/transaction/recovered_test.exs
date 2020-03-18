@@ -133,12 +133,19 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
       assert {:error, :malformed_witnesses} ==
                Transaction.Recovered.recover_from(
-                 ExRLP.encode([[<<1>>, <<1>>], @payment_tx_type, inputs, outputs, 0, <<0::256>>])
+                 ExRLP.encode([
+                   [ExPlasma.payment_v1(), ExPlasma.payment_v1()],
+                   @payment_tx_type,
+                   inputs,
+                   outputs,
+                   0,
+                   <<0::256>>
+                 ])
                )
 
       assert {:error, :malformed_witnesses} ==
                Transaction.Recovered.recover_from(
-                 ExRLP.encode([<<1>>, @payment_tx_type, inputs, outputs, 0, <<0::256>>])
+                 ExRLP.encode([ExPlasma.payment_v1(), @payment_tx_type, inputs, outputs, 0, <<0::256>>])
                )
 
       assert {:error, :malformed_inputs} =
@@ -333,7 +340,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
       assert {:error, :unrecognized_transaction_type} =
                good_tx_rlp_items()
-               |> List.replace_at(tx_type_index_in_rlp, [<<1>>])
+               |> List.replace_at(tx_type_index_in_rlp, [ExPlasma.payment_v1()])
                |> ExRLP.encode()
                |> Transaction.Recovered.recover_from()
     end

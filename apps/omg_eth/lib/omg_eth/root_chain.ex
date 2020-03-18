@@ -22,7 +22,7 @@ defmodule OMG.Eth.RootChain do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.Config
+  alias OMG.Eth.Configuration
 
   require Logger
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
@@ -38,48 +38,27 @@ defmodule OMG.Eth.RootChain do
   # READING THE CONTRACT #
   ########################
 
-  # some constant-like getters to start
-
-  @spec get_child_block_interval() :: {:ok, pos_integer()} | :error
-  def get_child_block_interval(), do: Application.fetch_env(:omg_eth, :child_block_interval)
-
   @doc """
   This is what the contract understands as the address of native Ether token
   """
   @spec eth_pseudo_address() :: <<_::160>>
   def eth_pseudo_address(), do: Eth.zero_address()
 
-  # actual READING THE CONTRACT
-
-  @doc """
-  Returns next blknum that is supposed to be mined by operator
-  """
-  def get_next_child_block(contract \\ %{}) do
-    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    Eth.call_contract(contract, "nextChildBlock()", [], [{:uint, 256}])
-  end
-
-  @doc """
-  Returns blknum that was already mined by operator (with exception for 0)
-  """
-  def get_mined_child_block(contract \\ %{}) do
-    with {:ok, next} <- get_next_child_block(contract),
-         {:ok, interval} <- get_child_block_interval(),
-         do: {:ok, next - interval}
-  end
-
+  #
+  # these two cannot be parsed with ABI decoder!
+  #
   @doc """
   Returns standard exits data from the contract for a list of `exit_id`s. Calls contract method.
   """
-  def get_standard_exit_structs(exit_ids, contract \\ %{}) do
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+  def get_standard_exit_structs(exit_ids) do
+    contract = Configuration.contracts().payment_exit_game
 
     return_types = [
       {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
     ]
 
     # TODO: hack around an issue with `ex_abi` https://github.com/poanetwork/ex_abi/issues/22
-    #       We procure a hacky version of `OMG.Eth.call_contract` which strips the offending offsets from
+    #       We procure a hacky version of `OMG.Eth.Client.call_contract` which strips the offending offsets from
     #       the ABI-encoded binary and proceeds to decode the array without the offset
     #       Revert to `call_contract` when that issue is resolved
     call_contract_manual_exits(
@@ -93,8 +72,8 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns in flight exits of the specified ids. Calls a contract method.
   """
-  def get_in_flight_exit_structs(in_flight_exit_ids, contract \\ %{}) do
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+  def get_in_flight_exit_structs(in_flight_exit_ids) do
+    contract = Configuration.contracts().payment_exit_game
     {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
 
     # solidity does not return arrays of structs
@@ -110,46 +89,18 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  # TODO: we're storing exit_ids for SEs, we should do the same for IFEs and remove this (requires exit_id to be
-  #       emitted from the start IFE event
-  def get_in_flight_exit_id(tx_bytes, contract \\ %{}) do
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
-    Eth.call_contract(contract, "getInFlightExitId(bytes)", [tx_bytes], [{:uint, 160}])
-  end
-
-  def get_child_chain(blknum, contract \\ %{}) do
-    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    Eth.call_contract(contract, "blocks(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
-  end
-
   ########################
   # MISC #
   ########################
 
-  @spec contract_ready(optional_address_t()) ::
-          :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
-  def contract_ready(contract \\ %{}) do
-    {:ok, addr} = authority(contract)
-
-    case addr do
-      <<0::256>> -> {:error, :root_chain_authority_is_nil}
-      _ -> :ok
-    end
-  rescue
-    error ->
-      _ = Logger.error("The call to contract_ready failed with: #{inspect(error)}")
-      {:error, :root_chain_contract_not_available}
-  end
-
-  # TODO - missing description + could this be moved to a statefull process?
-  @spec get_root_deployment_height(binary() | nil, optional_address_t()) ::
+  @spec get_root_deployment_height() ::
           {:ok, integer()} | Ethereumex.HttpClient.error()
-  def get_root_deployment_height(txhash \\ nil, contract \\ %{}) do
-    hex_contract = contract |> Config.maybe_fetch_addr!(:plasma_framework) |> to_hex()
-    txhash = txhash || from_hex(Application.fetch_env!(:omg_eth, :txhash_contract))
+  def get_root_deployment_height() do
+    plasma_framework = Configuration.contracts().plasma_framework
+    txhash = from_hex(Configuration.txhash_contract())
 
     case txhash |> to_hex() |> Ethereumex.HttpClient.eth_get_transaction_receipt() do
-      {:ok, %{"contractAddress" => ^hex_contract, "blockNumber" => height}} ->
+      {:ok, %{"contractAddress" => ^plasma_framework, "blockNumber" => height}} ->
         {:ok, int_from_hex(height)}
 
       {:ok, _} ->
@@ -161,16 +112,11 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
-  defp authority(contract) do
-    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    Eth.call_contract(contract, "authority()", [], [:address])
-  end
-
   # TODO: see above in where it is called - temporary function
   defp call_contract_manual_exits(contract, signature, args, return_types) do
     data = ABI.encode(signature, args)
 
-    {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: to_hex(contract), data: to_hex(data)})
+    {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: contract, data: to_hex(data)})
     decode_answer_manual_exits(return, return_types)
   end
 

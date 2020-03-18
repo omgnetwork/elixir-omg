@@ -20,6 +20,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
+  alias OMG.Eth.Encoding
   alias OMG.Status.Alert.Alarm
   alias OMG.TestHelper
   alias Support.DevHelper
@@ -29,8 +30,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)
-
-    enc_eth = Eth.Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
+    enc_eth = Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
 
     {:ok, path, file_name} =
       TestHelper.write_fee_file(%{
@@ -43,7 +43,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
             pegged_subunit_to_unit: 100,
             updated_at: DateTime.utc_now()
           },
-          Eth.Encoding.to_hex(token) => %{
+          token => %{
             amount: 2,
             pegged_amount: 1,
             subunit_to_unit: 1_000_000_000_000_000_000,
@@ -104,8 +104,9 @@ defmodule OMG.ChildChain.Integration.Fixtures do
     {:ok, _} = DevHelper.import_unlock_fund(alice)
 
     deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value)
-    {:ok, _} = Eth.Token.mint(alice.addr, some_value, token_addr) |> DevHelper.transact_sync!()
-    token_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value, token_addr)
+
+    {:ok, _} = Eth.Token.mint(alice.addr, some_value, Encoding.from_hex(token_addr)) |> DevHelper.transact_sync!()
+    token_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value, Encoding.from_hex(token_addr))
 
     {deposit_blknum, token_deposit_blknum}
   end

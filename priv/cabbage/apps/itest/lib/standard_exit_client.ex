@@ -19,7 +19,6 @@ defmodule Itest.StandardExitClient do
   alias Itest.ApiModel.Utxo
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
-  alias Itest.Transactions.PaymentType
   alias WatcherInfoAPI.Connection, as: WatcherInfo
   alias WatcherInfoAPI.Model.AddressBodySchema1
   alias WatcherSecurityCriticalAPI.Connection, as: Watcher
@@ -122,8 +121,7 @@ defmodule Itest.StandardExitClient do
   defp get_exit_game_contract_address(se) do
     %{
       se
-      | exit_game_contract_address:
-          Itest.PlasmaFramework.exit_game_contract_address(PaymentType.simple_payment_transaction())
+      | exit_game_contract_address: Itest.PlasmaFramework.exit_game_contract_address(ExPlasma.payment_v1())
     }
   end
 

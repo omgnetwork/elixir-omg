@@ -37,6 +37,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
     defstruct [
       :block_interval,
       :block_getter_reorg_margin,
+      :block_getter_loops_interval_ms,
+      :child_chain_url,
+      :contracts,
       maximum_number_of_pending_blocks: 10,
       maximum_block_withholding_time_ms: 0,
       maximum_number_of_unapplied_blocks: 50
@@ -46,7 +49,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
             maximum_number_of_pending_blocks: pos_integer,
             maximum_block_withholding_time_ms: pos_integer,
             maximum_number_of_unapplied_blocks: pos_integer,
-            block_interval: pos_integer
+            block_interval: pos_integer,
+            block_getter_loops_interval_ms: pos_integer,
+            child_chain_url: String.t(),
+            contracts: map()
           }
   end
 
@@ -151,26 +157,26 @@ defmodule OMG.Watcher.BlockGetter.Core do
       ) do
     with true <- state_at_block_beginning || {:error, :not_at_block_beginning},
          true <- init_opts_valid?(opts) do
-      state =
-        %__MODULE__{
-          synced_height: synced_height,
-          last_applied_block: block_number,
-          num_of_highest_block_being_downloaded: block_number,
-          number_of_blocks_being_downloaded: 0,
-          unapplied_blocks: %{},
-          potential_block_withholdings: %{},
-          config:
-            struct(
-              Config,
-              Keyword.merge(opts,
-                block_interval: child_block_interval,
-                block_getter_reorg_margin: block_getter_reorg_margin
-              )
-            ),
-          events: [],
-          chain_status: :ok
-        }
-        |> consider_exits(exit_processor_results)
+      state = %__MODULE__{
+        synced_height: synced_height,
+        last_applied_block: block_number,
+        num_of_highest_block_being_downloaded: block_number,
+        number_of_blocks_being_downloaded: 0,
+        unapplied_blocks: %{},
+        potential_block_withholdings: %{},
+        config:
+          struct(
+            Config,
+            Keyword.merge(opts,
+              block_interval: child_block_interval,
+              block_getter_reorg_margin: block_getter_reorg_margin
+            )
+          ),
+        events: [],
+        chain_status: :ok
+      }
+
+      state = consider_exits(state, exit_processor_results)
 
       {:ok, state}
     end

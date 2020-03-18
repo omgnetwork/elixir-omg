@@ -21,6 +21,10 @@ defmodule OMG.Status.Alert.AlarmPrinterTest do
   setup do
     {:ok, alarm_printer} = AlarmPrinter.start_link(alarm_module: __MODULE__.Alarm)
 
+    on_exit(fn ->
+      :dbg.stop_clear()
+    end)
+
     %{alarm_printer: alarm_printer}
   end
 

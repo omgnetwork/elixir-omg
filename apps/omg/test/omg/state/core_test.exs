@@ -19,21 +19,21 @@ defmodule OMG.State.CoreTest do
   """
   use ExUnitFixtures
   use ExUnit.Case, async: true
+  import OMG.TestHelper
+
+  require Logger
+  require OMG.Utxo
 
   alias OMG.Block
+  alias OMG.Eth.Configuration
   alias OMG.Fees
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.Utxo
 
-  import OMG.TestHelper
-
-  require Logger
-  require Utxo
-
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
-  @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
+  @interval OMG.Eth.Configuration.child_block_interval()
   @blknum1 @interval
   @blknum2 @interval * 2
 
@@ -917,7 +917,7 @@ defmodule OMG.State.CoreTest do
     setup do
       fee_claimer = OMG.TestHelper.generate_entity()
 
-      {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
+      child_block_interval = Configuration.child_block_interval()
       {:ok, state_empty} = Core.extract_initial_state(0, child_block_interval, fee_claimer.addr)
 
       alice = OMG.TestHelper.generate_entity()

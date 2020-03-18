@@ -16,8 +16,9 @@ defmodule OMG.Performance.Generators do
   @moduledoc """
   Provides helper functions to generate bundles of various useful entities for performance tests
   """
-
-  alias OMG.Eth.RootChain
+  alias OMG.Eth.Configuration
+  alias OMG.Eth.RootChain.Abi
+  alias OMG.Eth.RootChain.Rpc
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
@@ -47,7 +48,7 @@ defmodule OMG.Performance.Generators do
   @spec stream_blocks() :: [OMG.Block.t()]
   def stream_blocks() do
     child_chain_url = Application.fetch_env!(:omg_watcher, :child_chain_url)
-    {:ok, interval} = RootChain.get_child_block_interval()
+    interval = Configuration.child_block_interval()
 
     Stream.map(
       Stream.iterate(1, &(&1 + 1)),
@@ -97,8 +98,10 @@ defmodule OMG.Performance.Generators do
   @spec random_block() :: OMG.Block.t()
   def random_block() do
     child_chain_url = Application.fetch_env!(:omg_watcher, :child_chain_url)
-    {:ok, interval} = RootChain.get_child_block_interval()
-    {:ok, mined_block} = RootChain.get_mined_child_block()
+    interval = Configuration.child_block_interval()
+    plasma_framework = Configuration.contracts().plasma_framework
+    child_block_interval = Configuration.child_block_interval()
+    mined_block = get_mined_child_block(plasma_framework, child_block_interval)
     # interval <= blknum <= mined_block
     blknum = :rand.uniform(div(mined_block, interval)) * interval
     get_block!(blknum, child_chain_url)
@@ -111,8 +114,9 @@ defmodule OMG.Performance.Generators do
   end
 
   defp get_block!(blknum, child_chain_url) do
-    {:ok, {block_hash, _timestamp}} = RootChain.get_child_chain(blknum)
-    {:ok, block} = poll_get_block(block_hash, child_chain_url)
+    plasma_framework = Configuration.contracts().plasma_framework
+    %{"block_hash" => block_hash} = get_external_data(plasma_framework, "blocks(uint256)", [blknum])
+    {:ok, block} = Client.get_block(block_hash, child_chain_url)
     block
   end
 
@@ -153,5 +157,13 @@ defmodule OMG.Performance.Generators do
         Process.sleep(10)
         poll_get_block(block_hash, child_chain_url, retry - 1)
     end
+  defp get_external_data(contract_address, signature, args) do
+    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
+    Abi.decode_function(data, signature)
+  end
+
+  defp get_mined_child_block(contract_address, child_block_interval) do
+    %{"block_number" => mined_num} = get_external_data(contract_address, "nextChildBlock()", [])
+    mined_num - child_block_interval
   end
 end

@@ -44,7 +44,13 @@ defmodule OMG.StateTest do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
-    {:ok, _} = Supervisor.start_link([{OMG.State, [fee_claimer_address: @fee_claimer_address]}], strategy: :one_for_one)
+    child_block_interval = OMG.Eth.Configuration.child_block_interval()
+
+    {:ok, _} =
+      Supervisor.start_link(
+        [{OMG.State, [fee_claimer_address: @fee_claimer_address, child_block_interval: child_block_interval]}],
+        strategy: :one_for_one
+      )
 
     :ok
   end

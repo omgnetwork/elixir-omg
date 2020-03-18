@@ -26,19 +26,19 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
+  require OMG.Utxo
+
+  import ExUnit.CaptureLog, only: [capture_log: 1]
+
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utxo
+  alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.BadChildChainServer
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-
-  require Utxo
-
-  import ExUnit.CaptureLog, only: [capture_log: 1]
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -133,11 +133,18 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     block_with_incorrect_hash = %{OMG.Block.hashed_txs_at([], 1000) | hash: different_hash}
 
     # from now on the child chain server is broken until end of test
-    BadChildChainServer.prepare_route_to_inject_bad_block(
-      context,
-      block_with_incorrect_hash,
-      different_hash
-    )
+    route =
+      BadChildChainServer.prepare_route_to_inject_bad_block(
+        context,
+        block_with_incorrect_hash,
+        different_hash
+      )
+
+    :sys.replace_state(BlockGetter, fn state ->
+      config = state.config
+      new_config = %{config | child_chain_url: "http://localhost:#{route.port}"}
+      %{state | config: new_config}
+    end)
 
     # checking if both machines and humans learn about the byzantine condition
     assert WatcherHelper.capture_log(fn ->
@@ -156,10 +163,17 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     block_with_incorrect_transaction = OMG.Block.hashed_txs_at([recovered], 1000)
 
     # from now on the child chain server is broken until end of test
-    BadChildChainServer.prepare_route_to_inject_bad_block(
-      context,
-      block_with_incorrect_transaction
-    )
+    route =
+      BadChildChainServer.prepare_route_to_inject_bad_block(
+        context,
+        block_with_incorrect_transaction
+      )
+
+    :sys.replace_state(BlockGetter, fn state ->
+      config = state.config
+      new_config = %{config | child_chain_url: "http://localhost:#{route.port}"}
+      %{state | config: new_config}
+    end)
 
     invalid_block_hash = block_with_incorrect_transaction.hash
 
@@ -184,7 +198,13 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+    route = BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+
+    :sys.replace_state(BlockGetter, fn state ->
+      config = state.config
+      new_config = %{config | child_chain_url: "http://localhost:#{route.port}"}
+      %{state | config: new_config}
+    end)
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 
@@ -225,7 +245,13 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+    route = BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+
+    :sys.replace_state(BlockGetter, fn state ->
+      config = state.config
+      new_config = %{config | child_chain_url: "http://localhost:#{route.port}"}
+      %{state | config: new_config}
+    end)
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 
@@ -320,10 +346,17 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     block_overclaiming_fees = OMG.Block.hashed_txs_at(txs, 1000)
 
     # from now on the child chain server is broken until end of test
-    BadChildChainServer.prepare_route_to_inject_bad_block(
-      context,
-      block_overclaiming_fees
-    )
+    route =
+      BadChildChainServer.prepare_route_to_inject_bad_block(
+        context,
+        block_overclaiming_fees
+      )
+
+    :sys.replace_state(BlockGetter, fn state ->
+      config = state.config
+      new_config = %{config | child_chain_url: "http://localhost:#{route.port}"}
+      %{state | config: new_config}
+    end)
 
     # checking if both machines and humans learn about the byzantine condition
     assert WatcherHelper.capture_log(fn ->

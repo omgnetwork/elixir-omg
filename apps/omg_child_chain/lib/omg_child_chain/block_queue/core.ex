@@ -101,6 +101,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     :mined_child_block_num,
     :last_enqueued_block_at_height,
     :wait_for_enqueue,
+    :plasma_framework,
     last_parent_height: 0,
     formed_child_block_num: 0,
     gas_price_to_use: 20_000_000_000,
@@ -133,7 +134,8 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           finality_threshold: pos_integer(),
           # the gas price adjustment strategy parameters
           gas_price_adj_params: GasPriceAdjustment.t(),
-          last_parent_height: non_neg_integer()
+          last_parent_height: non_neg_integer(),
+          plasma_framework: String.t()
         }
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
@@ -141,6 +143,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   @doc """
   Initializes the state of the `OMG.ChildChain.BlockQueue` based on data from `OMG.DB` and configuration
   """
+
   @spec new(keyword()) ::
           {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
   def new(opts \\ []) do

@@ -16,6 +16,9 @@ defmodule OMG.Eth.Configuration do
   @moduledoc """
   Provides access to applications configuration
   """
+  alias OMG.Eth
+  alias OMG.Eth.Encoding
+
   @app :omg_eth
   def contract_semver() do
     Application.get_env(@app, :contract_semver)
@@ -42,16 +45,39 @@ defmodule OMG.Eth.Configuration do
 
   @spec txhash_contract() :: no_return | binary()
   def txhash_contract() do
-    Application.fetch_env!(:omg_eth, :txhash_contract)
+    Application.fetch_env!(@app, :txhash_contract)
   end
 
   @spec authority_addr() :: no_return | binary()
   def authority_addr() do
-    Application.fetch_env!(:omg_eth, :authority_addr)
+    Application.fetch_env!(@app, :authority_addr)
   end
 
   @spec environment() :: :test | nil
   def environment() do
     Application.get_env(@app, :environment)
+  end
+
+  @spec child_block_interval() :: pos_integer | no_return
+  def child_block_interval() do
+    Application.fetch_env!(@app, :child_block_interval)
+  end
+
+  @spec eth_node() :: pos_integer | no_return
+  def eth_node() do
+    Application.fetch_env!(@app, :eth_node)
+  end
+
+  @doc """
+  Gets a particular contract's address (by name) from somewhere
+  `maybe_fetch_addr!(%{}, name)` will `Application.fetch_env!`, get the correct entry and decode
+  Otherwise it just returns the entry from whatever the map provided, assuming it's decoded already
+  """
+  @spec maybe_fetch_addr!(%{atom => Eth.address()}, atom) :: Eth.address()
+  def maybe_fetch_addr!(contract, name) do
+    case contract[name] do
+      nil -> Encoding.from_hex(contracts()[name])
+      address -> address
+    end
   end
 end

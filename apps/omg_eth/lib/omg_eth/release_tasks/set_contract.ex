@@ -17,13 +17,15 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   use Distillery.Releases.Config.Provider
   require Logger
 
-  alias OMG.Eth
   alias OMG.Eth.Encoding
+  alias OMG.Eth.RootChain.Abi
+  alias OMG.Eth.RootChain.Rpc
 
   @app :omg_eth
   @networks ["RINKEBY", "ROPSTEN", "GOERLI", "KOVAN", "MAINNET", "LOCALCHAIN"]
   @error "Set ETHEREUM_NETWORK to #{Enum.join(@networks, ",")} with TXHASH_CONTRACT, AUTHORITY_ADDRESS and CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
-
+  @ether_vault_id 1
+  @erc20_vault_id 2
   @doc """
   The contract values can currently come either from ENV variables for deployments in
   - development
@@ -34,81 +36,49 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
   @impl Provider
   def init(_args) do
-    _ = Application.ensure_all_started(:logger)
-    _ = Application.ensure_all_started(:ethereumex)
+    {:ok, logger_apps} = Application.ensure_all_started(:logger)
+    {:ok, ethereumex_apps} = Application.ensure_all_started(:ethereumex)
+
     exchanger = get_env("CONTRACT_EXCHANGER_URL")
     via_env = get_env("ETHEREUM_NETWORK")
+    network = get_network(via_env)
 
-    case {exchanger, via_env} do
-      {exchanger, _} when is_binary(exchanger) ->
-        network = get_network(via_env)
+    {txhash_contract, authority_address, plasma_framework} =
+      case exchanger do
+        exchanger when is_binary(exchanger) ->
+          body =
+            try do
+              {:ok, %{body: body}} = HTTPoison.get(exchanger)
+              body
+            rescue
+              reason -> exit("CONTRACT_EXCHANGER_URL #{exchanger} is not reachable because of #{inspect(reason)}")
+            end
 
-        _ = Application.ensure_all_started(:hackney)
+          %{
+            authority_address: authority_address,
+            plasma_framework: plasma_framework,
+            plasma_framework_tx_hash: txhash_contract
+          } = Jason.decode!(body, keys: :atoms!)
 
-        body =
-          try do
-            {:ok, %{body: body}} = HTTPoison.get(exchanger)
-            body
-          rescue
-            reason -> exit("CONTRACT_EXCHANGER_URL #{exchanger} is not reachable because of #{inspect(reason)}")
-          end
+          {txhash_contract, authority_address, plasma_framework}
 
-        %{
-          authority_address: authority_address,
-          erc20_vault: erc20_vault,
-          eth_vault: eth_vault,
-          payment_exit_game: payment_exit_game,
-          plasma_framework: plasma_framework,
-          plasma_framework_tx_hash: txhash_contract
-        } = Jason.decode!(body, keys: :atoms!)
+        _ ->
+          txhash_contract = get_env("TXHASH_CONTRACT")
+          authority_address = get_env("AUTHORITY_ADDRESS")
+          plasma_framework = get_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+          {txhash_contract, authority_address, plasma_framework}
+      end
 
-        min_exit_period_seconds = get_min_exit_period(plasma_framework)
-        contract_semver = get_contract_semver(plasma_framework)
-
-        contract_addresses = %{
-          plasma_framework: plasma_framework,
-          eth_vault: eth_vault,
-          erc20_vault: erc20_vault,
-          payment_exit_game: payment_exit_game
-        }
-
-        update_configuration(
-          txhash_contract,
-          authority_address,
-          contract_addresses,
-          min_exit_period_seconds,
-          contract_semver,
-          network
-        )
-
-      {_, via_env} when is_binary(via_env) ->
-        :ok = apply_static_settings(via_env)
-
-      _ ->
-        exit(@error)
-    end
-  end
-
-  defp apply_static_settings(network) do
-    network = get_network(network)
-
-    txhash_contract = get_env("TXHASH_CONTRACT")
-    authority_address = get_env("AUTHORITY_ADDRESS")
-    env_contract_address_plasma_framework = get_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-    env_contract_address_eth_vault = get_env("CONTRACT_ADDRESS_ETH_VAULT")
-    env_contract_address_erc20_vault = get_env("CONTRACT_ADDRESS_ERC20_VAULT")
-    env_contract_address_payment_exit_game = get_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+    # get all the data from external sources
+    {payment_exit_game, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval} =
+      get_external_data(plasma_framework)
 
     contract_addresses = %{
-      plasma_framework: env_contract_address_plasma_framework,
-      eth_vault: env_contract_address_eth_vault,
-      erc20_vault: env_contract_address_erc20_vault,
-      payment_exit_game: env_contract_address_payment_exit_game
+      plasma_framework: plasma_framework,
+      eth_vault: eth_vault,
+      erc20_vault: erc20_vault,
+      payment_exit_game: payment_exit_game
     }
-
-    min_exit_period_seconds = get_min_exit_period(env_contract_address_plasma_framework)
-    contract_semver = get_contract_semver(env_contract_address_plasma_framework)
-    child_block_interval = get_child_block_interval(env_contract_address_plasma_framework)
 
     update_configuration(
       txhash_contract,
@@ -119,6 +89,18 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       network,
       child_block_interval
     )
+
+    (logger_apps ++ ethereumex_apps) |> Enum.reverse() |> Enum.each(&Application.stop/1)
+  end
+
+  defp get_external_data(plasma_framework) do
+    min_exit_period_seconds = get_min_exit_period(plasma_framework)
+    payment_exit_game = plasma_framework |> exit_game_contract_address(ExPlasma.payment_v1()) |> Encoding.to_hex()
+    eth_vault = plasma_framework |> get_vault(@ether_vault_id) |> Encoding.to_hex()
+    erc20_vault = plasma_framework |> get_vault(@erc20_vault_id) |> Encoding.to_hex()
+    contract_semver = get_contract_semver(plasma_framework)
+    child_block_interval = get_child_block_interval(plasma_framework)
+    {payment_exit_game, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval}
   end
 
   defp update_configuration(
@@ -143,45 +125,46 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     :ok = Application.put_env(@app, :child_block_interval, child_block_interval)
   end
 
-  defp update_configuration(_, _, _, _, _, _), do: exit(@error)
-
-  defp get_min_exit_period(nil), do: exit(@error)
+  defp update_configuration(_, _, _, _, _, _, _), do: exit(@error)
 
   defp get_min_exit_period(plasma_framework_contract) do
-    {:ok, min_exit_period} =
-      Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "minExitPeriod()", [], [{:uint, 256}])
-
+    signature = "minExitPeriod()"
+    {:ok, data} = rpc().call_contract(plasma_framework_contract, signature, [])
+    %{"min_exit_period" => min_exit_period} = Abi.decode_function(data, signature)
     min_exit_period
   end
 
   defp get_contract_semver(plasma_framework_contract) do
-    {:ok, {contract_semver}} =
-      Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "getVersion()", [], [{:tuple, [:string]}])
-
-    contract_semver
+    signature = "getVersion()"
+    {:ok, data} = rpc().call_contract(plasma_framework_contract, signature, [])
+    %{"version" => version} = Abi.decode_function(data, signature)
+    version
   end
 
   defp get_child_block_interval(plasma_framework_contract) do
-    {:ok, child_block_interval} =
-      Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "childBlockInterval()", [], [{:uint, 256}])
-
+    signature = "childBlockInterval()"
+    {:ok, data} = rpc().call_contract(plasma_framework_contract, signature, [])
+    %{"child_block_interval" => child_block_interval} = Abi.decode_function(data, signature)
     child_block_interval
   end
 
-  def exit_game_contract_address(plasma_framework_contract, tx_type) do
-    {:ok, result} =
-      Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "exitGames(uint256)", [tx_type], [:address])
-
-    Encoding.to_hex(result)
+  defp exit_game_contract_address(plasma_framework_contract, tx_type) do
+    signature = "exitGames(uint256)"
+    {:ok, data} = rpc().call_contract(plasma_framework_contract, signature, [tx_type])
+    %{"exit_game_address" => exit_game_address} = Abi.decode_function(data, signature)
+    exit_game_address
   end
 
-  def get_vault(plasma_framework_contract, id) do
-    {:ok, result} = Eth.call_contract(Encoding.from_hex(plasma_framework_contract), "vaults(uint256)", [id], [:address])
-
-    Encoding.to_hex(result)
+  defp get_vault(plasma_framework_contract, id) do
+    signature = "vaults(uint256)"
+    {:ok, data} = rpc().call_contract(plasma_framework_contract, "vaults(uint256)", [id])
+    %{"vault_address" => vault_address} = Abi.decode_function(data, signature)
+    vault_address
   end
 
   defp get_env(key), do: System.get_env(key)
+
+  defp get_network(nil), do: exit(@error)
 
   defp get_network(data) do
     case Enum.member?(@networks, String.upcase(data)) do
@@ -191,5 +174,9 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       _ ->
         exit(@error)
     end
+  end
+
+  defp rpc() do
+    Application.get_env(:omg_eth, :rpc_api, Rpc)
   end
 end

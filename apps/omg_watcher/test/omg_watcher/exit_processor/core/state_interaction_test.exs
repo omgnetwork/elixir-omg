@@ -18,13 +18,13 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   """
   use ExUnit.Case, async: true
 
+  alias OMG.Eth.Configuration
   alias OMG.State
   alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
-
   require Utxo
 
   import OMG.Watcher.ExitProcessor.TestHelper,
@@ -45,7 +45,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   setup do
     {:ok, processor_empty} = Core.init([], [], [])
-    {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
+    child_block_interval = Configuration.child_block_interval()
     {:ok, state_empty} = State.Core.extract_initial_state(0, child_block_interval, @fee_claimer_address)
 
     {:ok, %{alice: TestHelper.generate_entity(), processor_empty: processor_empty, state_empty: state_empty}}

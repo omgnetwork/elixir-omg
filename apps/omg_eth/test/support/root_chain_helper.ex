@@ -16,14 +16,12 @@ defmodule Support.RootChainHelper do
   @moduledoc """
     Helper functions for RootChain.
   """
+  import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1]
 
-  alias OMG.Eth
   alias OMG.Eth.Blockchain.BitHelper
-  alias OMG.Eth.Config
+  alias OMG.Eth.Configuration
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.TransactionHelper
-
-  import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1]
 
   @tx_defaults OMG.Eth.Defaults.tx_defaults()
 
@@ -54,7 +52,7 @@ defmodule Support.RootChainHelper do
 
     opts = Keyword.merge(defaults, opts)
 
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    contract = Configuration.maybe_fetch_addr!(contract, :payment_exit_game)
     backend = Application.fetch_env!(:omg_eth, :eth_node)
 
     TransactionHelper.contract_transact(
@@ -74,10 +72,10 @@ defmodule Support.RootChainHelper do
       |> Keyword.put(:value, @piggyback_bond)
 
     opts = Keyword.merge(defaults, opts)
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    contract = Configuration.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "piggybackInFlightExitOnInput((bytes,uint16))"
     args = [{in_flight_tx, input_index}]
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    backend = Configuration.eth_node()
 
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
@@ -90,15 +88,16 @@ defmodule Support.RootChainHelper do
 
     opts = defaults |> Keyword.merge(opts)
 
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    contract = Configuration.maybe_fetch_addr!(contract, :payment_exit_game)
 
     signature = "piggybackInFlightExitOnOutput((bytes,uint16))"
     args = [{in_flight_tx, output_index}]
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    backend = Configuration.eth_node()
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
-  def deposit(tx_bytes, value, from, contract \\ %{}, opts \\ []) do
+  def deposit(tx_bytes, value, from) do
+    opts = []
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit)
 
     opts =
@@ -106,8 +105,8 @@ defmodule Support.RootChainHelper do
       |> Keyword.merge(opts)
       |> Keyword.put(:value, value)
 
-    contract = Config.maybe_fetch_addr!(contract, :eth_vault)
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    contract = from_hex(Configuration.contracts().eth_vault())
+    backend = Configuration.eth_node()
     TransactionHelper.contract_transact(backend, from, contract, "deposit(bytes)", [tx_bytes], opts)
   end
 
@@ -115,17 +114,18 @@ defmodule Support.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit_from)
     opts = Keyword.merge(defaults, opts)
 
-    contract = Config.maybe_fetch_addr!(contract, :erc20_vault)
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    contract = Configuration.maybe_fetch_addr!(contract, :erc20_vault)
+    backend = Configuration.eth_node()
     TransactionHelper.contract_transact(backend, from, contract, "deposit(bytes)", [tx], opts)
   end
 
-  def add_exit_queue(vault_id, token, contract \\ %{}, opts \\ []) do
-    opts = @tx_defaults |> Keyword.put(:gas, @gas_add_exit_queue) |> Keyword.merge(opts)
+  def add_exit_queue(vault_id, token) do
+    opts = Keyword.put(@tx_defaults, :gas, @gas_add_exit_queue)
 
-    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = from_hex(Configuration.contracts().plasma_framework)
+    token = from_hex(token)
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    backend = Configuration.eth_node()
 
     TransactionHelper.contract_transact(
       backend,
@@ -147,15 +147,15 @@ defmodule Support.RootChainHelper do
         contract \\ %{},
         opts \\ []
       ) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
+    defaults = Keyword.put(@tx_defaults, :gas, @gas_challenge_exit)
     opts = Keyword.merge(defaults, opts)
-    sender_data = from |> BitHelper.kec()
+    sender_data = BitHelper.kec(from)
 
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    contract = Configuration.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "challengeStandardExit((uint160,bytes,bytes,uint16,bytes,bytes32))"
     args = [{exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig, sender_data}]
 
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    backend = Configuration.eth_node()
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
 
@@ -163,9 +163,9 @@ defmodule Support.RootChainHelper do
     defaults = Keyword.put(@tx_defaults, :gas, @gas_init)
     opts = Keyword.merge(defaults, opts)
 
-    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = Configuration.maybe_fetch_addr!(contract, :plasma_framework)
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    backend = Configuration.eth_node()
 
     TransactionHelper.contract_transact(backend, from, contract, "activateChildChain()", [], opts)
   end
@@ -187,12 +187,12 @@ defmodule Support.RootChainHelper do
 
     opts = Keyword.merge(defaults, opts)
 
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    contract = Configuration.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "startInFlightExit((bytes,bytes[],uint256[],bytes[],bytes[]))"
 
     args = [{in_flight_tx, input_txs, input_utxos_pos, input_txs_inclusion_proofs, in_flight_tx_sigs}]
 
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    backend = Configuration.eth_node()
 
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
@@ -200,10 +200,10 @@ defmodule Support.RootChainHelper do
   def process_exits(vault_id, token, top_exit_id, exits_to_process, from, contract \\ %{}, opts \\ []) do
     opts = @tx_defaults |> Keyword.merge(opts)
 
-    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
+    contract = Configuration.maybe_fetch_addr!(contract, :plasma_framework)
     signature = "processExits(uint256,address,uint160,uint256)"
     args = [vault_id, token, top_exit_id, exits_to_process]
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    backend = Configuration.eth_node()
 
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
@@ -226,7 +226,7 @@ defmodule Support.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_in_flight_exit_not_canonical)
     opts = Keyword.merge(defaults, opts)
 
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    contract = Configuration.maybe_fetch_addr!(contract, :payment_exit_game)
 
     signature = "challengeInFlightExitNotCanonical((bytes,uint256,bytes,uint16,bytes,uint16,uint256,bytes,bytes))"
 
@@ -235,7 +235,7 @@ defmodule Support.RootChainHelper do
        competing_input_index, competing_tx_pos, competing_proof, competing_sig}
     ]
 
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    backend = Configuration.eth_node()
 
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
@@ -251,11 +251,11 @@ defmodule Support.RootChainHelper do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
     opts = Keyword.merge(defaults, opts)
 
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    contract = Configuration.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
 
     args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    backend = Configuration.eth_node()
 
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
   end
@@ -276,7 +276,7 @@ defmodule Support.RootChainHelper do
     defaults = @tx_defaults
     opts = Keyword.merge(defaults, opts)
 
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    contract = Configuration.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "challengeInFlightExitInputSpent((bytes,uint16,bytes,uint16,bytes,bytes,uint256))"
 
     args = [
@@ -304,7 +304,7 @@ defmodule Support.RootChainHelper do
     defaults = @tx_defaults
     opts = Keyword.merge(defaults, opts)
 
-    contract = Config.maybe_fetch_addr!(contract, :payment_exit_game)
+    contract = Configuration.maybe_fetch_addr!(contract, :payment_exit_game)
     signature = "challengeInFlightExitOutputSpent((bytes,bytes,uint256,bytes,uint16,bytes))"
 
     args = [
@@ -315,11 +315,6 @@ defmodule Support.RootChainHelper do
     backend = Application.fetch_env!(:omg_eth, :eth_node)
 
     TransactionHelper.contract_transact(backend, from, contract, signature, args, opts)
-  end
-
-  def has_exit_queue(vault_id, token, contract \\ %{}) do
-    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    Eth.call_contract(contract, "hasExitQueue(uint256,address)", [vault_id, token], [:bool])
   end
 
   def deposit_blknum_from_receipt(%{"logs" => logs}) do

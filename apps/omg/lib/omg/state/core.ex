@@ -51,6 +51,7 @@ defmodule OMG.State.Core do
   defstruct [
     :height,
     :fee_claimer_address,
+    :child_block_interval,
     utxos: %{},
     pending_txs: [],
     tx_index: 0,
@@ -91,7 +92,8 @@ defmodule OMG.State.Core do
           fees_paid: fee_summary_t(),
           # fees can be claimed at the end of the block, no other payments can be processed until next block
           fee_claiming_started: boolean(),
-          fee_claimer_address: Crypto.address_t()
+          fee_claimer_address: Crypto.address_t(),
+          child_block_interval: non_neg_integer()
         }
 
   @type deposit() :: %{
@@ -149,7 +151,8 @@ defmodule OMG.State.Core do
       when is_integer(height_query_result) and is_integer(child_block_interval) do
     state = %__MODULE__{
       height: height_query_result + child_block_interval,
-      fee_claimer_address: fee_claimer_address
+      fee_claimer_address: fee_claimer_address,
+      child_block_interval: child_block_interval
     }
 
     {:ok, state}

@@ -21,10 +21,13 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   use ExUnit.Case, async: false
   use Plug.Test
 
+  require OMG.Utxo
+
   alias OMG.Block
   alias OMG.ChildChainRPC.Web.TestHelper
-  alias OMG.Configuration
-  alias OMG.Eth
+  alias OMG.Eth.Configuration
+  alias OMG.Eth.RootChain.Abi
+  alias OMG.Eth.RootChain.Rpc
   alias OMG.State.Transaction
   alias OMG.Status.Alert.Alarm
   alias OMG.Utils.HttpRPC.Encoding
@@ -32,7 +35,6 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias Support.DevHelper
   alias Support.Integration.DepositHelper
   alias Support.RootChainHelper
-  require OMG.Utxo
 
   @moduletag :integration
   @moduletag :child_chain
@@ -40,7 +42,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   @moduletag timeout: 120_000
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
+  @interval Configuration.child_block_interval()
   # kill this test ASAP
   @tag fixtures: [:alice, :bob, :in_beam_child_chain, :token, :alice_deposits]
   test "deposit, spend, restart, exit etc works fine", %{
@@ -49,6 +51,9 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
+    {:ok, token} = Encoding.from_hex(token)
+
+    plasma_framework = Configuration.contracts().plasma_framework
     raw_tx = Transaction.Payment.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 2}], <<0::256>>)
 
     tx = OMG.TestHelper.sign_encode(raw_tx, [alice.priv])
@@ -66,7 +71,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     {:ok, _} = DevHelper.wait_for_next_child_block(post_spend_child_block)
 
     # check if operator is propagating block with hash submitted to RootChain
-    {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(spend_child_block)
+    %{"block_hash" => block_hash} = get_external_data(plasma_framework, "blocks(uint256)", [spend_child_block])
     assert {:ok, %{"transactions" => transactions}} = get_block(block_hash)
 
     # NOTE: we are checking only the `hd` because token_tx might possibly be in the next block
@@ -89,7 +94,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     {:ok, _} = DevHelper.wait_for_next_child_block(post_spend_child_block2)
 
     # check if operator is propagating block with hash submitted to RootChain
-    {:ok, {block_hash2, _}} = Eth.RootChain.get_child_chain(spend_child_block2)
+    %{"block_hash" => block_hash2} = get_external_data(plasma_framework, "blocks(uint256)", [spend_child_block2])
 
     assert {:ok, %{"transactions" => [transaction2, fee_tx_hex]}} = get_block(block_hash2)
     {:ok, decoded_tx2_bytes} = Encoding.from_hex(transaction2)
@@ -119,7 +124,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
              )
 
     # check if the utxo is no longer available
-    exiters_finality_margin = Configuration.deposit_finality_margin() + 1
+    exiters_finality_margin = OMG.Configuration.deposit_finality_margin() + 1
     {:ok, _} = DevHelper.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
 
     invalid_raw_tx = Transaction.Payment.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
@@ -161,7 +166,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       )
       |> DevHelper.transact_sync!()
 
-    exiters_finality_margin = Configuration.deposit_finality_margin() + 1
+    exiters_finality_margin = OMG.Configuration.deposit_finality_margin() + 1
     DevHelper.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     # check that output of 1st transaction was spend by in-flight exit
@@ -247,7 +252,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       |> RootChainHelper.piggyback_in_flight_exit_on_input(0, alice.addr)
       |> DevHelper.transact_sync!()
 
-    exiters_finality_margin = Configuration.deposit_finality_margin() + 1
+    exiters_finality_margin = OMG.Configuration.deposit_finality_margin() + 1
     DevHelper.wait_for_root_chain_block(eth_height + exiters_finality_margin)
     # sanity check everything still lives
     assert {:error, %{"code" => "submit:utxo_not_found"}} = tx |> Transaction.Signed.encode() |> submit_transaction()
@@ -290,5 +295,10 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       false ->
         :ok
     end
+  end
+
+  defp get_external_data(contract_address, signature, args) do
+    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
+    Abi.decode_function(data, signature)
   end
 end
