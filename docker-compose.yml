@@ -4,7 +4,7 @@ services:
     image: postgres:9.6.13-alpine
     restart: always
     ports:
-      - "5432:5432"
+      - "5432:543e"
     environment:
       POSTGRES_USER: omisego_dev
       POSTGRES_PASSWORD: omisego_dev
