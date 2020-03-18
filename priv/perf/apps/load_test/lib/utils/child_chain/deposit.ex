@@ -13,13 +13,16 @@
 # limitations under the License.
 
 defmodule LoadTest.Utils.ChildChain.Deposit do
+  @moduledoc """
+  Utility functions for deposits on a child chain
+  """
   require Logger
 
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction.Deposit
   alias ExPlasma.Utxo
-  alias LoadTest.Utils.Ethereum.Account
   alias LoadTest.Utils.Ethereum
+  alias LoadTest.Utils.Ethereum.Account
 
   @eth <<0::160>>
   @poll_interval 5_000

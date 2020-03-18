@@ -21,12 +21,12 @@ defmodule LoadTest.Service.Faucet do
 
   use GenServer
 
-  alias ExPlasma.Utxo
   alias ExPlasma.Encoding
-  alias LoadTest.Utils.Ethereum.Account
+  alias ExPlasma.Utxo
+  alias LoadTest.Utils.ChildChain
   alias LoadTest.Utils.ChildChain.Deposit
   alias LoadTest.Utils.Ethereum
-  alias LoadTest.Utils.ChildChain
+  alias LoadTest.Utils.Ethereum.Account
 
   @eth <<0::160>>
   @fund_child_chain_account_retries 100

@@ -25,8 +25,8 @@ defmodule LoadTest.Utils.Ethereum.Account do
   """
   require Logger
 
-  alias LoadTest.Utils.Ethereum.Crypto
   alias ExPlasma.Encoding
+  alias LoadTest.Utils.Ethereum.Crypto
 
   @type private_key_t :: <<_::256>>
   @type private_key_hex_t :: <<_::512>> | <<_::528>>
@@ -42,11 +42,11 @@ defmodule LoadTest.Utils.Ethereum.Account do
 
   @spec new(private_key_t()) :: {:ok, t()} | {:error, atom()}
   def new(private_key) when byte_size(private_key) == 32 do
-    with {:ok, der_public_key} <- compute_public_key(private_key),
-         public_key <- der_to_raw(der_public_key),
-         {:ok, address} <- compute_address(public_key) do
-      {:ok, struct!(__MODULE__, priv: private_key, pub: public_key, addr: address)}
-    end
+    {:ok, der_public_key} = compute_public_key(private_key)
+    public_key = der_to_raw(der_public_key)
+    {:ok, address} = compute_address(public_key)
+
+    {:ok, struct!(__MODULE__, priv: private_key, pub: public_key, addr: address)}
   end
 
   @spec new(private_key_hex_t()) :: {:ok, t()} | {:error, atom()}

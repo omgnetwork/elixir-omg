@@ -27,8 +27,8 @@ defmodule LoadTest.Utils.Ethereum.Transaction.Signature do
 
   require Integer
 
-  alias LoadTest.Utils.Ethereum.Transaction
   alias LoadTest.Utils.Ethereum.Hash
+  alias LoadTest.Utils.Ethereum.Transaction
 
   @type private_key :: <<_::256>>
 

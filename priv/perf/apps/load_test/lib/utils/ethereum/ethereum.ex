@@ -21,8 +21,8 @@ defmodule LoadTest.Utils.Ethereum do
   alias ExPlasma.Encoding
   alias LoadTest.Service.NonceTracker
   alias LoadTest.Utils.Ethereum.Sync
-  alias LoadTest.Utils.Ethereum.Transaction.Signature
   alias LoadTest.Utils.Ethereum.Transaction
+  alias LoadTest.Utils.Ethereum.Transaction.Signature
 
   @about_4_blocks_time 120_000
   @eth_amount_to_fund trunc(:math.pow(10, 18) * 0.1)

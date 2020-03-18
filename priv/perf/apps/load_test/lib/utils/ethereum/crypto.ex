@@ -1,4 +1,7 @@
 defmodule LoadTest.Utils.Ethereum.Crypto do
+  @moduledoc """
+  Cryptography related utility functions
+  """
   @type hash_t() :: <<_::256>>
   @type priv_key_t :: <<_::256>>
 
