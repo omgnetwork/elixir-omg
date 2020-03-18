@@ -60,10 +60,7 @@ defmodule LoadTest.Ethereum do
 
     {:ok, tx_fund} = send_transaction(params)
 
-    case Keyword.get(opts, :timeout) do
-      nil -> transact_sync(tx_fund)
-      timeout -> transact_sync(tx_fund, timeout)
-    end
+    transact_sync(tx_fund)
   end
 
   def send_raw_transaction(txmap, sender) do

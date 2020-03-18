@@ -33,19 +33,18 @@ defmodule LoadTest.Service.Faucet do
 
   defstruct [:account, :fee, utxos: %{}]
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
-  end
-
   def fund_child_chain_account(account, amount, token) do
     GenServer.call(__MODULE__, {:fund_child_chain, account, amount, token}, :infinity)
   end
 
-  def init(_) do
-    opts = fetch_default_opts()
-    fee_wei = Keyword.fetch!(opts, :fee_wei)
+  def start_link(config) do
+    GenServer.start_link(__MODULE__, config, name: __MODULE__)
+  end
 
-    {faucet, eth_utxo} = get_funded_faucet_account(opts)
+  def init(config) do
+    fee_wei = Keyword.fetch!(config, :fee_wei)
+
+    {faucet, eth_utxo} = get_funded_faucet_account(config)
     Logger.debug("Using faucet: #{Encoding.to_hex(faucet.addr)}")
 
     state = struct!(__MODULE__, account: faucet, fee: fee_wei, utxos: %{@eth => eth_utxo})
@@ -101,21 +100,5 @@ defmodule LoadTest.Service.Faucet do
     {:ok, account} = Account.new()
     {:ok, _} = Ethereum.fund_address_from_default_faucet(account, initial_funds_wei: faucet_initial_funds)
     {:ok, account}
-  end
-
-  defp fetch_default_opts() do
-    faucet_opt =
-      case Application.fetch_env(:load_test, :faucet_account) do
-        {:ok, %{priv: priv}} ->
-          {:ok, faucet_account} = priv |> Encoding.to_binary() |> Account.new()
-          [faucet: faucet_account]
-
-        :error ->
-          []
-      end
-
-    [:fee_wei, :faucet_default_funds, :faucet_deposit_wei, :deposit_finality_margin]
-    |> Enum.reduce([], fn key, acc -> [{key, Application.fetch_env!(:load_test, key)} | acc] end)
-    |> Keyword.merge(faucet_opt)
   end
 end
