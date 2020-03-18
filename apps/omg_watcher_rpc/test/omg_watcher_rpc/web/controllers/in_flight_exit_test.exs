@@ -21,12 +21,10 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
-  alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @eth_hex Encoding.to_hex(@eth)
 
   describe "getting in-flight exits" do
     @tag fixtures: [:web_endpoint, :db_initialized, :bob, :alice]
@@ -104,57 +102,15 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
              } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
     end
 
-    @tag fixtures: [:web_endpoint, :db_initialized, :bob, :carol, :initial_blocks]
-    test "behaves well if input is a spent deposit", %{carol: carol, bob: bob} do
-      assert [] = WatcherHelper.get_utxos(carol.addr)
-      assert utxos = WatcherHelper.get_utxos(bob.addr)
+    @tag fixtures: [:web_endpoint, :db_initialized, :bob]
+    test "behaves well if input is a spent deposit", %{bob: bob} do
+      in_flight_txbytes =
+        [{1, 0, 0, bob}]
+        |> OMG.TestHelper.create_encoded(@eth, [{bob, 150}])
+        |> Encoding.to_hex()
 
-      # bob has 1 unspent deposit
-      assert %{
-               "amount" => 100,
-               "currency" => @eth_hex,
-               "blknum" => blknum,
-               "txindex" => 0,
-               "oindex" => 0,
-               "creating_txhash" => nil,
-               "spending_txhash" => nil
-             } = utxos |> Enum.find(&(&1["blknum"] < 1000))
-
-      tx_encoded = OMG.TestHelper.create_encoded([{blknum, 0, 0, bob}], @eth, [{carol, 100}])
-
-      DB.Block.insert_with_transactions(%{
-        transactions: [Transaction.Recovered.recover_from!(tx_encoded)],
-        blknum: 11_000,
-        blkhash: <<?#::256>>,
-        timestamp: :os.system_time(:second),
-        eth_height: 10
-      })
-
-      utxos = WatcherHelper.get_utxos(bob.addr)
-
-      # bob has spent his deposit
-      assert [] == utxos |> Enum.filter(&(&1["blknum"] < 1000))
-
-      carol_enc = carol.addr |> Encoding.to_hex()
-
-      # carol has new utxo from above tx
-      assert [
-               %{
-                 "amount" => 100,
-                 "currency" => @eth_hex,
-                 "blknum" => 11_000,
-                 "txindex" => 0,
-                 "oindex" => 0,
-                 "owner" => ^carol_enc
-               }
-             ] = WatcherHelper.get_utxos(carol.addr)
-
-      in_flight_txbytes = Encoding.to_hex(tx_encoded)
-
-      assert %{
-               "code" => "exit:invalid",
-               "description" => "Utxo was spent or does not exist."
-             } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
+      assert %{"code" => "exit:invalid", "description" => "Utxo was spent or does not exist."} =
+               WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
     end
 
     @tag fixtures: [:web_endpoint]
