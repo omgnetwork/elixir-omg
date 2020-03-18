@@ -22,6 +22,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias Support.WatcherHelper
+
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
