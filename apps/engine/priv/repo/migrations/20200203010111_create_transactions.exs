@@ -7,11 +7,13 @@ defmodule Engine.Repo.Migrations.CreateTransactions do
       add :tx_data, :integer, default: 0
       add :metadata, :binary
 
-      add :block, references(:blocks)
+      add :tx_bytes, :binary
+
+      add :block_id, references(:blocks)
 
       timestamps()
     end
 
-    create index(:transactions, [:block])
+    create index(:transactions, [:block_id])
   end
 end

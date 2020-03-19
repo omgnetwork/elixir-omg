@@ -26,6 +26,10 @@ defmodule Engine.Transaction do
     timestamps(type: :utc_datetime)
   end
 
+  def insert(params) do
+    %__MODULE__{} |> changeset(params) |> Engine.Repo.insert()
+  end
+
   def changeset(struct, %ExPlasma.Transaction.Payment{} = params),
     do: changeset(struct, params_from_ex_plasma(params))
 
@@ -68,12 +72,14 @@ defmodule Engine.Transaction do
       |> get_field(:inputs)
       |> Enum.map(&ExPlasma.Utxo.pos/1)
 
-    query = from(u in Engine.Utxo, where: u.pos in ^positions, limit: 4)
+    query = from(u in Engine.Utxo, 
+      where: u.pos in ^positions and is_nil(u.spending_transaction_id),
+      limit: 4)
     result = Engine.Repo.all(query)
 
     if length(positions) != length(result) do
       missing_inputs = Enum.join(positions -- Enum.map(result, & &1.pos), ",")
-      add_error(changeset, :inputs, "missing/spent input positions for #{missing_inputs}")
+      add_error(changeset, :inputs, "input utxos #{missing_inputs} are missing or spent")
     else
       put_assoc(changeset, :inputs, result)
     end

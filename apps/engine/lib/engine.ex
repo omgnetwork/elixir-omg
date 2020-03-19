@@ -22,8 +22,8 @@ defmodule Engine do
   @doc """
   Submits a transaction to the Engine.
   """
-  def submit(tx_bytes) do
-    changeset = Transaction.changeset(%Transaction{}, tx_bytes)
-    Repo.insert(changeset)
-  end
+  #def submit(tx_bytes) do
+    #changeset = Transaction.changeset(%Transaction{}, tx_bytes)
+    #Repo.insert(changeset)
+  #end
 end

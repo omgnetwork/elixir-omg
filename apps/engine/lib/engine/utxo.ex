@@ -32,8 +32,8 @@ defmodule Engine.Utxo do
     field(:currency, :binary, default: @default_eth_address)
     field(:amount, :integer, default: 0)
 
-    belongs_to(:spending_transaction, Engine.Utxo)
-    belongs_to(:creating_transaction, Engine.Utxo)
+    belongs_to(:spending_transaction, Engine.Transaction)
+    belongs_to(:creating_transaction, Engine.Transaction)
 
     timestamps(type: :utc_datetime)
   end
