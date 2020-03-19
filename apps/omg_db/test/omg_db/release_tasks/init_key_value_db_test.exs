@@ -30,7 +30,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
   test "init works and DB starts" do
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
-    :ok = SetKeyValueDB.init([])
+    :ok = SetKeyValueDB.init(release: :child_chain)
     :ok = InitKeyValueDB.run()
     started_apps = Enum.map(Application.started_applications(), fn {app, _, _} -> app end)
     [true, true, true] = Enum.map(@apps, fn app -> not Enum.member?(started_apps, app) end)
@@ -42,7 +42,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
   test "can't init non empty dir" do
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
-    :ok = SetKeyValueDB.init([])
+    :ok = SetKeyValueDB.init(release: :watcher)
 
     _ = InitKeyValueDB.run()
 
@@ -54,7 +54,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
     _ = Application.stop(:omg_db)
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
-    :ok = SetKeyValueDB.init([])
+    :ok = SetKeyValueDB.init(release: :child_chain)
 
     try do
       {:ok, _} = Application.ensure_all_started(:omg_db)
