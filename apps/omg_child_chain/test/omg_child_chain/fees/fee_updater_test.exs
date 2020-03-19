@@ -23,6 +23,8 @@ defmodule OMG.ChildChain.Fees.FeeUpdaterTest do
   @eth Eth.zero_address()
   @not_eth <<1::size(160)>>
 
+  {:ok, updated_at, _} = DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+
   @fee_spec %{
     1 => %{
       @eth => %{
@@ -31,7 +33,7 @@ defmodule OMG.ChildChain.Fees.FeeUpdaterTest do
         pegged_amount: nil,
         pegged_currency: nil,
         pegged_subunit_to_unit: nil,
-        updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+        updated_at: updated_at
       },
       @not_eth => %{
         amount: 100,
@@ -39,7 +41,7 @@ defmodule OMG.ChildChain.Fees.FeeUpdaterTest do
         pegged_amount: nil,
         pegged_currency: nil,
         pegged_subunit_to_unit: nil,
-        updated_at: DateTime.from_iso8601("2019-01-01T10:10:00+00:00")
+        updated_at: updated_at
       }
     }
   }
@@ -117,6 +119,18 @@ defmodule OMG.ChildChain.Fees.FeeUpdaterTest do
 
     test "always update when specs differes on tx type" do
       actual = %{2 => @fee_spec[1]}
+
+      assert {:ok, {10, ^actual}} =
+               FeeUpdater.can_update(
+                 {0, @fee_spec},
+                 {10, actual},
+                 20,
+                 100
+               )
+    end
+
+    test "updates when tokens mismatch" do
+      actual = %{1 => Map.delete(@fee_spec[1], @eth)}
 
       assert {:ok, {10, ^actual}} =
                FeeUpdater.can_update(

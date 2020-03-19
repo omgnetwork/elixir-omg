@@ -49,36 +49,10 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
     end
   end
 
-  @doc """
-  Change is significant when
-   - token amount difference exceeds the tolerance level,
-   - there is missing token in any of specs, so token support was either added or removed
-     in the update.
-
-  ## Examples
-
-      iex> FeeUpdater.is_change_significant?(
-      ...>   [
-      ...>     %{
-      ...>       "eth" => [10, 15],
-      ...>       "omg" => [1]
-      ...>     },
-      ...>   ],
-      ...>   50
-      ...> )
-      true
-
-      iex> FeeUpdater.is_change_significant?(
-      ...>   [
-      ...>     %{
-      ...>       "eth" => [15, 10],
-      ...>       "omg" => [1]
-      ...>     },
-      ...>   ],
-      ...>   50
-      ...> )
-      false
-  """
+  # Change is significant when
+  #  - token amount difference exceeds the tolerance level,
+  #  - there is missing token in any of specs, so token support was either added or removed
+  #    in the update.
   @spec is_change_significant?(list(Fees.merged_fee_t()), non_neg_integer()) :: boolean()
   defp is_change_significant?(token_amounts, tolerance_percent) do
     tolerance_rate = tolerance_percent / 100
@@ -88,42 +62,10 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
     |> Enum.any?(&amount_diff_exceeds_tolerance?(&1, tolerance_rate))
   end
 
-  @doc """
-  Checks whether previous and actual fees differenciate on token
-
-  ## Examples
-
-      iex> %{
-      ...>   1 => {
-      ...>          %{
-      ...>            "eth" => :fee_map_not_important,
-      ...>            "omg" => :fee_map_not_important
-      ...>          },
-      ...>          %{
-      ...>            "omg" => :fee_map_not_important,
-      ...>            "eth" => :fee_map_not_important
-      ...>          }
-      ...>        }
-      ...> }
-      ...> |> Enum.any?(&FeeUpdater.token_mismatch?/1)
-      false
-
-      iex> %{
-      ...>   1 => {
-      ...>          %{
-      ...>            "eth" => :fee_map_not_important
-      ...>          },
-      ...>          %{
-      ...>            "omg" => :fee_map_not_important
-      ...>          }
-      ...>        }
-      ...> }
-      ...> |> Enum.any?(&FeeUpdater.token_mismatch?/1)
-      true
-  """
+  # Checks whether previous and actual fees differenciate on token
   @spec token_mismatch?({non_neg_integer(), {Fees.fee_t(), Fees.fee_t()}}) :: boolean()
-  def token_mismatch?({_type, {stored_fees, actual_fees}}) do
-    MapSet.disjoint?(
+  defp token_mismatch?({_type, {stored_fees, actual_fees}}) do
+    not MapSet.equal?(
       stored_fees |> Map.keys() |> MapSet.new(),
       actual_fees |> Map.keys() |> MapSet.new()
     )

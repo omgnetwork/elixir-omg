@@ -27,12 +27,12 @@ defmodule OMG.ChildChain.Fees.FeedAdapter do
   """
   # sobelow_skip ["Traversal"]
   @impl true
-  def get_fee_specs(actual_fee_specs, updated_at) do
-    opts = Application.fetch_env!(:omg_child_chain, :fee_adapter_opts)
+  def get_fee_specs(opts, actual_fee_specs, updated_at) do
     feed_url = Keyword.fetch!(opts, :feed_url)
 
     with {:ok, fee_specs_from_feed} <- Client.all_fees(feed_url),
-         {:ok, {new_updated_at, new_fee_specs}} <- can_update(actual_fee_specs, fee_specs_from_feed, updated_at) do
+         {:ok, {new_updated_at, new_fee_specs}} <-
+           can_update(opts, actual_fee_specs, fee_specs_from_feed, updated_at) do
       {:ok, new_fee_specs, new_updated_at}
     else
       :no_changes -> :ok
@@ -40,8 +40,7 @@ defmodule OMG.ChildChain.Fees.FeedAdapter do
     end
   end
 
-  defp can_update(stored_specs, fetched_specs, updated_at) do
-    opts = Application.fetch_env!(:omg_child_chain, :fee_adapter_opts)
+  defp can_update(opts, stored_specs, fetched_specs, updated_at) do
     tolerance_percent = Keyword.fetch!(opts, :fee_change_tolerance_percent)
     update_interval_minutes = Keyword.fetch!(opts, :stored_fee_update_interval_minutes)
 

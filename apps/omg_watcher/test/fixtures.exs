@@ -55,12 +55,19 @@ defmodule OMG.Watcher.Fixtures do
         }
       })
 
-    old_value = Application.fetch_env!(:omg_child_chain, :fee_adapter_opts)
-    :ok = Application.put_env(:omg_child_chain, :fee_adapter_opts, [specs_file_name: file_name], persistent: true)
+    old_value = Application.fetch_env!(:omg_child_chain, :fee_adapter)
+
+    :ok =
+      Application.put_env(
+        :omg_child_chain,
+        :fee_adapter,
+        {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_name: file_name]},
+        persistent: true
+      )
 
     on_exit(fn ->
       :ok = File.rm(path)
-      :ok = Application.put_env(:omg_child_chain, :fee_adapter_opts, old_value)
+      :ok = Application.put_env(:omg_child_chain, :fee_adapter, old_value)
     end)
 
     file_name

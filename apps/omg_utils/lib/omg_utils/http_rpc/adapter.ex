@@ -44,14 +44,14 @@ defmodule OMG.Utils.HttpRPC.Adapter do
     do: {:ok, body}
 
   def get_unparsed_response_body(%HTTPoison.Response{body: error}),
-    do: {:error, {:server_error, error}}
+    do: {:error, {:client_error, error}}
 
   def get_unparsed_response_body({:error, %HTTPoison.Error{reason: :econnrefused}}) do
     {:error, :host_unreachable}
   end
 
   def get_unparsed_response_body({:error, %HTTPoison.Error{reason: reason}}) do
-    {:error, reason}
+    {:error, {:server_error, reason}}
   end
 
   def get_unparsed_response_body(error), do: error
@@ -60,6 +60,8 @@ defmodule OMG.Utils.HttpRPC.Adapter do
   Retrieves body from response structure. When response is successful
   the structure in body is known, so we can try to deserialize it.
   """
+  @spec get_response_body(HTTPoison.Response.t() | {:error, HTTPoison.Error.t()}) ::
+          {:ok, map()} | {:error, atom() | tuple() | HTTPoison.Error.t()}
   def get_response_body(http_response) do
     with {:ok, body} <- get_unparsed_response_body(http_response),
          {:ok, response} <- Jason.decode(body),

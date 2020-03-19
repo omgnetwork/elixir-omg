@@ -47,56 +47,58 @@ defmodule OMG.ChildChain.Integration.FeedAdapterTest do
 
   describe "get_fee_specs/2" do
     setup do
-      prev_opts = Application.get_env(:omg_child_chain, :fee_adapter_opts)
-
       {initial_fees, port} = fees_all_endpoint_setup(@initial_price)
-
-      Application.put_env(:omg_child_chain, :fee_adapter_opts,
-        fee_change_tolerance_percent: 10,
-        stored_fee_update_interval_minutes: 5,
-        feed_url: "localhost:#{port}"
-      )
 
       on_exit(fn ->
         fees_all_endpoint_teardown()
-        :ok = Application.put_env(:omg_child_chain, :fee_adapter_opts, prev_opts)
       end)
 
       {:ok,
        %{
          initial_fees: initial_fees,
          actual_updated_at: :os.system_time(:second),
-         after_period_updated_at: :os.system_time(:second) - 5 * 60 - 1
+         after_period_updated_at: :os.system_time(:second) - 5 * 60 - 1,
+         fee_adapter_opts: [
+           fee_change_tolerance_percent: 10,
+           stored_fee_update_interval_minutes: 5,
+           feed_url: "localhost:#{port}"
+         ]
        }}
     end
 
-    test "Updates fees fetched from feed when no fees previously set", %{initial_fees: fees} do
-      assert {:ok, ^fees, _ts} = FeedAdapter.get_fee_specs(nil, 0)
+    test "Updates fees fetched from feed when no fees previously set", %{initial_fees: fees, fee_adapter_opts: opts} do
+      assert {:ok, ^fees, _ts} = FeedAdapter.get_fee_specs(opts, nil, 0)
     end
 
-    test "No changes when fees has not changed in long time period", %{initial_fees: fees} do
-      assert :ok = FeedAdapter.get_fee_specs(fees, 0)
+    test "No changes when fees has not changed in long time period", %{initial_fees: fees, fee_adapter_opts: opts} do
+      assert :ok = FeedAdapter.get_fee_specs(opts, fees, 0)
     end
 
-    test "No changes when fees changed within tolerance", %{initial_fees: fees, actual_updated_at: updated_at} do
+    test "No changes when fees changed within tolerance", %{
+      initial_fees: fees,
+      actual_updated_at: updated_at,
+      fee_adapter_opts: opts
+    } do
       _ = update_feed_price(109)
-      assert :ok = FeedAdapter.get_fee_specs(fees, updated_at)
+      assert :ok = FeedAdapter.get_fee_specs(opts, fees, updated_at)
     end
 
     test "Updates when fees changed above tolerance in short time period", %{
       initial_fees: fees,
-      actual_updated_at: updated_at
+      actual_updated_at: updated_at,
+      fee_adapter_opts: opts
     } do
       updated_fees = update_feed_price(110)
-      assert {:ok, ^updated_fees, _ts} = FeedAdapter.get_fee_specs(fees, updated_at)
+      assert {:ok, ^updated_fees, _ts} = FeedAdapter.get_fee_specs(opts, fees, updated_at)
     end
 
     test "Updates when fees insignificant change happens a long ago", %{
       initial_fees: fees,
-      after_period_updated_at: long_ago
+      after_period_updated_at: long_ago,
+      fee_adapter_opts: opts
     } do
       updated_fees = update_feed_price(109)
-      assert {:ok, ^updated_fees, _ts} = FeedAdapter.get_fee_specs(fees, long_ago)
+      assert {:ok, ^updated_fees, _ts} = FeedAdapter.get_fee_specs(opts, fees, long_ago)
     end
   end
 
