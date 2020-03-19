@@ -15,7 +15,6 @@ config :omg_eth,
 config :omg_eth,
   # Lower the event check interval too low and geth will die
   ethereum_events_check_interval_ms: 400,
-  environment: :test,
   min_exit_period_seconds: 22,
   ethereum_block_time_seconds: 1,
   # NOTE: `umbrella_root_dir` fixes a common reference path to the root directory

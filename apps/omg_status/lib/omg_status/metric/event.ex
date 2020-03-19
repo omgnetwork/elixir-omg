@@ -26,11 +26,27 @@ defmodule OMG.Status.Metric.Event do
     :in_flight_exit_processor,
     :piggyback,
     :piggyback_challenges_processor,
-    :piggyback_processor
+    :piggyback_processor,
+    :block_queue
   ]
   @moduledoc """
     A centralised repository of all emitted event types with description.
   """
+
+  @doc """
+  Childchain OMG.State mempool transactions
+  """
+  def name(:pending_transactions), do: "pending_transactions"
+
+  @doc """
+  Childchain OMG.State transactions in formed block
+  """
+  def name(:block_transactions), do: "block_transactions"
+
+  @doc """
+  Child Chain Block queue gas usage metric
+  """
+  def name(:block_subbmission), do: "block_subbmission_gas"
 
   @doc """
   OMG.State balance per currency
@@ -94,6 +110,7 @@ defmodule OMG.Status.Metric.Event do
   defp events_name(:piggyback_challenges_processor), do: "piggyback_challenges_processor_ethereum_events"
   defp events_name(:ife_exit_finalizer), do: "ife_exit_finalizer_ethereum_events"
 
+  defp message_queue_len_name(:block_queue), do: "block_queue_message_queue_len"
   defp message_queue_len_name(:depositor), do: "depositor_message_queue_len"
   defp message_queue_len_name(:in_flight_exit), do: "in_flight_exit_message_queue_len"
   defp message_queue_len_name(:piggyback), do: "piggyback_message_queue_len"

@@ -56,7 +56,7 @@ release :watcher do
       {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
       {OMG.Eth.ReleaseTasks.SetContract, []},
-      {OMG.DB.ReleaseTasks.SetKeyValueDB, []},
+      {OMG.DB.ReleaseTasks.SetKeyValueDB, [release: :watcher]},
       {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, []},
       {OMG.WatcherRPC.ReleaseTasks.SetTracer, []},
       {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher},
@@ -106,7 +106,7 @@ release :watcher_info do
       {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
       {OMG.Eth.ReleaseTasks.SetContract, []},
-      {OMG.DB.ReleaseTasks.SetKeyValueDB, []},
+      {OMG.DB.ReleaseTasks.SetKeyValueDB, [release: :watcher_info]},
       {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, []},
       {OMG.WatcherRPC.ReleaseTasks.SetTracer, []},
       {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher_info},
@@ -163,7 +163,7 @@ release :child_chain do
       {OMG.ChildChain.ReleaseTasks.SetApplication, [release: :child_chain, current_version: current_version]},
       {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
       {OMG.Eth.ReleaseTasks.SetContract, []},
-      {OMG.DB.ReleaseTasks.SetKeyValueDB, []},
+      {OMG.DB.ReleaseTasks.SetKeyValueDB, [release: :child_chain]},
       {OMG.ChildChainRPC.ReleaseTasks.SetEndpoint, []},
       {OMG.ChildChainRPC.ReleaseTasks.SetTracer, []}
     ]

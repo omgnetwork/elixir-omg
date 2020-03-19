@@ -113,7 +113,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name)
 
     on_exit(fn ->
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
 
       :ok =
         file_path

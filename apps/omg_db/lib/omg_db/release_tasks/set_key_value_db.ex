@@ -19,18 +19,19 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   @app :omg_db
 
   @impl Provider
-  def init(_args) do
+  def init(args) do
     _ = Application.ensure_all_started(:logger)
+    release = Keyword.get(args, :release)
 
     path =
       case get_env("DB_PATH") do
         root_path when is_binary(root_path) ->
-          {:ok, path} = set_db(root_path)
+          {:ok, path} = set_db(root_path, release)
           path
 
         _ ->
           root_path = Path.join([System.user_home!(), ".omg/data"])
-          {:ok, path} = set_db(root_path)
+          {:ok, path} = set_db(root_path, release)
           path
       end
 
@@ -38,15 +39,8 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
     :ok
   end
 
-  defp set_db(root_path) do
-    app =
-      case {Code.ensure_loaded?(OMG.Watcher), Code.ensure_loaded?(OMG.WatcherInfo)} do
-        {true, true} -> :watcher_info
-        {true, false} -> :watcher
-        _ -> :child_chain
-      end
-
-    path = Path.join([root_path, "#{app}"])
+  defp set_db(root_path, release) do
+    path = Path.join([root_path, "#{release}"])
     :ok = Application.put_env(:omg_db, :path, path, persistent: true)
     {:ok, path}
   end
