@@ -354,6 +354,7 @@ docker-nuke:
 	docker-compose down --remove-orphans
 	docker system prune --all
 	$(MAKE) clean
+	$(MAKE) init-contracts
 
 docker-remote-watcher:
 	docker-compose exec watcher /watcher_entrypoint bin/watcher remote_console

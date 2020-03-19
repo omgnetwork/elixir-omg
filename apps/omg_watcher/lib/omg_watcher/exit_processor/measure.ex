@@ -18,9 +18,11 @@ defmodule OMG.Watcher.ExitProcessor.Measure do
   """
 
   import OMG.Status.Metric.Event, only: [name: 1]
-  alias OMG.Status.Metric.Datadog
 
-  def handle_event([:process, OMG.Watcher.ExitProcessor], _, _state, _config) do
+  alias OMG.Status.Metric.Datadog
+  alias OMG.Watcher.ExitProcessor
+
+  def handle_event([:process, ExitProcessor], _, _state, _config) do
     value =
       self()
       |> Process.info(:message_queue_len)
