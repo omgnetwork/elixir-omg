@@ -21,16 +21,14 @@ defmodule OMG.ChildChainRPC.Web.Endpoint do
 
   plug(
     Plug.Parsers,
-    parsers: [:urlencoded, :multipart, :json],
-    pass: ["*/*"],
+    parsers: [:urlencoded, :json],
+    pass: [],
     json_decoder: Jason
   )
-
-  plug(Plug.MethodOverride)
-  plug(Plug.Head)
 
   if Application.get_env(:omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint)[:enable_cors],
     do: plug(CORSPlug)
 
+  plug(OMG.ChildChainRPC.Web.Plugs.MethodParamFilter)
   plug(OMG.ChildChainRPC.Web.Router)
 end

@@ -18,7 +18,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.Fee do
   """
 
   use OMG.ChildChainRPC.Web, :controller
-  plug(OMG.ChildChainRPC.Plugs.Health)
+  plug(OMG.ChildChainRPC.Web.Plugs.Health)
   alias OMG.ChildChain
 
   def fees_all(conn, params) do

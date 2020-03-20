@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Plugs.Health do
+defmodule OMG.ChildChainRPC.Web.Plugs.Health do
   @moduledoc """
   Observes the systems alarms and prevents calls towards an unhealthy one.
   """
