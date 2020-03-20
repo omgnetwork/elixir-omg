@@ -16,11 +16,11 @@ defmodule LoadTest.Connection.ChildChain do
   Module that overrides the Tesla middleware with the url from config.
   """
 
-  alias LoadTest.Connection.Utils
+  alias LoadTest.Connection.ConnectionDefaults
 
   def client() do
     base_url = Application.fetch_env!(:load_test, :child_chain_url)
-    middleware = [{Tesla.Middleware.BaseUrl, base_url} | Utils.middleware()]
+    middleware = [{Tesla.Middleware.BaseUrl, base_url} | ConnectionDefaults.middleware()]
 
     Tesla.client(middleware)
   end

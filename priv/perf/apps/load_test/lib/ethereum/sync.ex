@@ -14,7 +14,7 @@
 
 defmodule LoadTest.Ethereum.Sync do
   @moduledoc """
-  Utility module for repeating a function call until a given criteria is met.
+  Provides a function for repeating a function call until a given criteria is met.
   """
   @sleep_interval_ms 100
 

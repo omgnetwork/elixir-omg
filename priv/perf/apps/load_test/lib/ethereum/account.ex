@@ -14,15 +14,9 @@
 
 defmodule LoadTest.Ethereum.Account do
   @moduledoc """
-  Utility module for utxo
+  Functions for creating Ethereum accounts
   """
 
-  @doc """
-  Repeats f until f returns {:ok, ...}, :ok OR exception is raised (see :erlang.exit, :erlang.error) OR timeout
-  after `timeout` milliseconds specified
-
-  Simple throws and :badmatch are treated as signals to repeat
-  """
   require Logger
 
   alias ExPlasma.Encoding
@@ -50,11 +44,11 @@ defmodule LoadTest.Ethereum.Account do
   end
 
   @spec new(private_key_hex_t()) :: {:ok, t()} | {:error, atom()}
-  def new(private_key_hex),
-    do:
-      private_key_hex
-      |> Encoding.to_binary()
-      |> new()
+  def new(private_key_hex) do
+    private_key_hex
+    |> Encoding.to_binary()
+    |> new()
+  end
 
   @spec new() :: {:ok, t()} | {:error, atom()}
   def new() do
@@ -63,10 +57,7 @@ defmodule LoadTest.Ethereum.Account do
   end
 
   defp compute_public_key(private_key) do
-    case :libsecp256k1.ec_pubkey_create(private_key, :uncompressed) do
-      {:ok, public_key} -> {:ok, public_key}
-      {:error, reason} -> {:error, to_string(reason)}
-    end
+    {:ok, public_key} = :libsecp256k1.ec_pubkey_create(private_key, :uncompressed)
   end
 
   defp compute_address(<<pub::binary-size(64)>>) do

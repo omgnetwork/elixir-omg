@@ -14,15 +14,15 @@
 
 defmodule LoadTest.Ethereum do
   @moduledoc """
-  Utility module that supports synchronous transactions.
+  Support for synchronous transactions.
   """
   require Logger
 
   alias ExPlasma.Encoding
+  alias LoadTest.Ethereum.NonceTracker
   alias LoadTest.Ethereum.Sync
   alias LoadTest.Ethereum.Transaction
   alias LoadTest.Ethereum.Transaction.Signature
-  alias LoadTest.Service.NonceTracker
 
   @about_4_blocks_time 120_000
   @eth_amount_to_fund trunc(:math.pow(10, 18) * 0.1)
@@ -35,16 +35,15 @@ defmodule LoadTest.Ethereum do
   """
   @spec transact_sync(hash_t(), pos_integer()) :: {:ok, map()} | {:error, map()}
   def transact_sync(txhash, timeout \\ @about_4_blocks_time) do
-    {:ok, _} =
-      txhash
-      |> eth_receipt(timeout)
-      |> case do
-        {:ok, %{"status" => "0x1"} = receipt} ->
-          {:ok, Map.update!(receipt, "blockNumber", &Encoding.to_int(&1))}
+    txhash
+    |> eth_receipt(timeout)
+    |> case do
+      {:ok, %{"status" => "0x1"} = receipt} ->
+        {:ok, Map.update!(receipt, "blockNumber", &Encoding.to_int(&1))}
 
-        {:ok, %{"status" => "0x0"} = receipt} ->
-          {:error, receipt}
-      end
+      {:ok, %{"status" => "0x0"} = receipt} ->
+        {:error, receipt}
+    end
   end
 
   def fund_address_from_default_faucet(account, opts) do
@@ -64,7 +63,7 @@ defmodule LoadTest.Ethereum do
   end
 
   def send_raw_transaction(txmap, sender) do
-    {:ok, nonce} = NonceTracker.update_nonce(sender.addr)
+    nonce = NonceTracker.get_next_nonce(sender.addr)
 
     txmap
     |> Map.merge(%{nonce: nonce})
@@ -75,12 +74,15 @@ defmodule LoadTest.Ethereum do
     |> Ethereumex.HttpClient.eth_send_raw_transaction()
   end
 
-  def get_next_nonce_for_account(address) when byte_size(address) == 20,
-    do: get_next_nonce_for_account(ExPlasma.Encoding.to_hex(address))
+  def get_next_nonce_for_account(address) when byte_size(address) == 20 do
+    address
+    |> ExPlasma.Encoding.to_hex()
+    |> get_next_nonce_for_account()
+  end
 
   def get_next_nonce_for_account("0x" <> _ = address) do
     {:ok, nonce} = Ethereumex.HttpClient.eth_get_transaction_count(address)
-    ExPlasma.Encoding.to_int(nonce)
+    Encoding.to_int(nonce)
   end
 
   defp send_transaction(txmap), do: Ethereumex.HttpClient.eth_send_transaction(txmap)

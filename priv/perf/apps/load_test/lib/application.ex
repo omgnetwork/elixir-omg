@@ -13,29 +13,23 @@ defmodule LoadTest.Application do
 
     :ok =
       :hackney_pool.start_pool(
-        :perf_pool,
+        LoadTest.Connection.ConnectionDefaults.pool_name(),
         timeout: 180_000,
         pool_size: pool_size,
         max_connections: max_connections
       )
 
-    :ok = start_services()
+    LoadTest.Ethereum.NonceTracker.init()
+
+    faucet_config = fetch_faucet_config()
+    # not started under supervisor as it creates and funds a new Ethereum account on each start
+    {:ok, _} = LoadTest.Service.Faucet.start_link(faucet_config)
 
     {:ok, self()}
   end
 
   def stop(_app) do
     :hackney_pool.stop_pool(:perf_pool)
-  end
-
-  defp start_services() do
-    {:ok, _} =
-      Supervisor.start_link([{LoadTest.Service.NonceTracker, []}], name: LoadTest.Supervisor, strategy: :one_for_one)
-
-    faucet_config = fetch_faucet_config()
-    # not started under supervisor as it creates and funds a new Ethereum account on each start
-    {:ok, _} = LoadTest.Service.Faucet.start_link(faucet_config)
-    :ok
   end
 
   defp fetch_faucet_config() do
