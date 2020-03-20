@@ -251,7 +251,6 @@ defmodule OMG.Watcher.ExitProcessor do
     - `ethereum_block_time_seconds`: just to relate blocks to seconds for the `exit_processor_sla_margin` check
     - `metrics_collection_interval`: how often are the metrics sent to `telemetry` (in milliseconds)
   """
-  @spec init(keyword()) :: {:ok, Core.t()} | {:error, :sla_margin_too_big}
   def init(
         exit_processor_sla_margin: exit_processor_sla_margin,
         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,

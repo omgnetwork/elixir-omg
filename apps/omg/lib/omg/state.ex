@@ -69,17 +69,6 @@ defmodule OMG.State do
   end
 
   @doc """
-  Intended for the `OMG.ChildChain`. Forms a new block and persist it. Broadcasts the block to the internal event bus
-  to be used in other processes.
-
-  Asynchronous
-  """
-  @spec form_block() :: :ok
-  def form_block() do
-    GenServer.cast(__MODULE__, :form_block)
-  end
-
-  @doc """
   Intended for the `OMG.Watcher`. "Closes" a block, acknowledging that all transactions have been executed, and the next
   `exec/2` will belong to the next block.
 
@@ -90,6 +79,17 @@ defmodule OMG.State do
   @spec close_block() :: {:ok, list(Core.db_update())}
   def close_block() do
     GenServer.call(__MODULE__, :close_block)
+  end
+
+  @doc """
+  Intended for the `OMG.ChildChain`. Forms a new block and persist it. Broadcasts the block to the internal event bus
+  to be used in other processes.
+
+  Asynchronous
+  """
+  @spec form_block() :: :ok
+  def form_block() do
+    GenServer.cast(__MODULE__, :form_block)
   end
 
   @doc """
@@ -241,6 +241,22 @@ defmodule OMG.State do
   end
 
   @doc """
+  see `close_block/0`
+
+  Works exactly like `handle_cast(:form_block)` but:
+   - is synchronous
+   - relies on the caller to handle persistence, instead of handling itself
+
+  Someday, one might want to skip some of computations done (like calculating the root hash, which is scrapped)
+  """
+  def handle_call(:close_block, _from, state) do
+    {:ok, {block, db_updates}, new_state} = do_form_block(state)
+
+    publish_block_to_event_bus(block)
+    {:reply, {:ok, db_updates}, new_state}
+  end
+
+  @doc """
   see `form_block/0`
 
   Flow:
@@ -265,22 +281,6 @@ defmodule OMG.State do
 
     publish_block_to_event_bus(block)
     {:noreply, new_state}
-  end
-
-  @doc """
-  see `close_block/0`
-
-  Works exactly like handle_cast(:form_block) but:
-   - is synchronous
-   - relies on the caller to handle persistence, instead of handling itself
-
-  Someday, one might want to skip some of computations done (like calculating the root hash, which is scrapped)
-  """
-  def handle_call(:close_block, _from, state) do
-    {:ok, {block, db_updates}, new_state} = do_form_block(state)
-
-    publish_block_to_event_bus(block)
-    {:reply, {:ok, db_updates}, new_state}
   end
 
   defp do_form_block(state) do
