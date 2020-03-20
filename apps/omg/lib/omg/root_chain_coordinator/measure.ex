@@ -18,9 +18,11 @@ defmodule OMG.RootChainCoordinator.Measure do
   """
 
   import OMG.Status.Metric.Event, only: [name: 2]
+
+  alias OMG.RootChainCoordinator
   alias OMG.Status.Metric.Datadog
 
-  def handle_event([:process, OMG.RootChainCoordinator], _, state, _config) do
+  def handle_event([:process, RootChainCoordinator], _, state, _config) do
     value =
       self()
       |> Process.info(:message_queue_len)

@@ -15,14 +15,17 @@
 defmodule OMG.Eth.Application do
   @moduledoc false
 
-  alias OMG.Eth
+  alias OMG.DB
+  alias OMG.Eth.Configuration
+  alias OMG.Eth.Diagnostics
   alias OMG.Eth.Metric.Ethereumex
+
   use Application
   use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
-    _ = Logger.info("Started #{inspect(__MODULE__)}, config used: #{inspect(Eth.Diagnostics.get_child_chain_config())}")
-
+    _ = Logger.info("Started #{inspect(__MODULE__)}, config used: #{inspect(Diagnostics.get_child_chain_config())}")
+    valid_contracts()
     OMG.Eth.Supervisor.start_link()
   end
 
@@ -37,6 +40,27 @@ defmodule OMG.Eth.Application do
     case apply(:telemetry, :attach, handler) do
       :ok -> :ok
       {:error, :already_exists} -> :ok
+    end
+  end
+
+  defp valid_contracts() do
+    contracts_hash =
+      Configuration.contracts()
+      |> Map.put(:txhash_contract, Configuration.txhash_contract())
+      |> Map.put(:authority_addr, Configuration.authority_addr())
+      |> :erlang.phash2()
+
+    case DB.get_single_value(:omg_eth_contracts) do
+      result when result == :not_found or result == {:ok, 0} ->
+        multi_update = [{:put, :omg_eth_contracts, contracts_hash}]
+        :ok == DB.multi_update(multi_update)
+
+      {:ok, ^contracts_hash} ->
+        true
+
+      _ ->
+        _ = Logger.error("Contract addresses have changed since last boot!")
+        exit(:contracts_missmatch)
     end
   end
 end

@@ -24,7 +24,7 @@ defmodule OMG.Status.Metric.StatsdMonitorTest do
       StatsdMonitor.start_link(alarm_module: __MODULE__.Alarm, child_module: __MODULE__.StasdWrapper)
 
     on_exit(fn ->
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
       Process.exit(alarm_process, :cleanup)
       Process.exit(statsd_monitor, :cleanup)
       Process.sleep(10)
