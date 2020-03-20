@@ -3,7 +3,6 @@ defmodule Engine.TransactionTest do
   doctest Engine.Transaction
 
   alias Engine.Transaction
-  alias ExPlasma.Transaction.Deposit
 
   import Engine.Factory
 

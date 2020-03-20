@@ -30,16 +30,7 @@ defmodule Engine.Transaction do
     %__MODULE__{} |> changeset(params) |> Engine.Repo.insert()
   end
 
-  def changeset(struct, %ExPlasma.Transaction.Payment{} = params),
-    do: changeset(struct, params_from_ex_plasma(params))
-
-  def changeset(struct, %ExPlasma.Transaction.Deposit{} = params),
-    do: changeset(struct, params_from_ex_plasma(params))
-
-  def changeset(struct, %ExPlasma.Transaction{} = params),
-    do: changeset(struct, params_from_ex_plasma(params))
-
-  def changeset(struct, %{} = params) do
+  defp changeset(struct, %{} = params) do
     struct
     |> Engine.Repo.preload(:inputs)
     |> Engine.Repo.preload(:outputs)
@@ -50,10 +41,10 @@ defmodule Engine.Transaction do
     |> validate_usable_inputs()
   end
 
-  def changeset(struct, txbytes) when is_binary(txbytes) do
+  defp changeset(struct, txbytes) when is_binary(txbytes) do
     case ExPlasma.decode(txbytes) do
       {:ok, transaction} ->
-        changeset(struct, transaction)
+        changeset(struct, params_from_ex_plasma(transaction))
 
       {:error, {field, message}} ->
         struct |> changeset(%{}) |> add_error(field, @error_messages[message])

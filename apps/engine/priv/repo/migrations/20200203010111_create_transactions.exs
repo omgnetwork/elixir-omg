@@ -11,7 +11,7 @@ defmodule Engine.Repo.Migrations.CreateTransactions do
 
       add :block_id, references(:blocks)
 
-      timestamps()
+      timestamps(type: :utc_datetime)
     end
 
     create index(:transactions, [:block_id])
