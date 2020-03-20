@@ -18,15 +18,19 @@ defmodule OMG.State.Measure do
   """
 
   import OMG.Status.Metric.Event, only: [name: 1]
-
+  alias OMG.State
   alias OMG.State.Core
   alias OMG.State.MeasurementCalculation
   alias OMG.Status.Metric.Datadog
 
-  @supported_events [[:process, OMG.State]]
+  @supported_events [
+    [:process, State],
+    [:pending_transactions, Core],
+    [:block_transactions, Core]
+  ]
   def supported_events(), do: @supported_events
 
-  def handle_event([:process, OMG.State], _, %Core{} = state, _config) do
+  def handle_event([:process, State], _, %Core{} = state, _config) do
     execute = fn ->
       try do
         Enum.each(MeasurementCalculation.calculate(state), fn
@@ -45,5 +49,13 @@ defmodule OMG.State.Measure do
     # of OMG State
     _ = Task.start(execute)
     :ok
+  end
+
+  def handle_event([:pending_transactions, Core], %{new_tx: _new_tx}, _, _config) do
+    _ = Datadog.increment(name(:pending_transactions), 1)
+  end
+
+  def handle_event([:block_transactions, Core], %{txs: txs}, _, _config) do
+    _ = Datadog.gauge(name(:block_transactions), Enum.count(txs))
   end
 end

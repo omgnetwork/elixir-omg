@@ -17,12 +17,19 @@ AccountUtxoSchema:
     txindex:
       type: integer
       format: int16
+    otype:
+      type: integer
+      format: int16
     oindex:
       type: integer
       format: int8
     utxo_pos:
       type: integer
       format: int256
+    creating_txhash:
+      type: string
+    spending_txhash:
+      type: string
     owner:
       type: string
     currency:

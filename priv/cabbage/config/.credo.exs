@@ -53,7 +53,8 @@
       checks: [
         {Credo.Check.Refactor.MapInto, false},
         # custom checks
-        {Credo.Check.Custom.LicenseHeader},
+        {Credo.Check.Warning.LicenseHeader},
+        {Credo.Check.Readability.RequireParenthesesOnZeroArityDefs},
         #
         ## Consistency Checks
         #
