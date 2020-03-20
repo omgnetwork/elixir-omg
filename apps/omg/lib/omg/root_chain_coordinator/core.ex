@@ -56,7 +56,7 @@ defmodule OMG.RootChainCoordinator.Core do
   Initializes the state of the logic module.
    - `configs_services` - configs of services that are being synchronized.
      A map of the form `%{service_name => config}`. The `config`s are keyword lists with the following options:
-       - `:finality_margin` - number of Ethereum block confirumations to count before recognizing an event
+       - `:finality_margin` - number of Ethereum block confirmations to count before recognizing an event
        - `:waits_for` - a list of other services, which should sync first. Each service in this list can be an atom,
          being the name of the service, or a `{service_name, :no_margin}` pair, if the waiting should bypass the
          finality margin of the awaited process.

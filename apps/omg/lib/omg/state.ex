@@ -16,7 +16,7 @@ defmodule OMG.State do
   @moduledoc """
   A GenServer serving the ledger, for functional core and more info see `OMG.State.Core`.
 
-  Keeps the state of the ledger, mainly the spendable UTXO set that can is employed in both `OMG.ChildChain` and
+  Keeps the state of the ledger, mainly the spendable UTXO set that can be employed in both `OMG.ChildChain` and
   `OMG.Watcher`.
 
   Maintains the state of the UTXO set by:
@@ -56,9 +56,9 @@ defmodule OMG.State do
 
   @doc """
   Executes a single, statelessly validated child chain transaction. May take information on the fees required, in case
-  fee checking is required.
+  fees are charged.
 
-  Checks stateful validity and executes a transaction on success. If invalid, returns an error and has no effect on
+  Checks statefull validity and executes a transaction on `OMG.State` when successful. Otherwise, returns an error and has no effect on
   `OMG.State` and the ledger
   """
   @spec exec(tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
@@ -123,7 +123,7 @@ defmodule OMG.State do
   end
 
   @doc """
-  Provides a peek into the UTXO set to check if particular funds exist (have not been spent)
+  Provides a peek into the UTXO set to check if particular output exist (have not been spent)
   """
   @spec utxo_exists?(Utxo.Position.t()) :: boolean()
   def utxo_exists?(utxo) do
@@ -262,7 +262,7 @@ defmodule OMG.State do
   Flow:
     - generates fee-transactions based on the fees paid in the block
     - wraps up accumulated transactions submissions and fee transactions into a block
-    - triggers db update and:
+    - triggers db update
     - pushes the new block to subscribers of `"blocks"` internal event bus topic
   """
   def handle_cast(:form_block, state) do

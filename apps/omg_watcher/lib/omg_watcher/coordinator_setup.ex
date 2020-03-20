@@ -21,13 +21,13 @@ defmodule OMG.Watcher.CoordinatorSetup do
   @doc """
   The `OMG.RootChainCoordinator` setup for the `OMG.Watcher` app. Summary of the configuration:
 
-    - deposits are recognized after `deposit_finality_margin`. Should take child chain server's setting in to account
+    - deposits are recognized after `deposit_finality_margin`. Should take child chain server's setting into account
     - exit-related events are recognized after `exit_finality_margin`
     - exit-related events wait for deposits and themselves respectively, in case of the inter-dependent IFE events
     - exit finalization-related events wait for deposits and blocks to never finalize not-yet created UTXOs
     - blocks wait for deposits _BUT_ they advance by the finality margin of the `depositor`. In practice this means that
       blocks wait for deposits when syncing, but don't when processing fresh events. This allows for 0-confirmation
-      finality of child chain transaction (the user is responsible for deciding finality and confirmations)
+      finality of child chain transaction (the user is responsible for deciding on finality and confirmations)
   """
   def coordinator_setup() do
     deposit_finality_margin = Configuration.deposit_finality_margin()

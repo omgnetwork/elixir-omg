@@ -43,7 +43,7 @@ defmodule OMG.Watcher.ExitProcessor do
   ### Client
 
   @doc """
-  Starts the `GenServer` process using some options. For documentation of the options see `init/1`
+  Starts the `GenServer` process with options. For documentation of the options see `init/1`
   """
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -303,7 +303,7 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   See `new_in_flight_exits/1`. Flow:
 
-  - takes a list of in-flight exit start events from the contract
+  - takes a list of IFE exit start events from the contract
   - fetches the currently observed exit status in the contract (to decide if exits are "inactive on recognition", which
     helps cover the case when the Watcher is syncing up)
   - updates the `ExitProcessor`'s state
@@ -330,7 +330,7 @@ defmodule OMG.Watcher.ExitProcessor do
   See `finalize_exits/1`. Flow:
 
   - takes a list of standard exit finalization events from the contract
-  - discovers the `OMG.State`'s native key for the finalizing exits (`utxo_pos`)
+  - discovers the `OMG.State`'s native key for the finalizing exits (`utxo_pos`) (`Core.exit_key_by_exit_id/2`)
   - marks as spent these UTXOs in `OMG.State` expecting it to tell which of those were valid finalizations (UTXOs exist)
   - reflects this result in the `ExitProcessor`'s state
   - returns `db_updates`, concatenated with those related to the call to `OMG.State`
@@ -415,7 +415,7 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   See `finalize_in_flight_exits/1`. Flow:
 
-  - takes a list of in-flight exit finalization events from the contract
+  - takes a list of IFE exit finalization events from the contract
   - pulls current information on IFE transaction inclusion
   - discovers the `OMG.State`'s native key for the finalizing exits (`utxo_pos`)
     (`Core.prepare_utxo_exits_for_in_flight_exit_finalizations/2`)
