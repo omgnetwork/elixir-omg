@@ -53,9 +53,16 @@ defmodule OMG.RootChainCoordinator.Core do
   @maximum_leap_forward 2_500
 
   @doc """
-  Initializes core.
-  `configs_services` - configs of services that are being synchronized
-  `root_chain_height` - current root chain height
+  Initializes the state of the logic module.
+   - `configs_services` - configs of services that are being synchronized.
+     A map of the form `%{service_name => config}`. The `config`s are keyword lists with the following options:
+       - `:finality_margin` - number of Ethereum block confirumations to count before recognizing an event
+       - `:waits_for` - a list of other services, which should sync first. Each service in this list can be an atom,
+         being the name of the service, or a `{service_name, :no_margin}` pair, if the waiting should bypass the
+         finality margin of the awaited process.
+
+     An example config can be seen in `OMG.Watcher.CoordinatorSetup`
+   - `root_chain_height` - current root chain height
   """
   @spec init(map(), non_neg_integer()) :: t()
   def init(configs_services, root_chain_height) do
