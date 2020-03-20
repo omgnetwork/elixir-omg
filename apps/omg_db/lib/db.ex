@@ -144,7 +144,8 @@ defmodule OMG.DB do
       :last_competitor_processor_eth_height,
       :last_challenges_responds_processor_eth_height,
       :last_piggyback_challenges_processor_eth_height,
-      :last_ife_exit_finalizer_eth_height
+      :last_ife_exit_finalizer_eth_height,
+      :omg_eth_contracts
     ]
   end
 

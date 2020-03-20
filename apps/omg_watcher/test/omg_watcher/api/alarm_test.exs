@@ -24,7 +24,7 @@ defmodule OMG.Watcher.API.AlarmTest do
     app_alarm = {:ethereum_connection_error, %{node: Node.self(), reporter: Reporter}}
 
     on_exit(fn ->
-      apps |> Enum.reverse() |> Enum.each(fn app -> Application.stop(app) end)
+      apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     end)
 
     %{system_alarm: system_alarm, system_disk_alarm: system_disk_alarm, app_alarm: app_alarm}

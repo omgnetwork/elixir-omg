@@ -16,7 +16,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
   @moduledoc false
   use ExUnit.Case, async: true
 
-  import ExUnit.CaptureLog
+  import ExUnit.CaptureLog, only: [capture_log: 1]
 
   alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.BlockQueue.GasPriceAdjustment
@@ -28,6 +28,8 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
   @replacement_transaction_response {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}}
   @nonce_too_low_response {:error, %{"code" => -32_000, "message" => "nonce too low"}}
   @account_locked_response {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}}
+
+  @block_hash <<0::160>>
 
   setup do
     {:ok, empty} =
@@ -700,10 +702,10 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
     test "everything might be ok", %{submission: submission} do
       # no change in mined blknum
-      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 1000)
+      assert {:ok, @block_hash} = Core.process_submit_result(submission, {:ok, @block_hash}, 1000)
       # arbitrary ignored change in mined blknum
-      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 0)
-      assert :ok = Core.process_submit_result(submission, {:ok, <<0::160>>}, 2000)
+      assert {:ok, @block_hash} = Core.process_submit_result(submission, {:ok, @block_hash}, 0)
+      assert {:ok, @block_hash} = Core.process_submit_result(submission, {:ok, @block_hash}, 2000)
     end
 
     test "benign reports / warnings from geth", %{submission: submission} do
