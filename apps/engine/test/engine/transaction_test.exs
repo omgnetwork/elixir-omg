@@ -9,7 +9,9 @@ defmodule Engine.TransactionTest do
   describe "insert/1" do
     test "validates input utxos exist" do
       {result, changeset} =
-        :transaction |> params_for(inputs: [build(:input_utxo, blknum: 2)]) |> Transaction.insert()
+        :transaction
+        |> params_for(inputs: [build(:input_utxo, blknum: 2)])
+        |> Transaction.insert()
 
       assert :error == result
       assert {"input utxos 2000000000 are missing or spent", _} = changeset.errors[:inputs]
@@ -21,7 +23,9 @@ defmodule Engine.TransactionTest do
       |> Engine.Repo.insert()
 
       {result, changeset} =
-        :transaction |> params_for(inputs: [build(:spent_utxo, blknum: 10)]) |> Transaction.insert()
+        :transaction
+        |> params_for(inputs: [build(:spent_utxo, blknum: 10)])
+        |> Transaction.insert()
 
       assert :error == result
       assert {"input utxos 10000000000 are missing or spent", _} = changeset.errors[:inputs]

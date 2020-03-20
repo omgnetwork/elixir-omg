@@ -57,7 +57,7 @@ defmodule Engine.UtxoTest do
           amount: 1
         })
 
-      # refute changeset.valid? # TODO: why doesn't ecto check the unique constraint here?
+      # refute changeset.valid? # NB: why doesn't ecto check the unique constraint here?
       assert {:error, _} = Repo.insert(changeset)
     end
   end

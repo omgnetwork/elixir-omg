@@ -63,9 +63,12 @@ defmodule Engine.Transaction do
       |> get_field(:inputs)
       |> Enum.map(&ExPlasma.Utxo.pos/1)
 
-    query = from(u in Engine.Utxo, 
-      where: u.pos in ^positions and is_nil(u.spending_transaction_id),
-      limit: 4)
+    query =
+      from(u in Engine.Utxo,
+        where: u.pos in ^positions and is_nil(u.spending_transaction_id),
+        limit: 4
+      )
+
     result = Engine.Repo.all(query)
 
     if length(positions) != length(result) do

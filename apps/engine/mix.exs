@@ -10,7 +10,7 @@ defmodule Engine.MixProject do
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixir: "~> 1.9",
-      elixirc_paths: elixirc_paths(Mix.env),
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -34,7 +34,7 @@ defmodule Engine.MixProject do
       {:ex_machina, "~> 2.4"},
       {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git"},
       {:postgrex, "~> 0.14"},
-      {:sentry, "~> 7.0"},
+      {:sentry, "~> 7.0"}
     ]
   end
 end

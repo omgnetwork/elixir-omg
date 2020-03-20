@@ -1,4 +1,6 @@
 defmodule Engine.Factory do
+  @moduledoc false
+
   use ExMachina.Ecto, repo: Engine.Repo
 
   def deposit_factory do
