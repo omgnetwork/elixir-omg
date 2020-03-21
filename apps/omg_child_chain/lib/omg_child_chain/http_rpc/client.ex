@@ -25,7 +25,7 @@ defmodule OMG.ChildChain.HttpRPC.Client do
   @type response_t() ::
           {:ok, %{required(atom()) => any()}}
           | {:error,
-             {:client_error | :server_error, any()}
+             {:unsuccessful_response | :server_error, any()}
              | {:malformed_response, any() | {:error, :invalid}}}
 
   @doc """
@@ -43,7 +43,7 @@ defmodule OMG.ChildChain.HttpRPC.Client do
          {:ok, fee_spec} <- JSONFeeParser.parse(data) do
       {:ok, fee_spec}
     else
-      %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
+      %{"success" => false, "data" => data} -> {:error, {:unsuccessful_response, data}}
       error -> error
     end
   end

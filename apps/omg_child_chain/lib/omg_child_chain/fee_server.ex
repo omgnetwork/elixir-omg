@@ -112,9 +112,9 @@ defmodule OMG.ChildChain.FeeServer do
          } = state
        ) do
     source_updated_at = :ets.lookup_element(:fees_bucket, :fee_specs_source_updated_at, 2)
-    actual_fee_specs = load_current_fees()
+    current_fee_specs = load_current_fees()
 
-    case adapter.get_fee_specs(opts, actual_fee_specs, source_updated_at) do
+    case adapter.get_fee_specs(opts, current_fee_specs, source_updated_at) do
       {:ok, fee_specs, source_updated_at} ->
         :ok = save_fees(fee_specs, source_updated_at)
         _ = Logger.info("Reloaded fee specs from #{inspect(adapter)}, changed at #{inspect(source_updated_at)}")

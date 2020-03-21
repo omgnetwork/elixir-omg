@@ -13,7 +13,7 @@
 # limitations under the License.
 defmodule OMG.ChildChain.Fees.FeeUpdater do
   @moduledoc """
-  Decides whether fees will be updated from the actual reading from feed.
+  Decides whether fees will be updated from the fetched fees from the feed.
   """
 
   alias OMG.ChildChain.Fees.FeeMerger
@@ -27,8 +27,8 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
   or the time passed from previous update exceeds the update interval.
   """
   @spec can_update(
-          stored :: feed_reading_t(),
-          actual :: feed_reading_t(),
+          stored_fees :: feed_reading_t(),
+          fetched_fees :: feed_reading_t(),
           tolerance_percent :: pos_integer(),
           update_interval_seconds :: pos_integer()
         ) :: can_update_result_t()
@@ -38,10 +38,10 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
       when t0 <= t1 and t1 - t0 >= update_interval_seconds,
       do: {:ok, updated}
 
-  def can_update({_, stored}, {_, actual} = updated, tolerance_percent, _update_interval_seconds) do
-    with merged when is_map(merged) <- merge_types(stored, actual),
+  def can_update({_, stored_fees}, {_, fetched_fees} = updated, tolerance_percent, _update_interval_seconds) do
+    with merged when is_map(merged) <- merge_types(stored_fees, fetched_fees),
          false <- Enum.any?(merged, &token_mismatch?/1),
-         amount_diffs = Map.values(FeeMerger.merge_specs(stored, actual)),
+         amount_diffs = Map.values(FeeMerger.merge_specs(stored_fees, fetched_fees)),
          false <- is_change_significant?(amount_diffs, tolerance_percent) do
       :no_changes
     else
@@ -62,19 +62,20 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
     |> Enum.any?(&amount_diff_exceeds_tolerance?(&1, tolerance_rate))
   end
 
-  # Checks whether previous and actual fees differenciate on token
+  # Checks whether previously stored and fetched fees differenciate on token
   @spec token_mismatch?({non_neg_integer(), {Fees.fee_t(), Fees.fee_t()}}) :: boolean()
-  defp token_mismatch?({_type, {stored_fees, actual_fees}}) do
+  defp token_mismatch?({_type, {stored_fees, fetched_fees}}) do
     not MapSet.equal?(
       stored_fees |> Map.keys() |> MapSet.new(),
-      actual_fees |> Map.keys() |> MapSet.new()
+      fetched_fees |> Map.keys() |> MapSet.new()
     )
   end
 
   @spec merge_types(Fees.full_fee_t(), Fees.full_fee_t()) ::
           %{non_neg_integer() => {Fees.fee_t(), Fees.fee_t()}} | :disjoint_types
-  defp merge_types(stored_specs, actual_specs) do
-    merged_spec = Map.merge(stored_specs, actual_specs, fn _t, stored, actual -> {stored, actual} end)
+  defp merge_types(stored_specs, fetched_specs) do
+    merged_spec =
+      Map.merge(stored_specs, fetched_specs, fn _t, stored_fees, fetched_fees -> {stored_fees, fetched_fees} end)
 
     merged_spec
     |> Map.values()
@@ -84,7 +85,7 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
 
   defp amount_diff_exceeds_tolerance?([_no_change], _rate), do: false
 
-  defp amount_diff_exceeds_tolerance?([prev, curr], rate) do
-    abs(prev - curr) / prev >= rate
+  defp amount_diff_exceeds_tolerance?([stored, fetched], rate) do
+    abs(stored - fetched) / stored >= rate
   end
 end

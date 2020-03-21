@@ -63,15 +63,15 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   #
   # Returns the options with `feed_url` value replaced with the value of env var:
   # [feed_url: "http://childchain:9656", fee_change_tolerance_percent: 25]
-  defp replace_with_env(opts, validator_fn, opts_key_env),
-    do:
-      Keyword.merge(
-        opts,
-        opts_key_env,
-        fn _k, curr, env_name ->
-          env_name
-          |> System.get_env()
-          |> validator_fn.(curr)
-        end
-      )
+  defp replace_with_env(opts, validator_fn, opts_key_env) do
+    Keyword.merge(
+      opts,
+      opts_key_env,
+      fn _k, curr, env_name ->
+        env_name
+        |> System.get_env()
+        |> validator_fn.(curr)
+      end
+    )
+  end
 end
