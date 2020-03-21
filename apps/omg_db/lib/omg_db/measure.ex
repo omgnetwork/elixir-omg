@@ -18,12 +18,15 @@ defmodule OMG.DB.Measure do
   """
   alias OMG.Status.Metric.Datadog
   import OMG.Status.Metric.Event, only: [name: 1]
+
+  alias OMG.DB.RocksDB.Server
+
   @write :write
   @read :read
   @multiread :multiread
   @keys [@write, @read, @multiread]
 
-  @services [OMG.DB.LevelDB.Server, OMG.DB.RocksDB.Server]
+  @services [Server]
 
   @supported_events List.foldl(@services, [], fn service, acc ->
                       acc ++

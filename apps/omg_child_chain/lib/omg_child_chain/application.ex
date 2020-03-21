@@ -41,6 +41,12 @@ defmodule OMG.ChildChain.Application do
         &OMG.EthereumEventListener.Measure.handle_event/4,
         nil
       ],
+      [
+        "block-queue",
+        OMG.ChildChain.BlockQueue.Measure.supported_events(),
+        &OMG.ChildChain.BlockQueue.Measure.handle_event/4,
+        nil
+      ],
       ["measure-state", OMG.State.Measure.supported_events(), &OMG.State.Measure.handle_event/4, nil]
     ]
 

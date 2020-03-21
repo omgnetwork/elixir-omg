@@ -241,12 +241,12 @@ defmodule OMG.ChildChain.BlockQueue.Core do
       indeed have just mined that submission, causes a crash otherwise
   """
   @spec process_submit_result(BlockSubmission.t(), submit_result_t(), BlockSubmission.plasma_block_num()) ::
-          :ok | {:error, atom}
+          {:ok, binary()} | :ok | {:error, atom}
   def process_submit_result(submission, submit_result, newest_mined_blknum)
 
   def process_submit_result(submission, {:ok, txhash}, _newest_mined_blknum) do
     log_success(submission, txhash)
-    :ok
+    {:ok, txhash}
   end
 
   # https://github.com/ethereum/go-ethereum/commit/9938d954c8391682947682543cf9b52196507a88#diff-8fecce9bb4c486ebc22226cf681416e2

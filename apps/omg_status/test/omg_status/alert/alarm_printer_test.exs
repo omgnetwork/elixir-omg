@@ -16,6 +16,8 @@ defmodule OMG.Status.Alert.AlarmPrinterTest do
   use ExUnit.Case, async: false
   alias OMG.Status.AlarmPrinter
 
+  @moduletag :common
+
   setup do
     {:ok, alarm_printer} = AlarmPrinter.start_link(alarm_module: __MODULE__.Alarm)
 
