@@ -13,12 +13,12 @@ config :load_test,
   },
   # 0.0000001 ETH
   initial_funds_wei: trunc(:math.pow(10, 10)),
-  eth_vault_address: "0x4e3aeff70f022a6d4cc5947423887e7152826cf7"
+  eth_vault_address: System.get_env("ETH_VAULT_ADDRESS")
 
 config :ex_plasma,
   eip_712_domain: [
     name: "OMG Network",
     salt: "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83",
-    verifying_contract: "0x1499442e7ee8c7cf2ae33f5e096d1a5b9c013cff",
+    verifying_contract: System.get_env("PLASMA_CONTRACT_ADDRESS"),
     version: "1"
   ]
