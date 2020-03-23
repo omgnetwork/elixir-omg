@@ -23,8 +23,8 @@ defmodule LoadTest.Service.Faucet do
 
   alias ExPlasma.Encoding
   alias ExPlasma.Utxo
-  alias LoadTest.ChildChain
   alias LoadTest.ChildChain.Deposit
+  alias LoadTest.ChildChain.Transaction
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
 
@@ -63,7 +63,7 @@ defmodule LoadTest.Service.Faucet do
       %Utxo{amount: amount, currency: token, owner: account.addr}
     ]
 
-    {:ok, blknum, txindex} = ChildChain.submit_tx([utxo], outputs, [faucet], @fund_child_chain_account_retries)
+    {:ok, blknum, txindex} = Transaction.submit_tx([utxo], outputs, [faucet], @fund_child_chain_account_retries)
     {:ok, change_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 0})
     {:ok, user_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 1})
 

@@ -22,8 +22,4 @@ ethereum_client_timeout_ms = 20_000
 config :ethereumex,
   http_options: [recv_timeout: ethereum_client_timeout_ms]
 
-config :ex_plasma,
-  gas: 1_000_000,
-  gas_price: 1_000_000
-
 import_config "#{Mix.env()}.exs"

@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule LoadTest.ChildChain do
+defmodule LoadTest.ChildChain.Transaction do
   @moduledoc """
-  Utility functions for interacting with the child chain
+  Utility functions for sending transaction to child chain
   """
   require Logger
 

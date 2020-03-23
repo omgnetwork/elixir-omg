@@ -36,7 +36,7 @@ defmodule LoadTest.ChildChain.Deposit do
   end
 
   defp send_deposit(deposit, account, value, @eth) do
-    eth_vault_address = Application.fetch_env!(:ex_plasma, :eth_vault_address)
+    eth_vault_address = Application.fetch_env!(:load_test, :eth_vault_address)
     %{data: deposit_data} = LoadTest.Utils.Encoding.encode_deposit(deposit)
 
     tx = %LoadTest.Ethereum.Transaction{

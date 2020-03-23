@@ -54,7 +54,7 @@ defmodule LoadTest.Scenario.CreateUtxos do
     fee_wei = session.assigned.fee_wei
     {inputs, outputs, change} = create_transaction(sender, last_change, fee_wei)
 
-    {:ok, blknum, txindex} = LoadTest.ChildChain.submit_tx(inputs, outputs, [sender])
+    {:ok, blknum, txindex} = LoadTest.ChildChain.Transaction.submit_tx(inputs, outputs, [sender])
 
     last_change = %{blknum: blknum, txindex: txindex, oindex: 3, amount: change}
 
