@@ -38,20 +38,13 @@ defmodule LoadTest.ChildChain.Transaction do
   defp try_submit_tx(tx, 0), do: do_submit_tx(tx)
 
   defp try_submit_tx(tx, retries) do
-    case do_try_submit_tx(tx) do
-      :retry ->
+    case do_submit_tx(tx) do
+      {:error, "submit:utxo_not_found"} ->
         Process.sleep(@retry_interval)
         try_submit_tx(tx, retries - 1)
 
       result ->
         result
-    end
-  end
-
-  defp do_try_submit_tx(tx) do
-    case do_submit_tx(tx) do
-      {:error, "submit:utxo_not_found"} -> :retry
-      result -> result
     end
   end
 

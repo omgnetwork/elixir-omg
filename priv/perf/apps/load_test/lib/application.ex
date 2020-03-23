@@ -34,15 +34,19 @@ defmodule LoadTest.Application do
 
   defp fetch_faucet_config() do
     preset_faucet_account_config =
-      case Application.fetch_env(:load_test, :faucet_account) do
-        {:ok, %{priv: priv}} ->
-          # using preset faucet account
-          {:ok, faucet_account} = priv |> Encoding.to_binary() |> Account.new()
-          [faucet: faucet_account]
-
-        :error ->
-          # using default ethereum account as a faucet
+      case Application.get_env(:load_test, :faucet_private_key, []) do
+        # using default ethereum account as a faucet
+        [] ->
           []
+
+        # using preset faucet account  
+        faucet_private_key ->
+          faucet_account =
+            faucet_private_key
+            |> Encoding.to_binary()
+            |> Account.new()
+
+          [faucet: faucet_account]
       end
 
     [:fee_wei, :faucet_default_funds, :faucet_deposit_wei, :deposit_finality_margin]

@@ -7,10 +7,7 @@ config :load_test,
   child_chain_url: System.get_env("CHILD_CHAIN_URL"),
   fee_wei: 1,
   faucet_deposit_wei: trunc(:math.pow(10, 18)),
-  faucet_account: %{
-    addr: "0x9133f35d9a964c894f152c0e7da66e832735a7a6",
-    priv: "0x70ad9d48f90430607a340ea2e00495e1f84d2c50a4a3df0917e6161045b32378"
-  },
+  faucet_private_key: System.get_env("LOAD_TEST_FAUCET_PRIVATE_KEY"),
   # 0.0000001 ETH
   initial_funds_wei: trunc(:math.pow(10, 10)),
   eth_vault_address: System.get_env("CONTRACT_ADDRESS_ETH_VAULT")
