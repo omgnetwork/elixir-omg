@@ -22,10 +22,8 @@ defmodule LoadTest.Application do
     LoadTest.Ethereum.NonceTracker.init()
 
     faucet_config = fetch_faucet_config()
-    # not started under supervisor as it creates and funds a new Ethereum account on each start
-    {:ok, _} = LoadTest.Service.Faucet.start_link(faucet_config)
-
-    {:ok, self()}
+    # using temporary strategy as it creates and funds a new Ethereum account on each start
+    Supervisor.start_link([{LoadTest.Service.Faucet, faucet_config}], strategy: :one_for_one, restart: :temporary)
   end
 
   def stop(_app) do
@@ -39,7 +37,7 @@ defmodule LoadTest.Application do
         [] ->
           []
 
-        # using preset faucet account  
+        # using preset faucet account
         faucet_private_key ->
           faucet_account =
             faucet_private_key
