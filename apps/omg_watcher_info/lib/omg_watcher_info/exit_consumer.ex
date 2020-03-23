@@ -28,7 +28,8 @@ defmodule OMG.WatcherInfo.ExitConsumer do
   use GenServer
 
   def init(:ok) do
-    :ok = OMG.Bus.subscribe("ExitStarted", link: true)
+    topic = OMG.Bus.Topic.root_chain_topic("ExitStarted")
+    :ok = OMG.Bus.subscribe(topic, link: true)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
     {:ok, %{}}

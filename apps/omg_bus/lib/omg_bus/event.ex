@@ -12,31 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.DepositConsumer do
+defmodule OMG.Bus.Event do
   @moduledoc """
-  Subscribes to deposit events and inserts them to WatcherInfo.DB.
+  Representation of a single event to be published on OMG event bus
   """
-  require Logger
-  ### Client
+  alias OMG.Bus.Topic
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  @enforce_keys [:topic, :event, :payload]
+  @type t() :: %__MODULE__{topic: Topic.t(), event: atom, payload: any()}
+
+  defstruct [:topic, :event, :payload]
+
+  def root_chain_event(topic, event, payload) when is_atom(event) do
+    topic = Topic.root_chain_topic(topic)
+    %__MODULE__{topic: topic, event: event, payload: payload}
   end
 
-  ### Server
-
-  use GenServer
-
-  def init(:ok) do
-    topic = OMG.Bus.Topic.root_chain_topic("DepositCreated")
-    :ok = OMG.Bus.subscribe(topic, link: true)
-
-    _ = Logger.info("Started #{inspect(__MODULE__)}")
-    {:ok, %{}}
-  end
-
-  def handle_info({:internal_event_bus, :data, data}, state) do
-    _ = OMG.WatcherInfo.DB.EthEvent.insert_deposits!(data)
-    {:noreply, state}
+  def child_chain_event(topic, event, payload) when is_atom(event) do
+    topic = Topic.child_chain_topic(topic)
+    %__MODULE__{topic: topic, event: event, payload: payload}
   end
 end

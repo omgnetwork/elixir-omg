@@ -274,7 +274,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
         number_of_empty_slots,
         max(
           0,
-          config.maximum_number_of_unapplied_blocks - number_of_blocks_being_downloaded - Map.size(unapplied_blocks)
+          config.maximum_number_of_unapplied_blocks - number_of_blocks_being_downloaded -
+            Kernel.map_size(unapplied_blocks)
         )
       )
 

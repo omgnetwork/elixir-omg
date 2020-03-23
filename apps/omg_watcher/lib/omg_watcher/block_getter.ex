@@ -144,7 +144,8 @@ defmodule OMG.Watcher.BlockGetter do
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
       {:ok, state} ->
-        :ok = OMG.Bus.direct_local_broadcast("block.get", {:block_received, block_application})
+        event = OMG.Bus.Event.child_chain_event("block.get", :block_received, block_application)
+        :ok = OMG.Bus.direct_local_broadcast(event)
 
         {:noreply, state, {:continue, {:apply_block_step, :run_block_download_task, block_application}}}
 
@@ -353,13 +354,6 @@ defmodule OMG.Watcher.BlockGetter do
   defp check_in_to_coordinator(synced_height), do: RootChainCoordinator.check_in(synced_height, :block_getter)
 
   defp update_status(%Core{} = state), do: Status.update(Core.chain_ok(state))
-
-  defp publish_data([%{event_signature: event_signature} | _] = data) do
-    # event signature is string with a method name with arguments,
-    # for example: BlockSubmitted(uint256)
-    [event_signature, _] = String.split(event_signature, "(")
-    OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
-  end
 
   defp publish_data([]), do: :ok
 end

@@ -37,7 +37,6 @@ defmodule OMG.Eth.EthereumHeightMonitor do
           tref: reference() | nil,
           eth_module: module(),
           alarm_module: module(),
-          event_bus: module(),
           ethereum_height: integer(),
           synced_at: DateTime.t(),
           connection_alarm_raised: boolean(),
@@ -49,7 +48,6 @@ defmodule OMG.Eth.EthereumHeightMonitor do
             tref: nil,
             eth_module: nil,
             alarm_module: nil,
-            event_bus: nil,
             ethereum_height: 0,
             synced_at: nil,
             connection_alarm_raised: false,
@@ -76,8 +74,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
       stall_threshold_ms: Keyword.fetch!(opts, :stall_threshold_ms),
       synced_at: DateTime.utc_now(),
       eth_module: Keyword.fetch!(opts, :eth_module),
-      alarm_module: Keyword.fetch!(opts, :alarm_module),
-      event_bus: Keyword.fetch!(opts, :event_bus)
+      alarm_module: Keyword.fetch!(opts, :alarm_module)
     }
 
     {:ok, state, {:continue, :first_check}}
@@ -94,7 +91,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     height = fetch_height(state.eth_module)
     stalled? = stalled?(height, state.ethereum_height, state.synced_at, state.stall_threshold_ms)
 
-    :ok = broadcast_on_new_height(state.event_bus, height)
+    :ok = broadcast_on_new_height(height)
     _ = connection_alarm(state.alarm_module, state.connection_alarm_raised, height)
     _ = stall_alarm(state.alarm_module, state.stall_alarm_raised, stalled?)
 
@@ -163,14 +160,15 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     end
   end
 
-  @spec broadcast_on_new_height(module(), non_neg_integer() | :error) :: :ok | {:error, term()}
-  defp broadcast_on_new_height(_event_bus, :error), do: :ok
+  @spec broadcast_on_new_height(non_neg_integer() | :error) :: :ok | {:error, term()}
+  defp broadcast_on_new_height(:error), do: :ok
 
   # we need to publish every height we fetched so that we can re-examine blocks in case of re-orgs
   # clients subscribed to this topic need to be aware of that and if a block number repeats,
   # it needs to re-write logs, for example
-  defp broadcast_on_new_height(event_bus, height) do
-    apply(event_bus, :broadcast, ["ethereum_new_height", {:ethereum_new_height, height}])
+  defp broadcast_on_new_height(height) do
+    event = OMG.Bus.Event.root_chain_event("ethereum_new_height", :ethereum_new_height, height)
+    OMG.Bus.broadcast(event)
   end
 
   #

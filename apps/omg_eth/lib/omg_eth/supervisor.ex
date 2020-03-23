@@ -35,8 +35,7 @@ defmodule OMG.Eth.Supervisor do
          check_interval_ms: check_interval_ms,
          stall_threshold_ms: stall_threshold_ms,
          eth_module: OMG.Eth,
-         alarm_module: Alarm,
-         event_bus: OMG.Bus
+         alarm_module: Alarm
        ]},
       {OMG.Eth.EthereumHeight, [event_bus: OMG.Bus]}
     ]

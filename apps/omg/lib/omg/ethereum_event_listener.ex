@@ -167,7 +167,7 @@ defmodule OMG.EthereumEventListener do
     :ok = :telemetry.execute([:process, __MODULE__], %{events: events}, state)
 
     {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
-    :ok = publish_data(events)
+    :ok = publish_events(events)
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
     :ok = RootChainCoordinator.check_in(height_to_check_in, state.service_name)
 
@@ -188,12 +188,11 @@ defmodule OMG.EthereumEventListener do
     |> :timer.send_after(self(), :sync)
   end
 
-  defp publish_data([%{event_signature: event_signature} | _] = data) do
-    # event signature is string with a method name with arguments,
-    # for example: BlockSubmitted(uint256)
-    [event_signature, _] = String.split(event_signature, "(")
-    OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
-  end
+  defp publish_events([]), do: :ok
 
-  defp publish_data([]), do: :ok
+  defp publish_events([%{event_signature: event_signature} | _] = data) do
+    [event_signature, _] = String.split(event_signature, "(")
+    event = OMG.Bus.Event.root_chain_event(event_signature, :data, data)
+    OMG.Bus.direct_local_broadcast(event)
+  end
 end
