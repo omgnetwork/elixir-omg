@@ -1,7 +1,7 @@
 use Mix.Config
 
 config :ethereumex,
-  url: System.get_env("ETHEREUM_RPC_URL") 
+  url: System.get_env("ETHEREUM_RPC_URL")
 
 config :load_test,
   child_chain_url: System.get_env("CHILD_CHAIN_URL") || "https://stress-e043a92-childchain-ropsten-01.omg.network/",

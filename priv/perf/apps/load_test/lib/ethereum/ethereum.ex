@@ -33,17 +33,10 @@ defmodule LoadTest.Ethereum do
   Waits until transaction is mined
   Returns transaction receipt updated with Ethereum block number in which the transaction was mined
   """
-  @spec transact_sync(hash_t(), pos_integer()) :: {:ok, map()} | {:error, map()}
+  @spec transact_sync(hash_t(), pos_integer()) :: {:ok, map()}
   def transact_sync(txhash, timeout \\ @about_4_blocks_time) do
-    txhash
-    |> eth_receipt(timeout)
-    |> case do
-      {:ok, %{"status" => "0x1"} = receipt} ->
-        {:ok, Map.update!(receipt, "blockNumber", &Encoding.to_int(&1))}
-
-      {:ok, %{"status" => "0x0"} = receipt} ->
-        {:error, receipt}
-    end
+    {:ok, %{"status" => "0x1"} = receipt} = eth_receipt(txhash, timeout)
+    {:ok, Map.update!(receipt, "blockNumber", &Encoding.to_int(&1))}
   end
 
   def fund_address_from_default_faucet(account, opts) do

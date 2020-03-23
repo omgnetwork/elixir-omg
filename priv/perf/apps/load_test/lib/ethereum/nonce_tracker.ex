@@ -33,7 +33,7 @@ defmodule LoadTest.Ethereum.NonceTracker do
         |> Encoding.to_int()
 
       # it might happen that this is called more than once, but
-      # we relay on :ets.update_counter being atomic, so starting value is not changed
+      # we rely on :ets.update_counter being atomic, so starting value is not changed
       :ets.update_counter(:nonce_tracker, address, 1, {0, current_nonce - 1})
     else
       :ets.update_counter(:nonce_tracker, address, 1)
