@@ -1309,7 +1309,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert %{
                "object" => "error",
                "code" => "transaction.create:self_transaction_not_supported",
-               "description" => "This endpoint cannot be used to build merge or split transactions."
+               "description" => "This endpoint cannot be used to create merge or split transactions."
              } == WatcherHelper.no_success?("transaction.create", params)
     end
 
