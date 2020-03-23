@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased
+
+#### APIs
+- None
+
+#### Core
+- None
+
+#### Miscellaneous
+- None
+
+## [v0.4.6](https://github.com/omisego/elixir-omg/releases/tag/v0.4.6)
+
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.5...v0.4.6).
+
+#### APIs
+- None
+
+#### Core
+- [Added] Pool size and transactions in block metrics (#1391)
+- [Changed] Contracts lockdown on boot and gas telemetry for block submission (#1382)
+- [Changed] Cleanup (#1407)
+- [Changed] rpc calls consolidate (#1376)
+
+#### Miscellaneous
+- [Changed] bump Ink package version (#1387)
+- [Fixed] Exclude hostname (#1390)
+- [Changed] Fixed missing creating_txhash, spending_txhash (#1396)
+- [Added] Automated dependency audits (#1393)
+- [Changed] Make docker-nuke should reset geth snapshot (#1386)
+- [Changed] update exit_validation.md documentation (#1388)
+- [Added] Implement Code Owners for mix.lock (#1406)
+
 ## [v0.4.5](https://github.com/omisego/elixir-omg/releases/tag/v0.4.5)
 
 Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
