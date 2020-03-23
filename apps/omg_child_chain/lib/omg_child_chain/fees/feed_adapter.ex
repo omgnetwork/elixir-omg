@@ -25,7 +25,6 @@ defmodule OMG.ChildChain.Fees.FeedAdapter do
   @doc """
   Pulls the fee specification from fees feed. Feed updates fee prices based on Ethereum's gas price.
   """
-  # sobelow_skip ["Traversal"]
   @impl true
   def get_fee_specs(opts, actual_fee_specs, updated_at) do
     feed_url = Keyword.fetch!(opts, :feed_url)
