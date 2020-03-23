@@ -40,6 +40,9 @@ defmodule OMG.Utils.HttpRPC.Adapter do
   @doc """
   Retrieves body from response structure but don't deserialize it.
   """
+  def get_unparsed_response_body({:ok, %HTTPoison.Response{} = response}),
+    do: get_unparsed_response_body(response)
+
   def get_unparsed_response_body(%HTTPoison.Response{status_code: 200, body: body}),
     do: {:ok, body}
 

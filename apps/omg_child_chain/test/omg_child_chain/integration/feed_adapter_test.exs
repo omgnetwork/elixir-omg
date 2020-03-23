@@ -127,7 +127,7 @@ defmodule OMG.ChildChain.Integration.FeedAdapterTest do
   defp fees_all_endpoint_setup(initial_price) do
     Agent.start(fn -> nil end, name: :current_fee_specs)
 
-    path = "/fees.all"
+    path = "/fees"
     {:ok, @server_id, port} = Server.run(%{id: @server_id})
     env = %FakeServer.Env{Env.new(port) | routes: [path]}
     EnvAgent.save_env(@server_id, env)

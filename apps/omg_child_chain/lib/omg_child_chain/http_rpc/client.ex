@@ -33,7 +33,8 @@ defmodule OMG.ChildChain.HttpRPC.Client do
   """
   @spec all_fees(binary()) :: response_t()
   def all_fees(url) do
-    %{} |> Adapter.rpc_post("fees.all", url) |> handle_response()
+    headers = [{"content-type", "application/json"}]
+    "#{url}/fees" |> HTTPoison.get(headers) |> handle_response()
   end
 
   defp handle_response(http_response) do
