@@ -70,11 +70,11 @@ defmodule OMG.ChildChain.Integration.FeedAdapterTest do
       assert {:ok, ^fees, _ts} = FeedAdapter.get_fee_specs(opts, nil, 0)
     end
 
-    test "No changes when fees has not changed in long time period", %{initial_fees: fees, fee_adapter_opts: opts} do
+    test "Does not update when fees has not changed in long time period", %{initial_fees: fees, fee_adapter_opts: opts} do
       assert :ok = FeedAdapter.get_fee_specs(opts, fees, 0)
     end
 
-    test "No changes when fees changed within tolerance", %{
+    test "Does not update when fees changed within tolerance", %{
       initial_fees: fees,
       actual_updated_at: updated_at,
       fee_adapter_opts: opts
@@ -83,7 +83,7 @@ defmodule OMG.ChildChain.Integration.FeedAdapterTest do
       assert :ok = FeedAdapter.get_fee_specs(opts, fees, updated_at)
     end
 
-    test "Updates when fees changed above tolerance in short time period", %{
+    test "Updates when fees changed above tolerance, although under update interval", %{
       initial_fees: fees,
       actual_updated_at: updated_at,
       fee_adapter_opts: opts
@@ -92,7 +92,7 @@ defmodule OMG.ChildChain.Integration.FeedAdapterTest do
       assert {:ok, ^updated_fees, _ts} = FeedAdapter.get_fee_specs(opts, fees, updated_at)
     end
 
-    test "Updates when fees insignificant change happens a long ago", %{
+    test "Updates when fees changed below tolerance level, but exceeds update interval", %{
       initial_fees: fees,
       after_period_updated_at: long_ago,
       fee_adapter_opts: opts
