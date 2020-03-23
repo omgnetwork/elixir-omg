@@ -5,6 +5,9 @@ config :ethereumex,
 
 config :load_test,
   faucet_deposit_wei: trunc(:math.pow(10, 18) * 10),
+  faucet_private_key:
+    System.get_env("LOAD_TEST_FAUCET_PRIVATE_KEY") ||
+      "0xd885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce",
   child_chain_url: System.get_env("CHILD_CHAIN_URL") || "http://localhost:9656",
   fee_wei: 1,
   utxo_load_test_config: %{

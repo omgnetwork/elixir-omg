@@ -74,31 +74,13 @@ defmodule LoadTest.Service.Faucet do
   end
 
   defp get_funded_faucet_account(opts) do
-    faucet =
-      case Keyword.fetch(opts, :faucet) do
-        {:ok, faucet} ->
-          faucet
-
-        :error ->
-          Logger.debug("Generating a faucet")
-          {:ok, faucet} = create_and_fund_faucet(opts)
-          faucet
-      end
+    faucet_private_key = Keyword.fetch!(opts, :faucet_private_key)
+    {:ok, faucet} = Account.new(faucet_private_key)
 
     deposit_amount = Keyword.fetch!(opts, :faucet_deposit_wei)
     deposit_finality_margin = Keyword.fetch!(opts, :deposit_finality_margin)
     {:ok, deposit_utxo} = Deposit.deposit_from(faucet, deposit_amount, @eth, deposit_finality_margin)
 
     {faucet, {deposit_utxo, deposit_amount}}
-  end
-
-  # Sends a transaction to a local instance of geth.
-  # NOTE: Assumes existence of an unlocked account managed by Ethereum client.
-  # Does not work with Infura. Used with geth dev instance.
-  defp create_and_fund_faucet(opts) do
-    faucet_initial_funds = Keyword.fetch!(opts, :faucet_default_funds)
-    {:ok, account} = Account.new()
-    {:ok, _} = Ethereum.fund_address_from_default_faucet(account, initial_funds_wei: faucet_initial_funds)
-    {:ok, account}
   end
 end
