@@ -24,10 +24,13 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Repo
+  alias OMG.Utils.Paginator
 
   require Utxo
 
   import Ecto.Query, only: [from: 2, where: 2]
+
+  @default_get_utxos_limit 100
 
   @type balance() :: %{
           currency: binary(),
@@ -197,4 +200,5 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
     |> Map.new()
   end
+
 end
