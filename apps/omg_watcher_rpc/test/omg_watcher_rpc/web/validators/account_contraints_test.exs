@@ -18,14 +18,25 @@ defmodule OMG.WatcherRPC.Web.Validator.AccountConstraintsTest do
   """
   use ExUnit.Case, async: true
 
+  alias OMG.Eth.Encoding
   alias OMG.WatcherRPC.Web.Validator.AccountConstraints
 
   describe "parse/1" do
-    test "returns page and limit constraints when given page and limit params" do
-      request_data = %{"page" => 1, "limit" => 100}
+    test "returns page and limit constraints when given page and limit params and adress" do
+      request_data = %{
+        "page" => 1,
+        "limit" => 100,
+        "address" => "0x7977fe798feef376b74b6c1c5ebce8a2ccf02afd"
+      }
 
-      {:ok, constraints} = BlockConstraints.parse(request_data)
-      assert constraints == [page: 1, limit: 100]
+      {:ok, constraints} = AccountConstraints.parse(request_data)
+
+      assert constraints == [
+               address:
+                 <<121, 119, 254, 121, 143, 238, 243, 118, 183, 75, 108, 28, 94, 188, 232, 162, 204, 240, 42, 253>>,
+               page: 1,
+               limit: 100
+             ]
     end
   end
 end
