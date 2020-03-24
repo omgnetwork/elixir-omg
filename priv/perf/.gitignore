@@ -23,3 +23,6 @@ erl_crash.dump
 /apps/child_chain_api/
 /apps/watcher_info_api/
 /apps/watcher_security_critical_api/
+
+# Load test results
+/results/
