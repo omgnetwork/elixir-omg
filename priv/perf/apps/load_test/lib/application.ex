@@ -4,9 +4,6 @@ defmodule LoadTest.Application do
   """
   use Application
 
-  alias ExPlasma.Encoding
-  alias LoadTest.Ethereum.Account
-
   def start(_type, _args) do
     pool_size = Application.fetch_env!(:load_test, :pool_size)
     max_connections = Application.fetch_env!(:load_test, :max_connection)

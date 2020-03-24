@@ -25,7 +25,6 @@ defmodule LoadTest.Service.Faucet do
   alias ExPlasma.Utxo
   alias LoadTest.ChildChain.Deposit
   alias LoadTest.ChildChain.Transaction
-  alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
 
   @eth <<0::160>>
