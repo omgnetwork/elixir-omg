@@ -468,7 +468,7 @@ jobs:
           command: |
             cd priv/perf
             make init
-            mix test
+            make test
       - run:
           name: (Cabbage) Format generated code and check for warnings
           command: |
