@@ -103,6 +103,19 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
              } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
     end
 
+    @tag fixtures: [:web_endpoint, :db_initialized, :bob]
+    test "Provides a report on unsupported start IFE case if input is a spent deposit", %{bob: bob} do
+      in_flight_txbytes =
+        [{1, 0, 0, bob}]
+        |> OMG.TestHelper.create_encoded(@eth, [{bob, 150}])
+        |> Encoding.to_hex()
+
+      assert %{
+               "code" => "in_flight_exit:deposit_input_spent_ife_unsupported",
+               "description" => "Retrieving IFE data of a transaction with a spent deposit is unsupported."
+             } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
+    end
+
     @tag fixtures: [:web_endpoint]
     test "behaves well if input malformed" do
       assert %{"code" => "get_in_flight_exit:malformed_transaction"} =
