@@ -21,31 +21,45 @@ defmodule OMG.WatcherRPC.Web.Validator.AccountConstraintsTest do
   alias OMG.Eth.Encoding
   alias OMG.WatcherRPC.Web.Validator.AccountConstraints
 
-  describe "parse/1" do
+  @fake_address_hex_string "0x7977fe798feef376b74b6c1c5ebce8a2ccf02afd"
+
+  describe("parse/1") do
     test "returns page, limit and adress constraints when given page, limit and adress" do
       request_data = %{
         "page" => 1,
         "limit" => 100,
-        "address" => "0x7977fe798feef376b74b6c1c5ebce8a2ccf02afd"
+        "address" => @fake_address_hex_string
       }
 
       {:ok, constraints} = AccountConstraints.parse(request_data)
 
       assert constraints == [
-               address:
-                 <<121, 119, 254, 121, 143, 238, 243, 118, 183, 75, 108, 28, 94, 188, 232, 162, 204, 240, 42, 253>>,
+               address: Encoding.from_hex(@fake_address_hex_string),
                page: 1,
                limit: 100
              ]
     end
 
-    test "failed if does not provide address" do
+    test "return error if does not provide address" do
       request_data = %{
         "page" => 1,
-        "limit" => 100,
+        "limit" => 100
       }
-      assert AccountConstraints.parse(request_data) == {:error, {:validation_error, "address", :hex}}
+
+      assert AccountConstraints.parse(request_data) ==
+               {:error, {:validation_error, "address", :hex}}
     end
 
+    test "return address if only address is provided" do
+      request_data = %{
+        "address" => @fake_address_hex_string
+      }
+
+      {:ok, constraints} = AccountConstraints.parse(request_data)
+
+      assert constraints == [
+               address: Encoding.from_hex(@fake_address_hex_string)
+             ]
+    end
   end
 end
