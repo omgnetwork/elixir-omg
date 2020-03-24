@@ -22,6 +22,13 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
   @type feed_reading_t :: {pos_integer(), Fees.full_fee_t()}
   @type can_update_result_t :: {:ok, feed_reading_t()} | :no_changes
 
+  # Internal data structure resulted from merge `stored_fees` and `fetched_fees` by tx type.
+  # See `merge_specs_by_tx_type/2`
+  @typep maybe_unpaired_fee_specs_merge_t :: %{non_neg_integer() => Fees.fee_t() | {Fees.fee_t(), Fees.fee_t()}}
+
+  # As above but fully paired, which means `stored_fees` and `fetched_fees` support the same tx types
+  @typep paired_fee_specs_merge_t :: %{non_neg_integer() => {Fees.fee_t(), Fees.fee_t()}}
+
   @doc """
   Newly fetched fees will be effective as long as the amount change on any token is significant
   or the time passed from previous update exceeds the update interval.
@@ -39,14 +46,46 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
       do: {:ok, updated}
 
   def can_update({_, stored_fees}, {_, fetched_fees} = updated, tolerance_percent, _update_interval_seconds) do
-    with merged when is_map(merged) <- merge_types(stored_fees, fetched_fees),
-         false <- Enum.any?(merged, &token_mismatch?/1),
+    merged = merge_specs_by_tx_type(stored_fees, fetched_fees)
+
+    with false <- stored_and_fetched_differs_on_tx_type?(merged),
+         false <- stored_and_fetched_differs_on_token?(merged),
          amount_diffs = Map.values(FeeMerger.merge_specs(stored_fees, fetched_fees)),
          false <- is_change_significant?(amount_diffs, tolerance_percent) do
       :no_changes
     else
       _ -> {:ok, updated}
     end
+  end
+
+  @spec merge_specs_by_tx_type(Fees.full_fee_t(), Fees.full_fee_t()) :: maybe_unpaired_fee_specs_merge_t()
+  defp merge_specs_by_tx_type(stored_specs, fetched_specs) do
+    Map.merge(stored_specs, fetched_specs, fn _t, stored_fees, fetched_fees -> {stored_fees, fetched_fees} end)
+  end
+
+  # Tells whether each tx_type in stored fees has a corresponding fees in fetched
+  # Returns `true` when there is a mismatch
+  @spec stored_and_fetched_differs_on_tx_type?(maybe_unpaired_fee_specs_merge_t()) :: boolean()
+  defp stored_and_fetched_differs_on_tx_type?(merged_specs) do
+    merged_specs
+    |> Map.values()
+    |> Enum.all?(&Kernel.is_tuple/1)
+    |> Kernel.not()
+  end
+
+  # Checks whether previously stored and fetched fees differs on token
+  # Returns `true` when there is a mismatch
+  @spec stored_and_fetched_differs_on_token?(paired_fee_specs_merge_t()) :: boolean()
+  defp stored_and_fetched_differs_on_token?(merged_specs) do
+    Enum.any?(merged_specs, &merge_pair_differs_on_token?/1)
+  end
+
+  @spec merge_pair_differs_on_token?({non_neg_integer(), {Fees.fee_t(), Fees.fee_t()}}) :: boolean()
+  defp merge_pair_differs_on_token?({_type, {stored_fees, fetched_fees}}) do
+    not MapSet.equal?(
+      stored_fees |> Map.keys() |> MapSet.new(),
+      fetched_fees |> Map.keys() |> MapSet.new()
+    )
   end
 
   # Change is significant when
@@ -60,27 +99,6 @@ defmodule OMG.ChildChain.Fees.FeeUpdater do
     token_amounts
     |> Enum.flat_map(&Map.values/1)
     |> Enum.any?(&amount_diff_exceeds_tolerance?(&1, tolerance_rate))
-  end
-
-  # Checks whether previously stored and fetched fees differenciate on token
-  @spec token_mismatch?({non_neg_integer(), {Fees.fee_t(), Fees.fee_t()}}) :: boolean()
-  defp token_mismatch?({_type, {stored_fees, fetched_fees}}) do
-    not MapSet.equal?(
-      stored_fees |> Map.keys() |> MapSet.new(),
-      fetched_fees |> Map.keys() |> MapSet.new()
-    )
-  end
-
-  @spec merge_types(Fees.full_fee_t(), Fees.full_fee_t()) ::
-          %{non_neg_integer() => {Fees.fee_t(), Fees.fee_t()}} | :disjoint_types
-  defp merge_types(stored_specs, fetched_specs) do
-    merged_spec =
-      Map.merge(stored_specs, fetched_specs, fn _t, stored_fees, fetched_fees -> {stored_fees, fetched_fees} end)
-
-    merged_spec
-    |> Map.values()
-    |> Enum.all?(&Kernel.is_tuple/1)
-    |> if(do: merged_spec, else: :disjoint_types)
   end
 
   defp amount_diff_exceeds_tolerance?([_no_change], _rate), do: false

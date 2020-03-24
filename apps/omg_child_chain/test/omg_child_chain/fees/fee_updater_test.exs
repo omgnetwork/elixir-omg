@@ -47,7 +47,7 @@ defmodule OMG.ChildChain.Fees.FeeUpdaterTest do
   }
 
   describe "can_update/4" do
-    test "no changes when previous and actual fees are the same" do
+    test "no changes when stored and fetched fees are the same" do
       assert :no_changes ==
                FeeUpdater.can_update(
                  {0, @fee_spec},
@@ -58,84 +58,110 @@ defmodule OMG.ChildChain.Fees.FeeUpdaterTest do
     end
 
     test "always updates insignificant change when time passed" do
-      actual = put_in(@fee_spec[1][@eth][:amount], 101)
+      fetched = put_in(@fee_spec[1][@eth][:amount], 101)
 
-      assert {:ok, {10, ^actual}} =
+      assert {:ok, {10, ^fetched}} =
                FeeUpdater.can_update(
                  {0, @fee_spec},
-                 {10, actual},
+                 {10, fetched},
                  25,
                  5
                )
     end
 
     test "updates when token amount raises above tolerance level" do
-      actual = put_in(@fee_spec[1][@eth][:amount], 120)
+      fetched = put_in(@fee_spec[1][@eth][:amount], 120)
 
-      assert {:ok, {10, ^actual}} =
+      assert {:ok, {10, ^fetched}} =
                FeeUpdater.can_update(
                  {0, @fee_spec},
-                 {10, actual},
+                 {10, fetched},
                  20,
                  100
                )
     end
 
     test "updates when token amount decreases above tolerance level" do
-      actual = put_in(@fee_spec[1][@eth][:amount], 80)
+      fetched = put_in(@fee_spec[1][@eth][:amount], 80)
 
-      assert {:ok, {10, ^actual}} =
+      assert {:ok, {10, ^fetched}} =
                FeeUpdater.can_update(
                  {0, @fee_spec},
-                 {10, actual},
+                 {10, fetched},
                  20,
                  100
                )
     end
 
     test "no updates when token amount raises below tolerance level" do
-      actual = put_in(@fee_spec[1][@eth][:amount], 119)
+      fetched = put_in(@fee_spec[1][@eth][:amount], 119)
 
       assert :no_changes =
                FeeUpdater.can_update(
                  {0, @fee_spec},
-                 {10, actual},
+                 {10, fetched},
                  20,
                  100
                )
     end
 
     test "updates when token amount drop belop tolerance level" do
-      actual = put_in(@fee_spec[1][@eth][:amount], 81)
+      fetched = put_in(@fee_spec[1][@eth][:amount], 81)
 
       assert :no_changes =
                FeeUpdater.can_update(
                  {0, @fee_spec},
-                 {10, actual},
+                 {10, fetched},
                  20,
                  100
                )
     end
 
-    test "always update when specs differes on tx type" do
-      actual = %{2 => @fee_spec[1]}
+    test "always updates when stored and fetched specs differs on tx type" do
+      fetched = %{2 => @fee_spec[1]}
 
-      assert {:ok, {10, ^actual}} =
+      assert {:ok, {10, ^fetched}} =
                FeeUpdater.can_update(
                  {0, @fee_spec},
-                 {10, actual},
+                 {10, fetched},
                  20,
                  100
                )
     end
 
-    test "updates when tokens mismatch" do
-      actual = %{1 => Map.delete(@fee_spec[1], @eth)}
+    test "always updates when stored and fetched specs differs on token" do
+      fetched = %{1 => Map.delete(@fee_spec[1], @eth)}
 
-      assert {:ok, {10, ^actual}} =
+      assert {:ok, {10, ^fetched}} =
                FeeUpdater.can_update(
                  {0, @fee_spec},
-                 {10, actual},
+                 {10, fetched},
+                 20,
+                 100
+               )
+    end
+
+    test "always updates when stored and fetched specs differs on token (drop support of token)" do
+      stored = Map.put_new(@fee_spec, 2, @fee_spec[1])
+      fetched = %{1 => @fee_spec[1], 2 => Map.delete(@fee_spec[1], @eth)}
+
+      assert {:ok, {10, ^fetched}} =
+               FeeUpdater.can_update(
+                 {0, stored},
+                 {10, fetched},
+                 20,
+                 100
+               )
+    end
+
+    test "always updates when stored and fetched specs differs on token (add support of token)" do
+      stored = Map.put_new(@fee_spec, 2, Map.delete(@fee_spec[1], @eth))
+      fetched = %{1 => @fee_spec[1], 2 => @fee_spec[1]}
+
+      assert {:ok, {10, ^fetched}} =
+               FeeUpdater.can_update(
+                 {0, stored},
+                 {10, fetched},
                  20,
                  100
                )
@@ -148,13 +174,13 @@ defmodule OMG.ChildChain.Fees.FeeUpdaterTest do
         |> put_in([@eth, :amount], 101)
         |> put_in([@not_eth, :amount], 111)
 
-      prev = Map.put_new(@fee_spec, 2, update)
-      actual = %{1 => prev[2], 2 => prev[1]}
+      stored = Map.put_new(@fee_spec, 2, update)
+      fetched = %{1 => stored[2], 2 => stored[1]}
 
       assert :no_changes =
                FeeUpdater.can_update(
-                 {0, prev},
-                 {10, actual},
+                 {0, stored},
+                 {10, fetched},
                  20,
                  100
                )
@@ -167,16 +193,16 @@ defmodule OMG.ChildChain.Fees.FeeUpdaterTest do
         |> put_in([@eth, :amount], 101)
         |> put_in([@not_eth, :amount], 111)
 
-      prev = Map.put_new(@fee_spec, 2, update)
+      stored = Map.put_new(@fee_spec, 2, update)
 
       # lowers not_eth to exceed tolerance
-      cheaper_fees = put_in(prev[1], [@not_eth, :amount], 88)
-      actual = %{1 => prev[2], 2 => cheaper_fees}
+      cheaper_fees = put_in(stored[1], [@not_eth, :amount], 88)
+      fetched = %{1 => stored[2], 2 => cheaper_fees}
 
-      assert {:ok, {10, ^actual}} =
+      assert {:ok, {10, ^fetched}} =
                FeeUpdater.can_update(
-                 {0, prev},
-                 {10, actual},
+                 {0, stored},
+                 {10, fetched},
                  20,
                  100
                )

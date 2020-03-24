@@ -107,8 +107,8 @@ defmodule OMG.ChildChain.FeeServer do
          %{
            fee_adapter: adapter,
            fee_adapter_opts: opts,
-           expire_fee_timer: current_timer,
-           fee_buffer_duration_ms: fee_buffer_duration
+           expire_fee_timer: current_expire_fee_timer,
+           fee_buffer_duration_ms: fee_buffer_duration_ms
          } = state
        ) do
     source_updated_at = :ets.lookup_element(:fees_bucket, :fee_specs_source_updated_at, 2)
@@ -118,14 +118,14 @@ defmodule OMG.ChildChain.FeeServer do
       {:ok, fee_specs, source_updated_at} ->
         :ok = save_fees(fee_specs, source_updated_at)
         _ = Logger.info("Reloaded fee specs from #{inspect(adapter)}, changed at #{inspect(source_updated_at)}")
-        new_timer = start_expiration_timer(current_timer, fee_buffer_duration)
+        new_expire_fee_timer = start_expiration_timer(current_expire_fee_timer, fee_buffer_duration_ms)
 
         _ =
           Logger.info(
-            "Timer started: previous fees will still be valid for #{inspect(fee_buffer_duration)} ms, or until new fees are set"
+            "Timer started: previous fees will still be valid for #{inspect(fee_buffer_duration_ms)} ms, or until new fees are set"
           )
 
-        {:ok, Map.put(state, :expire_fee_timer, new_timer)}
+        {:ok, Map.put(state, :expire_fee_timer, new_expire_fee_timer)}
 
       :ok ->
         :ok
@@ -152,11 +152,11 @@ defmodule OMG.ChildChain.FeeServer do
     :ok
   end
 
-  defp start_expiration_timer(timer, fee_buffer_duration) do
+  defp start_expiration_timer(timer, fee_buffer_duration_ms) do
     # If a timer was already started, we cancel it
     _ = if timer != nil, do: Process.cancel_timer(timer)
     # We then start a new timer that will set the previous fees to nil uppon expiration
-    Process.send_after(self(), :expire_previous_fees, fee_buffer_duration)
+    Process.send_after(self(), :expire_previous_fees, fee_buffer_duration_ms)
   end
 
   defp load_current_fees() do

@@ -32,9 +32,9 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   defp update_adapter_opts_with_env({OMG.ChildChain.Fees.FeedAdapter, opts: fee_adapter_opts}) do
     adapter_opts =
       fee_adapter_opts
-      |> replace_with_env(&validate_string/2, feed_url: "FEE_FEED_URL")
-      |> replace_with_env(&validate_integer/2, fee_change_tolerance_percent: "FEE_FEED_TOLERANCE_PERCENT")
-      |> replace_with_env(&validate_integer/2, stored_fee_update_interval_minutes: "FEE_FEED_UPDATE_INTERVAL_MINUTES")
+      |> replace_with_env(&validate_string/2, fee_feed_url: "FEE_FEED_URL")
+      |> replace_with_env(&validate_integer/2, fee_change_tolerance_percent: "FEE_CHANGE_TOLERANCE_PERCENT")
+      |> replace_with_env(&validate_integer/2, stored_fee_update_interval_minutes: "STORED_FEE_UPDATE_INTERVAL_MINUTES")
 
     new_value = {OMG.ChildChain.Fees.FeedAdapter, opts: adapter_opts}
     :ok = Application.put_env(@app, @config_key, adapter_opts, persistent: true)
@@ -54,15 +54,15 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   # Replaces one of the adapter's options value with environment variable when set.
   #
   # E.g. called with following parameters:
-  # - opts: [feed_url: "localhost", fee_change_tolerance_percent: 25]
+  # - opts: [fee_feed_url: "localhost", fee_change_tolerance_percent: 25]
   # - validator function: &validate_string/2
-  # - opts_key_env: feed_url: "FEE_FEED_URL"
+  # - opts_key_env: fee_feed_url: "FEE_FEED_URL"
   #
   # assuming "FEE_FEED_URL" environment variable is set to "http://childchain:9656"
   # When the env var isn't set, value of the given option's key remains unchainched.
   #
-  # Returns the options with `feed_url` value replaced with the value of env var:
-  # [feed_url: "http://childchain:9656", fee_change_tolerance_percent: 25]
+  # Returns the options with `fee_feed_url` value replaced with the value of env var:
+  # [fee_feed_url: "http://childchain:9656", fee_change_tolerance_percent: 25]
   defp replace_with_env(opts, validator_fn, opts_key_env) do
     Keyword.merge(
       opts,

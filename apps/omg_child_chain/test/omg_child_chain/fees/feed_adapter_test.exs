@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.Integration.FeedAdapterTest do
+defmodule OMG.ChildChain.Fees.FeedAdapterTest do
   @moduledoc false
 
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias FakeServer.Agents.EnvAgent
   alias FakeServer.Env
@@ -25,7 +25,6 @@ defmodule OMG.ChildChain.Integration.FeedAdapterTest do
   alias OMG.ChildChain.Fees.JSONFeeParser
   alias OMG.Eth
 
-  @moduletag :integration
   @moduletag :child_chain
 
   @server_id :fees_all_fake_server
@@ -61,7 +60,7 @@ defmodule OMG.ChildChain.Integration.FeedAdapterTest do
          fee_adapter_opts: [
            fee_change_tolerance_percent: 10,
            stored_fee_update_interval_minutes: 5,
-           feed_url: "localhost:#{port}"
+           fee_feed_url: "localhost:#{port}"
          ]
        }}
     end
