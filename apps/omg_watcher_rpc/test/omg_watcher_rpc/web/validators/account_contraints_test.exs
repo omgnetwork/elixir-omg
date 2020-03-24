@@ -22,7 +22,7 @@ defmodule OMG.WatcherRPC.Web.Validator.AccountConstraintsTest do
   alias OMG.WatcherRPC.Web.Validator.AccountConstraints
 
   describe "parse/1" do
-    test "returns page and limit constraints when given page and limit params and adress" do
+    test "returns page, limit and adress constraints when given page, limit and adress" do
       request_data = %{
         "page" => 1,
         "limit" => 100,
@@ -38,5 +38,14 @@ defmodule OMG.WatcherRPC.Web.Validator.AccountConstraintsTest do
                limit: 100
              ]
     end
+
+    test "failed if does not provide address" do
+      request_data = %{
+        "page" => 1,
+        "limit" => 100,
+      }
+      assert AccountConstraints.parse(request_data) == {:error, {:validation_error, "address", :hex}}
+    end
+
   end
 end
