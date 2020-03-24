@@ -486,7 +486,7 @@ jobs:
             # run format ONLY on formatted code so that it cleans up quoted atoms because
             # we cannot exclude folders to --warnings-as-errors
             mix format apps/*_api/lib/*_api/model/*.ex
-            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
+            make format-code-check-warnings
       - save_cache:
           key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
           paths:
@@ -579,7 +579,7 @@ jobs:
           command: |
             cd priv/perf
             make init
-            mix test
+            make test
 
   publish_child_chain:
     machine:
