@@ -89,6 +89,25 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
            } == WatcherHelper.no_success?("account.get_balance", %{"address" => 1_234_567_890})
   end
 
+  @tag fixtures: [:alice, :phoenix_ecto_sandbox]
+  test "account.get_balance returns bad request error if address is passed as a query parameter", %{
+    alice: alice
+  } do
+    %{"address" => address} = body_for(alice)
+
+    assert %{
+             "object" => "error",
+             "code" => "operation:bad_request",
+             "description" => "Parameters required by this operation are missing or incorrect.",
+             "messages" => %{
+               "validation_error" => %{
+                 "parameter" => "address",
+                 "validator" => ":hex"
+               }
+             }
+           } == WatcherHelper.no_success?("account.get_balance?address=#{address}")
+  end
+
   describe "standard_exitable" do
     @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :carol]
     test "no utxos are returned for non-existing addresses", %{carol: carol} do
