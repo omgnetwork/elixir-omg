@@ -28,6 +28,24 @@ defmodule OMG.ChildChain.FeeServer do
   alias OMG.Fees
   alias OMG.Status.Alert.Alarm
 
+  defstruct [
+    :fee_adapter_check_interval_ms,
+    :fee_buffer_duration_ms,
+    :fee_adapter,
+    :fee_adapter_opts,
+    fee_adapter_check_timer: nil,
+    expire_fee_timer: nil
+  ]
+
+  @typep t() :: %__MODULE__{
+           fee_adapter_check_interval_ms: pos_integer(),
+           fee_buffer_duration_ms: pos_integer(),
+           fee_adapter: OMG.ChildChain.Fees.FileAdapter | OMG.ChildChain.Fees.FeedAdapter,
+           fee_adapter_opts: Keyword.t(),
+           fee_adapter_check_timer: :timer.tref(),
+           expire_fee_timer: :timer.tref()
+         }
+
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
@@ -36,14 +54,13 @@ defmodule OMG.ChildChain.FeeServer do
     :ok = ensure_ets_init()
 
     {:ok, state} =
-      args
-      |> Enum.into(%{})
-      |> Map.put(:expire_fee_timer, nil)
+      __MODULE__
+      |> Kernel.struct(args)
       |> update_fee_specs()
 
-    interval = Map.fetch!(state, :fee_adapter_check_interval_ms)
-    {:ok, tref} = :timer.send_interval(interval, self(), :update_fee_specs)
-    state = Map.put(state, :tref, tref)
+    interval = state.fee_adapter_check_interval_ms
+    {:ok, fee_adapter_check_timer} = :timer.send_interval(interval, self(), :update_fee_specs)
+    state = %__MODULE__{state | fee_adapter_check_timer: fee_adapter_check_timer}
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
 
@@ -102,11 +119,11 @@ defmodule OMG.ChildChain.FeeServer do
     {:noreply, new_state}
   end
 
-  @spec update_fee_specs(map()) :: :ok | {:ok, map()} | {:error, list({:error, atom(), any(), non_neg_integer() | nil})}
+  @spec update_fee_specs(t()) :: :ok | {:ok, t()} | {:error, list({:error, atom(), any(), non_neg_integer() | nil})}
   defp update_fee_specs(
-         %{
-           fee_adapter: adapter,
-           fee_adapter_opts: opts,
+         %__MODULE__{
+           fee_adapter: fee_adapter,
+           fee_adapter_opts: fee_adapter_opts,
            expire_fee_timer: current_expire_fee_timer,
            fee_buffer_duration_ms: fee_buffer_duration_ms
          } = state
@@ -114,10 +131,10 @@ defmodule OMG.ChildChain.FeeServer do
     source_updated_at = :ets.lookup_element(:fees_bucket, :fee_specs_source_updated_at, 2)
     current_fee_specs = load_current_fees()
 
-    case adapter.get_fee_specs(opts, current_fee_specs, source_updated_at) do
+    case fee_adapter.get_fee_specs(fee_adapter_opts, current_fee_specs, source_updated_at) do
       {:ok, fee_specs, source_updated_at} ->
         :ok = save_fees(fee_specs, source_updated_at)
-        _ = Logger.info("Reloaded fee specs from #{inspect(adapter)}, changed at #{inspect(source_updated_at)}")
+        _ = Logger.info("Reloaded fee specs from #{inspect(fee_adapter)}, changed at #{inspect(source_updated_at)}")
         new_expire_fee_timer = start_expiration_timer(current_expire_fee_timer, fee_buffer_duration_ms)
 
         _ =
@@ -125,7 +142,7 @@ defmodule OMG.ChildChain.FeeServer do
             "Timer started: previous fees will still be valid for #{inspect(fee_buffer_duration_ms)} ms, or until new fees are set"
           )
 
-        {:ok, Map.put(state, :expire_fee_timer, new_expire_fee_timer)}
+        {:ok, %__MODULE__{state | expire_fee_timer: new_expire_fee_timer}}
 
       :ok ->
         :ok
