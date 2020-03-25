@@ -16,9 +16,9 @@ config :load_test,
   initial_funds_wei: trunc(:math.pow(10, 10)),
   eth_vault_address: "0xe637769f388f309e1cca8dd679a95a7b64a5bd06",
   utxo_load_test_config: %{
-    concurrent_session: 10,
+    concurrent_session: 100,
     utxos_to_create_per_session: 1,
-    transactions_per_session: 100
+    transactions_per_session: 10_000
   }
 
 config :ex_plasma,
