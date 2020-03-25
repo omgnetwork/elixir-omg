@@ -18,8 +18,8 @@ defmodule Support.Integration.DepositHelper do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.Encoding
   alias OMG.Eth.Configuration
+  alias OMG.Eth.Encoding
   alias OMG.State.Transaction
   alias Support.DevHelper
   alias Support.RootChainHelper

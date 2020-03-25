@@ -44,7 +44,7 @@ defmodule OMG.Watcher.Fixtures do
             pegged_subunit_to_unit: 100,
             updated_at: DateTime.utc_now()
           },
-          Eth.Encoding.to_hex(token) => %{
+          token => %{
             amount: 2,
             pegged_amount: 1,
             subunit_to_unit: 1_000_000_000_000_000_000,
@@ -165,7 +165,7 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   defp log_output(prefix, line) do
-    Logger.debug("#{prefix}: " <> line)
+    Logger.warn("#{prefix}: " <> line)
     line
   end
 

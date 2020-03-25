@@ -38,14 +38,12 @@ defmodule Support.DevHelper do
   @passphrase "ThisIsATestnetPassphrase"
 
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
-    contract_addr = contract_map_to_hex(contract_addr)
-
     """
     use Mix.Config
     config :omg_eth,
       contract_addr: #{inspect(contract_addr)},
-      txhash_contract: #{inspect(to_hex(txhash))},
-      authority_addr: #{inspect(to_hex(authority_addr))}
+      txhash_contract: #{inspect(txhash)},
+      authority_addr: #{inspect(authority_addr)}
     """
   end
 
@@ -186,12 +184,6 @@ defmodule Support.DevHelper do
     bytes_to_throw_away = 2 * 32 + 4
     # trimming the 4-byte function selector, 32 byte size of size and 32 byte size
     result |> binary_part(bytes_to_throw_away, byte_size(result) - bytes_to_throw_away) |> String.trim(<<0>>)
-  end
-
-  # Hexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
-
-  defp contract_map_to_hex(contract_map) do
-    Enum.into(contract_map, %{}, fn {name, addr} -> {name, to_hex(addr)} end)
   end
 
   defp get_external_data(contract_address, signature, args) do
