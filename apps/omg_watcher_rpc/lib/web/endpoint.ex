@@ -26,7 +26,7 @@ defmodule OMG.WatcherRPC.Web.Endpoint do
   plug(
     Plug.Parsers,
     parsers: [:json, :urlencoded],
-    pass: [*/*],
+    pass: ["*/*"],
     json_decoder: Jason
   )
 
