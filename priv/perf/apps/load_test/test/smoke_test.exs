@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Runner.UtxosLoadTest do
+defmodule LoadTest.Test do
   @moduledoc """
   Runs a smoke test for utxos load test
   """
   use ExUnit.Case
 
   @tag timeout: 6_000_000
-  test "smoke test - should run utxos load test" do
-    Chaperon.run_load_test(LoadTest.Runner.UtxosLoad, print_results: true)
+  test "smoke test - all services are running" do
+    Chaperon.run_load_test(LoadTest.Runner.Smoke, print_results: true)
   end
 end

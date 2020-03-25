@@ -1,4 +1,4 @@
-defmodule LoadTest.Smoke do
+defmodule LoadTest.Runner.Smoke do
   @moduledoc """
   Load tests for watcher info
   """
