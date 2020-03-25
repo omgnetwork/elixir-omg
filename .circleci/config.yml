@@ -468,7 +468,7 @@ jobs:
           command: |
             cd priv/perf
             make init
-            make test
+            mix test
       - run:
           name: (Cabbage) Format generated code and check for warnings
           command: |
@@ -649,11 +649,20 @@ jobs:
             sudo apt-get install elixir=1.8.2-1
       - run: make install-hex-rebar
       - run:
-          name: Run load test
+          name: Init Perf tests
           command: |
             cd priv/perf
             make init
-            MIX_ENV=dev mix test
+      - run:
+          name: Run smoke test to make sure the environment is up
+          command: |
+            cd priv/perf
+            MIX_ENV=dev mix test test/smoke_test.exs
+      - run:
+          name: Run load test
+          command: |
+            cd priv/perf
+            MIX_ENV=dev mix test test/load_tests/
 
   coveralls_report:
     docker:
