@@ -18,7 +18,7 @@ config :load_test,
   utxo_load_test_config: %{
     concurrent_session: 100,
     utxos_to_create_per_session: 1,
-    transactions_per_session: 10_000
+    transactions_per_session: 3000
   }
 
 config :ex_plasma,
