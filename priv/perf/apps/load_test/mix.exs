@@ -10,6 +10,7 @@ defmodule LoadTest.MixProject do
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixir: "~> 1.8",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -23,11 +24,16 @@ defmodule LoadTest.MixProject do
     ]
   end
 
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(_), do: ["lib"]
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:chaperon, "~> 0.3.1"},
-      {:jason, "~> 1.1"},
+      {:tesla, "~> 1.3.0"},
+      {:httpoison, "~> 1.6.2", override: true},
+      {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git", override: true},
 
       # Better adapter for tesla
       {:hackney, "~> 1.15.2"},
