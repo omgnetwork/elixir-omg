@@ -32,7 +32,9 @@ defmodule LoadTest.Scenario.SpendUtxos do
     sender = config(session, [:sender])
     transactions_per_session = config(session, [:transactions_per_session])
 
-    repeat(session, :submit_transaction, [sender], transactions_per_session)
+    session
+    |> assign(iteration: 1)
+    |> repeat(:submit_transaction, [sender], transactions_per_session)
   end
 
   def submit_transaction(session, sender) do
@@ -44,14 +46,18 @@ defmodule LoadTest.Scenario.SpendUtxos do
     {:ok, blknum, txindex} = LoadTest.ChildChain.Transaction.submit_tx(inputs, outputs, [sender])
 
     session =
-      Chaperon.Session.add_metric(
+      Session.add_metric(
         session,
         {:call, {LoadTest.Scenario.SpendUtxos, "submit_transaction"}},
         Timing.timestamp() - start
       )
 
     last_change = %{blknum: blknum, txindex: txindex, oindex: 0, amount: change}
-    Chaperon.Session.assign(session, last_change: last_change)
+
+    session
+    |> assign(last_change: last_change)
+    |> log_info("submit_transaction iteration [#{Integer.to_string(session.assigned.iteration)}] finished...")
+    |> update_assign(iteration: &(&1 + 1))
   end
 
   defp create_transaction(sender, prev_change, fee_wei) do
