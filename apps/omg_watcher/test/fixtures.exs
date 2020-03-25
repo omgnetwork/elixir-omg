@@ -165,7 +165,7 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   defp log_output(prefix, line) do
-    Logger.warn("#{prefix}: " <> line)
+    Logger.debug("#{prefix}: " <> line)
     line
   end
 
