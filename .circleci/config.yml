@@ -629,32 +629,6 @@ jobs:
       - checkout
       - run: DEPLOY=watcher_info sh .circleci/ci_deploy.sh
 
-  run_load_test_on_deployed_env:
-    machine:
-      image: ubuntu-1604:201903-01
-    steps:
-      - checkout
-      - run:
-          name: Install Erlang and Elixir
-          command: |
-            set -e
-            wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
-            sudo killall dpkg || true &&
-            sudo rm /var/lib/dpkg/lock || true &&
-            sudo rm /var/cache/apt/archives/lock || true &&
-            sudo dpkg --configure -a || true &&
-            sudo dpkg -i erlang-solutions_2.0_all.deb  &&
-            sudo apt-get update &&
-            sudo apt-get install esl-erlang=1:21.3.8.10-1
-            sudo apt-get install elixir=1.8.2-1
-      - run: make install-hex-rebar
-      - run:
-          name: Run load test
-          command: |
-            cd priv/perf
-            make init
-            MIX_ENV=dev mix test
-
   coveralls_report:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
@@ -853,12 +827,6 @@ workflows:
                 - master
       - deploy_watcher_info:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters:
-            branches:
-              only:
-                - master
-      - run_load_test_on_deployed_env:
-          requires: [deploy_child_chain, deploy_watcher, deploy_watcher_info]
           filters:
             branches:
               only:
