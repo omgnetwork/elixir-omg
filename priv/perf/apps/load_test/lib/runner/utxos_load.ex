@@ -21,14 +21,8 @@ defmodule LoadTest.Runner.UtxosLoad do
 
   alias LoadTest.Ethereum.Account
 
-  @concurrent_session 4
-  @default_config %{
-    utxos_to_create_per_session: 3_000_000,
-    transactions_per_session: 100_000
-  }
-
   def default_config() do
-    utxo_load_test_config = Application.get_env(:load_test, :utxo_load_test_config, @default_config)
+    utxo_load_test_config = Application.get_env(:load_test, :utxo_load_test_config)
 
     %{
       utxos_to_create_per_session: utxo_load_test_config[:utxos_to_create_per_session],
@@ -39,8 +33,10 @@ defmodule LoadTest.Runner.UtxosLoad do
   def scenarios() do
     {:ok, sender} = Account.new()
 
+    config = Application.get_env(:load_test, :utxo_load_test_config)
+
     [
-      {{@concurrent_session, [LoadTest.Scenario.CreateUtxos, LoadTest.Scenario.SpendUtxos]},
+      {{config.concurrent_session, [LoadTest.Scenario.CreateUtxos, LoadTest.Scenario.SpendUtxos]},
        %{
          sender: sender
        }}
