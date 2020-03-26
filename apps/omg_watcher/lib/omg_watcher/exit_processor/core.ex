@@ -14,11 +14,7 @@
 
 defmodule OMG.Watcher.ExitProcessor.Core do
   @moduledoc """
-  Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers
-  Keeps a state of exits that are in progress, updates it with news from the root chain, compares to the
-  state of the ledger (`OMG.State`), issues notifications as it finds suitable.
-
-  Should manage all kinds of exits allowed in the protocol and handle the interactions between them.
+  Logic related to treating exits by the Watcher.
 
   This is the functional, zero-side-effect part of the exit processor. Logic should go here:
     - orchestrating the persistence of the state
@@ -27,7 +23,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     - figuring out critical failure of invalid exit challenging (aka `:unchallenged_exit` event)
     - MoreVP protocol managing in general
 
-  For the imperative shell, see `OMG.Watcher.ExitProcessor`
+  This is the functional logic driving the `GenServer` in `OMG.Watcher.ExitProcessor`
   """
 
   alias OMG.Block

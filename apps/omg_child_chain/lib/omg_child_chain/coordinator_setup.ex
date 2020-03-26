@@ -19,6 +19,14 @@ defmodule OMG.ChildChain.CoordinatorSetup do
   """
   alias OMG.Configuration
 
+  @doc """
+  The `OMG.RootChainCoordinator` setup for the `OMG.ChildChain` app. Summary of the configuration:
+
+    - deposits are recognized after `deposit_finality_margin`
+    - exit-related events don't have any finality margin, but wait for deposits
+    - piggyback-related events must wait for IFE start events
+  """
+
   def coordinator_setup() do
     deposit_finality_margin = Configuration.deposit_finality_margin()
 
