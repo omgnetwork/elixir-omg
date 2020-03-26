@@ -189,10 +189,9 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
              root_chain_txhash_event: ^expected_root_chain_txhash_event_3
            } = DB.EthEvent.get(expected_root_chain_txhash_event_3)
 
-    expected = [^expected_root_chain_txhash_1, ^expected_root_chain_txhash_2, ^expected_root_chain_txhash_3]
-    %{data: alice_utxos} = DB.TxOutput.get_utxos(alice.addr)
 
-    assert expected =
+    %{data: alice_utxos} = DB.TxOutput.get_utxos([address: alice.addr])
+    assert [^expected_root_chain_txhash_1, ^expected_root_chain_txhash_2, ^expected_root_chain_txhash_3] =
              alice_utxos
              |> Enum.map(fn txoutput ->
                [head | _tail] = txoutput.ethevents
@@ -228,7 +227,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                }
              ])
 
-    %{data: utxos} = DB.TxOutput.get_utxos(expected_owner)
+    %{data: utxos} = DB.TxOutput.get_utxos([address: expected_owner])
     assert length(utxos) == 1
 
     assert :ok =
@@ -240,7 +239,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                }
              ])
 
-    assert Enum.empty?(DB.TxOutput.get_utxos(expected_owner))
+    assert Enum.empty?(DB.TxOutput.get_utxos(%{address: expected_owner}))
   end
 
   @tag fixtures: [:alice, :initial_blocks]
