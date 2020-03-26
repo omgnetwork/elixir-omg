@@ -19,7 +19,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzer do
   to datadog
   """
   require Logger
-
+  @retries 3
   defstruct txhash_queue: :queue.new(), rpc: Ethereumex.HttpClient
 
   def enqueue(server \\ __MODULE__, txhash) do
@@ -68,8 +68,13 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzer do
           gas_used = txhash |> to_hex() |> get_gas_used(state.rpc)
 
           case {gas_used, try_index} do
-            {nil, 3} ->
+            {nil, @retries} ->
               # reached the threshold, we're omitting this txhash
+              _ =
+                Logger.warn(
+                  "Could not get gas used for txhash #{txhash} after #{@retries} retries. Removing from queue."
+                )
+
               txhash_queue
 
             {nil, _} ->
