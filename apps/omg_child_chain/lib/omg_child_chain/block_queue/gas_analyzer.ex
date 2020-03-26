@@ -50,11 +50,11 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzer do
 
   @doc """
     We receive transaction hashes from BlockQueue.
-    These hashes do not mean that transaction was already accepted. 
-    The consequence is that Because of that
-    theres a possibility the transaction will never get accepted
-    and that we need to define a constant `try_index`. `try_index` constant is the 
-    threshold limit that defines the amount of retries we're willing to fetch gas. 
+    These hashes do not mean that transaction was already accepted.
+    The consequence is that theres a possibility the transaction
+    will never get accepted and that we need to define a constant `try_index`.
+    `try_index` constant is the threshold limit that defines the amount
+    of retries we're willing to fetch gas.
     After it's reached the tx hash will be thrown away.
   """
   def handle_info(:get_gas_used, state) do
