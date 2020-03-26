@@ -1,5 +1,5 @@
 AddressBodySchema:
-  description: HEX-encoded address of the account
+  description: HEX-encoded address of the account and pagination fields
   required: true
   content:
     application/json:
