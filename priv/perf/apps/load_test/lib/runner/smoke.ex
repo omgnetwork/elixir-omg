@@ -19,8 +19,9 @@ defmodule LoadTest.Runner.Smoke do
 
   use Chaperon.LoadTest
 
-  def scenarios,
-    do: [
+  def scenarios do
+    [
       {{1, LoadTest.Scenario.Smoke}, %{}}
     ]
+  end
 end

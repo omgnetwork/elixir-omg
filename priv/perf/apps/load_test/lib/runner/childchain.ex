@@ -21,11 +21,12 @@ defmodule LoadTest.Runner.ChildChain do
   @concurrent_sessions 10
   @transactions_per_session 10
 
-  def scenarios(),
-    do: [
+  def scenarios() do
+    [
       {{@concurrent_sessions, LoadTest.Scenario.ChildChainSubmitTransactions},
        %{
          ntx_to_send: @transactions_per_session
        }}
     ]
+  end
 end

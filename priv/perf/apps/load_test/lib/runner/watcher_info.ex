@@ -21,16 +21,18 @@ defmodule LoadTest.Runner.WatcherInfo do
   @concurrent_sessions 1
   @iterations 1
 
-  def default_config(),
-    do: %{
+  def default_config() do
+    %{
       merge_scenario_sessions: true
     }
+  end
 
-  def scenarios(),
-    do: [
+  def scenarios() do
+    [
       {{@concurrent_sessions, LoadTest.Scenario.AccountTransactions},
        %{
          iterations: @iterations
        }}
     ]
+  end
 end
