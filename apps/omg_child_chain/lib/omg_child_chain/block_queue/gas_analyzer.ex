@@ -73,7 +73,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzer do
               txhash_queue
 
             {nil, _} ->
-              # we couldn't get gas but we didn't reach the treshold yet 
+              # we couldn't get gas but we didn't reach the threshold yet 
               :queue.in_r({txhash, try_index + 1}, txhash_queue)
 
             {gas, _} ->
