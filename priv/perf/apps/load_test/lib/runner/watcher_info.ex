@@ -18,8 +18,8 @@ defmodule LoadTest.Runner.WatcherInfo do
   """
   use Chaperon.LoadTest
 
-  @concurrent_sessions 1
-  @iterations 1
+  @concurrent_sessions 100
+  @iterations 10
 
   def default_config() do
     %{
