@@ -217,7 +217,6 @@ defmodule OMG.Performance.ByzantineEvents do
   defp map_contract_transaction(enumberable, transaction_function) do
     enumberable
     |> Enum.map(transaction_function)
-    # NOTE: infinity doesn't work, hence the large number
     |> Task.async_stream(&Support.DevHelper.transact_sync!(&1, timeout: :infinity),
       timeout: :infinity,
       max_concurrency: 10_000

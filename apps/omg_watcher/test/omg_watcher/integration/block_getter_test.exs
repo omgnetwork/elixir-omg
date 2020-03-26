@@ -52,10 +52,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @tag fixtures: [:in_beam_watcher, :mix_based_child_chain, :alice, :bob, :alice_deposits, :token]
   test "get the blocks from child chain after sending a transaction and start exit",
        %{alice: alice, bob: bob, token: token, alice_deposits: {deposit_blknum, token_deposit_blknum}} do
-    token_addr = Encoding.to_hex(token)
-
     # utxo from deposit should be available
-    assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =
+    assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token}] =
              WatcherHelper.get_utxos(alice.addr)
 
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 6}, {bob, 3}])

@@ -63,7 +63,7 @@ defmodule OMG.Eth.Configuration do
     Application.fetch_env!(@app, :child_block_interval)
   end
 
-  @spec eth_node() :: pos_integer | no_return
+  @spec eth_node() :: atom | no_return
   def eth_node() do
     Application.fetch_env!(@app, :eth_node)
   end
