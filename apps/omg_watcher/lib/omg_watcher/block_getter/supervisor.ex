@@ -45,7 +45,8 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
       {OMG.State,
        [
          fee_claimer_address: fee_claimer_address,
-         child_block_interval: child_block_interval
+         child_block_interval: child_block_interval,
+         metrics_collection_interval: metrics_collection_interval
        ]},
       %{
         id: BlockGetter,

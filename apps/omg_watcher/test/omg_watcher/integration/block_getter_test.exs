@@ -31,7 +31,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   import ExUnit.CaptureLog, only: [capture_log: 1]
 
   alias OMG.Eth
-  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.BadChildChainServer
@@ -42,6 +41,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @hex_eth "0x0000000000000000000000000000000000000000"
 
   @moduletag :integration
   @moduletag :watcher
@@ -119,7 +119,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       |> DevHelper.transact_sync!()
 
     :ok = IntegrationTest.process_exits(2, token, alice)
-    :ok = IntegrationTest.process_exits(1, @eth, alice)
+    :ok = IntegrationTest.process_exits(1, @hex_eth, alice)
 
     assert WatcherHelper.get_exitable_utxos(alice.addr) == []
     assert WatcherHelper.get_utxos(alice.addr) == []

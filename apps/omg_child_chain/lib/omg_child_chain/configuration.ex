@@ -16,7 +16,6 @@ defmodule OMG.ChildChain.Configuration do
   @moduledoc """
   Interface for accessing all Child Chain configuration
   """
-
   @app :omg_child_chain
 
   @spec metrics_collection_interval() :: no_return | pos_integer()

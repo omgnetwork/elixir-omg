@@ -150,12 +150,13 @@ defmodule OMG.State do
     {:ok, child_top_block_number} = DB.get_single_value(:child_top_block_number)
     child_block_interval = Keyword.fetch!(opts, :child_block_interval)
     fee_claimer_address = Keyword.fetch!(opts, :fee_claimer_address)
+    metrics_collection_interval = Keyword.fetch!(opts, :metrics_collection_interval)
 
     {:ok, _data} =
       result = Core.extract_initial_state(child_top_block_number, child_block_interval, fee_claimer_address)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{child_top_block_number}}")
-    metrics_collection_interval = Application.fetch_env!(:omg, :metrics_collection_interval)
+
     {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
     result

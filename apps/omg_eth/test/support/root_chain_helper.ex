@@ -176,6 +176,7 @@ defmodule Support.RootChainHelper do
 
   def process_exits(vault_id, token, top_exit_id, exits_to_process, from) do
     opts = @tx_defaults
+    token = from_hex(token)
     contract = from_hex(Configuration.contracts().plasma_framework)
     signature = "processExits(uint256,address,uint160,uint256)"
     args = [vault_id, token, top_exit_id, exits_to_process]

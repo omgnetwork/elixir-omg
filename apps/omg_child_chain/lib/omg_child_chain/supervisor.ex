@@ -38,12 +38,18 @@ defmodule OMG.ChildChain.Supervisor do
   def init(:ok) do
     :ok = Client.node_ready()
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
+    metrics_collection_interval = OMG.ChildChain.Configuration.metrics_collection_interval()
     fee_claimer_address = OMG.Configuration.fee_claimer_address()
     fee_server_opts = OMG.ChildChain.Configuration.fee_server_opts()
     child_block_interval = Configuration.child_block_interval()
 
     children = [
-      {State, [fee_claimer_address: fee_claimer_address, child_block_interval: child_block_interval]},
+      {State,
+       [
+         fee_claimer_address: fee_claimer_address,
+         child_block_interval: child_block_interval,
+         metrics_collection_interval: metrics_collection_interval
+       ]},
       {FreshBlocks, []},
       {FeeServer, fee_server_opts},
       {Monitor,
