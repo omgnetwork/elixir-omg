@@ -185,7 +185,7 @@ defmodule OMG.ChildChain.FeeServer do
   end
 
   defp ensure_ets_init() do
-    _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :public, :named_table])
+    _ = if :undefined == :ets.info(:fees_bucket), do: :ets.new(:fees_bucket, [:set, :protected, :named_table])
 
     true =
       :ets.insert(:fees_bucket, [
