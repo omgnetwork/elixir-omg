@@ -11,3 +11,4 @@ AccountUtxoResponse:
     application/json:
       schema:
         $ref: 'response_schemas.yaml#/AccountUtxoResponseSchema'
+        
