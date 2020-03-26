@@ -32,7 +32,7 @@ defmodule OMG.WatcherInfo.API.Account do
   """
   @spec get_utxos(Keyword.t()) :: list(%DB.TxOutput{})
   def get_utxos(params) do
-    {:ok, constaints} = AccountConstraints.parse(params)
-    DB.TxOutput.get_utxos(constaints)
+    {:ok, constraints} = AccountConstraints.parse(params)
+    DB.TxOutput.get_utxos(constraints)
   end
 end
