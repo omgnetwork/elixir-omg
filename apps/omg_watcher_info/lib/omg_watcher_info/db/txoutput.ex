@@ -83,31 +83,31 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   end
 
   defp query_get_utxos(address) do
-      from(
-        txoutput in __MODULE__,
-        preload: [:ethevents],
-        left_join: ethevent in assoc(txoutput, :ethevents),
-        # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
-        where: txoutput.owner == ^address and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
- NOT EXISTS (SELECT 1
-             FROM ethevents_txoutputs AS etfrag
-             JOIN ethevents AS efrag ON
-                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                      AND efrag.event_type IN (?)
-                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
-        order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
-      )
+    from(
+      txoutput in __MODULE__,
+      preload: [:ethevents],
+      left_join: ethevent in assoc(txoutput, :ethevents),
+      # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
+      where: txoutput.owner == ^address and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+NOT EXISTS (SELECT 1
+           FROM ethevents_txoutputs AS etfrag
+           JOIN ethevents AS efrag ON
+                    etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
+                    AND efrag.event_type IN (?)
+                    AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+      order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
+    )
   end
 
-  @spec get_utxos(keyword) :: list()
+  @spec get_utxos(keyword) :: OMG.Utils.Paginator.t()
   def get_utxos(params) do
     address = Keyword.get(params, :address)
     paginator = Paginator.from_constraints(params, @default_get_utxos_limit)
     %{limit: limit, page: page} = paginator.data_paging
     offset = (page - 1) * limit
-    query = from query_get_utxos(address), limit: ^limit, offset: ^offset
-    data = Repo.all(query)
-    Paginator.set_data(data, paginator)
+    (from query_get_utxos(address), limit: ^limit, offset: ^offset)
+    |> Repo.all()
+    |> Paginator.set_data(paginator)
   end
 
   @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
