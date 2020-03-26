@@ -239,7 +239,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                }
              ])
 
-    assert Enum.empty?(DB.TxOutput.get_utxos([address: expected_owner]))
+    %{data: utxos_after_exit} = DB.TxOutput.get_utxos([address: expected_owner])
+    assert Enum.empty?(utxos_after_exit)
   end
 
   @tag fixtures: [:alice, :initial_blocks]
