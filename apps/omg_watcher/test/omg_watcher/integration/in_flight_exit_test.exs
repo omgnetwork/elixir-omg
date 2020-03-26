@@ -22,7 +22,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   use OMG.ChildChain.Integration.Fixtures
   use Plug.Test
 
-  alias OMG.Eth.RootChain
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.EthereumEventAggregator
@@ -34,7 +33,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   require Utxo
 
   @timeout 40_000
-  @eth RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @hex_eth "0x0000000000000000000000000000000000000000"
 
   @moduletag :integration

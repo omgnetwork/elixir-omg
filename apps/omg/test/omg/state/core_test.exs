@@ -31,7 +31,7 @@ defmodule OMG.State.CoreTest do
   alias OMG.State.Transaction
   alias OMG.Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @not_eth <<1::size(160)>>
   @interval OMG.Eth.Configuration.child_block_interval()
   @blknum1 @interval

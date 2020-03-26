@@ -23,9 +23,10 @@ defmodule OMG.EthTest do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.Encoding
+  alias OMG.Eth.ReleaseTasks.SetContract
   alias Support.DevHelper
   alias Support.SnapshotContracts
+
   use ExUnit.Case, async: false
 
   @moduletag :common
@@ -35,19 +36,16 @@ defmodule OMG.EthTest do
 
     data = SnapshotContracts.parse_contracts()
 
-    contracts = %{
-      authority_address: Encoding.from_hex(data["AUTHORITY_ADDRESS"]),
-      plasma_framework_tx_hash: Encoding.from_hex(data["TXHASH_CONTRACT"]),
-      erc20_vault: Encoding.from_hex(data["CONTRACT_ADDRESS_ERC20_VAULT"]),
-      eth_vault: Encoding.from_hex(data["CONTRACT_ADDRESS_ETH_VAULT"]),
-      payment_exit_game: Encoding.from_hex(data["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"]),
-      plasma_framework: Encoding.from_hex(data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
-    }
+    :ok = System.put_env("ETHEREUM_NETWORK", "LOCALCHAIN")
+    :ok = System.put_env("TXHASH_CONTRACT", data["AUTHORITY_ADDRESS"])
+    :ok = System.put_env("AUTHORITY_ADDRESS", data["AUTHORITY_ADDRESS"])
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
+    SetContract.init([])
 
     {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [data["AUTHORITY_ADDRESS"], "", 0], [])
 
     on_exit(exit_fn)
-    {:ok, contracts: contracts}
+    :ok
   end
 
   test "get_block_timestamp_by_number/1 the block timestamp by block number" do
@@ -55,15 +53,8 @@ defmodule OMG.EthTest do
     assert is_integer(timestamp)
   end
 
-  test "submit_block/1 submits a block to the contract", %{contracts: contracts} do
-    response =
-      Eth.submit_block(
-        <<234::256>>,
-        1,
-        20_000_000_000,
-        contracts.authority_address,
-        contracts
-      )
+  test "submit_block/1 submits a block to the contract" do
+    response = Eth.submit_block(<<234::256>>, 1, 20_000_000_000)
 
     assert {:ok, _} = DevHelper.transact_sync!(response)
   end

@@ -31,7 +31,7 @@ defmodule OMG.State.PersistenceTest do
 
   @fee_claimer_address Base.decode16!("DEAD000000000000000000000000000000000000")
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @interval Configuration.child_block_interval()
   @blknum1 @interval
 
@@ -42,9 +42,18 @@ defmodule OMG.State.PersistenceTest do
     :ok = OMG.DB.init()
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
+    metrics_collection_interval = 60_000
 
     {:ok, _} =
-      Supervisor.start_link([{OMG.State, [fee_claimer_address: @fee_claimer_address, child_block_interval: @interval]}],
+      Supervisor.start_link(
+        [
+          {OMG.State,
+           [
+             fee_claimer_address: @fee_claimer_address,
+             child_block_interval: @interval,
+             metrics_collection_interval: metrics_collection_interval
+           ]}
+        ],
         strategy: :one_for_one
       )
 

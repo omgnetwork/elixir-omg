@@ -30,7 +30,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)
-    enc_eth = Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
+    enc_eth = Encoding.to_hex(OMG.Eth.zero_address())
 
     {:ok, path, file_name} =
       TestHelper.write_fee_file(%{

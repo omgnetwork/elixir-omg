@@ -20,7 +20,7 @@ defmodule OMG.Watcher.API.AccountTest do
   alias OMG.TestHelper
   alias OMG.Watcher.API.Account
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
 
   describe "get_exitable_utxos/1" do

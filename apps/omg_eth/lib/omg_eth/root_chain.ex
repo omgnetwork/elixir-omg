@@ -34,16 +34,6 @@ defmodule OMG.Eth.RootChain do
           output_index: non_neg_integer
         }
 
-  ########################
-  # READING THE CONTRACT #
-  ########################
-
-  @doc """
-  This is what the contract understands as the address of native Ether token
-  """
-  @spec eth_pseudo_address() :: <<_::160>>
-  def eth_pseudo_address(), do: Eth.zero_address()
-
   #
   # these two cannot be parsed with ABI decoder!
   #

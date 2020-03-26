@@ -29,7 +29,6 @@ defmodule OMG.Eth do
   """
 
   alias OMG.Eth.Configuration
-  alias OMG.Eth.RootChain
   alias OMG.Eth.RootChain.SubmitBlock
 
   require Logger
@@ -56,11 +55,11 @@ defmodule OMG.Eth do
   @spec zero_address() :: address()
   def zero_address(), do: <<0::160>>
 
-  @spec submit_block(binary(), pos_integer(), pos_integer(), RootChain.optional_address_t()) ::
-          {:error, binary() | atom() | map()} | {:ok, binary()}
-  def submit_block(hash, nonce, gas_price, from \\ nil) do
+  @spec submit_block(binary(), pos_integer(), pos_integer()) ::
+          {:error, binary() | atom() | map()} | {:ok, <<_::256>>}
+  def submit_block(hash, nonce, gas_price) do
     contract = from_hex(Configuration.contracts().plasma_framework)
-    from = from || from_hex(Configuration.authority_addr())
+    from = from_hex(Configuration.authority_addr())
     backend = Configuration.eth_node()
     SubmitBlock.submit(backend, hash, nonce, gas_price, from, contract)
   end

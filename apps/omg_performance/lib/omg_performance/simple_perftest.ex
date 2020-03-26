@@ -25,7 +25,7 @@ defmodule OMG.Performance.SimplePerftest do
   alias OMG.TestHelper
   alias OMG.Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
   @doc """
   Runs test with `ntx_to_send` txs for each of the `nspenders` senders with given options.
@@ -105,7 +105,8 @@ defmodule OMG.Performance.SimplePerftest do
       {OMG.State,
        [
          fee_claimer_address: Base.decode16!("DEAD000000000000000000000000000000000000"),
-         child_block_interval: Configuration.child_block_interval()
+         child_block_interval: Configuration.child_block_interval(),
+         metrics_collection_interval: 60_000
        ]},
       {OMG.ChildChain.FreshBlocks, []},
       {OMG.ChildChain.FeeServer, OMG.ChildChain.Configuration.fee_server_opts()},

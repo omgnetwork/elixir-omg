@@ -41,7 +41,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 120_000
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @interval Configuration.child_block_interval()
   # kill this test ASAP
   @tag fixtures: [:alice, :bob, :in_beam_child_chain, :token, :alice_deposits]

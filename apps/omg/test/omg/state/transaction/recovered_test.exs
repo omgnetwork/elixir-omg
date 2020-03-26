@@ -35,7 +35,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
   @payment_output_type WireFormatTypes.output_type_for(:output_payment_v1)
 
   @zero_address OMG.Eth.zero_address()
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @empty_signature <<0::size(520)>>
 
   describe "APIs used by the `OMG.State.exec/1`" do

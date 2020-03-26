@@ -25,7 +25,7 @@ defmodule OMG.State.MeasurementCalculationTest do
 
   require Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @not_eth <<1::size(160)>>
   @tag fixtures: [:alice, :bob, :carol]
 
