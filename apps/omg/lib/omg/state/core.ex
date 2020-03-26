@@ -224,15 +224,9 @@ defmodule OMG.State.Core do
   Returns modified state.
   """
   @spec claim_fees(state :: t()) :: t()
-  def claim_fees(
-        %Core{
-          height: height,
-          fees_paid: fees_paid,
-          fee_claimer_address: owner
-        } = state
-      ) do
-    height
-    |> Transaction.Fee.claim_collected(owner, fees_paid)
+  def claim_fees(state) do
+    state.height
+    |> Transaction.Fee.claim_collected(state.fee_claimer_address, state.fees_paid)
     |> Stream.map(&to_recovered_fee_tx/1)
     |> Enum.reduce(state, fn tx, curr_state ->
       {:ok, _, new_state} = exec(curr_state, tx, :no_fees_required)
@@ -246,24 +240,21 @@ defmodule OMG.State.Core do
    - processes pending txs gathered, updates height etc
    - clears `recently_spent` collection
   """
-  @spec form_block(pos_integer(), state :: t()) :: {:ok, {Block.t(), [db_update]}, new_state :: t()}
-  def form_block(
-        child_block_interval,
-        %Core{height: height, pending_txs: reversed_txs, utxo_db_updates: reversed_utxo_db_updates} = state
-      ) do
-    txs = Enum.reverse(reversed_txs)
+  @spec form_block(state :: t()) :: {:ok, {Block.t(), [db_update]}, new_state :: t()}
+  def form_block(state) do
+    txs = Enum.reverse(state.pending_txs)
 
-    block = Block.hashed_txs_at(txs, height)
+    block = Block.hashed_txs_at(txs, state.height)
 
     db_updates_block = {:put, :block, Block.to_db_value(block)}
-    db_updates_top_block_number = {:put, :child_top_block_number, height}
+    db_updates_top_block_number = {:put, :child_top_block_number, state.height}
 
-    db_updates = [db_updates_top_block_number, db_updates_block | reversed_utxo_db_updates] |> Enum.reverse()
+    db_updates = [db_updates_top_block_number, db_updates_block | state.utxo_db_updates] |> Enum.reverse()
 
     new_state = %Core{
       state
       | tx_index: 0,
-        height: height + child_block_interval,
+        height: state.height + state.child_block_interval,
         pending_txs: [],
         utxo_db_updates: [],
         recently_spent: MapSet.new(),

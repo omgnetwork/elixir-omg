@@ -19,13 +19,13 @@ defmodule OMG.ChildChain.Supervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
 
+  alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.DatadogEvent.ContractEventConsumer
   alias OMG.ChildChain.FeeServer
   alias OMG.ChildChain.FreshBlocks
   alias OMG.ChildChain.Monitor
   alias OMG.ChildChain.SyncSupervisor
   alias OMG.ChildChain.Tracer
-  alias OMG.Eth.Configuration
   alias OMG.Eth.RootChain
   alias OMG.State
   alias OMG.Status.Alert.Alarm
@@ -36,10 +36,10 @@ defmodule OMG.ChildChain.Supervisor do
 
   def init(:ok) do
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
-    metrics_collection_interval = OMG.ChildChain.Configuration.metrics_collection_interval()
+    metrics_collection_interval = Configuration.metrics_collection_interval()
+    fee_server_opts = Configuration.fee_server_opts()
     fee_claimer_address = OMG.Configuration.fee_claimer_address()
-    fee_server_opts = OMG.ChildChain.Configuration.fee_server_opts()
-    child_block_interval = Configuration.child_block_interval()
+    child_block_interval = OMG.Eth.Configuration.child_block_interval()
 
     children = [
       {State,

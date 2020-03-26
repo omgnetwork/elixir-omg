@@ -48,4 +48,8 @@ defmodule OMG.Watcher.Configuration do
   def child_chain_url() do
     Application.get_env(@app, :child_chain_url)
   end
+
+  def exit_finality_margin() do
+    Application.get_env(@app, :exit_finality_margin)
+  end
 end

@@ -243,7 +243,7 @@ defmodule OMG.State do
   Someday, one might want to skip some of computations done (like calculating the root hash, which is scrapped)
   """
   def handle_call(:close_block, _from, state) do
-    {:ok, {block, db_updates}, new_state} = do_form_block(state)
+    {:ok, {block, db_updates}, new_state} = Core.form_block(state)
 
     publish_block_to_event_bus(block)
     {:reply, {:ok, db_updates}, new_state}
@@ -260,12 +260,8 @@ defmodule OMG.State do
   """
   def handle_cast(:form_block, state) do
     _ = Logger.debug("Forming new block...")
-
-    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} =
-      state
-      |> Core.claim_fees()
-      |> do_form_block()
-
+    state = Core.claim_fees(state)
+    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = Core.form_block(state)
     _ = Logger.debug("Formed new block ##{blknum}")
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
@@ -274,11 +270,6 @@ defmodule OMG.State do
 
     publish_block_to_event_bus(block)
     {:noreply, new_state}
-  end
-
-  defp do_form_block(state) do
-    child_block_interval = state.child_block_interval
-    Core.form_block(child_block_interval, state)
   end
 
   defp publish_block_to_event_bus(block) do

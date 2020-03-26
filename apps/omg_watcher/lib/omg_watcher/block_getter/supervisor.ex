@@ -19,7 +19,9 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
+
   alias OMG.Watcher.BlockGetter
+  alias OMG.Watcher.Configuration
 
   def start_link(args) do
     Supervisor.start_link(__MODULE__, args, name: __MODULE__)
@@ -27,14 +29,15 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
 
   def init(args) do
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
+    block_getter_reorg_margin = Configuration.block_getter_reorg_margin()
+    maximum_block_withholding_time_ms = Configuration.maximum_block_withholding_time_ms()
+    maximum_number_of_unapplied_blocks = Configuration.maximum_number_of_unapplied_blocks()
+    block_getter_loops_interval_ms = Configuration.block_getter_loops_interval_ms()
+    metrics_collection_interval = Configuration.metrics_collection_interval()
+    child_chain_url = Configuration.child_chain_url()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
-    block_getter_reorg_margin = OMG.Watcher.Configuration.block_getter_reorg_margin()
-    maximum_block_withholding_time_ms = OMG.Watcher.Configuration.maximum_block_withholding_time_ms()
-    maximum_number_of_unapplied_blocks = OMG.Watcher.Configuration.maximum_number_of_unapplied_blocks()
-    block_getter_loops_interval_ms = OMG.Watcher.Configuration.block_getter_loops_interval_ms()
-    metrics_collection_interval = OMG.Watcher.Configuration.metrics_collection_interval()
-    child_chain_url = OMG.Watcher.Configuration.child_chain_url()
     contracts = OMG.Eth.Configuration.contracts()
+
     fee_claimer_address = Base.decode16!("DEAD000000000000000000000000000000000000")
     # State and Block Getter are linked, because they must restore their state to the last stored state
     # If Block Getter fails, it starts from the last checkpoint while State might have had executed some transactions

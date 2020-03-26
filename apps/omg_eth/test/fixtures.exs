@@ -44,31 +44,20 @@ defmodule OMG.Eth.Fixtures do
 
     contracts = SnapshotContracts.parse_contracts()
 
-    contract = %{
-      authority_addr: contracts["AUTHORITY_ADDRESS"],
-      contract_addr: %{
-        erc20_vault: contracts["CONTRACT_ADDRESS_ERC20_VAULT"],
-        eth_vault: contracts["CONTRACT_ADDRESS_ETH_VAULT"],
-        payment_exit_game: contracts["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"],
-        plasma_framework: contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
-      },
-      txhash_contract: contracts["TXHASH_CONTRACT"]
-    }
-
     {:ok, true} =
       Ethereumex.HttpClient.request("personal_unlockAccount", ["0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d", "", 0], [])
 
     :ok = System.put_env("ETHEREUM_NETWORK", "LOCALCHAIN")
-    :ok = System.put_env("TXHASH_CONTRACT", contract.txhash_contract)
-    :ok = System.put_env("AUTHORITY_ADDRESS", contract.authority_addr)
-    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", contract.contract_addr.plasma_framework)
+    :ok = System.put_env("TXHASH_CONTRACT", contracts["TXHASH_CONTRACT"])
+    :ok = System.put_env("AUTHORITY_ADDRESS", contracts["AUTHORITY_ADDRESS"])
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
     SetContract.init([])
 
     add_exit_queue = RootChainHelper.add_exit_queue(@test_eth_vault_id, "0x0000000000000000000000000000000000000000")
 
     {:ok, %{"status" => "0x1"}} = Support.DevHelper.transact_sync!(add_exit_queue)
 
-    contract
+    :ok
   end
 
   deffixture token(root_chain_contract_config) do

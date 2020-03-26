@@ -23,6 +23,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
   alias OMG.ChildChain.BlockQueue
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.ChildChain.ChildManager
+  alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.CoordinatorSetup
   alias OMG.ChildChain.EthereumEventAggregator
   alias OMG.ChildChain.Monitor
@@ -45,10 +46,10 @@ defmodule OMG.ChildChain.SyncSupervisor do
 
   defp children(args) do
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
-    metrics_collection_interval = OMG.ChildChain.Configuration.metrics_collection_interval()
-    block_queue_eth_height_check_interval_ms = OMG.ChildChain.Configuration.block_queue_eth_height_check_interval_ms()
-    submission_finality_margin = OMG.ChildChain.Configuration.submission_finality_margin()
-    block_submit_every_nth = OMG.ChildChain.Configuration.block_submit_every_nth()
+    metrics_collection_interval = Configuration.metrics_collection_interval()
+    block_queue_eth_height_check_interval_ms = Configuration.block_queue_eth_height_check_interval_ms()
+    submission_finality_margin = Configuration.submission_finality_margin()
+    block_submit_every_nth = Configuration.block_submit_every_nth()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
     contracts = OMG.Eth.Configuration.contracts()
 

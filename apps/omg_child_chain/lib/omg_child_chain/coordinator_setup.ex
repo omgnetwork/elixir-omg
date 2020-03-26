@@ -17,7 +17,6 @@ defmodule OMG.ChildChain.CoordinatorSetup do
    The setup of `OMG.RootChainCoordinator` for the child chain server - configures the relations between different
    event listeners
   """
-  alias OMG.Configuration
 
   @doc """
   The `OMG.RootChainCoordinator` setup for the `OMG.ChildChain` app. Summary of the configuration:
@@ -28,7 +27,7 @@ defmodule OMG.ChildChain.CoordinatorSetup do
   """
 
   def coordinator_setup() do
-    deposit_finality_margin = Configuration.deposit_finality_margin()
+    deposit_finality_margin = OMG.Configuration.deposit_finality_margin()
 
     %{
       depositor: [finality_margin: deposit_finality_margin],
