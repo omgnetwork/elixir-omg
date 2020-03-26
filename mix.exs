@@ -52,8 +52,7 @@ defmodule OMG.Umbrella.MixProject do
       },
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
       {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
-      {:spandex, "~> 2.4",
-       git: "https://github.com/omisego/spandex.git", branch: "fix_dialyzer_in_macro", override: true}
+      {:spandex, "~> 2.4.3"}
     ]
   end
 
