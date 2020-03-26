@@ -226,7 +226,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                }
              ])
 
-    assert length(DB.TxOutput.get_utxos(expected_owner)) == 1
+    %{data: utxos} = DB.TxOutput.get_utxos(expected_owner)
+    assert length(utxos) == 1
 
     assert :ok =
              DB.EthEvent.insert_exits!([
