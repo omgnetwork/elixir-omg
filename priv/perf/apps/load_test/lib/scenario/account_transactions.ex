@@ -23,6 +23,7 @@ defmodule LoadTest.Scenario.AccountTransactions do
   alias LoadTest.Connection.WatcherInfo, as: Connection
   alias LoadTest.Service.Faucet
   alias LoadTest.Ethereum.Account
+  alias LoadTest.Ethereum.Hash
   alias LoadTest.Utils.Encoding
   alias WatcherInfoAPI.Api
   alias WatcherInfoAPI.Model
@@ -217,7 +218,8 @@ defmodule LoadTest.Scenario.AccountTransactions do
     signature =
       sign_hash
       |> Encoding.to_binary()
-      |> Encoding.signature_digest(Encoding.to_hex(sender.priv))
+      |> Hash.sign_hash(sender.priv)
+      |> Hash.pack_signature()
       |> Encoding.to_hex()
 
     signatures = Enum.map(inputs, fn _ -> signature end)
