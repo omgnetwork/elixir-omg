@@ -69,7 +69,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzer do
 
           case {gas_used, try_index} do
             {nil, 3} ->
-              # reached the treshold, we're ommiting this txhash
+              # reached the threshold, we're omitting this txhash
               txhash_queue
 
             {nil, _} ->
