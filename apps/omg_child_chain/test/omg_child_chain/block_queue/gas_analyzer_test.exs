@@ -127,7 +127,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
              end)
     end
 
-    test "that the order of txhashes is preserved when they can't get processed and that when treshold is met the tx hash gets removed",
+    test "that the order of txhashes is preserved when they can't get processed and that when threshold is met the tx hash gets removed",
          %{
            gas_analyzer: gas_analyzer,
            handler_id: handler_id
