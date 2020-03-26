@@ -20,6 +20,6 @@ defmodule LoadTest.Runner.ChildChainTest do
 
   @tag timeout: 6_000_000
   test "childchain test" do
-    Chaperon.run_load_test(LoadTest.Runner.ChildChain, print_results: true)
+    Chaperon.run_load_test(LoadTest.Runner.ChildChainTransactions, print_results: true)
   end
 end

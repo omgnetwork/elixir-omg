@@ -232,7 +232,7 @@ defmodule LoadTest.Scenario.AccountTransactions do
     {:ok, response_body} = get_balance(sender)
     utxos = Jason.decode!(response_body)["data"]
 
-    if Enum.empty?(utxos) > 0 do
+    if Enum.empty?(utxos) do
       Process.sleep(@poll_interval)
 
       session

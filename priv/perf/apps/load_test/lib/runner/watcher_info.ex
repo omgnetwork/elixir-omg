@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Runner.WatcherInfo do
+defmodule LoadTest.Runner.WatcherInfoAccountApi do
   @moduledoc """
-  Load test for watcher info
+  Tests all the `account.*` apis on the watcher-info
   """
   use Chaperon.LoadTest
 

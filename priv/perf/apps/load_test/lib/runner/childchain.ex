@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Runner.ChildChain do
+defmodule LoadTest.Runner.ChildChainTransactions do
   @moduledoc """
-  Load test for child chain
+  Creates load on the child chain by submitting transactions as fast as possible.
   """
   use Chaperon.LoadTest
 
