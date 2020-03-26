@@ -88,7 +88,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
                  {:event, [:gas, OMG.ChildChain.BlockQueue.GasAnalyzer], %{gas: 84_681}, %{}},
                  100
                )
-             end) =~ "[error]"
+             end)
     end
   end
 
