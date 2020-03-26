@@ -22,9 +22,9 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   alias OMG.State.Transaction
   alias OMG.Utxo
+  alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Repo
-  alias OMG.Utils.Paginator
 
   require Utxo
 
