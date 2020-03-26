@@ -82,6 +82,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     )
   end
 
+  @spec get_utxos(keyword) :: list()
   def get_utxos(params) do
     address = Keyword.get(params, :address)
     paginator = Paginator.from_constraints(params, 100)
