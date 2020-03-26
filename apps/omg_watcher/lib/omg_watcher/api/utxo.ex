@@ -44,7 +44,8 @@ defmodule OMG.Watcher.API.Utxo do
     ExitProcessor.create_challenge(utxo)
   end
 
-  @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
+  @spec compose_utxo_exit(Utxo.Position.t()) ::
+          {:ok, exit_t()} | {:error, :utxo_not_found} | {:error, :no_deposit_for_given_blknum}
   def compose_utxo_exit(Utxo.position(blknum, _, _) = utxo_pos) when is_deposit(blknum) do
     utxo_pos |> Utxo.Position.to_input_db_key() |> OMG.DB.utxo() |> Core.compose_deposit_standard_exit()
   end

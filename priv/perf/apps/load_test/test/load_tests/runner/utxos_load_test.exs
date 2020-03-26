@@ -11,17 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule LoadTest.Connection.ChildChain do
+
+defmodule LoadTest.Runner.UtxosLoadTest do
   @moduledoc """
-  Module that overrides the Tesla middleware with the url from config.
+  Runs a smoke test for utxos load test
   """
+  use ExUnit.Case
 
-  alias LoadTest.Connection.ConnectionDefaults
-
-  def client() do
-    base_url = Application.fetch_env!(:load_test, :child_chain_url)
-    middleware = [{Tesla.Middleware.BaseUrl, base_url} | ConnectionDefaults.middleware()]
-
-    Tesla.client(middleware)
+  @tag timeout: 6_000_000
+  test "smoke test - should run utxos load test" do
+    Chaperon.run_load_test(LoadTest.Runner.UtxosLoad, print_results: true)
   end
 end

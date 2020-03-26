@@ -106,6 +106,9 @@ defmodule OMG.Watcher.API.InFlightExit do
 
       {:error, :utxo_not_found} ->
         {:halt, {:error, :tx_for_input_not_found}}
+
+      {:error, :no_deposit_for_given_blknum} ->
+        {:halt, {:error, :deposit_input_spent_ife_unsupported}}
     end
   end
 end
