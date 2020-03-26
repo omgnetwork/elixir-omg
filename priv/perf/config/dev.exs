@@ -5,10 +5,11 @@ config :ethereumex,
 
 config :load_test,
   child_chain_url: System.get_env("CHILD_CHAIN_URL"),
+  watcher_security_url: System.get_env("WATCHER_SECURITY_URL"),
+  watcher_info_url: System.get_env("WATCHER_INFO_URL"),
   fee_wei: 1,
   faucet_deposit_wei: trunc(:math.pow(10, 18)),
   faucet_private_key: System.get_env("LOAD_TEST_FAUCET_PRIVATE_KEY"),
-  # 0.0000001 ETH
   initial_funds_wei: trunc(:math.pow(10, 10)),
   eth_vault_address: System.get_env("CONTRACT_ADDRESS_ETH_VAULT")
 

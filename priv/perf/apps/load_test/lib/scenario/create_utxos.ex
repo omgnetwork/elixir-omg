@@ -41,11 +41,10 @@ defmodule LoadTest.Scenario.CreateUtxos do
     amount_per_utxo = get_amount_per_created_utxo(fee_wei)
     initial_funds = number_of_transactions * fee_wei + utxos_to_create_per_session * amount_per_utxo + min_final_change
 
-    {:ok, {utxo, amount}} = Faucet.fund_child_chain_account(sender, initial_funds, @eth)
-    {:ok, %{txindex: txindex, oindex: oindex, blknum: blknum}} = Utxo.new(utxo)
+    {:ok, utxo} = Faucet.fund_child_chain_account(sender, initial_funds, @eth)
 
     session
-    |> Chaperon.Session.assign(last_change: %{blknum: blknum, txindex: txindex, oindex: oindex, amount: amount})
+    |> Chaperon.Session.assign(last_change: utxo)
     |> repeat(:submit_transaction, [sender], number_of_transactions)
   end
 
@@ -55,8 +54,7 @@ defmodule LoadTest.Scenario.CreateUtxos do
     {inputs, outputs, change} = create_transaction(sender, last_change, fee_wei)
 
     {:ok, blknum, txindex} = LoadTest.ChildChain.Transaction.submit_tx(inputs, outputs, [sender])
-
-    last_change = %{blknum: blknum, txindex: txindex, oindex: 3, amount: change}
+    {:ok, last_change} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 3, amount: change})
 
     Chaperon.Session.assign(session, last_change: last_change)
   end
@@ -64,12 +62,11 @@ defmodule LoadTest.Scenario.CreateUtxos do
   defp create_transaction(sender, prev_change, fee_wei) do
     amount_per_utxo = get_amount_per_created_utxo(fee_wei)
     change = prev_change.amount - @spawned_outputs_per_transaction * amount_per_utxo - fee_wei
-    input = %Utxo{blknum: prev_change.blknum, txindex: prev_change.txindex, oindex: prev_change.oindex}
 
     created_output = %Utxo{owner: sender.addr, currency: @eth, amount: amount_per_utxo}
     change_output = %Utxo{owner: sender.addr, currency: @eth, amount: change}
 
-    {[input], List.duplicate(created_output, @spawned_outputs_per_transaction) ++ [change_output], change}
+    {[prev_change], List.duplicate(created_output, @spawned_outputs_per_transaction) ++ [change_output], change}
   end
 
   defp get_amount_per_created_utxo(fee_wei), do: fee_wei + 2

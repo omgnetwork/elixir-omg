@@ -36,6 +36,10 @@ defmodule LoadTest.Service.Faucet do
     GenServer.call(__MODULE__, {:fund_child_chain, account, amount, token}, :infinity)
   end
 
+  def get_faucet() do
+    GenServer.call(__MODULE__, :get_faucet, :infinity)
+  end
+
   def start_link(config) do
     GenServer.start_link(__MODULE__, config, name: __MODULE__)
   end
@@ -48,6 +52,10 @@ defmodule LoadTest.Service.Faucet do
 
     state = struct!(__MODULE__, account: faucet, fee: fee_wei, utxos: %{@eth => eth_utxo})
     {:ok, state}
+  end
+
+  def handle_call(:get_faucet, _from, %__MODULE__{account: faucet} = state) do
+    {:reply, {:ok, faucet}, state}
   end
 
   def handle_call({:fund_child_chain, account, amount, @eth = token}, _from, %__MODULE__{account: faucet} = state) do
@@ -64,12 +72,11 @@ defmodule LoadTest.Service.Faucet do
 
     {:ok, blknum, txindex} = Transaction.submit_tx([utxo], outputs, [faucet], @fund_child_chain_account_retries)
     {:ok, change_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 0})
-    {:ok, user_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 1})
+    {:ok, user_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 1, amount: amount})
 
     updated_state = Map.put(state, :utxos, %{state.utxos | token => {change_utxo, change}})
-    utxo = Utxo.pos(user_utxo)
 
-    {:reply, {:ok, {utxo, amount}}, updated_state}
+    {:reply, {:ok, user_utxo}, updated_state}
   end
 
   defp get_funded_faucet_account(opts) do
