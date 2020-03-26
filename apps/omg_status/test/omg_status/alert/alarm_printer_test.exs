@@ -36,13 +36,11 @@ defmodule OMG.Status.Alert.AlarmPrinterTest do
 
   test "that the process sends itself a message after startup", %{alarm_printer: alarm_printer} do
     %{previous_backoff: previous_backoff} = :sys.get_state(alarm_printer)
-    parent = self()
-    :dbg.start()
-    {:ok, _} = :dbg.tracer(:process, {fn msg, _ -> send(parent, msg) end, []})
-    :dbg.p(alarm_printer, :send)
+    :erlang.trace(alarm_printer, true, [:send])
     :ok = Process.sleep(previous_backoff)
-    result = Enum.count(find_warn_print(alarm_printer, __MODULE__.Alarm.all()))
-    assert result == Enum.count(__MODULE__.Alarm.all())
+    assert_receive {:trace, _, :send, {:notify, {:warn, _, {Logger, "An alarm was raised 1", {_, _}, _}}}, Logger}
+    assert_receive {:trace, _, :send, {:notify, {:warn, _, {Logger, "An alarm was raised 2", {_, _}, _}}}, Logger}
+    assert_receive {:trace, _, :send, {:notify, {:warn, _, {Logger, "An alarm was raised 3", {_, _}, _}}}, Logger}
   end
 
   test "that the process increases the backoff", %{alarm_printer: alarm_printer} do
@@ -73,24 +71,6 @@ defmodule OMG.Status.Alert.AlarmPrinterTest do
       %{previous_backoff: new_backoff} = :sys.get_state(alarm_printer)
       assert min < new_backoff and new_backoff < max
     end)
-  end
-
-  defp find_warn_print(alarm_printer, alarms) do
-    find_warn_print(alarm_printer, alarms, [])
-  end
-
-  defp find_warn_print(_alarm_printer, [], acc), do: acc
-
-  defp find_warn_print(alarm_printer, [alarm | alarms] = all_alarms, acc) do
-    message = "An alarm was raised #{alarm}"
-
-    receive do
-      {:trace, ^alarm_printer, :send, {_, {:warn, _, {Logger, ^message, _, _}}}, Logger} ->
-        find_warn_print(alarm_printer, alarms, [:match | acc])
-
-      _ ->
-        find_warn_print(alarm_printer, all_alarms, acc)
-    end
   end
 
   defmodule Alarm do
