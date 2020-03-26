@@ -16,7 +16,7 @@ defmodule OMG.ChildChain.FileAdapterTest do
   @moduledoc false
 
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias OMG.ChildChain.Fees.FileAdapter
   alias OMG.Eth

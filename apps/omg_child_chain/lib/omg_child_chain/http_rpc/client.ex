@@ -22,30 +22,32 @@ defmodule OMG.ChildChain.HttpRPC.Client do
 
   require Logger
 
-  @type response_t() ::
-          {:ok, %{required(atom()) => any()}}
-          | {:error,
-             {:unsuccessful_response | :server_error, any()}
-             | {:malformed_response, any() | {:error, :invalid}}}
+  @type response_error_t() ::
+          {:error, {:unsuccessful_response | :server_error, any()} | {:malformed_response, any() | {:error, :invalid}}}
+  @type response_t() :: {:ok, %{required(atom()) => any()}} | response_error_t()
 
   @doc """
   Fetches latest fee prices from the fees feed
   """
   @spec all_fees(binary()) :: response_t()
   def all_fees(url) do
-    headers = [{"content-type", "application/json"}]
-    "#{url}/fees" |> HTTPoison.get(headers) |> handle_response()
+    "#{url}/fees"
+    |> HTTPoison.get([{"content-type", "application/json"}])
+    |> handle_response()
+    |> parse_fee_response_body()
   end
 
   defp handle_response(http_response) do
     with {:ok, body} <- Adapter.get_unparsed_response_body(http_response),
          {:ok, response} <- Jason.decode(body),
-         %{"success" => true, "data" => data} <- response,
-         {:ok, fee_spec} <- JSONFeeParser.parse(data) do
-      {:ok, fee_spec}
+         %{"success" => true, "data" => data} <- response do
+      {:ok, data}
     else
       %{"success" => false, "data" => data} -> {:error, {:unsuccessful_response, data}}
       error -> error
     end
   end
+
+  defp parse_fee_response_body({:ok, body}), do: JSONFeeParser.parse(body)
+  defp parse_fee_response_body(error), do: error
 end

@@ -105,7 +105,7 @@ defmodule OMG.ChildChain.Fees.FeeUpdaterTest do
                )
     end
 
-    test "updates when token amount drop belop tolerance level" do
+    test "updates when token amount drop below tolerance level" do
       fetched = put_in(@fee_spec[1][@eth][:amount], 81)
 
       assert :no_changes =
