@@ -108,7 +108,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       assert capture_log(fn ->
                send(gas_analyzer, :get_gas_used)
                state = :sys.get_state(gas_analyzer)
-               assert :queue.member("0xyolo", state.txhash_queue) == true
+               assert :queue.member({"0xyolo", 1}, state.txhash_queue) == true
                assert :queue.len(state.txhash_queue) == 1
              end)
 
@@ -119,11 +119,53 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
       assert capture_log(fn ->
                send(gas_analyzer, :get_gas_used)
                state = :sys.get_state(gas_analyzer)
-               assert :queue.to_list(state.txhash_queue) == ["0xyolo", "0xyolo2", "0xyolo3"]
+               assert :queue.to_list(state.txhash_queue) == [{"0xyolo", 2}, {"0xyolo2", 0}, {"0xyolo3", 0}]
                # all three are in the queue, lets try to get gas and put 0xyolo back in
                send(gas_analyzer, :get_gas_used)
                state = :sys.get_state(gas_analyzer)
-               assert :queue.to_list(state.txhash_queue) == ["0xyolo", "0xyolo2", "0xyolo3"]
+               assert :queue.to_list(state.txhash_queue) == [{"0xyolo", 3}, {"0xyolo2", 0}, {"0xyolo3", 0}]
+             end)
+    end
+
+    test "that the order of txhashes is preserved when they can't get processed and that when treshold is met the tx hash gets removed",
+         %{
+           gas_analyzer: gas_analyzer,
+           handler_id: handler_id
+         } do
+      # we're mocking ethereumex with our module
+      :sys.replace_state(gas_analyzer, fn state -> Map.put(state, :rpc, __MODULE__.EthExErrorMock) end)
+      # creating a telemetry handler in this process so that when event gets executed, a message gets sent
+      # to this process... hence the self() and parent
+      attach(handler_id, [:gas, GasAnalyzer], self())
+      # tx hash was added in the queue, the starting retry_index is 0
+      GasAnalyzer.enqueue(gas_analyzer, "0xyolo")
+
+      assert capture_log(fn ->
+               send(gas_analyzer, :get_gas_used)
+               state = :sys.get_state(gas_analyzer)
+               # the first time we check for gas we increment the retry_index to 1
+               assert :queue.member({"0xyolo", 1}, state.txhash_queue) == true
+             end)
+
+      # we're adding two more hashes into the queue and verifing the order in the queue
+      GasAnalyzer.enqueue(gas_analyzer, "0xyolo2")
+      GasAnalyzer.enqueue(gas_analyzer, "0xyolo3")
+
+      assert capture_log(fn ->
+               # we now have two more hashes in the queue, their retry index should remain 0
+               # we try and get gas again
+               send(gas_analyzer, :get_gas_used)
+               state = :sys.get_state(gas_analyzer)
+               assert :queue.to_list(state.txhash_queue) == [{"0xyolo", 2}, {"0xyolo2", 0}, {"0xyolo3", 0}]
+               send(gas_analyzer, :get_gas_used)
+               send(gas_analyzer, :get_gas_used)
+               state = :sys.get_state(gas_analyzer)
+               # at this point, the retry index is above the treshold 3, which means it was removed and the next
+               # tx hash would be processed
+               assert :queue.to_list(state.txhash_queue) == [{"0xyolo2", 0}, {"0xyolo3", 0}]
+               send(gas_analyzer, :get_gas_used)
+               state = :sys.get_state(gas_analyzer)
+               assert :queue.to_list(state.txhash_queue) == [{"0xyolo2", 1}, {"0xyolo3", 0}]
              end)
     end
   end
