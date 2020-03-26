@@ -36,16 +36,6 @@ defmodule OMG.Eth.RootChain.Abi do
 
     {function_spec, data} = ABI.find_and_decode(function_specs, enriched_data)
     decode_function_call_result(function_spec, data)
-
-    # case hd(data) do
-    #   values when is_tuple(values) ->
-    #     function_spec.input_names
-    #     |> Enum.zip(Tuple.to_list(values))
-    #     |> Enum.into(%{})
-    #     |> Fields.rename(function_spec)
-    #   value ->
-    #     value
-    # end
   end
 
   def decode_log(log) do

@@ -25,7 +25,6 @@ defmodule OMG.ChildChain.Supervisor do
   alias OMG.ChildChain.Monitor
   alias OMG.ChildChain.SyncSupervisor
   alias OMG.ChildChain.Tracer
-  alias OMG.Eth.Client
   alias OMG.Eth.Configuration
   alias OMG.Eth.RootChain
   alias OMG.State
@@ -36,7 +35,6 @@ defmodule OMG.ChildChain.Supervisor do
   end
 
   def init(:ok) do
-    :ok = Client.node_ready()
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
     metrics_collection_interval = OMG.ChildChain.Configuration.metrics_collection_interval()
     fee_claimer_address = OMG.Configuration.fee_claimer_address()

@@ -56,23 +56,4 @@ defmodule OMG.Eth.ClientTest do
 
     assert Client.node_ready(test_name) == {:error, :geth_not_listening}
   end
-
-  # test "eth_call/1 returns correct response", %{test: test_name} do
-  #   defmodule test_name do
-  #     @to "0xc673e4ffcb8464faff908a6804fe0e635af0ea2f"
-  #     @data "0x8c64ea4a0000000000000000000000000000000000000000000000000000000000000002"
-  #     @return "0x000000000000000000000000135505d9f4ea773dd977de3b2b108f2dae67b63a"
-  #     def eth_call(%{to: @to, data: @data}) do
-  #       {:ok, @return}
-  #     end
-  #   end
-
-  #   assert Client.call_contract(
-  #            test_name,
-  #            <<198, 115, 228, 255, 203, 132, 100, 250, 255, 144, 138, 104, 4, 254, 14, 99, 90, 240, 234, 47>>,
-  #            "vaults(uint256)",
-  #            [2],
-  #            [:address]
-  #          ) == {:ok, <<19, 85, 5, 217, 244, 234, 119, 61, 217, 119, 222, 59, 43, 16, 143, 45, 174, 103, 182, 58>>}
-  # end
 end

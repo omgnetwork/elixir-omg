@@ -179,13 +179,10 @@ defmodule OMG.ChildChain.BlockQueue do
   Lines up a new block for submission. Presumably `OMG.State.form_block` wrote to the `:internal_event_bus` having
   formed a new child chain block.
   """
-  def handle_info(
-        {:internal_event_bus, :enqueue_block, %Block{number: block_number, hash: block_hash} = block},
-        state
-      ) do
+  def handle_info({:internal_event_bus, :enqueue_block, %Block{} = block}, state) do
     {:ok, parent_height} = EthereumHeight.get()
-    state1 = Core.enqueue_block(state, block_hash, block_number, parent_height)
-    _ = Logger.info("Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Encoding.to_hex(block_hash))}'")
+    state1 = Core.enqueue_block(state, block.hash, block.number, parent_height)
+    _ = Logger.info("Enqueuing block num '#{inspect(block.number)}', hash '#{inspect(Encoding.to_hex(block.hash))}'")
 
     FreshBlocks.push(block)
     submit_blocks(state1)
