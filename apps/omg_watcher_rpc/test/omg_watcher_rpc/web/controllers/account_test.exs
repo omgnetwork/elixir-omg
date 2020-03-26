@@ -137,7 +137,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
         |> Enum.map(fn utxo -> Map.take(utxo, fields) end)
 
       utxos =
-        alice.addr
+        %{address: alice.addr}
         |> WatcherHelper.get_utxos()
         |> Enum.map(fn utxo -> Map.take(utxo, fields) end)
 
@@ -162,7 +162,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
 
   @tag fixtures: [:initial_blocks, :carol]
   test "no utxos are returned for non-existing addresses", %{carol: carol} do
-    assert [] == WatcherHelper.get_utxos(carol.addr)
+    assert [] == WatcherHelper.get_utxos(%{address: carol.addr})
   end
 
   @tag fixtures: [:initial_blocks, :alice]
@@ -194,20 +194,20 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
                "oindex" => 1,
                "owner" => ^alice_enc
              }
-           ] = WatcherHelper.get_utxos(alice.addr)
+           ] = WatcherHelper.get_utxos(%{address: alice.addr})
   end
 
   @tag fixtures: [:initial_blocks, :alice]
   test "encoded utxo positions are delivered", %{alice: alice} do
     [%{"utxo_pos" => utxo_pos, "blknum" => blknum, "txindex" => txindex, "oindex" => oindex} | _] =
-      WatcherHelper.get_utxos(alice.addr)
+      WatcherHelper.get_utxos(%{address: alice.addr})
 
     assert Utxo.position(^blknum, ^txindex, ^oindex) = utxo_pos |> Utxo.Position.decode!()
   end
 
   @tag fixtures: [:initial_blocks, :bob, :carol]
   test "spent utxos are moved to new owner", %{bob: bob, carol: carol} do
-    [] = WatcherHelper.get_utxos(carol.addr)
+    [] = WatcherHelper.get_utxos(%{address: carol.addr})
 
     # bob spends his utxo to carol
     DB.Block.insert_with_transactions(%{
@@ -226,13 +226,13 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
                "oindex" => 1,
                "currency" => @eth_hex
              }
-           ] = WatcherHelper.get_utxos(carol.addr)
+           ] = WatcherHelper.get_utxos(%{address: carol.addr})
   end
 
   @tag fixtures: [:initial_blocks, :bob]
   test "unspent deposits are a part of utxo set", %{bob: bob} do
     bob_enc = bob.addr |> Encoding.to_hex()
-    deposited_utxo = bob.addr |> WatcherHelper.get_utxos() |> Enum.find(&(&1["blknum"] < 1000))
+    deposited_utxo = WatcherHelper.get_utxos(%{address: bob.addr}) |> Enum.find(&(&1["blknum"] < 1000))
 
     assert %{
              "amount" => 100,
@@ -246,16 +246,16 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
 
   @tag fixtures: [:initial_blocks, :alice]
   test "spent deposits are not a part of utxo set", %{alice: alice} do
-    assert utxos = WatcherHelper.get_utxos(alice.addr)
+    assert utxos = WatcherHelper.get_utxos(%{address: alice.addr})
 
     assert [] = utxos |> Enum.filter(&(&1["blknum"] < 1000))
   end
 
   @tag fixtures: [:initial_blocks, :carol, :bob]
   test "deposits are spent", %{carol: carol, bob: bob} do
-    assert [] = WatcherHelper.get_utxos(carol.addr)
+    assert [] = WatcherHelper.get_utxos(%{address: carol.addr})
 
-    assert utxos = WatcherHelper.get_utxos(bob.addr)
+    assert utxos = WatcherHelper.get_utxos(%{address: bob.addr})
 
     # bob has 1 unspent deposit
     assert %{
@@ -274,7 +274,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
       eth_height: 10
     })
 
-    utxos = WatcherHelper.get_utxos(bob.addr)
+    utxos = WatcherHelper.get_utxos(%{address: bob.addr})
 
     # bob has spent his deposit
     assert [] == utxos |> Enum.filter(&(&1["blknum"] < 1000))
@@ -291,7 +291,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
                "oindex" => 0,
                "owner" => ^carol_enc
              }
-           ] = WatcherHelper.get_utxos(carol.addr)
+           ] = WatcherHelper.get_utxos(%{address: carol.addr})
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]

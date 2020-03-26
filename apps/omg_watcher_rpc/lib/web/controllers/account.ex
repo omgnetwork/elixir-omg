@@ -21,6 +21,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Account do
 
   alias OMG.Watcher.API, as: SecurityAPI
   alias OMG.WatcherInfo.API, as: InfoAPI
+  alias OMG.WatcherRPC.Web.Validator.AccountConstraints
 
   @doc """
   Gets plasma account balance
@@ -34,8 +35,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Account do
   end
 
   def get_utxos(conn, params) do
-    with {:ok, address} <- expect(params, "address", :address) do
-      address
+    with {:ok, constraints} <- AccountConstraints.parse(params) do
+      constraints
       |> InfoAPI.Account.get_utxos()
       |> api_response(conn, :utxos)
     end

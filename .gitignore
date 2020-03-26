@@ -68,3 +68,6 @@ priv/apps/watcher_security_critical_api
 data/
 # local test setup
 localchain_contract_addresses.env
+
+# the famous mac .DS_Store
+.DS_Store

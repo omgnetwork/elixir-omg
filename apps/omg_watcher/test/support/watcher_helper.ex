@@ -125,7 +125,7 @@ defmodule Support.WatcherHelper do
     |> Map.get("amount")
   end
 
-  def get_utxos(address) do
+  def get_utxos(%{address: address}) do
     success?("/account.get_utxos", %{"address" => Encoding.to_hex(address)})
   end
 

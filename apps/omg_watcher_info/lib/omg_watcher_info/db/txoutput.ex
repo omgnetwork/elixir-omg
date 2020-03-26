@@ -82,11 +82,11 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     )
   end
 
-  def get_utxos(constraints) do
-    address = Keyword.get(constraints, :address)
-    %{limit: limit, page: page} = constraints.data_paging
+  def get_utxos(params) do
+    address = Keyword.get(params, :address)
+    paginator = Paginator.from_constraints(params, 100)
+    %{limit: limit, page: page} = paginator.data_paging
     offset = (page - 1) * limit
-
     query =
       from(
         txoutput in __MODULE__,
