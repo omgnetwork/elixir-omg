@@ -31,7 +31,6 @@ defmodule LoadTest.Application do
     faucet_config_keys = [
       :faucet_private_key,
       :fee_wei,
-      :faucet_default_funds,
       :faucet_deposit_wei,
       :deposit_finality_margin
     ]
