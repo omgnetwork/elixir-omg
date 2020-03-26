@@ -37,4 +37,12 @@ defmodule OMG.WatcherRPC.Web.View.Account do
     |> Response.serialize_page(data_paging)
     |> WatcherRPCResponse.add_app_infos()
   end
+
+  def render("exitable_utxos.json", %{response: utxos}) do
+    utxos
+    |> Enum.map(&to_utxo/1)
+    |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
+  end
+
 end

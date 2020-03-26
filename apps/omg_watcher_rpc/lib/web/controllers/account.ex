@@ -46,7 +46,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Account do
     with {:ok, address} <- expect(params, "address", :address) do
       address
       |> SecurityAPI.Account.get_exitable_utxos()
-      |> api_response(conn, :utxos)
+      |> api_response(conn, :exitable_utxos)
     end
   end
 end
