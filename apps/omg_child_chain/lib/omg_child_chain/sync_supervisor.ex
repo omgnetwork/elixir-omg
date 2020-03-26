@@ -51,7 +51,6 @@ defmodule OMG.ChildChain.SyncSupervisor do
     block_submit_every_nth = OMG.ChildChain.Configuration.block_submit_every_nth()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
     contracts = OMG.Eth.Configuration.contracts()
-    plasma_framework = contracts.plasma_framework
 
     [
       {GasAnalyzer, []},
@@ -62,8 +61,8 @@ defmodule OMG.ChildChain.SyncSupervisor do
          block_queue_eth_height_check_interval_ms: block_queue_eth_height_check_interval_ms,
          submission_finality_margin: submission_finality_margin,
          block_submit_every_nth: block_submit_every_nth,
-         child_block_interval: child_block_interval,
-         plasma_framework: plasma_framework
+         child_block_interval: child_block_interval
+         
        ]},
       {RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
       {EthereumEventAggregator,

@@ -49,8 +49,7 @@ defmodule OMG.ChildChain.BlockQueue do
   alias OMG.Eth
   alias OMG.Eth.Encoding
   alias OMG.Eth.EthereumHeight
-  alias OMG.Eth.RootChain.Abi
-  alias OMG.Eth.RootChain.Rpc
+  alias OMG.Eth.RootChain
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
@@ -81,10 +80,10 @@ defmodule OMG.ChildChain.BlockQueue do
     finality_threshold = Keyword.fetch!(args, :submission_finality_margin)
     child_block_interval = Keyword.fetch!(args, :child_block_interval)
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
-    plasma_framework = Keyword.fetch!(args, :plasma_framework)
+    
     {:ok, parent_height} = EthereumHeight.get()
-    mined_num = get_mined_child_block(plasma_framework, child_block_interval)
-    %{"block_hash" => top_mined_hash} = get_external_data(plasma_framework, "blocks(uint256)", [mined_num])
+    mined_num = RootChain.get_mined_child_block()
+    {top_mined_hash, _} = RootChain.blocks(mined_num)
     {:ok, stored_child_top_num} = OMG.DB.get_single_value(:child_top_block_number)
 
     _ =
@@ -111,8 +110,7 @@ defmodule OMG.ChildChain.BlockQueue do
         parent_height: parent_height,
         child_block_interval: child_block_interval,
         block_submit_every_nth: block_submit_every_nth,
-        finality_threshold: finality_threshold,
-        plasma_framework: plasma_framework
+        finality_threshold: finality_threshold
       )
 
     {:ok, state} =
@@ -158,7 +156,7 @@ defmodule OMG.ChildChain.BlockQueue do
   def handle_info(:check_ethereum_status, state) do
     {:ok, ethereum_height} = EthereumHeight.get()
 
-    mined_blknum = get_mined_child_block(state.plasma_framework, state.child_block_interval)
+    mined_blknum = RootChain.get_mined_child_block()
     {_, is_empty_block} = OMG.State.get_status()
 
     _ = Logger.debug("Ethereum at \#'#{inspect(ethereum_height)}', mined child at \#'#{inspect(mined_blknum)}'")
@@ -200,18 +198,14 @@ defmodule OMG.ChildChain.BlockQueue do
   defp submit_blocks(state) do
     state
     |> Core.get_blocks_to_submit()
-    |> Enum.each(&submit(&1, state.plasma_framework, state.child_block_interval))
+    |> Enum.each(&submit(&1))
   end
 
-  defp submit(
-         %Core.BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price} = submission,
-         plasma_framework,
-         child_block_interval
-       ) do
+  defp submit(submission) do
     _ = Logger.debug("Submitting: #{inspect(submission)}")
 
-    submit_result = Eth.submit_block(hash, nonce, gas_price)
-    newest_mined_blknum = get_mined_child_block(plasma_framework, child_block_interval)
+    submit_result = Eth.submit_block(submission.hash, submission.nonce, submission.gas_price)
+    newest_mined_blknum = RootChain.get_mined_child_block()
 
     final_result = Core.process_submit_result(submission, submit_result, newest_mined_blknum)
 
@@ -249,15 +243,5 @@ defmodule OMG.ChildChain.BlockQueue do
   defp log_eth_node_error() do
     eth_node_diagnostics = Eth.Diagnostics.get_node_diagnostics()
     Logger.error("Ethereum operation failed, additional diagnostics: #{inspect(eth_node_diagnostics)}")
-  end
-
-  defp get_external_data(contract_address, signature, args) do
-    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
-    Abi.decode_function(data, signature)
-  end
-
-  defp get_mined_child_block(contract_address, child_block_interval) do
-    %{"block_number" => mined_num} = get_external_data(contract_address, "nextChildBlock()", [])
-    mined_num - child_block_interval
   end
 end

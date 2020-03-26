@@ -44,9 +44,8 @@ defmodule OMG.Watcher.BlockGetter do
   use GenServer
   use OMG.Utils.LoggerExt
   use Spandex.Decorators
+  alias OMG.Eth.RootChain
 
-  alias OMG.Eth.RootChain.Abi
-  alias OMG.Eth.RootChain.Rpc
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
   alias OMG.State
@@ -79,7 +78,7 @@ defmodule OMG.Watcher.BlockGetter do
   chain and starts the pollers that will take care of getting blocks.
   """
   def handle_continue(:setup, args) do
-    contracts = Keyword.fetch!(args, :contracts)
+
     child_block_interval = Keyword.fetch!(args, :child_block_interval)
     # how many eth blocks backward can change during an reorg
     block_getter_reorg_margin = Keyword.fetch!(args, :block_getter_reorg_margin)
@@ -113,8 +112,8 @@ defmodule OMG.Watcher.BlockGetter do
         # NOTE: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
         maximum_number_of_pending_blocks: System.schedulers(),
         block_getter_loops_interval_ms: block_getter_loops_interval_ms,
-        child_chain_url: child_chain_url,
-        contracts: contracts
+        child_chain_url: child_chain_url
+        
       )
 
     :ok = check_in_to_coordinator(synced_height)
@@ -316,14 +315,14 @@ defmodule OMG.Watcher.BlockGetter do
     do: EthereumEventAggregator.block_submitted(block_from, block_to)
 
   defp run_block_download_task(state) do
-    %{"block_number" => next_child} = get_external_data(state.config.contracts.plasma_framework, "nextChildBlock()", [])
+    next_child = RootChain.get_mined_child_block()
     {new_state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
 
     Enum.each(
       blocks_numbers,
       # captures the result in handle_info/2 with the atom: downloaded_block
       &Task.async(fn ->
-        {:downloaded_block, download_block(&1, state.config.child_chain_url, state.config.contracts.plasma_framework)}
+        {:downloaded_block, download_block(&1, state.config.child_chain_url)}
       end)
     )
 
@@ -338,10 +337,9 @@ defmodule OMG.Watcher.BlockGetter do
     :timer.send_after(block_getter_loops_interval_ms, self(), :producer)
   end
 
-  @spec download_block(pos_integer(), String.t(), String.t()) :: Core.validate_download_response_result_t()
-  defp download_block(requested_number, child_chain_url, plasma_framework) do
-    %{"block_hash" => requested_hash, "block_timestamp" => block_timestamp} =
-      get_external_data(plasma_framework, "blocks(uint256)", [requested_number])
+  @spec download_block(pos_integer(), String.t()) :: Core.validate_download_response_result_t()
+  defp download_block(requested_number, child_chain_url) do
+    {requested_hash, block_timestamp} = RootChain.blocks(requested_number)
 
     response = Client.get_block(requested_hash, child_chain_url)
 
@@ -367,8 +365,4 @@ defmodule OMG.Watcher.BlockGetter do
 
   defp publish_data([]), do: :ok
 
-  defp get_external_data(contract_address, signature, args) do
-    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
-    Abi.decode_function(data, signature)
-  end
 end

@@ -21,8 +21,8 @@ defmodule OMG.Watcher.API.Status do
   alias OMG.Eth.Client
   alias OMG.Eth.Configuration
   alias OMG.Eth.EthereumHeight
-  alias OMG.Eth.RootChain.Abi
-  alias OMG.Eth.RootChain.Rpc
+  alias OMG.Eth.RootChain
+
   alias OMG.RootChainCoordinator
   alias OMG.State
   alias OMG.Utils.HttpRPC.Encoding
@@ -62,13 +62,11 @@ defmodule OMG.Watcher.API.Status do
     contracts = Eth.Diagnostics.get_child_chain_config()[:contract_addr]
     contract_addr = contract_map_from_hex(contracts)
 
-    mined_child_block_number = get_mined_child_block(contracts.plasma_framework)
+    mined_child_block_number = RootChain.get_mined_child_block()
 
-    %{"block_timestamp" => mined_child_block_timestamp} =
-      get_external_data(contracts.plasma_framework, "blocks(uint256)", [mined_child_block_number])
+    {_, mined_child_block_timestamp} = RootChain.blocks(mined_child_block_number)
 
-    %{"block_timestamp" => validated_child_block_timestamp} =
-      get_external_data(contracts.plasma_framework, "blocks(uint256)", [validated_child_block_number])
+    {_, validated_child_block_timestamp} = RootChain.blocks(validated_child_block_number)
 
     {:ok, services_synced_heights} = RootChainCoordinator.get_ethereum_heights()
 
@@ -113,16 +111,5 @@ defmodule OMG.Watcher.API.Status do
 
   defp contract_map_from_hex(contract_map) do
     Enum.into(contract_map, %{}, fn {name, addr} -> {name, Encoding.from_hex!(addr)} end)
-  end
-
-  defp get_external_data(contract_address, signature, args) do
-    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
-    Abi.decode_function(data, signature)
-  end
-
-  defp get_mined_child_block(contract_address) do
-    %{"block_number" => next} = get_external_data(contract_address, "nextChildBlock()", [])
-    interval = OMG.Eth.Configuration.child_block_interval()
-    next - interval
   end
 end

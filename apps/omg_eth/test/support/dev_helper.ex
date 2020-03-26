@@ -24,8 +24,7 @@ defmodule Support.DevHelper do
   alias OMG.Eth
   alias OMG.Eth.Client
   alias OMG.Eth.Configuration
-  alias OMG.Eth.RootChain.Abi
-  alias OMG.Eth.RootChain.Rpc
+  alias OMG.Eth.RootChain
   alias OMG.Eth.Transaction
   alias Support.WaitFor
 
@@ -56,7 +55,7 @@ defmodule Support.DevHelper do
     - :initial_funds_wei - the amount of test ETH that will be granted to every generated user
   """
   def import_unlock_fund(%{priv: account_priv}, opts \\ []) do
-    {:ok, account_enc} = create_account_from_secret(backend(), account_priv, @passphrase)
+    {:ok, account_enc} = create_account_from_secret(Configuration.eth_node(), account_priv, @passphrase)
     {:ok, _} = fund_address_from_faucet(account_enc, opts)
 
     {:ok, from_hex(account_enc)}
@@ -105,8 +104,7 @@ defmodule Support.DevHelper do
     timeout = 10_000
 
     f = fn ->
-      %{"block_number" => next_num} =
-        get_external_data(Configuration.contracts().plasma_framework, "nextChildBlock()", [])
+      next_num = RootChain.get_mined_child_block()
 
       if next_num < blknum, do: :repeat, else: {:ok, next_num}
     end
@@ -142,7 +140,7 @@ defmodule Support.DevHelper do
 
     params = %{from: faucet, to: account_enc, value: to_hex(initial_funds_wei)}
 
-    {:ok, tx_fund} = Transaction.send(backend(), params)
+    {:ok, tx_fund} = Transaction.send(Configuration.eth_node(), params)
 
     case Keyword.get(opts, :timeout) do
       nil -> WaitFor.eth_receipt(tx_fund, @about_4_blocks_time)
@@ -151,7 +149,7 @@ defmodule Support.DevHelper do
   end
 
   defp unlock_if_possible(account_enc) do
-    unlock_if_possible(account_enc, backend())
+    unlock_if_possible(account_enc, Configuration.eth_node())
   end
 
   # ganache works the same as geth in this aspect
@@ -163,10 +161,6 @@ defmodule Support.DevHelper do
 
   defp unlock_if_possible(_account_enc, :parity) do
     :dont_bother_will_use_personal_sendTransaction
-  end
-
-  defp backend() do
-    Application.fetch_env!(:omg_eth, :eth_node)
   end
 
   # gets the `revert` reason for a failed transaction by txhash
@@ -184,10 +178,5 @@ defmodule Support.DevHelper do
     bytes_to_throw_away = 2 * 32 + 4
     # trimming the 4-byte function selector, 32 byte size of size and 32 byte size
     result |> binary_part(bytes_to_throw_away, byte_size(result) - bytes_to_throw_away) |> String.trim(<<0>>)
-  end
-
-  defp get_external_data(contract_address, signature, args) do
-    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
-    Abi.decode_function(data, signature)
   end
 end

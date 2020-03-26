@@ -16,15 +16,15 @@ defmodule OMG.Performance.Generators do
   @moduledoc """
   Provides helper functions to generate bundles of various useful entities for performance tests
   """
+  require OMG.Utxo
+
   alias OMG.Eth.Configuration
-  alias OMG.Eth.RootChain.Abi
-  alias OMG.Eth.RootChain.Rpc
+  alias OMG.Eth.RootChain
+
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
   alias Support.DevHelper
-
-  require Utxo
 
   @generate_user_timeout 600_000
 
@@ -47,7 +47,7 @@ defmodule OMG.Performance.Generators do
   """
   @spec stream_blocks() :: [OMG.Block.t()]
   def stream_blocks() do
-    child_chain_url = Application.fetch_env!(:omg_watcher, :child_chain_url)
+    child_chain_url = OMG.Watcher.Configuration.child_chain_url()
     interval = Configuration.child_block_interval()
 
     Stream.map(
@@ -97,11 +97,9 @@ defmodule OMG.Performance.Generators do
   """
   @spec random_block() :: OMG.Block.t()
   def random_block() do
-    child_chain_url = Application.fetch_env!(:omg_watcher, :child_chain_url)
     interval = Configuration.child_block_interval()
-    plasma_framework = Configuration.contracts().plasma_framework
-    child_block_interval = Configuration.child_block_interval()
-    mined_block = get_mined_child_block(plasma_framework, child_block_interval)
+    child_chain_url = OMG.Watcher.Configuration.child_chain_url()
+    mined_block = RootChain.get_mined_child_block()
     # interval <= blknum <= mined_block
     blknum = :rand.uniform(div(mined_block, interval)) * interval
     get_block!(blknum, child_chain_url)
@@ -114,8 +112,7 @@ defmodule OMG.Performance.Generators do
   end
 
   defp get_block!(blknum, child_chain_url) do
-    plasma_framework = Configuration.contracts().plasma_framework
-    %{"block_hash" => block_hash} = get_external_data(plasma_framework, "blocks(uint256)", [blknum])
+    {block_hash, _} = RootChain.blocks(blknum)
     {:ok, block} = Client.get_block(block_hash, child_chain_url)
     block
   end

@@ -26,8 +26,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias OMG.Block
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth.Configuration
-  alias OMG.Eth.RootChain.Abi
-  alias OMG.Eth.RootChain.Rpc
+
   alias OMG.State.Transaction
   alias OMG.Status.Alert.Alarm
   alias OMG.Utils.HttpRPC.Encoding
@@ -71,7 +70,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     {:ok, _} = DevHelper.wait_for_next_child_block(post_spend_child_block)
 
     # check if operator is propagating block with hash submitted to RootChain
-    %{"block_hash" => block_hash} = get_external_data(plasma_framework, "blocks(uint256)", [spend_child_block])
+    {block_hash, _} = RootChain.blocks(spend_child_block)
     assert {:ok, %{"transactions" => transactions}} = get_block(block_hash)
 
     # NOTE: we are checking only the `hd` because token_tx might possibly be in the next block
@@ -94,7 +93,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     {:ok, _} = DevHelper.wait_for_next_child_block(post_spend_child_block2)
 
     # check if operator is propagating block with hash submitted to RootChain
-    %{"block_hash" => block_hash2} = get_external_data(plasma_framework, "blocks(uint256)", [spend_child_block2])
+    {block_hash2, _} = RootChain.blocks(spend_child_block2)
 
     assert {:ok, %{"transactions" => [transaction2, fee_tx_hex]}} = get_block(block_hash2)
     {:ok, decoded_tx2_bytes} = Encoding.from_hex(transaction2)
@@ -295,10 +294,5 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
       false ->
         :ok
     end
-  end
-
-  defp get_external_data(contract_address, signature, args) do
-    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
-    Abi.decode_function(data, signature)
   end
 end

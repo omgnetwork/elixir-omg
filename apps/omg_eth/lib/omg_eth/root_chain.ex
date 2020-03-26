@@ -21,22 +21,35 @@ defmodule OMG.Eth.RootChain do
   Should remain simple and not contain any business logic, except being aware of the RootChain contract(s) APIs.
   """
 
-  alias OMG.Eth
-  alias OMG.Eth.Configuration
-
   require Logger
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
-  @type optional_address_t() :: %{atom => Eth.address()} | %{atom => nil}
-  @type in_flight_exit_piggybacked_event() :: %{
-          owner: <<_::160>>,
-          tx_hash: <<_::256>>,
-          output_index: non_neg_integer
-        }
+  alias OMG.Eth
+  alias OMG.Eth.Configuration
+  alias OMG.Eth.RootChain.Abi
+  alias OMG.Eth.RootChain.Rpc
 
-  #
-  # these two cannot be parsed with ABI decoder!
-  #
+  @type optional_address_t() :: %{atom => Eth.address()} | %{atom => nil}
+
+  def get_mined_child_block() do
+    contract_address = Configuration.contracts().plasma_framework
+    child_block_interval = Configuration.child_block_interval()
+    %{"block_number" => mined_num} = get_external_data(contract_address, "nextChildBlock()", [])
+    mined_num - child_block_interval
+  end
+
+  def blocks(mined_num) do
+    contract_address = Configuration.contracts().plasma_framework
+
+    %{"block_hash" => block_hash, "block_timestamp" => block_timestamp} =
+      get_external_data(contract_address, "blocks(uint256)", [mined_num])
+
+    {block_hash, block_timestamp}
+  end
+
+  ##
+  ## these two cannot be parsed with ABI decoder!
+  ##
   @doc """
   Returns standard exits data from the contract for a list of `exit_id`s. Calls contract method.
   """
@@ -113,12 +126,12 @@ defmodule OMG.Eth.RootChain do
   # TODO: see above in where it is called - temporary function
   defp decode_answer_manual_exits(enc_return, return_types) do
     <<32::size(32)-unit(8), raw_array_data::binary>> = from_hex(enc_return)
+    [single_return] = ABI.TypeDecoder.decode(raw_array_data, return_types)
+    {:ok, single_return}
+  end
 
-    raw_array_data
-    |> ABI.TypeDecoder.decode(return_types)
-    |> case do
-      [single_return] -> {:ok, single_return}
-      other when is_list(other) -> {:ok, List.to_tuple(other)}
-    end
+  defp get_external_data(contract_address, signature, args) do
+    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
+    Abi.decode_function(data, signature)
   end
 end

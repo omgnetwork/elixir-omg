@@ -39,7 +39,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
       :block_getter_reorg_margin,
       :block_getter_loops_interval_ms,
       :child_chain_url,
-      :contracts,
       maximum_number_of_pending_blocks: 10,
       maximum_block_withholding_time_ms: 0,
       maximum_number_of_unapplied_blocks: 50
@@ -51,8 +50,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
             maximum_number_of_unapplied_blocks: pos_integer,
             block_interval: pos_integer,
             block_getter_loops_interval_ms: pos_integer,
-            child_chain_url: String.t(),
-            contracts: map()
+            child_chain_url: String.t()
+            
           }
   end
 
