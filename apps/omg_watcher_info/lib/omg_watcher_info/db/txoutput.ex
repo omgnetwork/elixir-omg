@@ -106,7 +106,8 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     %{limit: limit, page: page} = paginator.data_paging
     offset = (page - 1) * limit
     query = from query_get_utxos(address), limit: ^limit, offset: ^offset
-    Repo.all(query)
+    data = Repo.all(query)
+    Paginator.set_data(data, paginator)
   end
 
   @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
