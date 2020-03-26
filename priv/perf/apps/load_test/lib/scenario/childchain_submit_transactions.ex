@@ -36,8 +36,6 @@ defmodule LoadTest.Scenario.ChildChainSubmitTransactions do
     initial_funds = ntx_to_send + ntx_to_send * fee_wei
     {:ok, utxo} = Faucet.fund_child_chain_account(sender, initial_funds, @eth)
 
-    Logger.debug("User utxo: #{inspect(utxo)}")
-
     session
     |> Chaperon.Session.assign(next_utxo: utxo)
     |> repeat(:send_tx, [sender, fee_wei], ntx_to_send)

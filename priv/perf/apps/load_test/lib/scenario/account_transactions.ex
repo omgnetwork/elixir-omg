@@ -223,22 +223,23 @@ defmodule LoadTest.Scenario.AccountTransactions do
       |> Encoding.to_hex()
 
     signatures = Enum.map(inputs, fn _ -> signature end)
-    typed_data_signed = Map.put_new(typed_data, "signatures", signatures)
-    typed_data_signed
+    Map.put_new(typed_data, "signatures", signatures)
   end
 
-  defp do_wait_for_balance_update(_session, _sender, 0), do: :all_retry_failed
+  defp do_wait_for_balance_update(_session, _sender, 0), do: :wait_for_balance_failed
 
   defp do_wait_for_balance_update(session, sender, retry) do
     {:ok, response_body} = get_balance(sender)
     utxos = Jason.decode!(response_body)["data"]
 
-    if Enum.count(utxos) > 0 do
-      {:ok, session}
-    else
-      session = log_debug(session, "retry for the balance update for sender: #{Encoding.to_hex(sender.addr)}")
+    if Enum.empty?(utxos) > 0 do
       Process.sleep(@poll_interval)
-      do_wait_for_balance_update(session, sender, retry - 1)
+
+      session
+      |> log_debug("retry for the balance update for sender: #{Encoding.to_hex(sender.addr)}")
+      |> do_wait_for_balance_update(sender, retry - 1)
+    else
+      {:ok, session}
     end
   end
 
@@ -247,7 +248,7 @@ defmodule LoadTest.Scenario.AccountTransactions do
     session
   end
 
-  defp do_wait_until_tx_sync_to_watcher(_session, _tx_id, 0), do: :all_retry_failed
+  defp do_wait_until_tx_sync_to_watcher(_session, _tx_id, 0), do: :wait_until_tx_sync_failed
 
   defp do_wait_until_tx_sync_to_watcher(session, tx_id, retry) do
     {:ok, response} =
@@ -258,16 +259,14 @@ defmodule LoadTest.Scenario.AccountTransactions do
         }
       )
 
-    case Jason.decode!(response.body)["success"] do
-      false ->
-        Process.sleep(@poll_interval)
+    if Jason.decode!(response.body)["success"] do
+      {:ok, session}
+    else
+      Process.sleep(@poll_interval)
 
-        session
-        |> log_debug("retry for watcher info to sync the submitted tx_id: #{tx_id}")
-        |> do_wait_until_tx_sync_to_watcher(tx_id, retry - 1)
-
-      true ->
-        {:ok, session}
+      session
+      |> log_debug("retry for watcher info to sync the submitted tx_id: #{tx_id}")
+      |> do_wait_until_tx_sync_to_watcher(tx_id, retry - 1)
     end
   end
 end
