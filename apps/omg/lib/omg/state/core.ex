@@ -17,6 +17,8 @@ defmodule OMG.State.Core do
   The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
 
+  ### Notes on loading of the UTXO set
+
   We experienced long startup times on large UTXO set, which in some case caused timeouts and lethal `OMG.State`
   restart loop. To mitigate this issue we introduced loading UTXO set on demand (see GH#1103) instead of full load
   on process startup.
@@ -105,7 +107,7 @@ defmodule OMG.State.Core do
 
   @type exit_finalization_t() :: %{utxo_pos: pos_integer()}
 
-  @type exiting_utxos_t() ::
+  @type exiting_utxo_triggers_t() ::
           [Utxo.Position.t()]
           | [non_neg_integer()]
           | [exit_t()]
@@ -200,20 +202,6 @@ defmodule OMG.State.Core do
     end
   end
 
-  # Post-processing step of transaction execution. It either claim for Transaction.Fee and collect for the rest.
-  @spec handle_fees(state :: t(), Transaction.Recovered.t(), map()) :: t()
-  defp handle_fees(state, %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Fee{}}} = tx, _fees_paid) do
-    [output] = Transaction.get_outputs(tx)
-
-    state
-    |> flush_collected_fees_for_token(output)
-    |> disallow_payments()
-  end
-
-  defp handle_fees(state, _tx, fees_paid) do
-    collect_fees(state, fees_paid)
-  end
-
   @doc """
     Filter user utxos from db response.
     It may take a while for a large response from db
@@ -226,18 +214,6 @@ defmodule OMG.State.Core do
     |> UtxoSet.filter_owned_by(address)
     |> UtxoSet.zip_with_positions()
     |> Enum.map(fn {{_, utxo}, position} -> utxo_to_exitable_utxo_map(utxo, position) end)
-  end
-
-  # attempts to build a standard response data about a single UTXO, based on an abstract `output` structure
-  # so that the data can be useful to discover exitable UTXOs
-  defp utxo_to_exitable_utxo_map(%Utxo{output: %{output_type: otype} = output}, Utxo.position(blknum, txindex, oindex)) do
-    output
-    |> Map.from_struct()
-    |> Map.take([:owner, :currency, :amount])
-    |> Map.put(:otype, otype)
-    |> Map.put(:blknum, blknum)
-    |> Map.put(:txindex, txindex)
-    |> Map.put(:oindex, oindex)
   end
 
   @doc """
@@ -326,55 +302,59 @@ defmodule OMG.State.Core do
   NOTE: It is done like this to accommodate different clients of this function as they can either be
   bare `EthereumEventListener` or `ExitProcessor`. Hence different forms it can get the exiting utxos delivered
   """
-  @spec extract_exiting_utxo_positions(exiting_utxos_t(), t()) :: list(Utxo.Position.t())
+  @spec extract_exiting_utxo_positions(exiting_utxo_triggers_t(), t()) :: list(Utxo.Position.t())
   def extract_exiting_utxo_positions(exit_infos, state)
 
   def extract_exiting_utxo_positions([], %Core{}), do: []
 
   # list of full exit infos (from events) containing the utxo positions
-  def extract_exiting_utxo_positions([%{utxo_pos: _} | _] = exit_infos, state),
-    do: exit_infos |> Enum.map(& &1.utxo_pos) |> extract_exiting_utxo_positions(state)
+  def extract_exiting_utxo_positions([%{utxo_pos: _} | _] = utxo_position_events, state),
+    do: utxo_position_events |> Enum.map(& &1.utxo_pos) |> extract_exiting_utxo_positions(state)
 
   # list of full exit events (from ethereum listeners)
-  def extract_exiting_utxo_positions([%{call_data: %{utxo_pos: _}} | _] = exit_infos, state),
-    do: exit_infos |> Enum.map(& &1.call_data) |> extract_exiting_utxo_positions(state)
+  def extract_exiting_utxo_positions([%{call_data: %{utxo_pos: _}} | _] = utxo_position_events, state),
+    do: utxo_position_events |> Enum.map(& &1.call_data) |> extract_exiting_utxo_positions(state)
 
   # list of utxo positions (encoded)
-  def extract_exiting_utxo_positions([encoded_utxo_pos | _] = exit_infos, %Core{}) when is_integer(encoded_utxo_pos),
-    do: Enum.map(exit_infos, &Utxo.Position.decode!/1)
+  def extract_exiting_utxo_positions([encoded_utxo_pos | _] = encoded_utxo_positions, %Core{})
+      when is_integer(encoded_utxo_pos),
+      do: Enum.map(encoded_utxo_positions, &Utxo.Position.decode!/1)
 
   # list of IFE input/output piggybacked events
-  def extract_exiting_utxo_positions([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{}) do
-    _ = Logger.info("Recognized exits from IFE starts #{inspect(in_flight_txs)}")
+  def extract_exiting_utxo_positions([%{call_data: %{in_flight_tx: _}} | _] = start_ife_events, %Core{}) do
+    _ = Logger.info("Recognized exits from IFE starts #{inspect(start_ife_events)}")
 
-    Enum.flat_map(in_flight_txs, fn %{call_data: %{in_flight_tx: tx_bytes}} ->
+    Enum.flat_map(start_ife_events, fn %{call_data: %{in_flight_tx: tx_bytes}} ->
       {:ok, tx} = Transaction.decode(tx_bytes)
       Transaction.get_inputs(tx)
     end)
   end
 
   # list of IFE input piggybacked events (they're ignored)
-  def extract_exiting_utxo_positions([%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggybacks, %Core{}) do
-    _ = Logger.info("Ignoring input piggybacks #{inspect(piggybacks)}")
+  def extract_exiting_utxo_positions(
+        [%{tx_hash: _, omg_data: %{piggyback_type: :input}} | _] = piggyback_events,
+        %Core{}
+      ) do
+    _ = Logger.info("Ignoring input piggybacks #{inspect(piggyback_events)}")
     []
   end
 
   # list of IFE output piggybacked events. This is used by the child chain only. `OMG.Watcher.ExitProcessor` figures out
   # the utxo positions to exit on its own
   def extract_exiting_utxo_positions(
-        [%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggybacks,
+        [%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggyback_events,
         %Core{} = state
       ) do
-    _ = Logger.info("Recognized exits from piggybacks #{inspect(piggybacks)}")
+    _ = Logger.info("Recognized exits from piggybacks #{inspect(piggyback_events)}")
 
-    piggybacks
+    piggyback_events
     |> Enum.map(&find_utxo_matching_piggyback(&1, state))
     |> Enum.filter(fn utxo -> utxo != nil end)
     |> Enum.map(fn {position, _} -> position end)
   end
 
   # list of utxo positions (decoded)
-  def extract_exiting_utxo_positions([Utxo.position(_, _, _) | _] = exiting_utxos, %Core{}), do: exiting_utxos
+  def extract_exiting_utxo_positions([Utxo.position(_, _, _) | _] = utxo_positions, %Core{}), do: utxo_positions
 
   @doc """
   Spends exited utxos.
@@ -450,6 +430,32 @@ defmodule OMG.State.Core do
         recently_spent: MapSet.union(recently_spent, MapSet.new(spent_input_pointers)),
         utxo_db_updates: new_db_updates ++ spent_blknum_updates ++ db_updates
     }
+  end
+
+  # Post-processing step of transaction execution. It either claim for Transaction.Fee and collect for the rest.
+  @spec handle_fees(state :: t(), Transaction.Recovered.t(), map()) :: t()
+  defp handle_fees(state, %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Fee{}}} = tx, _fees_paid) do
+    [output] = Transaction.get_outputs(tx)
+
+    state
+    |> flush_collected_fees_for_token(output)
+    |> disallow_payments()
+  end
+
+  defp handle_fees(state, _tx, fees_paid) do
+    collect_fees(state, fees_paid)
+  end
+
+  # attempts to build a standard response data about a single UTXO, based on an abstract `output` structure
+  # so that the data can be useful to discover exitable UTXOs
+  defp utxo_to_exitable_utxo_map(%Utxo{output: %{output_type: otype} = output}, Utxo.position(blknum, txindex, oindex)) do
+    output
+    |> Map.from_struct()
+    |> Map.take([:owner, :currency, :amount])
+    |> Map.put(:otype, otype)
+    |> Map.put(:blknum, blknum)
+    |> Map.put(:txindex, txindex)
+    |> Map.put(:oindex, oindex)
   end
 
   defp collect_fees(%Core{fees_paid: fees_paid} = state, token_surpluses) do
