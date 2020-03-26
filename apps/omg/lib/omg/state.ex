@@ -14,7 +14,17 @@
 
 defmodule OMG.State do
   @moduledoc """
-  Imperative shell - a GenServer serving the ledger, for functional core and more info see `OMG.State.Core`.
+  A GenServer serving the ledger, for functional core and more info see `OMG.State.Core`.
+
+  Keeps the state of the ledger, mainly the spendable UTXO set that can be employed in both `OMG.ChildChain` and
+  `OMG.Watcher`.
+
+  Maintains the state of the UTXO set by:
+    - recognizing deposits
+    - executing child chain transactions
+    - recognizing exits
+
+  Assumes that all stateless transaction validation is done outside of `exec/2`, so it accepts `OMG.State.Transaction.Recovered`
   """
 
   alias OMG.Block
@@ -37,10 +47,20 @@ defmodule OMG.State do
 
   ### Client
 
+  @doc """
+  Starts the `GenServer` maintaining the ledger
+  """
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @doc """
+  Executes a single, statelessly validated child chain transaction. May take information on the fees required, in case
+  fees are charged.
+
+  Checks statefull validity and executes a transaction on `OMG.State` when successful. Otherwise, returns an error and has no effect on
+  `OMG.State` and the ledger
+  """
   @spec exec(tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}}
           | {:error, exec_error()}
@@ -48,39 +68,74 @@ defmodule OMG.State do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
-  @spec form_block() :: :ok
-  def form_block() do
-    GenServer.cast(__MODULE__, :form_block)
-  end
+  @doc """
+  Intended for the `OMG.Watcher`. "Closes" a block, acknowledging that all transactions have been executed, and the next
+  `exec/2` will belong to the next block.
 
-  # watcher
+  Depends on the caller to do persistence.
+
+  Synchronous
+  """
   @spec close_block() :: {:ok, list(Core.db_update())}
   def close_block() do
     GenServer.call(__MODULE__, :close_block)
   end
 
+  @doc """
+  Intended for the `OMG.ChildChain`. Forms a new block and persist it. Broadcasts the block to the internal event bus
+  to be used in other processes.
+
+  Asynchronous
+  """
+  @spec form_block() :: :ok
+  def form_block() do
+    GenServer.cast(__MODULE__, :form_block)
+  end
+
+  @doc """
+  Recognizes a list of deposits based on Ethereum events.
+
+  Depends on the caller to do persistence.
+  """
   @spec deposit(deposits :: [Core.deposit()]) :: {:ok, list(Core.db_update())}
   # empty list clause to not block state for a no-op
   def deposit([]), do: {:ok, []}
 
   def deposit(deposits) do
-    GenServer.call(__MODULE__, {:deposits, deposits})
+    GenServer.call(__MODULE__, {:deposit, deposits})
   end
 
-  @spec exit_utxos(utxos :: Core.exiting_utxos_t()) ::
+  @doc """
+  Recognizes a list of exits based on various triggers. Returns exit validities which indicate which of the UTXO positions
+  actually pointed to UTXOs in the UTXO set of the ledger.
+
+  For a list of things that can be triggers see `OMG.State.Core.extract_exiting_utxo_positions/2`.
+
+  Depends on the caller to do persistence.
+  """
+  @spec exit_utxos(exiting_utxo_triggers :: Core.exiting_utxo_triggers_t()) ::
           {:ok, list(Core.db_update()), Core.validities_t()}
   # empty list clause to not block state for a no-op
   def exit_utxos([]), do: {:ok, [], {[], []}}
 
-  def exit_utxos(utxos) do
-    GenServer.call(__MODULE__, {:exit_utxos, utxos})
+  def exit_utxos(exiting_utxo_triggers) do
+    GenServer.call(__MODULE__, {:exit_utxos, exiting_utxo_triggers})
   end
 
+  @doc """
+  Provides a peek into the UTXO set to check if particular output exist (have not been spent)
+  """
   @spec utxo_exists?(Utxo.Position.t()) :: boolean()
   def utxo_exists?(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
+  @doc """
+  Returns the current `blknum` and whether at the beginning of a block.
+
+  The beginning of the block is `true/false` depending on whether there have been no transactions executed yet for
+  the current child chain block
+  """
   @spec get_status() :: {non_neg_integer(), boolean()}
   def get_status() do
     GenServer.call(__MODULE__, :get_status)
@@ -120,7 +175,7 @@ defmodule OMG.State do
   end
 
   @doc """
-  Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
+  see `exec/2`
   """
   def handle_call({:exec, tx, fees}, _from, state) do
     db_utxos =
@@ -141,19 +196,24 @@ defmodule OMG.State do
   end
 
   @doc """
-  Includes a deposit done on the root chain contract (see above - not sure about this)
+  see `deposit/1`
   """
-  def handle_call({:deposits, deposits}, _from, state) do
+  def handle_call({:deposit, deposits}, _from, state) do
     {:ok, db_updates, new_state} = Core.deposit(deposits, state)
 
     {:reply, {:ok, db_updates}, new_state}
   end
 
   @doc """
-  Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
+  see `exit_utxos/1`
+
+  Flow:
+    - translates the triggers to UTXO positions digestible by the UTXO set
+    - exits the UTXOs from the ledger if they exists, reports invalidity wherever they don't
+    - returns the `db_updates` to be applied by the caller
   """
-  def handle_call({:exit_utxos, utxos}, _from, state) do
-    exiting_utxos = Core.extract_exiting_utxo_positions(utxos, state)
+  def handle_call({:exit_utxos, exiting_utxo_triggers}, _from, state) do
+    exiting_utxos = Core.extract_exiting_utxo_positions(exiting_utxo_triggers, state)
 
     db_utxos = fetch_utxos_from_db(exiting_utxos, state)
     state = Core.with_utxos(state, db_utxos)
@@ -164,27 +224,26 @@ defmodule OMG.State do
   end
 
   @doc """
-  Tells if utxo exists
+  see `utxo_exists/1`
   """
-  def handle_call({:utxo_exists, utxo}, _from, state) do
-    db_utxos = fetch_utxos_from_db([utxo], state)
+  def handle_call({:utxo_exists, utxo_pos}, _from, state) do
+    db_utxos = fetch_utxos_from_db([utxo_pos], state)
     new_state = Core.with_utxos(state, db_utxos)
 
-    {:reply, Core.utxo_exists?(utxo, new_state), new_state}
+    {:reply, Core.utxo_exists?(utxo_pos, new_state), new_state}
   end
 
   @doc """
-      Gets the current block's height and whether at the beginning of a block.
-
-      Beginning of block is true if and only if the last block has been committed
-      and none transaction from the next block has been executed.
+  see `get_status/0`
   """
   def handle_call(:get_status, _from, state) do
     {:reply, Core.get_status(state), state}
   end
 
   @doc """
-  Works exactly like handle_cast(:form_block) but:
+  see `close_block/0`
+
+  Works exactly like `handle_cast(:form_block)` but:
    - is synchronous
    - relies on the caller to handle persistence, instead of handling itself
 
@@ -198,11 +257,13 @@ defmodule OMG.State do
   end
 
   @doc """
-  Generates fee-transactions based on the fees paid in the block, wraps up accumulated transactions submissions
-  and fee transactions into a block, triggers db update and:
-   - pushes the new block to subscribers of `"blocks"` internal event bus topic
+  see `form_block/0`
 
-  Does its on persistence!
+  Flow:
+    - generates fee-transactions based on the fees paid in the block
+    - wraps up accumulated transactions submissions and fee transactions into a block
+    - triggers db update
+    - pushes the new block to subscribers of `"blocks"` internal event bus topic
   """
   def handle_cast(:form_block, state) do
     _ = Logger.debug("Forming new block...")
