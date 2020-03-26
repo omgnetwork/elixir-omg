@@ -17,14 +17,6 @@ defmodule OMG.Watcher.ExitProcessor.Request do
   Encapsulates the state of processing of `OMG.Watcher.ExitProcessor` pipelines
 
   Holds all the necessary query date and the respective response
-
-  NOTE: this is highly experimental, to test out new patterns to follow when doing the Functional Core vs Imperative
-        Shell separation. **Do not yet** follow outside of here. I'm not sure whether such struct offers much and it
-        has its problems. Decide and update this note after OMG-384 or OMG-383
-
-        EDIT: the multitude and duplication of the fields here is a clear sign that this design loses.
-        EDIT2: probably splitting this struct up, so that there isn't so many fields (`IFEInclusionRequest`,
-        `ValidityRequest`, `SEChallengeRequest` etc), might be the way to go
   """
 
   alias OMG.Block
