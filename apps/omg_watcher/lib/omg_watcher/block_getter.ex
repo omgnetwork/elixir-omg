@@ -78,7 +78,6 @@ defmodule OMG.Watcher.BlockGetter do
   chain and starts the pollers that will take care of getting blocks.
   """
   def handle_continue(:setup, args) do
-
     child_block_interval = Keyword.fetch!(args, :child_block_interval)
     # how many eth blocks backward can change during an reorg
     block_getter_reorg_margin = Keyword.fetch!(args, :block_getter_reorg_margin)
@@ -113,7 +112,6 @@ defmodule OMG.Watcher.BlockGetter do
         maximum_number_of_pending_blocks: System.schedulers(),
         block_getter_loops_interval_ms: block_getter_loops_interval_ms,
         child_chain_url: child_chain_url
-        
       )
 
     :ok = check_in_to_coordinator(synced_height)
@@ -315,7 +313,7 @@ defmodule OMG.Watcher.BlockGetter do
     do: EthereumEventAggregator.block_submitted(block_from, block_to)
 
   defp run_block_download_task(state) do
-    next_child = RootChain.get_mined_child_block()
+    next_child = RootChain.next_child_block()
     {new_state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
 
     Enum.each(
@@ -364,5 +362,4 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   defp publish_data([]), do: :ok
-
 end

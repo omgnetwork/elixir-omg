@@ -51,7 +51,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
             block_interval: pos_integer,
             block_getter_loops_interval_ms: pos_integer,
             child_chain_url: String.t()
-            
           }
   end
 

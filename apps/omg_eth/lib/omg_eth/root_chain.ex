@@ -32,10 +32,15 @@ defmodule OMG.Eth.RootChain do
   @type optional_address_t() :: %{atom => Eth.address()} | %{atom => nil}
 
   def get_mined_child_block() do
-    contract_address = Configuration.contracts().plasma_framework
     child_block_interval = Configuration.child_block_interval()
-    %{"block_number" => mined_num} = get_external_data(contract_address, "nextChildBlock()", [])
+    mined_num = next_child_block()
     mined_num - child_block_interval
+  end
+
+  def next_child_block() do
+    contract_address = Configuration.contracts().plasma_framework
+    %{"block_number" => mined_num} = get_external_data(contract_address, "nextChildBlock()", [])
+    mined_num
   end
 
   def blocks(mined_num) do

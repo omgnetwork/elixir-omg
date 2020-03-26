@@ -104,7 +104,7 @@ defmodule Support.DevHelper do
     timeout = 10_000
 
     f = fn ->
-      next_num = RootChain.get_mined_child_block()
+      next_num = RootChain.next_child_block()
 
       if next_num < blknum, do: :repeat, else: {:ok, next_num}
     end

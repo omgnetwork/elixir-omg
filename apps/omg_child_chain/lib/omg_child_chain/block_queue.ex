@@ -80,7 +80,7 @@ defmodule OMG.ChildChain.BlockQueue do
     finality_threshold = Keyword.fetch!(args, :submission_finality_margin)
     child_block_interval = Keyword.fetch!(args, :child_block_interval)
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
-    
+
     {:ok, parent_height} = EthereumHeight.get()
     mined_num = RootChain.get_mined_child_block()
     {top_mined_hash, _} = RootChain.blocks(mined_num)
@@ -202,7 +202,7 @@ defmodule OMG.ChildChain.BlockQueue do
   end
 
   defp submit(submission) do
-    _ = Logger.debug("Submitting: #{inspect(submission)}")
+    _ = Logger.info("Submitting: #{inspect(submission)}")
 
     submit_result = Eth.submit_block(submission.hash, submission.nonce, submission.gas_price)
     newest_mined_blknum = RootChain.get_mined_child_block()

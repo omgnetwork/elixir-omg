@@ -26,7 +26,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias OMG.Block
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth.Configuration
-
+  alias OMG.Eth.RootChain
   alias OMG.State.Transaction
   alias OMG.Status.Alert.Alarm
   alias OMG.Utils.HttpRPC.Encoding
@@ -52,7 +52,6 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   } do
     {:ok, token} = Encoding.from_hex(token)
 
-    plasma_framework = Configuration.contracts().plasma_framework
     raw_tx = Transaction.Payment.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 2}], <<0::256>>)
 
     tx = OMG.TestHelper.sign_encode(raw_tx, [alice.priv])

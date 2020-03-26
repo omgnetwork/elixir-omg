@@ -62,7 +62,6 @@ defmodule OMG.ChildChain.SyncSupervisor do
          submission_finality_margin: submission_finality_margin,
          block_submit_every_nth: block_submit_every_nth,
          child_block_interval: child_block_interval
-         
        ]},
       {RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
       {EthereumEventAggregator,
