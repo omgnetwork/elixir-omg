@@ -30,6 +30,9 @@ defmodule OMG.WatcherRPC.Web.Endpoint do
     json_decoder: Jason
   )
 
+  plug(Plug.MethodOverride)
+  plug(Plug.Head)
+
   if Application.get_env(:omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint)[:enable_cors],
     do: plug(CORSPlug)
 
