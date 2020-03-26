@@ -109,7 +109,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     Repo.all(query)
   end
 
-  @spec get_all_utxos(keyword) :: list()
+  @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
   defp get_all_utxos(address) do
     query =
       from(
