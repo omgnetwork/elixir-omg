@@ -18,6 +18,7 @@ defmodule OMG.WatcherInfo.API.Account do
   """
 
   alias OMG.WatcherInfo.DB
+
   @doc """
   Returns a list of amounts of currencies that a given address owns
   """

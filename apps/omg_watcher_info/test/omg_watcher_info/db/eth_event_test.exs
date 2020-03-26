@@ -191,7 +191,9 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
     expected = [^expected_root_chain_txhash_1, ^expected_root_chain_txhash_2, ^expected_root_chain_txhash_3]
     %{data: alice_utxos} = DB.TxOutput.get_utxos(alice.addr)
-    assert expected = alice_utxos
+
+    assert expected =
+             alice_utxos
              |> Enum.map(fn txoutput ->
                [head | _tail] = txoutput.ethevents
                head.root_chain_txhash

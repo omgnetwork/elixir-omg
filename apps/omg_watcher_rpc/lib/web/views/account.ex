@@ -44,5 +44,4 @@ defmodule OMG.WatcherRPC.Web.View.Account do
     |> Response.serialize()
     |> WatcherRPCResponse.add_app_infos()
   end
-
 end

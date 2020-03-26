@@ -130,7 +130,7 @@ defmodule Support.WatcherHelper do
     success?("/account.get_utxos", %{params | address: hex_string_address})
   end
 
-      @doc """
+  @doc """
   shortcut helper for get_utxos that inject pagination data for you
   """
   def get_utxos(address) do

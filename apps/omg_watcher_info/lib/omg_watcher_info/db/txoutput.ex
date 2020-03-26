@@ -105,7 +105,8 @@ NOT EXISTS (SELECT 1
     paginator = Paginator.from_constraints(params, @default_get_utxos_limit)
     %{limit: limit, page: page} = paginator.data_paging
     offset = (page - 1) * limit
-    (from query_get_utxos(address), limit: ^limit, offset: ^offset)
+
+    from(query_get_utxos(address), limit: ^limit, offset: ^offset)
     |> Repo.all()
     |> Paginator.set_data(paginator)
   end
@@ -214,5 +215,4 @@ NOT EXISTS (SELECT 1
     |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
     |> Map.new()
   end
-
 end
