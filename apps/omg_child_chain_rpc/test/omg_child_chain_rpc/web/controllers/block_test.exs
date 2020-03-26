@@ -76,22 +76,22 @@ defmodule OMG.ChildChainRPC.Web.Controller.BlockTest do
            } = TestHelper.rpc_call(:post, "/block.get", missing_param)
   end
 
-  @tag fixtures: [:phoenix_sandbox]
-  test "block.get returns bad request error if hash passed in as query parameter" do
-    valid_hash = "0x" <> String.duplicate("00", 32)
+#   @tag fixtures: [:phoenix_sandbox]
+#   test "block.get returns bad request error if hash passed in as query parameter" do
+#     valid_hash = "0x" <> String.duplicate("00", 32)
 
-    assert %{
-             "success" => false,
-             "data" => %{
-               "object" => "error",
-               "code" => "operation:bad_request",
-               "messages" => %{
-                 "validation_error" => %{
-                   "parameter" => "hash",
-                   "validator" => ":hex"
-                 }
-               }
-             }
-           } = TestHelper.rpc_call(:post, "/block.get?hash=#{valid_hash}")
-  end
-end
+#     assert %{
+#              "success" => false,
+#              "data" => %{
+#                "object" => "error",
+#                "code" => "operation:bad_request",
+#                "messages" => %{
+#                  "validation_error" => %{
+#                    "parameter" => "hash",
+#                    "validator" => ":hex"
+#                  }
+#                }
+#              }
+#            } = TestHelper.rpc_call(:post, "/block.get?hash=#{valid_hash}")
+#   end
+# end
