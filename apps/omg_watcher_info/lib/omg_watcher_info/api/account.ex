@@ -18,7 +18,7 @@ defmodule OMG.WatcherInfo.API.Account do
   """
 
   alias OMG.WatcherInfo.DB
-
+  alias OMG.WatcherRPC.Web.Validator.AccountConstraints
   @doc """
   Returns a list of amounts of currencies that a given address owns
   """
@@ -30,8 +30,9 @@ defmodule OMG.WatcherInfo.API.Account do
   @doc """
   Gets all utxos belonging to the given address.
   """
-  @spec get_utxos(OMG.Crypto.address_t()) :: list(%DB.TxOutput{})
-  def get_utxos(address) do
-    DB.TxOutput.get_utxos(address)
+  @spec get_utxos(Keyword.t()) :: list(%DB.TxOutput{})
+  def get_utxos(params) do
+    {:ok, constaints} = AccountConstraints.parse(params)
+    DB.TxOutput.get_utxos(constaints)
   end
 end
