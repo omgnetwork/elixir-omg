@@ -26,6 +26,9 @@ defmodule OMG.ChildChainRPC.Web.Endpoint do
     json_decoder: Jason
   )
 
+  plug(Plug.MethodOverride)
+  plug(Plug.Head)
+
   if Application.get_env(:omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint)[:enable_cors],
     do: plug(CORSPlug)
 
