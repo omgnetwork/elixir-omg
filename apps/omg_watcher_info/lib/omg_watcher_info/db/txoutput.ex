@@ -21,8 +21,8 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   use Ecto.Schema
 
   alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Utils.Paginator
+  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Repo
 
