@@ -15,7 +15,7 @@
 defmodule OMG.ChildChain.Fees.FileAdapter do
   @moduledoc """
   Adapter for fees stored in a JSON file (defined in omg_child_chain/priv config :omg_child_chain,
-  :fee_specs_file_name).
+  fee_adapter_opts: `specs_file_name` keyword opts).
   """
   @behaviour OMG.ChildChain.Fees.Adapter
 
@@ -30,8 +30,8 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
   """
   # sobelow_skip ["Traversal"]
   @impl true
-  def get_fee_specs(recorded_file_updated_at) do
-    path = get_path()
+  def get_fee_specs(opts, _actual_fee_specs, recorded_file_updated_at) do
+    path = get_path(opts)
 
     with {:changed, file_updated_at} <- check_file_changes(path, recorded_file_updated_at),
          {:ok, content} <- File.read(path),
@@ -69,7 +69,7 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
     end
   end
 
-  defp get_path() do
-    "#{:code.priv_dir(:omg_child_chain)}/#{Application.get_env(:omg_child_chain, :fee_specs_file_name)}"
+  defp get_path(opts) do
+    "#{:code.priv_dir(:omg_child_chain)}/#{Keyword.fetch!(opts, :specs_file_name)}"
   end
 end

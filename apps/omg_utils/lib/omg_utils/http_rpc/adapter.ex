@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.HttpRPC.Adapter do
+defmodule OMG.Utils.HttpRPC.Adapter do
   @moduledoc """
   Provides functions to communicate with Child Chain API
   """
@@ -38,23 +38,43 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
   end
 
   @doc """
+  Retrieves body from response structure but don't deserialize it.
+  """
+  def get_unparsed_response_body({:ok, %HTTPoison.Response{} = response}),
+    do: get_unparsed_response_body(response)
+
+  def get_unparsed_response_body(%HTTPoison.Response{status_code: 200, body: body}),
+    do: {:ok, body}
+
+  def get_unparsed_response_body(%HTTPoison.Response{body: error}),
+    do: {:error, {:client_error, error}}
+
+  def get_unparsed_response_body({:error, %HTTPoison.Error{reason: :econnrefused}}) do
+    {:error, :host_unreachable}
+  end
+
+  def get_unparsed_response_body({:error, %HTTPoison.Error{reason: reason}}) do
+    {:error, {:server_error, reason}}
+  end
+
+  def get_unparsed_response_body(error), do: error
+
+  @doc """
   Retrieves body from response structure. When response is successful
   the structure in body is known, so we can try to deserialize it.
   """
-  def get_response_body(%HTTPoison.Response{status_code: 200, body: body}) do
-    with {:ok, response} <- Jason.decode(body),
+  @spec get_response_body(HTTPoison.Response.t() | {:error, HTTPoison.Error.t()}) ::
+          {:ok, map()} | {:error, atom() | tuple() | HTTPoison.Error.t()}
+  def get_response_body(http_response) do
+    with {:ok, body} <- get_unparsed_response_body(http_response),
+         {:ok, response} <- Jason.decode(body),
          %{"success" => true, "data" => data} <- response do
       {:ok, convert_keys_to_atoms(data)}
     else
       %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
-      match_err -> {:error, {:malformed_response, match_err}}
+      error -> error
     end
   end
-
-  def get_response_body(%HTTPoison.Response{body: error}),
-    do: {:error, {:server_error, error}}
-
-  def get_response_body(error), do: {:error, {:client_error, error}}
 
   defp convert_keys_to_atoms(data) when is_list(data),
     do: Enum.map(data, &convert_keys_to_atoms/1)
