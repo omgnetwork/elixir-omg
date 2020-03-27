@@ -16,8 +16,8 @@ config :load_test,
   watcher_info_url: System.get_env("WATCHER_INFO_URL"),
   faucet_private_key: System.get_env("LOAD_TEST_FAUCET_PRIVATE_KEY"),
   eth_vault_address: System.get_env("CONTRACT_ADDRESS_ETH_VAULT"),
-  faucet_deposit_wei: trunc(:math.pow(10, 18)),
-  initial_funds_wei: trunc(:math.pow(10, 9)),
+  faucet_deposit_wei: trunc(:math.pow(10, 14)),
+  initial_funds_wei: trunc(:math.pow(10, 7)),
   fee_wei: 1,
   deposit_finality_margin: 10
 
