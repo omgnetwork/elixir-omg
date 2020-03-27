@@ -104,15 +104,11 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end)
     |> Enum.take_while(fn b -> not b end)
 
-    old_file_name = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
-
     {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
-    Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name)
 
     on_exit(fn ->
       apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
       File.rm(file_path)
-      Application.put_env(:omg_child_chain, :fee_specs_file_name, old_file_name)
     end)
 
     %{fee_file: file_name}
@@ -120,7 +116,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
   describe "fees in effect" do
     test "corrupted file does not make server crash", %{fee_file: file_name} do
-      {:started, _log, exit_fn} = start_fee_server()
+      {:started, _log, exit_fn} = start_fee_server(file_name)
 
       new_fee = %{
         amount: 5,
@@ -154,14 +150,14 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
 
     test "starting with corrupted file makes server die", %{fee_file: file_name} do
       overwrite_fee_file(file_name, "[not a json]")
-      {:died, log} = start_fee_server()
+      {:died, log} = start_fee_server(file_name)
 
       assert log =~ ~r/\[error\].*Unable to update fees/
       assert false == server_alive?()
     end
 
-    test "previous fees are nil when starting" do
-      {:started, _log, exit_fn} = start_fee_server()
+    test "previous fees are nil when starting", %{fee_file: file_name} do
+      {:started, _log, exit_fn} = start_fee_server(file_name)
       assert nil == :ets.lookup_element(:fees_bucket, :previous_fees, 2)
       assert {:ok, %{1 => %{@eth => [1], @not_eth => [2]}, 2 => %{@eth => [1]}}} == FeeServer.accepted_fees()
       exit_fn.()
@@ -177,7 +173,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         updated_at: DateTime.from_unix!(1_546_423_200)
       }
 
-      {:started, _log, exit_fn} = start_fee_server()
+      {:started, _log, exit_fn} = start_fee_server(file_name)
 
       assert nil == :ets.lookup_element(:fees_bucket, :previous_fees, 2)
       assert {:ok, %{1 => %{@eth => [1], @not_eth => [2]}, 2 => %{@eth => [1]}}} == FeeServer.accepted_fees()
@@ -201,7 +197,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         updated_at: DateTime.from_unix!(1_546_423_200)
       }
 
-      {:started, _log, exit_fn} = start_fee_server()
+      {:started, _log, exit_fn} = start_fee_server(file_name)
 
       overwrite_fee_file(file_name, %{@payment_tx_type => %{@eth_hex => new_fee}})
       refresh_fees()
@@ -239,7 +235,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         updated_at: DateTime.from_unix!(1_546_423_200)
       }
 
-      {:started, _log, exit_fn} = start_fee_server()
+      {:started, _log, exit_fn} = start_fee_server(file_name)
 
       overwrite_fee_file(file_name, %{@payment_tx_type => %{@eth_hex => new_fee_1}})
       refresh_fees()
@@ -266,8 +262,18 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end
   end
 
-  defp start_fee_server() do
-    log = capture_log(fn -> GenServer.start(FeeServer, [], name: TestFeeServer) end)
+  defp start_fee_server(file_name) do
+    opts =
+      Keyword.merge(
+        OMG.ChildChain.Configuration.fee_server_opts(),
+        fee_adapter: OMG.ChildChain.Fees.FileAdapter,
+        fee_adapter_opts: [specs_file_name: file_name]
+      )
+
+    log =
+      capture_log(fn ->
+        GenServer.start(FeeServer, opts, name: TestFeeServer)
+      end)
 
     case GenServer.whereis(TestFeeServer) do
       pid when is_pid(pid) ->
