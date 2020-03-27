@@ -19,7 +19,6 @@ defmodule OMG.Watcher.Integration.TestHelper do
   require OMG.Utxo
 
   alias OMG.State
-  alias OMG.Utxo
   alias OMG.Watcher.Configuration
   alias Support.DevHelper
   alias Support.RootChainHelper
@@ -59,7 +58,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
     exit_finality = Configuration.exit_finality_margin() + 1
     DevHelper.wait_for_root_chain_block(exit_eth_height + exit_finality, timeout)
     # wait some more to ensure exit is processed
-    Process.sleep(Application.fetch_env!(:omg, :ethereum_events_check_interval_ms) * 2)
+    Process.sleep(OMG.Configuration.ethereum_events_check_interval_ms() * 2)
   end
 
   def process_exits(vault_id, token, user) do
@@ -79,7 +78,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
     exit_finality_margin = Configuration.exit_finality_margin()
     DevHelper.wait_for_root_chain_block(process_eth_height + exit_finality_margin + 1)
     # just a little more to ensure events are recognized by services
-    check_interval_ms = OMG.Eth.Configuration.ethereum_events_check_interval_ms()
+    check_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
     Process.sleep(3 * check_interval_ms)
     :ok
   end

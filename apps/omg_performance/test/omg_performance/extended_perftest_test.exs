@@ -28,8 +28,8 @@ defmodule OMG.Performance.ExtendedPerftestTest do
 
   # NOTE: still bound to fixtures :(, because of the child chain setup, but this will go eventually, so leaving as is
   deffixture perf_test(contract) do
-    %{contract_addr: contract_addr} = contract
-    :ok = Performance.init(contract_addr: contract_addr)
+    _ = contract
+    :ok = Performance.init()
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     {:ok, %{destdir: destdir}}
   end

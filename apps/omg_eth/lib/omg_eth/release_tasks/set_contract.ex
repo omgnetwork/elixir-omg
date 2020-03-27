@@ -129,14 +129,14 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
   defp get_min_exit_period(plasma_framework_contract) do
     signature = "minExitPeriod()"
-    {:ok, data} = rpc().call_contract(plasma_framework_contract, signature, [])
+    {:ok, data} = call(plasma_framework_contract, signature, [])
     %{"min_exit_period" => min_exit_period} = Abi.decode_function(data, signature)
     min_exit_period
   end
 
   defp get_contract_semver(plasma_framework_contract) do
     signature = "getVersion()"
-    {:ok, data} = rpc().call_contract(plasma_framework_contract, signature, [])
+    {:ok, data} = call(plasma_framework_contract, signature, [])
     %{"version" => version} = Abi.decode_function(data, signature)
     version
   end
@@ -150,16 +150,35 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
   defp exit_game_contract_address(plasma_framework_contract, tx_type) do
     signature = "exitGames(uint256)"
-    {:ok, data} = rpc().call_contract(plasma_framework_contract, signature, [tx_type])
+    {:ok, data} = call(plasma_framework_contract, signature, [tx_type])
     %{"exit_game_address" => exit_game_address} = Abi.decode_function(data, signature)
     exit_game_address
   end
 
   defp get_vault(plasma_framework_contract, id) do
     signature = "vaults(uint256)"
-    {:ok, data} = rpc().call_contract(plasma_framework_contract, "vaults(uint256)", [id])
+    {:ok, data} = call(plasma_framework_contract, "vaults(uint256)", [id])
     %{"vault_address" => vault_address} = Abi.decode_function(data, signature)
     vault_address
+  end
+
+  defp call(plasma_framework_contract, signature, args) do
+    call(plasma_framework_contract, signature, args, 3)
+  end
+
+  defp call(plasma_framework_contract, signature, args, 0) do
+    rpc().call_contract(plasma_framework_contract, signature, args)
+  end
+
+  defp call(plasma_framework_contract, signature, args, index) do
+    case rpc().call_contract(plasma_framework_contract, signature, args) do
+      {:ok, _data} = result ->
+        result
+
+      {:error, :closed} ->
+        Process.sleep(1000)
+        call(plasma_framework_contract, signature, args, index - 1)
+    end
   end
 
   defp get_env(key), do: System.get_env(key)

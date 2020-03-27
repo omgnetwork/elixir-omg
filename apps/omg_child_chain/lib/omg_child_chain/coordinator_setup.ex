@@ -26,14 +26,16 @@ defmodule OMG.ChildChain.CoordinatorSetup do
     - piggyback-related events must wait for IFE start events
   """
 
-  def coordinator_setup() do
-    deposit_finality_margin = OMG.Configuration.deposit_finality_margin()
-
-    %{
-      depositor: [finality_margin: deposit_finality_margin],
-      exiter: [waits_for: :depositor, finality_margin: 0],
-      in_flight_exit: [waits_for: :depositor, finality_margin: 0],
-      piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
-    }
+  def coordinator_setup(metrics_collection_interval, coordinator_eth_height_check_interval_ms, deposit_finality_margin) do
+    {[
+       metrics_collection_interval: metrics_collection_interval,
+       coordinator_eth_height_check_interval_ms: coordinator_eth_height_check_interval_ms
+     ],
+     %{
+       depositor: [finality_margin: deposit_finality_margin],
+       exiter: [waits_for: :depositor, finality_margin: 0],
+       in_flight_exit: [waits_for: :depositor, finality_margin: 0],
+       piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
+     }}
   end
 end

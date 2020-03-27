@@ -74,8 +74,13 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture mix_based_child_chain(contract, fee_file) do
+    _ = contract
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
+    contract_addr = OMG.Eth.Configuration.contracts()
+    txhash = OMG.Eth.Configuration.txhash_contract()
+    authority_addr = OMG.Eth.Configuration.authority_addr()
+    contract = %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}
 
     config_file_path
     |> File.open!([:write])
