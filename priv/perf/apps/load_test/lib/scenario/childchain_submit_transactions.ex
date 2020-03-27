@@ -21,8 +21,8 @@ defmodule LoadTest.Scenario.ChildChainSubmitTransactions do
 
   alias Chaperon.Timing
   alias ExPlasma.Utxo
-  alias LoadTest.Service.Faucet
   alias LoadTest.Ethereum.Account
+  alias LoadTest.Service.Faucet
 
   @eth <<0::160>>
 

@@ -21,9 +21,9 @@ defmodule LoadTest.Scenario.AccountTransactions do
 
   alias Chaperon.Timing
   alias LoadTest.Connection.WatcherInfo, as: Connection
-  alias LoadTest.Service.Faucet
   alias LoadTest.Ethereum.Account
   alias LoadTest.Ethereum.Hash
+  alias LoadTest.Service.Faucet
   alias LoadTest.Utils.Encoding
   alias WatcherInfoAPI.Api
   alias WatcherInfoAPI.Model
