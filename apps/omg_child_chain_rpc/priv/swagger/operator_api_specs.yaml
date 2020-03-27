@@ -76,7 +76,7 @@ paths:
                                         type: string
                               - type: object
                                 properties:
-                                  invalid_fee_file:
+                                  invalid_fee_source:
                                     type: object
                                     properties:
                                       node:

@@ -37,11 +37,12 @@ defmodule OMG.ChildChain.Supervisor do
     :ok = RootChain.contract_ready()
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
     fee_claimer_address = OMG.Configuration.fee_claimer_address()
+    fee_server_opts = OMG.ChildChain.Configuration.fee_server_opts()
 
     children = [
       {State, [fee_claimer_address: fee_claimer_address]},
       {FreshBlocks, []},
-      {FeeServer, []},
+      {FeeServer, fee_server_opts},
       {Monitor,
        [
          Alarm,

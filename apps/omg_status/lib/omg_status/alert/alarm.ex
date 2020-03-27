@@ -30,7 +30,7 @@ defmodule OMG.Status.Alert.Alarm do
           {:boot_in_progress
            | :ethereum_connection_error
            | :ethereum_stalled_sync
-           | :invalid_fee_file
+           | :invalid_fee_source
            | :statsd_client_connection
            | :main_supervisor_halted, alarm_detail}
 
@@ -39,7 +39,7 @@ defmodule OMG.Status.Alert.Alarm do
       :boot_in_progress,
       :ethereum_connection_error,
       :ethereum_stalled_sync,
-      :invalid_fee_file,
+      :invalid_fee_source,
       :statsd_client_connection,
       :main_supervisor_halted
     ]
@@ -60,9 +60,9 @@ defmodule OMG.Status.Alert.Alarm do
   def boot_in_progress(reporter),
     do: {:boot_in_progress, %{node: Node.self(), reporter: reporter}}
 
-  @spec invalid_fee_file(module()) :: {:invalid_fee_file, alarm_detail}
-  def invalid_fee_file(reporter),
-    do: {:invalid_fee_file, %{node: Node.self(), reporter: reporter}}
+  @spec invalid_fee_source(module()) :: {:invalid_fee_source, alarm_detail}
+  def invalid_fee_source(reporter),
+    do: {:invalid_fee_source, %{node: Node.self(), reporter: reporter}}
 
   @spec main_supervisor_halted(module()) :: {:main_supervisor_halted, alarm_detail}
   def main_supervisor_halted(reporter),

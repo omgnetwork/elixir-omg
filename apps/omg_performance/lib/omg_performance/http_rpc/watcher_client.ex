@@ -17,8 +17,8 @@ defmodule OMG.Performance.HttpRPC.WatcherClient do
   Provides access to Watcher's RPC API
   """
 
+  alias OMG.Utils.HttpRPC.Adapter
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Watcher.HttpRPC.Adapter
 
   @address_bytes_size 20
 
