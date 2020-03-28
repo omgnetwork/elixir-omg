@@ -47,6 +47,7 @@ defmodule OMG.ChildChain.BlockQueue do
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.ChildChain.FreshBlocks
   alias OMG.Eth
+  alias OMG.Eth.Client
   alias OMG.Eth.Encoding
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
@@ -77,6 +78,7 @@ defmodule OMG.ChildChain.BlockQueue do
   """
   def handle_continue(:setup, args) do
     _ = Logger.info("Starting #{__MODULE__} service.")
+    :ok = Client.node_ready()
     finality_threshold = Keyword.fetch!(args, :submission_finality_margin)
     child_block_interval = Keyword.fetch!(args, :child_block_interval)
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
@@ -224,21 +226,29 @@ defmodule OMG.ChildChain.BlockQueue do
   end
 
   defp log_init_error(fields) do
-    config = Eth.Diagnostics.get_child_chain_config()
     fields = Keyword.update!(fields, :known_hashes, fn hashes -> Enum.map(hashes, &Encoding.to_hex/1) end)
-    diagnostic = Enum.into(fields, %{config: config})
 
     _ =
       Logger.error(
         "The child chain might have not been wiped clean when starting a child chain from scratch: " <>
-          "#{inspect(diagnostic)}. Check README.MD and follow the setting up child chain."
+          "#{inspect(fields)}. Check README.MD and follow the setting up child chain."
       )
 
     log_eth_node_error()
   end
 
   defp log_eth_node_error() do
-    eth_node_diagnostics = Eth.Diagnostics.get_node_diagnostics()
+    eth_node_diagnostics = get_node_diagnostics()
     Logger.error("Ethereum operation failed, additional diagnostics: #{inspect(eth_node_diagnostics)}")
+  end
+
+  defp get_node_diagnostics() do
+    Enum.into(["personal_listWallets", "admin_nodeInfo", "parity_enode"], %{}, &get_node_diagnostic/1)
+  end
+
+  defp get_node_diagnostic(rpc_call_name) when is_binary(rpc_call_name) do
+    {rpc_call_name, Ethereumex.HttpClient.request(rpc_call_name, [], [])}
+  rescue
+    error -> {rpc_call_name, inspect(error)}
   end
 end

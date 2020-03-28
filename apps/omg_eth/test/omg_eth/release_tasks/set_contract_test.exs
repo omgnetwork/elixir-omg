@@ -23,8 +23,6 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   @configuration_old Application.get_all_env(@app)
 
   setup_all do
-    Application.put_env(@app, :rpc_api, __MODULE__.Rpc)
-    on_exit(fn -> Application.put_env(@app, :rpc_api, nil) end)
     plasma_framework = Support.SnapshotContracts.parse_contracts()["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
 
     contract_addresses_value = %{
@@ -60,7 +58,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     pid = spawn(fn -> start(port) end)
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
-    :ok = SetContract.init([])
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
@@ -73,7 +71,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     _pid = spawn(fn -> start(port) end)
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
-    :ok = SetContract.init([])
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     20 = Application.get_env(@app, :min_exit_period_seconds)
   end
 
@@ -84,7 +82,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY-GORLI")
 
     try do
-      :ok = SetContract.init([])
+      :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     catch
       :exit, _ ->
         :ok = Process.send(pid, :stop, [])
@@ -100,7 +98,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
-    :ok = SetContract.init([])
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
@@ -115,7 +113,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("AUTHORITY_ADDRESS", "Authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-    :ok = SetContract.init([])
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
@@ -130,7 +128,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-    :ok = SetContract.init([])
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
     "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
@@ -144,7 +142,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-    :ok = SetContract.init([])
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     20 = Application.get_env(@app, :min_exit_period_seconds)
   end
 
@@ -157,7 +155,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-    :ok = SetContract.init([])
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     20 = Application.get_env(@app, :min_exit_period_seconds)
     "authority_address_value" = Application.get_env(@app, :authority_addr)
     assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
@@ -173,7 +171,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
     try do
-      :ok = SetContract.init([])
+      :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     catch
       :exit, _ ->
         :ok
@@ -189,7 +187,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
 
     try do
-      :ok = SetContract.init([])
+      :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     catch
       :exit, _ ->
         :ok

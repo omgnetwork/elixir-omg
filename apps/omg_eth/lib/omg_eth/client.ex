@@ -19,8 +19,8 @@ defmodule OMG.Eth.Client do
 
   @spec get_ethereum_height() :: {:ok, non_neg_integer()} | Ethereumex.Client.Behaviour.error()
   @spec get_ethereum_height(module()) :: {:ok, non_neg_integer()} | Ethereumex.Client.Behaviour.error()
-  def get_ethereum_height(mock \\ Ethereumex.HttpClient) do
-    case mock.eth_block_number() do
+  def get_ethereum_height(client \\ Ethereumex.HttpClient) do
+    case client.eth_block_number() do
       {:ok, height_hex} ->
         {:ok, Encoding.int_from_hex(height_hex)}
 
@@ -31,8 +31,8 @@ defmodule OMG.Eth.Client do
 
   @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
   @spec node_ready(module()) :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
-  def node_ready(mock \\ Ethereumex.HttpClient) do
-    case mock.eth_syncing() do
+  def node_ready(client \\ Ethereumex.HttpClient) do
+    case client.eth_syncing() do
       {:ok, false} -> :ok
       {:ok, _} -> {:error, :geth_still_syncing}
       {:error, :econnrefused} -> {:error, :geth_not_listening}

@@ -59,7 +59,7 @@ defmodule OMG.Watcher.API.Status do
 
     validated_child_block_number = get_validated_child_block_number()
     # wtf is eth diagnostics?
-    contracts = Eth.Diagnostics.get_child_chain_config()[:contract_addr]
+    contracts = Configuration.contracts()
     contract_addr = contract_map_from_hex(contracts)
 
     mined_child_block_number = RootChain.get_mined_child_block()
