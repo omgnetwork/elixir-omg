@@ -46,9 +46,19 @@ defmodule OMG.WatcherRPC.Web.Validator.AccountConstraintsTest do
         "limit" => 100
       }
 
-      assert AccountConstraints.parse(request_data) ==
-               {:error, {:validation_error, "address", :hex}}
+      assert AccountConstraints.parse(request_data) == {:error, {:validation_error, "address", :hex}}
     end
+
+    test "return error if limit exceed 500" do
+      request_data = %{
+        "address" => Encoding.from_hex(@fake_address_hex_string),
+        "page" => 1,
+        "limit" => 600
+      }
+
+      assert AccountConstraints.parse(request_data) == {:error, {:validation_error, "limit", {:lesser, 500}}}
+    end
+
 
     test "return address if only address is provided" do
       request_data = %{
