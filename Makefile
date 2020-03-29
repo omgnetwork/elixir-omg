@@ -411,19 +411,19 @@ start-watcher_info:
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
-	$(ENV_DEV) mix do compile, distillery.release dev --name child_chain --silent && \
+	$(ENV_DEV) mix do compile, release dev --name child_chain --silent && \
 	set -e; . ${OVERRIDING_VARIABLES} && \
 	exec _build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START) &
 
 update-watcher:
 	_build/dev/rel/watcher/bin/watcher stop ; \
-	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --silent && \
+	$(ENV_DEV) mix do compile, release dev --name watcher --silent && \
 	set -e; . ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_PORT} _build/dev/rel/watcher/bin/watcher $(OVERRIDING_START) &
 
 update-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop ; \
-	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_info --silent && \
+	$(ENV_DEV) mix do compile, release dev --name watcher_info --silent && \
 	set -e; . ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_INFO_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
 

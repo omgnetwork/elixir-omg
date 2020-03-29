@@ -48,7 +48,6 @@ defmodule OMG.Umbrella.MixProject do
 
   defp deps() do
     [
-      {:distillery, "~> 2.1", runtime: false},
       {:mix_audit, "~> 0.1", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0.0-rc.7", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.2.3", only: [:dev, :test], runtime: false},
@@ -97,7 +96,6 @@ defmodule OMG.Umbrella.MixProject do
     [
       :briefly,
       :cowboy,
-      :distillery,
       :ex_machina,
       :ex_unit,
       :exexec,
