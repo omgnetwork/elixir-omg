@@ -3,7 +3,7 @@ version: 2.1
 executors:
   metal:
     docker:
-      - image: circleci/elixir:1.8.2
+      - image: circleci/elixir:1.10.2
       - image: circleci/postgres:9.6
         environment:
           MIX_ENV: test
@@ -100,10 +100,10 @@ jobs:
           source ~/.bash_profile
           asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
           asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
-          asdf install erlang 21.0
-          asdf install elixir 1.8.2
-          asdf global elixir 1.8.2
-          asdf global erlang 21.0
+          asdf install erlang 22.3
+          asdf install elixir 1.10.2
+          asdf global elixir 1.10.2
+          asdf global erlang 22.3
       - run:
           command: ./bin/setup
           no_output_timeout: 2400
@@ -266,31 +266,6 @@ jobs:
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
-  watcher_info_coveralls_and_integration_tests:
-    executor: builder_pg_geth
-    environment:
-      MIX_ENV: test
-    steps:
-      - setup_elixir-omg_workspace
-      - restore_cache:
-          keys:
-            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Compile
-          command: mix compile
-      - run:
-          name: Integration Tests & Coveralls Part Watcher Informational
-          command: |
-            # Don't submit coverage report for forks, but let the build succeed
-            export SHELL=/bin/bash
-            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace
-            else
-              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace ||
-                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
-                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
-            fi
-
   common_coveralls_and_integration_tests:
     executor: builder_pg_geth
     environment:
@@ -449,8 +424,8 @@ jobs:
             sudo dpkg --configure -a || true &&
             sudo dpkg -i erlang-solutions_2.0_all.deb  &&
             sudo apt-get update &&
-            sudo apt-get install esl-erlang=1:21.3.8.10-1
-            sudo apt-get install elixir=1.8.2-1
+            sudo apt-get install esl-erlang=1:22.3-1
+            sudo apt-get install elixir=1.10.2-1
       - run: make install-hex-rebar
       - run: sh .circleci/status.sh
       - restore_cache:
@@ -529,11 +504,11 @@ jobs:
             sudo apt-key add erlang_solutions.asc &&
             sudo dpkg -i erlang-solutions_2.0_all.deb  &&
             sudo apt-get update &&
-            sudo apt-get install --yes --no-install-recommends --no-install-suggests esl-erlang=1:21.3.8.10-1
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests esl-erlang=1:22.3-1
             sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-os-mon
             sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-parsetools
             sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-tools
-            sudo apt-get install --yes --no-install-recommends --no-install-suggests elixir=1.8.2-1
+            sudo apt-get install --yes --no-install-recommends --no-install-suggests elixir=1.10.2-1
             sudo apt policy elixir
             mix local.hex --force && mix local.rebar --force
             ./bin/setup
@@ -718,16 +693,13 @@ workflows:
           requires:
             - child_chain_coveralls_and_integration_tests
             - watcher_coveralls_and_integration_tests
-            - watcher_info_coveralls_and_integration_tests
+            
             - common_coveralls_and_integration_tests
             - test
       - child_chain_coveralls_and_integration_tests:
           requires: [build]
           filters: *all_branches_and_tags
       - watcher_coveralls_and_integration_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - watcher_info_coveralls_and_integration_tests:
           requires: [build]
           filters: *all_branches_and_tags
       - common_coveralls_and_integration_tests:
@@ -763,7 +735,6 @@ workflows:
             [
               child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
               property_tests,
@@ -786,7 +757,6 @@ workflows:
             [
               child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
               property_tests,
@@ -801,7 +771,6 @@ workflows:
             [
               child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
               property_tests,
