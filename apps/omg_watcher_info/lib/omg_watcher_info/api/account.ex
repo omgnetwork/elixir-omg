@@ -16,9 +16,8 @@ defmodule OMG.WatcherInfo.API.Account do
   @moduledoc """
   Module provides operations related to plasma accounts.
   """
-
+  alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
-  OMG.Utils.Paginator
   @doc """
   Returns a list of amounts of currencies that a given address owns
   """

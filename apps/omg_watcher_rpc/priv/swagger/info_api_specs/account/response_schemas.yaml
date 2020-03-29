@@ -54,3 +54,4 @@ AccountUtxoResponseSchema:
       data_paging:
         page: 1
         limit: 200
+        
