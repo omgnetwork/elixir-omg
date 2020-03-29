@@ -46,6 +46,32 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     assert utxo.amount == big_amount
   end
 
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+  test "get_utxos db call should return paginated data correctly", %{alice: alice} do
+    DB.Block.insert_with_transactions(%{
+      transactions: [
+        OMG.TestHelper.create_recovered([], @eth, [{alice, 1}]),
+        OMG.TestHelper.create_recovered([], @eth, [{alice, 2}])],
+      blknum: 1000,
+      blkhash: <<?#::256>>,
+      timestamp: :os.system_time(:second),
+      eth_height: 10
+    })
+
+    %{data: data_limit_1, data_paging: pagination_limit_1} = DB.TxOutput.get_utxos([address: alice.addr, page: 1, limit: 1])
+    assert length(data_limit_1) == 1
+    assert pagination_limit_1 == %{limit: 1, page: 1}
+
+    %{data: data_page_2, data_paging: pagination_page_2} = DB.TxOutput.get_utxos([address: alice.addr, page: 2, limit: 1])
+    assert length(data_page_2) == 1
+    assert pagination_page_2 == %{limit: 1, page: 2}
+
+    %{data: data_limit_2, data_paging: pagination_limit_2} = DB.TxOutput.get_utxos([address: alice.addr, page: 1, limit: 2])
+    assert length(data_limit_2) == 2
+    assert pagination_limit_2 == %{limit: 2, page: 1}
+
+  end
+
   describe "create_outputs/4" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "create outputs according to params", %{alice: alice} do
