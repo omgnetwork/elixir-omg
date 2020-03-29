@@ -51,29 +51,33 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     DB.Block.insert_with_transactions(%{
       transactions: [
         OMG.TestHelper.create_recovered([], @eth, [{alice, 1}]),
-        OMG.TestHelper.create_recovered([], @eth, [{alice, 2}])],
+        OMG.TestHelper.create_recovered([], @eth, [{alice, 2}])
+      ],
       blknum: 1000,
       blkhash: <<?#::256>>,
       timestamp: :os.system_time(:second),
       eth_height: 10
     })
 
-    %{data: data_limit_1, data_paging: pagination_limit_1} = DB.TxOutput.get_utxos([address: alice.addr, page: 1, limit: 1])
+    %{data: data_limit_1, data_paging: pagination_limit_1} =
+      DB.TxOutput.get_utxos(address: alice.addr, page: 1, limit: 1)
+
     assert length(data_limit_1) == 1
     assert pagination_limit_1 == %{limit: 1, page: 1}
     assert Enum.at(data_limit_1, 0).amount == 1
 
-    %{data: data_page_2, data_paging: pagination_page_2} = DB.TxOutput.get_utxos([address: alice.addr, page: 2, limit: 1])
+    %{data: data_page_2, data_paging: pagination_page_2} = DB.TxOutput.get_utxos(address: alice.addr, page: 2, limit: 1)
     assert length(data_page_2) == 1
     assert pagination_page_2 == %{limit: 1, page: 2}
     assert Enum.at(data_page_2, 0).amount == 2
 
-    %{data: data_limit_2, data_paging: pagination_limit_2} = DB.TxOutput.get_utxos([address: alice.addr, page: 1, limit: 2])
+    %{data: data_limit_2, data_paging: pagination_limit_2} =
+      DB.TxOutput.get_utxos(address: alice.addr, page: 1, limit: 2)
+
     assert length(data_limit_2) == 2
     assert pagination_limit_2 == %{limit: 2, page: 1}
     assert Enum.at(data_limit_2, 0).amount == 1
     assert Enum.at(data_limit_2, 1).amount == 2
-
   end
 
   describe "create_outputs/4" do
