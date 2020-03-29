@@ -35,7 +35,7 @@ AccountUtxoResponseSchema:
           limit:
             type: integer
             format: int32
-            default: 300
+            default: 200
     example:
       data:
       -
