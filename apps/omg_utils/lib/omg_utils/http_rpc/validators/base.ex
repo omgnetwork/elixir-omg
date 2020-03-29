@@ -148,7 +148,7 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   @spec optional_lesser({any(), list()}, integer()) :: {any(), list()}
   def optional_lesser({_, [_ | _]} = err, _b), do: err
   def optional_lesser({val, []}, bound) when (is_integer(val) and val < bound) or is_nil(val), do: {val, []}
-  def optional_lesser({val, []}, bound), do: {val, lesser: bound}
+  def optional_lesser({val, []}, bound), do: {val, optional_lesser: bound}
 
   @spec list({any(), list()}, function() | nil) :: {any(), list()}
   def list(tuple, mapper \\ nil)
