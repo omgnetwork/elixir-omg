@@ -384,7 +384,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     # take a flattened list of submissions between two heights (inclusive, just like Eth events API works)
     take_submissions = fn {first, last} ->
-      Map.take(submissions, Range.new(first, last)) |> Enum.flat_map(fn {_k, v} -> v end)
+      range = Enum.to_list(Range.new(first, last))
+
+      submissions
+      |> Map.take(range)
+      |> Enum.flat_map(fn {_k, v} -> v end)
     end
 
     state =
