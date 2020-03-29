@@ -53,11 +53,7 @@ defmodule OMG.Umbrella.MixProject do
       {:credo, "~> 1.2.3", only: [:dev, :test], runtime: false},
       # https://github.com/xadhoom/excoveralls.git `52c6c8e5d7fe9abb814e5e3e546c863b9b2b41b7` rebased on `master`
       # more or less around v0.11.1
-      {:excoveralls,
-       git: "https://github.com/omisego/excoveralls.git",
-       ref: "23b97648ff5ed7b19d75364233bbf3e5fcb407ad",
-       only: [:test],
-       runtime: false},
+      {:excoveralls, "~> 0.12.3"},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
         :ex_unit_fixtures,
