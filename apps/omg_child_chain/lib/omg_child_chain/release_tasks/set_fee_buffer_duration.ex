@@ -14,15 +14,18 @@
 
 defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :omg_child_chain
   @config_key :fee_buffer_duration_ms
   @env_var_name "FEE_BUFFER_DURATION_MS"
 
-  @impl Provider
-  def init(_args) do
+  def init(args) do
+    args
+  end
+
+  def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
     buffer_ms = fee_buffer_ms()
 

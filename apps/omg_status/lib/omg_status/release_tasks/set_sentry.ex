@@ -15,11 +15,10 @@
 defmodule OMG.Status.ReleaseTasks.SetSentry do
   @moduledoc false
 
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :sentry
-  @impl Provider
 
   def init(release: release, current_version: current_version) do
     _ = Application.ensure_all_started(:logger)

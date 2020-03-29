@@ -18,14 +18,13 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval do
 
   This is essentially the same as `OMG.ReleaseTasks.SetEthereumEventsCheckInterval` but for a different subapp.
   """
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :omg_eth
   @env_key "ETHEREUM_EVENTS_CHECK_INTERVAL_MS"
   @config_key :ethereum_events_check_interval_ms
 
-  @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
 

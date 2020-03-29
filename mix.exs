@@ -5,7 +5,6 @@ defmodule OMG.Umbrella.MixProject do
     [
       # name the ap for the sake of `mix coveralls --umbrella`
       # see https://github.com/parroty/excoveralls/issues/23#issuecomment-339379061
-      app: :omg_umbrella,
       apps_path: "apps",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -24,7 +23,22 @@ defmodule OMG.Umbrella.MixProject do
       test_paths: test_paths(),
       aliases: aliases(),
       # Docs
-      source_url: "https://github.com/omisego/elixir-omg"
+      source_url: "https://github.com/omisego/elixir-omg",
+      releases: [
+        watcher: [
+          applications: [
+            tools: :permanent,
+            runtime_tools: :permanent,
+            omg_watcher: :permanent,
+            omg_watcher_rpc: :permanent,
+            omg: :permanent,
+            omg_status: :permanent,
+            omg_db: :permanent,
+            omg_eth: :permanent,
+            omg_bus: :permanent
+          ]
+        ]
+      ]
     ]
   end
 

@@ -16,14 +16,13 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumBlockTime do
   @moduledoc """
   Configures the average ethereum block time for the network used.
   """
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :omg_eth
   @env_key "ETHEREUM_BLOCK_TIME_SECONDS"
   @config_key :ethereum_block_time_seconds
 
-  @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
     :ok = Application.put_env(@app, @config_key, get_ethereum_block_time(), persistent: true)

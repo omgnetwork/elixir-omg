@@ -14,13 +14,13 @@
 
 defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_eth
   @doc """
   Gets the environment setting for the ethereum client location.
   """
-  @impl Provider
+
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
     _ = Application.ensure_all_started(:omg_status)

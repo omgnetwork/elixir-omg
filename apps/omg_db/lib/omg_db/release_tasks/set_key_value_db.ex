@@ -14,11 +14,10 @@
 
 defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_db
 
-  @impl Provider
   def init(args) do
     _ = Application.ensure_all_started(:logger)
     release = Keyword.get(args, :release)

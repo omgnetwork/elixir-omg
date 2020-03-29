@@ -14,7 +14,7 @@
 
 defmodule OMG.Eth.ReleaseTasks.SetContract do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   alias OMG.Eth.Encoding

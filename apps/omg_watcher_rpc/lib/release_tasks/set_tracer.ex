@@ -14,11 +14,10 @@
 
 defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_watcher_rpc
 
-  @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(@app, OMG.WatcherRPC.Tracer)

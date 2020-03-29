@@ -14,7 +14,7 @@
 
 defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   # NOTE: `omg` is correct configuration scope for this value. However setting it via `Release Task`
@@ -23,7 +23,6 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
 
   @zero_address <<0::160>>
 
-  @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
 

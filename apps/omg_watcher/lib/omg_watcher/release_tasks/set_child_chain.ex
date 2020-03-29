@@ -14,11 +14,10 @@
 
 defmodule OMG.Watcher.ReleaseTasks.SetChildChain do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_watcher
 
-  @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
     :ok = Application.put_env(@app, :child_chain_url, get_app_env(), persistent: true)

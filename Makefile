@@ -89,7 +89,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200219"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-0abc9a0"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -166,22 +166,22 @@ check-dialyzer:
 
 
 build-child_chain-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, distillery.release --name child_chain --verbose
+	$(ENV_PROD) mix do compile, release child_chain
 
 build-child_chain-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, distillery.release dev --name child_chain --verbose
+	$(ENV_DEV) mix do compile, release child_chain
 
 build-watcher-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, distillery.release --name watcher --verbose
+	$(ENV_PROD) mix do compile, release watcher
 
 build-watcher-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --verbose
+	$(ENV_DEV) mix do compile, release watcher
 
 build-watcher_info-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, distillery.release --name watcher_info --verbose
+	$(ENV_PROD) mix do compile, release watcher_info
 
 build-watcher_info-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_info --verbose
+	$(ENV_DEV) mix do compile, release watcher_info
 
 build-test: deps-elixir-omg
 	$(ENV_TEST) mix compile

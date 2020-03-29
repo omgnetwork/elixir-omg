@@ -14,13 +14,12 @@
 
 defmodule OMG.Status.ReleaseTasks.SetLogger do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :logger
   @default_backend Ink
 
-  @impl Provider
   def init(_) do
     logger_backends = Application.get_env(@app, :backends, persistent: true)
     logger_backend = get_logger_backend()

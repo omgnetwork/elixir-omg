@@ -14,12 +14,11 @@
 
 defmodule OMG.Status.ReleaseTasks.SetTracer do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   alias OMG.Status.Metric.Tracer
   require Logger
   @app :omg_status
 
-  @impl Provider
   def init(args) do
     nil = Process.put(:system_adapter, Keyword.get(args, :system_adapter, System))
     _ = Application.ensure_all_started(:logger)

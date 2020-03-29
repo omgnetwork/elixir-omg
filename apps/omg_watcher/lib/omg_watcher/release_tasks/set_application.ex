@@ -14,10 +14,9 @@
 
 defmodule OMG.Watcher.ReleaseTasks.SetApplication do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   @app :omg_watcher
 
-  @impl Provider
   def init(release: release, current_version: current_version) do
     :ok = Application.put_env(@app, :release, release, persistent: true)
     :ok = Application.put_env(@app, :current_version, current_version, persistent: true)

@@ -14,11 +14,9 @@
 
 defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_watcher
-
-  @impl Provider
 
   @system_env_name_margin "EXIT_PROCESSOR_SLA_MARGIN"
   @app_env_name_margin :exit_processor_sla_margin

@@ -14,14 +14,13 @@
 
 defmodule OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :omg_eth
   @config_key :ethereum_stalled_sync_threshold_ms
   @env_name "ETHEREUM_STALLED_SYNC_THRESHOLD_MS"
 
-  @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
     threshold_ms = stalled_sync_threshold_ms()

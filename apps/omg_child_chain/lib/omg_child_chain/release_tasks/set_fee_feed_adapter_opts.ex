@@ -14,13 +14,12 @@
 
 defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :omg_child_chain
   @config_key :fee_adapter
 
-  @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
 
