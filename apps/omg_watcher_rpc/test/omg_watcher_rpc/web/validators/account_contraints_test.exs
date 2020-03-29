@@ -56,7 +56,7 @@ defmodule OMG.WatcherRPC.Web.Validator.AccountConstraintsTest do
         "limit" => 600
       }
 
-      assert AccountConstraints.parse(request_data) == {:error, {:validation_error, "limit", {:optional_lesser, 500}}}
+      assert AccountConstraints.parse(request_data) == {:error, {:validation_error, "limit", {:lesser, 500}}}
     end
 
     test "return address if only address is provided" do
