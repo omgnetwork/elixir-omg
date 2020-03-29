@@ -31,7 +31,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraints do
       {"blknum", [:pos_integer, :optional], :blknum},
       {"metadata", [:hash, :optional], :metadata},
       {"txtypes", [list: &to_tx_type/1, max_length: @max_tx_types, optional: true], :txtypes},
-      {"limit", [:pos_integer, :optional], :limit},
+      {"limit", [pos_integer: true, lesser: 1000, optional: true], :limit},
       {"page", [:pos_integer, :optional], :page}
     ]
 
