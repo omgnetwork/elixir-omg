@@ -41,6 +41,10 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       code: "in_flight_exit:tx_for_input_not_found",
       description: "No transaction that created input."
     },
+    deposit_input_spent_ife_unsupported: %{
+      code: "in_flight_exit:deposit_input_spent_ife_unsupported",
+      description: "Retrieving IFE data of a transaction with a spent deposit is unsupported."
+    },
     econnrefused: %{
       code: "connection:econnrefused",
       description: "Cannot connect to the Ethereum node."

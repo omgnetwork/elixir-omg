@@ -16,7 +16,7 @@ defmodule OMG.ChildChain.FileAdapterTest do
   @moduledoc false
 
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias OMG.ChildChain.Fees.FileAdapter
   alias OMG.Eth
@@ -40,15 +40,7 @@ defmodule OMG.ChildChain.FileAdapterTest do
     }
   }
 
-  setup do
-    old_file_path = Application.get_env(:omg_child_chain, :fee_specs_file_path)
-    old_file_name = Application.get_env(:omg_child_chain, :fee_specs_file_name)
-
-    on_exit(fn ->
-      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_path, old_file_path)
-      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_name, old_file_name)
-    end)
-  end
+  @stored_fees_empty %{}
 
   describe "get_fee_specs/1" do
     test "returns the fee specs if recorded_file_updated_at is older than
@@ -57,11 +49,9 @@ defmodule OMG.ChildChain.FileAdapterTest do
 
       {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
       {:ok, %File.Stat{mtime: mtime}} = File.stat(file_path, time: :posix)
+      opts = [specs_file_path: file_path, specs_file_name: file_name]
 
-      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_path, file_path)
-      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name)
-
-      assert FileAdapter.get_fee_specs(recorded_file_updated_at) == {
+      assert FileAdapter.get_fee_specs(opts, @stored_fees_empty, recorded_file_updated_at) == {
                :ok,
                %{@payment_tx_type => %{@eth => @fees[1][@eth_hex]}},
                mtime
@@ -73,19 +63,16 @@ defmodule OMG.ChildChain.FileAdapterTest do
     test "returns :ok (unchanged) if file_updated_at is more recent
           than file last change timestamp" do
       {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
-
-      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_path, file_path)
-      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name)
-
+      opts = [specs_file_path: file_path, specs_file_name: file_name]
       recorded_file_updated_at = :os.system_time(:second) + 10
 
-      assert FileAdapter.get_fee_specs(recorded_file_updated_at) == :ok
-      File.rm("#{file_path}/#{file_name}")
+      assert FileAdapter.get_fee_specs(opts, @stored_fees_empty, recorded_file_updated_at) == :ok
+      File.rm(file_path)
     end
 
     test "returns an error if the file is not found" do
-      :ok = Application.put_env(:omg_child_chain, :fee_specs_file_name, "fake_file")
-      assert FileAdapter.get_fee_specs(1) == {:error, :enoent}
+      opts = [specs_file_path: "fake_path", specs_file_name: "fake_file"]
+      assert FileAdapter.get_fee_specs(opts, @stored_fees_empty, 1) == {:error, :enoent}
     end
   end
 end

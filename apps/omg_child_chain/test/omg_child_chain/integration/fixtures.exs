@@ -32,7 +32,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
     enc_eth = Eth.Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
 
-    {:ok, path, name} =
+    {:ok, file_path, file_name} =
       TestHelper.write_fee_file(%{
         @payment_tx_type => %{
           enc_eth => %{
@@ -54,22 +54,22 @@ defmodule OMG.ChildChain.Integration.Fixtures do
         }
       })
 
-    default_file_path = Application.fetch_env!(:omg_child_chain, :fee_specs_file_path)
-    default_file_name = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
-    Application.put_env(:omg_child_chain, :fee_specs_file_path, path, persistent: true)
-    Application.put_env(:omg_child_chain, :fee_specs_file_name, name, persistent: true)
+    default_value = Application.fetch_env!(:omg_child_chain, :fee_adapter)
+
+    :ok =
+      Application.put_env(
+        :omg_child_chain,
+        :fee_adapter,
+        {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_path: file_path, specs_file_name: file_name]},
+        persistent: true
+      )
 
     on_exit(fn ->
-      :ok =
-        path
-        |> Path.join(name)
-        |> File.rm()
-
-      Application.put_env(:omg_child_chain, :fee_specs_file_path, default_file_path)
-      Application.put_env(:omg_child_chain, :fee_specs_file_name, default_file_name)
+      :ok = File.rm(file_path)
+      :ok = Application.put_env(:omg_child_chain, :fee_adapter, default_value)
     end)
 
-    path
+    {file_path, file_name}
   end
 
   deffixture in_beam_child_chain(root_chain_contract_config, fee_file, db_initialized) do

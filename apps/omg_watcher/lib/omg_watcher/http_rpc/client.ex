@@ -17,8 +17,8 @@ defmodule OMG.Watcher.HttpRPC.Client do
   Provides functions to communicate with Child Chain API
   """
 
+  alias OMG.Utils.HttpRPC.Adapter
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Watcher.HttpRPC.Adapter
 
   require Logger
 

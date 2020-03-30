@@ -104,7 +104,7 @@ defmodule OMG.Performance.SimplePerftest do
       {OMG.ChildChainRPC.Web.Endpoint, []},
       {OMG.State, [fee_claimer_address: Base.decode16!("DEAD000000000000000000000000000000000000")]},
       {OMG.ChildChain.FreshBlocks, []},
-      {OMG.ChildChain.FeeServer, []},
+      {OMG.ChildChain.FeeServer, OMG.ChildChain.Configuration.fee_server_opts()},
       {OMG.Performance.BlockCreator, opts[:block_every_ms]}
     ]
 

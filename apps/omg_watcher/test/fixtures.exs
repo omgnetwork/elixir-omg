@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Fixtures do
 
     enc_eth = Eth.Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
 
-    {:ok, path, name} =
+    {:ok, file_path, file_name} =
       TestHelper.write_fee_file(%{
         @payment_tx_type => %{
           enc_eth => %{
@@ -55,25 +55,26 @@ defmodule OMG.Watcher.Fixtures do
         }
       })
 
-    default_file_path = Application.fetch_env!(:omg_child_chain, :fee_specs_file_path)
-    default_file_name = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
-    Application.put_env(:omg_child_chain, :fee_specs_file_path, path, persistent: true)
-    Application.put_env(:omg_child_chain, :fee_specs_file_name, name, persistent: true)
+    old_value = Application.fetch_env!(:omg_child_chain, :fee_adapter)
+
+    :ok =
+      Application.put_env(
+        :omg_child_chain,
+        :fee_adapter,
+        {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_path: file_path, specs_file_name: file_name]},
+        persistent: true
+      )
 
     on_exit(fn ->
-      :ok =
-        path
-        |> Path.join(name)
-        |> File.rm()
-
-      Application.put_env(:omg_child_chain, :fee_specs_file_path, default_file_path)
-      Application.put_env(:omg_child_chain, :fee_specs_file_name, default_file_name)
+      :ok = File.rm(path)
+      :ok = Application.put_env(:omg_child_chain, :fee_adapter, old_value)
     end)
 
-    path
+    {file_path, file_name}
   end
 
   deffixture mix_based_child_chain(contract, fee_file) do
+    {fee_file_path, fee_file_name} = fee_file
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
 
@@ -85,7 +86,7 @@ defmodule OMG.Watcher.Fixtures do
       config :omg_db, path: "#{db_path}"
       # this causes the inner test child chain server process to log info. To see these logs adjust test's log level
       config :logger, level: :info
-      config :omg_child_chain, fee_specs_file_path: "#{fee_file}"
+      config :omg_child_chain, fee_adapter_opts: [specs_file_path: "#{fee_file_path}", specs_file_name: "#{fee_file_name}"]
     """)
     |> File.close()
 
