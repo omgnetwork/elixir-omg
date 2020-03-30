@@ -32,9 +32,9 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePathTest do
   end
 
   test "path is set when the env var is present" do
-    :ok = System.put_env(@env_var_name, "/tmp/YOLO/")
+    :ok = System.put_env(@env_var_name, "/tmp/YOLO/fee_file.json")
     :ok = SetFeeFilePath.init([])
-    assert Application.get_env(@app, @config_key) == "/tmp/YOLO/"
+    assert Application.get_env(@app, @config_key) == "/tmp/YOLO/fee_file.json"
     :ok = System.delete_env(@env_var_name)
   end
 
@@ -56,7 +56,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePathTest do
   end
 
   test "no other configurations got affected", context do
-    :ok = System.put_env(@env_var_name, "/tmp/YOLO/")
+    :ok = System.put_env(@env_var_name, "/tmp/YOLO/fee_file.json")
     :ok = SetFeeFilePath.init([])
     new_configs = @app |> Application.get_all_env() |> Keyword.delete(@config_key) |> Enum.sort()
     old_configs = context.original_config |> Keyword.delete(@config_key) |> Enum.sort()

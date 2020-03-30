@@ -48,6 +48,7 @@ defmodule OMG.ChildChain.FileAdapterTest do
       recorded_file_updated_at = :os.system_time(:second) - 10
 
       {:ok, file_path} = TestHelper.write_fee_file(@fees)
+      {:ok, %File.Stat{mtime: mtime}} = File.stat(file_path, time: :posix)
       opts = [specs_file_path: file_path]
 
       assert FileAdapter.get_fee_specs(opts, @stored_fees_empty, recorded_file_updated_at) == {

@@ -66,7 +66,7 @@ defmodule OMG.Watcher.Fixtures do
       )
 
     on_exit(fn ->
-      :ok = File.rm(path)
+      :ok = File.rm(file_path)
       :ok = Application.put_env(:omg_child_chain, :fee_adapter, old_value)
     end)
 
