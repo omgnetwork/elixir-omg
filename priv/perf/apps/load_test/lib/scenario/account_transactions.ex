@@ -60,11 +60,6 @@ defmodule LoadTest.Scenario.AccountTransactions do
     |> log_info("end...")
   end
 
-  defp wait_for_balance_update(session, sender, retry \\ @default_retry_attempts) do
-    {:ok, session} = do_wait_for_balance_update(session, sender, retry)
-    session
-  end
-
   def repeat_task(session, sender) do
     session
     |> log_info("running iteration #{session.assigned.iteration}")
@@ -83,6 +78,11 @@ defmodule LoadTest.Scenario.AccountTransactions do
     |> measure_get_utxos(sender)
     |> measure_get_transactions(sender)
     |> measure_create_and_submit_transactions(sender)
+  end
+
+  defp wait_for_balance_update(session, sender, retry \\ @default_retry_attempts) do
+    {:ok, session} = do_wait_for_balance_update(session, sender, retry)
+    session
   end
 
   defp measure(session, sender, api_call, metric_name) do
