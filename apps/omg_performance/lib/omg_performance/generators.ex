@@ -146,7 +146,7 @@ defmodule OMG.Performance.Generators do
 
   defp poll_get_block(block_hash, child_chain_url, retry) do
     case Client.get_block(block_hash, child_chain_url) do
-      {:ok, block} = result ->
+      {:ok, _block} = result ->
         result
 
       _ ->
