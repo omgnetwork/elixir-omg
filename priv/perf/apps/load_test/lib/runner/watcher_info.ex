@@ -15,6 +15,15 @@
 defmodule LoadTest.Runner.WatcherInfoAccountApi do
   @moduledoc """
   Tests all the `account.*` apis on the watcher-info
+
+  Run with `mix test apps/load_test/test/load_tests/runner/watcher_info_test.exs`
+
+  This test first creates a new address and funds from the faucet.
+  Next it calls the watcher-info apis:
+    - `account.get_balance`
+    - `account.get_utxos`
+    - `account.get_transactions`
+  It then creates a transaction from the address, measuring the time taken.
   """
   use Chaperon.LoadTest
 

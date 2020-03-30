@@ -14,8 +14,15 @@
 
 defmodule LoadTest.Runner.UtxosLoad do
   @moduledoc """
-  Creates utxos and submits transactions to test
-  how child chain performs when there are many utxos in it's state.
+  Creates utxos and submits transactions to test how child chain performs when
+  there are many utxos in its state.
+
+  Run with `mix test apps/load_test/test/load_tests/runner/utxos_load_test.exs`
+
+  This test first creates a number of utxos by funding a new address from the faucet and then
+  successively splitting its utxos into 4 until the desired number of utxos is reached.
+
+  It then creates a number of transactions from the address, measuring the time taken.
   """
   use Chaperon.LoadTest
 

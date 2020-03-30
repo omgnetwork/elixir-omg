@@ -14,7 +14,9 @@
 
 defmodule LoadTest.Runner.Smoke do
   @moduledoc """
-  Load tests for watcher info
+  Smoke test to verify that the childchain, watcher and watcher-info are up and running
+
+  Run with `mix test apps/load_test/test/load_tests/runner/smoke_test.exs`
   """
 
   use Chaperon.LoadTest

@@ -15,6 +15,18 @@
 defmodule LoadTest.Runner.ChildChainTransactions do
   @moduledoc """
   Creates load on the child chain by submitting transactions as fast as possible.
+
+  Run with `mix test apps/load_test/test/load_tests/runner/childchain_test.exs`
+
+  In each session, the test creates a new address and funds it from the faucet.
+  It then creates transactions from this address to another temporary address.
+  Transactions are chained i.e. using the returned blocknum and tx_pos from `transaction.submit`
+  we can calculate the next utxo to be spent without waiting for the block to finalize.
+  This allows us to submit transactions as fast as possible, limited only by latency of `transaction.submit`
+
+  Note that the latency of `transaction.submit` can be high enough to mean that one account sending
+  transactions in this way is not enough to stress the childchain. It is necessary to run many concurrent
+  sessions to provide meaningful load.
   """
   use Chaperon.LoadTest
 
