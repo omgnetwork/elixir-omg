@@ -23,14 +23,14 @@ defmodule WatcherInfoApiTest do
   alias Itest.Transactions.Currency
 
   setup do
-    alice = Account.take_accounts(1)
-    %{alice_account: alice}
+    accounts = Account.take_accounts(1)
+    %{alice_account: Enum.at(accounts, 0)}
   end
 
   defwhen ~r/^Alice deposit "(?<amount>[^"]+)" ETH to the root chain creating 1 utxo$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
-    {alice_addr, alice_priv} = alice_account
+    {alice_addr, _alice_priv} = alice_account
 
     {:ok, receipt_hash} =
       amount
@@ -45,6 +45,26 @@ defmodule WatcherInfoApiTest do
           %{alice_account: alice_account} do
     {alice_addr, alice_priv} = alice_account
 
+    {:ok, response} =
+      WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
+
+    watcher_security_critical_config =
+      WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
+
+    finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
+
+    to_milliseconds = 1000
+    geth_block_every = 1
+
+    finality_margin_blocks
+    |> Kernel.*(geth_block_every)
+    |> Kernel.*(to_milliseconds)
+    |> Kernel.round()
+    |> Process.sleep()
+
+    utxos = Client.get_utxos(alice_account)
+
+    assert_equal(length(utxos), 1, "utxo length")
   end
 
   defp assert_equal(left, right, message) do
