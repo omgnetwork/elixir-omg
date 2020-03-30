@@ -104,7 +104,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end)
     |> Enum.take_while(fn b -> not b end)
 
-    {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
+    {:ok, file_path} = TestHelper.write_fee_file(@fees)
 
     on_exit(fn ->
       apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
