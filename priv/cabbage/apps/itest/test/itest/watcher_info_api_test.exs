@@ -29,7 +29,7 @@ defmodule WatcherInfoApiTest do
 
   defwhen ~r/^Alice deposit "(?<amount>[^"]+)" ETH to the root chain creating 1 utxo$/,
           %{amount: amount},
-          %{alice_account: alice_account} do
+          %{alice_account: alice_account} = state do
     {alice_addr, alice_priv} = alice_account
 
     {:ok, receipt_hash} =
@@ -37,12 +37,7 @@ defmodule WatcherInfoApiTest do
       |> Currency.to_wei()
       |> Client.deposit(alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
 
-    gas_used = Client.get_gas_used(receipt_hash)
-    key = String.to_atom("alice_gas_used_#{index}")
-    data = [{key, gas_used} | data]
-
-    balance_after_deposit = Itest.Poller.eth_get_balance(alice_account)
-    key = String.to_atom("alice_ethereum_balance_#{index}")
+    state
   end
 
   defthen ~r/^Alice should able to call watcher info api \/account.get_utxos and it return the utxo and the paginating content correctly$/,
@@ -50,17 +45,6 @@ defmodule WatcherInfoApiTest do
           %{alice_account: alice_account} do
     {alice_addr, alice_priv} = alice_account
 
-    {:ok, receipt_hash} =
-      amount
-      |> Currency.to_wei()
-      |> Client.deposit(alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
-
-    gas_used = Client.get_gas_used(receipt_hash)
-    key = String.to_atom("alice_gas_used_#{index}")
-    data = [{key, gas_used} | data]
-
-    balance_after_deposit = Itest.Poller.eth_get_balance(alice_account)
-    key = String.to_atom("alice_ethereum_balance_#{index}")
   end
 
   defp assert_equal(left, right, message) do
