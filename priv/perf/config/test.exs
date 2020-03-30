@@ -10,6 +10,16 @@ config :load_test,
   faucet_deposit_wei: trunc(:math.pow(10, 18) * 10),
   initial_funds_wei: trunc(:math.pow(10, 17)),
   utxo_load_test_config: %{
-    utxos_to_create_per_session: 1_000,
-    transactions_per_session: 100
+    concurrent_sessions: 10,
+    utxos_to_create_per_session: 5,
+    transactions_per_session: 5
+  },
+  childchain_transactions_test_config: %{
+    concurrent_sessions: 10,
+    transactions_per_session: 10
+  },
+  watcher_info_test_config: %{
+    concurrent_sessions: 2,
+    iterations: 2,
+    merge_scenario_sessions: true
   }

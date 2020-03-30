@@ -18,21 +18,21 @@ defmodule LoadTest.Runner.WatcherInfoAccountApi do
   """
   use Chaperon.LoadTest
 
-  @concurrent_sessions 100
-  @iterations 10
+  @default_config %{
+    concurrent_sessions: 1,
+    iterations: 1,
+    merge_scenario_sessions: true
+  }
 
   def default_config() do
-    %{
-      merge_scenario_sessions: true
-    }
+    Application.get_env(:load_test, :watcher_info_test_config, @default_config)
   end
 
   def scenarios() do
+    %{concurrent_sessions: concurrent_sessions} = default_config()
+
     [
-      {{@concurrent_sessions, LoadTest.Scenario.AccountTransactions},
-       %{
-         iterations: @iterations
-       }}
+      {{concurrent_sessions, LoadTest.Scenario.AccountTransactions}, %{}}
     ]
   end
 end

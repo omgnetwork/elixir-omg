@@ -32,7 +32,7 @@ defmodule LoadTest.Scenario.ChildChainSubmitTransactions do
 
     # Create a new account and fund it from the faucet
     {:ok, sender} = LoadTest.Ethereum.Account.new()
-    ntx_to_send = config(session, [:ntx_to_send])
+    ntx_to_send = config(session, [:transactions_per_session])
     initial_funds = ntx_to_send + ntx_to_send * fee_wei
     {:ok, utxo} = Faucet.fund_child_chain_account(sender, initial_funds, @eth)
 

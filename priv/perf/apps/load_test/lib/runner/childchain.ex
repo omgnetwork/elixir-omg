@@ -18,15 +18,20 @@ defmodule LoadTest.Runner.ChildChainTransactions do
   """
   use Chaperon.LoadTest
 
-  @concurrent_sessions 100
-  @transactions_per_session 10
+  @default_config %{
+    concurrent_sessions: 1,
+    transactions_per_session: 1
+  }
+
+  def default_config() do
+    Application.get_env(:load_test, :childchain_transactions_test_config, @default_config)
+  end
 
   def scenarios() do
+    %{concurrent_sessions: concurrent_sessions} = default_config()
+
     [
-      {{@concurrent_sessions, LoadTest.Scenario.ChildChainSubmitTransactions},
-       %{
-         ntx_to_send: @transactions_per_session
-       }}
+      {{concurrent_sessions, LoadTest.Scenario.ChildChainSubmitTransactions}, %{}}
     ]
   end
 end
