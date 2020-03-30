@@ -15,7 +15,7 @@
 defmodule OMG.ChildChain.Fees.FileAdapter do
   @moduledoc """
   Adapter for fees stored in a JSON file (defined in omg_child_chain/priv config :omg_child_chain,
-  fee_adapter_opts: `specs_file_name` and `specs_file_path` keyword opts).
+  fee_adapter_opts: `specs_file_path` keyword opts).
   """
   @behaviour OMG.ChildChain.Fees.Adapter
 
@@ -70,8 +70,6 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
   end
 
   defp get_path(opts) do
-    path = Keyword.fetch!(opts, :specs_file_path)
-    name = Keyword.fetch!(opts, :specs_file_name)
-    Path.join(path, name)
+    Keyword.fetch!(opts, :specs_file_path)
   end
 end

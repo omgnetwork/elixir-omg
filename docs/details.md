@@ -205,11 +205,9 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 
 * **`fee_specs_file_path`** - path to the file which defines fee requirements
 
-* **`fee_specs_file_name`** - name of the file which defines fee requirements
-
 * **`fee_adapter`** - is a tuple, where first element is a module name implementing `FeeAdapter` behaviour, e.g. `OMG.ChildChain.Fees.FileAdapter` and the second element is a Keyword `[opts: fee_adapter_opts]`
 Options of the fee adapter, depends on adapter
-  - **`specs_file_name`** - [FileAdaper only] path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
+  - **`specs_file_path`** - [FileAdaper only] path to file (including the file name) which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
   - **`fee_feed_url`** - [FeedAdapter only] url to the fee service, that privides actual fees prices. Response should follow the file specs format.
   - **`fee_change_tolerance_percent`** - [FeedAdapter only!] positive integer describes significance of price change. When price in new reading changes above tolerance level, prices are updated immediately. Otherwise update interval is preserved.
   - **`stored_fee_update_interval_minutes`** - [FeedAdapter only!] positive integer describes time interval in minutes. The updates of token prices are carried out in update intervals as long as the changes are within tolerance.

@@ -46,15 +46,11 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePathTest do
   end
 
   test "creates an empty json file at the destination" do
-    file_path = "/tmp/YOLO/"
-    file_name = Application.get_env(@app, :fee_specs_file_name)
+    file_path = "/tmp/YOLO/fee_file.json"
     :ok = System.put_env(@env_var_name, file_path)
 
     :ok = SetFeeFilePath.init([])
-
-    assert file_path
-           |> Path.join(file_name)
-           |> File.read() == {:ok, "{}"}
+    assert File.read(file_path) == {:ok, "{}"}
 
     :ok = System.delete_env(@env_var_name)
   end

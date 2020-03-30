@@ -115,8 +115,8 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
   end
 
   describe "fees in effect" do
-    test "corrupted file does not make server crash", %{fee_file_path: file_path, fee_file_name: file_name} do
-      {:started, _log, exit_fn} = start_fee_server(file_path, file_name)
+    test "corrupted file does not make server crash", %{fee_file_path: file_path} do
+      {:started, _log, exit_fn} = start_fee_server(file_path)
 
       new_fee = %{
         amount: 5,
@@ -148,22 +148,22 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       exit_fn.()
     end
 
-    test "starting with corrupted file makes server die", %{fee_file_path: file_path, fee_file_name: file_name} do
+    test "starting with corrupted file makes server die", %{fee_file_path: file_path} do
       overwrite_fee_file(file_name, "[not a json]")
-      {:died, log} = start_fee_server(file_path, file_name)
+      {:died, log} = start_fee_server(file_path)
 
       assert log =~ ~r/\[error\].*Unable to update fees/
       assert false == server_alive?()
     end
 
-    test "previous fees are nil when starting", %{fee_file_path: file_path, fee_file_name: file_name} do
-      {:started, _log, exit_fn} = start_fee_server(file_path, file_name)
+    test "previous fees are nil when starting", %{fee_file_path: file_path} do
+      {:started, _log, exit_fn} = start_fee_server(file_path)
       assert nil == :ets.lookup_element(:fees_bucket, :previous_fees, 2)
       assert {:ok, %{1 => %{@eth => [1], @not_eth => [2]}, 2 => %{@eth => [1]}}} == FeeServer.accepted_fees()
       exit_fn.()
     end
 
-    test "previous fees are set when fees are updated", %{fee_file_path: file_path, fee_file_name: file_name} do
+    test "previous fees are set when fees are updated", %{fee_file_path: file_path} do
       new_fee = %{
         amount: 5,
         subunit_to_unit: 100,
@@ -173,7 +173,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         updated_at: DateTime.from_unix!(1_546_423_200)
       }
 
-      {:started, _log, exit_fn} = start_fee_server(file_path, file_name)
+      {:started, _log, exit_fn} = start_fee_server(file_path)
 
       assert nil == :ets.lookup_element(:fees_bucket, :previous_fees, 2)
       assert {:ok, %{1 => %{@eth => [1], @not_eth => [2]}, 2 => %{@eth => [1]}}} == FeeServer.accepted_fees()
@@ -187,7 +187,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       exit_fn.()
     end
 
-    test "previous fees expire after the set duration", %{fee_file_path: file_path, fee_file_name: file_name} do
+    test "previous fees expire after the set duration", %{fee_file_path: file_path} do
       new_fee = %{
         amount: 5,
         subunit_to_unit: 100,
@@ -197,7 +197,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         updated_at: DateTime.from_unix!(1_546_423_200)
       }
 
-      {:started, _log, exit_fn} = start_fee_server(file_path, file_name)
+      {:started, _log, exit_fn} = start_fee_server(file_path)
 
       overwrite_fee_file(file_path, file_name, %{@payment_tx_type => %{@eth_hex => new_fee}})
       refresh_fees()
@@ -214,10 +214,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       exit_fn.()
     end
 
-    test "previous fees are not nil if fees updated during buffer period", %{
-      fee_file_path: file_path,
-      fee_file_name: file_name
-    } do
+    test "previous fees are not nil if fees updated during buffer period", %{fee_file_path: file_path} do
       # This test is to ensure that the timer is correcly cancelled when new fees
       # come in while in buffer period.
       new_fee_1 = %{
@@ -238,7 +235,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         updated_at: DateTime.from_unix!(1_546_423_200)
       }
 
-      {:started, _log, exit_fn} = start_fee_server(file_path, file_name)
+      {:started, _log, exit_fn} = start_fee_server(file_path)
 
       overwrite_fee_file(file_path, file_name, %{@payment_tx_type => %{@eth_hex => new_fee_1}})
       refresh_fees()
@@ -265,12 +262,12 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
     end
   end
 
-  defp start_fee_server(file_path, file_name) do
+  defp start_fee_server(file_path) do
     opts =
       Keyword.merge(
         OMG.ChildChain.Configuration.fee_server_opts(),
         fee_adapter: OMG.ChildChain.Fees.FileAdapter,
-        fee_adapter_opts: [specs_file_path: file_path, specs_file_name: file_name]
+        fee_adapter_opts: [specs_file_path: file_path]
       )
 
     log =

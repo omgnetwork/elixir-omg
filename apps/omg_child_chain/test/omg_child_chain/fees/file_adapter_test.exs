@@ -47,9 +47,8 @@ defmodule OMG.ChildChain.FileAdapterTest do
           actual_file_updated_at" do
       recorded_file_updated_at = :os.system_time(:second) - 10
 
-      {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
-      {:ok, %File.Stat{mtime: mtime}} = File.stat(file_path, time: :posix)
-      opts = [specs_file_path: file_path, specs_file_name: file_name]
+      {:ok, file_path} = TestHelper.write_fee_file(@fees)
+      opts = [specs_file_path: file_path]
 
       assert FileAdapter.get_fee_specs(opts, @stored_fees_empty, recorded_file_updated_at) == {
                :ok,
@@ -57,13 +56,13 @@ defmodule OMG.ChildChain.FileAdapterTest do
                mtime
              }
 
-      File.rm("#{file_path}/#{file_name}")
+      File.rm(file_path)
     end
 
     test "returns :ok (unchanged) if file_updated_at is more recent
           than file last change timestamp" do
-      {:ok, file_path, file_name} = TestHelper.write_fee_file(@fees)
-      opts = [specs_file_path: file_path, specs_file_name: file_name]
+      {:ok, file_path} = TestHelper.write_fee_file(@fees)
+      opts = [specs_file_path: file_path]
       recorded_file_updated_at = :os.system_time(:second) + 10
 
       assert FileAdapter.get_fee_specs(opts, @stored_fees_empty, recorded_file_updated_at) == :ok
@@ -71,7 +70,7 @@ defmodule OMG.ChildChain.FileAdapterTest do
     end
 
     test "returns an error if the file is not found" do
-      opts = [specs_file_path: "fake_path", specs_file_name: "fake_file"]
+      opts = [specs_file_path: "fake_path/fake_fee_file.json"]
       assert FileAdapter.get_fee_specs(opts, @stored_fees_empty, 1) == {:error, :enoent}
     end
   end
