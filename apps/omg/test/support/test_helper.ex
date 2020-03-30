@@ -154,10 +154,10 @@ defmodule OMG.TestHelper do
   @doc """
   Always creates file in the priv/ folder of the application.
   """
-  @spec write_fee_file(%{Crypto.address_t() => map()} | binary(), binary() | nil) :: {:ok, binary, binary}
-  def write_fee_file(fee_map, file_dir_path \\ nil, file_name \\ nil)
+  @spec write_fee_file(%{Crypto.address_t() => map()} | binary()) :: {:ok, binary, binary}
+  def write_fee_file(fee_map, file_path \\ nil)
 
-  def write_fee_file(map, file_dir_path, file_name) when is_map(map) do
+  def write_fee_file(map, file_path) when is_map(map) do
     {:ok, json} =
       map
       |> Enum.map(fn {tx_type, fees} ->
@@ -166,13 +166,12 @@ defmodule OMG.TestHelper do
       |> Enum.into(%{})
       |> Jason.encode()
 
-    write_fee_file(json, file_dir_path, file_name)
+    write_fee_file(json, file_path)
   end
 
-  def write_fee_file(content, file_dir_path, file_name) do
-    dir_path = file_dir_path || :code.priv_dir(:omg_child_chain)
-    file = file_name || "omisego_operator_test_fees_file-#{DateTime.to_unix(DateTime.utc_now())}"
-    file_path = "#{dir_path}/#{file}"
+  def write_fee_file(content, file_path) do
+    file_path =
+      file_path || "#{:code.priv_dir(:omg_child_chain)}/test_fees_file-#{DateTime.to_unix(DateTime.utc_now())}"
 
     :ok = File.write(file_path, content, [:write])
     {:ok, file_path}

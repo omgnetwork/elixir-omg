@@ -111,7 +111,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
       File.rm(file_path)
     end)
 
-    %{fee_file_path: file_path, fee_file_name: file_name}
+    %{fee_file_path: file_path}
   end
 
   describe "fees in effect" do
