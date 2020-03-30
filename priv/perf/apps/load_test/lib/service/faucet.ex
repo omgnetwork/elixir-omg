@@ -37,7 +37,7 @@ defmodule LoadTest.Service.Faucet do
   end
 
   def get_faucet() do
-    GenServer.call(__MODULE__, :get_faucet, :infinity)
+    GenServer.call(__MODULE__, :get_faucet)
   end
 
   def start_link(config) do

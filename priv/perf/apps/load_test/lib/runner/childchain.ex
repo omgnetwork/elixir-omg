@@ -18,7 +18,7 @@ defmodule LoadTest.Runner.ChildChainTransactions do
   """
   use Chaperon.LoadTest
 
-  @concurrent_sessions 10
+  @concurrent_sessions 100
   @transactions_per_session 10
 
   def scenarios() do

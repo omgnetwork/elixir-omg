@@ -30,6 +30,7 @@ defmodule LoadTest.Scenario.AccountTransactions do
 
   @poll_interval 15_000
   @default_retry_attempts 15
+  @retry_delay 30
 
   @eth <<0::160>>
   @test_output_amount 1
@@ -59,60 +60,55 @@ defmodule LoadTest.Scenario.AccountTransactions do
     |> log_info("end...")
   end
 
-  def wait_for_balance_update(session, sender, retry \\ @default_retry_attempts) do
+  defp wait_for_balance_update(session, sender, retry \\ @default_retry_attempts) do
     {:ok, session} = do_wait_for_balance_update(session, sender, retry)
     session
   end
 
   def repeat_task(session, sender) do
     session
-    |> log_info("running iteration: " <> Integer.to_string(session.assigned.iteration))
-    |> retry_on_error(:test_apis, [sender], retries: @default_retry_attempts, random_delay: seconds(30))
+    |> log_info("running iteration #{session.assigned.iteration}")
+    |> retry_on_error(
+      :test_apis,
+      [sender],
+      retries: @default_retry_attempts,
+      random_delay: seconds(@retry_delay)
+    )
     |> update_assign(iteration: &(&1 + 1))
   end
 
   def test_apis(session, sender) do
     session
-    |> test_api_account_get_balance(sender)
-    |> test_api_account_get_utxos(sender)
-    |> test_api_account_get_transactions(sender)
-    |> test_api_account_create_and_submit_transactions(sender)
+    |> measure_get_balance(sender)
+    |> measure_get_utxos(sender)
+    |> measure_get_transactions(sender)
+    |> measure_create_and_submit_transactions(sender)
   end
 
-  defp test_api_account_get_balance(session, sender) do
+  defp measure(session, sender, api_call, metric_name) do
     start = Timing.timestamp()
-    {:ok, _} = get_balance(sender)
+    {:ok, _} = api_call.(sender)
 
     add_metric(
       session,
-      {:call, {LoadTest.Scenario.AccountTransactions, '/account.get_balance'}},
+      {:call, {LoadTest.Scenario.AccountTransactions, metric_name}},
       Timing.timestamp() - start
     )
   end
 
-  defp test_api_account_get_utxos(session, sender) do
-    start = Timing.timestamp()
-    {:ok, _} = get_utxos(sender)
-
-    add_metric(
-      session,
-      {:call, {LoadTest.Scenario.AccountTransactions, '/account.get_utxos'}},
-      Timing.timestamp() - start
-    )
+  defp measure_get_balance(session, sender) do
+    measure(session, sender, &get_balance/1, "/account.get_balance")
   end
 
-  defp test_api_account_get_transactions(session, sender) do
-    start = Timing.timestamp()
-    {:ok, _} = get_transactions(sender)
-
-    add_metric(
-      session,
-      {:call, {LoadTest.Scenario.AccountTransactions, '/account.get_transactions'}},
-      Timing.timestamp() - start
-    )
+  defp measure_get_utxos(session, sender) do
+    measure(session, sender, &get_utxos/1, "/account.get_utxos")
   end
 
-  defp test_api_account_create_and_submit_transactions(session, sender) do
+  defp measure_get_transactions(session, sender) do
+    measure(session, sender, &get_transactions/1, "/account.get_transactions")
+  end
+
+  defp measure_create_and_submit_transactions(session, sender) do
     start = Timing.timestamp()
     {:ok, [inputs, sign_hash, typed_data, _txbytes]} = create_transaction(session, sender)
 
