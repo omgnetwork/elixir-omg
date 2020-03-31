@@ -23,7 +23,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.Event
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
   def assert_check(result, status, value) do
     assert {^status, new_state, ^value} = result

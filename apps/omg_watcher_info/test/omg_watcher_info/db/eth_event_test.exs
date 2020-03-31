@@ -24,7 +24,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
   require Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "insert deposits: creates deposit event and utxo" do

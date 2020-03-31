@@ -82,4 +82,103 @@ defmodule OMG.Eth.RootChain.AbiFunctionSelector do
       ]
     }
   end
+
+  # min_exit_period/0, get_version/0, exit_games/0, vaults/0 are
+  # victims of unfortinate bug: https://github.com/poanetwork/ex_abi/issues/25
+  # All these selectors were intially pulled in with
+  # `ABI.parse_specification(contract_abi_json_decoded,include_events?: true)`
+  # and later modified so that `types` hold what `returns` should have because of
+  # issue 25.
+  # the commented properties of the struct is what it was generated,
+  # the new types were added to mitigate the bug.
+  def min_exit_period() do
+    %ABI.FunctionSelector{
+      function: "minExitPeriod",
+      input_names: ["min_exit_period"],
+      inputs_indexed: nil,
+      method_id: <<212, 162, 180, 239>>,
+      # returns: [uint: 256],
+      type: :function,
+      # types: []
+      types: [uint: 256]
+    }
+  end
+
+  def get_version() do
+    %ABI.FunctionSelector{
+      function: "getVersion",
+      input_names: ["version"],
+      inputs_indexed: nil,
+      method_id: <<13, 142, 110, 44>>,
+      # returns: [:string],
+      type: :function,
+      # types: []
+      types: [:string]
+    }
+  end
+
+  def exit_games() do
+    %ABI.FunctionSelector{
+      function: "exitGames",
+      input_names: ["exit_game_address"],
+      inputs_indexed: nil,
+      method_id: <<175, 7, 151, 100>>,
+      # returns: [:address],
+      type: :function,
+      # types: [uint: 256]
+      types: [:address]
+    }
+  end
+
+  def vaults() do
+    %ABI.FunctionSelector{
+      function: "vaults",
+      input_names: ["vault_address"],
+      inputs_indexed: nil,
+      method_id: <<140, 100, 234, 74>>,
+      # returns: [:address],
+      type: :function,
+      # types: [uint: 256]
+      types: [:address]
+    }
+  end
+
+  def child_block_interval() do
+    %ABI.FunctionSelector{
+      function: "childBlockInterval",
+      input_names: ["child_block_interval"],
+      inputs_indexed: nil,
+      method_id: <<56, 169, 224, 188>>,
+      # returns: [uint: 256],
+      type: :function,
+      # types: []
+      types: [uint: 256]
+    }
+  end
+
+  def next_child_block() do
+    %ABI.FunctionSelector{
+      function: "nextChildBlock",
+      input_names: ["block_number"],
+      inputs_indexed: nil,
+      method_id: <<76, 168, 113, 79>>,
+      # returns: [uint: 256],
+      type: :function,
+      # types: []
+      types: [uint: 256]
+    }
+  end
+
+  def blocks() do
+    %ABI.FunctionSelector{
+      function: "blocks",
+      input_names: ["block_hash", "block_timestamp"],
+      inputs_indexed: nil,
+      method_id: <<242, 91, 63, 153>>,
+      # returns: [bytes: 32, uint: 256],
+      type: :function,
+      # types: [uint: 256]
+      types: [bytes: 32, uint: 256]
+    }
+  end
 end

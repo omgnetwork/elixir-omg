@@ -32,7 +32,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
   import OMG.Watcher.ExitProcessor.TestHelper
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @late_blknum 10_000
 
   describe "sanity checks" do

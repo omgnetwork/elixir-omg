@@ -29,7 +29,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
 
   import OMG.Watcher.ExitProcessor.TestHelper
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @not_eth <<1::size(160)>>
 
   setup do

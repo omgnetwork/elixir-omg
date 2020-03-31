@@ -26,9 +26,6 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     plasma_framework = Support.SnapshotContracts.parse_contracts()["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
 
     contract_addresses_value = %{
-      erc20_vault: "erc20_vault_value",
-      eth_vault: "eth_vault_value",
-      payment_exit_game: "payment_exit_game_value",
       plasma_framework: plasma_framework
     }
 
@@ -39,10 +36,14 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   end
 
   setup %{} do
-    vcr_path = Path.join(__DIR__, "../../fixtures/vcr_cassettes")
-    ExVCR.Config.cassette_library_dir(vcr_path)
-
     on_exit(fn ->
+      :ok = System.delete_env("ETHEREUM_NETWORK")
+      :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
+      :ok = System.delete_env("ETHEREUM_NETWORK")
+      :ok = System.delete_env("TXHASH_CONTRACT")
+      :ok = System.delete_env("AUTHORITY_ADDRESS")
+      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
+
       :ok =
         Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
     end)
@@ -53,32 +54,25 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   test "fetching from contract exchanger", %{
     contract_addresses_value: contract_addresses_value
   } do
-    use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
-      port = 9009
+    port = 9009
+    pid = spawn(fn -> start(port) end)
+    :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
+    :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
+    "authority_address_value" = Application.get_env(@app, :authority_addr)
+    assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
+    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
 
-      :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
-      :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
-      :ok = SetContract.init([])
-      "authority_address_value" = Application.get_env(@app, :authority_addr)
-      ^contract_addresses_value = Application.get_env(@app, :contract_addr)
-      "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
-
-      :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
-    end
+    :ok = Process.send(pid, :stop, [])
   end
 
   test "fetching from contract exchanger sets default exit period seconds" do
-    use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
-      port = 9009
-      :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
-      :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
-      :ok = SetContract.init([])
-      20 = Application.get_env(@app, :min_exit_period_seconds)
-
-      :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
-    end
+    port = 9010
+    _pid = spawn(fn -> start(port) end)
+    :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
+    :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
+    20 = Application.get_env(@app, :min_exit_period_seconds)
   end
 
   test "unsuported network throws exception for contract exchanger" do
@@ -88,148 +82,84 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY-GORLI")
 
     try do
-      :ok = SetContract.init([])
+      :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     catch
       :exit, _ ->
         :ok = Process.send(pid, :stop, [])
         :ok
     end
-
-    :ok = System.delete_env("ETHEREUM_NETWORK")
-    :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
   end
 
   test "contract details from env", %{
     plasma_framework: plasma_framework,
     contract_addresses_value: contract_addresses_value
   } do
-    use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
-      :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
-      :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
-      :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
-      :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
-      :ok = SetContract.init([])
-      "authority_address_value" = Application.get_env(@app, :authority_addr)
-      ^contract_addresses_value = Application.get_env(@app, :contract_addr)
-      "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
-
-      :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("TXHASH_CONTRACT")
-      :ok = System.delete_env("AUTHORITY_ADDRESS")
-      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-      :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
-      :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
-      :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
-    end
+    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
+    :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
+    "authority_address_value" = Application.get_env(@app, :authority_addr)
+    assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
+    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
   end
 
   test "contract details from env, mixed case", %{
     plasma_framework: plasma_framework,
     contract_addresses_value: contract_addresses_value
   } do
-    use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
-      :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
-      :ok = System.put_env("TXHASH_CONTRACT", "Txhash_contract_value")
-      :ok = System.put_env("AUTHORITY_ADDRESS", "Authority_address_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
-      :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "Eth_vault_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "Erc20_vault_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "Payment_exit_game_value")
-      :ok = SetContract.init([])
-      "authority_address_value" = Application.get_env(@app, :authority_addr)
-      ^contract_addresses_value = Application.get_env(@app, :contract_addr)
-      "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
+    :ok = System.put_env("TXHASH_CONTRACT", "Txhash_contract_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", "Authority_address_value")
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-      :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("TXHASH_CONTRACT")
-      :ok = System.delete_env("AUTHORITY_ADDRESS")
-      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-      :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
-      :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
-      :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
-    end
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
+    "authority_address_value" = Application.get_env(@app, :authority_addr)
+    assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
+    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
   end
 
   test "contract details from env for localchain", %{
     plasma_framework: plasma_framework,
     contract_addresses_value: contract_addresses_value
   } do
-    use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
-      :ok = System.put_env("ETHEREUM_NETWORK", "localchain")
-      :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
-      :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
-      :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
-      :ok = SetContract.init([])
-      "authority_address_value" = Application.get_env(@app, :authority_addr)
-      ^contract_addresses_value = Application.get_env(@app, :contract_addr)
-      "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+    :ok = System.put_env("ETHEREUM_NETWORK", "localchain")
+    :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-      :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("TXHASH_CONTRACT")
-      :ok = System.delete_env("AUTHORITY_ADDRESS")
-      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-      :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
-      :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
-      :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
-    end
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
+    "authority_address_value" = Application.get_env(@app, :authority_addr)
+    assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
+    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
   end
 
   test "contract details from env sets default exit period seconds", %{
     plasma_framework: plasma_framework
   } do
-    use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
-      :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
-      :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
-      :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
-      :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
-      :ok = SetContract.init([])
-      20 = Application.get_env(@app, :min_exit_period_seconds)
+    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
+    :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-      :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("TXHASH_CONTRACT")
-      :ok = System.delete_env("AUTHORITY_ADDRESS")
-      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-      :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
-      :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
-      :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
-    end
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
+    20 = Application.get_env(@app, :min_exit_period_seconds)
   end
 
   test "contract details and exit period seconds from env", %{
     plasma_framework: plasma_framework,
     contract_addresses_value: contract_addresses_value
   } do
-    use_cassette "root_chain/get_min_exit_period", match_requests_on: [:request_body] do
-      :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
-      :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
-      :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
-      :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-      :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
+    :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
+    :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-      :ok = SetContract.init([])
-      20 = Application.get_env(@app, :min_exit_period_seconds)
-      "authority_address_value" = Application.get_env(@app, :authority_addr)
-      ^contract_addresses_value = Application.get_env(@app, :contract_addr)
-      "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
-      :ok = System.delete_env("ETHEREUM_NETWORK")
-      :ok = System.delete_env("TXHASH_CONTRACT")
-      :ok = System.delete_env("AUTHORITY_ADDRESS")
-      :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-      :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
-      :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
-      :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
-    end
+    :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
+    20 = Application.get_env(@app, :min_exit_period_seconds)
+    "authority_address_value" = Application.get_env(@app, :authority_addr)
+    assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
+    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
   end
 
   test "that exit is thrown when env configuration is faulty for network name", %{
@@ -239,24 +169,13 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
-    :ok = System.put_env("CONTRACT_ADDRESS_ETH_VAULT", "eth_vault_value")
-    :ok = System.put_env("CONTRACT_ADDRESS_ERC20_VAULT", "erc20_vault_value")
-    :ok = System.put_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME", "payment_exit_game_value")
 
     try do
-      :ok = SetContract.init([])
+      :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     catch
       :exit, _ ->
         :ok
     end
-
-    :ok = System.delete_env("ETHEREUM_NETWORK")
-    :ok = System.delete_env("TXHASH_CONTRACT")
-    :ok = System.delete_env("AUTHORITY_ADDRESS")
-    :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-    :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
-    :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
-    :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
   end
 
   test "that exit is thrown when there's no mandatory configuration" do
@@ -264,13 +183,11 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.delete_env("TXHASH_CONTRACT")
     :ok = System.delete_env("AUTHORITY_ADDRESS")
     :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-    :ok = System.delete_env("CONTRACT_ADDRESS_ETH_VAULT")
-    :ok = System.delete_env("CONTRACT_ADDRESS_ERC20_VAULT")
-    :ok = System.delete_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME")
+
     :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
 
     try do
-      :ok = SetContract.init([])
+      :ok = SetContract.init(rpc_api: __MODULE__.Rpc)
     catch
       :exit, _ ->
         :ok
@@ -306,16 +223,37 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     exchanger_body = %{
       plasma_framework_tx_hash: "txhash_contract_value",
       plasma_framework: nil,
-      eth_vault: "eth_vault_value",
-      erc20_vault: "erc20_vault_value",
-      payment_exit_game: "payment_exit_game_value",
       authority_address: "authority_address_value"
     }
 
-    body = Jason.encode!(Map.put(exchanger_body, :plasma_framework, plasma_framework))
+    body = exchanger_body |> Map.put(:plasma_framework, plasma_framework) |> Jason.encode!()
 
     :ok = :gen_tcp.send(conn, ["HTTP/1.0 ", Integer.to_charlist(200), "\r\n", [], "\r\n", body])
 
     :gen_tcp.close(conn)
+  end
+
+  defmodule Rpc do
+    def call_contract(_, "vaults(uint256)", _) do
+      {:ok, "0x0000000000000000000000004e3aeff70f022a6d4cc5947423887e7152826cf7"}
+    end
+
+    def call_contract(_, "exitGames(uint256)", _) do
+      {:ok,
+       "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}
+    end
+
+    def call_contract(_, "childBlockInterval()", _) do
+      {:ok, "0x00000000000000000000000000000000000000000000000000000000000003e8"}
+    end
+
+    def call_contract(_, "getVersion()", _) do
+      {:ok,
+       "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d312e302e342b6136396337363300000000000000000000000000000000000000"}
+    end
+
+    def call_contract(_, "minExitPeriod()", _) do
+      {:ok, "0x0000000000000000000000000000000000000000000000000000000000000014"}
+    end
   end
 end

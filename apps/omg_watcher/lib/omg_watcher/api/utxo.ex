@@ -17,6 +17,7 @@ defmodule OMG.Watcher.API.Utxo do
   Module provides API for utxos
   """
 
+  alias OMG.Eth.Configuration
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.UtxoExit.Core
@@ -30,7 +31,7 @@ defmodule OMG.Watcher.API.Utxo do
           sigs: binary()
         }
 
-  @interval elem(OMG.Eth.RootChain.get_child_block_interval(), 1)
+  @interval Configuration.child_block_interval()
 
   # Based on the contract parameters determines whether UTXO position provided was created by a deposit
   defguardp is_deposit(blknum) when rem(blknum, @interval) != 0
