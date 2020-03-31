@@ -37,7 +37,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetChildChainTest do
 
     :ok = System.put_env("CHILD_CHAIN_URL", "/url/url")
 
-    :ok = SetChildChain.init([])
+    :ok = SetChildChain.load([],[])
     configuration = Enum.sort(Application.get_all_env(@app))
     "/url/url" = configuration[:child_chain_url]
     :ok = System.delete_env("CHILD_CHAIN_URL")
@@ -50,7 +50,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetChildChainTest do
 
   test "if default configuration is used when there's no environment variables" do
     :ok = System.delete_env("CHILD_CHAIN_URL")
-    :ok = SetChildChain.init([])
+    :ok = SetChildChain.load([],[])
     configuration = Application.get_all_env(@app)
     sorted_configuration = Enum.sort(configuration)
     ^sorted_configuration = Enum.sort(@configuration_old)

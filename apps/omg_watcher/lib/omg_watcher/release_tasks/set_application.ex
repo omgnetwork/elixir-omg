@@ -17,7 +17,11 @@ defmodule OMG.Watcher.ReleaseTasks.SetApplication do
   @behaviour Config.Provider
   @app :omg_watcher
 
-  def init(release: release, current_version: current_version) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, release: release, current_version: current_version) do
     :ok = Application.put_env(@app, :release, release, persistent: true)
     :ok = Application.put_env(@app, :current_version, current_version, persistent: true)
   end

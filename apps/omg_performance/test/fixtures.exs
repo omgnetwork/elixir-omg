@@ -23,13 +23,14 @@ defmodule OMG.Performance.Fixtures do
   use OMG.Utils.LoggerExt
 
   deffixture mix_based_watcher(contract) do
+    _ = contract
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
 
     config_file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-    #{Support.DevHelper.create_conf_file(contract)}
+    #{Support.DevHelper.create_conf_file()}
 
     config :omg_db, path: "#{db_path}"
     # this causes the inner test watcher server process to log info. To see these logs adjust test's log level

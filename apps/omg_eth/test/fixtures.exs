@@ -75,7 +75,8 @@ defmodule OMG.Eth.Fixtures do
 
   deffixture root_chain_contract_config(contract) do
     _ = contract
-    {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
+
+    # {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
     on_exit(fn ->
       # reverting to the original values from `omg_eth/config/test.exs`
@@ -83,9 +84,9 @@ defmodule OMG.Eth.Fixtures do
       Application.put_env(:omg_eth, :authority_addr, nil)
       Application.put_env(:omg_eth, :txhash_contract, nil)
 
-      started_apps
-      |> Enum.reverse()
-      |> Enum.map(fn app -> :ok = Application.stop(app) end)
+      # started_apps
+      # |> Enum.reverse()
+      # |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
     :ok

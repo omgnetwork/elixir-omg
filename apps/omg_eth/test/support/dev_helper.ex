@@ -36,7 +36,11 @@ defmodule Support.DevHelper do
 
   @passphrase "ThisIsATestnetPassphrase"
 
-  def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
+  def create_conf_file() do
+    contract_addr = Configuration.contracts()
+    txhash = Configuration.txhash_contract()
+    authority_addr = Configuration.authority_addr()
+
     """
     use Mix.Config
     config :omg_eth,

@@ -20,7 +20,11 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
 
   @app :sentry
 
-  def init(release: release, current_version: current_version) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, release: release, current_version: current_version) do
     _ = Application.ensure_all_started(:logger)
     app_env = get_app_env()
     sentry_dsn = System.get_env("SENTRY_DSN")

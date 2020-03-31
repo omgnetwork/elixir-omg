@@ -20,7 +20,11 @@ defmodule OMG.Status.ReleaseTasks.SetLogger do
   @app :logger
   @default_backend Ink
 
-  def init(_) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, _args) do
     logger_backends = Application.get_env(@app, :backends, persistent: true)
     logger_backend = get_logger_backend()
 

@@ -21,7 +21,11 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold do
   @config_key :ethereum_stalled_sync_threshold_ms
   @env_name "ETHEREUM_STALLED_SYNC_THRESHOLD_MS"
 
-  def init(_args) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, _args) do
     _ = Application.ensure_all_started(:logger)
     threshold_ms = stalled_sync_threshold_ms()
 

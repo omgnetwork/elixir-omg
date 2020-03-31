@@ -39,7 +39,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
   test "if defaults are used when env vars are not set" do
     url = Application.get_env(:ethereumex, :url)
     eth_node = Application.get_env(@app, :eth_node)
-    :ok = SetEthereumClient.init([])
+    :ok = SetEthereumClient.load([],[])
 
     assert Application.get_env(:ethereumex, :url) == url
     assert Application.get_env(@app, :eth_node) == eth_node
@@ -48,17 +48,17 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
   test "if values are used when env vars set" do
     :ok = System.put_env("ETHEREUM_RPC_URL", "url")
     :ok = System.put_env("ETH_NODE", "geth")
-    :ok = SetEthereumClient.init([])
+    :ok = SetEthereumClient.load([],[])
     "url" = Application.get_env(:ethereumex, :url)
     :geth = Application.get_env(@app, :eth_node)
 
     :ok = System.put_env("ETH_NODE", "parity")
-    :ok = SetEthereumClient.init([])
+    :ok = SetEthereumClient.load([],[])
     "url" = Application.get_env(:ethereumex, :url)
     :parity = Application.get_env(@app, :eth_node)
 
     :ok = System.put_env("ETH_NODE", "infura")
-    :ok = SetEthereumClient.init([])
+    :ok = SetEthereumClient.load([],[])
     "url" = Application.get_env(:ethereumex, :url)
     :infura = Application.get_env(@app, :eth_node)
     # cleanup
@@ -70,7 +70,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
     :ok = System.put_env("ETH_NODE", "random random random")
 
     try do
-      SetEthereumClient.init([])
+      SetEthereumClient.load([],[])
     catch
       :exit, _reason ->
         :ok = System.delete_env("ETH_NODE")

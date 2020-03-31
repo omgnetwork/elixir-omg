@@ -20,6 +20,10 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   @app :omg_status
 
   def init(args) do
+    args
+  end
+
+  def load(_config, args) do
     nil = Process.put(:system_adapter, Keyword.get(args, :system_adapter, System))
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(:omg_status, Tracer)

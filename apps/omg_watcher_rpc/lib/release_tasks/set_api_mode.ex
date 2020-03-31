@@ -21,7 +21,11 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetApiMode do
     exit("WatcherRPC's API mode is not provided.")
   end
 
-  def init(api_mode) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, api_mode) do
     :ok = Application.put_env(:omg_watcher_rpc, :api_mode, api_mode)
   end
 end

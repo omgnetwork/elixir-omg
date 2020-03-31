@@ -19,6 +19,10 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   @app :omg_db
 
   def init(args) do
+    args
+  end
+
+  def load(_config, args) do
     _ = Application.ensure_all_started(:logger)
     release = Keyword.get(args, :release)
 

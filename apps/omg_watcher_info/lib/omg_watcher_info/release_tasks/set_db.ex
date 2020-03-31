@@ -18,7 +18,11 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDB do
   require Logger
   @app :omg_watcher_info
 
-  def init(_args) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, _args) do
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(@app, OMG.WatcherInfo.DB.Repo)
     config = Keyword.put(config, :url, get_db_url())

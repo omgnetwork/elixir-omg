@@ -34,7 +34,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDBTest do
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("DATABASE_URL", "/url/url")
 
-    :ok = SetDB.init([])
+    :ok = SetDB.load([],[])
     configuration = Application.get_env(@app, Repo)
     "/url/url" = configuration[:url]
 
@@ -47,7 +47,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDBTest do
 
   test "if default configuration is used when there's no environment variables" do
     :ok = System.delete_env("DATABASE_URL")
-    :ok = SetDB.init([])
+    :ok = SetDB.load([],[])
     configuration = Application.get_env(@app, Repo)
     sorted_configuration = Enum.sort(configuration)
     ^sorted_configuration = Enum.sort(@configuration_old)

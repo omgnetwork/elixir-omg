@@ -18,7 +18,11 @@ defmodule OMG.ChildChain.ReleaseTasks.SetTracer do
   require Logger
   @app :omg_child_chain
 
-  def init(_args) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, _args) do
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(@app, OMG.ChildChain.Tracer)
     config = Keyword.put(config, :disabled?, get_dd_disabled())

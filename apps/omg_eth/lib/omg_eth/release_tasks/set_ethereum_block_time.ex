@@ -23,7 +23,11 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumBlockTime do
   @env_key "ETHEREUM_BLOCK_TIME_SECONDS"
   @config_key :ethereum_block_time_seconds
 
-  def init(_args) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, _args) do
     _ = Application.ensure_all_started(:logger)
     :ok = Application.put_env(@app, @config_key, get_ethereum_block_time(), persistent: true)
   end

@@ -24,7 +24,11 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
   @system_env_name_force "EXIT_PROCESSOR_SLA_MARGIN_FORCED"
   @app_env_name_force :exit_processor_sla_margin_forced
 
-  def init(_args) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, _args) do
     _ = Application.ensure_all_started(:logger)
     :ok = Application.put_env(@app, @app_env_name_margin, get_exit_processor_sla_margin(), persistent: true)
     :ok = Application.put_env(@app, @app_env_name_force, get_exit_processor_sla_forced(), persistent: true)

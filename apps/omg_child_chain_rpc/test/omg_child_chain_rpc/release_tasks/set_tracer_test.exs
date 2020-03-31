@@ -33,7 +33,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracerTest do
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("DD_DISABLED", "TRUE")
     :ok = System.put_env("APP_ENV", "YOLO")
-    :ok = SetTracer.init([])
+    :ok = SetTracer.load([],[])
     configuration = Application.get_env(@app, Tracer)
     disabled_updated = configuration[:disabled?]
     env_updated = configuration[:env]
@@ -50,7 +50,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracerTest do
     :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
     :ok = System.delete_env("DD_DISABLED")
     :ok = System.put_env("APP_ENV", "YOLO")
-    :ok = SetTracer.init([])
+    :ok = SetTracer.load([],[])
     configuration = Application.get_env(@app, Tracer)
     sorted_configuration = Enum.sort(configuration)
     assert sorted_configuration == @configuration_old |> Keyword.put(:env, "YOLO") |> Enum.sort()
@@ -60,7 +60,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracerTest do
     :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
     :ok = System.delete_env("DD_DISABLED")
     :ok = System.delete_env("APP_ENV")
-    catch_exit(SetTracer.init([]))
+    catch_exit(SetTracer.load([],[]))
     configuration = Application.get_env(@app, Tracer)
     sorted_configuration = Enum.sort(configuration)
     ^sorted_configuration = Enum.sort(@configuration_old)
@@ -68,7 +68,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracerTest do
 
   test "if exit is thrown when faulty configuration is used" do
     :ok = System.put_env("DD_DISABLED", "TRUEeee")
-    catch_exit(SetTracer.init([]))
+    catch_exit(SetTracer.load([],[]))
     :ok = System.delete_env("DD_DISABLED")
   end
 end

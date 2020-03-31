@@ -33,14 +33,14 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckIntervalTest do
 
   test "that interval is set when the env var is present" do
     :ok = System.put_env(@env_key, "1234")
-    :ok = SetEthereumEventsCheckInterval.init([])
+    :ok = SetEthereumEventsCheckInterval.load([],[])
     assert Application.get_env(@app, @config_key) == 1234
     :ok = System.delete_env(@env_key)
   end
 
   test "that no other configurations got affected", context do
     :ok = System.put_env(@env_key, "1234")
-    :ok = SetEthereumEventsCheckInterval.init([])
+    :ok = SetEthereumEventsCheckInterval.load([],[])
     new_configs = @app |> Application.get_all_env() |> Keyword.delete(@config_key) |> Enum.sort()
     old_configs = context.original_config |> Keyword.delete(@config_key) |> Enum.sort()
 
@@ -50,7 +50,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckIntervalTest do
   test "that the default config is used when the env var is not set" do
     old_config = Application.get_env(@app, @config_key)
     :ok = System.delete_env(@env_key)
-    :ok = SetEthereumEventsCheckInterval.init([])
+    :ok = SetEthereumEventsCheckInterval.load([],[])
     new_config = Application.get_env(@app, @config_key)
 
     assert new_config == old_config

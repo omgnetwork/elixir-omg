@@ -18,7 +18,11 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
   require Logger
   @app :omg_watcher_rpc
 
-  def init(_args) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, _args) do
     _ = Application.ensure_all_started(:logger)
     config = Application.get_env(@app, OMG.WatcherRPC.Web.Endpoint)
 

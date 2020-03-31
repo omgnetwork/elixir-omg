@@ -43,7 +43,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMarginTest do
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("EXIT_PROCESSOR_SLA_MARGIN", "15")
     :ok = System.put_env("EXIT_PROCESSOR_SLA_MARGIN_FORCED", "TRUE")
-    :ok = SetExitProcessorSLAMargin.init([])
+    :ok = SetExitProcessorSLAMargin.load([],[])
     exit_processor_sla_margin_updated = Application.get_env(@app, :exit_processor_sla_margin)
     exit_processor_sla_margin_forced_updated = Application.get_env(@app, :exit_processor_sla_margin_forced)
 
@@ -54,20 +54,20 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMarginTest do
   test "if default configuration is used when there's no environment variables" do
     :ok = System.delete_env("EXIT_PROCESSOR_SLA_MARGIN")
     :ok = System.delete_env("EXIT_PROCESSOR_SLA_MARGIN_FORCED")
-    :ok = SetExitProcessorSLAMargin.init([])
+    :ok = SetExitProcessorSLAMargin.load([],[])
 
     assert @configuration_old = Application.get_all_env(@app)
   end
 
   test "if exit is thrown when faulty margin configuration is used" do
     :ok = System.put_env("EXIT_PROCESSOR_SLA_MARGIN", "15a")
-    catch_exit(SetExitProcessorSLAMargin.init([]))
+    catch_exit(SetExitProcessorSLAMargin.load([],[]))
     :ok = System.delete_env("EXIT_PROCESSOR_SLA_MARGIN")
   end
 
   test "if exit is thrown when faulty margin force configuration is used" do
     :ok = System.put_env("EXIT_PROCESSOR_SLA_MARGIN_FORCED", "15")
-    catch_exit(SetExitProcessorSLAMargin.init([]))
+    catch_exit(SetExitProcessorSLAMargin.load([],[]))
     :ok = System.delete_env("EXIT_PROCESSOR_SLA_MARGIN_FORCED")
   end
 end

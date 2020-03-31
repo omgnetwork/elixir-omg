@@ -30,7 +30,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetEndpointTest do
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("PORT", @test_port)
     :ok = System.put_env("HOSTNAME", @test_host)
-    :ok = SetEndpoint.init([])
+    :ok = SetEndpoint.load([],[])
     configuration = Enum.sort(deep_sort(Application.get_env(@app, Endpoint)))
     http_updated = configuration[:http]
     url_updated = configuration[:url]
@@ -48,7 +48,7 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetEndpointTest do
   test "if default configuration is used when there's no environment variables" do
     :ok = System.delete_env("PORT")
     :ok = System.delete_env("HOSTNAME")
-    :ok = SetEndpoint.init([])
+    :ok = SetEndpoint.load([],[])
     configuration = Application.get_env(@app, Endpoint)
 
     sorted_configuration = Enum.sort(deep_sort(configuration))

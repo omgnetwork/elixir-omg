@@ -34,8 +34,11 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   or, they're manually deployed for local development:
   """
 
-  @impl Provider
   def init(args) do
+    args
+  end
+
+  def load(_config, args) do
     rpc_api = Keyword.get(args, :rpc_api, Rpc)
 
     {:ok, logger_apps} = Application.ensure_all_started(:logger)

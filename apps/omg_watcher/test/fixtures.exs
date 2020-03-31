@@ -77,15 +77,11 @@ defmodule OMG.Watcher.Fixtures do
     _ = contract
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
-    contract_addr = OMG.Eth.Configuration.contracts()
-    txhash = OMG.Eth.Configuration.txhash_contract()
-    authority_addr = OMG.Eth.Configuration.authority_addr()
-    contract = %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}
 
     config_file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-      #{DevHelper.create_conf_file(contract)}
+      #{DevHelper.create_conf_file()}
 
       config :omg_db, path: "#{db_path}"
       # this causes the inner test child chain server process to log info. To see these logs adjust test's log level

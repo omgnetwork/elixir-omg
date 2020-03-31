@@ -20,7 +20,11 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   @app :omg_child_chain
   @config_key :fee_adapter
 
-  def init(_args) do
+  def init(args) do
+    args
+  end
+
+  def load(_config, _args) do
     _ = Application.ensure_all_started(:logger)
 
     @app

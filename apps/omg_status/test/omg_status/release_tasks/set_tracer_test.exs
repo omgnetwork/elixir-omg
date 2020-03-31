@@ -42,7 +42,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     :ok = __MODULE__.System.put_env("DD_DISABLED", "TRUE")
     :ok = __MODULE__.System.put_env("APP_ENV", "YOLO")
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 3")
-    :ok = SetTracer.init(system_adapter: __MODULE__.System)
+    :ok = SetTracer.load([],system_adapter: __MODULE__.System)
     configuration = Application.get_env(@app, Tracer)
     disabled_updated = configuration[:disabled?]
     env_updated = configuration[:env]
@@ -58,7 +58,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   test "if default configuration is used when there's no environment variables" do
     :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 3")
-    :ok = SetTracer.init(system_adapter: __MODULE__.System)
+    :ok = SetTracer.load([],system_adapter: __MODULE__.System)
     configuration = Application.get_env(@app, Tracer)
     sorted_configuration = Enum.sort(configuration)
     ^sorted_configuration = Enum.sort(@configuration_old)
@@ -69,7 +69,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     :ok = __MODULE__.System.put_env("DD_PORT", "1919")
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 1")
     :ok = __MODULE__.System.put_env("APP_ENV", "test 1")
-    :ok = SetTracer.init(release: :test_case_1, system_adapter: __MODULE__.System)
+    :ok = SetTracer.load([],release: :test_case_1, system_adapter: __MODULE__.System)
     configuration = Enum.sort(Application.get_all_env(:statix))
     host = configuration[:host]
     port = configuration[:port]
@@ -92,7 +92,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
 
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 2")
     :ok = __MODULE__.System.put_env("APP_ENV", "test 2")
-    :ok = SetTracer.init(release: :test_case_2, system_adapter: __MODULE__.System)
+    :ok = SetTracer.load([],release: :test_case_2, system_adapter: __MODULE__.System)
     configuration = Application.get_all_env(:statix)
     sorted_configuration = Enum.sort(configuration)
     expected_tags = ["application:test_case_2", "app_env:test 2", "hostname:this is my tracer test 2"]
@@ -105,7 +105,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     :ok = __MODULE__.System.put_env("BATCH_SIZE", "7000")
     :ok = __MODULE__.System.put_env("SYNC_THRESHOLD", "900")
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 4")
-    :ok = SetTracer.init(system_adapter: __MODULE__.System)
+    :ok = SetTracer.load([],system_adapter: __MODULE__.System)
     configuration = Enum.sort(Application.get_all_env(:spandex_datadog))
     host = configuration[:host]
     port = configuration[:port]
@@ -132,7 +132,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
       end)
 
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 5")
-    :ok = SetTracer.init(system_adapter: __MODULE__.System)
+    :ok = SetTracer.load([],system_adapter: __MODULE__.System)
     configuration = Application.get_all_env(:spandex_datadog)
     sorted_configuration = Enum.sort(configuration)
 
@@ -141,20 +141,20 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
 
   test "if exit is thrown when faulty configuration is used" do
     :ok = __MODULE__.System.put_env("DD_DISABLED", "TRUEeee")
-    catch_exit(SetTracer.init(system_adapter: __MODULE__.System))
+    catch_exit(SetTracer.load([],system_adapter: __MODULE__.System))
   end
 
   test "if environment variables get applied in the statix tags configuration" do
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test")
     :ok = __MODULE__.System.put_env("APP_ENV", "YOLO")
-    :ok = SetTracer.init(system_adapter: __MODULE__.System)
+    :ok = SetTracer.load([],system_adapter: __MODULE__.System)
     assert Enum.member?(Application.get_env(:statix, :tags), "hostname:this is my tracer test")
   end
 
   test "if exit is thrown when faulty configuration for hostname is used" do
     :ok = __MODULE__.System.put_env("DD_DISABLED", "TRUE")
     :ok = __MODULE__.System.put_env("APP_ENV", "YOLO")
-    assert catch_exit(SetTracer.init(system_adapter: __MODULE__.System)) == "HOSTNAME is not set correctly."
+    assert catch_exit(SetTracer.load([],system_adapter: __MODULE__.System)) == "HOSTNAME is not set correctly."
   end
 
   defmodule System do

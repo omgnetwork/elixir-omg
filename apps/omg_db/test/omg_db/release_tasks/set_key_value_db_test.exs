@@ -38,7 +38,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
 
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("DB_PATH", "/tmp/YOLO/")
-    :ok = SetKeyValueDB.init(release: :watcher_info)
+    :ok = SetKeyValueDB.load([],release: :watcher_info)
     configuration = Enum.sort(Application.get_all_env(@app))
     "/tmp/YOLO/watcher_info" = configuration[:path]
 
@@ -54,7 +54,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
     :ok = Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
 
     :ok = System.delete_env("DB_PATH")
-    :ok = SetKeyValueDB.init(release: :watcher_info)
+    :ok = SetKeyValueDB.load([],release: :watcher_info)
     configuration = Application.get_all_env(@app)
 
     {_, configuration_old} =

@@ -22,8 +22,11 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
   @app :omg
 
   @zero_address <<0::160>>
+  def init(args) do
+    args
+  end
 
-  def init(_args) do
+  def load(_config, _args) do
     _ = Application.ensure_all_started(:logger)
 
     fee_claimer_address = get_fee_claimer_address()
