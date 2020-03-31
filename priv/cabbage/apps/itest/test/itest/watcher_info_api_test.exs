@@ -33,10 +33,11 @@ defmodule WatcherInfoApiTest do
           %{alice_account: alice_account} = state do
     {alice_addr, _alice_priv} = alice_account
 
+    wei_amount = Currency.to_wei(amount)
     {:ok, receipt_hash} =
-      amount
-      |> Currency.to_wei()
-      |> Client.deposit(alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
+      alice_addr
+      |> Client.deposit(Itest.PlasmaFramework.vault(Currency.ether()))
+      |> Client.deposit(Itest.PlasmaFramework.vault(Currency.ether()))
 
     {:ok, state}
   end
@@ -58,7 +59,7 @@ defmodule WatcherInfoApiTest do
     to_milliseconds = 1000
     geth_block_every = 1
 
-    finality_margin_blocks
+    60
     |> Kernel.*(geth_block_every)
     |> Kernel.*(to_milliseconds)
     |> Kernel.round()
@@ -66,7 +67,7 @@ defmodule WatcherInfoApiTest do
 
     utxos = Client.get_utxos(alice_addr)
 
-    assert_equal(length(utxos), 1, "utxo length")
+    assert_equal(length(utxos), 2, "utxo length")
   end
 
   defp assert_equal(left, right, message) do
