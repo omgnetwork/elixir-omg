@@ -34,7 +34,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
   # needs to match up with the default from `ExitProcessor.Case` :(
   @exit_id 9876
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
   describe "sanity checks" do
     test "throwing when unknown piggyback events arrive", %{processor_filled: processor, ife_tx_hashes: [ife_id | _]} do

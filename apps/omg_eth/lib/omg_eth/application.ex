@@ -17,14 +17,19 @@ defmodule OMG.Eth.Application do
 
   alias OMG.DB
   alias OMG.Eth.Configuration
-  alias OMG.Eth.Diagnostics
   alias OMG.Eth.Metric.Ethereumex
 
   use Application
   use OMG.Utils.LoggerExt
 
   def start(_type, _args) do
-    _ = Logger.info("Started #{inspect(__MODULE__)}, config used: #{inspect(Diagnostics.get_child_chain_config())}")
+    _ =
+      Logger.info(
+        "Started #{inspect(__MODULE__)}, config used: contracts #{inspect(Configuration.contracts())} txhash_contract #{
+          inspect(Configuration.txhash_contract())
+        } authority_addr #{inspect(Configuration.authority_addr())}"
+      )
+
     valid_contracts()
     OMG.Eth.Supervisor.start_link()
   end

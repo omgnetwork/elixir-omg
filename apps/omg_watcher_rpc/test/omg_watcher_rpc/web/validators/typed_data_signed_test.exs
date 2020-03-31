@@ -24,7 +24,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
 
   require Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @other_token <<127::160>>
   @eth_hex Encoding.to_hex(@eth)
   @token_hex Encoding.to_hex(@other_token)

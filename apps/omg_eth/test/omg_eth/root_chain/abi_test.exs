@@ -604,4 +604,66 @@ defmodule OMG.Eth.RootChain.AbiTest do
              utxo_pos: 2_001_000_000_000
            }
   end
+
+  test "blocks(uint256) function call gets decoded properly" do
+    data =
+      "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+
+    %{
+      "block_hash" =>
+        <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>,
+      "block_timestamp" => 0
+    } = Abi.decode_function(data, "blocks(uint256)")
+  end
+
+  test "nextChildBlock() function call gets decoded properly" do
+    data =
+      "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+
+    %{
+      "block_number" => next_child_block
+    } = Abi.decode_function(data, "nextChildBlock()")
+
+    assert is_integer(next_child_block)
+  end
+
+  test "minExitPeriod() function call gets decoded properly" do
+    data = "0x0000000000000000000000000000000000000000000000000000000000000014"
+
+    %{"min_exit_period" => 20} = Abi.decode_function(data, "minExitPeriod()")
+  end
+
+  test "exitGames(uint256) function call gets decoded properly" do
+    data =
+      "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+
+    %{
+      "block_hash" =>
+        <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>,
+      "block_timestamp" => 0
+    } = Abi.decode_function(data, "blocks(uint256)")
+  end
+
+  test "vaults(uint256) function call gets decoded properly" do
+    data = "0x0000000000000000000000004e3aeff70f022a6d4cc5947423887e7152826cf7"
+
+    %{"vault_address" => vault_address} = Abi.decode_function(data, "vaults(uint256)")
+
+    assert is_binary(vault_address)
+  end
+
+  test "getVersion() function call gets decoded properly" do
+    data =
+      "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d312e302e342b6136396337363300000000000000000000000000000000000000"
+
+    %{"version" => version} = Abi.decode_function(data, "getVersion()")
+
+    assert is_binary(version)
+  end
+
+  test "childBlockInterval() function call gets decoded properly" do
+    data = "0x00000000000000000000000000000000000000000000000000000000000003e8"
+
+    %{"child_block_interval" => 1000} = Abi.decode_function(data, "childBlockInterval()")
+  end
 end

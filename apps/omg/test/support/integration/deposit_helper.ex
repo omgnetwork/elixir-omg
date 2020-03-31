@@ -17,14 +17,14 @@ defmodule Support.Integration.DepositHelper do
   Common helper functions that are useful when integration-testing the child chain and watcher requiring deposits
   """
 
-  alias OMG.Configuration
   alias OMG.Eth
-  alias OMG.Eth.Config
+  alias OMG.Eth.Configuration
+  alias OMG.Eth.Encoding
   alias OMG.State.Transaction
   alias Support.DevHelper
   alias Support.RootChainHelper
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
   def deposit_to_child_chain(to, value, token \\ @eth)
 
@@ -39,7 +39,7 @@ defmodule Support.Integration.DepositHelper do
   end
 
   def deposit_to_child_chain(to, value, token_addr) when is_binary(token_addr) and byte_size(token_addr) == 20 do
-    contract_addr = Config.maybe_fetch_addr!(nil, :erc20_vault)
+    contract_addr = Encoding.from_hex(Configuration.contracts().erc20_vault)
 
     {:ok, _} = Eth.Token.approve(to, contract_addr, value, token_addr) |> DevHelper.transact_sync!()
 
@@ -58,7 +58,7 @@ defmodule Support.Integration.DepositHelper do
   end
 
   defp wait_deposit_recognized(deposit_eth_height) do
-    post_event_block_finality = deposit_eth_height + Configuration.deposit_finality_margin()
+    post_event_block_finality = deposit_eth_height + OMG.Configuration.deposit_finality_margin()
     {:ok, _} = DevHelper.wait_for_root_chain_block(post_event_block_finality + 1)
     # sleeping until the deposit is spendable
     Process.sleep(Application.fetch_env!(:omg, :ethereum_events_check_interval_ms) * 2)

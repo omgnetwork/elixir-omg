@@ -31,7 +31,7 @@ defmodule OMG.Watcher.Fixtures do
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)
 
-    enc_eth = Eth.Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
+    enc_eth = Eth.Encoding.to_hex(OMG.Eth.zero_address())
 
     {:ok, path, file_name} =
       TestHelper.write_fee_file(%{
@@ -44,7 +44,7 @@ defmodule OMG.Watcher.Fixtures do
             pegged_subunit_to_unit: 100,
             updated_at: DateTime.utc_now()
           },
-          Eth.Encoding.to_hex(token) => %{
+          token => %{
             amount: 2,
             pegged_amount: 1,
             subunit_to_unit: 1_000_000_000_000_000_000,
@@ -74,8 +74,13 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture mix_based_child_chain(contract, fee_file) do
+    _ = contract
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
+    contract_addr = OMG.Eth.Configuration.contracts()
+    txhash = OMG.Eth.Configuration.txhash_contract()
+    authority_addr = OMG.Eth.Configuration.authority_addr()
+    contract = %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}
 
     config_file_path
     |> File.open!([:write])

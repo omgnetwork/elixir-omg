@@ -71,22 +71,23 @@ defmodule OMG.RootChainCoordinator do
     GenServer.call(__MODULE__, :get_ethereum_heights)
   end
 
-  def init(configs_services) do
-    {:ok, configs_services, {:continue, :setup}}
+  def init({args, configs_services}) do
+    {:ok, {args, configs_services}, {:continue, :setup}}
   end
 
-  def handle_continue(:setup, configs_services) do
-    _ = Logger.info("Starting #{__MODULE__} service.")
+  def handle_continue(:setup, {args, configs_services}) do
+    _ = Logger.info("Starting #{__MODULE__} service. #{inspect({args, configs_services})}")
+    metrics_collection_interval = Keyword.fetch!(args, :metrics_collection_interval)
+    coordinator_eth_height_check_interval_ms = Keyword.fetch!(args, :coordinator_eth_height_check_interval_ms)
     {:ok, rootchain_height} = EthereumHeight.get()
-    height_check_interval = Application.fetch_env!(:omg, :coordinator_eth_height_check_interval_ms)
-    {:ok, _} = schedule_get_ethereum_height(height_check_interval)
+    {:ok, _} = schedule_get_ethereum_height(coordinator_eth_height_check_interval_ms)
     state = Core.init(configs_services, rootchain_height)
 
     configs_services
     |> Map.keys()
     |> request_sync()
 
-    {:ok, _} = :timer.send_interval(Application.fetch_env!(:omg, :metrics_collection_interval), self(), :send_metrics)
+    {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
 
