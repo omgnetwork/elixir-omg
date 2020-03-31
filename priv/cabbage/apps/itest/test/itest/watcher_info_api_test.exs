@@ -18,10 +18,9 @@ defmodule WatcherInfoApiTest do
   require Logger
 
   alias Itest.Account
-
+  alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
   alias Itest.Transactions.Currency
-  alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
 
   setup do
     accounts = Account.take_accounts(1)
