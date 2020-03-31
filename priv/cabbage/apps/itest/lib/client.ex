@@ -99,6 +99,7 @@ defmodule Itest.Client do
   def get_utxos(address) do
     payload = %AddressBodySchema1{address: address}
     {:ok, response} = Account.account_get_utxos(WatcherInfo.new(), payload)
+    IO.inspect(response)
     Poison.decode!(response.body, as: %{"data" => [%Utxo{}]})["data"]
   end
 
