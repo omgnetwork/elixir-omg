@@ -154,13 +154,5 @@ defmodule OMG.Performance.Generators do
         Process.sleep(10)
         poll_get_block(block_hash, child_chain_url, retry - 1)
     end
-  defp get_external_data(contract_address, signature, args) do
-    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
-    Abi.decode_function(data, signature)
-  end
-
-  defp get_mined_child_block(contract_address, child_block_interval) do
-    %{"block_number" => mined_num} = get_external_data(contract_address, "nextChildBlock()", [])
-    mined_num - child_block_interval
   end
 end
