@@ -20,7 +20,6 @@ AddressBodySchema:
              
         required:
           - address
-          - limit
         example:
           address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
           limit: 100

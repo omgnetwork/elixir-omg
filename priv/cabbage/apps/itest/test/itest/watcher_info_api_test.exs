@@ -21,6 +21,7 @@ defmodule WatcherInfoApiTest do
 
   alias Itest.Client
   alias Itest.Transactions.Currency
+  alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
 
   setup do
     accounts = Account.take_accounts(1)
@@ -41,8 +42,8 @@ defmodule WatcherInfoApiTest do
     {:ok, state}
   end
 
-  defthen ~r/^Alice should able to call watcher info api account.get_utxos and it return the utxo and the paginating content correctly$/,
-          %{amount: amount},
+  defthen ~r/^Alice should able to call watcher info api account get_utxos and it return the utxo and the paginating content correctly$/,
+          _,
           %{alice_account: alice_account} = state do
 
     {alice_addr, alice_priv} = alice_account
