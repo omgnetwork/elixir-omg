@@ -55,6 +55,27 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
     assert adapter_opts[:stored_fee_update_interval_minutes] == 60000
   end
 
+  test "raises an ArgumentError when FEE_CHANGE_TOLERANCE_PERCENT is not a stingified integer" do
+    :ok = System.put_env(@env_fee_adapter, "feed")
+
+    :ok = System.put_env(@env_fee_change_tolerance_percent, "1.5")
+    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.init([]) end
+
+    :ok = System.put_env(@env_fee_change_tolerance_percent, "not integer")
+    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.init([]) end
+  end
+
+  test "raises an ArgumentError when STORED_FEE_UPDATE_INTERVAL_MINUTES is not a stingified integer" do
+    :ok = System.put_env(@env_fee_adapter, "feed")
+    :ok = System.put_env(@env_stored_fee_update_interval_minutes, "not a number")
+
+    :ok = System.put_env(@env_stored_fee_update_interval_minutes, "100.20")
+    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.init([]) end
+
+    :ok = System.put_env(@env_stored_fee_update_interval_minutes, "not integer")
+    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.init([]) end
+  end
+
   test "does not touch the configuration that's not present as env var" do
     original_opts = [
       fee_feed_url: "http://example.com/fee-feed-url-original",
