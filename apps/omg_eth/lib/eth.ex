@@ -28,8 +28,7 @@ defmodule OMG.Eth do
   however they must be encoded/decoded when entering/leaving the `Ethereumex` realm
   """
 
-  alias OMG.Eth.Config
-  alias OMG.Eth.RootChain
+  alias OMG.Eth.Configuration
   alias OMG.Eth.RootChain.SubmitBlock
 
   require Logger
@@ -39,35 +38,6 @@ defmodule OMG.Eth do
   @type hash :: <<_::256>>
   @type send_transaction_opts() :: [send_transaction_option()]
   @type send_transaction_option() :: {:passphrase, binary()}
-
-  @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
-  def node_ready() do
-    case Ethereumex.HttpClient.eth_syncing() do
-      {:ok, false} -> :ok
-      {:ok, _} -> {:error, :geth_still_syncing}
-      {:error, :econnrefused} -> {:error, :geth_not_listening}
-    end
-  end
-
-  @doc """
-  Checks geth syncing status, errors are treated as not synced.
-  Returns:
-  * false - geth is synced
-  * true  - geth is still syncing.
-  """
-  @spec syncing?() :: boolean
-  def syncing?(), do: node_ready() != :ok
-
-  @spec get_ethereum_height() :: {:ok, non_neg_integer()} | Ethereumex.Client.Behaviour.error()
-  def get_ethereum_height() do
-    case Ethereumex.HttpClient.eth_block_number() do
-      {:ok, height_hex} ->
-        {:ok, int_from_hex(height_hex)}
-
-      other ->
-        other
-    end
-  end
 
   def get_block_timestamp_by_number(height) do
     case Ethereumex.HttpClient.eth_get_block_by_number(to_hex(height), false) do
@@ -85,35 +55,12 @@ defmodule OMG.Eth do
   @spec zero_address() :: address()
   def zero_address(), do: <<0::160>>
 
-  def call_contract(contract, signature, args, return_types) do
-    data = signature |> ABI.encode(args)
-
-    with {:ok, return} <- Ethereumex.HttpClient.eth_call(%{to: to_hex(contract), data: to_hex(data)}),
-         do: decode_answer(return, return_types)
-  end
-
-  defp decode_answer(enc_return, return_types) do
-    enc_return
-    |> from_hex()
-    |> ABI.TypeDecoder.decode(return_types)
-    |> case do
-      [single_return] -> {:ok, single_return}
-      other when is_list(other) -> {:ok, List.to_tuple(other)}
-    end
-  end
-
-  @spec submit_block(
-          binary(),
-          pos_integer(),
-          pos_integer(),
-          RootChain.optional_address_t(),
-          RootChain.optional_address_t()
-        ) ::
-          {:error, binary() | atom() | map()} | {:ok, binary()}
-  def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ %{}) do
-    contract = Config.maybe_fetch_addr!(contract, :plasma_framework)
-    from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+  @spec submit_block(binary(), pos_integer(), pos_integer()) ::
+          {:error, binary() | atom() | map()} | {:ok, <<_::256>>}
+  def submit_block(hash, nonce, gas_price) do
+    contract = from_hex(Configuration.contracts().plasma_framework)
+    from = from_hex(Configuration.authority_addr())
+    backend = Configuration.eth_node()
     SubmitBlock.submit(backend, hash, nonce, gas_price, from, contract)
   end
 end

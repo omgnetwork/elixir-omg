@@ -17,7 +17,7 @@ defmodule OMG.ChildChain.Fees.Adapter do
   Behaviour for fee adapters.
   """
 
-  @callback get_fee_specs(pos_integer()) ::
+  @callback get_fee_specs(Keyword.t(), OMG.Fees.full_fee_t(), pos_integer()) ::
               {:ok, OMG.Fees.full_fee_t(), pos_integer()}
               | {:error, atom() | [{:error, atom()}, ...]}
 end

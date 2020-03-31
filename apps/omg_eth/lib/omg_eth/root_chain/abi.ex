@@ -20,6 +20,12 @@ defmodule OMG.Eth.RootChain.Abi do
   alias OMG.Eth.RootChain.AbiFunctionSelector
   alias OMG.Eth.RootChain.Fields
 
+  def decode_function(enriched_data, signature) do
+    "0x" <> data = enriched_data
+    <<method_id::binary-size(4), _::binary>> = :keccakf1600.hash(:sha3_256, signature)
+    method_id |> Encoding.to_hex() |> Kernel.<>(data) |> Encoding.from_hex() |> decode_function()
+  end
+
   def decode_function(enriched_data) do
     function_specs =
       Enum.reduce(AbiFunctionSelector.module_info(:exports), [], fn
@@ -29,16 +35,7 @@ defmodule OMG.Eth.RootChain.Abi do
       end)
 
     {function_spec, data} = ABI.find_and_decode(function_specs, enriched_data)
-
-    data =
-      data
-      |> hd()
-      |> Tuple.to_list()
-
-    function_spec.input_names
-    |> Enum.zip(data)
-    |> Enum.into(%{})
-    |> Fields.rename(function_spec)
+    decode_function_call_result(function_spec, data)
   end
 
   def decode_log(log) do
@@ -84,5 +81,18 @@ defmodule OMG.Eth.RootChain.Abi do
     |> Map.put_new(:log_index, Encoding.int_from_hex(log_index))
     # just copy `event_signature` over, if it's present (could use tidying up)
     |> Map.put_new(:event_signature, event[:event_signature])
+  end
+
+  defp decode_function_call_result(function_spec, [values]) when is_tuple(values) do
+    function_spec.input_names
+    |> Enum.zip(Tuple.to_list(values))
+    |> Enum.into(%{})
+    |> Fields.rename(function_spec)
+  end
+
+  defp decode_function_call_result(function_spec, values) do
+    function_spec.input_names
+    |> Enum.zip(values)
+    |> Enum.into(%{})
   end
 end

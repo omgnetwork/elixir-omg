@@ -174,6 +174,10 @@ defmodule OMG.Watcher.ExitProcessor do
     GenServer.call(__MODULE__, :check_validity)
   end
 
+  def check_validity(timeout) do
+    GenServer.call(__MODULE__, :check_validity, timeout)
+  end
+
   @doc """
   Returns a map of requested in flight exits, keyed by transaction hash
   """
@@ -254,32 +258,27 @@ defmodule OMG.Watcher.ExitProcessor do
   def init(
         exit_processor_sla_margin: exit_processor_sla_margin,
         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
+        metrics_collection_interval: metrics_collection_interval,
         min_exit_period_seconds: min_exit_period_seconds,
-        ethereum_block_time_seconds: ethereum_block_time_seconds,
-        metrics_collection_interval: metrics_collection_interval
+        ethereum_block_time_seconds: ethereum_block_time_seconds
       ) do
     {:ok, db_exits} = DB.exit_infos()
     {:ok, db_ifes} = DB.in_flight_exits_info()
     {:ok, db_competitors} = DB.competitors_info()
 
-    with :ok <-
-           Core.check_sla_margin(
-             exit_processor_sla_margin,
-             exit_processor_sla_margin_forced,
-             min_exit_period_seconds,
-             ethereum_block_time_seconds
-           ),
-         {:ok, processor} <- Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_margin) do
-      {:ok, _} =
-        :timer.send_interval(
-          metrics_collection_interval,
-          self(),
-          :send_metrics
-        )
+    :ok =
+      Core.check_sla_margin(
+        exit_processor_sla_margin,
+        exit_processor_sla_margin_forced,
+        min_exit_period_seconds,
+        ethereum_block_time_seconds
+      )
 
-      _ = Logger.info("Initializing with: #{inspect(processor)}")
-      {:ok, processor}
-    end
+    {:ok, processor} = Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_margin)
+    {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
+
+    _ = Logger.info("Initializing with: #{inspect(processor)}")
+    {:ok, processor}
   end
 
   @doc """

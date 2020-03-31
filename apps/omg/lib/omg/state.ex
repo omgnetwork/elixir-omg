@@ -29,7 +29,7 @@ defmodule OMG.State do
 
   alias OMG.Block
   alias OMG.DB
-  alias OMG.Eth
+
   alias OMG.Fees
 
   alias OMG.State.Core
@@ -147,26 +147,19 @@ defmodule OMG.State do
   Initializes the state. UTXO set is not loaded now.
   """
   def init(opts) do
-    {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-
+    {:ok, child_top_block_number} = DB.get_single_value(:child_top_block_number)
+    child_block_interval = Keyword.fetch!(opts, :child_block_interval)
     fee_claimer_address = Keyword.fetch!(opts, :fee_claimer_address)
+    metrics_collection_interval = Keyword.fetch!(opts, :metrics_collection_interval)
 
-    case Core.extract_initial_state(height_query_result, child_block_interval, fee_claimer_address) do
-      {:ok, _data} = result ->
-        _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{height_query_result}}")
-        metrics_collection_interval = Application.fetch_env!(:omg, :metrics_collection_interval)
-        {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
+    {:ok, _data} =
+      result = Core.extract_initial_state(child_top_block_number, child_block_interval, fee_claimer_address)
 
-        result
+    _ = Logger.info("Started #{inspect(__MODULE__)}, height: #{child_top_block_number}}")
 
-      {:error, reason} = error when reason in [:top_block_number_not_found] ->
-        _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
-        error
+    {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
-      other ->
-        other
-    end
+    result
   end
 
   def handle_info(:send_metrics, state) do
@@ -250,7 +243,7 @@ defmodule OMG.State do
   Someday, one might want to skip some of computations done (like calculating the root hash, which is scrapped)
   """
   def handle_call(:close_block, _from, state) do
-    {:ok, {block, db_updates}, new_state} = do_form_block(state)
+    {:ok, {block, db_updates}, new_state} = Core.form_block(state)
 
     publish_block_to_event_bus(block)
     {:reply, {:ok, db_updates}, new_state}
@@ -267,12 +260,8 @@ defmodule OMG.State do
   """
   def handle_cast(:form_block, state) do
     _ = Logger.debug("Forming new block...")
-
-    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} =
-      state
-      |> Core.claim_fees()
-      |> do_form_block()
-
+    state = Core.claim_fees(state)
+    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = Core.form_block(state)
     _ = Logger.debug("Formed new block ##{blknum}")
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
@@ -281,11 +270,6 @@ defmodule OMG.State do
 
     publish_block_to_event_bus(block)
     {:noreply, new_state}
-  end
-
-  defp do_form_block(state) do
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    Core.form_block(child_block_interval, state)
   end
 
   defp publish_block_to_event_bus(block) do

@@ -24,7 +24,7 @@ defmodule TransactionsTests do
 
   # needs to be an even number, because we split the accounts in half, the first half sends ETH
   # to the other half
-  @num_accounts 50
+  @num_accounts 4
   setup do
     {alices, bobs} =
       @num_accounts

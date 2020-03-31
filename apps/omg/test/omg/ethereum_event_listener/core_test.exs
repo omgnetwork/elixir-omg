@@ -16,40 +16,13 @@ defmodule OMG.EthereumEventListener.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
+  alias OMG.Configuration
   alias OMG.EthereumEventListener.Core
   alias OMG.RootChainCoordinator.SyncGuide
 
   @db_key :db_key
   @service_name :name
   @request_max_size 5
-
-  defp create_state(height, opts \\ []) do
-    request_max_size = Keyword.get(opts, :request_max_size, @request_max_size)
-    # this assert is meaningful - currently we want to explicitly check_in the height read from DB
-    assert {state, ^height} = Core.init(@db_key, @service_name, height, request_max_size)
-    state
-  end
-
-  defp event(height), do: %{eth_height: height}
-
-  defp assert_range({:get_events, range, state}, expect) do
-    assert range == expect
-    state
-  end
-
-  defp assert_range({:dont_fetch_events, state}, expect) do
-    assert :dont_fetch_events == expect
-    state
-  end
-
-  defp assert_events(response, opts) do
-    expected_check_in_and_db = Keyword.get(opts, :check_in_and_db)
-    expected_events = Keyword.get(opts, :events)
-    assert {:ok, events, [{:put, @db_key, check_in_and_db}], check_in_and_db, new_state} = response
-    if expected_events, do: assert(expected_events == events)
-    if expected_check_in_and_db, do: assert(expected_check_in_and_db == check_in_and_db)
-    new_state
-  end
 
   test "asks until root chain height provided" do
     create_state(0, request_max_size: 100)
@@ -68,10 +41,6 @@ defmodule OMG.EthereumEventListener.CoreTest do
     create_state(0, request_max_size: 2)
     |> Core.get_events_range_for_download(%SyncGuide{sync_height: 4, root_chain_height: 10})
     |> assert_range({1, 4})
-  end
-
-  test "max request size too small" do
-    assert {:error, :invalid_init} = Core.init(@db_key, @service_name, _height = 5, _request_max_size = 0)
   end
 
   test "works well close to zero" do
@@ -214,5 +183,41 @@ defmodule OMG.EthereumEventListener.CoreTest do
     |> Core.add_new_events([])
     |> Core.get_events(1)
     |> assert_events(events: [], check_in_and_db: 5)
+  end
+
+  defp create_state(height, opts \\ []) do
+    request_max_size = Keyword.get(opts, :request_max_size, @request_max_size)
+    # this assert is meaningful - currently we want to explicitly check_in the height read from DB
+    assert {state, ^height} =
+             Core.init(
+               @db_key,
+               @service_name,
+               height,
+               Configuration.ethereum_events_check_interval_ms(),
+               request_max_size
+             )
+
+    state
+  end
+
+  defp event(height), do: %{eth_height: height}
+
+  defp assert_range({:get_events, range, state}, expect) do
+    assert range == expect
+    state
+  end
+
+  defp assert_range({:dont_fetch_events, state}, expect) do
+    assert :dont_fetch_events == expect
+    state
+  end
+
+  defp assert_events(response, opts) do
+    expected_check_in_and_db = Keyword.get(opts, :check_in_and_db)
+    expected_events = Keyword.get(opts, :events)
+    assert {:ok, events, [{:put, @db_key, check_in_and_db}], check_in_and_db, new_state} = response
+    if expected_events, do: assert(expected_events == events)
+    if expected_check_in_and_db, do: assert(expected_check_in_and_db == check_in_and_db)
+    new_state
   end
 end

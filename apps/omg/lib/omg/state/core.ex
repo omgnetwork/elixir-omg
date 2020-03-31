@@ -51,6 +51,7 @@ defmodule OMG.State.Core do
   defstruct [
     :height,
     :fee_claimer_address,
+    :child_block_interval,
     utxos: %{},
     pending_txs: [],
     tx_index: 0,
@@ -91,7 +92,8 @@ defmodule OMG.State.Core do
           fees_paid: fee_summary_t(),
           # fees can be claimed at the end of the block, no other payments can be processed until next block
           fee_claiming_started: boolean(),
-          fee_claimer_address: Crypto.address_t()
+          fee_claimer_address: Crypto.address_t(),
+          child_block_interval: non_neg_integer()
         }
 
   @type deposit() :: %{
@@ -149,7 +151,8 @@ defmodule OMG.State.Core do
       when is_integer(height_query_result) and is_integer(child_block_interval) do
     state = %__MODULE__{
       height: height_query_result + child_block_interval,
-      fee_claimer_address: fee_claimer_address
+      fee_claimer_address: fee_claimer_address,
+      child_block_interval: child_block_interval
     }
 
     {:ok, state}
@@ -221,15 +224,9 @@ defmodule OMG.State.Core do
   Returns modified state.
   """
   @spec claim_fees(state :: t()) :: t()
-  def claim_fees(
-        %Core{
-          height: height,
-          fees_paid: fees_paid,
-          fee_claimer_address: owner
-        } = state
-      ) do
-    height
-    |> Transaction.Fee.claim_collected(owner, fees_paid)
+  def claim_fees(state) do
+    state.height
+    |> Transaction.Fee.claim_collected(state.fee_claimer_address, state.fees_paid)
     |> Stream.map(&to_recovered_fee_tx/1)
     |> Enum.reduce(state, fn tx, curr_state ->
       {:ok, _, new_state} = exec(curr_state, tx, :no_fees_required)
@@ -243,24 +240,21 @@ defmodule OMG.State.Core do
    - processes pending txs gathered, updates height etc
    - clears `recently_spent` collection
   """
-  @spec form_block(pos_integer(), state :: t()) :: {:ok, {Block.t(), [db_update]}, new_state :: t()}
-  def form_block(
-        child_block_interval,
-        %Core{height: height, pending_txs: reversed_txs, utxo_db_updates: reversed_utxo_db_updates} = state
-      ) do
-    txs = Enum.reverse(reversed_txs)
+  @spec form_block(state :: t()) :: {:ok, {Block.t(), [db_update]}, new_state :: t()}
+  def form_block(state) do
+    txs = Enum.reverse(state.pending_txs)
 
-    block = Block.hashed_txs_at(txs, height)
+    block = Block.hashed_txs_at(txs, state.height)
 
     db_updates_block = {:put, :block, Block.to_db_value(block)}
-    db_updates_top_block_number = {:put, :child_top_block_number, height}
+    db_updates_top_block_number = {:put, :child_top_block_number, state.height}
 
-    db_updates = [db_updates_top_block_number, db_updates_block | reversed_utxo_db_updates] |> Enum.reverse()
+    db_updates = [db_updates_top_block_number, db_updates_block | state.utxo_db_updates] |> Enum.reverse()
 
     new_state = %Core{
       state
       | tx_index: 0,
-        height: height + child_block_interval,
+        height: state.height + state.child_block_interval,
         pending_txs: [],
         utxo_db_updates: [],
         recently_spent: MapSet.new(),

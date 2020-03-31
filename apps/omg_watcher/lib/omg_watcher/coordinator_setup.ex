@@ -16,33 +16,50 @@ defmodule OMG.Watcher.CoordinatorSetup do
   @moduledoc """
   The setup of `OMG.RootChainCoordinator` for the Watcher - configures the relations between different event listeners
   """
-  alias OMG.Configuration
 
-  def coordinator_setup() do
-    deposit_finality_margin = Configuration.deposit_finality_margin()
-    finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+  @doc """
+  The `OMG.RootChainCoordinator` setup for the `OMG.Watcher` app. Summary of the configuration:
 
-    %{
-      depositor: [finality_margin: deposit_finality_margin],
-      block_getter: [
-        waits_for: [depositor: :no_margin],
-        finality_margin: 0
-      ],
-      exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
-      exit_finalizer: [
-        waits_for: [:depositor, :block_getter, :exit_processor],
-        finality_margin: finality_margin
-      ],
-      exit_challenger: [waits_for: :exit_processor, finality_margin: finality_margin],
-      in_flight_exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
-      piggyback_processor: [waits_for: :in_flight_exit_processor, finality_margin: finality_margin],
-      competitor_processor: [waits_for: :in_flight_exit_processor, finality_margin: finality_margin],
-      challenges_responds_processor: [waits_for: :competitor_processor, finality_margin: finality_margin],
-      piggyback_challenges_processor: [waits_for: :piggyback_processor, finality_margin: finality_margin],
-      ife_exit_finalizer: [
-        waits_for: [:depositor, :block_getter, :in_flight_exit_processor, :piggyback_processor],
-        finality_margin: finality_margin
-      ]
-    }
+    - deposits are recognized after `deposit_finality_margin`. Should take child chain server's setting into account
+    - exit-related events are recognized after `exit_finality_margin`
+    - exit-related events wait for deposits and themselves respectively, in case of the inter-dependent IFE events
+    - exit finalization-related events wait for deposits and blocks to never finalize not-yet created UTXOs
+    - blocks wait for deposits _BUT_ they advance by the finality margin of the `depositor`. In practice this means that
+      blocks wait for deposits when syncing, but don't when processing fresh events. This allows for 0-confirmation
+      finality of child chain transaction (the user is responsible for deciding on finality and confirmations)
+  """
+
+  def coordinator_setup(
+        metrics_collection_interval,
+        coordinator_eth_height_check_interval_ms,
+        finality_margin,
+        deposit_finality_margin
+      ) do
+    {[
+       metrics_collection_interval: metrics_collection_interval,
+       coordinator_eth_height_check_interval_ms: coordinator_eth_height_check_interval_ms
+     ],
+     %{
+       depositor: [finality_margin: deposit_finality_margin],
+       block_getter: [
+         waits_for: [depositor: :no_margin],
+         finality_margin: 0
+       ],
+       exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
+       exit_finalizer: [
+         waits_for: [:depositor, :block_getter, :exit_processor],
+         finality_margin: finality_margin
+       ],
+       exit_challenger: [waits_for: :exit_processor, finality_margin: finality_margin],
+       in_flight_exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
+       piggyback_processor: [waits_for: :in_flight_exit_processor, finality_margin: finality_margin],
+       competitor_processor: [waits_for: :in_flight_exit_processor, finality_margin: finality_margin],
+       challenges_responds_processor: [waits_for: :competitor_processor, finality_margin: finality_margin],
+       piggyback_challenges_processor: [waits_for: :piggyback_processor, finality_margin: finality_margin],
+       ife_exit_finalizer: [
+         waits_for: [:depositor, :block_getter, :in_flight_exit_processor, :piggyback_processor],
+         finality_margin: finality_margin
+       ]
+     }}
   end
 end

@@ -32,6 +32,7 @@ defmodule OMG.EthereumEventListener.Core do
             service_name: nil,
             # what's being exchanged with `RootChainCoordinator` - the point in root chain until where it processed
             synced_height: 0,
+            ethereum_events_check_interval_ms: nil,
             cached: %{
               data: [],
               request_max_size: 1000,
@@ -48,32 +49,37 @@ defmodule OMG.EthereumEventListener.Core do
             data: list(event),
             request_max_size: pos_integer(),
             events_upper_bound: non_neg_integer()
-          }
+          },
+          ethereum_events_check_interval_ms: non_neg_integer()
         }
 
   @doc """
   Initializes the listener logic based on its configuration and the last persisted Ethereum height, till which events
   were processed
   """
-  @spec init(atom(), atom(), non_neg_integer(), non_neg_integer()) :: {t(), non_neg_integer()} | {:error, :invalid_init}
-  def init(update_key, service_name, last_synced_ethereum_height, request_max_size \\ 1000)
+  @spec init(atom(), atom(), non_neg_integer(), non_neg_integer(), non_neg_integer()) :: {t(), non_neg_integer()}
 
-  def init(update_key, service_name, last_synced_ethereum_height, request_max_size) when request_max_size > 0 do
+  def init(
+        update_key,
+        service_name,
+        last_synced_ethereum_height,
+        ethereum_events_check_interval_ms,
+        request_max_size \\ 1000
+      ) do
     initial_state = %__MODULE__{
       synced_height_update_key: update_key,
       synced_height: last_synced_ethereum_height,
       service_name: service_name,
       cached: %{
-        request_max_size: request_max_size,
         data: [],
+        request_max_size: request_max_size,
         events_upper_bound: last_synced_ethereum_height
-      }
+      },
+      ethereum_events_check_interval_ms: ethereum_events_check_interval_ms
     }
 
     {initial_state, get_height_to_check_in(initial_state)}
   end
-
-  def init(_, _, _, _), do: {:error, :invalid_init}
 
   @doc """
   Provides a uniform way to get the height to check in.
