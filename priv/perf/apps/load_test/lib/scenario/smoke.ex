@@ -1,17 +1,31 @@
+# Copyright 2019-2020 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 defmodule LoadTest.Scenario.Smoke do
   @moduledoc """
-  Smoke test scenerio to ensure services are up
+  Smoke test scenario to ensure services are up
   """
   use Chaperon.Scenario
 
   def run(session) do
-    session |> log_info("run smoke test to make sure services are up...")
+    log_info(session, "run smoke test to make sure services are up...")
 
     check_child_chain_up()
     check_watcher_security_up()
     check_watcher_info_up()
 
-    session |> log_info("smoke test done...")
+    log_info(session, "smoke test done...")
   end
 
   defp check_child_chain_up() do
