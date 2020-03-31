@@ -45,14 +45,14 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
     :ok = System.put_env(@env_fee_adapter, "feed")
     :ok = System.put_env(@env_fee_feed_url, "http://example.com/fee-feed-url")
     :ok = System.put_env(@env_fee_change_tolerance_percent, "10")
-    :ok = System.put_env(@env_stored_fee_update_interval_minutes, "60000")
+    :ok = System.put_env(@env_stored_fee_update_interval_minutes, "600")
     :ok = SetFeeFeedAdapterOpts.init([])
 
     {adapter, opts: adapter_opts} = Application.get_env(@app, @config_key)
     assert adapter == FeedAdapter
     assert adapter_opts[:fee_feed_url] == "http://example.com/fee-feed-url"
     assert adapter_opts[:fee_change_tolerance_percent] == 10
-    assert adapter_opts[:stored_fee_update_interval_minutes] == 60000
+    assert adapter_opts[:stored_fee_update_interval_minutes] == 600
   end
 
   test "raises an ArgumentError when FEE_CHANGE_TOLERANCE_PERCENT is not a stingified integer" do
