@@ -35,12 +35,11 @@ defmodule WatcherInfoApiTest do
 
     wei_amount = Currency.to_wei(amount)
 
-    state =
       1..5
       |> Task.async_stream(fn _ ->
         {:ok, receipt_hash} = Client.deposit(wei_amount, alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
       end)
-      |> Enum.map(fn {:ok, result} -> result end)
+      |> Enum.map(fn {:ok, _result} -> :ok end)
 
     {:ok, state}
   end
