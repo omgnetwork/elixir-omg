@@ -255,14 +255,16 @@ defmodule LoadTest.Scenario.AccountTransactions do
         }
       )
 
-    if Jason.decode!(response.body)["success"] do
-      {:ok, session}
-    else
-      Process.sleep(@poll_interval)
+    case Jason.decode!(response.body) do
+      %{"success" => true} ->
+        {:ok, session}
 
-      session
-      |> log_debug("retry for watcher info to sync the submitted tx_id: #{tx_id}")
-      |> do_wait_until_tx_sync_to_watcher(tx_id, retry - 1)
+      _ ->
+        Process.sleep(@poll_interval)
+
+        session
+        |> log_debug("retry for watcher info to sync the submitted tx_id: #{tx_id}")
+        |> do_wait_until_tx_sync_to_watcher(tx_id, retry - 1)
     end
   end
 end
