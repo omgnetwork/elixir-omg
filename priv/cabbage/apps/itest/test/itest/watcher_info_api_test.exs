@@ -34,10 +34,13 @@ defmodule WatcherInfoApiTest do
     {alice_addr, _alice_priv} = alice_account
 
     wei_amount = Currency.to_wei(amount)
-    {:ok, receipt_hash} =
-      alice_addr
-      |> Client.deposit(Itest.PlasmaFramework.vault(Currency.ether()))
-      |> Client.deposit(Itest.PlasmaFramework.vault(Currency.ether()))
+
+    state =
+      1..5
+      |> Task.async_stream(fn _ ->
+        {:ok, receipt_hash} = Client.deposit(wei_amount, alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
+      end)
+      |> Enum.map(fn {:ok, result} -> result end)
 
     {:ok, state}
   end
@@ -45,7 +48,6 @@ defmodule WatcherInfoApiTest do
   defthen ~r/^Alice should able to call watcher_info \/account.get_utxos and it return the utxo and the paginating content correctly$/,
           _,
           %{alice_account: alice_account} = state do
-
     {alice_addr, alice_priv} = alice_account
 
     {:ok, response} =
@@ -67,7 +69,7 @@ defmodule WatcherInfoApiTest do
 
     utxos = Client.get_utxos(alice_addr)
 
-    assert_equal(length(utxos), 2, "utxo length")
+    assert_equal(5, length(utxos), "utxo length")
   end
 
   defp assert_equal(left, right, message) do
