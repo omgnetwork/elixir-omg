@@ -45,49 +45,50 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   defp configure_feed_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: fee_adapter_opts}) do
     adapter_opts =
       fee_adapter_opts
-      |> replace_with_env(&validate_string/2, fee_feed_url: "FEE_FEED_URL")
-      |> replace_with_env(&validate_integer/2, fee_change_tolerance_percent: "FEE_CHANGE_TOLERANCE_PERCENT")
-      |> replace_with_env(&validate_integer/2, stored_fee_update_interval_minutes: "STORED_FEE_UPDATE_INTERVAL_MINUTES")
+      |> replace_with_env(:fee_feed_url, "FEE_FEED_URL")
+      |> replace_with_env(:fee_change_tolerance_percent, "FEE_CHANGE_TOLERANCE_PERCENT", &validate_integer/1)
+      |> replace_with_env(:stored_fee_update_interval_minutes, "STORED_FEE_UPDATE_INTERVAL_MINUTES", &validate_integer/1)
 
     new_value = {OMG.ChildChain.Fees.FeedAdapter, opts: adapter_opts}
-    :ok = Application.put_env(@app, @config_key, adapter_opts, persistent: true)
+    :ok = Application.put_env(@app, @config_key, new_value, persistent: true)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(new_value)}.")
-
     :ok
   end
 
   # If the existing config is not a feed adapter, we start configuring with an empty opts.
-  defp configure_feed_adapter(_existing_config) do
+  defp configure_feed_adapter(_not_feed_adapter) do
     configure_feed_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: []})
   end
 
-  defp validate_string(value, _default) when is_binary(value), do: value
-  defp validate_string(_, default), do: default
-
-  defp validate_integer(value, default), do: value |> validate_string(default) |> String.to_integer()
+  defp validate_integer(value), do: String.to_integer(value)
 
   # Replaces one of the adapter's options value with environment variable when set.
   #
   # E.g. called with following parameters:
   # - opts: [fee_feed_url: "localhost", fee_change_tolerance_percent: 25]
+  # - config_key: :fee_feed_url
+  # - env_var_name: "FEE_FEED_URL"
   # - validator function: &validate_string/2
-  # - opts_key_env: fee_feed_url: "FEE_FEED_URL"
   #
   # assuming "FEE_FEED_URL" environment variable is set to "http://childchain:9656"
   # When the env var isn't set, value of the given option's key remains unchainched.
   #
   # Returns the options with `fee_feed_url` value replaced with the value of env var:
   # [fee_feed_url: "http://childchain:9656", fee_change_tolerance_percent: 25]
-  defp replace_with_env(opts, validator_fn, opts_key_env) do
-    Keyword.merge(
-      opts,
-      opts_key_env,
-      fn _k, curr, env_name ->
-        env_name
-        |> System.get_env()
-        |> validator_fn.(curr)
+  defp replace_with_env(opts, config_key, env_var_name, validator \\ nil) do
+    value =
+      case {System.get_env(env_var_name), validator} do
+        {nil, _} ->
+          opts[config_key]
+
+        {raw_value, nil} ->
+          raw_value
+
+        {raw_value, validator} ->
+          validator.(raw_value)
       end
-    )
+
+    Keyword.put(opts, config_key, value)
   end
 end
