@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePathTest do
+defmodule OMG.ChildChain.ReleaseTasks.SetFeeFileAdapterOptsTest do
   use ExUnit.Case, async: false
-  alias OMG.ChildChain.ReleaseTasks.SetFeeFilePath
+  alias OMG.ChildChain.ReleaseTasks.SetFeeFileAdapterOpts
 
   @app :omg_child_chain
   @config_key :fee_specs_file_path
@@ -33,7 +33,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePathTest do
 
   test "path is set when the env var is present" do
     :ok = System.put_env(@env_var_name, "/tmp/YOLO/fee_file.json")
-    :ok = SetFeeFilePath.init([])
+    :ok = SetFeeFileAdapterOpts.init([])
     assert Application.get_env(@app, @config_key) == "/tmp/YOLO/fee_file.json"
     :ok = System.delete_env(@env_var_name)
   end
@@ -41,7 +41,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePathTest do
   test "takes the default app env value if not defined in sys ENV" do
     :ok = System.delete_env(@env_var_name)
     current_value = Application.get_env(@app, @config_key)
-    :ok = SetFeeFilePath.init([])
+    :ok = SetFeeFileAdapterOpts.init([])
     assert current_value == Application.get_env(@app, @config_key)
   end
 
@@ -49,7 +49,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePathTest do
     file_path = "/tmp/YOLO/fee_file.json"
     :ok = System.put_env(@env_var_name, file_path)
 
-    :ok = SetFeeFilePath.init([])
+    :ok = SetFeeFileAdapterOpts.init([])
     assert File.read(file_path) == {:ok, "{}"}
 
     :ok = System.delete_env(@env_var_name)
@@ -57,7 +57,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFilePathTest do
 
   test "no other configurations got affected", context do
     :ok = System.put_env(@env_var_name, "/tmp/YOLO/fee_file.json")
-    :ok = SetFeeFilePath.init([])
+    :ok = SetFeeFileAdapterOpts.init([])
     new_configs = @app |> Application.get_all_env() |> Keyword.delete(@config_key) |> Enum.sort()
     old_configs = context.original_config |> Keyword.delete(@config_key) |> Enum.sort()
 

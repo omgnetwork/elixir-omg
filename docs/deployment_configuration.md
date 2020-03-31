@@ -1,4 +1,6 @@
-# Configuration via environment variables for deployment of Child Chain and Watcher releases
+# Configuration via environment variables for deployment of Child Chain, Watcher and Watcher Info releases
+
+***Child Chain, Watcher and Watcher Info***
 
 - "PORT" - Child Chain or Watcher API port. Defaults to 9656 for Child Chain and 7434 for Watcher.
 - "HOSTNAME" - server domain name of Child Chain or Watcher. *mandatory*
@@ -13,18 +15,29 @@
 - "DD_APM_PORT" - Datadog TCP port for APM.
 - "BATCH_SIZE" - Datadog batch size for APM.
 - "SYNC_THRESHOLD" - Datadog sync threshold for APM.
+- "ETHEREUM_BLOCK_TIME_SECONDS" - Should mirror Ethereum network's setting, defaults to 15 seconds.
 - "ETHEREUM_EVENTS_CHECK_INTERVAL_MS" - the frequency of HTTP requests towards the Ethereum clients and scanning for interested events. Should be less then average block time (10 to 20 seconds) on Ethereum mainnet.
 - "ETHEREUM_STALLED_SYNC_THRESHOLD_MS" - the threshold before considering an unchanging Ethereum block height to be considered a stalled sync. Should be slightly larger than the expected block time.
-- "FEE_CLAIMER_ADDRESS" - [Child Chain only!] 20-bytes HEX-encoded string of Ethereum address of Fee Claimer. Set via ENV vars only for Child Chain. For the Watcher this values is not important and fallbacks to "DEAD000000000000000000000000000000000000".
-- "FEE_BUFFER_DURATION_MS" - [Child Chain only!] Buffer period during which a fee is still valid after being updated.
-- "FEE_SPECS_FILE_PATH" - [Child Chain only!] The path to the fee specs file.
-- "FEE_SPECS_FILE_NAME" - [Child Chain only!] The name of the fee specs file.
-- "FEE_FEED_URL" - [Child Chain, FeedAdapter only!] Url to fee feed service.
-- "FEE_CHANGE_TOLERANCE_PERCENT" - [Child Chain, FeedAdapter only!] positive integer describes significance of price change. When price in new reading changes above tolerance level, prices are updated immediately. Otherwise update interval is preserved.
-- "STORED_FEE_UPDATE_INTERVAL_MINUTES" - [Child Chain, FeedAdapter only!] positive integer describes time interval in minutes. The updates of token prices are carried out in update intervals as long as the changes are within tolerance.
-- "EXIT_PROCESSOR_SLA_MARGIN" - [Watcher only!] - number of Ethereum blocks since start of an invalid exit, before `unchallenged_exit` is reported to prompt to mass exit. Must be smaller than "MIN_EXIT_PERIOD_SECONDS", unless "EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE".
-- "ETHEREUM_BLOCK_TIME_SECONDS" - should mirror Ethereum network's setting, defaults to 15 seconds.
 - "LOGGER_BACKEND" - Ink or console. Ink will encode logs as json (useful for Datadog). Console will use the default elixir Logger backend. Default is Ink.
+
+***Child Chain only***
+
+- "FEE_ADAPTER" - The adapter to use to populate the fee specs. Either `file` or `feed` (case-insensitive). Defaults to `file` with an empty fee specs.
+- "FEE_CLAIMER_ADDRESS" - 20-bytes HEX-encoded string of Ethereum address of Fee Claimer.
+- "FEE_BUFFER_DURATION_MS" - Buffer period during which a fee is still valid after being updated.
+- "FEE_SPECS_FILE_PATH" - The path to the fee specs file including the file name.  Only applicable when `FEE_ADAPTER=file`.
+- "FEE_FEED_URL" - URL to fee feed service. Only applicable when `FEE_ADAPTER=feed`.
+- "FEE_CHANGE_TOLERANCE_PERCENT" - Positive integer describes significance of price change. When price in new reading changes above tolerance level, prices are updated immediately. Otherwise update interval is preserved. Only applicable when `FEE_ADAPTER=feed`.
+- "STORED_FEE_UPDATE_INTERVAL_MINUTES" - Positive integer describes time interval in minutes. The updates of token prices are carried out in update intervals as long as the changes are within tolerance. Only applicable when `FEE_ADAPTER=feed`.
+
+***Watcher and Watcher Info only***
+
+- "CHILD_CHAIN_URL" - Location of the Child Chain API. *mandatory*
+- "EXIT_PROCESSOR_SLA_MARGIN" - Number of Ethereum blocks since start of an invalid exit, before `unchallenged_exit` is reported to prompt to mass exit. Must be smaller than "MIN_EXIT_PERIOD_SECONDS", unless "EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE".
+
+***Watcher Info only***
+
+- "DATABASE_URL" - Postgres address *mandatory*
 
 ***Erlang VM configuration***
 
@@ -69,12 +82,3 @@ The contract addresses that are required to be included in the `contract_addr` f
   "payment_exit_game": "..."
 }
 ```
-
-***Watcher security-critical only***
-
-- "CHILD_CHAIN_URL" - Location of the Child Chain API. *mandatory*
-
-***Watcher security-critical + informational***
-
-- "DATABASE_URL" - Postgres address *mandatory*
-- "CHILD_CHAIN_URL" - Location of the Child Chain API. *mandatory*

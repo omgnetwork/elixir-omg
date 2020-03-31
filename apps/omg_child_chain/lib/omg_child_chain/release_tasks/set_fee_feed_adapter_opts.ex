@@ -13,23 +13,36 @@
 # limitations under the License.
 
 defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
-  @moduledoc false
+  @moduledoc """
+  Detects if `FEE_ADAPTER` is set to `"FEED"` (case-insensitive). If so, it sets the system's
+  fee adapter to FeedAdapter and configures it with values from related environment variables.
+  """
   use Distillery.Releases.Config.Provider
   require Logger
 
   @app :omg_child_chain
   @config_key :fee_adapter
+  @env_fee_adapter "FEE_ADAPTER"
 
   @impl Provider
   def init(_args) do
     _ = Application.ensure_all_started(:logger)
+    existing_config = Application.get_env(@app, @config_key)
 
-    @app
-    |> Application.get_env(@config_key)
-    |> update_adapter_opts_with_env()
+    @env_fee_adapter
+    |> System.get_env()
+    |> parse_adapter_value()
+    |> case do
+      "FEED" -> configure_feed_adapter(existing_config)
+      _ -> :ok
+    end
   end
 
-  defp update_adapter_opts_with_env({OMG.ChildChain.Fees.FeedAdapter, opts: fee_adapter_opts}) do
+  defp parse_adapter_value(nil), do: :skip
+  defp parse_adapter_value(value), do: String.upcase(value)
+
+  # If the existing config is already a feed adapter, we merge the new config into the existing opts.
+  defp configure_feed_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: fee_adapter_opts}) do
     adapter_opts =
       fee_adapter_opts
       |> replace_with_env(&validate_string/2, fee_feed_url: "FEE_FEED_URL")
@@ -44,7 +57,10 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
     :ok
   end
 
-  defp update_adapter_opts_with_env(_), do: :ok
+  # If the existing config is not a feed adapter, we start configuring with an empty opts.
+  defp configure_feed_adapter(_existing_config) do
+    configure_feed_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: []})
+  end
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default

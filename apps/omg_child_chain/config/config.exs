@@ -9,11 +9,7 @@ config :omg_child_chain,
   metrics_collection_interval: 60_000,
   fee_adapter_check_interval_ms: 10_000,
   fee_buffer_duration_ms: 30_000,
-  fee_adapter:
-    {OMG.ChildChain.Fees.FileAdapter,
-     opts: [
-       specs_file_path: Path.join(Path.dirname(__DIR__), "priv/fee_specs.json")
-     ]}
+  fee_adapter: {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_path: nil]}
 
 config :omg_child_chain, OMG.ChildChain.Tracer,
   service: :omg_child_chain,
