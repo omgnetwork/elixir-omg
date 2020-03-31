@@ -14,17 +14,7 @@
 
 defmodule OMG.State do
   @moduledoc """
-  A GenServer serving the ledger, for functional core and more info see `OMG.State.Core`.
-
-  Keeps the state of the ledger, mainly the spendable UTXO set that can be employed in both `OMG.ChildChain` and
-  `OMG.Watcher`.
-
-  Maintains the state of the UTXO set by:
-    - recognizing deposits
-    - executing child chain transactions
-    - recognizing exits
-
-  Assumes that all stateless transaction validation is done outside of `exec/2`, so it accepts `OMG.State.Transaction.Recovered`
+  Imperative shell - a GenServer serving the ledger, for functional core and more info see `OMG.State.Core`.
   """
 
   alias OMG.Block

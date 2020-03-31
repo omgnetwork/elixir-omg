@@ -23,11 +23,19 @@ defmodule OMG.Bus.Event do
 
   defstruct [:topic, :event, :payload]
 
+  @doc """
+  Prepends root chain topic prefix to the topic provided as an argument and returns a root chain event
+  """
+  @spec root_chain_event(binary(), atom(), any()) :: __MODULE__.t()
   def root_chain_event(topic, event, payload) when is_atom(event) do
     topic = Topic.root_chain_topic(topic)
     %__MODULE__{topic: topic, event: event, payload: payload}
   end
 
+  @doc """
+  Prepends child chain topic prefix to the topic provided as an argument and returns a child chain event
+  """
+  @spec child_chain_event(binary(), atom(), any()) :: __MODULE__.t()
   def child_chain_event(topic, event, payload) when is_atom(event) do
     topic = Topic.child_chain_topic(topic)
     %__MODULE__{topic: topic, event: event, payload: payload}

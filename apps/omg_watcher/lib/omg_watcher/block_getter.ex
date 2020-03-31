@@ -293,7 +293,7 @@ defmodule OMG.Watcher.BlockGetter do
       :ok = check_in_to_coordinator(synced_height)
       {:ok, _} = schedule_sync_height(state.config.block_getter_loops_interval_ms)
       :ok = update_status(state)
-      :ok = publish_data(submissions)
+      :ok = publish_events(submissions)
       {:noreply, state}
     else
       :nosync ->
@@ -355,5 +355,13 @@ defmodule OMG.Watcher.BlockGetter do
 
   defp update_status(%Core{} = state), do: Status.update(Core.chain_ok(state))
 
-  defp publish_data([]), do: :ok
+  defp publish_events([]), do: :ok
+
+  defp publish_events([%{event_signature: event_signature} | _] = data) do
+    # event signature is string with a method name with arguments,
+    # for example: BlockSubmitted(uint256)
+    [event_signature, _] = String.split(event_signature, "(")
+    event = OMG.Bus.Event.root_chain_event(event_signature, :data, data)
+    OMG.Bus.direct_local_broadcast(event)
+  end
 end

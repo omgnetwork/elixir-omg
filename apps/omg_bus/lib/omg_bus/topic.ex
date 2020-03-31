@@ -24,10 +24,18 @@ defmodule OMG.Bus.Topic do
   @root_chain_topic_prefix "root_chain:"
   @child_chain_topic_prefix "child_chain:"
 
+  @doc """
+  Prepends root chain topic prefix to the topic provided as an argument
+  """
+  @spec root_chain_topic(binary()) :: __MODULE__.t()
   def root_chain_topic(topic) do
     %__MODULE__{topic: @root_chain_topic_prefix <> topic}
   end
 
+  @doc """
+  Prepends child chain topic prefix to the topic provided as an argument
+  """
+  @spec child_chain_topic(binary()) :: __MODULE__.t()
   def child_chain_topic(topic) do
     %__MODULE__{topic: @child_chain_topic_prefix <> topic}
   end
