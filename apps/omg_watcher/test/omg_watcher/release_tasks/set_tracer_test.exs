@@ -32,7 +32,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
     :ok = System.put_env("DD_DISABLED", "TRUE")
     :ok = System.put_env("APP_ENV", "YOLO")
     :ok = System.put_env("HOSTNAME", "this is my tracer test 1")
-    :ok = SetTracer.load([],[])
+    :ok = SetTracer.load([], [])
     configuration = Application.get_env(@app, Tracer)
     disabled_updated = configuration[:disabled?]
     env_updated = configuration[:env]
@@ -49,7 +49,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
     :ok = System.delete_env("DD_DISABLED")
     :ok = System.put_env("HOSTNAME", "this is my tracer test2")
     :ok = System.put_env("APP_ENV", "YOLO")
-    :ok = SetTracer.load([],[])
+    :ok = SetTracer.load([], [])
     configuration = Application.get_env(@app, Tracer)
     sorted_configuration = Enum.sort(configuration)
     assert sorted_configuration == @configuration_old |> Keyword.put(:env, "YOLO") |> Enum.sort()
@@ -57,7 +57,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
 
   test "if exit is thrown when faulty configuration is used" do
     :ok = System.put_env("DD_DISABLED", "TRUEeee")
-    catch_exit(SetTracer.load([],[]))
+    catch_exit(SetTracer.load([], []))
     :ok = System.delete_env("DD_DISABLED")
   end
 end

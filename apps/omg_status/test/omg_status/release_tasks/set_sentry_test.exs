@@ -48,7 +48,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
     :ok = System.put_env("APP_ENV", "YOLO")
     :ok = System.put_env("HOSTNAME", "server name")
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
-    :ok = SetSentry.load([],release: :watcher, current_version: "current_version")
+    :ok = SetSentry.load([], release: :watcher, current_version: "current_version")
     configuration = Enum.sort(Application.get_all_env(@app))
     dsn = configuration[:dsn]
     app_env = configuration[:environment_name]
@@ -82,7 +82,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
   end
 
   test "if sentry is disabled if there's no SENTRY DSN env var set" do
-    :ok = SetSentry.load([],release: :child_chain, current_version: "current_version")
+    :ok = SetSentry.load([], release: :child_chain, current_version: "current_version")
     configuration = Enum.sort(Application.get_all_env(@app))
     dsn = configuration[:dsn]
     app_env = configuration[:environment_name]
@@ -113,7 +113,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
     :ok = System.put_env("SENTRY_DSN", "/dsn/dsn/dsn")
 
     try do
-      SetSentry.load([],release: :child_chain, current_version: "current_version")
+      SetSentry.load([], release: :child_chain, current_version: "current_version")
     catch
       :exit, _reason ->
         :ok

@@ -31,7 +31,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpointTest do
     configuration_old = deep_sort(Application.get_env(@app, Endpoint))
     :ok = System.put_env("PORT", @test_port)
     :ok = System.put_env("HOSTNAME", @test_host)
-    :ok = SetEndpoint.load([],[])
+    :ok = SetEndpoint.load([], [])
     configuration = Enum.sort(deep_sort(Application.get_env(@app, Endpoint)))
     http_updated = configuration[:http]
     url_updated = configuration[:url]
@@ -49,7 +49,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpointTest do
   test "if default configuration is used when there's no environment variables" do
     :ok = System.delete_env("PORT")
     :ok = System.delete_env("HOSTNAME")
-    :ok = SetEndpoint.load([],[])
+    :ok = SetEndpoint.load([], [])
     configuration = Application.get_env(@app, Endpoint)
 
     sorted_configuration = Enum.sort(deep_sort(configuration))

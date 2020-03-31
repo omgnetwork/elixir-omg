@@ -32,7 +32,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetTracerTest do
   test "if environment variables get applied in the configuration" do
     :ok = System.put_env("DD_DISABLED", "TRUE")
     :ok = System.put_env("APP_ENV", "YOLO")
-    :ok = SetTracer.load([],[])
+    :ok = SetTracer.load([], [])
     configuration = Application.get_env(@app, Tracer)
     disabled_updated = configuration[:disabled?]
     env_updated = configuration[:env]
@@ -48,7 +48,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetTracerTest do
   test "if default configuration is used when there's no environment variables" do
     :ok = System.delete_env("DD_DISABLED")
     :ok = System.put_env("APP_ENV", "YOLO")
-    :ok = SetTracer.load([],[])
+    :ok = SetTracer.load([], [])
     configuration = Application.get_env(@app, Tracer)
     sorted_configuration = Enum.sort(configuration)
     assert sorted_configuration == @configuration_old |> Keyword.put(:env, "YOLO") |> Enum.sort()
@@ -56,7 +56,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetTracerTest do
 
   test "if exit is thrown when faulty configuration is used" do
     :ok = System.put_env("DD_DISABLED", "TRUEeee")
-    catch_exit(SetTracer.load([],[]))
+    catch_exit(SetTracer.load([], []))
     :ok = System.delete_env("DD_DISABLED")
   end
 end
