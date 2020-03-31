@@ -24,7 +24,8 @@ defmodule WatcherInfoApiTest do
 
   setup do
     accounts = Account.take_accounts(1)
-    %{alice_account: Enum.at(accounts, 0)}
+    alice_account = Enum.at(accounts, 0)
+    %{alice_account: alice_account}
   end
 
   defwhen ~r/^Alice deposit "(?<amount>[^"]+)" ETH to the root chain creating 1 utxo$/,
@@ -37,12 +38,13 @@ defmodule WatcherInfoApiTest do
       |> Currency.to_wei()
       |> Client.deposit(alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
 
-    state
+    {:ok, state}
   end
 
-  defthen ~r/^Alice should able to call watcher info api \/account.get_utxos and it return the utxo and the paginating content correctly$/,
+  defthen ~r/^Alice should able to call watcher info api account.get_utxos and it return the utxo and the paginating content correctly$/,
           %{amount: amount},
-          %{alice_account: alice_account} do
+          %{alice_account: alice_account} = state do
+
     {alice_addr, alice_priv} = alice_account
 
     {:ok, response} =
@@ -62,7 +64,7 @@ defmodule WatcherInfoApiTest do
     |> Kernel.round()
     |> Process.sleep()
 
-    utxos = Client.get_utxos(alice_account)
+    utxos = Client.get_utxos(alice_addr)
 
     assert_equal(length(utxos), 1, "utxo length")
   end
