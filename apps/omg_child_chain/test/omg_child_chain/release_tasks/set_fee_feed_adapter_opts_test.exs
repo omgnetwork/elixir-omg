@@ -61,6 +61,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
       fee_change_tolerance_percent: 10,
       stored_fee_update_interval_minutes: 30
     ]
+
     :ok = Application.put_env(@app, @config_key, {FeedAdapter, opts: original_opts})
 
     # Intentionally not configuring @env_fee_feed_url and @env_stored_fee_update_interval_minutes

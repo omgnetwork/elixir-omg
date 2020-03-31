@@ -47,7 +47,11 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
       fee_adapter_opts
       |> replace_with_env(:fee_feed_url, "FEE_FEED_URL")
       |> replace_with_env(:fee_change_tolerance_percent, "FEE_CHANGE_TOLERANCE_PERCENT", &validate_integer/1)
-      |> replace_with_env(:stored_fee_update_interval_minutes, "STORED_FEE_UPDATE_INTERVAL_MINUTES", &validate_integer/1)
+      |> replace_with_env(
+        :stored_fee_update_interval_minutes,
+        "STORED_FEE_UPDATE_INTERVAL_MINUTES",
+        &validate_integer/1
+      )
 
     new_value = {OMG.ChildChain.Fees.FeedAdapter, opts: adapter_opts}
     :ok = Application.put_env(@app, @config_key, new_value, persistent: true)
