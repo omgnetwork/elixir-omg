@@ -7,5 +7,5 @@ config :omg_child_chain,
   fee_adapter:
     {OMG.ChildChain.Fees.FileAdapter,
      opts: [
-       specs_file_path: Path.join(Path.dirname(__DIR__), "test/support/fee_specs.json")
+       specs_file_path: Path.join(__DIR__, "../test/omg_child_chain/support/fee_specs.json")
      ]}
