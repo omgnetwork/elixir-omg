@@ -41,7 +41,7 @@ defmodule WatcherInfoApiTest do
     {:ok, state}
   end
 
-  defthen ~r/^Alice should able to call watcher info api account get_utxos and it return the utxo and the paginating content correctly$/,
+  defthen ~r/^Alice should able to call watcher_info \/account.get_utxos and it return the utxo and the paginating content correctly$/,
           _,
           %{alice_account: alice_account} = state do
 
