@@ -36,20 +36,6 @@ defmodule Support.DevHelper do
 
   @passphrase "ThisIsATestnetPassphrase"
 
-  def create_conf_file() do
-    contract_addr = Configuration.contracts()
-    txhash = Configuration.txhash_contract()
-    authority_address = Configuration.authority_address()
-
-    """
-    use Mix.Config
-    config :omg_eth,
-      contract_addr: #{inspect(contract_addr)},
-      txhash_contract: #{inspect(txhash)},
-      authority_address: #{inspect(authority_address)}
-    """
-  end
-
   @doc """
   Will take a map with eth-account information (from &generate_entity/0) and then
   import priv key->unlock->fund with test ETH on that account
