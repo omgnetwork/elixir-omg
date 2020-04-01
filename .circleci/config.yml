@@ -158,6 +158,7 @@ jobs:
             - data
             - snapshots.env
             - contract_addresses_template.env
+            - localchain_contract_addresses.env
 
   audit_deps:
     executor: builder
