@@ -287,7 +287,7 @@ defmodule OMG.Watcher.BlockGetter do
       {blocks_to_apply, synced_height, db_updates, state} =
         Core.get_blocks_to_apply(state, submissions, next_synced_height)
 
-      _ = Logger.debug("Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply")
+      #_ = Logger.debug("Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply")
 
       Enum.each(blocks_to_apply, &GenServer.cast(__MODULE__, {:apply_block, &1}))
 
