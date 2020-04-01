@@ -16,15 +16,14 @@ defmodule OMG.Watcher.Integration.TestHelper do
   @moduledoc """
   Common helper functions that are useful when integration-testing the watcher
   """
+  require OMG.Utxo
 
   alias OMG.State
-  alias OMG.Utxo
+  alias OMG.Watcher.Configuration
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WaitFor
   alias Support.WatcherHelper
-
-  require Utxo
 
   def wait_for_byzantine_events(event_names, timeout) do
     fn ->
@@ -56,10 +55,10 @@ defmodule OMG.Watcher.Integration.TestHelper do
   We need to wait on both a margin of eth blocks and exit processing
   """
   def wait_for_exit_processing(exit_eth_height, timeout \\ 5_000) do
-    exit_finality = Application.fetch_env!(:omg_watcher, :exit_finality_margin) + 1
+    exit_finality = Configuration.exit_finality_margin() + 1
     DevHelper.wait_for_root_chain_block(exit_eth_height + exit_finality, timeout)
     # wait some more to ensure exit is processed
-    Process.sleep(Application.fetch_env!(:omg, :ethereum_events_check_interval_ms) * 2)
+    Process.sleep(OMG.Configuration.ethereum_events_check_interval_ms() * 2)
   end
 
   def process_exits(vault_id, token, user) do
@@ -76,10 +75,10 @@ defmodule OMG.Watcher.Integration.TestHelper do
     true = length(logs) > 1 || {:error, :looks_like_no_exits_were_processed}
 
     # to have the new event fully acknowledged by the services, wait the finality margin
-    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    exit_finality_margin = Configuration.exit_finality_margin()
     DevHelper.wait_for_root_chain_block(process_eth_height + exit_finality_margin + 1)
     # just a little more to ensure events are recognized by services
-    check_interval_ms = Application.fetch_env!(:omg, :ethereum_events_check_interval_ms)
+    check_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
     Process.sleep(3 * check_interval_ms)
     :ok
   end

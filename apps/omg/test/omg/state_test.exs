@@ -27,7 +27,7 @@ defmodule OMG.StateTest do
 
   require Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @fee_claimer_address Base.decode16!("DEAD000000000000000000000000000000000000")
 
   deffixture standalone_state_server(db_initialized) do
@@ -44,7 +44,21 @@ defmodule OMG.StateTest do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
-    {:ok, _} = Supervisor.start_link([{OMG.State, [fee_claimer_address: @fee_claimer_address]}], strategy: :one_for_one)
+    child_block_interval = OMG.Eth.Configuration.child_block_interval()
+    metrics_collection_interval = 60_000
+
+    {:ok, _} =
+      Supervisor.start_link(
+        [
+          {OMG.State,
+           [
+             fee_claimer_address: @fee_claimer_address,
+             child_block_interval: child_block_interval,
+             metrics_collection_interval: metrics_collection_interval
+           ]}
+        ],
+        strategy: :one_for_one
+      )
 
     :ok
   end

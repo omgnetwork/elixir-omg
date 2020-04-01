@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @moduletag timeout: 120_000
 
   @timeout 40_000
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
   @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits]
   test "exit which is using already spent utxo from transaction and deposit causes to emit invalid_exit event", %{

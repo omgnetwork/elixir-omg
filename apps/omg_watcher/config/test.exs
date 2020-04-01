@@ -21,5 +21,3 @@ config :omg_watcher,
 config :omg_watcher, OMG.Watcher.Tracer,
   disabled?: true,
   env: "test"
-
-config :omg_watcher, environment: :test

@@ -17,15 +17,15 @@ defmodule OMG.Watcher.API.Configuration do
   Watcher API for retrieving configuration
   """
 
-  alias OMG.Configuration
+  alias OMG.Watcher.Configuration
 
   @spec get_configuration() :: {:ok, map()}
   def get_configuration() do
     configuration = %{
-      deposit_finality_margin: Configuration.deposit_finality_margin(),
+      exit_processor_sla_margin: Configuration.exit_processor_sla_margin(),
+      deposit_finality_margin: OMG.Configuration.deposit_finality_margin(),
       contract_semver: OMG.Eth.Configuration.contract_semver(),
-      network: OMG.Eth.Configuration.network(),
-      exit_processor_sla_margin: OMG.Watcher.Configuration.exit_processor_sla_margin()
+      network: OMG.Eth.Configuration.network()
     }
 
     {:ok, configuration}

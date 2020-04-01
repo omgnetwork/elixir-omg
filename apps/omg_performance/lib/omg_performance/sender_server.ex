@@ -31,7 +31,7 @@ defmodule OMG.Performance.SenderServer do
   alias OMG.Watcher.HttpRPC.Client
   require Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
   defmodule LastTx do
     @moduledoc """

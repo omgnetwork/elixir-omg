@@ -50,7 +50,7 @@ defmodule OMG.Eth.DevGeth do
             --mine --datadir #{datadir} 2>&1)
     geth_pid = launch(geth)
 
-    {:ok, :ready} = WaitFor.eth_rpc()
+    {:ok, :ready} = WaitFor.eth_rpc(20_000)
 
     on_exit = fn -> stop(geth_pid) end
 
