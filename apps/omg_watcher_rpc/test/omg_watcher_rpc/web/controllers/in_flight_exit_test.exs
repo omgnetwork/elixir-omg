@@ -141,4 +141,124 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
              } = WatcherHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x1234"})
     end
   end
+
+  describe "get_competitor/1" do
+    @tag fixtures: [:web_endpoint]
+    test "responds with validation error if given non-hex parameter" do
+      non_hex_parameter = "tx"
+
+      assert %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "txbytes",
+                   "validator" => ":hex"
+                 }
+               }
+             } = WatcherHelper.no_success?("/in_flight_exit.get_competitor", %{"txbytes" => non_hex_parameter})
+    end
+  end
+
+  describe "prove_canonical/1" do
+    @tag fixtures: [:web_endpoint]
+    test "responds with validation error if given non-hex parameter" do
+      non_hex_parameter = "tx"
+
+      assert %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "txbytes",
+                   "validator" => ":hex"
+                 }
+               }
+             } = WatcherHelper.no_success?("/in_flight_exit.prove_canonical", %{"txbytes" => non_hex_parameter})
+    end
+  end
+
+  describe "get_input_challenge_data/1" do
+    @tag fixtures: [:web_endpoint]
+    test "responds with validation error if given non-hex txbytes parameter" do
+      non_hex_parameter = "tx"
+
+      assert %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "txbytes",
+                   "validator" => ":hex"
+                 }
+               }
+             } =
+               WatcherHelper.no_success?("/in_flight_exit.get_input_challenge_data", %{
+                 "txbytes" => non_hex_parameter,
+                 "input_index" => 1
+               })
+    end
+
+    @tag fixtures: [:web_endpoint]
+    test "responds with validation error if given invalid input_index parameter" do
+      invalid_input_index = "0"
+
+      assert %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "input_index",
+                   "validator" => ":integer"
+                 }
+               }
+             } =
+               WatcherHelper.no_success?("/in_flight_exit.get_input_challenge_data", %{
+                 "txbytes" => "0x1234",
+                 "input_index" => invalid_input_index
+               })
+    end
+  end
+
+  describe "get_output_challenge_data/1" do
+    @tag fixtures: [:web_endpoint]
+    test "responds with validation error if given non-hex txbytes parameter" do
+      non_hex_parameter = "tx"
+
+      assert %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "txbytes",
+                   "validator" => ":hex"
+                 }
+               }
+             } =
+               WatcherHelper.no_success?("/in_flight_exit.get_output_challenge_data", %{
+                 "txbytes" => non_hex_parameter,
+                 "output_index" => 1
+               })
+    end
+
+    @tag fixtures: [:web_endpoint]
+    test "responds with validation error if given invalid output_index parameter" do
+      invalid_output_index = "0"
+
+      assert %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "output_index",
+                   "validator" => ":integer"
+                 }
+               }
+             } =
+               WatcherHelper.no_success?("/in_flight_exit.get_output_challenge_data", %{
+                 "txbytes" => "0x1234",
+                 "output_index" => invalid_output_index
+               })
+    end
+  end
 end
