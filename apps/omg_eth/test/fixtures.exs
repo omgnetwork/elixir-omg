@@ -51,7 +51,8 @@ defmodule OMG.Eth.Fixtures do
     :ok = System.put_env("TXHASH_CONTRACT", contracts["TXHASH_CONTRACT"])
     :ok = System.put_env("AUTHORITY_ADDRESS", contracts["AUTHORITY_ADDRESS"])
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
-    SetContract.init([])
+    config = SetContract.load([], [])
+    Application.put_all_env(config)
 
     add_exit_queue = RootChainHelper.add_exit_queue(@test_eth_vault_id, "0x0000000000000000000000000000000000000000")
 

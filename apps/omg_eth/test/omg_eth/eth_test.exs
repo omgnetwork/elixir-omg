@@ -40,7 +40,8 @@ defmodule OMG.EthTest do
     :ok = System.put_env("TXHASH_CONTRACT", data["AUTHORITY_ADDRESS"])
     :ok = System.put_env("AUTHORITY_ADDRESS", data["AUTHORITY_ADDRESS"])
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
-    SetContract.init([])
+    config = SetContract.load([], [])
+    Application.put_all_env(config)
 
     {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [data["AUTHORITY_ADDRESS"], "", 0], [])
 

@@ -40,7 +40,8 @@ defmodule OMG.Eth.RootChainTest do
     :ok = System.put_env("TXHASH_CONTRACT", contracts.plasma_framework_tx_hash)
     :ok = System.put_env("AUTHORITY_ADDRESS", contracts.authority_address)
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", contracts.plasma_framework)
-    SetContract.init([])
+    config = SetContract.load([], [])
+    Application.put_all_env(config)
     on_exit(exit_fn)
     {:ok, contracts: contracts}
   end

@@ -13,14 +13,8 @@
 # limitations under the License.
 
 defmodule OMG.Eth.ReleaseTasks.SetContractTest do
-  use ExUnit.Case, async: false
   alias OMG.Eth.ReleaseTasks.SetContract
-
-  use ExUnit.Case, async: false
-  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
-
-  @app :omg_eth
-  @configuration_old Application.get_all_env(@app)
+  use ExUnit.Case, async: true
 
   setup_all do
     plasma_framework = Support.SnapshotContracts.parse_contracts()["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
@@ -43,9 +37,6 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
       :ok = System.delete_env("TXHASH_CONTRACT")
       :ok = System.delete_env("AUTHORITY_ADDRESS")
       :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-
-      :ok =
-        Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
     end)
 
     :ok
@@ -58,10 +49,15 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     pid = spawn(fn -> start(port) end)
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
-    :ok = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    "authority_address_value" = Application.get_env(@app, :authority_addr)
-    assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
-    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+    config = SetContract.load([], rpc_api: __MODULE__.Rpc)
+    authority_addr = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:authority_addr)
+    assert authority_addr == "authority_address_value"
+
+    plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
+    assert plasma_framework == contract_addresses_value.plasma_framework
+
+    txhash_contract_value = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:txhash_contract)
+    assert txhash_contract_value == "txhash_contract_value"
 
     :ok = Process.send(pid, :stop, [])
   end
@@ -71,8 +67,9 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     _pid = spawn(fn -> start(port) end)
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
-    :ok = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    20 = Application.get_env(@app, :min_exit_period_seconds)
+    config = SetContract.load([], rpc_api: __MODULE__.Rpc)
+    min_exit_period_seconds = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:min_exit_period_seconds)
+    assert min_exit_period_seconds == 20
   end
 
   test "unsuported network throws exception for contract exchanger" do
@@ -82,7 +79,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY-GORLI")
 
     try do
-      :ok = SetContract.load([], rpc_api: __MODULE__.Rpc)
+      SetContract.load([], rpc_api: __MODULE__.Rpc)
     catch
       :exit, _ ->
         :ok = Process.send(pid, :stop, [])
@@ -98,10 +95,15 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
-    :ok = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    "authority_address_value" = Application.get_env(@app, :authority_addr)
-    assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
-    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+    config = SetContract.load([], rpc_api: __MODULE__.Rpc)
+    authority_addr = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:authority_addr)
+    assert authority_addr == "authority_address_value"
+
+    plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
+    assert plasma_framework == contract_addresses_value.plasma_framework
+
+    txhash_contract_value = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:txhash_contract)
+    assert txhash_contract_value == "txhash_contract_value"
   end
 
   test "contract details from env, mixed case", %{
@@ -113,10 +115,15 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("AUTHORITY_ADDRESS", "Authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-    :ok = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    "authority_address_value" = Application.get_env(@app, :authority_addr)
-    assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
-    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+    config = SetContract.load([], rpc_api: __MODULE__.Rpc)
+    authority_addr = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:authority_addr)
+    assert authority_addr == "authority_address_value"
+
+    plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
+    assert plasma_framework == contract_addresses_value.plasma_framework
+
+    txhash_contract_value = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:txhash_contract)
+    assert txhash_contract_value == "txhash_contract_value"
   end
 
   test "contract details from env for localchain", %{
@@ -128,10 +135,15 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-    :ok = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    "authority_address_value" = Application.get_env(@app, :authority_addr)
-    assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
-    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+    config = SetContract.load([], rpc_api: __MODULE__.Rpc)
+    authority_addr = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:authority_addr)
+    assert authority_addr == "authority_address_value"
+
+    plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
+    assert plasma_framework == contract_addresses_value.plasma_framework
+
+    txhash_contract_value = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:txhash_contract)
+    assert txhash_contract_value == "txhash_contract_value"
   end
 
   test "contract details from env sets default exit period seconds", %{
@@ -142,8 +154,9 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-    :ok = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    20 = Application.get_env(@app, :min_exit_period_seconds)
+    config = SetContract.load([], rpc_api: __MODULE__.Rpc)
+    min_exit_period_seconds = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:min_exit_period_seconds)
+    assert min_exit_period_seconds == 20
   end
 
   test "contract details and exit period seconds from env", %{
@@ -155,11 +168,18 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
-    :ok = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    20 = Application.get_env(@app, :min_exit_period_seconds)
-    "authority_address_value" = Application.get_env(@app, :authority_addr)
-    assert Application.get_env(@app, :contract_addr).plasma_framework == contract_addresses_value.plasma_framework
-    "txhash_contract_value" = Application.get_env(@app, :txhash_contract)
+    config = SetContract.load([], rpc_api: __MODULE__.Rpc)
+    min_exit_period_seconds = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:min_exit_period_seconds)
+    assert min_exit_period_seconds == 20
+
+    authority_addr = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:authority_addr)
+    assert authority_addr == "authority_address_value"
+
+    plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
+    assert plasma_framework == contract_addresses_value.plasma_framework
+
+    txhash_contract_value = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:txhash_contract)
+    assert txhash_contract_value == "txhash_contract_value"
   end
 
   test "that exit is thrown when env configuration is faulty for network name", %{
@@ -171,7 +191,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
     try do
-      :ok = SetContract.load([], rpc_api: __MODULE__.Rpc)
+      _ = SetContract.load([], rpc_api: __MODULE__.Rpc)
     catch
       :exit, _ ->
         :ok
@@ -187,7 +207,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
 
     try do
-      :ok = SetContract.load([], rpc_api: __MODULE__.Rpc)
+      _ = SetContract.load([], rpc_api: __MODULE__.Rpc)
     catch
       :exit, _ ->
         :ok
