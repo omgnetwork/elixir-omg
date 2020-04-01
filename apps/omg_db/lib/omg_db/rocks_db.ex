@@ -34,7 +34,6 @@ defmodule OMG.DB.RocksDB do
   end
 
   def child_spec() do
-    IO.inspect(Application.get_all_env(:omg_child_chain), label: "omg_child_chain")
     db_path = Application.fetch_env!(:omg_db, :path)
     args = [db_path: db_path, name: OMG.DB.RocksDB.Server]
 

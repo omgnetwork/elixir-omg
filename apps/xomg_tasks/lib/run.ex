@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule XomgTasks.Run do
+  @moduledoc false
+
   use Mix.Task
 
   @impl Mix.Task

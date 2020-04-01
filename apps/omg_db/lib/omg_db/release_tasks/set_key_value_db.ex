@@ -22,30 +22,29 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
     args
   end
 
-  def load(_config, args) do
+  def load(config, args) do
     _ = Application.ensure_all_started(:logger)
     release = Keyword.get(args, :release)
 
-    path =
-      case get_env("DB_PATH") do
-        root_path when is_binary(root_path) ->
-          {:ok, path} = set_db(root_path, release)
-          path
+    case get_env("DB_PATH") do
+      root_path when is_binary(root_path) ->
+        set_db(config, root_path, release)
 
-        _ ->
-          root_path = Path.join([System.user_home!(), ".omg/data"])
-          {:ok, path} = set_db(root_path, release)
-          path
-      end
-
-    _ = Logger.info("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
-    :ok
+      _ ->
+        root_path = Path.join([System.user_home!(), ".omg/data"])
+        set_db(config, root_path, release)
+    end
   end
 
-  defp set_db(root_path, release) do
+  defp set_db(config, root_path, release) do
     path = Path.join([root_path, "#{release}"])
-    :ok = Application.put_env(:omg_db, :path, path, persistent: true)
-    {:ok, path}
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
+
+    Config.Reader.merge(config,
+      omg_db: [
+        path: path
+      ]
+    )
   end
 
   defp get_env(key), do: System.get_env(key)
