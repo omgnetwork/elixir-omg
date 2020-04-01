@@ -25,7 +25,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration do
     args
   end
 
-  def load(config, _args) do
+  def load(_config, _args) do
     _ = Application.ensure_all_started(:logger)
     buffer_ms = fee_buffer_ms()
 

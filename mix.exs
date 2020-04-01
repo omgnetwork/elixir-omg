@@ -24,8 +24,12 @@ defmodule OMG.Umbrella.MixProject do
       aliases: aliases(),
       # Docs
       source_url: "https://github.com/omisego/elixir-omg",
+      version: current_version(),
       releases: [
         watcher: [
+          commands: [
+            init_key_value_db: "rel/commands/init_key_value_db.sh"
+          ],
           applications: [
             tools: :permanent,
             runtime_tools: :permanent,

@@ -24,46 +24,53 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
     args
   end
 
-  def load(_config, release: release, current_version: current_version) do
+  def load(config, release: release, current_version: current_version) do
     _ = Application.ensure_all_started(:logger)
     app_env = get_app_env()
     sentry_dsn = System.get_env("SENTRY_DSN")
 
-    :ok =
-      case is_binary(sentry_dsn) do
-        true ->
-          hostname = get_hostname()
+    case is_binary(sentry_dsn) do
+      true ->
+        hostname = get_hostname()
 
-          _ =
-            Logger.warn(
-              "Sentry configuration provided. Enabling Sentry with APP ENV #{inspect(app_env)}, with SENTRY_DSN #{
-                inspect(sentry_dsn)
-              }, with HOSTNAME (server_name) #{inspect(hostname)}"
-            )
+        _ =
+          Logger.warn(
+            "Sentry configuration provided. Enabling Sentry with APP ENV #{inspect(app_env)}, with SENTRY_DSN #{
+              inspect(sentry_dsn)
+            }, with HOSTNAME (server_name) #{inspect(hostname)}"
+          )
 
-          :ok = Application.put_env(@app, :dsn, sentry_dsn, persistent: true)
-          :ok = Application.put_env(@app, :environment_name, app_env, persistent: true)
-          :ok = Application.put_env(@app, :included_environments, [app_env], persistent: true)
-          :ok = Application.put_env(@app, :server_name, hostname)
-
-          :ok =
-            Application.put_env(@app, :tags, %{
+        Config.Reader.merge(
+          config,
+          sentry: [
+            dsn: sentry_dsn,
+            environment_name: app_env,
+            included_environments: [app_env],
+            server_name: hostname,
+            tags: [
               application: release,
               eth_network: get_env("ETHEREUM_NETWORK"),
               eth_node: get_rpc_client_type(),
               current_version: "vsn-#{current_version}",
               app_env: "#{app_env}",
               hostname: "#{hostname}"
-            })
+            ]
+          ]
+        )
 
-        _ ->
-          _ =
-            Logger.warn(
-              "Sentry configuration not provided. Disabling Sentry. If you want it enabled provide APP_ENV and SENTRY_DSN."
-            )
+      _ ->
+        _ =
+          Logger.warn(
+            "Sentry configuration not provided. Disabling Sentry. If you want it enabled provide APP_ENV and SENTRY_DSN."
+          )
 
-          Application.put_env(@app, :included_environments, [], persistent: true)
-      end
+        Config.Reader.merge(
+          config,
+          sentry: [
+            included_environments: []
+          ]
+        )
+    end
   end
 
   defp get_app_env() do

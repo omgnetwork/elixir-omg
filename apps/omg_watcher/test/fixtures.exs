@@ -96,7 +96,7 @@ defmodule OMG.Watcher.Fixtures do
 
     exexec_opts_for_mix = [
       stdout: :stream,
-      cd: Application.fetch_env!(:omg_watcher, :umbrella_root_dir),
+      # cd: Application.fetch_env!(:omg_watcher, :umbrella_root_dir),
       env: %{"MIX_ENV" => to_string(Mix.env())},
       # group 0 will create a new process group, equal to the OS pid of that process
       group: 0,

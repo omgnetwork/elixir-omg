@@ -25,7 +25,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
     args
   end
 
-  def load(_config, args) do
+  def load(_config, _args) do
     _ = Application.ensure_all_started(:logger)
     _ = Application.ensure_all_started(:omg_status)
     rpc_url = get_ethereum_rpc_url()

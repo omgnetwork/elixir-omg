@@ -17,7 +17,7 @@ defmodule Support.Conformance.SignaturesHashes do
   Utility functions that used when testing Elixir vs Solidity implementation conformance
   """
 
-  import ExUnit.Assertions, only: [assert: 1, assert: 2]
+  import ExUnit.Assertions, only: [assert: 1]
 
   alias OMG.Eth.Encoding
   alias OMG.State.Transaction
