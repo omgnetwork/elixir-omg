@@ -192,7 +192,9 @@ defmodule OMG.EthereumEventListener do
 
   defp publish_events([%{event_signature: event_signature} | _] = data) do
     [event_signature, _] = String.split(event_signature, "(")
-    event = OMG.Bus.Event.root_chain_event(event_signature, :data, data)
-    OMG.Bus.direct_local_broadcast(event)
+
+    event_signature
+    |> OMG.Bus.Event.root_chain_event(:data, data)
+    |> OMG.Bus.direct_local_broadcast()
   end
 end

@@ -66,7 +66,7 @@ defmodule OMG.Bus.PubSub do
       @doc """
       Same as `broadcast/1`, but performed on the local node
       """
-      def direct_local_broadcast(%Event{topic: %Topic{topic: topic}, event: event, payload: payload} = eventb)
+      def direct_local_broadcast(%Event{topic: %Topic{topic: topic}, event: event, payload: payload})
           when is_atom(event) do
         node_name = PubSub.node_name(OMG.Bus.PubSub)
         PubSub.direct_broadcast(node_name, OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})

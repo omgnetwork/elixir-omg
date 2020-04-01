@@ -14,7 +14,17 @@
 
 defmodule OMG.State do
   @moduledoc """
-  Imperative shell - a GenServer serving the ledger, for functional core and more info see `OMG.State.Core`.
+  A GenServer serving the ledger, for functional core and more info see `OMG.State.Core`.
+
+  Keeps the state of the ledger, mainly the spendable UTXO set that can be employed in both `OMG.ChildChain` and
+  `OMG.Watcher`.
+
+  Maintains the state of the UTXO set by:
+    - recognizing deposits
+    - executing child chain transactions
+    - recognizing exits
+
+  Assumes that all stateless transaction validation is done outside of `exec/2`, so it accepts `OMG.State.Transaction.Recovered`
   """
 
   alias OMG.Block
@@ -235,7 +245,7 @@ defmodule OMG.State do
   def handle_call(:close_block, _from, state) do
     {:ok, {block, db_updates}, new_state} = Core.form_block(state)
 
-    publish_block_to_event_bus(block)
+    :ok = publish_block_to_event_bus(block)
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -263,8 +273,9 @@ defmodule OMG.State do
   end
 
   defp publish_block_to_event_bus(block) do
-    event = OMG.Bus.Event.child_chain_event("blocks", :enqueue_block, block)
-    :ok = OMG.Bus.direct_local_broadcast(event)
+    "blocks"
+    |> OMG.Bus.Event.child_chain_event(:enqueue_block, block)
+    |> OMG.Bus.direct_local_broadcast()
   end
 
   @spec fetch_utxos_from_db(list(OMG.Utxo.Position.t()), Core.t()) :: UtxoSet.t()
