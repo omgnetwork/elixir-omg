@@ -68,8 +68,8 @@ config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
 
 config :omg_child_chain_rpc, environment: :test
 
-config :omg_db,
-  path: Path.join([System.get_env("HOME"), ".omg/data"])
+# config :omg_db,
+#  path: Path.join([System.get_env("HOME"), ".omg/data"])
 
 # bumping these timeouts into infinity - let's rely on test timeouts rather than these
 config :ethereumex,

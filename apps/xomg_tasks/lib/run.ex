@@ -12,28 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.Fixtures do
-  @moduledoc """
-  Contains fixtures for tests that require db
-  """
-  use ExUnitFixtures.FixtureModule
+defmodule XomgTasks.Run do
+  use Mix.Task
 
-  deffixture db_initialized do
-    db_path = Briefly.create!(directory: true)
-    Application.put_env(:omg_db, :path, db_path, persistent: true)
-
-    :ok = OMG.DB.init(db_path)
-
-    {:ok, started_apps} = Application.ensure_all_started(:omg_db)
-
-    on_exit(fn ->
-      Application.put_env(:omg_db, :path, nil)
-
-      started_apps
-      |> Enum.reverse()
-      |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end)
-
-    :ok
+  @impl Mix.Task
+  def run(args) do
+    Mix.shell().info(Enum.join(args, " "))
   end
 end

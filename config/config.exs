@@ -1,6 +1,6 @@
 import Config
 
-config :logger, level: :info
+config :logger, level: :debug
 
 config :logger, :console,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
@@ -85,7 +85,6 @@ config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
 config :spandex_phoenix, tracer: OMG.ChildChainRPC.Tracer
 
 config :omg_db,
-  rocksdb: [server_module: OMG.DB.RocksDB.Server, server_name: OMG.DB.RocksDB.Server],
   metrics_collection_interval: 60_000
 
 ethereum_client_timeout_ms = 20_000

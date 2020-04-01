@@ -96,10 +96,7 @@ defmodule OMG.Watcher.Fixtures do
 
     Enum.each(db_out, &log_output("db_init", &1))
 
-    child_chain_mix_cmd =
-      " mix xomg.child_chain.start -e ':ok = Logger.configure(level: :info)' -e ':ok = Application.put_env(:omg_db, :path, \"#{
-        db_path
-      }\")' -e ':ok = Application.put_env(:omg_child_chain, :fee_adapter_opts, [specs_file_name: \"#{fee_file}\"])' 2>&1"
+    child_chain_mix_cmd = " mix xomg.child_chain.start --logger info --db \"#{db_path}\" --fee \"#{fee_file}\" 2>&1"
 
     Logger.info("Starting child_chain")
 
@@ -153,6 +150,7 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   defp log_output(prefix, line) do
+    IO.inspect(line)
     Logger.debug("#{prefix}: " <> line)
     line
   end
