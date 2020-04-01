@@ -67,7 +67,7 @@ defmodule WatcherInfoApiTest do
     |> Kernel.round()
     |> Process.sleep()
 
-    {:ok, data} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), payload)
+    {:ok, data} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), %{address: alice_addr})
     %{data: utxos, data_paging: data_paging} = Jason.decode!(data.body)
     assert_equal(5, length(utxos), "utxo length")
 
