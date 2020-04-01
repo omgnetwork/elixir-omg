@@ -96,7 +96,7 @@ config :ethereumex,
 
 config :omg_eth,
   contract_addr: nil,
-  authority_addr: nil,
+  authority_address: nil,
   txhash_contract: nil,
   eth_node: :geth,
   child_block_interval: 1000,

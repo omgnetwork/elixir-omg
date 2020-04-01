@@ -23,7 +23,7 @@ defmodule OMG.EthTest do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.ReleaseTasks.SetContract
+  alias OMG.Eth.Configuration
   alias Support.DevHelper
   alias Support.SnapshotContracts
 
@@ -33,17 +33,8 @@ defmodule OMG.EthTest do
 
   setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
-
-    data = SnapshotContracts.parse_contracts()
-
-    :ok = System.put_env("ETHEREUM_NETWORK", "LOCALCHAIN")
-    :ok = System.put_env("TXHASH_CONTRACT", data["AUTHORITY_ADDRESS"])
-    :ok = System.put_env("AUTHORITY_ADDRESS", data["AUTHORITY_ADDRESS"])
-    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
-    config = SetContract.load([], [])
-    Application.put_all_env(config)
-
-    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [data["AUTHORITY_ADDRESS"], "", 0], [])
+    authority_address = Configuration.authority_address()
+    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [authority_address, "", 0], [])
 
     on_exit(exit_fn)
     :ok

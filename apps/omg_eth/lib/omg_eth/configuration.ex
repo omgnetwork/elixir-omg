@@ -46,9 +46,9 @@ defmodule OMG.Eth.Configuration do
     Application.fetch_env!(@app, :txhash_contract)
   end
 
-  @spec authority_addr() :: no_return | binary()
-  def authority_addr() do
-    Application.fetch_env!(@app, :authority_addr)
+  @spec authority_address() :: no_return | binary()
+  def authority_address() do
+    Application.fetch_env!(@app, :authority_address)
   end
 
   @spec environment() :: :test | nil

@@ -1,5 +1,30 @@
 use Mix.Config
 
+parse_contracts = fn ->
+  local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
+
+  contract_addreses_path =
+    case File.exists?(local_umbrella_path) do
+      true ->
+        local_umbrella_path
+
+      _ ->
+        # CI/CD
+        Path.join([File.cwd!(), "localchain_contract_addresses.env"])
+    end
+
+  contract_addreses_path
+  |> File.read!()
+  |> String.split("\n", trim: true)
+  |> List.flatten()
+  |> Enum.reduce(%{}, fn line, acc ->
+    [key, value] = String.split(line, "=")
+    Map.put(acc, key, value)
+  end)
+end
+
+contracts = parse_contracts.()
+
 config :logger, level: :warn
 
 config :logger,
@@ -60,7 +85,14 @@ config :ethereumex,
 config :omg_eth,
   # Needed for test only to have some value of address when `:contract_address` is not set explicitly
   # required by the EIP-712 struct hash code
-  contract_addr: %{plasma_framework: "0x0000000000000000000000000000000000000001"},
+  txhash_contract: contracts["TXHASH_CONTRACT"],
+  authority_address: contracts["AUTHORITY_ADDRESS"],
+  contract_addr: %{
+    erc20_vault: contracts["CONTRACT_ADDRESS_ERC20_VAULT"],
+    eth_vault: contracts["CONTRACT_ADDRESS_ETH_VAULT"],
+    payment_exit_game: contracts["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"],
+    plasma_framework: contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
+  },
   node_logging_in_debug: true
 
 config :omg_eth,

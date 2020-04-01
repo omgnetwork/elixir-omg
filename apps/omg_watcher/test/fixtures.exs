@@ -170,9 +170,9 @@ defmodule OMG.Watcher.Fixtures do
     line
   end
 
-  deffixture in_beam_watcher(db_initialized, root_chain_contract_config) do
+  deffixture in_beam_watcher(db_initialized, contract) do
     :ok = db_initialized
-    :ok = root_chain_contract_config
+    _ = contract
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_security_watcher} = Application.ensure_all_started(:omg_watcher)

@@ -145,7 +145,7 @@ defmodule Support.RootChainHelper do
   def activate_child_chain(from \\ nil) do
     opts = Keyword.put(@tx_defaults, :gas, @gas_init)
     contract = Configuration.contracts().plasma_framework
-    from = from || from_hex(Configuration.authority_addr())
+    from = from || from_hex(Configuration.authority_address())
     backend = Configuration.eth_node()
 
     TransactionHelper.contract_transact(backend, from, contract, "activateChildChain()", [], opts)

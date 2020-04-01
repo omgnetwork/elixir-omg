@@ -35,12 +35,12 @@ defmodule Support.Conformance.SignaturesHashesCase do
 
     contracts = SnapshotContracts.parse_contracts()
     signtest_addr_hex = contracts["CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK"]
+    old_config = Application.get_all_env(:omg_eth)
     :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: signtest_addr_hex})
 
     on_exit(fn ->
       # reverting to the original values from `omg_eth/config/test.exs`
-      :ok =
-        Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: "0x0000000000000000000000000000000000000001"})
+      :ok = Application.put_all_env(omg_eth: old_config)
 
       exit_fn.()
     end)

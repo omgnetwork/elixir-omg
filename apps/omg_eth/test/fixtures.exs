@@ -42,17 +42,8 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(eth_node) do
     :ok = eth_node
 
-    contracts = SnapshotContracts.parse_contracts()
-
     {:ok, true} =
       Ethereumex.HttpClient.request("personal_unlockAccount", ["0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d", "", 0], [])
-
-    :ok = System.put_env("ETHEREUM_NETWORK", "LOCALCHAIN")
-    :ok = System.put_env("TXHASH_CONTRACT", contracts["TXHASH_CONTRACT"])
-    :ok = System.put_env("AUTHORITY_ADDRESS", contracts["AUTHORITY_ADDRESS"])
-    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
-    config = SetContract.load([], [])
-    Application.put_all_env(config)
 
     add_exit_queue = RootChainHelper.add_exit_queue(@test_eth_vault_id, "0x0000000000000000000000000000000000000000")
 
@@ -61,8 +52,8 @@ defmodule OMG.Eth.Fixtures do
     :ok
   end
 
-  deffixture token(root_chain_contract_config) do
-    :ok = root_chain_contract_config
+  deffixture token(contract) do
+    :ok = contract
     contracts = SnapshotContracts.parse_contracts()
     token_addr = contracts["CONTRACT_ERC20_MINTABLE"]
 
@@ -72,25 +63,6 @@ defmodule OMG.Eth.Fixtures do
     {:ok, true} = has_exit_queue(@test_erc20_vault_id, token_addr)
 
     token_addr
-  end
-
-  deffixture root_chain_contract_config(contract) do
-    _ = contract
-
-    # {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
-
-    on_exit(fn ->
-      # reverting to the original values from `omg_eth/config/test.exs`
-      Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: "0x0000000000000000000000000000000000000001"})
-      Application.put_env(:omg_eth, :authority_addr, nil)
-      Application.put_env(:omg_eth, :txhash_contract, nil)
-
-      # started_apps
-      # |> Enum.reverse()
-      # |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end)
-
-    :ok
   end
 
   defp has_exit_queue(vault_id, token) do

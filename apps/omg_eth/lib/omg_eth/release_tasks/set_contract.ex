@@ -129,7 +129,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     Config.Reader.merge(config,
       omg_eth: [
         txhash_contract: String.downcase(txhash_contract),
-        authority_addr: String.downcase(authority_address),
+        authority_address: String.downcase(authority_address),
         contract_addr: contract_addresses,
         min_exit_period_seconds: min_exit_period_seconds,
         contract_semver: contract_semver,

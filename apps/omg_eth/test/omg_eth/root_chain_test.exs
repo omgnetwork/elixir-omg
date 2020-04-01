@@ -15,35 +15,21 @@
 defmodule OMG.Eth.RootChainTest do
   use ExUnit.Case, async: false
 
+  alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
-  alias OMG.Eth.ReleaseTasks.SetContract
   alias OMG.Eth.RootChain
   alias OMG.Eth.RootChain.Abi
   alias Support.DevHelper
   alias Support.RootChainHelper
-  alias Support.SnapshotContracts
 
   @eth "0x0000000000000000000000000000000000000000"
   @moduletag :common
 
   setup do
     {:ok, exit_fn} = Support.DevNode.start()
-    data = SnapshotContracts.parse_contracts()
 
-    contracts = %{
-      authority_address: data["AUTHORITY_ADDRESS"],
-      plasma_framework_tx_hash: data["TXHASH_CONTRACT"],
-      plasma_framework: data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
-    }
-
-    :ok = System.put_env("ETHEREUM_NETWORK", "LOCALCHAIN")
-    :ok = System.put_env("TXHASH_CONTRACT", contracts.plasma_framework_tx_hash)
-    :ok = System.put_env("AUTHORITY_ADDRESS", contracts.authority_address)
-    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", contracts.plasma_framework)
-    config = SetContract.load([], [])
-    Application.put_all_env(config)
     on_exit(exit_fn)
-    {:ok, contracts: contracts}
+    :ok
   end
 
   test "get_root_deployment_height/2 returns current block number" do
@@ -52,13 +38,13 @@ defmodule OMG.Eth.RootChainTest do
   end
 
   describe "get_standard_exit_structs/2" do
-    test "returns a list of standard exits by the given exit ids", %{contracts: contracts} do
-      authority_address = contracts.authority_address
+    test "returns a list of standard exits by the given exit ids" do
+      authority_address = Configuration.authority_address()
 
       {:ok, true} =
         Ethereumex.HttpClient.request(
           "personal_unlockAccount",
-          [contracts.authority_address, "", 0],
+          [authority_address, "", 0],
           []
         )
 
