@@ -48,7 +48,7 @@ defmodule WatcherInfoApiTest do
   defthen ~r/^Alice should able to call watcher_info \/account.get_utxos and it return the utxo and the paginating content correctly$/,
           _,
           %{alice_account: alice_account} = state do
-    {alice_addr, alice_priv} = alice_account
+    {alice_addr, _alice_priv} = alice_account
 
     {:ok, response} =
       WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
