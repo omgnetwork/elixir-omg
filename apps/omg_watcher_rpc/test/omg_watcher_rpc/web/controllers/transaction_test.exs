@@ -514,6 +514,42 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       assert {[^tx1, ^tx2], %{"limit" => 2, "page" => 2}} = transaction_all_with_paging(%{limit: 2, page: 2})
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "handles improper limit parameter" do
+      invalid_limit = "50"
+
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "limit",
+                   "validator" => ":integer"
+                 }
+               }
+             } ==
+               WatcherHelper.no_success?("transaction.all", %{"limit" => invalid_limit})
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "handles improper address parameter" do
+      too_short_address = "0x" <> String.duplicate("00", 19)
+
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "address",
+                   "validator" => "{:length, 20}"
+                 }
+               }
+             } ==
+               WatcherHelper.no_success?("transaction.all", %{"address" => too_short_address})
+    end
   end
 
   defp transaction_all_with_paging(body) do
