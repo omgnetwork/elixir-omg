@@ -14,7 +14,7 @@
 
 ExUnitFixtures.start()
 ExUnit.configure(exclude: [integration: true, property: true, wrappers: true])
-ExUnitFixtures.load_fixture_files()
+ExUnitFixtures.load_fixture_files(Path.join([Mix.Project.build_path(), "../../", "apps/*/test/**/fixtures.exs"]))
 ExUnit.start()
 
 {:ok, _} = Application.ensure_all_started(:propcheck)
