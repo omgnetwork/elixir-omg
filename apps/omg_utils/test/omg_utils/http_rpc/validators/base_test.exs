@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
+  alias OMG.Utils.HttpRPC.Encoding
+
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
@@ -30,6 +32,9 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     "hex_2" => "0xB3256026863EB6aE5B06fA396AB09069784ea8eA",
     "hex_3" => "0xB3256026863EB6AE5B06FA396AB09069784EA8EA",
     "nhex_1" => "b3256026863eb6ae5b06fa396ab09069784ea8ea",
+    "valid_signature" => "0x" <> String.duplicate("00", 65),
+    "too_short_signature" => "0x" <> String.duplicate("00", 64),
+    "non_hex_signature" => "0x" <> String.duplicate("ZZ", 65),
     "len_1" => "1",
     "len_2" => <<1, 2, 3, 4, 5>>,
     "max_len_1" => [1, 2, 3, 4, 5]
@@ -200,13 +205,24 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
       assert {:error, {:validation_error, "nint_1", :integer}} == expect(@params, "nint_1", greater: 0)
     end
 
-    test "address should validate both hex value and its length" do
+    test "address should validate both hex value and  length" do
       assert {:ok, @bin_value} == expect(@params, "hex_1", :address)
 
       assert {:error, {:validation_error, "nhex_1", :hex}} == expect(@params, "nhex_1", :address)
 
       assert {:error, {:validation_error, "short", {:length, 20}}} ==
                expect(%{"short" => "0xdeadbeef"}, "short", :address)
+    end
+
+    test "signature should validate both hex value and  length" do
+      {:ok, signature_value} = Map.get(@params, "valid_signature") |> Encoding.from_hex()
+      assert {:ok, signature_value} == expect(@params, "valid_signature", :signature)
+
+      assert {:error, {:validation_error, "non_hex_signature", :hex}} ==
+               expect(@params, "non_hex_signature", :signature)
+
+      assert {:error, {:validation_error, "too_short_signature", {:length, 65}}} ==
+               expect(@params, "too_short_signature", :signature)
     end
   end
 
