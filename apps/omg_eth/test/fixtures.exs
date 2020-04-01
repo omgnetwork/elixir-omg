@@ -20,7 +20,6 @@ defmodule OMG.Eth.Fixtures do
 
   alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
-  alias OMG.Eth.ReleaseTasks.SetContract
   alias Support.DevHelper
   alias Support.DevNode
   alias Support.RootChainHelper

@@ -21,13 +21,11 @@ defmodule OMG.EthTest do
 
   Note the excluded moduletag, this test requires an explicit `--include wrappers`
   """
+  use ExUnit.Case, async: false
 
   alias OMG.Eth
   alias OMG.Eth.Configuration
   alias Support.DevHelper
-  alias Support.SnapshotContracts
-
-  use ExUnit.Case, async: false
 
   @moduletag :common
 
