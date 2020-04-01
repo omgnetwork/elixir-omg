@@ -3,13 +3,17 @@
 ## Unreleased
 
 #### APIs
-- None
+- [Fixed] Proper error message when retrieving In-Flight Exit data for a spent deposit (#1397)
 
 #### Core
-- None
+- [Added] Build adapter to pull fees from the fee feed service (#1373)
+- [Fixed] Add retries to gas cost retrieval (#1434)
 
 #### Miscellaneous
-- None
+- [Added] Move load tests to elixir-omg repo (#1403, #1429)
+- [Changed] Clean up documentation for ExitProcessor, OMG.State and RootChainCoordinator(#1410)
+- [Changed] Update Spandex (tracing library) to 2.4.3 (#1432)
+- [Changed] Move nightly build steps into PR's non-mandatory build steps (#1287)
 
 ## [v0.4.6](https://github.com/omisego/elixir-omg/releases/tag/v0.4.6)
 
