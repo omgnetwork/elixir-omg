@@ -21,6 +21,7 @@ defmodule WatcherInfoApiTest do
   alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
   alias Itest.Transactions.Currency
+  alias WatcherInfoAPI.Connection, as: WatcherInfo
 
   setup do
     accounts = Account.take_accounts(1)
@@ -66,9 +67,10 @@ defmodule WatcherInfoApiTest do
     |> Kernel.round()
     |> Process.sleep()
 
-    utxos = Client.get_utxos(alice_addr)
-
+    {:ok, data} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), payload)
+    %{data: utxos, data_paging: data_paging} = Jason.decode!(data.body)
     assert_equal(5, length(utxos), "utxo length")
+
   end
 
   defp assert_equal(left, right, message) do
