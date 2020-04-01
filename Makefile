@@ -27,7 +27,7 @@ help:
 	@echo "DOCKER DEVELOPMENT"
 	@echo "------------------"
 	@echo ""
-	@echo "  - \`make docker-build-cluster\`: build child_chain, watcher and watcher_info images \c"
+	@echo "  - \`make docker-build-start-cluster\`: build child_chain, watcher and watcher_info images \c"
 	@echo "from your current code base, then start a cluster with these freshly built images."
 	@echo ""
 	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_info\` or \c"
@@ -305,6 +305,8 @@ docker-watcher: docker-watcher-prod docker-watcher-build
 docker-watcher_info: docker-watcher_info-prod docker-watcher_info-build
 docker-child_chain: docker-child_chain-prod docker-child_chain-build
 
+docker-build-local: docker-watcher docker-watcher_info docker-child_chain
+
 docker-push: docker
 	docker push $(CHILD_CHAIN_IMAGE_NAME)
 	docker push $(WATCHER_IMAGE_NAME)
@@ -315,7 +317,8 @@ docker-start-cluster:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
-docker-build-cluster: docker-child_chain docker-watcher docker-watcher_info
+docker-build-start-cluster:
+	$(MAKE) docker-build-local
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
