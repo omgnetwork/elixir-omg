@@ -119,6 +119,7 @@ jobs:
       - checkout
       - restore_cache:
           key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
+      - run: make init_test
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - save_cache:
