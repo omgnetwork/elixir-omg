@@ -24,7 +24,7 @@ export ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
 export FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
 export FEE_ADAPTER=file
 # Fee specs file path needs to be an absolute path as the childchain will start deep in the _build subdirectory
-export FEE_SPECS_FILE_PATH=${CIRCLE_WORKING_DIRECTORY}/priv/dev-artifacts/fee_specs.dev.json
+export FEE_SPECS_FILE_PATH=$(pwd)/priv/dev-artifacts/fee_specs.dev.json
 export DD_HOSTNAME=localhost
 export DD_DISABLED=true
 export LOGGER_BACKEND=console
