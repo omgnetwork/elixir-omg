@@ -34,8 +34,7 @@ defmodule WatcherInfoApiTest do
           %{alice_account: alice_account} = state do
     {alice_addr, _alice_priv} = alice_account
 
-
-      {:ok, _} = Client.deposit(Currency.to_wei(1), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
+    {:ok, _} = Client.deposit(Currency.to_wei(1), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
     {:ok, state}
   end
 
@@ -61,11 +60,13 @@ defmodule WatcherInfoApiTest do
     |> Kernel.round()
     |> Process.sleep()
 
-    {:ok, data} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), %{address: alice_addr})
+    {:ok, data} =
+      WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), %{address: alice_addr, page: 1, limit: 10})
+
     %{"data" => utxos, "data_paging" => data_paging} = Jason.decode!(data.body)
     assert_equal(1, length(utxos), "for depositing 1 tx")
     assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
-
+    assert_equal(data_paging, %{page: 1, limit: 10})
   end
 
   defp assert_equal(left, right, message) do
