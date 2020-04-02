@@ -60,6 +60,7 @@ defmodule OMG.Umbrella.MixProject do
           ]
         ],
         watcher_info: [
+          steps: [:assemble, :tar],
           version: current_version(),
           applications: [
             tools: :permanent,
@@ -97,6 +98,7 @@ defmodule OMG.Umbrella.MixProject do
           ]
         ],
         child_chain: [
+          steps: [:assemble, :tar],
           version: current_version(),
           applications: [
             tools: :permanent,
