@@ -34,12 +34,8 @@ defmodule WatcherInfoApiTest do
           %{alice_account: alice_account} = state do
     {alice_addr, _alice_priv} = alice_account
 
-      1..5
-      |> Task.async_stream(fn value ->
-        {:ok, receipt_hash} = Client.deposit(Currency.to_wei(value), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
-      end)
-      |> Enum.map(fn {:ok, _result} -> :ok end)
 
+      {:ok, _} = Client.deposit(Currency.to_wei(1), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
     {:ok, state}
   end
 
@@ -67,12 +63,8 @@ defmodule WatcherInfoApiTest do
 
     {:ok, data} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), %{address: alice_addr})
     %{"data" => utxos, "data_paging" => data_paging} = Jason.decode!(data.body)
-    assert_equal(5, length(utxos), "for depositing 5 txs")
-    assert_equal(1, Enum.at(utxos, 0)["amount"], "for first utxo")
-    assert_equal(2, Enum.at(utxos, 1)["amount"], "for second utxo")
-    assert_equal(3, Enum.at(utxos, 2)["amount"], "for third utxo")
-    assert_equal(4, Enum.at(utxos, 3)["amount"], "for forth utxo")
-    assert_equal(5, Enum.at(utxos, 4)["amount"], "for fifth utxo")
+    assert_equal(1, length(utxos), "for depositing 1 tx")
+    assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
 
   end
 
