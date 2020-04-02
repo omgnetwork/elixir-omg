@@ -24,12 +24,15 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracer do
 
   def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
-    config = Application.get_env(@app, OMG.ChildChainRPC.Tracer)
-    config = Keyword.put(config, :disabled?, get_dd_disabled())
-    config = Keyword.put(config, :env, get_app_env())
+
+    tracer_config =
+      @app
+      |> Application.get_env(OMG.ChildChainRPC.Tracer)
+      |> Keyword.put(:disabled?, get_dd_disabled())
+      |> Keyword.put(:env, get_app_env())
 
     Config.Reader.merge(config,
-      omg_child_chain_rpc: [{OMG.ChildChainRPC.Tracer, config}],
+      omg_child_chain_rpc: [{OMG.ChildChainRPC.Tracer, tracer_config}],
       spandex_phoenix: [tracer: OMG.ChildChainRPC.Tracer]
     )
   end
