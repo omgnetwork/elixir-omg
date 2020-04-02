@@ -23,8 +23,8 @@ defmodule WatcherInfoApiTest do
   alias Itest.Transactions.Currency
   alias WatcherInfoAPI.Connection, as: WatcherInfo
 
-  @geth_block_every = 1
-  @to_milliseconds = 1000
+  @geth_block_every 1
+  @to_milliseconds 1000
 
   setup do
     accounts = Account.take_accounts(1)
