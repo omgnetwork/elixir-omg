@@ -35,6 +35,9 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     "valid_signature" => "0x" <> String.duplicate("00", 65),
     "too_short_signature" => "0x" <> String.duplicate("00", 64),
     "non_hex_signature" => "0x" <> String.duplicate("ZZ", 65),
+    "valid_hash" => "0x" <> String.duplicate("00", 32),
+    "too_short_hash" => "0x" <> String.duplicate("00", 31),
+    "non_hex_hash" => "0x" <> String.duplicate("ZZ", 32),
     "len_1" => "1",
     "len_2" => <<1, 2, 3, 4, 5>>,
     "max_len_1" => [1, 2, 3, 4, 5]
@@ -223,6 +226,17 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
 
       assert {:error, {:validation_error, "too_short_signature", {:length, 65}}} ==
                expect(@params, "too_short_signature", :signature)
+    end
+
+    test "hash should validate both hex value and  length" do
+      {:ok, hash_value} = Map.get(@params, "valid_hash") |> Encoding.from_hex()
+      assert {:ok, hash_value} == expect(@params, "valid_hash", :hash)
+
+      assert {:error, {:validation_error, "non_hex_hash", :hex}} ==
+               expect(@params, "non_hex_hash", :hash)
+
+      assert {:error, {:validation_error, "too_short_hash", {:length, 32}}} ==
+               expect(@params, "too_short_hash", :hash)
     end
   end
 
