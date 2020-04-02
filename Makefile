@@ -375,7 +375,7 @@ start-services:
 	docker-compose up geth postgres
 
 start-child_chain:
-	source ${OVERRIDING_VARIABLES}; \
+	make apply_vars; \
 	echo "Building Child Chain" && \
 	make build-child_chain-${BAREBUILD_ENV} && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
@@ -386,7 +386,7 @@ start-child_chain:
 	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
-	source ${OVERRIDING_VARIABLES}; \
+	make apply_vars; \
 	echo "Building Watcher" && \
 	make build-watcher-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
@@ -398,7 +398,7 @@ start-watcher:
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
 
 start-watcher_info:
-	source ${OVERRIDING_VARIABLES}; \
+	make apply_vars; \
 	echo "Building Watcher Info" && \
 	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
@@ -412,19 +412,19 @@ start-watcher_info:
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
 	$(ENV_DEV) mix do compile, release child_chain --overwrite && \
-	source ${OVERRIDING_VARIABLES} && \
+	make apply_vars && \
 	exec _build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START) &
 
 update-watcher:
 	_build/dev/rel/watcher/bin/watcher stop ; \
 	$(ENV_DEV) mix do compile, release watcher --overwrite && \
-	source ${OVERRIDING_VARIABLES} && \
+	make apply_vars && \
 	exec PORT=${WATCHER_PORT} _build/dev/rel/watcher/bin/watcher $(OVERRIDING_START) &
 
 update-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop ; \
 	$(ENV_DEV) mix do compile, release watcher_info --overwrite && \
-	source ${OVERRIDING_VARIABLES} && \
+	make apply_vars && \
 	exec PORT=${WATCHER_INFO_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
 
 stop-child_chain:
@@ -437,15 +437,15 @@ stop-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop
 
 remote-child_chain:
-	source ${OVERRIDING_VARIABLES} && \
+	make apply_vars && \
 	_build/dev/rel/child_chain/bin/child_chain remote
 
 remote-watcher:
-	source ${OVERRIDING_VARIABLES} && \
+	make apply_vars && \
 	_build/dev/rel/watcher/bin/watcher remote
 
 remote-watcher_info:
-	source ${OVERRIDING_VARIABLES} && \
+	make apply_vars && \
 	_build/dev/rel/watcher_info/bin/watcher_info remote
 
 get-alarms:
@@ -506,3 +506,12 @@ diagnostics:
 	echo "\n ---------- END OF DIAGNOSTICS REPORT ----------"
 
 .PHONY: diagnostics
+
+apply_vars:
+ifeq ($(OS),Darwin)
+	source ${OVERRIDING_VARIABLES}
+else
+	set -e; . ${OVERRIDING_VARIABLES}
+endif
+
+OS=$(shell uname -s)
