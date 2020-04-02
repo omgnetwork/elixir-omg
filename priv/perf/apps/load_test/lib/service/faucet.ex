@@ -82,29 +82,25 @@ defmodule LoadTest.Service.Faucet do
     {:ok, state}
   end
 
-  def handle_call(:get_faucet, _from, %__MODULE__{faucet_account: faucet_account} = state) do
-    {:reply, {:ok, faucet_account}, state}
+  def handle_call(:get_faucet, _from, state) do
+    {:reply, {:ok, state.faucet_account}, state}
   end
 
-  def handle_call(
-        {:fund_child_chain, receiver, amount, currency},
-        _from,
-        %__MODULE__{
-          faucet_account: faucet_account
-        } = state
-      ) do
+  def handle_call({:fund_child_chain, receiver, amount, currency}, _from, state) do
     utxo = check_sufficient_funds(state, currency, amount)
 
     change = utxo.amount - amount - state.fee
     if change < 0, do: raise({:error, :insufficient_faucet_funds})
 
     outputs = [
-      %Utxo{amount: change, currency: currency, owner: faucet_account.addr},
+      %Utxo{amount: change, currency: currency, owner: state.faucet_account.addr},
       %Utxo{amount: amount, currency: currency, owner: receiver.addr}
     ]
 
     Logger.debug("Funding user #{Encoding.to_hex(receiver.addr)} with #{amount} from utxo: #{Utxo.pos(utxo)}")
-    {:ok, blknum, txindex} = Transaction.submit_tx([utxo], outputs, [faucet_account], @fund_child_chain_account_retries)
+
+    {:ok, blknum, txindex} =
+      Transaction.submit_tx([utxo], outputs, [state.faucet_account], @fund_child_chain_account_retries)
 
     next_faucet_utxo = %Utxo{blknum: blknum, txindex: txindex, oindex: 0, amount: change}
     user_utxo = %Utxo{blknum: blknum, txindex: txindex, oindex: 1, amount: amount}
@@ -128,7 +124,6 @@ defmodule LoadTest.Service.Faucet do
         _ ->
           faucet_account.addr
           |> get_utxos()
-          |> get_largest_utxo_by_currency(faucet_account, currency)
           |> get_largest_utxo_by_currency(faucet_account, currency)
       end
 
