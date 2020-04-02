@@ -27,7 +27,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumBlockTime do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
+    _ = on_load()
     Config.Reader.merge(config, omg_eth: [ethereum_block_time_seconds: get_ethereum_block_time()])
   end
 
@@ -50,4 +50,9 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumBlockTime do
 
   defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
   defp validate_integer(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
+  end
 end

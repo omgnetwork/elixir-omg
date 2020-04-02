@@ -38,10 +38,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   end
 
   def load(config, args) do
+    _ = on_load()
     rpc_api = Keyword.get(args, :rpc_api, Rpc)
-
-    {:ok, logger_apps} = Application.ensure_all_started(:logger)
-    {:ok, ethereumex_apps} = Application.ensure_all_started(:ethereumex)
 
     exchanger = get_env("CONTRACT_EXCHANGER_URL")
     via_env = get_env("ETHEREUM_NETWORK")
@@ -73,6 +71,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           {txhash_contract, authority_address, plasma_framework}
       end
 
+    Logger.info("Application aaaaaa: #{inspect(Application.get_all_env(:ethereumex))}")
     # get all the data from external sources
     {payment_exit_game, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval} =
       get_external_data(plasma_framework, rpc_api)
@@ -83,8 +82,6 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       erc20_vault: erc20_vault,
       payment_exit_game: payment_exit_game
     }
-
-    (logger_apps ++ ethereumex_apps) |> Enum.reverse() |> Enum.each(&Application.stop/1)
 
     merge_configuration(
       config,
@@ -208,5 +205,10 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       _ ->
         exit(@error)
     end
+  end
+
+  defp on_load() do
+    {:ok, _} = Application.ensure_all_started(:logger)
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
   end
 end

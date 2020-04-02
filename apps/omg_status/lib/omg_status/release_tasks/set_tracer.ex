@@ -24,7 +24,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   end
 
   def load(config, args) do
-    on_load()
+    _ = on_load()
     nil = Process.put(:system_adapter, Keyword.get(args, :system_adapter, System))
     app_env = get_app_env()
 
@@ -133,8 +133,8 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
 
   defp on_load() do
     _ = Application.ensure_all_started(:logger)
-    Application.load(@app)
-    Application.load(:spandex_datadog)
-    Application.load(:statix)
+    _ = Application.load(@app)
+    _ = Application.load(:spandex_datadog)
+    _ = Application.load(:statix)
   end
 end

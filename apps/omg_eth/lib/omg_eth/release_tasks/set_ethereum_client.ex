@@ -26,10 +26,10 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
-    _ = Application.ensure_all_started(:omg_status)
+    _ = on_load()
     rpc_url = get_ethereum_rpc_url()
-
+    # we need to get this imidiatelly in effect because we use ethereumex in SetContract
+    Application.put_env(:ethereumex, :url, rpc_url, persistent: true)
     rpc_client_type = get_rpc_client_type()
 
     Config.Reader.merge(config,
@@ -67,4 +67,11 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   defp validate_string(_, default), do: default
 
   defp get_env(key), do: System.get_env(key)
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.ensure_all_started(:omg_status)
+    _ = Application.load(@app)
+    _ = Application.load(:ethereumex)
+  end
 end

@@ -23,7 +23,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
   end
 
   def load(config, _args) do
-    on_load()
+    _ = on_load()
     endpoint_config = Application.get_env(@app, OMG.WatcherRPC.Web.Endpoint)
 
     endpoint_config =
@@ -81,6 +81,6 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
 
   defp on_load() do
     _ = Application.ensure_all_started(:logger)
-    Application.load(@app)
+    _ = Application.load(@app)
   end
 end

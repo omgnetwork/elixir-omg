@@ -27,8 +27,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
-
+    _ = on_load()
     fee_claimer_address = get_fee_claimer_address()
     Config.Reader.merge(config, omg: [fee_claimer_address: fee_claimer_address])
   end
@@ -56,4 +55,8 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
   end
 
   defp validate_address(_), do: exit("Fee claimer address needs to be specified")
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+  end
 end

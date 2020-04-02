@@ -23,7 +23,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDB do
   end
 
   def load(config, _args) do
-    on_load()
+    _ = on_load()
 
     db_config =
       @app
@@ -47,6 +47,6 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDB do
 
   defp on_load() do
     _ = Application.ensure_all_started(:logger)
-    Application.load(@app)
+    _ = Application.load(@app)
   end
 end

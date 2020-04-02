@@ -29,7 +29,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval do
   end
 
   def load(config, _args) do
-    on_load()
+    _ = on_load()
 
     interval_ms = get_interval_ms()
 
@@ -59,6 +59,6 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval do
 
   defp on_load() do
     _ = Application.ensure_all_started(:logger)
-    Application.load(@app)
+    _ = Application.load(@app)
   end
 end

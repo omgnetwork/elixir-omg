@@ -25,7 +25,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
+    _ = on_load()
 
     @app
     |> Application.get_env(@config_key)
@@ -74,5 +74,10 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
         |> validator_fn.(curr)
       end
     )
+  end
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
   end
 end
