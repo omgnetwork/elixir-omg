@@ -68,8 +68,6 @@ services:
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
-      - ERLANG_COOKIE=develop
-      - NODE_HOST=127.0.0.1
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
@@ -103,8 +101,6 @@ services:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
       - CHILD_CHAIN_URL=http://childchain:9656
-      - ERLANG_COOKIE=develop
-      - NODE_HOST=127.0.0.1
       - PORT=7434
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
@@ -141,8 +137,6 @@ services:
       - ETHEREUM_RPC_URL=http://geth:8545
       - CHILD_CHAIN_URL=http://childchain:9656
       - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
-      - ERLANG_COOKIE=develop
-      - NODE_HOST=127.0.0.1
       - PORT=7534
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog

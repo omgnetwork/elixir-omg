@@ -7,9 +7,6 @@
 export EXIT_PROCESSOR_SLA_MARGIN=30
 
 # the rest stays same as bin/variables
-export REPLACE_OS_VARS=true
-export NODE_HOST=127.0.0.1
-export ERLANG_COOKIE=develop
 export APP_ENV=local-development
 export HOSTNAME=http://localhost/
 export DB_PATH=~/plasma-data/

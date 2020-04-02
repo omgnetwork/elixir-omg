@@ -1,5 +1,5 @@
 MAKEFLAGS += --silent
-OVERRIDING_START ?= foreground
+OVERRIDING_START ?= start_iex
 OVERRIDING_VARIABLES ?= ./bin/variables
 SNAPSHOT ?= SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20
 BAREBUILD_ENV ?= dev
@@ -357,13 +357,13 @@ docker-nuke:
 	$(MAKE) init-contracts
 
 docker-remote-watcher:
-	docker-compose exec watcher /watcher_entrypoint bin/watcher remote_console
+	docker-compose exec watcher /watcher_entrypoint bin/watcher remote
 
 docker-remote-watcher_info:
-	docker-compose exec watcher_info /watcher_info_entrypoint bin/watcher_info remote_console
+	docker-compose exec watcher_info /watcher_info_entrypoint bin/watcher_info remote
 
 docker-remote-childchain:
-	docker-compose exec childchain /child_chain_entrypoint bin/child_chain remote_console
+	docker-compose exec childchain /child_chain_entrypoint bin/child_chain remote
 
 .PHONY: docker-nuke docker-remote-watcher docker-remote-watcher_info docker-remote-childchain
 
@@ -375,7 +375,7 @@ start-services:
 	docker-compose up geth postgres
 
 start-child_chain:
-	set -e; . ${OVERRIDING_VARIABLES}; \
+	source ${OVERRIDING_VARIABLES}; \
 	echo "Building Child Chain" && \
 	make build-child_chain-${BAREBUILD_ENV} && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
@@ -386,7 +386,7 @@ start-child_chain:
 	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
-	set -e; . ${OVERRIDING_VARIABLES}; \
+	source ${OVERRIDING_VARIABLES}; \
 	echo "Building Watcher" && \
 	make build-watcher-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
@@ -398,7 +398,7 @@ start-watcher:
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
 
 start-watcher_info:
-	set -e; . ${OVERRIDING_VARIABLES}; \
+	source ${OVERRIDING_VARIABLES}; \
 	echo "Building Watcher Info" && \
 	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
@@ -412,19 +412,19 @@ start-watcher_info:
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
 	$(ENV_DEV) mix do compile, release child_chain --overwrite && \
-	set -e; . ${OVERRIDING_VARIABLES} && \
+	source ${OVERRIDING_VARIABLES} && \
 	exec _build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START) &
 
 update-watcher:
 	_build/dev/rel/watcher/bin/watcher stop ; \
 	$(ENV_DEV) mix do compile, release watcher --overwrite && \
-	set -e; . ${OVERRIDING_VARIABLES} && \
+	source ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_PORT} _build/dev/rel/watcher/bin/watcher $(OVERRIDING_START) &
 
 update-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop ; \
 	$(ENV_DEV) mix do compile, release watcher_info --overwrite && \
-	set -e; . ${OVERRIDING_VARIABLES} && \
+	source ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_INFO_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
 
 stop-child_chain:
@@ -437,16 +437,16 @@ stop-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop
 
 remote-child_chain:
-	set -e; . ${OVERRIDING_VARIABLES} && \
-	_build/dev/rel/child_chain/bin/child_chain remote_console
+	source ${OVERRIDING_VARIABLES} && \
+	_build/dev/rel/child_chain/bin/child_chain remote
 
 remote-watcher:
-	set -e; . ${OVERRIDING_VARIABLES} && \
-	_build/dev/rel/watcher/bin/watcher remote_console
+	source ${OVERRIDING_VARIABLES} && \
+	_build/dev/rel/watcher/bin/watcher remote
 
 remote-watcher_info:
-	set -e; . ${OVERRIDING_VARIABLES} && \
-	_build/dev/rel/watcher_info/bin/watcher_info remote_console
+	source ${OVERRIDING_VARIABLES} && \
+	_build/dev/rel/watcher_info/bin/watcher_info remote
 
 get-alarms:
 	echo "Child Chain alarms" ; \

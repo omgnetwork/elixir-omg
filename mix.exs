@@ -27,9 +27,6 @@ defmodule OMG.Umbrella.MixProject do
       version: current_version(),
       releases: [
         watcher: [
-          commands: [
-            init_key_value_db: "rel/commands/init_key_value_db.sh"
-          ],
           applications: [
             tools: :permanent,
             runtime_tools: :permanent,
@@ -62,6 +59,7 @@ defmodule OMG.Umbrella.MixProject do
           ]
         ],
         watcher_info: [
+          version: current_version(),
           applications: [
             tools: :permanent,
             runtime_tools: :permanent,
@@ -98,6 +96,7 @@ defmodule OMG.Umbrella.MixProject do
           ]
         ],
         child_chain: [
+          version: current_version(),
           applications: [
             tools: :permanent,
             runtime_tools: :permanent,
@@ -199,6 +198,7 @@ defmodule OMG.Umbrella.MixProject do
   defp docker(), do: if(System.get_env("DOCKER"), do: "_docker", else: "")
 
   defp current_version() do
-    "123"
+    sha = String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
+    "#{String.trim(File.read!("VERSION"))}" <> "+" <> sha
   end
 end

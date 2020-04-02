@@ -24,12 +24,6 @@
 - "ETHEREUM_BLOCK_TIME_SECONDS" - should mirror Ethereum network's setting, defaults to 15 seconds.
 - "LOGGER_BACKEND" - Ink or console. Ink will encode logs as json (useful for Datadog). Console will use the default elixir Logger backend. Default is Ink.
 
-***Erlang VM configuration***
-
-- "NODE_HOST" - The fully qualified host name of the current host.
-- "ERLANG_COOKIE" - Magic cookie of the node.
-- "REPLACE_OS_VARS" - An environment variable you export at runtime which instructed the tool to replace occurances of ${VAR} with the value from the system environment in the vm.args.
-
 ***Contract address configuration***
 We allow a static configuration or a dynamic one, served as a http endpoint (one of them is mandatory).
 
