@@ -54,7 +54,8 @@ defmodule WatcherInfoApiTest do
     to_milliseconds = 1000
     geth_block_every = 1
 
-    60
+    # sometimes waiting just 1 margin blocks is not enough
+    (finality_margin_blocks * 2)
     |> Kernel.*(geth_block_every)
     |> Kernel.*(to_milliseconds)
     |> Kernel.round()
