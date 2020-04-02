@@ -401,7 +401,7 @@ jobs:
           name: Start daemon services
           command: |
             cd priv/cabbage
-            make start_daemon_services
+            make start_daemon_services || docker-compose logs
       - run:
           name: Print docker states
           command: |
