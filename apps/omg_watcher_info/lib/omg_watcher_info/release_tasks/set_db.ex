@@ -22,11 +22,15 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDB do
     args
   end
 
-  def load(_config, _args) do
+  def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
-    config = Application.get_env(@app, OMG.WatcherInfo.DB.Repo)
-    config = Keyword.put(config, :url, get_db_url())
-    :ok = Application.put_env(@app, OMG.WatcherInfo.DB.Repo, config, persistent: true)
+
+    db_config =
+      @app
+      |> Application.get_env(OMG.WatcherInfo.DB.Repo)
+      |> Keyword.put(:url, get_db_url())
+
+    Config.Reader.merge(config, omg_watcher_info: [{OMG.WatcherInfo.DB.Repo, db_config}])
   end
 
   defp get_db_url() do

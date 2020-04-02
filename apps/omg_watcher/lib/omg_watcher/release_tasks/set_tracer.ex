@@ -22,13 +22,16 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
     args
   end
 
-  def load(_config, _args) do
+  def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
-    config = Application.get_env(@app, OMG.Watcher.Tracer)
-    config = Keyword.put(config, :disabled?, get_dd_disabled())
-    config = Keyword.put(config, :env, get_app_env())
 
-    :ok = Application.put_env(@app, OMG.Watcher.Tracer, config, persistent: true)
+    tracer_config =
+      @app
+      |> Application.get_env(OMG.Watcher.Tracer)
+      |> Keyword.put(:disabled?, get_dd_disabled())
+      |> Keyword.put(:env, get_app_env())
+
+    Config.Reader.merge(config, omg_watcher: [{OMG.Watcher.Tracer, tracer_config}])
   end
 
   defp get_dd_disabled() do
