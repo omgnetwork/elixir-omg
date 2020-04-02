@@ -37,13 +37,13 @@ defmodule WatcherInfoApiTest do
            %{alice_account: alice_account} = state do
     {alice_addr, _alice_priv} = alice_account
 
-    {:ok, _} = Client.deposit(Currency.to_wei(1), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
+    {:ok, _} = Client.deposit(Currency.to_wei(amount), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
     {:ok, state}
   end
 
   defthen ~r/^Alice should able to call watcher_info \/account.get_utxos and it return the utxo and the paginating content correctly$/,
           _,
-          %{alice_account: alice_account} = state do
+          %{alice_account: alice_account} do
     {alice_addr, _alice_priv} = alice_account
 
     {:ok, response} =
