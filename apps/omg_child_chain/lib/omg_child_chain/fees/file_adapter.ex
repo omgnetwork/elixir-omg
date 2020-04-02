@@ -69,9 +69,14 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
     end
   end
 
-  # Get the specs file path from the provided opts. If not found or the path is nil,
-  # it defaults back to the priv/fee_specs.json in the child_chain's source code.
+  # Get the specs file path from the provided opts. If not configured, it defaults back to
+  # the child_chain source code's priv/fee_specs.json.
+  #
+  # Beware that we check with `is_binary/1` because a nil path should also use the default.
   defp get_path(opts) do
-    Keyword.fetch!(opts, :specs_file_path) or Application.app_dir(:omg_child_chain, "priv/fee_specs.json")
+    case Keyword.fetch(opts, :specs_file_path) do
+      {:ok, path} when is_binary(path) -> path
+      _ -> Application.app_dir(:omg_child_chain, "priv/fee_specs.json")
+    end
   end
 end
