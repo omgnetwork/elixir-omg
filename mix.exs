@@ -27,6 +27,7 @@ defmodule OMG.Umbrella.MixProject do
       version: current_version(),
       releases: [
         watcher: [
+          steps: [:assemble, :tar],
           applications: [
             tools: :permanent,
             runtime_tools: :permanent,
