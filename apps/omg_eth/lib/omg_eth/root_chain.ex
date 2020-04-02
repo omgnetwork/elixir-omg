@@ -106,9 +106,6 @@ defmodule OMG.Eth.RootChain do
   def get_root_deployment_height() do
     plasma_framework = Configuration.contracts().plasma_framework
     txhash = Configuration.txhash_contract()
-    IO.inspect(plasma_framework)
-    IO.inspect(txhash)
-    IO.inspect(Ethereumex.HttpClient.eth_get_transaction_receipt(txhash))
 
     case Ethereumex.HttpClient.eth_get_transaction_receipt(txhash) do
       {:ok, %{"contractAddress" => ^plasma_framework, "blockNumber" => height}} ->

@@ -511,7 +511,7 @@ apply_vars:
 ifeq ($(OS),Darwin)
 	source ${OVERRIDING_VARIABLES}
 else
-	set -e; . ${OVERRIDING_VARIABLES}
+	. ${OVERRIDING_VARIABLES}
 endif
 
 OS=$(shell uname -s)
