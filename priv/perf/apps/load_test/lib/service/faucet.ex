@@ -43,9 +43,11 @@ defmodule LoadTest.Service.Faucet do
   @type state :: %__MODULE__{
           faucet_account: Account.t(),
           fee: pos_integer(),
+          faucet_deposit_wei: pos_integer(),
+          deposit_finality_margin: pos_integer(),
           utxos: map()
         }
-  defstruct [:faucet_account, :fee, utxos: %{}]
+  defstruct [:faucet_account, :fee, :faucet_deposit_wei, :deposit_finality_margin, utxos: %{}]
 
   @doc """
   Sends funds to an account on the childchain.
@@ -76,7 +78,9 @@ defmodule LoadTest.Service.Faucet do
       struct!(
         __MODULE__,
         faucet_account: faucet_account,
-        fee: Keyword.fetch!(config, :fee_wei)
+        fee: Keyword.fetch!(config, :fee_wei),
+        faucet_deposit_wei: Keyword.fetch!(config, :faucet_deposit_wei),
+        deposit_finality_margin: Keyword.fetch!(config, :deposit_finality_margin)
       )
 
     {:ok, state}
@@ -87,7 +91,7 @@ defmodule LoadTest.Service.Faucet do
   end
 
   def handle_call({:fund_child_chain, receiver, amount, currency}, _from, state) do
-    utxo = check_sufficient_funds(state, currency, amount)
+    utxo = get_funding_utxo(state, currency, amount)
 
     change = utxo.amount - amount - state.fee
     if change < 0, do: raise({:error, :insufficient_faucet_funds})
@@ -110,25 +114,21 @@ defmodule LoadTest.Service.Faucet do
     {:reply, {:ok, user_utxo}, updated_state}
   end
 
-  @spec check_sufficient_funds(state(), Utxo.address_binary(), pos_integer()) :: Utxo.t()
-  defp check_sufficient_funds(
-         %{utxos: utxos, faucet_account: faucet_account, fee: fee},
-         currency,
-         amount
-       ) do
+  @spec get_funding_utxo(state(), Utxo.address_binary(), pos_integer()) :: Utxo.t()
+  defp get_funding_utxo(state, currency, amount) do
     utxo =
-      case Map.has_key?(utxos, currency) do
+      case Map.has_key?(state.utxos, currency) do
         true ->
-          utxos[currency]
+          state.utxos[currency]
 
         _ ->
-          faucet_account.addr
+          state.faucet_account.addr
           |> get_utxos()
-          |> get_largest_utxo_by_currency(faucet_account, currency)
+          |> get_largest_utxo_by_currency(currency)
       end
 
-    case utxo.amount - amount - fee < 0 do
-      true -> deposit(faucet_account, currency)
+    case utxo == nil or utxo.amount - amount - state.fee < 0 do
+      true -> deposit(state.faucet_account, state.faucet_deposit_wei, currency, state.deposit_finality_margin)
       _ -> utxo
     end
   end
@@ -146,20 +146,19 @@ defmodule LoadTest.Service.Faucet do
     Jason.decode!(response.body)["data"]
   end
 
-  @spec get_largest_utxo_by_currency(list(), Account.t(), Utxo.address_binary()) :: Utxo.t()
-  defp get_largest_utxo_by_currency([], faucet_account, currency), do: deposit(faucet_account, currency)
+  @spec get_largest_utxo_by_currency(list(), Utxo.address_binary()) :: Utxo.t()
+  defp get_largest_utxo_by_currency([], _currency), do: nil
 
-  defp get_largest_utxo_by_currency(utxos, faucet_account, currency) do
-    utxos = Enum.filter(utxos, fn utxo -> currency == LoadTest.Utils.Encoding.from_hex(utxo["currency"]) end)
-
-    case length(utxos) do
-      0 -> deposit(faucet_account, currency)
-      _ -> get_largest_utxo(utxos, currency)
-    end
+  defp get_largest_utxo_by_currency(utxos, currency) do
+    utxos
+    |> Enum.filter(fn utxo -> currency == LoadTest.Utils.Encoding.from_hex(utxo["currency"]) end)
+    |> get_largest_utxo()
   end
 
-  @spec get_largest_utxo(list(), Utxo.address_binary()) :: Utxo.t()
-  defp get_largest_utxo(utxos, _currency) do
+  @spec get_largest_utxo(list()) :: Utxo.t()
+  defp get_largest_utxo([]), do: nil
+
+  defp get_largest_utxo(utxos) do
     utxo = Enum.max_by(utxos, fn x -> x["amount"] end)
 
     %Utxo{
@@ -170,18 +169,11 @@ defmodule LoadTest.Service.Faucet do
     }
   end
 
-  @spec deposit(Account.t(), Utxo.address_binary()) :: Utxo.t()
-  defp deposit(faucet_account, currency) do
+  @spec deposit(Account.t(), pos_integer(), Utxo.address_binary(), pos_integer()) :: Utxo.t()
+  defp deposit(faucet_account, amount, currency, deposit_finality_margin) do
     Logger.debug("Not enough funds in the faucet, depositing more from the root chain")
 
-    {:ok, utxo} =
-      Deposit.deposit_from(
-        faucet_account,
-        Application.fetch_env!(:load_test, :faucet_deposit_wei),
-        currency,
-        Application.fetch_env!(:load_test, :deposit_finality_margin)
-      )
-
+    {:ok, utxo} = Deposit.deposit_from(faucet_account, amount, currency, deposit_finality_margin)
     utxo
   end
 end
