@@ -188,8 +188,6 @@ defmodule OMG.EthereumEventListener do
     :timer.send_after(ethereum_events_check_interval_ms, self(), :sync)
   end
 
-  defp publish_events([]), do: :ok
-
   defp publish_events([%{event_signature: event_signature} | _] = data) do
     [event_signature, _] = String.split(event_signature, "(")
 
@@ -197,4 +195,6 @@ defmodule OMG.EthereumEventListener do
     |> OMG.Bus.Event.root_chain_event(:data, data)
     |> OMG.Bus.direct_local_broadcast()
   end
+
+  defp publish_events([]), do: :ok
 end

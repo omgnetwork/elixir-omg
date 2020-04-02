@@ -43,7 +43,8 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
         check_interval_ms: check_interval_ms,
         stall_threshold_ms: stall_threshold_ms,
         eth_module: EthereumClientMock,
-        alarm_module: Alarm
+        alarm_module: Alarm,
+        event_bus_module: OMG.Bus
       )
 
     _ = Alarm.clear_all()
