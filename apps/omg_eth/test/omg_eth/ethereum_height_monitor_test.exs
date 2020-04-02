@@ -224,8 +224,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     def start(parent), do: GenServer.start(__MODULE__, parent)
 
     def init(parent) do
-      topic = OMG.Bus.Topic.root_chain_topic("ethereum_new_height")
-      :ok = OMG.Bus.subscribe(topic, link: true)
+      :ok = OMG.Bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
       {:ok, parent}
     end
 

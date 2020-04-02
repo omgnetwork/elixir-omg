@@ -64,7 +64,7 @@ defmodule OMG.Watcher.Supervisor do
 
   defp create_event_consumer_children() do
     child_chain_topics = ["blocks"]
-    child_chain_topics = Enum.map(child_chain_topics, &OMG.Bus.Topic.child_chain_topic/1)
+    child_chain_topics = Enum.map(child_chain_topics, &{:child_chain, &1})
 
     root_chain_topics = [
       "DepositCreated",
@@ -83,7 +83,7 @@ defmodule OMG.Watcher.Supervisor do
       "ExitStarted"
     ]
 
-    root_chain_topics = Enum.map(root_chain_topics, &OMG.Bus.Topic.root_chain_topic/1)
+    root_chain_topics = Enum.map(root_chain_topics, &{:root_chain, &1})
 
     topics = child_chain_topics ++ root_chain_topics
 

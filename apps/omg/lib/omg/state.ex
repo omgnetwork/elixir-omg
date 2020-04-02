@@ -268,13 +268,13 @@ defmodule OMG.State do
     # new block
     :ok = DB.multi_update(db_updates)
 
-    publish_block_to_event_bus(block)
+    :ok = publish_block_to_event_bus(block)
     {:noreply, new_state}
   end
 
   defp publish_block_to_event_bus(block) do
-    "blocks"
-    |> OMG.Bus.Event.child_chain_event(:enqueue_block, block)
+    {:child_chain, "blocks"}
+    |> OMG.Bus.Event.new(:enqueue_block, block)
     |> OMG.Bus.direct_local_broadcast()
   end
 

@@ -31,7 +31,7 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumerTest do
 
     start_supervised(
       ContractEventConsumer.prepare_child(
-        topic: %OMG.Bus.Topic{topic: "#{pid}"},
+        topic: "#{pid}",
         release: "child_chain",
         current_version: "test-123",
         publisher: __MODULE__.DatadogEventMock
@@ -45,7 +45,6 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumerTest do
     topic = self() |> :erlang.pid_to_list() |> to_string()
     sig = "#{topic}(bytes32)"
     data = [%{event_signature: sig}]
-    topic = %OMG.Bus.Topic{topic: topic}
     event = %OMG.Bus.Event{topic: topic, event: :data, payload: data}
     OMG.Bus.direct_local_broadcast(event)
 
@@ -56,7 +55,6 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumerTest do
     topic = self() |> :erlang.pid_to_list() |> to_string()
     sig = "#{topic}(bytes32)"
     data = [%{event_signature: sig}, %{event_signature: sig}]
-    topic = %OMG.Bus.Topic{topic: topic}
     event = %OMG.Bus.Event{topic: topic, event: :data, payload: data}
     OMG.Bus.direct_local_broadcast(event)
 

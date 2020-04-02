@@ -170,7 +170,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
   # clients subscribed to this topic need to be aware of that and if a block number repeats,
   # it needs to re-write logs, for example
   defp broadcast_on_new_height(event_bus_module, height) do
-    event = OMG.Bus.Event.root_chain_event("ethereum_new_height", :ethereum_new_height, height)
+    event = OMG.Bus.Event.new({:root_chain, "ethereum_new_height"}, :ethereum_new_height, height)
     apply(event_bus_module, :broadcast, [event])
   end
 

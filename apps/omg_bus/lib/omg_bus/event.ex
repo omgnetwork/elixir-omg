@@ -16,28 +16,24 @@ defmodule OMG.Bus.Event do
   @moduledoc """
   Representation of a single event to be published on OMG event bus
   """
-  alias OMG.Bus.Topic
 
   @enforce_keys [:topic, :event, :payload]
-  @type t() :: %__MODULE__{topic: Topic.t(), event: atom, payload: any()}
+  @type topic_t() :: {:child_chain, binary()} | {:root_chain, binary()} | binary()
+  @type t() :: %__MODULE__{topic: __MODULE__.topic_t(), event: atom, payload: any()}
 
   defstruct [:topic, :event, :payload]
 
-  @doc """
-  Prepends root chain topic prefix to the topic provided as an argument and returns a root chain event
-  """
-  @spec root_chain_event(binary(), atom(), any()) :: __MODULE__.t()
-  def root_chain_event(topic, event, payload) when is_atom(event) do
-    topic = Topic.root_chain_topic(topic)
-    %__MODULE__{topic: topic, event: event, payload: payload}
+  @root_chain_topic_prefix "root_chain:"
+  @child_chain_topic_prefix "child_chain:"
+
+  @spec new(__MODULE__.topic_t(), atom(), any()) :: __MODULE__.t()
+  def new(topic, event, payload)
+
+  def new({:child_chain, topic}, event, payload) when is_atom(event) do
+    %__MODULE__{topic: @child_chain_topic_prefix <> topic, event: event, payload: payload}
   end
 
-  @doc """
-  Prepends child chain topic prefix to the topic provided as an argument and returns a child chain event
-  """
-  @spec child_chain_event(binary(), atom(), any()) :: __MODULE__.t()
-  def child_chain_event(topic, event, payload) when is_atom(event) do
-    topic = Topic.child_chain_topic(topic)
-    %__MODULE__{topic: topic, event: event, payload: payload}
+  def new({:root_chain, topic}, event, payload) when is_atom(event) do
+    %__MODULE__{topic: @root_chain_topic_prefix <> topic, event: event, payload: payload}
   end
 end
