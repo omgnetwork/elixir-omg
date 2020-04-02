@@ -126,7 +126,9 @@ defmodule LoadTest.Service.Faucet do
           utxos[currency]
 
         _ ->
-          get_utxos(faucet_account.addr)
+          faucet_account.addr
+          |> get_utxos()
+          |> get_largest_utxo_by_currency(faucet_account, currency)
           |> get_largest_utxo_by_currency(faucet_account, currency)
       end
 
