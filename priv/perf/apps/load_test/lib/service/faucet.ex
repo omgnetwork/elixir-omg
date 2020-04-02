@@ -15,6 +15,12 @@
 defmodule LoadTest.Service.Faucet do
   @moduledoc """
   Handles funding accounts on child chain.
+
+  For simplicity, the faucet will always use its largest value utxo to fund other accounts.
+  If its largest value utxo is insufficient (or if it has no utxos) it will do a deposit,
+  wait for it to finalize and then use that deposit utxo for funding accounts.
+
+  This means that faucet account must have sufficient funds on the root chain.
   """
 
   require Logger
@@ -25,17 +31,35 @@ defmodule LoadTest.Service.Faucet do
   alias ExPlasma.Utxo
   alias LoadTest.ChildChain.Deposit
   alias LoadTest.ChildChain.Transaction
+  alias LoadTest.Connection.WatcherInfo, as: Connection
   alias LoadTest.Ethereum.Account
+  alias WatcherInfoAPI.Api
+  alias WatcherInfoAPI.Model
 
-  @eth <<0::160>>
+  # Submitting a transaction to the childchain can fail if it is under heavy load,
+  # allow the faucet to retry to avoid failing the test prematurely.
   @fund_child_chain_account_retries 100
 
-  defstruct [:account, :fee, utxos: %{}]
+  @type state :: %__MODULE__{
+          faucet_account: Account.t(),
+          fee: pos_integer(),
+          utxos: map()
+        }
+  defstruct [:faucet_account, :fee, utxos: %{}]
 
-  def fund_child_chain_account(account, amount, token) do
-    GenServer.call(__MODULE__, {:fund_child_chain, account, amount, token}, :infinity)
+  @doc """
+  Sends funds to an account on the childchain.
+  If the faucet doesn't have enough funds it will deposit more. Note that this can take some time to finalize.
+  """
+  @spec fund_child_chain_account(Account.t(), pos_integer(), Utxo.address_binary()) :: Utxo.t()
+  def fund_child_chain_account(receiver, amount, currency) do
+    GenServer.call(__MODULE__, {:fund_child_chain, receiver, amount, currency}, :infinity)
   end
 
+  @doc """
+  Returns the faucet account.
+  """
+  @spec get_faucet() :: Account.t()
   def get_faucet() do
     GenServer.call(__MODULE__, :get_faucet)
   end
@@ -45,48 +69,122 @@ defmodule LoadTest.Service.Faucet do
   end
 
   def init(config) do
-    fee_wei = Keyword.fetch!(config, :fee_wei)
+    {:ok, faucet_account} = Account.new(Keyword.fetch!(config, :faucet_private_key))
+    Logger.debug("Using faucet: #{Encoding.to_hex(faucet_account.addr)}")
 
-    {faucet, eth_utxo} = get_funded_faucet_account(config)
-    Logger.debug("Using faucet: #{Encoding.to_hex(faucet.addr)}")
+    state =
+      struct!(
+        __MODULE__,
+        faucet_account: faucet_account,
+        fee: Keyword.fetch!(config, :fee_wei)
+      )
 
-    state = struct!(__MODULE__, account: faucet, fee: fee_wei, utxos: %{@eth => eth_utxo})
     {:ok, state}
   end
 
-  def handle_call(:get_faucet, _from, %__MODULE__{account: faucet} = state) do
-    {:reply, {:ok, faucet}, state}
+  def handle_call(:get_faucet, _from, %__MODULE__{faucet_account: faucet_account} = state) do
+    {:reply, {:ok, faucet_account}, state}
   end
 
-  def handle_call({:fund_child_chain, account, amount, @eth = token}, _from, %__MODULE__{account: faucet} = state) do
-    {utxo, utxo_amount} = state.utxos[token]
-    change = utxo_amount - amount - state.fee
-    if change < 0, do: raise({:error, :change_below_zero})
+  def handle_call(
+        {:fund_child_chain, receiver, amount, currency},
+        _from,
+        %__MODULE__{
+          faucet_account: faucet_account
+        } = state
+      ) do
+    utxo = check_sufficient_funds(state, currency, amount)
 
-    Logger.debug("Funding user: #{Encoding.to_hex(account.addr)} with UTXO: #{Utxo.pos(utxo)}")
+    change = utxo.amount - amount - state.fee
+    if change < 0, do: raise({:error, :insufficient_faucet_funds})
 
     outputs = [
-      %Utxo{amount: change, currency: token, owner: faucet.addr},
-      %Utxo{amount: amount, currency: token, owner: account.addr}
+      %Utxo{amount: change, currency: currency, owner: faucet_account.addr},
+      %Utxo{amount: amount, currency: currency, owner: receiver.addr}
     ]
 
-    {:ok, blknum, txindex} = Transaction.submit_tx([utxo], outputs, [faucet], @fund_child_chain_account_retries)
-    {:ok, change_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 0})
-    {:ok, user_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 1, amount: amount})
+    Logger.debug("Funding user #{Encoding.to_hex(receiver.addr)} with #{amount} from utxo: #{Utxo.pos(utxo)}")
+    {:ok, blknum, txindex} = Transaction.submit_tx([utxo], outputs, [faucet_account], @fund_child_chain_account_retries)
 
-    updated_state = Map.put(state, :utxos, %{state.utxos | token => {change_utxo, change}})
+    next_faucet_utxo = %Utxo{blknum: blknum, txindex: txindex, oindex: 0, amount: change}
+    user_utxo = %Utxo{blknum: blknum, txindex: txindex, oindex: 1, amount: amount}
+
+    updated_state = Map.put(state, :utxos, Map.put(state.utxos, currency, next_faucet_utxo))
 
     {:reply, {:ok, user_utxo}, updated_state}
   end
 
-  defp get_funded_faucet_account(opts) do
-    faucet_private_key = Keyword.fetch!(opts, :faucet_private_key)
-    {:ok, faucet} = Account.new(faucet_private_key)
+  @spec check_sufficient_funds(state(), Utxo.address_binary(), pos_integer()) :: Utxo.t()
+  defp check_sufficient_funds(
+         %{utxos: utxos, faucet_account: faucet_account, fee: fee},
+         currency,
+         amount
+       ) do
+    utxo =
+      case Map.has_key?(utxos, currency) do
+        true ->
+          utxos[currency]
 
-    deposit_amount = Keyword.fetch!(opts, :faucet_deposit_wei)
-    deposit_finality_margin = Keyword.fetch!(opts, :deposit_finality_margin)
-    {:ok, deposit_utxo} = Deposit.deposit_from(faucet, deposit_amount, @eth, deposit_finality_margin)
+        _ ->
+          get_utxos(faucet_account.addr)
+          |> get_largest_utxo_by_currency(faucet_account, currency)
+      end
 
-    {faucet, {deposit_utxo, deposit_amount}}
+    case utxo.amount - amount - fee < 0 do
+      true -> deposit(faucet_account, currency)
+      _ -> utxo
+    end
+  end
+
+  @spec get_utxos(Utxo.address_binary()) :: list()
+  defp get_utxos(address) do
+    {:ok, response} =
+      Api.Account.account_get_utxos(
+        Connection.client(),
+        %Model.AddressBodySchema1{
+          address: Encoding.to_hex(address)
+        }
+      )
+
+    Jason.decode!(response.body)["data"]
+  end
+
+  @spec get_largest_utxo_by_currency(list(), Account.t(), Utxo.address_binary()) :: Utxo.t()
+  defp get_largest_utxo_by_currency([], faucet_account, currency), do: deposit(faucet_account, currency)
+
+  defp get_largest_utxo_by_currency(utxos, faucet_account, currency) do
+    utxos = Enum.filter(utxos, fn utxo -> currency == LoadTest.Utils.Encoding.from_hex(utxo["currency"]) end)
+
+    case length(utxos) do
+      0 -> deposit(faucet_account, currency)
+      _ -> get_largest_utxo(utxos, currency)
+    end
+  end
+
+  @spec get_largest_utxo(list(), Utxo.address_binary()) :: Utxo.t()
+  defp get_largest_utxo(utxos, _currency) do
+    utxo = Enum.max_by(utxos, fn x -> x["amount"] end)
+
+    %Utxo{
+      blknum: utxo["blknum"],
+      txindex: utxo["txindex"],
+      oindex: utxo["oindex"],
+      amount: utxo["amount"]
+    }
+  end
+
+  @spec deposit(Account.t(), Utxo.address_binary()) :: Utxo.t()
+  defp deposit(faucet_account, currency) do
+    Logger.debug("Not enough funds in the faucet, depositing more from the root chain")
+
+    {:ok, utxo} =
+      Deposit.deposit_from(
+        faucet_account,
+        Application.fetch_env!(:load_test, :faucet_deposit_wei),
+        currency,
+        Application.fetch_env!(:load_test, :deposit_finality_margin)
+      )
+
+    utxo
   end
 end
