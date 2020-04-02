@@ -22,12 +22,13 @@ defmodule OMG.Watcher.ReleaseTasks.SetChildChain do
     args
   end
 
-  def load(_config, _args) do
+  def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
-    :ok = Application.put_env(@app, :child_chain_url, get_app_env(), persistent: true)
+    :ok = Application.put_env(@app, :child_chain_url, child_chain_url(), persistent: true)
+    Config.Reader.merge(config, omg_watcher: [child_chain_url: child_chain_url()])
   end
 
-  defp get_app_env() do
+  defp child_chain_url() do
     child_chain_url = validate_string(get_env("CHILD_CHAIN_URL"), Application.get_env(@app, :child_chain_url))
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: CHILD_CHAIN_URL Value: #{inspect(child_chain_url)}.")

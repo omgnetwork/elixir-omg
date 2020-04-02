@@ -15,14 +15,12 @@
 defmodule OMG.Status.ReleaseTasks.SetApplication do
   @moduledoc false
   @behaviour Config.Provider
-  @app :omg_status
 
   def init(args) do
     args
   end
 
-  def load(_config, release: release, current_version: current_version) do
-    :ok = Application.put_env(@app, :release, release, persistent: true)
-    :ok = Application.put_env(@app, :current_version, current_version, persistent: true)
+  def load(config, release: release, current_version: current_version) do
+    Config.Reader.merge(config, omg_status: [release: release, current_version: current_version])
   end
 end

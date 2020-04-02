@@ -21,25 +21,27 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumBlockTime do
 
   @app :omg_eth
   @env_key "ETHEREUM_BLOCK_TIME_SECONDS"
-  @config_key :ethereum_block_time_seconds
 
   def init(args) do
     args
   end
 
-  def load(_config, _args) do
+  def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
-    :ok = Application.put_env(@app, @config_key, get_ethereum_block_time(), persistent: true)
+    Config.Reader.merge(config, omg_eth: [ethereum_block_time_seconds: get_ethereum_block_time()])
   end
 
   defp get_ethereum_block_time() do
     ethereum_block_time_seconds =
       validate_integer(
         get_env(@env_key),
-        Application.get_env(@app, @config_key)
+        Application.get_env(@app, :ethereum_block_time_seconds)
       )
 
-    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(ethereum_block_time_seconds)}.")
+    _ =
+      Logger.info(
+        "CONFIGURATION: App: #{@app} Key: ethereum_block_time_seconds Value: #{inspect(ethereum_block_time_seconds)}."
+      )
 
     ethereum_block_time_seconds
   end

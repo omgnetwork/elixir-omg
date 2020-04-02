@@ -29,29 +29,25 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     config = Application.get_env(:omg_status, Tracer)
     config = Keyword.put(config, :disabled?, get_dd_disabled())
     config = Keyword.put(config, :env, get_app_env())
-    :ok = Application.put_env(:omg_status, Tracer, config, persistent: true)
 
-    # statix setup
-    :ok = Application.put_env(:statix, :host, get_dd_hostname(Application.get_env(:statix, :host)), persistent: true)
-    :ok = Application.put_env(:statix, :port, get_dd_port(Application.get_env(:statix, :port)), persistent: true)
     release = Keyword.get(args, :release)
     tags = ["application:#{release}", "app_env:#{get_app_env()}", "hostname:#{get_hostname()}"]
     :ok = Application.put_env(:statix, :tags, tags, persistent: true)
 
-    # spandex_datadog setup
-
-    :ok =
-      Application.put_env(:spandex_datadog, :host, get_dd_hostname(Application.get_env(:spandex_datadog, :host)),
-        persistent: true
-      )
-
-    :ok =
-      Application.put_env(:spandex_datadog, :port, get_dd_spandex_port(Application.get_env(:spandex_datadog, :port)),
-        persistent: true
-      )
-
-    :ok = Application.put_env(:spandex_datadog, :batch_size, get_batch_size(), persistent: true)
-    :ok = Application.put_env(:spandex_datadog, :sync_threshold, get_sync_threshold(), persistent: true)
+    Config.Reader.merge(config,
+      spandex_datadog: [
+        host: get_dd_hostname(Application.get_env(:spandex_datadog, :host)),
+        port: get_dd_spandex_port(Application.get_env(:spandex_datadog, :port)),
+        batch_size: get_batch_size(),
+        sync_threshold: get_sync_threshold()
+      ],
+      statix: [
+        port: get_dd_port(Application.get_env(:statix, :port)),
+        host: get_dd_hostname(Application.get_env(:statix, :host)),
+        tags: tags
+      ],
+      omg_status: [{Tracer, config}]
+    )
   end
 
   defp get_hostname() do

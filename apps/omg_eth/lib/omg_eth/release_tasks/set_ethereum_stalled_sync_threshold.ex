@@ -18,28 +18,29 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold do
   require Logger
 
   @app :omg_eth
-  @config_key :ethereum_stalled_sync_threshold_ms
   @env_name "ETHEREUM_STALLED_SYNC_THRESHOLD_MS"
 
   def init(args) do
     args
   end
 
-  def load(_config, _args) do
+  def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
     threshold_ms = stalled_sync_threshold_ms()
-
-    :ok = Application.put_env(@app, @config_key, threshold_ms, persistent: true)
+    Config.Reader.merge(config, omg_eth: [ethereum_stalled_sync_threshold_ms: threshold_ms])
   end
 
   defp stalled_sync_threshold_ms() do
     threshold_ms =
       validate_integer(
         get_env(@env_name),
-        Application.get_env(@app, @config_key)
+        Application.get_env(@app, :ethereum_stalled_sync_threshold_ms)
       )
 
-    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(threshold_ms)}.")
+    _ =
+      Logger.info(
+        "CONFIGURATION: App: #{@app} Key: ethereum_stalled_sync_threshold_ms Value: #{inspect(threshold_ms)}."
+      )
 
     threshold_ms
   end

@@ -25,15 +25,17 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
     args
   end
 
-  def load(_config, _args) do
+  def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
     _ = Application.ensure_all_started(:omg_status)
     rpc_url = get_ethereum_rpc_url()
-    Application.put_env(:ethereumex, :url, rpc_url, persistent: true)
 
     rpc_client_type = get_rpc_client_type()
-    Application.put_env(@app, :eth_node, rpc_client_type, persistent: true)
-    :ok
+
+    Config.Reader.merge(config,
+      ethereumex: [url: rpc_url],
+      omg_eth: [eth_node: rpc_client_type]
+    )
   end
 
   defp get_ethereum_rpc_url() do

@@ -24,7 +24,7 @@ defmodule OMG.Status.ReleaseTasks.SetLogger do
     args
   end
 
-  def load(_config, _args) do
+  def load(config, _args) do
     logger_backends = Application.get_env(@app, :backends, persistent: true)
     logger_backend = get_logger_backend()
 
@@ -35,7 +35,7 @@ defmodule OMG.Status.ReleaseTasks.SetLogger do
       end
 
     backends = logger_backends |> Kernel.--([remove]) |> Enum.concat([logger_backend]) |> Enum.uniq()
-    :ok = Application.put_env(@app, :backends, backends, persistent: true)
+    Config.Reader.merge(config, logger: [backends: backends])
   end
 
   defp get_logger_backend() do

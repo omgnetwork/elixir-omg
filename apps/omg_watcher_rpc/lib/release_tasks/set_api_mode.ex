@@ -25,7 +25,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetApiMode do
     args
   end
 
-  def load(_config, api_mode) do
-    :ok = Application.put_env(:omg_watcher_rpc, :api_mode, api_mode)
+  def load(config, api_mode) do
+    Config.Reader.merge(config, omg_watcher_rpc: [api_mode: api_mode])
   end
 end

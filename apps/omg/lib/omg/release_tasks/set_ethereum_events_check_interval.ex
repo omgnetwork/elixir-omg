@@ -23,27 +23,30 @@ defmodule OMG.ReleaseTasks.SetEthereumEventsCheckInterval do
 
   @app :omg
   @env_key "ETHEREUM_EVENTS_CHECK_INTERVAL_MS"
-  @config_key :ethereum_events_check_interval_ms
 
   def init(args) do
     args
   end
 
-  def load(_config, _args) do
+  def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
 
     interval_ms = get_interval_ms()
-    :ok = Application.put_env(@app, @config_key, interval_ms, persistent: true)
+
+    Config.Reader.merge(config,
+      omg: [ethereum_events_check_interval_ms: interval_ms]
+    )
   end
 
   defp get_interval_ms() do
     interval_ms =
       validate_integer(
         get_env(@env_key),
-        Application.get_env(@app, @config_key)
+        Application.get_env(@app, :ethereum_events_check_interval_ms)
       )
 
-    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(interval_ms)}.")
+    _ =
+      Logger.info("CONFIGURATION: App: #{@app} Key: ethereum_events_check_interval_ms Value: #{inspect(interval_ms)}.")
 
     interval_ms
   end
