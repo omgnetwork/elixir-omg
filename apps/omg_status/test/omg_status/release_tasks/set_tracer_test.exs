@@ -85,18 +85,13 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   end
 
   test "if default statix configuration is used when there's no environment variables" do
-    :ok =
-      Enum.each(@configuration_old_statix, fn {key, value} ->
-        Application.put_env(:statix, key, value, persistent: true)
-      end)
-
-    :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 2")
-    :ok = __MODULE__.System.put_env("APP_ENV", "test 2")
-    :ok = SetTracer.load([], release: :test_case_2, system_adapter: __MODULE__.System)
-    configuration = Application.get_all_env(:statix)
-    sorted_configuration = Enum.sort(configuration)
-    expected_tags = ["application:test_case_2", "app_env:test 2", "hostname:this is my tracer test 2"]
-    assert sorted_configuration == @configuration_old_statix |> Keyword.put(:tags, expected_tags) |> Enum.sort()
+    app_env = "test 2"
+    hostname = "this is my tracer test 2"
+    :ok = __MODULE__.System.put_env("HOSTNAME", hostname)
+    :ok = __MODULE__.System.put_env("APP_ENV", app_env)
+    configuration = SetTracer.load([], release: :test_case_2, system_adapter: __MODULE__.System)
+    tags = configuration |> Keyword.fetch!(:statix) |> Keyword.fetch!(:tags)
+    assert tags == ["application:test_case_2", "app_env:#{app_env}", "hostname:#{hostname}"]
   end
 
   test "if environment variables get applied in the spandex_datadog configuration" do

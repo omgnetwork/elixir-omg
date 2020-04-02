@@ -166,22 +166,22 @@ check-dialyzer:
 
 
 build-child_chain-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, release child_chain
+	$(ENV_PROD) mix do compile, release child_chain --overwrite
 
 build-child_chain-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, release child_chain
+	$(ENV_DEV) mix do compile, release child_chain --overwrite
 
 build-watcher-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, release watcher
+	$(ENV_PROD) mix do compile, release watcher --overwrite
 
 build-watcher-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, release watcher
+	$(ENV_DEV) mix do compile, release watcher --overwrite
 
 build-watcher_info-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, release watcher_info
+	$(ENV_PROD) mix do compile, release watcher_info --overwrite
 
 build-watcher_info-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, release watcher_info
+	$(ENV_DEV) mix do compile, release watcher_info --overwrite
 
 build-test: deps-elixir-omg
 	$(ENV_TEST) mix compile
@@ -380,8 +380,9 @@ start-child_chain:
 	make build-child_chain-${BAREBUILD_ENV} && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
 	echo "Init Child Chain DB" && \
-	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain init_key_value_db && \
+	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()"
 	echo "Init Child Chain DB DONE" && \
+	echo "Run Child Chain" && \
 	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
@@ -391,7 +392,7 @@ start-watcher:
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher init_key_value_db && \
+  _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
 	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
@@ -403,27 +404,26 @@ start-watcher_info:
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
 	echo "Init Watcher Info DBs" && \
-	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_key_value_db && \
-	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_postgresql_db && \
+  _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
+  _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB.migrate()" && \
 	echo "Init WatcherInfo DBs DONE" && \
-	echo "Run Watcher Info" && \
 	PORT=${WATCHER_INFO_PORT} _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
-	$(ENV_DEV) mix do compile, release dev --name child_chain --silent && \
+	$(ENV_DEV) mix do compile, release child_chain --overwrite && \
 	set -e; . ${OVERRIDING_VARIABLES} && \
 	exec _build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START) &
 
 update-watcher:
 	_build/dev/rel/watcher/bin/watcher stop ; \
-	$(ENV_DEV) mix do compile, release dev --name watcher --silent && \
+	$(ENV_DEV) mix do compile, release watcher --overwrite && \
 	set -e; . ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_PORT} _build/dev/rel/watcher/bin/watcher $(OVERRIDING_START) &
 
 update-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop ; \
-	$(ENV_DEV) mix do compile, release dev --name watcher_info --silent && \
+	$(ENV_DEV) mix do compile, release watcher_info --overwrite && \
 	set -e; . ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_INFO_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
 

@@ -23,7 +23,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
+    on_load()
     endpoint_config = Application.get_env(@app, OMG.WatcherRPC.Web.Endpoint)
 
     endpoint_config =
@@ -78,4 +78,9 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    Application.load(@app)
+  end
 end

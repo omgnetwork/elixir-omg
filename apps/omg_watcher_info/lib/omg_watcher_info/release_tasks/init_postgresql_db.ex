@@ -13,59 +13,21 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB do
-  @moduledoc """
-  A release task that performs database initialization, namely database creation and migration.
+  @moduledoc false
+  @app :omg_watcher_info
 
-  This release task can also be run on initialized database in order to migrate up to the latest
-  database schema.
-  """
-  alias Ecto.Migrator
-  alias OMG.Utils.CLI
-  @start_apps [:crypto, :ssl, :postgrex, :phoenix_ecto, :ecto_sql, :telemetry]
-  @apps [:omg_watcher_info]
-
-  def run() do
-    Enum.each(@start_apps, &Application.ensure_all_started/1)
-    Enum.each(@apps, &init_pg_db/1)
-    :init.stop()
-  end
-
-  defp init_pg_db(app_name) do
-    _ = Application.load(app_name)
-    repos = Application.get_env(app_name, :ecto_repos, [])
-
-    Enum.each(repos, &run_create_for/1)
-    Enum.each(repos, & &1.start_link(pool_size: 2))
-    Enum.each(repos, &run_migrations_for/1)
-  end
-
-  defp run_create_for(repo) do
-    case repo.__adapter__.storage_up(repo.config) do
-      :ok ->
-        CLI.info("The database for #{inspect(repo)} has been created")
-
-      {:error, :already_up} ->
-        CLI.info("The database for #{inspect(repo)} has already been created")
-
-      {:error, term} when is_binary(term) ->
-        CLI.error("The database for #{inspect(repo)} couldn't be created: #{term}")
-
-      {:error, term} ->
-        CLI.error("The database for #{inspect(repo)} couldn't be created: #{inspect(term)}")
+  def migrate() do
+    for repo <- repos() do
+      {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
     end
   end
 
-  defp run_migrations_for(repo) do
-    migrations_path = priv_path_for(repo, "migrations")
-    CLI.info("Running migration for #{inspect(repo)}...")
-    Migrator.run(repo, migrations_path, :up, all: true)
+  def rollback(repo, version) do
+    {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))
   end
 
-  defp priv_dir(app), do: "#{:code.priv_dir(app)}"
-
-  defp priv_path_for(repo, filename) do
-    app = Keyword.get(repo.config, :otp_app)
-    repo_underscore = repo |> Module.split() |> List.last() |> Macro.underscore()
-    Path.join([priv_dir(app), repo_underscore, filename])
+  defp repos() do
+    Application.load(@app)
+    Application.fetch_env!(@app, :ecto_repos)
   end
 end

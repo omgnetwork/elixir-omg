@@ -1,6 +1,7 @@
 import Config
+ethereum_events_check_interval_ms = 8_000
 
-config :logger, level: :debug
+config :logger, level: :info
 
 config :logger, :console,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
@@ -31,7 +32,7 @@ config :sentry,
 
 config :omg,
   deposit_finality_margin: 10,
-  ethereum_events_check_interval_ms: 8_000,
+  ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
   coordinator_eth_height_check_interval_ms: 6_000
 
 config :omg, :eip_712_domain,
@@ -101,7 +102,7 @@ config :omg_eth,
   child_block_interval: 1000,
   min_exit_period_seconds: nil,
   ethereum_block_time_seconds: 15,
-  ethereum_events_check_interval_ms: 8_000,
+  ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
   ethereum_stalled_sync_threshold_ms: 20_000,
   node_logging_in_debug: false
 

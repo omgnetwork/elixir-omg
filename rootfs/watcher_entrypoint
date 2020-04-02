@@ -57,16 +57,15 @@ s6-env REPLACE_OS_VARS=yes
 ## Known commands
 ##
 
-ifelse { test $1 == "init_key_value_db" } { /app/bin/watcher $@ }
 ifelse { test $1 == "full_local" } {
-  /bin/bash -c "/app/bin/watcher init_key_value_db && /app/bin/watcher foreground"
+  /app/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && /app/bin/watcher start_iex"
 }
 
-ifelse { test $1 == "foreground" } {
+ifelse { test $1 == "start_iex" } {
   /app/bin/watcher $@
 }
 
-ifelse { test $1 == "console" } {
+ifelse { test $1 == "start" } {
   /app/bin/watcher $@
 }
 

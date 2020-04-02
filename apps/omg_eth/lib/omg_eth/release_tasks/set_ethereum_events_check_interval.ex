@@ -29,11 +29,12 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
+    on_load()
 
     interval_ms = get_interval_ms()
 
     Config.Reader.merge(config,
+      omg_eth: [ethereum_events_check_interval_ms: interval_ms],
       omg: [ethereum_events_check_interval_ms: interval_ms]
     )
   end
@@ -55,4 +56,9 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval do
 
   defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
   defp validate_integer(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    Application.load(@app)
+  end
 end

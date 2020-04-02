@@ -23,7 +23,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDB do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
+    on_load()
 
     db_config =
       @app
@@ -44,4 +44,9 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDB do
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    Application.load(@app)
+  end
 end

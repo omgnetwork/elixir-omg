@@ -23,16 +23,19 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     args
   end
 
-  def load(_config, args) do
+  def load(config, args) do
+    on_load()
     nil = Process.put(:system_adapter, Keyword.get(args, :system_adapter, System))
-    _ = Application.ensure_all_started(:logger)
-    config = Application.get_env(:omg_status, Tracer)
-    config = Keyword.put(config, :disabled?, get_dd_disabled())
-    config = Keyword.put(config, :env, get_app_env())
+    app_env = get_app_env()
+
+    tracer_config =
+      :omg_status
+      |> Application.get_env(Tracer)
+      |> Keyword.put(:disabled?, get_dd_disabled())
+      |> Keyword.put(:env, app_env)
 
     release = Keyword.get(args, :release)
-    tags = ["application:#{release}", "app_env:#{get_app_env()}", "hostname:#{get_hostname()}"]
-    :ok = Application.put_env(:statix, :tags, tags, persistent: true)
+    tags = ["application:#{release}", "app_env:#{app_env}", "hostname:#{get_hostname()}"]
 
     Config.Reader.merge(config,
       spandex_datadog: [
@@ -46,7 +49,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
         host: get_dd_hostname(Application.get_env(:statix, :host)),
         tags: tags
       ],
-      omg_status: [{Tracer, config}]
+      omg_status: [{Tracer, tracer_config}]
     )
   end
 
@@ -61,7 +64,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     dd_disabled? =
       validate_bool(
         get_env("DD_DISABLED"),
-        Application.get_env(:omg_status, Tracer)[:disabled?]
+        Application.get_env(@app, Tracer)[:disabled?]
       )
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
@@ -127,4 +130,11 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
 
   defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
   defp validate_integer(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    Application.load(@app)
+    Application.load(:spandex_datadog)
+    Application.load(:statix)
+  end
 end

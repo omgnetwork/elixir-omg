@@ -135,8 +135,6 @@ defmodule OMG.DB.RocksDB do
   # File.mkdir_p is called at the application start
   # sobelow_skip ["Traversal"]
   defp do_init(server_name, path) do
-    _ = Logger.error("INO INO INO: #{inspect(path)}")
-    File.write!("/tmp/yoloooo", path)
     :ok = File.mkdir_p(path)
 
     with :ok <- server_name.init_storage(path),

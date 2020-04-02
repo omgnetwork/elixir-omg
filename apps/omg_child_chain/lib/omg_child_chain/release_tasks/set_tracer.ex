@@ -23,7 +23,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetTracer do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
+    on_load()
 
     tracer_config =
       @app
@@ -58,4 +58,9 @@ defmodule OMG.ChildChain.ReleaseTasks.SetTracer do
 
   defp validate_app_env(value) when is_binary(value), do: value
   defp validate_app_env(nil), do: exit("APP_ENV must be set.")
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    Application.load(@app)
+  end
 end

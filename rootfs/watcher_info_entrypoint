@@ -57,17 +57,15 @@ s6-env REPLACE_OS_VARS=yes
 ## Known commands
 ##
 
-ifelse { test $1 == "init_key_value_db" } { /app/bin/watcher_info $@ }
-ifelse { test $1 == "init_postgresql_db" } { /app/bin/watcher_info $@ }
 ifelse { test $1 == "full_local" } {
-  /bin/bash -c "/app/bin/watcher_info init_postgresql_db && /app/bin/watcher_info init_key_value_db && /app/bin/watcher_info foreground"
+  /bin/bash -c "/app/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB.migrate()" && /app/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && /app/bin/watcher_info start_iex"
 }
 
-ifelse { test $1 == "foreground" } {
+ifelse { test $1 == "start_iex" } {
   /app/bin/watcher_info $@
 }
 
-ifelse { test $1 == "console" } {
+ifelse { test $1 == "start" } {
   /app/bin/watcher_info $@
 }
 

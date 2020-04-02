@@ -47,16 +47,15 @@ s6-env REPLACE_OS_VARS=yes
 
 ## Known commands
 ##
-ifelse { test $1 == "init_key_value_db" } { /app/bin/child_chain $@ }
 ifelse { test $1 == "full_local" } {
-  /bin/bash -c "/app/bin/child_chain init_key_value_db && /app/bin/child_chain foreground"
+  /app/bin/child_chain eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && /app/bin/child_chain start_iex"
 }
 
-ifelse { test $1 == "foreground" } {
+ifelse { test $1 == "start_iex" } {
   /app/bin/child_chain $@
 }
 
-ifelse { test $1 == "console" } {
+ifelse { test $1 == "start" } {
   /app/bin/child_chain $@
 }
 
