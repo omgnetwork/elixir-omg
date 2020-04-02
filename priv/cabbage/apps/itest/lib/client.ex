@@ -96,10 +96,11 @@ defmodule Itest.Client do
     submit_typed(typed_data_signed)
   end
 
-  def get_utxos(address) do
-    payload = %AddressBodySchema1{address: address}
+  def get_utxos(params) do
+    payload = %AddressBodySchema1{address: params.address, page: params.page, limit: params.limit}
     {:ok, response} = Account.account_get_utxos(WatcherInfo.new(), payload)
-    Poison.decode!(response.body, as: %{"data" => [%Utxo{}]})["data"]
+    data = Poison.decode!(response.body)
+    {:ok, data}
   end
 
   def get_gas_used(receipt_hash), do: Itest.Gas.get_gas_used(receipt_hash)

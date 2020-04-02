@@ -23,15 +23,18 @@ defmodule WatcherInfoApiTest do
   alias Itest.Transactions.Currency
   alias WatcherInfoAPI.Connection, as: WatcherInfo
 
+  @geth_block_every = 1
+  @to_milliseconds = 1000
+
   setup do
     accounts = Account.take_accounts(1)
     alice_account = Enum.at(accounts, 0)
     %{alice_account: alice_account}
   end
 
-  defwhen ~r/^Alice deposit "(?<amount>[^"]+)" ETH to the root chain creating 1 utxo$/,
-          %{amount: amount},
-          %{alice_account: alice_account} = state do
+  defgiven ~r/^Alice deposit "(?<amount>[^"]+)" ETH to the root chain creating 1 utxo$/,
+           %{amount: amount},
+           %{alice_account: alice_account} = state do
     {alice_addr, _alice_priv} = alice_account
 
     {:ok, _} = Client.deposit(Currency.to_wei(1), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
@@ -51,38 +54,39 @@ defmodule WatcherInfoApiTest do
 
     finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
 
-    to_milliseconds = 1000
-    geth_block_every = 1
+    wait_finality_margin_blocks(finality_margin_blocks)
 
-    # sometimes waiting just 1 margin blocks is not enough
-    (finality_margin_blocks * 2)
-    |> Kernel.*(geth_block_every)
-    |> Kernel.*(to_milliseconds)
-    |> Kernel.round()
-    |> Process.sleep()
-
-    {:ok, data} =
-      WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), %{address: alice_addr, page: 1, limit: 10})
+    {:ok, data} = Client.get_utxos(%{address: alice_addr, page: 1, limit: 10})
 
     %{"data" => utxos, "data_paging" => data_paging} = Jason.decode!(data.body)
     assert_equal(1, length(utxos), "for depositing 1 tx")
     assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
     assert_equal(true, Map.equal?(data_paging, %{"page" => 1, "limit" => 10}), "as data_paging")
 
-    #deposit again for another utxo
+    # deposit again for another utxo
     {:ok, _} = Client.deposit(Currency.to_wei(2), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
 
-    {:ok, data} =
-      WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), %{address: alice_addr, page: 1, limit: 2})
-      %{"data" => utxos, "data_paging" => data_paging} = Jason.decode!(data.body)
-      assert_equal(1, length(utxos), "for depositing 2 tx")
-      assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
-      assert_equal(Currency.to_wei(2), Enum.at(utxos, 1)["amount"], "for second utxo")
-      assert_equal(true, Map.equal?(data_paging, %{"page" => 1, "limit" => 2}), "as data_paging")
+    wait_finality_margin_blocks(finality_margin_blocks)
 
+    {:ok, data} = Client.get_utxos(%{address: alice_addr, page: 1, limit: 2})
+
+    %{"data" => utxos, "data_paging" => data_paging} = Jason.decode!(data.body)
+    assert_equal(2, length(utxos), "for depositing 2 tx")
+    assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
+    assert_equal(Currency.to_wei(2), Enum.at(utxos, 1)["amount"], "for second utxo")
+    assert_equal(true, Map.equal?(data_paging, %{"page" => 1, "limit" => 2}), "as data_paging")
   end
 
   defp assert_equal(left, right, message) do
     assert(left == right, "Expected #{left}, but have #{right}." <> message)
+  end
+
+  defp wait_finality_margin_blocks(finality_margin_blocks) do
+    # sometimes waiting just 1 margin blocks is not enough
+    (finality_margin_blocks * 2)
+    |> Kernel.*(@geth_block_every)
+    |> Kernel.*(@to_milliseconds)
+    |> Kernel.round()
+    |> Process.sleep()
   end
 end
