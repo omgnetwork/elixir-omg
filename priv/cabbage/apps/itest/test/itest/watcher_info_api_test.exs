@@ -58,7 +58,7 @@ defmodule WatcherInfoApiTest do
 
     {:ok, data} = Client.get_utxos(%{address: alice_addr, page: 1, limit: 10})
 
-    %{"data" => utxos, "data_paging" => data_paging} = Jason.decode!(data.body)
+    %{"data" => utxos, "data_paging" => data_paging} = data
     assert_equal(1, length(utxos), "for depositing 1 tx")
     assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
     assert_equal(true, Map.equal?(data_paging, %{"page" => 1, "limit" => 10}), "as data_paging")
@@ -70,7 +70,7 @@ defmodule WatcherInfoApiTest do
 
     {:ok, data} = Client.get_utxos(%{address: alice_addr, page: 1, limit: 2})
 
-    %{"data" => utxos, "data_paging" => data_paging} = Jason.decode!(data.body)
+    %{"data" => utxos, "data_paging" => data_paging} = data
     assert_equal(2, length(utxos), "for depositing 2 tx")
     assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
     assert_equal(Currency.to_wei(2), Enum.at(utxos, 1)["amount"], "for second utxo")
