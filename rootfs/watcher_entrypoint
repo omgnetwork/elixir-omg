@@ -58,7 +58,7 @@ s6-env REPLACE_OS_VARS=yes
 ##
 
 ifelse { test $1 == "full_local" } {
-  /app/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && /app/bin/watcher start_iex"
+  /bin/bash -c "/app/bin/watcher eval \"OMG.DB.ReleaseTasks.InitKeyValueDB.run()\" && /app/bin/watcher start_iex"
 }
 
 ifelse { test $1 == "start_iex" } {
