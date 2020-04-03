@@ -94,7 +94,6 @@ defmodule LoadTest.Service.Faucet do
     utxo = get_funding_utxo(state, currency, amount)
 
     change = utxo.amount - amount - state.fee
-    if change < 0, do: raise({:error, :insufficient_faucet_funds})
 
     outputs = [
       %Utxo{amount: change, currency: currency, owner: state.faucet_account.addr},
@@ -128,8 +127,16 @@ defmodule LoadTest.Service.Faucet do
       end
 
     case utxo == nil or utxo.amount - amount - state.fee < 0 do
-      true -> deposit(state.faucet_account, state.faucet_deposit_wei, currency, state.deposit_finality_margin)
-      _ -> utxo
+      true ->
+        deposit(
+          state.faucet_account,
+          max(state.faucet_deposit_wei, amount + state.fee),
+          currency,
+          state.deposit_finality_margin
+        )
+
+      _ ->
+        utxo
     end
   end
 
@@ -159,7 +166,7 @@ defmodule LoadTest.Service.Faucet do
   defp get_largest_utxo([]), do: nil
 
   defp get_largest_utxo(utxos) do
-    utxo = Enum.max_by(utxos, fn x -> x["amount"] end)
+    utxo = Enum.max_by(utxos, & &1["amount"])
 
     %Utxo{
       blknum: utxo["blknum"],
