@@ -207,8 +207,8 @@ defmodule OMG.Umbrella.MixProject do
 
   defp steps() do
     case Mix.env() do
-      :dev -> [:assemble]
       :prod -> [:assemble, :tar]
+      _ -> [:assemble]
     end
   end
 end
