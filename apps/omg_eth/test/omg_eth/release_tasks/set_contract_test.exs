@@ -50,7 +50,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    authority_address = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:authority_address)
+    authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
     assert authority_address == "authority_address_value"
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
@@ -96,7 +96,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    authority_address = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:authority_address)
+    authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
     assert authority_address == "authority_address_value"
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
@@ -116,7 +116,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    authority_address = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:authority_address)
+    authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
     assert authority_address == "authority_address_value"
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
@@ -136,7 +136,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    authority_address = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:authority_address)
+    authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
     assert authority_address == "authority_address_value"
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
@@ -172,7 +172,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     min_exit_period_seconds = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:min_exit_period_seconds)
     assert min_exit_period_seconds == 20
 
-    authority_address = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:authority_address)
+    authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
     assert authority_address == "authority_address_value"
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)

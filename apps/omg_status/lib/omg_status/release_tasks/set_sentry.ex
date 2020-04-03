@@ -64,12 +64,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
             "Sentry configuration not provided. Disabling Sentry. If you want it enabled provide APP_ENV and SENTRY_DSN."
           )
 
-        Config.Reader.merge(
-          config,
-          sentry: [
-            included_environments: []
-          ]
-        )
+        Config.Reader.merge(config, sentry: [included_environments: []])
     end
   end
 
@@ -80,11 +75,7 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
   end
 
   defp get_hostname() do
-    hostname =
-      validate_string(
-        get_env("HOSTNAME"),
-        Application.get_env(@app, :server_name)
-      )
+    hostname = validate_string(get_env("HOSTNAME"), Application.get_env(@app, :server_name))
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: HOSTNAME, server_name Value: #{inspect(hostname)}.")
     hostname

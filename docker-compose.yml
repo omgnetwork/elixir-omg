@@ -63,6 +63,7 @@ services:
   childchain:
     image: omisego/child_chain:latest
     command: "full_local"
+    container_name: childchain
     env_file:
       - ./localchain_contract_addresses.env
     environment:
@@ -77,6 +78,8 @@ services:
       - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
       - FEE_BUFFER_DURATION_MS=30000
       - LOGGER_BACKEND=console
+      - RELEASE_COOKIE=development
+      - NODE_HOST=127.0.0.1
     restart: always
     ports:
       - "9656:9656"
@@ -95,6 +98,7 @@ services:
   watcher:
     image: omisego/watcher:latest
     command: "full_local"
+    container_name: watcher
     env_file:
       - ./localchain_contract_addresses.env
     environment:
@@ -112,6 +116,8 @@ services:
       - EXIT_PROCESSOR_SLA_MARGIN=5520
       - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
       - LOGGER_BACKEND=console
+      - RELEASE_COOKIE=development
+      - NODE_HOST=127.0.0.1
     restart: always
     ports:
       - "7434:7434"
@@ -130,6 +136,7 @@ services:
   watcher_info:
     image: omisego/watcher_info:latest
     command: "full_local"
+    container_name: watcher_info
     env_file:
       - ./localchain_contract_addresses.env
     environment:
@@ -147,6 +154,8 @@ services:
       - EXIT_PROCESSOR_SLA_MARGIN=5520
       - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
       - LOGGER_BACKEND=console
+      - RELEASE_COOKIE=development
+      - NODE_HOST=127.0.0.1
     restart: always
     ports:
       - "7534:7534"

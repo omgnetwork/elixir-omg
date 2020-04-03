@@ -32,7 +32,6 @@ defmodule Support.Conformance.SignaturesHashesCase do
 
   setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
-
     contracts = SnapshotContracts.parse_contracts()
     signtest_addr_hex = contracts["CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK"]
     old_config = Application.get_all_env(:omg_eth)

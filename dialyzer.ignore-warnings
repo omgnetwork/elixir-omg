@@ -6,7 +6,7 @@ test/support/conformance/signatures_hashes.ex:49: Guard test _@3::{'error','malf
 test/support/conformance/signatures_hashes.ex:54: Expression produces a value of type <<_:224>>, but this value is unmatched
 test/support/conformance/signatures_hashes.ex:79: The pattern {'error', 'unrecognized_output_type'} can never match the type {'error','malformed_address' | 'malformed_inputs' | 'malformed_metadata' | 'malformed_outputs' | 'malformed_transaction' | 'malformed_transaction_rlp'}
 test/support/conformance/signatures_hashes.ex:129: Guard test _@11::<<_:224>> =:= 'false' can never succeed
-test/support/conformance/signatures_hashes_case.ex:41: The created fun has no local return
+test/support/conformance/signatures_hashes_case.ex:40: The created fun has no local return
 test/support/dev_geth.ex:55: The created fun has no local return
 test/support/dev_geth.ex:62: Function stop/1 has no local return
 test/support/dev_geth.ex:65: The pattern {'exit_status', 35072} can never match the type 'ok' | {'error',_}

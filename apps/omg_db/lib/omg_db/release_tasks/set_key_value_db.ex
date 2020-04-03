@@ -39,12 +39,9 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   defp set_db(config, root_path, release) do
     path = Path.join([root_path, "#{release}"])
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
-
-    Config.Reader.merge(config,
-      omg_db: [
-        path: path
-      ]
-    )
+    # if we want to access the updated path in the same VM instance, we need to update it imidiatelly
+    Application.put_env(@app, :path, path)
+    Config.Reader.merge(config, omg_db: [path: path])
   end
 
   defp get_env(key), do: System.get_env(key)

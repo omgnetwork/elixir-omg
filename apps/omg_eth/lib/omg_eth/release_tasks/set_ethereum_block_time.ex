@@ -32,11 +32,8 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumBlockTime do
   end
 
   defp get_ethereum_block_time() do
-    ethereum_block_time_seconds =
-      validate_integer(
-        get_env(@env_key),
-        Application.get_env(@app, :ethereum_block_time_seconds)
-      )
+    ethereum_block_time_seconds = Application.get_env(@app, :ethereum_block_time_seconds)
+    ethereum_block_time_seconds = validate_integer(get_env(@env_key), ethereum_block_time_seconds)
 
     _ =
       Logger.info(

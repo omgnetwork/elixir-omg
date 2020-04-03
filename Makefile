@@ -357,14 +357,14 @@ docker-nuke:
 	$(MAKE) init-contracts
 
 docker-remote-watcher:
-	docker-compose exec watcher /watcher_entrypoint bin/watcher remote
+	docker exec -ti watcher /app/bin/child_chain remote
 
 docker-remote-watcher_info:
-	docker-compose exec watcher_info /watcher_info_entrypoint bin/watcher_info remote
+	docker exec -ti watcher_info /app/bin/child_chain remote
 
 docker-remote-childchain:
-	docker-compose exec childchain /child_chain_entrypoint bin/child_chain remote
-
+	docker exec -ti childchain /app/bin/child_chain remote
+	
 .PHONY: docker-nuke docker-remote-watcher docker-remote-watcher_info docker-remote-childchain
 
 ###

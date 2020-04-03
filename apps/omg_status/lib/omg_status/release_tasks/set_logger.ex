@@ -25,6 +25,7 @@ defmodule OMG.Status.ReleaseTasks.SetLogger do
   end
 
   def load(config, _args) do
+    _ = on_load()
     logger_backends = Application.get_env(@app, :backends, persistent: true)
     logger_backend = get_logger_backend()
 
@@ -55,4 +56,8 @@ defmodule OMG.Status.ReleaseTasks.SetLogger do
   defp do_validate_string("CONSOLE", _default), do: :console
   defp do_validate_string("INK", _default), do: Ink
   defp do_validate_string(_, default), do: default
+
+  defp on_load() do
+    _ = Application.load(:logger)
+  end
 end

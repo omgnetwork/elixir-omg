@@ -25,7 +25,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
+    _ = on_load()
     buffer_ms = fee_buffer_ms()
     Config.Reader.merge(config, omg_child_chain: [fee_buffer_duration_ms: buffer_ms])
   end
@@ -43,4 +43,9 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration do
 
   defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
   defp validate_integer(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
+  end
 end

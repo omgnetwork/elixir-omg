@@ -13,46 +13,23 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.ReleaseTasks.SetChildChainTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   alias OMG.Watcher.ReleaseTasks.SetChildChain
 
   @app :omg_watcher
-  @configuration_old Application.get_all_env(@app)
-
-  setup do
-    on_exit(fn ->
-      # configuration is global state so we reset it to known values in case
-      # it got fiddled before
-
-      :ok =
-        Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
-    end)
-
-    :ok
-  end
 
   test "if environment variables get applied in the configuration" do
-    # configuration is global state so we reset it to known values in case
-    # it got fiddled before
-
     :ok = System.put_env("CHILD_CHAIN_URL", "/url/url")
-
-    :ok = SetChildChain.load([], [])
-    configuration = Enum.sort(Application.get_all_env(@app))
-    "/url/url" = configuration[:child_chain_url]
-    :ok = System.delete_env("CHILD_CHAIN_URL")
-
-    ^configuration =
-      @configuration_old
-      |> Keyword.put(:child_chain_url, "/url/url")
-      |> Enum.sort()
+    config = SetChildChain.load([], [])
+    config_child_chain_url = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:child_chain_url)
+    assert config_child_chain_url == "/url/url"
   end
 
   test "if default configuration is used when there's no environment variables" do
     :ok = System.delete_env("CHILD_CHAIN_URL")
-    :ok = SetChildChain.load([], [])
-    configuration = Application.get_all_env(@app)
-    sorted_configuration = Enum.sort(configuration)
-    ^sorted_configuration = Enum.sort(@configuration_old)
+    config = SetChildChain.load([], [])
+    config_child_chain_url = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:child_chain_url)
+    child_chain_url = Application.get_env(@app, :child_chain_url)
+    assert child_chain_url == config_child_chain_url
   end
 end

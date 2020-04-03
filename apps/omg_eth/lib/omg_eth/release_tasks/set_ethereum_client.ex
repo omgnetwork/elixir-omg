@@ -28,9 +28,9 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   def load(config, _args) do
     _ = on_load()
     rpc_url = get_ethereum_rpc_url()
+    rpc_client_type = get_rpc_client_type()
     # we need to get this imidiatelly in effect because we use ethereumex in SetContract
     Application.put_env(:ethereumex, :url, rpc_url, persistent: true)
-    rpc_client_type = get_rpc_client_type()
 
     Config.Reader.merge(config,
       ethereumex: [url: rpc_url],

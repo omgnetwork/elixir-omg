@@ -40,11 +40,8 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval do
   end
 
   defp get_interval_ms() do
-    interval_ms =
-      validate_integer(
-        get_env(@env_key),
-        Application.get_env(@app, :ethereum_events_check_interval_ms)
-      )
+    ethereum_events_check_interval_ms = Application.get_env(@app, :ethereum_events_check_interval_ms)
+    interval_ms = validate_integer(get_env(@env_key), ethereum_events_check_interval_ms)
 
     _ =
       Logger.info("CONFIGURATION: App: #{@app} Key: ethereum_events_check_interval_ms Value: #{inspect(interval_ms)}.")

@@ -23,10 +23,13 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
-    watcher_tracer_config = Application.get_env(@app, OMG.WatcherRPC.Tracer)
-    watcher_tracer_config = Keyword.put(watcher_tracer_config, :disabled?, get_dd_disabled())
-    watcher_tracer_config = Keyword.put(watcher_tracer_config, :env, get_app_env())
+    _ = on_load()
+
+    watcher_tracer_config =
+      @app
+      |> Application.get_env(OMG.WatcherRPC.Tracer)
+      |> Keyword.put(:disabled?, get_dd_disabled())
+      |> Keyword.put(:env, get_app_env())
 
     Config.Reader.merge(config,
       omg_watcher_rpc: [{OMG.WatcherRPC.Tracer, watcher_tracer_config}],
@@ -35,11 +38,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
   end
 
   defp get_dd_disabled() do
-    dd_disabled? =
-      validate_bool(
-        get_env("DD_DISABLED"),
-        Application.get_env(@app, OMG.WatcherRPC.Tracer)[:disabled?]
-      )
+    dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, OMG.WatcherRPC.Tracer)[:disabled?])
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
@@ -62,4 +61,9 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    Application.load(@app)
+  end
 end

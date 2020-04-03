@@ -57,8 +57,8 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     :ok = ByzantineEvents.watcher_synchronize()
 
-    ByzantineEvents.get_exitable_utxos(alice.addr, take: @take)
-    |> ByzantineEvents.get_many_standard_exits()
+    utxos = ByzantineEvents.get_exitable_utxos(alice.addr, take: @take)
+    ByzantineEvents.get_many_standard_exits(utxos)
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
@@ -78,7 +78,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_exit_height)
     # assert that we can call this testing function reliably and that there are no invalid exits
-    assert [] = ByzantineEvents.get_byzantine_events("invalid_exit")
+    assert ByzantineEvents.get_byzantine_events("invalid_exit") == []
   end
 
   @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
@@ -152,6 +152,6 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
     :ok = ByzantineEvents.watcher_synchronize(root_chain_height: last_challenge_height)
 
-    assert [] = ByzantineEvents.get_byzantine_events("invalid_exit")
+    assert ByzantineEvents.get_byzantine_events("invalid_exit") == []
   end
 end

@@ -30,31 +30,33 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
   test "init works and DB starts" do
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
-    :ok = SetKeyValueDB.load([], release: :child_chain)
+    _ = SetKeyValueDB.load([], release: :child_chain)
     :ok = InitKeyValueDB.run()
     started_apps = Enum.map(Application.started_applications(), fn {app, _, _} -> app end)
     [true, true, true] = Enum.map(@apps, fn app -> not Enum.member?(started_apps, app) end)
     {:ok, _} = Application.ensure_all_started(:omg_db)
     :ok = Application.stop(:omg_db)
     :ok = System.delete_env("DB_PATH")
+    _ = File.rm_rf!(dir)
   end
 
   test "can't init non empty dir" do
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
-    :ok = SetKeyValueDB.load([], release: :watcher)
+    _ = SetKeyValueDB.load([], release: :watcher)
 
     _ = InitKeyValueDB.run()
 
     {:error, _} = InitKeyValueDB.run()
     :ok = System.delete_env("DB_PATH")
+    _ = File.rm_rf!(dir)
   end
 
   test "if init isn't called, DB doesn't start" do
     _ = Application.stop(:omg_db)
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
-    :ok = SetKeyValueDB.load([], release: :child_chain)
+    _ = SetKeyValueDB.load([], release: :child_chain)
 
     try do
       {:ok, _} = Application.ensure_all_started(:omg_db)

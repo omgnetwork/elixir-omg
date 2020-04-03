@@ -25,17 +25,14 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold do
   end
 
   def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
+    _ = on_load()
     threshold_ms = stalled_sync_threshold_ms()
     Config.Reader.merge(config, omg_eth: [ethereum_stalled_sync_threshold_ms: threshold_ms])
   end
 
   defp stalled_sync_threshold_ms() do
-    threshold_ms =
-      validate_integer(
-        get_env(@env_name),
-        Application.get_env(@app, :ethereum_stalled_sync_threshold_ms)
-      )
+    ethereum_stalled_sync_threshold_ms = Application.get_env(@app, :ethereum_stalled_sync_threshold_ms)
+    threshold_ms = validate_integer(get_env(@env_name), ethereum_stalled_sync_threshold_ms)
 
     _ =
       Logger.info(
@@ -49,4 +46,9 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold do
 
   defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
   defp validate_integer(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
+  end
 end

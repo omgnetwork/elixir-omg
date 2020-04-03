@@ -13,49 +13,37 @@
 # limitations under the License.
 
 defmodule OMG.Status.ReleaseTasks.SetLoggerTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   alias OMG.Status.ReleaseTasks.SetLogger
   @app :logger
-  setup_all do
-    logger_backends = Application.get_env(@app, :backends, persistent: true)
-
-    on_exit(fn ->
-      :ok = Application.put_env(@app, :backends, logger_backends)
-      :ok = System.delete_env("LOGGER_BACKEND")
-    end)
-
-    :ok
-  end
 
   setup do
     :ok = System.delete_env("LOGGER_BACKEND")
+
+    on_exit(fn ->
+      :ok = System.delete_env("LOGGER_BACKEND")
+    end)
   end
 
   test "if environment variables (INK) get applied in the configuration" do
     :ok = System.put_env("LOGGER_BACKEND", "INK")
-    :ok = SetLogger.load([], [])
-    configuration = Application.get_env(@app, :backends)
-    assert Enum.member?(configuration, Ink) == true
+    config = SetLogger.load([], [])
+    backends = config |> Keyword.fetch!(:logger) |> Keyword.fetch!(:backends)
+    assert Enum.member?(backends, Ink) == true
   end
 
   test "if environment variables (CONSOLE) get applied in the configuration" do
     # env var to console and asserting that Ink gets removed
     :ok = System.put_env("LOGGER_BACKEND", "conSole")
-    :ok = SetLogger.load([], [])
-    configuration = Application.get_env(@app, :backends)
-    assert Enum.member?(configuration, :console) == true
-    assert Enum.member?(configuration, Ink) == false
+    config = SetLogger.load([], [])
+    backends = config |> Keyword.fetch!(:logger) |> Keyword.fetch!(:backends)
+    assert Enum.member?(backends, :console) == true
   end
 
   test "if environment variables are not present the default configuration gets used (INK)" do
-    # in mix_env == test the default logger is :console and Sentry.LoggerBackend
-    # we want to test our production default setting which is Ink and Sentry.LoggerBackend
-    # so we modify the configuration first so that it looks like in mix env prod
-    Application.put_env(@app, :backends, [Ink, Sentry.LoggerBackend], persistent: true)
-    # we continue with setting the backend to console and asserting that Ink gets removed
-    :ok = SetLogger.load([], [])
-    configuration = Application.get_env(@app, :backends)
-    assert Enum.member?(configuration, :console) == false
-    assert Enum.member?(configuration, Ink) == true
+    config = SetLogger.load([], [])
+    backends = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:backends)
+    assert Enum.member?(backends, :console) == false
+    assert Enum.member?(backends, Ink) == true
   end
 end

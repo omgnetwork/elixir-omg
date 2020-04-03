@@ -22,14 +22,22 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
     args
   end
 
-  def load(config, _args) do
+  def load(config, args) do
     _ = on_load()
+    adapter = Keyword.get(args, :system_adapter, System)
+    nil = Process.put(:system_adapter, adapter)
+    dd_disabled = get_dd_disabled()
 
     tracer_config =
       @app
       |> Application.get_env(OMG.Watcher.Tracer)
-      |> Keyword.put(:disabled?, get_dd_disabled())
-      |> Keyword.put(:env, get_app_env())
+      |> Keyword.put(:disabled?, dd_disabled)
+
+    tracer_config =
+      case dd_disabled do
+        false -> Keyword.put(tracer_config, :env, get_app_env())
+        true -> Keyword.put(tracer_config, :env, nil)
+      end
 
     Config.Reader.merge(config, omg_watcher: [{OMG.Watcher.Tracer, tracer_config}])
   end
@@ -47,7 +55,9 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
     env
   end
 
-  defp get_env(key), do: System.get_env(key)
+  defp get_env(key) do
+    Process.get(:system_adapter).get_env(key)
+  end
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default

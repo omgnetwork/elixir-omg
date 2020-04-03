@@ -27,16 +27,21 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     _ = on_load()
     adapter = Keyword.get(args, :system_adapter, System)
     nil = Process.put(:system_adapter, adapter)
-    app_env = get_app_env()
+    dd_disabled = get_dd_disabled()
 
     tracer_config =
-      :omg_status
+      @app
       |> Application.get_env(Tracer)
-      |> Keyword.put(:disabled?, get_dd_disabled())
-      |> Keyword.put(:env, app_env)
+      |> Keyword.put(:disabled?, dd_disabled)
+
+    tracer_config =
+      case dd_disabled do
+        false -> Keyword.put(tracer_config, :env, get_app_env())
+        true -> Keyword.put(tracer_config, :env, "")
+      end
 
     release = Keyword.get(args, :release)
-    tags = ["application:#{release}", "app_env:#{app_env}", "hostname:#{get_hostname()}"]
+    tags = ["application:#{release}", "app_env:#{get_app_env()}", "hostname:#{get_hostname()}"]
     spandex_datadog_host = Application.get_env(:spandex_datadog, :host)
     spandex_datadog_port = Application.get_env(:spandex_datadog, :port)
     statix_default_port = Application.get_env(:statix, :port)
@@ -59,10 +64,6 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   end
 
   defp get_hostname() do
-    Logger.error(
-      "Hostname on tracer #{inspect(get_env("HOSTNAME"))} system adapter #{inspect(Process.get(:system_adapter))}"
-    )
-
     hostname = validate_hostname(get_env("HOSTNAME"))
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: HOSTNAME Value: #{inspect(hostname)}.")
@@ -70,11 +71,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   end
 
   defp get_dd_disabled() do
-    dd_disabled? =
-      validate_bool(
-        get_env("DD_DISABLED"),
-        Application.get_env(@app, Tracer)[:disabled?]
-      )
+    dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, Tracer)[:disabled?])
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
@@ -115,11 +112,8 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   defp validate_hostname(_), do: exit("HOSTNAME is not set correctly.")
 
   def get_sync_threshold() do
-    sync_threshold =
-      validate_integer(
-        get_env("SYNC_THRESHOLD"),
-        Application.get_env(:spandex_datadog, :sync_threshold)
-      )
+    sync_threshold = Application.get_env(:spandex_datadog, :sync_threshold)
+    sync_threshold = validate_integer(get_env("SYNC_THRESHOLD"), sync_threshold)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: SYNC_THRESHOLD Value: #{inspect(sync_threshold)}.")
     sync_threshold

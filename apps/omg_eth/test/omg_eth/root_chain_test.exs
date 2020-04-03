@@ -40,13 +40,7 @@ defmodule OMG.Eth.RootChainTest do
   describe "get_standard_exit_structs/2" do
     test "returns a list of standard exits by the given exit ids" do
       authority_address = Configuration.authority_address()
-
-      {:ok, true} =
-        Ethereumex.HttpClient.request(
-          "personal_unlockAccount",
-          [authority_address, "", 0],
-          []
-        )
+      {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [authority_address, "", 0], [])
 
       # Make 3 deposits so we can do 3 exits. 1 exit will not be queried, so we can check for false positives
       _ = add_queue(authority_address)
