@@ -18,6 +18,7 @@ defmodule LoadTest.ChildChain.Utxos do
   """
   alias ExPlasma.Encoding
   alias ExPlasma.Utxo
+  alias LoadTest.ChildChain.Transaction
   alias LoadTest.Connection.WatcherInfo, as: Connection
   alias WatcherInfoAPI.Api
   alias WatcherInfoAPI.Model
@@ -61,5 +62,41 @@ defmodule LoadTest.ChildChain.Utxos do
     utxos
     |> Enum.filter(fn utxo -> currency == LoadTest.Utils.Encoding.from_hex(utxo.currency) end)
     |> Enum.max_by(fn x -> x.amount end, fn -> nil end)
+  end
+
+  @doc """
+  Merges all the given utxos into one.
+  Note that this can take several iterations to complete.
+  """
+  @spec merge(list(Utxo.t()), Utxo.address_binary(), Account.t()) :: Utxo.t()
+  def merge(utxos, currency, faucet_account) do
+    utxos
+    |> Enum.filter(fn utxo -> LoadTest.Utils.Encoding.from_hex(utxo.currency) == currency end)
+    |> merge(faucet_account)
+  end
+
+  @spec merge(list(Utxo.t()), Account.t()) :: Utxo.t()
+  defp merge([], _faucet_account), do: :error_empty_utxo_list
+  defp merge([single_utxo], _faucet_account), do: single_utxo
+
+  defp merge(utxos, faucet_account) when length(utxos) > 4 do
+    utxos
+    |> Enum.chunk_every(4)
+    |> Enum.map(fn inputs -> merge(inputs, faucet_account) end)
+    |> merge(faucet_account)
+  end
+
+  defp merge([%{currency: currency} | _] = inputs, faucet_account) do
+    tx_amount = Enum.reduce(inputs, 0, fn x, acc -> x.amount + acc end)
+    output = %Utxo{amount: tx_amount, currency: currency, owner: faucet_account.addr}
+
+    {:ok, blknum, txindex} =
+      Transaction.submit_tx(
+        inputs,
+        [output],
+        List.duplicate(faucet_account, length(inputs))
+      )
+
+    %Utxo{blknum: blknum, txindex: txindex, oindex: 0, amount: tx_amount, currency: currency}
   end
 end
