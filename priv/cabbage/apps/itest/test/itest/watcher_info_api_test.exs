@@ -55,6 +55,7 @@ defmodule WatcherInfoApiTest do
     finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
 
     wait_finality_margin_blocks(finality_margin_blocks)
+    Itest.Poller.pull_balance_until_amount(alice_addr, Currency.to_wei(1))
 
     {:ok, data} = Client.get_utxos(%{address: alice_addr, page: 1, limit: 10})
 
@@ -67,6 +68,7 @@ defmodule WatcherInfoApiTest do
     {:ok, _} = Client.deposit(Currency.to_wei(2), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
 
     wait_finality_margin_blocks(finality_margin_blocks)
+    Itest.Poller.pull_balance_until_amount(alice_addr, Currency.to_wei(1 + 2))
 
     {:ok, data} = Client.get_utxos(%{address: alice_addr, page: 1, limit: 2})
 
@@ -83,7 +85,7 @@ defmodule WatcherInfoApiTest do
 
   defp wait_finality_margin_blocks(finality_margin_blocks) do
     # sometimes waiting just 1 margin blocks is not enough
-    (finality_margin_blocks * 2)
+    finality_margin_blocks
     |> Kernel.*(@geth_block_every)
     |> Kernel.*(@to_milliseconds)
     |> Kernel.round()
