@@ -31,10 +31,8 @@ defmodule LoadTest.Service.Faucet do
   alias ExPlasma.Utxo
   alias LoadTest.ChildChain.Deposit
   alias LoadTest.ChildChain.Transaction
-  alias LoadTest.Connection.WatcherInfo, as: Connection
+  alias LoadTest.ChildChain.Utxos
   alias LoadTest.Ethereum.Account
-  alias WatcherInfoAPI.Api
-  alias WatcherInfoAPI.Model
 
   # Submitting a transaction to the childchain can fail if it is under heavy load,
   # allow the faucet to retry to avoid failing the test prematurely.
@@ -117,63 +115,25 @@ defmodule LoadTest.Service.Faucet do
   defp get_funding_utxo(state, currency, amount) do
     utxo = choose_largest_utxo(state.utxos[currency], state.faucet_account, currency)
 
-    case utxo == nil or utxo.amount - amount - state.fee < 0 do
-      true ->
-        deposit(
-          state.faucet_account,
-          max(state.faucet_deposit_wei, amount + state.fee),
-          currency,
-          state.deposit_finality_margin
-        )
-
-      _ ->
-        utxo
+    if utxo == nil or utxo.amount - amount - state.fee < 0 do
+      deposit(
+        state.faucet_account,
+        max(state.faucet_deposit_wei, amount + state.fee),
+        currency,
+        state.deposit_finality_margin
+      )
+    else
+      utxo
     end
   end
 
   defp choose_largest_utxo(nil, account, currency) do
     account.addr
-    |> get_utxos()
-    |> get_largest_utxo_by_currency(currency)
+    |> Utxos.get_utxos()
+    |> Utxos.get_largest_utxo(currency)
   end
 
   defp choose_largest_utxo(utxo, _account, _currency), do: utxo
-
-  @spec get_utxos(Utxo.address_binary()) :: list()
-  defp get_utxos(address) do
-    {:ok, response} =
-      Api.Account.account_get_utxos(
-        Connection.client(),
-        %Model.AddressBodySchema1{
-          address: Encoding.to_hex(address)
-        }
-      )
-
-    Jason.decode!(response.body)["data"]
-  end
-
-  @spec get_largest_utxo_by_currency(list(), Utxo.address_binary()) :: Utxo.t()
-  defp get_largest_utxo_by_currency([], _currency), do: nil
-
-  defp get_largest_utxo_by_currency(utxos, currency) do
-    utxos
-    |> Enum.filter(fn utxo -> currency == LoadTest.Utils.Encoding.from_hex(utxo["currency"]) end)
-    |> get_largest_utxo()
-  end
-
-  @spec get_largest_utxo(list()) :: Utxo.t()
-  defp get_largest_utxo([]), do: nil
-
-  defp get_largest_utxo(utxos) do
-    utxo = Enum.max_by(utxos, & &1["amount"])
-
-    %Utxo{
-      blknum: utxo["blknum"],
-      txindex: utxo["txindex"],
-      oindex: utxo["oindex"],
-      amount: utxo["amount"]
-    }
-  end
 
   @spec deposit(Account.t(), pos_integer(), Utxo.address_binary(), pos_integer()) :: Utxo.t()
   defp deposit(faucet_account, amount, currency, deposit_finality_margin) do
