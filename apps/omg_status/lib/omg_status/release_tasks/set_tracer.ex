@@ -37,17 +37,21 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
 
     release = Keyword.get(args, :release)
     tags = ["application:#{release}", "app_env:#{app_env}", "hostname:#{get_hostname()}"]
+    spandex_datadog_host = Application.get_env(:spandex_datadog, :host)
+    spandex_datadog_port = Application.get_env(:spandex_datadog, :port)
+    statix_default_port = Application.get_env(:statix, :port)
+    statix_default_hostname = Application.get_env(:statix, :host)
 
     Config.Reader.merge(config,
       spandex_datadog: [
-        host: get_dd_hostname(Application.get_env(:spandex_datadog, :host)),
-        port: get_dd_spandex_port(Application.get_env(:spandex_datadog, :port)),
+        host: get_dd_hostname(spandex_datadog_host),
+        port: get_dd_spandex_port(spandex_datadog_port),
         batch_size: get_batch_size(),
         sync_threshold: get_sync_threshold()
       ],
       statix: [
-        port: get_dd_port(Application.get_env(:statix, :port)),
-        host: get_dd_hostname(Application.get_env(:statix, :host)),
+        port: get_dd_port(statix_default_port),
+        host: get_dd_hostname(statix_default_hostname),
         tags: tags
       ],
       omg_status: [{Tracer, tracer_config}]

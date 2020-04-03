@@ -1,6 +1,6 @@
 MAKEFLAGS += --silent
 OVERRIDING_START ?= start_iex
-OVERRIDING_VARIABLES ?= ./bin/variables
+OVERRIDING_VARIABLES ?= bin/variables
 SNAPSHOT ?= SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20
 BAREBUILD_ENV ?= dev
 help:
@@ -375,30 +375,28 @@ start-services:
 	docker-compose up geth postgres
 
 start-child_chain:
-	make apply_vars; \
+	source ${OVERRIDING_VARIABLES} && \
 	echo "Building Child Chain" && \
 	make build-child_chain-${BAREBUILD_ENV} && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
 	echo "Init Child Chain DB" && \
 	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()"
-	echo "Init Child Chain DB DONE" && \
 	echo "Run Child Chain" && \
 	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
-	make apply_vars; \
+	source ${OVERRIDING_VARIABLES} && \
 	echo "Building Watcher" && \
 	make build-watcher-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
   _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
-	echo "Init Watcher DBs DONE" && \
 	echo "Run Watcher" && \
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
 
 start-watcher_info:
-	make apply_vars; \
+	source ${OVERRIDING_VARIABLES} && \
 	echo "Building Watcher Info" && \
 	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
@@ -406,25 +404,25 @@ start-watcher_info:
 	echo "Init Watcher Info DBs" && \
   _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
   _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB.migrate()" && \
-	echo "Init WatcherInfo DBs DONE" && \
+	echo "Run Watcher Info" && \
 	PORT=${WATCHER_INFO_PORT} _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
 	$(ENV_DEV) mix do compile, release child_chain --overwrite && \
-	make apply_vars && \
+	source ${OVERRIDING_VARIABLES} && \
 	exec _build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START) &
 
 update-watcher:
 	_build/dev/rel/watcher/bin/watcher stop ; \
 	$(ENV_DEV) mix do compile, release watcher --overwrite && \
-	make apply_vars && \
+	source ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_PORT} _build/dev/rel/watcher/bin/watcher $(OVERRIDING_START) &
 
 update-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop ; \
 	$(ENV_DEV) mix do compile, release watcher_info --overwrite && \
-	make apply_vars && \
+	source ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_INFO_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
 
 stop-child_chain:
@@ -437,15 +435,15 @@ stop-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop
 
 remote-child_chain:
-	make apply_vars && \
+	source ${OVERRIDING_VARIABLES} && \
 	_build/dev/rel/child_chain/bin/child_chain remote
 
 remote-watcher:
-	make apply_vars && \
+	source ${OVERRIDING_VARIABLES} && \
 	_build/dev/rel/watcher/bin/watcher remote
 
 remote-watcher_info:
-	make apply_vars && \
+	source ${OVERRIDING_VARIABLES} && \
 	_build/dev/rel/watcher_info/bin/watcher_info remote
 
 get-alarms:
@@ -506,12 +504,3 @@ diagnostics:
 	echo "\n ---------- END OF DIAGNOSTICS REPORT ----------"
 
 .PHONY: diagnostics
-
-apply_vars:
-ifeq ($(OS),Darwin)
-	source ${OVERRIDING_VARIABLES}
-else
-	. ${OVERRIDING_VARIABLES}
-endif
-
-OS=$(shell uname -s)
