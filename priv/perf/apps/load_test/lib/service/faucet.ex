@@ -115,16 +115,7 @@ defmodule LoadTest.Service.Faucet do
 
   @spec get_funding_utxo(state(), Utxo.address_binary(), pos_integer()) :: Utxo.t()
   defp get_funding_utxo(state, currency, amount) do
-    utxo =
-      case Map.has_key?(state.utxos, currency) do
-        true ->
-          state.utxos[currency]
-
-        _ ->
-          state.faucet_account.addr
-          |> get_utxos()
-          |> get_largest_utxo_by_currency(currency)
-      end
+    utxo = choose_largest_utxo(state.utxos[currency], state.faucet_account, currency)
 
     case utxo == nil or utxo.amount - amount - state.fee < 0 do
       true ->
@@ -139,6 +130,14 @@ defmodule LoadTest.Service.Faucet do
         utxo
     end
   end
+
+  defp choose_largest_utxo(nil, account, currency) do
+    account.addr
+    |> get_utxos()
+    |> get_largest_utxo_by_currency(currency)
+  end
+
+  defp choose_largest_utxo(utxo, _account, _currency), do: utxo
 
   @spec get_utxos(Utxo.address_binary()) :: list()
   defp get_utxos(address) do
