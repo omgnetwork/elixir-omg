@@ -25,7 +25,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
   def load(config, args) do
     _ = on_load()
     adapter = Keyword.get(args, :system_adapter, System)
-    nil = Process.put(:system_adapter, adapter)
+    _ = Process.put(:system_adapter, adapter)
     dd_disabled = get_dd_disabled()
 
     tracer_config =
@@ -36,7 +36,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
     tracer_config =
       case dd_disabled do
         false -> Keyword.put(tracer_config, :env, get_app_env())
-        true -> Keyword.put(tracer_config, :env, nil)
+        true -> Keyword.put(tracer_config, :env, "")
       end
 
     Config.Reader.merge(config, omg_watcher: [{OMG.Watcher.Tracer, tracer_config}])

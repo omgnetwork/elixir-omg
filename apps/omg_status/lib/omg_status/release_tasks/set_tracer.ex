@@ -26,7 +26,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   def load(config, args) do
     _ = on_load()
     adapter = Keyword.get(args, :system_adapter, System)
-    nil = Process.put(:system_adapter, adapter)
+    _ = Process.put(:system_adapter, adapter)
     dd_disabled = get_dd_disabled()
 
     tracer_config =
