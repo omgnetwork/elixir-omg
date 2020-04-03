@@ -21,7 +21,6 @@ defmodule WatcherInfoApiTest do
   alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
   alias Itest.Transactions.Currency
-  alias WatcherInfoAPI.Connection, as: WatcherInfo
 
   @geth_block_every 1
   @to_milliseconds 1000
