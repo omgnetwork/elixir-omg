@@ -20,7 +20,7 @@ defmodule OMG.Eth.EthereumHeight do
 
   use GenServer
   require Logger
-  alias OMG.Eth
+  alias OMG.Eth.Client
 
   @spec get() :: {:ok, non_neg_integer()} | {:error, :error_ethereum_height}
   def get() do
@@ -58,5 +58,5 @@ defmodule OMG.Eth.EthereumHeight do
     _check_error -> :error_ethereum_height
   end
 
-  defp eth(), do: Application.get_env(:omg_eth, :eth_integration_module, Eth)
+  defp eth(), do: Application.get_env(:omg_eth, :eth_integration_module, Client)
 end

@@ -16,10 +16,9 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraintsTest do
   use ExUnit.Case, async: true
 
   alias OMG.Eth.Encoding
-  alias OMG.Eth.RootChain
   alias OMG.WatcherRPC.Web.Validator.TransactionConstraints
 
-  @eth RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @zero_metadata <<0::256>>
 
   describe "parse/1" do

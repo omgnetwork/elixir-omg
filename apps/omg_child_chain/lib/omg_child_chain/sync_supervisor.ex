@@ -46,19 +46,35 @@ defmodule OMG.ChildChain.SyncSupervisor do
 
   defp children(args) do
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
+    metrics_collection_interval = Configuration.metrics_collection_interval()
+    block_queue_eth_height_check_interval_ms = Configuration.block_queue_eth_height_check_interval_ms()
+    submission_finality_margin = Configuration.submission_finality_margin()
+    block_submit_every_nth = Configuration.block_submit_every_nth()
+    ethereum_events_check_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
+    coordinator_eth_height_check_interval_ms = OMG.Configuration.coordinator_eth_height_check_interval_ms()
+    deposit_finality_margin = OMG.Configuration.deposit_finality_margin()
+    child_block_interval = OMG.Eth.Configuration.child_block_interval()
+    contracts = OMG.Eth.Configuration.contracts()
 
     [
       {GasAnalyzer, []},
       {BlockQueue,
        [
-         metrics_collection_interval: Configuration.metrics_collection_interval(),
-         block_queue_eth_height_check_interval_ms: Configuration.block_queue_eth_height_check_interval_ms(),
-         submission_finality_margin: Configuration.submission_finality_margin(),
-         block_submit_every_nth: Configuration.block_submit_every_nth()
+         contract_deployment_height: contract_deployment_height,
+         metrics_collection_interval: metrics_collection_interval,
+         block_queue_eth_height_check_interval_ms: block_queue_eth_height_check_interval_ms,
+         submission_finality_margin: submission_finality_margin,
+         block_submit_every_nth: block_submit_every_nth,
+         child_block_interval: child_block_interval
        ]},
-      {RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
+      {RootChainCoordinator,
+       CoordinatorSetup.coordinator_setup(
+         metrics_collection_interval,
+         coordinator_eth_height_check_interval_ms,
+         deposit_finality_margin
+       )},
       {EthereumEventAggregator,
-       contracts: Application.fetch_env!(:omg_eth, :contract_addr),
+       contracts: contracts,
        ets_bucket: @events_bucket,
        events: [
          [name: :deposit_created, enrich: false],
@@ -68,6 +84,8 @@ defmodule OMG.ChildChain.SyncSupervisor do
          [name: :exit_started, enrich: true]
        ]},
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
@@ -75,6 +93,8 @@ defmodule OMG.ChildChain.SyncSupervisor do
         process_events_callback: &State.deposit/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :in_flight_exit,
         synced_height_update_key: :last_in_flight_exit_eth_height,
@@ -82,6 +102,8 @@ defmodule OMG.ChildChain.SyncSupervisor do
         process_events_callback: &exit_and_ignore_validities/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :piggyback,
         synced_height_update_key: :last_piggyback_exit_eth_height,
@@ -89,6 +111,8 @@ defmodule OMG.ChildChain.SyncSupervisor do
         process_events_callback: &exit_and_ignore_validities/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,

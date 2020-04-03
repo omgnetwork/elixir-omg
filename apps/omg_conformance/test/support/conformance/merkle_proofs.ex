@@ -16,9 +16,10 @@ defmodule Support.Conformance.MerkleProofs do
   @moduledoc """
   Utility functions used when testing Elixir vs Solidity implementation conformance
   """
-  alias OMG.Eth
 
   import ExUnit.Assertions, only: [assert: 1]
+
+  alias OMG.Eth.Encoding
 
   @doc """
   Checks if the provided proof data returns true (valid proof) in the contract
@@ -29,7 +30,7 @@ defmodule Support.Conformance.MerkleProofs do
     return_types = [:bool]
 
     try do
-      {:ok, result} = Eth.call_contract(contract, signature, args, return_types)
+      {:ok, result} = call_contract(contract, signature, args, return_types)
       result
       # Some incorrect proofs throw, and end up returning something that the ABI decoder borks on, hence rescue
     rescue
@@ -49,8 +50,25 @@ defmodule Support.Conformance.MerkleProofs do
     # only geth is supported for the merkle proof conformance tests for now
     :geth = Application.fetch_env!(:omg_eth, :eth_node)
 
-    # revert from `Eth.call_contract` it returns something resembling a reason
+    # revert from `call_contract` it returns something resembling a reason
     # binary (beginning with 4-byte function selector). We need to assume that this is in fact a revert
     assert <<0::size(28)-unit(8)>> = binary_part(chopped_reason_binary_result, 4, 28)
+  end
+
+  defp call_contract(contract, signature, args, return_types) do
+    data = ABI.encode(signature, args)
+
+    {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: Encoding.to_hex(contract), data: Encoding.to_hex(data)})
+    decode_answer(return, return_types)
+  end
+
+  defp decode_answer(enc_return, return_types) do
+    single_return =
+      enc_return
+      |> Encoding.from_hex()
+      |> ABI.TypeDecoder.decode(return_types)
+      |> hd()
+
+    {:ok, single_return}
   end
 end

@@ -27,7 +27,7 @@ defmodule OMG.State.UtxoSetTest do
 
   require Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
   setup do
     [alice, bob] = 1..2 |> Enum.map(fn _ -> generate_entity() end)
