@@ -97,8 +97,12 @@ defmodule Itest.Client do
   end
 
   def get_utxos(params) do
-    payload = %AddressBodySchema1{address: params.address, page: params.page, limit: params.limit}
-    {:ok, response} = Account.account_get_utxos(WatcherInfo.new(), payload)
+    default_paging = %{page: 1, limit: 200}
+    %{address: address, page: page, limit: limit} = Map.merge(default_paging, params)
+
+    {:ok, response} =
+      Account.account_get_utxos(WatcherInfo.new(), %AddressBodySchema1{address: address, page: page, limit: limit})
+
     data = Poison.decode!(response.body)
     {:ok, data}
   end
