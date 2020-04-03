@@ -25,7 +25,8 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
 
   def load(config, args) do
     _ = on_load()
-    nil = Process.put(:system_adapter, Keyword.get(args, :system_adapter, System))
+    adapter = Keyword.get(args, :system_adapter, System)
+    nil = Process.put(:system_adapter, adapter)
     app_env = get_app_env()
 
     tracer_config =
@@ -54,6 +55,10 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   end
 
   defp get_hostname() do
+    Logger.error(
+      "Hostname on tracer #{inspect(get_env("HOSTNAME"))} system adapter #{inspect(Process.get(:system_adapter))}"
+    )
+
     hostname = validate_hostname(get_env("HOSTNAME"))
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: HOSTNAME Value: #{inspect(hostname)}.")
@@ -116,7 +121,9 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     sync_threshold
   end
 
-  defp get_env(key), do: Process.get(:system_adapter).get_env(key)
+  defp get_env(key) do
+    Process.get(:system_adapter).get_env(key)
+  end
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default
