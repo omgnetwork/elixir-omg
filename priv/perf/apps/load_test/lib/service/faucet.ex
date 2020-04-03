@@ -129,7 +129,7 @@ defmodule LoadTest.Service.Faucet do
     {:reply, {:ok, user_utxo}, updated_state}
   end
 
-  def handle_call({:merge_utxos, currency}, _from, %__MODULE__{faucet_account: faucet_account} = state) do
+  def handle_call({:merge_utxos, currency}, _from, state) do
     utxos = Utxos.get_utxos(faucet_account.addr)
     Logger.debug("Merging #{length(utxos)} utxos of #{Encoding.to_hex(currency)}")
     utxo = Utxos.merge(utxos, currency, faucet_account)
