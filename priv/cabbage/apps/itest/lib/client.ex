@@ -15,7 +15,6 @@ defmodule Itest.Client do
   @moduledoc """
     An interface to Watcher API.
   """
-  alias Itest.ApiModel.Utxo
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Deposit
   alias Itest.Transactions.Encoding
