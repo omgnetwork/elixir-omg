@@ -30,7 +30,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   import Ecto.Query, only: [from: 2, where: 2]
 
-  @default_get_utxos_limit 100
+  @default_get_utxos_limit 200
 
   @type balance() :: %{
           currency: binary(),
