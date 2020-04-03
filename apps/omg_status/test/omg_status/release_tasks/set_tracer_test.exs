@@ -58,10 +58,10 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   test "if default configuration is used when there's no environment variables" do
     :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 3")
-    :ok = SetTracer.load([], system_adapter: __MODULE__.System)
-    configuration = Application.get_env(@app, Tracer)
-    sorted_configuration = Enum.sort(configuration)
-    ^sorted_configuration = Enum.sort(@configuration_old)
+    config = SetTracer.load([], system_adapter: __MODULE__.System)
+    configuration = @app |> Application.get_env(Tracer) |> Enum.sort()
+    tracer_config = config |> Keyword.get(:omg_status) |> Keyword.get(Tracer) |> Enum.sort()
+    assert configuration == tracer_config
   end
 
   test "if environment variables get applied in the statix configuration" do

@@ -22,6 +22,8 @@ export FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
 export DD_HOSTNAME=localhost
 export DD_DISABLED=true
 export LOGGER_BACKEND=console
+export RELEASE_COOKIE=development
+export NODE_HOST=127.0.0.1
 # expects it's executed from the root of the project
 FILE='./localchain_contract_addresses.env'
 while IFS= read -r line; do

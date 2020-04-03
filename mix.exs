@@ -27,7 +27,7 @@ defmodule OMG.Umbrella.MixProject do
       version: current_version(),
       releases: [
         watcher: [
-          steps: [:assemble, :tar],
+          steps: steps(),
           applications: [
             tools: :permanent,
             runtime_tools: :permanent,
@@ -60,7 +60,7 @@ defmodule OMG.Umbrella.MixProject do
           ]
         ],
         watcher_info: [
-          steps: [:assemble, :tar],
+          steps: steps(),
           version: current_version(),
           applications: [
             tools: :permanent,
@@ -98,7 +98,7 @@ defmodule OMG.Umbrella.MixProject do
           ]
         ],
         child_chain: [
-          steps: [:assemble, :tar],
+          steps: steps(),
           version: current_version(),
           applications: [
             tools: :permanent,
@@ -203,5 +203,12 @@ defmodule OMG.Umbrella.MixProject do
   defp current_version() do
     sha = String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
     "#{String.trim(File.read!("VERSION"))}" <> "+" <> sha
+  end
+
+  defp steps() do
+    case Mix.env() do
+      :dev -> [:assemble]
+      :prod -> [:assemble, :tar]
+    end
   end
 end
