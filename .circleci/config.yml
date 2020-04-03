@@ -73,10 +73,10 @@ jobs:
       - run:
           name: Integration Tests
           command: |
-            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration --trace` works
             export SHELL=/bin/bash
             make init_test
-            mix test --trace --only integration
+            mix test --only integration --trace
           no_output_timeout: 30m
   barebuild_macos:
     executor: metal_macos
@@ -535,6 +535,7 @@ jobs:
             sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-tools
             sudo apt-get install --yes --no-install-recommends --no-install-suggests elixir=1.8.2-1
             sudo apt policy elixir
+            mix local.hex --force && mix local.rebar --force
             ./bin/setup
           no_output_timeout: 2400
       - run: make install-hex-rebar
@@ -691,8 +692,6 @@ workflows:
     jobs:
       - build
       - integration_tests:
-          requires: [build]
-      - barebuild:
           requires: [build]
       - barebuild_macos:
           requires: [build]

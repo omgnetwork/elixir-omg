@@ -18,7 +18,11 @@ defmodule OMG.Watcher.API.Status do
   """
 
   alias OMG.Eth
+  alias OMG.Eth.Client
+  alias OMG.Eth.Configuration
   alias OMG.Eth.EthereumHeight
+  alias OMG.Eth.RootChain
+
   alias OMG.RootChainCoordinator
   alias OMG.State
   alias OMG.Utils.HttpRPC.Encoding
@@ -51,17 +55,20 @@ defmodule OMG.Watcher.API.Status do
   def get_status() do
     {:ok, eth_block_number} = EthereumHeight.get()
     {:ok, eth_block_timestamp} = Eth.get_block_timestamp_by_number(eth_block_number)
-    eth_syncing = Eth.syncing?()
+    eth_syncing = syncing?()
 
     validated_child_block_number = get_validated_child_block_number()
+    # wtf is eth diagnostics?
+    contracts = Configuration.contracts()
+    contract_addr = contract_map_from_hex(contracts)
 
-    {:ok, mined_child_block_number} = Eth.RootChain.get_mined_child_block()
-    {:ok, {_root, mined_child_block_timestamp}} = Eth.RootChain.get_child_chain(mined_child_block_number)
-    {:ok, {_root, validated_child_block_timestamp}} = Eth.RootChain.get_child_chain(validated_child_block_number)
+    mined_child_block_number = RootChain.get_mined_child_block()
+
+    {_, mined_child_block_timestamp} = RootChain.blocks(mined_child_block_number)
+
+    {_, validated_child_block_timestamp} = RootChain.blocks(validated_child_block_number)
 
     {:ok, services_synced_heights} = RootChainCoordinator.get_ethereum_heights()
-
-    contract_addr = Eth.Diagnostics.get_child_chain_config()[:contract_addr] |> contract_map_from_hex()
 
     {_, events_processor} = ExitProcessor.check_validity()
     {:ok, in_flight_exits} = ExitProcessor.get_active_in_flight_exits()
@@ -85,8 +92,19 @@ defmodule OMG.Watcher.API.Status do
     {:ok, status}
   end
 
+  '''
+  Checks geth syncing status, errors are treated as not synced.
+  Returns:
+  * false - geth is synced
+  * true  - geth is still syncing.
+  '''
+
+  defp syncing?() do
+    Client.node_ready() != :ok
+  end
+
   defp get_validated_child_block_number() do
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+    child_block_interval = Configuration.child_block_interval()
     {state_current_block, _} = State.get_status()
     state_current_block - child_block_interval
   end

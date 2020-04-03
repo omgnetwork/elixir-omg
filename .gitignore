@@ -69,5 +69,11 @@ data/
 # local test setup
 localchain_contract_addresses.env
 
+
 # the famous mac .DS_Store
 .DS_Store
+
+# IntelliJ files
+.idea/
+*.iml
+

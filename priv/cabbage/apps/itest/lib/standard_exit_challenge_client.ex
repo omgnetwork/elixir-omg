@@ -17,7 +17,6 @@ defmodule Itest.StandardExitChallengeClient do
     An interface to Watcher API.
   """
   alias Itest.Transactions.Encoding
-  alias Itest.Transactions.PaymentType
   alias WatcherSecurityCriticalAPI.Connection, as: Watcher
   alias WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1
 
@@ -57,8 +56,7 @@ defmodule Itest.StandardExitChallengeClient do
   defp get_exit_game_contract_address(challenge) do
     %{
       challenge
-      | exit_game_contract_address:
-          Itest.PlasmaFramework.exit_game_contract_address(PaymentType.simple_payment_transaction())
+      | exit_game_contract_address: Itest.PlasmaFramework.exit_game_contract_address(ExPlasma.payment_v1())
     }
   end
 

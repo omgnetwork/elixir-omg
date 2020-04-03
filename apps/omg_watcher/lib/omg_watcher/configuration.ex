@@ -28,4 +28,28 @@ defmodule OMG.Watcher.Configuration do
   def metrics_collection_interval() do
     Application.fetch_env!(@app, :metrics_collection_interval)
   end
+
+  def block_getter_reorg_margin() do
+    Application.fetch_env!(@app, :block_getter_reorg_margin)
+  end
+
+  def maximum_block_withholding_time_ms() do
+    Application.fetch_env!(@app, :maximum_block_withholding_time_ms)
+  end
+
+  def maximum_number_of_unapplied_blocks() do
+    Application.fetch_env!(@app, :maximum_number_of_unapplied_blocks)
+  end
+
+  def block_getter_loops_interval_ms() do
+    Application.fetch_env!(@app, :block_getter_loops_interval_ms)
+  end
+
+  def child_chain_url() do
+    Application.get_env(@app, :child_chain_url)
+  end
+
+  def exit_finality_margin() do
+    Application.get_env(@app, :exit_finality_margin)
+  end
 end

@@ -18,7 +18,9 @@ defmodule OMG.Eth.Fixtures do
   """
   use ExUnitFixtures.FixtureModule
 
+  alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
+  alias OMG.Eth.ReleaseTasks.SetContract
   alias Support.DevHelper
   alias Support.DevNode
   alias Support.RootChainHelper
@@ -26,7 +28,6 @@ defmodule OMG.Eth.Fixtures do
 
   @test_eth_vault_id 1
   @test_erc20_vault_id 2
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   deffixture eth_node do
     if Application.get_env(:omg_eth, :run_test_eth_dev_node, true) do
@@ -43,47 +44,37 @@ defmodule OMG.Eth.Fixtures do
 
     contracts = SnapshotContracts.parse_contracts()
 
-    contract = %{
-      authority_addr: Encoding.from_hex(contracts["AUTHORITY_ADDRESS"]),
-      contract_addr: %{
-        erc20_vault: Encoding.from_hex(contracts["CONTRACT_ADDRESS_ERC20_VAULT"]),
-        eth_vault: Encoding.from_hex(contracts["CONTRACT_ADDRESS_ETH_VAULT"]),
-        payment_exit_game: Encoding.from_hex(contracts["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"]),
-        plasma_framework: Encoding.from_hex(contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
-      },
-      txhash_contract: Encoding.from_hex(contracts["TXHASH_CONTRACT"])
-    }
-
     {:ok, true} =
       Ethereumex.HttpClient.request("personal_unlockAccount", ["0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d", "", 0], [])
 
-    add_exit_queue = RootChainHelper.add_exit_queue(@test_eth_vault_id, @eth, contract.contract_addr)
+    :ok = System.put_env("ETHEREUM_NETWORK", "LOCALCHAIN")
+    :ok = System.put_env("TXHASH_CONTRACT", contracts["TXHASH_CONTRACT"])
+    :ok = System.put_env("AUTHORITY_ADDRESS", contracts["AUTHORITY_ADDRESS"])
+    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
+    SetContract.init([])
+
+    add_exit_queue = RootChainHelper.add_exit_queue(@test_eth_vault_id, "0x0000000000000000000000000000000000000000")
 
     {:ok, %{"status" => "0x1"}} = Support.DevHelper.transact_sync!(add_exit_queue)
 
-    contract
+    :ok
   end
 
   deffixture token(root_chain_contract_config) do
     :ok = root_chain_contract_config
     contracts = SnapshotContracts.parse_contracts()
-
-    token_addr = Encoding.from_hex(contracts["CONTRACT_ERC20_MINTABLE"])
+    token_addr = contracts["CONTRACT_ERC20_MINTABLE"]
 
     # ensuring that the root chain contract handles token_addr
-    {:ok, false} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
+    {:ok, false} = has_exit_queue(@test_erc20_vault_id, token_addr)
     {:ok, _} = DevHelper.transact_sync!(RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr))
-    {:ok, true} = RootChainHelper.has_exit_queue(@test_erc20_vault_id, token_addr)
+    {:ok, true} = has_exit_queue(@test_erc20_vault_id, token_addr)
 
     token_addr
   end
 
   deffixture root_chain_contract_config(contract) do
-    contract_addr = contract_map_to_hex(contract.contract_addr)
-    Application.put_env(:omg_eth, :contract_addr, contract_addr, persistent: true)
-    Application.put_env(:omg_eth, :authority_addr, Encoding.to_hex(contract.authority_addr), persistent: true)
-    Application.put_env(:omg_eth, :txhash_contract, Encoding.to_hex(contract.txhash_contract), persistent: true)
-
+    _ = contract
     {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
     on_exit(fn ->
@@ -100,8 +91,25 @@ defmodule OMG.Eth.Fixtures do
     :ok
   end
 
-  # Hexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
+  defp has_exit_queue(vault_id, token) do
+    plasma_framework = Configuration.contracts().plasma_framework
+    token = Encoding.from_hex(token)
+    call_contract(plasma_framework, "hasExitQueue(uint256,address)", [vault_id, token], [:bool])
+  end
 
-  defp contract_map_to_hex(contract_map),
-    do: Enum.into(contract_map, %{}, fn {name, addr} -> {name, Encoding.to_hex(addr)} end)
+  defp call_contract(contract, signature, args, return_types) do
+    data = ABI.encode(signature, args)
+    {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: contract, data: Encoding.to_hex(data)})
+    decode_answer(return, return_types)
+  end
+
+  defp decode_answer(enc_return, return_types) do
+    single_return =
+      enc_return
+      |> Encoding.from_hex()
+      |> ABI.TypeDecoder.decode(return_types)
+      |> hd()
+
+    {:ok, single_return}
+  end
 end
