@@ -528,6 +528,8 @@ jobs:
             ./bin/setup
           no_output_timeout: 2400
       - run: make install-hex-rebar
+      - restore_cache:
+          key: v1-dev-release-cache-{{ checksum "mix.lock" }}
       - run:
           name: Compile
           command: |
@@ -535,6 +537,13 @@ jobs:
             make deps-elixir-omg
             mix compile
           no_output_timeout: 2400
+      - save_cache:
+          key: v1-dev-release-cache-{{ checksum "mix.lock" }}
+          paths:
+            - "deps_docker/"
+            - "deps/"
+            - "_build/dev/"
+            - "_build/dev/"
       - run:
           name: Run Child Chain
           command: |
