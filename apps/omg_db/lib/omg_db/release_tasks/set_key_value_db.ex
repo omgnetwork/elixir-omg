@@ -23,7 +23,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   end
 
   def load(config, args) do
-    _ = Application.ensure_all_started(:logger)
+    _ = on_load()
     release = Keyword.get(args, :release)
 
     case get_env("DB_PATH") do
@@ -45,4 +45,9 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   end
 
   defp get_env(key), do: System.get_env(key)
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
+  end
 end

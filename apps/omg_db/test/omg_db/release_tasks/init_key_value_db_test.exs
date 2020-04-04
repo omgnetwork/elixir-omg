@@ -13,15 +13,18 @@
 # limitations under the License.
 
 defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
+
   alias OMG.DB.ReleaseTasks.InitKeyValueDB
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
 
   @apps [:logger, :crypto, :ssl]
 
   setup_all do
+    _ = Enum.each(@apps, &Application.ensure_all_started/1)
+
     on_exit(fn ->
-      _ = Enum.each(@apps, &Application.ensure_all_started/1)
+      @apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     end)
 
     :ok
@@ -30,8 +33,11 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
   test "init works and DB starts" do
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
+
     _ = SetKeyValueDB.load([], release: :child_chain)
+
     :ok = InitKeyValueDB.run()
+
     started_apps = Enum.map(Application.started_applications(), fn {app, _, _} -> app end)
     [true, true, true] = Enum.map(@apps, fn app -> not Enum.member?(started_apps, app) end)
     {:ok, _} = Application.ensure_all_started(:omg_db)
@@ -43,8 +49,8 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
   test "can't init non empty dir" do
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
-    _ = SetKeyValueDB.load([], release: :watcher)
 
+    _ = SetKeyValueDB.load([], release: :watcher)
     _ = InitKeyValueDB.run()
 
     {:error, _} = InitKeyValueDB.run()
@@ -56,6 +62,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
     _ = Application.stop(:omg_db)
     {:ok, dir} = Briefly.create(directory: true)
     :ok = System.put_env("DB_PATH", dir)
+
     _ = SetKeyValueDB.load([], release: :child_chain)
 
     try do

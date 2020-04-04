@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpointTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   alias OMG.WatcherRPC.ReleaseTasks.SetEndpoint
   alias OMG.WatcherRPC.Web.Endpoint
 
@@ -24,7 +24,7 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpointTest do
     :ok = System.put_env("HOSTNAME", "host")
     config = SetEndpoint.load([], [])
     port = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Endpoint) |> Keyword.fetch!(:http) |> Keyword.fetch!(:port)
-    host = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Endpoint) |> Keyword.fetch!(:http) |> Keyword.fetch!(:host)
+    host = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Endpoint) |> Keyword.fetch!(:url) |> Keyword.fetch!(:host)
     assert port == 1
     assert host == "host"
   end
@@ -34,9 +34,9 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpointTest do
     :ok = System.delete_env("HOSTNAME")
     config = SetEndpoint.load([], [])
     port = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Endpoint) |> Keyword.fetch!(:http) |> Keyword.fetch!(:port)
-    host = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Endpoint) |> Keyword.fetch!(:http) |> Keyword.fetch!(:host)
-    config_port = Application.get_env(@app, Endpoint)[:port]
-    config_host = Application.get_env(@app, Endpoint)[:host]
+    host = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Endpoint) |> Keyword.fetch!(:url) |> Keyword.fetch!(:host)
+    config_port = Application.get_env(@app, Endpoint)[:http][:port]
+    config_host = Application.get_env(@app, Endpoint)[:url][:host]
     assert port == config_port
     assert host == config_host
   end

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMarginTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin
   @app :omg_watcher
