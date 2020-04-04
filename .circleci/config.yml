@@ -411,19 +411,26 @@ jobs:
           command: |
             docker image ls
             docker-compose ps
+      - restore_cache:
+          key: v2-asdf-install
       - run:
           name: Install Erlang and Elixir
           command: |
-            set -e
-            wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
-            sudo killall dpkg || true &&
-            sudo rm /var/lib/dpkg/lock || true &&
-            sudo rm /var/cache/apt/archives/lock || true &&
-            sudo dpkg --configure -a || true &&
-            sudo dpkg -i erlang-solutions_2.0_all.deb  &&
-            sudo apt-get update &&
-            sudo apt-get install esl-erlang=1:22.3-1
-            sudo apt-get install elixir=1.10.2-1
+            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.7.4
+            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
+            source $BASH_ENV
+            asdf plugin-add erlang || asdf plugin-update erlang
+            asdf plugin-add elixir || asdf plugin-update elixir
+            asdf install erlang 22.3
+            asdf install elixir 1.10.2
+            asdf global elixir 1.10.2
+            asdf global erlang 22.3
+          no_output_timeout: 2400
+      - save_cache:
+          key: v2-asdf-install
+          paths:
+            - ~/.asdf
+            - ~/.asdf-vm
       - run: make install-hex-rebar
       - run: sh .circleci/status.sh
       - restore_cache:
