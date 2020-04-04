@@ -15,30 +15,41 @@
 defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
   @moduledoc false
   @behaviour Config.Provider
+  alias OMG.WatcherRPC.Tracer
   require Logger
+
   @app :omg_watcher_rpc
 
   def init(args) do
     args
   end
 
-  def load(config, _args) do
+  def load(config, args) do
     _ = on_load()
+    adapter = Keyword.get(args, :system_adapter, System)
+    _ = Process.put(:system_adapter, adapter)
+    dd_disabled = get_dd_disabled()
 
-    watcher_tracer_config =
+    tracer_config =
       @app
-      |> Application.get_env(OMG.WatcherRPC.Tracer)
-      |> Keyword.put(:disabled?, get_dd_disabled())
-      |> Keyword.put(:env, get_app_env())
+      |> Application.get_env(Tracer)
+      |> Keyword.put(:disabled?, dd_disabled)
+
+    tracer_config =
+      case dd_disabled do
+        false -> Keyword.put(tracer_config, :env, get_app_env())
+        true -> Keyword.put(tracer_config, :env, "")
+      end
 
     Config.Reader.merge(config,
-      omg_watcher_rpc: [{OMG.WatcherRPC.Tracer, watcher_tracer_config}],
-      spandex_phoenix: [tracer: OMG.WatcherRPC.Tracer]
+      omg_watcher_rpc: [{Tracer, tracer_config}],
+      spandex_phoenix: [tracer: Tracer]
     )
   end
 
   defp get_dd_disabled() do
-    dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, OMG.WatcherRPC.Tracer)[:disabled?])
+    dd_disabled = Application.get_env(@app, OMG.WatcherRPC.Tracer)[:disabled?]
+    dd_disabled? = validate_bool(get_env("DD_DISABLED"), dd_disabled)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
@@ -50,7 +61,9 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
     env
   end
 
-  defp get_env(key), do: System.get_env(key)
+  defp get_env(key) do
+    Process.get(:system_adapter).get_env(key)
+  end
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default

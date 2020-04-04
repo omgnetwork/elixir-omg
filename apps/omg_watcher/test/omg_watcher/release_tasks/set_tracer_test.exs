@@ -37,7 +37,8 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
              env = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Tracer) |> Keyword.fetch!(:env)
 
              assert disabled == true
-             assert env == "YOLO"
+             # if it's disabled, env doesn't matter, so we set it to an empty string
+             assert env == ""
            end)
   end
 
@@ -46,7 +47,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracerTest do
 
     assert capture_log(fn ->
              config = SetTracer.load([], system_adapter: __MODULE__.System)
-             configuration = @app |> Application.get_env(Tracer) |> Enum.sort()
+             configuration = @app |> Application.get_env(Tracer) |> Keyword.put(:env, "") |> Enum.sort()
              tracer_config = config |> Keyword.get(@app) |> Keyword.get(Tracer) |> Enum.sort()
              assert configuration == tracer_config
            end)

@@ -16,26 +16,36 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetTracer do
   @moduledoc false
   @behaviour Config.Provider
   require Logger
+  alias OMG.WatcherInfo.Tracer
   @app :omg_watcher_info
 
   def init(args) do
     args
   end
 
-  def load(config, _args) do
-    _ = Application.ensure_all_started(:logger)
+  def load(config, args) do
+    _ = on_load()
+    adapter = Keyword.get(args, :system_adapter, System)
+    _ = Process.put(:system_adapter, adapter)
+    dd_disabled = get_dd_disabled()
 
     tracer_config =
       @app
-      |> Application.get_env(OMG.WatcherInfo.Tracer)
-      |> Keyword.put(:disabled?, get_dd_disabled())
-      |> Keyword.put(:env, get_app_env())
+      |> Application.get_env(Tracer)
+      |> Keyword.put(:disabled?, dd_disabled)
 
-    Config.Reader.merge(config, omg_watcher_info: [{OMG.WatcherInfo.Tracer, tracer_config}])
+    tracer_config =
+      case dd_disabled do
+        false -> Keyword.put(tracer_config, :env, get_app_env())
+        true -> Keyword.put(tracer_config, :env, "")
+      end
+
+    Config.Reader.merge(config, omg_watcher_info: [{Tracer, tracer_config}])
   end
 
   defp get_dd_disabled() do
-    dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, OMG.WatcherInfo.Tracer)[:disabled?])
+    dd_disabled = Application.get_env(@app, Tracer)[:disabled?]
+    dd_disabled? = validate_bool(get_env("DD_DISABLED"), dd_disabled)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
@@ -47,7 +57,9 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetTracer do
     env
   end
 
-  defp get_env(key), do: System.get_env(key)
+  defp get_env(key) do
+    Process.get(:system_adapter).get_env(key)
+  end
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default
@@ -58,4 +70,9 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetTracer do
 
   defp validate_app_env(value) when is_binary(value), do: value
   defp validate_app_env(nil), do: exit("APP_ENV must be set.")
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    Application.load(@app)
+  end
 end

@@ -13,62 +13,64 @@
 # limitations under the License.
 
 defmodule OMG.ChildChainRPC.ReleaseTasks.SetTracerTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
+  import ExUnit.CaptureLog, only: [capture_log: 1]
+
   alias OMG.ChildChainRPC.ReleaseTasks.SetTracer
   alias OMG.ChildChainRPC.Tracer
 
   @app :omg_child_chain_rpc
-  @configuration_old Application.get_env(@app, Tracer)
 
   setup do
-    on_exit(fn ->
-      # configuration is global state so we reset it to known values in case
-      # it got fiddled before
-      :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
-    end)
-
+    {:ok, pid} = __MODULE__.System.start_link([])
+    nil = Process.put(__MODULE__.System, pid)
     :ok
   end
 
   test "if environment variables get applied in the configuration" do
-    :ok = System.put_env("DD_DISABLED", "TRUE")
-    :ok = System.put_env("APP_ENV", "YOLO")
-    :ok = SetTracer.load([], [])
-    configuration = Application.get_env(@app, Tracer)
-    disabled_updated = configuration[:disabled?]
-    env_updated = configuration[:env]
-    true = disabled_updated
-    "YOLO" = env_updated
+    :ok = __MODULE__.System.put_env("DD_DISABLED", "TRUE")
+    :ok = __MODULE__.System.put_env("APP_ENV", "YOLO")
 
-    ^configuration =
-      @configuration_old
-      |> Keyword.put(:disabled?, true)
-      |> Keyword.put(:env, "YOLO")
+    assert capture_log(fn ->
+             config = SetTracer.load([], system_adapter: __MODULE__.System)
+             disabled = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Tracer) |> Keyword.fetch!(:disabled?)
+             env = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Tracer) |> Keyword.fetch!(:env)
+
+             assert disabled == true
+             # if it's disabled, env doesn't matter, so we set it to an empty string
+             assert env == ""
+           end)
   end
 
   test "if default configuration is used when there's no environment variables" do
-    :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
-    :ok = System.delete_env("DD_DISABLED")
-    :ok = System.put_env("APP_ENV", "YOLO")
-    :ok = SetTracer.load([], [])
-    configuration = Application.get_env(@app, Tracer)
-    sorted_configuration = Enum.sort(configuration)
-    assert sorted_configuration == @configuration_old |> Keyword.put(:env, "YOLO") |> Enum.sort()
-  end
+    :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 3")
 
-  test "that if APP_ENV env var is not present we crash" do
-    :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
-    :ok = System.delete_env("DD_DISABLED")
-    :ok = System.delete_env("APP_ENV")
-    catch_exit(SetTracer.load([], []))
-    configuration = Application.get_env(@app, Tracer)
-    sorted_configuration = Enum.sort(configuration)
-    ^sorted_configuration = Enum.sort(@configuration_old)
+    assert capture_log(fn ->
+             config = SetTracer.load([], system_adapter: __MODULE__.System)
+             # we set env to an empty string because disabled? is set to true!
+             configuration = @app |> Application.get_env(Tracer) |> Keyword.put(:env, "") |> Enum.sort()
+             tracer_config = config |> Keyword.get(@app) |> Keyword.get(Tracer) |> Enum.sort()
+             assert configuration == tracer_config
+           end)
   end
 
   test "if exit is thrown when faulty configuration is used" do
-    :ok = System.put_env("DD_DISABLED", "TRUEeee")
-    catch_exit(SetTracer.load([], []))
-    :ok = System.delete_env("DD_DISABLED")
+    :ok = __MODULE__.System.put_env("DD_DISABLED", "TRUEeee")
+    catch_exit(SetTracer.load([], system_adapter: __MODULE__.System))
+  end
+
+  defmodule System do
+    def start_link(args), do: GenServer.start_link(__MODULE__, args, [])
+    def get_env(key), do: __MODULE__ |> Process.get() |> GenServer.call({:get_env, key})
+    def put_env(key, value), do: __MODULE__ |> Process.get() |> GenServer.call({:put_env, key, value})
+    def init(_), do: {:ok, %{}}
+
+    def handle_call({:get_env, key}, _, state) do
+      {:reply, state[key], state}
+    end
+
+    def handle_call({:put_env, key, value}, _, state) do
+      {:reply, :ok, Map.put(state, key, value)}
+    end
   end
 end

@@ -25,7 +25,6 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
   def load(config, _args) do
     _ = on_load()
     endpoint_config = Application.get_env(@app, OMG.WatcherRPC.Web.Endpoint)
-    IO.inspect(endpoint_config, label: "endpoint_config1")
 
     endpoint_config =
       Keyword.put(
@@ -36,8 +35,6 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetEndpoint do
           other, acc -> [other | acc]
         end)
       )
-
-    IO.inspect(endpoint_config, label: "endpoint_config")
 
     endpoint_config =
       Keyword.put(
