@@ -516,11 +516,23 @@ jobs:
             mix compile
           no_output_timeout: 2400
       - run:
-          name: Run Child Chain, Watcher and Watcher Info
+          name: Run Child Chain
           command: |
             set -e
-            make start-child_chain OVERRIDING_START=daemon OVERRIDING_VARIABLES=./bin/variables_test_barebone &&
-            make start-watcher OVERRIDING_START=daemon OVERRIDING_VARIABLES=./bin/variables_test_barebone &&
+            make start-child_chain OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
+          background: true
+          no_output_timeout: 2400
+      - run:
+          name: Run Watcher
+          command: |
+            set -e
+            make start-watcher OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone            
+          background: true
+          no_output_timeout: 2400
+      - run:
+          name: Run Watcher Info
+          command: |
+            set -e
             make start-watcher_info OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
           background: true
           no_output_timeout: 2400
