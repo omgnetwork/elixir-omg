@@ -434,7 +434,7 @@ jobs:
       - run: make install-hex-rebar
       - run: sh .circleci/status.sh
       - restore_cache:
-          key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
           name: Run specs
           command: |
@@ -468,7 +468,7 @@ jobs:
             mix format apps/*_api/lib/*_api/model/*.ex
             make format-code-check-warnings
       - save_cache:
-          key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
           paths:
             - "priv/cabbage/deps"
             - "priv/perf/deps"
