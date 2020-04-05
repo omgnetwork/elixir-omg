@@ -216,6 +216,7 @@ defmodule OMG.ChildChain.BlockQueue do
 
         {:ok, txhash} ->
           GasAnalyzer.enqueue(txhash)
+          OMG.ChildChain.BlockQueue.Balance.balance()
           :ok
 
         :ok ->

@@ -17,6 +17,7 @@ defmodule OMG.WatcherInfo.DepositConsumer do
   Subscribes to deposit events and inserts them to WatcherInfo.DB.
   """
   require Logger
+
   ### Client
 
   def start_link(_args) do
