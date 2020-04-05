@@ -25,6 +25,7 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
   import OMG.Status.Metric.Event, only: [name: 2, name: 1]
 
   alias OMG.ChildChain.BlockQueue
+  alias OMG.ChildChain.BlockQueue.Balance
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.Status.Metric.Datadog
 
@@ -46,5 +47,10 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
   def handle_event([:gas, GasAnalyzer], %{gas: gas}, _, _config) do
     gwei = div(gas, 1_000_000_000)
     _ = Datadog.gauge(name(:block_subbmission), gwei)
+  end
+
+  def handle_event([:authority_balance, Balance], %{authority_balance: authority_balance}, _, _config) do
+    gwei = div(authority_balance, 1_000_000_000)
+    _ = Datadog.gauge(name(:authority_balance), gwei)
   end
 end

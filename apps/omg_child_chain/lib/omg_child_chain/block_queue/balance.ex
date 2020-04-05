@@ -14,9 +14,7 @@
 
 defmodule OMG.ChildChain.BlockQueue.Balance do
   @moduledoc """
-    Takes the transaction hash and puts it in the  FIFO queue
-  for each transaction hash we're trying to get the gas we've used to submit the block and send it of as a telemetry event
-  to datadog
+    Gets authority balance, logs it and send a telemetry event.
   """
   require Logger
   defstruct authority_address: nil, rpc: Ethereumex.HttpClient
@@ -45,7 +43,7 @@ defmodule OMG.ChildChain.BlockQueue.Balance do
   def handle_cast(:check, state) do
     {:ok, hex_authority_balance} = state.rpc.eth_get_balance(state.authority_address)
     authority_balance = parse_balance(hex_authority_balance)
-    _ = Logger.info("Authority address #{state.authority_address} balance #{authority_balance} Wei.")
+    _ = Logger.info("Authority #{state.authority_address} balance #{authority_balance} Wei.")
     _ = :telemetry.execute([:authority_balance, __MODULE__], %{authority_balance: authority_balance}, %{})
     {:noreply, state}
   end

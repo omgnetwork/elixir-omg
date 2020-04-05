@@ -49,6 +49,11 @@ defmodule OMG.Status.Metric.Event do
   def name(:block_subbmission), do: "block_subbmission_gas"
 
   @doc """
+  Child Chain authority address balance
+  """
+  def name(:authority_balance), do: "authority_balance"
+
+  @doc """
   OMG.State balance per currency
   """
   def name(:balance), do: "balance"
