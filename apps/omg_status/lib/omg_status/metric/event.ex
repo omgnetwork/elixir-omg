@@ -46,7 +46,7 @@ defmodule OMG.Status.Metric.Event do
   @doc """
   Child Chain Block queue gas usage metric
   """
-  def name(:block_subbmission), do: "block_subbmission_gas"
+  def name(:block_submission), do: "block_submission_gas"
 
   @doc """
   Child Chain authority address balance
