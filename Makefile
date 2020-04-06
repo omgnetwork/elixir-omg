@@ -357,10 +357,10 @@ docker-nuke:
 	$(MAKE) init-contracts
 
 docker-remote-watcher:
-	docker exec -ti watcher /app/bin/child_chain remote
+	docker exec -it watcher /app/bin/child_chain remote
 
 docker-remote-watcher_info:
-	docker exec -ti watcher_info /app/bin/child_chain remote
+	docker exec -ti watcher_info /app/bin/watcher_info remote
 
 docker-remote-childchain:
 	docker exec -ti childchain /app/bin/child_chain remote
@@ -392,7 +392,7 @@ start-watcher:
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-  _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
+	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
 	echo "Run Watcher" && \
 	. ${OVERRIDING_VARIABLES} && \
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
@@ -404,7 +404,7 @@ start-watcher_info:
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
 	echo "Init Watcher Info DBs" && \
-  _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
   _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB.migrate()" && \
 	echo "Run Watcher Info" && \
 	. ${OVERRIDING_VARIABLES} && \
