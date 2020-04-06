@@ -18,22 +18,13 @@ defmodule OMG.Bus.Event do
   """
 
   @enforce_keys [:topic, :event, :payload]
-  @type topic_t() :: {:child_chain, binary()} | {:root_chain, binary()} | binary()
-  @type t() :: %__MODULE__{topic: __MODULE__.topic_t(), event: atom, payload: any()}
+  @type topic_t() :: {atom(), binary()} | binary()
+  @type t() :: %__MODULE__{topic: binary(), event: atom, payload: any()}
 
   defstruct [:topic, :event, :payload]
 
-  @root_chain_topic_prefix "root_chain:"
-  @child_chain_topic_prefix "child_chain:"
-
   @spec new(__MODULE__.topic_t(), atom(), any()) :: __MODULE__.t()
-  def new(topic, event, payload)
-
-  def new({:child_chain, topic}, event, payload) when is_atom(event) do
-    %__MODULE__{topic: @child_chain_topic_prefix <> topic, event: event, payload: payload}
-  end
-
-  def new({:root_chain, topic}, event, payload) when is_atom(event) do
-    %__MODULE__{topic: @root_chain_topic_prefix <> topic, event: event, payload: payload}
+  def new({origin, topic}, event, payload) when is_atom(origin) and is_atom(event) do
+    %__MODULE__{topic: "#{origin}:#{topic}", event: event, payload: payload}
   end
 end

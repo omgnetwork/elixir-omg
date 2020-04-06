@@ -39,9 +39,6 @@ defmodule OMG.Bus.PubSub do
       alias OMG.Bus.Event
       alias Phoenix.PubSub
 
-      @root_chain_topic_prefix "root_chain:"
-      @child_chain_topic_prefix "child_chain:"
-
       @doc """
       Fixes the name of the PubSub server and the variant of `Phoenix.PubSub` used
       """
@@ -51,12 +48,8 @@ defmodule OMG.Bus.PubSub do
       """
       def subscribe(topic, opts \\ [])
 
-      def subscribe({:child_chain, topic}, opts) do
-        PubSub.subscribe(OMG.Bus.PubSub, @child_chain_topic_prefix <> topic, opts)
-      end
-
-      def subscribe({:root_chain, topic}, opts) do
-        PubSub.subscribe(OMG.Bus.PubSub, @root_chain_topic_prefix <> topic, opts)
+      def subscribe({origin, topic}, opts) when is_atom(origin) do
+        PubSub.subscribe(OMG.Bus.PubSub, "#{origin}:#{topic}", opts)
       end
 
       def subscribe(topic, opts) do

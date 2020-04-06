@@ -37,7 +37,7 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
     topic = Keyword.fetch!(opts, :topic)
 
     %{
-      id: String.to_atom(Kernel.inspect(topic) <> "_worker"),
+      id: String.to_atom("#{topic}_worker"),
       start: {__MODULE__, :start_link, [opts]},
       shutdown: :brutal_kill,
       type: :worker
