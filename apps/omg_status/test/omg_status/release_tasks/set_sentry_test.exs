@@ -77,13 +77,8 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
     :ok = System.put_env("ETH_NODE", "random random random")
     :ok = System.put_env("SENTRY_DSN", "/dsn/dsn/dsn")
 
-    try do
-      capture_log(fn ->
-        SetSentry.load([], release: :child_chain, current_version: "current_version")
-      end)
-    catch
-      :exit, _reason ->
-        :ok
-    end
+    capture_log(fn ->
+      assert catch_exit(SetSentry.load([], release: :child_chain, current_version: "current_version"))
+    end)
   end
 end

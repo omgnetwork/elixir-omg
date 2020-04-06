@@ -34,25 +34,32 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
       |> Application.get_env(Tracer)
       |> Keyword.put(:disabled?, dd_disabled)
 
-    tracer_config =
+    {app_env, tracer_config} =
       case dd_disabled do
-        false -> Keyword.put(tracer_config, :env, get_app_env())
-        true -> Keyword.put(tracer_config, :env, "")
+        false ->
+          app_env = get_app_env()
+          {app_env, Keyword.put(tracer_config, :env, app_env)}
+
+        true ->
+          app_env = ""
+          {app_env, Keyword.put(tracer_config, :env, app_env)}
       end
 
     release = Keyword.get(args, :release)
-    tags = ["application:#{release}", "app_env:#{get_app_env()}", "hostname:#{get_hostname()}"]
+    tags = ["application:#{release}", "app_env:#{app_env}", "hostname:#{get_hostname()}"]
     spandex_datadog_host = Application.get_env(:spandex_datadog, :host)
     spandex_datadog_port = Application.get_env(:spandex_datadog, :port)
     statix_default_port = Application.get_env(:statix, :port)
     statix_default_hostname = Application.get_env(:statix, :host)
+    batch_size = get_batch_size()
+    sync_threshold = get_sync_threshold()
 
     Config.Reader.merge(config,
       spandex_datadog: [
         host: get_dd_hostname(spandex_datadog_host),
         port: get_dd_spandex_port(spandex_datadog_port),
-        batch_size: get_batch_size(),
-        sync_threshold: get_sync_threshold()
+        batch_size: batch_size,
+        sync_threshold: sync_threshold
       ],
       statix: [
         port: get_dd_port(statix_default_port),

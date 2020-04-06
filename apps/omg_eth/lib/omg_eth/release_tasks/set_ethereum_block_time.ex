@@ -28,7 +28,8 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumBlockTime do
 
   def load(config, _args) do
     _ = on_load()
-    Config.Reader.merge(config, omg_eth: [ethereum_block_time_seconds: get_ethereum_block_time()])
+    ethereum_block_time = get_ethereum_block_time()
+    Config.Reader.merge(config, omg_eth: [ethereum_block_time_seconds: ethereum_block_time])
   end
 
   defp get_ethereum_block_time() do

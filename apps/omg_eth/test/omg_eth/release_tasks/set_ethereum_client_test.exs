@@ -58,11 +58,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
   test "if faulty eth node exits" do
     :ok = System.put_env("ETH_NODE", "random random random")
 
-    try do
-      SetEthereumClient.load([], [])
-    catch
-      :exit, _reason ->
-        :ok = System.delete_env("ETH_NODE")
-    end
+    assert catch_exit(SetEthereumClient.load([], []))
+    :ok = System.delete_env("ETH_NODE")
   end
 end

@@ -77,14 +77,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     pid = spawn(fn -> start(port) end)
     :ok = System.put_env("CONTRACT_EXCHANGER_URL", "http://localhost:#{port}")
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY-GORLI")
-
-    try do
-      SetContract.load([], rpc_api: __MODULE__.Rpc)
-    catch
-      :exit, _ ->
-        :ok = Process.send(pid, :stop, [])
-        :ok
-    end
+    assert catch_exit(SetContract.load([], rpc_api: __MODULE__.Rpc))
+    :ok = Process.send(pid, :stop, [])
   end
 
   test "contract details from env", %{
@@ -189,13 +183,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
     :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
-
-    try do
-      _ = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    catch
-      :exit, _ ->
-        :ok
-    end
+    assert catch_exit(SetContract.load([], rpc_api: __MODULE__.Rpc))
   end
 
   test "that exit is thrown when there's no mandatory configuration" do
@@ -203,15 +191,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.delete_env("TXHASH_CONTRACT")
     :ok = System.delete_env("AUTHORITY_ADDRESS")
     :ok = System.delete_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK")
-
     :ok = System.delete_env("CONTRACT_EXCHANGER_URL")
-
-    try do
-      _ = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    catch
-      :exit, _ ->
-        :ok
-    end
+    assert catch_exit(SetContract.load([], rpc_api: __MODULE__.Rpc))
   end
 
   # a very simple web server that serves conctract exchanger requests

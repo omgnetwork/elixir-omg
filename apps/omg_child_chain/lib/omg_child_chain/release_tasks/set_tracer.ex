@@ -16,26 +16,39 @@ defmodule OMG.ChildChain.ReleaseTasks.SetTracer do
   @moduledoc false
   @behaviour Config.Provider
   require Logger
+  alias OMG.ChildChain.Tracer
   @app :omg_child_chain
 
   def init(args) do
     args
   end
 
-  def load(config, _args) do
+  def load(config, args) do
     _ = on_load()
+    adapter = Keyword.get(args, :system_adapter, System)
+    _ = Process.put(:system_adapter, adapter)
+    dd_disabled = get_dd_disabled()
 
     tracer_config =
       @app
-      |> Application.get_env(OMG.ChildChain.Tracer)
-      |> Keyword.put(:disabled?, get_dd_disabled())
-      |> Keyword.put(:env, get_app_env())
+      |> Application.get_env(Tracer)
+      |> Keyword.put(:disabled?, dd_disabled)
 
-    Config.Reader.merge(config, omg_child_chain: [{OMG.ChildChain.Tracer, tracer_config}])
+    tracer_config =
+      case dd_disabled do
+        false ->
+          app_env = get_app_env()
+          Keyword.put(tracer_config, :env, app_env)
+
+        true ->
+          Keyword.put(tracer_config, :env, "")
+      end
+
+    Config.Reader.merge(config, omg_child_chain: [{Tracer, tracer_config}])
   end
 
   defp get_dd_disabled() do
-    dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, OMG.ChildChain.Tracer)[:disabled?])
+    dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, Tracer)[:disabled?])
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
@@ -47,7 +60,9 @@ defmodule OMG.ChildChain.ReleaseTasks.SetTracer do
     env
   end
 
-  defp get_env(key), do: System.get_env(key)
+  defp get_env(key) do
+    Process.get(:system_adapter).get_env(key)
+  end
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default

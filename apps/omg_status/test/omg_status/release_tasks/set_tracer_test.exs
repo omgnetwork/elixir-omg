@@ -55,18 +55,24 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   end
 
   test "if environment variables get applied in the statix configuration" do
-    :ok = __MODULE__.System.put_env("DD_HOSTNAME", "cluster")
-    :ok = __MODULE__.System.put_env("DD_PORT", "1919")
-    :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 1")
-    :ok = __MODULE__.System.put_env("APP_ENV", "test 1")
+    set_cluster = "cluster"
+    set_port = "1919"
+    set_hostname = "this is my tracer test 1"
+    set_app_env = "test 1"
+    set_disabled = "false"
+    :ok = __MODULE__.System.put_env("DD_HOSTNAME", set_cluster)
+    :ok = __MODULE__.System.put_env("DD_PORT", set_port)
+    :ok = __MODULE__.System.put_env("HOSTNAME", set_hostname)
+    :ok = __MODULE__.System.put_env("APP_ENV", set_app_env)
+    :ok = __MODULE__.System.put_env("DD_DISABLED", set_disabled)
 
     assert capture_log(fn ->
              config = SetTracer.load([], release: :test_case_1, system_adapter: __MODULE__.System)
              port = config |> Keyword.fetch!(:statix) |> Keyword.fetch!(:port)
              host = config |> Keyword.fetch!(:statix) |> Keyword.fetch!(:host)
              tags = config |> Keyword.fetch!(:statix) |> Keyword.fetch!(:tags)
-             assert host == "cluster"
-             assert port == 1919
+             assert host == set_cluster
+             assert port == String.to_integer(set_port)
              assert Enum.member?(tags, "app_env:test 1") == true
            end)
   end
@@ -74,8 +80,10 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   test "if default statix configuration is used when there's no environment variables" do
     app_env = "test 2"
     hostname = "this is my tracer test 2"
+    disabled = "false"
     :ok = __MODULE__.System.put_env("HOSTNAME", hostname)
     :ok = __MODULE__.System.put_env("APP_ENV", app_env)
+    :ok = __MODULE__.System.put_env("DD_DISABLED", disabled)
     configuration = SetTracer.load([], release: :test_case_2, system_adapter: __MODULE__.System)
     tags = configuration |> Keyword.fetch!(:statix) |> Keyword.fetch!(:tags)
     assert tags == ["application:test_case_2", "app_env:#{app_env}", "hostname:#{hostname}"]

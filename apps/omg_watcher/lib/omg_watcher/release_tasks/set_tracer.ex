@@ -35,15 +35,20 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
 
     tracer_config =
       case dd_disabled do
-        false -> Keyword.put(tracer_config, :env, get_app_env())
-        true -> Keyword.put(tracer_config, :env, "")
+        false ->
+          app_env = get_app_env()
+          Keyword.put(tracer_config, :env, app_env)
+
+        true ->
+          Keyword.put(tracer_config, :env, "")
       end
 
     Config.Reader.merge(config, omg_watcher: [{OMG.Watcher.Tracer, tracer_config}])
   end
 
   defp get_dd_disabled() do
-    dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, OMG.Watcher.Tracer)[:disabled?])
+    disabled = Application.get_env(@app, OMG.Watcher.Tracer)[:disabled?]
+    dd_disabled? = validate_bool(get_env("DD_DISABLED"), disabled)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?

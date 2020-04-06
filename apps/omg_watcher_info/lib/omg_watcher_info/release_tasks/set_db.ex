@@ -34,7 +34,8 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDB do
   end
 
   defp get_db_url() do
-    db_url = validate_string(get_env("DATABASE_URL"), Application.get_env(@app, OMG.WatcherInfo.DB.Repo)[:url])
+    url = Application.get_env(@app, OMG.WatcherInfo.DB.Repo)[:url]
+    db_url = validate_string(get_env("DATABASE_URL"), url)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DATABASE_URL Value: #{inspect(db_url)}.")
     db_url
