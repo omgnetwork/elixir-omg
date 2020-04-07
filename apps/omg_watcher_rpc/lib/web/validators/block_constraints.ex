@@ -23,8 +23,8 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
   @spec parse(%{binary() => any()}) :: {:ok, Keyword.t()} | {:error, any()}
   def parse(params) do
     constraints = [
-      {"limit", [pos_integer: true, lesser: 1000, optional: true]},
-      {"page", [:pos_integer, :optional]}
+      {"limit", [pos_integer: true, lesser: 1000, optional: true], :limit},
+      {"page", [:pos_integer, :optional], :page}
     ]
 
     OMG.WatcherRPC.Web.Validator.Helpers.validate_constraints(params, constraints)
