@@ -21,6 +21,7 @@ defmodule OMG.WatcherRPC.Web.Validator.Helpers do
   @doc """
   Validates possible query constraints, stops on first error.
   """
+  @spec validate_constraints(%{binary() => any()}, list()) :: {:ok, Keyword.t()} | {:error, any()}
   def validate_constraints(params, constraints) do
     Enum.reduce_while(constraints, {:ok, []}, fn {key, validators, atom}, {:ok, list} ->
       case expect(params, key, validators) do
