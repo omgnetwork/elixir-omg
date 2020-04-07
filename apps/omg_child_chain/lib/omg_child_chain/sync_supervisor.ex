@@ -56,7 +56,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
     deposit_finality_margin = OMG.Configuration.deposit_finality_margin()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
     contracts = OMG.Eth.Configuration.contracts()
-    authority_address = OMG.Eth.Configuration.authority_addr()
+    authority_address = OMG.Eth.Configuration.authority_address()
 
     [
       {GasAnalyzer, []},
