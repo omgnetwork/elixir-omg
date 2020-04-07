@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Validator.Helpers do
   import OMG.Utils.HttpRPC.Validator.Base, only: [expect: 3]
 
   @doc """
-  Validates possible query constraints, stops on first error.
+  Validates possible params with query constraints, stops on first error.
   """
   @spec validate_constraints(%{binary() => any()}, list()) :: {:ok, Keyword.t()} | {:error, any()}
   def validate_constraints(params, constraints) do
