@@ -3,8 +3,8 @@
 retries=0
 status=1
 
-# Retries roughly every 5 seconds up to 1 minute
-while [ $retries -lt 12 ];  do
+# Retries roughly every 5 seconds up to 2 minutes
+while [ $retries -lt 24 ];  do
   alarms=$(make get-alarms)
   status=$?
   echo ${alarms}

@@ -14,41 +14,60 @@
 
 defmodule OMG.Status.ReleaseTasks.SetTracer do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   alias OMG.Status.Metric.Tracer
   require Logger
   @app :omg_status
 
-  @impl Provider
   def init(args) do
-    nil = Process.put(:system_adapter, Keyword.get(args, :system_adapter, System))
-    _ = Application.ensure_all_started(:logger)
-    config = Application.get_env(:omg_status, Tracer)
-    config = Keyword.put(config, :disabled?, get_dd_disabled())
-    config = Keyword.put(config, :env, get_app_env())
-    :ok = Application.put_env(:omg_status, Tracer, config, persistent: true)
+    args
+  end
 
-    # statix setup
-    :ok = Application.put_env(:statix, :host, get_dd_hostname(Application.get_env(:statix, :host)), persistent: true)
-    :ok = Application.put_env(:statix, :port, get_dd_port(Application.get_env(:statix, :port)), persistent: true)
+  def load(config, args) do
+    _ = on_load()
+    adapter = Keyword.get(args, :system_adapter, System)
+    _ = Process.put(:system_adapter, adapter)
+    dd_disabled = get_dd_disabled()
+
+    tracer_config =
+      @app
+      |> Application.get_env(Tracer)
+      |> Keyword.put(:disabled?, dd_disabled)
+
+    {app_env, tracer_config} =
+      case dd_disabled do
+        false ->
+          app_env = get_app_env()
+          {app_env, Keyword.put(tracer_config, :env, app_env)}
+
+        true ->
+          app_env = ""
+          {app_env, Keyword.put(tracer_config, :env, app_env)}
+      end
+
     release = Keyword.get(args, :release)
-    tags = ["application:#{release}", "app_env:#{get_app_env()}", "hostname:#{get_hostname()}"]
-    :ok = Application.put_env(:statix, :tags, tags, persistent: true)
+    tags = ["application:#{release}", "app_env:#{app_env}", "hostname:#{get_hostname()}"]
+    spandex_datadog_host = Application.get_env(:spandex_datadog, :host)
+    spandex_datadog_port = Application.get_env(:spandex_datadog, :port)
+    statix_default_port = Application.get_env(:statix, :port)
+    statix_default_hostname = Application.get_env(:statix, :host)
+    batch_size = get_batch_size()
+    sync_threshold = get_sync_threshold()
 
-    # spandex_datadog setup
-
-    :ok =
-      Application.put_env(:spandex_datadog, :host, get_dd_hostname(Application.get_env(:spandex_datadog, :host)),
-        persistent: true
-      )
-
-    :ok =
-      Application.put_env(:spandex_datadog, :port, get_dd_spandex_port(Application.get_env(:spandex_datadog, :port)),
-        persistent: true
-      )
-
-    :ok = Application.put_env(:spandex_datadog, :batch_size, get_batch_size(), persistent: true)
-    :ok = Application.put_env(:spandex_datadog, :sync_threshold, get_sync_threshold(), persistent: true)
+    Config.Reader.merge(config,
+      spandex_datadog: [
+        host: get_dd_hostname(spandex_datadog_host),
+        port: get_dd_spandex_port(spandex_datadog_port),
+        batch_size: batch_size,
+        sync_threshold: sync_threshold
+      ],
+      statix: [
+        port: get_dd_port(statix_default_port),
+        host: get_dd_hostname(statix_default_hostname),
+        tags: tags
+      ],
+      omg_status: [{Tracer, tracer_config}]
+    )
   end
 
   defp get_hostname() do
@@ -59,11 +78,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   end
 
   defp get_dd_disabled() do
-    dd_disabled? =
-      validate_bool(
-        get_env("DD_DISABLED"),
-        Application.get_env(:omg_status, Tracer)[:disabled?]
-      )
+    dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, Tracer)[:disabled?])
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
@@ -104,17 +119,16 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
   defp validate_hostname(_), do: exit("HOSTNAME is not set correctly.")
 
   def get_sync_threshold() do
-    sync_threshold =
-      validate_integer(
-        get_env("SYNC_THRESHOLD"),
-        Application.get_env(:spandex_datadog, :sync_threshold)
-      )
+    sync_threshold = Application.get_env(:spandex_datadog, :sync_threshold)
+    sync_threshold = validate_integer(get_env("SYNC_THRESHOLD"), sync_threshold)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: SYNC_THRESHOLD Value: #{inspect(sync_threshold)}.")
     sync_threshold
   end
 
-  defp get_env(key), do: Process.get(:system_adapter).get_env(key)
+  defp get_env(key) do
+    Process.get(:system_adapter).get_env(key)
+  end
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default
@@ -128,4 +142,11 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
 
   defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
   defp validate_integer(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
+    _ = Application.load(:spandex_datadog)
+    _ = Application.load(:statix)
+  end
 end

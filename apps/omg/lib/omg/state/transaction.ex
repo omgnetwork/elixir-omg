@@ -96,7 +96,7 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns all inputs, never returns zero inputs
   """
-  @spec get_inputs(any_flavor_t()) :: list()
+  @spec get_inputs(any_flavor_t()) :: [{:utxo_position, non_neg_integer(), non_neg_integer(), non_neg_integer()}]
   def get_inputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_inputs(signed_tx)
   def get_inputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_inputs(raw_tx)
   def get_inputs(tx), do: Transaction.Protocol.get_inputs(tx)

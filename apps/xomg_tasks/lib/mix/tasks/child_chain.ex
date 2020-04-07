@@ -26,6 +26,9 @@ defmodule Mix.Tasks.Xomg.ChildChain.Start do
   def run(args) do
     args
     |> generic_prepare_args()
+    |> config_db("--db")
+    |> config_fee("--fee")
+    |> config_logger_level("--logger")
     |> generic_run([:omg_child_chain_rpc, :omg_child_chain])
   end
 end

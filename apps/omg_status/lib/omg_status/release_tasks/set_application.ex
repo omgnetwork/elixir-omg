@@ -14,12 +14,13 @@
 
 defmodule OMG.Status.ReleaseTasks.SetApplication do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
-  @app :omg_status
+  @behaviour Config.Provider
 
-  @impl Provider
-  def init(release: release, current_version: current_version) do
-    :ok = Application.put_env(@app, :release, release, persistent: true)
-    :ok = Application.put_env(@app, :current_version, current_version, persistent: true)
+  def init(args) do
+    args
+  end
+
+  def load(config, release: release, current_version: current_version) do
+    Config.Reader.merge(config, omg_status: [release: release, current_version: current_version])
   end
 end

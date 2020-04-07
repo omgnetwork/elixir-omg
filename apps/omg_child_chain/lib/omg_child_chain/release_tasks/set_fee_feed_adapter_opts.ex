@@ -14,22 +14,25 @@
 
 defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :omg_child_chain
   @config_key :fee_adapter
 
-  @impl Provider
-  def init(_args) do
-    _ = Application.ensure_all_started(:logger)
+  def init(args) do
+    args
+  end
+
+  def load(config, _args) do
+    _ = on_load()
 
     @app
     |> Application.get_env(@config_key)
-    |> update_adapter_opts_with_env()
+    |> update_adapter_opts_with_env(config)
   end
 
-  defp update_adapter_opts_with_env({OMG.ChildChain.Fees.FeedAdapter, opts: fee_adapter_opts}) do
+  defp update_adapter_opts_with_env({OMG.ChildChain.Fees.FeedAdapter, opts: fee_adapter_opts}, config) do
     adapter_opts =
       fee_adapter_opts
       |> replace_with_env(&validate_string/2, fee_feed_url: "FEE_FEED_URL")
@@ -37,14 +40,12 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
       |> replace_with_env(&validate_integer/2, stored_fee_update_interval_minutes: "STORED_FEE_UPDATE_INTERVAL_MINUTES")
 
     new_value = {OMG.ChildChain.Fees.FeedAdapter, opts: adapter_opts}
-    :ok = Application.put_env(@app, @config_key, adapter_opts, persistent: true)
-
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(new_value)}.")
 
-    :ok
+    Config.Reader.merge(config, omg_child_chain: [fee_adapter: adapter_opts])
   end
 
-  defp update_adapter_opts_with_env(_), do: :ok
+  defp update_adapter_opts_with_env(_, _), do: :ok
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default
@@ -73,5 +74,10 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
         |> validator_fn.(curr)
       end
     )
+  end
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
   end
 end

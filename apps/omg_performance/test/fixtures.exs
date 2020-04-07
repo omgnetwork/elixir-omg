@@ -23,27 +23,13 @@ defmodule OMG.Performance.Fixtures do
   use OMG.Utils.LoggerExt
 
   deffixture mix_based_watcher(contract) do
-    config_file_path = Briefly.create!(extname: ".exs")
+    _ = contract
+
     db_path = Briefly.create!(directory: true)
-
-    config_file_path
-    |> File.open!([:write])
-    |> IO.binwrite("""
-    #{Support.DevHelper.create_conf_file(contract)}
-
-    config :omg_db, path: "#{db_path}"
-    # this causes the inner test watcher server process to log info. To see these logs adjust test's log level
-    config :logger, level: :info
-    """)
-    |> File.close()
-
-    {:ok, config} = File.read(config_file_path)
-    Logger.debug(IO.ANSI.format([:blue, :bright, config], true))
-    Logger.debug("Starting db_init")
 
     exexec_opts_for_mix = [
       stdout: :stream,
-      cd: Application.fetch_env!(:omg_watcher, :umbrella_root_dir),
+      cd: [Mix.Project.build_path(), "../../"] |> Path.join() |> Path.expand(),
       env: %{"MIX_ENV" => to_string(Mix.env())},
       # group 0 will create a new process group, equal to the OS pid of that process
       group: 0,
@@ -52,13 +38,13 @@ defmodule OMG.Performance.Fixtures do
 
     {:ok, _db_proc, _ref, [{:stream, db_out, _stream_server}]} =
       Exexec.run_link(
-        "mix ecto.reset && mix run --no-start -e ':ok = OMG.DB.init()' --config #{config_file_path} 2>&1",
+        "mix ecto.reset && mix run --no-start -e ':ok = OMG.DB.init(\"#{db_path}\")' 2>&1",
         exexec_opts_for_mix
       )
 
     Enum.each(db_out, &log_output("db_init_watcher", &1))
 
-    watcher_mix_cmd = "mix xomg.watcher.start --config #{config_file_path} 2>&1"
+    watcher_mix_cmd = "mix xomg.watcher.start 2>&1"
 
     Logger.info("Starting watcher")
 
@@ -85,7 +71,6 @@ defmodule OMG.Performance.Fixtures do
             :ok
         end
 
-      File.rm(config_file_path)
       File.rm_rf(db_path)
     end)
 

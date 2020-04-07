@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.ReleaseTasks.SetTracerTest do
+defmodule OMG.ChildChain.ReleaseTasks.SetTracerTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureLog, only: [capture_log: 1]
 
-  alias OMG.WatcherRPC.ReleaseTasks.SetTracer
-  alias OMG.WatcherRPC.Tracer
+  alias OMG.ChildChain.ReleaseTasks.SetTracer
+  alias OMG.ChildChain.Tracer
+  @app :omg_child_chain
 
-  @app :omg_watcher_rpc
   setup do
     {:ok, pid} = __MODULE__.System.start_link([])
     nil = Process.put(__MODULE__.System, pid)

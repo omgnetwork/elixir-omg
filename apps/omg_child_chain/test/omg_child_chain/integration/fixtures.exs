@@ -72,9 +72,9 @@ defmodule OMG.ChildChain.Integration.Fixtures do
     file_name
   end
 
-  deffixture in_beam_child_chain(root_chain_contract_config, fee_file, db_initialized) do
+  deffixture in_beam_child_chain(contract, fee_file, db_initialized) do
     # match variables to hide "unused var" warnings (can't be fixed by underscoring in line above, breaks macro):
-    _ = root_chain_contract_config
+    _ = contract
     _ = db_initialized
     _ = fee_file
     # need to override that to very often, so that many checks fall in between a single child chain block submission

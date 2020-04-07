@@ -14,20 +14,28 @@
 
 defmodule OMG.WatcherInfo.ReleaseTasks.SetDB do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_watcher_info
 
-  @impl Provider
-  def init(_args) do
-    _ = Application.ensure_all_started(:logger)
-    config = Application.get_env(@app, OMG.WatcherInfo.DB.Repo)
-    config = Keyword.put(config, :url, get_db_url())
-    :ok = Application.put_env(@app, OMG.WatcherInfo.DB.Repo, config, persistent: true)
+  def init(args) do
+    args
+  end
+
+  def load(config, _args) do
+    _ = on_load()
+
+    db_config =
+      @app
+      |> Application.get_env(OMG.WatcherInfo.DB.Repo)
+      |> Keyword.put(:url, get_db_url())
+
+    Config.Reader.merge(config, omg_watcher_info: [{OMG.WatcherInfo.DB.Repo, db_config}])
   end
 
   defp get_db_url() do
-    db_url = validate_string(get_env("DATABASE_URL"), Application.get_env(@app, OMG.WatcherInfo.DB.Repo)[:url])
+    url = Application.get_env(@app, OMG.WatcherInfo.DB.Repo)[:url]
+    db_url = validate_string(get_env("DATABASE_URL"), url)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DATABASE_URL Value: #{inspect(db_url)}.")
     db_url
@@ -37,4 +45,9 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDB do
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
+  end
 end
