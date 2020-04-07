@@ -31,7 +31,7 @@ defmodule WatcherInfoApiTest do
     %{alice_account: alice_account}
   end
 
-  defgiven ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain creating 1 utxo$/,
+  defgiven ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain creating 1 UTXO$/,
            %{amount: amount},
            %{alice_account: alice_account} = state do
     {alice_addr, _alice_priv} = alice_account
@@ -43,7 +43,7 @@ defmodule WatcherInfoApiTest do
 
   defthen ~r/^Alice is able to paginate her single UTXO$/,
           _,
-          %{alice_account: alice_account} do
+          %{alice_account: alice_account} = state do
     {alice_addr, _alice_priv} = alice_account
 
     {:ok, data} = Client.get_utxos(%{address: alice_addr, page: 1, limit: 10})
@@ -51,11 +51,12 @@ defmodule WatcherInfoApiTest do
     assert_equal(1, length(utxos), "for depositing 1 tx")
     assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
     assert_equal(true, Map.equal?(data_paging, %{"page" => 1, "limit" => 10}), "as data_paging")
+    {:ok, state}
   end
 
-  defthen ~r/^Alice deposits another "(?<amount>[^"]+)" ETH to the root chain creating second utxo$/,
+  defthen ~r/^Alice deposits another "(?<amount>[^"]+)" ETH to the root chain creating second UTXO$/,
           _,
-          %{alice_account: alice_account} do
+          %{alice_account: alice_account} = state do
     {alice_addr, _alice_priv} = alice_account
     {:ok, _} = Client.deposit(Currency.to_wei(2), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
     wait_for_balance_equal(alice_addr, Currency.to_wei(1 + 2))
@@ -65,6 +66,7 @@ defmodule WatcherInfoApiTest do
   defthen ~r/^Alice is able to paginate 2 UTXOs correctly$/,
           _,
           %{alice_account: alice_account} do
+    {alice_addr, _alice_priv} = alice_account
     {:ok, data} = Client.get_utxos(%{address: alice_addr, page: 1, limit: 2})
     %{"data" => utxos, "data_paging" => data_paging} = data
     assert_equal(2, length(utxos), "for depositing 2 tx")
@@ -86,6 +88,7 @@ defmodule WatcherInfoApiTest do
 
     finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
     wait_finality_margin_blocks(finality_margin_blocks)
+    Itest.Poller.pull_balance_until_amount(address, amount)
   end
 
   defp wait_finality_margin_blocks(finality_margin_blocks) do
