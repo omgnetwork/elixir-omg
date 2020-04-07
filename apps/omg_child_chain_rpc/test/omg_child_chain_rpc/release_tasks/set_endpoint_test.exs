@@ -13,55 +13,31 @@
 # limitations under the License.
 
 defmodule OMG.ChildChainRPC.ReleaseTasks.SetEndpointTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   alias OMG.ChildChainRPC.ReleaseTasks.SetEndpoint
   alias OMG.ChildChainRPC.Web.Endpoint
 
   @app :omg_child_chain_rpc
-  @test_host "cc.test.example.com"
-  @test_port "9999999999999999"
-  @test_port_int String.to_integer(@test_port)
-  @configuration_old Application.get_env(@app, Endpoint)
-
-  setup do
-    on_exit(fn -> :ok = Application.put_env(@app, Endpoint, @configuration_old, persistent: true) end)
-  end
 
   test "if environment variables get applied in the configuration" do
-    :ok = System.put_env("PORT", @test_port)
-    :ok = System.put_env("HOSTNAME", @test_host)
-    :ok = SetEndpoint.init([])
-    configuration = Enum.sort(deep_sort(Application.get_env(@app, Endpoint)))
-    http_updated = configuration[:http]
-    url_updated = configuration[:url]
-    [host: @test_host, port: 80] = Enum.sort(url_updated)
-    [port: @test_port_int] = Enum.sort(http_updated)
-
-    ^configuration =
-      @configuration_old
-      |> Keyword.put(:http, port: @test_port_int)
-      |> Keyword.put(:url, host: @test_host, port: 80)
-      |> deep_sort()
-      |> Enum.sort()
+    :ok = System.put_env("PORT", "1")
+    :ok = System.put_env("HOSTNAME", "host")
+    config = SetEndpoint.load([], [])
+    port = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Endpoint) |> Keyword.fetch!(:http) |> Keyword.fetch!(:port)
+    host = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Endpoint) |> Keyword.fetch!(:url) |> Keyword.fetch!(:host)
+    assert port == 1
+    assert host == "host"
   end
 
   test "if default configuration is used when there's no environment variables" do
     :ok = System.delete_env("PORT")
     :ok = System.delete_env("HOSTNAME")
-    :ok = SetEndpoint.init([])
-    configuration = Application.get_env(@app, Endpoint)
-
-    sorted_configuration = Enum.sort(deep_sort(configuration))
-    ^sorted_configuration = Enum.sort(deep_sort(@configuration_old))
-  end
-
-  defp deep_sort(values) do
-    Enum.map(values, fn {key, value} ->
-      if is_list(value) do
-        {key, Enum.sort(value)}
-      else
-        {key, value}
-      end
-    end)
+    config = SetEndpoint.load([], [])
+    port = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Endpoint) |> Keyword.fetch!(:http) |> Keyword.fetch!(:port)
+    host = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Endpoint) |> Keyword.fetch!(:url) |> Keyword.fetch!(:host)
+    config_port = Application.get_env(@app, Endpoint)[:http][:port]
+    config_host = Application.get_env(@app, Endpoint)[:url][:host]
+    assert port == config_port
+    assert host == config_host
   end
 end

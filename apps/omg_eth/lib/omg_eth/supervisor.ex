@@ -18,16 +18,18 @@ defmodule OMG.Eth.Supervisor do
    a gen server that serves as a unified view of reported block height (`OMG.Eth.EthereumHeight`).
   """
   use Supervisor
-  alias OMG.Status.Alert.Alarm
   require Logger
+
+  alias OMG.Eth.Configuration
+  alias OMG.Status.Alert.Alarm
 
   def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
-    check_interval_ms = Application.fetch_env!(:omg_eth, :ethereum_events_check_interval_ms)
-    stall_threshold_ms = Application.fetch_env!(:omg_eth, :ethereum_stalled_sync_threshold_ms)
+    check_interval_ms = Configuration.ethereum_events_check_interval_ms()
+    stall_threshold_ms = Configuration.ethereum_stalled_sync_threshold_ms()
 
     children = [
       {OMG.Eth.EthereumHeightMonitor,

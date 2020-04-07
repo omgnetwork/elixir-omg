@@ -3,7 +3,7 @@ version: 2.1
 executors:
   metal:
     docker:
-      - image: circleci/elixir:1.8.2
+      - image: circleci/elixir:1.10.2
       - image: circleci/postgres:9.6
         environment:
           MIX_ENV: test
@@ -19,12 +19,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20200219
+      - image: omisegoimages/elixir-omg-builder:stable-20200407
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20200219
+      - image: omisegoimages/elixir-omg-builder:stable-20200407
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -34,7 +34,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:stable-20200219
+      - image: omisegoimages/elixir-omg-tester:stable-20200407
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -44,7 +44,7 @@ executors:
 
   deployer:
     docker:
-      - image: omisegoimages/elixir-omg-deploy:stable-20200219
+      - image: omisegoimages/elixir-omg-deploy:stable-20200407
     working_directory: ~/src
 
 commands:
@@ -75,7 +75,6 @@ jobs:
           command: |
             # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration --trace` works
             export SHELL=/bin/bash
-            make init_test
             mix test --only integration --trace
           no_output_timeout: 30m
   barebuild_macos:
@@ -100,16 +99,15 @@ jobs:
           source ~/.bash_profile
           asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
           asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
-          asdf install erlang 21.0
-          asdf install elixir 1.8.2
-          asdf global elixir 1.8.2
-          asdf global erlang 21.0
+          asdf install erlang 22.3
+          asdf install elixir 1.10.2
+          asdf global elixir 1.10.2
+          asdf global erlang 22.3
       - run:
           command: ./bin/setup
           no_output_timeout: 2400
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
-      - run: make init_test
       - run: mix test --trace
   build:
     executor: builder
@@ -119,6 +117,7 @@ jobs:
       - checkout
       - restore_cache:
           key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
+      - run: make init_test
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - save_cache:
@@ -127,9 +126,13 @@ jobs:
       - save_cache:
           key: v1-rocksdb-cache-{{ checksum "mix.lock" }}
           paths:
+            - "deps_docker/"
             - "deps_docker/rocksdb"
             - "_build_docker/test/lib/rocksdb/"
             - "_build_docker/test/dev/rocksdb/"
+            - "deps/"
+            - "_build/test/lib/rocksdb/"
+            - "_build/test/dev/rocksdb/"
       - persist_to_workspace:
           name: Persist workspace
           root: ~/src
@@ -157,6 +160,7 @@ jobs:
             - data
             - snapshots.env
             - contract_addresses_template.env
+            - localchain_contract_addresses.env
 
   audit_deps:
     executor: builder
@@ -229,7 +233,6 @@ jobs:
       - run:
           name: Integration Tests & Coveralls Part Child Chain
           command: |
-            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -255,38 +258,12 @@ jobs:
       - run:
           name: Integration Tests & Coveralls Part Watcher
           command: |
-            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
               mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace
             else
               mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace ||
-                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
-                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
-            fi
-
-  watcher_info_coveralls_and_integration_tests:
-    executor: builder_pg_geth
-    environment:
-      MIX_ENV: test
-    steps:
-      - setup_elixir-omg_workspace
-      - restore_cache:
-          keys:
-            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Compile
-          command: mix compile
-      - run:
-          name: Integration Tests & Coveralls Part Watcher Informational
-          command: |
-            # Don't submit coverage report for forks, but let the build succeed
-            export SHELL=/bin/bash
-            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace
-            else
-              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -306,7 +283,6 @@ jobs:
       - run:
           name: Integration Tests & Coveralls Part Common
           command: |
-            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -332,7 +308,6 @@ jobs:
       - run:
           name: Test
           command: |
-            make init_test
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
@@ -358,7 +333,6 @@ jobs:
       - run:
           name: Property Test
           command: |
-            make init_test
             export SHELL=/bin/bash
             # no coverage calculation, coverage is on the other tests
             mix test --only property --trace
@@ -380,7 +354,6 @@ jobs:
           command: |
             # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
             export SHELL=/bin/bash
-            make init_test
             mix test --trace --only integration
 
   dialyzer:
@@ -432,29 +405,36 @@ jobs:
           name: Start daemon services
           command: |
             cd priv/cabbage
-            make start_daemon_services
+            make start_daemon_services || docker-compose logs
       - run:
           name: Print docker states
           command: |
             docker image ls
             docker-compose ps
+      - restore_cache:
+          key: v2-asdf-install
       - run:
           name: Install Erlang and Elixir
           command: |
-            set -e
-            wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
-            sudo killall dpkg || true &&
-            sudo rm /var/lib/dpkg/lock || true &&
-            sudo rm /var/cache/apt/archives/lock || true &&
-            sudo dpkg --configure -a || true &&
-            sudo dpkg -i erlang-solutions_2.0_all.deb  &&
-            sudo apt-get update &&
-            sudo apt-get install esl-erlang=1:21.3.8.10-1
-            sudo apt-get install elixir=1.8.2-1
+            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.7.4
+            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
+            source $BASH_ENV
+            asdf plugin-add erlang || asdf plugin-update erlang
+            asdf plugin-add elixir || asdf plugin-update elixir
+            asdf install erlang 22.3
+            asdf install elixir 1.10.2
+            asdf global elixir 1.10.2
+            asdf global erlang 22.3
+          no_output_timeout: 2400
+      - save_cache:
+          key: v2-asdf-install
+          paths:
+            - ~/.asdf
+            - ~/.asdf-vm
       - run: make install-hex-rebar
       - run: sh .circleci/status.sh
       - restore_cache:
-          key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
           name: Run specs
           command: |
@@ -488,7 +468,7 @@ jobs:
             mix format apps/*_api/lib/*_api/model/*.ex
             make format-code-check-warnings
       - save_cache:
-          key: v1-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
           paths:
             - "priv/cabbage/deps"
             - "priv/perf/deps"
@@ -516,29 +496,40 @@ jobs:
           command: make start-services
           background: true
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+      - restore_cache:
+          key: v2-asdf-install
       - run:
           name: Install Erlang and Elixir
           command: |
+            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.7.4
+            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
+            source $BASH_ENV
+            asdf plugin-add erlang || asdf plugin-update erlang
+            asdf plugin-add elixir || asdf plugin-update elixir
+            asdf install erlang 22.3
+            asdf install elixir 1.10.2
+            asdf global elixir 1.10.2
+            asdf global erlang 22.3
+          no_output_timeout: 2400
+      - save_cache:
+          key: v2-asdf-install
+          paths:
+            - ~/.asdf
+            - ~/.asdf-vm
+      - run:
+          name: Install deps
+          command: |
             set -e
-            wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
-            sudo killall dpkg || true &&
-            sudo rm /var/lib/dpkg/lock || true &&
-            sudo rm /var/cache/apt/archives/lock || true &&
+            sudo killall dpkg || true &&	
+            sudo rm /var/lib/dpkg/lock || true &&	
+            sudo rm /var/cache/apt/archives/lock || true &&	
             sudo dpkg --configure -a || true &&
-            wget https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc &&
-            sudo apt-key add erlang_solutions.asc &&
-            sudo dpkg -i erlang-solutions_2.0_all.deb  &&
             sudo apt-get update &&
-            sudo apt-get install --yes --no-install-recommends --no-install-suggests esl-erlang=1:21.3.8.10-1
-            sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-os-mon
-            sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-parsetools
-            sudo apt-get install --yes --no-install-recommends --no-install-suggests erlang-tools
-            sudo apt-get install --yes --no-install-recommends --no-install-suggests elixir=1.8.2-1
-            sudo apt policy elixir
-            mix local.hex --force && mix local.rebar --force
             ./bin/setup
           no_output_timeout: 2400
       - run: make install-hex-rebar
+      - restore_cache:
+          key: v1-dev-release-cache-{{ checksum "mix.lock" }}
       - run:
           name: Compile
           command: |
@@ -546,13 +537,32 @@ jobs:
             make deps-elixir-omg
             mix compile
           no_output_timeout: 2400
+      - save_cache:
+          key: v1-dev-release-cache-{{ checksum "mix.lock" }}
+          paths:
+            - "deps_docker/"
+            - "deps/"
+            - "_build/dev/"
+            - "_build/dev/"
       - run:
-          name: Run Child Chain, Watcher and Watcher Info
+          name: Run Child Chain
           command: |
             set -e
-            make start-child_chain OVERRIDING_START=start OVERRIDING_VARIABLES=./bin/variables_test_barebone &&
-            make start-watcher OVERRIDING_START=start OVERRIDING_VARIABLES=./bin/variables_test_barebone &&
-            make start-watcher_info OVERRIDING_START=foreground OVERRIDING_VARIABLES=./bin/variables_test_barebone
+            make start-child_chain OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
+          background: true
+          no_output_timeout: 2400
+      - run:
+          name: Run Watcher
+          command: |
+            set -e
+            make start-watcher OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone            
+          background: true
+          no_output_timeout: 2400
+      - run:
+          name: Run Watcher Info
+          command: |
+            set -e
+            make start-watcher_info OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
           background: true
           no_output_timeout: 2400
       - run:
@@ -718,16 +728,13 @@ workflows:
           requires:
             - child_chain_coveralls_and_integration_tests
             - watcher_coveralls_and_integration_tests
-            - watcher_info_coveralls_and_integration_tests
+            
             - common_coveralls_and_integration_tests
             - test
       - child_chain_coveralls_and_integration_tests:
           requires: [build]
           filters: *all_branches_and_tags
       - watcher_coveralls_and_integration_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - watcher_info_coveralls_and_integration_tests:
           requires: [build]
           filters: *all_branches_and_tags
       - common_coveralls_and_integration_tests:
@@ -763,7 +770,6 @@ workflows:
             [
               child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
               property_tests,
@@ -786,7 +792,6 @@ workflows:
             [
               child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
               property_tests,
@@ -801,7 +806,6 @@ workflows:
             [
               child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
               property_tests,

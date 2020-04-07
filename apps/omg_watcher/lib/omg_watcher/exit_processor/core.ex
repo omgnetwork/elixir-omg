@@ -225,7 +225,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp ife_db_updates(%__MODULE__{in_flight_exits: ifes}, updated_ife_keys) do
     ifes
-    |> Map.take(updated_ife_keys)
+    |> Map.take(Enum.to_list(updated_ife_keys))
     |> Enum.map(&InFlightExitInfo.make_db_update/1)
   end
 

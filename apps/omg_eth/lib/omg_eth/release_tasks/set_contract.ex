@@ -14,14 +14,13 @@
 
 defmodule OMG.Eth.ReleaseTasks.SetContract do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.RootChain.Rpc
 
-  @app :omg_eth
   @networks ["RINKEBY", "ROPSTEN", "GOERLI", "KOVAN", "MAINNET", "LOCALCHAIN"]
   @error "Set ETHEREUM_NETWORK to #{Enum.join(@networks, ",")} with TXHASH_CONTRACT, AUTHORITY_ADDRESS and CONTRACT_ADDRESS environment variables or CONTRACT_EXCHANGER_URL."
   @ether_vault_id 1
@@ -34,12 +33,13 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   or, they're manually deployed for local development:
   """
 
-  @impl Provider
   def init(args) do
-    rpc_api = Keyword.get(args, :rpc_api, Rpc)
+    args
+  end
 
-    {:ok, logger_apps} = Application.ensure_all_started(:logger)
-    {:ok, ethereumex_apps} = Application.ensure_all_started(:ethereumex)
+  def load(config, args) do
+    _ = on_load()
+    rpc_api = Keyword.get(args, :rpc_api, Rpc)
 
     exchanger = get_env("CONTRACT_EXCHANGER_URL")
     via_env = get_env("ETHEREUM_NETWORK")
@@ -82,7 +82,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       payment_exit_game: payment_exit_game
     }
 
-    update_configuration(
+    merge_configuration(
+      config,
       txhash_contract,
       authority_address,
       contract_addresses,
@@ -91,8 +92,6 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       network,
       child_block_interval
     )
-
-    (logger_apps ++ ethereumex_apps) |> Enum.reverse() |> Enum.each(&Application.stop/1)
   end
 
   defp get_external_data(plasma_framework, rpc_api) do
@@ -108,7 +107,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     {payment_exit_game, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval}
   end
 
-  defp update_configuration(
+  defp merge_configuration(
+         config,
          txhash_contract,
          authority_address,
          contract_addresses,
@@ -121,16 +121,21 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
               is_binary(authority_address) and is_map(contract_addresses) and is_integer(min_exit_period_seconds) and
               is_binary(contract_semver) and is_binary(network) do
     contract_addresses = Enum.into(contract_addresses, %{}, fn {name, addr} -> {name, String.downcase(addr)} end)
-    :ok = Application.put_env(@app, :txhash_contract, String.downcase(txhash_contract), persistent: true)
-    :ok = Application.put_env(@app, :authority_addr, String.downcase(authority_address), persistent: true)
-    :ok = Application.put_env(@app, :contract_addr, contract_addresses, persistent: true)
-    :ok = Application.put_env(@app, :min_exit_period_seconds, min_exit_period_seconds)
-    :ok = Application.put_env(@app, :contract_semver, contract_semver)
-    :ok = Application.put_env(@app, :network, network)
-    :ok = Application.put_env(@app, :child_block_interval, child_block_interval)
+
+    Config.Reader.merge(config,
+      omg_eth: [
+        txhash_contract: String.downcase(txhash_contract),
+        authority_address: String.downcase(authority_address),
+        contract_addr: contract_addresses,
+        min_exit_period_seconds: min_exit_period_seconds,
+        contract_semver: contract_semver,
+        network: network,
+        child_block_interval: child_block_interval
+      ]
+    )
   end
 
-  defp update_configuration(_, _, _, _, _, _, _), do: exit(@error)
+  defp merge_configuration(_, _, _, _, _, _, _, _), do: exit(@error)
 
   defp get_min_exit_period(plasma_framework_contract, rpc_api) do
     signature = "minExitPeriod()"
@@ -199,5 +204,10 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       _ ->
         exit(@error)
     end
+  end
+
+  defp on_load() do
+    {:ok, _} = Application.ensure_all_started(:logger)
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
   end
 end

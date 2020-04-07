@@ -27,7 +27,7 @@ defmodule OMG.Eth.Application do
       Logger.info(
         "Started #{inspect(__MODULE__)}, config used: contracts #{inspect(Configuration.contracts())} txhash_contract #{
           inspect(Configuration.txhash_contract())
-        } authority_addr #{inspect(Configuration.authority_addr())}"
+        } authority_address #{inspect(Configuration.authority_address())}"
       )
 
     valid_contracts()
@@ -52,7 +52,7 @@ defmodule OMG.Eth.Application do
     contracts_hash =
       Configuration.contracts()
       |> Map.put(:txhash_contract, Configuration.txhash_contract())
-      |> Map.put(:authority_addr, Configuration.authority_addr())
+      |> Map.put(:authority_address, Configuration.authority_address())
       |> :erlang.phash2()
 
     case DB.get_single_value(:omg_eth_contracts) do

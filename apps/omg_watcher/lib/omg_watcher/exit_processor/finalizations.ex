@@ -202,7 +202,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
       db_updates =
         ifes_by_id
-        |> Map.take(updated_ifes)
+        |> Map.take(Enum.to_list(updated_ifes))
         |> Map.values()
         # re-key those IFEs by tx_hash as how they are originally stored
         |> Enum.map(&{Transaction.raw_txhash(&1.tx), &1})

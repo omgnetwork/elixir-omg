@@ -105,14 +105,13 @@ defmodule OMG.Eth.RootChain do
           {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height() do
     plasma_framework = Configuration.contracts().plasma_framework
-    txhash = from_hex(Configuration.txhash_contract())
+    txhash = Configuration.txhash_contract()
 
-    case txhash |> to_hex() |> Ethereumex.HttpClient.eth_get_transaction_receipt() do
+    case Ethereumex.HttpClient.eth_get_transaction_receipt(txhash) do
       {:ok, %{"contractAddress" => ^plasma_framework, "blockNumber" => height}} ->
         {:ok, int_from_hex(height)}
 
       {:ok, _} ->
-        # TODO this should be an alarm
         {:error, :wrong_contract_address}
 
       other ->

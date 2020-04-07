@@ -21,7 +21,7 @@ defmodule OMG.Bus.MixProject do
     [
       mod: {OMG.Bus.Application, []},
       extra_applications: [:logger],
-      included_applications: [:phoenix_pubsub]
+      included_applications: []
     ]
   end
 
