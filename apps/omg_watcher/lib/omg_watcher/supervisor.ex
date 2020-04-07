@@ -63,7 +63,7 @@ defmodule OMG.Watcher.Supervisor do
   end
 
   defp create_event_consumer_children() do
-    Enum.map(
+    topics =
       [
         "blocks",
         "DepositCreated",
@@ -80,10 +80,14 @@ defmodule OMG.Watcher.Supervisor do
         "InFlightExitOutputWithdrawn",
         "InFlightExitStarted",
         "ExitStarted"
-      ],
-      fn event ->
+      ]
+      |> Enum.map(&{:root_chain, &1})
+
+    Enum.map(
+      topics,
+      fn topic ->
         ContractEventConsumer.prepare_child(
-          event: event,
+          topic: topic,
           release: Application.get_env(:omg_watcher, :release),
           current_version: Application.get_env(:omg_watcher, :current_version),
           publisher: OMG.Status.Metric.Datadog

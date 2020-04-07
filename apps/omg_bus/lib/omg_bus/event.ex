@@ -12,30 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.ExitConsumer do
+defmodule OMG.Bus.Event do
   @moduledoc """
-  Subscribes to exit events and inserts them to WatcherInfo.DB.
+  Representation of a single event to be published on OMG event bus
   """
-  require Logger
-  alias OMG.WatcherInfo.DB.EthEvent
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
-  end
+  @enforce_keys [:topic, :event, :payload]
+  @type topic_t() :: {atom(), binary()} | binary()
+  @type t() :: %__MODULE__{topic: binary(), event: atom, payload: any()}
 
-  ### Server
+  defstruct [:topic, :event, :payload]
 
-  use GenServer
-
-  def init(:ok) do
-    :ok = OMG.Bus.subscribe({:root_chain, "ExitStarted"}, link: true)
-
-    _ = Logger.info("Started #{inspect(__MODULE__)}")
-    {:ok, %{}}
-  end
-
-  def handle_info({:internal_event_bus, :data, data}, state) do
-    _ = EthEvent.insert_exits!(data)
-    {:noreply, state}
+  @spec new(__MODULE__.topic_t(), atom(), any()) :: __MODULE__.t()
+  def new({origin, topic}, event, payload) when is_atom(origin) and is_atom(event) do
+    %__MODULE__{topic: "#{origin}:#{topic}", event: event, payload: payload}
   end
 end
