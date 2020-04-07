@@ -96,12 +96,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Paginator.set_data(paginator)
   end
 
-  @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
-  defp get_all_utxos(address) do
-    query = query_get_utxos(address)
-    Repo.all(query)
-  end
-
   @spec get_balance(OMG.Crypto.address_t()) :: list(balance())
   def get_balance(owner) do
     query =
@@ -217,5 +211,11 @@ NOT EXISTS (SELECT 1
                     AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
       order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
     )
+  end
+
+  @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
+  defp get_all_utxos(address) do
+    query = query_get_utxos(address)
+    Repo.all(query)
   end
 end
