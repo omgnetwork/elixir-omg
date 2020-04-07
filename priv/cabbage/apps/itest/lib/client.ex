@@ -102,7 +102,7 @@ defmodule Itest.Client do
     {:ok, response} =
       Account.account_get_utxos(WatcherInfo.new(), %AddressBodySchema1{address: address, page: page, limit: limit})
 
-    data = Poison.decode!(response.body)
+    data = Jason.decode!(response.body)
     {:ok, data}
   end
 

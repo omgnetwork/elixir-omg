@@ -84,14 +84,17 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   @spec get_utxos(keyword) :: OMG.Utils.Paginator.t()
   def get_utxos(params) do
-    address = Keyword.get(params, :address)
+    address = Keyword.fetch!(params, :address)
     paginator = Paginator.from_constraints(params, @default_get_utxos_limit)
     %{limit: limit, page: page} = paginator.data_paging
     offset = (page - 1) * limit
 
-    from(query_get_utxos(address), limit: ^limit, offset: ^offset)
+    address
+    |> query_get_utxos()
+    |> from(limit: ^limit, offset: ^offset)
     |> Repo.all()
     |> Paginator.set_data(paginator)
+
   end
 
   @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
