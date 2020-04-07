@@ -37,40 +37,35 @@ defmodule WatcherInfoApiTest do
     {alice_addr, _alice_priv} = alice_account
 
     {:ok, _} = Client.deposit(Currency.to_wei(amount), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
+    wait_for_balance_equal(alice_addr, Currency.to_wei(Currency.to_wei(1)))
     {:ok, state}
   end
 
-  defthen ~r/^Alice is able to paginate her UTXOs$/,
+  defthen ~r/^Alice is able to paginate her single UTXO$/,
           _,
           %{alice_account: alice_account} do
     {alice_addr, _alice_priv} = alice_account
 
-    {:ok, response} =
-      WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
-
-    watcher_security_critical_config =
-      WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
-
-    finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
-
-    wait_finality_margin_blocks(finality_margin_blocks)
-    Itest.Poller.pull_balance_until_amount(alice_addr, Currency.to_wei(1))
-
     {:ok, data} = Client.get_utxos(%{address: alice_addr, page: 1, limit: 10})
-
     %{"data" => utxos, "data_paging" => data_paging} = data
     assert_equal(1, length(utxos), "for depositing 1 tx")
     assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
     assert_equal(true, Map.equal?(data_paging, %{"page" => 1, "limit" => 10}), "as data_paging")
+  end
 
-    # deposit again for another utxo
+  defthen ~r/^Alice deposits another "(?<amount>[^"]+)" ETH to the root chain creating second utxo$/,
+          _,
+          %{alice_account: alice_account} do
+    {alice_addr, _alice_priv} = alice_account
     {:ok, _} = Client.deposit(Currency.to_wei(2), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
+    wait_for_balance_equal(alice_addr, Currency.to_wei(1 + 2))
+    {:ok, state}
+  end
 
-    wait_finality_margin_blocks(finality_margin_blocks)
-    Itest.Poller.pull_balance_until_amount(alice_addr, Currency.to_wei(1 + 2))
-
+  defthen ~r/^Alice is able to paginate 2 UTXOs correctly$/,
+          _,
+          %{alice_account: alice_account} do
     {:ok, data} = Client.get_utxos(%{address: alice_addr, page: 1, limit: 2})
-
     %{"data" => utxos, "data_paging" => data_paging} = data
     assert_equal(2, length(utxos), "for depositing 2 tx")
     assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
@@ -80,6 +75,17 @@ defmodule WatcherInfoApiTest do
 
   defp assert_equal(left, right, message) do
     assert(left == right, "Expected #{left}, but have #{right}." <> message)
+  end
+
+  defp wait_for_balance_equal(address, amount) do
+    {:ok, response} =
+      WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
+
+    watcher_security_critical_config =
+      WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
+
+    finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
+    wait_finality_margin_blocks(finality_margin_blocks)
   end
 
   defp wait_finality_margin_blocks(finality_margin_blocks) do
