@@ -17,8 +17,6 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraints do
   Validates `/transaction.all` query parameters
   """
 
-  import OMG.Utils.HttpRPC.Validator.Base
-
   @max_tx_types 16
 
   @doc """
@@ -35,18 +33,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraints do
       {"page", [:pos_integer, :optional], :page}
     ]
 
-    Enum.reduce_while(constraints, {:ok, []}, fn {key, validators, atom}, {:ok, list} ->
-      case expect(params, key, validators) do
-        {:ok, nil} ->
-          {:cont, {:ok, list}}
-
-        {:ok, value} ->
-          {:cont, {:ok, [{atom, value} | list]}}
-
-        error ->
-          {:halt, error}
-      end
-    end)
+    OMG.WatcherRPC.Web.Validator.Helpers.validate_constraints(params, constraints)
   end
 
   defp to_tx_type(tx_type_str) do

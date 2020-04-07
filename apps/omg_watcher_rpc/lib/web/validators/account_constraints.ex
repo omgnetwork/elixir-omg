@@ -25,17 +25,11 @@ defmodule OMG.WatcherRPC.Web.Validator.AccountConstraints do
   @spec parse(%{binary() => any()}) :: {:ok, Keyword.t()} | {:error, any()}
   def parse(params) do
     constraints = [
-      {"limit", [pos_integer: true, lesser: 1000, optional: true]},
-      {"page", [:pos_integer, :optional]},
-      {"address", [:address]}
+      {"limit", [pos_integer: true, lesser: 1000, optional: true], :limit},
+      {"page", [:pos_integer, :optional], :page},
+      {"address", [:address], :address}
     ]
 
-    Enum.reduce_while(constraints, {:ok, []}, fn {key, validators}, {:ok, list} ->
-      case expect(params, key, validators) do
-        {:ok, nil} -> {:cont, {:ok, list}}
-        {:ok, value} -> {:cont, {:ok, [{String.to_atom(key), value} | list]}}
-        error -> {:halt, error}
-      end
-    end)
+    OMG.WatcherRPC.Web.Validator.Helpers.validate_constraints(params, constraints)
   end
 end

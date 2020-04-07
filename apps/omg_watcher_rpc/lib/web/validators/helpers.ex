@@ -12,21 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
+defmodule OMG.WatcherRPC.Web.Validator.Helpers do
   @moduledoc """
-  Validates `/block.all` query parameters
+  helper for validators
   """
+  import OMG.Utils.HttpRPC.Validator.Base, only: [expect: 3]
 
   @doc """
   Validates possible query constraints, stops on first error.
   """
-  @spec parse(%{binary() => any()}) :: {:ok, Keyword.t()} | {:error, any()}
-  def parse(params) do
-    constraints = [
-      {"limit", [pos_integer: true, lesser: 1000, optional: true]},
-      {"page", [:pos_integer, :optional]}
-    ]
+  def validate_constraints(params, constraints) do
+    Enum.reduce_while(constraints, {:ok, []}, fn {key, validators, atom}, {:ok, list} ->
+      case expect(params, key, validators) do
+        {:ok, nil} ->
+          {:cont, {:ok, list}}
 
-    OMG.WatcherRPC.Web.Validator.Helpers.validate_constraints(params, constraints)
+        {:ok, value} ->
+          {:cont, {:ok, [{atom, value} | list]}}
+
+        error ->
+          {:halt, error}
+      end
+    end)
   end
 end
