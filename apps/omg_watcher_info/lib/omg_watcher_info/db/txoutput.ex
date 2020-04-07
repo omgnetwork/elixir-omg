@@ -94,7 +94,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> from(limit: ^limit, offset: ^offset)
     |> Repo.all()
     |> Paginator.set_data(paginator)
-
   end
 
   @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
