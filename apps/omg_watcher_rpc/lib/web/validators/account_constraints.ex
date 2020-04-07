@@ -33,7 +33,7 @@ defmodule OMG.WatcherRPC.Web.Validator.AccountConstraints do
     Enum.reduce_while(constraints, {:ok, []}, fn {key, validators}, {:ok, list} ->
       case expect(params, key, validators) do
         {:ok, nil} -> {:cont, {:ok, list}}
-        {:ok, value} -> {:cont, {:ok, [{String.to_existing_atom(key), value} | list]}}
+        {:ok, value} -> {:cont, {:ok, [{String.to_atom(key), value} | list]}}
         error -> {:halt, error}
       end
     end)
