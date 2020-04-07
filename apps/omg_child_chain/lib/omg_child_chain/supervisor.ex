@@ -78,7 +78,7 @@ defmodule OMG.ChildChain.Supervisor do
   end
 
   defp create_event_consumer_children() do
-    Enum.map(
+    topics =
       [
         "blocks",
         "DepositCreated",
@@ -86,10 +86,14 @@ defmodule OMG.ChildChain.Supervisor do
         "InFlightExitInputPiggybacked",
         "InFlightExitOutputPiggybacked",
         "ExitStarted"
-      ],
-      fn event ->
+      ]
+      |> Enum.map(&{:root_chain, &1})
+
+    Enum.map(
+      topics,
+      fn topic ->
         ContractEventConsumer.prepare_child(
-          event: event,
+          topic: topic,
           release: Application.get_env(:omg_child_chain, :release),
           current_version: Application.get_env(:omg_child_chain, :current_version),
           publisher: OMG.Status.Metric.Datadog

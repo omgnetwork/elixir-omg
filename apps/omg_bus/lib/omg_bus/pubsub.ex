@@ -36,6 +36,7 @@ defmodule OMG.Bus.PubSub do
 
   defmacro __using__(_) do
     quote do
+      alias OMG.Bus.Event
       alias Phoenix.PubSub
 
       @doc """
@@ -45,7 +46,13 @@ defmodule OMG.Bus.PubSub do
       @doc """
       Subscribes the current process to the internal bus topic
       """
-      def subscribe(topic, opts \\ []) do
+      def subscribe(topic, opts \\ [])
+
+      def subscribe({origin, topic}, opts) when is_atom(origin) do
+        PubSub.subscribe(OMG.Bus.PubSub, "#{origin}:#{topic}", opts)
+      end
+
+      def subscribe(topic, opts) do
         PubSub.subscribe(OMG.Bus.PubSub, topic, opts)
       end
 
@@ -57,14 +64,15 @@ defmodule OMG.Bus.PubSub do
       def handle_info({:internal_bus_event, :some_event, my_payload}, state)
       ```
       """
-      def broadcast(topic, {event, payload}) when is_atom(event) do
+      def broadcast(%Event{topic: topic, event: event, payload: payload}) when is_atom(event) do
         PubSub.broadcast(OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
       end
 
       @doc """
       Same as `broadcast/1`, but performed on the local node
       """
-      def direct_local_broadcast(topic, {event, payload}) when is_atom(event) do
+      def direct_local_broadcast(%Event{topic: topic, event: event, payload: payload})
+          when is_atom(event) do
         node_name = PubSub.node_name(OMG.Bus.PubSub)
         PubSub.direct_broadcast(node_name, OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
       end

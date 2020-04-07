@@ -36,7 +36,7 @@ defmodule OMG.Eth.Supervisor do
          stall_threshold_ms: stall_threshold_ms,
          eth_module: OMG.Eth.Client,
          alarm_module: Alarm,
-         event_bus: OMG.Bus
+         event_bus_module: OMG.Bus
        ]},
       {OMG.Eth.EthereumHeight, [event_bus: OMG.Bus]}
     ]
