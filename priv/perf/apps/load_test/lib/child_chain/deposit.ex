@@ -32,7 +32,7 @@ defmodule LoadTest.ChildChain.Deposit do
     {:ok, deposit} = Deposit.new(deposit_utxo)
     {:ok, {deposit_blknum, eth_blknum}} = send_deposit(deposit, depositor, amount, currency)
     :ok = wait_deposit_finality(eth_blknum, deposit_finality_margin)
-    Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0})
+    Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
   end
 
   defp send_deposit(deposit, account, value, @eth) do
