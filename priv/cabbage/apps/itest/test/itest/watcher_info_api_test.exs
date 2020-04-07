@@ -31,7 +31,7 @@ defmodule WatcherInfoApiTest do
     %{alice_account: alice_account}
   end
 
-  defgiven ~r/^Alice deposit "(?<amount>[^"]+)" ETH to the root chain creating 1 utxo$/,
+  defgiven ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain creating 1 utxo$/,
            %{amount: amount},
            %{alice_account: alice_account} = state do
     {alice_addr, _alice_priv} = alice_account
@@ -40,7 +40,7 @@ defmodule WatcherInfoApiTest do
     {:ok, state}
   end
 
-  defthen ~r/^Alice should able to call watcher_info \/account.get_utxos and it return the utxo and the paginating content correctly$/,
+  defthen ~r/^Alice is able to paginate her UTXOs$/,
           _,
           %{alice_account: alice_account} do
     {alice_addr, _alice_priv} = alice_account

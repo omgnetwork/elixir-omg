@@ -82,23 +82,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     )
   end
 
-  defp query_get_utxos(address) do
-    from(
-      txoutput in __MODULE__,
-      preload: [:ethevents],
-      left_join: ethevent in assoc(txoutput, :ethevents),
-      # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
-      where: txoutput.owner == ^address and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
-NOT EXISTS (SELECT 1
-           FROM ethevents_txoutputs AS etfrag
-           JOIN ethevents AS efrag ON
-                    etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                    AND efrag.event_type IN (?)
-                    AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
-      order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
-    )
-  end
-
   @spec get_utxos(keyword) :: OMG.Utils.Paginator.t()
   def get_utxos(params) do
     address = Keyword.get(params, :address)
@@ -210,9 +193,27 @@ NOT EXISTS (SELECT 1
   @spec get_sorted_grouped_utxos(OMG.Crypto.address_t()) :: %{OMG.Crypto.address_t() => list(%__MODULE__{})}
   def get_sorted_grouped_utxos(owner) do
     # TODO: use clever DB query to get following out of DB
-    get_all_utxos(owner)
+    owner
+    |> get_all_utxos()
     |> Enum.group_by(& &1.currency)
     |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
     |> Map.new()
+  end
+
+  defp query_get_utxos(address) do
+    from(
+      txoutput in __MODULE__,
+      preload: [:ethevents],
+      left_join: ethevent in assoc(txoutput, :ethevents),
+      # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
+      where: txoutput.owner == ^address and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+NOT EXISTS (SELECT 1
+           FROM ethevents_txoutputs AS etfrag
+           JOIN ethevents AS efrag ON
+                    etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
+                    AND efrag.event_type IN (?)
+                    AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+      order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
+    )
   end
 end
