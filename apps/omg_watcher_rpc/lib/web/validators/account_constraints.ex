@@ -17,7 +17,6 @@ defmodule OMG.WatcherRPC.Web.Validator.AccountConstraints do
   Validates `/account.get_utxos` query parameters
   """
 
-  import OMG.Utils.HttpRPC.Validator.Base, only: [expect: 3]
   alias OMG.WatcherRPC.Web.Validator.Helpers
 
   @doc """
