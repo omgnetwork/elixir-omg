@@ -21,6 +21,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
   use OMG.Utils.LoggerExt
 
   alias OMG.ChildChain.BlockQueue
+  alias OMG.ChildChain.BlockQueue.Balance
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.ChildChain.ChildManager
   alias OMG.ChildChain.Configuration
@@ -55,9 +56,11 @@ defmodule OMG.ChildChain.SyncSupervisor do
     deposit_finality_margin = OMG.Configuration.deposit_finality_margin()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
     contracts = OMG.Eth.Configuration.contracts()
+    authority_address = OMG.Eth.Configuration.authority_addr()
 
     [
       {GasAnalyzer, []},
+      {Balance, [authority_address: authority_address]},
       {BlockQueue,
        [
          contract_deployment_height: contract_deployment_height,

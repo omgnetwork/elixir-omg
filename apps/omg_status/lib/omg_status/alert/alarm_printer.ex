@@ -22,7 +22,7 @@ defmodule OMG.Status.AlarmPrinter do
   # 5 minutes
   @max_interval 300_000
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    GenServer.start_link(__MODULE__, args, name: Keyword.get(args, :name, __MODULE__))
   end
 
   def init(args) do

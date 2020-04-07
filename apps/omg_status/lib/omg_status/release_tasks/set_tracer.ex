@@ -34,6 +34,7 @@ defmodule OMG.Status.ReleaseTasks.SetTracer do
     release = Keyword.get(args, :release)
     tags = ["application:#{release}", "app_env:#{get_app_env()}", "hostname:#{get_hostname()}"]
     :ok = Application.put_env(:statix, :tags, tags, persistent: true)
+
     # spandex_datadog setup
 
     :ok =

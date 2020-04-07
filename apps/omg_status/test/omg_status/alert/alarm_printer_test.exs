@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.Status.Alert.AlarmPrinterTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   import ExUnit.CaptureLog, only: [capture_log: 1]
 
   alias OMG.Status.AlarmPrinter
@@ -21,7 +21,8 @@ defmodule OMG.Status.Alert.AlarmPrinterTest do
   @moduletag :common
 
   setup do
-    {:ok, alarm_printer} = AlarmPrinter.start_link(alarm_module: __MODULE__.Alarm)
+    {:ok, alarm_printer} =
+      AlarmPrinter.start_link(alarm_module: __MODULE__.Alarm, name: String.to_atom("test-#{:rand.uniform(1000)}"))
 
     %{alarm_printer: alarm_printer}
   end

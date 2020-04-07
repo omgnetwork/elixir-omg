@@ -39,6 +39,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
     contracts = OMG.Eth.Configuration.contracts()
 
     fee_claimer_address = Base.decode16!("DEAD000000000000000000000000000000000000")
+
     # State and Block Getter are linked, because they must restore their state to the last stored state
     # If Block Getter fails, it starts from the last checkpoint while State might have had executed some transactions
     # such a situation will cause error when trying to execute already executed transaction
