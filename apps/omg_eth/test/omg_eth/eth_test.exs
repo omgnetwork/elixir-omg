@@ -19,7 +19,6 @@ defmodule OMG.EthTest do
   This shouldn't test the contract and should rely as little as possible on the contract logic.
   `OMG.Eth` is intended to be as thin and deprived of own logic as possible, to not require extensive testing.
 
-  Note the excluded moduletag, this test requires an explicit `--include wrappers`
   """
   use ExUnit.Case, async: false
 

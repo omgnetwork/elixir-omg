@@ -71,7 +71,6 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
           {txhash_contract, authority_address, plasma_framework}
       end
 
-    Logger.info("Application aaaaaa: #{inspect(Application.get_all_env(:ethereumex))}")
     # get all the data from external sources
     {payment_exit_game, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval} =
       get_external_data(plasma_framework, rpc_api)

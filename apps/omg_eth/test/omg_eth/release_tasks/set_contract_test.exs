@@ -13,8 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.Eth.ReleaseTasks.SetContractTest do
-  alias OMG.Eth.ReleaseTasks.SetContract
   use ExUnit.Case, async: true
+
+  alias OMG.Eth.ReleaseTasks.SetContract
 
   setup_all do
     plasma_framework = Support.SnapshotContracts.parse_contracts()["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
