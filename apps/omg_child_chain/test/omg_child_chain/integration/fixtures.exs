@@ -20,6 +20,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
   alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.Eth
+  alias OMG.Eth.Encoding
   alias OMG.Status.Alert.Alarm
   alias OMG.TestHelper
   alias Support.DevHelper
@@ -29,8 +30,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)
-
-    enc_eth = Eth.Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
+    enc_eth = Encoding.to_hex(OMG.Eth.zero_address())
 
     {:ok, path, file_name} =
       TestHelper.write_fee_file(%{
@@ -43,7 +43,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
             pegged_subunit_to_unit: 100,
             updated_at: DateTime.utc_now()
           },
-          Eth.Encoding.to_hex(token) => %{
+          token => %{
             amount: 2,
             pegged_amount: 1,
             subunit_to_unit: 1_000_000_000_000_000_000,
@@ -54,12 +54,19 @@ defmodule OMG.ChildChain.Integration.Fixtures do
         }
       })
 
-    default_file = Application.fetch_env!(:omg_child_chain, :fee_specs_file_name)
-    Application.put_env(:omg_child_chain, :fee_specs_file_name, file_name, persistent: true)
+    default_value = Application.fetch_env!(:omg_child_chain, :fee_adapter)
+
+    :ok =
+      Application.put_env(
+        :omg_child_chain,
+        :fee_adapter,
+        {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_name: file_name]},
+        persistent: true
+      )
 
     on_exit(fn ->
       :ok = File.rm(path)
-      Application.put_env(:omg_child_chain, :fee_specs_file_name, default_file)
+      :ok = Application.put_env(:omg_child_chain, :fee_adapter, default_value)
     end)
 
     file_name
@@ -97,6 +104,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
     {:ok, _} = DevHelper.import_unlock_fund(alice)
 
     deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value)
+    token_addr = Encoding.from_hex(token_addr)
     {:ok, _} = Eth.Token.mint(alice.addr, some_value, token_addr) |> DevHelper.transact_sync!()
     token_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value, token_addr)
 

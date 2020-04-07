@@ -17,9 +17,8 @@ defmodule Itest.Fee do
   """
 
   alias Itest.Client
-  alias Itest.Transactions.PaymentType
 
-  @payment_tx_type PaymentType.simple_payment_transaction() |> Binary.to_integer() |> Integer.to_string()
+  @payment_tx_type ExPlasma.payment_v1() |> Binary.to_integer() |> Integer.to_string()
 
   @doc """
   get all supported fees for payment transactions

@@ -11,11 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule Itest.Transactions.PaymentType do
-  @moduledoc """
-  Return our Payment type
-  """
 
-  @simple_payment_transaction <<1>>
-  def simple_payment_transaction(), do: @simple_payment_transaction
+defmodule LoadTest.Runner.ChildChainTest do
+  @moduledoc """
+  child chain load test
+  """
+  use ExUnit.Case
+
+  @tag timeout: 6_000_000
+  test "childchain test" do
+    Chaperon.run_load_test(LoadTest.Runner.ChildChainTransactions, print_results: true)
+  end
 end

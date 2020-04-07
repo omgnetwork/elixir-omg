@@ -24,7 +24,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
 
   require Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "transaction output schema handles big numbers properly", %{alice: alice} do

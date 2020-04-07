@@ -16,14 +16,15 @@ defmodule OMG.Performance.Generators do
   @moduledoc """
   Provides helper functions to generate bundles of various useful entities for performance tests
   """
+  require OMG.Utxo
 
+  alias OMG.Eth.Configuration
   alias OMG.Eth.RootChain
+
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
   alias Support.DevHelper
-
-  require Utxo
 
   @generate_user_timeout 600_000
 
@@ -39,38 +40,6 @@ defmodule OMG.Performance.Generators do
     1..size
     |> Task.async_stream(fn _ -> generate_user(opts) end, timeout: @generate_user_timeout)
     |> Enum.map(fn {:ok, result} -> result end)
-  end
-
-  @doc """
-  Streams blocks from child chain rpc starting from the first block.
-  """
-  @spec stream_blocks() :: [OMG.Block.t()]
-  def stream_blocks() do
-    child_chain_url = Application.fetch_env!(:omg_watcher, :child_chain_url)
-    {:ok, interval} = RootChain.get_child_block_interval()
-
-    Stream.map(
-      Stream.iterate(1, &(&1 + 1)),
-      &get_block!(&1 * interval, child_chain_url)
-    )
-  end
-
-  @doc """
-  Streams rlp-encoded transactions from a given blocks.
-  Blocks are streamed form child chain rpc if not provided.
-
-  Options:
-    - :use_blocks - if not nil, will use this as the stream of blocks, otherwise streams from child chain rpc
-    - :take - if not nil, will limit to this many results
-  """
-  @spec stream_transactions([OMG.Block.t()]) :: [binary()]
-  def stream_transactions(opts \\ []) do
-    transactions =
-      opts[:use_blocks]
-      |> if(do: opts[:use_blocks], else: stream_blocks())
-      |> Stream.flat_map(& &1.transactions)
-
-    if opts[:take], do: Enum.take(transactions, opts[:take]), else: transactions
   end
 
   @doc """
@@ -91,17 +60,15 @@ defmodule OMG.Performance.Generators do
     if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
   end
 
-  @doc """
-  Gets a mined block at random. Block is fetch from child chain rpc.
-  """
-  @spec random_block() :: OMG.Block.t()
-  def random_block() do
-    child_chain_url = Application.fetch_env!(:omg_watcher, :child_chain_url)
-    {:ok, interval} = RootChain.get_child_block_interval()
-    {:ok, mined_block} = RootChain.get_mined_child_block()
-    # interval <= blknum <= mined_block
-    blknum = :rand.uniform(div(mined_block, interval)) * interval
-    get_block!(blknum, child_chain_url)
+  @spec stream_blocks() :: [OMG.Block.t()]
+  defp stream_blocks() do
+    child_chain_url = OMG.Watcher.Configuration.child_chain_url()
+    interval = Configuration.child_block_interval()
+
+    Stream.map(
+      Stream.iterate(1, &(&1 + 1)),
+      &get_block!(&1 * interval, child_chain_url)
+    )
   end
 
   defp generate_user(opts) do
@@ -111,8 +78,8 @@ defmodule OMG.Performance.Generators do
   end
 
   defp get_block!(blknum, child_chain_url) do
-    {:ok, {block_hash, _timestamp}} = RootChain.get_child_chain(blknum)
-    {:ok, block} = Client.get_block(block_hash, child_chain_url)
+    {block_hash, _} = RootChain.blocks(blknum)
+    {:ok, block} = poll_get_block(block_hash, child_chain_url)
     block
   end
 
@@ -136,5 +103,22 @@ defmodule OMG.Performance.Generators do
       utxo_pos = Utxo.position(blknum, txindex, oindex)
       Utxo.Position.encode(utxo_pos)
     end)
+  end
+
+  defp poll_get_block(block_hash, child_chain_url) do
+    poll_get_block(block_hash, child_chain_url, 50)
+  end
+
+  defp poll_get_block(block_hash, child_chain_url, 0), do: Client.get_block(block_hash, child_chain_url)
+
+  defp poll_get_block(block_hash, child_chain_url, retry) do
+    case Client.get_block(block_hash, child_chain_url) do
+      {:ok, _block} = result ->
+        result
+
+      _ ->
+        Process.sleep(10)
+        poll_get_block(block_hash, child_chain_url, retry - 1)
+    end
   end
 end

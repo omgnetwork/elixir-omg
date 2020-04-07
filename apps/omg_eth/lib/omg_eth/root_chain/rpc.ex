@@ -13,10 +13,15 @@
 # limitations under the License.
 defmodule OMG.Eth.RootChain.Rpc do
   @moduledoc """
-   Does RPC calls for enriching event functions or bare events polling
+   Does RPC calls for enriching event functions or bare events polling to plasma contracts.
   """
   require Logger
   alias OMG.Eth.Encoding
+
+  def call_contract(client \\ Ethereumex.HttpClient, contract, signature, args) do
+    data = signature |> ABI.encode(args) |> Encoding.to_hex()
+    client.eth_call(%{to: contract, data: data})
+  end
 
   def get_ethereum_events(block_from, block_to, [_ | _] = signatures, [_ | _] = contracts) do
     topics = Enum.map(signatures, fn signature -> event_topic_for_signature(signature) end)

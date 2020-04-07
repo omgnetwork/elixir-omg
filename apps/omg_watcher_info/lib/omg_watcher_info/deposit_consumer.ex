@@ -28,7 +28,7 @@ defmodule OMG.WatcherInfo.DepositConsumer do
   use GenServer
 
   def init(:ok) do
-    :ok = OMG.Bus.subscribe("DepositCreated", link: true)
+    :ok = OMG.Bus.subscribe({:root_chain, "DepositCreated"}, link: true)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
     {:ok, %{}}

@@ -16,23 +16,45 @@ defmodule OMG.ChildChain.Configuration do
   @moduledoc """
   Interface for accessing all Child Chain configuration
   """
+  @app :omg_child_chain
+
   @spec metrics_collection_interval() :: no_return | pos_integer()
   def metrics_collection_interval() do
-    Application.fetch_env!(:omg_child_chain, :metrics_collection_interval)
+    Application.fetch_env!(@app, :metrics_collection_interval)
   end
 
   @spec block_queue_eth_height_check_interval_ms() :: no_return | pos_integer()
   def block_queue_eth_height_check_interval_ms() do
-    Application.fetch_env!(:omg_child_chain, :block_queue_eth_height_check_interval_ms)
+    Application.fetch_env!(@app, :block_queue_eth_height_check_interval_ms)
   end
 
   @spec submission_finality_margin() :: no_return | pos_integer()
   def submission_finality_margin() do
-    Application.fetch_env!(:omg_child_chain, :submission_finality_margin)
+    Application.fetch_env!(@app, :submission_finality_margin)
   end
 
   @spec block_submit_every_nth() :: no_return | pos_integer()
   def block_submit_every_nth() do
-    Application.fetch_env!(:omg_child_chain, :block_submit_every_nth)
+    Application.fetch_env!(@app, :block_submit_every_nth)
+  end
+
+  @doc """
+  Prepares options Keyword for the FeeServer process
+  """
+  @spec fee_server_opts() :: no_return | Keyword.t()
+  def fee_server_opts() do
+    fee_server_opts = [
+      fee_adapter_check_interval_ms: Application.fetch_env!(@app, :fee_adapter_check_interval_ms),
+      fee_buffer_duration_ms: Application.fetch_env!(@app, :fee_buffer_duration_ms)
+    ]
+
+    {adapter, opts: adapter_opts} = fee_adapter_opts()
+
+    Keyword.merge(fee_server_opts, fee_adapter: adapter, fee_adapter_opts: adapter_opts)
+  end
+
+  @spec fee_adapter_opts() :: no_return | tuple()
+  defp fee_adapter_opts() do
+    Application.fetch_env!(@app, :fee_adapter)
   end
 end

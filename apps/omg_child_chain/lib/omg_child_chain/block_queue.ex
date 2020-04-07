@@ -47,8 +47,10 @@ defmodule OMG.ChildChain.BlockQueue do
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.ChildChain.FreshBlocks
   alias OMG.Eth
+  alias OMG.Eth.Client
   alias OMG.Eth.Encoding
   alias OMG.Eth.EthereumHeight
+  alias OMG.Eth.RootChain
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
@@ -76,20 +78,20 @@ defmodule OMG.ChildChain.BlockQueue do
   """
   def handle_continue(:setup, args) do
     _ = Logger.info("Starting #{__MODULE__} service.")
-    :ok = Eth.node_ready()
-
-    {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
+    :ok = Client.node_ready()
+    finality_threshold = Keyword.fetch!(args, :submission_finality_margin)
+    child_block_interval = Keyword.fetch!(args, :child_block_interval)
+    contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
 
     {:ok, parent_height} = EthereumHeight.get()
-    {:ok, mined_num} = Eth.RootChain.get_mined_child_block()
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+    mined_num = RootChain.get_mined_child_block()
+    {top_mined_hash, _} = RootChain.blocks(mined_num)
     {:ok, stored_child_top_num} = OMG.DB.get_single_value(:child_top_block_number)
-    finality_threshold = Keyword.fetch!(args, :submission_finality_margin)
 
     _ =
       Logger.info(
         "Starting BlockQueue at " <>
-          "parent_height: #{inspect(parent_height)}, parent_start: #{inspect(parent_start)}, " <>
+          "parent_height: #{inspect(parent_height)}, parent_start: #{inspect(contract_deployment_height)}, " <>
           "mined_child_block: #{inspect(mined_num)}, stored_child_top_block: #{inspect(stored_child_top_num)}"
       )
 
@@ -97,25 +99,28 @@ defmodule OMG.ChildChain.BlockQueue do
       Core.child_block_nums_to_init_with(mined_num, stored_child_top_num, child_block_interval, finality_threshold)
 
     {:ok, known_hashes} = OMG.DB.block_hashes(range)
-    {:ok, {top_mined_hash, _}} = Eth.RootChain.get_child_chain(mined_num)
+
     _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Encoding.to_hex(top_mined_hash))}")
 
     block_submit_every_nth = Keyword.fetch!(args, :block_submit_every_nth)
 
+    core =
+      Core.new(
+        mined_child_block_num: mined_num,
+        known_hashes: Enum.zip(range, known_hashes),
+        top_mined_hash: top_mined_hash,
+        parent_height: parent_height,
+        child_block_interval: child_block_interval,
+        block_submit_every_nth: block_submit_every_nth,
+        finality_threshold: finality_threshold
+      )
+
     {:ok, state} =
-      case Core.new(
-             mined_child_block_num: mined_num,
-             known_hashes: Enum.zip(range, known_hashes),
-             top_mined_hash: top_mined_hash,
-             parent_height: parent_height,
-             child_block_interval: child_block_interval,
-             block_submit_every_nth: block_submit_every_nth,
-             finality_threshold: finality_threshold
-           ) do
+      case core do
         {:ok, _state} = result ->
           result
 
-        {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
+        {:error, reason} = error when reason == :mined_blknum_not_found_in_db or reason == :contract_ahead_of_db ->
           _ =
             log_init_error(
               known_hashes: known_hashes,
@@ -125,21 +130,18 @@ defmodule OMG.ChildChain.BlockQueue do
             )
 
           error
-
-        other ->
-          other
       end
 
     interval = Keyword.fetch!(args, :block_queue_eth_height_check_interval_ms)
     {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
     # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
-    :ok = OMG.Bus.subscribe("blocks", link: true)
+    :ok = OMG.Bus.subscribe({:child_chain, "blocks"}, link: true)
     metrics_collection_interval = Keyword.fetch!(args, :metrics_collection_interval)
     {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
-    {:noreply, %Core{} = state}
+    {:noreply, state}
   end
 
   def handle_info(:send_metrics, state) do
@@ -153,9 +155,10 @@ defmodule OMG.ChildChain.BlockQueue do
 
   `OMG.ChildChain.BlockQueue.Core` decides whether a new block should be formed or not.
   """
-  def handle_info(:check_ethereum_status, %Core{} = state) do
+  def handle_info(:check_ethereum_status, state) do
     {:ok, ethereum_height} = EthereumHeight.get()
-    {:ok, mined_blknum} = Eth.RootChain.get_mined_child_block()
+
+    mined_blknum = RootChain.get_mined_child_block()
     {_, is_empty_block} = OMG.State.get_status()
 
     _ = Logger.debug("Ethereum at \#'#{inspect(ethereum_height)}', mined child at \#'#{inspect(mined_blknum)}'")
@@ -178,33 +181,30 @@ defmodule OMG.ChildChain.BlockQueue do
   Lines up a new block for submission. Presumably `OMG.State.form_block` wrote to the `:internal_event_bus` having
   formed a new child chain block.
   """
-  def handle_info(
-        {:internal_event_bus, :enqueue_block, %Block{number: block_number, hash: block_hash} = block},
-        %Core{} = state
-      ) do
+  def handle_info({:internal_event_bus, :enqueue_block, %Block{} = block}, state) do
     {:ok, parent_height} = EthereumHeight.get()
-    state1 = Core.enqueue_block(state, block_hash, block_number, parent_height)
-    _ = Logger.info("Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Encoding.to_hex(block_hash))}'")
+    state1 = Core.enqueue_block(state, block.hash, block.number, parent_height)
+    _ = Logger.info("Enqueuing block num '#{inspect(block.number)}', hash '#{inspect(Encoding.to_hex(block.hash))}'")
 
     FreshBlocks.push(block)
     submit_blocks(state1)
-    {:noreply, %Core{} = state1}
+    {:noreply, state1}
   end
 
   # private (server)
 
   @spec submit_blocks(Core.t()) :: :ok
-  defp submit_blocks(%Core{} = state) do
+  defp submit_blocks(state) do
     state
     |> Core.get_blocks_to_submit()
-    |> Enum.each(&submit/1)
+    |> Enum.each(&submit(&1))
   end
 
-  defp submit(%Core.BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price} = submission) do
-    _ = Logger.debug("Submitting: #{inspect(submission)}")
+  defp submit(submission) do
+    _ = Logger.info("Submitting: #{inspect(submission)}")
 
-    submit_result = Eth.submit_block(hash, nonce, gas_price)
-    {:ok, newest_mined_blknum} = Eth.RootChain.get_mined_child_block()
+    submit_result = Eth.submit_block(submission.hash, submission.nonce, submission.gas_price)
+    newest_mined_blknum = RootChain.get_mined_child_block()
 
     final_result = Core.process_submit_result(submission, submit_result, newest_mined_blknum)
 
@@ -226,21 +226,29 @@ defmodule OMG.ChildChain.BlockQueue do
   end
 
   defp log_init_error(fields) do
-    config = Eth.Diagnostics.get_child_chain_config()
     fields = Keyword.update!(fields, :known_hashes, fn hashes -> Enum.map(hashes, &Encoding.to_hex/1) end)
-    diagnostic = Enum.into(fields, %{config: config})
 
     _ =
       Logger.error(
         "The child chain might have not been wiped clean when starting a child chain from scratch: " <>
-          "#{inspect(diagnostic)}. Check README.MD and follow the setting up child chain."
+          "#{inspect(fields)}. Check README.MD and follow the setting up child chain."
       )
 
     log_eth_node_error()
   end
 
   defp log_eth_node_error() do
-    eth_node_diagnostics = Eth.Diagnostics.get_node_diagnostics()
+    eth_node_diagnostics = get_node_diagnostics()
     Logger.error("Ethereum operation failed, additional diagnostics: #{inspect(eth_node_diagnostics)}")
+  end
+
+  defp get_node_diagnostics() do
+    Enum.into(["personal_listWallets", "admin_nodeInfo", "parity_enode"], %{}, &get_node_diagnostic/1)
+  end
+
+  defp get_node_diagnostic(rpc_call_name) when is_binary(rpc_call_name) do
+    {rpc_call_name, Ethereumex.HttpClient.request(rpc_call_name, [], [])}
+  rescue
+    error -> {rpc_call_name, inspect(error)}
   end
 end

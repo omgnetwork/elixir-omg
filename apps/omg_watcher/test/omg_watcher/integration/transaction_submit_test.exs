@@ -41,7 +41,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   @moduletag timeout: 180_000
 
   @timeout 40_000
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @eth_hex Encoding.to_hex(@eth)
 
   @tag fixtures: [:in_beam_watcher, :mix_based_child_chain, :stable_alice, :bob, :stable_alice_deposits]
