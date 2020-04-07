@@ -13,46 +13,26 @@
 # limitations under the License.
 
 defmodule OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThresholdTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   alias OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold
 
   @app :omg_eth
   @env_key "ETHEREUM_STALLED_SYNC_THRESHOLD_MS"
   @config_key :ethereum_stalled_sync_threshold_ms
 
-  setup do
-    original_config = Application.get_all_env(@app)
-
-    on_exit(fn ->
-      # configuration is global state so we reset it to known values in case it got fiddled before
-      :ok = Enum.each(original_config, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
-    end)
-
-    {:ok, %{original_config: original_config}}
-  end
-
   test "that interval is set when the env var is present" do
     :ok = System.put_env(@env_key, "9999")
-    :ok = SetEthereumStalledSyncThreshold.init([])
-    assert Application.get_env(@app, @config_key) == 9999
+    config = SetEthereumStalledSyncThreshold.load([], [])
+    ethereum_stalled_sync_threshold_ms = config |> Keyword.fetch!(@app) |> Keyword.fetch!(@config_key)
+    assert ethereum_stalled_sync_threshold_ms == 9999
     :ok = System.delete_env(@env_key)
-  end
-
-  test "that no other configurations got affected", context do
-    :ok = System.put_env(@env_key, "9999")
-    :ok = SetEthereumStalledSyncThreshold.init([])
-    new_configs = @app |> Application.get_all_env() |> Keyword.delete(@config_key) |> Enum.sort()
-    old_configs = context.original_config |> Keyword.delete(@config_key) |> Enum.sort()
-
-    assert new_configs == old_configs
   end
 
   test "that the default config is used when the env var is not set" do
     old_config = Application.get_env(@app, @config_key)
     :ok = System.delete_env(@env_key)
-    :ok = SetEthereumStalledSyncThreshold.init([])
-    new_config = Application.get_env(@app, @config_key)
-
-    assert new_config == old_config
+    config = SetEthereumStalledSyncThreshold.load([], [])
+    ethereum_stalled_sync_threshold_ms = config |> Keyword.fetch!(@app) |> Keyword.fetch!(@config_key)
+    assert ethereum_stalled_sync_threshold_ms == old_config
   end
 end

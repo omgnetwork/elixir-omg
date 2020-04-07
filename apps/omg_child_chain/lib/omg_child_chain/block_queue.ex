@@ -42,6 +42,7 @@ defmodule OMG.ChildChain.BlockQueue do
   use OMG.Utils.LoggerExt
 
   alias OMG.Block
+  alias OMG.ChildChain.BlockQueue.Balance
   alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
@@ -215,7 +216,8 @@ defmodule OMG.ChildChain.BlockQueue do
           error
 
         {:ok, txhash} ->
-          GasAnalyzer.enqueue(txhash)
+          _ = GasAnalyzer.enqueue(txhash)
+          _ = Balance.check()
           :ok
 
         :ok ->

@@ -1,6 +1,6 @@
 MAKEFLAGS += --silent
-OVERRIDING_START ?= foreground
-OVERRIDING_VARIABLES ?= ./bin/variables
+OVERRIDING_START ?= start_iex
+OVERRIDING_VARIABLES ?= bin/variables
 SNAPSHOT ?= SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20
 BAREBUILD_ENV ?= dev
 help:
@@ -91,7 +91,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200219"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200407"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -168,22 +168,22 @@ check-dialyzer:
 
 
 build-child_chain-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, distillery.release --name child_chain --verbose
+	$(ENV_PROD) mix do compile, release child_chain --overwrite
 
 build-child_chain-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, distillery.release dev --name child_chain --verbose
+	$(ENV_DEV) mix do compile, release child_chain --overwrite
 
 build-watcher-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, distillery.release --name watcher --verbose
+	$(ENV_PROD) mix do compile, release watcher --overwrite
 
 build-watcher-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --verbose
+	$(ENV_DEV) mix do compile, release watcher --overwrite
 
 build-watcher_info-prod: deps-elixir-omg
-	$(ENV_PROD) mix do compile, distillery.release --name watcher_info --verbose
+	$(ENV_PROD) mix do compile, release watcher_info --overwrite
 
 build-watcher_info-dev: deps-elixir-omg
-	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_info --verbose
+	$(ENV_DEV) mix do compile, release watcher_info --overwrite
 
 build-test: deps-elixir-omg
 	$(ENV_TEST) mix compile
@@ -362,14 +362,14 @@ docker-nuke:
 	$(MAKE) init-contracts
 
 docker-remote-watcher:
-	docker-compose exec watcher /watcher_entrypoint bin/watcher remote_console
+	docker exec -it watcher /app/bin/child_chain remote
 
 docker-remote-watcher_info:
-	docker-compose exec watcher_info /watcher_info_entrypoint bin/watcher_info remote_console
+	docker exec -ti watcher_info /app/bin/watcher_info remote
 
 docker-remote-childchain:
-	docker-compose exec childchain /child_chain_entrypoint bin/child_chain remote_console
-
+	docker exec -ti childchain /app/bin/child_chain remote
+	
 .PHONY: docker-nuke docker-remote-watcher docker-remote-watcher_info docker-remote-childchain
 
 ###
@@ -380,78 +380,82 @@ start-services:
 	docker-compose up geth postgres
 
 start-child_chain:
-	set -e; . ${OVERRIDING_VARIABLES}; \
+	. ${OVERRIDING_VARIABLES} && \
 	echo "Building Child Chain" && \
 	make build-child_chain-${BAREBUILD_ENV} && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
 	echo "Init Child Chain DB" && \
-	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain init_key_value_db && \
-	echo "Init Child Chain DB DONE" && \
+	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()"
+	echo "Run Child Chain" && \
+	. ${OVERRIDING_VARIABLES} && \
 	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
 
 start-watcher:
-	set -e; . ${OVERRIDING_VARIABLES}; \
+	. ${OVERRIDING_VARIABLES} && \
 	echo "Building Watcher" && \
 	make build-watcher-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher init_key_value_db && \
-	echo "Init Watcher DBs DONE" && \
+	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
 	echo "Run Watcher" && \
+	. ${OVERRIDING_VARIABLES} && \
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
 
 start-watcher_info:
-	set -e; . ${OVERRIDING_VARIABLES}; \
+	. ${OVERRIDING_VARIABLES} && \
 	echo "Building Watcher Info" && \
 	make build-watcher_info-${BAREBUILD_ENV} && \
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
 	echo "Init Watcher Info DBs" && \
-	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_key_value_db && \
-	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info init_postgresql_db && \
-	echo "Init WatcherInfo DBs DONE" && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB.migrate()" && \
 	echo "Run Watcher Info" && \
+	. ${OVERRIDING_VARIABLES} && \
 	PORT=${WATCHER_INFO_PORT} _build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info $(OVERRIDING_START)
 
 update-child_chain:
 	_build/dev/rel/child_chain/bin/child_chain stop ; \
-	$(ENV_DEV) mix do compile, distillery.release dev --name child_chain --silent && \
-	set -e; . ${OVERRIDING_VARIABLES} && \
+	$(ENV_DEV) mix do compile, release child_chain --overwrite && \
+	. ${OVERRIDING_VARIABLES} && \
 	exec _build/dev/rel/child_chain/bin/child_chain $(OVERRIDING_START) &
 
 update-watcher:
 	_build/dev/rel/watcher/bin/watcher stop ; \
-	$(ENV_DEV) mix do compile, distillery.release dev --name watcher --silent && \
-	set -e; . ${OVERRIDING_VARIABLES} && \
+	$(ENV_DEV) mix do compile, release watcher --overwrite && \
+	. ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_PORT} _build/dev/rel/watcher/bin/watcher $(OVERRIDING_START) &
 
 update-watcher_info:
 	_build/dev/rel/watcher_info/bin/watcher_info stop ; \
-	$(ENV_DEV) mix do compile, distillery.release dev --name watcher_info --silent && \
-	set -e; . ${OVERRIDING_VARIABLES} && \
+	$(ENV_DEV) mix do compile, release watcher_info --overwrite && \
+	. ${OVERRIDING_VARIABLES} && \
 	exec PORT=${WATCHER_INFO_PORT} _build/dev/rel/watcher_info/bin/watcher_info $(OVERRIDING_START) &
 
 stop-child_chain:
+	. ${OVERRIDING_VARIABLES} && \
 	_build/dev/rel/child_chain/bin/child_chain stop
 
 stop-watcher:
+	. ${OVERRIDING_VARIABLES} && \
 	_build/dev/rel/watcher/bin/watcher stop
 
 stop-watcher_info:
+	. ${OVERRIDING_VARIABLES} && \
 	_build/dev/rel/watcher_info/bin/watcher_info stop
 
 remote-child_chain:
-	set -e; . ${OVERRIDING_VARIABLES} && \
-	_build/dev/rel/child_chain/bin/child_chain remote_console
+	. ${OVERRIDING_VARIABLES} && \
+	_build/dev/rel/child_chain/bin/child_chain remote
 
 remote-watcher:
-	set -e; . ${OVERRIDING_VARIABLES} && \
-	_build/dev/rel/watcher/bin/watcher remote_console
+	. ${OVERRIDING_VARIABLES} && \
+	_build/dev/rel/watcher/bin/watcher remote
 
 remote-watcher_info:
-	set -e; . ${OVERRIDING_VARIABLES} && \
-	_build/dev/rel/watcher_info/bin/watcher_info remote_console
+	. ${OVERRIDING_VARIABLES} && \
+	_build/dev/rel/watcher_info/bin/watcher_info remote
 
 get-alarms:
 	echo "Child Chain alarms" ; \
