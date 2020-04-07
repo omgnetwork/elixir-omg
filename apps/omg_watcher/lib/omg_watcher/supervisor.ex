@@ -63,29 +63,25 @@ defmodule OMG.Watcher.Supervisor do
   end
 
   defp create_event_consumer_children() do
-    child_chain_topics = ["blocks"]
-    child_chain_topics = Enum.map(child_chain_topics, &{:child_chain, &1})
-
-    root_chain_topics = [
-      "DepositCreated",
-      "InFlightExitInputPiggybacked",
-      "InFlightExitOutputPiggybacked",
-      "BlockSubmitted",
-      "ExitFinalized",
-      "ExitChallenged",
-      "InFlightExitChallenged",
-      "InFlightExitChallengeResponded",
-      "InFlightExitInputBlocked",
-      "InFlightExitOutputBlocked",
-      "InFlightExitInputWithdrawn",
-      "InFlightExitOutputWithdrawn",
-      "InFlightExitStarted",
-      "ExitStarted"
-    ]
-
-    root_chain_topics = Enum.map(root_chain_topics, &{:root_chain, &1})
-
-    topics = child_chain_topics ++ root_chain_topics
+    topics =
+      [
+        "blocks",
+        "DepositCreated",
+        "InFlightExitInputPiggybacked",
+        "InFlightExitOutputPiggybacked",
+        "BlockSubmitted",
+        "ExitFinalized",
+        "ExitChallenged",
+        "InFlightExitChallenged",
+        "InFlightExitChallengeResponded",
+        "InFlightExitInputBlocked",
+        "InFlightExitOutputBlocked",
+        "InFlightExitInputWithdrawn",
+        "InFlightExitOutputWithdrawn",
+        "InFlightExitStarted",
+        "ExitStarted"
+      ]
+      |> Enum.map(&{:root_chain, &1})
 
     Enum.map(
       topics,
