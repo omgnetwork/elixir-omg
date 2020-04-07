@@ -21,6 +21,12 @@ defmodule LoadTest.Service.Faucet do
   wait for it to finalize and then use that deposit utxo for funding accounts.
 
   This means that faucet account must have sufficient funds on the root chain.
+
+  After a few test runs, the faucet can end up with a large amount of utxos. This is not a
+  problem per se, but keeping the number of utxos down can speed things up.
+  You can merge utxos periodically by running merge_utxos e.g.
+
+  MIX_ENV=test mix run -e "LoadTest.Service.Faucet.merge_utxos(<<0::160>>)"
   """
 
   require Logger
@@ -63,6 +69,18 @@ defmodule LoadTest.Service.Faucet do
   def get_faucet() do
     GenServer.call(__MODULE__, :get_faucet)
   end
+
+  @doc """
+  Merges all the utxos of the given currency into one.
+  Note that this can take some time.
+  """
+  @spec merge_utxos(Utxo.address_binary()) :: Utxo.t()
+  def merge_utxos(currency) when byte_size(currency) == 20 do
+    GenServer.call(__MODULE__, {:merge_utxos, currency}, :infinity)
+  end
+
+  @spec merge_utxos(Utxo.address_hex()) :: Utxo.t()
+  def merge_utxos(currency), do: merge_utxos(Encoding.to_binary(currency))
 
   def start_link(config) do
     GenServer.start_link(__MODULE__, config, name: __MODULE__)
@@ -109,6 +127,13 @@ defmodule LoadTest.Service.Faucet do
     updated_state = Map.put(state, :utxos, Map.put(state.utxos, currency, next_faucet_utxo))
 
     {:reply, {:ok, user_utxo}, updated_state}
+  end
+
+  def handle_call({:merge_utxos, currency}, _from, state) do
+    utxos = Utxos.get_utxos(state.faucet_account.addr)
+    Logger.debug("Merging #{length(utxos)} utxos of #{Encoding.to_hex(currency)}")
+    utxo = Utxos.merge(utxos, currency, state.faucet_account)
+    {:reply, {:ok, utxo}, state}
   end
 
   @spec get_funding_utxo(state(), Utxo.address_binary(), pos_integer()) :: Utxo.t()
