@@ -19,6 +19,7 @@ defmodule OMG.WatcherRPC.Web.Validator.AccountConstraints do
 
   import OMG.Utils.HttpRPC.Validator.Base, only: [expect: 3]
   alias OMG.WatcherRPC.Web.Validator.Helpers
+
   @doc """
   Validates possible query constraints, stops on first error.
   """

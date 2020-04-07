@@ -17,6 +17,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
   Validates `/block.all` query parameters
   """
   alias OMG.WatcherRPC.Web.Validator.Helpers
+
   @doc """
   Validates possible query constraints, stops on first error.
   """
