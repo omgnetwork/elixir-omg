@@ -41,6 +41,12 @@ defmodule OMG.Watcher.DatadogEvent.ContractEventConsumerTest do
     :ok
   end
 
+  test "prepare_child sets a proper name" do
+    topic = {:root_chain, "blocks"}
+    %{id: id} = ContractEventConsumer.prepare_child(topic: topic)
+    assert id == String.to_atom("root_chain:blocks_worker")
+  end
+
   test "if an event put on omg bus is consumed by the event consumer and published on the publisher interface" do
     topic = self() |> :erlang.pid_to_list() |> to_string()
     sig = "#{topic}(bytes32)"
