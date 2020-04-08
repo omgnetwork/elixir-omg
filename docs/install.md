@@ -33,7 +33,7 @@ sudo apt-get install -y erlang-os-mon
 ```
 
 ## Install Geth
-Install Geth version 1.9.10 from the URL below.
+Install Geth version 1.9.12 from the URL below.
 ```
 https://geth.ethereum.org/downloads/
 ```

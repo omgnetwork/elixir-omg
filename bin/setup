@@ -44,9 +44,9 @@ install_linux_postgres(){
 }
 
 install_linux_geth(){
-  echo "Installing Geth 1.9.10"
+  echo "Installing Geth 1.9.12"
   mkdir gethDownload \
-  && wget -qO- "https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.9.11-6a62fe39.tar.gz" | tar xvz -C gethDownload --strip-components 1 \
+  && wget -qO- "https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.9.12-b6f1c8dc.tar.gz" | tar xvz -C gethDownload --strip-components 1 \
   && cd gethDownload \
   && mkdir -p /usr/local/bin \
   && sudo mv geth /usr/local/bin/ \
