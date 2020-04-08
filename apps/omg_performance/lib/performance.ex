@@ -17,8 +17,6 @@ defmodule OMG.Performance do
   OMG network performance tests. Provides general setup and utilities to do the perf tests.
   """
 
-  alias OMG.Utils.HttpRPC.Encoding
-
   defmacro __using__(_opt) do
     quote do
       alias OMG.Performance
@@ -56,15 +54,6 @@ defmodule OMG.Performance do
   ```
   in order to prevent the apps from waiting for unnecessary confirmations
 
-  ## Examples
-
-    iex> use OMG.Performance
-    iex> Performance.init(watcher_url: "http://elsewhere:7434")
-    :ok
-    iex> Application.get_env(:omg_watcher, :child_chain_url)
-    "http://localhost:9657"
-    iex> Application.get_env(:omg_performance, :watcher_url)
-    "http://elsewhere:7434"
   """
   def init(opts \\ []) do
     {:ok, _} = Application.ensure_all_started(:briefly)
@@ -93,12 +82,6 @@ defmodule OMG.Performance do
     :ok = Application.put_env(:ethereumex, :request_timeout, :infinity)
     :ok = Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)
     :ok = Application.put_env(:ethereumex, :url, opts[:ethereum_rpc_url])
-
-    :ok =
-      if opts[:contract_addr],
-        do: Application.put_env(:omg_eth, :contract_addr, contract_map_to_hex(opts[:contract_addr])),
-        else: :ok
-
     :ok = Application.put_env(:omg_watcher, :child_chain_url, opts[:child_chain_url])
     :ok = Application.put_env(:omg_performance, :watcher_url, opts[:watcher_url])
 
@@ -123,9 +106,4 @@ defmodule OMG.Performance do
       result
     end
   end
-
-  # Hexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
-
-  defp contract_map_to_hex(contract_map),
-    do: Enum.into(contract_map, %{}, fn {name, addr} -> {name, Encoding.to_hex(addr)} end)
 end

@@ -103,4 +103,12 @@ defmodule LoadTest.Ethereum.Hash do
 
     {recovery_id, r, s}
   end
+
+  @doc """
+    Packs a {v,r,s} signature as 65-bytes binary.
+  """
+  @spec pack_signature({hash_v, hash_r, hash_s}) :: binary
+  def pack_signature({v, r, s}) do
+    <<r::integer-size(256), s::integer-size(256), v::integer-size(8)>>
+  end
 end

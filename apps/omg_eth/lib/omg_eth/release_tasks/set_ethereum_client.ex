@@ -14,22 +14,28 @@
 
 defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_eth
   @doc """
   Gets the environment setting for the ethereum client location.
   """
-  @impl Provider
-  def init(_args) do
-    _ = Application.ensure_all_started(:logger)
-    _ = Application.ensure_all_started(:omg_status)
+
+  def init(args) do
+    args
+  end
+
+  def load(config, _args) do
+    _ = on_load()
     rpc_url = get_ethereum_rpc_url()
+    rpc_client_type = get_rpc_client_type()
+    # we need to get this imidiatelly in effect because we use ethereumex in SetContract
     Application.put_env(:ethereumex, :url, rpc_url, persistent: true)
 
-    rpc_client_type = get_rpc_client_type()
-    Application.put_env(@app, :eth_node, rpc_client_type, persistent: true)
-    :ok
+    Config.Reader.merge(config,
+      ethereumex: [url: rpc_url],
+      omg_eth: [eth_node: rpc_client_type]
+    )
   end
 
   defp get_ethereum_rpc_url() do
@@ -61,4 +67,11 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClient do
   defp validate_string(_, default), do: default
 
   defp get_env(key), do: System.get_env(key)
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.ensure_all_started(:omg_status)
+    _ = Application.load(@app)
+    _ = Application.load(:ethereumex)
+  end
 end

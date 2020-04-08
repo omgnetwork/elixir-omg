@@ -638,7 +638,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   end
 
   defp prepare_diagnostic(submission, newest_mined_blknum) do
-    config = Application.get_all_env(:omg_eth) |> Keyword.take([:contract_addr, :authority_addr, :txhash_contract])
+    config = Application.get_all_env(:omg_eth) |> Keyword.take([:contract_addr, :authority_address, :txhash_contract])
     %{submission: submission, newest_mined_blknum: newest_mined_blknum, config: config}
   end
 end

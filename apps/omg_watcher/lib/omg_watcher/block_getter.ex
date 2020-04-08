@@ -44,8 +44,8 @@ defmodule OMG.Watcher.BlockGetter do
   use GenServer
   use OMG.Utils.LoggerExt
   use Spandex.Decorators
+  alias OMG.Eth.RootChain
 
-  alias OMG.Eth
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
   alias OMG.State
@@ -56,50 +56,47 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.HttpRPC.Client
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
-  end
-
   @doc """
   Retrieves the freshest information about `OMG.Watcher.BlockGetter`'s status, as stored by the slave process `Status`.
   """
   @spec get_events() :: {:ok, Core.chain_ok_response_t()}
   def get_events(), do: __MODULE__.Status.get_events()
 
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  end
+
   @doc """
   Initializes the GenServer state, most work done in `handle_continue/2`.
   """
-  def init(_opts) do
-    {:ok, %{}, {:continue, :setup}}
+  def init(args) do
+    {:ok, args, {:continue, :setup}}
   end
 
   @doc """
   Reads the status of block getting and application from `OMG.DB`, reads the current state of the contract and root
   chain and starts the pollers that will take care of getting blocks.
   """
-  def handle_continue(:setup, %{}) do
-    {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
-    {:ok, last_synced_height} = OMG.DB.get_single_value(:last_block_getter_eth_height)
-    synced_height = max(deployment_height, last_synced_height)
-
-    {current_block_height, state_at_block_beginning} = State.get_status()
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    # State treats current as the next block to be executed or a block that is being executed
-    # while top block number is a block that has been formed (they differ by the interval)
-    child_top_block_number = current_block_height - child_block_interval
-
+  def handle_continue(:setup, args) do
+    child_block_interval = Keyword.fetch!(args, :child_block_interval)
     # how many eth blocks backward can change during an reorg
-    block_getter_reorg_margin = Application.fetch_env!(:omg_watcher, :block_getter_reorg_margin)
-
-    maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
-
-    maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
-
+    block_getter_reorg_margin = Keyword.fetch!(args, :block_getter_reorg_margin)
+    maximum_block_withholding_time_ms = Keyword.fetch!(args, :maximum_block_withholding_time_ms)
+    maximum_number_of_unapplied_blocks = Keyword.fetch!(args, :maximum_number_of_unapplied_blocks)
+    block_getter_loops_interval_ms = Keyword.fetch!(args, :block_getter_loops_interval_ms)
+    child_chain_url = Keyword.fetch!(args, :child_chain_url)
+    contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
     # TODO rethink posible solutions see issue #724
     # if we do not wait here, `ExitProcessor.check_validity()` may timeouts,
     # which causes State and BlockGetter to reboot, fetches entire UTXO set again, and then timeout...
-    _ = :sys.get_status(ExitProcessor, 10 * 60_000)
-    exit_processor_initial_results = ExitProcessor.check_validity()
+    exit_processor_initial_results = ExitProcessor.check_validity(10 * 60_000)
+    # State treats current as the next block to be executed or a block that is being executed
+    # while top block number is a block that has been formed (they differ by the interval)
+    {current_block_height, state_at_block_beginning} = State.get_status()
+    child_top_block_number = current_block_height - child_block_interval
+
+    {:ok, last_synced_height} = OMG.DB.get_single_value(:last_block_getter_eth_height)
+    synced_height = max(contract_deployment_height, last_synced_height)
 
     {:ok, state} =
       Core.init(
@@ -112,24 +109,27 @@ defmodule OMG.Watcher.BlockGetter do
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
         maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
         # NOTE: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
-        maximum_number_of_pending_blocks: System.schedulers()
+        maximum_number_of_pending_blocks: System.schedulers(),
+        block_getter_loops_interval_ms: block_getter_loops_interval_ms,
+        child_chain_url: child_chain_url
       )
 
     :ok = check_in_to_coordinator(synced_height)
-    {:ok, _} = schedule_sync_height()
-    {:ok, _} = schedule_producer()
+    {:ok, _} = schedule_sync_height(block_getter_loops_interval_ms)
+    {:ok, _} = schedule_producer(block_getter_loops_interval_ms)
 
     {:ok, _} = __MODULE__.Status.start_link()
     :ok = update_status(state)
+    metrics_collection_interval = Keyword.fetch!(args, :metrics_collection_interval)
 
-    {:ok, _} =
-      :timer.send_interval(
-        Application.fetch_env!(:omg_watcher, :metrics_collection_interval),
-        self(),
-        :send_metrics
+    {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
+
+    _ =
+      Logger.info(
+        "Started #{inspect(__MODULE__)}, synced_height: #{inspect(synced_height)} maximum_block_withholding_time_ms: #{
+          maximum_block_withholding_time_ms
+        }"
       )
-
-    _ = Logger.info("Started #{inspect(__MODULE__)}, synced_height: #{inspect(synced_height)}")
 
     {:noreply, state}
   end
@@ -144,7 +144,10 @@ defmodule OMG.Watcher.BlockGetter do
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
       {:ok, state} ->
-        :ok = OMG.Bus.direct_local_broadcast("block.get", {:block_received, block_application})
+        :ok =
+          {:child_chain, "block.get"}
+          |> OMG.Bus.Event.new(:block_received, block_application)
+          |> OMG.Bus.direct_local_broadcast()
 
         {:noreply, state, {:continue, {:apply_block_step, :run_block_download_task, block_application}}}
 
@@ -247,7 +250,7 @@ defmodule OMG.Watcher.BlockGetter do
     case Core.chain_ok(state) do
       {:ok, _} ->
         new_state = run_block_download_task(state)
-        {:ok, _} = schedule_producer()
+        {:ok, _} = schedule_producer(state.config.block_getter_loops_interval_ms)
         :ok = update_status(new_state)
         {:noreply, new_state}
 
@@ -290,15 +293,15 @@ defmodule OMG.Watcher.BlockGetter do
 
       :ok = OMG.DB.multi_update(db_updates)
       :ok = check_in_to_coordinator(synced_height)
-      {:ok, _} = schedule_sync_height()
+      {:ok, _} = schedule_sync_height(state.config.block_getter_loops_interval_ms)
       :ok = update_status(state)
-      :ok = publish_data(submissions)
+      :ok = publish_events(submissions)
       {:noreply, state}
     else
       :nosync ->
         :ok = check_in_to_coordinator(state.synced_height)
         :ok = update_status(state)
-        {:ok, _} = schedule_sync_height()
+        {:ok, _} = schedule_sync_height(state.config.block_getter_loops_interval_ms)
         {:noreply, state}
 
       {:error, _} = error ->
@@ -313,32 +316,32 @@ defmodule OMG.Watcher.BlockGetter do
     do: EthereumEventAggregator.block_submitted(block_from, block_to)
 
   defp run_block_download_task(state) do
-    {:ok, next_child} = Eth.RootChain.get_next_child_block()
+    next_child = RootChain.next_child_block()
     {new_state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
 
     Enum.each(
       blocks_numbers,
       # captures the result in handle_info/2 with the atom: downloaded_block
-      &Task.async(fn -> {:downloaded_block, download_block(&1)} end)
+      &Task.async(fn ->
+        {:downloaded_block, download_block(&1, state.config.child_chain_url)}
+      end)
     )
 
     new_state
   end
 
-  defp schedule_sync_height() do
-    block_getter_loops_interval_ms = Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
+  defp schedule_sync_height(block_getter_loops_interval_ms) do
     :timer.send_after(block_getter_loops_interval_ms, self(), :sync)
   end
 
-  defp schedule_producer() do
-    block_getter_loops_interval_ms = Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
+  defp schedule_producer(block_getter_loops_interval_ms) do
     :timer.send_after(block_getter_loops_interval_ms, self(), :producer)
   end
 
-  @spec download_block(pos_integer()) :: Core.validate_download_response_result_t()
-  defp download_block(requested_number) do
-    {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
-    child_chain_url = Application.get_env(:omg_watcher, :child_chain_url)
+  @spec download_block(pos_integer(), String.t()) :: Core.validate_download_response_result_t()
+  defp download_block(requested_number, child_chain_url) do
+    {requested_hash, block_timestamp} = RootChain.blocks(requested_number)
+
     response = Client.get_block(requested_hash, child_chain_url)
 
     Core.validate_download_response(
@@ -354,12 +357,15 @@ defmodule OMG.Watcher.BlockGetter do
 
   defp update_status(%Core{} = state), do: Status.update(Core.chain_ok(state))
 
-  defp publish_data([%{event_signature: event_signature} | _] = data) do
+  defp publish_events([%{event_signature: event_signature} | _] = data) do
     # event signature is string with a method name with arguments,
     # for example: BlockSubmitted(uint256)
     [event_signature, _] = String.split(event_signature, "(")
-    OMG.Bus.direct_local_broadcast(event_signature, {:data, data})
+
+    {:root_chain, event_signature}
+    |> OMG.Bus.Event.new(:data, data)
+    |> OMG.Bus.direct_local_broadcast()
   end
 
-  defp publish_data([]), do: :ok
+  defp publish_events([]), do: :ok
 end

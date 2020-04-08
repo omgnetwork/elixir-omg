@@ -27,7 +27,7 @@ defmodule OMG.Eth.DevGeth do
 
   def start() do
     {:ok, homedir} = Briefly.create(directory: true)
-    snapshot_dir = Path.expand(Path.join([Mix.Project.app_path(), "../../../../", "data/geth/"]))
+    snapshot_dir = Path.expand(Path.join([Mix.Project.build_path(), "../../", "data/geth/"]))
     {"", 0} = System.cmd("cp", ["-rf", snapshot_dir, homedir])
 
     keystore = Path.join([homedir, "/geth/keystore"])
@@ -50,7 +50,7 @@ defmodule OMG.Eth.DevGeth do
             --mine --datadir #{datadir} 2>&1)
     geth_pid = launch(geth)
 
-    {:ok, :ready} = WaitFor.eth_rpc()
+    {:ok, :ready} = WaitFor.eth_rpc(20_000)
 
     on_exit = fn -> stop(geth_pid) end
 

@@ -26,7 +26,7 @@ defmodule OMG.FeesTest do
 
   doctest OMG.Fees
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
   @not_eth_1 <<1::size(160)>>
 
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)

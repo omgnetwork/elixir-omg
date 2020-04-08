@@ -234,6 +234,7 @@ defmodule OMG.ChildChain.EthereumEventAggregatorTest do
 
       from_block = 1
       to_block = 3
+
       # we need to create events that we later expect when we call the aggregator APIs
       # for example, deposit_created and deposit_created_2 are expected if the range is from 1 to 3
 

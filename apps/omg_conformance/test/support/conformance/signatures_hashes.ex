@@ -16,10 +16,11 @@ defmodule Support.Conformance.SignaturesHashes do
   @moduledoc """
   Utility functions that used when testing Elixir vs Solidity implementation conformance
   """
-  alias OMG.Eth
-  alias OMG.State.Transaction
 
-  import ExUnit.Assertions, only: [assert: 1, assert: 2]
+  import ExUnit.Assertions, only: [assert: 1]
+
+  alias OMG.Eth.Encoding
+  alias OMG.State.Transaction
 
   @doc """
   Check if both implementations treat distinct transactions as distinct but produce sign hashes consistently
@@ -106,8 +107,9 @@ defmodule Support.Conformance.SignaturesHashes do
   # NOTE: `solidity_hash/2` returns something like `{:ok, <<8, 195, 121, 160, 0, 0, 0, more zeroes...>>}`, on contract
   #       revert, when using `:geth` Ethereum node. If an assertion fails with such a result, it indicates the contract
   #       rejected some transaction to signhash unexpectedly.
-  defp solidity_hash(encoded_tx, contract) when is_binary(encoded_tx),
-    do: Eth.call_contract(contract, "hashTx(address,bytes)", [contract, encoded_tx], [{:bytes, 32}])
+  defp solidity_hash(encoded_tx, contract) when is_binary(encoded_tx) do
+    call_contract(contract, "hashTx(address,bytes)", [contract, encoded_tx], [{:bytes, 32}])
+  end
 
   defp elixir_hash(%{} = tx), do: OMG.TypedDataHash.hash_struct(tx)
   defp elixir_hash(encoded_tx), do: encoded_tx |> Transaction.decode!() |> elixir_hash()
@@ -121,10 +123,27 @@ defmodule Support.Conformance.SignaturesHashes do
         assert [%{"error" => "revert"} | _] = Map.values(error_data)
 
       :geth ->
-        # `geth` is problematic - on a revert from `Eth.call_contract` it returns something resembling a reason
+        # `geth` is problematic - on a revert from `call_contract` it returns something resembling a reason
         # binary (beginning with 4-byte function selector). We need to assume that this is in fact a revert
-        assert {:ok, chopped_reason_binary_result} = result
+        {:ok, chopped_reason_binary_result} = result
         assert <<0::size(28)-unit(8)>> = binary_part(chopped_reason_binary_result, 4, 28)
     end
+  end
+
+  defp call_contract(contract, signature, args, return_types) do
+    data = ABI.encode(signature, args)
+
+    {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: Encoding.to_hex(contract), data: Encoding.to_hex(data)})
+    decode_answer(return, return_types)
+  end
+
+  defp decode_answer(enc_return, return_types) do
+    single_return =
+      enc_return
+      |> Encoding.from_hex()
+      |> ABI.TypeDecoder.decode(return_types)
+      |> hd()
+
+    {:ok, single_return}
   end
 end

@@ -15,8 +15,11 @@ defmodule OMG.ChildChain.Fees.JSONFeeParserTest do
   @moduledoc false
   use ExUnitFixtures
   use ExUnit.Case, async: true
+
   alias OMG.ChildChain.Fees.JSONFeeParser
   alias OMG.Eth
+
+  @moduletag :capture_log
 
   @eth Eth.zero_address()
   describe "parse/1" do

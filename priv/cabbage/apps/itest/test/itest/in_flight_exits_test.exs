@@ -30,7 +30,6 @@ defmodule InFlightExitsTests do
   alias Itest.Fee
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
-  alias Itest.Transactions.PaymentType
   alias WatcherSecurityCriticalAPI.Api.InFlightExit
   alias WatcherSecurityCriticalAPI.Api.InFlightExit
   alias WatcherSecurityCriticalAPI.Api.Transaction
@@ -79,8 +78,7 @@ defmodule InFlightExitsTests do
 
     [{alice_address, alice_pkey}, {bob_address, bob_pkey}] = Account.take_accounts(2)
 
-    exit_game_contract_address =
-      Itest.PlasmaFramework.exit_game_contract_address(PaymentType.simple_payment_transaction())
+    exit_game_contract_address = Itest.PlasmaFramework.exit_game_contract_address(ExPlasma.payment_v1())
 
     %{
       "exit_game_contract_address" => exit_game_contract_address,

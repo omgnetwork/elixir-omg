@@ -28,11 +28,11 @@ defmodule OMG.WatcherInfo.Fixtures do
   alias OMG.WatcherInfo
   alias OMG.WatcherInfo.DB
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
-  deffixture in_beam_watcher(db_initialized, root_chain_contract_config) do
+  deffixture in_beam_watcher(db_initialized, contract) do
     :ok = db_initialized
-    :ok = root_chain_contract_config
+    _ = contract
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher_info)

@@ -16,6 +16,7 @@ defmodule OMG.Eth.Configuration do
   @moduledoc """
   Provides access to applications configuration
   """
+
   @app :omg_eth
   def contract_semver() do
     Application.get_env(@app, :contract_semver)
@@ -42,16 +43,34 @@ defmodule OMG.Eth.Configuration do
 
   @spec txhash_contract() :: no_return | binary()
   def txhash_contract() do
-    Application.fetch_env!(:omg_eth, :txhash_contract)
+    Application.fetch_env!(@app, :txhash_contract)
   end
 
-  @spec authority_addr() :: no_return | binary()
-  def authority_addr() do
-    Application.fetch_env!(:omg_eth, :authority_addr)
+  @spec authority_address() :: no_return | binary()
+  def authority_address() do
+    Application.fetch_env!(@app, :authority_address)
   end
 
   @spec environment() :: :test | nil
   def environment() do
     Application.get_env(@app, :environment)
+  end
+
+  @spec child_block_interval() :: pos_integer | no_return
+  def child_block_interval() do
+    Application.fetch_env!(@app, :child_block_interval)
+  end
+
+  @spec eth_node() :: atom | no_return
+  def eth_node() do
+    Application.fetch_env!(@app, :eth_node)
+  end
+
+  def ethereum_events_check_interval_ms() do
+    Application.fetch_env!(@app, :ethereum_events_check_interval_ms)
+  end
+
+  def ethereum_stalled_sync_threshold_ms() do
+    Application.fetch_env!(@app, :ethereum_stalled_sync_threshold_ms)
   end
 end

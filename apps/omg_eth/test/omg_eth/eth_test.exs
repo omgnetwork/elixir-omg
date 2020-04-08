@@ -19,40 +19,22 @@ defmodule OMG.EthTest do
   This shouldn't test the contract and should rely as little as possible on the contract logic.
   `OMG.Eth` is intended to be as thin and deprived of own logic as possible, to not require extensive testing.
 
-  Note the excluded moduletag, this test requires an explicit `--include wrappers`
   """
+  use ExUnit.Case, async: false
 
   alias OMG.Eth
-  alias OMG.Eth.Encoding
+  alias OMG.Eth.Configuration
   alias Support.DevHelper
-  alias Support.SnapshotContracts
-  use ExUnit.Case, async: false
 
   @moduletag :common
 
   setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
-
-    data = SnapshotContracts.parse_contracts()
-
-    contracts = %{
-      authority_address: Encoding.from_hex(data["AUTHORITY_ADDRESS"]),
-      plasma_framework_tx_hash: Encoding.from_hex(data["TXHASH_CONTRACT"]),
-      erc20_vault: Encoding.from_hex(data["CONTRACT_ADDRESS_ERC20_VAULT"]),
-      eth_vault: Encoding.from_hex(data["CONTRACT_ADDRESS_ETH_VAULT"]),
-      payment_exit_game: Encoding.from_hex(data["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"]),
-      plasma_framework: Encoding.from_hex(data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
-    }
-
-    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [data["AUTHORITY_ADDRESS"], "", 0], [])
+    authority_address = Configuration.authority_address()
+    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [authority_address, "", 0], [])
 
     on_exit(exit_fn)
-    {:ok, contracts: contracts}
-  end
-
-  test "get_ethereum_height/0 returns the block number" do
-    {:ok, number} = Eth.get_ethereum_height()
-    assert is_integer(number)
+    :ok
   end
 
   test "get_block_timestamp_by_number/1 the block timestamp by block number" do
@@ -60,15 +42,8 @@ defmodule OMG.EthTest do
     assert is_integer(timestamp)
   end
 
-  test "submit_block/1 submits a block to the contract", %{contracts: contracts} do
-    response =
-      Eth.submit_block(
-        <<234::256>>,
-        1,
-        20_000_000_000,
-        contracts.authority_address,
-        contracts
-      )
+  test "submit_block/1 submits a block to the contract" do
+    response = Eth.submit_block(<<234::256>>, 1, 20_000_000_000)
 
     assert {:ok, _} = DevHelper.transact_sync!(response)
   end

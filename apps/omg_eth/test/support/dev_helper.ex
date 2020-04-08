@@ -17,13 +17,16 @@ defmodule Support.DevHelper do
   Helpers used when setting up development environment and test fixtures, related to contracts and ethereum.
   Run against `geth --dev` and similar.
   """
-
-  alias OMG.Eth
-  alias OMG.Eth.Transaction
-  alias Support.WaitFor
-  import Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
+  import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   require Logger
+
+  alias OMG.Eth
+  alias OMG.Eth.Client
+  alias OMG.Eth.Configuration
+  alias OMG.Eth.RootChain
+  alias OMG.Eth.Transaction
+  alias Support.WaitFor
 
   @one_hundred_eth trunc(:math.pow(10, 18) * 100)
 
@@ -32,18 +35,6 @@ defmodule Support.DevHelper do
   @about_4_blocks_time 60_000
 
   @passphrase "ThisIsATestnetPassphrase"
-
-  def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
-    contract_addr = contract_map_to_hex(contract_addr)
-
-    """
-    use Mix.Config
-    config :omg_eth,
-      contract_addr: #{inspect(contract_addr)},
-      txhash_contract: #{inspect(to_hex(txhash))},
-      authority_addr: #{inspect(to_hex(authority_addr))}
-    """
-  end
 
   @doc """
   Will take a map with eth-account information (from &generate_entity/0) and then
@@ -54,7 +45,7 @@ defmodule Support.DevHelper do
     - :initial_funds_wei - the amount of test ETH that will be granted to every generated user
   """
   def import_unlock_fund(%{priv: account_priv}, opts \\ []) do
-    {:ok, account_enc} = create_account_from_secret(backend(), account_priv, @passphrase)
+    {:ok, account_enc} = create_account_from_secret(Configuration.eth_node(), account_priv, @passphrase)
     {:ok, _} = fund_address_from_faucet(account_enc, opts)
 
     {:ok, from_hex(account_enc)}
@@ -91,7 +82,7 @@ defmodule Support.DevHelper do
 
   def wait_for_root_chain_block(awaited_eth_height, timeout \\ 600_000) do
     f = fn ->
-      {:ok, eth_height} = Eth.get_ethereum_height()
+      {:ok, eth_height} = Client.get_ethereum_height()
 
       if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
     end
@@ -99,9 +90,11 @@ defmodule Support.DevHelper do
     WaitFor.ok(f, timeout)
   end
 
-  def wait_for_next_child_block(blknum, timeout \\ 10_000, contract \\ nil) do
+  def wait_for_next_child_block(blknum) do
+    timeout = 10_000
+
     f = fn ->
-      {:ok, next_num} = Eth.RootChain.get_next_child_block(contract)
+      next_num = RootChain.next_child_block()
 
       if next_num < blknum, do: :repeat, else: {:ok, next_num}
     end
@@ -137,7 +130,7 @@ defmodule Support.DevHelper do
 
     params = %{from: faucet, to: account_enc, value: to_hex(initial_funds_wei)}
 
-    {:ok, tx_fund} = Transaction.send(backend(), params)
+    {:ok, tx_fund} = Transaction.send(Configuration.eth_node(), params)
 
     case Keyword.get(opts, :timeout) do
       nil -> WaitFor.eth_receipt(tx_fund, @about_4_blocks_time)
@@ -146,7 +139,7 @@ defmodule Support.DevHelper do
   end
 
   defp unlock_if_possible(account_enc) do
-    unlock_if_possible(account_enc, backend())
+    unlock_if_possible(account_enc, Configuration.eth_node())
   end
 
   # ganache works the same as geth in this aspect
@@ -158,10 +151,6 @@ defmodule Support.DevHelper do
 
   defp unlock_if_possible(_account_enc, :parity) do
     :dont_bother_will_use_personal_sendTransaction
-  end
-
-  defp backend() do
-    Application.fetch_env!(:omg_eth, :eth_node)
   end
 
   # gets the `revert` reason for a failed transaction by txhash
@@ -180,9 +169,4 @@ defmodule Support.DevHelper do
     # trimming the 4-byte function selector, 32 byte size of size and 32 byte size
     result |> binary_part(bytes_to_throw_away, byte_size(result) - bytes_to_throw_away) |> String.trim(<<0>>)
   end
-
-  # Hexifies the entire contract map, assuming `contract_map` is a map of `%{atom => raw_binary_address}`
-
-  defp contract_map_to_hex(contract_map),
-    do: Enum.into(contract_map, %{}, fn {name, addr} -> {name, to_hex(addr)} end)
 end

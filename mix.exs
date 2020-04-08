@@ -5,7 +5,6 @@ defmodule OMG.Umbrella.MixProject do
     [
       # name the ap for the sake of `mix coveralls --umbrella`
       # see https://github.com/parroty/excoveralls/issues/23#issuecomment-339379061
-      app: :omg_umbrella,
       apps_path: "apps",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -24,7 +23,114 @@ defmodule OMG.Umbrella.MixProject do
       test_paths: test_paths(),
       aliases: aliases(),
       # Docs
-      source_url: "https://github.com/omisego/elixir-omg"
+      source_url: "https://github.com/omisego/elixir-omg",
+      version: current_version(),
+      releases: [
+        watcher: [
+          steps: steps(),
+          applications: [
+            tools: :permanent,
+            runtime_tools: :permanent,
+            omg_watcher: :permanent,
+            omg_watcher_rpc: :permanent,
+            omg: :permanent,
+            omg_status: :permanent,
+            omg_db: :permanent,
+            omg_eth: :permanent,
+            omg_bus: :permanent
+          ],
+          config_providers: [
+            {OMG.Status.ReleaseTasks.SetSentry, [release: :watcher, current_version: current_version()]},
+            {OMG.Status.ReleaseTasks.SetTracer, [release: :watcher]},
+            {OMG.Status.ReleaseTasks.SetApplication, [release: :watcher, current_version: current_version()]},
+            {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, []},
+            {OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval, []},
+            {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
+            {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
+            {OMG.Eth.ReleaseTasks.SetContract, []},
+            {OMG.DB.ReleaseTasks.SetKeyValueDB, [release: :watcher]},
+            {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, []},
+            {OMG.WatcherRPC.ReleaseTasks.SetTracer, []},
+            {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher},
+            {OMG.Status.ReleaseTasks.SetLogger, []},
+            {OMG.Watcher.ReleaseTasks.SetChildChain, []},
+            {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, []},
+            {OMG.Watcher.ReleaseTasks.SetTracer, []},
+            {OMG.Watcher.ReleaseTasks.SetApplication, [release: :watcher, current_version: current_version()]}
+          ]
+        ],
+        watcher_info: [
+          steps: steps(),
+          version: current_version(),
+          applications: [
+            tools: :permanent,
+            runtime_tools: :permanent,
+            omg_watcher: :permanent,
+            omg_watcher_info: :permanent,
+            omg_watcher_rpc: :permanent,
+            omg: :permanent,
+            omg_status: :permanent,
+            omg_db: :permanent,
+            omg_eth: :permanent,
+            omg_bus: :permanent
+          ],
+          config_providers: [
+            {OMG.Status.ReleaseTasks.SetSentry, [release: :watcher_info, current_version: current_version()]},
+            {OMG.Status.ReleaseTasks.SetTracer, [release: :watcher_info]},
+            {OMG.Status.ReleaseTasks.SetApplication, [release: :watcher_info, current_version: current_version()]},
+            {OMG.Status.ReleaseTasks.SetLogger, []},
+            {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, []},
+            {OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval, []},
+            {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
+            {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
+            {OMG.Eth.ReleaseTasks.SetContract, []},
+            {OMG.DB.ReleaseTasks.SetKeyValueDB, [release: :watcher_info]},
+            {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, []},
+            {OMG.WatcherRPC.ReleaseTasks.SetTracer, []},
+            {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher_info},
+            {OMG.Watcher.ReleaseTasks.SetChildChain, []},
+            {OMG.WatcherInfo.ReleaseTasks.SetChildChain, []},
+            {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, []},
+            {OMG.Watcher.ReleaseTasks.SetTracer, []},
+            {OMG.Watcher.ReleaseTasks.SetApplication, [release: :watcher_info, current_version: current_version()]},
+            {OMG.WatcherInfo.ReleaseTasks.SetDB, []},
+            {OMG.WatcherInfo.ReleaseTasks.SetTracer, []}
+          ]
+        ],
+        child_chain: [
+          steps: steps(),
+          version: current_version(),
+          applications: [
+            tools: :permanent,
+            runtime_tools: :permanent,
+            omg_child_chain: :permanent,
+            omg_child_chain_rpc: :permanent,
+            omg: :permanent,
+            omg_status: :permanent,
+            omg_db: :permanent,
+            omg_eth: :permanent,
+            omg_bus: :permanent
+          ],
+          config_providers: [
+            {OMG.Status.ReleaseTasks.SetSentry, [release: :child_chain, current_version: current_version()]},
+            {OMG.Status.ReleaseTasks.SetTracer, [release: :child_chain]},
+            {OMG.Status.ReleaseTasks.SetApplication, [release: :child_chain, current_version: current_version()]},
+            {OMG.Status.ReleaseTasks.SetLogger, []},
+            {OMG.ReleaseTasks.SetEthereumEventsCheckInterval, []},
+            {OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval, []},
+            {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
+            {OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress, []},
+            {OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration, []},
+            {OMG.ChildChain.ReleaseTasks.SetTracer, []},
+            {OMG.ChildChain.ReleaseTasks.SetApplication, [release: :child_chain, current_version: current_version()]},
+            {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
+            {OMG.Eth.ReleaseTasks.SetContract, []},
+            {OMG.DB.ReleaseTasks.SetKeyValueDB, [release: :child_chain]},
+            {OMG.ChildChainRPC.ReleaseTasks.SetEndpoint, []},
+            {OMG.ChildChainRPC.ReleaseTasks.SetTracer, []}
+          ]
+        ]
+      ]
     ]
   end
 
@@ -34,17 +140,12 @@ defmodule OMG.Umbrella.MixProject do
 
   defp deps() do
     [
-      {:distillery, "~> 2.1", runtime: false},
       {:mix_audit, "~> 0.1", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.2.3", only: [:dev, :test], runtime: false},
       # https://github.com/xadhoom/excoveralls.git `52c6c8e5d7fe9abb814e5e3e546c863b9b2b41b7` rebased on `master`
       # more or less around v0.11.1
-      {:excoveralls,
-       git: "https://github.com/omisego/excoveralls.git",
-       ref: "23b97648ff5ed7b19d75364233bbf3e5fcb407ad",
-       only: [:test],
-       runtime: false},
+      {:excoveralls, "~> 0.12.3"},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
         :ex_unit_fixtures,
@@ -83,7 +184,6 @@ defmodule OMG.Umbrella.MixProject do
     [
       :briefly,
       :cowboy,
-      :distillery,
       :ex_machina,
       :ex_unit,
       :exexec,
@@ -99,4 +199,16 @@ defmodule OMG.Umbrella.MixProject do
   end
 
   defp docker(), do: if(System.get_env("DOCKER"), do: "_docker", else: "")
+
+  defp current_version() do
+    sha = String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
+    "#{String.trim(File.read!("VERSION"))}" <> "+" <> sha
+  end
+
+  defp steps() do
+    case Mix.env() do
+      :prod -> [:assemble, :tar]
+      _ -> [:assemble]
+    end
+  end
 end

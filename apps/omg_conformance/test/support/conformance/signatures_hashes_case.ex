@@ -24,7 +24,7 @@ defmodule Support.Conformance.SignaturesHashesCase do
     quote do
       @alice <<215, 32, 17, 47, 111, 72, 20, 47, 149, 226, 138, 242, 35, 254, 141, 212, 16, 22, 155, 182>>
       @bob <<141, 246, 138, 77, 76, 3, 78, 54, 173, 40, 234, 195, 29, 170, 154, 64, 99, 14, 118, 139>>
-      @eth OMG.Eth.RootChain.eth_pseudo_address()
+      @eth OMG.Eth.zero_address()
       @token <<235, 169, 32, 193, 242, 237, 159, 137, 184, 46, 124, 13, 178, 171, 61, 87, 179, 179, 135, 146>>
       @zero_address OMG.Eth.zero_address()
     end
@@ -32,15 +32,14 @@ defmodule Support.Conformance.SignaturesHashesCase do
 
   setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
-
     contracts = SnapshotContracts.parse_contracts()
     signtest_addr_hex = contracts["CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK"]
+    old_config = Application.get_all_env(:omg_eth)
     :ok = Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: signtest_addr_hex})
 
     on_exit(fn ->
       # reverting to the original values from `omg_eth/config/test.exs`
-      :ok =
-        Application.put_env(:omg_eth, :contract_addr, %{plasma_framework: "0x0000000000000000000000000000000000000001"})
+      :ok = Application.put_all_env(omg_eth: old_config)
 
       exit_fn.()
     end)

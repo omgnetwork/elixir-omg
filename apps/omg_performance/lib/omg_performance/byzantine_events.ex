@@ -177,7 +177,6 @@ defmodule OMG.Performance.ByzantineEvents do
   def watcher_synchronize(opts \\ []) do
     root_chain_height = Keyword.get(opts, :root_chain_height, nil)
     watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-
     _ = Logger.info("Waiting for the watcher to synchronize")
     :ok = WaitFor.ok(fn -> watcher_synchronized?(root_chain_height, watcher_url) end, :infinity)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
@@ -217,7 +216,6 @@ defmodule OMG.Performance.ByzantineEvents do
   defp map_contract_transaction(enumberable, transaction_function) do
     enumberable
     |> Enum.map(transaction_function)
-    # NOTE: infinity doesn't work, hence the large number
     |> Task.async_stream(&Support.DevHelper.transact_sync!(&1, timeout: :infinity),
       timeout: :infinity,
       max_concurrency: 10_000

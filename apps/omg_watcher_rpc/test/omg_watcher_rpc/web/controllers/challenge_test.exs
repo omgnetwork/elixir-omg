@@ -24,7 +24,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
 
   require Utxo
 
-  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth OMG.Eth.zero_address()
 
   @tag skip: true
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]

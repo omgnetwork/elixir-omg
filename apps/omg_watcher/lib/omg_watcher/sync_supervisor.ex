@@ -45,17 +45,42 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   defp children(args) do
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
+    exit_processor_sla_margin = Configuration.exit_processor_sla_margin()
+    exit_processor_sla_margin_forced = Configuration.exit_processor_sla_margin_forced()
+    metrics_collection_interval = Configuration.metrics_collection_interval()
+    finality_margin = Configuration.exit_finality_margin()
+    deposit_finality_margin = OMG.Configuration.deposit_finality_margin()
+    ethereum_events_check_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
+    coordinator_eth_height_check_interval_ms = OMG.Configuration.coordinator_eth_height_check_interval_ms()
+    min_exit_period_seconds = OMG.Eth.Configuration.min_exit_period_seconds()
+    ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
+    contracts = OMG.Eth.Configuration.contracts()
 
     [
+      {ExitProcessor,
+       [
+         exit_processor_sla_margin: exit_processor_sla_margin,
+         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
+         metrics_collection_interval: metrics_collection_interval,
+         min_exit_period_seconds: min_exit_period_seconds,
+         ethereum_block_time_seconds: ethereum_block_time_seconds
+       ]},
       %{
         id: OMG.Watcher.BlockGetter.Supervisor,
-        start: {OMG.Watcher.BlockGetter.Supervisor, :start_link, []},
+        start:
+          {OMG.Watcher.BlockGetter.Supervisor, :start_link, [[contract_deployment_height: contract_deployment_height]]},
         restart: :permanent,
         type: :supervisor
       },
-      {OMG.RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
+      {OMG.RootChainCoordinator,
+       CoordinatorSetup.coordinator_setup(
+         metrics_collection_interval,
+         coordinator_eth_height_check_interval_ms,
+         finality_margin,
+         deposit_finality_margin
+       )},
       {EthereumEventAggregator,
-       contracts: Application.fetch_env!(:omg_eth, :contract_addr),
+       contracts: contracts,
        ets_bucket: @events_bucket,
        events: [
          [name: :deposit_created, enrich: false],
@@ -75,21 +100,17 @@ defmodule OMG.Watcher.SyncSupervisor do
          [name: :block_submitted, enrich: false]
        ]},
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &EthereumEventAggregator.deposit_created/2,
         process_events_callback: &OMG.State.deposit/1
       ),
-      {ExitProcessor,
-       [
-         exit_processor_sla_margin: Configuration.exit_processor_sla_margin(),
-         exit_processor_sla_margin_forced: Configuration.exit_processor_sla_margin_forced(),
-         min_exit_period_seconds: OMG.Eth.Configuration.min_exit_period_seconds(),
-         ethereum_block_time_seconds: OMG.Eth.Configuration.ethereum_block_time_seconds(),
-         metrics_collection_interval: Configuration.metrics_collection_interval()
-       ]},
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :exit_processor,
         synced_height_update_key: :last_exit_processor_eth_height,
@@ -97,6 +118,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         process_events_callback: &Watcher.ExitProcessor.new_exits/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :exit_finalizer,
         synced_height_update_key: :last_exit_finalizer_eth_height,
@@ -104,6 +127,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         process_events_callback: &Watcher.ExitProcessor.finalize_exits/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :exit_challenger,
         synced_height_update_key: :last_exit_challenger_eth_height,
@@ -111,6 +136,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         process_events_callback: &Watcher.ExitProcessor.challenge_exits/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :in_flight_exit_processor,
         synced_height_update_key: :last_in_flight_exit_processor_eth_height,
@@ -118,6 +145,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         process_events_callback: &Watcher.ExitProcessor.new_in_flight_exits/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :piggyback_processor,
         synced_height_update_key: :last_piggyback_processor_eth_height,
@@ -125,6 +154,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         process_events_callback: &Watcher.ExitProcessor.piggyback_exits/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :competitor_processor,
         synced_height_update_key: :last_competitor_processor_eth_height,
@@ -132,6 +163,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         process_events_callback: &Watcher.ExitProcessor.new_ife_challenges/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :challenges_responds_processor,
         synced_height_update_key: :last_challenges_responds_processor_eth_height,
@@ -139,6 +172,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         process_events_callback: &Watcher.ExitProcessor.respond_to_in_flight_exits_challenges/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :piggyback_challenges_processor,
         synced_height_update_key: :last_piggyback_challenges_processor_eth_height,
@@ -146,6 +181,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         process_events_callback: &Watcher.ExitProcessor.challenge_piggybacks/1
       ),
       EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
         service_name: :ife_exit_finalizer,
         synced_height_update_key: :last_ife_exit_finalizer_eth_height,

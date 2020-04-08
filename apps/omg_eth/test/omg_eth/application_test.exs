@@ -38,7 +38,7 @@ defmodule OMG.Eth.ApplicationTest do
       contracts_hash =
         Configuration.contracts()
         |> Map.put(:txhash_contract, Configuration.txhash_contract())
-        |> Map.put(:authority_addr, Configuration.authority_addr())
+        |> Map.put(:authority_address, Configuration.authority_address())
         |> :erlang.phash2()
 
       assert DB.get_single_value(:omg_eth_contracts) == {:ok, contracts_hash}
@@ -48,7 +48,7 @@ defmodule OMG.Eth.ApplicationTest do
       contracts_hash =
         Configuration.contracts()
         |> Map.put(:txhash_contract, Configuration.txhash_contract())
-        |> Map.put(:authority_addr, Configuration.authority_addr())
+        |> Map.put(:authority_address, Configuration.authority_address())
         |> :erlang.phash2()
 
       assert DB.get_single_value(:omg_eth_contracts) == {:ok, contracts_hash}

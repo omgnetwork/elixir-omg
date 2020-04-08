@@ -85,7 +85,6 @@ defmodule OMG.Performance.ExtendedPerftest do
     end
 
     accounts
-    # NOTE: infinity doesn't work, hence the large number
     |> Task.async_stream(depositing_f, timeout: @make_deposit_timeout, max_concurrency: 10_000)
     |> Enum.map(fn {:ok, result} -> result end)
   end
