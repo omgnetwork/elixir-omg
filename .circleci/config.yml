@@ -178,7 +178,8 @@ jobs:
     steps:
       - setup_elixir-omg_workspace
       - run: make install-hex-rebar
-      - run: mix do compile --warnings-as-errors --force, credo, format --check-formatted --dry-run
+      - run: mix do compile --warnings-as-errors --force, credo --ignore-checks Credo.Check.Readability.SinglePipe, format --check-formatted --dry-run
+      - run: mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long" | awk '$1 > 369 {print; err = 1} END {exit err}' 
 
   lint_version:
     executor: builder
