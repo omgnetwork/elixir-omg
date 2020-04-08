@@ -58,12 +58,12 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
   """
   def init(args) do
     publisher = Keyword.fetch!(args, :publisher)
-    topic = Keyword.fetch!(args, :topic)
+    {:root_chain, event_name} = topic = Keyword.fetch!(args, :topic)
     release = Keyword.fetch!(args, :release)
     current_version = Keyword.fetch!(args, :current_version)
     :ok = OMG.Bus.subscribe(topic, link: true)
 
-    _ = Logger.info("Started #{inspect(__MODULE__)} for event #{inspect(topic)}")
+    _ = Logger.info("Started #{inspect(__MODULE__)} for event #{event_name}")
     {:ok, %{publisher: publisher, release: release, current_version: current_version}}
   end
 
