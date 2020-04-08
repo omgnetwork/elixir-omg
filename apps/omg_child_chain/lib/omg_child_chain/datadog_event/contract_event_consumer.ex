@@ -27,17 +27,17 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
   Mandatory params are in Keyword form:
   - :publisher is Module that implements a function `event/3` (title, message, option). It's purpose is to forward
   events to a collector (for example, Datadog)
-  - :event is a OMG.Bus topic from which this process recieves data and sends them to the publisher and onwards
+  - :topic is a OMG.Bus topic from which this process recieves data and sends them to the publisher and onwards
   - :release is the mode this current process is runing under (for example, currently we support watcher, child chain or watcher info)
   - :current_version is semver of the current code
   """
   # sobelow_skip ["DOS.StringToAtom"]
   @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
   def prepare_child(opts) do
-    topic = Keyword.fetch!(opts, :topic)
+    {:root_chain, topic_name} = Keyword.fetch!(opts, :topic)
 
     %{
-      id: String.to_atom("#{topic}_worker"),
+      id: String.to_atom("root_chain:#{topic_name}_worker"),
       start: {__MODULE__, :start_link, [opts]},
       shutdown: :brutal_kill,
       type: :worker

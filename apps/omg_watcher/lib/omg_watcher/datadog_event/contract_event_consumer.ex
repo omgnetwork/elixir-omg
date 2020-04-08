@@ -30,10 +30,10 @@ defmodule OMG.Watcher.DatadogEvent.ContractEventConsumer do
   # sobelow_skip ["DOS.StringToAtom"]
   @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
   def prepare_child(opts \\ []) do
-    topic = Keyword.fetch!(opts, :topic)
+    {:root_chain, topic_name} = Keyword.fetch!(opts, :topic)
 
     %{
-      id: String.to_atom("#{topic}_worker"),
+      id: String.to_atom("root_chain:#{topic_name}_worker"),
       start: {__MODULE__, :start_link, [opts]},
       shutdown: :brutal_kill,
       type: :worker
