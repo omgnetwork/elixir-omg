@@ -598,6 +598,23 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "object" => "error"
              } == WatcherHelper.no_success?("transaction.submit", %{"transaction" => Encoding.to_hex(signed_bytes)})
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "does not accept fee transactions", %{alice: alice} do
+      fee_tx =
+        Transaction.Fee.new(1000, {alice.addr, @eth, 1551})
+        |> Test.sign_encode([])
+        |> Encoding.to_hex()
+
+      assert %{
+               "code" => "submit:transaction_not_supported",
+               "description" => _,
+               "object" => "error"
+             } =
+               WatcherHelper.no_success?("transaction.submit", %{
+                 "transaction" => fee_tx
+               })
+    end
   end
 
   describe "/transaction.submit with structural transaction" do
