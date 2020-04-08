@@ -52,7 +52,8 @@ defmodule OMG.Eth.Application do
     contracts_hash =
       Configuration.contracts()
       |> Map.put(:txhash_contract, Configuration.txhash_contract())
-      |> Map.put(:authority_addr, Configuration.authority_address()) #authority_addr to keep backwards compatibility
+      # authority_addr to keep backwards compatibility
+      |> Map.put(:authority_addr, Configuration.authority_address())
       |> :erlang.phash2()
 
     case DB.get_single_value(:omg_eth_contracts) do
