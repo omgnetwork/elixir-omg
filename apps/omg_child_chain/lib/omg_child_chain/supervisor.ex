@@ -79,15 +79,17 @@ defmodule OMG.ChildChain.Supervisor do
 
   defp create_event_consumer_children() do
     topics =
-      [
-        "blocks",
-        "DepositCreated",
-        "InFlightExitStarted",
-        "InFlightExitInputPiggybacked",
-        "InFlightExitOutputPiggybacked",
-        "ExitStarted"
-      ]
-      |> Enum.map(&{:root_chain, &1})
+      Enum.map(
+        [
+          "blocks",
+          "DepositCreated",
+          "InFlightExitStarted",
+          "InFlightExitInputPiggybacked",
+          "InFlightExitOutputPiggybacked",
+          "ExitStarted"
+        ],
+        &{:root_chain, &1}
+      )
 
     Enum.map(
       topics,
