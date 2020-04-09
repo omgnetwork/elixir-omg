@@ -103,10 +103,10 @@ jobs:
           asdf install elixir 1.10.2
           asdf global elixir 1.10.2
           asdf global erlang 22.3
+      - run: make init_test
       - run:
           command: ./bin/setup
           no_output_timeout: 2400
-      - run: make init_test
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - run: mix test --trace
@@ -179,7 +179,17 @@ jobs:
       - setup_elixir-omg_workspace
       - run: make install-hex-rebar
       - run: mix do compile --warnings-as-errors --force, credo --ignore-checks Credo.Check.Readability.SinglePipe, format --check-formatted --dry-run
-      - run: mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long" | awk '$1 > 369' 
+      - run: 
+          command: |
+            export SHELL=/bin/bash
+            set +eo pipefail
+            _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
+            echo "Current Credo.Check.Readability.SinglePipe occurrences:"
+            echo $_counter
+            if [ $_counter -gt 366 ]; then
+              exit 1
+            fi
+             
 
   lint_version:
     executor: builder
