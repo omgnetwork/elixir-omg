@@ -51,6 +51,7 @@
       #     {Credo.Check.Design.DuplicatedCode, false}
       #
       checks: [
+        {Credo.Check.Refactor.MapInto, false},
         # custom checks
         {Credo.Check.Warning.LicenseHeader},
         {Credo.Check.Readability.RequireParenthesesOnZeroArityDefs},
@@ -137,6 +138,7 @@
         #
         # Controversial and experimental checks (opt-in, just remove `, false`)
         #
+        {Credo.Check.Readability.SinglePipe, []},
         {Credo.Check.Consistency.MultiAliasImportRequireUse, false},
         {Credo.Check.Design.DuplicatedCode, false},
         {Credo.Check.Readability.Specs, false},
