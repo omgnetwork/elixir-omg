@@ -106,6 +106,7 @@ jobs:
       - run:
           command: ./bin/setup
           no_output_timeout: 2400
+      - run: make init_test
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
       - run: mix test --trace
@@ -703,8 +704,7 @@ workflows:
       - build
       - integration_tests:
           requires: [build]
-      - barebuild_macos:
-          requires: [build]
+      - barebuild_macos
       - test_barebone_release:
           requires: [build]
   build-test-deploy:
