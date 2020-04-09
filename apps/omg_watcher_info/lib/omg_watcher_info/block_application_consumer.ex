@@ -30,7 +30,7 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumer do
   use GenServer
 
   def init(:ok) do
-    :ok = OMG.Bus.subscribe("block.get", link: true)
+    :ok = OMG.Bus.subscribe({:child_chain, "block.get"}, link: true)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
     {:ok, %{}}

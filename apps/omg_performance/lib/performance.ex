@@ -54,15 +54,6 @@ defmodule OMG.Performance do
   ```
   in order to prevent the apps from waiting for unnecessary confirmations
 
-  ## Examples
-
-    iex> use OMG.Performance
-    iex> Performance.init(watcher_url: "http://elsewhere:7434")
-    :ok
-    iex> Application.get_env(:omg_watcher, :child_chain_url)
-    "http://localhost:9657"
-    iex> Application.get_env(:omg_performance, :watcher_url)
-    "http://elsewhere:7434"
   """
   def init(opts \\ []) do
     {:ok, _} = Application.ensure_all_started(:briefly)

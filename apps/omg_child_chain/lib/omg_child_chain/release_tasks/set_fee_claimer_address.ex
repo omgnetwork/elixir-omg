@@ -14,7 +14,7 @@
 
 defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   # NOTE: `omg` is correct configuration scope for this value. However setting it via `Release Task`
@@ -22,15 +22,14 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
   @app :omg
 
   @zero_address <<0::160>>
+  def init(args) do
+    args
+  end
 
-  @impl Provider
-  def init(_args) do
-    _ = Application.ensure_all_started(:logger)
-
+  def load(config, _args) do
+    _ = on_load()
     fee_claimer_address = get_fee_claimer_address()
-    Application.put_env(@app, :fee_claimer_address, fee_claimer_address, persistent: true)
-
-    :ok
+    Config.Reader.merge(config, omg: [fee_claimer_address: fee_claimer_address])
   end
 
   defp get_fee_claimer_address() do
@@ -56,4 +55,8 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress do
   end
 
   defp validate_address(_), do: exit("Fee claimer address needs to be specified")
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+  end
 end

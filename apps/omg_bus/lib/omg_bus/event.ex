@@ -1,4 +1,4 @@
-# Copyright 2019-2019 OmiseGO Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,23 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Utils.CLI do
+defmodule OMG.Bus.Event do
   @moduledoc """
-  Helper module for working with the command line interface.
+  Representation of a single event to be published on OMG event bus
   """
-  import IO
-  import IO.ANSI
 
-  def info(message), do: [:normal, message] |> format |> puts
+  @enforce_keys [:topic, :event, :payload]
+  @type topic_t() :: {atom(), binary()} | binary()
+  @type t() :: %__MODULE__{topic: binary(), event: atom, payload: any()}
 
-  def debug(message), do: [:faint, message] |> format |> puts
+  defstruct [:topic, :event, :payload]
 
-  def success(message), do: [:green, message] |> format |> puts
-
-  def warn(message), do: [:yellow, message] |> format |> puts
-
-  def error(message, device \\ :stderr) do
-    formatted = format([:red, message])
-    IO.puts(device, formatted)
+  @spec new(__MODULE__.topic_t(), atom(), any()) :: __MODULE__.t()
+  def new({origin, topic}, event, payload) when is_atom(origin) and is_atom(event) do
+    %__MODULE__{topic: "#{origin}:#{topic}", event: event, payload: payload}
   end
 end

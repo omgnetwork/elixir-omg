@@ -63,27 +63,33 @@ defmodule OMG.Watcher.Supervisor do
   end
 
   defp create_event_consumer_children() do
+    topics =
+      Enum.map(
+        [
+          "blocks",
+          "DepositCreated",
+          "InFlightExitInputPiggybacked",
+          "InFlightExitOutputPiggybacked",
+          "BlockSubmitted",
+          "ExitFinalized",
+          "ExitChallenged",
+          "InFlightExitChallenged",
+          "InFlightExitChallengeResponded",
+          "InFlightExitInputBlocked",
+          "InFlightExitOutputBlocked",
+          "InFlightExitInputWithdrawn",
+          "InFlightExitOutputWithdrawn",
+          "InFlightExitStarted",
+          "ExitStarted"
+        ],
+        &{:root_chain, &1}
+      )
+
     Enum.map(
-      [
-        "blocks",
-        "DepositCreated",
-        "InFlightExitInputPiggybacked",
-        "InFlightExitOutputPiggybacked",
-        "BlockSubmitted",
-        "ExitFinalized",
-        "ExitChallenged",
-        "InFlightExitChallenged",
-        "InFlightExitChallengeResponded",
-        "InFlightExitInputBlocked",
-        "InFlightExitOutputBlocked",
-        "InFlightExitInputWithdrawn",
-        "InFlightExitOutputWithdrawn",
-        "InFlightExitStarted",
-        "ExitStarted"
-      ],
-      fn event ->
+      topics,
+      fn topic ->
         ContractEventConsumer.prepare_child(
-          event: event,
+          topic: topic,
           release: Application.get_env(:omg_watcher, :release),
           current_version: Application.get_env(:omg_watcher, :current_version),
           publisher: OMG.Status.Metric.Datadog

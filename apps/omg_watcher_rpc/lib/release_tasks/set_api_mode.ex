@@ -14,16 +14,18 @@
 
 defmodule OMG.WatcherRPC.ReleaseTasks.SetApiMode do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
-
-  @impl Provider
 
   def init(nil) do
     exit("WatcherRPC's API mode is not provided.")
   end
 
-  def init(api_mode) do
-    :ok = Application.put_env(:omg_watcher_rpc, :api_mode, api_mode)
+  def init(args) do
+    args
+  end
+
+  def load(config, api_mode) do
+    Config.Reader.merge(config, omg_watcher_rpc: [api_mode: api_mode])
   end
 end

@@ -15,7 +15,7 @@
 defmodule OMG.Eth.RootChain.AbiEventSelector do
   @moduledoc """
   We define Solidity Event selectors that help us decode returned values from function calls.
-  Function names are to be used as inputs to Event Fetcher. 
+  Function names are to be used as inputs to Event Fetcher.
   Function names describe the type of the event Event Fetcher will retrieve.
   """
 
@@ -126,7 +126,6 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
   @spec in_flight_exit_challenge_responded() :: ABI.FunctionSelector.t()
   def in_flight_exit_challenge_responded() do
     # <<99, 124, 196, 167>> == "c|ħ"
-    # IO.inspect method_id, binaries: :as_binaries
     %ABI.FunctionSelector{
       function: "InFlightExitChallengeResponded",
       input_names: ["challenger", "txHash", "challengeTxPosition"],

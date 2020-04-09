@@ -20,9 +20,7 @@ defmodule XomgTasks.Utils do
   @doc """
   Runs a specific app for some arguments. Will handle IEx, if one's running
   """
-  def generic_run(args, apps) when is_list(apps) do
-    Mix.Task.run("run", args)
-
+  def generic_run(_args, apps) when is_list(apps) do
     _ =
       Enum.each(apps, fn app ->
         {:ok, _} = Application.ensure_all_started(app)
@@ -38,6 +36,28 @@ defmodule XomgTasks.Utils do
     args
     |> ensure_contains("--no-start")
     |> ensure_doesnt_contain("--no-halt")
+  end
+
+  def config_db(args, arg) do
+    index = Enum.find_index(args, fn x -> x == arg end)
+    Application.put_env(:omg_db, :path, Enum.at(args, index + 1), persistent: true)
+    args
+  end
+
+  def config_fee(args, arg) do
+    index = Enum.find_index(args, fn x -> x == arg end)
+
+    Application.put_env(:omg_child_chain, :fee_adapter_opts, [specs_file_name: Enum.at(args, index + 1)],
+      persistent: true
+    )
+
+    args
+  end
+
+  def config_logger_level(args, arg) do
+    index = Enum.find_index(args, fn x -> x == arg end)
+    :ok = Logger.configure(level: String.to_atom(Enum.at(args, index + 1)))
+    args
   end
 
   defp iex_running?() do

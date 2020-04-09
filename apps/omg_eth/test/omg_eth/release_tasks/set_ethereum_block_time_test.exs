@@ -13,46 +13,26 @@
 # limitations under the License.
 
 defmodule OMG.Eth.ReleaseTasks.SetEthereumBlockTimeTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   alias OMG.Eth.ReleaseTasks.SetEthereumBlockTime
 
   @app :omg_eth
   @env_key "ETHEREUM_BLOCK_TIME_SECONDS"
   @config_key :ethereum_block_time_seconds
 
-  setup do
-    original_config = Application.get_all_env(@app)
-
-    on_exit(fn ->
-      # configuration is global state so we reset it to known values in case it got fiddled before
-      :ok = Enum.each(original_config, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
-    end)
-
-    {:ok, %{original_config: original_config}}
-  end
-
   test "that block time is set when the env var is present" do
     :ok = System.put_env(@env_key, "1234")
-    :ok = SetEthereumBlockTime.init([])
-    assert Application.get_env(@app, @config_key) == 1234
+    config = SetEthereumBlockTime.load([], [])
+    ethereum_block_time_seconds = config |> Keyword.fetch!(@app) |> Keyword.fetch!(@config_key)
+    assert ethereum_block_time_seconds == 1234
     :ok = System.delete_env(@env_key)
-  end
-
-  test "that no other configurations got affected", context do
-    :ok = System.put_env(@env_key, "1234")
-    :ok = SetEthereumBlockTime.init([])
-    new_configs = @app |> Application.get_all_env() |> Keyword.delete(@config_key) |> Enum.sort()
-    old_configs = context.original_config |> Keyword.delete(@config_key) |> Enum.sort()
-
-    assert new_configs == old_configs
   end
 
   test "that the default config is used when the env var is not set" do
     old_config = Application.get_env(@app, @config_key)
     :ok = System.delete_env(@env_key)
-    :ok = SetEthereumBlockTime.init([])
-    new_config = Application.get_env(@app, @config_key)
-
-    assert new_config == old_config
+    config = SetEthereumBlockTime.load([], [])
+    ethereum_block_time_seconds = config |> Keyword.fetch!(@app) |> Keyword.fetch!(@config_key)
+    assert ethereum_block_time_seconds == old_config
   end
 end

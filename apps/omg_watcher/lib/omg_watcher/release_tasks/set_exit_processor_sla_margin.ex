@@ -14,11 +14,9 @@
 
 defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_watcher
-
-  @impl Provider
 
   @system_env_name_margin "EXIT_PROCESSOR_SLA_MARGIN"
   @app_env_name_margin :exit_processor_sla_margin
@@ -26,10 +24,19 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
   @system_env_name_force "EXIT_PROCESSOR_SLA_MARGIN_FORCED"
   @app_env_name_force :exit_processor_sla_margin_forced
 
-  def init(_args) do
+  def init(args) do
+    args
+  end
+
+  def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
-    :ok = Application.put_env(@app, @app_env_name_margin, get_exit_processor_sla_margin(), persistent: true)
-    :ok = Application.put_env(@app, @app_env_name_force, get_exit_processor_sla_forced(), persistent: true)
+
+    Config.Reader.merge(config,
+      omg_watcher: [
+        exit_processor_sla_margin: get_exit_processor_sla_margin(),
+        exit_processor_sla_margin_forced: get_exit_processor_sla_forced()
+      ]
+    )
   end
 
   defp get_exit_processor_sla_margin() do

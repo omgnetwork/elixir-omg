@@ -44,7 +44,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
         stall_threshold_ms: stall_threshold_ms,
         eth_module: EthereumClientMock,
         alarm_module: Alarm,
-        event_bus: OMG.Bus
+        event_bus_module: OMG.Bus
       )
 
     _ = Alarm.clear_all()
@@ -224,7 +224,7 @@ defmodule OMG.Eth.EthereumHeightMonitorTest do
     def start(parent), do: GenServer.start(__MODULE__, parent)
 
     def init(parent) do
-      :ok = OMG.Bus.subscribe("ethereum_new_height", link: true)
+      :ok = OMG.Bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
       {:ok, parent}
     end
 

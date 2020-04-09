@@ -27,7 +27,7 @@ defmodule OMG.Eth.DevGeth do
 
   def start() do
     {:ok, homedir} = Briefly.create(directory: true)
-    snapshot_dir = Path.expand(Path.join([Mix.Project.app_path(), "../../../../", "data/geth/"]))
+    snapshot_dir = Path.expand(Path.join([Mix.Project.build_path(), "../../", "data/geth/"]))
     {"", 0} = System.cmd("cp", ["-rf", snapshot_dir, homedir])
 
     keystore = Path.join([homedir, "/geth/keystore"])

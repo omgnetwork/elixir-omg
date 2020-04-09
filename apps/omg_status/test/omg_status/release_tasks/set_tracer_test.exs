@@ -14,27 +14,15 @@
 
 defmodule OMG.Status.ReleaseTasks.SetTracerTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureLog, only: [capture_log: 1]
+
   alias OMG.Status.Metric.Tracer
   alias OMG.Status.ReleaseTasks.SetTracer
 
   @app :omg_status
-  @configuration_old Application.get_env(@app, Tracer)
-  @configuration_old_statix Application.get_all_env(:statix)
-  @configuration_old_spandex_datadog Application.get_all_env(:spandex_datadog)
   setup do
-    :ok = Application.put_env(:statix, :host, Keyword.get(@configuration_old_statix, :host), persistent: true)
-    :ok = Application.put_env(:statix, :port, Keyword.get(@configuration_old_statix, :port), persistent: true)
-    :ok = Application.put_env(:statix, :tags, nil, persistent: true)
     {:ok, pid} = __MODULE__.System.start_link([])
     nil = Process.put(__MODULE__.System, pid)
-
-    on_exit(fn ->
-      # configuration is global state so we reset it to known values in case
-      # it got fiddled before
-      :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
-      :ok = Application.put_env(@app, :spandex_datadog, @configuration_old_spandex_datadog, persistent: true)
-    end)
-
     :ok
   end
 
@@ -42,61 +30,63 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     :ok = __MODULE__.System.put_env("DD_DISABLED", "TRUE")
     :ok = __MODULE__.System.put_env("APP_ENV", "YOLO")
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 3")
-    :ok = SetTracer.init(system_adapter: __MODULE__.System)
-    configuration = Application.get_env(@app, Tracer)
-    disabled_updated = configuration[:disabled?]
-    env_updated = configuration[:env]
-    true = disabled_updated
-    "YOLO" = env_updated
 
-    ^configuration =
-      @configuration_old
-      |> Keyword.put(:disabled?, true)
-      |> Keyword.put(:env, "YOLO")
+    assert capture_log(fn ->
+             config = SetTracer.load([], system_adapter: __MODULE__.System)
+             disabled = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Tracer) |> Keyword.fetch!(:disabled?)
+             env = config |> Keyword.fetch!(@app) |> Keyword.fetch!(Tracer) |> Keyword.fetch!(:env)
+
+             assert disabled == true
+             # if it's disabled, env doesn't matter, so we set it to an empty string
+             assert env == ""
+           end)
   end
 
   test "if default configuration is used when there's no environment variables" do
-    :ok = Application.put_env(@app, Tracer, @configuration_old, persistent: true)
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 3")
-    :ok = SetTracer.init(system_adapter: __MODULE__.System)
-    configuration = Application.get_env(@app, Tracer)
-    sorted_configuration = Enum.sort(configuration)
-    ^sorted_configuration = Enum.sort(@configuration_old)
+
+    assert capture_log(fn ->
+             config = SetTracer.load([], system_adapter: __MODULE__.System)
+             # we set env to an empty string because disabled? is set to true!
+             configuration = @app |> Application.get_env(Tracer) |> Keyword.put(:env, "") |> Enum.sort()
+             tracer_config = config |> Keyword.get(@app) |> Keyword.get(Tracer) |> Enum.sort()
+             assert configuration == tracer_config
+           end)
   end
 
   test "if environment variables get applied in the statix configuration" do
-    :ok = __MODULE__.System.put_env("DD_HOSTNAME", "cluster")
-    :ok = __MODULE__.System.put_env("DD_PORT", "1919")
-    :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 1")
-    :ok = __MODULE__.System.put_env("APP_ENV", "test 1")
-    :ok = SetTracer.init(release: :test_case_1, system_adapter: __MODULE__.System)
-    configuration = Enum.sort(Application.get_all_env(:statix))
-    host = configuration[:host]
-    port = configuration[:port]
-    "cluster" = host
-    1919 = port
+    set_cluster = "cluster"
+    set_port = "1919"
+    set_hostname = "this is my tracer test 1"
+    set_app_env = "test 1"
+    set_disabled = "false"
+    :ok = __MODULE__.System.put_env("DD_HOSTNAME", set_cluster)
+    :ok = __MODULE__.System.put_env("DD_PORT", set_port)
+    :ok = __MODULE__.System.put_env("HOSTNAME", set_hostname)
+    :ok = __MODULE__.System.put_env("APP_ENV", set_app_env)
+    :ok = __MODULE__.System.put_env("DD_DISABLED", set_disabled)
 
-    assert configuration ==
-             @configuration_old_statix
-             |> Keyword.put(:host, "cluster")
-             |> Keyword.put(:port, 1919)
-             |> Keyword.put(:tags, ["application:test_case_1", "app_env:test 1", "hostname:this is my tracer test 1"])
-             |> Enum.sort()
+    assert capture_log(fn ->
+             config = SetTracer.load([], release: :test_case_1, system_adapter: __MODULE__.System)
+             port = config |> Keyword.fetch!(:statix) |> Keyword.fetch!(:port)
+             host = config |> Keyword.fetch!(:statix) |> Keyword.fetch!(:host)
+             tags = config |> Keyword.fetch!(:statix) |> Keyword.fetch!(:tags)
+             assert host == set_cluster
+             assert port == String.to_integer(set_port)
+             assert Enum.member?(tags, "app_env:test 1") == true
+           end)
   end
 
   test "if default statix configuration is used when there's no environment variables" do
-    :ok =
-      Enum.each(@configuration_old_statix, fn {key, value} ->
-        Application.put_env(:statix, key, value, persistent: true)
-      end)
-
-    :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 2")
-    :ok = __MODULE__.System.put_env("APP_ENV", "test 2")
-    :ok = SetTracer.init(release: :test_case_2, system_adapter: __MODULE__.System)
-    configuration = Application.get_all_env(:statix)
-    sorted_configuration = Enum.sort(configuration)
-    expected_tags = ["application:test_case_2", "app_env:test 2", "hostname:this is my tracer test 2"]
-    assert sorted_configuration == @configuration_old_statix |> Keyword.put(:tags, expected_tags) |> Enum.sort()
+    app_env = "test 2"
+    hostname = "this is my tracer test 2"
+    disabled = "false"
+    :ok = __MODULE__.System.put_env("HOSTNAME", hostname)
+    :ok = __MODULE__.System.put_env("APP_ENV", app_env)
+    :ok = __MODULE__.System.put_env("DD_DISABLED", disabled)
+    configuration = SetTracer.load([], release: :test_case_2, system_adapter: __MODULE__.System)
+    tags = configuration |> Keyword.fetch!(:statix) |> Keyword.fetch!(:tags)
+    assert tags == ["application:test_case_2", "app_env:#{app_env}", "hostname:#{hostname}"]
   end
 
   test "if environment variables get applied in the spandex_datadog configuration" do
@@ -105,56 +95,38 @@ defmodule OMG.Status.ReleaseTasks.SetTracerTest do
     :ok = __MODULE__.System.put_env("BATCH_SIZE", "7000")
     :ok = __MODULE__.System.put_env("SYNC_THRESHOLD", "900")
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 4")
-    :ok = SetTracer.init(system_adapter: __MODULE__.System)
-    configuration = Enum.sort(Application.get_all_env(:spandex_datadog))
-    host = configuration[:host]
-    port = configuration[:port]
-    batch_size = configuration[:batch_size]
-    sync_threshold = configuration[:sync_threshold]
-    "cluster" = host
-    1919 = port
-    7000 = batch_size
-    900 = sync_threshold
 
-    ^configuration =
-      @configuration_old_spandex_datadog
-      |> Keyword.put(:host, "cluster")
-      |> Keyword.put(:port, 1919)
-      |> Keyword.put(:batch_size, 7000)
-      |> Keyword.put(:sync_threshold, 900)
-      |> Enum.sort()
+    capture_log(fn ->
+      config = SetTracer.load([], system_adapter: __MODULE__.System)
+      port = config |> Keyword.fetch!(:spandex_datadog) |> Keyword.fetch!(:port)
+      host = config |> Keyword.fetch!(:spandex_datadog) |> Keyword.fetch!(:host)
+      batch_size = config |> Keyword.fetch!(:spandex_datadog) |> Keyword.fetch!(:batch_size)
+      sync_threshold = config |> Keyword.fetch!(:spandex_datadog) |> Keyword.fetch!(:sync_threshold)
+      assert port == 1919
+      assert host == "cluster"
+      assert batch_size == 7000
+      assert sync_threshold == 900
+    end)
   end
 
   test "if default spandex_datadog configuration is used when there's no environment variables" do
-    :ok =
-      Enum.each(@configuration_old_spandex_datadog, fn {key, value} ->
-        Application.put_env(:spandex_datadog, key, value, persistent: true)
-      end)
-
     :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test 5")
-    :ok = SetTracer.init(system_adapter: __MODULE__.System)
+    config = SetTracer.load([], system_adapter: __MODULE__.System)
     configuration = Application.get_all_env(:spandex_datadog)
-    sorted_configuration = Enum.sort(configuration)
-
-    ^sorted_configuration = Enum.sort(@configuration_old_spandex_datadog)
+    sorted_configuration = configuration |> Enum.sort() |> Keyword.drop([:http])
+    spandex_datadog_config = Keyword.fetch!(config, :spandex_datadog)
+    assert sorted_configuration == Enum.sort(spandex_datadog_config)
   end
 
   test "if exit is thrown when faulty configuration is used" do
     :ok = __MODULE__.System.put_env("DD_DISABLED", "TRUEeee")
-    catch_exit(SetTracer.init(system_adapter: __MODULE__.System))
-  end
-
-  test "if environment variables get applied in the statix tags configuration" do
-    :ok = __MODULE__.System.put_env("HOSTNAME", "this is my tracer test")
-    :ok = __MODULE__.System.put_env("APP_ENV", "YOLO")
-    :ok = SetTracer.init(system_adapter: __MODULE__.System)
-    assert Enum.member?(Application.get_env(:statix, :tags), "hostname:this is my tracer test")
+    catch_exit(SetTracer.load([], system_adapter: __MODULE__.System))
   end
 
   test "if exit is thrown when faulty configuration for hostname is used" do
     :ok = __MODULE__.System.put_env("DD_DISABLED", "TRUE")
     :ok = __MODULE__.System.put_env("APP_ENV", "YOLO")
-    assert catch_exit(SetTracer.init(system_adapter: __MODULE__.System)) == "HOSTNAME is not set correctly."
+    assert catch_exit(SetTracer.load([], system_adapter: __MODULE__.System)) == "HOSTNAME is not set correctly."
   end
 
   defmodule System do
