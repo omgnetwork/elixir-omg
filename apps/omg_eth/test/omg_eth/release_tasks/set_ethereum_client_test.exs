@@ -13,54 +13,43 @@
 # limitations under the License.
 
 defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   alias OMG.Eth.ReleaseTasks.SetEthereumClient
 
   @app :omg_eth
-  @configuration_old Application.get_all_env(@app)
-  @configuration_old_ethereumex Application.get_all_env(:ethereumex)
-
-  setup %{} do
-    on_exit(fn ->
-      :ok =
-        Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
-
-      :ok =
-        Enum.each(@configuration_old_ethereumex, fn {key, value} ->
-          Application.put_env(:ethereumex, key, value, persistent: true)
-        end)
-
-      Enum.each([:sasl, :os_mon, :omg_status], &Application.stop/1)
-    end)
-
-    :ok
-  end
 
   test "if defaults are used when env vars are not set" do
-    url = Application.get_env(:ethereumex, :url)
-    eth_node = Application.get_env(@app, :eth_node)
-    :ok = SetEthereumClient.init([])
-
-    assert Application.get_env(:ethereumex, :url) == url
-    assert Application.get_env(@app, :eth_node) == eth_node
+    default_url = Application.get_env(:ethereumex, :url)
+    default_eth_node = Application.get_env(@app, :eth_node)
+    config = SetEthereumClient.load([], [])
+    eth_node = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:eth_node)
+    url = config |> Keyword.fetch!(:ethereumex) |> Keyword.fetch!(:url)
+    assert url == default_url
+    assert eth_node == default_eth_node
   end
 
   test "if values are used when env vars set" do
     :ok = System.put_env("ETHEREUM_RPC_URL", "url")
     :ok = System.put_env("ETH_NODE", "geth")
-    :ok = SetEthereumClient.init([])
-    "url" = Application.get_env(:ethereumex, :url)
-    :geth = Application.get_env(@app, :eth_node)
+    config = SetEthereumClient.load([], [])
+    eth_node = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:eth_node)
+    url = config |> Keyword.fetch!(:ethereumex) |> Keyword.fetch!(:url)
+    assert url == "url"
+    assert eth_node == :geth
 
     :ok = System.put_env("ETH_NODE", "parity")
-    :ok = SetEthereumClient.init([])
-    "url" = Application.get_env(:ethereumex, :url)
-    :parity = Application.get_env(@app, :eth_node)
+    config = SetEthereumClient.load([], [])
+    eth_node = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:eth_node)
+    url = config |> Keyword.fetch!(:ethereumex) |> Keyword.fetch!(:url)
+    assert url == "url"
+    assert eth_node == :parity
 
     :ok = System.put_env("ETH_NODE", "infura")
-    :ok = SetEthereumClient.init([])
-    "url" = Application.get_env(:ethereumex, :url)
-    :infura = Application.get_env(@app, :eth_node)
+    config = SetEthereumClient.load([], [])
+    eth_node = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:eth_node)
+    url = config |> Keyword.fetch!(:ethereumex) |> Keyword.fetch!(:url)
+    assert url == "url"
+    assert eth_node == :infura
     # cleanup
     :ok = System.delete_env("ETHEREUM_RPC_URL")
     :ok = System.delete_env("ETH_NODE")
@@ -69,11 +58,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumClientTest do
   test "if faulty eth node exits" do
     :ok = System.put_env("ETH_NODE", "random random random")
 
-    try do
-      SetEthereumClient.init([])
-    catch
-      :exit, _reason ->
-        :ok = System.delete_env("ETH_NODE")
-    end
+    assert catch_exit(SetEthereumClient.load([], []))
+    :ok = System.delete_env("ETH_NODE")
   end
 end

@@ -14,32 +14,38 @@
 
 defmodule OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :omg_child_chain
-  @config_key :fee_buffer_duration_ms
   @env_var_name "FEE_BUFFER_DURATION_MS"
 
-  @impl Provider
-  def init(_args) do
-    _ = Application.ensure_all_started(:logger)
-    buffer_ms = fee_buffer_ms()
+  def init(args) do
+    args
+  end
 
-    :ok = Application.put_env(@app, @config_key, buffer_ms, persistent: true)
+  def load(config, _args) do
+    _ = on_load()
+    buffer_ms = fee_buffer_ms()
+    Config.Reader.merge(config, omg_child_chain: [fee_buffer_duration_ms: buffer_ms])
   end
 
   defp fee_buffer_ms() do
     buffer_ms =
       @env_var_name
       |> System.get_env()
-      |> validate_integer(Application.get_env(@app, @config_key))
+      |> validate_integer(Application.get_env(@app, :fee_buffer_duration_ms))
 
-    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(buffer_ms)}.")
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: fee_buffer_duration_ms Value: #{inspect(buffer_ms)}.")
 
     buffer_ms
   end
 
   defp validate_integer(value, _default) when is_binary(value), do: String.to_integer(value)
   defp validate_integer(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
+  end
 end

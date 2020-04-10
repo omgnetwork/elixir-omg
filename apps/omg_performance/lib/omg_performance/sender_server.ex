@@ -155,6 +155,10 @@ defmodule OMG.Performance.SenderServer do
       |> submit_tx_rpc(child_chain_url)
 
     case result do
+      {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} ->
+        _ = Logger.info("[#{inspect(seqnum)}]: Transaction submission will be retried, utxo not found yet.")
+        :retry
+
       {:error, {:client_error, %{"code" => "submit:too_many_transactions_in_block"}}} ->
         _ = Logger.info("[#{inspect(seqnum)}]: Transaction submission will be retried, block is full.")
         :retry

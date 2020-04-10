@@ -14,14 +14,18 @@
 
 defmodule OMG.Status.ReleaseTasks.SetLogger do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :logger
   @default_backend Ink
 
-  @impl Provider
-  def init(_) do
+  def init(args) do
+    args
+  end
+
+  def load(config, _args) do
+    _ = on_load()
     logger_backends = Application.get_env(@app, :backends, persistent: true)
     logger_backend = get_logger_backend()
 
@@ -32,7 +36,7 @@ defmodule OMG.Status.ReleaseTasks.SetLogger do
       end
 
     backends = logger_backends |> Kernel.--([remove]) |> Enum.concat([logger_backend]) |> Enum.uniq()
-    :ok = Application.put_env(@app, :backends, backends, persistent: true)
+    Config.Reader.merge(config, logger: [backends: backends])
   end
 
   defp get_logger_backend() do
@@ -52,4 +56,8 @@ defmodule OMG.Status.ReleaseTasks.SetLogger do
   defp do_validate_string("CONSOLE", _default), do: :console
   defp do_validate_string("INK", _default), do: Ink
   defp do_validate_string(_, default), do: default
+
+  defp on_load() do
+    _ = Application.load(:logger)
+  end
 end

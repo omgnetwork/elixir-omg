@@ -24,7 +24,7 @@ if Code.ensure_loaded?(WatcherInfoAPI.Connection) do
 
     # Add any middleware here (authentication)
     plug(Tesla.Middleware.BaseUrl, "http://localhost:7534")
-    plug(Tesla.Middleware.Headers, [{"user-agent", "Itest-Elixir"}])
+    plug(Tesla.Middleware.Headers, [{"user-agent", "Itest-Elixir"}, {"Content-Type", "application/json"}])
     plug(Tesla.Middleware.EncodeJson, engine: Poison)
 
     @doc """

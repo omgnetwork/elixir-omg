@@ -14,36 +14,43 @@
 
 defmodule OMG.ChildChainRPC.ReleaseTasks.SetEndpoint do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_child_chain_rpc
 
-  @impl Provider
-  def init(_args) do
-    _ = Application.ensure_all_started(:logger)
-    config = Application.get_env(@app, OMG.ChildChainRPC.Web.Endpoint)
+  def init(args) do
+    args
+  end
 
-    config =
+  def load(config, _args) do
+    _ = on_load()
+    endpoint_config = Application.get_env(@app, OMG.ChildChainRPC.Web.Endpoint)
+
+    endpoint_config =
       Keyword.put(
-        config,
+        endpoint_config,
         :http,
-        List.foldl(config[:http], [], fn
+        List.foldl(endpoint_config[:http], [], fn
           {:port, _num}, acc -> [get_port() | acc]
           other, acc -> [other | acc]
         end)
       )
 
-    config =
+    endpoint_config =
       Keyword.put(
-        config,
+        endpoint_config,
         :url,
-        List.foldl(config[:url], [], fn
+        List.foldl(endpoint_config[:url], [], fn
           {:host, _num}, acc -> [get_hostname() | acc]
           other, acc -> [other | acc]
         end)
       )
 
-    :ok = Application.put_env(@app, OMG.ChildChainRPC.Web.Endpoint, Enum.sort(config), persistent: true)
+    Config.Reader.merge(config,
+      omg_child_chain_rpc: [
+        {OMG.ChildChainRPC.Web.Endpoint, Enum.sort(endpoint_config)}
+      ]
+    )
   end
 
   defp get_port() do
@@ -75,4 +82,9 @@ defmodule OMG.ChildChainRPC.ReleaseTasks.SetEndpoint do
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
+  end
 end

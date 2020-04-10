@@ -27,17 +27,17 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
   Mandatory params are in Keyword form:
   - :publisher is Module that implements a function `event/3` (title, message, option). It's purpose is to forward
   events to a collector (for example, Datadog)
-  - :event is a OMG.Bus topic from which this process recieves data and sends them to the publisher and onwards
+  - :topic is a OMG.Bus topic from which this process recieves data and sends them to the publisher and onwards
   - :release is the mode this current process is runing under (for example, currently we support watcher, child chain or watcher info)
   - :current_version is semver of the current code
   """
   # sobelow_skip ["DOS.StringToAtom"]
   @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
   def prepare_child(opts) do
-    topic = Keyword.fetch!(opts, :topic)
+    {:root_chain, topic_name} = Keyword.fetch!(opts, :topic)
 
     %{
-      id: String.to_atom("#{topic}_worker"),
+      id: String.to_atom("root_chain:#{topic_name}_worker"),
       start: {__MODULE__, :start_link, [opts]},
       shutdown: :brutal_kill,
       type: :worker
@@ -58,12 +58,12 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
   """
   def init(args) do
     publisher = Keyword.fetch!(args, :publisher)
-    topic = Keyword.fetch!(args, :topic)
+    {:root_chain, event_name} = topic = Keyword.fetch!(args, :topic)
     release = Keyword.fetch!(args, :release)
     current_version = Keyword.fetch!(args, :current_version)
     :ok = OMG.Bus.subscribe(topic, link: true)
 
-    _ = Logger.info("Started #{inspect(__MODULE__)} for event #{inspect(topic)}")
+    _ = Logger.info("Started #{inspect(__MODULE__)} for event root_chain:#{event_name}")
     {:ok, %{publisher: publisher, release: release, current_version: current_version}}
   end
 

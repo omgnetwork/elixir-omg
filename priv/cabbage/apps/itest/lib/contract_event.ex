@@ -20,6 +20,7 @@ defmodule Itest.ContractEvent do
   @subscription_id 1
 
   require Logger
+
   #
   # Client API
   #

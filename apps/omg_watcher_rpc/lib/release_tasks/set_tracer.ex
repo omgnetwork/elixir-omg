@@ -14,26 +14,46 @@
 
 defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
+  alias OMG.WatcherRPC.Tracer
   require Logger
+
   @app :omg_watcher_rpc
 
-  @impl Provider
-  def init(_args) do
-    _ = Application.ensure_all_started(:logger)
-    config = Application.get_env(@app, OMG.WatcherRPC.Tracer)
-    config = Keyword.put(config, :disabled?, get_dd_disabled())
-    config = Keyword.put(config, :env, get_app_env())
-    :ok = Application.put_env(@app, OMG.WatcherRPC.Tracer, config, persistent: true)
-    :ok = Application.put_env(:spandex_phoenix, :tracer, OMG.WatcherRPC.Tracer, persistent: true)
+  def init(args) do
+    args
+  end
+
+  def load(config, args) do
+    _ = on_load()
+    adapter = Keyword.get(args, :system_adapter, System)
+    _ = Process.put(:system_adapter, adapter)
+    dd_disabled = get_dd_disabled()
+
+    tracer_config =
+      @app
+      |> Application.get_env(Tracer)
+      |> Keyword.put(:disabled?, dd_disabled)
+
+    tracer_config =
+      case dd_disabled do
+        false ->
+          app_env = get_app_env()
+          Keyword.put(tracer_config, :env, app_env)
+
+        true ->
+          Keyword.put(tracer_config, :env, "")
+      end
+
+    Config.Reader.merge(config,
+      omg_watcher_rpc: [{Tracer, tracer_config}],
+      spandex_phoenix: [tracer: Tracer]
+    )
   end
 
   defp get_dd_disabled() do
-    dd_disabled? =
-      validate_bool(
-        get_env("DD_DISABLED"),
-        Application.get_env(@app, OMG.WatcherRPC.Tracer)[:disabled?]
-      )
+    dd_disabled = Application.get_env(@app, OMG.WatcherRPC.Tracer)[:disabled?]
+    dd_disabled? = validate_bool(get_env("DD_DISABLED"), dd_disabled)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
@@ -45,7 +65,9 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
     env
   end
 
-  defp get_env(key), do: System.get_env(key)
+  defp get_env(key) do
+    Process.get(:system_adapter).get_env(key)
+  end
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default
@@ -56,4 +78,9 @@ defmodule OMG.WatcherRPC.ReleaseTasks.SetTracer do
 
   defp validate_string(value, _default) when is_binary(value), do: value
   defp validate_string(_, default), do: default
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    Application.load(@app)
+  end
 end

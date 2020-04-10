@@ -17,7 +17,7 @@ defmodule Support.Conformance.SignaturesHashes do
   Utility functions that used when testing Elixir vs Solidity implementation conformance
   """
 
-  import ExUnit.Assertions, only: [assert: 1, assert: 2]
+  import ExUnit.Assertions, only: [assert: 1]
 
   alias OMG.Eth.Encoding
   alias OMG.State.Transaction
@@ -125,7 +125,7 @@ defmodule Support.Conformance.SignaturesHashes do
       :geth ->
         # `geth` is problematic - on a revert from `call_contract` it returns something resembling a reason
         # binary (beginning with 4-byte function selector). We need to assume that this is in fact a revert
-        assert {:ok, chopped_reason_binary_result} = result
+        {:ok, chopped_reason_binary_result} = result
         assert <<0::size(28)-unit(8)>> = binary_part(chopped_reason_binary_result, 4, 28)
     end
   end
