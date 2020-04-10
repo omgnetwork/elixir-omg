@@ -21,7 +21,7 @@ defmodule OMG.ChildChainRPC.Web.Endpoint do
 
   plug(
     Plug.Parsers,
-    parsers: [:urlencoded, :json],
+    parsers: [:json],
     pass: [],
     json_decoder: Jason
   )
