@@ -54,7 +54,7 @@ RUN set -xe \
 #rocksdb from builder image to deployer image
 RUN mkdir -p /usr/local/rocksdb/lib
 RUN mkdir /usr/local/rocksdb/include
-COPY --from=omisegoimages/elixir-omg-builder:stable-20200407 /usr/local/rocksdb/ /usr/local/rocksdb/
+COPY --from=omisegoimages/elixir-omg-builder:dev-234b072 /usr/local/rocksdb/ /usr/local/rocksdb/
 
 ARG release_version
 ADD _build_docker/prod/watcher-${release_version}.tar.gz /app

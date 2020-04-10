@@ -89,7 +89,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200407"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-234b072"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -364,7 +364,7 @@ docker-remote-watcher_info:
 
 docker-remote-childchain:
 	docker exec -ti childchain /app/bin/child_chain remote
-	
+
 .PHONY: docker-nuke docker-remote-watcher docker-remote-watcher_info docker-remote-childchain
 
 ###
