@@ -418,7 +418,7 @@ jobs:
           name: Start daemon services
           command: |
             cd priv/cabbage
-            make start_daemon_services || docker-compose logs
+            make start_daemon_services || (START_RESULT=$?; docker-compose logs; return $START_RESULT;)
       - run:
           name: Print docker states
           command: |
