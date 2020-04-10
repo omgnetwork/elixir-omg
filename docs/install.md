@@ -24,7 +24,7 @@ wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb \
 && rm ./erlang-solutions_2.0_all.deb
 sudo apt-get update
 sudo apt-get install esl-erlang=1:22.3.1-1 elixir=1.10.2-1
-sudo apt-get install -y erlang-os-mon erlang-parsetools
+sudo apt-get install -y erlang-os-mon erlang-parsetools erlang-tools
 ```
 
 ## Install hex and rebar
