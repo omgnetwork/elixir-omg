@@ -125,9 +125,8 @@ defmodule InvalidStandardExitsTests do
   defwhen ~r/^Alice starts a standard exit on the child chain from her recently spent input$/,
           _,
           %{alice_account: alice_account, alice_recently_spent_utxo_pos: alice_recently_spent_utxo_pos} = state do
-    se =
-      %StandardExitClient{address: alice_account, utxo: alice_recently_spent_utxo_pos}
-      |> StandardExitClient.start_standard_exit()
+    standard_exit_client = %StandardExitClient{address: alice_account, utxo: alice_recently_spent_utxo_pos}
+    se = StandardExitClient.start_standard_exit(standard_exit_client)
 
     gas_used1 = Client.get_gas_used(se.start_standard_exit_hash)
     gas_used2 = Client.get_gas_used(se.add_exit_queue_hash)
@@ -163,9 +162,8 @@ defmodule InvalidStandardExitsTests do
     # need n_exits: <many>, because we're trying to prove that Alice's processing of the challenged exit fails
     # otherwise, you're risking not processing "enough" exits and it will seem like Alice's exit got challenged, while
     # it is not necessarily true
-    se =
-      %StandardExitClient{address: alice_account, standard_exit_id: 0}
-      |> StandardExitClient.wait_and_process_standard_exit(n_exits: 2000)
+    standard_exit_client = %StandardExitClient{address: alice_account, standard_exit_id: 0}
+    se = StandardExitClient.wait_and_process_standard_exit(standard_exit_client, n_exits: 2000)
 
     gas_used = Client.get_gas_used(se.process_exit_receipt_hash)
     new_state = Map.update!(state, :alice_gas, fn current_gas -> current_gas + gas_used end)

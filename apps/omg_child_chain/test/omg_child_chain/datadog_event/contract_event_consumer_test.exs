@@ -31,7 +31,7 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumerTest do
 
     start_supervised(
       ContractEventConsumer.prepare_child(
-        topic: "#{pid}",
+        topic: {:root_chain, "#{pid}"},
         release: "child_chain",
         current_version: "test-123",
         publisher: __MODULE__.DatadogEventMock
@@ -42,21 +42,19 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumerTest do
   end
 
   test "if a event message put on omg bus is consumed by the event consumer and published on the publisher interface" do
-    topic = self() |> :erlang.pid_to_list() |> to_string()
-    sig = "#{topic}(bytes32)"
+    topic_name = self() |> :erlang.pid_to_list() |> to_string()
+    sig = "#{topic_name}(bytes32)"
     data = [%{event_signature: sig}]
-    event = %OMG.Bus.Event{topic: topic, event: :data, payload: data}
-    OMG.Bus.direct_local_broadcast(event)
+    {:root_chain, topic_name} |> OMG.Bus.Event.new(:data, data) |> OMG.Bus.direct_local_broadcast()
 
     assert_receive {:event, _, _}
   end
 
   test "if a list of event message are put on omg bus is consumed by the event consumer and published on the publisher interface" do
-    topic = self() |> :erlang.pid_to_list() |> to_string()
-    sig = "#{topic}(bytes32)"
+    topic_name = self() |> :erlang.pid_to_list() |> to_string()
+    sig = "#{topic_name}(bytes32)"
     data = [%{event_signature: sig}, %{event_signature: sig}]
-    event = %OMG.Bus.Event{topic: topic, event: :data, payload: data}
-    OMG.Bus.direct_local_broadcast(event)
+    {:root_chain, topic_name} |> OMG.Bus.Event.new(:data, data) |> OMG.Bus.direct_local_broadcast()
 
     assert_receive {:event, _, _}
   end
