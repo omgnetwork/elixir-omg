@@ -12,7 +12,7 @@ start_daemon_services:
 	cd ../../ && \
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	cd priv/cabbage/ && \
-	docker-compose -f ../../docker-compose.yml -f docker-compose-cabbage.yml up -d
+	docker-compose -f ../../docker-compose.yml -f docker-compose-cabbage.ym up -d
 
 generate-security_critical_api_specs:
 	priv/openapitools/openapi-generator-cli generate -i ../../apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml -g elixir -o apps/watcher_security_critical_api
