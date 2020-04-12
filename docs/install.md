@@ -9,33 +9,22 @@ Only **Linux** and **OSX** platforms are supported now. These instructions have 
 * **Elixir** `=1.10.*` (check with `elixir --version`)
 
 ## Install prerequisite packages
+It will install common development tools, geth and postgres.
 
 ```
-sh bin/install
-```
-
-## Install PostgreSQL
-
-```
-sudo apt-get install postgresql postgresql-contrib
-sudo -u postgres createuser omisego_dev
-sudo -u postgres psql -c "alter user omisego_dev with encrypted password 'omisego_dev'"
-sudo -u postgres psql -c "alter user omisego_dev CREATEDB"
+sh bin/setup
 ```
 
 ## Install Erlang and Elixir
 
 Add the Erlang Solutions repo and install
 ```
-wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
+wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb \
+&& sudo apt install ./erlang-solutions_2.0_all.deb \
+&& rm ./erlang-solutions_2.0_all.deb
+sudo apt-get update
 sudo apt-get install esl-erlang=1:22.3.1-1 elixir=1.10.2-1
-sudo apt-get install -y erlang-os-mon
-```
-
-## Install Geth
-Install Geth version 1.9.12 from the URL below.
-```
-https://geth.ethereum.org/downloads/
+sudo apt-get install -y erlang-os-mon erlang-parsetools erlang-tools
 ```
 
 ## Install hex and rebar

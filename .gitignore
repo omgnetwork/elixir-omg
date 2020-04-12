@@ -77,3 +77,6 @@ localchain_contract_addresses.env
 .idea/
 *.iml
 
+#vs code
+.tool_versions
+
