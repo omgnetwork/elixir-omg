@@ -188,6 +188,23 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                }
              } == WatcherHelper.no_success?("transaction.get", %{"id" => "0x50e901b98fe3389e32d56166a13a88208b03ea75"})
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns bad request error if transaction hash is passed as query parameter" do
+      txhash = insert(:transaction) |> Map.get(:txhash) |> Encoding.to_hex()
+
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "id",
+                   "validator" => ":hex"
+                 }
+               }
+             } == WatcherHelper.no_success?("transaction.get?id=#{txhash}")
+    end
   end
 
   describe "/transaction.all" do

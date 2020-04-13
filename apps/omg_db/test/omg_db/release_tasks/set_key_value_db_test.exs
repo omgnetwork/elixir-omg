@@ -20,6 +20,8 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
   @app :omg_db
 
   setup do
+    _ = Application.ensure_all_started(:logger)
+
     on_exit(fn ->
       :ok = System.delete_env("DB_PATH")
     end)

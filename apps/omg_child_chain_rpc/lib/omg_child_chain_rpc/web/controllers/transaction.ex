@@ -19,7 +19,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.Transaction do
 
   use OMG.ChildChainRPC.Web, :controller
   # check for health before calling action
-  plug(OMG.ChildChainRPC.Plugs.Health)
+  plug(OMG.ChildChainRPC.Web.Plugs.Health)
   alias OMG.ChildChain
 
   def submit(conn, params) do

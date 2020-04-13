@@ -44,9 +44,9 @@ install_linux_postgres(){
 }
 
 install_linux_geth(){
-  echo "Installing Geth 1.9.10"
+  echo "Installing Geth 1.9.12"
   mkdir gethDownload \
-  && wget -qO- "https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.9.11-6a62fe39.tar.gz" | tar xvz -C gethDownload --strip-components 1 \
+  && wget -qO- "https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.9.12-b6f1c8dc.tar.gz" | tar xvz -C gethDownload --strip-components 1 \
   && cd gethDownload \
   && mkdir -p /usr/local/bin \
   && sudo mv geth /usr/local/bin/ \
@@ -128,10 +128,10 @@ install_deps
 #Linux and MacOS
 #asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
 #asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
-#asdf install erlang 21.0
-#asdf install elixir 1.8.2
-#asdf global elixir 1.8.2
-#asdf global erlang 21.0
+#asdf install erlang 22.3
+#asdf install elixir 1.10.2
+#asdf global elixir 1.10.2
+#asdf global erlang 22.3
 if ! command -v mix > /dev/null; then
   fancy_echo "It looks like you don't have Elixir installed."
   echo "See https://asdf-vm.com/#/core-manage-asdf-vm for instructions."

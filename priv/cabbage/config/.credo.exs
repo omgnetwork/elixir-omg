@@ -138,6 +138,7 @@
         #
         # Controversial and experimental checks (opt-in, just remove `, false`)
         #
+        {Credo.Check.Readability.SinglePipe, []},
         {Credo.Check.Consistency.MultiAliasImportRequireUse, false},
         {Credo.Check.Design.DuplicatedCode, false},
         {Credo.Check.Readability.Specs, false},
