@@ -184,13 +184,13 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     end
 
     test "unwrapping results list" do
-      list = 0..9 |> Enum.to_list()
+      list = Enum.to_list(0..9)
 
-      ok_list = list |> Enum.map(&{:ok, &1})
+      ok_list = Enum.map(list, &{:ok, &1})
       assert list == all_success_or_error(ok_list)
 
       error = {:error, "bad news"}
-      list_with_err = [error | ok_list] |> Enum.shuffle()
+      list_with_err = Enum.shuffle([error | ok_list])
       assert error == all_success_or_error(list_with_err)
     end
   end
@@ -208,7 +208,7 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
       assert {:error, {:validation_error, "nint_1", :integer}} == expect(@params, "nint_1", greater: 0)
     end
 
-    test "address should validate both hex value and  length" do
+    test "address should validate both hex value and length" do
       assert {:ok, @bin_value} == expect(@params, "hex_1", :address)
 
       assert {:error, {:validation_error, "nhex_1", :hex}} == expect(@params, "nhex_1", :address)
@@ -217,8 +217,8 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
                expect(%{"short" => "0xdeadbeef"}, "short", :address)
     end
 
-    test "signature should validate both hex value and  length" do
-      {:ok, signature_value} = Map.get(@params, "valid_signature") |> Encoding.from_hex()
+    test "signature should validate both hex value and length" do
+      {:ok, signature_value} = @params |> Map.get("valid_signature") |> Encoding.from_hex()
       assert {:ok, signature_value} == expect(@params, "valid_signature", :signature)
 
       assert {:error, {:validation_error, "non_hex_signature", :hex}} ==
@@ -228,8 +228,8 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
                expect(@params, "too_short_signature", :signature)
     end
 
-    test "hash should validate both hex value and  length" do
-      {:ok, hash_value} = Map.get(@params, "valid_hash") |> Encoding.from_hex()
+    test "hash should validate both hex value and length" do
+      {:ok, hash_value} = @params |> Map.get("valid_hash") |> Encoding.from_hex()
       assert {:ok, hash_value} == expect(@params, "valid_hash", :hash)
 
       assert {:error, {:validation_error, "non_hex_hash", :hex}} ==
