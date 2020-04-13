@@ -88,7 +88,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
          :ok <- is_supported(recovered_tx) do
       recovered_tx
       |> Map.get(:signed_tx)
-      |> InfoApiTransaction.submit(signed_tx)
+      |> InfoApiTransaction.submit()
       |> api_response(conn, :submission)
     end
   end
