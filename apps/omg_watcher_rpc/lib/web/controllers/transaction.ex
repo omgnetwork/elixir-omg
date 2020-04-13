@@ -92,9 +92,20 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
 
   # Provides extra validation (recover_from) and passes transaction to API layer
   defp submit_tx_sec(txbytes, conn) do
-    with {:ok, %Transaction.Recovered{signed_tx: signed_tx}} <- Transaction.Recovered.recover_from(txbytes) do
-      SecurityApiTransaction.submit(signed_tx)
+    with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(txbytes),
+         :ok <- is_supported(recovered_tx) do
+      %Transaction.Recovered{signed_tx: signed_tx} = recovered_tx
+
+      signed_tx
+      |> SecurityApiTransaction.submit()
       |> api_response(conn, :submission)
     end
   end
+
+  defp is_supported(%Transaction.Recovered{
+         signed_tx: %Transaction.Signed{raw_tx: %Transaction.Fee{}}
+       }),
+       do: {:error, :transaction_not_supported}
+
+  defp is_supported(%Transaction.Recovered{}), do: :ok
 end
