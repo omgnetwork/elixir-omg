@@ -19,10 +19,14 @@ defmodule OMG.WatcherRPC.Web.Endpoint do
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)
 
+  if code_reloading? do
+    plug(Phoenix.CodeReloader)
+  end
+
   plug(
     Plug.Parsers,
-    parsers: [:urlencoded, :multipart, :json],
-    pass: ["*/*"],
+    parsers: [:json],
+    pass: [],
     json_decoder: Jason
   )
 
@@ -32,5 +36,6 @@ defmodule OMG.WatcherRPC.Web.Endpoint do
   if Application.get_env(:omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint)[:enable_cors],
     do: plug(CORSPlug)
 
+  plug(OMG.WatcherRPC.Web.Plugs.MethodParamFilter)
   plug(OMG.WatcherRPC.Web.Router)
 end

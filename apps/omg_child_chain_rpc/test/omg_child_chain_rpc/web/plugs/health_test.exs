@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Plugs.HealthTest do
+defmodule OMG.ChildChainRPC.Web.Plugs.HealthTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
@@ -35,7 +35,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
                 %{
                   "boot_in_progress" => %{
                     "node" => "nonode@nohost",
-                    "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
+                    "reporter" => "Elixir.OMG.ChildChainRPC.Web.Plugs.HealthTest"
                   }
                 }
               ],
@@ -80,7 +80,7 @@ defmodule OMG.ChildChainRPC.Plugs.HealthTest do
                 %{
                   "ethereum_connection_error" => %{
                     "node" => "nonode@nohost",
-                    "reporter" => "Elixir.OMG.ChildChainRPC.Plugs.HealthTest"
+                    "reporter" => "Elixir.OMG.ChildChainRPC.Web.Plugs.HealthTest"
                   }
                 }
               ],
