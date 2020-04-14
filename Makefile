@@ -201,7 +201,7 @@ build-test: deps-elixir-omg
 init-contracts: clean-contracts
 	mkdir data/ || true && \
 	URL=$$(grep "^$(SNAPSHOT)" snapshots.env | cut -d'=' -f2-) && \
-	wget $$URL -O data/snapshot.tar.gz && \
+	curl -o data/snapshot.tar.gz $$URL && \
 	cd data && \
 	tar --strip-components 1 -zxvf snapshot.tar.gz data/geth && \
 	tar --exclude=data/* -xvzf snapshot.tar.gz && \
