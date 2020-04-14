@@ -20,7 +20,6 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
 
   import OMG.Utils.HttpRPC.Validator.Base
 
-  @bin_value <<179, 37, 96, 38, 134, 62, 182, 174, 91, 6, 250, 57, 106, 176, 144, 105, 120, 78, 168, 234>>
   @params %{
     "int_1" => -1_234_567_890,
     "int_2" => 0,
@@ -28,10 +27,12 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     "nint_1" => "1234567890",
     "nil" => nil,
     "opt_1" => true,
-    "hex_1" => "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
-    "hex_2" => "0xB3256026863EB6aE5B06fA396AB09069784ea8eA",
-    "hex_3" => "0xB3256026863EB6AE5B06FA396AB09069784EA8EA",
-    "nhex_1" => "b3256026863eb6ae5b06fa396ab09069784ea8ea",
+    "hex_1" => "0x1234567890abcdef",
+    "hex_2" => "0x1234567890AbCdEf",
+    "hex_3" => "0x1234567890ABCDEF",
+    "non_hex_1" => "!@#$%^&*().?",
+    "non_hex_2" => "1234567890ABCDE",
+    "non_hex_3" => "1234567890ABCDEZ",
     "valid_address" => "0x" <> String.duplicate("00", 20),
     "non_hex_address" => "0x" <> String.duplicate("ZZ", 20),
     "too_long_address" => "0x" <> String.duplicate("00", 21),
@@ -84,13 +85,18 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     end
 
     test "hex: positive cases" do
-      assert {:ok, @bin_value} == expect(@params, "hex_1", :hex)
-      assert {:ok, @bin_value} == expect(@params, "hex_2", :hex)
-      assert {:ok, @bin_value} == expect(@params, "hex_3", :hex)
+      {:ok, hex_1_value} = @params |> Map.get("hex_1") |> Encoding.from_hex()
+      assert {:ok, hex_1_value} == expect(@params, "hex_1", :hex)
+
+      {:ok, hex_2_value} = @params |> Map.get("hex_2") |> Encoding.from_hex()
+      assert {:ok, hex_2_value} == expect(@params, "hex_2", :hex)
+
+      {:ok, hex_3_value} = @params |> Map.get("hex_3") |> Encoding.from_hex()
+      assert {:ok, hex_3_value} == expect(@params, "hex_3", :hex)
     end
 
     test "hex: negative cases" do
-      assert {:error, {:validation_error, "nhex_1", :hex}} == expect(@params, "nhex_1", :hex)
+      assert {:error, {:validation_error, "non_hex_1", :hex}} == expect(@params, "non_hex_1", :hex)
     end
 
     test "length: positive cases" do
@@ -171,7 +177,7 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
              do: {:ok, %{currency: currency, amount: amount}}
       end
 
-      {:ok, address_value} = @params |> Map.get("valid_address") |> Encoding.from_hex()
+      {:ok, _address_value} = @params |> Map.get("valid_address") |> Encoding.from_hex()
 
       assert {:ok, %{currency: address_value, amount: 100}} =
                expect(
