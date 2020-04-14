@@ -18,8 +18,8 @@ defmodule OMG.ChildChain.Measure do
   """
   import OMG.Status.Metric.Event, only: [name: 1]
 
-  alias OMG.Status.Metric.Datadog
   alias OMG.ChildChain.API.Transaction, as: TransactionAPI
+  alias OMG.Status.Metric.Datadog
 
   @supported_events [
     [:submit, TransactionAPI],
