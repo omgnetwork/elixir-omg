@@ -32,6 +32,9 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     "hex_2" => "0xB3256026863EB6aE5B06fA396AB09069784ea8eA",
     "hex_3" => "0xB3256026863EB6AE5B06FA396AB09069784EA8EA",
     "nhex_1" => "b3256026863eb6ae5b06fa396ab09069784ea8ea",
+    "valid_address" => "0x" <> String.duplicate("00", 20),
+    "too_short_address" => "0x" <> String.duplicate("00", 19),
+    "non_hex_address" => "0x" <> String.duplicate("ZZ", 20),
     "valid_signature" => "0x" <> String.duplicate("00", 65),
     "too_short_signature" => "0x" <> String.duplicate("00", 64),
     "non_hex_signature" => "0x" <> String.duplicate("ZZ", 65),
@@ -44,21 +47,18 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
   }
 
   describe "Basic validation:" do
-    test "integer, positive" do
+    test "integer: positive cases" do
       assert {:ok, -1_234_567_890} == expect(@params, "int_1", :integer)
-
       assert {:ok, 0} == expect(@params, "int_2", :integer)
-
       assert {:ok, 1_234_567_890} == expect(@params, "int_3", [:integer])
     end
 
-    test "integer, negative" do
+    test "integer: negative cases" do
       assert {:error, {:validation_error, "nint_1", :integer}} == expect(@params, "nint_1", :integer)
-
       assert {:error, {:validation_error, "nil", :integer}} == expect(@params, "nil", :integer)
     end
 
-    test "optional, positive" do
+    test "optional: positive cases" do
       assert {:ok, 0} == expect(@params, "int_2", :optional)
       assert {:ok, true} == expect(@params, "opt_1", :optional)
       assert {:ok, nil} == expect(@params, "no_such_key", [:optional])
@@ -76,57 +76,57 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
       assert {:error, {:validation_error, "list", :list}} == expect(%{}, "list", list: &(&1 * 2), optional: false)
     end
 
-    test "optional, negative" do
+    test "optional: negative cases" do
       assert {:error, {:validation_error, "nil", :integer}} == expect(@params, "nil", [:optional, :integer])
     end
 
-    test "hex, positive" do
+    test "hex: positive cases" do
       assert {:ok, @bin_value} == expect(@params, "hex_1", :hex)
       assert {:ok, @bin_value} == expect(@params, "hex_2", :hex)
       assert {:ok, @bin_value} == expect(@params, "hex_3", :hex)
     end
 
-    test "hex, negative" do
+    test "hex: negative cases" do
       assert {:error, {:validation_error, "nhex_1", :hex}} == expect(@params, "nhex_1", :hex)
     end
 
-    test "length, positive" do
+    test "length: positive cases" do
       assert {:ok, "1"} == expect(@params, "len_1", length: 1)
       assert {:ok, <<1, 2, 3, 4, 5>>} == expect(@params, "len_2", length: 5)
       assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 10)
       assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 5)
     end
 
-    test "length, negative" do
+    test "length: negative cases" do
       assert {:error, {:validation_error, "len_1", {:length, 5}}} == expect(@params, "len_1", length: 5)
       assert {:error, {:validation_error, "len_2", {:length, 1}}} == expect(@params, "len_2", length: 1)
       assert {:error, {:validation_error, "max_len_1", {:max_length, 3}}} == expect(@params, "max_len_1", max_length: 3)
     end
 
-    test "max_length, positive" do
+    test "max_length: positive cases" do
       assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 10)
       assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 5)
     end
 
-    test "max_length, negative" do
+    test "max_length: negative cases" do
       assert {:error, {:validation_error, "max_len_1", {:max_length, 3}}} == expect(@params, "max_len_1", max_length: 3)
     end
 
-    test "list, positive" do
+    test "list: positive cases" do
       list = [1, "a", :b]
       assert {:ok, list} == expect(%{"list" => list}, "list", :list)
     end
 
-    test "list, negative" do
+    test "list: negative cases" do
       assert {:error, {:validation_error, "list", :list}} == expect(%{"list" => "[42]"}, "list", :list)
     end
 
-    test "map, positive" do
+    test "map: positive cases" do
       map = %{"a" => 0, "b" => 1}
       assert {:ok, map} == expect(%{"map" => map}, "map", :map)
     end
 
-    test "map, negative" do
+    test "map: negative cases" do
       assert {:error, {:validation_error, "map", :map}} == expect(%{"map" => [42]}, "map", :map)
     end
 
@@ -168,16 +168,18 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
              do: {:ok, %{currency: currency, amount: amount}}
       end
 
-      assert {:ok, %{currency: @bin_value, amount: 100}} =
+      {:ok, address_value} = @params |> Map.get("valid_address") |> Encoding.from_hex()
+
+      assert {:ok, %{currency: address_value, amount: 100}} =
                expect(
-                 %{"fee" => %{"currency" => @params["hex_2"], "amount" => 100}},
+                 %{"fee" => %{"currency" => @params["valid_address"], "amount" => 100}},
                  "fee",
                  map: parser
                )
 
       assert {:error, {:validation_error, "fee.currency", :hex}} =
                expect(
-                 %{"fee" => %{"currency" => "not-an-address", "amount" => 100}},
+                 %{"fee" => %{"currency" => @params["non_hex_address"], "amount" => 100}},
                  "fee",
                  map: parser
                )
@@ -196,25 +198,26 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
   end
 
   describe "Preprocessors:" do
-    test "greater, positive" do
+    test "greater: positive cases" do
       assert {:ok, 0} == expect(@params, "int_2", greater: -1)
 
       assert {:ok, 1_234_567_890} == expect(@params, "int_3", greater: 1_000_000_000)
     end
 
-    test "greater, negative" do
+    test "greater: negative cases" do
       assert {:error, {:validation_error, "int_2", {:greater, 0}}} == expect(@params, "int_2", greater: 0)
 
       assert {:error, {:validation_error, "nint_1", :integer}} == expect(@params, "nint_1", greater: 0)
     end
 
     test "address should validate both hex value and length" do
-      assert {:ok, @bin_value} == expect(@params, "hex_1", :address)
+      {:ok, address_value} = @params |> Map.get("valid_address") |> Encoding.from_hex()
+      assert {:ok, address_value} == expect(@params, "valid_address", :address)
 
-      assert {:error, {:validation_error, "nhex_1", :hex}} == expect(@params, "nhex_1", :address)
+      assert {:error, {:validation_error, "non_hex_address", :hex}} == expect(@params, "non_hex_address", :address)
 
-      assert {:error, {:validation_error, "short", {:length, 20}}} ==
-               expect(%{"short" => "0xdeadbeef"}, "short", :address)
+      assert {:error, {:validation_error, "too_short_address", {:length, 20}}} ==
+               expect(@params, "too_short_address", :address)
     end
 
     test "signature should validate both hex value and length" do
