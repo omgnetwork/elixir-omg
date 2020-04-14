@@ -33,14 +33,17 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     "hex_3" => "0xB3256026863EB6AE5B06FA396AB09069784EA8EA",
     "nhex_1" => "b3256026863eb6ae5b06fa396ab09069784ea8ea",
     "valid_address" => "0x" <> String.duplicate("00", 20),
-    "too_short_address" => "0x" <> String.duplicate("00", 19),
     "non_hex_address" => "0x" <> String.duplicate("ZZ", 20),
+    "too_long_address" => "0x" <> String.duplicate("00", 21),
+    "too_short_address" => "0x" <> String.duplicate("00", 19),
     "valid_signature" => "0x" <> String.duplicate("00", 65),
-    "too_short_signature" => "0x" <> String.duplicate("00", 64),
     "non_hex_signature" => "0x" <> String.duplicate("ZZ", 65),
+    "too_long_signature" => "0x" <> String.duplicate("00", 66),
+    "too_short_signature" => "0x" <> String.duplicate("00", 64),
     "valid_hash" => "0x" <> String.duplicate("00", 32),
-    "too_short_hash" => "0x" <> String.duplicate("00", 31),
     "non_hex_hash" => "0x" <> String.duplicate("ZZ", 32),
+    "too_long_hash" => "0x" <> String.duplicate("00", 33),
+    "too_short_hash" => "0x" <> String.duplicate("00", 31),
     "len_1" => "1",
     "len_2" => <<1, 2, 3, 4, 5>>,
     "max_len_1" => [1, 2, 3, 4, 5]
@@ -218,6 +221,9 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
 
       assert {:error, {:validation_error, "too_short_address", {:length, 20}}} ==
                expect(@params, "too_short_address", :address)
+
+      assert {:error, {:validation_error, "too_long_address", {:length, 20}}} ==
+               expect(@params, "too_long_address", :address)
     end
 
     test "signature should validate both hex value and length" do
@@ -229,6 +235,9 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
 
       assert {:error, {:validation_error, "too_short_signature", {:length, 65}}} ==
                expect(@params, "too_short_signature", :signature)
+
+      assert {:error, {:validation_error, "too_long_signature", {:length, 65}}} ==
+               expect(@params, "too_long_signature", :signature)
     end
 
     test "hash should validate both hex value and length" do
@@ -240,6 +249,9 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
 
       assert {:error, {:validation_error, "too_short_hash", {:length, 32}}} ==
                expect(@params, "too_short_hash", :hash)
+
+      assert {:error, {:validation_error, "too_long_hash", {:length, 32}}} ==
+               expect(@params, "too_long_hash", :hash)
     end
   end
 
