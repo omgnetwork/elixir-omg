@@ -14,7 +14,7 @@
 
 defmodule OMG.ChildChain.API.Configuration do
   @moduledoc """
-  Watcher API for retrieving configuration
+  Child Chain API for retrieving configurations.
   """
 
   alias OMG.Configuration
