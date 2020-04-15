@@ -14,8 +14,8 @@
 
 defmodule OMG.ChildChain.API.TransactionTest do
   use ExUnit.Case, async: true
-  alias OMG.ChildChain.API.Transaction
   alias __MODULE__.MockChildChain
+  alias OMG.ChildChain.API.Transaction
 
   setup do
     handler_id = {__MODULE__, :rand.uniform(100)}
