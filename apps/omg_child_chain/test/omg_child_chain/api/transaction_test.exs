@@ -15,41 +15,74 @@
 defmodule OMG.ChildChain.API.TransactionTest do
   use ExUnit.Case, async: true
   alias OMG.ChildChain.API.Transaction
+  alias __MODULE__.MockChildChain
 
-  @child_chain __MODULE__.MockChildChain
-  @telemetry __MODULE__.MockTelemetry
+  setup do
+    handler_id = {__MODULE__, :rand.uniform(100)}
 
-  describe "submit/1" do
-    test "emits a :submit and :submit_success telemetry event on a successful submission" do
-      {:ok, _} = Transaction.submit(<<1, 1, 1>>, @child_chain, @telemetry)
+    on_exit(fn ->
+      :telemetry.detach(handler_id)
+    end)
 
-      assert_receive({:telemetry_emitted, [:submit, Transaction]})
-      assert_receive({:telemetry_emitted, [:submit_success, Transaction]})
+    {:ok, handler_id: handler_id}
+  end
+
+  describe "submit/1 with a successful result" do
+    test "emits a [:submit, ...] telemetry event", context do
+      attach(context.handler_id, [:submit, Transaction])
+      {:ok, _} = Transaction.submit(<<1, 1, 1>>, MockChildChain)
+      assert_received({:telemetry_event, [:submit, Transaction], %{}, %{}})
     end
 
-    test "emits a :submit and :submit_failed telemetry event on a failed submission" do
-      {:error, _} = Transaction.submit(<<0, 0, 0>>, @child_chain, @telemetry)
+    test "emits a [:submit_success, ...] telemetry event", context do
+      attach(context.handler_id, [:submit_success, Transaction])
+      {:ok, _} = Transaction.submit(<<1, 1, 1>>, MockChildChain)
+      assert_received({:telemetry_event, [:submit_success, Transaction], %{}, %{}})
+    end
 
-      assert_receive({:telemetry_emitted, [:submit, Transaction]})
-      assert_receive({:telemetry_emitted, [:submit_failed, Transaction]})
+    test "does not emit a [:submit_failed, ...] telemetry event", context do
+      attach(context.handler_id, [:submit_failed, Transaction])
+      {:ok, _} = Transaction.submit(<<1, 1, 1>>, MockChildChain)
+      refute_received({:telemetry_event, [:submit_failed, Transaction], %{}, %{}})
+    end
+  end
+
+  describe "submit/1 with a failed result" do
+    test "emits a [:submit, ...] telemetry event", context do
+      attach(context.handler_id, [:submit, Transaction])
+      {:error, _} = Transaction.submit(<<0, 0, 0>>, MockChildChain)
+      assert_received({:telemetry_event, [:submit, Transaction], %{}, %{}})
+    end
+
+    test "emits a [:submit_failed, ...] telemetry event", context do
+      attach(context.handler_id, [:submit_failed, Transaction])
+      {:error, _} = Transaction.submit(<<0, 0, 0>>, MockChildChain)
+      assert_received({:telemetry_event, [:submit_failed, Transaction], %{}, %{}})
+    end
+
+    test "does not emit a [:submit_success, ...] telemetry event", context do
+      attach(context.handler_id, [:submit_success, Transaction])
+      {:error, _} = Transaction.submit(<<0, 0, 0>>, MockChildChain)
+      refute_received({:telemetry_event, [:submit_success, Transaction], %{}, %{}})
     end
   end
 
   defmodule MockChildChain do
     @doc """
-    Returns a successful or failed response depending on the txbyte received.
+    Returns a successful or failed response depending on the txbytes received.
     """
     def submit(<<1, 1, 1>>), do: {:ok, %{some: "data"}}
     def submit(<<0, 0, 0>>), do: {:error, :some_error}
   end
 
-  defmodule MockTelemetry do
-    @doc """
-    Responds to an execute/2 call by sending `{:telemtry_emitted, _}` to the mailbox.
-    """
-    def execute(event, _) do
-      send(self(), {:telemetry_emitted, event})
-      :ok
-    end
+  defp attach(handler_id, event) do
+    :telemetry.attach(
+      handler_id,
+      event,
+      fn received_event, measurements, metadata, _ ->
+        send(self(), {:telemetry_event, received_event, measurements, metadata})
+      end,
+      nil
+    )
   end
 end

@@ -20,20 +20,20 @@ defmodule OMG.ChildChain.API.Transaction do
   alias OMG.ChildChain
 
   @spec submit(binary()) :: ChildChain.submit_result()
-  def submit(txbytes, child_chain \\ ChildChain, telemetry \\ :telemetry) do
-    :ok = telemetry.execute([:submit, __MODULE__], %{})
+  def submit(txbytes, child_chain \\ ChildChain) do
+    :ok = :telemetry.execute([:submit, __MODULE__], %{})
 
     result = child_chain.submit(txbytes)
-    _ = send_result_to_telemetry(result, telemetry)
+    _ = send_telemetry(result)
 
     result
   end
 
-  defp send_result_to_telemetry({:ok, _}, telemetry) do
-    :ok = telemetry.execute([:submit_success, __MODULE__], %{})
+  defp send_telemetry({:ok, _}) do
+    :ok = :telemetry.execute([:submit_success, __MODULE__], %{})
   end
 
-  defp send_result_to_telemetry({:error, _}, telemetry) do
-    :ok = telemetry.execute([:submit_failed, __MODULE__], %{})
+  defp send_telemetry({:error, _}) do
+    :ok = :telemetry.execute([:submit_failed, __MODULE__], %{})
   end
 end
