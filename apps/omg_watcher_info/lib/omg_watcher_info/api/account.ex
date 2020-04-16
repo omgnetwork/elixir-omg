@@ -30,7 +30,7 @@ defmodule OMG.WatcherInfo.API.Account do
   @doc """
   Gets all utxos belonging to the given address.
   """
-  @spec get_utxos(Keyword.t()) :: Paginator.t()
+  @spec get_utxos(Keyword.t()) :: Paginator.t(%DB.TxOutput{})
   def get_utxos(params) do
     DB.TxOutput.get_utxos(params)
   end

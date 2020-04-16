@@ -19,8 +19,8 @@ defmodule OMG.Utils.Paginator do
   @default_limit 200
   @first_page 1
 
-  @type t() :: %__MODULE__{
-          data: list(),
+  @type t(data_type) :: %__MODULE__{
+          data: list(data_type),
           data_paging: %{limit: pos_integer(), page: pos_integer()}
         }
 

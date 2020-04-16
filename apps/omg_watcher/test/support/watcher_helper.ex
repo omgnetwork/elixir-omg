@@ -133,8 +133,8 @@ defmodule Support.WatcherHelper do
   @doc """
   shortcut helper for get_utxos that inject pagination data for you
   """
-  def get_utxos(address) do
-    success?("/account.get_utxos", %{"address" => Encoding.to_hex(address), "page" => 1, "limit" => 100})
+  def get_utxos(address, page \\ 1, limit \\ 100) do
+    success?("/account.get_utxos", %{"address" => Encoding.to_hex(address), "page" => page, "limit" => limit})
   end
 
   def get_exitable_utxos(address) do
