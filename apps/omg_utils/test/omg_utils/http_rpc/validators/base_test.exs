@@ -177,9 +177,9 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
              do: {:ok, %{currency: currency, amount: amount}}
       end
 
-      {:ok, _address_value} = @params |> Map.get("valid_address") |> Encoding.from_hex()
+      {:ok, address_value} = @params |> Map.get("valid_address") |> Encoding.from_hex()
 
-      assert {:ok, %{currency: address_value, amount: 100}} =
+      assert {:ok, %{currency: address_value, amount: 100}} ==
                expect(
                  %{"fee" => %{"currency" => @params["valid_address"], "amount" => 100}},
                  "fee",
