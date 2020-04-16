@@ -63,7 +63,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
-  test "utxo.get_exit_data handles improper type of parameter" do
+  test "utxo.get_challenge_data handles improper type of parameter" do
     assert %{
              "object" => "error",
              "code" => "operation:bad_request",
