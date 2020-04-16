@@ -76,9 +76,11 @@ defmodule OMG.Watcher.DatadogEvent.ContractEventConsumer do
 
     options = tags(aggregation_key, state.release, state.current_version, timestamp)
     title = "#{event_name}"
-    message = "#{inspect(Encode.make_it_readable!(data))} - Timestamp: #{timestamp}"
 
-    :ok = apply(state.publisher, :event, create_event_data(title, message, options))
+    Enum.each(data,fn(ev) ->
+      message = "[#{inspect(Encode.make_it_readable!(ev))}] - Timestamp: #{timestamp}"
+      :ok = apply(state.publisher, :event, create_event_data(title, message, options))
+    end)
 
     {:noreply, state}
   end
