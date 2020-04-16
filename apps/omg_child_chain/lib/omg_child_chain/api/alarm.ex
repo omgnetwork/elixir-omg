@@ -14,7 +14,7 @@
 
 defmodule OMG.ChildChain.API.Alarm do
   @moduledoc """
-  Watcher alarm API
+  Child Chain API for retrieving alarms.
   """
 
   alias OMG.Status.Alert.Alarm
