@@ -66,7 +66,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   Returns transactions possibly filtered by constraints
   * constraints - accepts keyword in the form of [schema_field: value]
   """
-  @spec get_by_filters(Keyword.t(), Paginator.t()) :: Paginator.t()
+  @spec get_by_filters(Keyword.t(), Paginator.t(%__MODULE__{})) :: Paginator.t(%__MODULE__{})
   def get_by_filters(constraints, paginator) do
     allowed_constraints = [:address, :blknum, :txindex, :txtypes, :metadata]
 

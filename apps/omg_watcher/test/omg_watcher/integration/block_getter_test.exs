@@ -77,7 +77,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       |> Enum.map(fn utxo -> Map.take(utxo, fields) end)
 
     utxos =
-      alice.addr
+      %{address: alice.addr}
       |> WatcherHelper.get_utxos()
       |> Enum.map(fn utxo -> Map.take(utxo, fields) end)
 
