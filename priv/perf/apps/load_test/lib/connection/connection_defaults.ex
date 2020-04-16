@@ -22,7 +22,7 @@ defmodule LoadTest.Connection.ConnectionDefaults do
   def middleware() do
     [
       {Tesla.Middleware.EncodeJson, engine: Poison},
-      {Tesla.Middleware.Headers, [{"user-agent", "Load-Test"}]},
+      {Tesla.Middleware.Headers, [{"user-agent", "Load-Test"}, {"Content-Type", "application/json"}]},
       {Tesla.Middleware.Retry, delay: 500, max_retries: 10, max_delay: 45_000, should_retry: retry?()},
       {Tesla.Middleware.Timeout, timeout: 30_000},
       {Tesla.Middleware.Opts, [adapter: [recv_timeout: 30_000, pool: pool_name()]]}
