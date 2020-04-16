@@ -45,6 +45,6 @@ defmodule OMG.Utils.Paginator do
     %__MODULE__{data: [], data_paging: data_paging}
   end
 
-  @spec set_data(list(), t(map()) :: t(%__MODULE__{})
+  @spec set_data(list(), t(%__MODULE__{})) :: t(%__MODULE__{})
   def set_data(data, paginator) when is_list(data), do: %__MODULE__{paginator | data: data}
 end
