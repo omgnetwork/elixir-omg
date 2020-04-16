@@ -19,30 +19,19 @@ defmodule OMG.EthTest do
   This shouldn't test the contract and should rely as little as possible on the contract logic.
   `OMG.Eth` is intended to be as thin and deprived of own logic as possible, to not require extensive testing.
 
-  Note the excluded moduletag, this test requires an explicit `--include wrappers`
   """
+  use ExUnit.Case, async: false
 
   alias OMG.Eth
-  alias OMG.Eth.ReleaseTasks.SetContract
+  alias OMG.Eth.Configuration
   alias Support.DevHelper
-  alias Support.SnapshotContracts
-
-  use ExUnit.Case, async: false
 
   @moduletag :common
 
   setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
-
-    data = SnapshotContracts.parse_contracts()
-
-    :ok = System.put_env("ETHEREUM_NETWORK", "LOCALCHAIN")
-    :ok = System.put_env("TXHASH_CONTRACT", data["AUTHORITY_ADDRESS"])
-    :ok = System.put_env("AUTHORITY_ADDRESS", data["AUTHORITY_ADDRESS"])
-    :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", data["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"])
-    SetContract.init([])
-
-    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [data["AUTHORITY_ADDRESS"], "", 0], [])
+    authority_address = Configuration.authority_address()
+    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [authority_address, "", 0], [])
 
     on_exit(exit_fn)
     :ok

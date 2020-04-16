@@ -250,7 +250,7 @@ All binary entries are expected in hex-encoded, `0x`-prefixed.
 
 * **`contract_addr`** - the address of the root chain contract
 
-* **`authority_addr`** - the address used by the operator to submit blocks
+* **`authority_address`** - the address used by the operator to submit blocks
 
 * **`txhash_contract`** - the Ethereum-transaction hash holding the deployment of the root chain contract
 

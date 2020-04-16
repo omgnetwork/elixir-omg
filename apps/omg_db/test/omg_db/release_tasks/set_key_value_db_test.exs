@@ -13,22 +13,15 @@
 # limitations under the License.
 
 defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
+  import ExUnit.CaptureLog, only: [capture_log: 1]
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
 
   @app :omg_db
-  @configuration_old Application.get_all_env(@app)
-
-  setup_all do
-    on_exit(fn ->
-      :ok =
-        Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
-    end)
-
-    :ok
-  end
 
   setup do
+    _ = Application.ensure_all_started(:logger)
+
     on_exit(fn ->
       :ok = System.delete_env("DB_PATH")
     end)
@@ -37,32 +30,25 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
   end
 
   test "if environment variables get applied in the configuration" do
-    :ok = System.put_env("DB_PATH", "/tmp/YOLO/")
-    :ok = SetKeyValueDB.init(release: :watcher_info)
-    configuration = Enum.sort(Application.get_all_env(@app))
-    "/tmp/YOLO/watcher_info" = configuration[:path]
+    test_path = "/tmp/YOLO/"
+    release = :watcher_info
+    :ok = System.put_env("DB_PATH", test_path)
 
-    ^configuration =
-      @configuration_old
-      |> Keyword.put(:path, "/tmp/YOLO/watcher_info")
-      |> Enum.sort()
-
-    :ok = System.delete_env("DB_PATH")
+    capture_log(fn ->
+      config = SetKeyValueDB.load([], release: release)
+      path = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:path)
+      assert path == test_path <> "#{release}"
+    end)
   end
 
   test "if default configuration is used when there's no environment variables" do
-    :ok = Enum.each(@configuration_old, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
-
     :ok = System.delete_env("DB_PATH")
-    :ok = SetKeyValueDB.init(release: :watcher_info)
-    configuration = Application.get_all_env(@app)
 
-    {_, configuration_old} =
-      Keyword.get_and_update(@configuration_old, :path, fn current_value ->
-        {current_value, Path.join([current_value, "#{:watcher_info}"])}
-      end)
+    capture_log(fn ->
+      config = SetKeyValueDB.load([], release: :watcher_info)
+      path = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:path)
 
-    sorted_configuration = Enum.sort(configuration)
-    ^sorted_configuration = Enum.sort(configuration_old)
+      assert path == Path.join([System.get_env("HOME"), ".omg/data"]) <> "/watcher_info"
+    end)
   end
 end

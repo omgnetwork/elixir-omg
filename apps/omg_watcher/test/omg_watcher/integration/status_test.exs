@@ -20,7 +20,7 @@ defmodule OMG.Watcher.Integration.StatusTest do
   @moduletag :integration
   @moduletag :watcher
 
-  @tag fixtures: [:in_beam_watcher, :root_chain_contract_config]
+  @tag fixtures: [:in_beam_watcher, :contract]
   test "status endpoint returns expected response format" do
     assert %{
              "last_validated_child_block_number" => 0,

@@ -1,6 +1,7 @@
 # Used by "mix format"
 [
   inputs: [
+    "config/*.exs",
     "rel/config.exs",
     "mix.exs",
     "apps/*/mix.exs",

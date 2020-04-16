@@ -17,24 +17,28 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   Detects if `FEE_ADAPTER` is set to `"FEED"` (case-insensitive). If so, it sets the system's
   fee adapter to FeedAdapter and configures it with values from related environment variables.
   """
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :omg_child_chain
   @config_key :fee_adapter
   @env_fee_adapter "FEE_ADAPTER"
 
-  @impl Provider
-  def init(_args) do
-    _ = Application.ensure_all_started(:logger)
+  def init(args) do
+    args
+  end
+
+  def load(config, _args) do
+    _ = on_load()
+
     existing_config = Application.get_env(@app, @config_key)
 
     @env_fee_adapter
     |> System.get_env()
     |> parse_adapter_value()
     |> case do
-      "FEED" -> configure_feed_adapter(existing_config)
-      _ -> :ok
+      "FEED" -> configure_feed_adapter(existing_config, config)
+      _ -> config
     end
   end
 
@@ -42,7 +46,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
   defp parse_adapter_value(value), do: String.upcase(value)
 
   # If the existing config is already a feed adapter, we merge the new config into the existing opts.
-  defp configure_feed_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: fee_adapter_opts}) do
+  defp configure_feed_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: fee_adapter_opts}, config) do
     adapter_opts =
       fee_adapter_opts
       |> replace_with_env(:fee_feed_url, "FEE_FEED_URL")
@@ -53,16 +57,15 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
         &validate_integer/1
       )
 
-    new_value = {OMG.ChildChain.Fees.FeedAdapter, opts: adapter_opts}
-    :ok = Application.put_env(@app, @config_key, new_value, persistent: true)
+    adapter = {OMG.ChildChain.Fees.FeedAdapter, opts: adapter_opts}
+    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(adapter)}.")
 
-    _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(new_value)}.")
-    :ok
+    Config.Reader.merge(config, omg_child_chain: [fee_adapter: adapter])
   end
 
   # If the existing config is not a feed adapter, we start configuring with an empty opts.
-  defp configure_feed_adapter(_not_feed_adapter) do
-    configure_feed_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: []})
+  defp configure_feed_adapter(_not_feed_adapter, config) do
+    configure_feed_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: []}, config)
   end
 
   defp validate_integer(value), do: String.to_integer(value)
@@ -94,5 +97,10 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
       end
 
     Keyword.put(opts, config_key, value)
+  end
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
   end
 end

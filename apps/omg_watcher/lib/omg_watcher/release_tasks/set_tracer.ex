@@ -14,22 +14,41 @@
 
 defmodule OMG.Watcher.ReleaseTasks.SetTracer do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_watcher
 
-  @impl Provider
-  def init(_args) do
-    _ = Application.ensure_all_started(:logger)
-    config = Application.get_env(@app, OMG.Watcher.Tracer)
-    config = Keyword.put(config, :disabled?, get_dd_disabled())
-    config = Keyword.put(config, :env, get_app_env())
+  def init(args) do
+    args
+  end
 
-    :ok = Application.put_env(@app, OMG.Watcher.Tracer, config, persistent: true)
+  def load(config, args) do
+    _ = on_load()
+    adapter = Keyword.get(args, :system_adapter, System)
+    _ = Process.put(:system_adapter, adapter)
+    dd_disabled = get_dd_disabled()
+
+    tracer_config =
+      @app
+      |> Application.get_env(OMG.Watcher.Tracer)
+      |> Keyword.put(:disabled?, dd_disabled)
+
+    tracer_config =
+      case dd_disabled do
+        false ->
+          app_env = get_app_env()
+          Keyword.put(tracer_config, :env, app_env)
+
+        true ->
+          Keyword.put(tracer_config, :env, "")
+      end
+
+    Config.Reader.merge(config, omg_watcher: [{OMG.Watcher.Tracer, tracer_config}])
   end
 
   defp get_dd_disabled() do
-    dd_disabled? = validate_bool(get_env("DD_DISABLED"), Application.get_env(@app, OMG.Watcher.Tracer)[:disabled?])
+    disabled = Application.get_env(@app, OMG.Watcher.Tracer)[:disabled?]
+    dd_disabled? = validate_bool(get_env("DD_DISABLED"), disabled)
 
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DD_DISABLED Value: #{inspect(dd_disabled?)}.")
     dd_disabled?
@@ -41,7 +60,9 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
     env
   end
 
-  defp get_env(key), do: System.get_env(key)
+  defp get_env(key) do
+    Process.get(:system_adapter).get_env(key)
+  end
 
   defp validate_bool(value, _default) when is_binary(value), do: to_bool(String.upcase(value))
   defp validate_bool(_, default), do: default
@@ -52,4 +73,9 @@ defmodule OMG.Watcher.ReleaseTasks.SetTracer do
 
   defp validate_app_env(value) when is_binary(value), do: value
   defp validate_app_env(nil), do: exit("APP_ENV must be set.")
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
+    _ = Application.load(@app)
+  end
 end

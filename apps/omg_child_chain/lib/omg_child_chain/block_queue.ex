@@ -42,6 +42,7 @@ defmodule OMG.ChildChain.BlockQueue do
   use OMG.Utils.LoggerExt
 
   alias OMG.Block
+  alias OMG.ChildChain.BlockQueue.Balance
   alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
@@ -136,7 +137,7 @@ defmodule OMG.ChildChain.BlockQueue do
     {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
     # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
-    :ok = OMG.Bus.subscribe("blocks", link: true)
+    :ok = OMG.Bus.subscribe({:child_chain, "blocks"}, link: true)
     metrics_collection_interval = Keyword.fetch!(args, :metrics_collection_interval)
     {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
@@ -215,7 +216,8 @@ defmodule OMG.ChildChain.BlockQueue do
           error
 
         {:ok, txhash} ->
-          GasAnalyzer.enqueue(txhash)
+          _ = GasAnalyzer.enqueue(txhash)
+          _ = Balance.check()
           :ok
 
         :ok ->

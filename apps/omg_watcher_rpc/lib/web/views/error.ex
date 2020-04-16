@@ -33,6 +33,15 @@ defmodule OMG.WatcherRPC.Web.Views.Error do
   end
 
   @doc """
+  Handles invalid input parsing errors, e.g. Content-Type not application/json
+  """
+  def render("415.json", _) do
+    "operation:bad_request"
+    |> Error.serialize("Invalid Content-Type header, use application/json.")
+    |> WatcherRPCResponse.add_app_infos()
+  end
+
+  @doc """
   Supports internal server error thrown by Phoenix.
   """
   def render("500.json", %{reason: %{message: message}} = _conn) do

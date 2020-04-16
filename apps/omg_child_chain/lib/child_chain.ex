@@ -29,11 +29,11 @@ defmodule OMG.ChildChain do
   alias OMG.State
   alias OMG.State.Transaction
 
-  @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error() | :transaction_not_supported
+  @type submit_result() :: {:ok, submit_success()} | {:error, submit_error()}
+  @typep submit_success() :: %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}
+  @typep submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error() | :transaction_not_supported
 
-  @spec submit(transaction :: binary) ::
-          {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
-          | {:error, submit_error()}
+  @spec submit(transaction :: binary) :: submit_result()
   def submit(transaction) do
     result =
       with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),

@@ -46,9 +46,9 @@ defmodule OMG.Eth.Configuration do
     Application.fetch_env!(@app, :txhash_contract)
   end
 
-  @spec authority_addr() :: no_return | binary()
-  def authority_addr() do
-    Application.fetch_env!(@app, :authority_addr)
+  @spec authority_address() :: no_return | binary()
+  def authority_address() do
+    Application.fetch_env!(@app, :authority_address)
   end
 
   @spec environment() :: :test | nil
@@ -64,5 +64,13 @@ defmodule OMG.Eth.Configuration do
   @spec eth_node() :: atom | no_return
   def eth_node() do
     Application.fetch_env!(@app, :eth_node)
+  end
+
+  def ethereum_events_check_interval_ms() do
+    Application.fetch_env!(@app, :ethereum_events_check_interval_ms)
+  end
+
+  def ethereum_stalled_sync_threshold_ms() do
+    Application.fetch_env!(@app, :ethereum_stalled_sync_threshold_ms)
   end
 end

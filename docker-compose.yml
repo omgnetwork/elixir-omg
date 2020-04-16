@@ -16,7 +16,7 @@ services:
       retries: 5
 
   geth:
-    image: ethereum/client-go:v1.9.11
+    image: ethereum/client-go:v1.9.12
     entrypoint:
       - /bin/sh
       - -c
@@ -63,13 +63,12 @@ services:
   childchain:
     image: omisego/child_chain:latest
     command: "full_local"
+    container_name: childchain
     env_file:
       - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
-      - ERLANG_COOKIE=develop
-      - NODE_HOST=127.0.0.1
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
@@ -81,6 +80,8 @@ services:
       - FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.dev.json
       - FEE_BUFFER_DURATION_MS=30000
       - LOGGER_BACKEND=console
+      - RELEASE_COOKIE=development
+      - NODE_HOST=127.0.0.1
     restart: always
     ports:
       - "9656:9656"
@@ -101,14 +102,13 @@ services:
   watcher:
     image: omisego/watcher:latest
     command: "full_local"
+    container_name: watcher
     env_file:
       - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://geth:8545
       - CHILD_CHAIN_URL=http://childchain:9656
-      - ERLANG_COOKIE=develop
-      - NODE_HOST=127.0.0.1
       - PORT=7434
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
@@ -120,6 +120,8 @@ services:
       - EXIT_PROCESSOR_SLA_MARGIN=5520
       - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
       - LOGGER_BACKEND=console
+      - RELEASE_COOKIE=development
+      - NODE_HOST=127.0.0.1
     restart: always
     ports:
       - "7434:7434"
@@ -138,6 +140,7 @@ services:
   watcher_info:
     image: omisego/watcher_info:latest
     command: "full_local"
+    container_name: watcher_info
     env_file:
       - ./localchain_contract_addresses.env
     environment:
@@ -145,8 +148,6 @@ services:
       - ETHEREUM_RPC_URL=http://geth:8545
       - CHILD_CHAIN_URL=http://childchain:9656
       - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
-      - ERLANG_COOKIE=develop
-      - NODE_HOST=127.0.0.1
       - PORT=7534
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
@@ -157,6 +158,8 @@ services:
       - EXIT_PROCESSOR_SLA_MARGIN=5520
       - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
       - LOGGER_BACKEND=console
+      - RELEASE_COOKIE=development
+      - NODE_HOST=127.0.0.1
     restart: always
     ports:
       - "7534:7534"

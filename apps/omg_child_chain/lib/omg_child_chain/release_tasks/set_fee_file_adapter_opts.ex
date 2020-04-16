@@ -17,7 +17,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFileAdapterOpts do
   Detects if `FEE_ADAPTER` is set to `"FILE"` (case-insensitive). If so, it sets the system's
   fee adapter to FileAdapter and configures it with values from related environment variables.
   """
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
 
   @app :omg_child_chain
@@ -25,29 +25,35 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFileAdapterOpts do
   @env_fee_adapter "FEE_ADAPTER"
   @env_fee_specs_file_path "FEE_SPECS_FILE_PATH"
 
-  @impl Provider
-  def init(_args) do
-    _ = Application.ensure_all_started(:logger)
+  def init(args) do
+    args
+  end
+
+  def load(config, _args) do
+    _ = on_load()
 
     @env_fee_adapter
     |> System.get_env()
     |> parse_adapter_value()
     |> case do
-      "FILE" -> configure_file_adapter()
-      _ -> :ok
+      "FILE" -> configure_file_adapter(config)
+      _ -> config
     end
   end
 
   defp parse_adapter_value(nil), do: :skip
   defp parse_adapter_value(value), do: String.upcase(value)
 
-  defp configure_file_adapter() do
+  defp configure_file_adapter(config) do
     specs_file_path = System.get_env(@env_fee_specs_file_path)
 
     adapter = {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_path: specs_file_path]}
-    :ok = Application.put_env(@app, @config_key, adapter, persistent: true)
-
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(adapter)}.")
-    :ok
+
+    Config.Reader.merge(config, omg_child_chain: [fee_adapter: adapter])
+  end
+
+  defp on_load() do
+    _ = Application.ensure_all_started(:logger)
   end
 end

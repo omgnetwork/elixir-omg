@@ -14,14 +14,17 @@
 
 defmodule OMG.WatcherInfo.ReleaseTasks.SetChildChain do
   @moduledoc false
-  use Distillery.Releases.Config.Provider
+  @behaviour Config.Provider
   require Logger
   @app :omg_watcher_info
 
-  @impl Provider
-  def init(_args) do
+  def init(args) do
+    args
+  end
+
+  def load(config, _args) do
     _ = Application.ensure_all_started(:logger)
-    :ok = Application.put_env(@app, :child_chain_url, get_app_env(), persistent: true)
+    Config.Reader.merge(config, omg_watcher_info: [child_chain_url: get_app_env()])
   end
 
   defp get_app_env() do

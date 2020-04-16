@@ -24,7 +24,6 @@ defmodule OMG.Watcher.Fixtures do
   alias OMG.Eth
   alias OMG.Status.Alert.Alarm
   alias OMG.TestHelper
-  alias Support.DevHelper
 
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
 
@@ -75,32 +74,14 @@ defmodule OMG.Watcher.Fixtures do
 
   deffixture mix_based_child_chain(contract, fee_file) do
     _ = contract
-    config_file_path = Briefly.create!(extname: ".exs")
+
     db_path = Briefly.create!(directory: true)
-    contract_addr = OMG.Eth.Configuration.contracts()
-    txhash = OMG.Eth.Configuration.txhash_contract()
-    authority_addr = OMG.Eth.Configuration.authority_addr()
-    contract = %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}
 
-    config_file_path
-    |> File.open!([:write])
-    |> IO.binwrite("""
-      #{DevHelper.create_conf_file(contract)}
-
-      config :omg_db, path: "#{db_path}"
-      # this causes the inner test child chain server process to log info. To see these logs adjust test's log level
-      config :logger, level: :info
-      config :omg_child_chain, fee_adapter_opts: [specs_file_path: "#{fee_file}"]
-    """)
-    |> File.close()
-
-    {:ok, config} = File.read(config_file_path)
-    Logger.debug(IO.ANSI.format([:blue, :bright, config], true))
     Logger.debug("Starting db_init")
 
     exexec_opts_for_mix = [
       stdout: :stream,
-      cd: Application.fetch_env!(:omg_watcher, :umbrella_root_dir),
+      cd: [Mix.Project.build_path(), "../../"] |> Path.join() |> Path.expand(),
       env: %{"MIX_ENV" => to_string(Mix.env())},
       # group 0 will create a new process group, equal to the OS pid of that process
       group: 0,
@@ -109,13 +90,13 @@ defmodule OMG.Watcher.Fixtures do
 
     {:ok, _db_proc, _ref, [{:stream, db_out, _stream_server}]} =
       Exexec.run_link(
-        "mix run --no-start -e ':ok = OMG.DB.init()' --config #{config_file_path} 2>&1",
+        "mix run --no-start -e ':ok = OMG.DB.init(\"#{db_path}\")' 2>&1\n",
         exexec_opts_for_mix
       )
 
-    db_out |> Enum.each(&log_output("db_init", &1))
+    Enum.each(db_out, &log_output("db_init", &1))
 
-    child_chain_mix_cmd = " mix xomg.child_chain.start --config #{config_file_path} 2>&1"
+    child_chain_mix_cmd = " mix xomg.child_chain.start --logger info --db \"#{db_path}\" --fee \"#{fee_file}\" 2>&1"
 
     Logger.info("Starting child_chain")
 
@@ -146,7 +127,6 @@ defmodule OMG.Watcher.Fixtures do
             other
         end
 
-      File.rm(config_file_path)
       File.rm_rf(db_path)
     end)
 
@@ -174,9 +154,9 @@ defmodule OMG.Watcher.Fixtures do
     line
   end
 
-  deffixture in_beam_watcher(db_initialized, root_chain_contract_config) do
+  deffixture in_beam_watcher(db_initialized, contract) do
     :ok = db_initialized
-    :ok = root_chain_contract_config
+    _ = contract
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_security_watcher} = Application.ensure_all_started(:omg_watcher)

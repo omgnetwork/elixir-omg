@@ -13,6 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.Status.Metric.Event do
+  @moduledoc """
+  A centralised repository of all emitted event types with description.
+  """
+
   @services [
     :challenges_responds_processor,
     :competitor_processor,
@@ -29,9 +33,21 @@ defmodule OMG.Status.Metric.Event do
     :piggyback_processor,
     :block_queue
   ]
-  @moduledoc """
-    A centralised repository of all emitted event types with description.
+
+  @doc """
+  Child Chain API's received transaction submission.
   """
+  def name(:transaction_submission), do: "transaction_submission"
+
+  @doc """
+  Child Chain API's successful processing of transaction submission.
+  """
+  def name(:transaction_submission_success), do: "transaction_submission_success"
+
+  @doc """
+  Child Chain API's failed processing of transaction submission.
+  """
+  def name(:transaction_submission_failed), do: "transaction_submission_failed"
 
   @doc """
   Childchain OMG.State mempool transactions
@@ -46,7 +62,12 @@ defmodule OMG.Status.Metric.Event do
   @doc """
   Child Chain Block queue gas usage metric
   """
-  def name(:block_subbmission), do: "block_subbmission_gas"
+  def name(:block_submission), do: "block_submission_gas"
+
+  @doc """
+  Child Chain authority address balance
+  """
+  def name(:authority_balance), do: "authority_balance"
 
   @doc """
   OMG.State balance per currency
