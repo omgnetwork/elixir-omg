@@ -76,7 +76,7 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
   defp get_path(opts) do
     case Keyword.fetch(opts, :specs_file_path) do
       {:ok, path} when is_binary(path) -> path
-      _ -> Application.app_dir(:omg_child_chain, "priv/fee_specs.json")
+      _ -> Path.join(:code.priv_dir(:omg_child_chain), "fee_specs.json")
     end
   end
 end
