@@ -411,6 +411,10 @@ jobs:
       image: ubuntu-1604:201903-01
     steps:
       - checkout
+      - run:
+          name: Setup data dir
+          command: |
+            [ -d data ] || mkdir data && chmod 777 data
       - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
