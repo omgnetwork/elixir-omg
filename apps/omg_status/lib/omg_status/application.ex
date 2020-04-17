@@ -30,6 +30,7 @@ defmodule OMG.Status.Application do
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
+    memory_check_interval_ms = Configuration.memory_check_interval_ms()
 
     children =
       if Configuration.datadog_disabled?() do
@@ -38,6 +39,7 @@ defmodule OMG.Status.Application do
       else
         [
           {OMG.Status.Monitor.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
+          {OMG.Status.Monitor.MemoryMonitor, [alarm_module: Alarm, interval_ms: memory_check_interval_ms]},
           VmstatsSink.prepare_child(),
           {SpandexDatadog.ApiServer, spandex_datadog_options()},
           {AlarmConsumer,
