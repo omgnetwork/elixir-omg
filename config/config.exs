@@ -107,7 +107,8 @@ config :omg_eth,
   node_logging_in_debug: false
 
 config :omg_status,
-  statsd_reconnect_backoff_ms: 10_000
+  statsd_reconnect_backoff_ms: 10_000,
+  memory_check_interval_ms: 10_000
 
 config :omg_status, OMG.Status.Metric.Tracer,
   service: :omg_status,
@@ -141,6 +142,11 @@ config :vmstats,
     binary: :binary,
     ets: :ets
   ]
+
+# Disable :os_mon's system_memory_high_watermark in favor of our own OMG.Status.Monitor.SystemMemory
+# See http://erlang.org/pipermail/erlang-questions/2006-September/023144.html
+config :os_mon,
+  system_memory_high_watermark: 1.00
 
 config :omg_watcher, child_chain_url: "http://localhost:9656"
 
