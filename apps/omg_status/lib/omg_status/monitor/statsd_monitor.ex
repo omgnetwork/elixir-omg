@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Status.Metric.StatsdMonitor do
+defmodule OMG.Status.Monitor.StatsdMonitor do
   @moduledoc """
-  This module is a custom implemented supervisor that monitors all it's chilldren
-
+  This module is a custom implemented supervisor that monitors all it's chilldren.
   """
   use GenServer
 

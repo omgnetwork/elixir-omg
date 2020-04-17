@@ -37,7 +37,7 @@ defmodule OMG.Status.Application do
         [{SpandexDatadog.ApiServer, spandex_datadog_options()}]
       else
         [
-          {OMG.Status.Metric.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
+          {OMG.Status.Monitor.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
           VmstatsSink.prepare_child(),
           {SpandexDatadog.ApiServer, spandex_datadog_options()},
           {AlarmConsumer,
