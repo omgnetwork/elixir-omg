@@ -319,38 +319,38 @@ docker-build-cluster: docker-child_chain docker-watcher docker-watcher_info
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
-docker-stop-cluster:
+docker-stop-cluster: localchain_contract_addresses.env
 	docker-compose down
 
-docker-update-watcher:
+docker-update-watcher: localchain_contract_addresses.env
 	docker stop elixir-omg_watcher_1
 	$(MAKE) docker-watcher
 	docker-compose up watcher
 
-docker-update-watcher_info:
+docker-update-watcher_info: localchain_contract_addresses.env
 	docker stop elixir-omg_watcher_info_1
 	$(MAKE) docker-watcher_info
 	docker-compose up watcher_info
 
-docker-update-child_chain:
+docker-update-child_chain: localchain_contract_addresses.env
 	docker stop elixir-omg_childchain_1
 	$(MAKE) docker-child_chain
 	docker-compose up childchain
 
-docker-start-cluster-with-infura:
+docker-start-cluster-with-infura: localchain_contract_addresses.env
 	if [ -f ./docker-compose.override.yml ]; then \
 		docker-compose -f docker-compose.yml -f docker-compose-infura.yml -f docker-compose.override.yml up; \
 	else \
 		echo "Starting infura requires overriding docker-compose-infura.yml values in a docker-compose.override.yml"; \
 	fi
 
-docker-start-cluster-with-datadog:
+docker-start-cluster-with-datadog: localchain_contract_addresses.env
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up watcher watcher_info childchain
 
-docker-stop-cluster-with-datadog:
+docker-stop-cluster-with-datadog: localchain_contract_addresses.env
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
-docker-nuke:
+docker-nuke: localchain_contract_addresses.env
 	docker-compose down --remove-orphans
 	docker system prune --all
 	$(MAKE) clean
@@ -364,7 +364,7 @@ docker-remote-watcher_info:
 
 docker-remote-childchain:
 	docker exec -ti childchain /app/bin/child_chain remote
-	
+
 .PHONY: docker-nuke docker-remote-watcher docker-remote-watcher_info docker-remote-childchain
 
 ###
@@ -460,7 +460,7 @@ get-alarms:
 	echo "\nWatcherInfo alarms" ; \
 	curl -s -X GET http://localhost:${WATCHER_INFO_PORT}/alarm.get
 
-cluster-stop:
+cluster-stop: localchain_contract_addresses.env
 	${MAKE} stop-watcher ; ${MAKE} stop-watcher_info ; ${MAKE} stop-child_chain ; docker-compose down
 
 ### git setup
@@ -510,3 +510,6 @@ diagnostics:
 	echo "\n ---------- END OF DIAGNOSTICS REPORT ----------"
 
 .PHONY: diagnostics
+
+localchain_contract_addresses.env:
+	$(MAKE) init-contracts
