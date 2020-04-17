@@ -24,13 +24,13 @@ defmodule OMG.Status.Application do
   alias OMG.Status.Configuration
   alias OMG.Status.DatadogEvent.AlarmConsumer
   alias OMG.Status.Metric.Datadog
-  alias OMG.Status.Metric.Tracer
   alias OMG.Status.Metric.VmstatsSink
 
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
-    memory_check_interval_ms = Configuration.memory_check_interval_ms()
+    system_memory_check_interval_ms = Configuration.system_memory_check_interval_ms()
+    system_memory_high_threshold = Configuration.system_memory_high_threshold()
 
     children =
       if Configuration.datadog_disabled?() do
@@ -39,7 +39,12 @@ defmodule OMG.Status.Application do
       else
         [
           {OMG.Status.Monitor.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
-          {OMG.Status.Monitor.MemoryMonitor, [alarm_module: Alarm, interval_ms: memory_check_interval_ms]},
+          {OMG.Status.Monitor.MemoryMonitor, [
+            alarm_module: Alarm,
+            memsup_module: :memsup,
+            threshold: system_memory_high_threshold,
+            interval_ms: system_memory_check_interval_ms
+          ]},
           VmstatsSink.prepare_child(),
           {SpandexDatadog.ApiServer, spandex_datadog_options()},
           {AlarmConsumer,

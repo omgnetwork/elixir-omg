@@ -16,11 +16,18 @@ defmodule OMG.Status.Configuration do
   @moduledoc """
   Provides access to applications configuration
   """
+  alias OMG.Status.Metric.Tracer
+
   @app :omg_status
 
-  @spec memory_check_interval_ms() :: integer() | no_return()
-  def memory_check_interval_ms() do
-    Application.fetch_env!(@app, :memory_check_interval_ms)
+  @spec system_memory_check_interval_ms() :: integer() | no_return()
+  def system_memory_check_interval_ms() do
+    Application.fetch_env!(@app, :system_memory_check_interval_ms)
+  end
+
+  @spec system_memory_high_threshold() :: float() | no_return()
+  def system_memory_high_threshold() do
+    Application.fetch_env!(@app, :system_memory_high_threshold)
   end
 
   @spec datadog_disabled?() :: boolean()

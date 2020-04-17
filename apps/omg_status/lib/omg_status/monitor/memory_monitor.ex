@@ -27,15 +27,17 @@ defmodule OMG.Status.Monitor.MemoryMonitor do
 
   @type t :: %__MODULE__{
           alarm_module: module(),
+          memsup_module: module(),
           interval_ms: pos_integer(),
-          pid: pid(),
+          threshold: float(),
           raised: boolean(),
           tref: reference() | nil
         }
 
   defstruct alarm_module: nil,
+            memsup_module: nil,
             interval_ms: nil,
-            pid: nil,
+            threshold: 1.0,
             raised: false,
             tref: nil
 
@@ -43,17 +45,21 @@ defmodule OMG.Status.Monitor.MemoryMonitor do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
+  # monitor init
   def init([_ | _] = opts) do
     _ = Logger.info("Starting #{inspect(__MODULE__)}.")
     install_alarm_handler()
 
     alarm_module = Keyword.fetch!(opts, :alarm_module)
+    memsup_module = Keyword.fetch!(opts, :memsup_module)
     interval_ms = Keyword.fetch!(opts, :interval_ms)
+    threshold = Keyword.fetch!(opts, :threshold)
 
     state = %__MODULE__{
       alarm_module: alarm_module,
+      memsup_module: memsup_module,
       interval_ms: interval_ms,
-      pid: pid
+      threshold: threshold
     }
 
     {:ok, state, {:continue, :first_check}}
@@ -72,8 +78,8 @@ defmodule OMG.Status.Monitor.MemoryMonitor do
   end
 
   def handle_info(:check, state) do
-    exceed_threshold? = system_memory_exceed_threshold?()
-    _ = raise_clear(alarm_module, state.raised, exceed_threshold?)
+    exceed_threshold? = system_memory_exceed_threshold?(state.memsup_module, state.threshold)
+    _ = raise_clear(state.alarm_module, state.raised, exceed_threshold?)
 
     {:ok, tref} = :timer.send_after(state.interval_ms, :check)
     {:noreply, %{state | tref: tref}}
@@ -105,7 +111,7 @@ defmodule OMG.Status.Monitor.MemoryMonitor do
   end
 
   def handle_event(event, state) do
-    _ = Logger.info("inspect(#{__MODULE__}) got event: #{inspect(event)}. Ignoring.")
+    _ = Logger.info("#{inspect(__MODULE__)} got event: #{inspect(event)}. Ignoring.")
     {:ok, state}
   end
 
@@ -113,16 +119,16 @@ defmodule OMG.Status.Monitor.MemoryMonitor do
   # Memory-checking logic
   #
 
-  defp system_memory_exceed_threshold?() do
-    memory = get_memory()
+  defp system_memory_exceed_threshold?(memsup_module, threshold) do
+    memory = get_memory(memsup_module)
     used = memory.total - (memory.free + memory.buffered + memory.cached)
     used_ratio = used / memory.total
 
     used_ratio > threshold
   end
 
-  defp get_memory() do
-    data = :memsup.get_system_memory_data()
+  defp get_memory(memsup_module) do
+    data = memsup_module.get_system_memory_data()
 
     %{
       total: Keyword.fetch!(data, :total_memory),

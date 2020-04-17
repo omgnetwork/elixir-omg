@@ -108,7 +108,8 @@ config :omg_eth,
 
 config :omg_status,
   statsd_reconnect_backoff_ms: 10_000,
-  memory_check_interval_ms: 10_000
+  system_memory_check_interval_ms: 10_000,
+  system_memory_high_threshold: 0.8
 
 config :omg_status, OMG.Status.Metric.Tracer,
   service: :omg_status,
