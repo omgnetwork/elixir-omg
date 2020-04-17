@@ -32,7 +32,7 @@ defmodule OMG.Status.Alert.Alarm do
            | :ethereum_stalled_sync
            | :invalid_fee_source
            | :statsd_client_connection
-           | :main_supervisor_halted,
+           | :main_supervisor_halted
            | :system_memory_too_high, alarm_detail}
 
   def alarm_types(),
