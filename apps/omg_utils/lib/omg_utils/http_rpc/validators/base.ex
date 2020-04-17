@@ -145,6 +145,12 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   def greater({val, []}, _b) when not is_integer(val), do: {val, [:integer]}
   def greater({val, []}, bound), do: {val, greater: bound}
 
+  @spec lesser({any(), list()}, integer()) :: {any(), list()}
+  def lesser({_, [_ | _]} = err, _b), do: err
+  def lesser({val, []}, bound) when is_integer(val) and val < bound, do: {val, []}
+  def lesser({val, []}, _b) when not is_integer(val), do: {val, [:integer]}
+  def lesser({val, []}, bound), do: {val, lesser: bound}
+
   @spec list({any(), list()}, function() | nil) :: {any(), list()}
   def list(tuple, mapper \\ nil)
   def list({_, [_ | _]} = err, _), do: err

@@ -27,8 +27,10 @@ help:
 	@echo "DOCKER DEVELOPMENT"
 	@echo "------------------"
 	@echo ""
-	@echo "  - \`make docker-build-cluster\`: build child_chain, watcher and watcher_info images \c"
+	@echo "  - \`make docker-build-start-cluster\`: build child_chain, watcher and watcher_info images \c"
 	@echo "from your current code base, then start a cluster with these freshly built images."
+	@echo ""
+	@echo " - \`make docker-build\`" build child_chain, watcher and watcher_info images from your current code base
 	@echo ""
 	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_info\` or \c"
 	@echo "\`make docker-update-child_chain\`: replaces containers with your code changes\c"
@@ -89,7 +91,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200407"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200410"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -249,7 +251,7 @@ changelog:
 .PHONY: changelog
 
 ###
-start-integration-watcher:
+start-integration-watcher: localchain_contract_addresses.env
 	docker-compose -f docker-compose-watcher.yml up
 ###
 
@@ -305,6 +307,8 @@ docker-watcher: docker-watcher-prod docker-watcher-build
 docker-watcher_info: docker-watcher_info-prod docker-watcher_info-build
 docker-child_chain: docker-child_chain-prod docker-child_chain-build
 
+docker-build: docker-watcher docker-watcher_info docker-child_chain
+
 docker-push: docker
 	docker push $(CHILD_CHAIN_IMAGE_NAME)
 	docker push $(WATCHER_IMAGE_NAME)
@@ -315,7 +319,8 @@ docker-start-cluster:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
-docker-build-cluster: docker-child_chain docker-watcher docker-watcher_info
+docker-build-start-cluster:
+	$(MAKE) docker-build
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
@@ -490,7 +495,7 @@ api_specs: security_critical_api_specs info_api_specs operator_api_specs
 ### Diagnostics report
 ###
 
-diagnostics:
+diagnostics: localchain_contract_addresses.env
 	echo "---------- START OF DIAGNOSTICS REPORT ----------"
 	echo "\n---------- CHILDCHAIN LOGS ----------"
 	docker-compose logs childchain

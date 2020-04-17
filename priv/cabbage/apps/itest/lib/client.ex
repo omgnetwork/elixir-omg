@@ -15,7 +15,6 @@ defmodule Itest.Client do
   @moduledoc """
     An interface to Watcher API.
   """
-  alias Itest.ApiModel.Utxo
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Deposit
   alias Itest.Transactions.Encoding
@@ -96,10 +95,15 @@ defmodule Itest.Client do
     submit_typed(typed_data_signed)
   end
 
-  def get_utxos(address) do
-    payload = %AddressBodySchema1{address: address}
-    {:ok, response} = Account.account_get_utxos(WatcherInfo.new(), payload)
-    Poison.decode!(response.body, as: %{"data" => [%Utxo{}]})["data"]
+  def get_utxos(params) do
+    default_paging = %{page: 1, limit: 200}
+    %{address: address, page: page, limit: limit} = Map.merge(default_paging, params)
+
+    {:ok, response} =
+      Account.account_get_utxos(WatcherInfo.new(), %AddressBodySchema1{address: address, page: page, limit: limit})
+
+    data = Jason.decode!(response.body)
+    {:ok, data}
   end
 
   def get_gas_used(receipt_hash), do: Itest.Gas.get_gas_used(receipt_hash)

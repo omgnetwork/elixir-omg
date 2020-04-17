@@ -16,7 +16,7 @@ defmodule OMG.WatcherInfo.API.Account do
   @moduledoc """
   Module provides operations related to plasma accounts.
   """
-
+  alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
 
   @doc """
@@ -30,8 +30,8 @@ defmodule OMG.WatcherInfo.API.Account do
   @doc """
   Gets all utxos belonging to the given address.
   """
-  @spec get_utxos(OMG.Crypto.address_t()) :: list(%DB.TxOutput{})
-  def get_utxos(address) do
-    DB.TxOutput.get_utxos(address)
+  @spec get_utxos(Keyword.t()) :: Paginator.t(%DB.TxOutput{})
+  def get_utxos(params) do
+    DB.TxOutput.get_utxos(params)
   end
 end
