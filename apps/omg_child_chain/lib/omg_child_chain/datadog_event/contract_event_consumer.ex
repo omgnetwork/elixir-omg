@@ -85,7 +85,7 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
     options = tags(aggregation_key, state.release, state.current_version, timestamp)
     title = "#{event_name}"
 
-    Enum.each(data, fn(ev) ->
+    Enum.each(data, fn ev ->
       message = "[#{inspect(Encode.make_it_readable!(ev))}] - Timestamp: #{timestamp}"
       :ok = apply(state.publisher, :event, create_event_data(title, message, options))
     end)

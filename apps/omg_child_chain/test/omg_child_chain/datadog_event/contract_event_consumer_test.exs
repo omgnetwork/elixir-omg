@@ -54,7 +54,8 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumerTest do
     sig = "#{topic_name}(bytes32)"
     data = [%{event_signature: sig}, %{event_signature: sig}]
     {:root_chain, topic_name} |> OMG.Bus.Event.new(:data, data) |> OMG.Bus.direct_local_broadcast()
-    Enum.each(data, fn(_) ->
+
+    Enum.each(data, fn _ ->
       assert_receive {:event, _, _}
     end)
   end
