@@ -87,7 +87,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   @doc """
   Returns a list of blocks
   """
-  @spec get_blocks(Paginator.t()) :: Paginator.t()
+  @spec get_blocks(Paginator.t(%DB.Block{})) :: Paginator.t(%DB.Block{})
   def get_blocks(paginator) do
     query_get_last(paginator.data_paging)
     |> DB.Repo.all()

@@ -1,5 +1,5 @@
 AddressBodySchema:
-  description: HEX-encoded address of the account
+  description: HEX-encoded address of the account and pagination fields
   required: true
   content:
     application/json:
@@ -9,8 +9,18 @@ AddressBodySchema:
         properties:
           address:
             type: string
+          page:
+            type: integer
+            format: int32
+            default: 1            
+          limit:
+            type: integer
+            format: int32
+            default: 200
              
         required:
           - address
         example:
           address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+          limit: 100
+          page: 2

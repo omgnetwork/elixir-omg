@@ -13,12 +13,13 @@
 # limitations under the License.
 
 defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
+  alias OMG.Utils.HttpRPC.Encoding
+
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
   import OMG.Utils.HttpRPC.Validator.Base
 
-  @bin_value <<179, 37, 96, 38, 134, 62, 182, 174, 91, 6, 250, 57, 106, 176, 144, 105, 120, 78, 168, 234>>
   @params %{
     "int_1" => -1_234_567_890,
     "int_2" => 0,
@@ -26,31 +27,42 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     "nint_1" => "1234567890",
     "nil" => nil,
     "opt_1" => true,
-    "hex_1" => "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
-    "hex_2" => "0xB3256026863EB6aE5B06fA396AB09069784ea8eA",
-    "hex_3" => "0xB3256026863EB6AE5B06FA396AB09069784EA8EA",
-    "nhex_1" => "b3256026863eb6ae5b06fa396ab09069784ea8ea",
+    "hex_1" => "0x1234567890abcdef",
+    "hex_2" => "0x1234567890AbCdEf",
+    "hex_3" => "0x1234567890ABCDEF",
+    "non_hex_1" => "!@#$%^&*().?",
+    "non_hex_2" => "1234567890ABCDE",
+    "non_hex_3" => "1234567890ABCDEZ",
+    "valid_address" => "0x" <> String.duplicate("00", 20),
+    "non_hex_address" => "0x" <> String.duplicate("ZZ", 20),
+    "too_long_address" => "0x" <> String.duplicate("00", 21),
+    "too_short_address" => "0x" <> String.duplicate("00", 19),
+    "valid_signature" => "0x" <> String.duplicate("00", 65),
+    "non_hex_signature" => "0x" <> String.duplicate("ZZ", 65),
+    "too_long_signature" => "0x" <> String.duplicate("00", 66),
+    "too_short_signature" => "0x" <> String.duplicate("00", 64),
+    "valid_hash" => "0x" <> String.duplicate("00", 32),
+    "non_hex_hash" => "0x" <> String.duplicate("ZZ", 32),
+    "too_long_hash" => "0x" <> String.duplicate("00", 33),
+    "too_short_hash" => "0x" <> String.duplicate("00", 31),
     "len_1" => "1",
     "len_2" => <<1, 2, 3, 4, 5>>,
     "max_len_1" => [1, 2, 3, 4, 5]
   }
 
   describe "Basic validation:" do
-    test "integer, positive" do
+    test "integer: positive cases" do
       assert {:ok, -1_234_567_890} == expect(@params, "int_1", :integer)
-
       assert {:ok, 0} == expect(@params, "int_2", :integer)
-
       assert {:ok, 1_234_567_890} == expect(@params, "int_3", [:integer])
     end
 
-    test "integer, negative" do
+    test "integer: negative cases" do
       assert {:error, {:validation_error, "nint_1", :integer}} == expect(@params, "nint_1", :integer)
-
       assert {:error, {:validation_error, "nil", :integer}} == expect(@params, "nil", :integer)
     end
 
-    test "optional, positive" do
+    test "optional: positive cases" do
       assert {:ok, 0} == expect(@params, "int_2", :optional)
       assert {:ok, true} == expect(@params, "opt_1", :optional)
       assert {:ok, nil} == expect(@params, "no_such_key", [:optional])
@@ -68,57 +80,62 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
       assert {:error, {:validation_error, "list", :list}} == expect(%{}, "list", list: &(&1 * 2), optional: false)
     end
 
-    test "optional, negative" do
+    test "optional: negative cases" do
       assert {:error, {:validation_error, "nil", :integer}} == expect(@params, "nil", [:optional, :integer])
     end
 
-    test "hex, positive" do
-      assert {:ok, @bin_value} == expect(@params, "hex_1", :hex)
-      assert {:ok, @bin_value} == expect(@params, "hex_2", :hex)
-      assert {:ok, @bin_value} == expect(@params, "hex_3", :hex)
+    test "hex: positive cases" do
+      {:ok, hex_1_value} = @params |> Map.get("hex_1") |> Encoding.from_hex()
+      assert {:ok, hex_1_value} == expect(@params, "hex_1", :hex)
+
+      {:ok, hex_2_value} = @params |> Map.get("hex_2") |> Encoding.from_hex()
+      assert {:ok, hex_2_value} == expect(@params, "hex_2", :hex)
+
+      {:ok, hex_3_value} = @params |> Map.get("hex_3") |> Encoding.from_hex()
+      assert {:ok, hex_3_value} == expect(@params, "hex_3", :hex)
     end
 
-    test "hex, negative" do
-      assert {:error, {:validation_error, "nhex_1", :hex}} == expect(@params, "nhex_1", :hex)
+    test "hex: negative cases" do
+      assert {:error, {:validation_error, "non_hex_1", :hex}} == expect(@params, "non_hex_1", :hex)
     end
 
-    test "length, positive" do
+    test "length: positive cases" do
       assert {:ok, "1"} == expect(@params, "len_1", length: 1)
       assert {:ok, <<1, 2, 3, 4, 5>>} == expect(@params, "len_2", length: 5)
       assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 10)
       assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 5)
     end
 
-    test "length, negative" do
+    test "length: negative cases" do
       assert {:error, {:validation_error, "len_1", {:length, 5}}} == expect(@params, "len_1", length: 5)
       assert {:error, {:validation_error, "len_2", {:length, 1}}} == expect(@params, "len_2", length: 1)
       assert {:error, {:validation_error, "max_len_1", {:max_length, 3}}} == expect(@params, "max_len_1", max_length: 3)
     end
 
-    test "max_length, positive" do
+    test "max_length: positive cases" do
       assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 10)
       assert {:ok, [1, 2, 3, 4, 5]} == expect(@params, "max_len_1", max_length: 5)
     end
 
-    test "max_length, negative" do
+    test "max_length: negative cases" do
       assert {:error, {:validation_error, "max_len_1", {:max_length, 3}}} == expect(@params, "max_len_1", max_length: 3)
     end
 
-    test "list, positive" do
+    test "list: positive cases" do
       list = [1, "a", :b]
       assert {:ok, list} == expect(%{"list" => list}, "list", :list)
     end
 
-    test "list, negative" do
+    test "list: negative cases" do
       assert {:error, {:validation_error, "list", :list}} == expect(%{"list" => "[42]"}, "list", :list)
     end
 
-    test "map, positive" do
+    test "map: positive cases" do
       map = %{"a" => 0, "b" => 1}
       assert {:ok, map} == expect(%{"map" => map}, "map", :map)
     end
 
-    test "map, negative" do
+    test "map: negative cases" do
       assert {:error, {:validation_error, "map", :map}} == expect(%{"map" => [42]}, "map", :map)
     end
 
@@ -160,53 +177,87 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
              do: {:ok, %{currency: currency, amount: amount}}
       end
 
-      assert {:ok, %{currency: @bin_value, amount: 100}} =
+      {:ok, address_value} = @params |> Map.get("valid_address") |> Encoding.from_hex()
+
+      assert {:ok, %{currency: address_value, amount: 100}} ==
                expect(
-                 %{"fee" => %{"currency" => @params["hex_2"], "amount" => 100}},
+                 %{"fee" => %{"currency" => @params["valid_address"], "amount" => 100}},
                  "fee",
                  map: parser
                )
 
       assert {:error, {:validation_error, "fee.currency", :hex}} =
                expect(
-                 %{"fee" => %{"currency" => "not-an-address", "amount" => 100}},
+                 %{"fee" => %{"currency" => @params["non_hex_address"], "amount" => 100}},
                  "fee",
                  map: parser
                )
     end
 
     test "unwrapping results list" do
-      list = 0..9 |> Enum.to_list()
+      list = Enum.to_list(0..9)
 
-      ok_list = list |> Enum.map(&{:ok, &1})
+      ok_list = Enum.map(list, &{:ok, &1})
       assert list == all_success_or_error(ok_list)
 
       error = {:error, "bad news"}
-      list_with_err = [error | ok_list] |> Enum.shuffle()
+      list_with_err = Enum.shuffle([error | ok_list])
       assert error == all_success_or_error(list_with_err)
     end
   end
 
   describe "Preprocessors:" do
-    test "greater, positive" do
+    test "greater: positive cases" do
       assert {:ok, 0} == expect(@params, "int_2", greater: -1)
 
       assert {:ok, 1_234_567_890} == expect(@params, "int_3", greater: 1_000_000_000)
     end
 
-    test "greater, negative" do
+    test "greater: negative cases" do
       assert {:error, {:validation_error, "int_2", {:greater, 0}}} == expect(@params, "int_2", greater: 0)
 
       assert {:error, {:validation_error, "nint_1", :integer}} == expect(@params, "nint_1", greater: 0)
     end
 
-    test "address should validate both hex value and its length" do
-      assert {:ok, @bin_value} == expect(@params, "hex_1", :address)
+    test "address should validate both hex value and length" do
+      {:ok, address_value} = @params |> Map.get("valid_address") |> Encoding.from_hex()
+      assert {:ok, address_value} == expect(@params, "valid_address", :address)
 
-      assert {:error, {:validation_error, "nhex_1", :hex}} == expect(@params, "nhex_1", :address)
+      assert {:error, {:validation_error, "non_hex_address", :hex}} == expect(@params, "non_hex_address", :address)
 
-      assert {:error, {:validation_error, "short", {:length, 20}}} ==
-               expect(%{"short" => "0xdeadbeef"}, "short", :address)
+      assert {:error, {:validation_error, "too_short_address", {:length, 20}}} ==
+               expect(@params, "too_short_address", :address)
+
+      assert {:error, {:validation_error, "too_long_address", {:length, 20}}} ==
+               expect(@params, "too_long_address", :address)
+    end
+
+    test "signature should validate both hex value and length" do
+      {:ok, signature_value} = @params |> Map.get("valid_signature") |> Encoding.from_hex()
+      assert {:ok, signature_value} == expect(@params, "valid_signature", :signature)
+
+      assert {:error, {:validation_error, "non_hex_signature", :hex}} ==
+               expect(@params, "non_hex_signature", :signature)
+
+      assert {:error, {:validation_error, "too_short_signature", {:length, 65}}} ==
+               expect(@params, "too_short_signature", :signature)
+
+      assert {:error, {:validation_error, "too_long_signature", {:length, 65}}} ==
+               expect(@params, "too_long_signature", :signature)
+    end
+
+    test "hash should validate both hex value and length" do
+      {:ok, hash_value} = @params |> Map.get("valid_hash") |> Encoding.from_hex()
+      assert {:ok, hash_value} == expect(@params, "valid_hash", :hash)
+
+      assert {:error, {:validation_error, "non_hex_hash", :hex}} ==
+               expect(@params, "non_hex_hash", :hash)
+
+      assert {:error, {:validation_error, "too_short_hash", {:length, 32}}} ==
+               expect(@params, "too_short_hash", :hash)
+
+      assert {:error, {:validation_error, "too_long_hash", {:length, 32}}} ==
+               expect(@params, "too_long_hash", :hash)
     end
   end
 

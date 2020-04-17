@@ -19,12 +19,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20200407
+      - image: omisegoimages/elixir-omg-builder:stable-20200410
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20200407
+      - image: omisegoimages/elixir-omg-builder:stable-20200410
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -34,7 +34,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:stable-20200407
+      - image: omisegoimages/elixir-omg-tester:stable-20200410
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -44,7 +44,7 @@ executors:
 
   deployer:
     docker:
-      - image: omisegoimages/elixir-omg-deploy:stable-20200407
+      - image: omisegoimages/elixir-omg-deploy:stable-20200410
     working_directory: ~/src
 
 commands:
@@ -179,7 +179,7 @@ jobs:
       - setup_elixir-omg_workspace
       - run: make install-hex-rebar
       - run: mix do compile --warnings-as-errors --force, credo --ignore-checks Credo.Check.Readability.SinglePipe, format --check-formatted --dry-run
-      - run: 
+      - run:
           command: |
             export SHELL=/bin/bash
             set +eo pipefail
@@ -190,7 +190,7 @@ jobs:
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi
-             
+
 
   lint_version:
     executor: builder
@@ -533,9 +533,9 @@ jobs:
           name: Install deps
           command: |
             set -e
-            sudo killall dpkg || true &&	
-            sudo rm /var/lib/dpkg/lock || true &&	
-            sudo rm /var/cache/apt/archives/lock || true &&	
+            sudo killall dpkg || true &&
+            sudo rm /var/lib/dpkg/lock || true &&
+            sudo rm /var/cache/apt/archives/lock || true &&
             sudo dpkg --configure -a || true &&
             sudo apt-get update &&
             ./bin/setup
@@ -568,7 +568,7 @@ jobs:
           name: Run Watcher
           command: |
             set -e
-            make start-watcher OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone            
+            make start-watcher OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
           background: true
           no_output_timeout: 2400
       - run:
@@ -740,7 +740,7 @@ workflows:
           requires:
             - child_chain_coveralls_and_integration_tests
             - watcher_coveralls_and_integration_tests
-            
+
             - common_coveralls_and_integration_tests
             - test
       - child_chain_coveralls_and_integration_tests:
