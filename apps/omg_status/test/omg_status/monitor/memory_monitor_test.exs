@@ -37,24 +37,24 @@ defmodule OMG.Status.Monitor.MemoryMonitorTest do
   end
 
   test "raises an alarm if used memory is above the threshold" do
-    set_memsup([total_memory: 1000, free_memory: 100, buffered_memory: 0, cached_memory: 0])
+    set_memsup(total_memory: 1000, free_memory: 100, buffered_memory: 0, cached_memory: 0)
     assert_receive :got_raise_alarm
   end
 
   test "clears the alarm if used memory is below threshold", context do
     :sys.replace_state(context.monitor_pid, fn state -> %{state | raised: true} end)
-    set_memsup([total_memory: 1000, free_memory: 201, buffered_memory: 0, cached_memory: 0])
+    set_memsup(total_memory: 1000, free_memory: 201, buffered_memory: 0, cached_memory: 0)
     assert_receive :got_clear_alarm
   end
 
   test "raises an alarm if combined used memory is above the threshold" do
-    set_memsup([total_memory: 1000, free_memory: 60, buffered_memory: 60, cached_memory: 60])
+    set_memsup(total_memory: 1000, free_memory: 60, buffered_memory: 60, cached_memory: 60)
     assert_receive :got_raise_alarm
   end
 
   test "clears the alarm if combined used memory is below threshold", context do
     :sys.replace_state(context.monitor_pid, fn state -> %{state | raised: true} end)
-    set_memsup([total_memory: 1000, free_memory: 70, buffered_memory: 70, cached_memory: 70])
+    set_memsup(total_memory: 1000, free_memory: 70, buffered_memory: 70, cached_memory: 70)
     assert_receive :got_clear_alarm
   end
 
