@@ -77,15 +77,15 @@ defmodule OMG.ChildChain.DatadogEvent.ContractEventConsumer do
     the assumption is all events are of the same type
   """
   def handle_info({:internal_event_bus, :data, data}, state) do
-    %{event_signature: event_signature} = hd(data)
-    [event_name, _] = String.split(event_signature, "(")
     aggregation_key = :root_chain
     timestamp = DateTime.to_unix(DateTime.utc_now(), :millisecond)
 
     options = tags(aggregation_key, state.release, state.current_version, timestamp)
-    title = "#{event_name}"
 
     Enum.each(data, fn ev ->
+      %{event_signature: event_signature} = ev
+      [event_name, _] = String.split(event_signature, "(")
+      title = "#{event_name}"
       message = "[#{inspect(Encode.make_it_readable!(ev))}] - Timestamp: #{timestamp}"
       :ok = apply(state.publisher, :event, create_event_data(title, message, options))
     end)
