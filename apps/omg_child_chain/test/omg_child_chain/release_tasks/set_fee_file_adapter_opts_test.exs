@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.ChildChain.ReleaseTasks.SetFeeFileAdapterOptsTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   alias OMG.ChildChain.Fees.FileAdapter
   alias OMG.ChildChain.ReleaseTasks.SetFeeFileAdapterOpts
 
@@ -26,49 +26,39 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFileAdapterOptsTest do
     original_config = Application.get_all_env(@app)
 
     on_exit(fn ->
+      # Delete all related env vars
+      :ok = System.delete_env(@env_fee_adapter)
+      :ok = System.delete_env(@env_fee_specs_file_path)
+
       # configuration is global state so we reset it to known values in case it got fiddled before
       :ok = Enum.each(original_config, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
     end)
 
-    {:ok, %{original_config: original_config}}
+    :ok
   end
 
   test "sets the fee adapter to FileAdapter and the given path" do
     :ok = System.put_env(@env_fee_adapter, "file")
     :ok = System.put_env(@env_fee_specs_file_path, "/tmp/YOLO/fee_file.json")
-    :ok = SetFeeFileAdapterOpts.init([])
+    config = SetFeeFileAdapterOpts.load([], [])
 
-    {adapter, opts: adapter_opts} = Application.get_env(@app, @config_key)
+    {adapter, opts: adapter_opts} = config[@app][@config_key]
     assert adapter == FileAdapter
     assert adapter_opts[:specs_file_path] == "/tmp/YOLO/fee_file.json"
-
-    :ok = System.delete_env(@env_fee_adapter)
-    :ok = System.delete_env(@env_fee_specs_file_path)
   end
 
   test "does not change the configuration when FEE_ADAPTER is not \"file\"" do
-    original_config = Application.get_env(@app, @config_key)
     :ok = System.put_env(@env_fee_adapter, "not_file_adapter")
     :ok = System.put_env(@env_fee_specs_file_path, "/tmp/YOLO/fee_file.json")
-    :ok = SetFeeFileAdapterOpts.init([])
 
-    assert Application.get_env(@app, @config_key) == original_config
-
-    :ok = System.delete_env(@env_fee_adapter)
-    :ok = System.delete_env(@env_fee_specs_file_path)
+    assert SetFeeFileAdapterOpts.load([], []) == []
   end
 
-  test "no other configurations got affected", context do
+  test "no other configurations got affected" do
     :ok = System.put_env(@env_fee_adapter, "file")
     :ok = System.put_env(@env_fee_specs_file_path, "/tmp/YOLO/fee_file.json")
-    :ok = SetFeeFileAdapterOpts.init([])
+    config = SetFeeFileAdapterOpts.load([], [])
 
-    new_configs = @app |> Application.get_all_env() |> Keyword.delete(@config_key) |> Enum.sort()
-    old_configs = context.original_config |> Keyword.delete(@config_key) |> Enum.sort()
-
-    assert new_configs == old_configs
-
-    :ok = System.delete_env(@env_fee_adapter)
-    :ok = System.delete_env(@env_fee_specs_file_path)
+    assert Keyword.delete(config[@app], @config_key) == []
   end
 end

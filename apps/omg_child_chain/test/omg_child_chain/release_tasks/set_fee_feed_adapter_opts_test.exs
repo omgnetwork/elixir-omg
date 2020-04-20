@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   alias OMG.ChildChain.Fees.FeedAdapter
   alias OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts
 
@@ -38,7 +38,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
       :ok = Enum.each(original_config, fn {key, value} -> Application.put_env(@app, key, value, persistent: true) end)
     end)
 
-    {:ok, %{original_config: original_config}}
+    :ok
   end
 
   test "sets the fee adapter to FeedAdapter and configure with its related env vars" do
@@ -46,9 +46,9 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
     :ok = System.put_env(@env_fee_feed_url, "http://example.com/fee-feed-url")
     :ok = System.put_env(@env_fee_change_tolerance_percent, "10")
     :ok = System.put_env(@env_stored_fee_update_interval_minutes, "600")
-    :ok = SetFeeFeedAdapterOpts.init([])
+    config = SetFeeFeedAdapterOpts.load([], [])
 
-    {adapter, opts: adapter_opts} = Application.get_env(@app, @config_key)
+    {adapter, opts: adapter_opts} = config[@app][@config_key]
     assert adapter == FeedAdapter
     assert adapter_opts[:fee_feed_url] == "http://example.com/fee-feed-url"
     assert adapter_opts[:fee_change_tolerance_percent] == 10
@@ -59,10 +59,10 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
     :ok = System.put_env(@env_fee_adapter, "feed")
 
     :ok = System.put_env(@env_fee_change_tolerance_percent, "1.5")
-    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.init([]) end
+    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.load([], []) end
 
     :ok = System.put_env(@env_fee_change_tolerance_percent, "not integer")
-    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.init([]) end
+    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.load([], []) end
   end
 
   test "raises an ArgumentError when STORED_FEE_UPDATE_INTERVAL_MINUTES is not a stingified integer" do
@@ -70,10 +70,10 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
     :ok = System.put_env(@env_stored_fee_update_interval_minutes, "not a number")
 
     :ok = System.put_env(@env_stored_fee_update_interval_minutes, "100.20")
-    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.init([]) end
+    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.load([], []) end
 
     :ok = System.put_env(@env_stored_fee_update_interval_minutes, "not integer")
-    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.init([]) end
+    assert_raise ArgumentError, fn -> SetFeeFeedAdapterOpts.load([], []) end
   end
 
   test "does not touch the configuration that's not present as env var" do
@@ -88,9 +88,10 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
     # Intentionally not configuring @env_fee_feed_url and @env_stored_fee_update_interval_minutes
     :ok = System.put_env(@env_fee_adapter, "feed")
     :ok = System.put_env(@env_fee_change_tolerance_percent, "50")
-    :ok = SetFeeFeedAdapterOpts.init([])
+    config = SetFeeFeedAdapterOpts.load([], [])
 
-    {adapter, opts: adapter_opts} = Application.get_env(@app, @config_key)
+    {adapter, opts: adapter_opts} = config[@app][@config_key]
+
     assert adapter == FeedAdapter
     assert adapter_opts[:fee_feed_url] == original_opts[:fee_feed_url]
     assert adapter_opts[:fee_change_tolerance_percent] == 50
@@ -98,27 +99,21 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
   end
 
   test "does not change the configuration when FEE_ADAPTER is not \"feed\"" do
-    original_config = Application.get_env(@app, @config_key)
-
     :ok = System.put_env(@env_fee_adapter, "not_feed_adapter")
     :ok = System.put_env(@env_fee_feed_url, "http://example.com/fee-feed-url")
     :ok = System.put_env(@env_fee_change_tolerance_percent, "10")
     :ok = System.put_env(@env_stored_fee_update_interval_minutes, "60000")
-    :ok = SetFeeFeedAdapterOpts.init([])
 
-    assert Application.get_env(@app, @config_key) == original_config
+    assert SetFeeFeedAdapterOpts.load([], []) == []
   end
 
-  test "no other configurations got affected", context do
+  test "no other configurations got affected" do
     :ok = System.put_env(@env_fee_adapter, "feed")
     :ok = System.put_env(@env_fee_feed_url, "http://example.com/fee-feed-url")
     :ok = System.put_env(@env_fee_change_tolerance_percent, "10")
     :ok = System.put_env(@env_stored_fee_update_interval_minutes, "60000")
-    :ok = SetFeeFeedAdapterOpts.init([])
+    config = SetFeeFeedAdapterOpts.load([], [])
 
-    new_configs = @app |> Application.get_all_env() |> Keyword.delete(@config_key) |> Enum.sort()
-    old_configs = context.original_config |> Keyword.delete(@config_key) |> Enum.sort()
-
-    assert new_configs == old_configs
+    assert Keyword.delete(config[@app], @config_key) == []
   end
 end
