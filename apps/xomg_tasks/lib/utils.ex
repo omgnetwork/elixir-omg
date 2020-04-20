@@ -47,11 +47,15 @@ defmodule XomgTasks.Utils do
   def config_fee(args, arg) do
     index = Enum.find_index(args, fn x -> x == arg end)
 
-    Application.put_env(:omg_child_chain, :fee_adapter, {OMG.ChildChain.Fees.FileAdapter,
-      opts: [
-       specs_file_path: Enum.at(args, index + 1)
-      ]
-    }, persistent: true)
+    Application.put_env(
+      :omg_child_chain,
+      :fee_adapter,
+      {OMG.ChildChain.Fees.FileAdapter,
+       opts: [
+         specs_file_path: Enum.at(args, index + 1)
+       ]},
+      persistent: true
+    )
 
     args
   end
