@@ -356,7 +356,7 @@ docker-stop-cluster-with-datadog: localchain_contract_addresses.env
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
 docker-nuke: localchain_contract_addresses.env
-	docker-compose down --remove-orphans
+	docker-compose down --remove-orphans --volumes
 	docker system prune --all
 	$(MAKE) clean
 	$(MAKE) init-contracts
