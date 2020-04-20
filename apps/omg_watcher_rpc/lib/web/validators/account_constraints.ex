@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraints do
+defmodule OMG.WatcherRPC.Web.Validator.AccountConstraints do
   @moduledoc """
-  Validates `/transaction.all` query parameters
+  Validates `/account.get_utxos` query parameters
   """
-  import OMG.Utils.HttpRPC.Validator.Base, only: [expect: 3]
+
   alias OMG.WatcherRPC.Web.Validator.Helpers
-  @max_tx_types 16
 
   @doc """
   Validates possible query constraints, stops on first error.
@@ -26,18 +25,11 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraints do
   @spec parse(%{binary() => any()}) :: {:ok, Keyword.t()} | {:error, any()}
   def parse(params) do
     constraints = [
-      {"address", [:address, :optional], :address},
-      {"blknum", [:pos_integer, :optional], :blknum},
-      {"metadata", [:hash, :optional], :metadata},
-      {"txtypes", [list: &to_tx_type/1, max_length: @max_tx_types, optional: true], :txtypes},
       {"limit", [pos_integer: true, lesser: 1000, optional: true], :limit},
-      {"page", [:pos_integer, :optional], :page}
+      {"page", [:pos_integer, :optional], :page},
+      {"address", [:address], :address}
     ]
 
     Helpers.validate_constraints(params, constraints)
-  end
-
-  defp to_tx_type(tx_type_str) do
-    expect(%{"txtype" => tx_type_str}, "txtype", :non_neg_integer)
   end
 end
